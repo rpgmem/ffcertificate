@@ -1,0 +1,542 @@
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Free Form Certificate\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-12-11 20:12+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: \n"
+"Language: \n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Loco https://localise.biz/\n"
+"X-Loco-Version: 2.8.0; wp-6.9; php-8.2.29\n"
+"X-Domain: ffc"
+
+#: includes/class-ffc-cpt.php:332
+#, php-format
+msgid "%s (Copy)"
+msgstr ""
+
+#: includes/class-ffc-submissions-list-table.php:100
+msgid "(Excluído)"
+msgstr ""
+
+#. Author of the plugin
+msgid "[Seu Nome]"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:121
+msgid "Add New Field"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:21
+msgid "Add New Form"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:198
+msgid "Admin Notification Emails (comma separated)"
+msgstr ""
+
+#: includes/class-ffc-admin.php:389
+msgid "All data deleted."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:22
+msgid "All Forms"
+msgstr ""
+
+#. Description of the plugin
+msgid ""
+"Allows creation of dynamic forms, saves submissions, generates a PDF "
+"certificate, and enables CSV export."
+msgstr ""
+
+#: includes/class-ffc-admin.php:433
+msgid "Are you sure? This will delete ALL submissions history."
+msgstr ""
+
+#: includes/class-ffc-frontend.php:270
+msgid ""
+"Atenção: Os dados informados não constam na lista de habilitados para emitir "
+"este certificado."
+msgstr ""
+
+#: includes/class-ffc-admin.php:419
+msgid "Auto-delete submissions older than (days)"
+msgstr ""
+
+#: includes/class-ffc-submissions-list-table.php:68
+msgid "Ações"
+msgstr ""
+
+#: includes/class-ffc-admin.php:122
+msgid "Baixar CSV"
+msgstr ""
+
+#: includes/class-ffc-admin.php:196
+msgid "Cancelar"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:88
+msgid "Certificado Autêntico"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:342
+msgid "Certificado já emitido anteriormente. Baixando 2ª via..."
+msgstr ""
+
+#: includes/class-ffc-frontend.php:109
+msgid "Certificado não encontrado ou código inválido."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:221
+msgid "Certificate Configuration"
+msgstr ""
+
+#: includes/class-ffc-admin.php:441
+msgid "Como usar o Plugin"
+msgstr ""
+
+#: includes/class-ffc-admin.php:446
+msgid "Configurar o Certificado (PDF Layout)"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:203
+msgid "Controle de Acesso (Lista Prévia)"
+msgstr ""
+
+#: includes/class-ffc-admin.php:456
+msgid ""
+"Copie o shortcode abaixo (substitua o ID pelo ID do seu formulário) e cole "
+"em qualquer Página ou Post do WordPress:"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:64
+msgid "Copy this Shortcode:"
+msgstr ""
+
+#: includes/class-ffc-admin.php:443
+msgid "Criar um Formulário"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:89
+msgid "Código:"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:94
+msgid "Dados do Participante:"
+msgstr ""
+
+#: includes/class-ffc-submissions-list-table.php:61
+msgid "Dados JSON"
+msgstr ""
+
+#: includes/class-ffc-admin.php:432
+msgid "Danger Zone"
+msgstr ""
+
+#: includes/class-ffc-submissions-list-table.php:38
+msgid "Data"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:163
+msgid "Date"
+msgstr ""
+
+#: includes/class-ffc-admin.php:436
+msgid "Delete ALL Submissions Data"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:117
+msgid "Digite o código (ex: A1B2-C3D4-E5F6)"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:311
+msgid "Duplicate"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:311
+msgid "Duplicate this form"
+msgstr ""
+
+#: includes/class-ffc-admin.php:166
+msgid "Editar Submissão"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:159
+#: includes/class-ffc-submissions-list-table.php:39
+msgid "Email"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:251
+msgid "Email address is required."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:239
+msgid "Email Body"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:235
+msgid "Email Subject"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:91
+msgid "Emitido em:"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:260
+msgid ""
+"Erro de Configuração: Este formulário exige um campo com o nome \"cpf_rf\" "
+"para validação."
+msgstr ""
+
+#: includes/class-ffc-frontend.php:237
+#, php-format
+msgid "Erro: O campo \"%s\" deve conter apenas números."
+msgstr ""
+
+#: includes/class-ffc-submission-handler.php:54
+msgid "Error saving to database."
+msgstr ""
+
+#: includes/class-ffc-frontend.php:90
+msgid "Evento:"
+msgstr ""
+
+#: includes/class-ffc-submissions-list-table.php:84
+msgid "Excluir Selecionados"
+msgstr ""
+
+#: includes/class-ffc-admin.php:448
+msgid "Exemplo:"
+msgstr ""
+
+#: includes/class-ffc-admin.php:452
+msgid "Exibe a data atual/envio."
+msgstr ""
+
+#: includes/class-ffc-admin.php:108
+#, php-format
+msgid "Exportar CSV: %s"
+msgstr ""
+
+#: includes/class-ffc-admin.php:130
+msgid "Exportar Tudo (Sem Filtro)"
+msgstr ""
+
+#: includes/class-ffc-submissions-list-table.php:186
+msgid "Filtrar Colunas"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:76
+msgid "For dates, the variable is usually {{date}}."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:42
+msgid "Form Builder and Configuration"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:88
+msgid "Form Configuration"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:222
+msgid "Form configuration not found."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:87
+msgid "Form Fields Builder"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:143
+msgid "Form has no fields."
+msgstr ""
+
+#: includes/class-ffc-frontend.php:138
+msgid "Form not found."
+msgstr ""
+
+#: includes/class-ffc-submissions-list-table.php:37
+msgid "Formulário"
+msgstr ""
+
+#. Name of the plugin
+#: includes/class-ffc-cpt.php:20
+msgid "Free Form Certificate"
+msgstr ""
+
+#: includes/class-ffc-admin.php:406
+msgid "General Settings"
+msgstr ""
+
+#: includes/class-ffc-admin.php:255
+msgid "Gerar Certificados"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:52
+msgid "How to Use / Shortcode"
+msgstr ""
+
+#: includes/class-ffc-admin.php:409
+msgid "How to Use / Shortcodes"
+msgstr ""
+
+#: includes/class-ffc-submissions-list-table.php:36
+msgid "ID"
+msgstr ""
+
+#: includes/class-ffc-submissions-list-table.php:83
+msgid "Imprimir/Gerar PDF Selecionados"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:216
+msgid "Insira um número por linha."
+msgstr ""
+
+#: includes/class-ffc-frontend.php:214
+msgid "Invalid Form ID."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:328
+msgid "Invalid post."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:150
+msgid "Label"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:215
+msgid "Lista de Usuários Permitidos (CPF/RF)"
+msgstr ""
+
+#: includes/class-ffc-admin.php:447
+msgid ""
+"Na aba \"PDF Layout HTML\", use HTML e CSS inline para desenhar seu "
+"certificado. Para exibir os dados do usuário, use chaves duplas com o nome "
+"do campo."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:153
+msgid "Name (key)"
+msgstr ""
+
+#: includes/class-ffc-submissions-list-table.php:26
+msgid "Nenhum registro encontrado."
+msgstr ""
+
+#: includes/class-ffc-submission-handler.php:190
+msgid "No data to export."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:158
+msgid "Number"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:167
+msgid "Option1,Option2,..."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:69
+msgid "Paste this code into any Page or Post to display the form."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:243
+msgid "PDF Layout HTML"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:18
+msgctxt "Post Type General Name"
+msgid "Forms"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:19
+msgctxt "Post Type Singular Name"
+msgid "Form"
+msgstr ""
+
+#: includes/class-ffc-admin.php:455
+msgid "Publicar no Site (Shortcode)"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:162
+msgid "Radio"
+msgstr ""
+
+#: includes/class-ffc-admin.php:83
+msgid "Registro excluído."
+msgstr ""
+
+#: includes/class-ffc-admin.php:156
+msgid "Registro não encontrado."
+msgstr ""
+
+#: includes/class-ffc-admin.php:91
+msgid "Registros excluídos."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:173
+msgid "Remove"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:170
+msgid "Req?"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:207
+msgid "Restringir envio por Lista Prévia?"
+msgstr ""
+
+#: includes/class-ffc-admin.php:459
+msgid "Restrição por CPF (Lista)"
+msgstr ""
+
+#: includes/class-ffc-submissions-list-table.php:65
+msgid "Resumo dos Dados"
+msgstr ""
+
+#: includes/class-ffc-admin.php:195
+msgid "Salvar Alterações"
+msgstr ""
+
+#: includes/class-ffc-admin.php:460
+msgid ""
+"Se deseja restringir quem pode gerar o certificado, ative a opção "
+"\"Restringir envio\" nas configurações do formulário. É OBRIGATÓRIO criar um "
+"campo com o Name Attribute <code>cpf_rf</code>."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:211
+msgid ""
+"Se marcado, apenas os usuários listados abaixo poderão gerar o certificado. "
+"O formulário DEVE ter um campo com o \"Name Attribute\" definido como "
+"\"cpf_rf\"."
+msgstr ""
+
+#: includes/class-ffc-admin.php:142
+msgid "Search"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:161
+msgid "Select"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:172
+msgid "Select..."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:226
+msgid "Send Certificate via Email"
+msgstr ""
+
+#: includes/class-ffc-admin.php:422
+msgid "Set to 0 to disable auto-cleanup."
+msgstr ""
+
+#: includes/class-ffc-admin.php:32 includes/class-ffc-admin.php:33
+msgid "Settings"
+msgstr ""
+
+#: includes/class-ffc-admin.php:402
+msgid "Settings & Help"
+msgstr ""
+
+#: includes/class-ffc-admin.php:384
+msgid "Settings saved."
+msgstr ""
+
+#: includes/class-ffc-admin.php:23 includes/class-ffc-admin.php:24
+#: includes/class-ffc-admin.php:99
+msgid "Submissions"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:197
+msgid "Submit"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:194
+msgid "Success Message"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:157
+msgid "Text"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:160
+msgid "Textarea"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:347
+msgid ""
+"Thank you! Your certificate has been sent to your email and the download "
+"will start shortly."
+msgstr ""
+
+#: includes/class-ffc-frontend.php:349
+msgid ""
+"Thank you! Your certificate is being generated and will download "
+"automatically."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:73
+msgid "Tips:"
+msgstr ""
+
+#: includes/class-ffc-cpt.php:75
+msgid "Use <b>{{field_name}}</b> in the PDF Layout to insert user data."
+msgstr ""
+
+#: includes/class-ffc-admin.php:272
+msgid ""
+"Use o botão abaixo para salvar como PDF (Destino: Salvar como PDF) ou "
+"imprimir."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:244
+msgid "Use placeholders like {{field_name}}."
+msgstr ""
+
+#: includes/class-ffc-admin.php:451
+msgid "Variáveis Especiais:"
+msgstr ""
+
+#: includes/class-ffc-submissions-list-table.php:179
+msgid "Ver Todos (Resumo)"
+msgstr ""
+
+#: includes/class-ffc-frontend.php:119
+msgid "Verificar"
+msgstr ""
+
+#: includes/class-ffc-admin.php:271
+msgid "Visualização de Impressão / PDF"
+msgstr ""
+
+#: includes/class-ffc-admin.php:274
+msgid "Voltar"
+msgstr ""
+
+#: includes/class-ffc-admin.php:444
+msgid ""
+"Vá em \"Add New Form\". Adicione campos usando o construtor. Lembre-se de "
+"definir o \"Name Attribute\" de cada campo (ex: <code>nome_completo</code>), "
+"pois é esse nome que você usará no certificado."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:230
+msgid ""
+"Warning: Enabling this may slow down the submission process significantly "
+"depending on your server speed. Not recommended if you expect high traffic. "
+"The user can download the certificate immediately on the screen."
+msgstr ""
+
+#: includes/class-ffc-cpt.php:318
+msgid "You do not have permission to duplicate this post."
+msgstr ""
+
+#: includes/class-ffc-admin.php:273
+msgid "🖨️ Imprimir / Salvar PDF"
+msgstr ""

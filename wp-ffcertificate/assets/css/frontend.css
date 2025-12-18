@@ -1,0 +1,256 @@
+/* ==========================================================================
+   1. ESTILO DO FORMULÁRIO (Frontend)
+   ========================================================================== */
+
+/* Wrapper principal para isolar estilos */
+.ffc-form-wrapper {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #e2e4e7;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.ffc-submission-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Campos individuais */
+.ffc-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.ffc-form-field label {
+    font-weight: 600;
+    font-size: 15px;
+    color: #333;
+}
+
+.ffc-form-field .required {
+    color: #d63638;
+    margin-left: 3px;
+}
+
+/* Inputs, Selects e Textareas */
+.ffc-form-field input[type="text"],
+.ffc-form-field input[type="email"],
+.ffc-form-field input[type="date"],
+.ffc-form-field input[type="number"],
+.ffc-form-field select,
+.ffc-form-field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 15px;
+    line-height: 1.5;
+    box-sizing: border-box; /* Essencial para não estourar a largura */
+    transition: border-color 0.2s;
+}
+
+.ffc-form-field input:focus,
+.ffc-form-field select:focus,
+.ffc-form-field textarea:focus {
+    border-color: #2271b1;
+    outline: none;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+.ffc-form-field textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* Grupo de Radio Buttons */
+.ffc-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.ffc-radio-group label {
+    font-weight: normal; /* Labels de opções não devem ser bold */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.ffc-radio-group input[type="radio"] {
+    margin: 0;
+}
+
+/* ==========================================================================
+   2. BOTÃO DE SUBMISSÃO E DOWNLOAD
+   ========================================================================== */
+.ffc-submit-btn {
+    background-color: #2271b1;
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    align-self: flex-start;
+}
+
+.ffc-submit-btn:hover {
+    background-color: #135e96;
+}
+
+.ffc-submit-btn:disabled {
+    background-color: #a7aaad;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Botão de Download Manual na mensagem de sucesso */
+.ffc-btn-download {
+    display: inline-block;
+    padding: 10px 15px;
+    background-color: #28a745; /* Verde Sucesso */
+    color: #fff !important;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 10px;
+    transition: background-color 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.ffc-btn-download:hover {
+    background-color: #218838;
+    color: #fff !important;
+}
+
+/* ==========================================================================
+   3. MENSAGENS DE FEEDBACK (JS)
+   ========================================================================== */
+.ffc-message {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    display: none; /* Controlado pelo JS */
+    line-height: 1.4;
+}
+
+.ffc-message p {
+    margin: 0;
+    padding: 0;
+}
+
+/* Estilo de Sucesso */
+.ffc-message.ffc-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+/* Estilo de Erro */
+.ffc-message.ffc-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Mensagem de download adicional (gerada pelo JS) */
+.ffc-download-msg {
+    font-weight: bold;
+    margin-top: 8px !important;
+}
+
+/* ==========================================================================
+   4. ESTILO DA PÁGINA DE VERIFICAÇÃO (NOVO)
+   ========================================================================== */
+
+/* Container centralizado da busca */
+.ffc-verification-container {
+    max-width: 600px;
+    margin: 0 auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* O Campo de Input do Código */
+.ffc-verification-container input[name="ffc_auth_code"] {
+    /* Visual de Código */
+    font-family: "Courier New", Courier, monospace; 
+    text-transform: uppercase; 
+    font-size: 20px;
+    letter-spacing: 3px; 
+    
+    text-align: center;
+    font-weight: bold;
+    color: #333;
+    
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    padding: 15px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.ffc-verification-container input[name="ffc_auth_code"]:focus {
+    border-color: #2271b1;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(34, 113, 177, 0.2);
+}
+
+.ffc-verification-container input[name="ffc_auth_code"]::placeholder {
+    font-family: sans-serif; /* Placeholder com fonte normal */
+    letter-spacing: normal;
+    text-transform: none;
+    font-size: 14px;
+    font-weight: normal;
+    color: #aaa;
+}
+
+/* Resultado da Verificação */
+.ffc-verify-success, 
+.ffc-verify-error {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    animation: fadeIn 0.5s ease-in-out;
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+/* Animação suave */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   RESPONSIVIDADE
+   ========================================================================== */
+@media (max-width: 480px) {
+    .ffc-form-wrapper {
+        padding: 15px;
+        margin: 10px;
+    }
+
+    .ffc-submit-btn {
+        width: 100%; /* Botão largura total no mobile */
+        text-align: center;
+    }
+    
+    /* Ajuste para input de código no mobile */
+    .ffc-verification-container input[name="ffc_auth_code"] {
+        font-size: 16px;
+        letter-spacing: 1px;
+        padding: 12px;
+    }
+}

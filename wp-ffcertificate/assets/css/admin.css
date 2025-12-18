@@ -1,0 +1,166 @@
+/* ==========================================================================
+   1. ABAS DO METABOX (Estilo nativo do WP)
+   ========================================================================== */
+.ffc-metabox-tabs {
+    margin-top: 10px;
+}
+
+.ffc-metabox-tabs .ffc-tabs-nav {
+    border-bottom: 1px solid #c3c4c7;
+    margin: 0 0 15px;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    gap: 5px;
+}
+
+.ffc-metabox-tabs .ffc-tabs-nav li {
+    background: #f0f0f1;
+    border: 1px solid #c3c4c7;
+    border-bottom: none;
+    padding: 8px 14px;
+    margin-bottom: -1px; /* Sobrepõe a borda inferior */
+    color: #2271b1;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: 4px 4px 0 0;
+    transition: background 0.2s, color 0.2s;
+}
+
+.ffc-metabox-tabs .ffc-tabs-nav li:hover {
+    background: #f6f7f7;
+    color: #135e96;
+}
+
+.ffc-metabox-tabs .ffc-tabs-nav li.nav-tab-active {
+    background: #ffffff;
+    border-bottom: 1px solid #ffffff;
+    color: #1d2327;
+    pointer-events: none; /* Desativa clique na aba ativa */
+}
+
+/* Conteúdo das abas */
+.ffc-metabox-tab-content {
+    padding: 10px;
+    background: #fff;
+}
+
+/* ==========================================================================
+   2. FORM BUILDER (Construtor de Campos)
+   ========================================================================== */
+#ffc-fields-container {
+    margin-bottom: 15px;
+    border: 1px solid #c3c4c7;
+    background: #fff;
+}
+
+/* Linha do campo (Flexbox para alinhamento perfeito) */
+.ffc-field-row {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #f0f0f1;
+    background: #fff;
+    gap: 10px;
+}
+
+.ffc-field-row:last-child {
+    border-bottom: none;
+}
+
+.ffc-field-row:hover {
+    background: #fcfcfc;
+}
+
+/* Área de arraste (Handle) */
+.ffc-sort-handle {
+    cursor: move;
+    color: #a7aaad;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.ffc-sort-handle:hover {
+    color: #2271b1;
+}
+
+/* Grupos de inputs dentro da linha */
+.ffc-field-group {
+    flex: 1; /* Distribui espaço */
+}
+
+/* Ajustes específicos de largura para inputs */
+.ffc-field-group input[type="text"],
+.ffc-field-group select {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Checkbox (Req?) centralizado e menor */
+.ffc-field-group:nth-last-child(2) {
+    flex: 0 0 60px;
+    text-align: center;
+    font-size: 12px;
+}
+
+/* Botão de remover (Lixeira) */
+.ffc-field-group:last-child {
+    flex: 0 0 40px;
+    text-align: right;
+}
+
+.ffc-remove-field {
+    color: #d63638 !important;
+    border-color: #d63638 !important;
+}
+
+.ffc-remove-field:hover {
+    background: #d63638 !important;
+    color: #fff !important;
+}
+
+/* Ações Gerais (Botão Adicionar) */
+.ffc-add-field-actions {
+    padding: 10px 0;
+    text-align: right;
+}
+
+/* Editor de Código para PDF Layout */
+textarea.code {
+    font-family: Consolas, Monaco, monospace;
+    font-size: 13px;
+    background: #f0f0f1;
+}
+
+/* Correção para a Tabela de Submissões */
+.wp-list-table.submissions {
+    table-layout: auto !important;
+}
+
+.wp-list-table.submissions td, 
+.wp-list-table.submissions th {
+    vertical-align: top !important;
+    white-space: normal !important; /* Permite quebra de linha */
+    padding: 8px 10px !important;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+/* Garante largura mínima para colunas de dados */
+.wp-list-table.submissions td {
+    min-width: 100px;
+}
+
+/* Estilo para dados brutos (se houver) */
+.ffc-data-raw {
+    background: #f9f9f9;
+    padding: 5px;
+    border: 1px solid #eee;
+    font-family: monospace;
+    font-size: 11px;
+    max-height: 100px;
+    overflow-y: auto;
+    display: block;
+}
