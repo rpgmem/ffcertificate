@@ -9,18 +9,7 @@ if( ! class_exists( 'WP_List_Table' ) ) {
 
 class FFC_Submission_List extends WP_List_Table {
 
-    /**
-     * @var FFC_Submission_Repository
-     */
-    protected $repository;
-
-    /**
-     * Construtor injetando o repositório.
-     * @param FFC_Submission_Repository $repository
-     */
-    public function __construct( $repository ) {
-        $this->repository = $repository;
-
+    public function __construct() {
         parent::__construct( array(
             'singular' => 'submission',
             'plural'   => 'submissions',
@@ -34,13 +23,21 @@ class FFC_Submission_List extends WP_List_Table {
 
     // --- VIEW TABS (Assets / Trash) ---
     protected function get_views() {
-        $count_publish = $this->repository->count( array( 'status' => 'publish' ) );
-        $count_trash   = $this->repository->count( array( 'status' => 'trash' ) );
-
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_submissions';
+        
+        // Basic sanitation
         $status = isset($_REQUEST['status']) ? sanitize_key($_REQUEST['status']) : 'publish';
         if ( ! in_array( $status, array( 'publish', 'trash' ) ) ) {
             $status = 'publish';
         }
+
+        // Safe counting (Assuming the 'status' column exists in DB)
+        $count_publish = $wpdb->get_var("SELECT COUNT(id) FROM $table_name WHERE status = 'publish'");
+        $count_trash   = $wpdb->get_var("SELECT COUNT(id) FROM $table_name WHERE status = 'trash'");
+        
+        $count_publish = $count_publish ? intval($count_publish) : 0;
+        $count_trash   = $count_trash ? intval($count_trash) : 0;
 
         $views = array(
             'publish' => sprintf(
@@ -70,7 +67,6 @@ class FFC_Submission_List extends WP_List_Table {
             'form_name'       => __( 'Form', 'ffc' ),
         );
 
-        // Colunas Dinâmicas baseadas no Formulário filtrado
         if ( ! empty( $_GET['filter_form_id'] ) ) {
             $form_id = absint( $_GET['filter_form_id'] );
             $fields  = get_post_meta( $form_id, '_ffc_form_fields', true );
@@ -81,6 +77,7 @@ class FFC_Submission_List extends WP_List_Table {
                         $col_key = sanitize_text_field( $field['name'] );
                         $col_label = ! empty( $field['label'] ) ? $field['label'] : $field['name'];
                         
+                        // It does not overwrite default columns
                         if( ! isset( $columns[ $col_key ] ) ) {
                             $columns[ $col_key ] = esc_html( $col_label );
                         }
@@ -113,13 +110,13 @@ class FFC_Submission_List extends WP_List_Table {
             );
         } else {
             return array(
-                'bulk_print' => __( 'Print/Generate PDF', 'ffc' ), // Pode ser implementado no futuro no Controller
+                'bulk_print' => __( 'Print/Generate PDF', 'ffc' ),
                 'bulk_trash' => __( 'Move to Trash', 'ffc' )
             );
         }
     }
 
-    // --- RENDERIZAÇÃO DE LINHAS ---
+    // --- LINE RENDERING (USING ARRAYS) ---
 
     public function column_cb( $item ) {
         return sprintf( '<input type="checkbox" name="submission[]" value="%s" />', esc_attr( $item['id'] ) );
@@ -155,6 +152,7 @@ class FFC_Submission_List extends WP_List_Table {
             if ( $count >= 3 ) break;
             if ( in_array( $k, array( 'auth_code', 'cpf_rf', 'fill_date' ) ) ) continue;
             
+            // Checks if it's a string or a number to avoid an Array to String error
             if ( is_string( $v ) || is_numeric( $v ) ) {
                 $output[] = '<strong>' . esc_html( ucfirst($k) ) . ':</strong> ' . esc_html( $v );
                 $count++;
@@ -168,6 +166,7 @@ class FFC_Submission_List extends WP_List_Table {
         if ( ! is_array( $data ) ) $data = json_decode( stripslashes( $item['data'] ), true );
         
         if ( is_array( $data ) && isset( $data[ $column_name ] ) ) {
+            // If it's an array (e.g., multiple checkboxes), convert it to a string
             if ( is_array( $data[ $column_name ] ) ) {
                 return esc_html( implode( ', ', $data[ $column_name ] ) );
             }
@@ -176,7 +175,7 @@ class FFC_Submission_List extends WP_List_Table {
         return '-';
     }
 
-    // --- COLUNA DE AÇÕES (Botões) ---
+    // --- ACTIONS COLUMN ---
     public function column_actions( $item ) {
         $base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' );
         $status = isset($_REQUEST['status']) ? sanitize_key($_REQUEST['status']) : 'publish';
@@ -184,39 +183,25 @@ class FFC_Submission_List extends WP_List_Table {
         $actions = array();
         $id = absint( $item['id'] );
 
-        // URLs de Ação
         if ( $status === 'trash' ) {
-            // Restore & Delete Permanent
             $restore_url = wp_nonce_url( add_query_arg( array( 'action' => 'restore', 'submission_id' => $id ), $base_url ), 'ffc_restore_submission' );
             $delete_url  = wp_nonce_url( add_query_arg( array( 'action' => 'delete', 'submission_id' => $id ), $base_url ), 'ffc_delete_submission' );
             
             $actions[] = sprintf( '<a href="%s" class="button button-small">%s</a>', esc_url( $restore_url ), __( 'Restore', 'ffc' ) );
             $actions[] = sprintf( '<a href="%s" class="button button-small button-link-delete" onclick="return confirm(\'%s\')">%s</a>', esc_url( $delete_url ), esc_js( __( 'Delete permanently?', 'ffc' ) ), __( 'Delete', 'ffc' ) );
-        
         } else {
-            // Edit
-            $edit_url  = add_query_arg( array( 'ffc_action' => 'edit_submission', 'submission_id' => $id ), $base_url );
+            $edit_url  = add_query_arg( array( 'action' => 'edit', 'submission_id' => $id ), $base_url );
+            $trash_url = wp_nonce_url( add_query_arg( array( 'action' => 'trash', 'submission_id' => $id ), $base_url ), 'ffc_trash_submission' );
+
             $actions[] = sprintf( '<a href="%s" class="button button-small">%s</a>', esc_url( $edit_url ), __( 'Edit', 'ffc' ) );
             
-            // PDF (ATUALIZADO)
-            // Gera URL segura com Nonce para o Controller processar o download
-            $pdf_url = wp_nonce_url( 
-                add_query_arg( array(
-                    'action'        => 'download_pdf',
-                    'submission_id' => $id
-                ), $base_url ),
-                'ffc_download_pdf_' . $id
-            );
-
-            // Usamos target="_blank" para baixar sem sair da página
+            // PDF BUTTON FOR JS (Keeping classes and data-id)
             $actions[] = sprintf( 
-                '<a href="%s" target="_blank" class="button button-small button-primary">%s</a>', 
-                esc_url( $pdf_url ), 
-                __( 'PDF', 'ffc' ) 
+                '<button type="button" class="button button-small button-primary ffc-admin-pdf-btn" data-id="%d">%s</button>', 
+                $id,
+                __( 'PDF', 'ffc' )
             );
 
-            // Trash
-            $trash_url = wp_nonce_url( add_query_arg( array( 'action' => 'trash', 'submission_id' => $id ), $base_url ), 'ffc_trash_submission' );
             $actions[] = sprintf( '<a href="%s" class="button button-small button-link-delete" onclick="return confirm(\'%s\')">%s</a>', esc_url( $trash_url ), esc_js( __( 'Move to Trash?', 'ffc' ) ), __( 'Trash', 'ffc' ) );
         }
 
@@ -225,6 +210,7 @@ class FFC_Submission_List extends WP_List_Table {
 
     public function extra_tablenav( $which ) {
         if ( $which == 'top' ) {
+            // `get_posts` can be heavy with many forms, but it's the WP standard
             $forms = get_posts( array( 'post_type' => 'ffc_form', 'posts_per_page' => -1, 'post_status' => 'any' ) );
             $current = isset( $_GET['filter_form_id'] ) ? absint( $_GET['filter_form_id'] ) : 0;
             ?>
@@ -243,9 +229,11 @@ class FFC_Submission_List extends WP_List_Table {
         }
     }
 
-    // --- PREPARAÇÃO DE DADOS ---
+    // --- DATA PREPARATION ---
     public function prepare_items() {
-        
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_submissions';
+
         $per_page = 50;
         $columns  = $this->get_columns();
         $hidden   = array();
@@ -253,39 +241,47 @@ class FFC_Submission_List extends WP_List_Table {
         
         $this->_column_headers = array( $columns, $hidden, $sortable );
 
-        // 1. Coleta e Sanitização de Filtros
+        // Status Filter
         $status = isset( $_REQUEST['status'] ) ? sanitize_key( $_REQUEST['status'] ) : 'publish';
         if( !in_array( $status, array('publish', 'trash') ) ) $status = 'publish';
 
-        $form_id = ! empty( $_GET['filter_form_id'] ) ? absint( $_GET['filter_form_id'] ) : null;
-        $search  = ! empty( $_REQUEST['s'] ) ? sanitize_text_field( $_REQUEST['s'] ) : '';
+        $where = $wpdb->prepare( "WHERE status = %s", $status );
+        
+        if ( ! empty( $_GET['filter_form_id'] ) ) {
+            $where .= $wpdb->prepare( " AND form_id = %d", absint( $_GET['filter_form_id'] ) );
+        }
 
-        // Ordenação
-        $orderby_allowlist = array( 'id', 'submission_date', 'email' );
-        $orderby = ( ! empty( $_GET['orderby'] ) && in_array( $_GET['orderby'], $orderby_allowlist ) ) ? $_GET['orderby'] : 'submission_date';
-        $order   = ( ! empty( $_GET['order'] ) && strtoupper( $_GET['order'] ) === 'ASC' ) ? 'ASC' : 'DESC';
+        if ( ! empty( $_REQUEST['s'] ) ) {
+            $s = '%' . $wpdb->esc_like( sanitize_text_field( $_REQUEST['s'] ) ) . '%';
+            $where .= $wpdb->prepare( " AND ( email LIKE %s OR data LIKE %s )", $s, $s );
+        }
 
-        // Paginação
+        // Safe Ordering (Allowlist)
+        $orderby_list = array( 'id', 'submission_date', 'email' );
+        $orderby = ( ! empty( $_GET['orderby'] ) && in_array( $_GET['orderby'], $orderby_list ) ) ? $_GET['orderby'] : 'submission_date';
+        
+        $order = ( ! empty( $_GET['order'] ) && strtoupper( $_GET['order'] ) === 'ASC' ) ? 'ASC' : 'DESC';
+
+        // Counting
+        $total_items = (int) $wpdb->get_var( "SELECT COUNT(id) FROM {$table_name} {$where}" );
+
+        // Pagination
         $current_page = $this->get_pagenum();
-        $offset = ( $current_page - 1 ) * $per_page;
-
-        // 2. Montagem dos Argumentos para o Repositório
-        $args = array(
-            'status'  => $status,
-            'form_id' => $form_id,
-            'search'  => $search,
-            'orderby' => $orderby,
-            'order'   => $order,
-            'limit'   => $per_page,
-            'offset'  => $offset
-        );
-
-        // 3. Chamadas ao Repositório
-        $this->items = $this->repository->find_all( $args );
-        $total_items = $this->repository->count( $args );
-
-        // 4. Configuração da Paginação
         $total_pages = ceil( $total_items / $per_page );
+
+        if ( $current_page > $total_pages && $total_items > 0 ) {
+            $current_page = 1;
+        }
+        
+        $offset = ( $current_page - 1 ) * $per_page;
+        if ( $offset < 0 ) $offset = 0;
+
+        // FINAL QUERY (Returning ARRAY_A)
+        // Added direct sanitization in SQL string only where WPDB prepare doesn't cover (ordering)
+        $this->items = $wpdb->get_results( 
+            "SELECT * FROM {$table_name} {$where} ORDER BY {$orderby} {$order} LIMIT {$per_page} OFFSET {$offset}",
+            ARRAY_A 
+        );
 
         $this->set_pagination_args( array(
             'total_items' => $total_items,

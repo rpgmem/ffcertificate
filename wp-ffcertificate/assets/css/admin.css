@@ -1,260 +1,183 @@
 /* ==========================================================================
-   1. METABOX TABS (Abas de Configuração)
+   1. METABOX TABS (Native WP Style)
    ========================================================================== */
 .ffc-metabox-tabs {
-    background: #fff;
-    border: 1px solid #c3c4c7;
     margin-top: 10px;
 }
 
-/* Container da navegação */
 .ffc-metabox-tabs .ffc-tabs-nav {
-    background: #f0f0f1;
     border-bottom: 1px solid #c3c4c7;
-    margin: 0;
+    margin: 0 0 15px;
     padding: 0;
     list-style: none;
     display: flex;
-    gap: 0;
+    gap: 5px;
 }
 
-/* Itens da aba */
 .ffc-metabox-tabs .ffc-tabs-nav li {
-    padding: 12px 16px;
-    margin: 0;
+    background: #f0f0f1;
+    border: 1px solid #c3c4c7;
+    border-bottom: none;
+    padding: 8px 14px;
+    margin-bottom: -1px;
+    color: #2271b1;
     cursor: pointer;
     font-weight: 600;
-    color: #50575e;
-    border-right: 1px solid #c3c4c7;
-    outline: none;
-    transition: all 0.2s ease;
+    font-size: 13px;
+    border-radius: 4px 4px 0 0;
+    transition: background 0.2s, color 0.2s;
 }
 
 .ffc-metabox-tabs .ffc-tabs-nav li:hover {
     background: #f6f7f7;
-    color: #2271b1;
+    color: #135e96;
 }
 
-/* Aba Ativa (Visual estilo WordPress nativo) */
-.ffc-metabox-tabs .ffc-tabs-nav li.active {
+.ffc-metabox-tabs .ffc-tabs-nav li.nav-tab-active {
     background: #ffffff;
+    border-bottom: 1px solid #ffffff;
     color: #1d2327;
-    border-bottom: 1px solid transparent;
-    margin-bottom: -1px; /* Sobrepõe a borda inferior */
-    box-shadow: inset 0 3px 0 #2271b1; /* Detalhe azul no topo */
+    pointer-events: none;
 }
 
-/* Área de Conteúdo das Abas */
-.ffc-tab-content {
-    display: none; /* Esconde por padrão */
-    padding: 20px;
-}
-
-.ffc-tab-content.active {
-    display: block; /* Mostra a ativa */
-    animation: fadeIn 0.2s;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(2px); }
-    to { opacity: 1; transform: translateY(0); }
+/* Tab content */
+.ffc-metabox-tab-content {
+    padding: 10px;
 }
 
 /* ==========================================================================
-   2. FORM BUILDER (Drag & Drop e Estilo de Cartões)
+   2. FORM BUILDER (Field Builder)
    ========================================================================== */
-#ffc-form-builder {
+#ffc-fields-container {
+    margin-bottom: 15px;
+    border: 1px solid #c3c4c7;
+}
+
+/* Hidden template */
+.ffc-field-template {
+    display: none;
+}
+
+/* Field row (Flexbox for perfect alignment) */
+.ffc-field-row {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #f0f0f1;
+    gap: 10px;
+}
+
+.ffc-field-row:last-child {
+    border-bottom: none;
+}
+
+.ffc-field-row:hover {
+    background: #fcfcfc;
+}
+
+/* Drag area (Handle) */
+.ffc-sort-handle {
+    cursor: move;
+    color: #a7aaad;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.ffc-sort-handle:hover {
+    color: #2271b1;
+}
+
+/* Input groups within the row */
+.ffc-field-group {
+    flex: 1;
+}
+
+/* Specific width adjustments for inputs */
+.ffc-field-group input[type="text"],
+.ffc-field-group select {
+    width: 100%;
     max-width: 100%;
 }
 
-/* Lista de Campos (Container do Sortable) */
-#ffc-fields-container {
-    margin: 15px 0;
-    padding: 0;
-    list-style: none; /* Remove bolinhas da lista */
-    min-height: 60px; /* Garante área de drop mesmo vazio */
+/* Options field (initially hidden) */
+.ffc-options-field {
+    display: none;
 }
 
-/* Template Oculto (CRÍTICO: nunca deve aparecer na lista inicial) */
-.ffc-field-template {
-    display: none !important;
-}
-
-/* A Caixa do Campo (Cartão) */
-.ffc-field-row {
-    background: #fff;
-    border: 1px solid #ccd0d4;
-    margin-bottom: 10px;
-    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
-}
-
-/* Placeholder visual enquanto arrasta (Amarelo/Azul) */
-.sortable-placeholder, 
-.ui-state-highlight {
-    height: 50px;
-    border: 1px dashed #2271b1;
-    background: #f0f6fc;
-    margin-bottom: 10px;
-    visibility: visible !important;
-}
-
-/* Cabeçalho do Campo (Sempre visível) */
-.ffc-field-header {
-    display: flex;
-    align-items: center;
-    padding: 10px 15px;
-    background: #fcfcfc;
-    border-bottom: 1px solid #ccd0d4; /* Linha divisória */
-    cursor: move; /* Indica que pode arrastar */
-    user-select: none;
-}
-
-/* Ícone de arrastar (Handle) */
-.ffc-sort-handle {
-    color: #a7aaad;
-    margin-right: 10px;
-    cursor: move;
-    font-size: 18px;
-}
-.ffc-field-row:hover .ffc-sort-handle {
-    color: #2271b1;
-}
-
-/* Título e Labels no Header */
-.ffc-field-header strong {
-    font-size: 14px;
-    color: #1d2327;
-}
-
-.ffc-field-header span[style*="color:#888"] {
+/* Checkbox (Req?) centered and smaller */
+.ffc-field-group:nth-last-child(2) {
+    flex: 0 0 60px;
+    text-align: center;
     font-size: 12px;
 }
 
-/* Botões de Ação no Header (Direita) */
-.ffc-field-actions {
-    margin-left: auto; /* Empurra para a direita */
-    display: flex;
-    align-items: center;
-    gap: 12px;
+/* Remove button (Trash) */
+.ffc-field-group:last-child {
+    flex: 0 0 40px;
+    text-align: right;
 }
 
-.ffc-toggle-field, 
 .ffc-remove-field {
-    color: #787c82;
-    cursor: pointer;
-    text-decoration: none;
-    outline: none;
-    background: none;
-    border: none;
-    padding: 0;
+    color: #d63638;
+    border-color: #d63638;
 }
 
-.ffc-toggle-field:hover { color: #2271b1; }
-.ffc-remove-field:hover { color: #d63638; }
-.ffc-remove-field .dashicons { font-size: 18px; }
-
-/* Corpo do Campo (Área de Edição dos Inputs) */
-.ffc-field-body {
-    padding: 15px;
-    background: #fff;
-    border-top: 1px solid #f0f0f1;
-    /* display: none; -> Controlado pelo JS (slideToggle) */
+.ffc-remove-field:hover {
+    background: #d63638;
+    color: #fff;
 }
 
-/* Ajustes visuais nos inputs dentro do Builder */
-.ffc-field-body input[type="text"],
-.ffc-field-body select,
-.ffc-field-body textarea {
-    width: 100%;
-    max-width: 100%; /* Evita que estoure a caixa */
-    box-sizing: border-box;
-}
-
-.ffc-field-body .form-table th {
-    width: 130px;
-    padding: 15px 10px 15px 0;
-    vertical-align: top;
-    font-weight: 600;
-}
-.ffc-field-body .form-table td {
+/* General Actions (Add Button) */
+.ffc-add-field-actions {
     padding: 10px 0;
-}
-.ffc-field-body .form-table {
-    margin-top: 0;
+    text-align: right;
 }
 
-/* Botão Adicionar Campo */
-.ffc-add-field {
-    margin-top: 5px !important;
-}
-
-/* ==========================================================================
-   3. CONFIGURAÇÕES & UTILS
-   ========================================================================== */
-
-/* Editor de Código (Layout PDF) */
+/* Code Editor for PDF Layout */
 textarea.code {
     font-family: Consolas, Monaco, monospace;
     font-size: 13px;
-    background: #f6f7f7;
-    border: 1px solid #dcdcde;
-    color: #2c3338;
-    line-height: 1.5;
+    background: #f0f0f1;
 }
 
-/* Spinner do WP (Correção de alinhamento) */
-.spinner {
-    float: none;
-    margin: 0 0 0 5px;
-    vertical-align: middle;
-}
-.spinner.is-active {
-    display: inline-block;
-}
-
-/* Áreas de Texto para Listas (Tickets, CPF, Denylist) */
-#ffc_generated_codes, 
-textarea[name*="allowed_users_list"], 
-textarea[name*="denied_users_list"] {
-    font-family: monospace;
-    white-space: pre;
-    overflow-y: auto;
+/* Admin PDF Button */
+.ffc-admin-pdf-btn {
+    background: #2271b1;
+    color: #fff;
+    border: 1px solid #2271b1;
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 3px;
+    cursor: pointer;
 }
 
-/* Botão de Upload e Ações de Template */
-.ffc-template-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    background: #fcfcfc;
-    border: 1px solid #ddd;
-    padding: 10px;
-    border-radius: 4px;
+.ffc-admin-pdf-btn:hover {
+    background: #135e96;
 }
 
 /* ==========================================================================
-   4. TABELA DE SUBMISSÕES (Correções WP_List_Table)
+   3. FIX FOR SUBMISSIONS TABLE
    ========================================================================== */
 .wp-list-table.submissions {
-    table-layout: auto !important; /* Permite colunas flexíveis */
+    table-layout: auto !important;
 }
 
 .wp-list-table.submissions td, 
 .wp-list-table.submissions th {
     vertical-align: top !important;
+    white-space: normal !important;
+    padding: 8px 10px !important;
+    height: auto !important;
+    overflow: visible !important;
 }
 
-/* Botão PDF na Tabela */
-.ffc-admin-pdf-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-weight: 500;
-    font-size: 12px;
+/* Ensures minimum width for data columns */
+.wp-list-table.submissions td {
+    min-width: 100px;
 }
 
-/* Visualização de dados brutos (JSON) se houver */
+/* Style for raw data (if any) */
 .ffc-data-raw {
     background: #f9f9f9;
     padding: 5px;
@@ -264,18 +187,12 @@ textarea[name*="denied_users_list"] {
     max-height: 100px;
     overflow-y: auto;
     display: block;
-    margin-top: 5px;
-    white-space: pre-wrap;
 }
 
-/* Responsividade básica para telas menores */
-@media (max-width: 782px) {
-    .ffc-field-header {
-        flex-wrap: wrap;
-    }
-    .ffc-field-actions {
-        width: 100%;
-        margin-top: 10px;
-        justify-content: flex-end;
+/* Basic responsiveness */
+@media (max-width: 768px) {
+    .ffc-field-row {
+        flex-direction: column;
+        gap: 5px;
     }
 }

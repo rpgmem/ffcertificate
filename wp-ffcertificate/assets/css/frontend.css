@@ -2,35 +2,33 @@
    1. FORM STYLE (Frontend)
    ========================================================================== */
 
-/* Main wrapper to isolate styles from the theme */
+/* Main wrapper to isolate styles */
 .ffc-form-wrapper {
     max-width: 600px;
     margin: 20px auto;
-    padding: 25px;
+    padding: 20px;
     background: #fff;
     border: 1px solid #e2e4e7;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    position: relative;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
 .ffc-submission-form {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 15px;
 }
 
 /* Individual fields */
 .ffc-form-field {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
 }
 
 .ffc-form-field label {
     font-weight: 600;
-    font-size: 14px;
+    font-size: 15px;
     color: #333;
 }
 
@@ -53,7 +51,6 @@
     border-radius: 4px;
     font-size: 15px;
     line-height: 1.5;
-    background-color: #fff;
     box-sizing: border-box;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -63,7 +60,7 @@
 .ffc-form-field textarea:focus {
     border-color: #2271b1;
     outline: none;
-    box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.2);
+    box-shadow: 0 0 0 1px #2271b1;
 }
 
 .ffc-form-field textarea {
@@ -71,8 +68,27 @@
     resize: vertical;
 }
 
-/* Radio Button & Checkbox Groups */
-.ffc-radio-group,
+/* Radio Button Group */
+.ffc-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.ffc-radio-group label {
+    font-weight: normal;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.ffc-radio-group input[type="radio"] {
+    margin: 0;
+}
+
+/* Checkbox Group (if needed) */
 .ffc-checkbox-group {
     display: flex;
     flex-direction: column;
@@ -80,33 +96,21 @@
     margin-top: 5px;
 }
 
-.ffc-radio-group label,
 .ffc-checkbox-group label {
     font-weight: normal;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     cursor: pointer;
-    font-size: 15px;
 }
 
-.ffc-radio-group input[type="radio"],
 .ffc-checkbox-group input[type="checkbox"] {
     margin: 0;
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
 }
 
 /* ==========================================================================
-   2. SUBMIT BUTTON & SPINNER
+   2. SUBMIT AND DOWNLOAD BUTTON
    ========================================================================== */
-.ffc-form-footer {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
 .ffc-submit-btn {
     background-color: #2271b1;
     color: #fff;
@@ -116,84 +120,31 @@
     font-weight: 600;
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    transition: background-color 0.2s;
+    align-self: flex-start;
 }
 
 .ffc-submit-btn:hover {
     background-color: #135e96;
 }
 
-.ffc-submit-btn:active {
-    transform: translateY(1px);
-}
-
 .ffc-submit-btn:disabled {
     background-color: #a7aaad;
     cursor: not-allowed;
-    opacity: 0.8;
+    opacity: 0.7;
 }
 
-/* Loading Spinner (Adicionado para funcionar com o JS) */
-.ffc-spinner {
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(0, 0, 0, 0.1);
-    border-radius: 50%;
-    border-top-color: #2271b1;
-    animation: ffc-spin 1s ease-in-out infinite;
-    display: inline-block;
-}
-
-@keyframes ffc-spin {
-    to { transform: rotate(360deg); }
-}
-
-/* ==========================================================================
-   3. FEEDBACK MESSAGES (JS Form Submit)
-   ========================================================================== */
-.ffc-message {
-    margin-top: 20px;
-    padding: 15px;
-    border-radius: 6px;
-    font-size: 15px;
-    display: none; /* Controlado via JS */
-    line-height: 1.5;
-    text-align: center;
-}
-
-.ffc-message p {
-    margin: 0;
-    padding: 0;
-}
-
-/* Success style */
-.ffc-message.ffc-success {
-    background-color: #e7f4e4;
-    color: #104622;
-    border: 1px solid #c3e6cb;
-}
-
-/* Error style */
-.ffc-message.ffc-error {
-    background-color: #fff2f2;
-    color: #9c1b26;
-    border: 1px solid #f5c6cb;
-}
-
-/* Botão de Download Manual (caso implementemos fallback) */
+/* Manual Download Button in success message */
 .ffc-btn-download {
     display: inline-block;
-    padding: 10px 20px;
+    padding: 10px 15px;
     background-color: #28a745;
-    color: #fff !important;
+    color: #fff;
     text-decoration: none;
     border-radius: 4px;
     font-weight: 600;
     font-size: 14px;
-    margin-top: 15px;
+    margin-top: 10px;
     transition: background-color 0.2s;
     border: none;
     cursor: pointer;
@@ -204,22 +155,59 @@
 }
 
 /* ==========================================================================
-   4. VERIFICATION PAGE STYLE
+   3. FEEDBACK MESSAGES (JS)
+   ========================================================================== */
+.ffc-message {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    display: none;
+    line-height: 1.4;
+}
+
+.ffc-message p {
+    margin: 0;
+    padding: 0;
+}
+
+/* Success style */
+.ffc-message.ffc-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+/* Error style */
+.ffc-message.ffc-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Additional download message (generated by JS) */
+.ffc-download-msg {
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+/* ==========================================================================
+   4. VERIFICATION PAGE STYLE (NEW)
    ========================================================================== */
 
+/* Centered search container */
 .ffc-verification-container {
-    max-width: 500px;
+    max-width: 600px;
     margin: 0 auto;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Campo de busca do código (Nome corrigido para bater com o Shortcode) */
-.ffc-verification-container input[name="verification_code"],
+/* Code input field */
 .ffc-verification-container input[name="ffc_auth_code"] {
     font-family: "Courier New", Courier, monospace;
     text-transform: uppercase;
-    font-size: 22px;
-    letter-spacing: 4px;
+    font-size: 20px;
+    letter-spacing: 3px;
     text-align: center;
     font-weight: bold;
     color: #333;
@@ -228,90 +216,43 @@
     padding: 15px;
     width: 100%;
     box-sizing: border-box;
-    transition: all 0.3s;
-    margin-bottom: 15px;
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-.ffc-verification-container input:focus {
+.ffc-verification-container input[name="ffc_auth_code"]:focus {
     border-color: #2271b1;
     outline: none;
-    box-shadow: 0 0 0 4px rgba(34, 113, 177, 0.15);
+    box-shadow: 0 0 0 3px rgba(34, 113, 177, 0.2);
 }
 
-/* Caixas de Resultado da Verificação */
+.ffc-verification-container input[name="ffc_auth_code"]::placeholder {
+    font-family: sans-serif;
+    letter-spacing: normal;
+    text-transform: none;
+    font-size: 14px;
+    font-weight: normal;
+    color: #aaa;
+}
+
+/* Verification result */
 .ffc-verify-success,
 .ffc-verify-error {
-    margin-top: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    animation: fadeIn 0.5s ease-in-out;
+    margin-top: 20px;
     padding: 20px;
     border-radius: 8px;
-    text-align: center;
-    animation: slideInUp 0.4s ease-out;
 }
 
-/* SUCESSO - Verde */
-.ffc-verify-success {
-    background-color: #e7f7ed;
-    border: 2px solid #28a745;
-    color: #0f5132;
-}
-
-.ffc-verify-success h3 {
-    color: #28a745;
-    margin: 0 0 10px 0;
-    font-size: 20px;
-}
-
-/* ERRO - Vermelho */
-.ffc-verify-error {
-    background-color: #fef1f2;
-    border: 2px solid #dc3545;
-    color: #842029;
-}
-
-.ffc-verify-error h3 {
-    color: #dc3545;
-    margin: 0 0 10px 0;
-    font-size: 20px;
-}
-
-/* Detalhes dentro da caixa de verificação */
-.ffc-verify-details {
-    text-align: left;
-    background: rgba(255,255,255,0.6);
-    padding: 15px;
-    border-radius: 6px;
-    margin-top: 15px;
-    border: 1px solid rgba(0,0,0,0.05);
-}
-
-.ffc-verify-details ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.ffc-verify-details li {
-    margin-bottom: 8px;
-    font-size: 14px;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    padding-bottom: 5px;
-}
-.ffc-verify-details li:last-child {
-    border-bottom: none;
-}
-
-.ffc-verify-details strong {
-    font-weight: 600;
-    margin-right: 5px;
-}
-
-/* Animação suave para o resultado */
-@keyframes slideInUp {
-    from { opacity: 0; transform: translateY(20px); }
+/* Smooth animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsividade */
+/* ==========================================================================
+   RESPONSIVENESS
+   ========================================================================== */
 @media (max-width: 480px) {
     .ffc-form-wrapper {
         padding: 15px;
@@ -323,8 +264,9 @@
         text-align: center;
     }
 
-    .ffc-verification-container input[name="verification_code"] {
-        font-size: 18px;
-        letter-spacing: 2px;
+    .ffc-verification-container input[name="ffc_auth_code"] {
+        font-size: 16px;
+        letter-spacing: 1px;
+        padding: 12px;
     }
 }
