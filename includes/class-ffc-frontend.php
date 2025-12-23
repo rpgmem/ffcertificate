@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Classe responsável pelo Frontend e Shortcodes do Plugin
+ * Class responsible for the Plugin Frontend and Shortcodes
  */
 class FFC_Frontend {
     
@@ -13,24 +13,24 @@ class FFC_Frontend {
     public function __construct( FFC_Submission_Handler $handler ) {
         $this->submission_handler = $handler;
         
-        // Ativos do Frontend
+        // Frontend Assets
         add_action( 'wp_enqueue_scripts', array( $this, 'frontend_assets' ) );
         
         // Shortcodes
         add_shortcode( 'ffc_form', array( $this, 'shortcode_form' ) );
         add_shortcode( 'ffc_verification', array( $this, 'shortcode_verification_page' ) );
         
-        // AJAX Handles - Submissão de Formulário
+        // AJAX Handles - Form Submission
         add_action( 'wp_ajax_ffc_submit_form', array( $this, 'handle_submission_ajax' ) );
         add_action( 'wp_ajax_nopriv_ffc_submit_form', array( $this, 'handle_submission_ajax' ) );
 
-        // AJAX Handles - Verificação de Certificado
+        // AJAX Handles - Certificate Verification
         add_action( 'wp_ajax_ffc_verify_certificate', array( $this, 'handle_verification_ajax' ) );
         add_action( 'wp_ajax_nopriv_ffc_verify_certificate', array( $this, 'handle_verification_ajax' ) );
     }
 
     /**
-     * Carrega Scripts e Estilos condicionalmente
+     * Loads Scripts and Styles conditionally
      */
     public function frontend_assets() {
         global $post;
@@ -44,7 +44,7 @@ class FFC_Frontend {
             wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . 'assets/css/ffc-pdf-core.css', array(), '1.0.0' );
             wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . 'assets/css/frontend.css', array('ffc-pdf-core'), '1.0.0' );
             
-            // Bibliotecas de geração de PDF (Frontend)
+            // PDF generation libraries (Frontend)
             wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'assets/js/html2canvas.min.js', array(), '1.4.1', true );
             wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'assets/js/jspdf.umd.min.js', array(), '2.5.1', true );
             
@@ -52,7 +52,7 @@ class FFC_Frontend {
                 'ffc-frontend-js', 
                 FFC_PLUGIN_URL . 'assets/js/frontend.js', 
                 array( 'jquery', 'html2canvas', 'jspdf' ), 
-                time(), // Cache busting para desenvolvimento
+                time(), 
                 true 
             );
 
@@ -165,7 +165,7 @@ class FFC_Frontend {
                     $data = json_decode( $submission->data, true );
                     if ( is_null( $data ) ) $data = json_decode( stripslashes( $submission->data ), true );
                     $form = get_post( $submission->form_id );
-                    $form_title = $form ? $form->post_title : 'N/A';
+                    $form_title = $form ? $form->post_title : __( 'N/A', 'ffc' );
                     $date_generated = date_i18n( get_option('date_format') . ' ' . get_option('time_format'), strtotime( $submission->submission_date ) );
                     $display_code = isset($data['auth_code']) ? $data['auth_code'] : $clean_code;
 
@@ -238,10 +238,10 @@ class FFC_Frontend {
 
                     if ( empty( $name ) ) continue;
                     
-                    // Tratamento especial para CPF/RF
+                    // Special treatment for CPF/RF
                     if ( $name === 'cpf_rf' ) $type = 'tel'; 
 
-                    // CORREÇÃO: Renderiza campo hidden fora da estrutura visual
+                    // Render hidden field outside the visual structure
                     if ( $type === 'hidden' ) : ?>
                         <input type="hidden" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $default ); ?>">
                         <?php continue; ?>
@@ -447,7 +447,7 @@ class FFC_Frontend {
             $data = json_decode( $result->data, true );
             if ( !is_array($data) ) $data = json_decode( stripslashes( $result->data ), true );
             $form_title = get_the_title( $result->form_id );
-            $student_name = isset($data['name']) ? $data['name'] : (isset($data['nome']) ? $data['nome'] : 'N/A');
+            $student_name = isset($data['name']) ? $data['name'] : (isset($data['nome']) ? $data['nome'] : __( 'N/A', 'ffc' ));
             
             $response_html = '<div class="ffc-verify-success">';
             $response_html .= '<h4>✅ ' . esc_html__( 'Authentic Certificate', 'ffc' ) . '</h4>';

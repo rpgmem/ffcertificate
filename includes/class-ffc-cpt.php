@@ -3,6 +3,10 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Class FFC_CPT
+ * Manages the Custom Post Type for forms, including metaboxes and duplication logic.
+ */
 class FFC_CPT {
 
     public function __construct() {
@@ -13,28 +17,46 @@ class FFC_CPT {
         add_action( 'admin_action_ffc_duplicate_form', array( $this, 'handle_form_duplication' ) );
     }
     
+    /**
+     * Registers the 'ffc_form' Custom Post Type
+     */
     public function register_form_cpt() {
         $labels = array(
-            'name'          => _x( 'Forms', 'Post Type General Name', 'ffc' ),
-            'singular_name' => _x( 'Form', 'Post Type Singular Name', 'ffc' ),
-            'menu_name'     => __( 'Free Form Certificate', 'ffc' ),
-            'add_new'       => __( 'Add New Form', 'ffc' ),
-            'all_items'     => __( 'All Forms', 'ffc' ),
+            'name'                  => _x( 'Forms', 'Post Type General Name', 'ffc' ),
+            'singular_name'         => _x( 'Form', 'Post Type Singular Name', 'ffc' ),
+            'menu_name'             => __( 'Free Form Certificate', 'ffc' ),
+            'name_admin_bar'        => __( 'FFC Form', 'ffc' ),
+            'add_new'               => __( 'Add New Form', 'ffc' ),
+            'add_new_item'          => __( 'Add New Form', 'ffc' ),
+            'new_item'              => __( 'New Form', 'ffc' ),
+            'edit_item'             => __( 'Edit Form', 'ffc' ),
+            'view_item'             => __( 'View Form', 'ffc' ),
+            'all_items'             => __( 'All Forms', 'ffc' ),
+            'search_items'          => __( 'Search Forms', 'ffc' ),
+            'not_found'             => __( 'No forms found.', 'ffc' ),
+            'not_found_in_trash'    => __( 'No forms found in Trash.', 'ffc' ),
         );
 
         $args = array(
-            'labels'       => $labels,
-            'public'       => false, 
-            'show_ui'      => true,
-            'show_in_menu' => true,
-            'menu_icon'    => 'dashicons-feedback',
-            'supports'     => array( 'title' ),
-            'rewrite'      => array( 'slug' => 'ffc-form' ),
+            'labels'             => $labels,
+            'public'             => false, 
+            'show_ui'            => true,
+            'show_in_menu'       => true,
+            'query_var'          => true,
+            'capability_type'    => 'post',
+            'has_archive'        => false,
+            'hierarchical'       => false,
+            'menu_icon'          => 'dashicons-feedback',
+            'supports'           => array( 'title' ),
+            'rewrite'            => array( 'slug' => 'ffc-form' ),
         );
 
         register_post_type( 'ffc_form', $args );
     }
 
+    /**
+     * Adds Metaboxes for the Form CPT
+     */
     public function add_form_tabs_metabox() {
         // Main Metabox (Builder)
         add_meta_box(
@@ -57,13 +79,15 @@ class FFC_CPT {
         );
     }
 
-    // --- CONTENT OF THE SHORTCODE METABOX ---
+    /**
+     * Renders the content of the Shortcode Metabox (Sidebar)
+     */
     public function display_shortcode_metabox( $post ) {
         ?>
         <div style="background: #f0f0f1; padding: 10px; border-radius: 4px; border: 1px solid #c3c4c7;">
             <p><strong><?php _e( 'Copy this Shortcode:', 'ffc' ); ?></strong></p>
             <code style="display:block; padding: 8px; background: #fff; border: 1px solid #ddd; margin-bottom: 10px; user-select: all;">
-                [ffc_form id="<?php echo $post->ID; ?>"]
+                [ffc_form id="<?php echo esc_attr( $post->ID ); ?>"]
             </code>
             <p class="description">
                 <?php _e( 'Paste this code into any Page or Post to display the form.', 'ffc' ); ?>
@@ -73,12 +97,14 @@ class FFC_CPT {
         <p><strong><?php _e( 'Tips:', 'ffc' ); ?></strong></p>
         <ul style="list-style: disc; padding-left: 20px; font-size: 12px; color: #666;">
             <li><?php _e( 'Use <b>{{field_name}}</b> in the PDF Layout to insert user data.', 'ffc' ); ?></li>
-            <li><?php _e( 'For dates, the variable is usually {{date}}.', 'ffc' ); ?></li>
+            <li><?php _e( 'Common variables include {{auth_code}}, {{submission_date}}, and {{ticket}}.', 'ffc' ); ?></li>
         </ul>
         <?php
     }
 
-    // --- CONTENT OF THE MAIN METABOX ---
+    /**
+     * Renders the main tabbed interface in the Metabox
+     */
     public function display_metabox_tabs_content( $post ) {
         wp_nonce_field( 'ffc_form_meta_box', 'ffc_form_meta_box_nonce' );
 
@@ -99,6 +125,9 @@ class FFC_CPT {
         echo '</div>';
     }
 
+    /**
+     * Renders the fields builder tab content
+     */
     public function display_fields_builder_content( $post ) {
         $fields = get_post_meta( $post->ID, '_ffc_form_fields', true );
         
@@ -121,9 +150,13 @@ class FFC_CPT {
         echo '<button type="button" class="button button-secondary ffc-add-field" data-max-index="' . esc_attr( $max_index ) . '">' . esc_html__( 'Add New Field', 'ffc' ) . '</button>';
         echo '</div>';
 
+        // Render a hidden template for Javascript cloning
         $this->render_field_row( '{{index}}', array(), true );
     }
 
+    /**
+     * Helper to render a single field row (used for existing data and JS templates)
+     */
     private function render_field_row( $index, $field_data, $is_template = false ) {
         $name     = isset( $field_data['name'] ) ? $field_data['name'] : '';
         $label    = isset( $field_data['label'] ) ? $field_data['label'] : '';
@@ -175,6 +208,9 @@ class FFC_CPT {
         <?php
     }
 
+    /**
+     * Renders the global form configuration tab content
+     */
     public function display_config_content( $post ) {
         $config = get_post_meta( $post->ID, '_ffc_form_config', true );
         $config = wp_parse_args( $config, array(
@@ -207,7 +243,7 @@ class FFC_CPT {
             </label>
         </p>
         <p class="description">
-            <?php esc_html_e( 'If checked, only users listed below can generate the certificate. The form MUST have a field with the "Name Attribute" set to "cpf_rf".', 'ffc' ); ?>
+            <?php esc_html_e( 'If checked, only users listed below can generate the certificate. The form MUST have a field with the "Name (key)" set to "cpf_rf".', 'ffc' ); ?>
         </p>
 
         <p>
@@ -226,7 +262,7 @@ class FFC_CPT {
             </label>
             <br>
             <span class="description" style="color: #d63638;">
-                <?php esc_html_e( 'Warning: Enabling this may slow down the submission process significantly depending on your server speed. Not recommended if you expect high traffic. The user can download the certificate immediately on the screen.', 'ffc' ); ?>
+                <?php esc_html_e( 'Warning: Enabling this may slow down the submission process significantly depending on your server speed. The user can still download the certificate immediately on the screen.', 'ffc' ); ?>
             </span>
         </p>
 
@@ -246,8 +282,12 @@ class FFC_CPT {
         <?php
     }
 
-    public function save_form_meta_boxes( $post_id ) {
-        if ( ! current_user_can( 'edit_post', $post_id ) ) {
+    /**
+     * Handles saving the meta boxes data
+     */
+    public function save_form_meta_boxes( $post_id, $post ) {
+        // Security checks
+        if ( ! isset( $_POST['ffc_form_meta_box_nonce'] ) || ! wp_verify_nonce( $_POST['ffc_form_meta_box_nonce'], 'ffc_form_meta_box' ) ) {
             return;
         }
 
@@ -255,7 +295,7 @@ class FFC_CPT {
             return;
         }
 
-        if ( ! current_user_can( 'edit_post', $post_id ) ) {
+        if ( 'ffc_form' !== $post->post_type || ! current_user_can( 'edit_post', $post_id ) ) {
             return;
         }
 
@@ -281,15 +321,12 @@ class FFC_CPT {
         // Save Configurations
         if ( isset( $_POST['ffc_config'] ) && is_array( $_POST['ffc_config'] ) ) {
             $config = array(
-                'success_message' => sanitize_text_field( $_POST['ffc_config']['success_message'] ),
-                'email_admin'     => sanitize_text_field( $_POST['ffc_config']['email_admin'] ),
-                'email_subject'   => sanitize_text_field( $_POST['ffc_config']['email_subject'] ),
-                'email_body'      => wp_kses_post( $_POST['ffc_config']['email_body'] ),
-                // Preserves HTML if you are an admin
-                'pdf_layout'      => current_user_can( 'unfiltered_html' ) ? $_POST['ffc_config']['pdf_layout'] : wp_kses_post( $_POST['ffc_config']['pdf_layout'] ),
-                'send_user_email' => isset( $_POST['ffc_config']['send_user_email'] ) ? 1 : 0,
-                
-                // RESTRICTION
+                'success_message'    => sanitize_text_field( $_POST['ffc_config']['success_message'] ),
+                'email_admin'        => sanitize_text_field( $_POST['ffc_config']['email_admin'] ),
+                'email_subject'      => sanitize_text_field( $_POST['ffc_config']['email_subject'] ),
+                'email_body'         => wp_kses_post( $_POST['ffc_config']['email_body'] ),
+                'pdf_layout'         => current_user_can( 'unfiltered_html' ) ? $_POST['ffc_config']['pdf_layout'] : wp_kses_post( $_POST['ffc_config']['pdf_layout'] ),
+                'send_user_email'    => isset( $_POST['ffc_config']['send_user_email'] ) ? 1 : 0,
                 'enable_restriction' => isset( $_POST['ffc_config']['enable_restriction'] ) ? 1 : 0,
                 'allowed_users_list' => sanitize_textarea_field( $_POST['ffc_config']['allowed_users_list'] ),
             );
@@ -297,6 +334,9 @@ class FFC_CPT {
         }
     }
 
+    /**
+     * Adds a "Duplicate" link to the post row actions
+     */
     public function add_duplicate_link( $actions, $post ) {
         if ( $post->post_type !== 'ffc_form' ) {
             return $actions;
@@ -312,12 +352,15 @@ class FFC_CPT {
         return $actions;
     }
 
+    /**
+     * Handles the duplication process when the action is triggered
+     */
     public function handle_form_duplication() {
         if ( ! current_user_can( 'edit_posts' ) ) {
             wp_die( esc_html__( 'You do not have permission to duplicate this post.', 'ffc' ) );
         }
 
-        $post_id = ( isset( $_GET['post'] ) ? absint( $_GET['post'] ) : absint( $_POST['post'] ) );
+        $post_id = ( isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0 );
         
         check_admin_referer( 'ffc_duplicate_form_nonce' );
 
@@ -340,6 +383,7 @@ class FFC_CPT {
             wp_die( $new_post_id->get_error_message() );
         }
 
+        // Copy metadata
         $fields = get_post_meta( $post_id, '_ffc_form_fields', true );
         $config = get_post_meta( $post_id, '_ffc_form_config', true );
 

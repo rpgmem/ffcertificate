@@ -31,7 +31,7 @@
 }
 
 /* ==========================================================================
-   2. FORM BUILDER (Field Rows) - CORREÇÃO DE OVERFLOW
+   2. FORM BUILDER (Field Rows) - OVERFLOW FIX
    ========================================================================== */
 #ffc-fields-container { margin-bottom: 15px; max-width: 100%; }
 
@@ -56,7 +56,7 @@
     border-bottom: 1px solid #f0f0f1;
 }
 
-/* O GRID RESPONSIVO (AQUI ESTÁ A MÁGICA) */
+/* RESPONSIVE GRID (THE MAGIC HAPPENS HERE) */
 .ffc-field-row-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -89,7 +89,7 @@
 }
 
 /* ==========================================================================
-   3. EDITOR HTML & PREVIEW
+   3. HTML EDITOR & PREVIEW
    ========================================================================== */
 #ffc_pdf_layout {
     width: 100%;
@@ -135,7 +135,7 @@
 .wp-list-table.submissions { min-width: 1000px; }
 
 /* ==========================================================================
-   5. SETTINGS, HELP & DOCUMENTATION (Preservados)
+   5. SETTINGS, HELP & DOCUMENTATION (Preserved)
    ========================================================================== */
 .ffc-settings-card { max-width: 100%; padding: 20px; }
 .ffc-help-table { margin-bottom: 25px; width: 100%; border-collapse: collapse; }
@@ -177,6 +177,6 @@
 .ffc-admin-notice-success { border-color: #00a32a; }
 .ffc-admin-notice-warning { border-left: 4px solid #f0ad4e; }
 
-/* Destaques */
+/* Highlights */
 .ffc-highlight-row { background: #f0f6fc; }
 .ffc-label-accent { color: #2271b1; font-weight: bold; }

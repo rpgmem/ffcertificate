@@ -1,4 +1,9 @@
 <?php
+/**
+ * FFC_Submission_List
+ * Manages the submissions list table using the WP_List_Table API.
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -26,7 +31,7 @@ class FFC_Submission_List extends WP_List_Table {
     }
 
     /**
-     * Define as abas de visualização (Tudo / Lixeira)
+     * Define the view tabs (Active / Trash)
      */
     protected function get_views() {
         global $wpdb;
@@ -62,8 +67,8 @@ class FFC_Submission_List extends WP_List_Table {
     }
 
     /**
-     * Define as colunas da tabela
-     * Se houver um filtro por formulário, ele exibe os campos desse formulário como colunas
+     * Define table columns.
+     * If a form filter is active, it displays the fields of that form as columns.
      */
     public function get_columns() {
         $columns = array(
@@ -74,7 +79,7 @@ class FFC_Submission_List extends WP_List_Table {
             'email'           => __( 'Email', 'ffc' ),
         );
 
-        // Lógica de colunas dinâmicas quando um formulário específico é filtrado
+        // Dynamic columns logic when a specific form is filtered
         if ( ! empty( $_GET['filter_form_id'] ) ) {
             $form_id = absint( $_GET['filter_form_id'] );
             $fields  = get_post_meta( $form_id, '_ffc_form_fields', true );
@@ -83,7 +88,7 @@ class FFC_Submission_List extends WP_List_Table {
                 foreach ( $fields as $field ) {
                     if ( ! empty( $field['name'] ) ) {
                         $col_key = sanitize_key( $field['name'] );
-                        // Evita duplicar colunas que já existem por padrão
+                        // Avoid duplicating default columns
                         if ( isset( $columns[$col_key] ) || $col_key === 'email' ) continue;
                         
                         $col_label = ! empty( $field['label'] ) ? $field['label'] : $field['name'];
@@ -92,7 +97,7 @@ class FFC_Submission_List extends WP_List_Table {
                 }
             }
         } else {
-            // Se estiver vendo todos os formulários, mostra um resumo
+            // Show summary if viewing all forms
             $columns['data_summary'] = __( 'Data Summary', 'ffc' );
         }
 
@@ -124,10 +129,10 @@ class FFC_Submission_List extends WP_List_Table {
         }
     }
 
-    // --- RENDERIZAÇÃO DAS COLUNAS ---
+    // --- COLUMN RENDERING ---
 
     public function column_cb( $item ) {
-        return sprintf( '<input type="checkbox" name="submission[]" value="%s" />', esc_attr( $item['id'] ) );
+        return sprintf( '<input type="checkbox" name="submission[]" value="%s" />', $item['id'] );
     }
 
     public function column_id( $item ) {
@@ -162,7 +167,7 @@ class FFC_Submission_List extends WP_List_Table {
         $count = 0;
         foreach ( $data as $k => $v ) {
             if ( $count >= 3 ) break;
-            // Pula metadados internos
+            // Skip internal metadata
             if ( in_array( $k, array( 'auth_code', 'fill_date', 'is_edited', 'edited_at', 'ticket' ) ) ) continue;
             
             if ( is_string( $v ) || is_numeric( $v ) ) {
@@ -175,7 +180,7 @@ class FFC_Submission_List extends WP_List_Table {
     }
 
     /**
-     * Renderiza colunas dinâmicas (Campos do formulário)
+     * Render dynamic columns (Form fields)
      */
     public function column_default( $item, $column_name ) {
         $data = json_decode( $item['data'], true );
@@ -189,15 +194,13 @@ class FFC_Submission_List extends WP_List_Table {
     }
 
     /**
-     * Renderiza os botões de ação (Edit, Trash, PDF, Delete, Restore)
+     * Render action buttons (Edit, Trash, PDF, Delete, Restore)
      */
     public function column_actions( $item ) {
         $id = absint( $item['id'] );
         $status = isset($_REQUEST['status']) ? sanitize_key($_REQUEST['status']) : 'publish';
         
-        // Nonce vital para bater com o check do FFC_Admin
         $nonce = wp_create_nonce( 'ffc_action_' . $id );
-        
         $base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions&submission_id=' . $id . '&_wpnonce=' . $nonce );
         $actions = array();
 
@@ -214,7 +217,7 @@ class FFC_Submission_List extends WP_List_Table {
     }
 
     /**
-     * Barra de filtro por formulário no topo da tabela
+     * Form filter bar at the top of the table
      */
     public function extra_tablenav( $which ) {
         if ( $which == 'top' ) {
@@ -243,16 +246,16 @@ class FFC_Submission_List extends WP_List_Table {
         $per_page = 50;
         $this->_column_headers = array( $this->get_columns(), array(), $this->get_sortable_columns() );
 
-        // 1. Filtro de Status (Ativos ou Lixeira)
+        // 1. Status Filter (Active or Trash)
         $status = ( isset( $_REQUEST['status'] ) && $_REQUEST['status'] === 'trash' ) ? 'trash' : 'publish';
         $where_parts = array( $wpdb->prepare( "status = %s", $status ) );
 
-        // 2. Filtro por Formulário
+        // 2. Form Filter
         if ( ! empty( $_GET['filter_form_id'] ) ) {
             $where_parts[] = $wpdb->prepare( "form_id = %d", absint( $_GET['filter_form_id'] ) );
         }
 
-        // 3. Busca (Pesquisa no email ou no JSON de dados)
+        // 3. Search (Email or JSON data)
         if ( ! empty( $_REQUEST['s'] ) ) {
             $s = '%' . $wpdb->esc_like( sanitize_text_field( $_REQUEST['s'] ) ) . '%';
             $where_parts[] = $wpdb->prepare( "(email LIKE %s OR data LIKE %s)", $s, $s );
@@ -260,17 +263,17 @@ class FFC_Submission_List extends WP_List_Table {
 
         $where_clause = "WHERE " . implode( " AND ", $where_parts );
 
-        // 4. Ordenação
+        // 4. Sorting
         $orderby_whitelist = array( 'id', 'submission_date', 'email' );
         $orderby = ( ! empty( $_GET['orderby'] ) && in_array( $_GET['orderby'], $orderby_whitelist ) ) ? $_GET['orderby'] : 'submission_date';
         $order = ( ! empty( $_GET['order'] ) && strtoupper( $_GET['order'] ) === 'ASC' ) ? 'ASC' : 'DESC';
 
-        // 5. Paginação
+        // 5. Pagination
         $total_items = (int) $wpdb->get_var( "SELECT COUNT(id) FROM {$table_name} {$where_clause}" );
         $current_page = $this->get_pagenum();
         $offset = ( $current_page - 1 ) * $per_page;
 
-        // 6. Execução da Query Final
+        // 6. Final Query Execution
         $query = $wpdb->prepare(
             "SELECT * FROM {$table_name} {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
             $per_page,

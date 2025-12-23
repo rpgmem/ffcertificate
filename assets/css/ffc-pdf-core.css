@@ -1,8 +1,8 @@
 /**
- * FFC PDF CORE - Versão Estável e Otimizada
+ * FFC PDF CORE - Stable and Optimized Version
  */
 
-/* Container invisível para renderização */
+/* Invisible container for rendering */
 .ffc-pdf-temp-wrapper {
     position: absolute;
     left: -9999px;
@@ -13,7 +13,7 @@
     overflow: hidden;
 }
 
-/* Reset Universal para o Captura */
+/* Universal Reset for Capture */
 .ffc-pdf-stage, 
 .ffc-pdf-stage *, 
 .ffc-pdf-stage *:before, 
@@ -24,7 +24,7 @@
 }
 
 .ffc-pdf-stage {
-    all: initial; /* Limpa estilos herdados do WP/Temas */
+    all: initial; /* Clear inherited styles from WP/Themes */
     display: block !important;
     position: relative;
     width: 1123px;
@@ -37,19 +37,19 @@
     opacity: 1 !important;
 }
 
-/* Imagem de Fundo (Template) */
+/* Background Image (Template) */
 .ffc-pdf-bg-img {
     position: absolute;
     top: 0;
     left: 0;
     width: 1123px;
     height: 794px;
-    object-fit: fill; /* Garante que preencha todo o A4 paisagem */
+    object-fit: fill; /* Ensures it fills the entire landscape A4 */
     z-index: 1;
     display: block !important;
 }
 
-/* Camada de Conteúdo Dinâmico */
+/* Dynamic Content Layer */
 .ffc-pdf-user-content {
     position: absolute;
     top: 0;
@@ -59,24 +59,24 @@
     z-index: 2;
     display: block !important;
     color: #000000 !important;
-    pointer-events: none; /* Evita interferências no clique */
+    pointer-events: none; /* Prevents click interference */
 }
 
-/* Reativa estilos básicos para HTML dentro do certificado */
+/* Re-activates basic HTML styles within the certificate */
 .ffc-pdf-user-content * {
-    all: revert; /* Retorna ao comportamento padrão do navegador */
+    all: revert; /* Reverts to default browser behavior */
     box-sizing: border-box;
     color: inherit;
     line-height: 1.4;
 }
 
-/* Ajuste específico para garantir que imagens dentro do conteúdo não quebrem */
+/* Specific adjustment to ensure images within content don't break */
 .ffc-pdf-user-content img {
     max-width: 100%;
     height: auto;
 }
 
-/* Correção para o Admin do WordPress */
+/* Fix for WordPress Admin */
 body.wp-admin .ffc-pdf-temp-wrapper {
     position: fixed !important;
     left: -9999px !important;
@@ -84,11 +84,11 @@ body.wp-admin .ffc-pdf-temp-wrapper {
     display: block !important;
 }
 
-/* Classes utilitárias que você pode usar no seu template de certificado */
+/* Utility classes for use in the certificate template */
 .ffc-txt-center { text-align: center; }
 .ffc-full-width { width: 100%; }
 
-/* Spinner de carregamento para os botões */
+/* Loading spinner for buttons */
 .ffc-btn-loading {
     pointer-events: none;
     opacity: 0.8;
@@ -111,7 +111,7 @@ body.wp-admin .ffc-pdf-temp-wrapper {
     animation: ffc-spin 0.8s linear infinite;
 }
 
-/* Overlay de progresso ultra-prioritário */
+/* High-priority progress overlay */
 .ffc-pdf-progress-overlay {
     position: fixed !important;
     top: 0 !important;
@@ -119,17 +119,17 @@ body.wp-admin .ffc-pdf-temp-wrapper {
     width: 100vw !important; /* Viewport Width */
     height: 100vh !important; /* Viewport Height */
     background: rgba(0, 0, 0, 0.92) !important;
-    z-index: 2147483647 !important; /* Máximo valor possível de z-index */
+    z-index: 2147483647 !important; /* Maximum possible z-index value */
     display: flex !important;
     flex-direction: column !important;
     justify-content: center !important;
     align-items: center !important;
     color: #ffffff !important;
     font-family: sans-serif !important;
-    pointer-events: all !important; /* Bloqueia cliques no fundo */
+    pointer-events: all !important; /* Blocks background clicks */
 }
 
-/* Spinner maior para mobile */
+/* Larger spinner for mobile */
 .ffc-progress-spinner {
     width: 60px;
     height: 60px;

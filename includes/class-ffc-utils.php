@@ -1,7 +1,7 @@
 <?php
 /**
  * FFC_Utils
- * Classe de utilitários compartilhada entre Frontend e Admin.
+ * Utility class shared between Frontend and Admin.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -11,8 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FFC_Utils {
 
     /**
-     * Retorna a lista de tags HTML e atributos permitidos.
-     * Centralizamos aqui para que o Frontend, E-mail e Gerador de PDF falem a mesma língua.
+     * Returns the list of allowed HTML tags and attributes.
+     * Centralized here so Frontend, Email, and PDF Generator use the same validation rules.
      */
     public static function get_allowed_html_tags() {
         $allowed = array(
@@ -52,12 +52,12 @@ class FFC_Utils {
                 'width'  => array(),
                 'height' => array(),
             ),
-            // Tags de tabela (essenciais para alinhamento de assinaturas)
+            // Table tags (essential for signature alignment)
             'table'  => array(
-                'style'  => array(),
-                'class'  => array(),
-                'width'  => array(),
-                'border' => array(),
+                'style'       => array(),
+                'class'       => array(),
+                'width'       => array(),
+                'border'      => array(),
                 'cellpadding' => array(),
                 'cellspacing' => array(),
             ),
@@ -73,21 +73,21 @@ class FFC_Utils {
                 'align'   => array(),
                 'valign'  => array(),
             ),
-            // Cabeçalhos
+            // Headings
             'h1' => array('style' => array(), 'class' => array()),
             'h2' => array('style' => array(), 'class' => array()),
             'h3' => array('style' => array(), 'class' => array()),
             'h4' => array('style' => array(), 'class' => array()),
             
-            // Listas (úteis para conteúdo programático no verso ou corpo)
+            // Lists (useful for syllabus content on the back or body)
             'ul' => array('style' => array(), 'class' => array()),
             'ol' => array('style' => array(), 'class' => array()),
             'li' => array('style' => array(), 'class' => array()),
         );
 
         /**
-         * Permite que outros desenvolvedores ou você mesmo adicione tags 
-         * sem precisar mexer no core do plugin.
+         * Allows developers to filter or add new tags 
+         * without modifying the plugin core.
          */
         return apply_filters( 'ffc_allowed_html_tags', $allowed );
     }

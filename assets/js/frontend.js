@@ -1,5 +1,5 @@
 // =========================================================================
-// 1. FUNÇÃO GLOBAL DE GERAÇÃO DE PDF
+// 1. GLOBAL PDF GENERATION FUNCTION
 // =========================================================================
 window.generateCertificate = function(data) {
     const { template, bg_image, form_title } = data;
@@ -9,7 +9,7 @@ window.generateCertificate = function(data) {
         return;
     }
 
-    // 1. Criar Overlay (Adicionamos pointer-events para bloquear cliques acidentais)
+    // 1. Create Overlay (Added pointer-events to block accidental clicks)
     const overlay = document.createElement('div');
     overlay.className = 'ffc-pdf-progress-overlay';
     overlay.style.pointerEvents = 'all'; 
@@ -21,7 +21,7 @@ window.generateCertificate = function(data) {
 
     const statusTxt = document.getElementById('ffc-prog-status');
 
-    // 2. Preparar o palco (Adicionado atributo crossorigin para evitar erro de 'Tainted Canvas')
+    // 2. Prepare the stage (Added crossorigin attribute to prevent 'Tainted Canvas' errors)
     const wrapper = document.createElement('div');
     wrapper.className = 'ffc-pdf-temp-wrapper';
     wrapper.innerHTML = `
@@ -32,9 +32,9 @@ window.generateCertificate = function(data) {
     `;
     document.body.appendChild(wrapper);
 
-    // O SEGREDO PARA MOBILE: 
-    // Usamos um delay menor (500ms) para o overlay aparecer, 
-    // mas garantimos que o navegador "respire" antes do html2canvas.
+    // THE SECRET FOR MOBILE: 
+    // We use a small delay (500ms) for the overlay to appear, 
+    // ensuring the browser "breathes" before html2canvas starts processing.
     setTimeout(() => {
         if(statusTxt) statusTxt.innerText = "Processing image...";
         
@@ -43,11 +43,11 @@ window.generateCertificate = function(data) {
         html2canvas(target, {
             scale: 2, 
             useCORS: true,
-            allowTaint: true, // Backup para imagens de domínios diferentes
+            allowTaint: true, // Backup for cross-domain images
             backgroundColor: "#ffffff",
             width: 1123,
             height: 794,
-            logging: false // Desativa logs para ganhar performance
+            logging: false // Disable logs for better performance
         }).then(canvas => {
             if(statusTxt) statusTxt.innerText = "Generating PDF...";
             
@@ -81,11 +81,11 @@ window.generateCertificate = function(data) {
 };
 
 // =========================================================================
-// 2. LÓGICA DO FORMULÁRIO (JQUERY)
+// 2. FORM LOGIC (JQUERY)
 // =========================================================================
 jQuery(function($) {
 
-    // Helper para atualizar o Captcha
+    // Helper to refresh Captcha
     function refreshCaptcha($form, data) {
         if (data.refresh_captcha) {
             $form.find('label[for="ffc_captcha_ans"]').html(data.new_label);
@@ -94,7 +94,7 @@ jQuery(function($) {
         }
     }
 
-    // --- A. MÁSCARAS DE INPUT ---
+    // --- A. INPUT MASKS ---
     $(document).on('input', 'input[name="ffc_auth_code"], .ffc-verify-input', function() {
         let v = $(this).val().toUpperCase().replace(/[^A-Z0-9]/g, ''); 
         if (v.length > 12) v = v.substring(0, 12);
@@ -113,7 +113,7 @@ jQuery(function($) {
         $(this).val(v);
     });
 
-    // --- B. VERIFICAÇÃO DE CERTIFICADO (AJAX) ---
+    // --- B. CERTIFICATE VERIFICATION (AJAX) ---
     $(document).on('submit', '.ffc-verification-form', function(e) {
         e.preventDefault();
         const $form = $(this);
@@ -153,7 +153,7 @@ jQuery(function($) {
         });
     });
 
-    // --- C. SUBMISSÃO E GERAÇÃO (AJAX) ---
+    // --- C. SUBMISSION AND GENERATION (AJAX) ---
     $(document).on('submit', '.ffc-submission-form', function(e) {
         e.preventDefault();
         const $form = $(this);
@@ -200,19 +200,4 @@ jQuery(function($) {
             }
         });
     });
-
-    // --- D. LÓGICA DO BOTÃO DOWNLOAD ADMIN ---
-    // (Agora fora do evento de submissão, funcionando de forma independente)
-    $(document).on('click', '.ffc-admin-download-btn', function(e) {
-        const $btn = $(this);
-        
-        // Ativa o spinner no botão do admin
-        $btn.addClass('ffc-btn-loading');
-        
-        // Escuta o evento que dispararemos na função generateCertificate ao terminar
-        $(document).one('ffc_pdf_done', function() {
-            $btn.removeClass('ffc-btn-loading');
-        });
-    });
-
 });

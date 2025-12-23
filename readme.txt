@@ -1,3 +1,74 @@
+=== WP-FFCertificate ===
+Contributors: (seu-usuario)
+Tags: certificate, form builder, pdf generation, html2canvas, verification, validation
+Requires at least: 5.0
+Tested up to: 6.4
+Stable tag: 2.0.0
+License: GPLv2 or later
+
+Documentação completa e registro de alterações do plugin WP-FFCertificate.
+
+== Description ==
+
+WP-FFCertificate é uma solução robusta para WordPress voltada à criação de formulários dinâmicos e emissão automatizada de certificados. O plugin permite que administradores criem campos via Drag & Drop, validem submissões em tempo real e ofereçam aos usuários um certificado em PDF gerado diretamente no navegador, garantindo alta performance sem sobrecarregar o servidor.
+
+== Features ==
+
+* **Drag & Drop Form Builder:** Interface intuitiva para criar campos personalizados (Text, Select, Radio, Date, CPF).
+* **Client-Side PDF Generation:** Utiliza html2canvas e jsPDF para gerar certificados A4 (Landscape) com suporte a imagens de fundo personalizadas.
+* **Sistema de Verificação:** Shortcode de validação `[ffc_verification]` para autenticidade de certificados via código único.
+* **Restrição por Identificador (CPF/ID):** Controle de emissão única ou modo "2ª Via" baseado em documento.
+* **Sistema de Tickets:** Importação de lista de códigos exclusivos para acesso ao formulário.
+* **Segurança Avançada:** Proteção contra bots com Captcha Matemático integrado e Honeypot.
+* **Exportação de Dados:** Ferramenta de exportação CSV com filtros por formulário e data.
+* **Notificações Assíncronas:** Envio de e-mails para o administrador via WP-Cron para não travar o fluxo do usuário.
+* **Limpeza Automática:** Rotina diária para exclusão de registros antigos conforme configuração.
+
+== Installation ==
+
+1. Envie a pasta `wp-ffcertificate` para o diretório `/wp-content/plugins/`.
+2. Ative o plugin através do menu 'Plugins' no WordPress.
+3. Acesse o menu 'FFCertificates' para criar seu primeiro formulário.
+4. Utilize o shortcode `[ffc_form id="ID_DO_FORM"]` em qualquer página ou post.
+
+== Changelog ==
+
+= 2.0.0 (Versão Atual) =
+* **Internacionalização (i18n):** Implementação completa de suporte a tradução. Todas as strings do PHP foram envolvidas em funções `__()` e `_e()` e as strings de JavaScript foram localizadas via `wp_localize_script`.
+* **Refatoração de PDF:** Migração do sistema de geração de imagem simples para PDF de alta fidelidade (A4 Landscape) usando jsPDF.
+* **Otimização Mobile:** Adição de delays estratégicos e overlay de progresso (FFC Progress Overlay) para garantir a renderização correta em dispositivos móveis.
+* **Segurança:** Implementação de Captcha Matemático dinâmico com validação via hash no backend para evitar spam.
+* **Lógica de "2ª Via":** Nova lógica de detecção de duplicidade que permite recuperar certificados já emitidos ao digitar o mesmo CPF.
+* **Arquitetura OOP:** Reestruturação modular do plugin em classes separadas (`Admin`, `Frontend`, `CPT`, `Submission_Handler`) para melhor manutenção.
+* **Melhoria no Admin:** Inclusão de botões de download de PDF diretamente na lista de submissões do painel administrativo.
+* **Correção de CORS:** Adição do atributo `crossorigin="anonymous"` na renderização de imagens para evitar erros de "Tainted Canvas".
+
+= 1.5.0 =
+* Implementação do sistema de Tickets (códigos de uso único).
+* Adição de funcionalidade de clonagem de formulários.
+* Criação da aba de configurações globais (Settings) com limpeza de logs automática.
+
+= 1.0.0 =
+* Lançamento inicial com Form Builder básico e exportação CSV.
+
+== Layout & Placeholders ==
+
+No editor de layout do certificado, você pode utilizar as seguintes tags dinâmicas:
+
+* `{{auth_code}}`: Código de autenticação de 12 dígitos.
+* `{{cpf_rf}}`: Documento informado (CPF ou ID).
+* `{{form_title}}`: Título do formulário atual.
+* `{{submission_date}}`: Data da emissão (DD/MM/AAAA).
+* `{{submission_id}}`: ID numérico da submissão no banco.
+* `{{validation_url}}`: URL da página de verificação (se configurada).
+* `{{nome_da_variavel}}`: Qualquer nome de campo definido no Form Builder.
+
+== Shortcodes ==
+
+* `[ffc_form id="123"]`: Exibe o formulário de emissão.
+* `[ffc_verification]`: Exibe a interface de busca para validar códigos de certificados.
+
+
 ===========================================
    README / Documentação Final
 ===========================================

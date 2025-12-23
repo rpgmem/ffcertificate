@@ -1,4 +1,9 @@
 <?php
+/**
+ * FFC_Form_Editor
+ * Handles the advanced UI for the Form Builder, including AJAX and layout management.
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -10,12 +15,16 @@ class FFC_Form_Editor {
         add_action( 'save_post', array( $this, 'save_form_data' ) );
         add_action( 'admin_notices', array( $this, 'display_save_errors' ) );
 
+        // AJAX handlers for the editor
         add_action( 'wp_ajax_ffc_generate_codes', array( $this, 'ajax_generate_random_codes' ) );
         add_action( 'wp_ajax_ffc_load_template', array( $this, 'ajax_load_template' ) );
     }
 
+    /**
+     * Registers the specific metaboxes for the Form CPT
+     */
     public function add_custom_metaboxes() {
-        // Limpa metaboxes antigos para evitar duplicidade
+        // Cleanup old/duplicate metaboxes if they exist
         remove_meta_box( 'ffc_form_builder', 'ffc_form', 'normal' );
         remove_meta_box( 'ffc_form_config', 'ffc_form', 'normal' );
         remove_meta_box( 'ffc_builder_box', 'ffc_form', 'normal' ); 
@@ -26,6 +35,9 @@ class FFC_Form_Editor {
         add_meta_box( 'ffc_box_email', __( '4. Email Configuration', 'ffc' ), array( $this, 'render_box_email' ), 'ffc_form', 'normal', 'high' );
     }
 
+    /**
+     * Section 1: Certificate Layout Editor
+     */
     public function render_box_layout( $post ) {
         $config = get_post_meta( $post->ID, '_ffc_form_config', true );
         $layout = isset( $config['pdf_layout'] ) ? $config['pdf_layout'] : '';
@@ -49,7 +61,7 @@ class FFC_Form_Editor {
                             </button>
                             <button type="button" class="button" id="ffc_btn_media_lib">
                                 <span class="dashicons dashicons-format-image"></span> 
-                                <?php esc_html_e( 'Background', 'ffc' ); ?>
+                                <?php esc_html_e( 'Background Image', 'ffc' ); ?>
                             </button>
                         </div>
 
@@ -71,11 +83,13 @@ class FFC_Form_Editor {
                 <td colspan="2">
                     <label class="ffc-block-label"><strong><?php esc_html_e( 'Certificate HTML Editor', 'ffc' ); ?></strong></label>
                     <textarea name="ffc_config[pdf_layout]" id="ffc_pdf_layout" class="ffc-w100" rows="12"><?php echo esc_textarea( $layout ); ?></textarea>
-                    <p class="description"><?php esc_html_e( 'Mandatory Tags:', 'ffc' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.</p>
+                    <p class="description">
+                        <?php esc_html_e( 'Mandatory Tags:', 'ffc' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.
+                    </p>
                     
                     <div class="ffc-input-group" style="margin-top: 15px;">
                         <label class="ffc-block-label"><strong><?php esc_html_e( 'Background Image URL:', 'ffc' ); ?></strong></label>
-                        <input type="text" name="ffc_config[bg_image]" id="ffc_bg_image_input" value="<?php echo esc_attr( $bg_image ); ?>" class="ffc-w100">
+                        <input type="text" name="ffc_config[bg_image]" id="ffc_bg_image_input" value="<?php echo esc_url( $bg_image ); ?>" class="ffc-w100">
                     </div>
                 </td>
             </tr>
@@ -83,14 +97,18 @@ class FFC_Form_Editor {
         <?php
     }
 
+    /**
+     * Section 2: Form Builder (Fields)
+     */
     public function render_box_builder( $post ) {
         $fields = get_post_meta( $post->ID, '_ffc_form_fields', true );
 
+        // Default fields for brand new forms
         if ( empty( $fields ) && $post->post_status === 'auto-draft' ) {
             $fields = array(
-                array( 'type' => 'text', 'label' => 'Full Name', 'name' => 'name', 'required' => '1', 'options' => '' ),
-                array( 'type' => 'email', 'label' => 'Email', 'name' => 'email', 'required' => '1', 'options' => '' ),
-                array( 'type' => 'text', 'label' => 'CPF / ID', 'name' => 'cpf_rf', 'required' => '1', 'options' => '' )
+                array( 'type' => 'text', 'label' => __( 'Full Name', 'ffc' ), 'name' => 'name', 'required' => '1', 'options' => '' ),
+                array( 'type' => 'email', 'label' => __( 'Email', 'ffc' ), 'name' => 'email', 'required' => '1', 'options' => '' ),
+                array( 'type' => 'text', 'label' => __( 'CPF / ID', 'ffc' ), 'name' => 'cpf_rf', 'required' => '1', 'options' => '' )
             );
         }
         ?>
@@ -117,6 +135,9 @@ class FFC_Form_Editor {
         <?php
     }
 
+    /**
+     * Section 3: Restrictions and Tickets
+     */
     public function render_box_restriction( $post ) {
         $config = get_post_meta( $post->ID, '_ffc_form_config', true );
         
@@ -129,7 +150,7 @@ class FFC_Form_Editor {
         <table class="form-table">
             <tr>
                 <th><label><?php esc_html_e( 'Single Password (Optional)', 'ffc' ); ?></label></th>
-                <td><input type="text" name="ffc_config[validation_code]" value="<?php echo esc_attr($vcode); ?>" class="regular-text" placeholder="Ex: EVENTO2024"></td>
+                <td><input type="text" name="ffc_config[validation_code]" value="<?php echo esc_attr($vcode); ?>" class="regular-text" placeholder="<?php esc_attr_e('Ex: PASS2025', 'ffc'); ?>"></td>
             </tr>
             <tr>
                 <th><label><?php esc_html_e( 'Restriction Mode', 'ffc' ); ?></label></th>
@@ -142,11 +163,11 @@ class FFC_Form_Editor {
             </tr>
             <tr>
                 <th><label><?php esc_html_e( 'Allowlist (CPFs / IDs)', 'ffc' ); ?></label></th>
-                <td><textarea name="ffc_config[allowed_users_list]" class="ffc-textarea-mono ffc-h120 ffc-w100" placeholder="Um por linha..."><?php echo esc_textarea($allow); ?></textarea></td>
+                <td><textarea name="ffc_config[allowed_users_list]" class="ffc-textarea-mono ffc-h120 ffc-w100" placeholder="<?php esc_attr_e('One per line...', 'ffc'); ?>"><?php echo esc_textarea($allow); ?></textarea></td>
             </tr>
             <tr>
                 <th><label><?php esc_html_e( 'Denylist (Blocked)', 'ffc' ); ?></label></th>
-                <td><textarea name="ffc_config[denied_users_list]" class="ffc-textarea-mono ffc-h80 ffc-w100" placeholder="Usuários banidos..."><?php echo esc_textarea($deny); ?></textarea></td>
+                <td><textarea name="ffc_config[denied_users_list]" class="ffc-textarea-mono ffc-h80 ffc-w100" placeholder="<?php esc_attr_e('Banned users...', 'ffc'); ?>"><?php echo esc_textarea($deny); ?></textarea></td>
             </tr>
             <tr class="ffc-highlight-row">
                 <th><label class="ffc-label-accent"><?php esc_html_e( 'Ticket Generator', 'ffc' ); ?></label></th>
@@ -162,15 +183,18 @@ class FFC_Form_Editor {
         <?php
     }
 
+    /**
+     * Section 4: Email Settings
+     */
     public function render_box_email( $post ) {
         $config = get_post_meta( $post->ID, '_ffc_form_config', true );
         $send_email = isset($config['send_user_email']) ? $config['send_user_email'] : '0';
-        $subject    = isset($config['email_subject']) ? $config['email_subject'] : 'Your Certificate';
+        $subject    = isset($config['email_subject']) ? $config['email_subject'] : __( 'Your Certificate', 'ffc' );
         $body       = isset($config['email_body']) ? $config['email_body'] : '';
         ?>
         <table class="form-table">
             <tr>
-                <th><label><?php esc_html_e( 'Send Email?', 'ffc' ); ?></label></th>
+                <th><label><?php esc_html_e( 'Send Email to User?', 'ffc' ); ?></label></th>
                 <td>
                     <select name="ffc_config[send_user_email]" class="ffc-select-full">
                         <option value="0" <?php selected($send_email, '0'); ?>><?php esc_html_e( 'No', 'ffc' ); ?></option>
@@ -190,6 +214,9 @@ class FFC_Form_Editor {
         <?php
     }
 
+    /**
+     * Helper: Renders a field row in the builder
+     */
     private function render_field_row( $index, $field ) {
         $type  = isset( $field['type'] ) ? $field['type'] : 'text';
         $label = isset( $field['label'] ) ? $field['label'] : '';
@@ -197,10 +224,9 @@ class FFC_Form_Editor {
         $req   = isset( $field['required'] ) ? $field['required'] : '';
         $opts  = isset( $field['options'] ) ? $field['options'] : '';
         
-        // Determina se o campo de opções deve começar visível
         $options_visible_class = ( $type === 'select' || $type === 'radio' ) ? '' : 'ffc-hidden';
         ?>
-        <div class="ffc-field-row" data-index="<?php echo $index; ?>">
+        <div class="ffc-field-row" data-index="<?php echo esc_attr($index); ?>">
             <div class="ffc-field-row-header">
                 <span class="ffc-sort-handle">
                     <span class="dashicons dashicons-menu"></span>
@@ -215,8 +241,8 @@ class FFC_Form_Editor {
                     <input type="text" name="ffc_fields[<?php echo $index; ?>][label]" value="<?php echo esc_attr( $label ); ?>" class="ffc-w100">
                 </div>
                 <div class="ffc-grid-item">
-                    <label><?php esc_html_e('Variable Name', 'ffc'); ?></label>
-                    <input type="text" name="ffc_fields[<?php echo $index; ?>][name]" value="<?php echo esc_attr( $name ); ?>" placeholder="ex: curso_nome" class="ffc-w100">
+                    <label><?php esc_html_e('Variable Name (Tag)', 'ffc'); ?></label>
+                    <input type="text" name="ffc_fields[<?php echo $index; ?>][name]" value="<?php echo esc_attr( $name ); ?>" placeholder="ex: course_name" class="ffc-w100">
                 </div>
                 <div class="ffc-grid-item">
                     <label><?php esc_html_e('Type', 'ffc'); ?></label>
@@ -248,8 +274,14 @@ class FFC_Form_Editor {
         <?php
     }
 
+    /**
+     * AJAX: Generates a list of unique ticket codes
+     */
     public function ajax_generate_random_codes() {
         check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
+        
+        if ( ! current_user_can( 'edit_posts' ) ) wp_send_json_error();
+
         $qty = isset($_POST['qty']) ? absint($_POST['qty']) : 10;
         $codes = array();
         for($i = 0; $i < $qty; $i++) {
@@ -259,8 +291,12 @@ class FFC_Form_Editor {
         wp_send_json_success( array( 'codes' => implode("\n", $codes) ) );
     }
 
+    /**
+     * AJAX: Loads a local HTML template from the plugin directory
+     */
     public function ajax_load_template() {
         check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
+        
         if ( ! current_user_can( 'edit_posts' ) ) wp_send_json_error();
 
         $filename = isset($_POST['filename']) ? sanitize_file_name($_POST['filename']) : '';
@@ -273,12 +309,15 @@ class FFC_Form_Editor {
         wp_send_json_success( $content );
     }
 
+    /**
+     * Saves all form data and configurations
+     */
     public function save_form_data( $post_id ) {
         if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
-        if ( ! current_user_can( 'edit_post', $post_id ) ) return;
         if ( ! isset( $_POST['ffc_form_nonce'] ) || ! wp_verify_nonce( $_POST['ffc_form_nonce'], 'ffc_save_form_data' ) ) return;
+        if ( ! current_user_can( 'edit_post', $post_id ) ) return;
 
-        // 1. Salva os Campos do Formulário
+        // 1. Save Form Fields
         if ( isset( $_POST['ffc_fields'] ) && is_array( $_POST['ffc_fields'] ) ) {
             $clean_fields = array();
             foreach ( $_POST['ffc_fields'] as $index => $field ) {
@@ -297,10 +336,11 @@ class FFC_Form_Editor {
             update_post_meta( $post_id, '_ffc_form_fields', array() );
         }
 
-        // 2. Salva as Configurações
+        // 2. Save Configurations
         if ( isset( $_POST['ffc_config'] ) ) {
             $config = $_POST['ffc_config'];
-            $allowed_html = FFC_Utils::get_allowed_html_tags();
+            // Assumes FFC_Utils provides a list of safe HTML tags for PDF layouts
+            $allowed_html = method_exists('FFC_Utils', 'get_allowed_html_tags') ? FFC_Utils::get_allowed_html_tags() : wp_kses_allowed_html('post');
 
             $clean_config = array();
             $clean_config['pdf_layout'] = wp_kses( $config['pdf_layout'], $allowed_html );
@@ -316,7 +356,7 @@ class FFC_Form_Editor {
             $clean_config['validation_code']      = sanitize_text_field( $config['validation_code'] );
             $clean_config['generated_codes_list'] = sanitize_textarea_field( $config['generated_codes_list'] );
 
-            // Validação de Tags Obrigatórias
+            // Tag Validation: Ensure the user didn't remove critical tags
             $missing_tags = array();
             if ( strpos( $clean_config['pdf_layout'], '{{auth_code}}' ) === false ) $missing_tags[] = '{{auth_code}}';
             if ( strpos( $clean_config['pdf_layout'], '{{name}}' ) === false && strpos( $clean_config['pdf_layout'], '{{nome}}' ) === false ) $missing_tags[] = '{{name}}';
@@ -333,13 +373,16 @@ class FFC_Form_Editor {
         }
     }
 
+    /**
+     * Displays validation warnings after saving
+     */
     public function display_save_errors() {
         $error_tags = get_transient( 'ffc_save_error_' . get_current_user_id() );
         if ( $error_tags ) {
             delete_transient( 'ffc_save_error_' . get_current_user_id() );
             ?>
             <div class="notice notice-error is-dismissible">
-                <p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffc' ); ?></strong> <code><?php echo implode( ', ', $error_tags ); ?></code>.</p>
+                <p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffc' ); ?></strong> <code><?php echo esc_html(implode( ', ', $error_tags )); ?></code>.</p>
             </div>
             <?php
         }
