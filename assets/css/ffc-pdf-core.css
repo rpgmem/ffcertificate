@@ -1,0 +1,145 @@
+/**
+ * FFC PDF CORE - Versão Estável e Otimizada
+ */
+
+/* Container invisível para renderização */
+.ffc-pdf-temp-wrapper {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    width: 1123px;
+    height: 794px;
+    z-index: -1;
+    overflow: hidden;
+}
+
+/* Reset Universal para o Captura */
+.ffc-pdf-stage, 
+.ffc-pdf-stage *, 
+.ffc-pdf-stage *:before, 
+.ffc-pdf-stage *:after {
+    box-sizing: border-box !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+}
+
+.ffc-pdf-stage {
+    all: initial; /* Limpa estilos herdados do WP/Temas */
+    display: block !important;
+    position: relative;
+    width: 1123px;
+    height: 794px;
+    background-color: #ffffff;
+    overflow: hidden;
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Imagem de Fundo (Template) */
+.ffc-pdf-bg-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1123px;
+    height: 794px;
+    object-fit: fill; /* Garante que preencha todo o A4 paisagem */
+    z-index: 1;
+    display: block !important;
+}
+
+/* Camada de Conteúdo Dinâmico */
+.ffc-pdf-user-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    display: block !important;
+    color: #000000 !important;
+    pointer-events: none; /* Evita interferências no clique */
+}
+
+/* Reativa estilos básicos para HTML dentro do certificado */
+.ffc-pdf-user-content * {
+    all: revert; /* Retorna ao comportamento padrão do navegador */
+    box-sizing: border-box;
+    color: inherit;
+    line-height: 1.4;
+}
+
+/* Ajuste específico para garantir que imagens dentro do conteúdo não quebrem */
+.ffc-pdf-user-content img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Correção para o Admin do WordPress */
+body.wp-admin .ffc-pdf-temp-wrapper {
+    position: fixed !important;
+    left: -9999px !important;
+    top: 0 !important;
+    display: block !important;
+}
+
+/* Classes utilitárias que você pode usar no seu template de certificado */
+.ffc-txt-center { text-align: center; }
+.ffc-full-width { width: 100%; }
+
+/* Spinner de carregamento para os botões */
+.ffc-btn-loading {
+    pointer-events: none;
+    opacity: 0.8;
+    position: relative;
+    color: transparent !important;
+}
+
+.ffc-btn-loading::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-top: -8px;
+    margin-left: -8px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: ffc-spin 0.8s linear infinite;
+}
+
+/* Overlay de progresso ultra-prioritário */
+.ffc-pdf-progress-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important; /* Viewport Width */
+    height: 100vh !important; /* Viewport Height */
+    background: rgba(0, 0, 0, 0.92) !important;
+    z-index: 2147483647 !important; /* Máximo valor possível de z-index */
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    color: #ffffff !important;
+    font-family: sans-serif !important;
+    pointer-events: all !important; /* Bloqueia cliques no fundo */
+}
+
+/* Spinner maior para mobile */
+.ffc-progress-spinner {
+    width: 60px;
+    height: 60px;
+    border: 6px solid rgba(255,255,255,0.1);
+    border-top: 6px solid #3498db;
+    border-radius: 50%;
+    animation: ffc-spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes ffc-spin {
+    to { transform: rotate(360deg); }
+}

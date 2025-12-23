@@ -1,0 +1,182 @@
+/* ==========================================================================
+   1. METABOX TABS (Native WP Style)
+   ========================================================================== */
+.ffc-metabox-tabs { margin-top: 10px; }
+.ffc-metabox-tabs .ffc-tabs-nav {
+    border-bottom: 1px solid #c3c4c7;
+    margin: 0 0 15px;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    gap: 5px;
+}
+.ffc-metabox-tabs .ffc-tabs-nav li {
+    background: #f0f0f1;
+    border: 1px solid #c3c4c7;
+    border-bottom: none;
+    padding: 8px 14px;
+    margin-bottom: -1px;
+    color: #2271b1;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: 4px 4px 0 0;
+    transition: background 0.2s;
+}
+.ffc-metabox-tabs .ffc-tabs-nav li.nav-tab-active {
+    background: #ffffff;
+    border-bottom: 1px solid #ffffff;
+    color: #1d2327;
+    pointer-events: none;
+}
+
+/* ==========================================================================
+   2. FORM BUILDER (Field Rows) - CORREÇÃO DE OVERFLOW
+   ========================================================================== */
+#ffc-fields-container { margin-bottom: 15px; max-width: 100%; }
+
+.ffc-field-row {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    padding: 15px;
+    margin-bottom: 12px;
+    border-left: 4px solid #2271b1;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.ffc-field-row:hover { box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+.ffc-field-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+/* O GRID RESPONSIVO (AQUI ESTÁ A MÁGICA) */
+.ffc-field-row-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    align-items: end;
+}
+
+.ffc-field-row-grid div { display: flex; flex-direction: column; gap: 5px; }
+
+.ffc-field-row-grid input[type="text"],
+.ffc-field-row-grid select {
+    width: 100% !important;
+    box-sizing: border-box;
+    height: 30px;
+}
+
+.ffc-req-container {
+    flex-direction: row !important;
+    align-items: center;
+    padding-bottom: 8px;
+    min-width: 100px;
+}
+
+.ffc-options-field {
+    margin-top: 15px;
+    background: #f6f7f7;
+    padding: 12px;
+    border-radius: 4px;
+    border: 1px dashed #c3c4c7;
+}
+
+/* ==========================================================================
+   3. EDITOR HTML & PREVIEW
+   ========================================================================== */
+#ffc_pdf_layout {
+    width: 100%;
+    height: 450px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    background: #2c3338;
+    color: #f0f0f1;
+    padding: 15px;
+    border-radius: 4px;
+    line-height: 1.5;
+}
+
+.ffc-pdf-preview-container {
+    border: 1px solid #c3c4c7;
+    background: #f0f0f1;
+    padding: 20px;
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    overflow: auto;
+}
+
+/* ==========================================================================
+   4. TICKET GENERATOR & SUBMISSIONS
+   ========================================================================== */
+#ffc_generated_list {
+    background: #fff;
+    font-family: monospace;
+    width: 100%;
+    min-height: 150px;
+    border: 1px solid #8c8f94;
+}
+
+.ffc-table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 20px;
+    border: 1px solid #ccd0d4;
+    background: #fff;
+}
+
+.wp-list-table.submissions { min-width: 1000px; }
+
+/* ==========================================================================
+   5. SETTINGS, HELP & DOCUMENTATION (Preservados)
+   ========================================================================== */
+.ffc-settings-card { max-width: 100%; padding: 20px; }
+.ffc-help-table { margin-bottom: 25px; width: 100%; border-collapse: collapse; }
+.ffc-help-table th { text-align: left; padding: 10px; border-bottom: 2px solid #eee; }
+.ffc-help-table td { padding: 10px; border-bottom: 1px solid #eee; }
+
+.ffc-danger-zone {
+    margin-top: 40px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #d63638;
+    border-radius: 4px;
+}
+.ffc-danger-zone h2 { color: #d63638; margin-top: 0; }
+
+/* ==========================================================================
+   6. UTILITIES & BADGES
+   ========================================================================== */
+.ffc-hidden { display: none !important; }
+.ffc-sort-handle { cursor: move; color: #c3c4c7; padding: 5px; font-size: 18px; }
+.ffc-remove-field { color: #d63638; cursor: pointer; text-decoration: none; font-size: 13px; }
+.ffc-remove-field:hover { color: #b32d2e; }
+
+.ffc-status-badge {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+.ffc-status-publish { background: #e7f5ec; color: #008a20; }
+.ffc-status-trash { background: #fcf0f1; color: #d63638; }
+
+.ffc-admin-notice {
+    padding: 10px 15px;
+    border-left: 4px solid #fff;
+    margin: 10px 0;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+}
+.ffc-admin-notice-success { border-color: #00a32a; }
+.ffc-admin-notice-warning { border-left: 4px solid #f0ad4e; }
+
+/* Destaques */
+.ffc-highlight-row { background: #f0f6fc; }
+.ffc-label-accent { color: #2271b1; font-weight: bold; }
