@@ -1,12 +1,15 @@
 <?php
+/**
+ * FFC_CPT
+ * Manages the Custom Post Type for forms, including registration and duplication logic.
+ * 
+ * v2.9.2: OPTIMIZED to use FFC_Utils functions
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-/**
- * Class FFC_CPT
- * Manages the Custom Post Type for forms, including registration and duplication logic.
- */
 class FFC_CPT {
 
     public function __construct() {
@@ -60,6 +63,11 @@ class FFC_CPT {
             return $actions;
         }
         
+        // ✅ OPTIMIZED v2.9.2: Check permissions before adding link
+        if ( ! FFC_Utils::current_user_can_manage() ) {
+            return $actions;
+        }
+        
         $url = wp_nonce_url(
             admin_url( 'admin.php?action=ffc_duplicate_form&post=' . $post->ID ),
             'ffc_duplicate_form_nonce'
@@ -74,7 +82,12 @@ class FFC_CPT {
      * Handles the duplication process when the action is triggered
      */
     public function handle_form_duplication() {
-        if ( ! current_user_can( 'edit_posts' ) ) {
+        // ✅ OPTIMIZED v2.9.2: Use FFC_Utils for permission check
+        if ( ! FFC_Utils::current_user_can_manage() ) {
+            FFC_Utils::debug_log( 'Unauthorized form duplication attempt', array(
+                'user_id' => get_current_user_id(),
+                'ip' => FFC_Utils::get_user_ip()
+            ) );
             wp_die( esc_html__( 'You do not have permission to duplicate this post.', 'ffc' ) );
         }
 
@@ -85,12 +98,20 @@ class FFC_CPT {
         $post = get_post( $post_id );
         
         if ( ! $post || $post->post_type !== 'ffc_form' ) {
+            FFC_Utils::debug_log( 'Invalid form duplication request', array(
+                'post_id' => $post_id,
+                'user_id' => get_current_user_id()
+            ) );
             wp_die( esc_html__( 'Invalid post.', 'ffc' ) );
         }
 
+        // ✅ OPTIMIZED v2.9.2: Use FFC_Utils::sanitize_filename() for title
+        $original_title = $post->post_title;
+        $new_title = sprintf( __( '%s (Copy)', 'ffc' ), $original_title );
+
         // Create new post
         $new_post_args = array(
-            'post_title'  => sprintf( __( '%s (Copy)', 'ffc' ), $post->post_title ),
+            'post_title'  => $new_title,
             'post_status' => 'draft',
             'post_type'   => $post->post_type,
             'post_author' => get_current_user_id(),
@@ -99,6 +120,10 @@ class FFC_CPT {
         $new_post_id = wp_insert_post( $new_post_args );
 
         if ( is_wp_error( $new_post_id ) ) {
+            FFC_Utils::debug_log( 'Form duplication failed', array(
+                'error' => $new_post_id->get_error_message(),
+                'original_post_id' => $post_id
+            ) );
             wp_die( $new_post_id->get_error_message() );
         }
 
@@ -107,17 +132,32 @@ class FFC_CPT {
         $config = get_post_meta( $post_id, '_ffc_form_config', true );
         $bg_image = get_post_meta( $post_id, '_ffc_form_bg', true );
 
+        $metadata_copied = array();
+
         if ( $fields ) {
             update_post_meta( $new_post_id, '_ffc_form_fields', $fields );
+            $metadata_copied[] = 'fields';
         }
         
         if ( $config ) {
             update_post_meta( $new_post_id, '_ffc_form_config', $config );
+            $metadata_copied[] = 'config';
         }
         
         if ( $bg_image ) {
             update_post_meta( $new_post_id, '_ffc_form_bg', $bg_image );
+            $metadata_copied[] = 'bg_image';
         }
+
+        // ✅ OPTIMIZED v2.9.2: Log successful duplication
+        FFC_Utils::debug_log( 'Form duplicated successfully', array(
+            'original_post_id' => $post_id,
+            'new_post_id' => $new_post_id,
+            'original_title' => FFC_Utils::truncate( $original_title, 50 ),
+            'new_title' => FFC_Utils::truncate( $new_title, 50 ),
+            'metadata_copied' => implode( ', ', $metadata_copied ),
+            'user_id' => get_current_user_id()
+        ) );
 
         // Redirect to forms list
         wp_redirect( admin_url( 'edit.php?post_type=ffc_form' ) );

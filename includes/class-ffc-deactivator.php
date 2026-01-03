@@ -35,7 +35,7 @@ class FFC_Deactivator {
         }
         
         global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_submissions';
+        $table_name = FFC_Utils::get_submissions_table();
 
         // 1. Drop the submissions table
         $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" );

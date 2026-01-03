@@ -1,4 +1,9 @@
 /* ==========================================================================
+   FREE FORM CERTIFICATE - ADMIN STYLES
+   v2.9.13
+   ========================================================================== */
+
+/* ==========================================================================
    1. METABOX TABS (Native WP Style)
    ========================================================================== */
 .ffc-metabox-tabs { 
@@ -177,39 +182,74 @@
 .ffc-h120 { min-height: 120px; }
 
 /* ==========================================================================
-   5. SUBMISSIONS TABLE
+   5. SUBMISSIONS TABLE - COMPLETE LAYOUT
    ========================================================================== */
+
+/* Remove limite de largura do container principal */
+.post-type-ffc_form .wrap {
+    max-width: none !important;
+}
+
+/* Container responsivo da tabela */
 .ffc-table-responsive {
-    width: 100%;
     overflow-x: auto;
-    margin-bottom: 20px;
-    border: 1px solid #ccd0d4;
-    background: #fff;
+    margin-top: 20px;
+    width: 100%;
 }
 
-.wp-list-table.submissions { 
-    min-width: 1000px; 
+/* Tabela principal - LARGURA COMPLETA */
+.ffc-table-responsive table.wp-list-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed;
+    border-collapse: collapse;
 }
 
-.ffc-row-actions {
-    display: flex;
-    gap: 5px;
-    flex-wrap: wrap;
+.ffc-more-fields {
+    color: #666;
+    font-size: 11px;
+    font-style: italic;
 }
 
-.ffc-admin-top-actions {
-    display: inline-block;
-    margin-left: 10px;
+/* Quebra de texto em emails e dados */
+.ffc-table-responsive table.wp-list-table td.column-email,
+.ffc-table-responsive table.wp-list-table td.column-data {
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
-.ffc-verify-data-list {
-    list-style: none;
-    padding: 0;
+/* Botões de ação - alinhamento */
+.ffc-table-responsive td.column-actions {
+    white-space: normal;
 }
 
-.ffc-verify-data-list li {
-    padding: 5px 0;
-    border-bottom: 1px solid #eee;
+/* Navegação da tabela */
+.tablenav {
+    clear: both;
+}
+
+.tablenav .actions {
+    overflow: visible;
+}
+
+/* Responsivo para telas menores */
+@media screen and (max-width: 782px) {
+    .ffc-table-responsive table.wp-list-table {
+        table-layout: auto;
+    }
+    
+    .ffc-table-responsive table.wp-list-table th.column-actions,
+    .ffc-table-responsive table.wp-list-table td.column-actions {
+        white-space: normal;
+    }
+    
+    .ffc-table-responsive .button {
+        display: inline-block;
+        margin: 2px;
+        font-size: 11px;
+        padding: 4px 8px;
+        line-height: 1.5;
+    }
 }
 
 /* ==========================================================================
@@ -458,5 +498,263 @@
     
     .ffc-row-actions {
         flex-direction: column;
+    }
+}
+
+/* ==========================================================================
+   15. SUBMISSION EDIT PAGE
+   ========================================================================== */
+
+/* Seções de cabeçalho */
+.ffc-edit-submission-form h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Botão de copiar magic link */
+.ffc-copy-magic-link {
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+.ffc-copy-magic-link:hover {
+    background: #0073aa;
+    color: white;
+    border-color: #006799;
+}
+
+/* Links de magic link - quebra de linha */
+.form-table td a[href*="token="] {
+    display: inline-block;
+    max-width: 100%;
+    word-break: break-all;
+    color: #2271b1;
+    text-decoration: underline;
+}
+
+.form-table td a[href*="token="]:hover {
+    color: #135e96;
+}
+
+/* Descrições mais legíveis */
+.form-table .description strong {
+    color: #1d2327;
+}
+
+/* ========================================
+   16. TEMPLATE LOADER CUSTOMIZATIONS
+   ======================================== */
+
+/* Esconder o combo de templates */
+#ffc_template_select {
+    display: none !important;
+}
+
+/* Organizar os botões lado a lado */
+#ffc_load_template_btn,
+#ffc_btn_import_html {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+/* Opcional: Melhorar estilo dos botões */
+#ffc_load_template_btn,
+#ffc_btn_import_html {
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+/* Adicionar ícones aos botões (opcional) */
+#ffc_load_template_btn:before {
+    content: "📋 ";
+}
+
+#ffc_btn_import_html:before {
+    content: "📁 ";
+}
+
+/* ========================================
+   17. DATA MIGRATIONS TAB STYLES
+
+   ======================================== */
+
+/* Main Wrapper */
+.ffc-migrations-settings-wrap {
+    max-width: 1200px;
+}
+
+/* Warning Box */
+.ffc-migration-warning {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 12px;
+    margin: 15px 0;
+}
+
+.ffc-migration-warning p {
+    margin: 0;
+}
+
+/* Migration Cards */
+.ffc-migration-card {
+    margin-bottom: 20px;
+}
+
+.ffc-migration-card.ffc-migration-complete {
+    border-left: 4px solid #46b450;
+}
+
+.ffc-migration-card.ffc-migration-pending {
+    border-left: 4px solid #0073aa;
+}
+
+.ffc-migration-card .postbox-header .hndle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ffc-migration-card .dashicons-yes-alt {
+    color: #46b450;
+    font-size: 24px;
+}
+
+/* Description */
+.ffc-migration-card .description {
+    margin-top: 0;
+}
+
+/* Statistics Grid */
+.ffc-migration-stats {
+    display: flex;
+    gap: 20px;
+    margin: 15px 0;
+    padding: 10px;
+    background: #f6f7f7;
+    border-radius: 4px;
+}
+
+.ffc-migration-stats > div {
+    flex: 1;
+    text-align: center;
+}
+
+.ffc-migration-stat-label {
+    font-size: 11px;
+    color: #646970;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.ffc-migration-stat-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.ffc-migration-stat-value.success {
+    color: #46b450;
+}
+
+.ffc-migration-stat-value.pending {
+    color: #d63638;
+}
+
+.ffc-migration-stat-value.info {
+    color: #0073aa;
+}
+
+/* Progress Bar */
+.ffc-migration-progress-bar {
+    margin: 15px 0;
+}
+
+.ffc-progress-bar-container {
+    width: 100%;
+    height: 24px;
+    background: #dcdcde;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.ffc-progress-bar-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.ffc-progress-bar-fill.complete {
+    background: #46b450;
+}
+
+.ffc-progress-bar-fill.pending {
+    background: #0073aa;
+}
+
+.ffc-progress-bar-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.ffc-progress-bar-label.dark {
+    color: #fff;
+}
+
+.ffc-progress-bar-label.light {
+    color: #1d2327;
+}
+
+/* Actions */
+.ffc-migration-actions {
+    margin-top: 15px;
+}
+
+.ffc-migration-actions .description {
+    margin-top: 8px;
+}
+
+.ffc-migration-actions .button .dashicons {
+    vertical-align: middle;
+    line-height: 28px;
+    font-size: 16px;
+}
+
+.ffc-migration-actions .button[disabled] {
+    opacity: 0.5;
+}
+
+/* Help Section */
+.ffc-migration-help {
+    margin-top: 20px;
+    border-left: 4px solid #2271b1;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+    .ffc-migration-stats {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .ffc-migration-stats > div {
+        text-align: left;
+    }
+    
+    .ffc-migration-stat-label {
+        font-size: 12px;
+    }
+    
+    .ffc-migration-stat-value {
+        font-size: 18px;
     }
 }

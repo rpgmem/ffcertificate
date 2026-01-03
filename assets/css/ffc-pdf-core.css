@@ -1,8 +1,10 @@
 /**
- * FFC PDF CORE - Stable and Optimized Version
+ * FFC PDF CORE - v2.9.2 - HTML Formatting Preserved
  * 
  * CRITICAL: This file controls PDF rendering with html2canvas.
  * Any changes to positioning, sizing, or visibility may break PDF generation.
+ * 
+ * v2.9.2: Fixed bold/italic/underline not rendering in PDF
  */
 
 /* ==========================================================================
@@ -18,81 +20,236 @@
     overflow: hidden;
 }
 
-/* ==========================================================================
-   2. UNIVERSAL RESET FOR PDF CAPTURE
-   ========================================================================== */
-.ffc-pdf-stage, 
-.ffc-pdf-stage *, 
-.ffc-pdf-stage *:before, 
-.ffc-pdf-stage *:after {
-    box-sizing: border-box !important;
-    text-shadow: none !important;
-    -webkit-print-color-adjust: exact;
-}
-
-/* ==========================================================================
-   3. PDF STAGE (Main container for certificate)
-   ========================================================================== */
-.ffc-pdf-stage {
-    all: initial; /* Clear inherited styles from WP/Themes */
-    display: block !important;
-    position: relative;
-    width: 1123px;
-    height: 794px;
-    background-color: #ffffff;
-    overflow: hidden;
-    box-sizing: border-box;
-    font-family: Arial, Helvetica, sans-serif;
+/* Container temporário usado pelo frontend.js */
+.ffc-pdf-temp-container {
+    position: fixed !important;
+    left: -9999px !important;
+    top: 0 !important;
+    width: 1123px !important;
+    height: 794px !important;
+    z-index: -1 !important;
+    overflow: hidden !important;
     visibility: visible !important;
-    opacity: 1 !important;
 }
 
 /* ==========================================================================
-   4. BACKGROUND IMAGE LAYER
+   2. PDF WRAPPER (Main container)
    ========================================================================== */
-.ffc-pdf-bg-img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 1123px;
-    height: 794px;
-    object-fit: fill; /* Ensures it fills the entire landscape A4 */
-    z-index: 1;
-    display: block !important;
-}
-
-/* ==========================================================================
-   5. DYNAMIC CONTENT LAYER (User data overlay)
-   ========================================================================== */
-.ffc-pdf-user-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 2;
-    display: block !important;
+.ffc-pdf-wrapper {
+    position: relative !important;
+    width: 1123px !important;
+    height: 794px !important;
+    background-color: #ffffff !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
     color: #000000 !important;
-    pointer-events: none; /* Prevents click interference */
-}
-
-/* Re-activate basic HTML styles within the certificate */
-.ffc-pdf-user-content * {
-    all: revert; /* Reverts to default browser behavior */
-    box-sizing: border-box;
-    color: inherit;
-    line-height: 1.4;
-}
-
-/* Ensure images within content don't break layout */
-.ffc-pdf-user-content img {
-    max-width: 100%;
-    height: auto;
 }
 
 /* ==========================================================================
-   6. WORDPRESS ADMIN FIX
+   3. BACKGROUND IMAGE LAYER
    ========================================================================== */
+.ffc-pdf-bg {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 1123px !important;
+    height: 794px !important;
+    object-fit: fill !important;
+    z-index: 1 !important;
+    display: block !important;
+}
+
+/* ==========================================================================
+   4. CONTENT LAYER (User data overlay)
+   ========================================================================== */
+.ffc-pdf-content {
+    position: relative !important;
+    z-index: 2 !important;
+    width: 100% !important;
+    height: 100% !important;
+    box-sizing: border-box !important;
+    display: block !important;
+}
+
+/* ==========================================================================
+   5. PRESERVE HTML FORMATTING (CRITICAL FOR PDF)
+   ========================================================================== */
+
+/* ✅ v2.9.2: Preserve bold/strong */
+.ffc-pdf-wrapper strong,
+.ffc-pdf-wrapper b,
+.ffc-pdf-content strong,
+.ffc-pdf-content b {
+    font-weight: bold !important;
+}
+
+/* ✅ v2.9.2: Preserve italic/emphasis */
+.ffc-pdf-wrapper em,
+.ffc-pdf-wrapper i,
+.ffc-pdf-content em,
+.ffc-pdf-content i {
+    font-style: italic !important;
+}
+
+/* ✅ v2.9.2: Preserve underline */
+.ffc-pdf-wrapper u,
+.ffc-pdf-content u {
+    text-decoration: underline !important;
+}
+
+/* ✅ v2.9.2: Preserve headings */
+.ffc-pdf-wrapper h1,
+.ffc-pdf-content h1 {
+    font-size: 2em !important;
+    font-weight: bold !important;
+    margin: 0.67em 0 !important;
+}
+
+.ffc-pdf-wrapper h2,
+.ffc-pdf-content h2 {
+    font-size: 1.5em !important;
+    font-weight: bold !important;
+    margin: 0.75em 0 !important;
+}
+
+.ffc-pdf-wrapper h3,
+.ffc-pdf-content h3 {
+    font-size: 1.17em !important;
+    font-weight: bold !important;
+    margin: 0.83em 0 !important;
+}
+
+.ffc-pdf-wrapper h4,
+.ffc-pdf-content h4 {
+    font-size: 1em !important;
+    font-weight: bold !important;
+    margin: 1.12em 0 !important;
+}
+
+.ffc-pdf-wrapper h5,
+.ffc-pdf-content h5 {
+    font-size: 0.83em !important;
+    font-weight: bold !important;
+    margin: 1.5em 0 !important;
+}
+
+.ffc-pdf-wrapper h6,
+.ffc-pdf-content h6 {
+    font-size: 0.75em !important;
+    font-weight: bold !important;
+    margin: 1.67em 0 !important;
+}
+
+/* ✅ v2.9.2: Preserve paragraphs */
+.ffc-pdf-wrapper p,
+.ffc-pdf-content p {
+    margin: 1em 0 !important;
+}
+
+/* ✅ v2.9.2: Preserve lists */
+.ffc-pdf-wrapper ul,
+.ffc-pdf-content ul {
+    list-style-type: disc !important;
+    padding-left: 40px !important;
+    margin: 1em 0 !important;
+}
+
+.ffc-pdf-wrapper ol,
+.ffc-pdf-content ol {
+    list-style-type: decimal !important;
+    padding-left: 40px !important;
+    margin: 1em 0 !important;
+}
+
+.ffc-pdf-wrapper li,
+.ffc-pdf-content li {
+    display: list-item !important;
+}
+
+/* ✅ v2.9.2: Preserve tables */
+.ffc-pdf-wrapper table,
+.ffc-pdf-content table {
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+}
+
+.ffc-pdf-wrapper td,
+.ffc-pdf-wrapper th,
+.ffc-pdf-content td,
+.ffc-pdf-content th {
+    padding: 0 !important;
+    vertical-align: inherit !important;
+}
+
+/* ✅ v2.9.2: Preserve line breaks */
+.ffc-pdf-wrapper br,
+.ffc-pdf-content br {
+    display: block !important;
+    content: "" !important;
+    margin-top: 0 !important;
+}
+
+/* ✅ v2.9.2: Preserve inline elements */
+.ffc-pdf-wrapper span,
+.ffc-pdf-content span {
+    display: inline !important;
+}
+
+/* ✅ v2.9.2: Preserve block elements */
+.ffc-pdf-wrapper div,
+.ffc-pdf-content div {
+    display: block !important;
+}
+
+/* ==========================================================================
+   6. IMAGE HANDLING (v2.9.3: User freedom approach)
+   ========================================================================== */
+
+/* ✅ v2.9.3: Removed restrictive rules to give users full control
+ * Users can now set height/width directly in HTML inline styles
+ * Only keep essential display property
+ */
+.ffc-pdf-wrapper img,
+.ffc-pdf-content img {
+    display: inline-block !important;
+}
+
+/* ✅ v2.9.3: QR Code specific handling (data URIs)
+ * Allow user to resize QR codes via inline styles
+ * Only prevent max-width/max-height restrictions
+ */
+.ffc-pdf-wrapper img[src^="data:image/png;base64"],
+.ffc-pdf-content img[src^="data:image/png;base64"] {
+    max-width: none !important;
+    max-height: none !important;
+    /* width and height are FREE for user to define inline */
+}
+
+/* ✅ v2.9.3: Optional helper for logos (if user wants responsive logos)
+ * Add class "ffc-responsive-logo" to img tag to enable
+ */
+.ffc-pdf-wrapper img.ffc-responsive-logo,
+.ffc-pdf-content img.ffc-responsive-logo {
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+/* ✅ v2.9.3: Optional helper for full-width images
+ * Add class "ffc-full-width-img" to img tag to enable
+ */
+.ffc-pdf-wrapper img.ffc-full-width-img,
+.ffc-pdf-content img.ffc-full-width-img {
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* ==========================================================================
+   7. WORDPRESS ADMIN FIX
+   ========================================================================== */
+body.wp-admin .ffc-pdf-temp-container,
 body.wp-admin .ffc-pdf-temp-wrapper {
     position: fixed !important;
     left: -9999px !important;
@@ -101,18 +258,40 @@ body.wp-admin .ffc-pdf-temp-wrapper {
 }
 
 /* ==========================================================================
-   7. UTILITY CLASSES FOR CERTIFICATE TEMPLATES
+   8. UNIVERSAL RESET FOR PDF CAPTURE (Careful - preserve HTML elements)
    ========================================================================== */
-.ffc-txt-center { 
-    text-align: center; 
-}
-
-.ffc-full-width { 
-    width: 100%; 
+.ffc-pdf-wrapper *,
+.ffc-pdf-content * {
+    box-sizing: border-box !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
 }
 
 /* ==========================================================================
-   8. BUTTON LOADING STATE
+   9. UTILITY CLASSES FOR CERTIFICATE TEMPLATES
+   ========================================================================== */
+.ffc-txt-center { 
+    text-align: center !important;
+}
+
+.ffc-txt-left { 
+    text-align: left !important;
+}
+
+.ffc-txt-right { 
+    text-align: right !important;
+}
+
+.ffc-txt-justify { 
+    text-align: justify !important;
+}
+
+.ffc-full-width { 
+    width: 100% !important;
+}
+
+/* ==========================================================================
+   10. BUTTON LOADING STATE
    ========================================================================== */
 .ffc-btn-loading {
     pointer-events: none;
@@ -137,7 +316,7 @@ body.wp-admin .ffc-pdf-temp-wrapper {
 }
 
 /* ==========================================================================
-   9. PROGRESS OVERLAY (Mobile optimized)
+   11. PROGRESS OVERLAY (Mobile optimized)
    ========================================================================== */
 .ffc-pdf-progress-overlay {
     position: fixed !important;
@@ -168,10 +347,87 @@ body.wp-admin .ffc-pdf-temp-wrapper {
 }
 
 /* ==========================================================================
-   10. ANIMATIONS
+   12. ANIMATIONS
    ========================================================================== */
 @keyframes ffc-spin {
     to { 
         transform: rotate(360deg); 
     }
+}
+
+/* ==========================================================================
+   13. LEGACY CLASSES (Backward compatibility)
+   ========================================================================== */
+.ffc-pdf-stage {
+    all: initial;
+    display: block !important;
+    position: relative;
+    width: 1123px;
+    height: 794px;
+    background-color: #ffffff;
+    overflow: hidden;
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.ffc-pdf-bg-img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1123px;
+    height: 794px;
+    object-fit: fill;
+    z-index: 1;
+    display: block !important;
+}
+
+.ffc-pdf-user-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    display: block !important;
+    color: #000000 !important;
+    pointer-events: none;
+}
+
+/* Preserve HTML elements in legacy classes too */
+.ffc-pdf-user-content strong,
+.ffc-pdf-user-content b {
+    font-weight: bold !important;
+}
+
+.ffc-pdf-user-content em,
+.ffc-pdf-user-content i {
+    font-style: italic !important;
+}
+
+.ffc-pdf-user-content u {
+    text-decoration: underline !important;
+}
+
+/* ==========================================================================
+   11. VALIDATION LINK (v2.9.3)
+   ========================================================================== */
+
+/**
+ * Validation link styling
+ * Can be overridden with inline color parameter
+ * Example: {{validation_url link:m>v color:blue}}
+ */
+a.ffc-validation-link {
+    color: #2271b1 !important;
+    text-decoration: underline !important;
+    font-weight: normal !important;
+}
+
+/* Maintain link color in PDF (some browsers reset it) */
+.ffc-pdf-content a.ffc-validation-link,
+.ffc-pdf-user-content a.ffc-validation-link {
+    color: #2271b1 !important;
+    text-decoration: underline !important;
 }

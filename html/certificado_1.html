@@ -1,54 +1,69 @@
-<div style="width: 1123px;height: 794px;position: relative;overflow: hidden;font-family: Arial, sans-serif;color: #000">
-
-    <img src="/wp-content/plugins/wp-ffcertificate/html/fundo-certificado_1.png" style="position: absolute;top: 0;left: 0;width: 100%;height: 100%;object-fit: cover;z-index: 0">
-
-    <div style="position: relative;z-index: 1;padding: 80px 80px 80px 80px;width: 100%;height: 100%;display: flex;flex-direction: column;text-align: center;box-sizing: border-box">
-
-        <div style="justify-content: center">
-            <strong style="font-size: 50pt;color: #111;margin: 0;letter-spacing: 12px;text-transform: uppercase">CERTIFICADO</strong>
-            <div style="width: 100px;height: 5px;background-color: #d4af37;margin: 15px auto 0;border-radius: 3px"></div>
-        </div>
-
-        <div style="flex: 1;display: flex;flex-direction: column;justify-content: center;gap: 15px">
-            <p style="font-size: 18pt;margin: 0">Certificamos que <strong style="text-transform: uppercase">{{name}}</strong>,</p>
-            <p style="font-size: 18pt;margin: 0">CPF/RF {{cpf_rf}}</p>
-            <p style="font-size: 18pt;margin: 0">participou do curso <strong style="text-transform: uppercase">"{{form_title}}"</strong>,</p>
-            <p style="font-size: 18pt;margin: 0">com carga horária de 4 horas,</p>
-            <p style="font-size: 18pt;margin: 0">concluído com êxito em <strong>{{submission_date}}</strong>.</p>
-        </div>
-
-        <div style="margin-top: auto;width: 100%">
-            <p style="text-align: right;font-size: 12pt;margin-bottom: 40px;margin-right: 30px">
-                São Paulo, {{submission_date}}
-            </p>
-
-            <table style="width: 100%;border-collapse: collapse">
-                <tr>
-                    <td style="width: 8%"></td> 
-                    <td style="width: 35%;text-align: center;vertical-align: top">
-                        <div style="border-top: 1px solid #333;margin: 0 40px;padding-top: 10px">
-                            <strong style="display: block;font-size: 14pt">Assinatura do Palestrante</strong>
-                            <span style="font-size: 11pt;color: #555">Palestrante</span>
-                        </div>
-                    </td>
-                    <td style="width: 14%"></td> 
-                    <td style="width: 35%;text-align: center;vertical-align: top">
-                        <div style="border-top: 1px solid #333;margin: 0 40px;padding-top: 10px">
-                            <strong style="display: block;font-size: 14pt">Assinatura do Instrutor</strong>
-                            <span style="font-size: 11pt;color: #555">Diretor Regional DREMP</span>
-                        </div>
-                    </td>
-                    <td style="width: 8%"></td> 
-                </tr>
-            </table>
-        </div>
-
-    </div>
-
-    <p style="position: absolute;bottom: 20px;right: 0;width: 100%;text-align: center;padding-right: 80px;margin: 0;font-size: 9pt;z-index: 2;box-sizing: border-box">
-        Gerado em: {{submission_date}}. Para verificar a autenticidade acesse 
-        <span style="color: blue">https://dresaomiguel.com.br/valid/</span> 
-        e use o código <strong>{{auth_code}}</strong>
+<div style="padding: 30px 80px;font-family: Arial, sans-serif;color: #000;background: #fff">
+    
+    <!-- CABEÇALHO -->
+    <table style="width: 100%;border-collapse: collapse;margin-bottom: 30px;border: none">
+        <tr>
+            <td style="width: 20%;vertical-align: middle;text-align: left;padding: 0">
+                <img src="https://deeppink-dog-866880.hostingersite.com/wp-content/plugins/wp-ffcertificate/html/Logo_Cidade_SP_SemFundo.png" alt="Logo Prefeitura" style="width: 140px">
+            </td>
+            <td style="width: 60%;vertical-align: middle;text-align: center;padding: 0">
+                <div style="font-size: 11pt;line-height: 1.3;margin: 0;font-weight: bold">
+                    PREFEITURA DE SÃO PAULO<br>
+                    SECRETARIA MUNICIPAL DE EDUCAÇÃO - SME<br>
+                    DIRETORIA REGIONAL DE EDUCAÇÃO<br>
+                    DE SÃO MIGUEL (DREMP)
+                </div>
+            </td>
+            <td style="width: 20%;vertical-align: middle;text-align: right;padding: 0">
+                <img src="https://deeppink-dog-866880.hostingersite.com/wp-content/plugins/wp-ffcertificate/html/Logo_DRE_v2-scaled.png" alt="Logo DRE" style="width: 140px">
+            </td>
+        </tr>
+    </table>
+    
+    <!-- TÍTULO -->
+    <p style="font-size: 20pt;text-align: center;margin-bottom: 30px;letter-spacing: 1px">
+        <strong>DECLARAÇÃO DE PRESENÇA</strong>
     </p>
-
+    
+    <!-- CORPO -->
+    <div style="font-size: 14pt;text-align: justify;line-height: 1.6;margin-bottom: 20px">
+        Declaramos para todos os devidos fins que <strong>{{name}}</strong>, portador(a) do CPF/RF: <strong>{{cpf_rf}}</strong> &mdash; pertencente ao programa <strong>{{program}}</strong> &mdash; compareceu no dia 11/12/2025, entre as 8h e às 17h, no auditório da DREMP.
+    </div>
+    
+    <!-- OBSERVAÇÃO -->
+    <div style="font-size: 11pt;text-align: justify;line-height: 1.5;margin-bottom: 40px;font-style: italic;color: #444">
+        OBS: Esse encontro faz parte da formação do mês de dezembro. Devendo as horas serem complementadas com leituras e demais encaminhamentos presentes no SGA.
+    </div>
+    
+    <!-- ASSINATURA -->
+    <table style="width: 100%;border: none">
+        <tr>
+            <td style="width: 50%"></td>
+            <td style="width: 50%;text-align: right">          
+                <img src="https://deeppink-dog-866880.hostingersite.com/wp-content/plugins/wp-ffcertificate/html/ludmila_santos.png" alt="Assinatura" style="height: 110px;width: auto"><br>
+                <div style="font-size: 11pt;line-height: 1.2;text-align: right">
+                    Atenciosamente,<br>
+                    <strong>Ludmila Gomes de Souza Santos</strong><br>
+                    R.F. 675.519-4<br>
+                    NÚCLEO PEDAGÓGICO DE ESTÁGIO - DREMP
+                </div>
+            </td>
+        </tr>
+    </table>
+    
+    <div style="margin-top: 50px;border-top: 1px solid #eee;padding-top: 10px">
+        <table style="width: 100%;border: none">
+            <tr>
+                <td style="width: 20%; max-height: 50px; vertical-align: top;text-align: left;padding: 0">
+                    {{qr_code:size=50}}
+                </td>
+                <td style="width: 80%;vertical-align: middle;text-align: right;padding: 0;font-size: 9pt;color: #666">
+                    Gerado em: {{submission_date}}. Para verificar a autenticidade acesse 
+                    <span style="color: blue;text-decoration: underline">https://deeppink-dog-866880.hostingersite.com/valid/</span> 
+                    e use o código: <strong>{{auth_code}}</strong>
+                </td>
+            </tr>
+        </table>
+    </div>
+    
 </div>

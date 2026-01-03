@@ -1,7 +1,11 @@
 <?php
 /**
  * FFC_Activator
- * Manages plugin installation: Tables, Pages, Initial Forms, and Settings.
+ * 
+ * Plugin activation logic
+ * 
+ * v2.9.15: Simplified - Uses Migration Manager for data migrations
+ * v2.9.16: ADDED - Creates /valid page for magic links
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -11,143 +15,283 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FFC_Activator {
 
     /**
-     * Run the activation logic
+     * Plugin activation hook
      */
     public static function activate() {
-        // 1. Create Tables
-        self::create_tables();
-
-        // 2. Create Validation Page
-        self::create_validation_page();
-
-        // 3. Create Default Form
-        self::create_default_form();
-
-        // 4. Set Initial Options
-        self::set_default_options();
-
-        // 5. Update Permalinks (Ensures /valid works immediately)
+        self::create_submissions_table();
+        self::add_columns();  // ✅ Unified column creation
+        self::create_verification_page();  // ✅ v2.9.16: NEW!
+        self::run_migrations();  // ✅ Uses Migration Manager
         flush_rewrite_rules();
     }
 
     /**
-     * Manages the creation of the submissions table
+     * Create submissions table
      */
-    private static function create_tables() {
+    private static function create_submissions_table() {
         global $wpdb;
-        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-        
-        $table_name = $wpdb->prefix . 'ffc_submissions';
+        $table_name = FFC_Utils::get_submissions_table();
+        $charset_collate = $wpdb->get_charset_collate();
 
-        $sql_submissions = "CREATE TABLE {$table_name} (
-            id mediumint(9) NOT NULL AUTO_INCREMENT,
-            form_id mediumint(9) NOT NULL,
-            submission_date datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+        // Check if table already exists
+        if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) == $table_name ) {
+            return; // Table exists, skip creation
+        }
+
+        $sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            form_id bigint(20) unsigned NOT NULL,
+            submission_date datetime NOT NULL,
             data longtext NOT NULL,
-            user_ip varchar(100) NOT NULL,
-            email varchar(255) NOT NULL,
-            status varchar(20) DEFAULT 'publish' NOT NULL,
-            PRIMARY KEY  (id),
+            user_ip varchar(100) DEFAULT NULL,
+            email varchar(255) DEFAULT NULL,
+            status varchar(20) DEFAULT 'publish',
+            magic_token varchar(32) DEFAULT NULL,
+            cpf_rf varchar(20) DEFAULT NULL,
+            auth_code varchar(20) DEFAULT NULL,
+            PRIMARY KEY (id),
             KEY form_id (form_id),
+            KEY status (status),
             KEY email (email),
-            KEY submission_date (submission_date),
-            KEY status (status)
-        ) {$wpdb->get_charset_collate()};";
+            KEY magic_token (magic_token),
+            KEY cpf_rf (cpf_rf),
+            KEY auth_code (auth_code),
+            KEY idx_form_cpf (form_id, cpf_rf)
+        ) {$charset_collate};";
 
-        dbDelta( $sql_submissions );
-        
-        // Manual check for 'status' column (extra safety for updates)
-        $column = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'status'", 
-            DB_NAME, $table_name
-        ));
-
-        if ( empty( $column ) ) {
-            $wpdb->query("ALTER TABLE $table_name ADD status varchar(20) DEFAULT 'publish' NOT NULL");
-        }
-
-        update_option( 'ffc_db_version', '1.2' );
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta( $sql );
     }
 
     /**
-     * Creates the /valid page with the required shortcode
+     * ✅ Add missing columns to existing table (unified method)
+     * 
+     * Adds all necessary columns if they don't exist
+     * Idempotent - safe to run multiple times
+     * 
+     * NO DEBUG OUTPUT - Silent activation to prevent "headers already sent" errors
+     * 
+     * @since 2.9.15 Unified column creation
      */
-    private static function create_validation_page() {
-        $slug = 'valid';
-        $shortcode = '[ffc_verification]';
-        
-        $page_check = get_page_by_path($slug);
+    private static function add_columns() {
+        global $wpdb;
+        $table_name = FFC_Utils::get_submissions_table();
 
-        if ( ! isset( $page_check->ID ) ) {
-            // If page doesn't exist, create it from scratch
-            wp_insert_post( array(
-                'post_title'    => __( 'Certificate Validation', 'ffc' ),
-                'post_content'  => $shortcode,
-                'post_status'   => 'publish',
-                'post_type'     => 'page',
-                'post_name'     => $slug
+        // ✅ Column definitions
+        $columns = array(
+            'magic_token' => array(
+                'type' => 'VARCHAR(32) DEFAULT NULL',
+                'after' => 'status',
+                'index' => 'magic_token'
+            ),
+            'cpf_rf' => array(
+                'type' => 'VARCHAR(20) DEFAULT NULL',
+                'after' => 'magic_token',
+                'index' => 'cpf_rf'
+            ),
+            'auth_code' => array(
+                'type' => 'VARCHAR(20) DEFAULT NULL',
+                'after' => 'cpf_rf',
+                'index' => 'auth_code'
+            )
+        );
+
+        foreach ( $columns as $column_name => $config ) {
+            // Check if column exists
+            $exists = $wpdb->get_results( $wpdb->prepare(
+                "SHOW COLUMNS FROM {$table_name} LIKE %s",
+                $column_name
             ) );
-        } else {
-            // If page exists, ensures the shortcode is present
-            if ( strpos( $page_check->post_content, $shortcode ) === false ) {
-                $page_check->post_content .= "\n" . $shortcode;
-                wp_update_post( $page_check );
+
+            if ( ! empty( $exists ) ) {
+                continue; // Column exists, skip
+            }
+
+            // Add column
+            $after = isset( $config['after'] ) ? "AFTER {$config['after']}" : '';
+            $wpdb->query( "ALTER TABLE {$table_name} ADD COLUMN {$column_name} {$config['type']} {$after}" );
+
+            // Add index if specified
+            if ( isset( $config['index'] ) ) {
+                $index_name = "idx_{$config['index']}";
+                $wpdb->query( "ALTER TABLE {$table_name} ADD INDEX {$index_name} ({$column_name})" );
+            }
+            
+            // ✅ REMOVED debug_log - causes "unexpected output" errors during activation
+        }
+
+        // Add composite index for form_id + cpf_rf (if not exists)
+        $composite_index = $wpdb->get_results(
+            "SHOW INDEX FROM {$table_name} WHERE Key_name = 'idx_form_cpf'"
+        );
+
+        if ( empty( $composite_index ) ) {
+            $wpdb->query( "ALTER TABLE {$table_name} ADD INDEX idx_form_cpf (form_id, cpf_rf)" );
+        }
+    }
+
+    /**
+     * ✅ Create verification page for magic links
+     * 
+     * Creates a page at /valid with the verification shortcode.
+     * This page is used for:
+     * - Magic link certificate downloads
+     * - Manual verification
+     * - Admin PDF downloads
+     * 
+     * Features:
+     * - Checks if page already exists (by slug)
+     * - Prevents duplicate creation
+     * - Sets proper page attributes
+     * - Stores page ID for future reference
+     * 
+     * @since 2.9.16
+     */
+    private static function create_verification_page() {
+        // Check if page already exists by slug
+        $existing_page = get_page_by_path( 'valid' );
+        
+        if ( $existing_page ) {
+            // Page exists, store ID and return
+            update_option( 'ffc_verification_page_id', $existing_page->ID );
+            return;
+        }
+
+        // Create verification page
+        $page_data = array(
+            'post_title'     => __( 'Certificate Verification', 'ffc' ),
+            'post_content'   => '[ffc_verification]',
+            'post_status'    => 'publish',
+            'post_type'      => 'page',
+            'post_name'      => 'valid',
+            'post_author'    => 1,
+            'comment_status' => 'closed',
+            'ping_status'    => 'closed'
+        );
+
+        $page_id = wp_insert_post( $page_data );
+
+        if ( $page_id && ! is_wp_error( $page_id ) ) {
+            // Store page ID for future reference
+            update_option( 'ffc_verification_page_id', $page_id );
+            
+            // Mark page as plugin-managed (helps prevent accidental deletion)
+            update_post_meta( $page_id, '_ffc_managed_page', '1' );
+        }
+    }
+
+    /**
+     * ✅ Run data migrations using Migration Manager
+     * 
+     * Instead of duplicating migration logic here, we use the centralized
+     * Migration Manager which has all migrations properly implemented.
+     * 
+     * This method:
+     * 1. Loads Migration Manager
+     * 2. Runs each available migration once
+     * 3. Marks migrations as completed
+     * 
+     * NO DEBUG OUTPUT - Silent to prevent "headers already sent" errors
+     * 
+     * @since 2.9.15 Uses Migration Manager
+     */
+    private static function run_migrations() {
+        // Load Migration Manager
+        if ( ! class_exists( 'FFC_Migration_Manager' ) ) {
+            $migration_file = dirname( __FILE__ ) . '/class-ffc-migration-manager.php';
+            if ( file_exists( $migration_file ) ) {
+                require_once $migration_file;
+            } else {
+                // ✅ Silent failure - no output during activation
+                return;
             }
         }
-    }
 
-    /**
-     * Creates an initial form so the user doesn't start from scratch
-     */
-    private static function create_default_form() {
-        $forms_query = new WP_Query( array( 
-            'post_type'      => 'ffc_form', 
-            'posts_per_page' => 1,
-            'post_status'    => 'any' 
-        ) );
+        $migration_manager = new FFC_Migration_Manager();
+        $migrations = $migration_manager->get_migrations();
 
-        if ( ! $forms_query->have_posts() ) {
-            $form_id = wp_insert_post( array(
-                'post_title'   => __( 'Example Certificate', 'ffc' ),
-                'post_status'  => 'publish',
-                'post_type'    => 'ffc_form',
-                'post_content' => __( 'This is an automatically generated form by the plugin.', 'ffc' )
-            ) );
+        // ✅ Safety check: Ensure migrations is an array
+        if ( ! is_array( $migrations ) || empty( $migrations ) ) {
+            // No migrations available, exit silently
+            return;
+        }
 
-            if ( $form_id ) {
-                // Default layout with dynamic variables
-                $layout = '
-                <div style="border:10px solid #2c3e50; padding:40px; text-align:center; font-family: Arial, sans-serif;">
-                    <h1 style="color:#2c3e50; font-size:42px;">' . __( 'CERTIFICATE', 'ffc' ) . '</h1>
-                    <p style="font-size:20px;">' . __( 'This certificate confirms that', 'ffc' ) . '</p>
-                    <h2 style="font-size:32px; color:#e67e22;">{{name}}</h2>
-                    <p style="font-size:18px;">' . __( 'has successfully completed the process on', 'ffc' ) . ' {{submission_date}}.</p>
-                    <div style="margin-top:60px; padding-top:20px; border-top:1px solid #eee;">
-                        <p style="margin:0;">' . __( 'Authenticity Code', 'ffc' ) . ': <strong>{{auth_code}}</strong></p>
-                        <p style="font-size:12px; color:#7f8c8d;">' . __( 'Validate this document at', 'ffc' ) . ': {{validation_url}}</p>
-                    </div>
-                </div>';
+        // ✅ Run each migration that hasn't been completed
+        foreach ( $migrations as $key => $migration ) {
+            // Check if migration is available (column exists)
+            if ( ! $migration_manager->can_run_migration( $key ) ) {
+                continue;
+            }
 
-                update_post_meta( $form_id, '_ffc_form_config', array(
-                    'pdf_layout'      => $layout,
-                    'email_subject'   => __( 'Your Certificate of Completion', 'ffc' ),
-                    'send_user_email' => 1
-                ) );
+            // Check if already completed (via option flag)
+            $option_key = "ffc_migration_{$key}_completed";
+            if ( get_option( $option_key, false ) ) {
+                continue; // Already done
+            }
+
+            // Run migration (batch 0 = process all)
+            $result = $migration_manager->run_migration( $key, 0 );
+
+            if ( is_wp_error( $result ) ) {
+                // ✅ Silent error - no output during activation
+                continue;
+            }
+
+            // Mark as completed if no more records to process
+            if ( isset( $result['has_more'] ) && ! $result['has_more'] ) {
+                update_option( $option_key, true );
             }
         }
+        
+        // ✅ No debug output - activation must be silent
     }
 
     /**
-     * Sets initial global settings if they do not exist
+     * ✅ DEPRECATED METHODS
+     * 
+     * These methods are kept for backward compatibility but are no longer used.
+     * They redirect to the new unified methods or Migration Manager.
      */
-    private static function set_default_options() {
-        $settings = get_option( 'ffc_settings' );
-        
-        if ( ! $settings ) {
-            update_option( 'ffc_settings', array( 
-                'smtp_mode'    => 'wp', // Default to WordPress mail
-                'cleanup_days' => 30 
-            ) );
-        }
+
+    /**
+     * @deprecated 2.9.15 Use add_columns() instead
+     */
+    private static function add_magic_token_column() {
+        self::add_columns();
+    }
+
+    /**
+     * @deprecated 2.9.15 Use add_columns() instead
+     */
+    private static function add_cpf_rf_column() {
+        self::add_columns();
+    }
+
+    /**
+     * @deprecated 2.9.15 Use add_columns() instead
+     */
+    private static function add_auth_code_column() {
+        self::add_columns();
+    }
+
+    /**
+     * @deprecated 2.9.15 Use run_migrations() with Migration Manager
+     */
+    private static function migrate_cpf_rf_data() {
+        self::run_migrations();
+    }
+
+    /**
+     * @deprecated 2.9.15 Use run_migrations() with Migration Manager
+     */
+    private static function migrate_auth_code_data() {
+        self::run_migrations();
+    }
+
+    /**
+     * @deprecated 2.9.15 Use run_migrations() with Migration Manager
+     */
+    private static function generate_missing_magic_tokens() {
+        self::run_migrations();
     }
 }

@@ -3,17 +3,19 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-/**
- * Class responsible for the plugin administration
- */
 class FFC_Admin {
     
     private $submission_handler;
+    private $csv_exporter;
+    private $email_handler;
     private $form_editor;
     private $settings_page;
+    private $migration_manager;  // ✅ v2.9.13: Migration Manager
 
-    public function __construct( FFC_Submission_Handler $handler ) {
+    public function __construct( $handler, $exporter, $email_handler = null ) {
         $this->submission_handler = $handler;
+        $this->csv_exporter = $exporter;
+        $this->email_handler = $email_handler;
 
         require_once plugin_dir_path( __FILE__ ) . 'class-ffc-form-editor.php';
         require_once plugin_dir_path( __FILE__ ) . 'class-ffc-settings.php';
@@ -21,19 +23,27 @@ class FFC_Admin {
         $this->form_editor   = new FFC_Form_Editor();
         $this->settings_page = new FFC_Settings( $handler );
 
+        // ✅ v2.9.13: Initialize Migration Manager
+        if ( ! class_exists( 'FFC_Migration_Manager' ) ) {
+            require_once plugin_dir_path( __FILE__ ) . 'class-ffc-migration-manager.php';
+        }
+        $this->migration_manager = new FFC_Migration_Manager();
+
         add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'admin_assets' ) );
         
+        // ✅ v2.9.3: Configure TinyMCE to protect placeholders
+        // Priority 999 to run AFTER other plugins
+        add_filter( 'tiny_mce_before_init', array( $this, 'configure_tinymce_placeholders' ), 999 );
+        
         add_action( 'admin_init', array( $this, 'handle_submission_actions' ) );
-        add_action( 'admin_init', array( $this, 'handle_csv_export' ) );
+        add_action( 'admin_init', array( $this, 'handle_csv_export_request' ) );
         add_action( 'admin_init', array( $this, 'handle_submission_edit_save' ) );
+        add_action( 'admin_init', array( $this, 'handle_migration_action' ) );  // ✅ v2.9.13: Unified handler
         
         add_action( 'wp_ajax_ffc_admin_get_pdf_data', array( $this, 'ajax_admin_get_pdf_data' ) );
     }
 
-    /**
-     * Registers the admin menu and submenus
-     */
     public function register_admin_menu() {
         add_submenu_page( 
             'edit.php?post_type=ffc_form', 
@@ -53,9 +63,6 @@ class FFC_Admin {
         );
     }
 
-    /**
-     * Enqueues administrative styles and scripts
-     */
     public function admin_assets( $hook ) {
         global $post_type;
         
@@ -64,22 +71,26 @@ class FFC_Admin {
         if ( $post_type === 'ffc_form' || $is_ffc_page ) {
             wp_enqueue_media();
             
-            // CSS
-            wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . 'assets/css/ffc-pdf-core.css', array(), '1.0.0' );
-            wp_enqueue_style( 'ffc-admin-css', FFC_PLUGIN_URL . 'assets/css/admin.css', array('ffc-pdf-core'), '1.0.0' );
+            // CSS - Using centralized version constant
+            wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . 'assets/css/ffc-pdf-core.css', array(), FFC_VERSION );
+            wp_enqueue_style( 'ffc-admin-css', FFC_PLUGIN_URL . 'assets/css/admin.css', array('ffc-pdf-core'), FFC_VERSION );
+            wp_enqueue_style( 'ffc-admin-submissions-css', FFC_PLUGIN_URL . 'assets/css/admin-submissions.css', array(), FFC_VERSION );
             
-            // External Libraries
-            wp_enqueue_script( 'ffc-html2canvas', FFC_PLUGIN_URL . 'assets/js/html2canvas.min.js', array(), '1.4.1', true );
-            wp_enqueue_script( 'ffc-jspdf', FFC_PLUGIN_URL . 'assets/js/jspdf.umd.min.js', array(), '2.5.1', true );
+            // PDF Libraries - Using centralized version constants
+            wp_enqueue_script( 'ffc-html2canvas', FFC_PLUGIN_URL . 'assets/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
+            wp_enqueue_script( 'ffc-jspdf', FFC_PLUGIN_URL . 'assets/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true );
             
-            // Plugin JS - Frontend engine first
-            wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . 'assets/js/frontend.js', array( 'jquery' ), '1.0.0', true );
+            // ✅ v2.9.3: PDF Generator (shared by frontend and admin)
+            wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . 'assets/js/ffc-pdf-generator.js', array( 'jquery', 'ffc-html2canvas', 'ffc-jspdf' ), FFC_VERSION, true );
             
-            // Plugin JS - Admin triggers last
-            wp_enqueue_script( 'ffc-admin-js', FFC_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'ffc-frontend-js' ), '1.0.0', true );
+            // Frontend.js (depends on PDF generator)
+            wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . 'assets/js/frontend.js', array( 'jquery', 'ffc-pdf-generator' ), FFC_VERSION, true );
             
-            // Data for AJAX
-            wp_localize_script( 'ffc-admin-js', 'ffc_admin_ajax', array(
+            // Admin.js (depends on PDF generator)
+            wp_enqueue_script( 'ffc-admin-js', FFC_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'ffc-pdf-generator' ), FFC_VERSION, true );
+            
+            // Localizar para AMBOS os scripts
+            $localize_data = array(
                 'ajax_url' => admin_url( 'admin-ajax.php' ),
                 'nonce'    => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
                 'strings'  => array(
@@ -97,18 +108,23 @@ class FFC_Admin {
                     'codesGenerated'          => __( 'codes generated', 'ffc' ),
                     'errorGeneratingCodes'    => __( 'Error generating codes.', 'ffc' ),
                     'confirmDeleteField'      => __( 'Remove this field?', 'ffc' ),
+                    'pdfLibrariesFailed'      => __( 'Error: PDF libraries failed to load.', 'ffc' ),
+                    'pdfGenerationError'      => __( 'Error generating PDF. Please try again.', 'ffc' ),
+                    'pleaseWait'              => __( 'Please wait, this may take a few seconds...', 'ffc' ),
+                    'downloadAgain'           => __( 'Download Again', 'ffc' ),
+                    'verifying'               => __( 'Verifying...', 'ffc' ),
+                    'processing'              => __( 'Processing...', 'ffc' ),
                 )
-            ) );
+            );
+            
+            wp_localize_script( 'ffc-admin-js', 'ffc_ajax', $localize_data );
+            wp_localize_script( 'ffc-frontend-js', 'ffc_ajax', $localize_data );
         }
     }
 
-    /**
-     * Handles single and bulk submission actions (trash, restore, delete)
-     */
     public function handle_submission_actions() {
         if ( ! isset( $_GET['page'] ) || $_GET['page'] !== 'ffc-submissions' ) return;
         
-        // Single Actions
         if ( isset( $_GET['submission_id'] ) && isset( $_GET['action'] ) ) {
             $id     = absint( $_GET['submission_id'] );
             $action = sanitize_key( $_GET['action'] );
@@ -125,7 +141,6 @@ class FFC_Admin {
             }
         }
 
-        // Bulk Actions
         if ( isset($_GET['action']) && isset($_GET['submission']) && is_array($_GET['submission']) ) {
             $bulk_action = $_GET['action'];
             if ( $bulk_action === '-1' && isset($_GET['action2']) ) $bulk_action = $_GET['action2'];
@@ -144,9 +159,6 @@ class FFC_Admin {
         }
     }
 
-    /**
-     * Determines which view to display (List or Edit)
-     */
     public function display_submissions_page() {
         $action = isset( $_GET['action'] ) ? $_GET['action'] : 'list';
         if ( $action === 'edit' ) {
@@ -156,9 +168,6 @@ class FFC_Admin {
         }
     }
     
-    /**
-     * Renders the submissions list table
-     */
     private function render_list_page() {
         require_once FFC_PLUGIN_DIR . 'includes/class-ffc-submissions-list-table.php';
         $table = new FFC_Submission_List( $this->submission_handler );
@@ -178,7 +187,7 @@ class FFC_Admin {
                     <?php endif; ?>
                     <?php wp_nonce_field('ffc_export_csv_nonce','ffc_export_csv_action'); ?>
                 </form>
-            </div>
+            </div>    
             <hr class="wp-header-end">
             <form method="GET">
                 <input type="hidden" name="post_type" value="ffc_form">
@@ -195,18 +204,12 @@ class FFC_Admin {
         <?php
     }
 
-    /**
-     * Helper to redirect with message parameters
-     */
     private function redirect_with_msg($msg) {
         $url = remove_query_arg(array('action', 'action2', 'submission_id', 'submission', '_wpnonce'), $_SERVER['REQUEST_URI']);
         wp_redirect( add_query_arg('msg', $msg, $url) );
         exit;
     }
 
-    /**
-     * Displays success/update notices in the admin area
-     */
     private function display_admin_notices() {
         if (!isset($_GET['msg'])) return;
         $msg = $_GET['msg'];
@@ -214,11 +217,31 @@ class FFC_Admin {
         $type = 'updated';
 
         switch ($msg) {
-            case 'trash':     $text = __('Item moved to trash.', 'ffc'); break;
-            case 'restore':   $text = __('Item restored.', 'ffc'); break;
-            case 'delete':    $text = __('Item permanently deleted.', 'ffc'); break;
-            case 'bulk_done': $text = __('Bulk action completed.', 'ffc'); break;
-            case 'updated':   $text = __('Submission updated successfully.', 'ffc'); break;
+            case 'trash':     
+                $text = __('Item moved to trash.', 'ffc'); 
+                break;
+            case 'restore':   
+                $text = __('Item restored.', 'ffc'); 
+                break;
+            case 'delete':    
+                $text = __('Item permanently deleted.', 'ffc'); 
+                break;
+            case 'bulk_done': 
+                $text = __('Bulk action completed.', 'ffc'); 
+                break;
+            case 'updated':   
+                $text = __('Submission updated successfully.', 'ffc'); 
+                break;
+            case 'migration_success':
+                $migrated = isset($_GET['migrated']) ? intval($_GET['migrated']) : 0;
+                $migration_name = isset($_GET['migration_name']) ? urldecode($_GET['migration_name']) : __('Migration', 'ffc');
+                $text = sprintf(__('%s: %d records migrated successfully.', 'ffc'), $migration_name, $migrated);
+                break;
+            case 'migration_error':
+                $error_msg = isset($_GET['error_msg']) ? urldecode($_GET['error_msg']) : __('Unknown error', 'ffc');
+                $text = __('Migration Error: ', 'ffc') . $error_msg;
+                $type = 'error';
+                break;
         }
 
         if ($text) {
@@ -226,9 +249,6 @@ class FFC_Admin {
         }
     }
     
-    /**
-     * Renders the submission edit form
-     */
     private function render_edit_page() {
         $submission_id = isset( $_GET['submission_id'] ) ? absint( $_GET['submission_id'] ) : 0;
         $sub = $this->submission_handler->get_submission( $submission_id );
@@ -242,6 +262,10 @@ class FFC_Admin {
         $data = json_decode( $sub_array['data'], true ) ?: array(); 
         $fields = get_post_meta( $sub_array['form_id'], '_ffc_form_fields', true );
         $protected_fields = array( 'auth_code', 'fill_date', 'ticket' );
+        
+        $magic_token = isset( $sub_array['magic_token'] ) ? $sub_array['magic_token'] : '';
+        $magic_link_url = FFC_Magic_Link_Helper::generate_magic_link( $magic_token );
+
         ?> 
         <div class="wrap">
             <h1><?php printf( __( 'Edit Submission #%s', 'ffc' ), $sub_array['id'] ); ?></h1>
@@ -257,10 +281,102 @@ class FFC_Admin {
                 <input type="hidden" name="submission_id" value="<?php echo $sub_array['id']; ?>">
                 
                 <table class="form-table">
+                    <!-- SEÇÃO: INFORMAÇÕES DO SISTEMA -->
+                    <tr>
+                        <td colspan="2" style="padding: 0;">
+                            <h2 style="margin: 20px 0 10px 0; padding: 10px; background: #f0f0f1; border-left: 4px solid #2271b1;">
+                                <?php _e( 'System Information', 'ffc' ); ?>
+                            </h2>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th><label><?php _e( 'Submission Date', 'ffc' ); ?></label></th>
+                        <td>
+                            <input type="text" value="<?php echo esc_attr( $formatted_date ); ?>" class="regular-text ffc-input-readonly" readonly>
+                            <p class="description"><?php _e( 'Original submission timestamp (read-only).', 'ffc' ); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th><label><?php _e( 'Magic Link Token', 'ffc' ); ?></label></th>
+                        <td>
+                            <?php if ( ! empty( $magic_token ) ): ?>
+                                <input type="text" value="<?php echo esc_attr( $magic_token ); ?>" class="regular-text ffc-input-readonly" readonly>
+                                <p class="description">
+                                    <?php _e( 'Unique token for certificate access (read-only).', 'ffc' ); ?>
+                                    <?php echo FFC_Magic_Link_Helper::get_magic_link_html( $magic_token ); ?>
+                                    <?php else: ?>
+                                        <p class="description"><?php _e( 'Submission created before magic links', 'ffc' ); ?></p>
+                                    <?php endif; ?>
+                        </td>
+                    </tr>
+
+                    <!-- SEÇÃO: QR CODE USAGE -->
+                    <tr>
+                        <td colspan="2" style="padding: 0;">
+                            <div style="margin: 20px 0; padding: 15px; background: #f0f6fc; border-left: 4px solid #0073aa; border-radius: 4px;">
+                                <h3 style="margin: 0 0 10px 0;">
+                                    📱 <?php _e( 'QR Code Placeholder Usage', 'ffc' ); ?>
+                                </h3>
+                                <p style="margin: 0 0 10px 0;">
+                                    <?php _e( 'You can add dynamic QR Codes to your certificate template using these placeholders:', 'ffc' ); ?>
+                                </p>
+                                <table style="width: 100%; font-family: monospace; font-size: 12px; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="padding: 5px; background: #fff; border: 1px solid #ddd;">
+                                            <code>{{qr_code}}</code>
+                                        </td>
+                                        <td style="padding: 5px;">
+                                            <?php _e( 'Default QR Code (200x200px)', 'ffc' ); ?>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px; background: #fff; border: 1px solid #ddd;">
+                                            <code>{{qr_code:size=150}}</code>
+                                        </td>
+                                        <td style="padding: 5px;">
+                                            <?php _e( 'Custom size (150x150px)', 'ffc' ); ?>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px; background: #fff; border: 1px solid #ddd;">
+                                            <code>{{qr_code:size=250:margin=0}}</code>
+                                        </td>
+                                        <td style="padding: 5px;">
+                                            <?php _e( 'Custom size without margin', 'ffc' ); ?>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px; background: #fff; border: 1px solid #ddd;">
+                                            <code>{{qr_code:error=H}}</code>
+                                        </td>
+                                        <td style="padding: 5px;">
+                                            <?php _e( 'High error correction (30%)', 'ffc' ); ?>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">
+                                    💡 <?php _e( 'QR Codes automatically link to this certificate verification page. Configure defaults in Settings → QR Code.', 'ffc' ); ?>
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- SEÇÃO: DADOS DO PARTICIPANTE -->
+                    <tr>
+                        <td colspan="2" style="padding: 0;">
+                            <h2 style="margin: 20px 0 10px 0; padding: 10px; background: #f0f0f1; border-left: 4px solid #0073aa;">
+                                <?php _e( 'Participant Data', 'ffc' ); ?>
+                            </h2>
+                        </td>
+                    </tr>
+                    
                     <tr>
                         <th><label for="user_email"><?php _e( 'Email', 'ffc' ); ?></label></th>
                         <td><input type="email" name="user_email" id="user_email" value="<?php echo esc_attr($sub_array['email']); ?>" class="regular-text"></td>
                     </tr>
+                    
                     <?php if(is_array($data)): foreach($data as $k => $v): 
                         if ($k === 'is_edited' || $k === 'edited_at') continue;
                         
@@ -293,13 +409,33 @@ class FFC_Admin {
                     <a href="<?php echo admin_url('edit.php?post_type=ffc_form&page=ffc-submissions'); ?>" class="button"><?php _e( 'Cancel', 'ffc' ); ?></a>
                 </p>
             </form>
-        </div> 
+        </div>
+        
+        <script>
+        jQuery(document).ready(function($) {
+            $('.ffc-copy-magic-link').on('click', function(e) {
+                e.preventDefault();
+                var url = $(this).data('url');
+                var $btn = $(this);
+                
+                var $temp = $('<input>');
+                $('body').append($temp);
+                $temp.val(url).select();
+                document.execCommand('copy');
+                $temp.remove();
+                
+                var originalText = $btn.text();
+                $btn.text('✅ <?php _e( 'Copied!', 'ffc' ); ?>').prop('disabled', true);
+                
+                setTimeout(function() {
+                    $btn.text(originalText).prop('disabled', false);
+                }, 2000);
+            });
+        });
+        </script>
         <?php
     }
 
-    /**
-     * Handles the saving of an edited submission
-     */
     public function handle_submission_edit_save() {
         if ( isset( $_POST['ffc_save_edit'] ) && check_admin_referer( 'ffc_edit_submission_nonce', 'ffc_edit_submission_action' ) ) {
             $id        = absint( $_POST['submission_id'] ); 
@@ -314,7 +450,6 @@ class FFC_Admin {
             $clean_data['is_edited'] = true;
             $clean_data['edited_at'] = current_time('mysql');
             
-            // Now this method exists in the handler
             $this->submission_handler->update_submission($id, $new_email, $clean_data);
             
             wp_redirect(admin_url('edit.php?post_type=ffc_form&page=ffc-submissions&msg=updated')); 
@@ -322,44 +457,212 @@ class FFC_Admin {
         }
     }
 
-    /**
-     * Triggers the CSV export logic
-     */
-    public function handle_csv_export() {
+    public function handle_csv_export_request() {
         if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'export_csv_smart' ) {
-            check_admin_referer( 'ffc_export_csv_nonce', 'ffc_export_csv_action' );
-            $this->submission_handler->export_csv();
+            $this->csv_exporter->handle_export_request();
         }
     }
 
     /**
-     * AJAX handler to fetch PDF template data for the admin preview/generation
+     * Get PDF data for admin download
+     * ✅ v2.9.15: Uses centralized PDF Generator (same as frontend)
      */
     public function ajax_admin_get_pdf_data() {
-        check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
+        try {
+            error_log('[FFC Admin] PDF data request started');
+            
+            check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
+            
+            $submission_id = isset($_POST['submission_id']) ? absint($_POST['submission_id']) : 0;
+            error_log('[FFC Admin] Submission ID: ' . $submission_id);
+            
+            if ( ! $submission_id ) {
+                error_log('[FFC Admin] Invalid submission ID');
+                wp_send_json_error( array( 'message' => __( 'Invalid submission ID.', 'ffc' ) ) );
+            }
+            
+            // Load required classes
+            error_log('[FFC Admin] Loading PDF Generator class');
+            if ( ! class_exists( 'FFC_PDF_Generator' ) ) {
+                $pdf_gen_path = FFC_PLUGIN_DIR . 'includes/class-ffc-pdf-generator.php';
+                if ( ! file_exists( $pdf_gen_path ) ) {
+                    error_log('[FFC Admin] ERROR: PDF Generator file not found at: ' . $pdf_gen_path);
+                    wp_send_json_error( array( 'message' => 'PDF Generator class file not found' ) );
+                }
+                require_once $pdf_gen_path;
+            }
+            
+            if ( ! class_exists( 'FFC_Submission_Handler' ) ) {
+                require_once FFC_PLUGIN_DIR . 'includes/class-ffc-submission-handler.php';
+            }
+            
+            if ( ! class_exists( 'FFC_Email_Handler' ) ) {
+                require_once FFC_PLUGIN_DIR . 'includes/class-ffc-email-handler.php';
+            }
+            
+            error_log('[FFC Admin] Classes loaded successfully');
+            
+            // Get handlers (use existing or create new)
+            $submission_handler = $this->submission_handler ? $this->submission_handler : new FFC_Submission_Handler();
+            $email_handler = $this->email_handler ? $this->email_handler : new FFC_Email_Handler();
+            
+            error_log('[FFC Admin] Handlers created');
+            
+            // ✅ Use centralized PDF Generator
+            $pdf_generator = new FFC_PDF_Generator( $submission_handler, $email_handler );
+            error_log('[FFC Admin] PDF Generator instantiated');
+            
+            $pdf_data = $pdf_generator->generate_pdf_data( $submission_id );
+            error_log('[FFC Admin] PDF data generated, type: ' . gettype($pdf_data));
+            
+            if ( is_wp_error( $pdf_data ) ) {
+                error_log('[FFC Admin] WP Error: ' . $pdf_data->get_error_message());
+                wp_send_json_error( array( 
+                    'message' => $pdf_data->get_error_message() 
+                ) );
+            }
+            
+            if ( ! is_array( $pdf_data ) ) {
+                error_log('[FFC Admin] ERROR: PDF data is not array: ' . print_r($pdf_data, true));
+                wp_send_json_error( array( 'message' => 'Invalid PDF data format' ) );
+            }
+            
+            error_log('[FFC Admin] PDF data keys: ' . implode(', ', array_keys($pdf_data)));
+            error_log('[FFC Admin] Filename: ' . (isset($pdf_data['filename']) ? $pdf_data['filename'] : 'NOT SET'));
+            
+            // ✅ Returns complete PDF data including filename with auth_code
+            error_log('[FFC Admin] Sending success response');
+            wp_send_json_success( $pdf_data );
+            
+        } catch ( Exception $e ) {
+            error_log('[FFC Admin] EXCEPTION: ' . $e->getMessage());
+            error_log('[FFC Admin] Stack trace: ' . $e->getTraceAsString());
+            wp_send_json_error( array( 
+                'message' => 'Server error: ' . $e->getMessage() 
+            ) );
+        } catch ( Error $e ) {
+            error_log('[FFC Admin] FATAL ERROR: ' . $e->getMessage());
+            error_log('[FFC Admin] Stack trace: ' . $e->getTraceAsString());
+            wp_send_json_error( array( 
+                'message' => 'Fatal error: ' . $e->getMessage() 
+            ) );
+        }
+    }
+
+    /**
+     * Handle migration action (unified handler for all migrations)
+     * 
+     * @since 2.9.13
+     */
+    public function handle_migration_action() {
+        if ( ! isset( $_GET['ffc_migration'] ) ) {
+            return;
+        }
         
-        $id = isset($_POST['submission_id']) ? absint($_POST['submission_id']) : 0;
-        $sub = $this->submission_handler->get_submission($id);
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( 'Insufficient permissions', 'ffc' ) );
+        }
         
-        if ( ! $sub ) { wp_send_json_error(); }
+        $migration_key = sanitize_key( $_GET['ffc_migration'] );
         
-        $sub_array = (array) $sub;
-        $data = json_decode( $sub_array['data'], true ); 
-        if ( ! is_array( $data ) ) { $data = json_decode( stripslashes( $sub_array['data'] ), true ); }
+        // Verify nonce
+        check_admin_referer( 'ffc_migration_' . $migration_key );
         
-        $data['email'] = $sub_array['email'];
-        $form_id = $sub_array['form_id'];
-        $form_title = get_the_title($form_id);
-        $config = get_post_meta( $form_id, '_ffc_form_config', true );
-        $bg_image_url = get_post_meta( $form_id, '_ffc_form_bg', true );
+        // Get migration info
+        $migration = $this->migration_manager->get_migration( $migration_key );
+        if ( ! $migration ) {
+            wp_die( __( 'Invalid migration key', 'ffc' ) );
+        }
         
-        $processed_html = $this->submission_handler->generate_pdf_html( $data, $form_title, $config );
+        // Run migration
+        $result = $this->migration_manager->run_migration( $migration_key );
         
-        wp_send_json_success(array(
-            'template'   => $processed_html,
-            'submission' => $data,
-            'bg_image'   => $bg_image_url,
-            'form_title' => $form_title
-        ));
+        if ( is_wp_error( $result ) ) {
+            $redirect_url = add_query_arg(
+                array(
+                    'post_type' => 'ffc_form',
+                    'page' => 'ffc-submissions',
+                    'msg' => 'migration_error',
+                    'error_msg' => urlencode( $result->get_error_message() )
+                ),
+                admin_url( 'edit.php' )
+            );
+        } else {
+            $migrated = isset( $result['migrated'] ) ? $result['migrated'] : 0;
+            
+            $redirect_url = add_query_arg(
+                array(
+                    'post_type' => 'ffc_form',
+                    'page' => 'ffc-submissions',
+                    'msg' => 'migration_success',
+                    'migration_name' => urlencode( $migration['name'] ),
+                    'migrated' => $migrated
+                ),
+                admin_url( 'edit.php' )
+            );
+        }
+        
+        wp_redirect( $redirect_url );
+        exit;
+    }
+
+    /**
+     * Configure TinyMCE to protect placeholders from being processed
+     * 
+     * This prevents TinyMCE from escaping characters inside placeholders.
+     * For example: {{validation_url link:m>v}} stays as is, 
+     * instead of being converted to {{validation_url link:m&gt;v}}
+     * 
+     * @since 2.9.3
+     * @param array $init TinyMCE initialization settings
+     * @return array Modified settings
+     */
+    public function configure_tinymce_placeholders( $init ) {
+        // ⭐ DEBUG: Uncomment to verify this is being called
+        // error_log('FFC: TinyMCE filter called!');
+        // error_log('FFC: Init keys: ' . implode(', ', array_keys($init)));
+        
+        // ✅ STRATEGY 1: noneditable_regexp
+        // Protect all content between {{ and }}
+        // TinyMCE will NOT process the content inside
+        $init['noneditable_regexp'] = '/{{[^}]+}}/g';
+        
+        // ✅ STRATEGY 2: noneditable_class
+        // Mark placeholders with a class that TinyMCE won't edit
+        $init['noneditable_class'] = 'ffc-placeholder';
+        
+        // ✅ STRATEGY 3: entity_encoding
+        // Try to prevent entity encoding
+        $init['entity_encoding'] = 'raw';
+        
+        // ✅ STRATEGY 4: valid_elements
+        // Ensure our placeholders are considered valid
+        if ( ! isset( $init['extended_valid_elements'] ) ) {
+            $init['extended_valid_elements'] = '';
+        }
+        
+        // ✅ STRATEGY 5: protect patterns
+        // Additional protection for specific patterns
+        if ( ! isset( $init['protect'] ) ) {
+            $init['protect'] = array();
+        }
+        if ( is_array( $init['protect'] ) ) {
+            $init['protect'][] = '/{{[^}]+}}/g';
+        }
+        
+        // ✅ Visual styling (optional)
+        // Uncomment to add custom CSS for placeholder highlighting
+        // if ( ! isset( $init['content_css'] ) ) {
+        //     $init['content_css'] = '';
+        // } else {
+        //     $init['content_css'] .= ',';
+        // }
+        // $init['content_css'] .= plugins_url( 'assets/css/editor-placeholders.css', FFC_PLUGIN_FILE );
+        
+        // ⭐ DEBUG: Uncomment to see final config
+        // error_log('FFC: noneditable_regexp = ' . $init['noneditable_regexp']);
+        // error_log('FFC: entity_encoding = ' . $init['entity_encoding']);
+        
+        return $init;
     }
 }

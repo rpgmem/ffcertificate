@@ -1,7 +1,16 @@
 <?php
 /**
  * FFC_Submission_Handler
- * Manages processing, saving, editing, and exporting of submissions.
+ * Manages CRUD operations for submissions (database only).
+ * 
+ * Email logic moved to: FFC_Email_Handler
+ * CSV export logic moved to: FFC_CSV_Exporter
+ * 
+ * v2.8.0: Added magic token support for magic links
+ * v2.9.0: Passes submission_id to email handler for QR Code caching
+ * v2.9.1: Uses FFC_Utils::get_user_ip() instead of local method
+ * v2.9.13: Added cpf_rf column for performance optimization
+ * v2.9.16: CLEAN - Removed property, uses FFC_Utils::get_submissions_table()
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -10,38 +19,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class FFC_Submission_Handler {
     
-    protected $submission_table_name;
-    
-    public function __construct() {
-        global $wpdb;
-        $this->submission_table_name = $wpdb->prefix . 'ffc_submissions';
-
-        // Hook for background processing (Email/Logging)
-        add_action( 'ffc_process_submission_hook', array( $this, 'async_process_submission' ), 10, 7 );
-        
-        // Custom SMTP Configuration
-        add_action( 'phpmailer_init', array( $this, 'configure_custom_smtp' ) );
-    }
-
     /**
-     * Configure PHPMailer to use SMTP if defined in settings.
+     * Generate unique magic token for magic links
+     * 
+     * @since 2.8.0 Magic Links feature
+     * @return string 32-character hex token
      */
-    public function configure_custom_smtp( $phpmailer ) {
-        $settings = get_option( 'ffc_settings', array() );
-        if ( isset($settings['smtp_mode']) && $settings['smtp_mode'] === 'custom' ) {
-            $phpmailer->isSMTP();
-            $phpmailer->Host       = isset($settings['smtp_host']) ? $settings['smtp_host'] : '';
-            $phpmailer->SMTPAuth   = true;
-            $phpmailer->Port       = isset($settings['smtp_port']) ? (int) $settings['smtp_port'] : 587;
-            $phpmailer->Username   = isset($settings['smtp_user']) ? $settings['smtp_user'] : '';
-            $phpmailer->Password   = isset($settings['smtp_pass']) ? $settings['smtp_pass'] : '';
-            $phpmailer->SMTPSecure = isset($settings['smtp_secure']) ? $settings['smtp_secure'] : 'tls';
-            
-            if ( ! empty( $settings['smtp_from_email'] ) ) {
-                $phpmailer->From     = $settings['smtp_from_email'];
-                $phpmailer->FromName = isset($settings['smtp_from_name']) ? $settings['smtp_from_name'] : get_bloginfo( 'name' );
-            }
-        }
+    private function generate_magic_token() {
+        return bin2hex( random_bytes(16) );
     }
 
     /**
@@ -49,47 +34,92 @@ class FFC_Submission_Handler {
      */
     public function get_submission( $id ) {
         global $wpdb;
-        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->submission_table_name} WHERE id = %d", $id ), ARRAY_A );
+        $table = FFC_Utils::get_submissions_table();
+        
+        return $wpdb->get_row( $wpdb->prepare( 
+            "SELECT * FROM {$table} WHERE id = %d", 
+            $id 
+        ), ARRAY_A );
     }
 
     /**
-     * Process initial submission and save to database.
+     * Retrieve a submission by magic token.
+     * 
+     * @since 2.8.0 Magic Links feature
+     * @param string $token Magic token (32 hex characters)
+     * @return array|null Submission data or null if not found
+     */
+    public function get_submission_by_token( $token ) {
+        global $wpdb;
+        $table = FFC_Utils::get_submissions_table();
+        
+        // Sanitize token (only allow alphanumeric)
+        $clean_token = preg_replace( '/[^a-f0-9]/i', '', $token );
+        
+        if ( strlen( $clean_token ) !== 32 ) {
+            return null; // Invalid token length
+        }
+        
+        return $wpdb->get_row( $wpdb->prepare( 
+            "SELECT * FROM {$table} WHERE magic_token = %s LIMIT 1", 
+            $clean_token 
+        ), ARRAY_A );
+    }
+
+    /**
+     * Process submission
+     * 
+     * ✅ v2.9.15: SEPARAÇÃO DE DADOS - Campos obrigatórios em colunas, extras em JSON
+     * ✅ v2.9.16: CLEAN - Uses centralized table name
      */
     public function process_submission( $form_id, $form_title, &$submission_data, $user_email, $fields_config, $form_config ) {
         global $wpdb;
-
-        // 1. Generate authentication code if it doesn't exist
+        $table = FFC_Utils::get_submissions_table();
+        
+        // 1. Generate auth code if needed
         if ( empty( $submission_data['auth_code'] ) ) {
             $submission_data['auth_code'] = strtoupper( wp_generate_password( 12, false ) );
         }
-
-        // 2. Cleanup and standardization of identification fields
-        $keys_to_clean = array( 'auth_code', 'codigo', 'verification_code', 'cpf', 'cpf_rf', 'rg', 'ticket' );
-        foreach ( $submission_data as $key => $value ) {
-            if ( in_array( $key, $keys_to_clean ) ) {
-                // Remove non-alphanumeric characters and convert to uppercase
-                $submission_data[$key] = strtoupper( preg_replace( '/[^a-zA-Z0-9]/', '', $value ) );
-            }
-        }
-
-        // 3. Prepare data for JSON (Removing duplicate emails to save space)
-        $data_to_save = $submission_data;
-        $email_keys = array( 'email', 'user_email', 'your-email', 'ffc_email' );
-        foreach ( $email_keys as $key ) {
-            if ( isset( $data_to_save[$key] ) ) unset( $data_to_save[$key] );
+        
+        // 2. Clean and extract mandatory fields
+        $clean_auth_code = FFC_Utils::clean_auth_code( $submission_data['auth_code'] );
+        
+        $clean_cpf_rf = null;
+        if ( isset( $submission_data['cpf_rf'] ) && ! empty( $submission_data['cpf_rf'] ) ) {
+            $clean_cpf_rf = preg_replace( '/[^0-9]/', '', $submission_data['cpf_rf'] );
         }
         
+        // 3. Generate magic token
+        $magic_token = $this->generate_magic_token();
+        
+        // 4. ✅ SEPARAÇÃO: Extrair campos extras (remover obrigatórios do JSON)
+        $mandatory_keys = array('email', 'cpf_rf', 'auth_code');
+        $extra_data = array_diff_key($submission_data, array_flip($mandatory_keys));
+
+        // ✅ v2.9.16: Garantir que data nunca seja "null" string
+        $data_json = wp_json_encode($extra_data);
+        if ($data_json === 'null' || $data_json === false || empty($data_json)) {
+            $data_json = '{}';  // JSON vazio válido
+        }
+        
+        // 5. Get user IP
+        $user_ip = FFC_Utils::get_user_ip();
+
+        // 6. Insert into database
         $inserted = $wpdb->insert(
-            $this->submission_table_name,
+            $table,
             array(
                 'form_id'         => $form_id,
-                'submission_date' => current_time( 'mysql' ),
-                'data'            => wp_json_encode( $data_to_save ), 
-                'user_ip'         => $this->get_user_ip(),
+                'submission_date' => current_time('mysql'),
+                'data'            => $data_json,
+                'user_ip'         => $user_ip,
                 'email'           => $user_email,
-                'status'          => 'publish' 
+                'cpf_rf'          => $clean_cpf_rf,
+                'auth_code'       => $clean_auth_code,
+                'status'          => 'publish',
+                'magic_token'     => $magic_token
             ),
-            array( '%d', '%s', '%s', '%s', '%s', '%s' )
+            array('%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
         );
         
         if ( ! $inserted ) {
@@ -98,8 +128,21 @@ class FFC_Submission_Handler {
         
         $submission_id = $wpdb->insert_id;
         
-        // 4. Schedule asynchronous email delivery
-        wp_schedule_single_event( time() + 2, 'ffc_process_submission_hook', array( $submission_id, $form_id, $form_title, $submission_data, $user_email, $fields_config, $form_config ) );
+        // 7. Schedule asynchronous email delivery (processed by FFC_Email_Handler)
+        wp_schedule_single_event( 
+            time() + 2, 
+            'ffc_process_submission_hook', 
+            array( 
+                $submission_id,
+                $form_id, 
+                $form_title, 
+                $submission_data,  // ✅ Dados completos para email
+                $user_email, 
+                $fields_config, 
+                $form_config,
+                $magic_token
+            ) 
+        );
 
         return $submission_id;
     }
@@ -110,15 +153,19 @@ class FFC_Submission_Handler {
      */
     public function update_submission( $id, $new_email, $clean_data ) {
         global $wpdb;
+        $table = FFC_Utils::get_submissions_table();
         
+        // Remove email from data (stored separately in email column)
         $data_to_save = $clean_data;
         $email_keys = array( 'email', 'user_email', 'your-email', 'ffc_email' );
         foreach ( $email_keys as $key ) {
-            if ( isset( $data_to_save[$key] ) ) unset( $data_to_save[$key] );
+            if ( isset( $data_to_save[$key] ) ) {
+                unset( $data_to_save[$key] );
+            }
         }
         
         return $wpdb->update(
-            $this->submission_table_name,
+            $table,
             array(
                 'email' => $new_email,
                 'data'  => wp_json_encode( $data_to_save )
@@ -130,169 +177,49 @@ class FFC_Submission_Handler {
     }
 
     /**
-     * Asynchronous Processing (Emails).
-     */
-    public function async_process_submission( $submission_id, $form_id, $form_title, $submission_data, $user_email, $fields_config, $form_config ) {
-        // Ensure email is in the data for PDF generation
-        if ( ! isset( $submission_data['email'] ) ) {
-            $submission_data['email'] = $user_email;
-        }
-        
-        // Generate final HTML content
-        $pdf_content = $this->generate_pdf_html( $submission_data, $form_title, $form_config );
-        
-        // Send to User
-        if ( isset( $form_config['send_user_email'] ) && $form_config['send_user_email'] == 1 ) {
-            $this->send_user_email( $user_email, $form_title, $pdf_content, $form_config );
-        }
-
-        // Send Notification to Admin
-        $this->send_admin_notification( $form_title, $submission_data, $form_config );
-    }
-
-    /**
-     * GENERATE CERTIFICATE HTML.
-     */
-    public function generate_pdf_html( $submission_data, $form_title, $form_config ) {
-        $layout = isset( $form_config['pdf_layout'] ) ? $form_config['pdf_layout'] : '';
-        
-        if ( empty( $layout ) ) {
-            $layout = '<div style="text-align:center; padding: 50px;">
-                        <h1>' . esc_html( $form_title ) . '</h1>
-                        <p>' . esc_html__( 'We certify that the holder of the data below has completed the event.', 'ffc' ) . '</p>
-                        <h2>{{name}}</h2>
-                        <p>' . esc_html__( 'Authenticity:', 'ffc' ) . ' {{auth_code}}</p>
-                      </div>';
-        }
-
-        // System Tags (Dates and Titles)
-        $layout = str_replace( '{{validation_url}}', esc_url( site_url( '/valid' ) ), $layout );
-        $layout = str_replace( '{{submission_date}}', date_i18n( get_option( 'date_format' ), current_time( 'timestamp' ) ), $layout );
-        $layout = str_replace( '{{form_title}}', $form_title, $layout );
-
-        // If email was removed for DB storage, add it back for PDF generation
-        if ( !isset($submission_data['email']) && isset($submission_data['user_email']) ) {
-             $submission_data['email'] = $submission_data['user_email'];
-        }
-
-        // Dynamic Form Tags (Works for text, select, radio, hidden)
-        foreach ( $submission_data as $key => $value ) {
-            if ( is_array( $value ) ) {
-                $value = implode( ', ', $value );
-            }
-
-            // Formatting Documents and Authentication Code
-            if ( in_array( $key, array( 'cpf', 'cpf_rf', 'rg' ) ) ) {
-                $value = $this->format_document( $value );
-            }
-            if ( $key === 'auth_code' ) {
-                $value = $this->format_auth_code( $value );
-            }
-            
-            $safe_value = wp_kses( $value, FFC_Utils::get_allowed_html_tags() );
-            $layout = str_replace( '{{' . $key . '}}', $safe_value, $layout );
-        }
-
-        // Ensure absolute paths for images (prevents broken images in emails)
-        $site_url = untrailingslashit( get_home_url() );
-        $layout = preg_replace('/(src|href|background)=["\']\/([^"\']+)["\']/i', '$1="' . $site_url . '/$2"', $layout);
-
-        return $layout;
-    }
-
-    /**
-     * Send email to user with certificate.
-     */
-    private function send_user_email( $to, $form_title, $html_content, $form_config ) {
-        $subject = ! empty( $form_config['email_subject'] ) ? $form_config['email_subject'] : sprintf( __( 'Your Certificate: %s', 'ffc' ), $form_title );
-        
-        // Prepare email body by merging text with certificate layout
-        $body_text = isset( $form_config['email_body'] ) ? wpautop( $form_config['email_body'] ) : '';
-        $body  = '<div style="font-family: sans-serif; line-height: 1.6; color: #333;">';
-        $body .= $body_text;
-        $body .= '<div style="margin-top:30px; border:1px solid #eee; border-radius: 8px; overflow: hidden;">';
-        $body .= $html_content;
-        $body .= '</div></div>'; 
-        
-        wp_mail( $to, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
-    }
-
-    /**
-     * Send notification to administrators.
-     */
-    private function send_admin_notification( $form_title, $data, $form_config ) {
-        $admins = isset( $form_config['email_admin'] ) ? array_filter(array_map('trim', explode( ',', $form_config['email_admin'] ))) : array( get_option( 'admin_email' ) );
-        
-        $subject = sprintf( __( 'New Issuance: %s', 'ffc' ), $form_title );
-        $body    = '<h3>' . __( 'Submission Details:', 'ffc' ) . '</h3>';
-        $body   .= '<table border="1" cellpadding="10" style="border-collapse:collapse; width:100%; font-family: sans-serif;">';
-        
-        foreach ( $data as $k => $v ) {
-            $display_v = is_array($v) ? implode(', ', $v) : $v;
-
-            if ( in_array( $k, array( 'cpf', 'cpf_rf', 'rg' ) ) ) { $display_v = $this->format_document( $display_v ); }
-            if ( $k === 'auth_code' ) { $display_v = $this->format_auth_code( $display_v ); }
-
-            $label = ucwords( str_replace('_', ' ', $k) );
-            $body .= '<tr><td style="background:#f9f9f9; width:30%;"><strong>' . esc_html( $label ) . '</strong></td><td>' . wp_kses( $display_v, FFC_Utils::get_allowed_html_tags() ) . '</td></tr>';
-        }
-        $body .= '</table>';
-
-        foreach ( $admins as $email ) {
-            if ( is_email( $email ) ) {
-                wp_mail( $email, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
-            }
-        }
-    }
-
-    /**
-     * Format document numbers (CPF/RF/RG).
-     */
-    private function format_document( $value ) {
-        $value = preg_replace( '/[^0-9]/', '', $value );
-        $len = strlen( $value );
-        if ( $len === 7 ) { // RF
-            return substr( $value, 0, 3 ) . '.' . substr( $value, 3, 3 ) . '-' . substr( $value, 6, 1 );
-        } 
-        if ( $len === 11 ) { // CPF
-            return substr( $value, 0, 3 ) . '.' . substr( $value, 3, 3 ) . '.' . substr( $value, 6, 3 ) . '-' . substr( $value, 9, 2 );
-        }
-        return $value;
-    }
-
-    /**
-     * Format authentication code (XXXX-XXXX-XXXX).
-     */
-    private function format_auth_code( $value ) {
-        $value = strtoupper(preg_replace('/[^A-Z0-9]/i', '', $value));
-        if ( strlen( $value ) === 12 ) {
-            return substr( $value, 0, 4 ) . '-' . substr( $value, 4, 4 ) . '-' . substr( $value, 8, 4 );
-        }
-        return $value;
-    }
-
-    /**
      * Move submission to trash.
      */
     public function trash_submission( $id ) { 
-        global $wpdb; 
-        return $wpdb->update($this->submission_table_name, array('status'=>'trash'), array('id'=>absint($id))); 
+        global $wpdb;
+        $table = FFC_Utils::get_submissions_table();
+        
+        return $wpdb->update(
+            $table, 
+            array('status'=>'trash'), 
+            array('id'=>absint($id)),
+            array('%s'),
+            array('%d')
+        ); 
     }
     
     /**
      * Restore submission from trash.
      */
     public function restore_submission( $id ) { 
-        global $wpdb; 
-        return $wpdb->update($this->submission_table_name, array('status'=>'publish'), array('id'=>absint($id))); 
+        global $wpdb;
+        $table = FFC_Utils::get_submissions_table();
+        
+        return $wpdb->update(
+            $table, 
+            array('status'=>'publish'), 
+            array('id'=>absint($id)),
+            array('%s'),
+            array('%d')
+        ); 
     }
     
     /**
      * Permanently delete submission.
      */
     public function delete_submission( $id ) { 
-        global $wpdb; 
-        return $wpdb->delete($this->submission_table_name, array('id'=>absint($id))); 
+        global $wpdb;
+        $table = FFC_Utils::get_submissions_table();
+        
+        return $wpdb->delete(
+            $table, 
+            array('id'=>absint($id)),
+            array('%d')
+        ); 
     }
 
     /**
@@ -303,14 +230,15 @@ class FFC_Submission_Handler {
      */
     public function delete_all_submissions( $form_id = null ) {
         global $wpdb;
+        $table = FFC_Utils::get_submissions_table();
         
         if ( $form_id === null ) {
             // Delete all submissions
-            return $wpdb->query( "TRUNCATE TABLE {$this->submission_table_name}" );
+            return $wpdb->query( "TRUNCATE TABLE {$table}" );
         } else {
             // Delete submissions from specific form
             return $wpdb->delete( 
-                $this->submission_table_name, 
+                $table, 
                 array( 'form_id' => absint( $form_id ) ), 
                 array( '%d' ) 
             );
@@ -318,81 +246,84 @@ class FFC_Submission_Handler {
     }
 
     /**
-     * CSV Export with translatable headers and semicolon delimiter.
+     * Automatic cleanup of old submissions.
+     * Called by daily WP-Cron event.
      */
-    public function export_csv() {
+    public function run_data_cleanup() {
         global $wpdb;
-        $rows = $wpdb->get_results( "SELECT * FROM {$this->submission_table_name} WHERE status = 'publish' ORDER BY id DESC", ARRAY_A );
+        $table = FFC_Utils::get_submissions_table();
         
-        if ( empty( $rows ) ) wp_die( __( 'No records available for export.', 'ffc' ) );
+        $settings = get_option( 'ffc_settings', array() );
+        $cleanup_days = isset( $settings['cleanup_days'] ) ? absint( $settings['cleanup_days'] ) : 0;
         
-        $filename = 'certificates-' . date( 'Y-m-d' ) . '.csv';
-        header( 'Content-Type: text/csv; charset=utf-8' );
-        header( "Content-Disposition: attachment; filename={$filename}" );
-        
-        $output = fopen( 'php://output', 'w' );
-        fprintf( $output, chr(0xEF).chr(0xBB).chr(0xBF) ); // UTF-8 BOM
-        
-        // 1. Collect dynamic keys from JSON
-        $all_keys = array();
-        foreach($rows as $r){ 
-            $d = json_decode($r['data'], true); 
-            if(is_array($d)) $all_keys = array_merge($all_keys, array_keys($d)); 
-        }
-        $dynamic_keys = array_unique($all_keys);
-        
-        // 2. Fixed Translatable Headers
-        $fixed_headers = array(
-            __( 'ID', 'ffc' ),
-            __( 'Form', 'ffc' ),
-            __( 'Submission Date', 'ffc' ),
-            __( 'E-mail', 'ffc' ),
-            __( 'User IP', 'ffc' )
-        );
-
-        // 3. Process Dynamic Headers (Prettify + Translation if exists)
-        $dynamic_headers = array();
-        foreach ( $dynamic_keys as $key ) {
-            // Transform "cpf_rf" into "Cpf Rf" and try to translate
-            $label = ucwords( str_replace( array('_', '-'), ' ', $key ) );
-            $dynamic_headers[] = __( $label, 'ffc' );
+        if ( $cleanup_days <= 0 ) {
+            return; // Cleanup disabled
         }
         
-        // Write complete header row
-        fputcsv($output, array_merge($fixed_headers, $dynamic_headers), ';');
+        $cutoff_date = date( 'Y-m-d H:i:s', strtotime( "-{$cleanup_days} days" ) );
         
-        // 4. Iterate over data
-        foreach($rows as $row){
-            $form_title = get_the_title( $row['form_id'] );
-            $form_display = $form_title ? $form_title : __( '(Deleted)', 'ffc' );
-            
-            $line = array(
-                $row['id'], 
-                $form_display, 
-                $row['submission_date'], 
-                $row['email'], 
-                $row['user_ip']
-            );
-            
-            $d = json_decode($row['data'], true) ?: array();
-            foreach($dynamic_keys as $key) { 
-                $val = isset($d[$key]) ? $d[$key] : ''; 
-                $line[] = is_array($val) ? implode(' | ', $val) : $val; 
-            }
-            
-            fputcsv($output, $line, ';');
-        }
-        
-        fclose($output); 
-        exit;
+        $wpdb->query( $wpdb->prepare(
+            "DELETE FROM {$table} WHERE submission_date < %s",
+            $cutoff_date
+        ) );
     }
 
     /**
-     * Get user IP address (supports proxies).
+     * Ensure submission has a magic token (fallback for old submissions)
+     * 
+     * This is a safety fallback for submissions created before v2.8.0
+     * or if token generation failed during creation.
+     * 
+     * @since 2.8.0 Magic Links feature
+     * @param int $submission_id
+     * @return string Magic token
      */
-    private function get_user_ip() {
-        if (!empty($_SERVER['HTTP_CLIENT_IP'])) return sanitize_text_field($_SERVER['HTTP_CLIENT_IP']);
-        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) return sanitize_text_field(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
-        return sanitize_text_field($_SERVER['REMOTE_ADDR']);
+    public function ensure_magic_token( $submission_id ) {
+        global $wpdb;
+        $table = FFC_Utils::get_submissions_table();
+        
+        $submission = $this->get_submission( $submission_id );
+        
+        if ( ! $submission ) {
+            return '';
+        }
+        
+        // If token exists, return it
+        if ( ! empty( $submission['magic_token'] ) ) {
+            return $submission['magic_token'];
+        }
+        
+        // Generate new token
+        $token = $this->generate_magic_token();
+        
+        // Save to database
+        $wpdb->update(
+            $table,
+            array( 'magic_token' => $token ),
+            array( 'id' => $submission_id ),
+            array( '%s' ),
+            array( '%d' )
+        );
+        
+        return $token;
+    }
+
+    /**
+     * Migrate emails from data JSON to dedicated email column
+     * 
+     * @since 2.8.0
+     * @deprecated 2.9.15 Moved to FFC_Migration_Manager::migrate_emails()
+     * @see FFC_Migration_Manager::migrate_emails()
+     * @return int Number of migrated emails
+     */
+    public function migrate_emails_to_column() {
+        // Redirect to Migration Manager
+        if ( class_exists( 'FFC_Migration_Manager' ) ) {
+            $migration_manager = new FFC_Migration_Manager();
+            $result = $migration_manager->run_migration( 'emails', 0 );
+            return isset( $result['migrated'] ) ? $result['migrated'] : 0;
+        }
+        
+        return 0;
     }
 }

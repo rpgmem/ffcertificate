@@ -2,7 +2,7 @@
 /*
 Plugin Name: Free Form Certificate
 Description: Allows creation of dynamic forms, saves submissions, generates a PDF certificate, and enables CSV export.
-Version: 2.6.0
+Version: 2.9.16
 Author: Alex Meusburger
 Text Domain: ffc
 Domain Path: /languages
@@ -12,34 +12,54 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// Define Constants
+/**
+ * Centralized version management
+ */
+define( 'FFC_VERSION', '2.9.16' );       // Plugin version
+// External libraries versions
+define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );  // html2canvas - https://html2canvas.hertzen.com/
+define( 'FFC_JSPDF_VERSION', '2.5.1' );        // jsPDF - https://github.com/parallax/jsPDF
+
+define( 'FFC_MIN_WP_VERSION', '5.0' );  // Minimum WordPress
+define( 'FFC_MIN_PHP_VERSION', '7.4' ); // Minimum PHP
+define( 'FFC_DEBUG', false );           // Debug mode
 define( 'FFC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FFC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 /**
- * Load Translation Files
- * This ensures the plugin looks into the /languages folder for translation strings.
+ * Load plugin textdomain
  */
 function ffc_load_textdomain() {
     load_plugin_textdomain( 'ffc', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 }
 add_action( 'plugins_loaded', 'ffc_load_textdomain' );
 
-// 1. Include the activation class
-require_once FFC_PLUGIN_DIR . 'includes/class-ffc-activator.php';
+/**
+ * ✅ Load critical classes for activation hook
+ * 
+ * IMPORTANT: These must be loaded BEFORE register_activation_hook
+ * because FFC_Activator::activate() needs them
+ */
+require_once FFC_PLUGIN_DIR . 'includes/class-ffc-utils.php';              // 1. Utils (used by Migration Manager)
+require_once FFC_PLUGIN_DIR . 'includes/class-ffc-migration-manager.php';  // 2. Migration Manager (used by Activator)
+require_once FFC_PLUGIN_DIR . 'includes/class-ffc-activator.php';          // 3. Activator (uses Migration Manager)
 
-// 2. Load the utilities class (Essential for allowed HTML tags)
-// Important: Load BEFORE the loader so other classes can access it
-require_once FFC_PLUGIN_DIR . 'includes/class-ffc-utils.php';
-
-// 3. Register Activation Hook
+/**
+ * Register activation hook
+ * 
+ * ✅ Now FFC_Migration_Manager exists when activate() is called
+ */
 register_activation_hook( __FILE__, array( 'FFC_Activator', 'activate' ) );
 
-// 4. Load the plugin core loader
+/**
+ * Load the main plugin loader
+ * 
+ * Loader will load all other dependencies
+ */
 require_once FFC_PLUGIN_DIR . 'includes/class-ffc-loader.php';
 
 /**
- * Initialize the plugin logic
+ * Run the plugin
  */
 function run_free_form_certificate() {
     $plugin = new Free_Form_Certificate_Loader();
