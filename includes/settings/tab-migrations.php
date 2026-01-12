@@ -16,6 +16,7 @@ require_once FFC_PLUGIN_DIR . 'includes/class-ffc-migration-manager.php';
 $migration_manager = new FFC_Migration_Manager();
 $migrations = $migration_manager->get_migrations();
 ?>
+<div class="ffc-settings-wrap">
 
 <div class="ffc-migrations-settings-wrap">
     
@@ -142,8 +143,7 @@ $migrations = $migration_manager->get_migrations();
             <!-- Progress Bar -->
             <div class="ffc-migration-progress-bar">
                 <div class="ffc-progress-bar-container">
-                    <div class="ffc-progress-bar-fill <?php echo esc_attr( $progress_color ); ?>" 
-                         style="width: <?php echo esc_attr( $percent ); ?>%;"></div>
+                    <div class="ffc-progress-bar-fill <?php echo esc_attr( $progress_color ); ?>"></div>
                     <div class="ffc-progress-bar-label <?php echo esc_attr( $label_class ); ?>">
                         <?php echo number_format( $percent, 1 ); ?>% <?php esc_html_e( 'Complete', 'ffc' ); ?>
                     </div>
@@ -205,3 +205,4 @@ $migrations = $migration_manager->get_migrations();
     </div>
     
 </div>
+</div><!-- .ffc-settings-wrap -->

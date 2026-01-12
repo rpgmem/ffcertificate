@@ -24,6 +24,10 @@ class FFC_Form_Processor {
     public function __construct( $submission_handler, $email_handler ) {
         $this->submission_handler = $submission_handler;
         $this->email_handler = $email_handler;
+        
+        // Register AJAX hooks
+        add_action('wp_ajax_ffc_submit_form', [$this, 'handle_submission_ajax']);
+        add_action('wp_ajax_nopriv_ffc_submit_form', [$this, 'handle_submission_ajax']);
     }
 
     /**
@@ -186,16 +190,32 @@ class FFC_Form_Processor {
             // Remove formatting for comparison
             $clean_cpf = preg_replace( '/[^0-9]/', '', $val_cpf );
             
-            // ✅ v2.9.13: Try optimized query first (uses index)
-            $existing_submission = $wpdb->get_row( $wpdb->prepare( 
-                "SELECT * FROM {$table_name} 
-                 WHERE form_id = %d 
-                 AND cpf_rf = %s 
-                 ORDER BY id DESC 
-                 LIMIT 1", 
-                $form_id, 
-                $clean_cpf
-            ) );
+            // Check if encryption is enabled
+            if (class_exists('FFC_Encryption') && FFC_Encryption::is_configured()) {
+                // Use HASH for encrypted data
+                $cpf_hash = FFC_Encryption::hash($clean_cpf);
+                
+                $existing_submission = $wpdb->get_row( $wpdb->prepare( 
+                    "SELECT * FROM {$table_name} 
+                     WHERE form_id = %d 
+                     AND cpf_rf_hash = %s 
+                     ORDER BY id DESC 
+                     LIMIT 1", 
+                    $form_id, 
+                    $cpf_hash
+                ) );
+            } else {
+                // Use plain CPF for non-encrypted data
+                $existing_submission = $wpdb->get_row( $wpdb->prepare( 
+                    "SELECT * FROM {$table_name} 
+                     WHERE form_id = %d 
+                     AND cpf_rf = %s 
+                     ORDER BY id DESC 
+                     LIMIT 1", 
+                    $form_id, 
+                    $clean_cpf
+                ) );
+            }
             
             // ⚠️ Fallback: If column doesn't exist or is NULL, search in JSON
             if ( ! $existing_submission ) {
@@ -264,17 +284,35 @@ class FFC_Form_Processor {
      * Handle form submission via AJAX
      */
     public function handle_submission_ajax() {
-        // Debug: Log nonce value
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( '[FFC] handle_submission_ajax called' );
-            error_log( '[FFC] $_POST[nonce]: ' . ( isset($_POST['nonce']) ? $_POST['nonce'] : 'NOT SET' ) );
-            error_log( '[FFC] $_REQUEST[nonce]: ' . ( isset($_REQUEST['nonce']) ? $_REQUEST['nonce'] : 'NOT SET' ) );
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'ffc_frontend_nonce')) {
+            wp_send_json_error(['message' => __('Security check failed. Please refresh the page.', 'ffc')]);
+            return;
         }
         
-        check_ajax_referer( 'ffc_frontend_nonce', 'nonce' );
+        // ===== DEBUG CAPTCHA =====
+        error_log('===== FFC CAPTCHA DEBUG =====');
+        error_log('Answer received: ' . (isset($_POST['ffc_captcha_ans']) ? $_POST['ffc_captcha_ans'] : 'NOT SET'));
+        error_log('Hash received: ' . (isset($_POST['ffc_captcha_hash']) ? $_POST['ffc_captcha_hash'] : 'NOT SET'));
+        
+        if (isset($_POST['ffc_captcha_ans']) && isset($_POST['ffc_captcha_hash'])) {
+            $test_answer = trim($_POST['ffc_captcha_ans']);
+            $received_hash = $_POST['ffc_captcha_hash'];
+            $generated_hash = wp_hash($test_answer . 'ffc_math_salt');
+            
+            error_log('Trimmed answer: ' . $test_answer);
+            error_log('Generated hash from answer: ' . $generated_hash);
+            error_log('Hashes match: ' . ($generated_hash === $received_hash ? 'YES' : 'NO'));
+            
+            // Test with different variations
+            error_log('Test with (int): ' . wp_hash((int)$test_answer . 'ffc_math_salt'));
+            error_log('Test with (string): ' . wp_hash((string)$test_answer . 'ffc_math_salt'));
+        }
+        error_log('=============================');
+        // ===== END DEBUG =====
         
         // Validate security fields using FFC_Utils
-        $security_check = FFC_Utils::validate_security_fields( $_POST );
+        $security_check = FFC_Utils::validate_security_fields($_POST);
         if ( $security_check !== true ) {
             // Generate new captcha for retry
             $n1 = rand( 1, 9 );
@@ -312,8 +350,24 @@ class FFC_Form_Processor {
                 // Special validation for CPF/RF
                 if ( $name === 'cpf_rf' ) {
                     $value = preg_replace( '/\D/', '', $value );
+                    
+                    // Validate length
                     if ( strlen($value) !== 7 && strlen($value) !== 11 ) {
-                        wp_send_json_error( array( 'message' => __( 'Error: Identification ID must be exactly 7 or 11 digits.', 'ffc' ) ) );
+                        wp_send_json_error( array( 'message' => __( 'CPF/RF must be exactly 7 or 11 digits.', 'ffc' ) ) );
+                    }
+                    
+                    // Validate CPF (11 digits) using official algorithm
+                    if ( strlen($value) === 11 ) {
+                        if ( ! FFC_Utils::validate_cpf( $value ) ) {
+                            wp_send_json_error( array( 'message' => __( 'Invalid CPF. Please check the number and try again.', 'ffc' ) ) );
+                        }
+                    }
+                    
+                    // Validate RF (7 digits) - must be numeric
+                    if ( strlen($value) === 7 ) {
+                        if ( ! FFC_Utils::validate_rf( $value ) ) {
+                            wp_send_json_error( array( 'message' => __( 'Invalid RF. Must contain only numbers.', 'ffc' ) ) );
+                        }
                     }
                 }
                 

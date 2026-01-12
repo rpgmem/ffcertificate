@@ -1,0 +1,67 @@
+[11-Jan-2026 17:46:39 UTC] PHP Notice:  Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>ffc</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /home/u690874273/domains/deeppink-dog-866880.hostingersite.com/public_html/wp-includes/functions.php on line 6131
+[11-Jan-2026 17:46:39 UTC] [FFC] Form shortcode rendered | Data: Array
+(
+    [form_id] => 6
+    [form_title] => Teste Form
+    [fields_count] => 4
+    [ip] => 200.162.218.75
+)
+
+[11-Jan-2026 17:46:39 UTC] [FFC] Form shortcode rendered | Data: Array
+(
+    [form_id] => 24
+    [form_title] => Teste_2
+    [fields_count] => 3
+    [ip] => 200.162.218.75
+)
+
+[11-Jan-2026 17:46:39 UTC] PHP Notice:  Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>ffc</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /home/u690874273/domains/deeppink-dog-866880.hostingersite.com/public_html/wp-includes/functions.php on line 6131
+[11-Jan-2026 17:46:54 UTC] PHP Notice:  Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>ffc</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /home/u690874273/domains/deeppink-dog-866880.hostingersite.com/public_html/wp-includes/functions.php on line 6131
+[11-Jan-2026 17:46:54 UTC] JSON: data={"name":"Alex Meusburger","program":"Programa 123"}
+[11-Jan-2026 17:46:54 UTC] JSON: extra_data=Array
+(
+    [name] => Alex Meusburger
+    [program] => Programa 123
+)
+
+[11-Jan-2026 17:46:54 UTC] JSON: is_array=YES
+[11-Jan-2026 17:46:54 UTC] MERGE: count=2
+[11-Jan-2026 17:46:54 UTC] MERGE: AFTER=Array
+(
+    [name] => Alex Meusburger
+    [program] => Programa 123
+    [email] => rpgmem@gmail.com
+    [auth_code] => 7DGF93N8WSV8
+    [cpf_rf] => 34248711842
+)
+
+[11-Jan-2026 17:46:54 UTC] REPLACED: {{name}} => Alex Meusburger
+[11-Jan-2026 17:46:54 UTC] REPLACED: {{program}} => Programa 123
+[11-Jan-2026 17:46:54 UTC] REPLACED: {{email}} => rpgmem@gmail.com
+[11-Jan-2026 17:46:54 UTC] REPLACED: {{auth_code}} => 7DGF-93N8-WSV8
+[11-Jan-2026 17:46:54 UTC] REPLACED: {{cpf_rf}} => 342.487.118-42
+[11-Jan-2026 17:46:54 UTC] REPLACED: {{fill_date}} => 11/01/2026 14:46
+[11-Jan-2026 17:46:54 UTC] REPLACED: {{date}} => 11/01/2026 14:46
+[11-Jan-2026 17:46:54 UTC] REPLACED: {{submission_id}} => 26
+[11-Jan-2026 17:46:54 UTC] REPLACED: {{magic_token}} => 5bbdc3b5787db4d3389298dad4b705
+[11-Jan-2026 17:46:54 UTC] [FFC] QR Code generation requested | Data: Array
+(
+    [submission_id] => 26
+    [size] => 50
+    [cache_enabled] => 
+)
+
+[11-Jan-2026 17:46:54 UTC] [FFC] PDF data generated | Data: Array
+(
+    [submission_id] => 26
+    [form_id] => 6
+    [form_title] => Teste Form
+    [auth_code] => 7DGF93N8WSV8
+    [filename] => teste-form_7DGF93N8WSV8.pdf
+    [html_length] => 4831
+    [has_bg_image] => 
+)
+
+[11-Jan-2026 17:46:54 UTC] PHP Warning:  Undefined variable $real_submission_date in /home/u690874273/domains/deeppink-dog-866880.hostingersite.com/public_html/wp-content/plugins/wp-ffcertificate/includes/class-ffc-form-processor.php on line 430
+[11-Jan-2026 17:46:54 UTC] PHP Deprecated:  strtotime(): Passing null to parameter #1 ($datetime) of type string is deprecated in /home/u690874273/domains/deeppink-dog-866880.hostingersite.com/public_html/wp-content/plugins/wp-ffcertificate/includes/class-ffc-utils.php on line 624
+[11-Jan-2026 17:46:54 UTC] PHP Notice:  Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>ffc</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /home/u690874273/domains/deeppink-dog-866880.hostingersite.com/public_html/wp-includes/functions.php on line 6131

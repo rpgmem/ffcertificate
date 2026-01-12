@@ -1,20 +1,84 @@
 /**
  * FFC Frontend Utilities
- * Reusable functions for form handling, masks, and user feedback
+ * Reusable functions for form handling, masks, validation, and user feedback
  * 
- * @version 1.0.0
+ * @version 1.1.0
  * @since 2.9.11
  * 
  * Functions:
  * - showFormError()      - Display error message in form
  * - showFormSuccess()    - Display success message in form  
  * - refreshCaptcha()     - Update captcha question and hash
- * - applyCpfRfMask()     - Apply CPF/RF mask to inputs
+ * - applyCpfRfMask()     - Apply CPF/RF mask to inputs (WITH VALIDATION)
  * - applyAuthCodeMask()  - Apply auth code mask (XXXX-XXXX-XXXX)
+ * - applyTicketMask()    - Apply ticket mask (XXXX-XXXX)
+ * - validateCPF()        - Validate CPF number (NEW)
+ * - validateRF()         - Validate RF number (NEW)
  */
 
 (function($, window) {
     'use strict';
+
+    /**
+     * Validate CPF (Cadastro de Pessoas Físicas)
+     * 
+     * @param {string} cpf - CPF to validate (can be formatted or not)
+     * @return {boolean} - True if valid, false otherwise
+     */
+    function validateCPF(cpf) {
+        // Remove formatting
+        cpf = cpf.replace(/[^\d]+/g, '');
+        
+        // Check if has 11 digits
+        if (cpf.length !== 11) {
+            return false;
+        }
+        
+        // Check for known invalid CPFs (all same digits)
+        if (/^(\d)\1{10}$/.test(cpf)) {
+            return false;
+        }
+        
+        // Validate first check digit
+        var sum = 0;
+        for (var i = 0; i < 9; i++) {
+            sum += parseInt(cpf.charAt(i)) * (10 - i);
+        }
+        var digit1 = 11 - (sum % 11);
+        if (digit1 >= 10) digit1 = 0;
+        
+        if (digit1 !== parseInt(cpf.charAt(9))) {
+            return false;
+        }
+        
+        // Validate second check digit
+        sum = 0;
+        for (var j = 0; j < 10; j++) {
+            sum += parseInt(cpf.charAt(j)) * (11 - j);
+        }
+        var digit2 = 11 - (sum % 11);
+        if (digit2 >= 10) digit2 = 0;
+        
+        if (digit2 !== parseInt(cpf.charAt(10))) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * Validate RF (Registro Funcional)
+     * 
+     * @param {string} rf - RF to validate (can be formatted or not)
+     * @return {boolean} - True if valid (7 digits), false otherwise
+     */
+    function validateRF(rf) {
+        // Remove formatting
+        rf = rf.replace(/[^\d]+/g, '');
+        
+        // Check if has exactly 7 digits
+        return rf.length === 7 && /^\d{7}$/.test(rf);
+    }
 
     /**
      * Show error message in form
@@ -137,13 +201,13 @@
     }
 
     /**
-     * Apply CPF/RF mask to input fields
+     * Apply CPF/RF mask to input fields WITH VALIDATION
      * 
      * Formats based on length:
      * - 7 digits: XXX.XXX-X (RF)
      * - 11 digits: XXX.XXX.XXX-XX (CPF)
      * 
-     * Based on FFC_Utils::format_cpf() and FFC_Utils::format_rf()
+     * Validates on blur and shows visual feedback
      * 
      * @param {jQuery} $inputs - Input elements to apply mask (optional)
      */
@@ -157,13 +221,13 @@
             return;
         }
         
-        console.log('[FFC Utils] Applying CPF/RF mask to', $inputs.length, 'field(s)');
+        console.log('[FFC Utils] Applying CPF/RF mask with validation to', $inputs.length, 'field(s)');
         
         $inputs.each(function() {
             var $input = $(this);
             
             // Remove existing handlers to avoid duplicates
-            $input.off('input.cpfrf paste.cpfrf keypress.cpfrf');
+            $input.off('input.cpfrf paste.cpfrf keypress.cpfrf blur.cpfrf');
             
             // Allow only numbers during keypress
             $input.on('keypress.cpfrf', function(e) {
@@ -217,6 +281,56 @@
                 }
                 
                 $(this).val(masked);
+                
+                // Remove validation styling while typing
+                $(this).removeClass('ffc-invalid ffc-valid');
+            });
+            
+            // Validate on blur (when user leaves field)
+            $input.on('blur.cpfrf', function() {
+                var value = $(this).val().replace(/\D/g, '');
+                
+                // Skip if empty (not required check)
+                if (value.length === 0) {
+                    $(this).removeClass('ffc-invalid ffc-valid');
+                    $(this).next('.ffc-field-error').remove();
+                    return;
+                }
+                
+                var isValid = false;
+                var errorMsg = '';
+                
+                if (value.length === 7) {
+                    // RF validation
+                    isValid = validateRF(value);
+                    errorMsg = 'RF inválido';
+                } else if (value.length === 11) {
+                    // CPF validation
+                    isValid = validateCPF(value);
+                    errorMsg = 'CPF inválido';
+                } else {
+                    errorMsg = 'Digite um CPF (11 dígitos) ou RF (7 dígitos) válido';
+                }
+                
+                // Apply visual feedback
+                if (isValid) {
+                    $(this).removeClass('ffc-invalid').addClass('ffc-valid');
+                    $(this).next('.ffc-field-error').fadeOut(function() { $(this).remove(); });
+                } else {
+                    $(this).removeClass('ffc-valid').addClass('ffc-invalid');
+                    
+                    // Show error message near field
+                    var $errorSpan = $(this).next('.ffc-field-error');
+                    if ($errorSpan.length === 0) {
+                        $errorSpan = $('<span class="ffc-field-error"></span>').insertAfter($(this));
+                    }
+                    $errorSpan.text(errorMsg).fadeIn();
+                    
+                    // Hide error after 5 seconds
+                    setTimeout(function() {
+                        $errorSpan.fadeOut();
+                    }, 5000);
+                }
             });
             
             // Apply on paste
@@ -232,13 +346,20 @@
                 $input.trigger('input');
             }
         });
+        
+        // Add CSS for validation states if not exists
+        if (!$('#ffc-validation-styles').length) {
+            $('<style id="ffc-validation-styles">' +
+                'input.ffc-valid { border-color: #00a32a !important; background: #f0f9ff; }' +
+                'input.ffc-invalid { border-color: #d63638 !important; background: #fff3f3; }' +
+                '.ffc-field-error { display: block; color: #d63638; font-size: 12px; margin-top: 5px; animation: ffcSlideDown 0.3s ease; }' +
+            '</style>').appendTo('head');
+        }
     }
 
     /**
      * Apply auth code mask to input fields
      * Format: XXXX-XXXX-XXXX
-     * 
-     * Based on FFC_Utils::format_auth_code()
      * 
      * @param {jQuery} $inputs - Input elements to apply mask (optional)
      */
@@ -365,9 +486,11 @@
         refreshCaptcha: refreshCaptcha,
         applyCpfRfMask: applyCpfRfMask,
         applyAuthCodeMask: applyAuthCodeMask,
-        applyTicketMask: applyTicketMask
+        applyTicketMask: applyTicketMask,
+        validateCPF: validateCPF,
+        validateRF: validateRF
     };
     
-    console.log('[FFC Utils] Frontend utilities module loaded (v1.0.0)');
+    console.log('[FFC Utils] Frontend utilities module loaded (v1.1.0 - with CPF/RF validation)');
 
 })(jQuery, window);

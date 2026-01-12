@@ -368,12 +368,19 @@
                         $submitBtn.prop('disabled', false).text(originalBtnText);
                     }
                 },
-                error: function() {
+                error: function(xhr, status, error) {
                     
-                if (response.data && response.data.rate_limit) {
-                    FFCRateLimit.show(response.data.message, response.data.wait_seconds);
-                    return; // Stop normal error handling
-                }
+                    try {
+                        var response = xhr.responseJSON;
+                        if (response && response.data && response.data.rate_limit) {
+                            if (typeof FFCRateLimit !== 'undefined' && FFCRateLimit.show) {
+                                FFCRateLimit.show(response.data.message, response.data.wait_seconds);
+                                $submitBtn.prop('disabled', false).text(originalBtnText);
+                                return;
+                            }
+                        }
+                    } catch(e) {}
+
                            
                     alert(ffc_ajax.strings.connectionError || 'Connection error');
                     $submitBtn.prop('disabled', false).text(originalBtnText);

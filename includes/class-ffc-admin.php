@@ -68,23 +68,42 @@ class FFC_Admin {
         if ( $post_type === 'ffc_form' || $is_ffc_page ) {
             wp_enqueue_media();
             
-            // CSS - Using centralized version constant
-            wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . 'assets/css/ffc-pdf-core.css', array(), FFC_VERSION );
-            wp_enqueue_style( 'ffc-admin-css', FFC_PLUGIN_URL . 'assets/css/admin.css', array('ffc-pdf-core'), FFC_VERSION );
-            wp_enqueue_style( 'ffc-admin-submissions-css', FFC_PLUGIN_URL . 'assets/css/admin-submissions.css', array(), FFC_VERSION );
+            // CSS - Centralized with proper dependency chain
+            // 1. Base styles (PDF core)
+            wp_enqueue_style(
+                'ffc-pdf-core',
+                FFC_PLUGIN_URL . 'assets/css/ffc-pdf-core.css',
+                array(),
+                FFC_VERSION
+            );
             
-            // PDF Libraries - Using centralized version constants
-            wp_enqueue_script( 'ffc-html2canvas', FFC_PLUGIN_URL . 'assets/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
-            wp_enqueue_script( 'ffc-jspdf', FFC_PLUGIN_URL . 'assets/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true );
+            // 2. Admin general styles (depends on pdf-core)
+            wp_enqueue_style(
+                'ffc-admin-css',
+                FFC_PLUGIN_URL . 'assets/css/admin.css',
+                array('ffc-pdf-core'),
+                FFC_VERSION
+            );
             
-            // ✅ v2.9.3: PDF Generator (shared by frontend and admin)
-            wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . 'assets/js/ffc-pdf-generator.js', array( 'jquery', 'ffc-html2canvas', 'ffc-jspdf' ), FFC_VERSION, true );
+            // 3. Submissions page styles (depends on admin.css)
+            wp_enqueue_style(
+                'ffc-admin-submissions-css',
+                FFC_PLUGIN_URL . 'assets/css/admin-submissions.css',
+                array('ffc-admin-css'),
+                FFC_VERSION
+            );
             
-            // Frontend.js (depends on PDF generator)
-            wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . 'assets/js/frontend.js', array( 'jquery', 'ffc-pdf-generator' ), FFC_VERSION, true );
-            
-            // Admin.js (depends on PDF generator)
-            wp_enqueue_script( 'ffc-admin-js', FFC_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'ffc-pdf-generator' ), FFC_VERSION, true );
+            // 4. Settings tabs styles (ONLY on settings page)
+            if (isset($_GET['page']) && $_GET['page'] === 'ffc-settings') {
+                wp_enqueue_style(
+                    'ffc-admin-settings',
+                    FFC_PLUGIN_URL . 'assets/css/admin-settings.css',
+                    array('ffc-admin-css'),
+                    FFC_VERSION
+                );
+            }
+    
+            wp_enqueue_script( 'ffc-admin-js', FFC_PLUGIN_URL . 'assets/js/admin.js', array( ), FFC_VERSION, true );
             
             // Localizar para AMBOS os scripts
             $localize_data = array(
@@ -115,7 +134,6 @@ class FFC_Admin {
             );
             
             wp_localize_script( 'ffc-admin-js', 'ffc_ajax', $localize_data );
-            wp_localize_script( 'ffc-frontend-js', 'ffc_ajax', $localize_data );
         }
     }
 

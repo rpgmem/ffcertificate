@@ -34,78 +34,61 @@ class FFC_Verification_Handler {
      * 
      * v2.9.15: RECONSTRUÇÃO - Combina colunas + JSON
      */
-    private function search_certificate( $auth_code ) {
-        global $wpdb;
-        $table_name = FFC_Utils::get_submissions_table();
+    /**
+     * Search for certificate - uses Repository
+     */
+    private function search_certificate($auth_code) {
+        $repository = new FFC_Submission_Repository();
+        $clean_code = FFC_Utils::clean_auth_code($auth_code);
         
-        $clean_code = FFC_Utils::clean_auth_code( $auth_code );
-        
-        if ( empty( $clean_code ) ) {
-            return array(
+        if (empty($clean_code)) {
+            return [
                 'found' => false,
                 'submission' => null,
-                'data' => array()
-            );
+                'data' => []
+            ];
         }
         
-        // PRIORITY 1: Try optimized query (indexed column)
-        $submission = $wpdb->get_row( $wpdb->prepare( 
-            "SELECT * FROM {$table_name} WHERE auth_code = %s LIMIT 1", 
-            $clean_code 
-        ) );
+        $submission = $repository->findByAuthCode($clean_code);
         
-        // ⚠️ FALLBACK: Search in JSON if column empty or not exists
-        if ( ! $submission ) {
-            $like_query = '%' . $wpdb->esc_like( '"auth_code":"' . $clean_code . '"' ) . '%';
-            $submission = $wpdb->get_row( $wpdb->prepare( 
-                "SELECT * FROM {$table_name} WHERE data LIKE %s LIMIT 1", 
-                $like_query 
-            ) );
-        }
-        
-        if ( ! $submission ) {
-            return array(
+        if (!$submission) {
+            return [
                 'found' => false,
                 'submission' => null,
-                'data' => array()
-            );
+                'data' => []
+            ];
         }
         
-        // v2.9.15: RECONSTRUIR dados completos (colunas + JSON)
+        // Decrypt
+        $submission = $this->submission_handler->decrypt_submission_data($submission);
         
-        // Passo 1: Campos obrigatórios das colunas
-        $data = array(
-            'email' => $submission->email,  // Da coluna
-        );
+        // Rebuild data
+        $data = [
+            'email' => $submission['email'],
+        ];
         
-        // Adicionar auth_code se existir na coluna
-        if ( ! empty( $submission->auth_code ) ) {
-            $data['auth_code'] = $submission->auth_code;  // Da coluna
+        if (!empty($submission['auth_code'])) {
+            $data['auth_code'] = $submission['auth_code'];
         }
         
-        // Adicionar cpf_rf se existir na coluna
-        if ( ! empty( $submission->cpf_rf ) ) {
-            $data['cpf_rf'] = $submission->cpf_rf;  // Da coluna
+        if (!empty($submission['cpf_rf'])) {
+            $data['cpf_rf'] = $submission['cpf_rf'];
         }
         
-        // Passo 2: Campos extras do JSON
-        $extra_data = json_decode( $submission->data, true );
-        if ( ! is_array( $extra_data ) ) {
-            $extra_data = json_decode( stripslashes( $submission->data ), true );
+        $extra_data = json_decode($submission['data'], true);
+        if (!is_array($extra_data)) {
+            $extra_data = json_decode(stripslashes($submission['data']), true);
         }
         
-        // Passo 3: Merge (extras NÃO sobrescrevem obrigatórios)
-        if ( is_array( $extra_data ) && ! empty( $extra_data ) ) {
-            $data = array_merge( $extra_data, $data );  // Colunas têm prioridade
+        if (is_array($extra_data) && !empty($extra_data)) {
+            $data = array_merge($extra_data, $data);
         }
         
-        // Agora $data tem TUDO: colunas + JSON
-        
-        return array(
+        return [
             'found' => true,
-            'submission' => $submission,
-            'data' => $data  // Dados completos reconstruídos
-        );
+            'submission' => (object) $submission,
+            'data' => $data
+        ];
     }
 
     /**

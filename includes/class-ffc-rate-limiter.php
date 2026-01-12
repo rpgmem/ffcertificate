@@ -10,10 +10,10 @@ class FFC_Rate_Limiter {
     
     private static function get_settings() {
         $defaults = array(
-            'ip' => array('enabled' => true, 'max_per_hour' => 5, 'max_per_day' => 20, 'cooldown_seconds' => 60, 'apply_to' => 'all', 'message' => 'Limit reached. Please wait {time}.'),
-            'email' => array('enabled' => true, 'max_per_day' => 3, 'max_per_week' => 10, 'max_per_month' => 30, 'wait_hours' => 24, 'apply_to' => 'all', 'message' => 'You already have {count} certificates.', 'check_database' => true),
-            'cpf' => array('enabled' => false, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 3, 'block_hours' => 1, 'block_duration' => 24, 'apply_to' => 'all', 'message' => 'CPF/RF limit reached.', 'check_database' => true),
-            'global' => array('enabled' => false, 'max_per_minute' => 100, 'max_per_hour' => 1000, 'message' => 'System unavailable.'),
+            'ip' => array('enabled' => true, 'max_per_hour' => 5, 'max_per_day' => 20, 'cooldown_seconds' => 60, 'apply_to' => 'all', 'message' => 'Limite atingido. Aguarde {time}.'),
+            'email' => array('enabled' => true, 'max_per_day' => 3, 'max_per_week' => 10, 'max_per_month' => 30, 'wait_hours' => 24, 'apply_to' => 'all', 'message' => 'Você já possui {count} certificados.', 'check_database' => true),
+            'cpf' => array('enabled' => false, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 3, 'block_hours' => 1, 'block_duration' => 24, 'apply_to' => 'all', 'message' => 'Limite de CPF/RF atingido.', 'check_database' => true),
+            'global' => array('enabled' => false, 'max_per_minute' => 100, 'max_per_hour' => 1000, 'message' => 'Sistema indisponível.'),
             'whitelist' => array('ips' => array(), 'emails' => array(), 'email_domains' => array(), 'cpfs' => array()),
             'blacklist' => array('ips' => array(), 'emails' => array(), 'email_domains' => array(), 'cpfs' => array()),
             'logging' => array('enabled' => true, 'log_allowed' => false, 'log_blocked' => true, 'retention_days' => 30, 'max_logs' => 10000),
@@ -67,7 +67,7 @@ class FFC_Rate_Limiter {
         $last = get_transient('ffc_rate_ip_' . md5($ip . $form_id) . '_last');
         if ($last && (time() - $last) < $s['cooldown_seconds']) {
             $w = $s['cooldown_seconds'] - (time() - $last);
-            return array('allowed' => false, 'reason' => 'ip_cooldown', 'message' => "Please wait {$w} seconds.", 'wait_seconds' => $w);
+            return array('allowed' => false, 'reason' => 'ip_cooldown', 'message' => "Aguarde {$w} segundos.", 'wait_seconds' => $w);
         }
         
         return array('allowed' => true);
@@ -93,7 +93,7 @@ class FFC_Rate_Limiter {
         $s = self::get_settings()['cpf'];
         $cc = preg_replace('/[^0-9]/', '', $cpf);
         
-        if (self::is_temporarily_blocked('cpf', $cc, $form_id)) return array('allowed' => false, 'reason' => 'cpf_blocked', 'message' => 'CPF/RF blocked.', 'wait_seconds' => 86400);
+        if (self::is_temporarily_blocked('cpf', $cc, $form_id)) return array('allowed' => false, 'reason' => 'cpf_blocked', 'message' => 'CPF bloqueado.', 'wait_seconds' => 86400);
         
         if ($s['check_database']) {
             $mc = self::get_submission_count('cpf', $cc, 'month', $form_id);
@@ -124,6 +124,77 @@ class FFC_Rate_Limiter {
         return array('allowed' => true);
     }
     
+    
+    /**
+     * Check rate limit for verification requests (magic links)
+     */
+    public static function check_verification($ip, $token = null) {
+        $settings = self::get_settings();
+        
+        if (empty($settings['ip']['enabled'])) {
+            return array('allowed' => true);
+        }
+        
+        $max_per_hour = 10;
+        $max_per_day = 30;
+        
+        $hour_key = 'ffc_verify_ip_' . md5($ip) . '_hour_' . date('YmdH');
+        $hour_count = get_transient($hour_key);
+        
+        if ($hour_count === false) {
+            $hour_count = 0;
+        }
+        
+        if ($hour_count >= $max_per_hour) {
+            $wait_seconds = 3600 - (time() % 3600);
+            
+            return array(
+                'allowed' => false,
+                'message' => sprintf(__('Too many verification attempts. Please wait %s.', 'ffc'), self::format_wait_time($wait_seconds)),
+                'wait_seconds' => $wait_seconds
+            );
+        }
+        
+        $day_key = 'ffc_verify_ip_' . md5($ip) . '_day_' . date('Ymd');
+        $day_count = get_transient($day_key);
+        
+        if ($day_count === false) {
+            $day_count = 0;
+        }
+        
+        if ($day_count >= $max_per_day) {
+            $wait_seconds = 86400 - (time() % 86400);
+            
+            return array(
+                'allowed' => false,
+                'message' => __('Daily verification limit reached. Please try again tomorrow.', 'ffc'),
+                'wait_seconds' => $wait_seconds
+            );
+        }
+        
+        set_transient($hour_key, $hour_count + 1, 3600);
+        set_transient($day_key, $day_count + 1, 86400);
+        
+        if (!empty($settings['logging']['enabled'])) {
+            self::log_attempt('ip', $ip, 'allowed', 'verification_attempt', null);
+        }
+        
+        return array('allowed' => true);
+    }
+    
+    private static function format_wait_time($seconds) {
+        if ($seconds < 60) {
+            return sprintf(_n('%d second', '%d seconds', $seconds, 'ffc'), $seconds);
+        }
+        
+        $minutes = ceil($seconds / 60);
+        if ($minutes < 60) {
+            return sprintf(_n('%d minute', '%d minutes', $minutes, 'ffc'), $minutes);
+        }
+        
+        $hours = ceil($minutes / 60);
+        return sprintf(_n('%d hour', '%d hours', $hours, 'ffc'), $hours);
+    }
     public static function record_attempt($type, $identifier, $form_id = null) {
         $s = self::get_settings();
         
@@ -195,15 +266,15 @@ class FFC_Rate_Limiter {
         $s = self::get_settings();
         $bl = $s['blacklist'];
         
-        if (in_array($ip, $bl['ips'])) return array('allowed' => false, 'reason' => 'ip_blacklisted', 'message' => 'IP blocked.');
+        if (in_array($ip, $bl['ips'])) return array('allowed' => false, 'reason' => 'ip_blacklisted', 'message' => 'IP bloqueado.');
         
         if ($email) {
-            if (in_array($email, $bl['emails'])) return array('allowed' => false, 'reason' => 'email_blacklisted', 'message' => 'Email blocked.');
+            if (in_array($email, $bl['emails'])) return array('allowed' => false, 'reason' => 'email_blacklisted', 'message' => 'Email bloqueado.');
             $d = substr(strrchr($email, '@'), 1);
-            if (in_array('*@' . $d, $bl['email_domains'])) return array('allowed' => false, 'reason' => 'domain_blacklisted', 'message' => 'Domain blocked.');
+            if (in_array('*@' . $d, $bl['email_domains'])) return array('allowed' => false, 'reason' => 'domain_blacklisted', 'message' => 'Domínio bloqueado.');
         }
         
-        if ($cpf && in_array(preg_replace('/[^0-9]/', '', $cpf), $bl['cpfs'])) return array('allowed' => false, 'reason' => 'cpf_blacklisted', 'message' => 'CPF/RF blocked.');
+        if ($cpf && in_array(preg_replace('/[^0-9]/', '', $cpf), $bl['cpfs'])) return array('allowed' => false, 'reason' => 'cpf_blacklisted', 'message' => 'CPF bloqueado.');
         
         return array('allowed' => true);
     }
@@ -241,7 +312,7 @@ class FFC_Rate_Limiter {
         if (!$s['logging']['enabled'] || (!$s['logging']['log_allowed'] && $action === 'allowed')) return;
         
         global $wpdb;
-        $wpdb->insert($wpdb->prefix . 'ffc_rate_limit_logs', array('type' => $type, 'identifier' => $identifier, 'form_id' => $form_id, 'action' => $action, 'reason' => $reason, 'ip_address' => FFC_Utils::get_user_ip(), 'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255), 'current_count' => 0, 'max_allowed' => 0), array('%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%d'));
+        $wpdb->insert($wpdb->prefix . 'ffc_rate_limit_logs', array('type' => $type, 'identifier' => $identifier, 'form_id' => $form_id, 'action' => $action, 'reason' => $reason, 'ip_address' => self::get_user_ip(), 'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255), 'current_count' => 0, 'max_allowed' => 0), array('%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%d'));
         
         self::cleanup_old_logs();
     }
@@ -296,6 +367,17 @@ class FFC_Rate_Limiter {
             case 'year': return date('Y-12-31 23:59:59');
             default: return date('Y-m-d H:i:s', strtotime('+1 hour'));
         }
+    }
+    
+    private static function get_user_ip() {
+        foreach (array('HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR') as $key) {
+            if (!empty($_SERVER[$key])) {
+                $ip = $_SERVER[$key];
+                if (strpos($ip, ',') !== false) $ip = trim(explode(',', $ip)[0]);
+                if (filter_var($ip, FILTER_VALIDATE_IP)) return $ip;
+            }
+        }
+        return '0.0.0.0';
     }
     
     public static function cleanup_expired() {

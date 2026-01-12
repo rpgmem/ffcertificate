@@ -2,7 +2,7 @@
 /*
 Plugin Name: Free Form Certificate
 Description: Allows creation of dynamic forms, saves submissions, generates a PDF certificate, and enables CSV export.
-Version: 2.9.16
+Version: 2.9.17
 Author: Alex Meusburger
 Text Domain: ffc
 Domain Path: /languages
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Centralized version management
  */
-define( 'FFC_VERSION', '2.9.16' );       // Plugin version
+define( 'FFC_VERSION', '2.9.17' );       // Plugin version
 // External libraries versions
 define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );  // html2canvas - https://html2canvas.hertzen.com/
 define( 'FFC_JSPDF_VERSION', '2.5.1' );        // jsPDF - https://github.com/parallax/jsPDF

@@ -16,10 +16,10 @@ class FFC_Tab_Rate_Limit extends FFC_Settings_Tab {
     
     private function get_settings() {
         $defaults = array(
-            'ip' => array('enabled' => true, 'max_per_hour' => 5, 'max_per_day' => 20, 'cooldown_seconds' => 60, 'apply_to' => 'all', 'message' => 'Limit reached. Please wait {time}.'),
-            'email' => array('enabled' => true, 'max_per_day' => 3, 'max_per_week' => 10, 'max_per_month' => 30, 'wait_hours' => 24, 'apply_to' => 'all', 'message' => 'You already have {count} certificates.', 'check_database' => true),
-            'cpf' => array('enabled' => false, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 3, 'block_hours' => 1, 'block_duration' => 24, 'apply_to' => 'all', 'message' => 'CPF/RF limit reached.', 'check_database' => true),
-            'global' => array('enabled' => false, 'max_per_minute' => 100, 'max_per_hour' => 1000, 'message' => 'System unavailable.'),
+            'ip' => array('enabled' => true, 'max_per_hour' => 5, 'max_per_day' => 20, 'cooldown_seconds' => 60, 'apply_to' => 'all', 'message' => 'Limite atingido. Aguarde {time}.'),
+            'email' => array('enabled' => true, 'max_per_day' => 3, 'max_per_week' => 10, 'max_per_month' => 30, 'wait_hours' => 24, 'apply_to' => 'all', 'message' => 'Você já possui {count} certificados.', 'check_database' => true),
+            'cpf' => array('enabled' => false, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 3, 'block_hours' => 1, 'block_duration' => 24, 'apply_to' => 'all', 'message' => 'Limite de CPF/RF atingido.', 'check_database' => true),
+            'global' => array('enabled' => false, 'max_per_minute' => 100, 'max_per_hour' => 1000, 'message' => 'Sistema indisponível.'),
             'whitelist' => array('ips' => array(), 'emails' => array(), 'email_domains' => array(), 'cpfs' => array()),
             'blacklist' => array('ips' => array(), 'emails' => array(), 'email_domains' => array(), 'cpfs' => array()),
             'logging' => array('enabled' => true, 'log_allowed' => false, 'log_blocked' => true, 'retention_days' => 30, 'max_logs' => 10000),
@@ -32,7 +32,7 @@ class FFC_Tab_Rate_Limit extends FFC_Settings_Tab {
         if ($_POST && isset($_POST['ffc_save_rate_limit'])) {
             check_admin_referer('ffc_rate_limit_nonce');
             $this->save_settings();
-            echo '<div class="notice notice-success"><p>Settings saved!</p></div>';
+            echo '<div class="notice notice-success"><p>Configurações salvas!</p></div>';
         }
         
         $settings = $this->get_settings();

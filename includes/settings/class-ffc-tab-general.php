@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FFC_Tab_General extends FFC_Settings_Tab {
     
     private $forms;
+    private $settings; // ✅ ADDED
     
     protected function init() {
         $this->tab_id = 'general';
@@ -22,18 +23,31 @@ class FFC_Tab_General extends FFC_Settings_Tab {
     }
     
     public function render() {
+        // Load FFC_Form_Cache if not already loaded
+        if ( ! class_exists( 'FFC_Form_Cache' ) ) {
+            require_once FFC_PLUGIN_DIR . 'includes/class-ffc-form-cache.php';
+        }
+        
         // Get forms for danger zone
         $this->forms = get_posts( array(
             'post_type' => 'ffc_form',
             'posts_per_page' => -1
         ) );
         
+        // ✅ Create settings object for view compatibility
+        $this->settings = new stdClass();
+        $this->settings->get_option = function( $key, $default = '' ) {
+            return self::get_option( $key, $default );
+        };
+        
         // Include view file
         $view_file = FFC_PLUGIN_DIR . 'includes/settings/tab-general.php';
         
         if ( file_exists( $view_file ) ) {
-            // Make $forms available to view
+            // ✅ Make variables available to view
             $forms = $this->forms;
+            $settings = $this; // ✅ Pass $this as $settings for compatibility
+            
             include $view_file;
         } else {
             echo '<div class="notice notice-error"><p>';
@@ -45,7 +59,7 @@ class FFC_Tab_General extends FFC_Settings_Tab {
     /**
      * Get option value (for view compatibility)
      */
-    public static function get_option( $key, $default = '' ) {
+    public function get_option( $key, $default = '' ) {
         $settings = get_option( 'ffc_settings', array() );
         return isset( $settings[ $key ] ) ? $settings[ $key ] : $default;
     }

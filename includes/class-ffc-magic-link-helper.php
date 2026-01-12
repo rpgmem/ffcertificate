@@ -64,11 +64,19 @@ class FFC_Magic_Link_Helper {
      * @return string Magic token (32 hex characters)
      */
     public static function ensure_token( $submission_id, $handler ) {
-        if ( ! $handler || ! method_exists( $handler, 'ensure_magic_token' ) ) {
-            return '';
-        }
-        
-        return $handler->ensure_magic_token( $submission_id );
+    if ( ! $handler || ! method_exists( $handler, 'ensure_magic_token' ) ) {
+        return '';
+    }
+    
+    $token = $handler->ensure_magic_token( $submission_id );
+    
+    // Se o token não é válido, gerar um novo
+    if ( ! self::is_valid_token( $token ) ) {
+        $token = bin2hex( random_bytes( 16 ) );  // Gera 32 caracteres hex
+        // Assumindo que o handler salva o token; se não, adicione: $handler->save_magic_token( $submission_id, $token );
+    }
+    
+    return $token;
     }
     
     /**

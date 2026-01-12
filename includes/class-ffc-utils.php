@@ -370,6 +370,21 @@ class FFC_Utils {
         
         return $string;
     }
+
+    /**
+     * Generate authentication code in format XXXX-XXXX-XXXX
+     * 
+     * @since 3.0.0
+     * @return string Auth code (e.g., "A1B2-C3D4-E5F6")
+     */
+    public static function generate_auth_code() {
+        return strtoupper(
+            self::generate_random_string(4) . '-' . 
+            self::generate_random_string(4) . '-' . 
+            self::generate_random_string(4)
+        );
+    }
+
     
     /**
      * Check if email is valid and not disposable
@@ -409,6 +424,8 @@ class FFC_Utils {
             'throwaway.email',
             'temp-mail.org',
             'fakeinbox.com',
+            'test.com',
+            'teste.com.br',
             'trashmail.com',
             'yopmail.com',
             'getnada.com'

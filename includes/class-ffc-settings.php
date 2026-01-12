@@ -30,6 +30,7 @@ class FFC_Settings {
         add_action( 'admin_init', array( $this, 'handle_clear_qr_cache' ) );
         add_action( 'admin_init', array( $this, 'handle_migration_execution' ) );
         add_action( 'wp_ajax_ffc_preview_date_format', array( $this, 'ajax_preview_date_format' ) );
+        add_action( 'admin_init', array( $this, 'handle_cache_actions'));
     }
     
     /**
@@ -45,7 +46,7 @@ class FFC_Settings {
             'general'       => 'class-ffc-tab-general.php',
             'smtp'          => 'class-ffc-tab-smtp.php',
             'qrcode'        => 'class-ffc-tab-qrcode.php',
-            'rate_limit'    => 'class-ffc-tab-rate-limit.php',  // ✅ ADDED
+            'rate_limit'    => 'class-ffc-tab-rate-limit.php', 
             'migrations'    => 'class-ffc-tab-migrations.php'
         );
         
@@ -113,6 +114,9 @@ class FFC_Settings {
             'qr_default_error_level' => 'M',
             'date_format'            => 'F j, Y',
             'date_format_custom'     => '',
+            'cache_enabled'          => 1,      // Default: ON
+            'cache_expiration'       => 3600,   // 1 hour
+            'cache_auto_warm'        => 0,      // Default: OFF
         );
     }
     
@@ -205,11 +209,23 @@ class FFC_Settings {
         // Handle Global Data Deletion (Danger Zone)
         if ( isset( $_POST['ffc_delete_all_data'] ) && check_admin_referer( 'ffc_delete_all_data', 'ffc_critical_nonce' ) ) {
             $target = isset($_POST['delete_target']) ? $_POST['delete_target'] : 'all';
+            $reset_counter = isset($_POST['reset_counter']) && $_POST['reset_counter'] == '1';
             
-            $this->submission_handler->delete_all_submissions( $target === 'all' ? null : absint($target) );
+            $result = $this->submission_handler->delete_all_submissions( 
+                $target === 'all' ? null : absint($target),
+                $reset_counter
+            );
             
-            add_settings_error( 'ffc_settings', 'ffc_data_deleted', __( 'Data deleted successfully.', 'ffc' ), 'updated' );
+            if ($result !== false) {
+                $message = $reset_counter 
+                    ? __('Data deleted and counter reset successfully.', 'ffc')
+                    : __('Data deleted successfully.', 'ffc');
+                add_settings_error('ffc_settings', 'ffc_data_deleted', $message, 'updated');
+            } else {
+                add_settings_error('ffc_settings', 'ffc_data_delete_failed', __('Failed to delete data.', 'ffc'), 'error');
+            }
         }
+
     }
     
     /**
@@ -263,6 +279,23 @@ class FFC_Settings {
             reset( $this->tabs );
             $first_tab = current( $this->tabs );
             $active_tab = $first_tab->get_id();
+        }
+
+        if (isset($_GET['msg'])) {
+            $msg = $_GET['msg'];
+            
+            if ($msg === 'cache_warmed') {
+                $count = isset($_GET['count']) ? intval($_GET['count']) : 0;
+                echo '<div class="notice notice-success is-dismissible">';
+                echo '<p>✅ Cache aquecido! ' . $count . ' formulário(s) pré-carregado(s).</p>';
+                echo '</div>';
+            }
+            
+            if ($msg === 'cache_cleared') {
+                echo '<div class="notice notice-success is-dismissible">';
+                echo '<p>✅ Cache limpo com sucesso!</p>';
+                echo '</div>';
+            }
         }
         
         ?>
@@ -381,4 +414,45 @@ class FFC_Settings {
             wp_send_json_error( array( 'message' => __( 'Invalid date format', 'ffc' ) ) );
         }
     }
+
+    public function handle_cache_actions() {
+    // Warm Cache
+    if (isset($_GET['action']) && $_GET['action'] === 'warm_cache') {
+        check_admin_referer('ffc_warm_cache');
+        
+        if (!class_exists('FFC_Form_Cache')) {
+            require_once FFC_PLUGIN_DIR . 'includes/class-ffc-form-cache.php';
+        }
+        
+        $warmed = FFC_Form_Cache::warm_all_forms();
+        
+        wp_redirect(add_query_arg(array(
+            'post_type' => 'ffc_form',
+            'page' => 'ffc-settings',
+            'tab' => 'general',
+            'msg' => 'cache_warmed',
+            'count' => $warmed
+        ), admin_url('edit.php')));
+        exit;
+    }
+    
+    // Clear Cache
+    if (isset($_GET['action']) && $_GET['action'] === 'clear_cache') {
+        check_admin_referer('ffc_clear_cache');
+        
+        if (!class_exists('FFC_Form_Cache')) {
+            require_once FFC_PLUGIN_DIR . 'includes/class-ffc-form-cache.php';
+        }
+        
+        FFC_Form_Cache::clear_all_cache();
+        
+        wp_redirect(add_query_arg(array(
+            'post_type' => 'ffc_form',
+            'page' => 'ffc-settings',
+            'tab' => 'general',
+            'msg' => 'cache_cleared'
+        ), admin_url('edit.php')));
+        exit;
+    }
+}
 }

@@ -10,9 +10,16 @@ class FFC_Frontend {
     private $verification_handler;
 
     public function __construct( $submission_handler, $email_handler ) {
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-verification-handler.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-form-processor.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-shortcodes.php';
+        // Load classes only if not already loaded
+        if (!class_exists('FFC_Verification_Handler')) {
+            require_once FFC_PLUGIN_DIR . 'includes/class-ffc-verification-handler.php';
+        }
+        if (!class_exists('FFC_Form_Processor')) {
+            require_once FFC_PLUGIN_DIR . 'includes/class-ffc-form-processor.php';
+        }
+        if (!class_exists('FFC_Shortcodes')) {
+            require_once FFC_PLUGIN_DIR . 'includes/class-ffc-shortcodes.php';
+        }
 
         $this->verification_handler = new FFC_Verification_Handler( $submission_handler, $email_handler );
         $this->form_processor = new FFC_Form_Processor( $submission_handler, $email_handler );
