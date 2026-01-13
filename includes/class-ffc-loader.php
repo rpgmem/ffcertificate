@@ -1,7 +1,7 @@
 <?php
 /**
  * Free_Form_Certificate_Loader v3.0.0
- * Fixed textdomain loading
+ * Fixed textdomain loading + REST API integration
  */
 
 if (!defined('ABSPATH')) exit;
@@ -35,6 +35,7 @@ class Free_Form_Certificate_Loader {
         $this->frontend           = new FFC_Frontend($this->submission_handler, $this->email_handler);
         $this->admin_ajax         = new FFC_Admin_Ajax();
         $this->define_admin_hooks();
+        $this->init_rest_api(); // Initialize REST API
     }
 
     private function load_dependencies() {
@@ -79,6 +80,22 @@ class Free_Form_Certificate_Loader {
         require_once FFC_PLUGIN_DIR . 'includes/class-ffc-settings.php';
         require_once FFC_PLUGIN_DIR . 'includes/class-ffc-admin.php';
         require_once FFC_PLUGIN_DIR . 'includes/class-ffc-frontend.php';
+        
+        // REST API Controller (v3.0.0)
+        if (file_exists(FFC_PLUGIN_DIR . 'includes/api/class-ffc-rest-controller.php')) {
+            require_once FFC_PLUGIN_DIR . 'includes/api/class-ffc-rest-controller.php';
+        }
+    }
+
+    /**
+     * Initialize REST API
+     * 
+     * @since 3.0.0
+     */
+    private function init_rest_api() {
+        if (class_exists('FFC_REST_Controller')) {
+            new FFC_REST_Controller();
+        }
     }
 
     private function define_activation_hooks() {
@@ -97,5 +114,6 @@ class Free_Form_Certificate_Loader {
         wp_enqueue_style('ffc-rate-limit', FFC_PLUGIN_URL . 'assets/css/admin-rate-limit.css', [], FFC_VERSION);
     }
     
+    // For future use
     public function run() {}
 }

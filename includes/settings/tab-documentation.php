@@ -409,14 +409,14 @@ if (!defined('ABSPATH')) exit;
         </li>
         <li>
             <strong><?php _e('Data Encryption:', 'ffc'); ?></strong><br>
-            <?php _e('Optional encryption for sensitive data (LGPD compliant)', 'ffc'); ?>
+            <?php _e('Encryption for sensitive data (LGPD compliant)', 'ffc'); ?>
         </li>
         <li>
             <strong><?php _e('Honeypot Fields:', 'ffc'); ?></strong><br>
             <?php _e('Invisible spam protection', 'ffc'); ?>
         </li>
         <li>
-            <strong><?php _e('Match CAPTCHA:', 'ffc'); ?></strong><br>
+            <strong><?php _e('Math CAPTCHA:', 'ffc'); ?></strong><br>
             <?php _e('Basic humanity verification', 'ffc'); ?>
         </li>
     </ul>

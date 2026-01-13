@@ -192,6 +192,42 @@ class FFC_Utils {
     }
     
     /**
+     * Mask CPF/RF for privacy
+     * 
+     * Masks document while keeping first and last digits visible.
+     * Useful for displaying in admin lists, emails, or public pages
+     * where privacy is required but some identification is needed.
+     * 
+     * Examples:
+     * - CPF (11 digits): 12345678909 → 123.***.***-09
+     * - RF (7 digits): 1234567 → 123.***-7
+     * 
+     * @since 2.9.17
+     * @param string $value CPF or RF to mask
+     * @return string Masked document or original if invalid length
+     */
+    public static function mask_cpf( $value ) {
+        if ( empty( $value ) ) {
+            return '';
+        }
+        
+        // Clean document (remove non-numeric)
+        $clean = preg_replace( '/[^0-9]/', '', $value );
+        
+        // Mask based on length
+        if ( strlen( $clean ) === 11 ) {
+            // CPF: 123.***.***-09
+            return substr( $clean, 0, 3 ) . '.***.***-' . substr( $clean, -2 );
+        } elseif ( strlen( $clean ) === 7 ) {
+            // RF: 123.***-7
+            return substr( $clean, 0, 3 ) . '.***-' . substr( $clean, -1 );
+        }
+        
+        // Return original if not CPF or RF
+        return $value;
+    }
+    
+    /**
      * Format authentication code
      * 
      * @param string $code Auth code to format
