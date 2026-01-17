@@ -130,11 +130,9 @@ class FFC_Form_Editor {
                         <div class="ffc-action-group">
                             <input type="file" id="ffc_import_html_file" accept=".html,.txt" class="ffc-hidden">
                             <button type="button" class="button" id="ffc_btn_import_html">
-                                <span class="dashicons dashicons-upload"></span> 
                                 <?php esc_html_e( 'Import HTML', 'ffc' ); ?>
                             </button>
                             <button type="button" class="button" id="ffc_btn_media_lib">
-                                <span class="dashicons dashicons-format-image"></span> 
                                 <?php esc_html_e( 'Background Image', 'ffc' ); ?>
                             </button>
                         </div>

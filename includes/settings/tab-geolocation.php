@@ -9,12 +9,14 @@
 if (!defined('ABSPATH')) exit;
 ?>
 
+<div class="ffc-settings-wrap">
+
 <div class="ffc-settings-tab-content">
     <form method="POST" action="">
         <?php wp_nonce_field('ffc_geolocation_nonce'); ?>
 
         <!-- IP Geolocation API Section -->
-        <div class="ffc-settings-section">
+        <div class="card">
             <h2><?php esc_html_e('IP Geolocation API', 'ffc'); ?></h2>
             <p class="description">
                 <?php esc_html_e('Configure external IP geolocation services for backend validation. These services detect user location by IP address.', 'ffc'); ?>
@@ -133,7 +135,7 @@ if (!defined('ABSPATH')) exit;
         <hr>
 
         <!-- Fallback Behavior Section -->
-        <div class="ffc-settings-section">
+        <div class="card">
             <h2><?php esc_html_e('Fallback Behavior', 'ffc'); ?></h2>
             <p class="description">
                 <?php esc_html_e('Define what happens when geolocation services fail or are denied by the user.', 'ffc'); ?>
@@ -208,7 +210,7 @@ if (!defined('ABSPATH')) exit;
         <hr>
 
         <!-- Debug Mode Section -->
-        <div class="ffc-settings-section">
+        <div class="card">
             <h2><?php esc_html_e('Debug & Testing', 'ffc'); ?></h2>
             <p class="description">
                 <?php esc_html_e('Enable debug mode for testing and troubleshooting geolocation features.', 'ffc'); ?>
@@ -257,25 +259,27 @@ if (!defined('ABSPATH')) exit;
     </form>
 
     <!-- Information Box -->
-    <div class="ffc-info-box">
-        <h3><?php esc_html_e('How Geolocation Works', 'ffc'); ?></h3>
-        <ul>
-            <li>
-                <strong><?php esc_html_e('GPS (Browser):', 'ffc'); ?></strong>
-                <?php esc_html_e('Uses HTML5 Geolocation API. Requires HTTPS and user permission. Accuracy: 10-50 meters.', 'ffc'); ?>
-            </li>
-            <li>
-                <strong><?php esc_html_e('IP Geolocation:', 'ffc'); ?></strong>
-                <?php esc_html_e('Detects location by IP address on server. No user permission needed. Accuracy: 1-50 km.', 'ffc'); ?>
-            </li>
-            <li>
-                <strong><?php esc_html_e('Form Configuration:', 'ffc'); ?></strong>
-                <?php esc_html_e('Each form can be configured individually with allowed areas, dates, and display options.', 'ffc'); ?>
-            </li>
-            <li>
-                <strong><?php esc_html_e('Privacy:', 'ffc'); ?></strong>
-                <?php esc_html_e('GPS coordinates are processed client-side only. IP geolocation results are cached temporarily.', 'ffc'); ?>
-            </li>
-        </ul>
+    <div class="card">
+        <div class="ffc-info-box">
+            <h3><?php esc_html_e('How Geolocation Works', 'ffc'); ?></h3>
+            <ul>
+                <li>
+                    <strong><?php esc_html_e('GPS (Browser):', 'ffc'); ?></strong>
+                    <?php esc_html_e('Uses HTML5 Geolocation API. Requires HTTPS and user permission. Accuracy: 10-50 meters.', 'ffc'); ?>
+                </li>
+                <li>
+                    <strong><?php esc_html_e('IP Geolocation:', 'ffc'); ?></strong>
+                    <?php esc_html_e('Detects location by IP address on server. No user permission needed. Accuracy: 1-50 km.', 'ffc'); ?>
+                </li>
+                <li>
+                    <strong><?php esc_html_e('Form Configuration:', 'ffc'); ?></strong>
+                    <?php esc_html_e('Each form can be configured individually with allowed areas, dates, and display options.', 'ffc'); ?>
+                </li>
+                <li>
+                    <strong><?php esc_html_e('Privacy:', 'ffc'); ?></strong>
+                    <?php esc_html_e('GPS coordinates are processed client-side only. IP geolocation results are cached temporarily.', 'ffc'); ?>
+                </li>
+            </ul>
+        </div>
     </div>
 </div>

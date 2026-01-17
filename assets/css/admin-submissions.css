@@ -290,7 +290,7 @@
 }
 
 .button[title]:hover::before {
-    content: '';
+    content: attr(title);
     position: absolute;
     bottom: 100%;
     left: 50%;
