@@ -53,7 +53,11 @@ class Free_Form_Certificate_Loader {
         // Security & helpers
         require_once FFC_PLUGIN_DIR . 'includes/class-ffc-magic-link-helper.php';
         require_once FFC_PLUGIN_DIR . 'includes/class-ffc-encryption.php';
-        
+
+        // Geofence & IP Geolocation (v3.0.0)
+        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-ip-geolocation.php';
+        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-geofence.php';
+
         // Settings system (load BEFORE rate-limiter)
         if (file_exists(FFC_PLUGIN_DIR . 'includes/settings/abstract-ffc-settings-tab.php')) {
             require_once FFC_PLUGIN_DIR . 'includes/settings/abstract-ffc-settings-tab.php';

@@ -46,7 +46,8 @@ class FFC_Settings {
             'general'       => 'class-ffc-tab-general.php',
             'smtp'          => 'class-ffc-tab-smtp.php',
             'qrcode'        => 'class-ffc-tab-qrcode.php',
-            'rate_limit'    => 'class-ffc-tab-rate-limit.php', 
+            'rate_limit'    => 'class-ffc-tab-rate-limit.php',
+            'geolocation'   => 'class-ffc-tab-geolocation.php',
             'migrations'    => 'class-ffc-tab-migrations.php'
         );
         
@@ -66,6 +67,8 @@ class FFC_Settings {
                     $class_name = 'FFC_Tab_SMTP';
                 } elseif ( $tab_id === 'rate_limit' ) {
                     $class_name = 'FFC_Tab_Rate_Limit';
+                } elseif ( $tab_id === 'geolocation' ) {
+                    $class_name = 'FFC_Tab_Geolocation';
                 }
                 
                 if ( class_exists( $class_name ) ) {

@@ -57,13 +57,22 @@ class FFC_Form_Editor {
             'high' 
         );
         
-        add_meta_box( 
-            'ffc_box_email', 
-            __( '4. Email Configuration', 'ffc' ), 
-            array( $this, 'render_box_email' ), 
-            'ffc_form', 
-            'normal', 
-            'high' 
+        add_meta_box(
+            'ffc_box_email',
+            __( '4. Email Configuration', 'ffc' ),
+            array( $this, 'render_box_email' ),
+            'ffc_form',
+            'normal',
+            'high'
+        );
+
+        add_meta_box(
+            'ffc_box_geofence',
+            __( '5. Geolocation & Date/Time Restrictions', 'ffc' ),
+            array( $this, 'render_box_geofence' ),
+            'ffc_form',
+            'normal',
+            'high'
         );
 
         // Sidebar metabox (shortcode + instructions)
@@ -367,6 +376,225 @@ class FFC_Form_Editor {
     }
 
     /**
+     * Render Geofence & DateTime Restrictions Meta Box
+     * @since 3.0.0
+     */
+    public function render_box_geofence( $post ) {
+        $config = get_post_meta( $post->ID, '_ffc_geofence_config', true );
+        if ( !is_array($config) ) $config = array();
+
+        // Defaults
+        $datetime_enabled = isset($config['datetime_enabled']) ? '1' : '0';
+        $date_start = $config['date_start'] ?? '';
+        $date_end = $config['date_end'] ?? '';
+        $time_start = $config['time_start'] ?? '';
+        $time_end = $config['time_end'] ?? '';
+        $datetime_hide_mode = $config['datetime_hide_mode'] ?? 'message';
+        $msg_datetime = $config['msg_datetime'] ?? __('This form is not available at this time.', 'ffc');
+
+        $geo_enabled = isset($config['geo_enabled']) ? '1' : '0';
+        $geo_gps_enabled = isset($config['geo_gps_enabled']) ? '1' : '0';
+        $geo_ip_enabled = isset($config['geo_ip_enabled']) ? '1' : '0';
+        $geo_areas = $config['geo_areas'] ?? '';
+        $geo_ip_areas_permissive = isset($config['geo_ip_areas_permissive']) ? '1' : '0';
+        $geo_ip_areas = $config['geo_ip_areas'] ?? '';
+        $geo_gps_ip_logic = $config['geo_gps_ip_logic'] ?? 'or';
+        $geo_hide_mode = $config['geo_hide_mode'] ?? 'message';
+        $msg_geo_blocked = $config['msg_geo_blocked'] ?? __('This form is not available in your location.', 'ffc');
+        $msg_geo_error = $config['msg_geo_error'] ?? __('Unable to determine your location. Please enable location services.', 'ffc');
+        ?>
+
+        <div class="ffc-geofence-container">
+            <!-- Tab Navigation -->
+            <div class="ffc-geofence-tabs">
+                <button type="button" class="ffc-geo-tab-btn active" data-tab="datetime">
+                    📅 <?php esc_html_e('Date & Time', 'ffc'); ?>
+                </button>
+                <button type="button" class="ffc-geo-tab-btn" data-tab="geolocation">
+                    🌍 <?php esc_html_e('Geolocation', 'ffc'); ?>
+                </button>
+            </div>
+
+            <!-- Tab: Date & Time -->
+            <div class="ffc-geo-tab-content active" id="ffc-tab-datetime">
+                <table class="form-table">
+                    <tr>
+                        <th><label><?php esc_html_e('Enable Date/Time Restrictions', 'ffc'); ?></label></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="ffc_geofence[datetime_enabled]" value="1" <?php checked($datetime_enabled, '1'); ?>>
+                                <?php esc_html_e('Restrict form access by date and time', 'ffc'); ?>
+                            </label>
+                            <p class="description"><?php esc_html_e('Control when users can access this form based on date range and daily hours.', 'ffc'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label><?php esc_html_e('Date Range', 'ffc'); ?></label></th>
+                        <td>
+                            <label><?php esc_html_e('Start:', 'ffc'); ?> <input type="date" name="ffc_geofence[date_start]" value="<?php echo esc_attr($date_start); ?>"></label>
+                            &nbsp;&nbsp;
+                            <label><?php esc_html_e('End:', 'ffc'); ?> <input type="date" name="ffc_geofence[date_end]" value="<?php echo esc_attr($date_end); ?>"></label>
+                            <p class="description"><?php esc_html_e('Leave empty for no date restriction. Format: YYYY-MM-DD', 'ffc'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label><?php esc_html_e('Daily Time Range', 'ffc'); ?></label></th>
+                        <td>
+                            <label><?php esc_html_e('From:', 'ffc'); ?> <input type="time" name="ffc_geofence[time_start]" value="<?php echo esc_attr($time_start); ?>"></label>
+                            &nbsp;&nbsp;
+                            <label><?php esc_html_e('To:', 'ffc'); ?> <input type="time" name="ffc_geofence[time_end]" value="<?php echo esc_attr($time_end); ?>"></label>
+                            <p class="description"><?php esc_html_e('Restrict access to specific hours each day. Leave empty for 24/7 access.', 'ffc'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label><?php esc_html_e('Display Mode', 'ffc'); ?></label></th>
+                        <td>
+                            <select name="ffc_geofence[datetime_hide_mode]">
+                                <option value="hide" <?php selected($datetime_hide_mode, 'hide'); ?>><?php esc_html_e('Hide form completely', 'ffc'); ?></option>
+                                <option value="message" <?php selected($datetime_hide_mode, 'message'); ?>><?php esc_html_e('Show blocked message', 'ffc'); ?></option>
+                                <option value="title_message" <?php selected($datetime_hide_mode, 'title_message'); ?>><?php esc_html_e('Show title + description + message', 'ffc'); ?></option>
+                            </select>
+                            <p class="description"><?php esc_html_e('How to display the form when date/time is invalid.', 'ffc'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label><?php esc_html_e('Blocked Message', 'ffc'); ?></label></th>
+                        <td>
+                            <textarea name="ffc_geofence[msg_datetime]" rows="3" class="ffc-w100"><?php echo esc_textarea($msg_datetime); ?></textarea>
+                            <p class="description"><?php esc_html_e('Message shown when form is accessed outside allowed date/time.', 'ffc'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Tab: Geolocation -->
+            <div class="ffc-geo-tab-content" id="ffc-tab-geolocation">
+                <table class="form-table">
+                    <tr>
+                        <th><label><?php esc_html_e('Enable Geolocation', 'ffc'); ?></label></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="ffc_geofence[geo_enabled]" value="1" <?php checked($geo_enabled, '1'); ?>>
+                                <?php esc_html_e('Restrict form access by geographic location', 'ffc'); ?>
+                            </label>
+                            <p class="description"><?php esc_html_e('Limit form access to users within specific geographic areas.', 'ffc'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label><?php esc_html_e('Validation Methods', 'ffc'); ?></label></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="ffc_geofence[geo_gps_enabled]" value="1" <?php checked($geo_gps_enabled, '1'); ?>>
+                                <?php esc_html_e('GPS (Browser geolocation)', 'ffc'); ?>
+                            </label><br>
+                            <label>
+                                <input type="checkbox" name="ffc_geofence[geo_ip_enabled]" value="1" <?php checked($geo_ip_enabled, '1'); ?>>
+                                <?php esc_html_e('IP Address (backend validation)', 'ffc'); ?>
+                            </label>
+                            <p class="description"><?php esc_html_e('Choose one or both methods. GPS is more accurate but requires user permission.', 'ffc'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label><?php esc_html_e('Allowed Areas (GPS)', 'ffc'); ?></label></th>
+                        <td>
+                            <textarea name="ffc_geofence[geo_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 5&#10;-22.9068, -43.1729, 10"><?php echo esc_textarea($geo_areas); ?></textarea>
+                            <p class="description"><?php esc_html_e('Format: latitude, longitude, radius(km) - One per line. Example: -23.5505, -46.6333, 5', 'ffc'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label><?php esc_html_e('IP Geolocation Areas', 'ffc'); ?></label></th>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="ffc_geofence[geo_ip_areas_permissive]" value="1" <?php checked($geo_ip_areas_permissive, '1'); ?>>
+                                <?php esc_html_e('Use different (more permissive) areas for IP validation', 'ffc'); ?>
+                            </label><br><br>
+                            <textarea name="ffc_geofence[geo_ip_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 50&#10;-22.9068, -43.1729, 100"><?php echo esc_textarea($geo_ip_areas); ?></textarea>
+                            <p class="description"><?php esc_html_e('IP geolocation is less precise (1-50km). Use larger radius. Leave empty to use same areas as GPS.', 'ffc'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label><?php esc_html_e('GPS + IP Logic', 'ffc'); ?></label></th>
+                        <td>
+                            <select name="ffc_geofence[geo_gps_ip_logic]">
+                                <option value="or" <?php selected($geo_gps_ip_logic, 'or'); ?>><?php esc_html_e('OR - Allow if GPS OR IP is valid (recommended)', 'ffc'); ?></option>
+                                <option value="and" <?php selected($geo_gps_ip_logic, 'and'); ?>><?php esc_html_e('AND - Require both GPS AND IP to be valid (stricter)', 'ffc'); ?></option>
+                            </select>
+                            <p class="description"><?php esc_html_e('When both GPS and IP are enabled, how to combine the results.', 'ffc'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label><?php esc_html_e('Display Mode', 'ffc'); ?></label></th>
+                        <td>
+                            <select name="ffc_geofence[geo_hide_mode]">
+                                <option value="hide" <?php selected($geo_hide_mode, 'hide'); ?>><?php esc_html_e('Hide form completely', 'ffc'); ?></option>
+                                <option value="message" <?php selected($geo_hide_mode, 'message'); ?>><?php esc_html_e('Show blocked message', 'ffc'); ?></option>
+                                <option value="title_message" <?php selected($geo_hide_mode, 'title_message'); ?>><?php esc_html_e('Show title + description + message', 'ffc'); ?></option>
+                            </select>
+                            <p class="description"><?php esc_html_e('How to display the form when user is outside allowed areas.', 'ffc'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label><?php esc_html_e('Blocked Message', 'ffc'); ?></label></th>
+                        <td>
+                            <textarea name="ffc_geofence[msg_geo_blocked]" rows="2" class="ffc-w100"><?php echo esc_textarea($msg_geo_blocked); ?></textarea>
+                            <p class="description"><?php esc_html_e('Message shown when user is outside allowed geographic areas.', 'ffc'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label><?php esc_html_e('Error Message', 'ffc'); ?></label></th>
+                        <td>
+                            <textarea name="ffc_geofence[msg_geo_error]" rows="2" class="ffc-w100"><?php echo esc_textarea($msg_geo_error); ?></textarea>
+                            <p class="description"><?php esc_html_e('Message shown when location detection fails (GPS denied, etc).', 'ffc'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <style>
+                .ffc-geofence-tabs {
+                    margin-bottom: 20px;
+                    border-bottom: 1px solid #ccc;
+                }
+                .ffc-geo-tab-btn {
+                    background: #f1f1f1;
+                    border: 1px solid #ccc;
+                    border-bottom: none;
+                    padding: 10px 20px;
+                    cursor: pointer;
+                    margin-right: 5px;
+                    font-size: 14px;
+                }
+                .ffc-geo-tab-btn.active {
+                    background: #fff;
+                    border-bottom: 1px solid #fff;
+                    margin-bottom: -1px;
+                    font-weight: bold;
+                }
+                .ffc-geo-tab-content {
+                    display: none;
+                }
+                .ffc-geo-tab-content.active {
+                    display: block;
+                }
+            </style>
+
+            <script>
+            jQuery(document).ready(function($) {
+                // Tab switching
+                $('.ffc-geo-tab-btn').on('click', function() {
+                    var tab = $(this).data('tab');
+                    $('.ffc-geo-tab-btn').removeClass('active');
+                    $(this).addClass('active');
+                    $('.ffc-geo-tab-content').removeClass('active');
+                    $('#ffc-tab-' + tab).addClass('active');
+                });
+            });
+            </script>
+        </div>
+        <?php
+    }
+
+    /**
      * Helper: Renders a field row in the builder
      */
     private function render_field_row( $index, $field ) {
@@ -528,8 +756,38 @@ class FFC_Form_Editor {
 
             $current_config = get_post_meta( $post_id, '_ffc_form_config', true );
             if(!is_array($current_config)) $current_config = array();
-            
+
             update_post_meta( $post_id, '_ffc_form_config', array_merge($current_config, $clean_config) );
+        }
+
+        // 3. Save Geofence Configuration
+        if ( isset( $_POST['ffc_geofence'] ) ) {
+            $geofence = $_POST['ffc_geofence'];
+
+            $clean_geofence = array(
+                // DateTime settings
+                'datetime_enabled' => isset($geofence['datetime_enabled']) ? '1' : '0',
+                'date_start' => !empty($geofence['date_start']) ? sanitize_text_field($geofence['date_start']) : '',
+                'date_end' => !empty($geofence['date_end']) ? sanitize_text_field($geofence['date_end']) : '',
+                'time_start' => !empty($geofence['time_start']) ? sanitize_text_field($geofence['time_start']) : '',
+                'time_end' => !empty($geofence['time_end']) ? sanitize_text_field($geofence['time_end']) : '',
+                'datetime_hide_mode' => sanitize_key($geofence['datetime_hide_mode'] ?? 'message'),
+                'msg_datetime' => sanitize_textarea_field($geofence['msg_datetime'] ?? ''),
+
+                // Geolocation settings
+                'geo_enabled' => isset($geofence['geo_enabled']) ? '1' : '0',
+                'geo_gps_enabled' => isset($geofence['geo_gps_enabled']) ? '1' : '0',
+                'geo_ip_enabled' => isset($geofence['geo_ip_enabled']) ? '1' : '0',
+                'geo_areas' => sanitize_textarea_field($geofence['geo_areas'] ?? ''),
+                'geo_ip_areas_permissive' => isset($geofence['geo_ip_areas_permissive']) ? '1' : '0',
+                'geo_ip_areas' => sanitize_textarea_field($geofence['geo_ip_areas'] ?? ''),
+                'geo_gps_ip_logic' => sanitize_key($geofence['geo_gps_ip_logic'] ?? 'or'),
+                'geo_hide_mode' => sanitize_key($geofence['geo_hide_mode'] ?? 'message'),
+                'msg_geo_blocked' => sanitize_textarea_field($geofence['msg_geo_blocked'] ?? ''),
+                'msg_geo_error' => sanitize_textarea_field($geofence['msg_geo_error'] ?? ''),
+            );
+
+            update_post_meta( $post_id, '_ffc_geofence_config', $clean_geofence );
         }
     }
 

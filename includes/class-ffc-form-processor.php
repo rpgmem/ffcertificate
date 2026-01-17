@@ -421,6 +421,22 @@ class FFC_Form_Processor {
             if ($cpf) FFC_Rate_Limiter::record_attempt('cpf', preg_replace('/[^0-9]/', '', $cpf), $form_id);
         }
 
+        // ✅ v3.0.0: Geofence validation (date/time + IP geolocation)
+        if (class_exists('FFC_Geofence')) {
+            $geofence_check = FFC_Geofence::can_access_form($form_id, array(
+                'check_datetime' => true, // Always validate date/time server-side
+                'check_geo' => true,      // Validate IP geolocation if enabled
+            ));
+
+            if (!$geofence_check['allowed']) {
+                wp_send_json_error(array(
+                    'message' => $geofence_check['message'],
+                    'geofence_blocked' => true,
+                    'reason' => $geofence_check['reason']
+                ));
+            }
+        }
+
         // Check restrictions (whitelist/denylist/tickets)
         $restriction_result = $this->check_restrictions( $form_config, $val_cpf, $val_ticket, $form_id );
         

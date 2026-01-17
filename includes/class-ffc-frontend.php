@@ -74,6 +74,12 @@ class FFC_Frontend {
             // ✅ v2.9.12: ffc-frontend.js (depends on PDF generator AND utils) - UPDATED!
             wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . 'assets/js/ffc-frontend.js', array( 'jquery', 'ffc-pdf-generator', 'ffc-frontend-utils' ), FFC_VERSION, true );
 
+            // ✅ v3.0.0: Geofence frontend validation - NEW!
+            wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . 'assets/js/ffc-geofence-frontend.js', array( 'jquery' ), FFC_VERSION, true );
+
+            // Pass geofence configurations to frontend
+            $this->localize_geofence_config();
+
             wp_localize_script( 'ffc-frontend-js', 'ffc_ajax', array(
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce'    => wp_create_nonce( 'ffc_frontend_nonce' ),
@@ -94,5 +100,45 @@ class FFC_Frontend {
             'pleaseWait'            => __( 'Please wait, this may take a few seconds...', 'ffc' ),
             )
         ) );
+    }
+
+    /**
+     * Localize geofence configuration for frontend
+     * @since 3.0.0
+     */
+    private function localize_geofence_config() {
+        global $post;
+
+        if (!is_a($post, 'WP_Post')) {
+            return;
+        }
+
+        // Find all form IDs in post content
+        preg_match_all('/\[ffc_form\s+id=[\'"](\d+)[\'"]\]/', $post->post_content, $matches);
+
+        if (empty($matches[1])) {
+            return;
+        }
+
+        $geofence_configs = array();
+        $global_settings = get_option('ffc_geolocation_settings', array());
+
+        foreach ($matches[1] as $form_id) {
+            $config = FFC_Geofence::get_frontend_config($form_id);
+
+            if ($config !== null) {
+                $geofence_configs[$form_id] = $config;
+            }
+        }
+
+        // Only localize if we have configurations
+        if (!empty($geofence_configs)) {
+            wp_localize_script('ffc-geofence-frontend', 'ffcGeofenceConfig', array_merge(
+                $geofence_configs,
+                array(
+                    'debug' => !empty($global_settings['debug_enabled'])
+                )
+            ));
+        }
     }
 }}
