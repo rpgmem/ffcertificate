@@ -550,34 +550,6 @@ class FFC_Form_Editor {
                 </table>
             </div>
 
-            <style>
-                .ffc-geofence-tabs {
-                    margin-bottom: 20px;
-                    border-bottom: 1px solid #ccc;
-                }
-                .ffc-geo-tab-btn {
-                    background: #f1f1f1;
-                    border: 1px solid #ccc;
-                    border-bottom: none;
-                    padding: 10px 20px;
-                    cursor: pointer;
-                    margin-right: 5px;
-                    font-size: 14px;
-                }
-                .ffc-geo-tab-btn.active {
-                    background: #fff;
-                    border-bottom: 1px solid #fff;
-                    margin-bottom: -1px;
-                    font-weight: bold;
-                }
-                .ffc-geo-tab-content {
-                    display: none;
-                }
-                .ffc-geo-tab-content.active {
-                    display: block;
-                }
-            </style>
-
             <script>
             jQuery(document).ready(function($) {
                 // Tab switching

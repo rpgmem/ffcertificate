@@ -626,3 +626,38 @@
     display: inline-block;
     margin-right: 10px;
 }
+/* ==========================================================================
+   GEOFENCE META BOX STYLES - v3.0.0
+   ========================================================================== */
+
+/* Tab Navigation */
+.ffc-geofence-tabs {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ccc;
+}
+
+.ffc-geo-tab-btn {
+    background: #f1f1f1;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    margin-right: 5px;
+    font-size: 14px;
+}
+
+.ffc-geo-tab-btn.active {
+    background: #fff;
+    border-bottom: 1px solid #fff;
+    margin-bottom: -1px;
+    font-weight: bold;
+}
+
+/* Tab Content */
+.ffc-geo-tab-content {
+    display: none;
+}
+
+.ffc-geo-tab-content.active {
+    display: block;
+}
