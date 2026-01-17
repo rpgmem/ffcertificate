@@ -1,6 +1,7 @@
 <?php
 /**
- * FFC_Activator v2.10.0
+ * FFC_Activator v3.0.1
+ * Added: edited_at and edited_by columns
  */
 
 if (!defined('ABSPATH')) exit;
@@ -64,7 +65,6 @@ class FFC_Activator {
             'magic_token' => array('type' => 'VARCHAR(32) DEFAULT NULL', 'after' => 'status', 'index' => 'magic_token'),
             'cpf_rf' => array('type' => 'VARCHAR(20) DEFAULT NULL', 'after' => 'magic_token', 'index' => 'cpf_rf'),
             'auth_code' => array('type' => 'VARCHAR(20) DEFAULT NULL', 'after' => 'cpf_rf', 'index' => 'auth_code'),
-            // ✅ FIXED: Sintaxe SQL correta
             'email_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'auth_code'),
             'email_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'email_encrypted', 'index' => 'email_hash'),
             'cpf_rf_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'email_hash'),
@@ -75,7 +75,9 @@ class FFC_Activator {
             'consent_date' => array('type' => 'DATETIME DEFAULT NULL', 'after' => 'consent_given'),
             'consent_ip' => array('type' => 'VARCHAR(45) DEFAULT NULL', 'after' => 'consent_date'),
             'consent_text' => array('type' => 'TEXT DEFAULT NULL', 'after' => 'consent_ip'),
-            'qr_code_cache' => array('type' => 'LONGTEXT DEFAULT NULL', 'after' => 'consent_text')
+            'qr_code_cache' => array('type' => 'LONGTEXT DEFAULT NULL', 'after' => 'consent_text'),
+            'edited_at' => array('type' => 'DATETIME NULL DEFAULT NULL', 'after' => 'qr_code_cache'),
+            'edited_by' => array('type' => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL', 'after' => 'edited_at')
         );
 
         foreach ($columns as $column_name => $config) {

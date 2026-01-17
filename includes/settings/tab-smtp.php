@@ -126,21 +126,29 @@ $get_option = function($key, $default = '') {
             <h4>Gmail</h4>
             <p><strong>Host:</strong> smtp.gmail.com</p>
             <p><strong>Port:</strong> 587 (TLS)</p>
-            <p><strong>Note:</strong> Use app-specific password</p>
+            <p><strong>Note:</strong> <?php esc_html_e('Use app-specific password', 'ffc'); ?></p>
         </div>
         
         <div class="ffc-provider-card outlook">
             <h4>Outlook/Office 365</h4>
             <p><strong>Host:</strong> smtp.office365.com</p>
             <p><strong>Port:</strong> 587 (TLS)</p>
-            <p><strong>Note:</strong> Full email as username</p>
+            <p><strong>Note:</strong> <?php esc_html_e('Full email as username', 'ffc'); ?></p>
         </div>
         
         <div class="ffc-provider-card sendgrid">
             <h4>SendGrid</h4>
             <p><strong>Host:</strong> smtp.sendgrid.net</p>
             <p><strong>Port:</strong> 587 (TLS)</p>
-            <p><strong>Note:</strong> Use API key as password</p>
+            <p><strong>Note:</strong> <?php esc_html_e('Use API key as password', 'ffc'); ?></p>
+        </div>
+
+        <div class="ffc-provider-card">
+            <h4>Hostinger</h4>
+            <p><strong>Host:</strong> smtp.hostinger.com</p>
+            <p><strong>Port:</strong> 465 (SSL) 587 (TLS/STARTTLS)</p>
+            <p><strong>Note:</strong> <?php esc_html_e('Use API key as password, or find your settings in hPanel.', 'ffc'); ?></p>
+            
         </div>
     </div>
 </div>

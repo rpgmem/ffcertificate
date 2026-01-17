@@ -584,7 +584,7 @@
 
 /* Main Wrapper */
 .ffc-migrations-settings-wrap {
-    max-width: 1200px;
+    max-width: 1500px;
 }
 
 /* Warning Box */
@@ -597,4 +597,32 @@
 
 .ffc-migration-warning p {
     margin: 0;
+}
+/* ==========================================================================
+   CORREÇÕES SPRINT 3.0 - v3.0.0
+   ========================================================================== */
+
+/* Fix: Largura das abas de configurações */
+.ffc-settings-card {
+    max-width: none !important;
+    width: 100% !important;
+    box-sizing: border-box;
+}
+
+.wrap .ffc-settings-card {
+    max-width: none !important;
+}
+
+/* Fix: Ícones não duplicar nos botões */
+.ffc-template-loader .button::before {
+    display: inline-block;
+    margin-right: 6px;
+}
+
+/* Garantir que não há regras duplicadas */
+#ffc_load_template_btn,
+#ffc_btn_import_html,
+#ffc_btn_media_lib {
+    display: inline-block;
+    margin-right: 10px;
 }

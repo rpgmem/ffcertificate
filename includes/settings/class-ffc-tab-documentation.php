@@ -27,6 +27,7 @@ class FFC_Tab_Documentation extends FFC_Settings_Tab {
             include $view_file;
         } else {
             echo '<div class="notice notice-error"><p>';
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             echo esc_html__( 'Documentation view file not found.', 'ffc' );
             echo '</p></div>';
         }

@@ -127,6 +127,7 @@
    ========================================================================== */
 
 .button[title*="PDF"]::before {
+    display: inline-block;
     content: "📄 ";
     margin-right: 4px;
 }

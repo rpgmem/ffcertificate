@@ -7,7 +7,7 @@
    BASE WRAPPER
    ========================================================================== */
 .ffc-settings-wrap {
-    max-width: 1200px;
+    max-width: 1500px;
 }
 
 /* ==========================================================================
@@ -19,6 +19,8 @@
     border-radius: 4px;
     padding: 20px;
     margin-bottom: 20px;
+    min-width: 255px;
+    max-width: 1500px;
     box-shadow: 0 1px 1px rgba(0,0,0,0.04);
 }
 

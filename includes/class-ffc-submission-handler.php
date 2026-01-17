@@ -133,7 +133,6 @@ class FFC_Submission_Handler {
         
         // 7. LGPD Consent
         $consent_given = isset($submission_data['ffc_lgpd_consent']) && $submission_data['ffc_lgpd_consent'] == '1' ? 1 : 0;
-        $consent_ip = $consent_given ? $user_ip : null;
         $consent_date = $consent_given ? current_time('mysql') : null;
         $consent_text = $consent_given ? __('User agreed to Privacy Policy and data storage', 'ffc') : null;
         
@@ -151,7 +150,6 @@ class FFC_Submission_Handler {
             'user_ip_encrypted' => $ip_encrypted,
             'data_encrypted' => $data_encrypted,
             'consent_given' => $consent_given,
-            'consent_ip' => $consent_ip,
             'consent_date' => $consent_date,
             'consent_text' => $consent_text
         ];
@@ -189,8 +187,8 @@ class FFC_Submission_Handler {
     }
     
     /**
-     * Update submission
-     * @uses Repository::update()
+     * Update submission - FIXED v3.0.1
+     * @uses Repository::updateWithEditTracking()
      */
     public function update_submission($id, $new_email, $clean_data) {
         $update_data = [];
@@ -208,6 +206,10 @@ class FFC_Submission_Handler {
         
         // Update data if provided
         if ($clean_data !== null && is_array($clean_data)) {
+            // ✅ Remove edit tracking from JSON data (should be in columns)
+            unset($clean_data['is_edited']);
+            unset($clean_data['edited_at']);
+            
             $data_json = wp_json_encode($clean_data, JSON_UNESCAPED_UNICODE);
             
             if (class_exists('FFC_Encryption') && FFC_Encryption::is_configured()) {
@@ -218,11 +220,15 @@ class FFC_Submission_Handler {
             }
         }
         
-        // Track edit
-        $update_data['is_edited'] = 1;
-        $update_data['edited_at'] = current_time('mysql');
-        
-        $result = $this->repository->update($id, $update_data);
+        // ✅ Use Repository method with automatic edit tracking
+        if (method_exists($this->repository, 'updateWithEditTracking')) {
+            $result = $this->repository->updateWithEditTracking($id, $update_data);
+        } else {
+            // Fallback: manual tracking in columns (not JSON)
+            $update_data['edited_at'] = current_time('mysql');
+            $update_data['edited_by'] = get_current_user_id();
+            $result = $this->repository->update($id, $update_data);
+        }
         
         if ($result !== false && class_exists('FFC_Activity_Log')) {
             FFC_Activity_Log::log_submission_updated($id, [

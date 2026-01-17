@@ -351,8 +351,8 @@ wp-ffcertificate/
 │   └── js/
 │       ├── html2canvas.min.js (v1.4.1)
 │       ├── jspdf.umd.min.js (v2.5.1)
-│       ├── admin.js (Admin logic)
-│       └── frontend.js (Public logic + magic link handler)
+│       ├── ffc-admin.js (Admin logic)
+│       └── ffc-frontend.js (Public logic + magic link handler)
 │       └── ffc-frontend-utils.js
 ├── html/ (Optional certificate templates)
 └── languages/
@@ -432,7 +432,7 @@ CREATE TABLE wp_ffc_submissions (
 2. **Page loads** → `FFC_Shortcodes::render_verification_page()`
    - Detects `?token=` parameter
    - Renders magic link container with loading state
-3. **JavaScript activates** → `handleMagicLinkVerification()` in frontend.js
+3. **JavaScript activates** → `handleMagicLinkVerification()` in ffc-frontend.js
    - Reads `data-magic-token` attribute
    - AJAX POST to `ffc_verify_magic_token`
 4. **Backend verifies** → `FFC_Verification_Handler::handle_magic_verification_ajax()`

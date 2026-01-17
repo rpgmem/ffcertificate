@@ -66,31 +66,13 @@ class FFC_Frontend {
             wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'assets/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true );
             
             // PDF Generator (shared module)
-            wp_enqueue_script( 
-                'ffc-pdf-generator', 
-                FFC_PLUGIN_URL . 'assets/js/ffc-pdf-generator.js', 
-                array( 'jquery', 'html2canvas', 'jspdf' ), 
-                FFC_VERSION, 
-                true 
-            );
+            wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . 'assets/js/ffc-pdf-generator.js', array( 'jquery', 'html2canvas', 'jspdf' ), FFC_VERSION, true );
             
             // ✅ v2.9.12: Frontend Utilities (shared module) - NEW!
-            wp_enqueue_script( 
-                'ffc-frontend-utils', 
-                FFC_PLUGIN_URL . 'assets/js/ffc-frontend-utils.js', 
-                array( 'jquery' ), 
-                FFC_VERSION, 
-                true 
-            );
+            wp_enqueue_script( 'ffc-frontend-utils', FFC_PLUGIN_URL . 'assets/js/ffc-frontend-utils.js', array( 'jquery' ), FFC_VERSION, true );
             
-            // ✅ v2.9.12: Frontend.js (depends on PDF generator AND utils) - UPDATED!
-            wp_enqueue_script( 
-                'ffc-frontend-js', 
-                FFC_PLUGIN_URL . 'assets/js/frontend.js', 
-                array( 'jquery', 'ffc-pdf-generator', 'ffc-frontend-utils' ), 
-                FFC_VERSION, 
-                true 
-            );
+            // ✅ v2.9.12: ffc-frontend.js (depends on PDF generator AND utils) - UPDATED!
+            wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . 'assets/js/ffc-frontend.js', array( 'jquery', 'ffc-pdf-generator', 'ffc-frontend-utils' ), FFC_VERSION, true );
 
             wp_localize_script( 'ffc-frontend-js', 'ffc_ajax', array(
             'ajax_url' => admin_url( 'admin-ajax.php' ),

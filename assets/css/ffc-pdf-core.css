@@ -20,7 +20,7 @@
     overflow: hidden;
 }
 
-/* Container temporário usado pelo frontend.js */
+/* Container temporário usado pelo ffc-frontend.js */
 .ffc-pdf-temp-container {
     position: fixed !important;
     left: -9999px !important;

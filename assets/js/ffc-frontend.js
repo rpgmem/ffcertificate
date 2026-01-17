@@ -1,23 +1,21 @@
 /**
  * Free Form Certificate - Frontend JavaScript
- * Handles form submission, verification, and delegates masks to ffcUtils
+ * Handles form submission, verification, and delegates masks to FFC.Frontend
  * 
  * PDF Generation: Uses ffc-pdf-generator.js (shared module)
- * Utilities: Uses ffc-frontend-utils.js (shared module)
+ * Utilities: Uses ffc-frontend-helpers.js (modular)
  * 
- * @version 2.9.12
+ * @version 3.0.0 - REFACTORED for modular architecture
  * 
  * Changelog:
+ * v3.0.0: REFACTORED - Updated to use FFC.Frontend namespace (backward compatible)
  * v2.9.12: REFACTORED - Moved masks and messages to ffc-frontend-utils.js
  * v2.9.11: Fixed 4 frontend bugs (layout, captcha, error display, CPF/RF mask)
- * v2.9.10: Added pdf_data to download button
- * v2.9.9: Added auth code mask (XXXX-XXXX-XXXX)
- * v2.9.8: displayVerificationResult now uses data.html from backend
- * v2.9.7: Fixed validation page, added nonce, captcha fields
  */
 
 (function($) {
     'use strict';
+    window.ffcUtils = window.FFC.Frontend.Masks;
 
     /**
      * Handle magic link verification (automatic on page load)
@@ -40,7 +38,6 @@
         
         // Priority 2: Get token from URL hash (#token=xxx)
         if (!token && window.location.hash) {
-            // ✅ v2.9.16: FIXED - window.location.hash already includes #, don't use substring(1)
             var hash = window.location.hash;
             
             // Remove leading # if present
@@ -199,10 +196,12 @@
                 if (response.success) {
                     displayVerificationResult(response.data, $form.closest('.ffc-verification-container'));
                 } else {
-                    // ✅ v2.9.12: Handle captcha refresh if needed
+                    // ✅ v3.0.0: Use FFC.Frontend.UI for error messages (backward compatible)
                     if (response.data && response.data.refresh_captcha) {
-                        if (typeof window.ffcUtils !== 'undefined' && window.ffcUtils.refreshCaptcha) {
-                            window.ffcUtils.refreshCaptcha($form, response.data.new_label, response.data.new_hash);
+                        if (typeof FFC !== 'undefined' && FFC.Frontend && FFC.Frontend.UI) {
+                            FFC.Frontend.UI.refreshCaptcha($form, response.data.new_label, response.data.new_hash);
+                        } else if (typeof FFC.Frontend !== 'undefined' && FFC.Frontend.refreshCaptcha) {
+                            FFC.Frontend.refreshCaptcha($form, response.data.new_label, response.data.new_hash);
                         }
                     }
                     showVerificationError(response.data ? response.data.message : 'Invalid code', $form.closest('.ffc-verification-container'));
@@ -254,7 +253,6 @@
     $(document).on('click', '.ffc-download-pdf-btn, .ffc-download-btn', function() {
         try {
             var pdfData = JSON.parse($(this).attr('data-pdf-data') || '{}');
-            // ✅ v2.9.15: Use filename from PHP (includes form name + auth code)
             var filename = pdfData.filename || 'certificate.pdf';
             
             // ✅ Uses shared PDF generator module
@@ -273,11 +271,7 @@
     /**
      * Handle form submission
      * 
-     * ✅ v2.9.12: Fixed 4 bugs:
-     * 1. Uses response.data.html for beautiful layout
-     * 2. Refreshes captcha on error
-     * 3. Shows error in form (not alert)
-     * 4. CPF/RF mask applied via ffcUtils
+     * ✅ v3.0.0: Updated to use FFC.Frontend namespace (backward compatible)
      */
     function handleFormSubmission() {
         $(document).on('submit', '.ffc-submission-form, .ffc-form', function(e) {
@@ -306,7 +300,7 @@
             // Disable submit button
             $submitBtn.prop('disabled', true).text(ffc_ajax.strings.processing || 'Processing...');
             
-            // Prepare form data (using serialize for better $_POST compatibility)
+            // Prepare form data
             var formData = $form.serialize();
             formData += '&action=ffc_submit_form';
             formData += '&nonce=' + encodeURIComponent(ffc_ajax.nonce);
@@ -317,7 +311,7 @@
                 data: formData,
                 success: function(response) {
                     if (response.success) {
-                        // ✅ FIX 1: Use response.data.html for beautiful layout
+                        // ✅ Use response.data.html for beautiful layout
                         if (response.data.html) {
                             $form.html(response.data.html);
                             
@@ -330,8 +324,11 @@
                             }
                         } else {
                             // Fallback to simple success message
-                            if (typeof window.ffcUtils !== 'undefined' && window.ffcUtils.showFormSuccess) {
-                                window.ffcUtils.showFormSuccess($form, '');
+                            // ✅ v3.0.0: Use FFC.Frontend.UI (backward compatible)
+                            if (typeof FFC !== 'undefined' && FFC.Frontend && FFC.Frontend.UI) {
+                                FFC.Frontend.UI.showFormSuccess($form, '');
+                            } else if (typeof FFC.Frontend !== 'undefined' && FFC.Frontend.showFormSuccess) {
+                                FFC.Frontend.showFormSuccess($form, '');
                             } else {
                                 $form.html('<div class="ffc-success-message">' + 
                                     '<h3>' + (ffc_ajax.strings.success || 'Success!') + '</h3>' +
@@ -340,28 +337,32 @@
                             }
                         }
                         
-                        // ✅ Auto-download PDF if available (uses shared module)
+                        // ✅ Auto-download PDF if available
                         if (response.data.pdf_data && typeof window.ffcGeneratePDF === 'function') {
                             setTimeout(function() {
-                                // ✅ v2.9.15: Use filename from PHP (includes form name + auth code)
                                 var filename = response.data.pdf_data.filename || 'certificate.pdf';
                                 window.ffcGeneratePDF(response.data.pdf_data, filename);
                             }, 500);
                         }
                     } else {
-                        // ✅ FIX 3: Show error in form (not alert)
+                        // ✅ Show error in form
                         var errorMsg = response.data ? response.data.message : (ffc_ajax.strings.error || 'Error occurred');
                         
-                        if (typeof window.ffcUtils !== 'undefined' && window.ffcUtils.showFormError) {
-                            window.ffcUtils.showFormError($form, errorMsg);
+                        // ✅ v3.0.0: Use FFC.Frontend.UI (backward compatible)
+                        if (typeof FFC !== 'undefined' && FFC.Frontend && FFC.Frontend.UI) {
+                            FFC.Frontend.UI.showFormError($form, errorMsg);
+                        } else if (typeof FFC.Frontend !== 'undefined' && FFC.Frontend.showFormError) {
+                            FFC.Frontend.showFormError($form, errorMsg);
                         } else {
                             alert(errorMsg);
                         }
                         
-                        // ✅ FIX 2: Refresh captcha if needed
+                        // ✅ Refresh captcha if needed
                         if (response.data && response.data.refresh_captcha) {
-                            if (typeof window.ffcUtils !== 'undefined' && window.ffcUtils.refreshCaptcha) {
-                                window.ffcUtils.refreshCaptcha($form, response.data.new_label, response.data.new_hash);
+                            if (typeof FFC !== 'undefined' && FFC.Frontend && FFC.Frontend.UI) {
+                                FFC.Frontend.UI.refreshCaptcha($form, response.data.new_label, response.data.new_hash);
+                            } else if (typeof FFC.Frontend !== 'undefined' && FFC.Frontend.refreshCaptcha) {
+                                FFC.Frontend.refreshCaptcha($form, response.data.new_label, response.data.new_hash);
                             }
                         }
                         
@@ -369,19 +370,20 @@
                     }
                 },
                 error: function(xhr, status, error) {
-                    
                     try {
                         var response = xhr.responseJSON;
                         if (response && response.data && response.data.rate_limit) {
-                            if (typeof FFCRateLimit !== 'undefined' && FFCRateLimit.show) {
+                            // ✅ v3.0.0: Use FFC.Frontend.RateLimit (backward compatible)
+                            if (typeof FFC !== 'undefined' && FFC.Frontend && FFC.Frontend.RateLimit) {
+                                FFC.Frontend.RateLimit.show(response.data.message, response.data.wait_seconds);
+                            } else if (typeof FFCRateLimit !== 'undefined' && FFCRateLimit.show) {
                                 FFCRateLimit.show(response.data.message, response.data.wait_seconds);
-                                $submitBtn.prop('disabled', false).text(originalBtnText);
-                                return;
                             }
+                            $submitBtn.prop('disabled', false).text(originalBtnText);
+                            return;
                         }
                     } catch(e) {}
-
-                           
+                    
                     alert(ffc_ajax.strings.connectionError || 'Connection error');
                     $submitBtn.prop('disabled', false).text(originalBtnText);
                 }
@@ -389,49 +391,25 @@
         });
     }
 
-    // Initialize on document ready
-    $(document).ready(function() {
-        // Delay magic link to ensure hash is available
-        setTimeout(function() {
-            handleMagicLinkVerification();
-        }, 100);
-        
-        handleFormSubmission();
-        
-        // ✅ v2.9.12: Apply masks using ffcUtils (if available)
-        if (typeof window.ffcUtils !== 'undefined') {
-            // Apply auth code mask
-            if (window.ffcUtils.applyAuthCodeMask) {
-                window.ffcUtils.applyAuthCodeMask();
-                console.log('[FFC] Auth code mask applied via ffcUtils');
-            }
-            
-            // ✅ FIX 4: Apply CPF/RF mask
-            if (window.ffcUtils.applyCpfRfMask) {
-                window.ffcUtils.applyCpfRfMask();
-                console.log('[FFC] CPF/RF mask applied via ffcUtils');
-            }
-            
-            // ✅ v2.10.0: Apply Ticket mask
-            if (window.ffcUtils.applyTicketMask) {
-                window.ffcUtils.applyTicketMask();
-                console.log('[FFC] Ticket mask applied via ffcUtils');
-            }
-        } else {
-            console.warn('[FFC] ffcUtils not loaded - masks disabled');
-        }
-    });
-    
     /**
      * Setup MutationObserver to re-apply masks when DOM changes
      * 
-     * ✅ NOVO v2.9.14: Modern replacement for DOMNodeInserted
+     * ✅ v3.0.0: Updated to use FFC.Frontend.Masks (backward compatible)
      */
     function setupDynamicMaskObserver() {
-        if (typeof window.ffcUtils === 'undefined') {
-            console.warn('[FFC] ffcUtils not loaded - dynamic masks disabled');
+        // Check if FFC.Frontend is available
+        var hasMasks = (typeof FFC !== 'undefined' && FFC.Frontend && FFC.Frontend.Masks) || 
+                       (typeof FFC.Frontend !== 'undefined');
+        
+        if (!hasMasks) {
+            console.warn('[FFC] Frontend helpers not loaded - dynamic masks disabled');
             return;
         }
+        
+        // Get mask functions (prefer new namespace)
+        var Masks = (typeof FFC !== 'undefined' && FFC.Frontend && FFC.Frontend.Masks) 
+            ? FFC.Frontend.Masks 
+            : FFC.Frontend;
         
         // Create observer instance
         var observer = new MutationObserver(function(mutations) {
@@ -467,7 +445,7 @@
                         needsCpfMask = true;
                     }
                     
-                    // ✅ v2.10.0: Check for ticket fields
+                    // Check for ticket fields
                     if ($node.attr('name') === 'ffc_ticket' ||
                         $node.hasClass('ffc-ticket-input') ||
                         $node.find('input[name="ffc_ticket"], .ffc-ticket-input').length) {
@@ -480,19 +458,25 @@
             if (needsAuthMask || needsCpfMask || needsTicketMask) {
                 clearTimeout(observer.maskTimeout);
                 observer.maskTimeout = setTimeout(function() {
-                    if (needsAuthMask && window.ffcUtils.applyAuthCodeMask) {
-                        window.ffcUtils.applyAuthCodeMask();
+                    if (needsAuthMask && Masks.applyAuthCode) {
+                        Masks.applyAuthCode();
                         console.log('[FFC] Auth code mask re-applied');
+                    } else if (needsAuthMask && Masks.applyAuthCodeMask) {
+                        Masks.applyAuthCodeMask();
                     }
                     
-                    if (needsCpfMask && window.ffcUtils.applyCpfRfMask) {
-                        window.ffcUtils.applyCpfRfMask();
+                    if (needsCpfMask && Masks.applyCpfRf) {
+                        Masks.applyCpfRf();
                         console.log('[FFC] CPF/RF mask re-applied');
+                    } else if (needsCpfMask && Masks.applyCpfRfMask) {
+                        Masks.applyCpfRfMask();
                     }
                     
-                    if (needsTicketMask && window.ffcUtils.applyTicketMask) {
-                        window.ffcUtils.applyTicketMask();
+                    if (needsTicketMask && Masks.applyTicket) {
+                        Masks.applyTicket();
                         console.log('[FFC] Ticket mask re-applied');
+                    } else if (needsTicketMask && Masks.applyTicketMask) {
+                        Masks.applyTicketMask();
                     }
                 }, 50);
             }
@@ -512,8 +496,53 @@
         // Return observer for cleanup if needed
         return observer;
     }
-    
+
     // Initialize on document ready
-    console.log('[FFC] Frontend script loaded (v2.9.14 - MutationObserver)');
+    $(document).ready(function() {
+        // Delay magic link to ensure hash is available
+        setTimeout(function() {
+            handleMagicLinkVerification();
+        }, 100);
+        
+        handleFormSubmission();
+        
+        // ✅ v3.0.0: Apply masks using FFC.Frontend.Masks (backward compatible)
+        var Masks = (typeof FFC !== 'undefined' && FFC.Frontend && FFC.Frontend.Masks) 
+            ? FFC.Frontend.Masks 
+            : FFC.Frontend;
+        
+        if (Masks) {
+            // Apply auth code mask
+            if (Masks.applyAuthCode) {
+                Masks.applyAuthCode();
+                console.log('[FFC] Auth code mask applied');
+            } else if (Masks.applyAuthCodeMask) {
+                Masks.applyAuthCodeMask();
+            }
+            
+            // Apply CPF/RF mask
+            if (Masks.applyCpfRf) {
+                Masks.applyCpfRf();
+                console.log('[FFC] CPF/RF mask applied');
+            } else if (Masks.applyCpfRfMask) {
+                Masks.applyCpfRfMask();
+            }
+            
+            // Apply Ticket mask
+            if (Masks.applyTicket) {
+                Masks.applyTicket();
+                console.log('[FFC] Ticket mask applied');
+            } else if (Masks.applyTicketMask) {
+                Masks.applyTicketMask();
+            }
+            
+            // Setup dynamic mask observer
+            setupDynamicMaskObserver();
+        } else {
+            console.warn('[FFC] Frontend helpers not loaded - masks disabled');
+        }
+    });
+    
+    console.log('[FFC Frontend] Script loaded v3.0.0 (modular architecture)');
 
 })(jQuery);

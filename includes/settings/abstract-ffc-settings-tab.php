@@ -12,6 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+// Ensure WordPress is loaded
+if ( ! function_exists( 'wp_kses_post' ) ) {
+    require_once( ABSPATH . 'wp-includes/formatting.php' );
+}
+
 abstract class FFC_Settings_Tab {
     
     /**

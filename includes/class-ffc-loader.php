@@ -110,7 +110,7 @@ class Free_Form_Certificate_Loader {
     }
     
     public function enqueue_rate_limit_assets() {
-        wp_enqueue_script('ffc-rate-limit', FFC_PLUGIN_URL . 'assets/js/rate-limit-frontend.js', ['jquery'], FFC_VERSION, true);
+        wp_enqueue_script('ffc-rate-limit', FFC_PLUGIN_URL . 'assets/js/ffc-frontend-helpers.js', ['jquery'], FFC_VERSION, true);
         wp_enqueue_style('ffc-rate-limit', FFC_PLUGIN_URL . 'assets/css/admin-rate-limit.css', [], FFC_VERSION);
     }
     

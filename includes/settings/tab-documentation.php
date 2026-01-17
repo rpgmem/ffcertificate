@@ -21,12 +21,13 @@ if (!defined('ABSPATH')) exit;
             <li><a href="#shortcodes">📌 <?php esc_html_e('1. Shortcodes', 'ffc'); ?></a></li>
             <li><a href="#variables">🏷️ <?php esc_html_e('2. Template Variables', 'ffc'); ?></a></li>
             <li><a href="#qr-code">📱 <?php esc_html_e('3. QR Code Options', 'ffc'); ?></a></li>
-            <li><a href="#html-styling">🎨 <?php esc_html_e('4. HTML & Styling', 'ffc'); ?></a></li>
-            <li><a href="#custom-fields">✏️ <?php esc_html_e('5. Custom Fields', 'ffc'); ?></a></li>
-            <li><a href="#features">🎉 <?php esc_html_e('6. Features', 'ffc'); ?></a></li>
-            <li><a href="#security">🔒 <?php esc_html_e('7. Security Features', 'ffc'); ?></a></li>
-            <li><a href="#examples">📝 <?php esc_html_e('8. Complete Examples', 'ffc'); ?></a></li>
-            <li><a href="#troubleshooting">🔧 <?php esc_html_e('9. Troubleshooting', 'ffc'); ?></a></li>
+            <li><a href="#validation-url">🔗 <?php esc_html_e('4. Validation URL', 'ffc'); ?></a></li>
+            <li><a href="#html-styling">🎨 <?php esc_html_e('5. HTML & Styling', 'ffc'); ?></a></li>
+            <li><a href="#custom-fields">✏️ <?php esc_html_e('6. Custom Fields', 'ffc'); ?></a></li>
+            <li><a href="#features">🎉 <?php esc_html_e('7. Features', 'ffc'); ?></a></li>
+            <li><a href="#security">🔒 <?php esc_html_e('8. Security Features', 'ffc'); ?></a></li>
+            <li><a href="#examples">📝 <?php esc_html_e('9. Complete Examples', 'ffc'); ?></a></li>
+            <li><a href="#troubleshooting">🔧 <?php esc_html_e('10. Troubleshooting', 'ffc'); ?></a></li>
         </ul>
     </div>
 </div>
@@ -38,7 +39,7 @@ if (!defined('ABSPATH')) exit;
     <table class="widefat striped">
         <thead>
             <tr>
-                <th width="35%"><?php esc_html_e('Shortcode', 'ffc'); ?></th>
+                <th><?php esc_html_e('Shortcode', 'ffc'); ?></th>
                 <th><?php esc_html_e('Description', 'ffc'); ?></th>
             </tr>
         </thead>
@@ -69,9 +70,9 @@ if (!defined('ABSPATH')) exit;
     <table class="widefat striped">
         <thead>
             <tr>
-                <th width="30%"><?php esc_html_e('Variable', 'ffc'); ?></th>
-                <th width="45%"><?php esc_html_e('Description', 'ffc'); ?></th>
-                <th width="25%"><?php esc_html_e('Example Output', 'ffc'); ?></th>
+                <th><?php esc_html_e('Variable', 'ffc'); ?></th>
+                <th><?php esc_html_e('Description', 'ffc'); ?></th>
+                <th><?php esc_html_e('Example Output', 'ffc'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -137,7 +138,7 @@ if (!defined('ABSPATH')) exit;
     <table class="widefat striped">
         <thead>
             <tr>
-                <th width="40%"><?php esc_html_e('Usage', 'ffc'); ?></th>
+                <th><?php esc_html_e('Usage', 'ffc'); ?></th>
                 <th><?php esc_html_e('Description', 'ffc'); ?></th>
             </tr>
         </thead>
@@ -153,14 +154,14 @@ if (!defined('ABSPATH')) exit;
                 <td><code>{{qr_code:size=150}}</code></td>
                 <td>
                     <?php esc_html_e('Custom size (150x150 pixels)', 'ffc'); ?><br>
-                    <strong><?php esc_html_e('Range:', 'ffc'); ?></strong> 100-500px
+                    <strong><?php esc_html_e('Range:', 'ffc'); ?></strong> <?php esc_html_e('100px at 500px', 'ffc'); ?>
                 </td>
             </tr>
             <tr>
                 <td><code>{{qr_code:margin=0}}</code></td>
                 <td>
                     <?php esc_html_e('No white margin around QR code', 'ffc'); ?><br>
-                    <strong><?php esc_html_e('Range:', 'ffc'); ?></strong> 0-10 (default: 2)
+                    <strong><?php esc_html_e('Range:', 'ffc'); ?></strong> 0-10 <?php esc_html_e('(default: 2)', 'ffc'); ?>
                 </td>
             </tr>
             <tr>
@@ -168,10 +169,10 @@ if (!defined('ABSPATH')) exit;
                 <td>
                     <?php esc_html_e('Error correction level', 'ffc'); ?><br>
                     <strong><?php esc_html_e('Options:', 'ffc'); ?></strong><br>
-                    • <code>L</code> = Low (7%)<br>
-                    • <code>M</code> = Medium (15% - recommended)<br>
-                    • <code>Q</code> = Quartile (25%)<br>
-                    • <code>H</code> = High (30%)
+                    • <code>L</code> = <?php esc_html_e('Low (7%)', 'ffc'); ?><br>
+                    • <code>M</code> = <?php esc_html_e('Medium (15% - recommended)', 'ffc'); ?><br>
+                    • <code>Q</code> = <?php esc_html_e('Quartile (25%)', 'ffc'); ?><br>
+                    • <code>H</code> = <?php esc_html_e('High (30%)', 'ffc'); ?>
                 </td>
             </tr>
             <tr>
@@ -182,16 +183,52 @@ if (!defined('ABSPATH')) exit;
     </table>
 </div>
 
-<!-- 4. HTML & Styling Section -->
+<!-- 4. Validation URL Section -->
 <div class="card">
-    <h3 id="html-styling">🎨 <?php esc_html_e('4. HTML & Styling', 'ffc'); ?></h3>
+    <h3 id="validation-url">🔗 <?php esc_html_e('4. Validation URL', 'ffc'); ?></h3>
+    <p><?php esc_html_e('The Validation URL can be customized with various attributes:', 'ffc'); ?></p>
+    
+    <table class="widefat striped">
+        <thead>
+            <tr>
+                <th><?php esc_html_e('Usage', 'ffc'); ?></th>
+                <th><?php esc_html_e('Description', 'ffc'); ?></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>{{validation_url}}</code></td>
+                <td>
+                    <?php esc_html_e('Default: link to magic, text shows /valid', 'ffc'); ?>
+                </td>
+            </tr>
+            <tr>
+                <td><code>{{validation_url link:X>Y}}</code></td>
+                <td>
+                    <code>{{validation_url link:m>v}}</code> → <?php esc_html_e('Link to magic, text /valid', 'ffc'); ?><br>
+                    <code>{{validation_url link:v>v}}</code> → <?php esc_html_e('Link to /valid, text /valid', 'ffc'); ?><br>
+                    <code>{{validation_url link:m>m}}</code> → <?php esc_html_e('Link to magic, text magic', 'ffc'); ?><br>
+                    <code>{{validation_url link:v>m}}</code> → <?php esc_html_e('Link to /valid, text magic', 'ffc'); ?><br>
+                    <code>{{validation_url link:v>"Custom Text"}}</code> → <?php esc_html_e('Link to /valid, custom text', 'ffc'); ?><br>
+                    <code>{{validation_url link:m>"Custom Text"}}</code> →  <?php esc_html_e('Link to magic, custom text', 'ffc'); ?><br>
+                    <code>{{validation_url link:m>v target:_blank}}</code> → <?php esc_html_e('With target', 'ffc'); ?><br>
+                    <code>{{validation_url link:m>v color:blue}}</code> → <?php esc_html_e('With color link', 'ffc'); ?><br>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- 5. HTML & Styling Section -->
+<div class="card">
+    <h3 id="html-styling">🎨 <?php esc_html_e('5. HTML & Styling', 'ffc'); ?></h3>
     <p><?php esc_html_e('You can use HTML and inline CSS to style your certificate:', 'ffc'); ?></p>
 
     <h4><?php esc_html_e('Supported HTML Tags:', 'ffc'); ?></h4>
     <table class="widefat striped">
         <thead>
             <tr>
-                <th width="25%"><?php esc_html_e('Tag', 'ffc'); ?></th>
+                <th><?php esc_html_e('Tag', 'ffc'); ?></th>
                 <th><?php esc_html_e('Usage', 'ffc'); ?></th>
             </tr>
         </thead>
@@ -243,7 +280,7 @@ if (!defined('ABSPATH')) exit;
     <table class="widefat striped">
         <thead>
             <tr>
-                <th width="50%"><?php esc_html_e('Example', 'ffc'); ?></th>
+                <th><?php esc_html_e('Example', 'ffc'); ?></th>
                 <th><?php esc_html_e('Result', 'ffc'); ?></th>
             </tr>
         </thead>
@@ -267,7 +304,7 @@ if (!defined('ABSPATH')) exit;
     <table class="widefat striped">
         <thead>
             <tr>
-                <th width="35%"><?php esc_html_e('Style', 'ffc'); ?></th>
+                <th><?php esc_html_e('Style', 'ffc'); ?></th>
                 <th><?php esc_html_e('Example', 'ffc'); ?></th>
             </tr>
         </thead>
@@ -304,16 +341,16 @@ if (!defined('ABSPATH')) exit;
     </table>
 </div>
 
-<!-- 5. Custom Fields Section -->
+<!-- 6. Custom Fields Section -->
 <div class="card">
-    <h3 id="custom-fields">✏️ <?php esc_html_e('5. Custom Fields', 'ffc'); ?></h3>
+    <h3 id="custom-fields">✏️ <?php esc_html_e('6. Custom Fields', 'ffc'); ?></h3>
     
     <p><?php esc_html_e('Any custom field you create in Form Builder automatically becomes a template variable:', 'ffc'); ?></p>
     
     <div class="ffc-doc-example">
         <h4><?php _e('How It Works:', 'ffc'); ?></h4>
         <ul>
-            <li><strong><?php _e('Step 1:', 'ffc'); ?></strong> <?php _e('Create a field in Form Builder (e.g., field name: "company")', 'ffc'); ?></li>
+            <li><strong><?php _e('Step 1:', 'ffc'); ?></strong> <?php _e('Create a field in Form Builder (e.g., field name:', 'ffc'); ?> "company"</li>
             <li><strong><?php _e('Step 2:', 'ffc'); ?></strong> <?php _e('Use in template:', 'ffc'); ?> <code>{{company}}</code></li>
             <li><strong><?php _e('Step 3:', 'ffc'); ?></strong> <?php _e('Value gets replaced automatically in PDF', 'ffc'); ?></li>
         </ul>
@@ -330,9 +367,9 @@ if (!defined('ABSPATH')) exit;
     </div>
 </div>
 
-<!-- 6. Features Section -->
+<!-- 7. Features Section -->
 <div class="card">
-    <h3 id="features">🎉 <?php esc_html_e('6. Features', 'ffc'); ?></h3>
+    <h3 id="features">🎉 <?php esc_html_e('7. Features', 'ffc'); ?></h3>
     
     <ul class="ffc-doc-list">
         <li>
@@ -386,9 +423,9 @@ if (!defined('ABSPATH')) exit;
     </ul>
 </div>
 
-<!-- 7. Security Features Section -->
+<!-- 8. Security Features Section -->
 <div class="card">
-    <h3 id="security">🔒 <?php esc_html_e('7. Security Features', 'ffc'); ?></h3>
+    <h3 id="security">🔒 <?php esc_html_e('8. Security Features', 'ffc'); ?></h3>
     
     <ul class="ffc-doc-list">
         <li>
@@ -422,9 +459,9 @@ if (!defined('ABSPATH')) exit;
     </ul>
 </div>
 
-<!-- 8. Complete Examples Section -->
+<!-- 9. Complete Examples Section -->
 <div class="card">
-    <h3 id="examples">📝 <?php esc_html_e('8. Complete Template Examples', 'ffc'); ?></h3>
+    <h3 id="examples">📝 <?php esc_html_e('9. Complete Template Examples', 'ffc'); ?></h3>
 
     <div class="ffc-doc-example">
         <h4><?php esc_html_e('Example 1: Simple Certificate', 'ffc'); ?></h4>
@@ -511,14 +548,14 @@ if (!defined('ABSPATH')) exit;
     </div>
 </div>
 
-<!-- 9. Troubleshooting Section -->
+<!-- 10. Troubleshooting Section -->
 <div class="card">
-    <h3 id="troubleshooting">🔧 <?php esc_html_e('9. Troubleshooting', 'ffc'); ?></h3>
+    <h3 id="troubleshooting">🔧 <?php esc_html_e('10. Troubleshooting', 'ffc'); ?></h3>
 
     <table class="widefat striped">
         <thead>
             <tr>
-                <th width="35%"><?php esc_html_e('Problem', 'ffc'); ?></th>
+                <th><?php esc_html_e('Problem', 'ffc'); ?></th>
                 <th><?php esc_html_e('Solution', 'ffc'); ?></th>
             </tr>
         </thead>

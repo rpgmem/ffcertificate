@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Centralized version management
  */
-define( 'FFC_VERSION', '2.9.17' );       // Plugin version
+define( 'FFC_VERSION', '2.9.19' );       // Plugin version
 // External libraries versions
 define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );  // html2canvas - https://html2canvas.hertzen.com/
 define( 'FFC_JSPDF_VERSION', '2.5.1' );        // jsPDF - https://github.com/parallax/jsPDF
