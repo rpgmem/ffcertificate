@@ -423,9 +423,18 @@ class FFC_Form_Processor {
 
         // ✅ v3.0.0: Geofence validation (date/time + IP geolocation)
         if (class_exists('FFC_Geofence')) {
+            // Get form geofence config to check if IP validation is enabled
+            $geofence_config = FFC_Geofence::get_form_config($form_id);
+            $should_validate_ip = false;
+
+            // Only validate IP in backend if IP geolocation is explicitly enabled
+            if ($geofence_config && !empty($geofence_config['geo_enabled']) && !empty($geofence_config['geo_ip_enabled'])) {
+                $should_validate_ip = true;
+            }
+
             $geofence_check = FFC_Geofence::can_access_form($form_id, array(
-                'check_datetime' => true, // Always validate date/time server-side
-                'check_geo' => true,      // Validate IP geolocation if enabled
+                'check_datetime' => true,        // Always validate date/time server-side
+                'check_geo' => $should_validate_ip, // Only validate IP if explicitly enabled
             ));
 
             if (!$geofence_check['allowed']) {
