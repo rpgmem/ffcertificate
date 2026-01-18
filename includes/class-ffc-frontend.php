@@ -132,14 +132,12 @@ class FFC_Frontend {
             }
         }
 
-        // Always localize (even if empty) to avoid JS errors
-        wp_localize_script('ffc-geofence-frontend', 'ffcGeofenceConfig', array_merge(
-            $geofence_configs,
-            array(
-                '_global' => array(
-                    'debug' => !empty($global_settings['debug_enabled'])
-                )
-            )
-        ));
+        // Add global settings without re-indexing form IDs
+        $geofence_configs['_global'] = array(
+            'debug' => !empty($global_settings['debug_enabled'])
+        );
+
+        // Localize script with preserved array keys
+        wp_localize_script('ffc-geofence-frontend', 'ffcGeofenceConfig', $geofence_configs);
     }
 }
