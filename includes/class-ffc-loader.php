@@ -40,58 +40,60 @@ class Free_Form_Certificate_Loader {
 
     private function load_dependencies() {
         // Core utilities
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-utils.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-migration-manager.php';
+        require_once FFC_PLUGIN_DIR . 'includes/core/class-ffc-utils.php';
+        require_once FFC_PLUGIN_DIR . 'includes/core/class-ffc-encryption.php';
         require_once FFC_PLUGIN_DIR . 'includes/class-ffc-activator.php';
         require_once FFC_PLUGIN_DIR . 'includes/class-ffc-deactivator.php';
-        
-        // Repositories (v3.0.0)
-        require_once FFC_PLUGIN_DIR . 'includes/repositories/ffc-abstract-repository.php';
-        require_once FFC_PLUGIN_DIR . 'includes/repositories/ffc-submission-repository.php';
-        require_once FFC_PLUGIN_DIR . 'includes/repositories/ffc-form-repository.php';
-        
-        // Security & helpers
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-magic-link-helper.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-encryption.php';
 
-        // Geofence & IP Geolocation (v3.0.0)
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-ip-geolocation.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-geofence.php';
+        // Repositories (v3.0.0)
+        require_once FFC_PLUGIN_DIR . 'includes/repositories/abstract-repository.php';
+        require_once FFC_PLUGIN_DIR . 'includes/repositories/submission-repository.php';
+        require_once FFC_PLUGIN_DIR . 'includes/repositories/form-repository.php';
+
+        // Migrations
+        require_once FFC_PLUGIN_DIR . 'includes/migrations/class-ffc-migration-manager.php';
+        require_once FFC_PLUGIN_DIR . 'includes/migrations/class-ffc-migration-user-link.php';
+
+        // Integrations
+        require_once FFC_PLUGIN_DIR . 'includes/integrations/class-ffc-ip-geolocation.php';
+        require_once FFC_PLUGIN_DIR . 'includes/integrations/class-ffc-email-handler.php';
+
+        // Security
+        require_once FFC_PLUGIN_DIR . 'includes/security/class-ffc-geofence.php';
+        require_once FFC_PLUGIN_DIR . 'includes/security/class-ffc-rate-limiter.php';
+
+        // Generators
+        require_once FFC_PLUGIN_DIR . 'includes/generators/class-ffc-magic-link-helper.php';
+        require_once FFC_PLUGIN_DIR . 'includes/generators/class-ffc-qrcode-generator.php';
+        require_once FFC_PLUGIN_DIR . 'includes/generators/class-ffc-pdf-generator.php';
 
         // User Dashboard (v3.1.0)
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-migration-user-link.php';
         require_once FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-user-manager.php';
         require_once FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-access-control.php';
         require_once FFC_PLUGIN_DIR . 'includes/shortcodes/class-ffc-dashboard-shortcode.php';
         require_once FFC_PLUGIN_DIR . 'includes/admin/class-ffc-admin-user-columns.php';
 
-        // Settings system (load BEFORE rate-limiter)
+        // Settings system (load BEFORE admin classes)
         if (file_exists(FFC_PLUGIN_DIR . 'includes/settings/abstract-ffc-settings-tab.php')) {
             require_once FFC_PLUGIN_DIR . 'includes/settings/abstract-ffc-settings-tab.php';
         }
-        
-        // Rate limiter (needs abstract-ffc-settings-tab)
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-rate-limiter.php';
-        
-        // Handlers
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-submission-handler.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-submissions-list-table.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-admin-ajax.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-email-handler.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-csv-exporter.php';
-        
-        // Generators
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-qrcode-generator.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-pdf-generator.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-form-processor.php';
-        
+
+        // Submissions
+        require_once FFC_PLUGIN_DIR . 'includes/submissions/class-ffc-submission-handler.php';
+
         // Admin
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-cpt.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-form-editor.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-settings.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-admin.php';
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-frontend.php';
-        
+        require_once FFC_PLUGIN_DIR . 'includes/admin/class-ffc-submissions-list-table.php';
+        require_once FFC_PLUGIN_DIR . 'includes/admin/class-ffc-admin-ajax.php';
+        require_once FFC_PLUGIN_DIR . 'includes/admin/class-ffc-csv-exporter.php';
+        require_once FFC_PLUGIN_DIR . 'includes/admin/class-ffc-cpt.php';
+        require_once FFC_PLUGIN_DIR . 'includes/admin/class-ffc-form-editor.php';
+        require_once FFC_PLUGIN_DIR . 'includes/admin/class-ffc-settings.php';
+        require_once FFC_PLUGIN_DIR . 'includes/admin/class-ffc-admin.php';
+
+        // Frontend
+        require_once FFC_PLUGIN_DIR . 'includes/frontend/class-ffc-form-processor.php';
+        require_once FFC_PLUGIN_DIR . 'includes/frontend/class-ffc-frontend.php';
+
         // REST API Controller (v3.0.0)
         if (file_exists(FFC_PLUGIN_DIR . 'includes/api/class-ffc-rest-controller.php')) {
             require_once FFC_PLUGIN_DIR . 'includes/api/class-ffc-rest-controller.php';
@@ -122,7 +124,7 @@ class Free_Form_Certificate_Loader {
     
     public function enqueue_rate_limit_assets() {
         wp_enqueue_script('ffc-rate-limit', FFC_PLUGIN_URL . 'assets/js/ffc-frontend-helpers.js', ['jquery'], FFC_VERSION, true);
-        wp_enqueue_style('ffc-rate-limit', FFC_PLUGIN_URL . 'assets/css/ffc-admin-rate-limit.css', [], FFC_VERSION);
+        wp_enqueue_style('ffc-rate-limit', FFC_PLUGIN_URL . 'assets/css/admin-rate-limit.css', [], FFC_VERSION);
     }
     
     // For future use

@@ -275,7 +275,7 @@ class FFC_PDF_Generator {
     private function process_qrcode_placeholders( $layout, $data, $form_config ) {
         // Initialize QR Code generator
         if ( ! class_exists( 'FFC_QRCode_Generator' ) ) {
-            require_once FFC_PLUGIN_DIR . 'includes/class-ffc-qrcode-generator.php';
+            require_once FFC_PLUGIN_DIR . 'includes/generators/class-ffc-qrcode-generator.php';
         }
         
         $qr_generator = new FFC_QRCode_Generator();

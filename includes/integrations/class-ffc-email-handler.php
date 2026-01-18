@@ -146,7 +146,7 @@ class FFC_Email_Handler {
     private function process_qr_code_placeholders( $layout, $submission_data ) {
         // Initialize QR Code generator
         if ( ! class_exists( 'FFC_QRCode_Generator' ) ) {
-            require_once FFC_PLUGIN_DIR . 'includes/class-ffc-qrcode-generator.php';
+            require_once FFC_PLUGIN_DIR . 'includes/generators/class-ffc-qrcode-generator.php';
         }
         
         $qr_generator = new FFC_QRCode_Generator();

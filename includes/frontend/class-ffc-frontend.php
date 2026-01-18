@@ -12,13 +12,13 @@ class FFC_Frontend {
     public function __construct( $submission_handler, $email_handler ) {
         // Load classes only if not already loaded
         if (!class_exists('FFC_Verification_Handler')) {
-            require_once FFC_PLUGIN_DIR . 'includes/class-ffc-verification-handler.php';
+            require_once FFC_PLUGIN_DIR . 'includes/frontend/class-ffc-verification-handler.php';
         }
         if (!class_exists('FFC_Form_Processor')) {
-            require_once FFC_PLUGIN_DIR . 'includes/class-ffc-form-processor.php';
+            require_once FFC_PLUGIN_DIR . 'includes/frontend/class-ffc-form-processor.php';
         }
         if (!class_exists('FFC_Shortcodes')) {
-            require_once FFC_PLUGIN_DIR . 'includes/shortcodes/class-ffc-shortcodes.php';
+            require_once FFC_PLUGIN_DIR . 'includes/frontend/class-ffc-shortcodes.php';
         }
 
         $this->verification_handler = new FFC_Verification_Handler( $submission_handler, $email_handler );
@@ -59,11 +59,11 @@ class FFC_Frontend {
             
             // CSS - Using centralized version constant
             wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . 'assets/css/ffc-pdf-core.css', array(), FFC_VERSION );
-            wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . 'assets/css/ffc-frontend.css', array('ffc-pdf-core'), FFC_VERSION );
+            wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . 'assets/css/frontend.css', array('ffc-pdf-core'), FFC_VERSION );
             
             // PDF Libraries - Using centralized version constants
-            wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'assets/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
-            wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'assets/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true );
+            wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
+            wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true );
             
             // PDF Generator (shared module)
             wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . 'assets/js/ffc-pdf-generator.js', array( 'jquery', 'html2canvas', 'jspdf' ), FFC_VERSION, true );

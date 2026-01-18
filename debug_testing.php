@@ -8,7 +8,7 @@ if (!is_admin()) {
 echo "<h1>Migration Status Test</h1>";
 
 // Carregar Migration Manager
-require_once WP_PLUGIN_DIR . '/wp-ffcertificate/includes/class-ffc-migration-manager.php';
+require_once WP_PLUGIN_DIR . '/wp-ffcertificate/includes/migrations/class-ffc-migration-manager.php';
 $migration_manager = new FFC_Migration_Manager();
 
 // Buscar migration

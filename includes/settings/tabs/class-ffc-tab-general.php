@@ -25,7 +25,7 @@ class FFC_Tab_General extends FFC_Settings_Tab {
     public function render() {
         // Load FFC_Form_Cache if not already loaded
         if ( ! class_exists( 'FFC_Form_Cache' ) ) {
-            require_once FFC_PLUGIN_DIR . 'includes/class-ffc-form-cache.php';
+            require_once FFC_PLUGIN_DIR . 'includes/submissions/class-ffc-form-cache.php';
         }
         
         // Get forms for danger zone

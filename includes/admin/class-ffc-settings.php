@@ -378,7 +378,7 @@ class FFC_Settings {
         }
         
         // Load Migration Manager
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-migration-manager.php';
+        require_once FFC_PLUGIN_DIR . 'includes/migrations/class-ffc-migration-manager.php';
         $migration_manager = new FFC_Migration_Manager();
         
         // Run migration
@@ -442,7 +442,7 @@ class FFC_Settings {
         check_admin_referer('ffc_warm_cache');
         
         if (!class_exists('FFC_Form_Cache')) {
-            require_once FFC_PLUGIN_DIR . 'includes/class-ffc-form-cache.php';
+            require_once FFC_PLUGIN_DIR . 'includes/submissions/class-ffc-form-cache.php';
         }
         
         $warmed = FFC_Form_Cache::warm_all_forms();
@@ -462,7 +462,7 @@ class FFC_Settings {
         check_admin_referer('ffc_clear_cache');
         
         if (!class_exists('FFC_Form_Cache')) {
-            require_once FFC_PLUGIN_DIR . 'includes/class-ffc-form-cache.php';
+            require_once FFC_PLUGIN_DIR . 'includes/submissions/class-ffc-form-cache.php';
         }
         
         FFC_Form_Cache::clear_all_cache();

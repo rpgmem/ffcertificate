@@ -30,7 +30,7 @@ class FFC_Admin {
 
         // ✅ v2.9.13: Initialize Migration Manager
         if ( ! class_exists( 'FFC_Migration_Manager' ) ) {
-            require_once plugin_dir_path( __FILE__ ) . 'class-ffc-migration-manager.php';
+            require_once FFC_PLUGIN_DIR . 'includes/migrations/class-ffc-migration-manager.php';
         }
         $this->migration_manager = new FFC_Migration_Manager();
 
@@ -169,7 +169,7 @@ class FFC_Admin {
     }
     
     private function render_list_page() {
-        require_once FFC_PLUGIN_DIR . 'includes/class-ffc-submissions-list-table.php';
+        require_once FFC_PLUGIN_DIR . 'includes/admin/class-ffc-submissions-list-table.php';
         $table = new FFC_Submission_List( $this->submission_handler );
         $this->display_admin_notices();
         $table->prepare_items();
@@ -626,20 +626,20 @@ class FFC_Admin {
             // Load required classes
             error_log('[FFC Admin] Loading PDF Generator class');
             if ( ! class_exists( 'FFC_PDF_Generator' ) ) {
-                $pdf_gen_path = FFC_PLUGIN_DIR . 'includes/class-ffc-pdf-generator.php';
+                $pdf_gen_path = FFC_PLUGIN_DIR . 'includes/generators/class-ffc-pdf-generator.php';
                 if ( ! file_exists( $pdf_gen_path ) ) {
                     error_log('[FFC Admin] ERROR: PDF Generator file not found at: ' . $pdf_gen_path);
                     wp_send_json_error( array( 'message' => 'PDF Generator class file not found' ) );
                 }
                 require_once $pdf_gen_path;
             }
-            
+
             if ( ! class_exists( 'FFC_Submission_Handler' ) ) {
-                require_once FFC_PLUGIN_DIR . 'includes/class-ffc-submission-handler.php';
+                require_once FFC_PLUGIN_DIR . 'includes/submissions/class-ffc-submission-handler.php';
             }
-            
+
             if ( ! class_exists( 'FFC_Email_Handler' ) ) {
-                require_once FFC_PLUGIN_DIR . 'includes/class-ffc-email-handler.php';
+                require_once FFC_PLUGIN_DIR . 'includes/integrations/class-ffc-email-handler.php';
             }
             
             error_log('[FFC Admin] Classes loaded successfully');
