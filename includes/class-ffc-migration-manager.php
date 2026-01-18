@@ -392,10 +392,47 @@ class FFC_Migration_Manager {
             );
         }
         
+        // ✅ v3.1.0: User Link migration
+        if ( $migration_key === 'user_link' ) {
+            // Count total submissions with CPF/RF hash
+            $total = $wpdb->get_var(
+                "SELECT COUNT(*) FROM {$this->table_name}
+                WHERE cpf_rf_hash IS NOT NULL AND cpf_rf_hash != ''"
+            );
+
+            if ( $total == 0 ) {
+                return array(
+                    'total' => 0,
+                    'migrated' => 0,
+                    'pending' => 0,
+                    'percent' => 100,
+                    'is_complete' => true
+                );
+            }
+
+            // Count submissions already linked to users
+            $with_user = $wpdb->get_var(
+                "SELECT COUNT(*) FROM {$this->table_name}
+                WHERE cpf_rf_hash IS NOT NULL AND cpf_rf_hash != ''
+                AND user_id IS NOT NULL"
+            );
+
+            $pending = $total - $with_user;
+            $percent = ( $total > 0 ) ? ( $with_user / $total ) * 100 : 100;
+
+            return array(
+                'total' => $total,
+                'migrated' => $with_user,
+                'pending' => $pending,
+                'percent' => round( $percent, 2 ),
+                'is_complete' => ( $pending == 0 )
+            );
+        }
+
         if ( $migration_key === 'data_cleanup' ) {
             // Check option flag
             $completed = get_option( "ffc_migration_{$migration_key}_completed", false );
-            
+
             return array(
                 'total' => 0,
                 'migrated' => $completed ? 1 : 0,
@@ -404,7 +441,7 @@ class FFC_Migration_Manager {
                 'is_complete' => $completed
             );
         }
-        
+
         return new WP_Error( 'unknown_migration_type', __( 'Unknown migration type', 'ffc' ) );
     }
     
