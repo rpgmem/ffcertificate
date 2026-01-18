@@ -132,14 +132,14 @@ class FFC_Frontend {
             }
         }
 
-        // Only localize if we have configurations
-        if (!empty($geofence_configs)) {
-            wp_localize_script('ffc-geofence-frontend', 'ffcGeofenceConfig', array_merge(
-                $geofence_configs,
-                array(
+        // Always localize (even if empty) to avoid JS errors
+        wp_localize_script('ffc-geofence-frontend', 'ffcGeofenceConfig', array_merge(
+            $geofence_configs,
+            array(
+                '_global' => array(
                     'debug' => !empty($global_settings['debug_enabled'])
                 )
-            ));
-        }
+            )
+        ));
     }
 }

@@ -22,9 +22,12 @@
 
             this.debug('FFC Geofence initialized', window.ffcGeofenceConfig);
 
-            // Process each form
+            // Process each form (skip non-numeric keys like '_global')
             Object.keys(window.ffcGeofenceConfig).forEach(formId => {
-                this.processForm(formId, window.ffcGeofenceConfig[formId]);
+                // Only process numeric form IDs (skip keys starting with '_')
+                if (!isNaN(formId) && !formId.startsWith('_')) {
+                    this.processForm(formId, window.ffcGeofenceConfig[formId]);
+                }
             });
         },
 
@@ -38,11 +41,16 @@
             const formWrapper = $('#ffc-form-' + formId);
 
             if (formWrapper.length === 0) {
-                this.debug('Form wrapper not found', formId);
+                this.debug('Form wrapper not found for ID: ' + formId);
                 return;
             }
 
-            this.debug('Processing form', { formId, config });
+            this.debug('Processing form', {
+                formId: formId,
+                datetimeEnabled: config.datetime ? config.datetime.enabled : false,
+                geoEnabled: config.geo ? config.geo.enabled : false,
+                config: config
+            });
 
             // PRIORITY 1: Validate Date/Time (server timestamp is trusted)
             if (config.datetime && config.datetime.enabled) {
@@ -414,7 +422,7 @@
          * Debug log (only when debug mode is enabled)
          */
         debug: function(message, data) {
-            if (window.ffcGeofenceConfig && window.ffcGeofenceConfig.debug) {
+            if (window.ffcGeofenceConfig && window.ffcGeofenceConfig._global && window.ffcGeofenceConfig._global.debug) {
                 console.log('[FFC Geofence] ' + message, data || '');
             }
         }
