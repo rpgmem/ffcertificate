@@ -37,9 +37,12 @@ class FFC_Tab_Geolocation extends FFC_Settings_Tab {
             'gps_fallback' => 'allow', // When GPS fails: 'allow' or 'block'
             'both_fail_fallback' => 'block', // When GPS + IP both fail: 'allow' or 'block'
 
+            // Admin Bypass (independent of debug mode)
+            'admin_bypass_datetime' => false, // Admins bypass datetime restrictions
+            'admin_bypass_geo' => false, // Admins bypass geolocation restrictions
+
             // Debug Mode
             'debug_enabled' => false,
-            'debug_admin_bypass' => true, // Admins bypass restrictions when debug enabled
         );
     }
 
@@ -92,8 +95,10 @@ class FFC_Tab_Geolocation extends FFC_Settings_Tab {
                 ? sanitize_key($_POST['both_fail_fallback'])
                 : 'block',
 
+            'admin_bypass_datetime' => isset($_POST['admin_bypass_datetime']),
+            'admin_bypass_geo' => isset($_POST['admin_bypass_geo']),
+
             'debug_enabled' => isset($_POST['debug_enabled']),
-            'debug_admin_bypass' => isset($_POST['debug_admin_bypass']),
         );
 
         update_option('ffc_geolocation_settings', $settings);

@@ -209,9 +209,53 @@ if (!defined('ABSPATH')) exit;
 
         <hr>
 
+        <!-- Admin Bypass Section -->
+        <div class="card">
+            <h2><?php esc_html_e('Administrator Bypass', 'ffc'); ?></h2>
+            <p class="description">
+                <?php esc_html_e('Allow administrators to bypass geofence restrictions for testing and content management.', 'ffc'); ?>
+            </p>
+
+            <table class="form-table">
+                <!-- Bypass Date/Time -->
+                <tr>
+                    <th scope="row">
+                        <label><?php esc_html_e('Bypass Date/Time', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="admin_bypass_datetime" value="1" <?php checked($settings['admin_bypass_datetime'], true); ?>>
+                            <?php esc_html_e('Administrators bypass date/time restrictions', 'ffc'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Logged-in administrators can access forms regardless of date/time configuration. A visual message will appear indicating bypass is active.', 'ffc'); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- Bypass Geolocation -->
+                <tr>
+                    <th scope="row">
+                        <label><?php esc_html_e('Bypass Geolocation', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="admin_bypass_geo" value="1" <?php checked($settings['admin_bypass_geo'], true); ?>>
+                            <?php esc_html_e('Administrators bypass geolocation restrictions', 'ffc'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Logged-in administrators can access forms regardless of GPS/IP geolocation configuration. A visual message will appear indicating bypass is active.', 'ffc'); ?>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <hr>
+
         <!-- Debug Mode Section -->
         <div class="card">
-            <h2><?php esc_html_e('Debug & Testing', 'ffc'); ?></h2>
+            <h2><?php esc_html_e('Debug Mode', 'ffc'); ?></h2>
             <p class="description">
                 <?php esc_html_e('Enable debug mode for testing and troubleshooting geolocation features.', 'ffc'); ?>
             </p>
@@ -220,7 +264,7 @@ if (!defined('ABSPATH')) exit;
                 <!-- Enable Debug -->
                 <tr>
                     <th scope="row">
-                        <label><?php esc_html_e('Debug Mode', 'ffc'); ?></label>
+                        <label><?php esc_html_e('Enable Debug', 'ffc'); ?></label>
                     </th>
                     <td>
                         <label>
@@ -228,23 +272,7 @@ if (!defined('ABSPATH')) exit;
                             <?php esc_html_e('Enable geolocation debug mode', 'ffc'); ?>
                         </label>
                         <p class="description">
-                            <?php esc_html_e('Shows detailed geolocation information in browser console and WordPress debug log.', 'ffc'); ?>
-                        </p>
-                    </td>
-                </tr>
-
-                <!-- Admin Bypass -->
-                <tr>
-                    <th scope="row">
-                        <label><?php esc_html_e('Admin Bypass', 'ffc'); ?></label>
-                    </th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="debug_admin_bypass" value="1" <?php checked($settings['debug_admin_bypass'], true); ?>>
-                            <?php esc_html_e('Administrators bypass geolocation restrictions when debug is enabled', 'ffc'); ?>
-                        </label>
-                        <p class="description">
-                            <?php esc_html_e('When enabled, logged-in administrators can access all forms regardless of geolocation restrictions.', 'ffc'); ?>
+                            <?php esc_html_e('Shows detailed geolocation information in browser console (F12) for troubleshooting.', 'ffc'); ?>
                         </p>
                     </td>
                 </tr>

@@ -322,17 +322,31 @@ class FFC_Geofence {
     }
 
     /**
-     * Check if admin should bypass restrictions (for testing)
+     * Check if admin should bypass datetime restrictions
      *
      * @return bool True if current user is admin and bypass is enabled
      */
-    public static function should_bypass_for_admin() {
+    public static function should_bypass_datetime() {
         if (!is_user_logged_in() || !current_user_can('manage_options')) {
             return false;
         }
 
         $settings = get_option('ffc_geolocation_settings', array());
-        return !empty($settings['debug_enabled']) && !empty($settings['debug_admin_bypass']);
+        return !empty($settings['admin_bypass_datetime']);
+    }
+
+    /**
+     * Check if admin should bypass geolocation restrictions
+     *
+     * @return bool True if current user is admin and bypass is enabled
+     */
+    public static function should_bypass_geo() {
+        if (!is_user_logged_in() || !current_user_can('manage_options')) {
+            return false;
+        }
+
+        $settings = get_option('ffc_geolocation_settings', array());
+        return !empty($settings['admin_bypass_geo']);
     }
 
     /**
@@ -348,9 +362,12 @@ class FFC_Geofence {
             return null;
         }
 
-        // Admin bypass - return special config with bypass flag
-        // Include info about which restrictions are configured (for display purposes)
-        if (self::should_bypass_for_admin()) {
+        // Check admin bypass for each restriction type
+        $bypass_datetime = self::should_bypass_datetime();
+        $bypass_geo = self::should_bypass_geo();
+
+        // If both restrictions are bypassed, return special config
+        if ($bypass_datetime && $bypass_geo) {
             return array(
                 'formId' => $form_id,
                 'adminBypass' => true,
@@ -367,11 +384,18 @@ class FFC_Geofence {
         }
 
         // Build frontend config
+        // Check if any bypass is active
+        $has_partial_bypass = $bypass_datetime || $bypass_geo;
+
         $frontend_config = array(
             'formId' => $form_id,
-            'adminBypass' => false,
+            'adminBypass' => $has_partial_bypass,
+            'bypassInfo' => $has_partial_bypass ? array(
+                'hasDatetime' => $bypass_datetime && $config['datetime_enabled'] == '1',
+                'hasGeo' => $bypass_geo && $config['geo_enabled'] == '1',
+            ) : null,
             'datetime' => array(
-                'enabled' => $config['datetime_enabled'] == '1',
+                'enabled' => !$bypass_datetime && $config['datetime_enabled'] == '1',
                 'dateStart' => $config['date_start'] ?? '',
                 'dateEnd' => $config['date_end'] ?? '',
                 'timeStart' => $config['time_start'] ?? '',
@@ -380,8 +404,8 @@ class FFC_Geofence {
                 'hideMode' => $config['datetime_hide_mode'] ?? 'message', // 'hide' or 'message'
             ),
             'geo' => array(
-                'enabled' => $config['geo_enabled'] == '1',
-                'gpsEnabled' => $config['geo_gps_enabled'] == '1',
+                'enabled' => !$bypass_geo && $config['geo_enabled'] == '1',
+                'gpsEnabled' => !$bypass_geo && $config['geo_gps_enabled'] == '1',
                 'areas' => self::parse_areas($config['geo_areas'] ?? ''),
                 'gpsIpLogic' => $config['geo_gps_ip_logic'] ?? 'or', // 'and' or 'or'
                 'messageBlocked' => $config['msg_geo_blocked'] ?? '',

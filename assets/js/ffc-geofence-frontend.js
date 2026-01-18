@@ -53,15 +53,14 @@
                 config: config
             });
 
-            // Check for admin bypass mode
-            if (config.adminBypass === true) {
+            // Show admin bypass messages if active (partial or full)
+            if (config.adminBypass === true && config.bypassInfo) {
                 this.showAdminBypassMessages(formWrapper, config.bypassInfo);
-                this.showForm(formWrapper);
-                this.debug('Admin bypass active, showing form');
-                return;
+                this.debug('Admin bypass active for some restrictions');
             }
 
             // PRIORITY 1: Validate Date/Time (server timestamp is trusted)
+            // Only validate if datetime is enabled (not bypassed)
             if (config.datetime && config.datetime.enabled) {
                 const datetimeValid = this.validateDateTime(config.datetime);
 
@@ -73,6 +72,7 @@
             }
 
             // PRIORITY 2: Validate Geolocation (if enabled)
+            // Only validate if geo is enabled (not bypassed)
             if (config.geo && config.geo.enabled && config.geo.gpsEnabled) {
                 this.validateGeolocation(formWrapper, config.geo);
             } else {
