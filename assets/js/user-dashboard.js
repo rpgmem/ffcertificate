@@ -79,8 +79,14 @@
 
             $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
 
+            // Build URL with viewAsUserId if in admin mode
+            let url = ffcDashboard.restUrl + 'user/certificates';
+            if (ffcDashboard.viewAsUserId) {
+                url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
+            }
+
             $.ajax({
-                url: ffcDashboard.restUrl + 'user/certificates',
+                url: url,
                 method: 'GET',
                 beforeSend: function(xhr) {
                     xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce);
@@ -159,8 +165,14 @@
 
             $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
 
+            // Build URL with viewAsUserId if in admin mode
+            let url = ffcDashboard.restUrl + 'user/profile';
+            if (ffcDashboard.viewAsUserId) {
+                url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
+            }
+
             $.ajax({
-                url: ffcDashboard.restUrl + 'user/profile',
+                url: url,
                 method: 'GET',
                 beforeSend: function(xhr) {
                     xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce);

@@ -63,6 +63,7 @@ class Free_Form_Certificate_Loader {
         require_once FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-user-manager.php';
         require_once FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-access-control.php';
         require_once FFC_PLUGIN_DIR . 'includes/shortcodes/class-ffc-dashboard-shortcode.php';
+        require_once FFC_PLUGIN_DIR . 'includes/admin/class-ffc-admin-user-columns.php';
 
         // Settings system (load BEFORE rate-limiter)
         if (file_exists(FFC_PLUGIN_DIR . 'includes/settings/abstract-ffc-settings-tab.php')) {

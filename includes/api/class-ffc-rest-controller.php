@@ -769,6 +769,12 @@ class FFC_REST_Controller {
                 );
             }
 
+            // Check for admin view-as mode
+            $view_as_user_id = $request->get_param('viewAsUserId');
+            if ($view_as_user_id && current_user_can('manage_options')) {
+                $user_id = absint($view_as_user_id);
+            }
+
             global $wpdb;
             $table = FFC_Utils::get_submissions_table();
 
@@ -869,6 +875,12 @@ class FFC_REST_Controller {
                 );
             }
 
+            // Check for admin view-as mode
+            $view_as_user_id = $request->get_param('viewAsUserId');
+            if ($view_as_user_id && current_user_can('manage_options')) {
+                $user_id = absint($view_as_user_id);
+            }
+
             // Load User Manager if needed
             if (!class_exists('FFC_User_Manager')) {
                 $user_manager_file = FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-user-manager.php';
@@ -877,7 +889,7 @@ class FFC_REST_Controller {
                 }
             }
 
-            $user = wp_get_current_user();
+            $user = get_user_by('id', $user_id);
 
             // Get CPF/RF (masked)
             $cpf_masked = '';

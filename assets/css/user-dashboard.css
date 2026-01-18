@@ -33,6 +33,17 @@
     color: #856404;
 }
 
+.ffc-notice-admin-viewing {
+    background: #fff8e6;
+    border-left-color: #ff9800;
+    color: #663c00;
+    font-weight: 600;
+}
+
+.ffc-notice-admin-viewing strong {
+    color: #ff6f00;
+}
+
 .ffc-dashboard-notice p {
     margin: 0.5em 0;
 }

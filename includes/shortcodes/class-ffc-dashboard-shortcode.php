@@ -30,8 +30,12 @@ class FFC_Dashboard_Shortcode {
             return self::render_login_required();
         }
 
+        // Check for admin view-as mode
+        $view_as_user_id = self::get_view_as_user_id();
+        $is_admin_viewing = $view_as_user_id && $view_as_user_id !== get_current_user_id();
+
         // Enqueue assets
-        self::enqueue_assets();
+        self::enqueue_assets($view_as_user_id);
 
         // Get current tab
         $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'certificates';
@@ -42,7 +46,12 @@ class FFC_Dashboard_Shortcode {
         ?>
         <div class="ffc-user-dashboard" id="ffc-user-dashboard">
 
-            <?php echo self::render_redirect_message(); ?>
+            <?php
+            if ($is_admin_viewing) {
+                echo self::render_admin_viewing_banner($view_as_user_id);
+            }
+            echo self::render_redirect_message();
+            ?>
 
             <nav class="ffc-dashboard-tabs">
                 <button class="ffc-tab <?php echo $current_tab === 'certificates' ? 'active' : ''; ?>"
@@ -71,6 +80,81 @@ class FFC_Dashboard_Shortcode {
         </div>
         <?php
 
+        return ob_get_clean();
+    }
+
+    /**
+     * Get user ID for view-as mode
+     *
+     * @return int|false User ID if valid view-as mode, false otherwise
+     */
+    private static function get_view_as_user_id() {
+        // Check if admin is trying to view as another user
+        if (!isset($_GET['ffc_view_as_user']) || !isset($_GET['ffc_view_nonce'])) {
+            return false;
+        }
+
+        // Only admins can use view-as mode
+        if (!current_user_can('manage_options')) {
+            return false;
+        }
+
+        $target_user_id = absint($_GET['ffc_view_as_user']);
+        $nonce = sanitize_text_field($_GET['ffc_view_nonce']);
+
+        // Verify nonce
+        if (!wp_verify_nonce($nonce, 'ffc_view_as_user_' . $target_user_id)) {
+            return false;
+        }
+
+        // Verify user exists
+        $user = get_user_by('id', $target_user_id);
+        if (!$user) {
+            return false;
+        }
+
+        return $target_user_id;
+    }
+
+    /**
+     * Render admin viewing banner
+     *
+     * @param int $user_id User ID being viewed
+     * @return string HTML output
+     */
+    private static function render_admin_viewing_banner($user_id) {
+        $user = get_user_by('id', $user_id);
+        $admin = wp_get_current_user();
+
+        // Get dashboard URL without view-as parameters
+        $dashboard_page_id = get_option('ffc_dashboard_page_id');
+        $exit_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_url('/dashboard');
+
+        ob_start();
+        ?>
+        <div class="ffc-dashboard-notice ffc-notice-admin-viewing">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <strong>🔍 <?php esc_html_e('Admin View Mode', 'ffc'); ?></strong>
+                    <p style="margin: 5px 0 0 0;">
+                        <?php
+                        printf(
+                            /* translators: 1: Admin name, 2: User name */
+                            esc_html__('You (%1$s) are viewing the dashboard as: %2$s', 'ffc'),
+                            '<strong>' . esc_html($admin->display_name) . '</strong>',
+                            '<strong>' . esc_html($user->display_name) . ' (' . esc_html($user->user_email) . ')</strong>'
+                        );
+                        ?>
+                    </p>
+                </div>
+                <div>
+                    <a href="<?php echo esc_url($exit_url); ?>" class="button button-primary">
+                        <?php esc_html_e('Exit View Mode', 'ffc'); ?>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <?php
         return ob_get_clean();
     }
 
@@ -118,8 +202,10 @@ class FFC_Dashboard_Shortcode {
 
     /**
      * Enqueue dashboard assets
+     *
+     * @param int|false $view_as_user_id User ID in view-as mode
      */
-    private static function enqueue_assets() {
+    private static function enqueue_assets($view_as_user_id = false) {
         // Enqueue CSS
         wp_enqueue_style(
             'ffc-dashboard',
@@ -142,10 +228,12 @@ class FFC_Dashboard_Shortcode {
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'restUrl' => rest_url('ffc/v1/'),
             'nonce' => wp_create_nonce('wp_rest'),
+            'viewAsUserId' => $view_as_user_id ? $view_as_user_id : false,
+            'isAdminViewing' => $view_as_user_id && $view_as_user_id !== get_current_user_id(),
             'strings' => array(
                 'loading' => __('Loading...', 'ffc'),
                 'error' => __('Error loading data', 'ffc'),
-                'noStuff' => __('No certificates found', 'ffc'),
+                'noCertificates' => __('No certificates found', 'ffc'),
                 'downloadPdf' => __('View PDF', 'ffc'),
                 'yes' => __('Yes', 'ffc'),
                 'no' => __('No', 'ffc'),
