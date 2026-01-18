@@ -144,7 +144,8 @@
                 return;
             }
 
-            // Show loading state
+            // IMPORTANT: Hide form BEFORE requesting location
+            formWrapper.find('.ffc-submission-form').hide();
             formWrapper.addClass('ffc-geofence-loading');
             this.showLoadingMessage(formWrapper, 'Detecting your location...');
 
@@ -168,7 +169,7 @@
                         self.setLocationCache(formWrapper.attr('id'), location, config.cacheTtl || 600);
                     }
 
-                    // Check if within areas
+                    // Check if within areas (will show form if valid)
                     self.checkLocation(formWrapper, location, config);
                 },
                 function(error) {
@@ -214,6 +215,7 @@
 
             if (areas.length === 0) {
                 this.debug('No areas defined, allowing access');
+                formWrapper.find('.ffc-submission-form').show(); // Show form
                 return; // No restrictions
             }
 
@@ -250,6 +252,7 @@
                 );
             } else {
                 this.debug('User within allowed area, showing form');
+                formWrapper.find('.ffc-submission-form').show(); // Show form
             }
         },
 
