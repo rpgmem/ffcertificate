@@ -181,7 +181,16 @@ class FFC_Activator {
             return;
         }
 
+        // Migrations that should NOT run automatically during activation
+        // (they require existing data or should be run manually by admin)
+        $skip_on_activation = array('user_link', 'cleanup_unencrypted', 'data_cleanup');
+
         foreach ($migrations as $key => $migration) {
+            // Skip migrations that should be run manually
+            if (in_array($key, $skip_on_activation)) {
+                continue;
+            }
+
             if (!$migration_manager->can_run_migration($key)) continue;
 
             $option_key = "ffc_migration_{$key}_completed";
