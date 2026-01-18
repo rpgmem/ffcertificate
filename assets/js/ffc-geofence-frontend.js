@@ -55,7 +55,7 @@
 
             // Check for admin bypass mode
             if (config.adminBypass === true) {
-                this.showAdminBypassMessage(formWrapper);
+                this.showAdminBypassMessages(formWrapper, config.bypassInfo);
                 this.showForm(formWrapper);
                 this.debug('Admin bypass active, showing form');
                 return;
@@ -361,12 +361,39 @@
         },
 
         /**
-         * Show admin bypass message
+         * Show admin bypass messages (one for each active restriction)
+         *
+         * @param {jQuery} formWrapper Form wrapper element
+         * @param {object} bypassInfo Info about which restrictions are bypassed
          */
-        showAdminBypassMessage: function(formWrapper) {
-            const message = '🔓 Admin Bypass Mode Active - Geofence restrictions are disabled for administrators';
-            const html = '<div class="ffc-geofence-admin-bypass"><p>' + this.escapeHtml(message) + '</p></div>';
-            formWrapper.prepend(html);
+        showAdminBypassMessages: function(formWrapper, bypassInfo) {
+            if (!bypassInfo) {
+                // Fallback: show generic message if no bypass info
+                const message = '🔓 Admin Bypass Mode Active - Geofence restrictions are disabled for administrators';
+                const html = '<div class="ffc-geofence-admin-bypass"><p>' + this.escapeHtml(message) + '</p></div>';
+                formWrapper.prepend(html);
+                return;
+            }
+
+            // Show specific messages for each bypassed restriction
+            if (bypassInfo.hasDatetime) {
+                const datetimeMsg = '🔓 Admin Bypass: Date/Time restrictions are disabled for administrators';
+                const datetimeHtml = '<div class="ffc-geofence-admin-bypass"><p>' + this.escapeHtml(datetimeMsg) + '</p></div>';
+                formWrapper.prepend(datetimeHtml);
+            }
+
+            if (bypassInfo.hasGeo) {
+                const geoMsg = '🔓 Admin Bypass: Geolocation restrictions are disabled for administrators';
+                const geoHtml = '<div class="ffc-geofence-admin-bypass"><p>' + this.escapeHtml(geoMsg) + '</p></div>';
+                formWrapper.prepend(geoHtml);
+            }
+
+            // If neither, show generic message
+            if (!bypassInfo.hasDatetime && !bypassInfo.hasGeo) {
+                const message = '🔓 Admin Bypass Mode Active';
+                const html = '<div class="ffc-geofence-admin-bypass"><p>' + this.escapeHtml(message) + '</p></div>';
+                formWrapper.prepend(html);
+            }
         },
 
         /**

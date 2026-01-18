@@ -349,10 +349,15 @@ class FFC_Geofence {
         }
 
         // Admin bypass - return special config with bypass flag
+        // Include info about which restrictions are configured (for display purposes)
         if (self::should_bypass_for_admin()) {
             return array(
                 'formId' => $form_id,
                 'adminBypass' => true,
+                'bypassInfo' => array(
+                    'hasDatetime' => $config['datetime_enabled'] == '1',
+                    'hasGeo' => $config['geo_enabled'] == '1',
+                ),
                 'datetime' => array('enabled' => false),
                 'geo' => array('enabled' => false),
                 'global' => array(
