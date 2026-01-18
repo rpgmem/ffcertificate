@@ -68,7 +68,7 @@
                 this.validateGeolocation(formWrapper, config.geo);
             } else {
                 // No geolocation check needed, show form now
-                formWrapper.find('.ffc-submission-form').show();
+                this.showForm(formWrapper);
                 this.debug('No geolocation validation, showing form');
             }
         },
@@ -220,7 +220,7 @@
 
             if (areas.length === 0) {
                 this.debug('No areas defined, allowing access');
-                formWrapper.find('.ffc-submission-form').show(); // Show form
+                this.showForm(formWrapper);
                 return; // No restrictions
             }
 
@@ -257,7 +257,7 @@
                 );
             } else {
                 this.debug('User within allowed area, showing form');
-                formWrapper.find('.ffc-submission-form').show(); // Show form
+                this.showForm(formWrapper);
             }
         },
 
@@ -290,6 +290,17 @@
          */
         deg2rad: function(deg) {
             return deg * (Math.PI / 180);
+        },
+
+        /**
+         * Show form after successful validation
+         * Adds 'ffc-validated' class to override CSS hiding
+         *
+         * @param {jQuery} formWrapper Form wrapper element
+         */
+        showForm: function(formWrapper) {
+            formWrapper.addClass('ffc-validated');
+            this.debug('Form validation passed, showing form');
         },
 
         /**

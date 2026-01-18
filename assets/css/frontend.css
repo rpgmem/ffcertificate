@@ -659,6 +659,11 @@
     display: none !important;
 }
 
+/* Show form after successful validation */
+.ffc-has-geofence.ffc-validated .ffc-submission-form {
+    display: block !important;
+}
+
 /* Geofence loading message */
 .ffc-geofence-loading-msg {
     text-align: center;
