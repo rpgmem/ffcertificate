@@ -66,18 +66,19 @@ class FFC_PDF_Generator {
         if ( ! is_array( $extra_data ) ) {
             $extra_data = json_decode( stripslashes( $sub_array['data'] ), true );
         }
-        
-        error_log("JSON: data=" . $sub_array["data"]);
-        error_log("JSON: extra_data=" . print_r($extra_data, true));
-        error_log("JSON: is_array=" . (is_array($extra_data) ? "YES" : "NO"));
+
+        FFC_Debug::log_pdf( 'JSON: data', $sub_array['data'] );
+        FFC_Debug::log_pdf( 'JSON: extra_data', $extra_data );
+        FFC_Debug::log_pdf( 'JSON: is_array', is_array( $extra_data ) ? 'YES' : 'NO' );
+
         // Passo 3: Merge (extras NÃO sobrescrevem obrigatórios)
         if ( is_array( $extra_data ) && ! empty( $extra_data ) ) {
             $data = array_merge( $extra_data, $data );  // ✅ Ordem importante: colunas têm prioridade
         }
-        
+
         // ✅ Agora $data tem TUDO: colunas + JSON
-            error_log("MERGE: count=" . count($extra_data));
-            error_log("MERGE: AFTER=" . print_r($data, true));
+        FFC_Debug::log_pdf( 'MERGE: count', count( $extra_data ) );
+        FFC_Debug::log_pdf( 'MERGE: AFTER', $data );
         
         // Enrich data with submission metadata
         $data = $this->enrich_submission_data( $data, $sub_array );
@@ -234,7 +235,7 @@ class FFC_PDF_Generator {
             // Apply allowed HTML filtering
             $safe_value = wp_kses( $value, FFC_Utils::get_allowed_html_tags() );
             $layout = str_replace( '{{' . $key . '}}', $safe_value, $layout );
-            error_log("REPLACED: {{" . $key . "}} => " . substr($safe_value, 0, 30));
+            FFC_Debug::log_pdf( 'REPLACED: {{' . $key . '}}', substr( $safe_value, 0, 30 ) );
         }
         
         // Fix relative URLs to absolute

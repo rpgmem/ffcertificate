@@ -66,15 +66,15 @@ $custom_format = $get_option('date_format_custom', '');
                         <p class="description">
                             <?php esc_html_e('Format used for {{submission_date}} placeholder in PDFs and emails.', 'ffc'); ?>
                             <br>
-                            <strong><?php esc_html_e('Preview:', 'ffc'); ?></strong> 
+                            <strong><?php esc_html_e('Preview:', 'ffc'); ?></strong>
                             <span class="ffc-text-info ffc-monospace">
-                                <?php 
+                                <?php
                                 $preview_date = '2026-01-04 15:30:45';
                                 echo date_i18n(($current_format === 'custom' && !empty($custom_format)) ? $custom_format : $current_format, strtotime($preview_date));
                                 ?>
                             </span>
                         </p>
-                        
+
                         <div id="ffc_custom_format_container" class="ffc-collapsible-section <?php echo $current_format !== 'custom' ? 'ffc-hidden' : ''; ?>">
                             <div class="ffc-collapsible-content active">
                                 <label>
@@ -82,11 +82,82 @@ $custom_format = $get_option('date_format_custom', '');
                                     <input type="text" name="ffc_settings[date_format_custom]" id="ffc_date_format_custom" value="<?php echo esc_attr($custom_format); ?>" placeholder="d/m/Y H:i" class="regular-text">
                                 </label>
                                 <p class="description">
-                                    <?php esc_html_e('Use PHP date format characters.', 'ffc'); ?> 
+                                    <?php esc_html_e('Use PHP date format characters.', 'ffc'); ?>
                                     <a href="https://www.php.net/manual/en/datetime.format.php" target="_blank"><?php esc_html_e('See documentation', 'ffc'); ?></a>
                                 </p>
                             </div>
                         </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>🐛 <?php esc_html_e('Debug Settings', 'ffc'); ?></h3>
+        <p class="description">
+            <?php esc_html_e('Enable debug logging for specific areas. Debug logs are written to the PHP error log.', 'ffc'); ?>
+            <span class="ffc-text-warning">⚠️ <?php esc_html_e('Only enable in development or when troubleshooting issues.', 'ffc'); ?></span>
+        </p>
+
+        <table class="form-table" role="presentation">
+            <tbody>
+                <tr>
+                    <th scope="row">
+                        <label for="debug_pdf_generator"><?php esc_html_e('PDF Generator', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="ffc_settings[debug_pdf_generator]" id="debug_pdf_generator" value="1" <?php checked($get_option('debug_pdf_generator'), 1); ?>>
+                            <?php esc_html_e('Enable debug logging for PDF generation', 'ffc'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Logs JSON data parsing, placeholder replacements, and PDF data preparation.', 'ffc'); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="debug_email_handler"><?php esc_html_e('Email Handler', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="ffc_settings[debug_email_handler]" id="debug_email_handler" value="1" <?php checked($get_option('debug_email_handler'), 1); ?>>
+                            <?php esc_html_e('Enable debug logging for email sending', 'ffc'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Logs email preparation, SMTP connection, and sending status.', 'ffc'); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="debug_form_processor"><?php esc_html_e('Form Processor', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="ffc_settings[debug_form_processor]" id="debug_form_processor" value="1" <?php checked($get_option('debug_form_processor'), 1); ?>>
+                            <?php esc_html_e('Enable debug logging for form submission processing', 'ffc'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Logs form data validation, processing steps, and submission creation.', 'ffc'); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="debug_encryption"><?php esc_html_e('Encryption', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="ffc_settings[debug_encryption]" id="debug_encryption" value="1" <?php checked($get_option('debug_encryption'), 1); ?>>
+                            <?php esc_html_e('Enable debug logging for encryption operations', 'ffc'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Logs encryption/decryption operations and key management.', 'ffc'); ?>
+                            <span class="ffc-text-warning">⚠️ <?php esc_html_e('Never enables actual data logging, only operation status.', 'ffc'); ?></span>
+                        </p>
                     </td>
                 </tr>
             </tbody>

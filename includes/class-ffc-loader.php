@@ -42,6 +42,7 @@ class Free_Form_Certificate_Loader {
         // Core utilities
         require_once FFC_PLUGIN_DIR . 'includes/core/class-ffc-utils.php';
         require_once FFC_PLUGIN_DIR . 'includes/core/class-ffc-encryption.php';
+        require_once FFC_PLUGIN_DIR . 'includes/core/class-ffc-debug.php';
         require_once FFC_PLUGIN_DIR . 'includes/class-ffc-activator.php';
         require_once FFC_PLUGIN_DIR . 'includes/class-ffc-deactivator.php';
 
