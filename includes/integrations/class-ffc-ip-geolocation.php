@@ -315,13 +315,9 @@ class FFC_IP_Geolocation {
             return;
         }
 
-        // Log to WordPress debug log
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log(sprintf(
-                '[FFC IP Geolocation] %s | %s',
-                $message,
-                !empty($context) ? json_encode($context) : 'no context'
-            ));
+        // Log via centralized debug system
+        if (class_exists('FFC_Debug')) {
+            FFC_Debug::log_geofence($message, $context);
         }
 
         // Log to activity log

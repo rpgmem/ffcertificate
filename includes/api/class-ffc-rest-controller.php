@@ -578,7 +578,7 @@ class FFC_REST_Controller {
                         $data = array_merge($data, $decrypted_data);
                     }
                 } catch (Exception $e) {
-                    error_log('FFC Get Submission: Decryption failed - ' . $e->getMessage());
+                    FFC_Debug::log_rest_api('Get Submission: Decryption failed', $e->getMessage());
                 }
             }
             
@@ -668,7 +668,7 @@ class FFC_REST_Controller {
                     }
                 } catch (Exception $e) {
                     // Log error but continue with non-encrypted data
-                    error_log('FFC Verify: Decryption failed - ' . $e->getMessage());
+                    FFC_Debug::log_rest_api('Verify: Decryption failed', $e->getMessage());
                 }
             }
             

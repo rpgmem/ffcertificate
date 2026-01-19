@@ -218,8 +218,7 @@ class FFC_Migration_User_Link {
 
         // Log errors if any
         if (!empty($errors)) {
-            $error_log = "FFC Migration User Link - Errors:\n" . implode("\n", $errors);
-            error_log($error_log);
+            FFC_Debug::log_migrations('Migration User Link - Errors', $errors);
 
             // Store errors in option for admin review
             update_option('ffc_migration_user_link_errors', $errors);
@@ -280,10 +279,9 @@ class FFC_Migration_User_Link {
 
         } catch (Exception $e) {
             // Silently fail - name is not critical for user creation
-            error_log(sprintf(
-                'FFC Migration User Link: Failed to extract name for user %d - %s',
-                $user_id,
-                $e->getMessage()
+            FFC_Debug::log_migrations('Failed to extract name for user', array(
+                'user_id' => $user_id,
+                'error' => $e->getMessage()
             ));
         }
     }

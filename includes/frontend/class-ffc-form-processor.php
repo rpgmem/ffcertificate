@@ -291,24 +291,24 @@ class FFC_Form_Processor {
         }
         
         // ===== DEBUG CAPTCHA =====
-        error_log('===== FFC CAPTCHA DEBUG =====');
-        error_log('Answer received: ' . (isset($_POST['ffc_captcha_ans']) ? $_POST['ffc_captcha_ans'] : 'NOT SET'));
-        error_log('Hash received: ' . (isset($_POST['ffc_captcha_hash']) ? $_POST['ffc_captcha_hash'] : 'NOT SET'));
-        
+        FFC_Debug::log_form('===== CAPTCHA DEBUG =====');
+        FFC_Debug::log_form('Answer received', isset($_POST['ffc_captcha_ans']) ? $_POST['ffc_captcha_ans'] : 'NOT SET');
+        FFC_Debug::log_form('Hash received', isset($_POST['ffc_captcha_hash']) ? $_POST['ffc_captcha_hash'] : 'NOT SET');
+
         if (isset($_POST['ffc_captcha_ans']) && isset($_POST['ffc_captcha_hash'])) {
             $test_answer = trim($_POST['ffc_captcha_ans']);
             $received_hash = $_POST['ffc_captcha_hash'];
             $generated_hash = wp_hash($test_answer . 'ffc_math_salt');
-            
-            error_log('Trimmed answer: ' . $test_answer);
-            error_log('Generated hash from answer: ' . $generated_hash);
-            error_log('Hashes match: ' . ($generated_hash === $received_hash ? 'YES' : 'NO'));
-            
+
+            FFC_Debug::log_form('Trimmed answer', $test_answer);
+            FFC_Debug::log_form('Generated hash from answer', $generated_hash);
+            FFC_Debug::log_form('Hashes match', $generated_hash === $received_hash ? 'YES' : 'NO');
+
             // Test with different variations
-            error_log('Test with (int): ' . wp_hash((int)$test_answer . 'ffc_math_salt'));
-            error_log('Test with (string): ' . wp_hash((string)$test_answer . 'ffc_math_salt'));
+            FFC_Debug::log_form('Test with (int)', wp_hash((int)$test_answer . 'ffc_math_salt'));
+            FFC_Debug::log_form('Test with (string)', wp_hash((string)$test_answer . 'ffc_math_salt'));
         }
-        error_log('=============================');
+        FFC_Debug::log_form('===== END CAPTCHA DEBUG =====');
         // ===== END DEBUG =====
         
         // Validate security fields using FFC_Utils

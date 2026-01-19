@@ -102,17 +102,14 @@ class FFC_Activity_Log {
         // Insert into database
         $result = $wpdb->insert( $table_name, $log_data );
         
-        // Also log to error_log if WP_DEBUG enabled
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            $context_str = ! empty( $context ) ? wp_json_encode( $context ) : 'none';
-            error_log( sprintf(
-                '[FFC Activity] %s | %s | User: %d | IP: %s | Submission: %d | Context: %s',
-                strtoupper( $level ),
-                $action,
-                $user_id,
-                $log_data['user_ip'],
-                $submission_id,
-                $context_str
+        // Also log via debug system if enabled
+        if ( class_exists( 'FFC_Debug' ) ) {
+            FFC_Debug::log_activity_log( $action, array(
+                'level' => strtoupper( $level ),
+                'user_id' => $user_id,
+                'ip' => $log_data['user_ip'],
+                'submission_id' => $submission_id,
+                'context' => $context
             ) );
         }
         

@@ -22,6 +22,9 @@ class FFC_Debug {
     const AREA_ENCRYPTION = 'debug_encryption';
     const AREA_GEOFENCE = 'debug_geofence';
     const AREA_USER_MANAGER = 'debug_user_manager';
+    const AREA_REST_API = 'debug_rest_api';
+    const AREA_MIGRATIONS = 'debug_migrations';
+    const AREA_ACTIVITY_LOG = 'debug_activity_log';
 
     /**
      * Check if debug is enabled for a specific area
@@ -117,5 +120,35 @@ class FFC_Debug {
      */
     public static function log_user_manager( $message, $data = null ) {
         self::log( self::AREA_USER_MANAGER, $message, $data );
+    }
+
+    /**
+     * Log for REST API area
+     *
+     * @param string $message Message to log
+     * @param mixed $data Optional data to include
+     */
+    public static function log_rest_api( $message, $data = null ) {
+        self::log( self::AREA_REST_API, $message, $data );
+    }
+
+    /**
+     * Log for Migrations area
+     *
+     * @param string $message Message to log
+     * @param mixed $data Optional data to include
+     */
+    public static function log_migrations( $message, $data = null ) {
+        self::log( self::AREA_MIGRATIONS, $message, $data );
+    }
+
+    /**
+     * Log for Activity Log area
+     *
+     * @param string $message Message to log
+     * @param mixed $data Optional data to include
+     */
+    public static function log_activity_log( $message, $data = null ) {
+        self::log( self::AREA_ACTIVITY_LOG, $message, $data );
     }
 }

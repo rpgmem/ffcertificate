@@ -190,6 +190,51 @@ $custom_format = $get_option('date_format_custom', '');
                         </p>
                     </td>
                 </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="debug_rest_api"><?php esc_html_e('REST API', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="ffc_settings[debug_rest_api]" id="debug_rest_api" value="1" <?php checked($get_option('debug_rest_api'), 1); ?>>
+                            <?php esc_html_e('Enable debug logging for REST API operations', 'ffc'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Logs REST API requests, responses, and errors.', 'ffc'); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="debug_migrations"><?php esc_html_e('Migrations', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="ffc_settings[debug_migrations]" id="debug_migrations" value="1" <?php checked($get_option('debug_migrations'), 1); ?>>
+                            <?php esc_html_e('Enable debug logging for database migrations', 'ffc'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Logs migration execution, user linking, and data transformation operations.', 'ffc'); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="debug_activity_log"><?php esc_html_e('Activity Log', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="ffc_settings[debug_activity_log]" id="debug_activity_log" value="1" <?php checked($get_option('debug_activity_log'), 1); ?>>
+                            <?php esc_html_e('Enable debug logging for activity log system', 'ffc'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Logs activity log operations and database queries.', 'ffc'); ?>
+                        </p>
+                    </td>
+                </tr>
             </tbody>
         </table>
 
