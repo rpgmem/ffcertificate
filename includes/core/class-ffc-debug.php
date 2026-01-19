@@ -21,6 +21,7 @@ class FFC_Debug {
     const AREA_FORM_PROCESSOR = 'debug_form_processor';
     const AREA_ENCRYPTION = 'debug_encryption';
     const AREA_GEOFENCE = 'debug_geofence';
+    const AREA_USER_MANAGER = 'debug_user_manager';
 
     /**
      * Check if debug is enabled for a specific area
@@ -106,5 +107,15 @@ class FFC_Debug {
      */
     public static function log_geofence( $message, $data = null ) {
         self::log( self::AREA_GEOFENCE, $message, $data );
+    }
+
+    /**
+     * Log for User Manager area
+     *
+     * @param string $message Message to log
+     * @param mixed $data Optional data to include
+     */
+    public static function log_user_manager( $message, $data = null ) {
+        self::log( self::AREA_USER_MANAGER, $message, $data );
     }
 }

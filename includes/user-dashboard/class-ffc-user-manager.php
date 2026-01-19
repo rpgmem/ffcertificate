@@ -97,11 +97,16 @@ class FFC_User_Manager {
         $user_id = wp_create_user($email, $password, $email);
 
         if (is_wp_error($user_id)) {
-            error_log(sprintf(
-                'FFC User Manager: Failed to create user for %s - %s',
-                $email,
-                $user_id->get_error_message()
-            ));
+            // Use centralized debug system for critical errors
+            if (class_exists('FFC_Debug')) {
+                FFC_Debug::log_user_manager(
+                    'Failed to create user',
+                    array(
+                        'email' => $email,
+                        'error' => $user_id->get_error_message()
+                    )
+                );
+            }
             return $user_id;
         }
 
@@ -227,7 +232,16 @@ class FFC_User_Manager {
             $cpf_plain = FFC_Encryption::decrypt($cpf_encrypted);
             return self::mask_cpf_rf($cpf_plain);
         } catch (Exception $e) {
-            error_log('FFC User Manager: Failed to decrypt CPF/RF for user ' . $user_id);
+            // Use centralized debug system for critical errors
+            if (class_exists('FFC_Debug')) {
+                FFC_Debug::log_user_manager(
+                    'Failed to decrypt CPF/RF',
+                    array(
+                        'user_id' => $user_id,
+                        'error' => $e->getMessage()
+                    )
+                );
+            }
             return null;
         }
     }

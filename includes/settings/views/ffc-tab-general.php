@@ -175,6 +175,21 @@ $custom_format = $get_option('date_format_custom', '');
                         </p>
                     </td>
                 </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="debug_user_manager"><?php esc_html_e('User Manager', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="ffc_settings[debug_user_manager]" id="debug_user_manager" value="1" <?php checked($get_option('debug_user_manager'), 1); ?>>
+                            <?php esc_html_e('Enable debug logging for user management', 'ffc'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Logs user creation failures, decryption errors, and critical user management operations.', 'ffc'); ?>
+                        </p>
+                    </td>
+                </tr>
             </tbody>
         </table>
 
