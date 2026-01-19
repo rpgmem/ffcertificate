@@ -17,6 +17,29 @@ class FFC_Tab_User_Access extends FFC_Settings_Tab {
         $this->tab_title = __('User Access', 'ffc');
         $this->tab_icon = '👥';
         $this->tab_order = 85;
+
+        // Enqueue styles for this tab
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_styles'));
+    }
+
+    /**
+     * Enqueue styles for User Access settings page
+     */
+    public function enqueue_styles($hook) {
+        // Only load on settings page with this tab active
+        if ($hook !== 'ffc_form_page_ffc-settings') {
+            return;
+        }
+
+        $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : '';
+        if ($active_tab === 'user_access') {
+            wp_enqueue_style(
+                'ffc-admin-user-access',
+                FFC_PLUGIN_URL . 'assets/css/admin-user-access.css',
+                array(),
+                FFC_VERSION
+            );
+        }
     }
 
     public function render() {

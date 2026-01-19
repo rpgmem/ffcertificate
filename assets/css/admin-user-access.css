@@ -1,0 +1,18 @@
+/**
+ * User Access Settings - Admin Styles
+ * @since 3.1.0
+ */
+
+.ffc-settings-page .card {
+    max-width: 1500px;
+    margin-top: 20px;
+    padding: 20px;
+}
+
+.ffc-settings-page .card h2 {
+    margin-top: 0;
+}
+
+.ffc-settings-page .form-table th {
+    width: 200px;
+}

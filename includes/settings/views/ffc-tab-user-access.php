@@ -229,19 +229,3 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
         </p>
     </form>
 </div>
-
-<style>
-    .ffc-settings-page .card {
-        max-width: 1500px;
-        margin-top: 20px;
-        padding: 20px;
-    }
-
-    .ffc-settings-page .card h2 {
-        margin-top: 0;
-    }
-
-    .ffc-settings-page .form-table th {
-        width: 200px;
-    }
-</style>

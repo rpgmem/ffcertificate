@@ -11,14 +11,38 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class FFC_Tab_SMTP extends FFC_Settings_Tab {
-    
+
     protected function init() {
         $this->tab_id = 'smtp';
         $this->tab_title = __( 'SMTP', 'ffc' );
         $this->tab_icon = '📧';
         $this->tab_order = 30;
+
+        // Enqueue scripts for this tab
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_scripts'));
     }
-    
+
+    /**
+     * Enqueue scripts for SMTP settings page
+     */
+    public function enqueue_scripts($hook) {
+        // Only load on settings page with this tab active
+        if ($hook !== 'ffc_form_page_ffc-settings') {
+            return;
+        }
+
+        $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : '';
+        if ($active_tab === 'smtp') {
+            wp_enqueue_script(
+                'ffc-smtp-settings',
+                FFC_PLUGIN_URL . 'assets/js/ffc-smtp-settings.js',
+                array('jquery'),
+                FFC_VERSION,
+                true
+            );
+        }
+    }
+
     public function render() {
         // Include view file
         $view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-smtp.php';
