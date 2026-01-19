@@ -198,50 +198,24 @@ class FFC_Verification_Handler {
 
     /**
      * Format verification response HTML
-     * 
+     *
      * ✅ v2.9.7 ENHANCED: Shows more fields with better formatting
+     * ✅ v3.1.0: Refactored to use template file
      */
     private function format_verification_response( $submission, $data, $show_download_button = false ) {
-    $form = get_post( $submission->form_id );
-    $form_title = $form ? $form->post_title : __( 'N/A', 'ffc' );
-    $date_generated = date_i18n( 
-        get_option('date_format') . ' ' . get_option('time_format'), 
-        strtotime( $submission->submission_date ) 
-    );
-    $display_code = isset($data['auth_code']) ? $data['auth_code'] : '';
+        $form = get_post( $submission->form_id );
+        $form_title = $form ? $form->post_title : __( 'N/A', 'ffc' );
+        $date_generated = date_i18n(
+            get_option('date_format') . ' ' . get_option('time_format'),
+            strtotime( $submission->submission_date )
+        );
+        $display_code = isset($data['auth_code']) ? $data['auth_code'] : '';
 
-    // Format auth code (XXXX-XXXX-XXXX)
-    if ( strlen( $display_code ) === 12 ) {
-        $display_code = substr( $display_code, 0, 4 ) . '-' . substr( $display_code, 4, 4 ) . '-' . substr( $display_code, 8, 4 );
-    }
+        // Format auth code (XXXX-XXXX-XXXX)
+        if ( strlen( $display_code ) === 12 ) {
+            $display_code = substr( $display_code, 0, 4 ) . '-' . substr( $display_code, 4, 4 ) . '-' . substr( $display_code, 8, 4 );
+        }
 
-    $html = '<div class="ffc-certificate-preview">';
-    $html .= '<div class="ffc-preview-header">';
-    $html .= '<span class="ffc-status-badge success">✅ ' . esc_html__( 'Valid Certificate', 'ffc' ) . '</span>';
-    $html .= '</div>';
-    
-    $html .= '<div class="ffc-preview-body">';
-    $html .= '<h3>' . esc_html__( 'Certificate Details', 'ffc' ) . '</h3>';
-    
-    $html .= '<div class="ffc-detail-row">';
-    $html .= '<span class="label">' . esc_html__( 'Authentication Code:', 'ffc' ) . '</span>';
-    $html .= '<span class="value code">' . esc_html( $display_code ) . '</span>';
-    $html .= '</div>';
-    
-    $html .= '<div class="ffc-detail-row">';
-    $html .= '<span class="label">' . esc_html__( 'Event:', 'ffc' ) . '</span>';
-    $html .= '<span class="value">' . esc_html( $form_title ) . '</span>';
-    $html .= '</div>';
-    
-    $html .= '<div class="ffc-detail-row">';
-    $html .= '<span class="label">' . esc_html__( 'Issued on:', 'ffc' ) . '</span>';
-    $html .= '<span class="value">' . esc_html( $date_generated ) . '</span>';
-    $html .= '</div>';
-    
-    $html .= '<hr>';
-    $html .= '<h4>' . esc_html__( 'Participant Data:', 'ffc' ) . '</h4>';
-    
-    if ( is_array( $data ) ) {
         // ✅ v2.9.7: Show MORE fields with better formatting
         // Only skip internal/technical fields
         $skip_fields = array(
@@ -254,58 +228,19 @@ class FFC_Verification_Handler {
             'submission_id',    // Internal
             'magic_token'       // Internal/security
         );
-        
+
         // ✅ Priority fields to show first (in order)
         $priority_fields = array('name', 'cpf_rf', 'email', 'program', 'date');
-        
-        // Show priority fields first
-        foreach ( $priority_fields as $field ) {
-            if ( ! isset( $data[$field] ) || in_array( $field, $skip_fields ) ) {
-                continue;
-            }
-            
-            $value = $data[$field];
-            $label = $this->get_field_label( $field );
-            $display_value = $this->format_field_value( $field, $value );
-            
-            $html .= '<div class="ffc-detail-row">';
-            $html .= '<span class="label">' . esc_html( $label ) . ':</span>';
-            $html .= '<span class="value">' . esc_html( $display_value ) . '</span>';
-            $html .= '</div>';
-        }
-        
-        // Then show remaining fields
-        foreach ( $data as $key => $value ) {
-            // Skip if already shown or in skip list
-            if ( in_array( $key, $priority_fields ) || in_array( $key, $skip_fields, true ) ) {
-                continue;
-            }
-            
-            $label = $this->get_field_label( $key );
-            $display_value = $this->format_field_value( $key, $value );
-            
-            $html .= '<div class="ffc-detail-row">';
-            $html .= '<span class="label">' . esc_html( $label ) . ':</span>';
-            $html .= '<span class="value">' . esc_html( $display_value ) . '</span>';
-            $html .= '</div>';
-        }
-    }
-    
-    $html .= '</div>';
-    
-    // Download button
-    if ( $show_download_button ) {
-        $html .= '<div class="ffc-preview-actions">';
-        $html .= '<button class="ffc-download-btn ffc-download-pdf-btn" data-submission-id="' . esc_attr( $submission->id ) . '">';
-        $html .= '⬇️ ' . esc_html__( 'Download Certificate (PDF)', 'ffc' );
-        $html .= '</button>';
-        $html .= '</div>';
-    }
-    
-    $html .= '</div>';
 
-    return $html;
-}
+        // Callbacks for template
+        $get_field_label_callback = array( $this, 'get_field_label' );
+        $format_field_value_callback = array( $this, 'format_field_value' );
+
+        // Render template
+        ob_start();
+        include FFC_PLUGIN_DIR . 'templates/certificate-preview.php';
+        return ob_get_clean();
+    }
 
     /**
      * Get human-readable field label

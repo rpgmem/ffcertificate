@@ -383,17 +383,6 @@ class FFC_Activity_Log {
     // ============================================
     
     /**
-     * Log submission created
-     */
-    public static function log_submission_created( $submission_id, $form_id, $user_email ) {
-        return self::log( 'submission_created', self::LEVEL_INFO, array(
-            'submission_id' => $submission_id,
-            'form_id' => $form_id,
-            'email' => $user_email
-        ), get_current_user_id() );
-    }
-    
-    /**
      * Log submission updated
      */
     public static function log_submission_updated( $submission_id, $admin_user_id ) {

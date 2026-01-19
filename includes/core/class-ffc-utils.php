@@ -644,37 +644,27 @@ class FFC_Utils {
         if ( ! is_array( $form_config ) ) {
             $form_config = array();
         }
-        
+
         // Get form title
         $form_post = get_post( $form_id );
         $form_title = $form_post ? $form_post->post_title : __( 'Certificate', 'ffc' );
-        
+
         // Default success message
         if ( empty( $success_message ) ) {
             $success_message = isset( $form_config['success_message'] ) && ! empty( $form_config['success_message'] )
                 ? $form_config['success_message']
                 : __( 'Success! Your certificate has been generated.', 'ffc' );
         }
-        
+
         // Format date
         $date_formatted = date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $submission_date ) );
-        
-        // Build HTML
-        $html = '<div class="ffc-success-response">';
-        $html .= '<div class="ffc-success-icon"> ✓ </div>';
-        $html .= '<h3>' . esc_html( $success_message ) . '</h3>';
-        $html .= '<div class="ffc-success-details">';
-        $html .= '<p><strong>' . esc_html__( 'Form:', 'ffc' ) . '</strong> ' . esc_html( $form_title ) . '</p>';
-        $html .= '<p><strong>' . esc_html__( 'Date:', 'ffc' ) . '</strong> ' . esc_html( $date_formatted ) . '</p>';
-        
-        // Add auth code if exists
-        if ( isset( $submission_data['auth_code'] ) && ! empty( $submission_data['auth_code'] ) ) {
-            $html .= '<p><strong>' . esc_html__( 'Authentication Code:', 'ffc' ) . '</strong> <code>' . esc_html( $submission_data['auth_code'] ) . '</code></p>';
-        }
-        
-        $html .= '</div>';
-        $html .= '</div>';
-        
-        return $html;
+
+        // Auth code
+        $auth_code = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
+
+        // Load template
+        ob_start();
+        include FFC_PLUGIN_DIR . 'templates/submission-success.php';
+        return ob_get_clean();
     }
 }
