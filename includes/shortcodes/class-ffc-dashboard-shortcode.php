@@ -207,21 +207,10 @@ class FFC_Dashboard_Shortcode {
      */
     private static function enqueue_assets($view_as_user_id = false) {
         // Enqueue CSS
-        wp_enqueue_style(
-            'ffc-dashboard',
-            FFC_PLUGIN_URL . 'assets/css/ffc-user-dashboard.css',
-            array(),
-            FFC_VERSION
-        );
+        wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . 'assets/css/ffc-user-dashboard.css', array(), FFC_VERSION );
 
         // Enqueue JavaScript
-        wp_enqueue_script(
-            'ffc-dashboard',
-            FFC_PLUGIN_URL . 'assets/js/ffc-user-dashboard.js',
-            array('jquery'),
-            FFC_VERSION,
-            true
-        );
+        wp_enqueue_script( 'ffc-dashboard', FFC_PLUGIN_URL . 'assets/js/ffc-user-dashboard.js', array('jquery'), FFC_VERSION, true );
 
         // Localize script
         wp_localize_script('ffc-dashboard', 'ffcDashboard', array(

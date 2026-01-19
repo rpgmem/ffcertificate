@@ -118,12 +118,7 @@ class FFC_Admin_User_Columns {
             return;
         }
 
-        wp_enqueue_style(
-            'ffc-admin-user-columns',
-            FFC_PLUGIN_URL . 'assets/css/admin-user-columns.css',
-            array(),
-            FFC_VERSION
-        );
+        wp_enqueue_style( 'ffc-admin-user-columns', FFC_PLUGIN_URL . 'assets/css/ffc-admin-user-columns.css', array(), FFC_VERSION );
     }
 }
 

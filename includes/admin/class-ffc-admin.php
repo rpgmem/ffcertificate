@@ -90,28 +90,11 @@ class FFC_Admin {
     
             // 5. Submission edit styles (ONLY on edit page)
             if (isset($_GET['page']) && $_GET['page'] === 'ffc-submissions' && isset($_GET['action']) && $_GET['action'] === 'edit') {
-                wp_enqueue_style(
-                    'ffc-admin-submission-edit',
-                    FFC_PLUGIN_URL . 'assets/css/admin-submission-edit.css',
-                    array('ffc-admin-css'),
-                    FFC_VERSION
-                );
+                wp_enqueue_style( 'ffc-admin-submission-edit', FFC_PLUGIN_URL . 'assets/css/ffc-admin-submission-edit.css', array('ffc-admin-css'), FFC_VERSION );
 
-                wp_enqueue_script(
-                    'ffc-admin-submission-edit',
-                    FFC_PLUGIN_URL . 'assets/js/ffc-admin-submission-edit.js',
-                    array('jquery'),
-                    FFC_VERSION,
-                    true
-                );
+                wp_enqueue_script( 'ffc-admin-submission-edit', FFC_PLUGIN_URL . 'assets/js/ffc-admin-submission-edit.js', array('jquery'), FFC_VERSION, true );
 
-                wp_localize_script(
-                    'ffc-admin-submission-edit',
-                    'ffc_submission_edit',
-                    array(
-                        'copied_text' => '✅ ' . __('Copied!', 'ffc')
-                    )
-                );
+                wp_localize_script( 'ffc-admin-submission-edit', 'ffc_submission_edit', array( 'copied_text' => '✅ ' . __('Copied!', 'ffc') ) );
             }
 
             wp_enqueue_script( 'ffc-admin-js', FFC_PLUGIN_URL . 'assets/js/ffc-admin.js', array( ), FFC_VERSION, true );

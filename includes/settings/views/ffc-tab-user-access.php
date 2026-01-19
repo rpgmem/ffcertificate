@@ -35,8 +35,6 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
 ?>
 
 <div class="wrap ffc-settings-page">
-    <h1><?php esc_html_e('User Access Settings', 'ffc'); ?></h1>
-
     <form method="post" action="">
         <?php wp_nonce_field('ffc_user_access_settings', 'ffc_user_access_nonce'); ?>
 
@@ -234,7 +232,7 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
 
 <style>
     .ffc-settings-page .card {
-        max-width: 900px;
+        max-width: 1500px;
         margin-top: 20px;
         padding: 20px;
     }
