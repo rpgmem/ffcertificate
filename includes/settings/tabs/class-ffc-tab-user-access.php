@@ -32,14 +32,8 @@ class FFC_Tab_User_Access extends FFC_Settings_Tab {
         }
 
         $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : '';
-        if ($active_tab === 'user_access') {
-            wp_enqueue_style(
-                'ffc-admin-user-access',
-                FFC_PLUGIN_URL . 'assets/css/admin-user-access.css',
-                array(),
-                FFC_VERSION
-            );
-        }
+        // ✅ v3.1.0: User access styles consolidated into ffc-admin-settings.css (already loaded)
+        // No need to enqueue separate stylesheet anymore
     }
 
     public function render() {

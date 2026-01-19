@@ -6,14 +6,16 @@
 /* ==========================================================================
    BASE WRAPPER
    ========================================================================== */
-.ffc-settings-wrap {
+.ffc-settings-wrap,
+.ffc-settings-page {
     max-width: 1500px;
 }
 
 /* ==========================================================================
    CARDS - Consistent Layout
    ========================================================================== */
-.ffc-settings-wrap .card {
+.ffc-settings-wrap .card,
+.ffc-settings-page .card {
     background: #fff;
     border: 1px solid #c3c4c7;
     border-radius: 4px;
@@ -24,11 +26,13 @@
     box-shadow: 0 1px 1px rgba(0,0,0,0.04);
 }
 
-.ffc-settings-wrap .card:last-child {
+.ffc-settings-wrap .card:last-child,
+.ffc-settings-page .card:last-child {
     margin-bottom: 0;
 }
 
-.ffc-settings-wrap .card h2 {
+.ffc-settings-wrap .card h2,
+.ffc-settings-page .card h2 {
     margin-top: 0;
     margin-bottom: 15px;
     padding-bottom: 10px;
@@ -70,14 +74,16 @@
     margin-top: 0;
 }
 
-.ffc-settings-wrap .form-table th {
+.ffc-settings-wrap .form-table th,
+.ffc-settings-page .form-table th {
     width: 200px;
     padding: 15px 10px 15px 0;
     font-weight: 600;
     vertical-align: top;
 }
 
-.ffc-settings-wrap .form-table td {
+.ffc-settings-wrap .form-table td,
+.ffc-settings-page .form-table td {
     padding: 15px 10px;
 }
 
@@ -347,12 +353,50 @@
 /* ==========================================================================
    RATE LIMIT STYLES
    ========================================================================== */
-.ffc-rate-limit-wrap .card h2 {
+.ffc-rate-limit-wrap .card {
+    margin-bottom: 20px;
+}
+
+.ffc-rate-limit-wrap .card h2,
+.ffc-rate-limit-wrap h2 {
+    margin-top: 0;
     margin-bottom: 10px;
 }
 
 .ffc-rate-limit-wrap .card > p {
     margin-bottom: 15px;
+}
+
+/* Rate limit notice banner */
+.ffc-rate-limit-notice {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ffc-rate-limit-icon {
+    font-size: 24px;
+}
+
+.ffc-rate-limit-message {
+    flex: 1;
+    color: #856404;
+}
+
+.ffc-rate-limit-message strong {
+    color: #d63384;
+    font-family: monospace;
+}
+
+/* Disabled submit buttons */
+.ffc-form button[type="submit"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .ffc-rate-limit-stats {

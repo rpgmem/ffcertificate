@@ -59,7 +59,8 @@ class FFC_Frontend {
             
             // CSS - Using centralized version constant
             wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . 'assets/css/ffc-pdf-core.css', array(), FFC_VERSION );
-            wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . 'assets/css/ffc-frontend.css', array('ffc-pdf-core'), FFC_VERSION );
+            wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.css', array(), FFC_VERSION );
+            wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . 'assets/css/ffc-frontend.css', array('ffc-pdf-core', 'ffc-common'), FFC_VERSION );
             
             // PDF Libraries - Using centralized version constants
             wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );

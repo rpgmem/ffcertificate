@@ -1,0 +1,162 @@
+/**
+ * FFC Common Styles
+ * v3.1.0 - Shared utilities used across admin and frontend
+ *
+ * This file contains CSS classes that are used in both admin and frontend contexts.
+ * Consolidates duplicate utilities from multiple files for better maintainability.
+ *
+ * @since 3.1.0
+ */
+
+/* ==========================================================================
+   UTILITY CLASSES - Visibility & Display
+   ========================================================================== */
+
+/**
+ * Hide element visually and from screen readers
+ * Used for: honeypot fields, temporary hidden content
+ */
+.ffc-hidden {
+    position: absolute !important;
+    left: -9999px !important;
+    display: none !important;
+}
+
+/**
+ * Honeypot field - Hide from bots while keeping accessible structure
+ * Used for: anti-spam honeypot fields in forms
+ * More robust than .ffc-hidden for form security
+ */
+.ffc-honeypot-field {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   STATUS BADGES - Admin & Frontend
+   ========================================================================== */
+
+/**
+ * Base status badge styling
+ * Used for: form status, submission status, general state indicators
+ */
+.ffc-status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* Status variants - WordPress post status */
+.ffc-status-publish {
+    background: #e7f5ec;
+    color: #008a20;
+}
+
+.ffc-status-draft {
+    background: #f0f0f1;
+    color: #646970;
+}
+
+.ffc-status-trash {
+    background: #fcf0f1;
+    color: #d63638;
+}
+
+/* Status variants - Submission status */
+.ffc-status-pending {
+    background: #fef8e6;
+    color: #886400;
+}
+
+.ffc-status-approved {
+    background: #e7f5ec;
+    color: #008a20;
+}
+
+.ffc-status-rejected {
+    background: #fcf0f1;
+    color: #d63638;
+}
+
+.ffc-status-verified {
+    background: #e5f5fa;
+    color: #006ba1;
+}
+
+/* ==========================================================================
+   LOADING STATES
+   ========================================================================== */
+
+/**
+ * Loading spinner - Used in forms and admin actions
+ */
+.ffc-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.ffc-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #0073aa;
+    border-radius: 50%;
+    animation: ffc-spin 1s linear infinite;
+}
+
+@keyframes ffc-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY
+   ========================================================================== */
+
+/**
+ * Screen reader only text
+ * Visually hidden but accessible to screen readers
+ */
+.ffc-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/**
+ * Skip to content link
+ * Visible only on focus for keyboard navigation
+ */
+.ffc-skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #2271b1;
+    color: #fff;
+    padding: 8px;
+    text-decoration: none;
+    z-index: 100000;
+}
+
+.ffc-skip-link:focus {
+    top: 0;
+}

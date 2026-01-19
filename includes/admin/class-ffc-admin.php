@@ -74,9 +74,12 @@ class FFC_Admin {
             // CSS - Centralized with proper dependency chain
             // 1. Base styles (PDF core)
             wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . 'assets/css/ffc-pdf-core.css', array(), FFC_VERSION);
-            
-            // 2. Admin general styles (depends on pdf-core)
-            wp_enqueue_style( 'ffc-admin-css', FFC_PLUGIN_URL . 'assets/css/ffc-admin.css', array('ffc-pdf-core'), FFC_VERSION );
+
+            // 2. Common utilities (shared between admin and frontend)
+            wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.css', array(), FFC_VERSION);
+
+            // 3. Admin general styles (depends on pdf-core and common)
+            wp_enqueue_style( 'ffc-admin-css', FFC_PLUGIN_URL . 'assets/css/ffc-admin.css', array('ffc-pdf-core', 'ffc-common'), FFC_VERSION );
             
             // 3. Submissions page styles (depends on ffc-admin.css)
             wp_enqueue_style( 'ffc-admin-submissions-css', FFC_PLUGIN_URL . 'assets/css/ffc-admin-submissions.css', array('ffc-admin-css'), FFC_VERSION );
