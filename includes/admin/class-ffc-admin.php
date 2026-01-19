@@ -67,7 +67,10 @@ class FFC_Admin {
         
         if ( $post_type === 'ffc_form' || $is_ffc_page ) {
             wp_enqueue_media();
-            
+
+            // ✅ v3.1.0: Load FFC Core module FIRST (required by all modules)
+            wp_enqueue_script('ffc-core', FFC_PLUGIN_URL . 'assets/js/ffc-core.js', array('jquery'), FFC_VERSION, true);
+
             // CSS - Centralized with proper dependency chain
             // 1. Base styles (PDF core)
             wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . 'assets/css/ffc-pdf-core.css', array(), FFC_VERSION);
@@ -97,7 +100,35 @@ class FFC_Admin {
                 wp_localize_script( 'ffc-admin-submission-edit', 'ffc_submission_edit', array( 'copied_text' => '✅ ' . __('Copied!', 'ffc') ) );
             }
 
-            wp_enqueue_script( 'ffc-admin-js', FFC_PLUGIN_URL . 'assets/js/ffc-admin.js', array( ), FFC_VERSION, true );
+            // ✅ v3.1.0: Modular admin JavaScript architecture
+            // Load modules BEFORE main admin script (dependency order)
+
+            // 1. Field Builder module
+            wp_enqueue_script(
+                'ffc-admin-field-builder',
+                FFC_PLUGIN_URL . 'assets/js/ffc-admin-field-builder.js',
+                array('jquery', 'jquery-ui-sortable', 'ffc-core'),
+                FFC_VERSION,
+                true
+            );
+
+            // 2. PDF Management module
+            wp_enqueue_script(
+                'ffc-admin-pdf',
+                FFC_PLUGIN_URL . 'assets/js/ffc-admin-pdf.js',
+                array('jquery', 'ffc-core'),
+                FFC_VERSION,
+                true
+            );
+
+            // 3. Main admin script (depends on modules)
+            wp_enqueue_script(
+                'ffc-admin-js',
+                FFC_PLUGIN_URL . 'assets/js/ffc-admin.js',
+                array('jquery', 'ffc-admin-field-builder', 'ffc-admin-pdf'),
+                FFC_VERSION,
+                true
+            );
             
             // Localizar para AMBOS os scripts
             $localize_data = array(
