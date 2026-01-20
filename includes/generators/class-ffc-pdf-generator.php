@@ -90,7 +90,7 @@ class FFC_PDF_Generator {
         $bg_image_url = get_post_meta( $form_id, '_ffc_form_bg', true );
         
         // ✅ Generate HTML using internal method (not email handler)
-        $html = $this->generate_html( $data, $form_title, $form_config );
+        $html = $this->generate_html( $data, $form_title, $form_config, $sub_array['submission_date'] );
         
         // Get verification code from submission data
         $auth_code = isset( $data['auth_code'] ) ? $data['auth_code'] : '';
@@ -173,24 +173,27 @@ class FFC_PDF_Generator {
     
     /**
      * Generate HTML from template
-     * 
+     *
      * ✅ MOVED FROM FFC_Email_Handler (v2.9.14)
      * This is now the single source of truth for HTML generation
-     * 
+     *
      * Supported placeholders:
      * - {{name}}, {{email}}, {{auth_code}}, etc.
+     * - {{submission_date}} - Date when submission was created (from database)
+     * - {{print_date}} - Current date/time when PDF is being generated
      * - {{qr_code}} - QR Code with default settings
      * - {{qr_code:size=150}} - Custom size
      * - {{qr_code:size=200:margin=0}} - Custom size and margin
      * - {{validation_url}} - Validation link with magic token
      * - {{validation_url link:m>v}} - Custom link format
-     * 
+     *
      * @param array $data Submission data
      * @param string $form_title Form title
      * @param array $form_config Form configuration
+     * @param string $submission_date Submission creation date from database
      * @return string Generated HTML
      */
-    public function generate_html( $data, $form_title, $form_config ) {
+    public function generate_html( $data, $form_title, $form_config, $submission_date = null ) {
         $layout = isset( $form_config['pdf_layout'] ) ? $form_config['pdf_layout'] : '';
         
         // Use default template if none configured
@@ -199,16 +202,23 @@ class FFC_PDF_Generator {
         }
         
         // Replace standard placeholders
-        // ✅ v2.10.0: Use plugin date format setting for {{submission_date}}
+        // ✅ v2.10.0: Use plugin date format setting
         $settings = get_option( 'ffc_settings', array() );
         $date_format = isset( $settings['date_format'] ) ? $settings['date_format'] : 'F j, Y';
-        
+
         // If custom format selected, use it
         if ( $date_format === 'custom' && ! empty( $settings['date_format_custom'] ) ) {
             $date_format = $settings['date_format_custom'];
         }
-        
-        $layout = str_replace( '{{submission_date}}', date_i18n( $date_format, current_time( 'timestamp' ) ), $layout );
+
+        // {{submission_date}} - Data de criação da submissão no BD (para evitar problemas em reimpressões)
+        if ( ! empty( $submission_date ) ) {
+            $layout = str_replace( '{{submission_date}}', date_i18n( $date_format, strtotime( $submission_date ) ), $layout );
+        }
+
+        // {{print_date}} - Data/hora atual de geração/impressão do PDF
+        $layout = str_replace( '{{print_date}}', date_i18n( $date_format, current_time( 'timestamp' ) ), $layout );
+
         $layout = str_replace( '{{form_title}}', $form_title, $layout );
         
         // Ensure email field exists
@@ -576,7 +586,7 @@ class FFC_PDF_Generator {
         }
         
         // ✅ Generate HTML using internal method
-        $html = $this->generate_html( $submission_data, $form_title, $form_config );
+        $html = $this->generate_html( $submission_data, $form_title, $form_config, $submission_date );
         
         // Get verification code
         $auth_code = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';

@@ -110,8 +110,13 @@ if (!defined('ABSPATH')) exit;
             </tr>
             <tr>
                 <td><code>{{submission_date}}</code></td>
-                <td><?php esc_html_e('Date certificate was issued', 'ffc'); ?></td>
+                <td><?php esc_html_e('Date when submission was created (from database)', 'ffc'); ?></td>
                 <td><em>29/12/2025</em></td>
+            </tr>
+            <tr>
+                <td><code>{{print_date}}</code></td>
+                <td><?php esc_html_e('Current date/time when PDF is being generated', 'ffc'); ?></td>
+                <td><em>20/01/2026</em></td>
             </tr>
             <tr>
                 <td><code>{{program}}</code></td>
@@ -412,8 +417,8 @@ if (!defined('ABSPATH')) exit;
             <?php _e('Ensure submissions are deleted after "X" days.', 'ffc'); ?>
         </li>
         <li>
-            <strong><?php _e('Date Format:', 'ffc'); ?></strong><br> 
-            <?php _e('Format used for {{submission_date}} placeholder in PDFs and emails.', 'ffc'); ?>
+            <strong><?php _e('Date Format:', 'ffc'); ?></strong><br>
+            <?php _e('Format used for {{submission_date}} and {{print_date}} placeholders in PDFs and emails.', 'ffc'); ?>
         </li>
         <li>
             <strong><?php _e('Data Migrations:', 'ffc'); ?></strong><br> 
