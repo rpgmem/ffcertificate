@@ -17,6 +17,7 @@ class FFC_Admin {
     private $settings_page;
     private $migration_manager;  // ✅ v2.9.13: Migration Manager
     private $assets_manager;     // ✅ v3.1.1: Assets Manager
+    private $edit_page;          // ✅ v3.1.1: Submission Edit Page
 
     public function __construct( $handler, $exporter, $email_handler = null ) {
         $this->submission_handler = $handler;
@@ -40,17 +41,21 @@ class FFC_Admin {
         $this->assets_manager = new FFC_Admin_Assets_Manager();
         $this->assets_manager->register();
 
+        // ✅ v3.1.1: Initialize Submission Edit Page (extracted from FFC_Admin)
+        require_once plugin_dir_path( __FILE__ ) . 'class-ffc-admin-submission-edit-page.php';
+        $this->edit_page = new FFC_Admin_Submission_Edit_Page( $handler );
+
         add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
-        
+
         // ✅ v2.9.3: Configure TinyMCE to protect placeholders
         // Priority 999 to run AFTER other plugins
         add_filter( 'tiny_mce_before_init', array( $this, 'configure_tinymce_placeholders' ), 999 );
-        
+
         add_action( 'admin_init', array( $this, 'handle_submission_actions' ) );
         add_action( 'admin_init', array( $this, 'handle_csv_export_request' ) );
         add_action( 'admin_init', array( $this, 'handle_submission_edit_save' ) );
         add_action( 'admin_init', array( $this, 'handle_migration_action' ) );  // ✅ v2.9.13: Unified handler
-        
+
         add_action( 'wp_ajax_ffc_admin_get_pdf_data', array( $this, 'ajax_admin_get_pdf_data' ) );
     }
 
@@ -207,333 +212,17 @@ class FFC_Admin {
         }
     }
     
+    
     private function render_edit_page() {
-    $submission_id = isset( $_GET['submission_id'] ) ? absint( $_GET['submission_id'] ) : 0;
-    $sub = $this->submission_handler->get_submission( $submission_id );
-    
-    if ( ! $sub ) { 
-        echo '<div class="wrap"><p>' . __( 'Submission not found.', 'ffc' ) . '</p></div>'; 
-        return; 
-    }
-
-    $sub_array = (array) $sub;
-    $data = json_decode( $sub_array['data'], true ) ?: array(); 
-    $fields = get_post_meta( $sub_array['form_id'], '_ffc_form_fields', true );
-    
-    // ✅ Campos protegidos (read-only dentro do JSON)
-    $protected_json_fields = array( 'auth_code', 'fill_date', 'ticket' );
-    
-    // ✅ Campos editáveis nas colunas do banco
-    $editable_columns = array( 'email' ); // Apenas email é editável
-    
-    // ✅ Campos read-only nas colunas do banco
-    $readonly_columns = array( 'cpf_rf', 'auth_code', 'user_ip', 'magic_token', 'submission_date', 'consent_date', 'status' );
-    
-    $magic_token = isset( $sub_array['magic_token'] ) ? $sub_array['magic_token'] : '';
-    $magic_link_url = FFC_Magic_Link_Helper::generate_magic_link( $magic_token );
-
-    $formatted_date = isset( $sub_array['submission_date'] ) ? date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $sub_array['submission_date'] ) ) : __( 'Unknown', 'ffc' );
-    
-    // ✅ v3.0.2: Verificar se foi editado (COLUNAS do banco, não JSON)
-    $was_edited = !empty( $sub_array['edited_at'] );
-    $edited_at = $was_edited ? $sub_array['edited_at'] : '';
-    $edited_by_id = !empty( $sub_array['edited_by'] ) ? $sub_array['edited_by'] : 0;
-    $edited_by_name = '';
-    
-    if ( $edited_by_id ) {
-        $user = get_userdata( $edited_by_id );
-        $edited_by_name = $user ? $user->display_name : 'ID: ' . $edited_by_id;
-    }
-
-    ?> 
-    <div class="wrap">
-        <h1><?php printf( __( 'Edit Submission #%s', 'ffc' ), $sub_array['id'] ); ?></h1>
-        
-        <?php 
-        // ✅ v3.0.2: Indicador visual usando COLUNAS do banco
-        if ( $was_edited ): 
-        ?>
-            <div class="notice notice-warning ffc-edited-notice">
-                <p>
-                    <strong><?php _e( '⚠️ Warning:', 'ffc' ); ?></strong> 
-                    <?php 
-                    printf( 
-                        __( 'This record was manually edited on <strong>%s</strong>', 'ffc' ), 
-                        date_i18n( get_option('date_format') . ' ' . get_option('time_format'), strtotime($edited_at) )
-                    ); 
-                    ?>
-                    <?php if ( $edited_by_name ): ?>
-                        <?php printf( __( ' by <strong>%s</strong>', 'ffc' ), esc_html($edited_by_name) ); ?>
-                    <?php endif; ?>
-                    .
-                </p>
-            </div>
-        <?php endif; ?>
-
-        <form method="POST" class="ffc-edit-submission-form">
-            <?php wp_nonce_field( 'ffc_edit_submission_nonce', 'ffc_edit_submission_action' ); ?>
-            <input type="hidden" name="submission_id" value="<?php echo $sub_array['id']; ?>">
-            
-            <table class="form-table ffc-edit-table">
-                <!-- SEÇÃO: INFORMAÇÕES DO SISTEMA -->
-                <tr>
-                    <td colspan="2">
-                        <h2 class="ffc-section-header">
-                            <?php _e( 'System Information', 'ffc' ); ?>
-                        </h2>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th><label><?php _e( 'Submission ID', 'ffc' ); ?></label></th>
-                    <td>
-                        <input type="text" value="<?php echo esc_attr( $sub_array['id'] ); ?>" class="regular-text ffc-input-readonly" readonly>
-                        <p class="description"><?php _e( 'Unique submission identifier.', 'ffc' ); ?></p>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th><label><?php _e( 'Submission Date', 'ffc' ); ?></label></th>
-                    <td>
-                        <input type="text" value="<?php echo esc_attr( $formatted_date ); ?>" class="regular-text ffc-input-readonly" readonly>
-                        <p class="description"><?php _e( 'Original submission timestamp (read-only).', 'ffc' ); ?></p>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th><label><?php _e( 'Status', 'ffc' ); ?></label></th>
-                    <td>
-                        <input type="text" value="<?php echo esc_attr( $sub_array['status'] ); ?>" class="regular-text ffc-input-readonly" readonly>
-                        <p class="description"><?php _e( 'Submission status (publish, trash, etc).', 'ffc' ); ?></p>
-                    </td>
-                </tr>
-                
-                <tr>
-                    <th><label><?php _e( 'Magic Link Token', 'ffc' ); ?></label></th>
-                    <td>
-                        <?php if ( ! empty( $magic_token ) ): ?>
-                            <input type="text" value="<?php echo esc_attr( $magic_token ); ?>" class="regular-text ffc-input-readonly" readonly>
-                            <p class="description">
-                                <?php _e( 'Unique token for certificate access (read-only).', 'ffc' ); ?>
-                                <?php echo FFC_Magic_Link_Helper::get_magic_link_html( $magic_token ); ?>
-                            </p>
-                        <?php else: ?>
-                            <p class="description"><?php _e( 'Submission created before magic links', 'ffc' ); ?></p>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                
-                <?php if ( !empty( $sub_array['user_ip'] ) ): ?>
-                <tr>
-                    <th><label><?php _e( 'User IP', 'ffc' ); ?></label></th>
-                    <td>
-                        <input type="text" value="<?php echo esc_attr( $sub_array['user_ip'] ); ?>" class="regular-text ffc-input-readonly" readonly>
-                        <?php if ( ! empty( $sub_array['user_ip_encrypted'] ) ): ?>
-                            <p class="description">🔒 <?php _e( 'This IP is encrypted in the database.', 'ffc' ); ?></p>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endif; ?>
-
-                <!-- SEÇÃO: QR CODE USAGE -->
-                <tr>
-                    <td colspan="2">
-                        <div class="ffc-qr-info-box">
-                            <h3>
-                                📱 <?php _e( 'QR Code Placeholder Usage', 'ffc' ); ?>
-                            </h3>
-                            <p>
-                                <?php _e( 'You can add dynamic QR Codes to your certificate template using these placeholders:', 'ffc' ); ?>
-                            </p>
-                            <table>
-                                <tr>
-                                    <td>
-                                        <code>{{qr_code}}</code>
-                                    </td>
-                                    <td>
-                                        <?php _e( 'Default QR Code (200x200px)', 'ffc' ); ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <code>{{qr_code:size=150}}</code>
-                                    </td>
-                                    <td>
-                                        <?php _e( 'Custom size (150x150px)', 'ffc' ); ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <code>{{qr_code:size=250:margin=0}}</code>
-                                    </td>
-                                    <td>
-                                        <?php _e( 'Custom size without margin', 'ffc' ); ?>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <code>{{qr_code:error=H}}</code>
-                                    </td>
-                                    <td>
-                                        <?php _e( 'High error correction (30%)', 'ffc' ); ?>
-                                    </td>
-                                </tr>
-                            </table>
-                            <p class="ffc-qr-note">
-                                💡 <?php _e( 'QR Codes automatically link to this certificate verification page. Configure defaults in Settings → QR Code.', 'ffc' ); ?>
-                            </p>
-                        </div>
-                    </td>
-                </tr>
-
-                <!-- ✅ v2.10.0: SEÇÃO LGPD CONSENT STATUS -->
-                <?php 
-                $consent_given = isset( $sub_array['consent_given'] ) ? (int) $sub_array['consent_given'] : 0;
-                $consent_date = isset( $sub_array['consent_date'] ) ? $sub_array['consent_date'] : '';
-                $consent_ip = isset( $sub_array['consent_ip'] ) ? $sub_array['consent_ip'] : '';
-                ?>
-                <tr>
-                    <td colspan="2">
-                        <div class="ffc-consent-box <?php echo $consent_given ? 'consent-given' : 'consent-not-given'; ?>">
-                            <h3>
-                                <?php echo $consent_given ? '✅' : '⚠️'; ?>
-                                <?php _e( 'LGPD Consent Status', 'ffc' ); ?>
-                            </h3>
-
-                            <?php if ( $consent_given ): ?>
-                                <p>
-                                    <strong><?php _e( 'Consent given:', 'ffc' ); ?></strong>
-                                    <?php _e( 'User explicitly agreed to data storage and privacy policy.', 'ffc' ); ?>
-                                </p>
-                                <?php if ( $consent_date ): ?>
-                                    <p class="description">
-                                        📅 <?php printf( __( 'Date: %s', 'ffc' ), esc_html( $consent_date ) ); ?>
-                                    </p>
-                                <?php endif; ?>
-
-                                <?php if ( $consent_ip ): ?>
-                                    <p class="description">
-                                        🌐 <?php printf( __( 'IP: %s', 'ffc' ), esc_html( $consent_ip ) ); ?>
-                                    </p>
-                                <?php endif; ?>
-
-                                <p class="description">
-                                    🔒 <?php _e( 'Sensitive data (email, CPF/RF, IP) is encrypted in the database.', 'ffc' ); ?>
-                                </p>
-                            <?php else: ?>
-                                <p>
-                                    <strong><?php _e( 'No consent recorded:', 'ffc' ); ?></strong>
-                                    <?php _e( 'This submission was created before LGPD consent feature (v2.10.0).', 'ffc' ); ?>
-                                </p>
-                                <p class="description">
-                                    ℹ️ <?php _e( 'Older submissions do not have explicit consent flag but may have been collected under privacy policy.', 'ffc' ); ?>
-                                </p>
-                            <?php endif; ?>
-                        </div>
-                    </td>
-                </tr>
-                
-                <!-- SEÇÃO: DADOS DO PARTICIPANTE -->
-                <tr>
-                    <td colspan="2">
-                        <h2 class="ffc-section-header">
-                            <?php _e( 'Participant Data', 'ffc' ); ?>
-                        </h2>
-                    </td>
-                </tr>
-                
-                <!-- ✅ EMAIL (editável) -->
-                <tr>
-                    <th><label for="user_email"><?php _e( 'Email', 'ffc' ); ?> *</label></th>
-                    <td>
-                        <input type="email" name="user_email" id="user_email" value="<?php echo esc_attr($sub_array['email']); ?>" class="regular-text" required>
-                        <?php if ( ! empty( $sub_array['email_encrypted'] ) ): ?>
-                            <p class="description">🔒 <?php _e( 'This email is encrypted in the database.', 'ffc' ); ?></p>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                
-                <!-- ✅ CPF/RF (read-only se existir) -->
-                <?php if ( !empty( $sub_array['cpf_rf'] ) ): ?>
-                <tr>
-                    <th><label><?php _e( 'CPF/RF', 'ffc' ); ?></label></th>
-                    <td>
-                        <input type="text" value="<?php echo esc_attr( $sub_array['cpf_rf'] ); ?>" class="regular-text ffc-input-readonly" readonly>
-                        <?php if ( ! empty( $sub_array['cpf_rf_encrypted'] ) ): ?>
-                            <p class="description">🔒 <?php _e( 'This CPF/RF is encrypted in the database.', 'ffc' ); ?></p>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endif; ?>
-                
-                <!-- ✅ AUTH CODE (read-only se existir) -->
-                <?php if ( !empty( $sub_array['auth_code'] ) ): ?>
-                <tr>
-                    <th><label><?php _e( 'Auth Code', 'ffc' ); ?></label></th>
-                    <td>
-                        <input type="text" value="<?php echo esc_attr( $sub_array['auth_code'] ); ?>" class="regular-text ffc-input-readonly" readonly>
-                        <p class="description"><?php _e( 'Protected authentication code.', 'ffc' ); ?></p>
-                    </td>
-                </tr>
-                <?php endif; ?>
-                
-                <!-- ✅ CAMPOS DINÂMICOS DO JSON -->
-                <?php if(is_array($data)): foreach($data as $k => $v): 
-                    // Pular campos de tracking antigos (agora estão em colunas)
-                    if ($k === 'is_edited' || $k === 'edited_at') continue;
-                    
-                    $lbl = $k; 
-                    if(is_array($fields)) { 
-                        foreach($fields as $f) { 
-                            if(isset($f['name']) && $f['name'] === $k) $lbl = $f['label']; 
-                        } 
-                    }
-                    
-                    $is_protected = in_array( $k, $protected_json_fields );
-                    $field_class = $is_protected ? 'regular-text ffc-input-readonly' : 'regular-text';
-                    $readonly_attr = $is_protected ? 'readonly' : ''; 
-                    ?>
-                    <tr>
-                        <th><?php echo esc_html($lbl); ?></th>
-                        <td>
-                            <?php $display_value = is_array($v) ? implode(', ', $v) : $v; ?>
-                            <input type="text" name="data[<?php echo esc_attr($k); ?>]" value="<?php echo esc_attr($display_value); ?>" class="<?php echo esc_attr($field_class); ?>" <?php echo $readonly_attr; ?>>
-                            <?php if($is_protected): ?>
-                                <p class="description"><?php _e('Protected internal field.', 'ffc'); ?></p>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; endif; ?>
-            </table>
-
-            <p class="submit">
-                <button type="submit" name="ffc_save_edit" class="button button-primary"><?php _e( 'Save Changes', 'ffc' ); ?></button> 
-                <a href="<?php echo admin_url('edit.php?post_type=ffc_form&page=ffc-submissions'); ?>" class="button"><?php _e( 'Cancel', 'ffc' ); ?></a>
-            </p>
-        </form>
-    </div>
-    <?php
+        // ✅ v3.1.1: Extracted to FFC_Admin_Submission_Edit_Page
+        $submission_id = isset( $_GET['submission_id'] ) ? absint( $_GET['submission_id'] ) : 0;
+        $this->edit_page->render( $submission_id );
     }
 
     public function handle_submission_edit_save() {
-        if ( isset( $_POST['ffc_save_edit'] ) && check_admin_referer( 'ffc_edit_submission_nonce', 'ffc_edit_submission_action' ) ) {
-            $id        = absint( $_POST['submission_id'] ); 
-            $new_email = sanitize_email( $_POST['user_email'] ); 
-            $raw_data  = isset($_POST['data']) ? $_POST['data'] : array();
-            $clean_data = array(); 
-            
-            foreach($raw_data as $k => $v) { 
-                $clean_data[sanitize_key($k)] = wp_kses($v, FFC_Utils::get_allowed_html_tags()); 
-            }
-            
-            
-            $this->submission_handler->update_submission($id, $new_email, $clean_data);
-            
-            wp_redirect(admin_url('edit.php?post_type=ffc_form&page=ffc-submissions&msg=updated')); 
-            exit;
-        }
+        // ✅ v3.1.1: Extracted to FFC_Admin_Submission_Edit_Page
+        $this->edit_page->handle_save();
     }
-
     public function handle_csv_export_request() {
         if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'export_csv_smart' ) {
             $this->csv_exporter->handle_export_request();

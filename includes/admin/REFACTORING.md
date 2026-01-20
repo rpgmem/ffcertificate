@@ -1,6 +1,6 @@
 # Admin Class Refactoring
 
-**Status:** 🔄 Phase 1 COMPLETE - Assets Manager Extracted!
+**Status:** 🔄 Phase 2 COMPLETE - Edit Page Extracted!
 **Started:** 2026-01-20
 **Objective:** Refactor `class-ffc-admin.php` (836 lines) following Single Responsibility Principle
 
@@ -128,31 +128,72 @@ public function admin_assets( $hook ) {
 
 ---
 
-## Phase 2: Submission Edit Page 🔜 PLANNED
+## Phase 2: Submission Edit Page ✅ COMPLETE
 
-### File to Create
+### Files Created
 
-| File | Est. Lines | Purpose | Priority |
-|------|------------|---------|----------|
-| `class-ffc-admin-submission-edit-page.php` | ~350 | Edit page rendering | High |
+| File | Lines | Purpose | Status |
+|------|-------|---------|--------|
+| `class-ffc-admin-submission-edit-page.php` | 444 | Edit page rendering + save logic | ✅ Done |
 
-### What Will Be Extracted
+### What Was Extracted
 
-**From `FFC_Admin::render_edit_page()` (307 lines!)** ← CRITICAL
+**From `FFC_Admin::render_edit_page()` (307 lines!) → `FFC_Admin_Submission_Edit_Page`:**
 
-Break down into components:
-- `render_system_info_section()` - ID, date, status, magic token
-- `render_qr_code_info_section()` - QR code usage guide
-- `render_consent_section()` - LGPD consent status
-- `render_participant_data_section()` - Email, CPF/RF, auth code
-- `render_dynamic_fields()` - JSON fields from form
+Broken down into specialized render methods:
+- `render()` - Main entry point (orchestration)
+- `render_edit_warning()` - Edit warning notice
+- `render_system_info_section()` - ID, date, status, magic token, IP
+- `render_qr_code_section()` - QR code usage guide
+- `render_consent_section()` - LGPD consent status (with conditional display)
+- `render_participant_data_section()` - Email (editable), CPF/RF, auth code (read-only)
+- `render_dynamic_fields()` - JSON fields from form (with protection for special fields)
+- `handle_save()` - Form submission save logic
 
-**Also extract:**
-- `handle_submission_edit_save()` (18 lines)
+**Also extracted:**
+- `handle_submission_edit_save()` (18 lines) → `handle_save()`
 
-### Expected Impact
+### Changes to FFC_Admin
 
-**Target reduction:** ~325 lines from FFC_Admin (largest reduction!)
+**Constructor:**
+```php
+// ✅ v3.1.1: Initialize Submission Edit Page (extracted from FFC_Admin)
+require_once plugin_dir_path( __FILE__ ) . 'class-ffc-admin-submission-edit-page.php';
+$this->edit_page = new FFC_Admin_Submission_Edit_Page( $handler );
+```
+
+**Delegated Methods:**
+```php
+private function render_edit_page() {
+    // ✅ v3.1.1: Extracted to FFC_Admin_Submission_Edit_Page
+    $submission_id = isset( $_GET['submission_id'] ) ? absint( $_GET['submission_id'] ) : 0;
+    $this->edit_page->render( $submission_id );
+}
+
+public function handle_submission_edit_save() {
+    // ✅ v3.1.1: Extracted to FFC_Admin_Submission_Edit_Page
+    $this->edit_page->handle_save();
+}
+```
+
+### Impact
+
+| Metric | Before | After | Reduction |
+|--------|--------|-------|-----------|
+| **FFC_Admin file** | **748 lines** (after Phase 1) | **438 lines** | **-310 lines (-41%)** |
+| **render_edit_page()** | 307 lines | 5 lines (delegation) | **-302 lines (-98%)** ⭐ |
+| **handle_submission_edit_save()** | 18 lines | 3 lines (delegation) | **-15 lines (-83%)** |
+| **Edit Page management** | Mixed in FFC_Admin | 444 lines (isolated) | Extracted |
+
+**⭐ BIGGEST WIN:** render_edit_page() reduced from 307 lines → 5 lines!
+
+### Cumulative Impact (Phase 1 + 2)
+
+| Metric | Original | After Phase 2 | Total Reduction |
+|--------|----------|---------------|-----------------|
+| **FFC_Admin file** | **836 lines** | **438 lines** | **-398 lines (-48%)** |
+| **Classes created** | 0 | 2 (Assets + Edit Page) | +2 modular classes |
+| **Total code** | 836 lines | 1,200 lines (438 + 318 + 444) | +364 lines (better organized!) |
 
 ---
 
@@ -189,7 +230,7 @@ Break down into components:
 - **Testability:** Very low
 - **Maintainability:** Very low
 
-### After Phase 1 (Current)
+### After Phase 1
 
 - **Files:** 2 classes (Admin + Assets Manager)
 - **Lines:** 1,066 total (748 main + 318 extracted)
@@ -197,6 +238,16 @@ Break down into components:
 - **Testability:** Improved (assets isolated)
 - **Maintainability:** Improved (clear separation)
 - **Progress:** 33% complete (1 of 3 phases)
+
+### After Phase 2 (Current)
+
+- **Files:** 3 classes (Admin + Assets Manager + Edit Page)
+- **Lines:** 1,200 total (438 main + 318 assets + 444 edit page)
+- **FFC_Admin:** 438 lines (-398 lines from original, -48%)
+- **Largest method:** ajax_admin_get_pdf_data() (85 lines, down from 307!)
+- **Testability:** High (edit page can be tested independently)
+- **Maintainability:** High (clear component separation)
+- **Progress:** 67% complete (2 of 3 phases)
 
 ### After ALL 3 Phases (Projected)
 
