@@ -297,6 +297,36 @@ class FFC_Admin_Assets_Manager {
                 'errorGeneratingPdf'      => __( 'Error generating PDF', 'ffc' ),
                 'html2canvasFailed'       => __( 'Error: html2canvas failed', 'ffc' ),
                 'confirmLoadTemplate'     => __( 'Load "%s"? This will replace your current certificate HTML.', 'ffc' ),
+                // Field Builder
+                'chooseFieldType'         => __( 'Choose Field Type:', 'ffc' ),
+                'remove'                  => __( 'Remove', 'ffc' ),
+                'fieldType'               => __( 'Field Type:', 'ffc' ),
+                'label'                   => __( 'Label:', 'ffc' ),
+                'fieldLabel'              => __( 'Field Label', 'ffc' ),
+                'nameVariable'            => __( 'Name (variable):', 'ffc' ),
+                'fieldName'               => __( 'field_name', 'ffc' ),
+                'required'                => __( 'Required:', 'ffc' ),
+                'options'                 => __( 'Options:', 'ffc' ),
+                'separateWithCommas'      => __( 'Separate with commas', 'ffc' ),
+                // Field Types
+                'textField'               => __( 'Text Field', 'ffc' ),
+                'email'                   => __( 'Email', 'ffc' ),
+                'number'                  => __( 'Number', 'ffc' ),
+                'textarea'                => __( 'Textarea', 'ffc' ),
+                'dropdownSelect'          => __( 'Dropdown Select', 'ffc' ),
+                'checkbox'                => __( 'Checkbox', 'ffc' ),
+                'radioButtons'            => __( 'Radio Buttons', 'ffc' ),
+                'date'                    => __( 'Date', 'ffc' ),
+                // Template Manager
+                'selectTemplate'          => __( 'Select a Template', 'ffc' ),
+                'cancel'                  => __( 'Cancel', 'ffc' ),
+                'loadingTemplate'         => __( 'Loading template...', 'ffc' ),
+                'templateFileNotFound'    => __( 'Template file not found. Check if file exists in html/ folder.', 'ffc' ),
+                'accessDenied'            => __( 'Access denied. Check file permissions.', 'ffc' ),
+                'networkError'            => __( 'Network error. Check your connection.', 'ffc' ),
+                'errorLoadingTemplate'    => __( 'Error loading template: %s', 'ffc' ),
+                'chooseBackgroundImage'   => __( 'Choose Background Image', 'ffc' ),
+                'useThisImage'            => __( 'Use this image', 'ffc' ),
             )
         );
     }

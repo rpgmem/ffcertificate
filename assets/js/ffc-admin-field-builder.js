@@ -20,16 +20,23 @@
     // ==========================================================================
 
     var fieldCounter = 0;
-    var fieldTypes = [
-        { value: 'text', label: 'Text Field' },
-        { value: 'email', label: 'Email' },
-        { value: 'number', label: 'Number' },
-        { value: 'textarea', label: 'Textarea' },
-        { value: 'select', label: 'Dropdown Select' },
-        { value: 'checkbox', label: 'Checkbox' },
-        { value: 'radio', label: 'Radio Buttons' },
-        { value: 'date', label: 'Date' }
-    ];
+
+    // Get localized strings with fallbacks
+    function getFieldTypes() {
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+        return [
+            { value: 'text', label: strings.textField || 'Text Field' },
+            { value: 'email', label: strings.email || 'Email' },
+            { value: 'number', label: strings.number || 'Number' },
+            { value: 'textarea', label: strings.textarea || 'Textarea' },
+            { value: 'select', label: strings.dropdownSelect || 'Dropdown Select' },
+            { value: 'checkbox', label: strings.checkbox || 'Checkbox' },
+            { value: 'radio', label: strings.radioButtons || 'Radio Buttons' },
+            { value: 'date', label: strings.date || 'Date' }
+        ];
+    }
+
+    var fieldTypes = getFieldTypes();
 
     // Initialize Form Builder
     function initFormBuilder() {
@@ -95,7 +102,10 @@
 
         // Create menu
         var $menu = $('<div class="ffc-field-type-menu"></div>');
-        $menu.append('<div class="ffc-menu-header">Choose Field Type:</div>');
+        var headerText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.chooseFieldType)
+            ? ffc_ajax.strings.chooseFieldType
+            : 'Choose Field Type:';
+        $menu.append('<div class="ffc-menu-header">' + headerText + '</div>');
 
         var $list = $('<ul></ul>');
         fieldTypes.forEach(function(type) {
@@ -141,18 +151,30 @@
     function addFieldToBuilder(fieldType) {
         fieldCounter++;
 
+        // Get localized strings with fallbacks
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+        var removeText = strings.remove || 'Remove';
+        var fieldTypeText = strings.fieldType || 'Field Type:';
+        var labelText = strings.label || 'Label:';
+        var fieldLabelPlaceholder = strings.fieldLabel || 'Field Label';
+        var nameVariableText = strings.nameVariable || 'Name (variable):';
+        var fieldNamePlaceholder = strings.fieldName || 'field_name';
+        var requiredText = strings.required || 'Required:';
+        var optionsText = strings.options || 'Options:';
+        var separateWithCommasPlaceholder = strings.separateWithCommas || 'Separate with commas';
+
         var fieldHtml = '<div class="ffc-field-row" data-index="' + fieldCounter + '">';
         fieldHtml += '  <div class="ffc-field-row-header">';
         fieldHtml += '    <span class="ffc-sort-handle">';
         fieldHtml += '      <span class="dashicons dashicons-menu"></span>';
         fieldHtml += '      <span class="ffc-field-title"><strong>' + fieldType.toUpperCase() + '</strong></span>';
         fieldHtml += '    </span>';
-        fieldHtml += '    <button type="button" class="button button-link-delete ffc-remove-field">Remove</button>';
+        fieldHtml += '    <button type="button" class="button button-link-delete ffc-remove-field">' + removeText + '</button>';
         fieldHtml += '  </div>';
         fieldHtml += '  <div class="ffc-field-row-body">';
         fieldHtml += '    <table class="form-table">';
         fieldHtml += '      <tr>';
-        fieldHtml += '        <th><label>Field Type:</label></th>';
+        fieldHtml += '        <th><label>' + fieldTypeText + '</label></th>';
         fieldHtml += '        <td><select class="ffc-field-type" name="ffc_fields[' + fieldCounter + '][type]">';
 
         fieldTypes.forEach(function(type) {
@@ -163,23 +185,23 @@
         fieldHtml += '        </select></td>';
         fieldHtml += '      </tr>';
         fieldHtml += '      <tr>';
-        fieldHtml += '        <th><label>Label:</label></th>';
-        fieldHtml += '        <td><input type="text" class="ffc-field-label regular-text" name="ffc_fields[' + fieldCounter + '][label]" placeholder="Field Label"></td>';
+        fieldHtml += '        <th><label>' + labelText + '</label></th>';
+        fieldHtml += '        <td><input type="text" class="ffc-field-label regular-text" name="ffc_fields[' + fieldCounter + '][label]" placeholder="' + fieldLabelPlaceholder + '"></td>';
         fieldHtml += '      </tr>';
         fieldHtml += '      <tr>';
-        fieldHtml += '        <th><label>Name (variable):</label></th>';
-        fieldHtml += '        <td><input type="text" class="ffc-field-name regular-text" name="ffc_fields[' + fieldCounter + '][name]" placeholder="field_name"></td>';
+        fieldHtml += '        <th><label>' + nameVariableText + '</label></th>';
+        fieldHtml += '        <td><input type="text" class="ffc-field-name regular-text" name="ffc_fields[' + fieldCounter + '][name]" placeholder="' + fieldNamePlaceholder + '"></td>';
         fieldHtml += '      </tr>';
         fieldHtml += '      <tr>';
-        fieldHtml += '        <th><label>Required:</label></th>';
+        fieldHtml += '        <th><label>' + requiredText + '</label></th>';
         fieldHtml += '        <td><input type="checkbox" class="ffc-field-required" name="ffc_fields[' + fieldCounter + '][required]" value="1"></td>';
         fieldHtml += '      </tr>';
 
         // Additional options for select/radio/checkbox
         if (fieldType === 'select' || fieldType === 'radio' || fieldType === 'checkbox') {
             fieldHtml += '      <tr>';
-            fieldHtml += '        <th><label>Options:</label></th>';
-            fieldHtml += '        <td><textarea class="ffc-field-options large-text" name="ffc_fields[' + fieldCounter + '][options]" rows="3" placeholder="Separate with commas"></textarea></td>';
+            fieldHtml += '        <th><label>' + optionsText + '</label></th>';
+            fieldHtml += '        <td><textarea class="ffc-field-options large-text" name="ffc_fields[' + fieldCounter + '][options]" rows="3" placeholder="' + separateWithCommasPlaceholder + '"></textarea></td>';
             fieldHtml += '      </tr>';
         }
 

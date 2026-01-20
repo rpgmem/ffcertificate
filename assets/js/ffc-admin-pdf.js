@@ -33,10 +33,15 @@
             { value: 'declaracao.html', label: 'Declaração' }
         ];
 
+        // Get localized strings with fallbacks
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+        var selectTemplateText = strings.selectTemplate || 'Select a Template';
+        var cancelText = strings.cancel || 'Cancel';
+
         // Criar modal de seleção
         var modalHtml = '<div id="ffc-template-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;">';
         modalHtml += '<div style="background:#fff;padding:30px;border-radius:8px;max-width:500px;width:90%;box-shadow:0 4px 20px rgba(0,0,0,0.3);">';
-        modalHtml += '<h2 style="margin:0 0 20px 0;font-size:20px;">Select a Template</h2>';
+        modalHtml += '<h2 style="margin:0 0 20px 0;font-size:20px;">' + selectTemplateText + '</h2>';
         modalHtml += '<div style="max-height:400px;overflow-y:auto;">';
 
         templates.forEach(function(template) {
@@ -48,7 +53,7 @@
 
         modalHtml += '</div>';
         modalHtml += '<div style="margin-top:20px;text-align:right;">';
-        modalHtml += '<button id="ffc-modal-cancel" class="button" style="margin-right:10px;">Cancel</button>';
+        modalHtml += '<button id="ffc-modal-cancel" class="button" style="margin-right:10px;">' + cancelText + '</button>';
         modalHtml += '</div>';
         modalHtml += '</div></div>';
 
@@ -98,9 +103,11 @@
 
         var templateUrl = '/wp-content/plugins/wp-ffcertificate/html/' + filename;
         var showNotification = window.FFC.Admin.showNotification || function() {};
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
         // Show loading notification
-        showNotification('Loading template...', 'info', 0);
+        var loadingText = strings.loadingTemplate || 'Loading template...';
+        showNotification(loadingText, 'info', 0);
 
         fetch(templateUrl)
             .then(function(response) {
@@ -132,13 +139,14 @@
 
                 var errorMsg = '';
                 if (error.message.includes('404')) {
-                    errorMsg = 'Template file not found. Check if file exists in html/ folder.';
+                    errorMsg = strings.templateFileNotFound || 'Template file not found. Check if file exists in html/ folder.';
                 } else if (error.message.includes('403')) {
-                    errorMsg = 'Access denied. Check file permissions.';
+                    errorMsg = strings.accessDenied || 'Access denied. Check file permissions.';
                 } else if (error.message.includes('Failed to fetch')) {
-                    errorMsg = 'Network error. Check your connection.';
+                    errorMsg = strings.networkError || 'Network error. Check your connection.';
                 } else {
-                    errorMsg = 'Error loading template: ' + error.message;
+                    var errorTemplate = strings.errorLoadingTemplate || 'Error loading template: %s';
+                    errorMsg = errorTemplate.replace('%s', error.message);
                 }
 
                 showNotification('✗ ' + errorMsg, 'error', 8000);
@@ -243,6 +251,7 @@
         e.preventDefault();
         console.log('[FFC] Background Image clicked');
         var showNotification = window.FFC.Admin.showNotification || function() {};
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
         // Check if wp.media is available
         if (typeof wp === 'undefined' || typeof wp.media === 'undefined') {
@@ -258,10 +267,13 @@
         }
 
         // Create the media uploader
+        var titleText = strings.chooseBackgroundImage || 'Choose Background Image';
+        var buttonText = strings.useThisImage || 'Use this image';
+
         mediaUploader = wp.media({
-            title: 'Choose Background Image',
+            title: titleText,
             button: {
-                text: 'Use this image'
+                text: buttonText
             },
             multiple: false
         });
