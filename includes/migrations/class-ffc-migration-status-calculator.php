@@ -70,10 +70,11 @@ class FFC_Migration_Status_Calculator {
         $this->strategies['encrypt_sensitive_data'] = new FFC_Encryption_Migration_Strategy();
         $this->strategies['cleanup_unencrypted']   = new FFC_Cleanup_Migration_Strategy();
 
-        // User link strategy (if class exists)
-        if ( class_exists( 'FFC_Migration_User_Link' ) ) {
-            $this->strategies['user_link'] = new FFC_Migration_User_Link();
+        // ✅ v3.1.1: User link strategy (uses strategy pattern)
+        if ( ! class_exists( 'FFC_User_Link_Migration_Strategy' ) ) {
+            require_once FFC_PLUGIN_DIR . 'includes/migrations/strategies/class-ffc-user-link-migration-strategy.php';
         }
+        $this->strategies['user_link'] = new FFC_User_Link_Migration_Strategy();
 
         // Allow plugins to register custom strategies
         $this->strategies = apply_filters( 'ffc_migration_strategies', $this->strategies );

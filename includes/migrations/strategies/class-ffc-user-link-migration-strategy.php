@@ -1,0 +1,156 @@
+<?php
+/**
+ * FFC_User_Link_Migration_Strategy
+ *
+ * Strategy for linking submissions to WordPress users.
+ * Adds user_id column and links existing submissions based on CPF/RF and email.
+ *
+ * @since 3.1.1
+ * @version 1.0.0
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class FFC_User_Link_Migration_Strategy implements FFC_Migration_Strategy {
+
+    /**
+     * @var string Database table name
+     */
+    private $table_name;
+
+    /**
+     * Constructor
+     */
+    public function __construct() {
+        global $wpdb;
+        $this->table_name = FFC_Utils::get_submissions_table();
+    }
+
+    /**
+     * Calculate user link migration status
+     *
+     * @param string $migration_key Migration identifier
+     * @param array $migration_config Migration configuration
+     * @return array Status information
+     */
+    public function calculate_status( $migration_key, $migration_config ) {
+        global $wpdb;
+
+        // Check if user_id column exists
+        $column_exists = $wpdb->get_results(
+            $wpdb->prepare(
+                "SHOW COLUMNS FROM {$this->table_name} LIKE %s",
+                'user_id'
+            )
+        );
+
+        if ( empty( $column_exists ) ) {
+            // Column doesn't exist yet - all records pending
+            $total = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table_name}" );
+            return array(
+                'total' => $total,
+                'migrated' => 0,
+                'pending' => $total,
+                'percent' => 0,
+                'is_complete' => false
+            );
+        }
+
+        // Count total submissions with CPF/RF
+        $total = $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$this->table_name}
+             WHERE cpf_rf_hash IS NOT NULL
+             AND cpf_rf_hash != ''"
+        );
+
+        if ( $total == 0 ) {
+            return array(
+                'total' => 0,
+                'migrated' => 0,
+                'pending' => 0,
+                'percent' => 100,
+                'is_complete' => true
+            );
+        }
+
+        // Count submissions already linked to users
+        $migrated = $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$this->table_name}
+             WHERE cpf_rf_hash IS NOT NULL
+             AND cpf_rf_hash != ''
+             AND user_id IS NOT NULL"
+        );
+
+        $pending = $total - $migrated;
+        $percent = ( $total > 0 ) ? ( $migrated / $total ) * 100 : 100;
+
+        return array(
+            'total' => (int) $total,
+            'migrated' => (int) $migrated,
+            'pending' => (int) $pending,
+            'percent' => round( $percent, 2 ),
+            'is_complete' => ( $pending == 0 )
+        );
+    }
+
+    /**
+     * Execute user linking migration
+     *
+     * @param string $migration_key Migration identifier
+     * @param array $migration_config Migration configuration
+     * @param int $batch_number Batch number (unused for this migration)
+     * @return array Result array
+     */
+    public function execute( $migration_key, $migration_config, $batch_number = 0 ) {
+        // Load legacy migration class
+        if ( ! class_exists( 'FFC_Migration_User_Link' ) ) {
+            require_once FFC_PLUGIN_DIR . 'includes/migrations/class-ffc-migration-user-link.php';
+        }
+
+        // Delegate to legacy class
+        $result = FFC_Migration_User_Link::run();
+
+        return array(
+            'success' => $result['success'],
+            'processed' => $result['processed'],
+            'message' => $result['message']
+        );
+    }
+
+    /**
+     * Check if migration can be executed
+     *
+     * @param string $migration_key Migration identifier
+     * @param array $migration_config Migration configuration
+     * @return bool|WP_Error True if can run, WP_Error if cannot
+     */
+    public function can_run( $migration_key, $migration_config ) {
+        // Check if encryption is configured (required for decrypting emails)
+        if ( ! class_exists( 'FFC_Encryption' ) ) {
+            return new WP_Error(
+                'encryption_not_available',
+                __( 'Encryption class not available. Cannot link users without decrypting emails.', 'ffc' )
+            );
+        }
+
+        if ( ! FFC_Encryption::is_configured() ) {
+            return new WP_Error(
+                'encryption_not_configured',
+                __( 'Encryption is not configured. Please configure encryption keys first.', 'ffc' )
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * Get strategy name
+     *
+     * @return string Strategy name
+     */
+    public function get_name() {
+        return __( 'User Link Migration', 'ffc' );
+    }
+}
