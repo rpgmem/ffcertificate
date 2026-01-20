@@ -188,17 +188,20 @@
                     
                     var isValid = false;
                     var errorMsg = '';
-                    
+
+                    // Get localized strings
+                    var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+
                     if (value.length === 7) {
                         // RF validation
                         isValid = Validation.validateRF(value);
-                        errorMsg = 'RF inválido';
+                        errorMsg = strings.rfInvalid || 'Invalid RF';
                     } else if (value.length === 11) {
                         // CPF validation
                         isValid = Validation.validateCPF(value);
-                        errorMsg = 'CPF inválido';
+                        errorMsg = strings.cpfInvalid || 'Invalid CPF';
                     } else {
-                        errorMsg = 'Digite um CPF (11 dígitos) ou RF (7 dígitos) válido';
+                        errorMsg = strings.enterValidCpfRf || 'Enter a valid CPF (11 digits) or RF (7 digits)';
                     }
                     
                     // Apply visual feedback
@@ -451,7 +454,7 @@
                     'text-align': 'center',
                     'animation': 'ffcSlideDown 0.3s ease'
                 })
-                .html('<h3 style="margin: 0 0 10px 0; font-size: 20px;">✅ Success!</h3><p style="margin: 0;">Your submission was successful.</p>');
+                .html('<h3 style="margin: 0 0 10px 0; font-size: 20px;">✅ ' + (ffc_ajax.strings.success || 'Success!') + '</h3><p style="margin: 0;">' + (ffc_ajax.strings.submissionSuccessful || 'Your submission was successful.') + '</p>');
             
             $form.html($success);
         },
@@ -529,7 +532,8 @@
             );
             
             // Disable button with countdown
-            $btn.prop('disabled', true).html('Aguarde... (<span id="ffc-countdown-btn">0:00</span>)');
+            var waitText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings.wait || 'Wait...' : 'Wait...';
+            $btn.prop('disabled', true).html(waitText + ' (<span id="ffc-countdown-btn">0:00</span>)');
             
             // Start countdown
             this.startCountdown();
@@ -568,7 +572,8 @@
         enable: function() {
             this.blocked = false;
             $('.ffc-rate-limit-notice').remove();
-            $('.ffc-form button[type="submit"]').prop('disabled', false).text('Enviar');
+            var sendText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings.send || 'Send' : 'Send';
+            $('.ffc-form button[type="submit"]').prop('disabled', false).text(sendText);
         }
     };
     

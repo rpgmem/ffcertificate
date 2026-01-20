@@ -120,12 +120,12 @@
             let html = '<table class="ffc-certificates-table">';
             html += '<thead>';
             html += '<tr>';
-            html += '<th>Nome do Evento</th>';
-            html += '<th>Data</th>';
-            html += '<th>Consentimento (LGPD)</th>';
-            html += '<th>E-mail</th>';
-            html += '<th>Código</th>';
-            html += '<th>Ações</th>';
+            html += '<th>' + ffcDashboard.strings.eventName + '</th>';
+            html += '<th>' + ffcDashboard.strings.date + '</th>';
+            html += '<th>' + ffcDashboard.strings.consent + '</th>';
+            html += '<th>' + ffcDashboard.strings.email + '</th>';
+            html += '<th>' + ffcDashboard.strings.code + '</th>';
+            html += '<th>' + ffcDashboard.strings.actions + '</th>';
             html += '</tr>';
             html += '</thead>';
             html += '<tbody>';
@@ -197,13 +197,13 @@
 
             // Display Name
             html += '<div class="ffc-profile-field">';
-            html += '<label>Nome:</label>';
+            html += '<label>' + ffcDashboard.strings.name + '</label>';
             html += '<div class="value">' + (profile.display_name || '-') + '</div>';
             html += '</div>';
 
             // Email(s)
             html += '<div class="ffc-profile-field">';
-            html += '<label>E-mails vinculados:</label>';
+            html += '<label>' + ffcDashboard.strings.linkedEmails + '</label>';
             if (profile.emails && profile.emails.length > 0) {
                 html += '<ul class="email-list">';
                 profile.emails.forEach(function(email) {
@@ -217,13 +217,13 @@
 
             // CPF/RF (masked)
             html += '<div class="ffc-profile-field">';
-            html += '<label>CPF/RF:</label>';
+            html += '<label>' + ffcDashboard.strings.cpfRf + '</label>';
             html += '<div class="value">' + (profile.cpf_masked || '-') + '</div>';
             html += '</div>';
 
             // Member Since
             html += '<div class="ffc-profile-field">';
-            html += '<label>Membro desde:</label>';
+            html += '<label>' + ffcDashboard.strings.memberSince + '</label>';
             html += '<div class="value">' + (profile.member_since || '-') + '</div>';
             html += '</div>';
 

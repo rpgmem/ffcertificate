@@ -272,6 +272,7 @@ class FFC_Admin_Assets_Manager {
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce'    => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
             'strings'  => array(
+                // General
                 'generating'              => __( 'Generating...', 'ffc' ),
                 'error'                   => __( 'Error: ', 'ffc' ),
                 'connectionError'         => __( 'Connection error.', 'ffc' ),
@@ -297,6 +298,17 @@ class FFC_Admin_Assets_Manager {
                 'errorGeneratingPdf'      => __( 'Error generating PDF', 'ffc' ),
                 'html2canvasFailed'       => __( 'Error: html2canvas failed', 'ffc' ),
                 'confirmLoadTemplate'     => __( 'Load "%s"? This will replace your current certificate HTML.', 'ffc' ),
+                'dismiss'                 => __( 'Dismiss', 'ffc' ),
+
+                // Ticket Generation
+                'enterValidNumber'        => __( 'Please enter a valid number.', 'ffc' ),
+                'generatingTickets'       => __( 'Generating tickets...', 'ffc' ),
+                'ticketsGeneratedSuccess' => __( 'tickets generated successfully!', 'ffc' ),
+                'codesFieldNotFound'      => __( 'Error: codes field not found', 'ffc' ),
+                'permissionDenied'        => __( 'Permission denied. Please reload the page.', 'ffc' ),
+                'badRequest'              => __( 'Bad request. Check console.', 'ffc' ),
+                'serverError'             => __( 'Server error (Status: %d)', 'ffc' ),
+
                 // Field Builder
                 'chooseFieldType'         => __( 'Choose Field Type:', 'ffc' ),
                 'remove'                  => __( 'Remove', 'ffc' ),
@@ -308,6 +320,7 @@ class FFC_Admin_Assets_Manager {
                 'required'                => __( 'Required:', 'ffc' ),
                 'options'                 => __( 'Options:', 'ffc' ),
                 'separateWithCommas'      => __( 'Separate with commas', 'ffc' ),
+
                 // Field Types
                 'textField'               => __( 'Text Field', 'ffc' ),
                 'email'                   => __( 'Email', 'ffc' ),
@@ -317,16 +330,24 @@ class FFC_Admin_Assets_Manager {
                 'checkbox'                => __( 'Checkbox', 'ffc' ),
                 'radioButtons'            => __( 'Radio Buttons', 'ffc' ),
                 'date'                    => __( 'Date', 'ffc' ),
+
                 // Template Manager
                 'selectTemplate'          => __( 'Select a Template', 'ffc' ),
                 'cancel'                  => __( 'Cancel', 'ffc' ),
                 'loadingTemplate'         => __( 'Loading template...', 'ffc' ),
+                'templateLoadedSuccess'   => __( 'Template "%s" loaded successfully!', 'ffc' ),
                 'templateFileNotFound'    => __( 'Template file not found. Check if file exists in html/ folder.', 'ffc' ),
                 'accessDenied'            => __( 'Access denied. Check file permissions.', 'ffc' ),
                 'networkError'            => __( 'Network error. Check your connection.', 'ffc' ),
                 'errorLoadingTemplate'    => __( 'Error loading template: %s', 'ffc' ),
                 'chooseBackgroundImage'   => __( 'Choose Background Image', 'ffc' ),
                 'useThisImage'            => __( 'Use this image', 'ffc' ),
+                'htmlFieldNotFound'       => __( 'HTML field not found.', 'ffc' ),
+                'selectHtmlFile'          => __( 'Please select an HTML file.', 'ffc' ),
+                'htmlImportedSuccess'     => __( 'HTML imported successfully!', 'ffc' ),
+                'htmlTextareaNotFound'    => __( 'Error: HTML textarea not found', 'ffc' ),
+                'wpMediaNotAvailable'     => __( 'WordPress Media Library is not available. Please reload the page.', 'ffc' ),
+                'backgroundImageSelected' => __( 'Background image selected!', 'ffc' ),
             )
         );
     }

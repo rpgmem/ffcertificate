@@ -82,6 +82,7 @@ class FFC_Frontend {
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce'    => wp_create_nonce( 'ffc_frontend_nonce' ),
             'strings'  => array(
+            // Verification
             'verifying'             => __( 'Verifying...', 'ffc' ),
             'verify'                => __( 'Verify', 'ffc' ),
             'processing'            => __( 'Processing...', 'ffc' ),
@@ -90,18 +91,43 @@ class FFC_Frontend {
             'enterCode'             => __( 'Please enter the code.', 'ffc' ),
             'generatingCertificate' => __( 'Generating certificate in the background, please wait 10 seconds and check your downloads folder...', 'ffc' ),
             'idMustHaveDigits'      => __( 'The ID must have exactly 7 digits (RF) or 11 digits (CPF).', 'ffc' ),
-            'pdfLibrariesFailed'    => __( 'PDF libraries failed to load. Please refresh the page.', 'ffc' ),
-            'pdfGenerationError'    => __( 'Error generating PDF (html2canvas). Please try again.', 'ffc' ),
             'invalidToken'          => __( 'Invalid token.', 'ffc' ),
             'generating'            => __( 'Generating...', 'ffc' ),
             'downloadAgain'         => __( 'Download Again', 'ffc' ),
+
+            // Certificate Display
+            'certificateValid'      => __( 'Certificate Valid!', 'ffc' ),
+            'certificateInvalid'    => __( 'Certificate Invalid', 'ffc' ),
+            'formTitle'             => __( 'Form', 'ffc' ),
+            'authCode'              => __( 'Auth Code', 'ffc' ),
+            'issueDate'             => __( 'Issue Date', 'ffc' ),
+            'downloadPDF'           => __( 'Download PDF', 'ffc' ),
+            'tryManually'           => __( 'Or try manual verification', 'ffc' ),
+            'enterAuthCode'         => __( 'Enter auth code', 'ffc' ),
+
+            // Validation (CPF/RF)
+            'rfInvalid'             => __( 'Invalid RF', 'ffc' ),
+            'cpfInvalid'            => __( 'Invalid CPF', 'ffc' ),
+            'enterValidCpfRf'       => __( 'Enter a valid CPF (11 digits) or RF (7 digits)', 'ffc' ),
+
+            // Success/Error Messages
+            'success'               => __( 'Success!', 'ffc' ),
+            'submissionSuccessful'  => __( 'Your submission was successful.', 'ffc' ),
+            'error'                 => __( 'Error occurred', 'ffc' ),
+            'fillRequired'          => __( 'Please fill all required fields', 'ffc' ),
+
+            // Rate Limiting
+            'wait'                  => __( 'Wait...', 'ffc' ),
+            'send'                  => __( 'Send', 'ffc' ),
+
+            // PDF Generation
+            'pdfLibrariesFailed'    => __( 'PDF libraries failed to load. Please refresh the page.', 'ffc' ),
+            'pdfGenerationError'    => __( 'Error generating PDF (html2canvas). Please try again.', 'ffc' ),
             'pleaseWait'            => __( 'Please wait, this may take a few seconds...', 'ffc' ),
             'generatingPdf'         => __( 'Generating PDF...', 'ffc' ),
             'pdfContainerNotFound'  => __( 'Error: PDF container not found', 'ffc' ),
             'errorGeneratingPdf'    => __( 'Error generating PDF', 'ffc' ),
             'html2canvasFailed'     => __( 'Error: html2canvas failed', 'ffc' ),
-            'fillRequired'          => __( 'Please fill all required fields', 'ffc' ),
-            'error'                 => __( 'Error occurred', 'ffc' ),
             )
         ) );
         }

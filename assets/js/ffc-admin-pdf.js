@@ -127,10 +127,13 @@
                 if ($htmlField.length) {
                     $htmlField.val(htmlContent);
                     $htmlField.trigger('change');
-                    showNotification('✓ Template "' + (displayName || filename) + '" loaded successfully!', 'success', 3000);
+                    var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
+                    var successMsg = successTemplate.replace('%s', displayName || filename);
+                    showNotification('✓ ' + successMsg, 'success', 3000);
                     console.log('[FFC] ✓ Template loaded into #ffc_pdf_layout');
                 } else {
-                    showNotification('✗ HTML field not found.', 'error');
+                    var errorMsg = strings.htmlFieldNotFound || 'HTML field not found.';
+                    showNotification('✗ ' + errorMsg, 'error');
                     console.error('[FFC] ✗ HTML field #ffc_pdf_layout not found');
                 }
             })
@@ -182,8 +185,11 @@
                 var file = e.target.files[0];
                 if (!file) return;
 
+                var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+
                 if (file.type !== 'text/html' && !file.name.endsWith('.html')) {
-                    showNotification('Please select an HTML file.', 'warning');
+                    var warningMsg = strings.selectHtmlFile || 'Please select an HTML file.';
+                    showNotification(warningMsg, 'warning');
                     return;
                 }
 
@@ -193,10 +199,12 @@
 
                     if ($htmlField.length) {
                         $htmlField.val(e.target.result);
-                        showNotification('HTML imported successfully!', 'success');
+                        var successMsg = strings.htmlImportedSuccess || 'HTML imported successfully!';
+                        showNotification(successMsg, 'success');
                         console.log('[FFC] HTML file imported to #ffc_pdf_layout');
                     } else {
-                        showNotification('Error: HTML field not found.', 'error');
+                        var errorMsg = strings.htmlFieldNotFound || 'HTML field not found.';
+                        showNotification('Error: ' + errorMsg, 'error');
                         console.error('[FFC] HTML field not found');
                     }
 
@@ -217,6 +225,7 @@
 
         console.log('[FFC] File selected via change handler:', file.name);
         var showNotification = window.FFC.Admin.showNotification || function() {};
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
         var reader = new FileReader();
         reader.onload = function(evt) {
@@ -225,15 +234,18 @@
             if ($htmlField.length) {
                 $htmlField.val(evt.target.result);
                 console.log('[FFC] ✓ HTML imported to #ffc_pdf_layout');
-                showNotification('HTML imported successfully!', 'success');
+                var successMsg = strings.htmlImportedSuccess || 'HTML imported successfully!';
+                showNotification(successMsg, 'success');
             } else {
                 console.error('[FFC] ✗ Field #ffc_pdf_layout not found');
-                showNotification('Error: HTML textarea not found', 'error');
+                var errorMsg = strings.htmlTextareaNotFound || 'HTML textarea not found';
+                showNotification('Error: ' + errorMsg, 'error');
             }
         };
         reader.onerror = function() {
             console.error('[FFC] Error reading file');
-            showNotification('Error reading file', 'error');
+            var errorMsg = strings.errorReadingFile || 'Error reading file';
+            showNotification(errorMsg, 'error');
         };
         reader.readAsText(file);
 
@@ -255,7 +267,8 @@
 
         // Check if wp.media is available
         if (typeof wp === 'undefined' || typeof wp.media === 'undefined') {
-            showNotification('WordPress Media Library is not available. Please reload the page.', 'error');
+            var errorMsg = strings.wpMediaNotAvailable || 'WordPress Media Library is not available. Please reload the page.';
+            showNotification(errorMsg, 'error');
             console.error('[FFC] wp.media is not defined');
             return;
         }
@@ -298,7 +311,8 @@
                 $preview.html('<img src="' + attachment.url + '" style="max-width: 200px; height: auto;">');
             }
 
-            showNotification('Background image selected!', 'success');
+            var successMsg = strings.backgroundImageSelected || 'Background image selected!';
+            showNotification(successMsg, 'success');
             console.log('[FFC] Background image selected:', attachment.url);
         });
 

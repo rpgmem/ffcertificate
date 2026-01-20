@@ -226,6 +226,18 @@ class FFC_Dashboard_Shortcode {
                 'downloadPdf' => __('View PDF', 'ffc'),
                 'yes' => __('Yes', 'ffc'),
                 'no' => __('No', 'ffc'),
+                // Table headers
+                'eventName' => __('Event Name', 'ffc'),
+                'date' => __('Date', 'ffc'),
+                'consent' => __('Consent (LGPD)', 'ffc'),
+                'email' => __('Email', 'ffc'),
+                'code' => __('Code', 'ffc'),
+                'actions' => __('Actions', 'ffc'),
+                // Profile fields
+                'name' => __('Name:', 'ffc'),
+                'linkedEmails' => __('Linked Emails:', 'ffc'),
+                'cpfRf' => __('CPF/RF:', 'ffc'),
+                'memberSince' => __('Member Since:', 'ffc'),
             ),
         ));
     }

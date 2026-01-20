@@ -33,9 +33,13 @@
         var icons = {success: 'yes-alt', error: 'dismiss', warning: 'warning', info: 'info'};
         var colors = {success: 'notice-success', error: 'notice-error', warning: 'notice-warning', info: 'notice-info'};
 
+        // Get localized strings with fallbacks
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+        var dismissText = strings.dismiss || 'Dismiss';
+
         var $notif = $('<div class="ffc-admin-notification notice ' + colors[type] + ' is-dismissible">' +
             '<p><span class="dashicons dashicons-' + icons[type] + '"></span> ' + message + '</p>' +
-            '<button type="button" class="notice-dismiss"><span class="screen-reader-text">Dismiss</span></button>' +
+            '<button type="button" class="notice-dismiss"><span class="screen-reader-text">' + dismissText + '</span></button>' +
             '</div>');
 
         if ($('.wrap > h1').length) {
@@ -73,7 +77,9 @@
 
         if (!quantity || isNaN(quantity) || quantity < 1) {
             // Show inline error instead of alert
-            $('#ffc_gen_status').text('Please enter a valid number.').css('color', 'red');
+            var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+            var errorMsg = strings.enterValidNumber || 'Please enter a valid number.';
+            $('#ffc_gen_status').text(errorMsg).css('color', 'red');
             $('#ffc_qty_codes').focus();
             return;
         }
@@ -82,8 +88,12 @@
         var $status = $('#ffc_gen_status');
         var originalText = $btn.text();
 
-        $btn.prop('disabled', true).text('Generating...');
-        $status.text('Generating tickets...').css('color', '#999');
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+        var generatingText = strings.generating || 'Generating...';
+        var generatingTicketsText = strings.generatingTickets || 'Generating tickets...';
+
+        $btn.prop('disabled', true).text(generatingText);
+        $status.text(generatingTicketsText).css('color', '#999');
 
         // Use nonce from ffc_ajax (localized by class-ffc-admin.php)
         var nonce = (typeof ffc_ajax !== 'undefined') ? ffc_ajax.nonce : '';
@@ -100,6 +110,8 @@
                 nonce: nonce
             },
             success: function(response) {
+                var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+
                 if (response.success) {
                     // Use the correct field ID: #ffc_generated_list
                     var $codesField = $('#ffc_generated_list');
@@ -111,7 +123,8 @@
                         console.log('[FFC] Codes added to field: ffc_generated_list');
 
                         // Inline message instead of alert
-                        $status.text('✓ ' + quantity + ' tickets generated successfully!').css('color', 'green');
+                        var successMsg = strings.ticketsGeneratedSuccess || 'tickets generated successfully!';
+                        $status.text('✓ ' + quantity + ' ' + successMsg).css('color', 'green');
 
                         // Clear message after 5 seconds
                         setTimeout(function() {
@@ -119,10 +132,12 @@
                         }, 5000);
                     } else {
                         console.warn('[FFC] Generated codes field not found');
-                        $status.text('✗ Error: codes field not found').css('color', 'red');
+                        var errorMsg = strings.codesFieldNotFound || 'Error: codes field not found';
+                        $status.text('✗ ' + errorMsg).css('color', 'red');
                     }
                 } else {
-                    $status.text('✗ Error: ' + (response.data || 'Unknown error')).css('color', 'red');
+                    var errorText = strings.error || 'Error: ';
+                    $status.text('✗ ' + errorText + (response.data || 'Unknown error')).css('color', 'red');
                 }
 
                 $btn.prop('disabled', false).text(originalText);
@@ -130,13 +145,16 @@
             error: function(xhr) {
                 console.error('[FFC] AJAX error:', xhr.status, xhr.statusText, xhr.responseText);
 
+                var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
                 var errorMsg = '✗ ';
+
                 if (xhr.status === 403) {
-                    errorMsg += 'Permission denied. Please reload the page.';
+                    errorMsg += strings.permissionDenied || 'Permission denied. Please reload the page.';
                 } else if (xhr.status === 400) {
-                    errorMsg += 'Bad request. Check console.';
+                    errorMsg += strings.badRequest || 'Bad request. Check console.';
                 } else {
-                    errorMsg += 'Server error (Status: ' + xhr.status + ')';
+                    var serverErrorTemplate = strings.serverError || 'Server error (Status: %d)';
+                    errorMsg += serverErrorTemplate.replace('%d', xhr.status);
                 }
 
                 $status.text(errorMsg).css('color', 'red');
