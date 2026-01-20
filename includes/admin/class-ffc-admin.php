@@ -55,8 +55,6 @@ class FFC_Admin {
         add_action( 'admin_init', array( $this, 'handle_csv_export_request' ) );
         add_action( 'admin_init', array( $this, 'handle_submission_edit_save' ) );
         add_action( 'admin_init', array( $this, 'handle_migration_action' ) );  // ✅ v2.9.13: Unified handler
-
-        add_action( 'wp_ajax_ffc_admin_get_pdf_data', array( $this, 'ajax_admin_get_pdf_data' ) );
     }
 
     public function register_admin_menu() {
@@ -226,96 +224,6 @@ class FFC_Admin {
     public function handle_csv_export_request() {
         if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'export_csv_smart' ) {
             $this->csv_exporter->handle_export_request();
-        }
-    }
-
-    /**
-     * Get PDF data for admin download
-     * ✅ v2.9.15: Uses centralized PDF Generator (same as frontend)
-     */
-    public function ajax_admin_get_pdf_data() {
-        try {
-            FFC_Debug::log_pdf('Admin PDF data request started');
-
-            check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
-
-            $submission_id = isset($_POST['submission_id']) ? absint($_POST['submission_id']) : 0;
-            FFC_Debug::log_pdf('Submission ID', $submission_id);
-
-            if ( ! $submission_id ) {
-                FFC_Debug::log_pdf('Invalid submission ID');
-                wp_send_json_error( array( 'message' => __( 'Invalid submission ID.', 'ffc' ) ) );
-            }
-
-            // Load required classes
-            FFC_Debug::log_pdf('Loading PDF Generator class');
-            if ( ! class_exists( 'FFC_PDF_Generator' ) ) {
-                $pdf_gen_path = FFC_PLUGIN_DIR . 'includes/generators/class-ffc-pdf-generator.php';
-                if ( ! file_exists( $pdf_gen_path ) ) {
-                    FFC_Debug::log_pdf('PDF Generator file not found', $pdf_gen_path);
-                    wp_send_json_error( array( 'message' => 'PDF Generator class file not found' ) );
-                }
-                require_once $pdf_gen_path;
-            }
-
-            if ( ! class_exists( 'FFC_Submission_Handler' ) ) {
-                require_once FFC_PLUGIN_DIR . 'includes/submissions/class-ffc-submission-handler.php';
-            }
-
-            if ( ! class_exists( 'FFC_Email_Handler' ) ) {
-                require_once FFC_PLUGIN_DIR . 'includes/integrations/class-ffc-email-handler.php';
-            }
-
-            FFC_Debug::log_pdf('Classes loaded successfully');
-
-            // Get handlers (use existing or create new)
-            $submission_handler = $this->submission_handler ? $this->submission_handler : new FFC_Submission_Handler();
-            $email_handler = $this->email_handler ? $this->email_handler : new FFC_Email_Handler();
-
-            FFC_Debug::log_pdf('Handlers created');
-
-            // ✅ Use centralized PDF Generator
-            $pdf_generator = new FFC_PDF_Generator( $submission_handler, $email_handler );
-            FFC_Debug::log_pdf('PDF Generator instantiated');
-
-            $pdf_data = $pdf_generator->generate_pdf_data( $submission_id );
-            FFC_Debug::log_pdf('PDF data generated', array('type' => gettype($pdf_data)));
-
-            if ( is_wp_error( $pdf_data ) ) {
-                FFC_Debug::log_pdf('WP Error', $pdf_data->get_error_message());
-                wp_send_json_error( array(
-                    'message' => $pdf_data->get_error_message()
-                ) );
-            }
-
-            if ( ! is_array( $pdf_data ) ) {
-                FFC_Debug::log_pdf('PDF data is not array', $pdf_data);
-                wp_send_json_error( array( 'message' => 'Invalid PDF data format' ) );
-            }
-
-            FFC_Debug::log_pdf('PDF data keys', array_keys($pdf_data));
-            FFC_Debug::log_pdf('Filename', isset($pdf_data['filename']) ? $pdf_data['filename'] : 'NOT SET');
-
-            // ✅ Returns complete PDF data including filename with auth_code
-            FFC_Debug::log_pdf('Sending success response');
-            wp_send_json_success( $pdf_data );
-
-        } catch ( Exception $e ) {
-            FFC_Debug::log_pdf('EXCEPTION', array(
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ));
-            wp_send_json_error( array(
-                'message' => 'Server error: ' . $e->getMessage()
-            ) );
-        } catch ( Error $e ) {
-            FFC_Debug::log_pdf('FATAL ERROR', array(
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ));
-            wp_send_json_error( array( 
-                'message' => 'Fatal error: ' . $e->getMessage() 
-            ) );
         }
     }
 
