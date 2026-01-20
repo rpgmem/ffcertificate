@@ -92,6 +92,39 @@ $custom_format = $get_option('date_format_custom', '');
             </tbody>
         </table>
 
+        <h3>📋 <?php esc_html_e('Activity Log Settings', 'ffc'); ?></h3>
+        <p class="description">
+            <?php esc_html_e('Activity Log tracks important actions in your system for audit and compliance purposes (LGPD).', 'ffc'); ?>
+            <span class="ffc-text-info">ℹ️ <?php esc_html_e('When enabled, actions like submission creation, data access, and settings changes are logged.', 'ffc'); ?></span>
+        </p>
+
+        <table class="form-table" role="presentation">
+            <tbody>
+                <tr>
+                    <th scope="row">
+                        <label for="enable_activity_log"><?php esc_html_e('Enable Activity Log', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="ffc_settings[enable_activity_log]" id="enable_activity_log" value="1" <?php checked($get_option('enable_activity_log'), 1); ?>>
+                            <?php esc_html_e('Track activities for audit trail', 'ffc'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('Logs submission creation, data access, settings changes, and security events.', 'ffc'); ?>
+                            <br>
+                            <span class="ffc-text-success">✅ <?php esc_html_e('Includes user ID, IP address, and timestamp for LGPD compliance.', 'ffc'); ?></span>
+                            <?php if ($get_option('enable_activity_log') == 1) : ?>
+                                <br>
+                                <a href="<?php echo admin_url('edit.php?post_type=ffc_form&page=ffc-activity-log'); ?>" class="button button-secondary ffc-mt-10">
+                                    📊 <?php esc_html_e('View Activity Logs', 'ffc'); ?>
+                                </a>
+                            <?php endif; ?>
+                        </p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
         <h3>🐛 <?php esc_html_e('Debug Settings', 'ffc'); ?></h3>
         <p class="description">
             <?php esc_html_e('Enable debug logging for specific areas. Debug logs are written to the PHP error log.', 'ffc'); ?>

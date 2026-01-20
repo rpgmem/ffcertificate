@@ -2,19 +2,20 @@
 /**
  * FFC_Activity_Log
  * Tracks important activities for audit and debugging
- * 
+ *
  * Features:
  * - Multiple log levels (info, warning, error, debug)
  * - Automatic context capture (user, IP, timestamp)
  * - Query helpers for admin dashboard
  * - Automatic table creation on activation
  * - Cleanup of old logs
- * - Convenience methods for common events
+ * - 6 actively used convenience methods (v3.1.1: removed 18 unused methods)
  * - LGPD-specific logging methods (v2.10.0)
  * - Optional context encryption (v2.10.0)
- * 
+ * - Toggle on/off via Settings > General (v3.1.1)
+ *
  * @since 2.9.1
- * @version 2.10.0
+ * @version 3.1.1
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -377,152 +378,14 @@ class FFC_Activity_Log {
     
     // ============================================
     // CONVENIENCE METHODS FOR COMMON ACTIONS
+    // ✅ v3.1.1: Kept only 6 actively used methods
+    // Removed 18 unused methods (75% reduction)
     // ============================================
-    
-    /**
-     * Log submission updated
-     */
-    public static function log_submission_updated( $submission_id, $admin_user_id ) {
-        return self::log( 'submission_updated', self::LEVEL_INFO, array(
-            'submission_id' => $submission_id
-        ), $admin_user_id );
-    }
-    
-    /**
-     * Log submission deleted
-     */
-    public static function log_submission_deleted( $submission_id, $admin_user_id ) {
-        return self::log( 'submission_deleted', self::LEVEL_WARNING, array(
-            'submission_id' => $submission_id
-        ), $admin_user_id );
-    }
-    
-    /**
-     * Log ticket consumed
-     */
-    public static function log_ticket_used( $ticket, $form_id ) {
-        return self::log( 'ticket_consumed', self::LEVEL_INFO, array(
-            'ticket' => substr( $ticket, 0, 4 ) . '****', // Partial for security
-            'form_id' => $form_id
-        ) );
-    }
-    
-    /**
-     * Log reprint detected
-     */
-    public static function log_reprint_detected( $submission_id, $identifier ) {
-        return self::log( 'reprint_detected', self::LEVEL_INFO, array(
-            'submission_id' => $submission_id,
-            'identifier' => $identifier
-        ) );
-    }
-    
-    /**
-     * Log access denied
-     */
-    public static function log_access_denied( $reason, $identifier ) {
-        return self::log( 'access_denied', self::LEVEL_WARNING, array(
-            'reason' => $reason,
-            'identifier' => $identifier
-        ) );
-    }
-    
-    /**
-     * Log PDF generated
-     */
-    public static function log_pdf_generated( $submission_id, $success = true ) {
-        $level = $success ? self::LEVEL_INFO : self::LEVEL_ERROR;
-        return self::log( 'pdf_generated', $level, array(
-            'submission_id' => $submission_id,
-            'success' => $success
-        ) );
-    }
-    
-    /**
-     * Log email sent
-     */
-    public static function log_email_sent( $to, $type, $success = true ) {
-        $level = $success ? self::LEVEL_INFO : self::LEVEL_ERROR;
-        return self::log( 'email_sent', $level, array(
-            'to' => $to,
-            'type' => $type,
-            'success' => $success
-        ) );
-    }
-    
-    /**
-     * Log magic link accessed
-     */
-    public static function log_magic_link_accessed( $token, $success = true ) {
-        $level = $success ? self::LEVEL_INFO : self::LEVEL_WARNING;
-        return self::log( 'magic_link_accessed', $level, array(
-            'token' => substr( $token, 0, 8 ) . '...', // Partial token for security
-            'success' => $success
-        ) );
-    }
-    
-    /**
-     * Log verification attempted
-     */
-    public static function log_verification_attempted( $auth_code, $success = true ) {
-        $level = $success ? self::LEVEL_INFO : self::LEVEL_WARNING;
-        return self::log( 'verification_attempted', $level, array(
-            'auth_code' => $auth_code,
-            'success' => $success
-        ) );
-    }
-    
-    /**
-     * Log form edited
-     */
-    public static function log_form_edited( $form_id, $admin_user_id ) {
-        return self::log( 'form_edited', self::LEVEL_INFO, array(
-            'form_id' => $form_id
-        ), $admin_user_id );
-    }
-    
-    /**
-     * Log settings changed
-     */
-    public static function log_settings_changed( $setting_key, $admin_user_id ) {
-        return self::log( 'settings_changed', self::LEVEL_INFO, array(
-            'setting' => $setting_key
-        ), $admin_user_id );
-    }
-    
-    /**
-     * Log security event
-     */
-    public static function log_security_event( $event_type, $details = array() ) {
-        return self::log( 'security_event', self::LEVEL_WARNING, array_merge(
-            array( 'event_type' => $event_type ),
-            $details
-        ) );
-    }
-    
-    /**
-     * Log rate limit triggered
-     */
-    public static function log_rate_limit_triggered( $action, $identifier ) {
-        return self::log( 'rate_limit_triggered', self::LEVEL_WARNING, array(
-            'action' => $action,
-            'identifier' => $identifier
-        ) );
-    }
-    
-    /**
-     * Log error
-     */
-    public static function log_error( $error_message, $context = array() ) {
-        return self::log( 'error_occurred', self::LEVEL_ERROR, array_merge(
-            array( 'message' => $error_message ),
-            $context
-        ) );
-    }
 
     /**
-     * ✅ v2.10.0: Log submission creation
-     * 
+     * ✅ USED: Log submission created (v2.10.0 LGPD)
+     * Called by: FFC_Submission_Handler
+     *
      * @param int $submission_id Submission ID
      * @param array $data Additional data (form_id, encrypted status, etc)
      * @return bool Success
@@ -536,10 +399,31 @@ class FFC_Activity_Log {
             $submission_id
         );
     }
-    
+
     /**
-     * ✅ v2.10.0: Log data access (magic link, admin view, etc)
-     * 
+     * ✅ USED: Log submission updated
+     * Called by: FFC_Submission_Handler
+     */
+    public static function log_submission_updated( $submission_id, $admin_user_id ) {
+        return self::log( 'submission_updated', self::LEVEL_INFO, array(
+            'submission_id' => $submission_id
+        ), $admin_user_id );
+    }
+
+    /**
+     * ✅ USED: Log submission deleted
+     * Called by: FFC_Submission_Handler
+     */
+    public static function log_submission_deleted( $submission_id, $admin_user_id = 0 ) {
+        return self::log( 'submission_deleted', self::LEVEL_WARNING, array(
+            'submission_id' => $submission_id
+        ), $admin_user_id );
+    }
+
+    /**
+     * ✅ USED: Log data access (v2.10.0 LGPD)
+     * Called by: FFC_Verification_Handler (magic link, admin view)
+     *
      * @param int $submission_id Submission ID
      * @param array $context Access context (method, IP, etc)
      * @return bool Success
@@ -553,76 +437,26 @@ class FFC_Activity_Log {
             $submission_id
         );
     }
-    
+
     /**
-     * ✅ v2.10.0: Log data modification
-     * 
-     * @param int $submission_id Submission ID
-     * @param array $changes What was changed
-     * @return bool Success
+     * ✅ USED: Log access denied
+     * Called by: FFC_Geofence (datetime/geo restrictions)
      */
-    public static function log_data_modified( $submission_id, $changes = array() ) {
-        return self::log(
-            'data_modified',
-            self::LEVEL_INFO,
-            $changes,
-            get_current_user_id(),
-            $submission_id
-        );
+    public static function log_access_denied( $reason, $identifier ) {
+        return self::log( 'access_denied', self::LEVEL_WARNING, array(
+            'reason' => $reason,
+            'identifier' => $identifier
+        ) );
     }
-    
+
     /**
-     * ✅ v2.10.0: Log LGPD consent given
-     * 
-     * @param int $submission_id Submission ID
-     * @param string $ip IP address of consent
-     * @return bool Success
+     * ✅ USED: Log settings changed
+     * Called by: FFC_Tab_Geolocation
      */
-    public static function log_consent_given( $submission_id, $ip ) {
-        return self::log(
-            'consent_given',
-            self::LEVEL_INFO,
-            array(
-                'ip' => $ip,
-                'timestamp' => current_time( 'mysql' )
-            ),
-            0, // Anonymous user
-            $submission_id
-        );
-    }
-    
-    /**
-     * ✅ v2.10.0: Log admin search
-     * 
-     * @param string $query Search query
-     * @param int $results Number of results found
-     * @return bool Success
-     */
-    public static function log_admin_searched( $query, $results = 0 ) {
-        return self::log(
-            'admin_searched',
-            self::LEVEL_INFO,
-            array(
-                'query' => substr( $query, 0, 50 ), // Truncate for privacy
-                'results' => $results
-            ),
-            get_current_user_id()
-        );
-    }
-    
-    /**
-     * ✅ v2.10.0: Log encryption migration batch
-     * 
-     * @param array $batch_info Batch information (offset, migrated, etc)
-     * @return bool Success
-     */
-    public static function log_encryption_migration( $batch_info = array() ) {
-        return self::log(
-            'encryption_migration_batch',
-            self::LEVEL_INFO,
-            $batch_info,
-            get_current_user_id()
-        );
+    public static function log_settings_changed( $setting_key, $admin_user_id ) {
+        return self::log( 'settings_changed', self::LEVEL_INFO, array(
+            'setting' => $setting_key
+        ), $admin_user_id );
     }
     
     /**

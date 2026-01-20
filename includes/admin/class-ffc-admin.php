@@ -18,6 +18,7 @@ class FFC_Admin {
     private $migration_manager;  // ✅ v2.9.13: Migration Manager
     private $assets_manager;     // ✅ v3.1.1: Assets Manager
     private $edit_page;          // ✅ v3.1.1: Submission Edit Page
+    private $activity_log_page;  // ✅ v3.1.1: Activity Log Page
 
     public function __construct( $handler, $exporter, $email_handler = null ) {
         $this->submission_handler = $handler;
@@ -45,6 +46,10 @@ class FFC_Admin {
         require_once plugin_dir_path( __FILE__ ) . 'class-ffc-admin-submission-edit-page.php';
         $this->edit_page = new FFC_Admin_Submission_Edit_Page( $handler );
 
+        // ✅ v3.1.1: Initialize Activity Log Page
+        require_once plugin_dir_path( __FILE__ ) . 'class-ffc-admin-activity-log-page.php';
+        $this->activity_log_page = new FFC_Admin_Activity_Log_Page();
+
         add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 
         // ✅ v2.9.3: Configure TinyMCE to protect placeholders
@@ -58,14 +63,17 @@ class FFC_Admin {
     }
 
     public function register_admin_menu() {
-        add_submenu_page( 
-            'edit.php?post_type=ffc_form', 
-            __( 'Submissions', 'ffc' ), 
-            __( 'Submissions', 'ffc' ), 
-            'manage_options', 
-            'ffc-submissions', 
-            array( $this, 'display_submissions_page' ) 
+        add_submenu_page(
+            'edit.php?post_type=ffc_form',
+            __( 'Submissions', 'ffc' ),
+            __( 'Submissions', 'ffc' ),
+            'manage_options',
+            'ffc-submissions',
+            array( $this, 'display_submissions_page' )
         );
+
+        // ✅ v3.1.1: Register Activity Log page
+        $this->activity_log_page->register_menu();
     }
 
     /**
