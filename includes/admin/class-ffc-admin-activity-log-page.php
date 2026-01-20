@@ -11,6 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+// Load FFC_Activity_Log class
+if ( ! class_exists( 'FFC_Activity_Log' ) ) {
+    require_once FFC_PLUGIN_DIR . 'includes/core/class-ffc-activity-log.php';
+}
+
 class FFC_Admin_Activity_Log_Page {
 
     /**
