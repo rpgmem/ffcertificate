@@ -9,13 +9,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class FFC_Admin {
-    
+
     private $submission_handler;
     private $csv_exporter;
     private $email_handler;
     private $form_editor;
     private $settings_page;
     private $migration_manager;  // ✅ v2.9.13: Migration Manager
+    private $assets_manager;     // ✅ v3.1.1: Assets Manager
 
     public function __construct( $handler, $exporter, $email_handler = null ) {
         $this->submission_handler = $handler;
@@ -34,8 +35,12 @@ class FFC_Admin {
         }
         $this->migration_manager = new FFC_Migration_Manager();
 
+        // ✅ v3.1.1: Initialize Assets Manager (extracted from FFC_Admin)
+        require_once plugin_dir_path( __FILE__ ) . 'class-ffc-admin-assets-manager.php';
+        $this->assets_manager = new FFC_Admin_Assets_Manager();
+        $this->assets_manager->register();
+
         add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
-        add_action( 'admin_enqueue_scripts', array( $this, 'admin_assets' ) );
         
         // ✅ v2.9.3: Configure TinyMCE to protect placeholders
         // Priority 999 to run AFTER other plugins
@@ -60,112 +65,19 @@ class FFC_Admin {
         );
     }
 
+    /**
+     * Legacy admin assets method
+     *
+     * @deprecated 3.1.1 Asset management now handled by FFC_Admin_Assets_Manager
+     * @param string $hook Hook suffix
+     */
     public function admin_assets( $hook ) {
-        global $post_type;
-        
-        $is_ffc_page = ( isset($_GET['page']) && strpos($_GET['page'], 'ffc-') !== false );
-        
-        if ( $post_type === 'ffc_form' || $is_ffc_page ) {
-            wp_enqueue_media();
-
-            // ✅ v3.1.0: Load FFC Core module FIRST (required by all modules)
-            wp_enqueue_script('ffc-core', FFC_PLUGIN_URL . 'assets/js/ffc-core.js', array('jquery'), FFC_VERSION, true);
-
-            // CSS - Centralized with proper dependency chain
-            // 1. Base styles (PDF core)
-            wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . 'assets/css/ffc-pdf-core.css', array(), FFC_VERSION);
-
-            // 2. Common utilities (shared between admin and frontend)
-            wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.css', array(), FFC_VERSION);
-
-            // 3. Admin-specific utilities (v3.1.0)
-            wp_enqueue_style( 'ffc-admin-utilities', FFC_PLUGIN_URL . 'assets/css/ffc-admin-utilities.css', array('ffc-common'), FFC_VERSION);
-
-            // 4. Admin general styles (depends on pdf-core, common, and admin-utilities)
-            wp_enqueue_style( 'ffc-admin-css', FFC_PLUGIN_URL . 'assets/css/ffc-admin.css', array('ffc-pdf-core', 'ffc-common', 'ffc-admin-utilities'), FFC_VERSION );
-
-            // 5. Submissions page styles (depends on ffc-admin.css)
-            wp_enqueue_style( 'ffc-admin-submissions-css', FFC_PLUGIN_URL . 'assets/css/ffc-admin-submissions.css', array('ffc-admin-css'), FFC_VERSION );
-
-            // 6. Settings tabs styles (ONLY on settings page)
-            if (isset($_GET['page']) && $_GET['page'] === 'ffc-settings') {
-                wp_enqueue_style(
-                    'ffc-admin-settings',
-                    FFC_PLUGIN_URL . 'assets/css/ffc-admin-settings.css',
-                    array('ffc-admin-css'),
-                    FFC_VERSION
-                );
-            }
-
-            // 7. Submission edit styles (ONLY on edit page)
-            if (isset($_GET['page']) && $_GET['page'] === 'ffc-submissions' && isset($_GET['action']) && $_GET['action'] === 'edit') {
-                wp_enqueue_style( 'ffc-admin-submission-edit', FFC_PLUGIN_URL . 'assets/css/ffc-admin-submission-edit.css', array('ffc-admin-css'), FFC_VERSION );
-
-                wp_enqueue_script( 'ffc-admin-submission-edit', FFC_PLUGIN_URL . 'assets/js/ffc-admin-submission-edit.js', array('jquery'), FFC_VERSION, true );
-
-                wp_localize_script( 'ffc-admin-submission-edit', 'ffc_submission_edit', array( 'copied_text' => '✅ ' . __('Copied!', 'ffc') ) );
-            }
-
-            // ✅ v3.1.0: Modular admin JavaScript architecture
-            // Load modules BEFORE main admin script (dependency order)
-
-            // 1. Field Builder module
-            wp_enqueue_script(
-                'ffc-admin-field-builder',
-                FFC_PLUGIN_URL . 'assets/js/ffc-admin-field-builder.js',
-                array('jquery', 'jquery-ui-sortable', 'ffc-core'),
-                FFC_VERSION,
-                true
-            );
-
-            // 2. PDF Management module
-            wp_enqueue_script(
-                'ffc-admin-pdf',
-                FFC_PLUGIN_URL . 'assets/js/ffc-admin-pdf.js',
-                array('jquery', 'ffc-core'),
-                FFC_VERSION,
-                true
-            );
-
-            // 3. Main admin script (depends on modules)
-            wp_enqueue_script(
-                'ffc-admin-js',
-                FFC_PLUGIN_URL . 'assets/js/ffc-admin.js',
-                array('jquery', 'ffc-admin-field-builder', 'ffc-admin-pdf'),
-                FFC_VERSION,
-                true
-            );
-            
-            // Localizar para AMBOS os scripts
-            $localize_data = array(
-                'ajax_url' => admin_url( 'admin-ajax.php' ),
-                'nonce'    => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
-                'strings'  => array(
-                    'generating'              => __( 'Generating...', 'ffc' ),
-                    'error'                   => __( 'Error: ', 'ffc' ),
-                    'connectionError'         => __( 'Connection error.', 'ffc' ),
-                    'fileImported'            => __( 'File imported successfully!', 'ffc' ),
-                    'errorReadingFile'        => __( 'Error reading file.', 'ffc' ),
-                    'selectTemplate'          => __( 'Please select a template.', 'ffc' ),
-                    'confirmReplaceContent'   => __( 'This will replace current content. Continue?', 'ffc' ),
-                    'loading'                 => __( 'Loading...', 'ffc' ),
-                    'templateLoaded'          => __( 'Template loaded successfully!', 'ffc' ),
-                    'selectBackgroundImage'   => __( 'Select Background Image', 'ffc' ),
-                    'useImage'                => __( 'Use this image', 'ffc' ),
-                    'codesGenerated'          => __( 'codes generated', 'ffc' ),
-                    'errorGeneratingCodes'    => __( 'Error generating codes.', 'ffc' ),
-                    'confirmDeleteField'      => __( 'Remove this field?', 'ffc' ),
-                    'pdfLibrariesFailed'      => __( 'Error: PDF libraries failed to load.', 'ffc' ),
-                    'pdfGenerationError'      => __( 'Error generating PDF. Please try again.', 'ffc' ),
-                    'pleaseWait'              => __( 'Please wait, this may take a few seconds...', 'ffc' ),
-                    'downloadAgain'           => __( 'Download Again', 'ffc' ),
-                    'verifying'               => __( 'Verifying...', 'ffc' ),
-                    'processing'              => __( 'Processing...', 'ffc' ),
-                )
-            );
-            
-            wp_localize_script( 'ffc-admin-js', 'ffc_ajax', $localize_data );
-        }
+        // ✅ v3.1.1: This method is now managed by FFC_Admin_Assets_Manager
+        // The Assets Manager is registered in the constructor and handles all asset loading.
+        // This method is kept for backward compatibility in case it's called directly,
+        // but the actual functionality has been extracted to improve code organization.
+        //
+        // See: class-ffc-admin-assets-manager.php
     }
 
     public function handle_submission_actions() {
