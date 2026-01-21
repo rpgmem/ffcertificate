@@ -4,10 +4,11 @@
  *
  * Strategy for cleaning up unencrypted data after encryption (LGPD compliance).
  * Nullifies email, cpf_rf, user_ip, and data columns for submissions 15+ days old
- * that have been successfully encrypted.
+ * that have been successfully encrypted. Also normalizes ALL empty strings to NULL
+ * for data consistency.
  *
  * @since 3.1.0 (Extracted from FFC_Migration_Manager)
- * @version 1.1.0 - Added normalization of empty strings to NULL for data consistency
+ * @version 1.2.0 - Inverted execution order: cleanup first, then normalize ALL columns
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -98,18 +99,7 @@ class FFC_Cleanup_Migration_Strategy implements FFC_Migration_Strategy {
         $batch_size = isset( $migration_config['batch_size'] ) ? intval( $migration_config['batch_size'] ) : 100;
         $offset = $batch_number > 0 ? ( $batch_number - 1 ) * $batch_size : 0;
 
-        // STEP 1: Normalize empty strings to NULL (data consistency)
-        // This ensures all empty values are truly NULL, not empty strings
-        $wpdb->query(
-            "UPDATE {$this->table_name}
-            SET email = CASE WHEN email = '' THEN NULL ELSE email END,
-                cpf_rf = CASE WHEN cpf_rf = '' THEN NULL ELSE cpf_rf END,
-                user_ip = CASE WHEN user_ip = '' THEN NULL ELSE user_ip END,
-                data = CASE WHEN data = '' THEN NULL ELSE data END
-            WHERE email = '' OR cpf_rf = '' OR user_ip = '' OR data = ''"
-        );
-
-        // STEP 2: Get submissions eligible for cleanup (15+ days old, encrypted, still have plain data)
+        // STEP 1: Get submissions eligible for cleanup (15+ days old, encrypted, still have plain data)
         $submissions = $wpdb->get_results( $wpdb->prepare(
             "SELECT id FROM {$this->table_name}
             WHERE submission_date <= DATE_SUB(NOW(), INTERVAL 15 DAY)
@@ -158,6 +148,32 @@ class FFC_Cleanup_Migration_Strategy implements FFC_Migration_Strategy {
                 );
             }
         }
+
+        // STEP 2: Normalize ALL empty strings to NULL (data consistency)
+        // This ensures all empty values across ALL columns are truly NULL, not empty strings
+        // Only runs after cleanup to avoid normalizing data that will be deleted anyway
+        $wpdb->query(
+            "UPDATE {$this->table_name}
+            SET data = CASE WHEN data = '' THEN NULL ELSE data END,
+                user_ip = CASE WHEN user_ip = '' THEN NULL ELSE user_ip END,
+                email = CASE WHEN email = '' THEN NULL ELSE email END,
+                magic_token = CASE WHEN magic_token = '' THEN NULL ELSE magic_token END,
+                cpf_rf = CASE WHEN cpf_rf = '' THEN NULL ELSE cpf_rf END,
+                auth_code = CASE WHEN auth_code = '' THEN NULL ELSE auth_code END,
+                email_encrypted = CASE WHEN email_encrypted = '' THEN NULL ELSE email_encrypted END,
+                email_hash = CASE WHEN email_hash = '' THEN NULL ELSE email_hash END,
+                cpf_rf_encrypted = CASE WHEN cpf_rf_encrypted = '' THEN NULL ELSE cpf_rf_encrypted END,
+                cpf_rf_hash = CASE WHEN cpf_rf_hash = '' THEN NULL ELSE cpf_rf_hash END,
+                user_ip_encrypted = CASE WHEN user_ip_encrypted = '' THEN NULL ELSE user_ip_encrypted END,
+                data_encrypted = CASE WHEN data_encrypted = '' THEN NULL ELSE data_encrypted END,
+                consent_ip = CASE WHEN consent_ip = '' THEN NULL ELSE consent_ip END,
+                consent_text = CASE WHEN consent_text = '' THEN NULL ELSE consent_text END,
+                qr_code_cache = CASE WHEN qr_code_cache = '' THEN NULL ELSE qr_code_cache END
+            WHERE data = '' OR user_ip = '' OR email = '' OR magic_token = '' OR
+                  cpf_rf = '' OR auth_code = '' OR email_encrypted = '' OR email_hash = '' OR
+                  cpf_rf_encrypted = '' OR cpf_rf_hash = '' OR user_ip_encrypted = '' OR
+                  data_encrypted = '' OR consent_ip = '' OR consent_text = '' OR qr_code_cache = ''"
+        );
 
         // Count remaining
         $remaining = $wpdb->get_var(
