@@ -32,6 +32,9 @@ class FFC_Tab_Geolocation extends FFC_Settings_Tab {
             'ip_cache_enabled' => true,
             'ip_cache_ttl' => 600, // 10 minutes in seconds (300-3600)
 
+            // GPS Cache Settings
+            'gps_cache_ttl' => 600, // 10 minutes in seconds (60-3600)
+
             // Fallback behavior when API fails
             'api_fallback' => 'gps_only', // 'allow', 'block', 'gps_only'
             'gps_fallback' => 'allow', // When GPS fails: 'allow' or 'block'
@@ -84,6 +87,8 @@ class FFC_Tab_Geolocation extends FFC_Settings_Tab {
             'ipinfo_api_key' => sanitize_text_field($_POST['ipinfo_api_key'] ?? ''),
             'ip_cache_enabled' => isset($_POST['ip_cache_enabled']),
             'ip_cache_ttl' => max(300, min(3600, absint($_POST['ip_cache_ttl'] ?? 600))),
+
+            'gps_cache_ttl' => max(60, min(3600, absint($_POST['gps_cache_ttl'] ?? 600))),
 
             'api_fallback' => in_array($_POST['api_fallback'] ?? '', array('allow', 'block', 'gps_only'))
                 ? sanitize_key($_POST['api_fallback'])

@@ -437,6 +437,12 @@ class FFC_Geofence {
         // Check if any bypass is active
         $has_partial_bypass = $bypass_datetime || $bypass_geo;
 
+        // Get GPS cache TTL from global settings
+        $geolocation_settings = get_option('ffc_geolocation_settings', array());
+        $gps_cache_ttl = !empty($geolocation_settings['gps_cache_ttl'])
+            ? absint($geolocation_settings['gps_cache_ttl'])
+            : 600; // Default 10 minutes
+
         $frontend_config = array(
             'formId' => $form_id,
             'adminBypass' => $has_partial_bypass,
@@ -464,7 +470,7 @@ class FFC_Geofence {
                 'messageError' => $config['msg_geo_error'] ?? '',
                 'hideMode' => $config['geo_hide_mode'] ?? 'message', // 'hide' or 'message'
                 'cacheEnabled' => true, // Always enable frontend cache
-                'cacheTtl' => 600, // 10 minutes
+                'cacheTtl' => $gps_cache_ttl, // From global settings
             ),
             'global' => array(
                 'debug' => !empty(get_option('ffc_geolocation_settings')['debug_enabled']),

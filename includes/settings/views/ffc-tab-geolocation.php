@@ -113,7 +113,7 @@ if (!defined('ABSPATH')) exit;
                 <!-- Cache TTL -->
                 <tr>
                     <th scope="row">
-                        <label for="ffc_ip_cache_ttl"><?php esc_html_e('Cache Duration (TTL)', 'ffc'); ?></label>
+                        <label for="ffc_ip_cache_ttl"><?php esc_html_e('IP Cache Duration (TTL)', 'ffc'); ?></label>
                     </th>
                     <td>
                         <input type="number"
@@ -126,6 +126,38 @@ if (!defined('ABSPATH')) exit;
                         <?php esc_html_e('seconds', 'ffc'); ?>
                         <p class="description">
                             <?php esc_html_e('How long to cache IP location data. Range: 300-3600 seconds (5 min - 1 hour).', 'ffc'); ?>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <hr>
+
+        <!-- GPS Cache Settings Section -->
+        <div class="card">
+            <h2><?php esc_html_e('GPS Cache Settings', 'ffc'); ?></h2>
+            <p class="description">
+                <?php esc_html_e('Configure GPS location caching on the frontend (browser localStorage). GPS cache is always enabled for better performance.', 'ffc'); ?>
+            </p>
+
+            <table class="form-table">
+                <!-- GPS Cache TTL -->
+                <tr>
+                    <th scope="row">
+                        <label for="ffc_gps_cache_ttl"><?php esc_html_e('GPS Cache Duration (TTL)', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number"
+                               name="gps_cache_ttl"
+                               id="ffc_gps_cache_ttl"
+                               value="<?php echo absint($settings['gps_cache_ttl']); ?>"
+                               min="60"
+                               max="3600"
+                               step="60">
+                        <?php esc_html_e('seconds', 'ffc'); ?>
+                        <p class="description">
+                            <?php esc_html_e('How long to cache GPS location in browser. Range: 60-3600 seconds (1 min - 1 hour). Default: 600 (10 min).', 'ffc'); ?>
                         </p>
                     </td>
                 </tr>
