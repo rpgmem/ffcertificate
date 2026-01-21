@@ -86,17 +86,16 @@ class FFC_Encryption_Migration_Strategy implements FFC_Migration_Strategy {
         global $wpdb;
 
         $batch_size = isset( $migration_config['batch_size'] ) ? intval( $migration_config['batch_size'] ) : 50;
-        $offset = $batch_number > 0 ? ( $batch_number - 1 ) * $batch_size : 0;
 
         // Get submissions that need encryption
+        // Always use OFFSET 0 because encrypted records won't appear in next query
         $submissions = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT * FROM {$this->table_name}
                 WHERE (email_encrypted IS NULL OR email_encrypted = '')
                 AND email IS NOT NULL
-                LIMIT %d OFFSET %d",
-                $batch_size,
-                $offset
+                LIMIT %d",
+                $batch_size
             ),
             ARRAY_A
         );

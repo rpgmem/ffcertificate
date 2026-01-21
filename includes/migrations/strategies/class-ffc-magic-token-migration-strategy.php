@@ -65,16 +65,15 @@ class FFC_Magic_Token_Migration_Strategy implements FFC_Migration_Strategy {
         global $wpdb;
 
         $batch_size = isset( $migration_config['batch_size'] ) ? intval( $migration_config['batch_size'] ) : 100;
-        $offset = $batch_number > 0 ? ( $batch_number - 1 ) * $batch_size : 0;
 
         // Get submissions without magic tokens
+        // Always use OFFSET 0 because processed records won't appear in next query
         $submissions = $wpdb->get_results( $wpdb->prepare(
             "SELECT id FROM {$this->table_name}
             WHERE (magic_token IS NULL OR magic_token = '')
             ORDER BY id ASC
-            LIMIT %d OFFSET %d",
-            $batch_size,
-            $offset
+            LIMIT %d",
+            $batch_size
         ), ARRAY_A );
 
         if ( empty( $submissions ) ) {

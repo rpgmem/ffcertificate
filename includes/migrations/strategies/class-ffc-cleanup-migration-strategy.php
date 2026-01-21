@@ -97,18 +97,17 @@ class FFC_Cleanup_Migration_Strategy implements FFC_Migration_Strategy {
         global $wpdb;
 
         $batch_size = isset( $migration_config['batch_size'] ) ? intval( $migration_config['batch_size'] ) : 100;
-        $offset = $batch_number > 0 ? ( $batch_number - 1 ) * $batch_size : 0;
 
         // STEP 1: Get submissions eligible for cleanup (15+ days old, encrypted, still have plain data)
+        // Always use OFFSET 0 because cleaned records won't appear in next query
         $submissions = $wpdb->get_results( $wpdb->prepare(
             "SELECT id FROM {$this->table_name}
             WHERE submission_date <= DATE_SUB(NOW(), INTERVAL 15 DAY)
             AND (email_encrypted IS NOT NULL OR data_encrypted IS NOT NULL)
             AND (email IS NOT NULL OR data IS NOT NULL OR user_ip IS NOT NULL OR cpf_rf IS NOT NULL)
             ORDER BY id ASC
-            LIMIT %d OFFSET %d",
-            $batch_size,
-            $offset
+            LIMIT %d",
+            $batch_size
         ) );
 
         if ( empty( $submissions ) ) {

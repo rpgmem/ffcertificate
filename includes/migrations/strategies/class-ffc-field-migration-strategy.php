@@ -133,20 +133,19 @@ class FFC_Field_Migration_Strategy implements FFC_Migration_Strategy {
         }
 
         $batch_size = isset( $migration_config['batch_size'] ) ? intval( $migration_config['batch_size'] ) : 100;
-        $offset = $batch_number > 0 ? ( $batch_number - 1 ) * $batch_size : 0;
 
         $column = $migration_config['column'];
 
         // Get submissions without migrated field value
+        // Always use OFFSET 0 because migrated records won't appear in next query
         $submissions = $wpdb->get_results( $wpdb->prepare(
             "SELECT id, data FROM {$this->table_name}
             WHERE (%i IS NULL OR %i = '')
             AND (data IS NOT NULL AND data != '' AND data != '[]' AND data != '{}')
             ORDER BY id ASC
-            LIMIT %d OFFSET %d",
+            LIMIT %d",
             $column, $column,
-            $batch_size,
-            $offset
+            $batch_size
         ), ARRAY_A );
 
         if ( empty( $submissions ) ) {
