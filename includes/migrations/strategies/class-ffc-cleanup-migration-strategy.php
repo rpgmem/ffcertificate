@@ -7,7 +7,7 @@
  * that have been successfully encrypted.
  *
  * @since 3.1.0 (Extracted from FFC_Migration_Manager)
- * @version 1.0.0
+ * @version 1.1.0 - Added normalization of empty strings to NULL for data consistency
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -98,7 +98,18 @@ class FFC_Cleanup_Migration_Strategy implements FFC_Migration_Strategy {
         $batch_size = isset( $migration_config['batch_size'] ) ? intval( $migration_config['batch_size'] ) : 100;
         $offset = $batch_number > 0 ? ( $batch_number - 1 ) * $batch_size : 0;
 
-        // Get submissions eligible for cleanup (15+ days old, encrypted, still have plain data)
+        // STEP 1: Normalize empty strings to NULL (data consistency)
+        // This ensures all empty values are truly NULL, not empty strings
+        $wpdb->query(
+            "UPDATE {$this->table_name}
+            SET email = CASE WHEN email = '' THEN NULL ELSE email END,
+                cpf_rf = CASE WHEN cpf_rf = '' THEN NULL ELSE cpf_rf END,
+                user_ip = CASE WHEN user_ip = '' THEN NULL ELSE user_ip END,
+                data = CASE WHEN data = '' THEN NULL ELSE data END
+            WHERE email = '' OR cpf_rf = '' OR user_ip = '' OR data = ''"
+        );
+
+        // STEP 2: Get submissions eligible for cleanup (15+ days old, encrypted, still have plain data)
         $submissions = $wpdb->get_results( $wpdb->prepare(
             "SELECT id FROM {$this->table_name}
             WHERE submission_date <= DATE_SUB(NOW(), INTERVAL 15 DAY)
