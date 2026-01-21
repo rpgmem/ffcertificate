@@ -115,20 +115,151 @@ class FFC_Form_Editor_Save_Handler {
                 'msg_geo_error' => sanitize_textarea_field($geofence['msg_geo_error'] ?? ''),
             );
 
+            // Validate geolocation configuration
+            $validation_errors = $this->validate_geofence_config( $clean_geofence );
+            if ( ! empty( $validation_errors ) ) {
+                set_transient( 'ffc_geofence_error_' . get_current_user_id(), $validation_errors, 45 );
+                return;
+            }
+
             update_post_meta( $post_id, '_ffc_geofence_config', $clean_geofence );
         }
+    }
+
+    /**
+     * Validates geofence configuration
+     *
+     * @param array $config Geofence configuration
+     * @return array Array of validation errors (empty if valid)
+     */
+    private function validate_geofence_config( $config ) {
+        $errors = array();
+
+        // Check if GPS is enabled but areas are empty
+        if ( $config['geo_gps_enabled'] === '1' && trim( $config['geo_areas'] ) === '' ) {
+            $errors[] = __( 'GPS Geolocation is enabled but no allowed areas are defined.', 'ffc' );
+        }
+
+        // Check if IP is enabled with independent areas but areas are empty
+        if ( $config['geo_ip_enabled'] === '1' && $config['geo_ip_areas_permissive'] === '1' && trim( $config['geo_ip_areas'] ) === '' ) {
+            $errors[] = __( 'IP Geolocation is enabled with independent areas but no IP areas are defined.', 'ffc' );
+        }
+
+        // Validate GPS areas format
+        if ( $config['geo_gps_enabled'] === '1' && trim( $config['geo_areas'] ) !== '' ) {
+            $gps_errors = $this->validate_areas_format( $config['geo_areas'], 'GPS' );
+            $errors = array_merge( $errors, $gps_errors );
+        }
+
+        // Validate IP areas format (if using independent areas)
+        if ( $config['geo_ip_enabled'] === '1' && $config['geo_ip_areas_permissive'] === '1' && trim( $config['geo_ip_areas'] ) !== '' ) {
+            $ip_errors = $this->validate_areas_format( $config['geo_ip_areas'], 'IP' );
+            $errors = array_merge( $errors, $ip_errors );
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Validates area format (latitude, longitude, radius)
+     *
+     * @param string $areas_text Areas text (one per line)
+     * @param string $type Type of area (GPS or IP) for error messages
+     * @return array Array of validation errors
+     */
+    private function validate_areas_format( $areas_text, $type ) {
+        $errors = array();
+        $lines = array_filter( array_map( 'trim', explode( "\n", $areas_text ) ) );
+        $line_number = 0;
+
+        foreach ( $lines as $line ) {
+            $line_number++;
+
+            // Skip empty lines
+            if ( empty( $line ) ) {
+                continue;
+            }
+
+            // Check format: lat,lng,radius
+            if ( ! preg_match( '/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*,\s*\d+(\.\d+)?$/', $line ) ) {
+                $errors[] = sprintf(
+                    /* translators: 1: Area type (GPS/IP), 2: Line number */
+                    __( '%1$s Area line %2$d: Invalid format. Use: latitude, longitude, radius', 'ffc' ),
+                    $type,
+                    $line_number
+                );
+                continue;
+            }
+
+            // Parse values
+            $parts = array_map( 'trim', explode( ',', $line ) );
+            $lat = floatval( $parts[0] );
+            $lng = floatval( $parts[1] );
+            $radius = floatval( $parts[2] );
+
+            // Validate latitude range
+            if ( $lat < -90 || $lat > 90 ) {
+                $errors[] = sprintf(
+                    /* translators: 1: Area type (GPS/IP), 2: Line number, 3: Latitude value */
+                    __( '%1$s Area line %2$d: Invalid latitude %3$s (must be between -90 and 90)', 'ffc' ),
+                    $type,
+                    $line_number,
+                    $lat
+                );
+            }
+
+            // Validate longitude range
+            if ( $lng < -180 || $lng > 180 ) {
+                $errors[] = sprintf(
+                    /* translators: 1: Area type (GPS/IP), 2: Line number, 3: Longitude value */
+                    __( '%1$s Area line %2$d: Invalid longitude %3$s (must be between -180 and 180)', 'ffc' ),
+                    $type,
+                    $line_number,
+                    $lng
+                );
+            }
+
+            // Validate radius
+            if ( $radius <= 0 ) {
+                $errors[] = sprintf(
+                    /* translators: 1: Area type (GPS/IP), 2: Line number */
+                    __( '%1$s Area line %2$d: Radius must be greater than 0', 'ffc' ),
+                    $type,
+                    $line_number
+                );
+            }
+        }
+
+        return $errors;
     }
 
     /**
      * Displays validation warnings after saving
      */
     public function display_save_errors() {
+        // Display PDF layout errors
         $error_tags = get_transient( 'ffc_save_error_' . get_current_user_id() );
         if ( $error_tags ) {
             delete_transient( 'ffc_save_error_' . get_current_user_id() );
             ?>
             <div class="notice notice-error is-dismissible">
                 <p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffc' ); ?></strong> <code><?php echo esc_html(implode( ', ', $error_tags )); ?></code>.</p>
+            </div>
+            <?php
+        }
+
+        // Display geofence validation errors
+        $geofence_errors = get_transient( 'ffc_geofence_error_' . get_current_user_id() );
+        if ( $geofence_errors ) {
+            delete_transient( 'ffc_geofence_error_' . get_current_user_id() );
+            ?>
+            <div class="notice notice-error is-dismissible">
+                <p><strong><?php esc_html_e( 'Geolocation Configuration Error:', 'ffc' ); ?></strong></p>
+                <ul style="list-style: disc; margin-left: 20px;">
+                    <?php foreach ( $geofence_errors as $error ) : ?>
+                        <li><?php echo esc_html( $error ); ?></li>
+                    <?php endforeach; ?>
+                </ul>
             </div>
             <?php
         }

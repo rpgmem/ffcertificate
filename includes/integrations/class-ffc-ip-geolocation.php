@@ -232,10 +232,10 @@ class FFC_IP_Geolocation {
      * @param float $lon1 Longitude of point 1
      * @param float $lat2 Latitude of point 2
      * @param float $lon2 Longitude of point 2
-     * @return float Distance in kilometers
+     * @return float Distance in meters
      */
     public static function calculate_distance($lat1, $lon1, $lat2, $lon2) {
-        $earth_radius = 6371; // Earth radius in kilometers
+        $earth_radius = 6371000; // Earth radius in meters
 
         $lat1 = deg2rad($lat1);
         $lon1 = deg2rad($lon1);

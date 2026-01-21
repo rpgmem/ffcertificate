@@ -461,8 +461,8 @@ class FFC_Form_Editor_Metabox_Renderer {
                     <tr>
                         <th><label><?php esc_html_e('Allowed Areas (GPS)', 'ffc'); ?></label></th>
                         <td>
-                            <textarea name="ffc_geofence[geo_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 5&#10;-22.9068, -43.1729, 10"><?php echo esc_textarea($geo_areas); ?></textarea>
-                            <p class="description"><?php esc_html_e('Format: latitude, longitude, radius(km) - One per line. Example: -23.5505, -46.6333, 5', 'ffc'); ?></p>
+                            <textarea name="ffc_geofence[geo_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 5000&#10;-22.9068, -43.1729, 10000"><?php echo esc_textarea($geo_areas); ?></textarea>
+                            <p class="description"><?php esc_html_e('Format: latitude, longitude, radius(meters) - One per line. Example: -23.5505, -46.6333, 5000', 'ffc'); ?></p>
                         </td>
                     </tr>
                     <tr>
@@ -472,8 +472,8 @@ class FFC_Form_Editor_Metabox_Renderer {
                                 <input type="checkbox" name="ffc_geofence[geo_ip_areas_permissive]" value="1" <?php checked($geo_ip_areas_permissive, '1'); ?>>
                                 <?php esc_html_e('Use different (more permissive) areas for IP validation', 'ffc'); ?>
                             </label><br><br>
-                            <textarea name="ffc_geofence[geo_ip_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 50&#10;-22.9068, -43.1729, 100"><?php echo esc_textarea($geo_ip_areas); ?></textarea>
-                            <p class="description"><?php esc_html_e('IP geolocation is less precise (1-50km). Use larger radius. Leave empty to use same areas as GPS.', 'ffc'); ?></p>
+                            <textarea name="ffc_geofence[geo_ip_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 50000&#10;-22.9068, -43.1729, 100000"><?php echo esc_textarea($geo_ip_areas); ?></textarea>
+                            <p class="description"><?php esc_html_e('IP geolocation is less precise (1-50km). Use larger radius (in meters). Leave empty to use same areas as GPS.', 'ffc'); ?></p>
                         </td>
                     </tr>
                     <tr>

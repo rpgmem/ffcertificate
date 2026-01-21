@@ -337,10 +337,10 @@
          * @param {number} lon1 Longitude of point 1
          * @param {number} lat2 Latitude of point 2
          * @param {number} lon2 Longitude of point 2
-         * @returns {number} Distance in kilometers
+         * @returns {number} Distance in meters
          */
         calculateDistance: function(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Earth radius in km
+            const R = 6371000; // Earth radius in meters
             const dLat = this.deg2rad(lat2 - lat1);
             const dLon = this.deg2rad(lon2 - lon1);
 
