@@ -2,7 +2,8 @@
 /**
  * Submission Repository
  * Handles all database operations for submissions
- * 
+ *
+ * v3.0.2: Fixed search to work with encrypted data (removed data_encrypted LIKE, added auth_code/magic_token search)
  * v3.0.1: Added methods for CSV export
  * @since 3.0.0
  */
@@ -168,6 +169,7 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
     /**
      * Find with pagination and filters
+     * Optimized search for encrypted data (v3.0.2)
      */
     public function findPaginated($args = []) {
         $defaults = [
@@ -178,25 +180,51 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
             'orderby' => 'id',
             'order' => 'DESC'
         ];
-        
+
         $args = wp_parse_args($args, $defaults);
-        
+
         $where = [$this->wpdb->prepare("status = %s", $args['status'])];
-        
+
         if (!empty($args['search'])) {
-            $search_hash = $this->hash($args['search']);
-            $where[] = $this->wpdb->prepare(
-                "(email_hash = %s OR cpf_rf_hash = %s OR data LIKE %s OR data_encrypted LIKE %s)",
-                $search_hash,
-                $search_hash,
-                '%' . $this->wpdb->esc_like($args['search']) . '%',
-                '%' . $this->wpdb->esc_like($args['search']) . '%'
+            $search_term = $args['search'];
+            $search_conditions = [];
+
+            // 1. Search by ID (if numeric)
+            if (is_numeric($search_term)) {
+                $search_conditions[] = $this->wpdb->prepare("id = %d", intval($search_term));
+            }
+
+            // 2. Search by auth_code (exact match, case insensitive)
+            $search_conditions[] = $this->wpdb->prepare(
+                "UPPER(auth_code) = UPPER(%s)",
+                $search_term
             );
+
+            // 3. Search by email/CPF hash (for encrypted data)
+            $search_hash = $this->hash($search_term);
+            $search_conditions[] = $this->wpdb->prepare("email_hash = %s", $search_hash);
+            $search_conditions[] = $this->wpdb->prepare("cpf_rf_hash = %s", $search_hash);
+
+            // 4. Search in unencrypted data field (legacy/fallback)
+            // Only search if data column has content (not NULL, not empty)
+            $search_conditions[] = $this->wpdb->prepare(
+                "(data IS NOT NULL AND data != '' AND data LIKE %s)",
+                '%' . $this->wpdb->esc_like($search_term) . '%'
+            );
+
+            // 5. Search by magic_token (partial match for admin convenience)
+            $search_conditions[] = $this->wpdb->prepare(
+                "magic_token LIKE %s",
+                '%' . $this->wpdb->esc_like($search_term) . '%'
+            );
+
+            // Combine all search conditions with OR
+            $where[] = '(' . implode(' OR ', $search_conditions) . ')';
         }
-        
+
         $where_clause = 'WHERE ' . implode(' AND ', $where);
         $offset = ($args['page'] - 1) * $args['per_page'];
-        
+
         $items = $this->wpdb->get_results(
             $this->wpdb->prepare(
                 "SELECT * FROM {$this->table} {$where_clause} ORDER BY {$args['orderby']} {$args['order']} LIMIT %d OFFSET %d",
@@ -205,9 +233,9 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
             ),
             ARRAY_A
         );
-        
+
         $total = $this->wpdb->get_var("SELECT COUNT(*) FROM {$this->table} {$where_clause}");
-        
+
         return [
             'items' => $items,
             'total' => (int) $total,

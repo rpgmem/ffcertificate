@@ -15,9 +15,10 @@
  * - Toggle on/off via Settings > General (v3.1.1)
  * - Column caching to avoid repeated DESCRIBE queries (v3.1.2)
  * - Bulk operation support with temporary logging suspension (v3.1.2)
+ * - Fixed: Admin settings now properly enforced (v3.1.4)
  *
  * @since 2.9.1
- * @version 3.1.3
+ * @version 3.1.4
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -60,15 +61,18 @@ class FFC_Activity_Log {
     public static function log( $action, $level = self::LEVEL_INFO, $context = array(), $user_id = 0, $submission_id = 0 ) {
         global $wpdb;
 
+        // CRITICAL: Check admin settings FIRST (before temporary flag)
+        // This ensures logging stays disabled even if enable_logging() is called
+        $settings = get_option( 'ffc_settings', array() );
+        $is_enabled = isset( $settings['enable_activity_log'] ) && absint( $settings['enable_activity_log'] ) === 1;
+
+        if ( ! $is_enabled ) {
+            return false; // Logging disabled in admin settings
+        }
+
         // Check if logging is temporarily disabled (bulk operations)
         if ( self::$logging_disabled ) {
             return false;
-        }
-
-        // Check if logging is enabled in settings
-        $settings = get_option( 'ffc_settings', array() );
-        if ( ! isset( $settings['enable_activity_log'] ) || $settings['enable_activity_log'] != 1 ) {
-            return false; // Logging disabled
         }
         
         // Validate level
@@ -122,9 +126,10 @@ class FFC_Activity_Log {
         
         // Insert into database
         $result = $wpdb->insert( $table_name, $log_data );
-        
-        // Also log via debug system if enabled
-        if ( class_exists( 'FFC_Debug' ) ) {
+
+        // Also log via debug system if enabled (respects Activity Log setting)
+        // Debug logging only happens when Activity Log is enabled in admin
+        if ( $result !== false && class_exists( 'FFC_Debug' ) ) {
             FFC_Debug::log_activity_log( $action, array(
                 'level' => strtoupper( $level ),
                 'user_id' => $user_id,
@@ -133,7 +138,7 @@ class FFC_Activity_Log {
                 'context' => $context
             ) );
         }
-        
+
         return $result !== false;
     }
     
@@ -604,5 +609,16 @@ class FFC_Activity_Log {
      */
     public static function clear_column_cache() {
         self::$table_columns_cache = null;
+    }
+
+    /**
+     * Check if Activity Log is enabled in admin settings
+     * Use this method to check before performing logging operations
+     *
+     * @return bool True if enabled, false otherwise
+     */
+    public static function is_enabled() {
+        $settings = get_option( 'ffc_settings', array() );
+        return isset( $settings['enable_activity_log'] ) && absint( $settings['enable_activity_log'] ) === 1;
     }
 }
