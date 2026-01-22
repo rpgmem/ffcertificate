@@ -94,8 +94,9 @@ $custom_format = $get_option('date_format_custom', '');
 
         <h3>📋 <?php esc_html_e('Activity Log Settings', 'ffc'); ?></h3>
         <p class="description">
-            <?php esc_html_e('Activity Log tracks important actions in your system for audit and compliance purposes (LGPD).', 'ffc'); ?>
-            <span class="ffc-text-info">ℹ️ <?php esc_html_e('When enabled, actions like submission creation, data access, and settings changes are logged.', 'ffc'); ?></span>
+            <?php esc_html_e('Activity Log tracks important actions in your system for audit and compliance purposes (LGPD).', 'ffc'); ?> <br>
+            <span class="ffc-text-warning">⚠️ <?php esc_html_e('Only enable in development or when troubleshooting issues.', 'ffc'); ?></span><br>
+            <span class="ffc-text-info">ℹ️ <?php esc_html_e('If this option is disabled, debug logging will also be disabled.', 'ffc'); ?></span>
         </p>
 
         <table class="form-table" role="presentation">
@@ -110,8 +111,7 @@ $custom_format = $get_option('date_format_custom', '');
                             <?php esc_html_e('Track activities for audit trail', 'ffc'); ?>
                         </label>
                         <p class="description">
-                            <?php esc_html_e('Logs submission creation, data access, settings changes, and security events.', 'ffc'); ?>
-                            <br>
+                            <?php esc_html_e('Logs submission creation, data access, settings changes, and security events.', 'ffc'); ?><br>
                             <span class="ffc-text-success">✅ <?php esc_html_e('Includes user ID, IP address, and timestamp for LGPD compliance.', 'ffc'); ?></span>
                             <?php if ($get_option('enable_activity_log') == 1) : ?>
                                 <br>
@@ -127,7 +127,7 @@ $custom_format = $get_option('date_format_custom', '');
 
         <h3>🐛 <?php esc_html_e('Debug Settings', 'ffc'); ?></h3>
         <p class="description">
-            <?php esc_html_e('Enable debug logging for specific areas. Debug logs are written to the PHP error log.', 'ffc'); ?>
+            <?php esc_html_e('Enable debug logging for specific areas. Debug logs are written to the PHP error log.', 'ffc'); ?><br>
             <span class="ffc-text-warning">⚠️ <?php esc_html_e('Only enable in development or when troubleshooting issues.', 'ffc'); ?></span>
         </p>
 
@@ -188,7 +188,7 @@ $custom_format = $get_option('date_format_custom', '');
                             <?php esc_html_e('Enable debug logging for encryption operations', 'ffc'); ?>
                         </label>
                         <p class="description">
-                            <?php esc_html_e('Logs encryption/decryption operations and key management.', 'ffc'); ?>
+                            <?php esc_html_e('Logs encryption/decryption operations and key management.', 'ffc'); ?><br>
                             <span class="ffc-text-warning">⚠️ <?php esc_html_e('Never enables actual data logging, only operation status.', 'ffc'); ?></span>
                         </p>
                     </td>
