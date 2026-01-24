@@ -72,7 +72,7 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
                     <td>
                         <fieldset>
                             <?php foreach ($available_roles as $role_slug => $role_name) : ?>
-                                <label style="display: block; margin-bottom: 8px;">
+                                <label class="ffc-checkbox-label">
                                     <input type="checkbox"
                                            name="blocked_roles[]"
                                            value="<?php echo esc_attr($role_slug); ?>"
@@ -189,7 +189,7 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
         </div>
 
         <!-- Info Box -->
-        <div class="card" style="background: #f0f6fc; border-left: 4px solid #0073aa;">
+        <div class="card ffc-info-card">
             <h2>ℹ️ <?php esc_html_e('Information', 'ffc'); ?></h2>
             <p>
                 <?php esc_html_e('The "FFC User" role is automatically assigned to users who submit forms with CPF/RF.', 'ffc'); ?>

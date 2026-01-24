@@ -670,3 +670,15 @@
 .ffc-text-error {
     color: #d63638;
 }
+
+/* Checkbox label block */
+.ffc-checkbox-label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* Info card */
+.ffc-info-card {
+    background: #f0f6fc;
+    border-left: 4px solid #0073aa;
+}
