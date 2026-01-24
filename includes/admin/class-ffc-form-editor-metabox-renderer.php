@@ -171,11 +171,11 @@ class FFC_Form_Editor_Metabox_Renderer {
             <tr>
                 <th><label><?php esc_html_e( 'Form Restrictions', 'ffc' ); ?></label></th>
                 <td>
-                    <p class="description" style="margin-bottom: 15px;">
+                    <p class="description ffc-mb-15">
                         <?php esc_html_e( 'Select which restrictions to apply (can combine multiple):', 'ffc' ); ?>
                     </p>
 
-                    <label style="display: block; margin: 10px 0;">
+                    <label class="ffc-restriction-label">
                         <input type="checkbox"
                                name="ffc_config[restrictions][password]"
                                value="1"
@@ -185,7 +185,7 @@ class FFC_Form_Editor_Metabox_Renderer {
                         <span class="description"> — <?php esc_html_e('Shared password for all users', 'ffc'); ?></span>
                     </label>
 
-                    <label style="display: block; margin: 10px 0;">
+                    <label class="ffc-restriction-label">
                         <input type="checkbox"
                                name="ffc_config[restrictions][allowlist]"
                                value="1"
@@ -195,7 +195,7 @@ class FFC_Form_Editor_Metabox_Renderer {
                         <span class="description"> — <?php esc_html_e('Only approved CPF/RF can submit', 'ffc'); ?></span>
                     </label>
 
-                    <label style="display: block; margin: 10px 0;">
+                    <label class="ffc-restriction-label">
                         <input type="checkbox"
                                name="ffc_config[restrictions][denylist]"
                                value="1"
@@ -205,7 +205,7 @@ class FFC_Form_Editor_Metabox_Renderer {
                         <span class="description"> — <?php esc_html_e('Blocked CPF/RF cannot submit', 'ffc'); ?></span>
                     </label>
 
-                    <label style="display: block; margin: 10px 0;">
+                    <label class="ffc-restriction-label">
                         <input type="checkbox"
                                name="ffc_config[restrictions][ticket]"
                                value="1"
@@ -215,13 +215,13 @@ class FFC_Form_Editor_Metabox_Renderer {
                         <span class="description"> — <?php esc_html_e('Requires valid ticket (consumed after use)', 'ffc'); ?></span>
                     </label>
 
-                    <p class="description" style="margin-top: 15px;">
+                    <p class="description ffc-mt-15">
                         <em><?php esc_html_e('Note: If no restriction is selected, form is Open (no restrictions).', 'ffc'); ?></em>
                     </p>
                 </td>
             </tr>
 
-            <tr id="ffc_password_field" style="<?php echo $password_active ? '' : 'display:none;'; ?>">
+            <tr id="ffc_password_field" class="ffc-conditional-field<?php echo $password_active ? ' active' : ''; ?>">
                 <th><label><?php esc_html_e( 'Password Value', 'ffc' ); ?></label></th>
                 <td>
                     <input type="text"
@@ -233,7 +233,7 @@ class FFC_Form_Editor_Metabox_Renderer {
                 </td>
             </tr>
 
-            <tr id="ffc_allowlist_field" style="<?php echo $allowlist_active ? '' : 'display:none;'; ?>">
+            <tr id="ffc_allowlist_field" class="ffc-conditional-field<?php echo $allowlist_active ? ' active' : ''; ?>">
                 <th><label><?php esc_html_e( 'Allowlist (CPFs / IDs)', 'ffc' ); ?></label></th>
                 <td>
                     <textarea name="ffc_config[allowed_users_list]"
@@ -243,7 +243,7 @@ class FFC_Form_Editor_Metabox_Renderer {
                 </td>
             </tr>
 
-            <tr id="ffc_denylist_field" style="<?php echo $denylist_active ? '' : 'display:none;'; ?>">
+            <tr id="ffc_denylist_field" class="ffc-conditional-field<?php echo $denylist_active ? ' active' : ''; ?>">
                 <th><label><?php esc_html_e( 'Denylist (Blocked)', 'ffc' ); ?></label></th>
                 <td>
                     <textarea name="ffc_config[denied_users_list]"
@@ -253,7 +253,7 @@ class FFC_Form_Editor_Metabox_Renderer {
                 </td>
             </tr>
 
-            <tr id="ffc_ticket_field" class="ffc-highlight-row" style="<?php echo $ticket_active ? '' : 'display:none;'; ?>">
+            <tr id="ffc_ticket_field" class="ffc-highlight-row ffc-conditional-field<?php echo $ticket_active ? ' active' : ''; ?>">
                 <th><label class="ffc-label-accent"><?php esc_html_e( 'Ticket Generator', 'ffc' ); ?></label></th>
                 <td>
                     <div class="ffc-admin-flex-row ffc-mb5">
@@ -303,7 +303,7 @@ class FFC_Form_Editor_Metabox_Renderer {
             <tr>
                 <th></th>
                 <td>
-                <p class="description" style="margin-top: 15px;">
+                <p class="description ffc-mt-15">
                 <em><?php esc_html_e('Note: When this option is enabled, the email will only be sent when the user submits the form. This will add them to a waiting list and emails will be sent progressively.', 'ffc'); ?></em>
                 </p>
                 </td>
@@ -386,7 +386,7 @@ class FFC_Form_Editor_Metabox_Renderer {
                             <p class="description"><?php esc_html_e('Leave empty for 24/7 access. Default: 00:00 to 23:59', 'ffc'); ?></p>
                         </td>
                     </tr>
-                    <tr id="ffc-time-mode-row" style="<?php echo (empty($date_start) || empty($date_end) || $date_start === $date_end) ? 'display:none;' : ''; ?>">
+                    <tr id="ffc-time-mode-row" class="ffc-conditional-field<?php echo (!empty($date_start) && !empty($date_end) && $date_start !== $date_end) ? ' active' : ''; ?>">
                         <th><label><?php esc_html_e('Time Behavior', 'ffc'); ?></label></th>
                         <td>
                             <fieldset>
@@ -394,7 +394,7 @@ class FFC_Form_Editor_Metabox_Renderer {
                                     <input type="radio" name="ffc_geofence[time_mode]" value="span" <?php checked($time_mode, 'span'); ?>>
                                     <strong><?php esc_html_e('Time spans across dates', 'ffc'); ?></strong>
                                 </label>
-                                <p class="description" style="margin-left: 20px; margin-top: 5px;">
+                                <p class="description ffc-time-description">
                                     <?php esc_html_e('Start time applies to start date, end time applies to end date. Form is open continuously between those timestamps.', 'ffc'); ?><br>
                                     <?php esc_html_e('Example: Start 01/01 12:00 + End 10/01 23:00 = Open from 12:00 on Jan 1st until 23:00 on Jan 10th', 'ffc'); ?>
                                 </p>
@@ -403,7 +403,7 @@ class FFC_Form_Editor_Metabox_Renderer {
                                     <input type="radio" name="ffc_geofence[time_mode]" value="daily" <?php checked($time_mode, 'daily'); ?>>
                                     <strong><?php esc_html_e('Time applies to each day individually', 'ffc'); ?></strong>
                                 </label>
-                                <p class="description" style="margin-left: 20px; margin-top: 5px;">
+                                <p class="description ffc-time-description">
                                     <?php esc_html_e('Time range applies to every day in the date range. Form respects daily hours.', 'ffc'); ?><br>
                                     <?php esc_html_e('Example: Start 01/01 + End 10/01 + Time 12:00-23:00 = Open 12:00-23:00 every day from Jan 1-10', 'ffc'); ?>
                                 </p>

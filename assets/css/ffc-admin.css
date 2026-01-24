@@ -1,6 +1,6 @@
 /* ==========================================================================
    FREE FORM CERTIFICATE - ADMIN STYLES
-   v2.9.13
+   v3.2.0 - Removed all inline styles, added utility classes
    ========================================================================== */
 
 /* ==========================================================================
@@ -591,4 +591,72 @@
 .ffc-badge-debug {
     background: #e2e3e5;
     color: #383d41;
+}
+
+/* ==========================================================================
+   18. INLINE STYLES CLEANUP - v3.2.0
+   Replaced inline styles with proper CSS classes for better maintainability
+   ========================================================================== */
+
+/* Margin utilities */
+.ffc-mb-15 { margin-bottom: 15px; }
+.ffc-mt-15 { margin-top: 15px; }
+.ffc-ml-20 { margin-left: 20px; }
+.ffc-mt-5 { margin-top: 5px; }
+.ffc-my-10 { margin: 10px 0; }
+.ffc-m-5-0 { margin: 5px 0 0 0; }
+
+/* Form label blocks */
+.ffc-restriction-label {
+    display: block;
+    margin: 10px 0;
+}
+
+/* Conditional field (toggled visibility) */
+.ffc-conditional-field {
+    display: none;
+}
+
+.ffc-conditional-field.active {
+    display: table-row;
+}
+
+/* Dashboard header flex */
+.ffc-dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Activity log details */
+.ffc-log-summary {
+    cursor: pointer;
+    color: #2271b1;
+}
+
+.ffc-log-pre {
+    font-size: 11px;
+    max-height: 150px;
+    overflow: auto;
+    margin-top: 8px;
+    padding: 8px;
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+}
+
+/* Activity log card */
+.ffc-activity-card {
+    margin-top: 20px;
+    max-width: 100%;
+}
+
+/* Text transform */
+.ffc-uppercase {
+    text-transform: uppercase;
+}
+
+/* Time description indent */
+.ffc-time-description {
+    margin-left: 20px;
+    margin-top: 5px;
 }

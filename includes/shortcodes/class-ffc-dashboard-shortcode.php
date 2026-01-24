@@ -133,10 +133,10 @@ class FFC_Dashboard_Shortcode {
         ob_start();
         ?>
         <div class="ffc-dashboard-notice ffc-notice-admin-viewing">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="ffc-dashboard-header">
                 <div>
                     <strong>🔍 <?php esc_html_e('Admin View Mode', 'ffc'); ?></strong>
-                    <p style="margin: 5px 0 0 0;">
+                    <p class="ffc-m-5-0">
                         <?php
                         printf(
                             /* translators: 1: Admin name, 2: User name */

@@ -134,10 +134,10 @@ $base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' );
                         <td>
                             <?php if ( ! empty( $log['context'] ) ) : ?>
                                 <details>
-                                    <summary style="cursor: pointer; color: #2271b1;">
+                                    <summary class="ffc-log-summary">
                                         <?php esc_html_e( 'View Details', 'ffc' ); ?> ▼
                                     </summary>
-                                    <pre style="font-size: 11px; max-height: 150px; overflow: auto; margin-top: 8px; padding: 8px; background: #f6f7f7; border: 1px solid #dcdcde;"><?php echo esc_html( print_r( $log['context'], true ) ); ?></pre>
+                                    <pre class="ffc-log-pre"><?php echo esc_html( print_r( $log['context'], true ) ); ?></pre>
                                 </details>
                             <?php else : ?>
                                 <span class="description">—</span>
@@ -173,7 +173,7 @@ $base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' );
     <?php endif; ?>
 
     <!-- Stats Summary -->
-    <div class="card" style="margin-top: 20px; max-width: 100%;">
+    <div class="card ffc-activity-card">
         <h2><?php esc_html_e( 'Activity Summary (Last 30 Days)', 'ffc' ); ?></h2>
         <?php
         $stats = FFC_Activity_Log::get_stats( 30 );
@@ -184,7 +184,7 @@ $base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' );
 
         <?php if ( ! empty( $stats['by_level'] ) ) : ?>
             <p><strong><?php esc_html_e( 'By Level:', 'ffc' ); ?></strong></p>
-            <ul style="margin-left: 20px;">
+            <ul class="ffc-ml-20">
                 <?php foreach ( $stats['by_level'] as $level_stat ) : ?>
                     <li>
                         <?php echo FFC_Admin_Activity_Log_Page::get_level_badge( $level_stat['level'] ); ?>
@@ -196,7 +196,7 @@ $base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' );
 
         <?php if ( ! empty( $stats['top_actions'] ) ) : ?>
             <p><strong><?php esc_html_e( 'Top Actions:', 'ffc' ); ?></strong></p>
-            <ul style="margin-left: 20px;">
+            <ul class="ffc-ml-20">
                 <?php foreach ( array_slice( $stats['top_actions'], 0, 5 ) as $action_stat ) : ?>
                     <li>
                         <strong><?php echo esc_html( FFC_Admin_Activity_Log_Page::get_action_label( $action_stat['action'] ) ); ?>:</strong>

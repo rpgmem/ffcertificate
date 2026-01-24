@@ -222,7 +222,7 @@ class FFC_Shortcodes {
                                id="ffc_ticket" 
                                required 
                                placeholder="ABCD-1234"
-                               style="text-transform: uppercase;"
+                               class="ffc-uppercase"
                                autocomplete="off"
                                maxlength="9">
                         <p class="description"><?php esc_html_e('Enter your unique ticket code', 'ffc'); ?></p>
