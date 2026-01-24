@@ -7,6 +7,7 @@
  * - Email Handler: Sends emails (SMTP + delivery)
  * - PDF Generator: Generates certificate HTML/PDF (single source of truth)
  *
+ * v3.1.0: Added send_wp_user_notification for WordPress user creation emails
  * v3.0.0: REFACTORED - Removed HTML generation logic (now uses FFC_PDF_Generator)
  *         Simplified emails to send only magic link (no certificate preview)
  *         Removed: generate_pdf_html(), process_qr_code_placeholders(), process_validation_url_placeholders()
@@ -222,5 +223,45 @@ class FFC_Email_Handler {
                 wp_mail( $email, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
             }
         }
+    }
+
+    /**
+     * Send WordPress user notification email
+     *
+     * Sends welcome email to new WordPress users created by FFC.
+     * Respects context-specific settings (submission vs migration).
+     *
+     * @since 3.1.0
+     * @param int $user_id WordPress user ID
+     * @param string $context Context: 'submission' or 'migration'
+     * @return bool True if email was sent, false otherwise
+     */
+    public function send_wp_user_notification( $user_id, $context = 'submission' ) {
+        $settings = get_option( 'ffc_settings', array() );
+
+        // Check global disable
+        if ( ! empty( $settings['disable_all_emails'] ) ) {
+            return false;
+        }
+
+        // Check context-specific setting
+        if ( $context === 'submission' ) {
+            // Default: enabled (1)
+            $enabled = isset( $settings['send_wp_user_email_submission'] )
+                ? absint( $settings['send_wp_user_email_submission'] ) === 1
+                : true; // Default enabled for submissions
+        } else { // migration
+            // Default: disabled (0)
+            $enabled = isset( $settings['send_wp_user_email_migration'] )
+                && absint( $settings['send_wp_user_email_migration'] ) === 1;
+        }
+
+        if ( ! $enabled ) {
+            return false;
+        }
+
+        // Send WordPress notification (welcome email with password reset link)
+        wp_new_user_notification( $user_id, null, 'user' );
+        return true;
     }
 }

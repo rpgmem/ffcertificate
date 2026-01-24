@@ -1,7 +1,7 @@
 <?php
 /**
  * SMTP Settings Tab
- * @version 3.0.0 - Clean, no inline styles
+ * @version 3.1.0 - Added user creation email controls (submission & migration)
  */
 
 if (!defined('ABSPATH')) exit;
@@ -34,6 +34,50 @@ $get_option = function($key, $default = '') {
                         </label>
                         <p class="description">
                             <?php _e('When enabled, the plugin will NOT send any emails (certificates, notifications, password resets, etc.). Use this for testing or if you want to completely disable email functionality.', 'ffc'); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="send_wp_user_email_submission"><?php esc_html_e('User Creation Emails (Submission)', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <fieldset>
+                            <label>
+                                <input type="radio" name="ffc_settings[send_wp_user_email_submission]" value="1" <?php checked('1', $get_option('send_wp_user_email_submission', '1')); ?>>
+                                <strong><?php esc_html_e('Enabled', 'ffc'); ?></strong>
+                            </label>
+                            <br>
+                            <label>
+                                <input type="radio" name="ffc_settings[send_wp_user_email_submission]" value="0" <?php checked('0', $get_option('send_wp_user_email_submission', '1')); ?>>
+                                <strong><?php esc_html_e('Disabled', 'ffc'); ?></strong>
+                            </label>
+                        </fieldset>
+                        <p class="description">
+                            <?php _e('Send welcome email when a new WordPress user is created via form submission. The email contains a password reset link.', 'ffc'); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="send_wp_user_email_migration"><?php esc_html_e('User Creation Emails (Migration)', 'ffc'); ?></label>
+                    </th>
+                    <td>
+                        <fieldset>
+                            <label>
+                                <input type="radio" name="ffc_settings[send_wp_user_email_migration]" value="1" <?php checked('1', $get_option('send_wp_user_email_migration', '0')); ?>>
+                                <strong><?php esc_html_e('Enabled', 'ffc'); ?></strong>
+                            </label>
+                            <br>
+                            <label>
+                                <input type="radio" name="ffc_settings[send_wp_user_email_migration]" value="0" <?php checked('0', $get_option('send_wp_user_email_migration', '0')); ?>>
+                                <strong><?php esc_html_e('Disabled (Recommended)', 'ffc'); ?></strong>
+                            </label>
+                        </fieldset>
+                        <p class="description">
+                            <?php _e('Send welcome email when a new WordPress user is created during migration. Recommended to keep disabled to avoid sending bulk emails.', 'ffc'); ?>
                         </p>
                     </td>
                 </tr>

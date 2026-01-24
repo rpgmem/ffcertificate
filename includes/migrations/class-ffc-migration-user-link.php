@@ -12,6 +12,7 @@
  * 3. If no: Create new user + link
  * 4. Conflict handling: Log error + Skip (2 CPFs, same email)
  *
+ * @version 3.2.0 - Added optional email notification via FFC_Email_Handler
  * @since 3.1.0
  */
 
@@ -185,8 +186,19 @@ class FFC_Migration_User_Link {
                 // STEP 5.1: Extract and set user display name from submission data
                 self::set_user_display_name($user_id, $submission);
 
-                // NOTE: Do NOT send password reset email during migration
-                // Users will use WordPress "Forgot Password" if needed
+                // STEP 5.2: Send password reset email if enabled (default: disabled)
+                // Load Email Handler if not already loaded
+                if (!class_exists('FFC_Email_Handler')) {
+                    $email_handler_file = FFC_PLUGIN_DIR . 'includes/integrations/class-ffc-email-handler.php';
+                    if (file_exists($email_handler_file)) {
+                        require_once $email_handler_file;
+                    }
+                }
+
+                if (class_exists('FFC_Email_Handler')) {
+                    $email_handler = new FFC_Email_Handler();
+                    $email_handler->send_wp_user_notification($user_id, 'migration');
+                }
             }
 
             // STEP 6: Update submission with user_id

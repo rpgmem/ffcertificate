@@ -14,6 +14,7 @@
  * - Email is used as the linking key when CPF/RF is new
  * - Priority: CPF/RF > Email
  *
+ * @version 3.2.0 - Refactored to use FFC_Email_Handler for user notification emails
  * @since 3.1.0
  */
 
@@ -117,11 +118,20 @@ class FFC_User_Manager {
         // Sync user metadata from submission (only on creation)
         self::sync_user_metadata($user_id, $submission_data);
 
-        // Send password reset email (only for new users, not migration)
-        // Check if emails are globally disabled
-        $settings = get_option('ffc_settings', array());
-        if (!isset($submission_data['skip_email']) && empty($settings['disable_all_emails'])) {
-            wp_new_user_notification($user_id, null, 'user');
+        // Send password reset email via Email Handler (respects settings)
+        if (!isset($submission_data['skip_email'])) {
+            // Load Email Handler if not already loaded
+            if (!class_exists('FFC_Email_Handler')) {
+                $email_handler_file = FFC_PLUGIN_DIR . 'includes/integrations/class-ffc-email-handler.php';
+                if (file_exists($email_handler_file)) {
+                    require_once $email_handler_file;
+                }
+            }
+
+            if (class_exists('FFC_Email_Handler')) {
+                $email_handler = new FFC_Email_Handler();
+                $email_handler->send_wp_user_notification($user_id, 'submission');
+            }
         }
 
         return $user_id;
