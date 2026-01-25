@@ -1,9 +1,12 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_Page_Manager
- * 
+ *
  * Manages plugin pages (verification page, etc)
- * 
+ *
+ * @version 3.3.0 - Added strict types and type hints
  * @since 2.9.16
  */
 
@@ -18,7 +21,7 @@ class FFC_Page_Manager {
      * 
      * @return int Page ID or 0 if not exists
      */
-    public static function get_verification_page_id() {
+    public static function get_verification_page_id(): int {
         return absint( get_option( 'ffc_verification_page_id', 0 ) );
     }
     
@@ -27,7 +30,7 @@ class FFC_Page_Manager {
      * 
      * @return string Page URL
      */
-    public static function get_verification_page_url() {
+    public static function get_verification_page_url(): string {
         $page_id = self::get_verification_page_id();
         
         if ( $page_id ) {
@@ -46,7 +49,7 @@ class FFC_Page_Manager {
      * 
      * @return bool
      */
-    public static function verification_page_exists() {
+    public static function verification_page_exists(): bool {
         $page_id = self::get_verification_page_id();
         
         if ( ! $page_id ) {
@@ -69,7 +72,7 @@ class FFC_Page_Manager {
      * 
      * @return int|WP_Error Page ID or error
      */
-    public static function ensure_verification_page() {
+    public static function ensure_verification_page(): int {
         // Check if page exists and is OK
         if ( self::verification_page_exists() ) {
             return self::get_verification_page_id();
@@ -126,7 +129,7 @@ class FFC_Page_Manager {
      * 
      * Call this in admin_notices hook
      */
-    public static function maybe_show_missing_page_notice() {
+    public static function maybe_show_missing_page_notice(): void {
         if ( ! current_user_can( 'manage_options' ) ) {
             return;
         }
@@ -160,7 +163,7 @@ class FFC_Page_Manager {
      * 
      * Call this in admin_init hook
      */
-    public static function handle_page_recreation_request() {
+    public static function handle_page_recreation_request(): void {
         if ( ! isset( $_GET['ffc_recreate_page'] ) ) {
             return;
         }

@@ -1,8 +1,11 @@
 <?php
+declare(strict_types=1);
+
 /**
- * FFC_Submission_Handler v3.0.1
+ * FFC_Submission_Handler v3.3.0
  * Complete refactored version with Repository Pattern
  *
+ * @version 3.3.0 - Added strict types and type hints
  * @since 3.0.1 Optimized bulk operations (single query + suspended logging)
  * @since 3.0.0 Repository Pattern integration
  * @since 2.10.0 Encryption & LGPD support
@@ -21,14 +24,14 @@ class FFC_Submission_Handler {
     /**
      * Generate unique magic token
      */
-    private function generate_magic_token() {
+    private function generate_magic_token(): string {
         return bin2hex(random_bytes(16));
     }
     
     /**
      * Generate unique auth code
      */
-    private function generate_unique_auth_code() {
+    private function generate_unique_auth_code(): string {
         do {
             $code = FFC_Utils::generate_auth_code();
             $existing = $this->repository->findByAuthCode($code);
@@ -41,7 +44,7 @@ class FFC_Submission_Handler {
      * Get submission by ID
      * @uses Repository::findById()
      */
-    public function get_submission($id) {
+    public function get_submission(int $id) {
         $submission = $this->repository->findById($id);
         
         if (!$submission) {
@@ -55,7 +58,7 @@ class FFC_Submission_Handler {
      * Get submission by magic token
      * @uses Repository::findByToken()
      */
-    public function get_submission_by_token($token) {
+    public function get_submission_by_token(string $token) {
         $clean_token = preg_replace('/[^a-f0-9]/i', '', $token);
         
         if (strlen($clean_token) !== 32) {
@@ -75,7 +78,7 @@ class FFC_Submission_Handler {
      * Process submission (main method)
      * @uses Repository::insert()
      */
-    public function process_submission($form_id, $form_title, &$submission_data, $user_email, $fields_config, $form_config) {
+    public function process_submission(int $form_id, string $form_title, array &$submission_data, string $user_email, array $fields_config, array $form_config) {
         // 1. Generate auth code if not present
         if (empty($submission_data['auth_code'])) {
             $submission_data['auth_code'] = $this->generate_unique_auth_code();
@@ -212,7 +215,7 @@ class FFC_Submission_Handler {
      * Update submission - FIXED v3.0.1
      * @uses Repository::updateWithEditTracking()
      */
-    public function update_submission($id, $new_email, $clean_data) {
+    public function update_submission(int $id, string $new_email, array $clean_data): bool {
         $update_data = [];
         
         // Update email if provided
@@ -264,7 +267,7 @@ class FFC_Submission_Handler {
     /**
      * Decrypt submission data
      */
-    public function decrypt_submission_data($submission) {
+    public function decrypt_submission_data($submission): array {
         if (!$submission || !class_exists('FFC_Encryption')) {
             return $submission;
         }
@@ -304,7 +307,7 @@ class FFC_Submission_Handler {
      * Trash submission
      * @uses Repository::updateStatus()
      */
-    public function trash_submission($id) {
+    public function trash_submission(int $id): bool {
         $result = $this->repository->updateStatus($id, 'trash');
         
         if ($result && class_exists('FFC_Activity_Log')) {
@@ -318,7 +321,7 @@ class FFC_Submission_Handler {
      * Restore submission
      * @uses Repository::updateStatus()
      */
-    public function restore_submission($id) {
+    public function restore_submission(int $id): bool {
         $result = $this->repository->updateStatus($id, 'publish');
         
         if ($result && class_exists('FFC_Activity_Log')) {
@@ -332,7 +335,7 @@ class FFC_Submission_Handler {
      * Permanently delete submission
      * @uses Repository::delete()
      */
-    public function delete_submission($id) {
+    public function delete_submission(int $id): bool {
         $result = $this->repository->delete($id);
 
         if ($result && class_exists('FFC_Activity_Log')) {
@@ -349,7 +352,7 @@ class FFC_Submission_Handler {
      * @param array $ids Array of submission IDs
      * @return int|false Number of rows affected or false on error
      */
-    public function bulk_trash_submissions($ids) {
+    public function bulk_trash_submissions(array $ids): array {
         if (empty($ids)) {
             return 0;
         }
@@ -381,7 +384,7 @@ class FFC_Submission_Handler {
      * @param array $ids Array of submission IDs
      * @return int|false Number of rows affected or false on error
      */
-    public function bulk_restore_submissions($ids) {
+    public function bulk_restore_submissions(array $ids): array {
         if (empty($ids)) {
             return 0;
         }
@@ -413,7 +416,7 @@ class FFC_Submission_Handler {
      * @param array $ids Array of submission IDs
      * @return int|false Number of rows deleted or false on error
      */
-    public function bulk_delete_submissions($ids) {
+    public function bulk_delete_submissions(array $ids): array {
         if (empty($ids)) {
             return 0;
         }
@@ -449,7 +452,7 @@ class FFC_Submission_Handler {
      * @param bool $reset_auto_increment Reset ID counter to 1
      * @return int|false Number of rows deleted or false on error
      */
-    public function delete_all_submissions($form_id = null, $reset_auto_increment = false) {
+    public function delete_all_submissions(?int $form_id = null, bool $reset_auto_increment = false): int {
         global $wpdb;
         $table = FFC_Utils::get_submissions_table();
         
@@ -494,7 +497,7 @@ class FFC_Submission_Handler {
      *
      * @return void
      */
-    private function reset_migration_counters() {
+    private function reset_migration_counters(): void {
         global $wpdb;
 
         // Delete all migration completion flags
@@ -512,7 +515,7 @@ class FFC_Submission_Handler {
      * 
      * @return int|false Query result
      */
-    public function reset_submission_counter() {
+    public function reset_submission_counter(): bool {
         global $wpdb;
         $table = FFC_Utils::get_submissions_table();
         
@@ -533,7 +536,7 @@ class FFC_Submission_Handler {
     /**
      * Run data cleanup (old submissions)
      */
-    public function run_data_cleanup() {
+    public function run_data_cleanup(): array {
         global $wpdb;
         $table = FFC_Utils::get_submissions_table();
         
@@ -563,7 +566,7 @@ class FFC_Submission_Handler {
     /**
      * Ensure magic token exists
      */
-    public function ensure_magic_token($submission_id) {
+    public function ensure_magic_token(int $submission_id): string {
         $submission = $this->repository->findById($submission_id);
         
         if (!$submission || !empty($submission['magic_token'])) {

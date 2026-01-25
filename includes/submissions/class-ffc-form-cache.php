@@ -1,8 +1,11 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_Form_Cache
  * Caching layer for form configurations to improve performance
- * 
+ *
+ * @version 3.3.0 - Added strict types and type hints
  * @since 2.9.1
  */
 
@@ -15,7 +18,7 @@ class FFC_Form_Cache {
     /**
      * Get cache expiration from settings
      */
-    public static function get_expiration() {
+    public static function get_expiration(): int {
         $settings = get_option('ffc_settings', array());
         return isset($settings['cache_expiration']) ? intval($settings['cache_expiration']) : 3600;
     }
@@ -23,7 +26,7 @@ class FFC_Form_Cache {
     /**
      * Get form configuration with caching
      */
-    public static function get_form_config( $form_id ) {
+    public static function get_form_config( int $form_id ) {
         $cache_key = 'config_' . $form_id;
         $config = wp_cache_get( $cache_key, self::CACHE_GROUP );
         
@@ -51,7 +54,7 @@ class FFC_Form_Cache {
     /**
      * Get form fields with caching
      */
-    public static function get_form_fields( $form_id ) {
+    public static function get_form_fields( int $form_id ) {
         $cache_key = 'fields_' . $form_id;
         $fields = wp_cache_get( $cache_key, self::CACHE_GROUP );
         
@@ -71,7 +74,7 @@ class FFC_Form_Cache {
     /**
      * Get form background image with caching
      */
-    public static function get_form_background( $form_id ) {
+    public static function get_form_background( int $form_id ): string {
         $cache_key = 'bg_' . $form_id;
         $bg = wp_cache_get( $cache_key, self::CACHE_GROUP );
         
@@ -89,7 +92,7 @@ class FFC_Form_Cache {
     /**
      * Get complete form data
      */
-    public static function get_form_complete( $form_id ) {
+    public static function get_form_complete( int $form_id ): array {
         $cache_key = 'complete_' . $form_id;
         $data = wp_cache_get( $cache_key, self::CACHE_GROUP );
         
@@ -109,7 +112,7 @@ class FFC_Form_Cache {
     /**
      * Get form post object with caching
      */
-    public static function get_form_post( $form_id ) {
+    public static function get_form_post( int $form_id ) {
         $cache_key = 'post_' . $form_id;
         $post = wp_cache_get( $cache_key, self::CACHE_GROUP );
         
@@ -129,7 +132,7 @@ class FFC_Form_Cache {
     /**
      * Clear cache for specific form
      */
-    public static function clear_form_cache( $form_id ) {
+    public static function clear_form_cache( int $form_id ): bool {
         $keys = array(
             'config_' . $form_id,
             'fields_' . $form_id,
@@ -151,7 +154,7 @@ class FFC_Form_Cache {
     /**
      * Clear all form caches
      */
-    public static function clear_all_cache() {
+    public static function clear_all_cache(): bool {
         if ( ! current_user_can( 'manage_options' ) ) {
             return false;
         }
@@ -162,7 +165,7 @@ class FFC_Form_Cache {
     /**
      * Warm up cache for a form
      */
-    public static function warm_cache( $form_id ) {
+    public static function warm_cache( int $form_id ): bool {
         $data = self::get_form_complete( $form_id );
         return $data !== false;
     }
@@ -170,7 +173,7 @@ class FFC_Form_Cache {
     /**
      * Warm up cache for all forms
      */
-    public static function warm_all_forms( $limit = 50 ) {
+    public static function warm_all_forms( int $limit = 50 ): int {
         $args = array(
             'post_type' => 'ffc_form',
             'posts_per_page' => $limit,
@@ -193,7 +196,7 @@ class FFC_Form_Cache {
     /**
      * Get cache statistics
      */
-    public static function get_stats() {
+    public static function get_stats(): array {
         return array(
             'enabled' => wp_using_ext_object_cache(),
             'backend' => wp_using_ext_object_cache() ? 'external' : 'database',
@@ -206,7 +209,7 @@ class FFC_Form_Cache {
     /**
      * Check if form cache exists
      */
-    public static function check_form_cache_status( $form_id ) {
+    public static function check_form_cache_status( int $form_id ): array {
         $keys = array(
             'config' => 'config_' . $form_id,
             'fields' => 'fields_' . $form_id,
@@ -228,7 +231,7 @@ class FFC_Form_Cache {
     /**
      * Get cache key for debugging
      */
-    public static function get_cache_key( $form_id, $type = 'config' ) {
+    public static function get_cache_key( int $form_id, string $type = 'config' ): string {
         $keys = array(
             'config' => 'config_' . $form_id,
             'fields' => 'fields_' . $form_id,
@@ -244,7 +247,7 @@ class FFC_Form_Cache {
     /**
      * Register hooks for automatic cache invalidation
      */
-    public static function register_hooks() {
+    public static function register_hooks(): void {
         add_action( 'save_post_ffc_form', array( __CLASS__, 'on_form_saved' ), 10, 3 );
         add_action( 'before_delete_post', array( __CLASS__, 'on_form_deleted' ), 10, 2 );
         add_action( 'ffc_warm_cache_hook', array( __CLASS__, 'warm_all_forms' ) );
@@ -253,7 +256,7 @@ class FFC_Form_Cache {
     /**
      * Hook callback: Form saved
      */
-    public static function on_form_saved( $post_id, $post, $update ) {
+    public static function on_form_saved( int $post_id, $post, bool $update ): void {
         if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
             return;
         }
@@ -268,7 +271,7 @@ class FFC_Form_Cache {
     /**
      * Hook callback: Form deleted
      */
-    public static function on_form_deleted( $post_id, $post ) {
+    public static function on_form_deleted( int $post_id, $post ): void {
         if ( $post && $post->post_type === 'ffc_form' ) {
             self::clear_form_cache( $post_id );
         }
@@ -277,7 +280,7 @@ class FFC_Form_Cache {
     /**
      * Schedule cache warming cron job
      */
-    public static function schedule_cache_warming() {
+    public static function schedule_cache_warming(): void {
         if ( ! wp_next_scheduled( 'ffc_warm_cache_hook' ) ) {
             wp_schedule_event( time(), 'daily', 'ffc_warm_cache_hook' );
         }
@@ -286,7 +289,7 @@ class FFC_Form_Cache {
     /**
      * Unschedule cache warming cron job
      */
-    public static function unschedule_cache_warming() {
+    public static function unschedule_cache_warming(): void {
         $timestamp = wp_next_scheduled( 'ffc_warm_cache_hook' );
         if ( $timestamp ) {
             wp_unschedule_event( $timestamp, 'ffc_warm_cache_hook' );

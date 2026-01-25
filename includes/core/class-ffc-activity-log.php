@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_Activity_Log
  * Tracks important activities for audit and debugging
@@ -17,8 +19,8 @@
  * - Bulk operation support with temporary logging suspension (v3.1.2)
  * - Fixed: Admin settings now properly enforced (v3.1.4)
  *
+ * @version 3.3.0 - Added strict types and type hints
  * @since 2.9.1
- * @version 3.1.4
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -58,7 +60,7 @@ class FFC_Activity_Log {
      * @param int $submission_id Submission ID (0 if not related to submission) - v2.10.0
      * @return bool Success
      */
-    public static function log( $action, $level = self::LEVEL_INFO, $context = array(), $user_id = 0, $submission_id = 0 ) {
+    public static function log( string $action, string $level = self::LEVEL_INFO, array $context = array(), int $user_id = 0, int $submission_id = 0 ): bool {
         global $wpdb;
 
         // CRITICAL: Check admin settings FIRST (before temporary flag)
@@ -148,7 +150,7 @@ class FFC_Activity_Log {
      * 
      * @return bool Success
      */
-    public static function create_table() {
+    public static function create_table(): bool {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_activity_log';
         $charset_collate = $wpdb->get_charset_collate();
@@ -186,7 +188,7 @@ class FFC_Activity_Log {
      * @param array $args Query arguments
      * @return array Activities
      */
-    public static function get_activities( $args = array() ) {
+    public static function get_activities( array $args = array() ): array {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_activity_log';
         
@@ -273,7 +275,7 @@ class FFC_Activity_Log {
      * @param array $args Same as get_activities()
      * @return int Count
      */
-    public static function count_activities( $args = array() ) {
+    public static function count_activities( array $args = array() ): int {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_activity_log';
         
@@ -332,7 +334,7 @@ class FFC_Activity_Log {
      * @param int $days Keep logs from last N days (default: 90)
      * @return int Number of deleted rows
      */
-    public static function cleanup( $days = 90 ) {
+    public static function cleanup( int $days = 90 ): int {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_activity_log';
         
@@ -352,7 +354,7 @@ class FFC_Activity_Log {
      * @param int $days Number of days to analyze (default: 30)
      * @return array Statistics
      */
-    public static function get_stats( $days = 30 ) {
+    public static function get_stats( int $days = 30 ): array {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_activity_log';
         
@@ -415,7 +417,7 @@ class FFC_Activity_Log {
      * @param array $data Additional data (form_id, encrypted status, etc)
      * @return bool Success
      */
-    public static function log_submission_created( $submission_id, $data = array() ) {
+    public static function log_submission_created( int $submission_id, array $data = array() ): bool {
         return self::log(
             'submission_created',
             self::LEVEL_INFO,
@@ -429,7 +431,7 @@ class FFC_Activity_Log {
      * ✅ USED: Log submission updated
      * Called by: FFC_Submission_Handler
      */
-    public static function log_submission_updated( $submission_id, $admin_user_id ) {
+    public static function log_submission_updated( int $submission_id, int $admin_user_id ): bool {
         return self::log( 'submission_updated', self::LEVEL_INFO, array(
             'submission_id' => $submission_id
         ), $admin_user_id );
@@ -439,7 +441,7 @@ class FFC_Activity_Log {
      * ✅ USED: Log submission deleted
      * Called by: FFC_Submission_Handler
      */
-    public static function log_submission_deleted( $submission_id, $admin_user_id = 0 ) {
+    public static function log_submission_deleted( int $submission_id, int $admin_user_id = 0 ): bool {
         return self::log( 'submission_deleted', self::LEVEL_WARNING, array(
             'submission_id' => $submission_id
         ), $admin_user_id );
@@ -452,7 +454,7 @@ class FFC_Activity_Log {
      * @param int $submission_id Submission ID
      * @return bool Success
      */
-    public static function log_submission_trashed( $submission_id ) {
+    public static function log_submission_trashed( int $submission_id ): bool {
         return self::log(
             'submission_trashed',
             self::LEVEL_INFO,
@@ -469,7 +471,7 @@ class FFC_Activity_Log {
      * @param int $submission_id Submission ID
      * @return bool Success
      */
-    public static function log_submission_restored( $submission_id ) {
+    public static function log_submission_restored( int $submission_id ): bool {
         return self::log(
             'submission_restored',
             self::LEVEL_INFO,
@@ -487,7 +489,7 @@ class FFC_Activity_Log {
      * @param array $context Access context (method, IP, etc)
      * @return bool Success
      */
-    public static function log_data_accessed( $submission_id, $context = array() ) {
+    public static function log_data_accessed( int $submission_id, array $context = array() ): bool {
         return self::log(
             'data_accessed',
             self::LEVEL_INFO,
@@ -501,7 +503,7 @@ class FFC_Activity_Log {
      * ✅ USED: Log access denied
      * Called by: FFC_Geofence (datetime/geo restrictions)
      */
-    public static function log_access_denied( $reason, $identifier ) {
+    public static function log_access_denied( string $reason, string $identifier ): bool {
         return self::log( 'access_denied', self::LEVEL_WARNING, array(
             'reason' => $reason,
             'identifier' => $identifier
@@ -512,7 +514,7 @@ class FFC_Activity_Log {
      * ✅ USED: Log settings changed
      * Called by: FFC_Tab_Geolocation
      */
-    public static function log_settings_changed( $setting_key, $admin_user_id ) {
+    public static function log_settings_changed( string $setting_key, int $admin_user_id ): bool {
         return self::log( 'settings_changed', self::LEVEL_INFO, array(
             'setting' => $setting_key
         ), $admin_user_id );
@@ -525,7 +527,7 @@ class FFC_Activity_Log {
      * @param int $limit Maximum number of logs to retrieve
      * @return array Logs related to this submission
      */
-    public static function get_submission_logs( $submission_id, $limit = 100 ) {
+    public static function get_submission_logs( int $submission_id, int $limit = 100 ): array {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_activity_log';
         
@@ -569,7 +571,7 @@ class FFC_Activity_Log {
      * @param string $table_name Table name
      * @return array Column names
      */
-    private static function get_table_columns( $table_name ) {
+    private static function get_table_columns( string $table_name ): array {
         global $wpdb;
 
         // Return cached value if available
@@ -589,7 +591,7 @@ class FFC_Activity_Log {
      *
      * @return void
      */
-    public static function disable_logging() {
+    public static function disable_logging(): void {
         self::$logging_disabled = true;
     }
 
@@ -598,7 +600,7 @@ class FFC_Activity_Log {
      *
      * @return void
      */
-    public static function enable_logging() {
+    public static function enable_logging(): void {
         self::$logging_disabled = false;
     }
 
