@@ -86,6 +86,9 @@
                 url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
             }
 
+            console.log('[FFC Dashboard] Loading certificates from:', url);
+            console.log('[FFC Dashboard] Nonce:', ffcDashboard.nonce);
+
             $.ajax({
                 url: url,
                 method: 'GET',
@@ -93,9 +96,16 @@
                     xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce);
                 },
                 success: function(response) {
+                    console.log('[FFC Dashboard] Success response:', response);
                     FFCDashboard.renderCertificates(response.certificates);
                 },
-                error: function(xhr) {
+                error: function(xhr, status, error) {
+                    console.error('[FFC Dashboard] AJAX Error:', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        responseText: xhr.responseText,
+                        error: error
+                    });
                     $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
                 }
             });
@@ -105,6 +115,7 @@
          * Render certificates table
          */
         renderCertificates: function(certificates) {
+            console.log('[FFC Dashboard] renderCertificates called with:', certificates);
             const $container = $('#tab-certificates');
 
             if (!certificates || certificates.length === 0) {
