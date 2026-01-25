@@ -188,7 +188,7 @@ class FFC_Verification_Handler {
         // Ensure magic_token exists (fallback for old submissions)
         $magic_token = $submission['magic_token'];
         if ( empty( $magic_token ) ) {
-            $magic_token = $this->submission_handler->ensure_magic_token( $submission['id'] );
+            $magic_token = $this->submission_handler->ensure_magic_token( (int) $submission['id'] );
         }
 
         return array(

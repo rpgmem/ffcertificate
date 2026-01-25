@@ -613,12 +613,12 @@ class FFC_Submission_Handler {
             $hash = FFC_Encryption::hash($sub['email']);
             
             if ($encrypted && $hash) {
-                $this->repository->update($sub['id'], [
+                $this->repository->update((int) $sub['id'], [
                     'email_encrypted' => $encrypted,
                     'email_hash' => $hash,
                     'email' => null
                 ]);
-                
+
                 $migrated++;
             }
         }

@@ -57,7 +57,7 @@ class FFC_Submission_List extends WP_List_Table {
                 return $item['id'];
                 
             case 'form':
-                $form_title = get_the_title($item['form_id']);
+                $form_title = get_the_title((int) $item['form_id']);
                 return $form_title ? FFC_Utils::truncate($form_title, 30) : __('(Deleted)', 'ffc');
                 
             case 'email':
@@ -115,8 +115,8 @@ class FFC_Submission_List extends WP_List_Table {
         if (!empty($item['magic_token'])) {
             $magic_link = FFC_Magic_Link_Helper::generate_magic_link($item['magic_token']);
         } else {
-            // Fallback: generate token if missing
-            $magic_link = FFC_Magic_Link_Helper::get_submission_magic_link($item['id'], $this->submission_handler);
+            // Fallback: generate token if missing (convert id to int - wpdb returns strings)
+            $magic_link = FFC_Magic_Link_Helper::get_submission_magic_link((int) $item['id'], $this->submission_handler);
         }
         
         if (empty($magic_link)) {

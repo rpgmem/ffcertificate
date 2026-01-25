@@ -85,9 +85,9 @@ class FFC_PDF_Generator {
         
         // Enrich data with submission metadata
         $data = $this->enrich_submission_data( $data, $sub_array );
-        
-        // Get form data
-        $form_id = $sub_array['form_id'];
+
+        // Get form data (convert form_id to int - wpdb returns strings)
+        $form_id = (int) $sub_array['form_id'];
         $form_title = get_the_title( $form_id );
         $form_config = get_post_meta( $form_id, '_ffc_form_config', true );
         $bg_image_url = get_post_meta( $form_id, '_ffc_form_bg', true );
@@ -161,9 +161,9 @@ class FFC_PDF_Generator {
             $data['date'] = $data['fill_date'];
         }
         
-        // Add submission ID
+        // Add submission ID (convert to int - wpdb returns strings)
         if ( ! isset( $data['submission_id'] ) ) {
-            $data['submission_id'] = $submission['id'];
+            $data['submission_id'] = (int) $submission['id'];
         }
         
         // Add magic token if exists

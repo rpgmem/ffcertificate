@@ -500,10 +500,10 @@ class FFC_REST_Controller {
                     $data = json_decode($item['data'], true);
                 }
                 
-                // Build submission object
+                // Build submission object (convert IDs to int - wpdb returns strings)
                 $submissions[] = array(
-                    'id' => $item['id'],
-                    'form_id' => $item['form_id'],
+                    'id' => (int) $item['id'],
+                    'form_id' => (int) $item['form_id'],
                     'auth_code' => FFC_Utils::format_auth_code($item['auth_code']),
                     'submission_date' => $item['submission_date'],
                     'status' => $item['status'],
@@ -571,15 +571,15 @@ class FFC_REST_Controller {
 
             // Decrypt if encrypted
             $data = $this->decrypt_submission_data($submission, $data);
-            
-            // Get form details
-            $form = get_post($submission['form_id']);
+
+            // Get form details (convert form_id to int - wpdb returns strings)
+            $form = get_post((int) $submission['form_id']);
             $form_title = $form ? $form->post_title : 'Unknown Form';
-            
-            // Build response
+
+            // Build response (convert IDs to int for API consistency)
             $response = array(
-                'id' => $submission['id'],
-                'form_id' => $submission['form_id'],
+                'id' => (int) $submission['id'],
+                'form_id' => (int) $submission['form_id'],
                 'form_title' => $form_title,
                 'auth_code' => FFC_Utils::format_auth_code($submission['auth_code']),
                 'submission_date' => $submission['submission_date'],
@@ -650,18 +650,18 @@ class FFC_REST_Controller {
 
             // Decrypt data if encrypted
             $data = $this->decrypt_submission_data($submission, $data);
-            
-            // Get form details
-            $form = get_post($submission['form_id']);
+
+            // Get form details (convert form_id to int - wpdb returns strings)
+            $form = get_post((int) $submission['form_id']);
             $form_title = $form ? $form->post_title : 'Unknown Form';
-            
-            // Build response
+
+            // Build response (convert IDs to int for API consistency)
             $response = array(
                 'valid' => true,
                 'auth_code' => FFC_Utils::format_auth_code($auth_code),
                 'certificate' => array(
-                    'id' => $submission['id'],
-                    'form_id' => $submission['form_id'],
+                    'id' => (int) $submission['id'],
+                    'form_id' => (int) $submission['form_id'],
                     'form_title' => $form_title,
                     'submission_date' => $submission['submission_date'],
                     'status' => $submission['status'],
@@ -806,9 +806,10 @@ class FFC_REST_Controller {
                 // Format date using plugin settings
                 $date_formatted = date_i18n($date_format, strtotime($submission['submission_date']));
 
+                // Convert IDs to int for API consistency (wpdb returns strings)
                 $certificates[] = array(
-                    'id' => $submission['id'],
-                    'form_id' => $submission['form_id'],
+                    'id' => (int) $submission['id'],
+                    'form_id' => (int) $submission['form_id'],
                     'form_title' => $submission['form_title'] ?? __('Unknown Form', 'ffc'),
                     'submission_date' => $date_formatted,
                     'submission_date_raw' => $submission['submission_date'],

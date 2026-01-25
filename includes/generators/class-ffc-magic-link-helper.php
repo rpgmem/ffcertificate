@@ -112,10 +112,10 @@ class FFC_Magic_Link_Helper {
      */
     public static function get_magic_link_from_submission( $submission, ?object $handler = null ): string {
         $token = isset( $submission['magic_token'] ) ? $submission['magic_token'] : '';
-        
-        // If no token and handler provided, try to generate
+
+        // If no token and handler provided, try to generate (convert id to int - wpdb returns strings)
         if ( empty( $token ) && $handler && ! empty( $submission['id'] ) ) {
-            $token = self::ensure_token( $submission['id'], $handler );
+            $token = self::ensure_token( (int) $submission['id'], $handler );
         }
         
         return self::generate_magic_link( $token );

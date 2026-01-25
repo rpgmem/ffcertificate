@@ -70,10 +70,10 @@ class FFC_Admin_Submission_Edit_Page {
             return;
         }
 
-        // Prepare data
+        // Prepare data (convert form_id to int - wpdb returns strings)
         $this->sub_array = (array) $sub;
         $this->data = json_decode( $this->sub_array['data'], true ) ?: array();
-        $this->fields = get_post_meta( $this->sub_array['form_id'], '_ffc_form_fields', true );
+        $this->fields = get_post_meta( (int) $this->sub_array['form_id'], '_ffc_form_fields', true );
 
         // Render page
         ?>
@@ -118,7 +118,7 @@ class FFC_Admin_Submission_Edit_Page {
         }
 
         $edited_at = $this->sub_array['edited_at'];
-        $edited_by_id = ! empty( $this->sub_array['edited_by'] ) ? $this->sub_array['edited_by'] : 0;
+        $edited_by_id = ! empty( $this->sub_array['edited_by'] ) ? (int) $this->sub_array['edited_by'] : 0;
         $edited_by_name = '';
 
         if ( $edited_by_id ) {
