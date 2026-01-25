@@ -1,10 +1,13 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_Dashboard_Shortcode
  *
  * Renders the user dashboard via [user_dashboard_personal] shortcode
  *
  * @since 3.1.0
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if (!defined('ABSPATH')) exit;
@@ -14,7 +17,7 @@ class FFC_Dashboard_Shortcode {
     /**
      * Register shortcode
      */
-    public static function init() {
+    public static function init(): void {
         add_shortcode('user_dashboard_personal', array(__CLASS__, 'render'));
     }
 
@@ -24,7 +27,7 @@ class FFC_Dashboard_Shortcode {
      * @param array $atts Shortcode attributes
      * @return string HTML output
      */
-    public static function render($atts = array()) {
+    public static function render(array $atts = array()): string {
         // Check if user is logged in
         if (!is_user_logged_in()) {
             return self::render_login_required();
@@ -122,7 +125,7 @@ class FFC_Dashboard_Shortcode {
      * @param int $user_id User ID being viewed
      * @return string HTML output
      */
-    private static function render_admin_viewing_banner($user_id) {
+    private static function render_admin_viewing_banner(int $user_id): string {
         $user = get_user_by('id', $user_id);
         $admin = wp_get_current_user();
 
@@ -163,7 +166,7 @@ class FFC_Dashboard_Shortcode {
      *
      * @return string HTML output
      */
-    private static function render_login_required() {
+    private static function render_login_required(): string {
         ob_start();
         ?>
         <div class="ffc-dashboard-notice ffc-notice-warning">
@@ -183,7 +186,7 @@ class FFC_Dashboard_Shortcode {
      *
      * @return string HTML output
      */
-    private static function render_redirect_message() {
+    private static function render_redirect_message(): string {
         if (!isset($_GET['ffc_redirect']) || $_GET['ffc_redirect'] !== 'access_denied') {
             return '';
         }
@@ -205,7 +208,7 @@ class FFC_Dashboard_Shortcode {
      *
      * @param int|false $view_as_user_id User ID in view-as mode
      */
-    private static function enqueue_assets($view_as_user_id = false) {
+    private static function enqueue_assets($view_as_user_id = false): void {
         // Enqueue CSS
         wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . 'assets/css/ffc-user-dashboard.css', array(), FFC_VERSION );
 

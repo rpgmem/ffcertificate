@@ -1,9 +1,12 @@
 <?php
+declare(strict_types=1);
+
 /**
  * General Settings Tab
- * 
+ *
  * @package FFC
  * @since 2.10.0
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -11,18 +14,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class FFC_Tab_General extends FFC_Settings_Tab {
-    
-    private $forms;
-    private $settings; // ✅ ADDED
-    
-    protected function init() {
+
+    private ?array $forms = null;
+    private ?object $settings = null;
+
+    protected function init(): void {
         $this->tab_id = 'general';
         $this->tab_title = __( 'General', 'ffc' );
         $this->tab_icon = '⚙️';
         $this->tab_order = 20;
     }
     
-    public function render() {
+    public function render(): void {
         // Load FFC_Form_Cache if not already loaded
         if ( ! class_exists( 'FFC_Form_Cache' ) ) {
             require_once FFC_PLUGIN_DIR . 'includes/submissions/class-ffc-form-cache.php';
@@ -59,7 +62,7 @@ class FFC_Tab_General extends FFC_Settings_Tab {
     /**
      * Get option value (for view compatibility)
      */
-    public function get_option( $key, $default = '' ) {
+    public function get_option( string $key, string $default = '' ): string {
         $settings = get_option( 'ffc_settings', array() );
         return isset( $settings[ $key ] ) ? $settings[ $key ] : $default;
     }

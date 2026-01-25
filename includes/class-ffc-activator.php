@@ -1,14 +1,18 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_Activator v3.0.1
  * Added: edited_at and edited_by columns
+ *
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if (!defined('ABSPATH')) exit;
 
 class FFC_Activator {
 
-    public static function activate() {
+    public static function activate(): void {
         self::create_submissions_table();
         self::create_activity_log_table();
         self::add_columns();
@@ -29,7 +33,7 @@ class FFC_Activator {
         flush_rewrite_rules();
     }
 
-    private static function create_submissions_table() {
+    private static function create_submissions_table(): void {
         global $wpdb;
         $table_name = FFC_Utils::get_submissions_table();
         $charset_collate = $wpdb->get_charset_collate();
@@ -63,7 +67,7 @@ class FFC_Activator {
         dbDelta($sql);
     }
 
-    private static function add_columns() {
+    private static function add_columns(): void {
         global $wpdb;
         $table_name = FFC_Utils::get_submissions_table();
 
@@ -108,7 +112,7 @@ class FFC_Activator {
         }
     }
 
-    private static function create_activity_log_table() {
+    private static function create_activity_log_table(): void {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_activity_log';
         $charset_collate = $wpdb->get_charset_collate();
@@ -137,9 +141,9 @@ class FFC_Activator {
         dbDelta($sql);
     }
 
-    private static function create_verification_page() {
+    private static function create_verification_page(): void {
         $existing_page = get_page_by_path('valid');
-        
+
         if ($existing_page) {
             update_option('ffc_verification_page_id', $existing_page->ID);
             return;
@@ -164,7 +168,7 @@ class FFC_Activator {
         }
     }
 
-    private static function run_migrations() {
+    private static function run_migrations(): void {
         if (!class_exists('FFC_Migration_Manager')) {
             $migration_file = dirname(__FILE__) . '/class-ffc-migration-manager.php';
             if (file_exists($migration_file)) {
@@ -211,7 +215,7 @@ class FFC_Activator {
      *
      * @since 3.1.0
      */
-    private static function register_user_role() {
+    private static function register_user_role(): void {
         // Load User Manager if not already loaded
         if (!class_exists('FFC_User_Manager')) {
             $user_manager_file = FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-user-manager.php';
@@ -230,7 +234,7 @@ class FFC_Activator {
      *
      * @since 3.1.0
      */
-    private static function create_dashboard_page() {
+    private static function create_dashboard_page(): void {
         $existing_page = get_page_by_path('dashboard');
 
         if ($existing_page) {

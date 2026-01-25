@@ -1,9 +1,12 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Documentation Tab
- * 
+ *
  * @package FFC
  * @since 2.10.0
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -11,15 +14,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class FFC_Tab_Documentation extends FFC_Settings_Tab {
-    
-    protected function init() {
+
+    protected function init(): void {
         $this->tab_id = 'documentation';
         $this->tab_title = __( 'Documentation', 'ffc' );
         $this->tab_icon = '📚';
         $this->tab_order = 10;
     }
     
-    public function render() {
+    public function render(): void {
         // Include view file
         $view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-documentation.php';
         

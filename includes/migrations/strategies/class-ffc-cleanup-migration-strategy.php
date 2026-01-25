@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_Cleanup_Migration_Strategy
  *
@@ -8,7 +10,7 @@
  * for data consistency.
  *
  * @since 3.1.0 (Extracted from FFC_Migration_Manager)
- * @version 1.5.0 - Optimized: normalize empty strings BEFORE cleanup, use NULLIF, batch UPDATE queries
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -20,7 +22,7 @@ class FFC_Cleanup_Migration_Strategy implements FFC_Migration_Strategy {
     /**
      * @var string Database table name
      */
-    private $table_name;
+    private string $table_name;
 
     /**
      * Constructor
@@ -37,7 +39,7 @@ class FFC_Cleanup_Migration_Strategy implements FFC_Migration_Strategy {
      * @param array $migration_config Migration configuration
      * @return array Status information
      */
-    public function calculate_status( $migration_key, $migration_config ) {
+    public function calculate_status( string $migration_key, array $migration_config ): array {
         global $wpdb;
 
         // Count submissions eligible for cleanup (15+ days old with encrypted data)
@@ -93,7 +95,7 @@ class FFC_Cleanup_Migration_Strategy implements FFC_Migration_Strategy {
      * @param int $batch_number Batch number
      * @return array Execution result
      */
-    public function execute( $migration_key, $migration_config, $batch_number = 0 ) {
+    public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
         global $wpdb;
 
         $batch_size = isset( $migration_config['batch_size'] ) ? intval( $migration_config['batch_size'] ) : 100;
@@ -168,7 +170,7 @@ class FFC_Cleanup_Migration_Strategy implements FFC_Migration_Strategy {
      * Normalize all empty strings to NULL for data consistency
      * Uses NULLIF for cleaner, more efficient SQL
      *
-     * @return int Number of rows affected
+     * @return int|false Number of rows affected or false on error
      */
     private function normalize_empty_strings_to_null() {
         global $wpdb;
@@ -209,7 +211,7 @@ class FFC_Cleanup_Migration_Strategy implements FFC_Migration_Strategy {
      * @param array $migration_config Migration configuration
      * @return bool|WP_Error
      */
-    public function can_run( $migration_key, $migration_config ) {
+    public function can_run( string $migration_key, array $migration_config ) {
         // Check if FFC_Encryption class exists
         if ( ! class_exists( 'FFC_Encryption' ) ) {
             return new WP_Error(
@@ -234,7 +236,7 @@ class FFC_Cleanup_Migration_Strategy implements FFC_Migration_Strategy {
      *
      * @return string
      */
-    public function get_name() {
+    public function get_name(): string {
         return __( 'Cleanup Unencrypted Data Strategy', 'ffc' );
     }
 }

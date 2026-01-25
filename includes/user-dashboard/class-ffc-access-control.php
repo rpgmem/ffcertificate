@@ -1,10 +1,13 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_Access_Control
  *
  * Controls wp-admin access for FFC users
  *
  * @since 3.1.0
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if (!defined('ABSPATH')) exit;
@@ -14,7 +17,7 @@ class FFC_Access_Control {
     /**
      * Initialize access control
      */
-    public static function init() {
+    public static function init(): void {
         add_action('admin_init', array(__CLASS__, 'block_wp_admin'));
         add_filter('show_admin_bar', array(__CLASS__, 'hide_admin_bar'));
     }
@@ -24,7 +27,7 @@ class FFC_Access_Control {
      *
      * Redirects users to configured URL when they try to access wp-admin
      */
-    public static function block_wp_admin() {
+    public static function block_wp_admin(): void {
         $settings = get_option('ffc_user_access_settings', array());
 
         // Check if blocking is enabled
@@ -61,7 +64,7 @@ class FFC_Access_Control {
      * @param bool $show_admin_bar Whether to show admin bar
      * @return bool
      */
-    public static function hide_admin_bar($show_admin_bar) {
+    public static function hide_admin_bar(bool $show_admin_bar): bool {
         $settings = get_option('ffc_user_access_settings', array());
 
         // Check if hiding admin bar is enabled
@@ -86,7 +89,7 @@ class FFC_Access_Control {
      *
      * @return array Default settings
      */
-    public static function get_default_settings() {
+    public static function get_default_settings(): array {
         return array(
             'block_wp_admin' => false,
             'blocked_roles' => array('ffc_user'),

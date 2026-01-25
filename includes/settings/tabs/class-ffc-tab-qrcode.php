@@ -1,9 +1,12 @@
 <?php
+declare(strict_types=1);
+
 /**
  * QR Code Settings Tab
- * 
+ *
  * @package FFC
  * @since 2.10.0
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -11,15 +14,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class FFC_Tab_QRCode extends FFC_Settings_Tab {
-    
-    protected function init() {
+
+    protected function init(): void {
         $this->tab_id = 'qr_code';
         $this->tab_title = __( 'QR Code', 'ffc' );
         $this->tab_icon = '📱';
         $this->tab_order = 40;
     }
     
-    public function render() {
+    public function render(): void {
         // Include view file
         $view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-qrcode.php';
         
@@ -35,7 +38,7 @@ class FFC_Tab_QRCode extends FFC_Settings_Tab {
     /**
      * Get option value (for view compatibility)
      */
-    public static function get_option( $key, $default = '' ) {
+    public static function get_option( string $key, string $default = '' ): string {
         $settings = get_option( 'ffc_settings', array() );
         return isset( $settings[ $key ] ) ? $settings[ $key ] : $default;
     }

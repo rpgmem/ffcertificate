@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_Field_Migration_Strategy
  *
@@ -6,7 +8,7 @@
  * Handles email, cpf_rf, auth_code, and any other configured field migrations.
  *
  * @since 3.1.0 (Extracted from FFC_Migration_Manager)
- * @version 1.0.0
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -18,7 +20,7 @@ class FFC_Field_Migration_Strategy implements FFC_Migration_Strategy {
     /**
      * @var string Database table name
      */
-    private $table_name;
+    private string $table_name;
 
     /**
      * @var FFC_Migration_Registry
@@ -43,7 +45,7 @@ class FFC_Field_Migration_Strategy implements FFC_Migration_Strategy {
      * @param array $migration_config Migration configuration
      * @return array Status information
      */
-    public function calculate_status( $migration_key, $migration_config ) {
+    public function calculate_status( string $migration_key, array $migration_config ): array {
         global $wpdb;
 
         $column = isset( $migration_config['column'] ) ? $migration_config['column'] : null;
@@ -118,7 +120,7 @@ class FFC_Field_Migration_Strategy implements FFC_Migration_Strategy {
      * @param int $batch_number Batch number
      * @return array Execution result
      */
-    public function execute( $migration_key, $migration_config, $batch_number = 0 ) {
+    public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
         global $wpdb;
 
         // Get field definition
@@ -206,7 +208,7 @@ class FFC_Field_Migration_Strategy implements FFC_Migration_Strategy {
      * @param array $migration_config Migration configuration
      * @return bool|WP_Error
      */
-    public function can_run( $migration_key, $migration_config ) {
+    public function can_run( string $migration_key, array $migration_config ) {
         global $wpdb;
 
         $column = isset( $migration_config['column'] ) ? $migration_config['column'] : null;
@@ -248,7 +250,7 @@ class FFC_Field_Migration_Strategy implements FFC_Migration_Strategy {
      *
      * @return string
      */
-    public function get_name() {
+    public function get_name(): string {
         return __( 'Field Migration Strategy', 'ffc' );
     }
 }

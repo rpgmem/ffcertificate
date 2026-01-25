@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_User_Link_Migration_Strategy
  *
@@ -6,7 +8,7 @@
  * Adds user_id column and links existing submissions based on CPF/RF and email.
  *
  * @since 3.1.1
- * @version 1.0.0
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -18,7 +20,7 @@ class FFC_User_Link_Migration_Strategy implements FFC_Migration_Strategy {
     /**
      * @var string Database table name
      */
-    private $table_name;
+    private string $table_name;
 
     /**
      * Constructor
@@ -35,7 +37,7 @@ class FFC_User_Link_Migration_Strategy implements FFC_Migration_Strategy {
      * @param array $migration_config Migration configuration
      * @return array Status information
      */
-    public function calculate_status( $migration_key, $migration_config ) {
+    public function calculate_status( string $migration_key, array $migration_config ): array {
         global $wpdb;
 
         // Check if user_id column exists
@@ -103,7 +105,7 @@ class FFC_User_Link_Migration_Strategy implements FFC_Migration_Strategy {
      * @param int $batch_number Batch number (unused for this migration)
      * @return array Result array
      */
-    public function execute( $migration_key, $migration_config, $batch_number = 0 ) {
+    public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
         // Load legacy migration class
         if ( ! class_exists( 'FFC_Migration_User_Link' ) ) {
             require_once FFC_PLUGIN_DIR . 'includes/migrations/class-ffc-migration-user-link.php';
@@ -126,7 +128,7 @@ class FFC_User_Link_Migration_Strategy implements FFC_Migration_Strategy {
      * @param array $migration_config Migration configuration
      * @return bool|WP_Error True if can run, WP_Error if cannot
      */
-    public function can_run( $migration_key, $migration_config ) {
+    public function can_run( string $migration_key, array $migration_config ) {
         // Check if encryption is configured (required for decrypting emails)
         if ( ! class_exists( 'FFC_Encryption' ) ) {
             return new WP_Error(
@@ -150,7 +152,7 @@ class FFC_User_Link_Migration_Strategy implements FFC_Migration_Strategy {
      *
      * @return string Strategy name
      */
-    public function get_name() {
+    public function get_name(): string {
         return __( 'User Link Migration', 'ffc' );
     }
 }

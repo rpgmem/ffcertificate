@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_Encryption_Migration_Strategy
  *
@@ -6,7 +8,7 @@
  * Encrypts email, cpf_rf, user_ip, and JSON data.
  *
  * @since 3.1.0 (Extracted from FFC_Migration_Manager)
- * @version 1.0.0
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -18,7 +20,7 @@ class FFC_Encryption_Migration_Strategy implements FFC_Migration_Strategy {
     /**
      * @var string Database table name
      */
-    private $table_name;
+    private string $table_name;
 
     /**
      * Constructor
@@ -35,7 +37,7 @@ class FFC_Encryption_Migration_Strategy implements FFC_Migration_Strategy {
      * @param array $migration_config Migration configuration
      * @return array Status information
      */
-    public function calculate_status( $migration_key, $migration_config ) {
+    public function calculate_status( string $migration_key, array $migration_config ): array {
         global $wpdb;
 
         $total = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table_name}" );
@@ -82,7 +84,7 @@ class FFC_Encryption_Migration_Strategy implements FFC_Migration_Strategy {
      * @param int $batch_number Batch number
      * @return array Execution result
      */
-    public function execute( $migration_key, $migration_config, $batch_number = 0 ) {
+    public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
         global $wpdb;
 
         $batch_size = isset( $migration_config['batch_size'] ) ? intval( $migration_config['batch_size'] ) : 50;
@@ -215,7 +217,7 @@ class FFC_Encryption_Migration_Strategy implements FFC_Migration_Strategy {
      * @param array $migration_config Migration configuration
      * @return bool|WP_Error
      */
-    public function can_run( $migration_key, $migration_config ) {
+    public function can_run( string $migration_key, array $migration_config ) {
         // Check if FFC_Encryption class exists
         if ( ! class_exists( 'FFC_Encryption' ) ) {
             return new WP_Error(
@@ -240,7 +242,7 @@ class FFC_Encryption_Migration_Strategy implements FFC_Migration_Strategy {
      *
      * @return int Number of submissions without encrypted data
      */
-    private function count_pending_encryption() {
+    private function count_pending_encryption(): int {
         global $wpdb;
 
         return (int) $wpdb->get_var(
@@ -255,7 +257,7 @@ class FFC_Encryption_Migration_Strategy implements FFC_Migration_Strategy {
      *
      * @return string
      */
-    public function get_name() {
+    public function get_name(): string {
         return __( 'Encryption Migration Strategy', 'ffc' );
     }
 }

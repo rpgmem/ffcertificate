@@ -1,7 +1,11 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_Deactivator
  * This class handles the logic when the plugin is deactivated or uninstalled.
+ *
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -14,7 +18,7 @@ class FFC_Deactivator {
      * Deactivation hook logic.
      * Usually, we only flush rewrite rules here to avoid breaking permalinks.
      */
-    public static function deactivate() {
+    public static function deactivate(): void {
         flush_rewrite_rules();
     }
 
@@ -23,7 +27,7 @@ class FFC_Deactivator {
      * WARNING: This deletes all plugin data.
      * Ideally, this should be called from an uninstall.php file or a specific action.
      */
-    public static function uninstall_cleanup() {
+    public static function uninstall_cleanup(): void {
         if ( ! current_user_can( 'activate_plugins' ) ) {
             return;
         }

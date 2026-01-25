@@ -1,28 +1,30 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC REST API Controller
  *
  * Base controller for all REST API endpoints
  * Namespace: /wp-json/ffc/v1/
  *
- * @version 1.1.0 - Refactored: Fixed repository paths, extracted decrypt method, moved mask_email to Utils
+ * @version 3.3.0 - Added strict types and type hints
  * @since 3.0.0
  */
 
 if (!defined('ABSPATH')) exit;
 
 class FFC_REST_Controller {
-    
+
     /**
      * API namespace
      */
-    private $namespace = 'ffc/v1';
-    
+    private string $namespace = 'ffc/v1';
+
     /**
      * Repositories
      */
-    private $form_repository;
-    private $submission_repository;
+    private ?FFC_Form_Repository $form_repository = null;
+    private ?FFC_Submission_Repository $submission_repository = null;
     
     /**
      * Constructor
@@ -51,7 +53,7 @@ class FFC_REST_Controller {
      * Suppress PHP notices in REST API to prevent JSON corruption
      * Fixes: parsererror when notices are output before JSON
      */
-    public function suppress_rest_api_notices() {
+    public function suppress_rest_api_notices(): void {
         // Only suppress in REST API context
         if (defined('REST_REQUEST') && REST_REQUEST) {
             // Start output buffering to catch any stray output
@@ -76,7 +78,7 @@ class FFC_REST_Controller {
     /**
      * Load repository classes
      */
-    private function load_repositories() {
+    private function load_repositories(): void {
         $repo_files = array(
             'ffc-abstract-repository.php',
             'ffc-form-repository.php',
@@ -94,7 +96,7 @@ class FFC_REST_Controller {
     /**
      * Register all REST routes
      */
-    public function register_routes() {
+    public function register_routes(): void {
         
         // GET /forms - List all published forms
         register_rest_route($this->namespace, '/forms', array(
@@ -212,6 +214,9 @@ class FFC_REST_Controller {
     /**
      * GET /forms
      * List all published forms
+     *
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response|WP_Error
      */
     public function get_forms($request) {
         try {
@@ -255,6 +260,9 @@ class FFC_REST_Controller {
     /**
      * GET /forms/{id}
      * Get single form details
+     *
+     * @param WP_REST_Request $request
+     * @return WP_REST_Response|WP_Error
      */
     public function get_form($request) {
         try {
@@ -487,7 +495,7 @@ class FFC_REST_Controller {
     /**
      * GET /submissions
      * List submissions with pagination (admin only)
-     * 
+     *
      * @param WP_REST_Request $request Request object
      * @return WP_REST_Response|WP_Error Response with submissions list or error
      */
@@ -565,7 +573,7 @@ class FFC_REST_Controller {
     /**
      * GET /submissions/{id}
      * Get single submission (admin only)
-     * 
+     *
      * @param WP_REST_Request $request Request object
      * @return WP_REST_Response|WP_Error Response with submission data or error
      */
@@ -632,7 +640,7 @@ class FFC_REST_Controller {
     /**
      * POST /verify
      * Verify certificate by auth code
-     * 
+     *
      * @param WP_REST_Request $request Request object
      * @return WP_REST_Response|WP_Error Response with submission data or error
      */
@@ -723,18 +731,18 @@ class FFC_REST_Controller {
     /**
      * Check admin permission
      */
-    public function check_admin_permission() {
+    public function check_admin_permission(): bool {
         return current_user_can('edit_posts');
     }
     
     /**
      * Validate required fields
-     * 
+     *
      * @param array $data Submission data
      * @param array $fields Form fields configuration
      * @return array Array of validation errors
      */
-    private function validate_required_fields($data, $fields) {
+    private function validate_required_fields(array $data, array $fields): array {
         $errors = array();
         
         if (empty($fields) || !is_array($fields)) {
@@ -982,7 +990,7 @@ class FFC_REST_Controller {
      * @param array $data Existing data array to merge into
      * @return array Merged data array with decrypted values
      */
-    private function decrypt_submission_data($submission, $data = array()) {
+    private function decrypt_submission_data(array $submission, array $data = array()): array {
         if (empty($submission['data_encrypted'])) {
             return $data;
         }

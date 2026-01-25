@@ -6,7 +6,7 @@
  * Part of the Strategy Pattern implementation for migration system refactoring.
  *
  * @since 3.1.0 (Migration Manager refactor)
- * @version 1.0.0
+ * @version 3.3.0 - Added type hints
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -23,9 +23,9 @@ interface FFC_Migration_Strategy {
      *
      * @param string $migration_key Migration identifier
      * @param array $migration_config Migration configuration from registry
-     * @return array|WP_Error Status array with keys: total, migrated, pending, percent, is_complete
+     * @return array Status array with keys: total, migrated, pending, percent, is_complete
      */
-    public function calculate_status( $migration_key, $migration_config );
+    public function calculate_status( string $migration_key, array $migration_config ): array;
 
     /**
      * Execute the migration for a batch of records
@@ -35,7 +35,7 @@ interface FFC_Migration_Strategy {
      * @param int $batch_number Batch number to process (0-indexed)
      * @return array Result array with keys: success, processed, message
      */
-    public function execute( $migration_key, $migration_config, $batch_number = 0 );
+    public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array;
 
     /**
      * Check if migration can be executed
@@ -46,12 +46,12 @@ interface FFC_Migration_Strategy {
      * @param array $migration_config Migration configuration from registry
      * @return bool|WP_Error True if can run, WP_Error with reason if cannot
      */
-    public function can_run( $migration_key, $migration_config );
+    public function can_run( string $migration_key, array $migration_config );
 
     /**
      * Get human-readable name for this strategy
      *
      * @return string Strategy name
      */
-    public function get_name();
+    public function get_name(): string;
 }

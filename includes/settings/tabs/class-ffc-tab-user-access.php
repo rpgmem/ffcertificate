@@ -1,9 +1,12 @@
 <?php
+declare(strict_types=1);
+
 /**
  * User Access Settings Tab
  *
  * @package FFC
  * @since 3.1.0
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if (!defined('ABSPATH')) {
@@ -12,7 +15,7 @@ if (!defined('ABSPATH')) {
 
 class FFC_Tab_User_Access extends FFC_Settings_Tab {
 
-    protected function init() {
+    protected function init(): void {
         $this->tab_id = 'user_access';
         $this->tab_title = __('User Access', 'ffc');
         $this->tab_icon = '👥';
@@ -25,7 +28,7 @@ class FFC_Tab_User_Access extends FFC_Settings_Tab {
     /**
      * Enqueue styles for User Access settings page
      */
-    public function enqueue_styles($hook) {
+    public function enqueue_styles(string $hook): void {
         // Only load on settings page with this tab active
         if ($hook !== 'ffc_form_page_ffc-settings') {
             return;
@@ -36,7 +39,7 @@ class FFC_Tab_User_Access extends FFC_Settings_Tab {
         // No need to enqueue separate stylesheet anymore
     }
 
-    public function render() {
+    public function render(): void {
         // Include view file
         $view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-user-access.php';
 
@@ -55,7 +58,7 @@ class FFC_Tab_User_Access extends FFC_Settings_Tab {
     /**
      * Get option value
      */
-    public function get_option($key, $default = '') {
+    public function get_option(string $key, string $default = ''): string {
         $settings = get_option('ffc_user_access_settings', array());
         return isset($settings[$key]) ? $settings[$key] : $default;
     }
@@ -63,7 +66,7 @@ class FFC_Tab_User_Access extends FFC_Settings_Tab {
     /**
      * Save settings (called by parent class)
      */
-    public function save_settings() {
+    public function save_settings(): void {
         if (!isset($_POST['ffc_user_access_nonce']) || !wp_verify_nonce($_POST['ffc_user_access_nonce'], 'ffc_user_access_settings')) {
             return;
         }

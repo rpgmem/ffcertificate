@@ -1,20 +1,24 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Rate Limit Settings Tab
+ *
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if (!defined('ABSPATH')) exit;
 
 class FFC_Tab_Rate_Limit extends FFC_Settings_Tab {
-    
-    protected function init() {
+
+    protected function init(): void {
         $this->tab_id = 'rate_limit';
         $this->tab_title = __('Rate Limit', 'ffc');
         $this->tab_icon = '🛡️';
         $this->tab_order = 60;
     }
     
-    private function get_settings() {
+    private function get_settings(): array {
         $defaults = array(
             'ip' => array('enabled' => true, 'max_per_hour' => 5, 'max_per_day' => 20, 'cooldown_seconds' => 60, 'apply_to' => 'all', 'message' => 'Limite atingido. Aguarde {time}.'),
             'email' => array('enabled' => true, 'max_per_day' => 3, 'max_per_week' => 10, 'max_per_month' => 30, 'wait_hours' => 24, 'apply_to' => 'all', 'message' => 'Você já possui {count} certificados.', 'check_database' => true),
@@ -28,7 +32,7 @@ class FFC_Tab_Rate_Limit extends FFC_Settings_Tab {
         return wp_parse_args(get_option('ffc_rate_limit_settings', array()), $defaults);
     }
     
-    public function render() {
+    public function render(): void {
         if ($_POST && isset($_POST['ffc_save_rate_limit'])) {
             check_admin_referer('ffc_rate_limit_nonce');
             $this->save_settings();
@@ -39,7 +43,7 @@ class FFC_Tab_Rate_Limit extends FFC_Settings_Tab {
         include FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-rate-limit.php';
     }
     
-    private function save_settings() {
+    private function save_settings(): void {
         $settings = array(
             'ip' => array(
                 'enabled' => isset($_POST['ip_enabled']),

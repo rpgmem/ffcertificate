@@ -1,20 +1,24 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Free_Form_Certificate_Loader v3.0.0
  * Fixed textdomain loading + REST API integration
+ *
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if (!defined('ABSPATH')) exit;
 
 class Free_Form_Certificate_Loader {
 
-    protected $submission_handler;
-    protected $email_handler;
-    protected $csv_exporter;
-    protected $cpt;
-    protected $admin;
-    protected $frontend;
-    protected $admin_ajax;
+    protected ?FFC_Submission_Handler $submission_handler = null;
+    protected ?FFC_Email_Handler $email_handler = null;
+    protected ?FFC_CSV_Exporter $csv_exporter = null;
+    protected ?FFC_CPT $cpt = null;
+    protected ?FFC_Admin $admin = null;
+    protected ?FFC_Frontend $frontend = null;
+    protected ?FFC_Admin_Ajax $admin_ajax = null;
 
     public function __construct() {
         // Let WordPress load textdomain automatically (just-in-time in WP 6.7+)
@@ -25,7 +29,7 @@ class Free_Form_Certificate_Loader {
         $this->define_activation_hooks();
     }
 
-    public function init_plugin() {
+    public function init_plugin(): void {
         $this->load_dependencies();
         $this->submission_handler = new FFC_Submission_Handler();
         $this->email_handler      = new FFC_Email_Handler();
@@ -38,7 +42,7 @@ class Free_Form_Certificate_Loader {
         $this->init_rest_api(); // Initialize REST API
     }
 
-    private function load_dependencies() {
+    private function load_dependencies(): void {
         // Core utilities
         require_once FFC_PLUGIN_DIR . 'includes/core/class-ffc-utils.php';
         require_once FFC_PLUGIN_DIR . 'includes/core/class-ffc-encryption.php';
@@ -103,32 +107,32 @@ class Free_Form_Certificate_Loader {
 
     /**
      * Initialize REST API
-     * 
+     *
      * @since 3.0.0
      */
-    private function init_rest_api() {
+    private function init_rest_api(): void {
         if (class_exists('FFC_REST_Controller')) {
             new FFC_REST_Controller();
         }
     }
 
-    private function define_activation_hooks() {
+    private function define_activation_hooks(): void {
         require_once FFC_PLUGIN_DIR . 'includes/class-ffc-activator.php';
         require_once FFC_PLUGIN_DIR . 'includes/class-ffc-deactivator.php';
         register_activation_hook(FFC_PLUGIN_DIR . 'wp-ffcertificate.php', ['FFC_Activator', 'activate']);
         register_deactivation_hook(FFC_PLUGIN_DIR . 'wp-ffcertificate.php', ['FFC_Deactivator', 'deactivate']);
     }
 
-    private function define_admin_hooks() {
+    private function define_admin_hooks(): void {
         add_action('ffc_daily_cleanup_hook', [$this->submission_handler, 'run_data_cleanup']);
     }
     
-    public function enqueue_rate_limit_assets() {
+    public function enqueue_rate_limit_assets(): void {
         wp_enqueue_script('ffc-rate-limit', FFC_PLUGIN_URL . 'assets/js/ffc-frontend-helpers.js', ['jquery'], FFC_VERSION, true);
         // ✅ v3.1.0: Rate limit styles consolidated into ffc-admin-settings.css
         wp_enqueue_style('ffc-admin-settings', FFC_PLUGIN_URL . 'assets/css/ffc-admin-settings.css', [], FFC_VERSION);
     }
     
     // For future use
-    public function run() {}
+    public function run(): void {}
 }
