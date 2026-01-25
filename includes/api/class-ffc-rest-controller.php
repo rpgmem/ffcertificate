@@ -737,10 +737,15 @@ class FFC_REST_Controller {
      * @return WP_REST_Response|WP_Error
      */
     public function get_user_certificates($request) {
+        // Debug logging at entry
+        error_log('[FFC API] get_user_certificates called');
+
         try {
             $user_id = get_current_user_id();
+            error_log('[FFC API] User ID: ' . $user_id);
 
             if (!$user_id) {
+                error_log('[FFC API] User not logged in');
                 return new WP_Error(
                     'not_logged_in',
                     __('You must be logged in to view certificates', 'ffc'),
@@ -752,16 +757,19 @@ class FFC_REST_Controller {
             $view_as_user_id = $request->get_param('viewAsUserId');
             if ($view_as_user_id && current_user_can('manage_options')) {
                 $user_id = absint($view_as_user_id);
+                error_log('[FFC API] Admin viewing as user: ' . $user_id);
             }
 
             global $wpdb;
 
             // Safety check for FFC_Utils
             if (!class_exists('FFC_Utils')) {
+                error_log('[FFC API] FFC_Utils class not found');
                 return new WP_Error('missing_class', 'FFC_Utils class not found', array('status' => 500));
             }
 
             $table = FFC_Utils::get_submissions_table();
+            error_log('[FFC API] Table: ' . $table);
 
             // Get date format from settings
             $settings = get_option('ffc_settings', array());
@@ -778,10 +786,13 @@ class FFC_REST_Controller {
                 $user_id
             ), ARRAY_A);
 
+            error_log('[FFC API] Found ' . count($submissions) . ' submissions');
+
             // Format response
             $certificates = array();
 
-            foreach ($submissions as $submission) {
+            foreach ($submissions as $index => $submission) {
+                error_log('[FFC API] Processing submission ' . ($index + 1) . ', ID: ' . ($submission['id'] ?? 'N/A'));
                 // Decrypt email
                 $email_display = '';
                 if (!empty($submission['email_encrypted'])) {
