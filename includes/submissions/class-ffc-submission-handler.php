@@ -256,9 +256,7 @@ class FFC_Submission_Handler {
         }
         
         if ($result !== false && class_exists('FFC_Activity_Log')) {
-            FFC_Activity_Log::log_submission_updated($id, [
-                'fields_updated' => array_keys($update_data)
-            ]);
+            FFC_Activity_Log::log_submission_updated($id, get_current_user_id());
         }
         
         return $result;
