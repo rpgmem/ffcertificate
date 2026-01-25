@@ -766,15 +766,10 @@ class FFC_REST_Controller {
      * @return WP_REST_Response|WP_Error
      */
     public function get_user_certificates($request) {
-        // Debug logging at entry
-        error_log('[FFC API] get_user_certificates called');
-
         try {
             $user_id = get_current_user_id();
-            error_log('[FFC API] User ID: ' . $user_id);
 
             if (!$user_id) {
-                error_log('[FFC API] User not logged in');
                 return new WP_Error(
                     'not_logged_in',
                     __('You must be logged in to view certificates', 'ffc'),
@@ -786,19 +781,16 @@ class FFC_REST_Controller {
             $view_as_user_id = $request->get_param('viewAsUserId');
             if ($view_as_user_id && current_user_can('manage_options')) {
                 $user_id = absint($view_as_user_id);
-                error_log('[FFC API] Admin viewing as user: ' . $user_id);
             }
 
             global $wpdb;
 
             // Safety check for FFC_Utils
             if (!class_exists('FFC_Utils')) {
-                error_log('[FFC API] FFC_Utils class not found');
                 return new WP_Error('missing_class', 'FFC_Utils class not found', array('status' => 500));
             }
 
             $table = FFC_Utils::get_submissions_table();
-            error_log('[FFC API] Table: ' . $table);
 
             // Get date format from settings
             $settings = get_option('ffc_settings', array());
@@ -815,16 +807,11 @@ class FFC_REST_Controller {
                 $user_id
             ), ARRAY_A);
 
-            error_log('[FFC API] Found ' . count($submissions) . ' submissions');
-
             // Format response
             $certificates = array();
 
-            foreach ($submissions as $index => $submission) {
-                error_log('[FFC API] Processing submission ' . ($index + 1) . ', ID: ' . ($submission['id'] ?? 'N/A'));
-
+            foreach ($submissions as $submission) {
                 // Decrypt email
-                error_log('[FFC API] Step 1: Decrypting email...');
                 $email_display = '';
                 if (!empty($submission['email_encrypted'])) {
                     try {
@@ -832,49 +819,38 @@ class FFC_REST_Controller {
                         // Check if decrypt returned valid string before masking
                         $email_display = ($email_plain && is_string($email_plain)) ? FFC_Utils::mask_email($email_plain) : '';
                     } catch (Exception $e) {
-                        error_log('[FFC API] Decrypt error: ' . $e->getMessage());
                         $email_display = __('Error decrypting', 'ffc');
                     }
                 } elseif (!empty($submission['email'])) {
                     // Fallback to plain email if not encrypted
                     $email_display = FFC_Utils::mask_email($submission['email']);
                 }
-                error_log('[FFC API] Step 1 complete. Email: ' . $email_display);
 
                 // Get verification page URL (convert option to int)
-                error_log('[FFC API] Step 2: Getting verification URL...');
                 $verification_page_id = get_option('ffc_verification_page_id');
                 $verification_url = $verification_page_id ? get_permalink((int) $verification_page_id) : home_url('/valid');
-                error_log('[FFC API] Step 2 complete. URL: ' . $verification_url);
 
                 // Build magic link
-                error_log('[FFC API] Step 3: Building magic link...');
                 $magic_link = '';
                 if (!empty($submission['magic_token'])) {
                     $magic_link = add_query_arg('token', $submission['magic_token'], $verification_url);
                 }
-                error_log('[FFC API] Step 3 complete. Link: ' . ($magic_link ? 'yes' : 'no'));
 
                 // Format auth code
-                error_log('[FFC API] Step 4: Formatting auth code...');
                 $auth_code_formatted = '';
                 if (!empty($submission['auth_code'])) {
                     $auth_code_formatted = FFC_Utils::format_auth_code($submission['auth_code']);
                 }
-                error_log('[FFC API] Step 4 complete. Code: ' . $auth_code_formatted);
 
                 // Format date using plugin settings (with safety check for strtotime)
-                error_log('[FFC API] Step 5: Formatting date...');
                 $date_formatted = '';
                 if (!empty($submission['submission_date'])) {
                     $timestamp = strtotime($submission['submission_date']);
                     // Ensure timestamp is valid before passing to date_i18n
                     $date_formatted = ($timestamp !== false) ? date_i18n($date_format, $timestamp) : $submission['submission_date'];
                 }
-                error_log('[FFC API] Step 5 complete. Date: ' . $date_formatted);
 
                 // Convert IDs to int for API consistency (wpdb returns strings)
-                error_log('[FFC API] Step 6: Building response array...');
                 $certificates[] = array(
                     'id' => (int) ($submission['id'] ?? 0),
                     'form_id' => (int) ($submission['form_id'] ?? 0),
@@ -887,10 +863,7 @@ class FFC_REST_Controller {
                     'magic_link' => $magic_link,
                     'pdf_url' => $magic_link,  // Same as magic_link
                 );
-                error_log('[FFC API] Step 6 complete. Certificate added.');
             }
-
-            error_log('[FFC API] All submissions processed. Returning ' . count($certificates) . ' certificates.');
 
             return rest_ensure_response(array(
                 'certificates' => $certificates,
