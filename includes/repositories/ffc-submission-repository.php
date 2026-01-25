@@ -168,25 +168,25 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
         // Check if edited_at column exists
         $column_exists = $this->wpdb->get_var(
             $this->wpdb->prepare(
-                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                WHERE TABLE_SCHEMA = %s 
-                AND TABLE_NAME = %s 
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = %s
                 AND COLUMN_NAME = 'edited_at'",
                 DB_NAME,
                 $this->table
             )
         );
-        
-        if (!$column_exists) {
+
+        if ((int) $column_exists === 0) {
             return false;
         }
-        
+
         // Check if any row has edit data
         $has_data = $this->wpdb->get_var(
             "SELECT COUNT(*) FROM {$this->table} WHERE edited_at IS NOT NULL"
         );
-        
-        return $has_data > 0;
+
+        return (int) $has_data > 0;
     }
     
     /**
