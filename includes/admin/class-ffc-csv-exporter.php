@@ -99,7 +99,7 @@ class FFC_CSV_Exporter {
      * v3.0.0: FIXED - Added return statement and dynamic columns processing
      */
     private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {
-        $form_title = get_the_title( $row['form_id'] );
+        $form_title = get_the_title( (int) $row['form_id'] );
         $form_display = $form_title ? $form_title : __( '(Deleted)', 'ffc' );
         
         // Decrypt email
@@ -162,7 +162,7 @@ class FFC_CSV_Exporter {
                 
                 // Get editor name if edited_by exists
                 if ( !empty( $row['edited_by'] ) ) {
-                    $user = get_userdata( $row['edited_by'] );
+                    $user = get_userdata( (int) $row['edited_by'] );
                     $edited_by = $user ? $user->display_name : 'ID: ' . $row['edited_by'];
                 }
             }

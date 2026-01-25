@@ -486,7 +486,7 @@ class FFC_Submission_Handler {
             $result = $wpdb->query("DELETE FROM {$table}");
         }
 
-        return $result;
+        return $result !== false ? (int) $result : 0;  // Convert false to 0, ensure int
     }
 
     /**

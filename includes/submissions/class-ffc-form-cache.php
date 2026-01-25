@@ -77,16 +77,16 @@ class FFC_Form_Cache {
     public static function get_form_background( int $form_id ): string {
         $cache_key = 'bg_' . $form_id;
         $bg = wp_cache_get( $cache_key, self::CACHE_GROUP );
-        
+
         if ( false === $bg ) {
             $bg = get_post_meta( $form_id, '_ffc_form_bg', true );
-            
+
             if ( $bg ) {
                 wp_cache_set( $cache_key, $bg, self::CACHE_GROUP, self::get_expiration() );
             }
         }
-        
-        return $bg ? $bg : false;
+
+        return $bg ? (string) $bg : '';  // Return empty string instead of false
     }
     
     /**
