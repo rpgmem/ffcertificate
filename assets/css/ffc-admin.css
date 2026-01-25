@@ -608,7 +608,7 @@
 
 /* Form label blocks */
 .ffc-restriction-label {
-    display: block;
+    display: block !important;
     margin: 10px 0;
 }
 
@@ -673,8 +673,14 @@
 
 /* Checkbox label block */
 .ffc-checkbox-label {
-    display: block;
+    display: block !important;
     margin-bottom: 8px;
+}
+
+/* Ensure fieldset labels also display as blocks */
+fieldset .ffc-checkbox-label,
+td .ffc-restriction-label {
+    display: block !important;
 }
 
 /* Info card */
