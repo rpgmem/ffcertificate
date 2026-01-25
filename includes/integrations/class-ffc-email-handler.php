@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_Email_Handler
  * Handles email configuration and sending with magic links.
@@ -7,6 +9,7 @@
  * - Email Handler: Sends emails (SMTP + delivery)
  * - PDF Generator: Generates certificate HTML/PDF (single source of truth)
  *
+ * v3.3.0: Added strict types and type hints
  * v3.1.0: Added send_wp_user_notification for WordPress user creation emails
  * v3.0.0: REFACTORED - Removed HTML generation logic (now uses FFC_PDF_Generator)
  *         Simplified emails to send only magic link (no certificate preview)
@@ -34,7 +37,7 @@ class FFC_Email_Handler {
      *
      * @param PHPMailer $phpmailer PHPMailer instance
      */
-    public function configure_custom_smtp( $phpmailer ) {
+    public function configure_custom_smtp( $phpmailer ): void {
         $settings = get_option( 'ffc_settings', array() );
 
         if ( isset($settings['smtp_mode']) && $settings['smtp_mode'] === 'custom' ) {
@@ -67,7 +70,7 @@ class FFC_Email_Handler {
      * @param array $form_config Form configuration
      * @param string $magic_token Magic token for verification
      */
-    public function async_process_submission( $submission_id, $form_id, $form_title, $submission_data, $user_email, $fields_config, $form_config, $magic_token = '' ) {
+    public function async_process_submission( int $submission_id, int $form_id, string $form_title, array $submission_data, string $user_email, array $fields_config, array $form_config, string $magic_token = '' ): void {
         // Send user email if enabled
         if ( isset( $form_config['send_user_email'] ) && $form_config['send_user_email'] == 1 ) {
             $this->send_user_email( $user_email, $form_title, $form_config, $submission_data, $magic_token );
@@ -94,7 +97,7 @@ class FFC_Email_Handler {
      * @param array $submission_data Submission data
      * @param string $magic_token Magic token
      */
-    private function send_user_email( $to, $form_title, $form_config, $submission_data, $magic_token = '' ) {
+    private function send_user_email( string $to, string $form_title, array $form_config, array $submission_data, string $magic_token = '' ): void {
         // Check if all emails are globally disabled
         $settings = get_option( 'ffc_settings', array() );
         if ( ! empty( $settings['disable_all_emails'] ) ) {
@@ -176,7 +179,7 @@ class FFC_Email_Handler {
      * @param array $data Submission data
      * @param array $form_config Form configuration
      */
-    private function send_admin_notification( $form_title, $data, $form_config ) {
+    private function send_admin_notification( string $form_title, array $data, array $form_config ): void {
         // Check if all emails are globally disabled
         $settings = get_option( 'ffc_settings', array() );
         if ( ! empty( $settings['disable_all_emails'] ) ) {
@@ -236,7 +239,7 @@ class FFC_Email_Handler {
      * @param string $context Context: 'submission' or 'migration'
      * @return bool True if email was sent, false otherwise
      */
-    public function send_wp_user_notification( $user_id, $context = 'submission' ) {
+    public function send_wp_user_notification( int $user_id, string $context = 'submission' ): bool {
         $settings = get_option( 'ffc_settings', array() );
 
         // Check global disable

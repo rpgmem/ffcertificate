@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_IP_Geolocation
  *
@@ -9,6 +11,7 @@
  * - ipinfo.io (50k/month free, requires API key)
  *
  * @package FFC
+ * @version 3.3.0 - Added strict types and type hints
  * @since 3.0.0
  */
 
@@ -19,11 +22,11 @@ class FFC_IP_Geolocation {
     /**
      * Get location data by IP address
      *
-     * @param string $ip IP address (optional, defaults to current user IP)
+     * @param string|null $ip IP address (optional, defaults to current user IP)
      * @param bool $use_cache Whether to use cached results
      * @return array|WP_Error Array with location data or WP_Error on failure
      */
-    public static function get_location($ip = null, $use_cache = true) {
+    public static function get_location( ?string $ip = null, bool $use_cache = true ) {
         // Get settings
         $settings = get_option('ffc_geolocation_settings', array());
 
@@ -81,7 +84,7 @@ class FFC_IP_Geolocation {
      * @param array $settings Plugin settings
      * @return array|WP_Error Location data or error
      */
-    private static function fetch_from_service($ip, $service, $settings) {
+    private static function fetch_from_service( string $ip, string $service, array $settings ) {
         self::debug_log('Fetching from service', array('service' => $service, 'ip' => $ip));
 
         if ($service === 'ip-api') {
@@ -100,7 +103,7 @@ class FFC_IP_Geolocation {
      * @param string $ip IP address
      * @return array|WP_Error
      */
-    private static function fetch_from_ipapi($ip) {
+    private static function fetch_from_ipapi( string $ip ) {
         $url = sprintf('http://ip-api.com/json/%s?fields=status,message,country,countryCode,region,regionName,city,lat,lon', $ip);
 
         $response = wp_remote_get($url, array(
@@ -149,7 +152,7 @@ class FFC_IP_Geolocation {
      * @param string $api_key API key (optional for free tier)
      * @return array|WP_Error
      */
-    private static function fetch_from_ipinfo($ip, $api_key = '') {
+    private static function fetch_from_ipinfo( string $ip, string $api_key = '' ) {
         $url = sprintf('https://ipinfo.io/%s/json', $ip);
 
         if (!empty($api_key)) {
@@ -207,7 +210,7 @@ class FFC_IP_Geolocation {
      * @param string $ip IP address
      * @return array|false Location data or false if not cached
      */
-    private static function get_cached_location($ip) {
+    private static function get_cached_location( string $ip ) {
         $cache_key = 'ffc_ip_geo_' . md5($ip);
         return get_transient($cache_key);
     }
@@ -220,7 +223,7 @@ class FFC_IP_Geolocation {
      * @param int $ttl Cache duration in seconds
      * @return bool Success
      */
-    private static function cache_location($ip, $location, $ttl = 600) {
+    private static function cache_location( string $ip, array $location, int $ttl = 600 ): bool {
         $cache_key = 'ffc_ip_geo_' . md5($ip);
         return set_transient($cache_key, $location, absint($ttl));
     }
@@ -234,7 +237,7 @@ class FFC_IP_Geolocation {
      * @param float $lon2 Longitude of point 2
      * @return float Distance in meters
      */
-    public static function calculate_distance($lat1, $lon1, $lat2, $lon2) {
+    public static function calculate_distance( float $lat1, float $lon1, float $lat2, float $lon2 ): float {
         $earth_radius = 6371000; // Earth radius in meters
 
         $lat1 = deg2rad($lat1);
@@ -263,7 +266,7 @@ class FFC_IP_Geolocation {
      * @param string $logic 'or' or 'and' (default: 'or')
      * @return bool True if location is within allowed areas
      */
-    public static function is_within_areas($location, $areas, $logic = 'or') {
+    public static function is_within_areas( array $location, array $areas, string $logic = 'or' ): bool {
         if (empty($location['latitude']) || empty($location['longitude'])) {
             return false;
         }
@@ -308,7 +311,7 @@ class FFC_IP_Geolocation {
      * @param string $message Log message
      * @param array $context Additional context
      */
-    private static function debug_log($message, $context = array()) {
+    private static function debug_log( string $message, array $context = array() ): void {
         $settings = get_option('ffc_geolocation_settings', array());
 
         if (empty($settings['debug_enabled'])) {
@@ -333,10 +336,10 @@ class FFC_IP_Geolocation {
     /**
      * Clear IP geolocation cache
      *
-     * @param string $ip Specific IP to clear, or null to clear all
+     * @param string|null $ip Specific IP to clear, or null to clear all
      * @return int Number of entries cleared
      */
-    public static function clear_cache($ip = null) {
+    public static function clear_cache( ?string $ip = null ): int {
         global $wpdb;
 
         if ($ip !== null) {
