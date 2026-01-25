@@ -3,10 +3,13 @@
  * Submission Repository
  * Handles all database operations for submissions
  *
+ * v3.3.0: Added strict types and type hints for better code safety
  * v3.0.2: Fixed search to work with encrypted data (removed data_encrypted LIKE, added auth_code/magic_token search)
  * v3.0.1: Added methods for CSV export
  * @since 3.0.0
  */
+
+declare(strict_types=1);
 
 if (!defined('ABSPATH')) exit;
 
@@ -14,18 +17,21 @@ require_once __DIR__ . '/ffc-abstract-repository.php';
 
 class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
-    protected function get_table_name() {
+    protected function get_table_name(): string {
         return $this->wpdb->prefix . 'ffc_submissions';
     }
-    
-    protected function get_cache_group() {
+
+    protected function get_cache_group(): string {
         return 'ffc_submissions';
     }
     
     /**
      * Find by auth code
+     *
+     * @param string $auth_code
+     * @return array|null|false
      */
-    public function findByAuthCode($auth_code) {
+    public function findByAuthCode( string $auth_code ) {
         $cache_key = "auth_{$auth_code}";
         $cached = $this->get_cache($cache_key);
         
@@ -47,8 +53,11 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
     /**
      * Find by magic token
+     *
+     * @param string $token
+     * @return array|null|false
      */
-    public function findByToken($token) {
+    public function findByToken( string $token ) {
         $cache_key = "token_{$token}";
         $cached = $this->get_cache($cache_key);
         
@@ -70,8 +79,12 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
     /**
      * Find by email
+     *
+     * @param string $email
+     * @param int $limit
+     * @return array
      */
-    public function findByEmail($email, $limit = 10) {
+    public function findByEmail( string $email, int $limit = 10 ): array {
         return $this->wpdb->get_results(
             $this->wpdb->prepare(
                 "SELECT * FROM {$this->table} WHERE email = %s OR email_hash = %s ORDER BY id DESC LIMIT %d",
@@ -85,8 +98,12 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
     /**
      * Find by CPF/RF
+     *
+     * @param string $cpf
+     * @param int $limit
+     * @return array
      */
-    public function findByCpfRf($cpf, $limit = 10) {
+    public function findByCpfRf( string $cpf, int $limit = 10 ): array {
         $clean_cpf = preg_replace('/[^0-9]/', '', $cpf);
         
         return $this->wpdb->get_results(
@@ -102,8 +119,13 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
     /**
      * Find by form ID
+     *
+     * @param int $form_id
+     * @param int $limit
+     * @param int $offset
+     * @return array
      */
-    public function findByFormId($form_id, $limit = 100, $offset = 0) {
+    public function findByFormId( int $form_id, int $limit = 100, int $offset = 0 ): array {
         return $this->wpdb->get_results(
             $this->wpdb->prepare(
                 "SELECT * FROM {$this->table} WHERE form_id = %d ORDER BY id DESC LIMIT %d OFFSET %d",
@@ -117,12 +139,12 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
     /**
      * ✅ NEW v3.0.1: Get all submissions by form_id and status for export
-     * 
+     *
      * @param int|null $form_id Form ID (null = all forms)
-     * @param string $status Status filter (publish, trash, null = all)
+     * @param string|null $status Status filter (publish, trash, null = all)
      * @return array Array of submissions
      */
-    public function getForExport($form_id = null, $status = 'publish') {
+    public function getForExport( ?int $form_id = null, ?string $status = 'publish' ): array {
         $conditions = [];
         
         if ($status) {
@@ -139,10 +161,10 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
     /**
      * ✅ NEW v3.0.1: Check if any submission has edit information
-     * 
+     *
      * @return bool True if edited_at column exists and has data
      */
-    public function hasEditInfo() {
+    public function hasEditInfo(): bool {
         // Check if edited_at column exists
         $column_exists = $this->wpdb->get_var(
             $this->wpdb->prepare(
@@ -170,8 +192,11 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     /**
      * Find with pagination and filters
      * Optimized search for encrypted data (v3.0.2)
+     *
+     * @param array $args
+     * @return array
      */
-    public function findPaginated($args = []) {
+    public function findPaginated( array $args = [] ): array {
         $defaults = [
             'status' => 'publish',
             'search' => '',
@@ -245,8 +270,10 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
     /**
      * Count by status
+     *
+     * @return array
      */
-    public function countByStatus() {
+    public function countByStatus(): array {
         $results = $this->wpdb->get_results(
             "SELECT status, COUNT(*) as count FROM {$this->table} GROUP BY status",
             OBJECT_K
@@ -260,15 +287,23 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
     /**
      * Update status
+     *
+     * @param int $id
+     * @param string $status
+     * @return int|false
      */
-    public function updateStatus($id, $status) {
+    public function updateStatus( int $id, string $status ) {
         return $this->update($id, ['status' => $status]);
     }
     
     /**
      * Bulk update status
+     *
+     * @param array $ids
+     * @param string $status
+     * @return int|false
      */
-    public function bulkUpdateStatus($ids, $status) {
+    public function bulkUpdateStatus( array $ids, string $status ) {
         if (empty($ids)) {
             return 0;
         }
@@ -291,8 +326,11 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
     /**
      * Bulk delete
+     *
+     * @param array $ids
+     * @return int|false
      */
-    public function bulkDelete($ids) {
+    public function bulkDelete( array $ids ) {
         if (empty($ids)) {
             return 0;
         }
@@ -314,8 +352,11 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
     /**
      * Delete by form ID
+     *
+     * @param int $form_id
+     * @return int|false
      */
-    public function deleteByFormId($form_id) {
+    public function deleteByFormId( int $form_id ) {
         $result = $this->wpdb->delete($this->table, ['form_id' => $form_id]);
         
         if ($result) {
@@ -327,12 +368,12 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
     /**
      * ✅ NEW v3.0.1: Update submission with edit tracking
-     * 
+     *
      * @param int $id Submission ID
      * @param array $data Data to update
      * @return int|false Number of rows updated or false on error
      */
-    public function updateWithEditTracking($id, $data) {
+    public function updateWithEditTracking( int $id, array $data ) {
         // Check if edited_at column exists
         $column_exists = $this->wpdb->get_var(
             $this->wpdb->prepare(
@@ -370,8 +411,11 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
     
     /**
      * Hash helper
+     *
+     * @param string $value
+     * @return string|null
      */
-    private function hash($value) {
+    private function hash( string $value ): ?string {
         return class_exists('FFC_Encryption') ? FFC_Encryption::hash($value) : hash('sha256', $value);
     }
 }
