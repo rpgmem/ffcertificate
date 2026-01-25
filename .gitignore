@@ -1,4 +1,26 @@
-security-check.php
-RELATORIO-ANALISE-OTIMIZACAO.md
-debug_testing.php
-debug.log
+# Composer
+/vendor/
+composer.phar
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# WordPress
+wp-config-local.php
+.htaccess
+
+# Node
+node_modules/
+package-lock.json
+
+# Build
+/build/
+/dist/

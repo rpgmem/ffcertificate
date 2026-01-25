@@ -1,0 +1,27 @@
+{
+  "name": "rpgmem/wp-ffcertificate",
+  "description": "Free Form Certificate - WordPress plugin for certificate generation and management",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "authors": [
+    {
+      "name": "rpgmem",
+      "email": "contact@example.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "FFC\\": "includes/"
+    },
+    "classmap": [
+      "includes/"
+    ]
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "classmap-authoritative": false
+  }
+}
