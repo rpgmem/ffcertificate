@@ -1,14 +1,17 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_QRCode_Generator
  * Generates dynamic QR Codes for certificate verification
- * 
+ *
  * Features:
  * - Customizable size, margin, error correction
  * - Base64 output for embedding in HTML/PDF
  * - Optional database caching
  * - Placeholder parsing ({{qr_code:param=value}})
- * 
+ *
+ * @version 3.3.0 - Added strict types and type hints
  * @since 2.9.0
  * @since 2.9.2 OPTIMIZED to use FFC_Utils functions
  */
@@ -44,7 +47,7 @@ class FFC_QRCode_Generator {
     /**
      * Load default values from plugin settings
      */
-    private function load_defaults_from_settings() {
+    private function load_defaults_from_settings(): void {
         $settings = get_option( 'ffc_settings', array() );
         
         if ( isset( $settings['qr_default_size'] ) ) {
@@ -74,7 +77,7 @@ class FFC_QRCode_Generator {
      * @param int $submission_id Optional submission ID for cache
      * @return string HTML img tag with base64 QR Code
      */
-    public function parse_and_generate( $placeholder, $url, $submission_id = 0 ) {
+    public function parse_and_generate( string $placeholder, string $url, int $submission_id = 0 ): string {
         // Parse parameters from placeholder
         $params = $this->parse_placeholder_params( $placeholder );
         
@@ -130,7 +133,7 @@ class FFC_QRCode_Generator {
      * @param string $placeholder
      * @return array Parameters with keys: size, margin, error_level
      */
-    private function parse_placeholder_params( $placeholder ) {
+    private function parse_placeholder_params( string $placeholder ): array {
         $params = $this->defaults;
         
         // Remove {{ and }}
@@ -183,7 +186,7 @@ class FFC_QRCode_Generator {
      * @param array $params Generation parameters
      * @return string Base64 encoded PNG
      */
-    public function generate( $url, $params = array() ) {
+    public function generate( string $url, array $params = array() ): string {
         // Merge with defaults
         $params = array_merge( $this->defaults, $params );
         
@@ -234,7 +237,7 @@ class FFC_QRCode_Generator {
      * @param string $level L, M, Q, or H
      * @return int QR_ECLEVEL constant
      */
-    private function get_error_correction_constant( $level ) {
+    private function get_error_correction_constant( string $level ): int {
         switch ( strtoupper( $level ) ) {
             case 'L':
                 return QR_ECLEVEL_L; // 7%
@@ -255,7 +258,7 @@ class FFC_QRCode_Generator {
      * @param int $size Display size in pixels
      * @return string HTML img tag
      */
-    private function format_as_img_tag( $base64, $size ) {
+    private function format_as_img_tag( string $base64, int $size ): string {
         if ( empty( $base64 ) ) {
             return '';
         }
@@ -273,7 +276,7 @@ class FFC_QRCode_Generator {
      * 
      * @return bool
      */
-    private function is_cache_enabled() {
+    private function is_cache_enabled(): bool {
         $settings = get_option( 'ffc_settings', array() );
         return isset( $settings['qr_cache_enabled'] ) && $settings['qr_cache_enabled'] == 1;
     }
@@ -284,7 +287,7 @@ class FFC_QRCode_Generator {
      * @param int $submission_id
      * @return string|false Base64 QR Code or false if not found
      */
-    private function get_from_cache( $submission_id ) {
+    private function get_from_cache( int $submission_id ) {
         global $wpdb;
         $table_name = FFC_Utils::get_submissions_table();
         
@@ -308,7 +311,7 @@ class FFC_QRCode_Generator {
      * @param string $qr_base64 Base64 encoded QR Code
      * @return bool Success
      */
-    private function save_to_cache( $submission_id, $qr_base64 ) {
+    private function save_to_cache( int $submission_id, string $qr_base64 ): bool {
         global $wpdb;
         $table_name = FFC_Utils::get_submissions_table();
         
@@ -333,7 +336,7 @@ class FFC_QRCode_Generator {
      * 
      * @return bool
      */
-    private function cache_column_exists() {
+    private function cache_column_exists(): bool {
         global $wpdb;
         $table_name = FFC_Utils::get_submissions_table();
         
@@ -350,7 +353,7 @@ class FFC_QRCode_Generator {
      * 
      * @return bool Success
      */
-    private function create_cache_column() {
+    private function create_cache_column(): bool {
         global $wpdb;
         $table_name = FFC_Utils::get_submissions_table();
         
@@ -380,7 +383,7 @@ class FFC_QRCode_Generator {
      * @param int $submission_id Optional specific submission (0 = all)
      * @return int Number of cleared entries
      */
-    public function clear_cache( $submission_id = 0 ) {
+    public function clear_cache( int $submission_id = 0 ): bool {
         global $wpdb;
         $table_name = FFC_Utils::get_submissions_table();
         
@@ -427,7 +430,7 @@ class FFC_QRCode_Generator {
      * @param int $size QR code size (default: 200)
      * @return string Base64 QR code or empty string
      */
-    public function generate_magic_link_qr( $submission_id, $size = 200 ) {
+    public function generate_magic_link_qr( int $submission_id, int $size = 200 ): string {
     global $wpdb;
     $table_name = FFC_Utils::get_submissions_table();
     
@@ -475,7 +478,7 @@ class FFC_QRCode_Generator {
      * 
      * @return array Statistics
      */
-    public function get_cache_stats() {
+    public function get_cache_stats(): array {
         global $wpdb;
         $table_name = FFC_Utils::get_submissions_table();
         

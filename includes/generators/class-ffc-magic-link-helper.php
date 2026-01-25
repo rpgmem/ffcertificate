@@ -1,9 +1,12 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_Magic_Link_Helper
- * 
+ *
  * Centralizes magic link generation and validation logic
- * 
+ *
+ * @version 3.3.0 - Added strict types and type hints
  * @since 2.9.16
  */
 
@@ -18,7 +21,7 @@ class FFC_Magic_Link_Helper {
      * 
      * @return string URL of verification page
      */
-    public static function get_verification_page_url() {
+    public static function get_verification_page_url(): string {
         // Try to get stored page ID
         $page_id = get_option( 'ffc_verification_page_id', 0 );
         
@@ -41,7 +44,7 @@ class FFC_Magic_Link_Helper {
      * @param string $token Magic token (32 hex characters)
      * @return string Complete magic link URL
      */
-    public static function generate_magic_link( $token ) {
+    public static function generate_magic_link( string $token ): string {
         if ( empty( $token ) ) {
             return '';
         }
@@ -63,7 +66,7 @@ class FFC_Magic_Link_Helper {
      * @param FFC_Submission_Handler $handler Submission handler instance
      * @return string Magic token (32 hex characters)
      */
-    public static function ensure_token( $submission_id, $handler ) {
+    public static function ensure_token( int $submission_id, object $handler ): string {
     if ( ! $handler || ! method_exists( $handler, 'ensure_magic_token' ) ) {
         return '';
     }
@@ -88,7 +91,7 @@ class FFC_Magic_Link_Helper {
      * @param FFC_Submission_Handler $handler Submission handler instance
      * @return string Complete magic link URL
      */
-    public static function get_submission_magic_link( $submission_id, $handler ) {
+    public static function get_submission_magic_link( int $submission_id, object $handler ): string {
         $token = self::ensure_token( $submission_id, $handler );
         
         if ( empty( $token ) ) {
@@ -107,7 +110,7 @@ class FFC_Magic_Link_Helper {
      * @param FFC_Submission_Handler $handler Submission handler (optional, for generating if missing)
      * @return string Complete magic link URL
      */
-    public static function get_magic_link_from_submission( $submission, $handler = null ) {
+    public static function get_magic_link_from_submission( $submission, ?object $handler = null ): string {
         $token = isset( $submission['magic_token'] ) ? $submission['magic_token'] : '';
         
         // If no token and handler provided, try to generate
@@ -124,7 +127,7 @@ class FFC_Magic_Link_Helper {
      * @param string $token Token to validate
      * @return bool True if valid format
      */
-    public static function is_valid_token( $token ) {
+    public static function is_valid_token( string $token ): bool {
         // Magic token should be 32 hex characters
         return ! empty( $token ) && preg_match( '/^[a-f0-9]{32}$/i', $token );
     }
@@ -140,7 +143,7 @@ class FFC_Magic_Link_Helper {
      * @param string $url URL to parse
      * @return string Token or empty string
      */
-    public static function extract_token_from_url( $url ) {
+    public static function extract_token_from_url( string $url ): string {
         // Try query string parameters
         $query = parse_url( $url, PHP_URL_QUERY );
         if ( $query ) {
@@ -175,7 +178,7 @@ class FFC_Magic_Link_Helper {
      * @param bool $with_copy_button Include copy button
      * @return string HTML output
      */
-    public static function get_magic_link_html( $token, $with_copy_button = true ) {
+    public static function get_magic_link_html( string $token, bool $with_copy_button = true ): string {
         if ( empty( $token ) ) {
             return '<em>' . __( 'No magic token', 'ffc' ) . '</em>';
         }
@@ -204,7 +207,7 @@ class FFC_Magic_Link_Helper {
      * @param int $size QR code size (default: 200)
      * @return string QR code image URL
      */
-    public static function get_magic_link_qr_code( $token, $size = 200 ) {
+    public static function get_magic_link_qr_code( string $token, int $size = 200 ): string {
         if ( empty( $token ) ) {
             return '';
         }
@@ -221,7 +224,7 @@ class FFC_Magic_Link_Helper {
      * @param string $token Magic token
      * @return array Debug information
      */
-    public static function debug_info( $token ) {
+    public static function debug_info( string $token ): array {
         return array(
             'token' => $token,
             'token_valid' => self::is_valid_token( $token ),

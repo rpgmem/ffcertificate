@@ -1,14 +1,17 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_PDF_Generator
- * 
+ *
  * Centralized PDF generation for all contexts:
  * - Form submission (frontend)
  * - Manual verification
- * - Magic link verification  
+ * - Magic link verification
  * - Admin PDF download
  * - Certificate reprint
- * 
+ *
+ * v3.3.0: Added strict types and type hints
  * v2.9.2: Single source of truth for PDF generation
  * v2.9.14: REFACTORED - Moved generate_html logic from FFC_Email_Handler
  */
@@ -28,12 +31,12 @@ class FFC_PDF_Generator {
     
     /**
      * Generate PDF data for any context
-     * 
+     *
      * @param int $submission_id Submission ID
      * @param object $submission_handler Submission handler instance
      * @return array|WP_Error PDF data array or error
      */
-    public function generate_pdf_data( $submission_id, $submission_handler ) {
+    public function generate_pdf_data( int $submission_id, object $submission_handler ) {
         // Get submission
         $submission = $submission_handler->get_submission( $submission_id );
         
@@ -130,7 +133,7 @@ class FFC_PDF_Generator {
      * @param array $submission Submission database row
      * @return array Enriched data
      */
-    private function enrich_submission_data( $data, $submission ) {
+    private function enrich_submission_data( array $data, array $submission ): array {
         // Add email if missing
         if ( ! isset( $data['email'] ) && ! empty( $submission['email'] ) ) {
             $data['email'] = $submission['email'];
@@ -193,7 +196,7 @@ class FFC_PDF_Generator {
      * @param string $submission_date Submission creation date from database
      * @return string Generated HTML
      */
-    public function generate_html( $data, $form_title, $form_config, $submission_date = null ) {
+    public function generate_html( array $data, string $form_title, array $form_config, ?string $submission_date = null ): string {
         $layout = isset( $form_config['pdf_layout'] ) ? $form_config['pdf_layout'] : '';
         
         // Use default template if none configured
@@ -283,7 +286,7 @@ class FFC_PDF_Generator {
      * @param array $form_config Form configuration
      * @return string Processed HTML
      */
-    private function process_qrcode_placeholders( $layout, $data, $form_config ) {
+    private function process_qrcode_placeholders( string $layout, array $data, array $form_config ): string {
         // Initialize QR Code generator
         if ( ! class_exists( 'FFC_QRCode_Generator' ) ) {
             require_once FFC_PLUGIN_DIR . 'includes/generators/class-ffc-qrcode-generator.php';
@@ -317,7 +320,7 @@ class FFC_PDF_Generator {
      * @param int $size QR code size (default: 200)
      * @return string QR code image URL or data URI
      */
-    public static function generate_magic_link_qr( $submission_id, $size = 200 ) {
+    public static function generate_magic_link_qr( int $submission_id, int $size = 200 ): string {
     global $wpdb;
     
     // Get submission
@@ -356,7 +359,7 @@ class FFC_PDF_Generator {
      * @param array $data Submission data
      * @return string URL
      */
-    private function get_qr_code_target_url( $data ) {
+    private function get_qr_code_target_url( array $data ): string {
         $verification_url = untrailingslashit( site_url( 'valid' ) );
         
         // Priority 1: Magic link (if exists)
@@ -384,7 +387,7 @@ class FFC_PDF_Generator {
      * @param array $data Submission data
      * @return string Processed HTML
      */
-    private function process_validation_url_placeholders( $layout, $data ) {
+    private function process_validation_url_placeholders( string $layout, array $data ): string {
         // Get base URLs
         $valid_url = untrailingslashit( site_url( 'valid' ) );
         
@@ -451,7 +454,7 @@ class FFC_PDF_Generator {
      * @param string $params_string Parameter string (e.g., "link:m>v target:_blank color:blue")
      * @return array Parsed parameters
      */
-    private function parse_validation_url_params( $params_string ) {
+    private function parse_validation_url_params( string $params_string ): array {
         $defaults = array(
             'to' => 'm',      // Default destination: magic link
             'text' => 'v',    // Default text: /valid URL
@@ -505,7 +508,7 @@ class FFC_PDF_Generator {
      * @param string $form_title Form title
      * @return string Default HTML
      */
-    private function generate_default_html( $data, $form_title ) {
+    private function generate_default_html( array $data, string $form_title ): string {
         $layout = '<div style="text-align:center; padding: 50px;">';
         $layout .= '<h1>' . esc_html( $form_title ) . '</h1>';
         $layout .= '<p>' . esc_html__( 'We certify that the holder of the data below has completed the event.', 'ffc' ) . '</p>';
@@ -532,7 +535,7 @@ class FFC_PDF_Generator {
      * @param string $auth_code Verification code (optional)
      * @return string Safe filename with .pdf extension
      */
-    private function generate_filename( $form_title, $auth_code = '' ) {
+    private function generate_filename( string $form_title, string $auth_code = '' ): string {
         // Sanitize form title
         if ( class_exists( 'FFC_Utils' ) && method_exists( 'FFC_Utils', 'sanitize_filename' ) ) {
             $safe_name = FFC_Utils::sanitize_filename( $form_title );
@@ -564,7 +567,7 @@ class FFC_PDF_Generator {
      * @param string $submission_date Submission date
      * @return array PDF data array
      */
-    public function generate_pdf_data_from_form( $submission_data, $form_id, $submission_date = null ) {
+    public function generate_pdf_data_from_form( array $submission_data, int $form_id, ?string $submission_date = null ) {
         // Get form data
         $form_post = get_post( $form_id );
         if ( ! $form_post ) {
