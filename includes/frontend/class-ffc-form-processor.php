@@ -474,8 +474,8 @@ class FFC_Form_Processor {
         $is_reprint = $reprint_result['is_reprint'];
         
         if ( $is_reprint ) {
-            // Reprint - use existing submission ID
-            $submission_id = $reprint_result['id'];
+            // Reprint - use existing submission ID (convert to int from wpdb string)
+            $submission_id = (int) $reprint_result['id'];
         } else {
             // New submission - save to database
             $submission_id = $this->submission_handler->process_submission( 
