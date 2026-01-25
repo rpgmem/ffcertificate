@@ -755,6 +755,12 @@ class FFC_REST_Controller {
             }
 
             global $wpdb;
+
+            // Safety check for FFC_Utils
+            if (!class_exists('FFC_Utils')) {
+                return new WP_Error('missing_class', 'FFC_Utils class not found', array('status' => 500));
+            }
+
             $table = FFC_Utils::get_submissions_table();
 
             // Get date format from settings
@@ -781,15 +787,19 @@ class FFC_REST_Controller {
                 if (!empty($submission['email_encrypted'])) {
                     try {
                         $email_plain = FFC_Encryption::decrypt($submission['email_encrypted']);
-                        $email_display = FFC_Utils::mask_email($email_plain);
+                        // Check if decrypt returned valid string before masking
+                        $email_display = ($email_plain && is_string($email_plain)) ? FFC_Utils::mask_email($email_plain) : '';
                     } catch (Exception $e) {
                         $email_display = __('Error decrypting', 'ffc');
                     }
+                } elseif (!empty($submission['email'])) {
+                    // Fallback to plain email if not encrypted
+                    $email_display = FFC_Utils::mask_email($submission['email']);
                 }
 
-                // Get verification page URL
+                // Get verification page URL (convert option to int)
                 $verification_page_id = get_option('ffc_verification_page_id');
-                $verification_url = $verification_page_id ? get_permalink($verification_page_id) : home_url('/valid');
+                $verification_url = $verification_page_id ? get_permalink((int) $verification_page_id) : home_url('/valid');
 
                 // Build magic link
                 $magic_link = '';
@@ -803,17 +813,22 @@ class FFC_REST_Controller {
                     $auth_code_formatted = FFC_Utils::format_auth_code($submission['auth_code']);
                 }
 
-                // Format date using plugin settings
-                $date_formatted = date_i18n($date_format, strtotime($submission['submission_date']));
+                // Format date using plugin settings (with safety check for strtotime)
+                $date_formatted = '';
+                if (!empty($submission['submission_date'])) {
+                    $timestamp = strtotime($submission['submission_date']);
+                    // Ensure timestamp is valid before passing to date_i18n
+                    $date_formatted = ($timestamp !== false) ? date_i18n($date_format, $timestamp) : $submission['submission_date'];
+                }
 
                 // Convert IDs to int for API consistency (wpdb returns strings)
                 $certificates[] = array(
-                    'id' => (int) $submission['id'],
-                    'form_id' => (int) $submission['form_id'],
+                    'id' => (int) ($submission['id'] ?? 0),
+                    'form_id' => (int) ($submission['form_id'] ?? 0),
                     'form_title' => $submission['form_title'] ?? __('Unknown Form', 'ffc'),
-                    'submission_date' => $date_formatted,
-                    'submission_date_raw' => $submission['submission_date'],
-                    'consent_given' => (bool) $submission['consent_given'],
+                    'submission_date' => $date_formatted ?: '',
+                    'submission_date_raw' => $submission['submission_date'] ?? '',
+                    'consent_given' => !empty($submission['consent_given']),
                     'email' => $email_display,
                     'auth_code' => $auth_code_formatted,
                     'magic_link' => $magic_link,
@@ -827,6 +842,15 @@ class FFC_REST_Controller {
             ));
 
         } catch (Exception $e) {
+            // Log the error for debugging
+            if (class_exists('FFC_Utils')) {
+                FFC_Utils::debug_log('get_user_certificates error', array(
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
+                ));
+            }
             return new WP_Error(
                 'get_certificates_error',
                 $e->getMessage(),
@@ -871,6 +895,14 @@ class FFC_REST_Controller {
 
             $user = get_user_by('id', $user_id);
 
+            if (!$user) {
+                return new WP_Error(
+                    'user_not_found',
+                    __('User not found', 'ffc'),
+                    array('status' => 404)
+                );
+            }
+
             // Get CPF/RF (masked)
             $cpf_masked = '';
             if (class_exists('FFC_User_Manager')) {
@@ -885,10 +917,11 @@ class FFC_REST_Controller {
 
             // Format member since date
             $member_since = '';
-            if ($user->user_registered) {
+            if (!empty($user->user_registered)) {
                 $settings = get_option('ffc_settings', array());
                 $date_format = $settings['date_format'] ?? 'F j, Y';
-                $member_since = date_i18n($date_format, strtotime($user->user_registered));
+                $timestamp = strtotime($user->user_registered);
+                $member_since = ($timestamp !== false) ? date_i18n($date_format, $timestamp) : '';
             }
 
             return rest_ensure_response(array(
