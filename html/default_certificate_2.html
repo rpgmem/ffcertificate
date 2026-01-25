@@ -1,0 +1,57 @@
+<div style="width: 1123px;height: 794px;position: relative;overflow: hidden;font-family: Arial, sans-serif;color: #000">
+
+    <img src="/wp-content/plugins/wp-ffcertificate/html/default_background_certificate_2.png" style="position: absolute;top: 0;left: 0;width: 100%;height: 100%;object-fit: cover;z-index: 0">
+
+    <div style="position: relative;z-index: 1;padding: 80px 80px 80px 80px;width: 100%;height: 100%;display: flex;flex-direction: column;text-align: center;box-sizing: border-box">
+
+        <div style="justify-content: center">
+            <strong style="font-size: 50pt;color: #111;margin: 0;letter-spacing: 12px;text-transform: uppercase">CERTIFICATE</strong>
+            <div style="width: 100px;height: 5px;background-color: #803063;margin: 15px auto 0;border-radius: 3px"></div>
+        </div>
+
+        <div style="flex: 1;display: flex;flex-direction: column;justify-content: center;gap: 15px">
+            <p style="font-size: 18pt;margin: 0">We certify that <strong style="text-transform: uppercase">{{name}}</strong>,</p>
+            <p style="font-size: 18pt;margin: 0">CPF/RF {{cpf_rf}},</p>
+            <p style="font-size: 18pt;margin: 0">participated in the course <strong style="text-transform: uppercase">"{{form_title}}"</strong>,</p>
+            <p style="font-size: 18pt;margin: 0">with a workload of 4 hours,</p>
+            <p style="font-size: 18pt;margin: 0">successfully completed on <strong>25/12/2025</strong>.</p>
+        </div>
+
+        <div style="margin-top: auto;width: 100%; padding-bottom: 20px;">
+            <p style="text-align: right;font-size: 12pt;margin-bottom: 80px;margin-right: 30px">
+                San Diego, 26/12/2025
+            </p>
+
+            <table style="width: 100%;border-collapse: collapse">
+                <tr>
+                    <td style="width: 8%"></td> 
+                    <td style="width: 35%;text-align: center;vertical-align: top">
+                        <div>
+                            <img src="/wp-content/plugins/wp-ffcertificate/html/default_assinagture_1.png" style="width: 100%;height: 100%">
+                        </div>
+                        <div style="border-top: 1px solid #333;margin: 0 40px;padding-top: 10px">
+                            <strong style="display: block;font-size: 14pt">Speaker's Signature</strong>
+                            <span style="font-size: 11pt;color: #555">Joe Doe</span>
+                        </div>
+                    </td>
+                    <td style="width: 14%"></td> 
+                    <td style="width: 35%;text-align: center;vertical-align: top">
+                        <div>
+                            <img src="/wp-content/plugins/wp-ffcertificate/html/default_assinagture_2.png" style="width: 100%;height: 100%">
+                        </div>
+                        <div style="border-top: 1px solid #333;margin: 0 40px;padding-top: 10px">
+                            <strong style="display: block;font-size: 14pt">Director's Signature</strong>
+                            <span style="font-size: 11pt;color: #555">Jane Doe</span>
+                        </div>
+                    </td>
+                    <td style="width: 8%"></td> 
+                </tr>
+            </table>
+        </div>
+        <div style="border-top: 2px solid #b6b6b6;padding-top: 2px;position: relative;">
+            <p style="position: absolute;width: 100%;text-align: center;font-size: 9pt;z-index: 2">
+            {{qr_code:size=50:margin=0}} Generated on: {{submission_date}}. 
+            To verify authenticity, access <span style="color: blue">{{validation_url}}</span> and use the code <strong>{{auth_code}}</strong></p>
+        </div>
+     </div>
+</div>

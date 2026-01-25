@@ -1,9 +1,11 @@
 <?php
 /*
 Plugin Name: Free Form Certificate
+Plugin URI:  https://github.com/rpgmem/wp-ffcertificate
 Description: Allows creation of dynamic forms, saves submissions, generates a PDF certificate, and enables CSV export.
 Version: 3.1.0
 Author: Alex Meusburger
+Author URI: https://github.com/rpgmem
 Text Domain: ffc
 Domain Path: /languages
 */
