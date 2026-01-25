@@ -1,18 +1,21 @@
 <?php
 /**
  * FFC_Encryption
- * 
+ *
  * Centralized encryption/decryption for sensitive data (LGPD compliance)
- * 
+ *
  * Features:
  * - AES-256-CBC encryption
  * - SHA-256 hashing for searchable fields
  * - WordPress keys as encryption base
  * - Unique IV per record
  * - Batch operations support
- * 
+ *
  * @since 2.10.0
+ * @version 3.3.0 - Added strict types and type hints for better code safety
  */
+
+declare(strict_types=1);
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -32,11 +35,11 @@ class FFC_Encryption {
     
     /**
      * Encrypt a value
-     * 
+     *
      * @param string $value Plain text value
      * @return string|null Encrypted value (base64) or null on failure
      */
-    public static function encrypt( $value ) {
+    public static function encrypt( string $value ): ?string {
         if ( empty( $value ) || $value === null ) {
             return null;
         }
@@ -77,11 +80,11 @@ class FFC_Encryption {
     
     /**
      * Decrypt a value
-     * 
+     *
      * @param string $encrypted Encrypted value (base64)
      * @return string|null Decrypted value or null on failure
      */
-    public static function decrypt( $encrypted ) {
+    public static function decrypt( string $encrypted ): ?string {
         if ( empty( $encrypted ) || $encrypted === null ) {
             return null;
         }
@@ -130,13 +133,13 @@ class FFC_Encryption {
     
     /**
      * Generate hash for searchable field
-     * 
+     *
      * Uses SHA-256 for consistent, searchable hashes
-     * 
+     *
      * @param string $value Value to hash
      * @return string|null SHA-256 hash or null if empty
      */
-    public static function hash( $value ) {
+    public static function hash( string $value ): ?string {
         if ( empty( $value ) || $value === null ) {
             return null;
         }
@@ -150,13 +153,13 @@ class FFC_Encryption {
     
     /**
      * Encrypt submission data (batch helper)
-     * 
+     *
      * Encrypts all sensitive fields in a submission array
-     * 
+     *
      * @param array $submission Submission data
      * @return array Encrypted data with hash fields
      */
-    public static function encrypt_submission( $submission ) {
+    public static function encrypt_submission( array $submission ): array {
         $encrypted = array();
         
         // Email
@@ -186,13 +189,13 @@ class FFC_Encryption {
     
     /**
      * Decrypt submission data (batch helper)
-     * 
+     *
      * Decrypts all encrypted fields in a submission array
-     * 
+     *
      * @param array $submission Submission data with encrypted fields
      * @return array Decrypted data
      */
-    public static function decrypt_submission( $submission ) {
+    public static function decrypt_submission( array $submission ): array {
         $decrypted = $submission; // Keep all fields
         
         // Email (try encrypted first, fallback to plain)
@@ -220,12 +223,12 @@ class FFC_Encryption {
     
     /**
      * Get encryption key
-     * 
+     *
      * Derives key from WordPress constants (SECURE_AUTH_KEY, etc)
-     * 
+     *
      * @return string 32-byte encryption key
      */
-    private static function get_encryption_key() {
+    private static function get_encryption_key(): string {
         // Check if custom key defined
         if ( defined( 'FFC_ENCRYPTION_KEY' ) && strlen( FFC_ENCRYPTION_KEY ) >= 32 ) {
             return substr( FFC_ENCRYPTION_KEY, 0, 32 );
@@ -249,12 +252,12 @@ class FFC_Encryption {
     
     /**
      * Get hash salt
-     * 
+     *
      * Derives salt from WordPress constants for consistent hashing
-     * 
+     *
      * @return string Hash salt
      */
-    private static function get_hash_salt() {
+    private static function get_hash_salt(): string {
         // Check if custom salt defined
         if ( defined( 'FFC_HASH_SALT' ) ) {
             return FFC_HASH_SALT;
@@ -271,12 +274,12 @@ class FFC_Encryption {
     
     /**
      * Test encryption/decryption
-     * 
+     *
      * Utility method for testing encryption setup
-     * 
+     *
      * @return array Test results
      */
-    public static function test() {
+    public static function test(): array {
         $test_value = 'Test Value 123!@#';
         
         $encrypted = self::encrypt( $test_value );
@@ -297,10 +300,10 @@ class FFC_Encryption {
     
     /**
      * Check if encryption is configured
-     * 
+     *
      * @return bool True if encryption keys available
      */
-    public static function is_configured() {
+    public static function is_configured(): bool {
         // Check if WordPress keys exist
         if ( ! defined( 'SECURE_AUTH_KEY' ) || empty( SECURE_AUTH_KEY ) ) {
             return false;
@@ -315,10 +318,10 @@ class FFC_Encryption {
     
     /**
      * Get encryption info (for admin display)
-     * 
+     *
      * @return array Encryption configuration info
      */
-    public static function get_info() {
+    public static function get_info(): array {
         return array(
             'configured' => self::is_configured(),
             'cipher' => self::CIPHER,
