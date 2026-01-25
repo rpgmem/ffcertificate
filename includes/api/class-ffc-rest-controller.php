@@ -42,6 +42,35 @@ class FFC_REST_Controller {
         
         // Register REST routes
         add_action('rest_api_init', array($this, 'register_routes'));
+
+        // Suppress PHP notices/warnings in REST API responses to prevent JSON corruption
+        add_action('rest_api_init', array($this, 'suppress_rest_api_notices'));
+    }
+
+    /**
+     * Suppress PHP notices in REST API to prevent JSON corruption
+     * Fixes: parsererror when notices are output before JSON
+     */
+    public function suppress_rest_api_notices() {
+        // Only suppress in REST API context
+        if (defined('REST_REQUEST') && REST_REQUEST) {
+            // Start output buffering to catch any stray output
+            if (!ob_get_level()) {
+                ob_start();
+            }
+
+            // Set error reporting to only show errors, not warnings/notices
+            error_reporting(E_ERROR | E_PARSE);
+
+            // Clean output buffer before sending response
+            add_filter('rest_pre_serve_request', function($served, $result, $request, $server) {
+                // Clean any output that was buffered (like PHP notices)
+                if (ob_get_level()) {
+                    ob_clean();
+                }
+                return $served;
+            }, 10, 4);
+        }
     }
     
     /**
