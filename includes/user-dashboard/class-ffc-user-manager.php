@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_User_Manager
  *
@@ -14,7 +16,7 @@
  * - Email is used as the linking key when CPF/RF is new
  * - Priority: CPF/RF > Email
  *
- * @version 3.2.0 - Refactored to use FFC_Email_Handler for user notification emails
+ * @version 3.3.0 - Added strict types and type hints
  * @since 3.1.0
  */
 
@@ -37,7 +39,7 @@ class FFC_User_Manager {
      * @param array $submission_data Optional submission data for user creation
      * @return int|WP_Error User ID or error
      */
-    public static function get_or_create_user($cpf_rf_hash, $email, $submission_data = array()) {
+    public static function get_or_create_user(string $cpf_rf_hash, string $email, array $submission_data = array()) {
         global $wpdb;
         $table = FFC_Utils::get_submissions_table();
 
@@ -90,7 +92,7 @@ class FFC_User_Manager {
      * @param array $submission_data Submission data for user metadata
      * @return int|WP_Error User ID or error
      */
-    private static function create_ffc_user($email, $submission_data = array()) {
+    private static function create_ffc_user(string $email, array $submission_data = array()) {
         // Generate strong random password
         $password = wp_generate_password(24, true, true);
 
@@ -146,7 +148,7 @@ class FFC_User_Manager {
      * @param array $submission_data Submission data
      * @return void
      */
-    private static function sync_user_metadata($user_id, $submission_data) {
+    private static function sync_user_metadata(int $user_id, array $submission_data): void {
         if (empty($submission_data)) {
             return;
         }
@@ -180,7 +182,7 @@ class FFC_User_Manager {
      *
      * @return void
      */
-    public static function register_role() {
+    public static function register_role(): void {
         // Check if role already exists
         if (get_role('ffc_user')) {
             return;
@@ -208,7 +210,7 @@ class FFC_User_Manager {
      *
      * @return void
      */
-    public static function remove_role() {
+    public static function remove_role(): void {
         remove_role('ffc_user');
     }
 
@@ -220,7 +222,7 @@ class FFC_User_Manager {
      * @param int $user_id WordPress user ID
      * @return string|null Masked CPF/RF or null if not found
      */
-    public static function get_user_cpf_masked($user_id) {
+    public static function get_user_cpf_masked(int $user_id): ?string {
         global $wpdb;
         $table = FFC_Utils::get_submissions_table();
 
@@ -265,7 +267,7 @@ class FFC_User_Manager {
      * @param string $cpf_rf CPF or RF (plain)
      * @return string Masked value
      */
-    private static function mask_cpf_rf($cpf_rf) {
+    private static function mask_cpf_rf(string $cpf_rf): string {
         // Remove any formatting
         $clean = preg_replace('/[^0-9]/', '', $cpf_rf);
 
@@ -289,7 +291,7 @@ class FFC_User_Manager {
      * @param int $user_id WordPress user ID
      * @return array Array of emails
      */
-    public static function get_user_emails($user_id) {
+    public static function get_user_emails(int $user_id): array {
         global $wpdb;
         $table = FFC_Utils::get_submissions_table();
 
