@@ -105,20 +105,27 @@ class FFC_Verification_Handler {
      * @return array Result array with 'found', 'submission', 'data', 'magic_token'
      */
     public function verify_by_magic_token( string $token ): array {
+        // DEBUG: Log token validation
+        error_log('[FFC DEBUG] verify_by_magic_token called with token: ' . substr($token, 0, 8) . '... (length: ' . strlen($token) . ')');
+
         if ( ! FFC_Magic_Link_Helper::is_valid_token( $token ) ) {
-        return array(
-        'found' => false,
-        'submission' => null,
-        'data' => array(),
-        'error' => 'invalid_token_format',
-        'magic_token' => ''
+            error_log('[FFC DEBUG] Token validation FAILED - invalid format');
+            return array(
+                'found' => false,
+                'submission' => null,
+                'data' => array(),
+                'error' => 'invalid_token_format',
+                'magic_token' => ''
             );
         }
 
+        error_log('[FFC DEBUG] Token format valid, checking rate limit...');
+
         // Rate limiting check
         $user_ip = FFC_Utils::get_user_ip();
-        $rate_check = FFC_Rate_Limiter::check_verification( $user_ip );  
+        $rate_check = FFC_Rate_Limiter::check_verification( $user_ip );
         if ( ! $rate_check['allowed'] ) {
+            error_log('[FFC DEBUG] Rate limit EXCEEDED for IP: ' . $user_ip);
             return array(
                 'found' => false,
                 'submission' => null,
@@ -128,10 +135,13 @@ class FFC_Verification_Handler {
             );
         }
 
+        error_log('[FFC DEBUG] Rate limit OK, searching submission...');
+
         // Get submission by token
         $submission = $this->submission_handler->get_submission_by_token( $token );
 
         if ( ! $submission ) {
+            error_log('[FFC DEBUG] Submission NOT FOUND for token');
             return array(
                 'found' => false,
                 'submission' => null,
@@ -139,6 +149,8 @@ class FFC_Verification_Handler {
                 'magic_token' => ''
             );
         }
+
+        error_log('[FFC DEBUG] Submission FOUND, ID: ' . ($submission['id'] ?? 'unknown'));
 
         // v2.10.0: Log access for LGPD compliance
         if ( class_exists( 'FFC_Activity_Log' ) ) {

@@ -59,18 +59,25 @@ class FFC_Submission_Handler {
      * @uses Repository::findByToken()
      */
     public function get_submission_by_token(string $token) {
+        error_log('[FFC DEBUG] get_submission_by_token - raw token: ' . substr($token, 0, 8) . '...');
+
         $clean_token = preg_replace('/[^a-f0-9]/i', '', $token);
-        
+        error_log('[FFC DEBUG] get_submission_by_token - clean token: ' . substr($clean_token, 0, 8) . '... (length: ' . strlen($clean_token) . ')');
+
         if (strlen($clean_token) !== 32) {
+            error_log('[FFC DEBUG] get_submission_by_token - FAILED: token length is ' . strlen($clean_token) . ', expected 32');
             return null;
         }
-        
+
+        error_log('[FFC DEBUG] get_submission_by_token - calling repository->findByToken()');
         $submission = $this->repository->findByToken($clean_token);
-        
+
         if (!$submission) {
+            error_log('[FFC DEBUG] get_submission_by_token - repository returned NULL');
             return null;
         }
-        
+
+        error_log('[FFC DEBUG] get_submission_by_token - submission found, ID: ' . ($submission['id'] ?? 'unknown'));
         return $this->decrypt_submission_data($submission);
     }
     

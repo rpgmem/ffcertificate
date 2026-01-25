@@ -58,22 +58,35 @@ class FFC_Submission_Repository extends FFC_Abstract_Repository {
      * @return array|null|false
      */
     public function findByToken( string $token ) {
+        error_log('[FFC DEBUG] Repository->findByToken - searching for token: ' . substr($token, 0, 8) . '...');
+
         $cache_key = "token_{$token}";
         $cached = $this->get_cache($cache_key);
-        
+
         if ($cached !== false) {
+            error_log('[FFC DEBUG] Repository->findByToken - FOUND in cache');
             return $cached;
         }
-        
+
+        error_log('[FFC DEBUG] Repository->findByToken - not in cache, querying DB: ' . $this->table);
+
         $result = $this->wpdb->get_row(
             $this->wpdb->prepare("SELECT * FROM {$this->table} WHERE magic_token = %s", $token),
             ARRAY_A
         );
-        
-        if ($result) {
-            $this->set_cache($cache_key, $result);
+
+        if ($this->wpdb->last_error) {
+            error_log('[FFC DEBUG] Repository->findByToken - DB ERROR: ' . $this->wpdb->last_error);
         }
-        
+
+        if ($result) {
+            error_log('[FFC DEBUG] Repository->findByToken - FOUND in DB, submission ID: ' . ($result['id'] ?? 'unknown'));
+            $this->set_cache($cache_key, $result);
+        } else {
+            error_log('[FFC DEBUG] Repository->findByToken - NOT FOUND in DB (result is NULL or FALSE)');
+            error_log('[FFC DEBUG] Repository->findByToken - last query: ' . $this->wpdb->last_query);
+        }
+
         return $result;
     }
     
