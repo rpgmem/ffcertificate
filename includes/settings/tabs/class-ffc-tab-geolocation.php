@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Geolocation Settings Tab
  *
@@ -6,13 +8,14 @@
  *
  * @package FFC
  * @since 3.0.0
+ * @version 3.3.0 - Added strict types and type hints
  */
 
 if (!defined('ABSPATH')) exit;
 
 class FFC_Tab_Geolocation extends FFC_Settings_Tab {
 
-    protected function init() {
+    protected function init(): void {
         $this->tab_id = 'geolocation';
         $this->tab_title = __('Geolocation', 'ffc');
         $this->tab_icon = '🌍';
@@ -22,7 +25,7 @@ class FFC_Tab_Geolocation extends FFC_Settings_Tab {
     /**
      * Get default settings
      */
-    private function get_default_settings() {
+    private function get_default_settings(): array {
         return array(
             // IP Geolocation API Settings
             'ip_api_enabled' => false,
@@ -52,7 +55,7 @@ class FFC_Tab_Geolocation extends FFC_Settings_Tab {
     /**
      * Get current settings
      */
-    private function get_settings() {
+    private function get_settings(): array {
         return wp_parse_args(
             get_option('ffc_geolocation_settings', array()),
             $this->get_default_settings()
@@ -62,7 +65,7 @@ class FFC_Tab_Geolocation extends FFC_Settings_Tab {
     /**
      * Render tab content
      */
-    public function render() {
+    public function render(): void {
         // Handle form submission
         if ($_POST && isset($_POST['ffc_save_geolocation'])) {
             check_admin_referer('ffc_geolocation_nonce');
@@ -77,7 +80,7 @@ class FFC_Tab_Geolocation extends FFC_Settings_Tab {
     /**
      * Save settings
      */
-    private function save_settings() {
+    private function save_settings(): void {
         $settings = array(
             'ip_api_enabled' => isset($_POST['ip_api_enabled']),
             'ip_api_service' => in_array($_POST['ip_api_service'] ?? '', array('ip-api', 'ipinfo'))
