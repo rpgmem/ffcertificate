@@ -236,11 +236,18 @@ class FFC_Form_Processor {
         }
 
         if ( $existing_submission ) {
-            $decoded_data = json_decode( $existing_submission->data, true );
+            // Ensure data is not null before json_decode (strict types requirement)
+            $data_json = $existing_submission->data ?? '';
+            $decoded_data = json_decode( $data_json, true );
             if( !is_array($decoded_data) ) {
-                $decoded_data = json_decode( stripslashes( $existing_submission->data ), true );
+                $decoded_data = json_decode( stripslashes( $data_json ), true );
             }
-            
+
+            // If still not an array, initialize empty
+            if ( !is_array($decoded_data) ) {
+                $decoded_data = array();
+            }
+
             // ✅ v2.9.16: REBUILD complete data (columns + JSON)
             // Ensure required column fields are included
             if ( ! isset( $decoded_data['email'] ) && ! empty( $existing_submission->email ) ) {
