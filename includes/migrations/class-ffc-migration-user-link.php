@@ -61,7 +61,7 @@ class FFC_Migration_User_Link {
 
         foreach ($submissions as $submission) {
             $cpf_rf_hash = $submission['cpf_rf_hash'];
-            $submission_id = $submission['id'];
+            $submission_id = (int) $submission['id'];
 
             // STEP 1: Check if CPF/RF already has user_id from previous submissions
             if (isset($processed_cpfs[$cpf_rf_hash])) {
