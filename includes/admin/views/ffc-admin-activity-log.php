@@ -112,7 +112,7 @@ $base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' );
                         <td>
                             <?php
                             if ( $log['user_id'] > 0 ) {
-                                $user = get_userdata( $log['user_id'] );
+                                $user = get_userdata( (int) $log['user_id'] );
                                 if ( $user ) {
                                     echo '<strong>' . esc_html( $user->display_name ) . '</strong><br>';
                                     echo '<span class="description">' . esc_html( $user->user_login ) . '</span>';
