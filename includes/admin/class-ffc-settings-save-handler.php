@@ -136,6 +136,20 @@ class FFC_Settings_Save_Handler {
      * @return array Updated settings
      */
     private function save_smtp_settings( array $clean, array $new ): array {
+        // Email Status checkbox (only when on SMTP tab to prevent unchecking from other tabs)
+        if ( isset( $_POST['_ffc_tab'] ) && $_POST['_ffc_tab'] === 'smtp' ) {
+            $clean['disable_all_emails'] = isset( $new['disable_all_emails'] ) ? 1 : 0;
+        }
+
+        // User creation email settings (radio buttons - always have a value)
+        if ( isset( $new['send_wp_user_email_submission'] ) ) {
+            $clean['send_wp_user_email_submission'] = sanitize_text_field( $new['send_wp_user_email_submission'] );
+        }
+
+        if ( isset( $new['send_wp_user_email_migration'] ) ) {
+            $clean['send_wp_user_email_migration'] = sanitize_text_field( $new['send_wp_user_email_migration'] );
+        }
+
         if ( isset( $new['smtp_mode'] ) ) {
             $clean['smtp_mode'] = sanitize_key( $new['smtp_mode'] );
         }
