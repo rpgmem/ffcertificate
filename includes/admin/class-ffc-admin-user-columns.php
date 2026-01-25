@@ -1,10 +1,13 @@
 <?php
+declare(strict_types=1);
+
 /**
  * FFC_Admin_User_Columns
  *
  * Adds "View Certificates" link to WordPress users list
  *
  * @since 3.1.0
+ * v3.3.0: Added strict types and type hints
  */
 
 if (!defined('ABSPATH')) exit;
@@ -14,7 +17,7 @@ class FFC_Admin_User_Columns {
     /**
      * Initialize user columns
      */
-    public static function init() {
+    public static function init(): void {
         // Add custom column to users list
         add_filter('manage_users_columns', array(__CLASS__, 'add_certificates_column'));
         add_filter('manage_users_custom_column', array(__CLASS__, 'render_certificates_column'), 10, 3);
@@ -29,7 +32,7 @@ class FFC_Admin_User_Columns {
      * @param array $columns Existing columns
      * @return array Modified columns
      */
-    public static function add_certificates_column($columns) {
+    public static function add_certificates_column( array $columns ): array {
         // Add after "Posts" column
         $new_columns = array();
 
@@ -52,7 +55,7 @@ class FFC_Admin_User_Columns {
      * @param int $user_id User ID
      * @return string Column HTML
      */
-    public static function render_certificates_column($output, $column_name, $user_id) {
+    public static function render_certificates_column( string $output, string $column_name, int $user_id ): string {
         if ($column_name !== 'ffc_certificates') {
             return $output;
         }
@@ -99,7 +102,7 @@ class FFC_Admin_User_Columns {
      * @param int $user_id User ID
      * @return int Certificate count
      */
-    private static function get_user_certificate_count($user_id) {
+    private static function get_user_certificate_count( int $user_id ): int {
         global $wpdb;
         $table = FFC_Utils::get_submissions_table();
 
@@ -114,7 +117,7 @@ class FFC_Admin_User_Columns {
     /**
      * Enqueue CSS for certificates column
      */
-    public static function enqueue_styles($hook) {
+    public static function enqueue_styles( string $hook ): void {
         // Only load on users.php page
         if ($hook !== 'users.php') {
             return;
