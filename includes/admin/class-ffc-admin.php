@@ -67,6 +67,9 @@ class Admin {
         add_action( 'admin_init', array( $this, 'handle_csv_export_request' ) );
         add_action( 'admin_init', array( $this, 'handle_submission_edit_save' ) );
         add_action( 'admin_init', array( $this, 'handle_migration_action' ) );  // ✅ v2.9.13: Unified handler
+
+        // ✅ v4.0.0 HOTFIX 14: Register admin-post handler for CSV export
+        add_action( 'admin_post_ffc_export_csv', array( $this, 'handle_csv_export_request' ) );
     }
 
     public function register_admin_menu(): void {
@@ -158,7 +161,8 @@ class Admin {
         <div class="wrap">
             <h1 class="wp-heading-inline"><?php _e( 'Submissions', 'ffc' ); ?></h1>
             <div class="ffc-admin-top-actions">
-                <form method="POST">
+                <form method="POST" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                    <input type="hidden" name="action" value="ffc_export_csv">
                     <input type="hidden" name="ffc_action" value="export_csv_smart">
                     <?php if(isset($_GET['filter_form_id']) && $_GET['filter_form_id'] > 0): ?>
                         <input type="hidden" name="form_id" value="<?php echo intval($_GET['filter_form_id']); ?>">
