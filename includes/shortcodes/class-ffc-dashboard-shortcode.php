@@ -248,6 +248,3 @@ class DashboardShortcode {
         ));
     }
 }
-
-// Initialize shortcode
-DashboardShortcode::init();

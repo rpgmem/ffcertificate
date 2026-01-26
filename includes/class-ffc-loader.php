@@ -17,9 +17,12 @@ use FreeFormCertificate\Integrations\EmailHandler;
 use FreeFormCertificate\Admin\CsvExporter;
 use FreeFormCertificate\Admin\CPT;
 use FreeFormCertificate\Admin\Admin;
+use FreeFormCertificate\Admin\AdminUserColumns;
 use FreeFormCertificate\Frontend\Frontend;
 use FreeFormCertificate\Admin\AdminAjax;
 use FreeFormCertificate\API\RestController;
+use FreeFormCertificate\Shortcodes\DashboardShortcode;
+use FreeFormCertificate\UserDashboard\AccessControl;
 
 if (!defined('ABSPATH')) exit;
 
@@ -51,6 +54,16 @@ class Loader {
         $this->admin              = new Admin($this->submission_handler, $this->csv_exporter, $this->email_handler);
         $this->frontend           = new Frontend($this->submission_handler, $this->email_handler);
         $this->admin_ajax         = new AdminAjax();
+
+        // ✅ v3.1.0: Initialize Admin User Columns (adds "View Dashboard" link to users list)
+        AdminUserColumns::init();
+
+        // ✅ v3.1.0: Initialize Dashboard Shortcode ([user_dashboard_personal])
+        DashboardShortcode::init();
+
+        // ✅ v3.1.0: Initialize Access Control (blocks wp-admin for configured roles)
+        AccessControl::init();
+
         $this->define_admin_hooks();
         $this->init_rest_api(); // Initialize REST API
     }

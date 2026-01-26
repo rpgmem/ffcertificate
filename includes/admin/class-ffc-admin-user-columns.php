@@ -130,6 +130,3 @@ class AdminUserColumns {
         wp_enqueue_style( 'ffc-admin', FFC_PLUGIN_URL . 'assets/css/ffc-admin.css', array(), FFC_VERSION );
     }
 }
-
-// Initialize (via alias for backward compatibility)
-AdminUserColumns::init();

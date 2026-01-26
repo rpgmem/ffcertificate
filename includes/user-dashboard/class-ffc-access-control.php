@@ -103,6 +103,3 @@ class AccessControl {
         );
     }
 }
-
-// Initialize access control (via alias for backward compatibility)
-AccessControl::init();
