@@ -4,14 +4,60 @@
 
 Este documento lista todos os **actions** e **filters** disponíveis no plugin Form for Certificates, permitindo que desenvolvedores estendam e customizem o comportamento do plugin.
 
+> **⚠️ Nota sobre Namespaces (v3.2.0+):** O plugin migrou para namespaces PSR-4. Todos os exemplos neste documento foram atualizados para usar a nova sintaxe com namespaces, mas **as classes antigas ainda funcionam** por compatibilidade retroativa. [Ver guia de migração](./DEVELOPER-MIGRATION-GUIDE.md)
+
+---
+
+## 🆕 **USANDO NAMESPACES PSR-4** *(Novo em v3.2.0)*
+
+A partir da versão 3.2.0, o plugin utiliza namespaces PSR-4. Os exemplos neste documento usam a **nova sintaxe recomendada**.
+
+### **Importando Classes**
+
+```php
+// Importe as classes no início do arquivo
+use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Repositories\FormRepository;
+use FreeFormCertificate\Integrations\EmailHandler;
+
+// Agora use sem o prefixo completo
+$ip = Utils::get_user_ip();
+$repo = new FormRepository();
+```
+
+### **Compatibilidade Retroativa**
+
+As classes antigas ainda funcionam até a versão 4.0.0:
+
+```php
+// ✅ Novo estilo (recomendado)
+use FreeFormCertificate\Core\Utils;
+$ip = Utils::get_user_ip();
+
+// ⚠️ Estilo antigo (funciona, mas será removido na v4.0.0)
+$ip = FFC_Utils::get_user_ip();
+```
+
+### **Classes Mais Usadas**
+
+| Classe Antiga | Novo Namespace | Import |
+|--------------|---------------|--------|
+| `FFC_Utils` | `FreeFormCertificate\Core\Utils` | `use FreeFormCertificate\Core\Utils;` |
+| `FFC_Submission_Repository` | `FreeFormCertificate\Repositories\SubmissionRepository` | `use FreeFormCertificate\Repositories\SubmissionRepository;` |
+| `FFC_Email_Handler` | `FreeFormCertificate\Integrations\EmailHandler` | `use FreeFormCertificate\Integrations\EmailHandler;` |
+| `FFC_PDF_Generator` | `FreeFormCertificate\Generators\PdfGenerator` | `use FreeFormCertificate\Generators\PdfGenerator;` |
+
+**Guia completo:** [docs/DEVELOPER-MIGRATION-GUIDE.md](./DEVELOPER-MIGRATION-GUIDE.md)
+
 ---
 
 ## 📖 **ÍNDICE**
 
-1. [Actions (Ações)](#actions)
-2. [Filters (Filtros)](#filters)
-3. [Exemplos Práticos](#exemplos-práticos)
-4. [Casos de Uso Reais](#casos-de-uso-reais)
+1. [Usando Namespaces PSR-4](#usando-namespaces-psr-4-novo-em-v320) *(Novo)*
+2. [Actions (Ações)](#actions)
+3. [Filters (Filtros)](#filters)
+4. [Exemplos Práticos](#exemplos-práticos)
+5. [Casos de Uso Reais](#casos-de-uso-reais)
 
 ---
 
