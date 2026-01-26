@@ -1,21 +1,23 @@
 <?php
 /**
- * FFC_Utils
+ * Utils
  * Utility class shared between Frontend and Admin.
  *
  * v3.3.0: Added strict types and type hints for better code safety
- * v3.2.0: Added mask_email() for privacy masking
+ * v3.2.0: Migrated to namespace (Phase 2) + Added mask_email() for privacy masking
  * v2.9.1: Added CPF validation, document formatting, and helper functions
  * v2.9.11: Added validate_security_fields() and recursive_sanitize()
  */
 
 declare(strict_types=1);
 
+namespace FreeFormCertificate\Core;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Utils {
+class Utils {
 
     /**
      * Get submissions table name with current prefix

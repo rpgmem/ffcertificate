@@ -2,19 +2,22 @@
 declare(strict_types=1);
 
 /**
- * FFC_Page_Manager
+ * PageManager
  *
  * Manages plugin pages (verification page, etc)
  *
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 2.9.16
  */
+
+namespace FreeFormCertificate\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Page_Manager {
+class PageManager {
     
     /**
      * Get verification page ID

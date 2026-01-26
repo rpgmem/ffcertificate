@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * FFC_Activity_Log
+ * ActivityLog
  * Tracks important activities for audit and debugging
  *
  * Features:
@@ -20,14 +20,17 @@ declare(strict_types=1);
  * - Fixed: Admin settings now properly enforced (v3.1.4)
  *
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 2.9.1
  */
+
+namespace FreeFormCertificate\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Activity_Log {
+class ActivityLog {
 
     /**
      * Log levels
