@@ -2,17 +2,20 @@
 declare(strict_types=1);
 
 /**
- * FFC_Access_Control
+ * AccessControl
  *
  * Controls wp-admin access for FFC users
  *
  * @since 3.1.0
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\UserDashboard;
 
 if (!defined('ABSPATH')) exit;
 
-class FFC_Access_Control {
+class AccessControl {
 
     /**
      * Initialize access control
@@ -101,5 +104,5 @@ class FFC_Access_Control {
     }
 }
 
-// Initialize access control
-FFC_Access_Control::init();
+// Initialize access control (via alias for backward compatibility)
+\FFC_Access_Control::init();

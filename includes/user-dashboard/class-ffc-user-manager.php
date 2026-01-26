@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * FFC_User_Manager
+ * UserManager
  *
  * Manages WordPress user creation and linking for FFC submissions.
  *
@@ -17,12 +17,15 @@ declare(strict_types=1);
  * - Priority: CPF/RF > Email
  *
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 3.1.0
  */
 
+namespace FreeFormCertificate\UserDashboard;
+
 if (!defined('ABSPATH')) exit;
 
-class FFC_User_Manager {
+class UserManager {
 
     /**
      * Get or create WordPress user based on CPF/RF and email
