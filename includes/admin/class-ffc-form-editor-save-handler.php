@@ -2,20 +2,23 @@
 declare(strict_types=1);
 
 /**
- * FFC_Form_Editor_Save_Handler
+ * FormEditorSaveHandler
  *
  * Handles saving and validation of form data.
  * Extracted from FFC_Form_Editor class to follow Single Responsibility Principle.
  *
  * @since 3.1.1 (Extracted from FFC_Form_Editor)
- * @version 3.3.0: Added strict types and type hints
+ * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Form_Editor_Save_Handler {
+class FormEditorSaveHandler {
 
     /**
      * Saves all form data and configurations
@@ -49,7 +52,7 @@ class FFC_Form_Editor_Save_Handler {
         // 2. Save Configurations
         if ( isset( $_POST['ffc_config'] ) ) {
             $config = $_POST['ffc_config'];
-            $allowed_html = method_exists('FFC_Utils', 'get_allowed_html_tags') ? FFC_Utils::get_allowed_html_tags() : wp_kses_allowed_html('post');
+            $allowed_html = method_exists('FFC_Utils', 'get_allowed_html_tags') ? \FFC_Utils::get_allowed_html_tags() : wp_kses_allowed_html('post');
 
             $clean_config = array();
             $clean_config['pdf_layout'] = wp_kses( $config['pdf_layout'], $allowed_html );

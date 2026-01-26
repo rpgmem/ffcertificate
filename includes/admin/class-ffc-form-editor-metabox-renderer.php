@@ -2,20 +2,23 @@
 declare(strict_types=1);
 
 /**
- * FFC_Form_Editor_Metabox_Renderer
+ * FormEditorMetaboxRenderer
  *
  * Handles rendering of all metaboxes for the Form Editor.
  * Extracted from FFC_Form_Editor class to follow Single Responsibility Principle.
  *
  * @since 3.1.1 (Extracted from FFC_Form_Editor)
- * @version 3.3.0: Added strict types and type hints
+ * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Form_Editor_Metabox_Renderer {
+class FormEditorMetaboxRenderer {
 
     /**
      * Render the shortcode sidebar metabox

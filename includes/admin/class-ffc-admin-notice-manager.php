@@ -2,21 +2,26 @@
 declare(strict_types=1);
 
 /**
- * FFC_Admin_Notice_Manager
+ * AdminNoticeManager
  *
  * Manages admin notices and redirect messages.
  * Extracted from FFC_Admin class to follow Single Responsibility Principle.
  *
  * @since 3.1.1 (Extracted from FFC_Admin)
+ * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @version 1.0.0
- * v3.3.0: Added strict types and type hints
  */
+
+declare(strict_types=1);
+
+namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Admin_Notice_Manager {
+class AdminNoticeManager {
 
     /**
      * Display admin notices based on URL parameter

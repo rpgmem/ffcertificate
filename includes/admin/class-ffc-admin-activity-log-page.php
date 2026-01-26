@@ -2,23 +2,23 @@
 declare(strict_types=1);
 
 /**
- * FFC_Admin_Activity_Log_Page
+ * AdminActivityLogPage
  * Displays activity logs with filtering and pagination
  *
  * @since 3.1.1
- * @version 3.3.0: Added strict types and type hints
+ * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// Load FFC_Activity_Log class
-if ( ! class_exists( 'FFC_Activity_Log' ) ) {
-    require_once FFC_PLUGIN_DIR . 'includes/core/class-ffc-activity-log.php';
-}
+// Autoloader handles class loading
 
-class FFC_Admin_Activity_Log_Page {
+class AdminActivityLogPage {
 
     /**
      * Register admin menu
@@ -74,8 +74,8 @@ class FFC_Admin_Activity_Log_Page {
             $args['search'] = $search;
         }
 
-        $logs = FFC_Activity_Log::get_activities( $args );
-        $total_logs = FFC_Activity_Log::count_activities( $args );
+        $logs = \FFC_Activity_Log::get_activities( $args );
+        $total_logs = \FFC_Activity_Log::count_activities( $args );
         $total_pages = ceil( $total_logs / $per_page );
 
         // Get unique actions for filter

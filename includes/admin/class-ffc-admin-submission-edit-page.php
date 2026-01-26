@@ -2,20 +2,23 @@
 declare(strict_types=1);
 
 /**
- * FFC_Admin_Submission_Edit_Page
+ * AdminSubmissionEditPage
  *
  * Manages the submission edit page rendering and saving.
  * Extracted from FFC_Admin class to follow Single Responsibility Principle.
  *
  * @since 3.1.1 (Extracted from FFC_Admin)
- * @version 3.3.0: Added strict types and type hints
+ * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Admin_Submission_Edit_Page {
+class AdminSubmissionEditPage {
 
     /**
      * Submission handler instance

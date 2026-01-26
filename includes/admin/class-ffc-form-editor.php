@@ -2,29 +2,28 @@
 declare(strict_types=1);
 
 /**
- * FFC_Form_Editor
+ * FormEditor
  * Handles the advanced UI for the Form Builder, including AJAX and layout management.
  *
- * @version 3.3.0: Added strict types and type hints
+ * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Form_Editor {
+class FormEditor {
 
     private $metabox_renderer; // ✅ v3.1.1: Metabox Renderer
     private $save_handler;     // ✅ v3.1.1: Save Handler
 
     public function __construct() {
-        // ✅ v3.1.1: Initialize Metabox Renderer (extracted from FFC_Form_Editor)
-        require_once plugin_dir_path( __FILE__ ) . 'class-ffc-form-editor-metabox-renderer.php';
-        $this->metabox_renderer = new FFC_Form_Editor_Metabox_Renderer();
-
-        // ✅ v3.1.1: Initialize Save Handler (extracted from FFC_Form_Editor)
-        require_once plugin_dir_path( __FILE__ ) . 'class-ffc-form-editor-save-handler.php';
-        $this->save_handler = new FFC_Form_Editor_Save_Handler();
+        // ✅ Autoloader handles class loading
+        $this->metabox_renderer = new \FFC_Form_Editor_Metabox_Renderer();
+        $this->save_handler = new \FFC_Form_Editor_Save_Handler();
 
         add_action( 'add_meta_boxes', array( $this, 'add_custom_metaboxes' ), 20 );
         add_action( 'save_post', array( $this->save_handler, 'save_form_data' ) );

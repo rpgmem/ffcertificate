@@ -2,12 +2,17 @@
 declare(strict_types=1);
 
 /**
- * FFC_Submission_List v3.0.0
+ * SubmissionsList v3.0.0
  * Uses Repository Pattern
  * Fixed: PDF button now uses token directly from item
  *
- * @version 3.3.0: Added strict types and type hints
+ * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Admin;
+
+use FreeFormCertificate\Repositories\SubmissionRepository;
 
 if (!defined('ABSPATH')) exit;
 
@@ -15,7 +20,7 @@ if (!class_exists('WP_List_Table')) {
     require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
 }
 
-class FFC_Submission_List extends WP_List_Table {
+class SubmissionsList extends \WP_List_Table {
     
     private $submission_handler;
     private $repository;
@@ -27,7 +32,7 @@ class FFC_Submission_List extends WP_List_Table {
             'ajax' => false
         ]);
         $this->submission_handler = $handler;
-        $this->repository = new FFC_Submission_Repository();
+        $this->repository = new SubmissionRepository();
     }
 
     public function get_columns() {
@@ -58,7 +63,7 @@ class FFC_Submission_List extends WP_List_Table {
                 
             case 'form':
                 $form_title = get_the_title((int) $item['form_id']);
-                return $form_title ? FFC_Utils::truncate($form_title, 30) : __('(Deleted)', 'ffc');
+                return $form_title ? \FFC_Utils::truncate($form_title, 30) : __('(Deleted)', 'ffc');
                 
             case 'email':
                 return esc_html($item['email']);
@@ -158,7 +163,7 @@ class FFC_Submission_List extends WP_List_Table {
                 $value = implode(', ', $value);
             }
             
-            $value = FFC_Utils::truncate($value, 40);
+            $value = \FFC_Utils::truncate($value, 40);
             $label = ucfirst(str_replace('_', ' ', $key));
             $preview_items[] = '<strong>' . esc_html($label) . ':</strong> ' . esc_html($value);
             $count++;

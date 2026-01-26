@@ -2,18 +2,21 @@
 declare(strict_types=1);
 
 /**
- * FFC_CPT
+ * CPT
  * Manages the Custom Post Type for forms, including registration and duplication logic.
  *
  * v2.9.2: OPTIMIZED to use FFC_Utils functions
- * v3.3.0: Added strict types and type hints
+ * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_CPT {
+class CPT {
 
     public function __construct() {
         add_action( 'init', array( $this, 'register_form_cpt' ) );
@@ -67,7 +70,7 @@ class FFC_CPT {
         }
 
         // ✅ OPTIMIZED v2.9.2: Check permissions before adding link
-        if ( ! FFC_Utils::current_user_can_manage() ) {
+        if ( ! \FFC_Utils::current_user_can_manage() ) {
             return $actions;
         }
 
@@ -86,10 +89,10 @@ class FFC_CPT {
      */
     public function handle_form_duplication(): void {
         // ✅ OPTIMIZED v2.9.2: Use FFC_Utils for permission check
-        if ( ! FFC_Utils::current_user_can_manage() ) {
-            FFC_Utils::debug_log( 'Unauthorized form duplication attempt', array(
+        if ( ! \FFC_Utils::current_user_can_manage() ) {
+            \FFC_Utils::debug_log( 'Unauthorized form duplication attempt', array(
                 'user_id' => get_current_user_id(),
-                'ip' => FFC_Utils::get_user_ip()
+                'ip' => \FFC_Utils::get_user_ip()
             ) );
             wp_die( esc_html__( 'You do not have permission to duplicate this post.', 'ffc' ) );
         }
@@ -101,14 +104,14 @@ class FFC_CPT {
         $post = get_post( $post_id );
 
         if ( ! $post || $post->post_type !== 'ffc_form' ) {
-            FFC_Utils::debug_log( 'Invalid form duplication request', array(
+            \FFC_Utils::debug_log( 'Invalid form duplication request', array(
                 'post_id' => $post_id,
                 'user_id' => get_current_user_id()
             ) );
             wp_die( esc_html__( 'Invalid post.', 'ffc' ) );
         }
 
-        // ✅ OPTIMIZED v2.9.2: Use FFC_Utils::sanitize_filename() for title
+        // ✅ OPTIMIZED v2.9.2: Use \FFC_Utils::sanitize_filename() for title
         $original_title = $post->post_title;
         $new_title = sprintf( __( '%s (Copy)', 'ffc' ), $original_title );
 
@@ -123,7 +126,7 @@ class FFC_CPT {
         $new_post_id = wp_insert_post( $new_post_args );
 
         if ( is_wp_error( $new_post_id ) ) {
-            FFC_Utils::debug_log( 'Form duplication failed', array(
+            \FFC_Utils::debug_log( 'Form duplication failed', array(
                 'error' => $new_post_id->get_error_message(),
                 'original_post_id' => $post_id
             ) );
@@ -153,11 +156,11 @@ class FFC_CPT {
         }
 
         // ✅ OPTIMIZED v2.9.2: Log successful duplication
-        FFC_Utils::debug_log( 'Form duplicated successfully', array(
+        \FFC_Utils::debug_log( 'Form duplicated successfully', array(
             'original_post_id' => $post_id,
             'new_post_id' => $new_post_id,
-            'original_title' => FFC_Utils::truncate( $original_title, 50 ),
-            'new_title' => FFC_Utils::truncate( $new_title, 50 ),
+            'original_title' => \FFC_Utils::truncate( $original_title, 50 ),
+            'new_title' => \FFC_Utils::truncate( $new_title, 50 ),
             'metadata_copied' => implode( ', ', $metadata_copied ),
             'user_id' => get_current_user_id()
         ) );

@@ -2,10 +2,11 @@
 declare(strict_types=1);
 
 /**
- * FFC_CSV_Exporter
+ * CSVExporter
  * Handles CSV export functionality with dynamic columns and filtering.
- * 
- * v3.3.0: Added strict types and type hints
+ *
+ * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  * v3.0.3: REFACTORED - Uses Repository Pattern instead of direct SQL
  * v3.0.2: FIXED - Use magic_token column, conditional columns for edit info
  * v3.0.1: COMPLETE - All columns including token, consent, edit history, status, auth_code
@@ -13,14 +14,18 @@ declare(strict_types=1);
  * v2.9.2: OPTIMIZED to use FFC_Utils functions
  */
 
+namespace FreeFormCertificate\Admin;
+
+use FreeFormCertificate\Repositories\SubmissionRepository;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_CSV_Exporter {
-    
+class CSVExporter {
+
     /**
-     * @var FFC_Submission_Repository Repository instance
+     * @var SubmissionRepository Repository instance
      */
     protected $repository;
 
@@ -29,7 +34,7 @@ class FFC_CSV_Exporter {
      */
     public function __construct() {
         // ✅ Use Repository Pattern instead of direct DB access
-        $this->repository = new FFC_Submission_Repository();
+        $this->repository = new SubmissionRepository();
     }
 
     /**
@@ -105,7 +110,7 @@ class FFC_CSV_Exporter {
         // Decrypt email
         $email = '';
         if ( !empty( $row['email_encrypted'] ) ) {
-            $email = FFC_Encryption::decrypt( $row['email_encrypted'] );
+            $email = \FFC_Encryption::decrypt( $row['email_encrypted'] );
         } elseif ( !empty( $row['email'] ) ) {
             $email = $row['email']; // Fallback for non-encrypted data
         }
@@ -113,7 +118,7 @@ class FFC_CSV_Exporter {
         // Decrypt IP
         $user_ip = '';
         if ( !empty( $row['user_ip_encrypted'] ) ) {
-            $user_ip = FFC_Encryption::decrypt( $row['user_ip_encrypted'] );
+            $user_ip = \FFC_Encryption::decrypt( $row['user_ip_encrypted'] );
         } elseif ( !empty( $row['user_ip'] ) ) {
             $user_ip = $row['user_ip']; // Fallback for non-encrypted data
         }
@@ -191,7 +196,7 @@ class FFC_CSV_Exporter {
      * v3.0.3: REFACTORED - Uses Repository instead of direct SQL
      */
     public function export_csv( ?int $form_id = null, string $status = 'publish' ): void {
-        FFC_Utils::debug_log( 'CSV export started', array(
+        \FFC_Utils::debug_log( 'CSV export started', array(
             'form_id' => $form_id,
             'status' => $status
         ) );
@@ -207,7 +212,7 @@ class FFC_CSV_Exporter {
         $include_edit_columns = $this->repository->hasEditInfo();
         
         $form_title = $form_id ? get_the_title( $form_id ) : 'all-certificates';
-        $filename = FFC_Utils::sanitize_filename( $form_title ) . '-' . date( 'Y-m-d' ) . '.csv';
+        $filename = \FFC_Utils::sanitize_filename( $form_title ) . '-' . date( 'Y-m-d' ) . '.csv';
         
         header( 'Content-Type: text/csv; charset=utf-8' );
         header( "Content-Disposition: attachment; filename={$filename}" );
@@ -240,7 +245,7 @@ class FFC_CSV_Exporter {
             wp_die( __( 'Security check failed.', 'ffc' ) );
         }
 
-        if ( ! FFC_Utils::current_user_can_manage() ) {
+        if ( ! \FFC_Utils::current_user_can_manage() ) {
             wp_die( __( 'You do not have permission to export data.', 'ffc' ) );
         }
 

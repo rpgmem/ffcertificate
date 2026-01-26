@@ -2,16 +2,20 @@
 declare(strict_types=1);
 
 /**
- * FFC Admin AJAX Handlers
+ * AdminAjax Handlers
  * Handles AJAX requests from admin interface
- * v3.3.0: Added strict types and type hints
+ *
+ * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Admin_Ajax {
+class AdminAjax {
 
     public function __construct() {
         // Register AJAX handlers

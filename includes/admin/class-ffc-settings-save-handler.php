@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * FFC_Settings_Save_Handler
+ * SettingsSaveHandler
  * Handles saving and validation of all settings types
  *
  * Extracted from FFC_Settings (v3.1.1) following Single Responsibility Principle
@@ -15,14 +15,17 @@ declare(strict_types=1);
  *
  * @package FFC
  * @since 3.1.1
- * @version 3.3.0: Added strict types and type hints
+ * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Settings_Save_Handler {
+class SettingsSaveHandler {
 
     private $submission_handler;
 

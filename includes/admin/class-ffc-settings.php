@@ -2,10 +2,10 @@
 declare(strict_types=1);
 
 /**
- * FFC_Settings
+ * Settings
  *
  * Manages plugin settings with modular tab system
- * Acts as coordinator, delegating save operations to FFC_Settings_Save_Handler
+ * Acts as coordinator, delegating save operations to SettingsSaveHandler
  *
  * Responsibilities:
  * - Load and manage settings tabs
@@ -17,25 +17,27 @@ declare(strict_types=1);
  *
  * @package FFC
  * @since 1.0.0
- * @version 3.3.0: Added strict types and type hints
+ * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Settings {
+class Settings {
 
     private $submission_handler;
     private $tabs = array();
     private $save_handler;  // ✅ v3.1.1: Save Handler
 
-    public function __construct( FFC_Submission_Handler $handler ) {
+    public function __construct( object $handler ) {
         $this->submission_handler = $handler;
 
-        // ✅ v3.1.1: Initialize Save Handler (extracted from FFC_Settings)
-        require_once plugin_dir_path( __FILE__ ) . 'class-ffc-settings-save-handler.php';
-        $this->save_handler = new FFC_Settings_Save_Handler( $handler );
+        // ✅ Autoloader handles class loading
+        $this->save_handler = new \FFC_Settings_Save_Handler( $handler );
 
         // Load tabs
         $this->load_tabs();
@@ -308,7 +310,7 @@ class FFC_Settings {
         
         // Load Migration Manager
         require_once FFC_PLUGIN_DIR . 'includes/migrations/class-ffc-migration-manager.php';
-        $migration_manager = new FFC_Migration_Manager();
+        $migration_manager = new \FFC_Migration_Manager();
         
         // Run migration
         $result = $migration_manager->run_migration( $migration_key );

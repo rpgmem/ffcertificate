@@ -2,17 +2,20 @@
 declare(strict_types=1);
 
 /**
- * FFC_Admin_User_Columns
+ * AdminUserColumns
  *
  * Adds "View Certificates" link to WordPress users list
  *
  * @since 3.1.0
- * v3.3.0: Added strict types and type hints
+ * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Admin;
 
 if (!defined('ABSPATH')) exit;
 
-class FFC_Admin_User_Columns {
+class AdminUserColumns {
 
     /**
      * Initialize user columns
@@ -104,7 +107,7 @@ class FFC_Admin_User_Columns {
      */
     private static function get_user_certificate_count( int $user_id ): int {
         global $wpdb;
-        $table = FFC_Utils::get_submissions_table();
+        $table = \FFC_Utils::get_submissions_table();
 
         $count = $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND status != 'trash'",
@@ -128,5 +131,5 @@ class FFC_Admin_User_Columns {
     }
 }
 
-// Initialize
-FFC_Admin_User_Columns::init();
+// Initialize (via alias for backward compatibility)
+\FFC_Admin_User_Columns::init();
