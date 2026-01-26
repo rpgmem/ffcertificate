@@ -2,9 +2,10 @@
 declare(strict_types=1);
 
 /**
- * CSVExporter
+ * CsvExporter (formerly CSVExporter)
  * Handles CSV export functionality with dynamic columns and filtering.
  *
+ * @version 4.0.0 - Renamed to CsvExporter for PSR-4 compliance (Phase 4 hotfix)
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * v3.0.3: REFACTORED - Uses Repository Pattern instead of direct SQL
@@ -22,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class CSVExporter {
+class CsvExporter {
 
     /**
      * @var SubmissionRepository Repository instance

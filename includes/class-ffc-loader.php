@@ -14,7 +14,7 @@ namespace FreeFormCertificate;
 
 use FreeFormCertificate\Submissions\SubmissionHandler;
 use FreeFormCertificate\Integrations\EmailHandler;
-use FreeFormCertificate\Admin\CSVExporter;
+use FreeFormCertificate\Admin\CsvExporter;
 use FreeFormCertificate\Admin\CPT;
 use FreeFormCertificate\Admin\Admin;
 use FreeFormCertificate\Frontend\Frontend;
@@ -46,7 +46,7 @@ class Loader {
         // Autoloader handles all class loading now
         $this->submission_handler = new SubmissionHandler();
         $this->email_handler      = new EmailHandler();
-        $this->csv_exporter       = new CSVExporter();
+        $this->csv_exporter       = new CsvExporter();
         $this->cpt                = new CPT();
         $this->admin              = new Admin($this->submission_handler, $this->csv_exporter, $this->email_handler);
         $this->frontend           = new Frontend($this->submission_handler, $this->email_handler);
