@@ -1,5 +1,26 @@
 # 📋 HOOKS - REFERÊNCIA RÁPIDA
 
+> **🆕 Namespaces PSR-4 (v3.2.0+):** Plugin agora usa namespaces. Veja exemplos atualizados abaixo. [Guia completo](./DEVELOPER-MIGRATION-GUIDE.md)
+
+## 🆕 **USANDO NAMESPACES** *(Novo em v3.2.0)*
+
+```php
+// Importe no início do arquivo
+use FreeFormCertificate\Core\Utils;
+use FreeFormCertificate\Integrations\EmailHandler;
+
+// Use sem prefixo FFC_
+$ip = Utils::get_user_ip();
+$handler = new EmailHandler();
+```
+
+**Classes principais:**
+- `FFC_Utils` → `FreeFormCertificate\Core\Utils`
+- `FFC_Email_Handler` → `FreeFormCertificate\Integrations\EmailHandler`
+- [Ver todas](./DEVELOPER-MIGRATION-GUIDE.md)
+
+---
+
 ## 🔔 **ACTIONS - Lista Completa**
 
 | Hook | Parâmetros | Quando dispara |
@@ -155,5 +176,5 @@ add_filter('ffc_pdf_content', function($content) {
 
 ---
 
-**Versão:** 1.0.0  
-**Última atualização:** 2026-01-13
+**Versão:** 1.1.0 (Namespaces PSR-4)
+**Última atualização:** 2026-01-26
