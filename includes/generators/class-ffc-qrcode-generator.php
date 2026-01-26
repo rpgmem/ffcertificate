@@ -39,7 +39,7 @@ class QRCodeGenerator {
      */
     public function __construct() {
         // Load phpqrcode library
-        if ( ! class_exists( 'QRcode' ) ) {
+        if ( ! class_exists( '\\QRcode' ) ) {
             require_once FFC_PLUGIN_DIR . 'libs/phpqrcode/qrlib.php';
         }
         
@@ -203,7 +203,7 @@ class QRCodeGenerator {
             $temp_file = tempnam( sys_get_temp_dir(), 'ffc_qr_' );
             
             // Generate QR Code
-            QRcode::png(
+            \QRcode::png(
                 $url,
                 $temp_file,
                 $this->get_error_correction_constant( $params['error_level'] ),
@@ -243,14 +243,14 @@ class QRCodeGenerator {
     private function get_error_correction_constant( string $level ): int {
         switch ( strtoupper( $level ) ) {
             case 'L':
-                return QR_ECLEVEL_L; // 7%
+                return \QR_ECLEVEL_L; // 7%
             case 'Q':
-                return QR_ECLEVEL_Q; // 25%
+                return \QR_ECLEVEL_Q; // 25%
             case 'H':
-                return QR_ECLEVEL_H; // 30%
+                return \QR_ECLEVEL_H; // 30%
             case 'M':
             default:
-                return QR_ECLEVEL_M; // 15%
+                return \QR_ECLEVEL_M; // 15%
         }
     }
     
