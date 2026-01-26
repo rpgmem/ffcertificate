@@ -2,16 +2,19 @@
 declare(strict_types=1);
 
 /**
- * FFC_Form_Cache
+ * FormCache
  * Caching layer for form configurations to improve performance
  *
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 2.9.1
  */
 
+namespace FreeFormCertificate\Submissions;
+
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-class FFC_Form_Cache {
+class FormCache {
     
     const CACHE_GROUP = 'ffc_forms';
     
