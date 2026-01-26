@@ -211,6 +211,7 @@ class FFC_Autoloader {
             'Security' => 'security',
 
             // Settings namespace
+            'Settings' => 'settings',
             'Settings\\Tabs' => 'settings/tabs',
             'Settings\\Views' => 'settings/views',
 

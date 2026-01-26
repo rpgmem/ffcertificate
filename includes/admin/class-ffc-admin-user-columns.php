@@ -132,4 +132,4 @@ class AdminUserColumns {
 }
 
 // Initialize (via alias for backward compatibility)
-\FFC_Admin_User_Columns::init();
+AdminUserColumns::init();
