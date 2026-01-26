@@ -111,7 +111,14 @@ class VerificationHandler {
      * @return array Result array with 'found', 'submission', 'data', 'magic_token'
      */
     public function verify_by_magic_token( string $token ): array {
+        // Debug logging
+        \FreeFormCertificate\Core\Utils::debug_log( 'Magic token verification started', array(
+            'token_preview' => substr( $token, 0, 8 ) . '...',
+            'token_length' => strlen( $token )
+        ) );
+
         if ( ! \FreeFormCertificate\Generators\MagicLinkHelper::is_valid_token( $token ) ) {
+            \FreeFormCertificate\Core\Utils::debug_log( 'Magic token invalid format' );
             return array(
                 'found' => false,
                 'submission' => null,
@@ -125,6 +132,7 @@ class VerificationHandler {
         $user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
         $rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
         if ( ! $rate_check['allowed'] ) {
+            \FreeFormCertificate\Core\Utils::debug_log( 'Magic token rate limited' );
             return array(
                 'found' => false,
                 'submission' => null,
@@ -136,6 +144,11 @@ class VerificationHandler {
 
         // Get submission by token
         $submission = $this->submission_handler->get_submission_by_token( $token );
+
+        \FreeFormCertificate\Core\Utils::debug_log( 'Magic token lookup result', array(
+            'found' => !empty( $submission ),
+            'submission_id' => $submission ? $submission['id'] : null
+        ) );
 
         if ( ! $submission ) {
             return array(

@@ -241,19 +241,40 @@ class CsvExporter {
      * Handle export request from admin
      */
     public function handle_export_request(): void {
-        if ( ! isset( $_POST['ffc_export_csv_action'] ) || 
-             ! wp_verify_nonce( $_POST['ffc_export_csv_action'], 'ffc_export_csv_nonce' ) ) {
-            wp_die( __( 'Security check failed.', 'ffc' ) );
-        }
+        try {
+            // Debug logging
+            \FreeFormCertificate\Core\Utils::debug_log( 'CSV export handler called', array(
+                'POST' => $_POST,
+                'has_nonce' => isset( $_POST['ffc_export_csv_action'] )
+            ) );
 
-        if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
-            wp_die( __( 'You do not have permission to export data.', 'ffc' ) );
-        }
+            if ( ! isset( $_POST['ffc_export_csv_action'] ) ||
+                 ! wp_verify_nonce( $_POST['ffc_export_csv_action'], 'ffc_export_csv_nonce' ) ) {
+                \FreeFormCertificate\Core\Utils::debug_log( 'CSV export nonce failed' );
+                wp_die( __( 'Security check failed.', 'ffc' ) );
+            }
 
-        $form_id = !empty( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : null;
-        $status = isset( $_POST['status'] ) ? sanitize_key( $_POST['status'] ) : 'publish';
-        
-        $this->export_csv( $form_id, $status );
+            if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+                \FreeFormCertificate\Core\Utils::debug_log( 'CSV export permission denied' );
+                wp_die( __( 'You do not have permission to export data.', 'ffc' ) );
+            }
+
+            $form_id = !empty( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : null;
+            $status = isset( $_POST['status'] ) ? sanitize_key( $_POST['status'] ) : 'publish';
+
+            \FreeFormCertificate\Core\Utils::debug_log( 'CSV export starting', array(
+                'form_id' => $form_id,
+                'status' => $status
+            ) );
+
+            $this->export_csv( $form_id, $status );
+        } catch ( \Exception $e ) {
+            \FreeFormCertificate\Core\Utils::debug_log( 'CSV export exception', array(
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ) );
+            wp_die( __( 'Error generating CSV: ', 'ffc' ) . $e->getMessage() );
+        }
     }
 
     /**
