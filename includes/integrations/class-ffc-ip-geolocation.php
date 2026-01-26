@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * FFC_IP_Geolocation
+ * IpGeolocation
  *
  * Handles IP-based geolocation using external APIs
  *
@@ -12,12 +12,15 @@ declare(strict_types=1);
  *
  * @package FFC
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 3.0.0
  */
 
+namespace FreeFormCertificate\Integrations;
+
 if (!defined('ABSPATH')) exit;
 
-class FFC_IP_Geolocation {
+class IpGeolocation {
 
     /**
      * Get location data by IP address
