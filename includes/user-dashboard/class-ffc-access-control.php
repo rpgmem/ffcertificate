@@ -105,4 +105,4 @@ class AccessControl {
 }
 
 // Initialize access control (via alias for backward compatibility)
-\FFC_Access_Control::init();
+AccessControl::init();

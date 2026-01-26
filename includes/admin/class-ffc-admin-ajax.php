@@ -197,4 +197,4 @@ class AdminAjax {
 }
 
 // Initialize
-new \FFC_Admin_Ajax();
+new AdminAjax();

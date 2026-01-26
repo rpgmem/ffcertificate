@@ -250,4 +250,4 @@ class DashboardShortcode {
 }
 
 // Initialize shortcode
-\FFC_Dashboard_Shortcode::init();
+DashboardShortcode::init();
