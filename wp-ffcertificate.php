@@ -73,7 +73,7 @@ require_once FFC_PLUGIN_DIR . 'includes/class-ffc-loader.php';
  * Run the plugin
  */
 function run_free_form_certificate() {
-    $plugin = new \Free_Form_Certificate_Loader();
+    $plugin = new \FreeFormCertificate\Loader();
     $plugin->run();
 }
 
