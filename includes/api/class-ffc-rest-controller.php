@@ -784,38 +784,19 @@ class RestController {
             $settings = get_option('ffc_settings', array());
             $date_format = $settings['date_format'] ?? 'F j, Y';
 
-            // Get user email for searching
-            $user = get_userdata($user_id);
-            $user_email = $user ? $user->user_email : '';
-
-            // Get all submissions for this user
-            // Search by user_id OR encrypted email (for certificates created before user linking)
-            if (!empty($user_email)) {
-                // Encrypt email for comparison
-                $encrypted_email = \FreeFormCertificate\Core\Encryption::encrypt($user_email);
-
-                $submissions = $wpdb->get_results($wpdb->prepare(
-                    "SELECT s.*, p.post_title as form_title
-                     FROM {$table} s
-                     LEFT JOIN {$wpdb->posts} p ON s.form_id = p.ID
-                     WHERE (s.user_id = %d OR s.email_encrypted = %s)
-                     AND s.status != 'trash'
-                     ORDER BY s.submission_date DESC",
-                    $user_id,
-                    $encrypted_email
-                ), ARRAY_A);
-            } else {
-                // Fallback to user_id only if no email
-                $submissions = $wpdb->get_results($wpdb->prepare(
-                    "SELECT s.*, p.post_title as form_title
-                     FROM {$table} s
-                     LEFT JOIN {$wpdb->posts} p ON s.form_id = p.ID
-                     WHERE s.user_id = %d
-                     AND s.status != 'trash'
-                     ORDER BY s.submission_date DESC",
-                    $user_id
-                ), ARRAY_A);
-            }
+            // Get all submissions for this user by user_id
+            // Note: Email-based search not possible with encrypted emails
+            // (each encryption produces different result by design)
+            // User must run the "Link Users" migration to associate old certificates
+            $submissions = $wpdb->get_results($wpdb->prepare(
+                "SELECT s.*, p.post_title as form_title
+                 FROM {$table} s
+                 LEFT JOIN {$wpdb->posts} p ON s.form_id = p.ID
+                 WHERE s.user_id = %d
+                 AND s.status != 'trash'
+                 ORDER BY s.submission_date DESC",
+                $user_id
+            ), ARRAY_A);
 
             // Format response
             $certificates = array();
