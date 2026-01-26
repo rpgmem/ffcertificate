@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * FFC_Migration_User_Link
+ * MigrationUserLink
  *
  * Adds user_id column to ffc_submissions and links existing submissions to WordPress users.
  *
@@ -15,12 +15,15 @@ declare(strict_types=1);
  * 4. Conflict handling: Log error + Skip (2 CPFs, same email)
  *
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 3.1.0
  */
 
+namespace FreeFormCertificate\Migrations;
+
 if (!defined('ABSPATH')) exit;
 
-class FFC_Migration_User_Link {
+class MigrationUserLink {
 
     /**
      * Run the migration
@@ -29,7 +32,7 @@ class FFC_Migration_User_Link {
      */
     public static function run(): array {
         global $wpdb;
-        $table = FFC_Utils::get_submissions_table();
+        $table = \FFC_Utils::get_submissions_table();
 
         // 1. Add user_id column if not exists
         self::add_user_id_column($table);
@@ -116,7 +119,7 @@ class FFC_Migration_User_Link {
                     continue;
                 }
 
-                $email = FFC_Encryption::decrypt($submission['email_encrypted']);
+                $email = \FFC_Encryption::decrypt($submission['email_encrypted']);
 
                 if (empty($email) || !is_email($email)) {
                     $errors[] = sprintf(
@@ -189,16 +192,8 @@ class FFC_Migration_User_Link {
                 self::set_user_display_name($user_id, $submission);
 
                 // STEP 5.2: Send password reset email if enabled (default: disabled)
-                // Load Email Handler if not already loaded
-                if (!class_exists('FFC_Email_Handler')) {
-                    $email_handler_file = FFC_PLUGIN_DIR . 'includes/integrations/class-ffc-email-handler.php';
-                    if (file_exists($email_handler_file)) {
-                        require_once $email_handler_file;
-                    }
-                }
-
                 if (class_exists('FFC_Email_Handler')) {
-                    $email_handler = new FFC_Email_Handler();
+                    $email_handler = new \FFC_Email_Handler();
                     $email_handler->send_wp_user_notification($user_id, 'migration');
                 }
             }
@@ -232,7 +227,7 @@ class FFC_Migration_User_Link {
 
         // Log errors if any
         if (!empty($errors)) {
-            FFC_Debug::log_migrations('Migration User Link - Errors', $errors);
+            \FFC_Debug::log_migrations('Migration User Link - Errors', $errors);
 
             // Store errors in option for admin review
             update_option('ffc_migration_user_link_errors', $errors);
@@ -264,7 +259,7 @@ class FFC_Migration_User_Link {
         }
 
         try {
-            $data_json = FFC_Encryption::decrypt($submission['data_encrypted']);
+            $data_json = \FFC_Encryption::decrypt($submission['data_encrypted']);
             $data = json_decode($data_json, true);
 
             if (!is_array($data)) {
@@ -293,7 +288,7 @@ class FFC_Migration_User_Link {
 
         } catch (Exception $e) {
             // Silently fail - name is not critical for user creation
-            FFC_Debug::log_migrations('Failed to extract name for user', array(
+            \FFC_Debug::log_migrations('Failed to extract name for user', array(
                 'user_id' => $user_id,
                 'error' => $e->getMessage()
             ));

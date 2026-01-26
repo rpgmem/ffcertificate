@@ -1,22 +1,25 @@
 <?php
 /**
- * FFC_Data_Sanitizer
+ * DataSanitizer
  *
  * Data sanitization utility for migrations.
  * Handles cleaning and validating field values during migration.
  *
  * @since 3.1.0 (Extracted from FFC_Migration_Manager v3.1.0 refactor)
  * @version 3.3.0 - Added strict types and type hints for better code safety
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @version 1.0.0
  */
 
 declare(strict_types=1);
 
+namespace FreeFormCertificate\Migrations;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Data_Sanitizer {
+class DataSanitizer {
 
     /**
      * Sanitize a field value based on its configuration

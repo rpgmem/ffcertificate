@@ -1,13 +1,13 @@
 <?php
 /**
- * FFC_Migration_Manager (Facade)
+ * MigrationManager (Facade)
  *
  * ⭐ REFACTORED v3.1.0 - Strategy Pattern Implementation ⭐
  *
  * This class is now a FACADE that delegates to specialized components:
- * - FFC_Migration_Registry (configuration)
- * - FFC_Migration_Status_Calculator (status calculation with strategies)
- * - FFC_Data_Sanitizer (utilities)
+ * - MigrationRegistry (configuration)
+ * - MigrationStatusCalculator (status calculation with strategies)
+ * - DataSanitizer (utilities)
  * - Migration Strategies (execution)
  *
  * BEFORE Refactoring:
@@ -24,16 +24,19 @@
  *
  * @since 2.9.13
  * @version 3.3.0 - Added strict types and type hints for better code safety
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @version 3.1.0 (Refactored)
  */
 
 declare(strict_types=1);
 
+namespace FreeFormCertificate\Migrations;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Migration_Manager {
+class MigrationManager {
 
     /**
      * Database table name
@@ -45,14 +48,14 @@ class FFC_Migration_Manager {
     /**
      * Migration registry instance
      *
-     * @var FFC_Migration_Registry
+     * @var MigrationRegistry
      */
     private $registry;
 
     /**
      * Status calculator instance
      *
-     * @var FFC_Migration_Status_Calculator
+     * @var MigrationStatusCalculator
      */
     private $status_calculator;
 
@@ -63,40 +66,12 @@ class FFC_Migration_Manager {
      */
     public function __construct() {
         global $wpdb;
-        $this->table_name = FFC_Utils::get_submissions_table();
+        $this->table_name = \FFC_Utils::get_submissions_table();
 
-        // Load required classes
-        $this->load_dependencies();
-
+        // Autoloader handles all class loading
         // Initialize components
-        $this->registry = new FFC_Migration_Registry();
-        $this->status_calculator = new FFC_Migration_Status_Calculator( $this->registry );
-    }
-
-    /**
-     * Load all required dependencies
-     *
-     * @return void
-     */
-    private function load_dependencies(): void {
-        $base_path = dirname( __FILE__ );
-
-        // Core components
-        require_once $base_path . '/class-ffc-migration-registry.php';
-        require_once $base_path . '/class-ffc-data-sanitizer.php';
-        require_once $base_path . '/class-ffc-migration-status-calculator.php';
-
-        // Strategy interface and implementations
-        require_once $base_path . '/strategies/interface-ffc-migration-strategy.php';
-        require_once $base_path . '/strategies/class-ffc-field-migration-strategy.php';
-        require_once $base_path . '/strategies/class-ffc-magic-token-migration-strategy.php';
-        require_once $base_path . '/strategies/class-ffc-encryption-migration-strategy.php';
-        require_once $base_path . '/strategies/class-ffc-cleanup-migration-strategy.php';
-
-        // Optional: User link strategy (if exists)
-        if ( file_exists( $base_path . '/class-ffc-migration-user-link.php' ) ) {
-            require_once $base_path . '/class-ffc-migration-user-link.php';
-        }
+        $this->registry = new MigrationRegistry();
+        $this->status_calculator = new MigrationStatusCalculator( $this->registry );
     }
 
     /**
@@ -285,9 +260,9 @@ class FFC_Migration_Manager {
         if ( ! is_wp_error( $result ) && $result['success'] ) {
             // Log cleanup action
             if ( class_exists( 'FFC_Activity_Log' ) ) {
-                FFC_Activity_Log::log(
+                \FFC_Activity_Log::log(
                     'data_cleanup_executed',
-                    FFC_Activity_Log::LEVEL_WARNING,
+                    \FFC_Activity_Log::LEVEL_WARNING,
                     array(
                         'cleaned' => $result['processed'],
                         'user_id' => get_current_user_id()
@@ -346,9 +321,9 @@ class FFC_Migration_Manager {
 
         // Log critical action
         if ( class_exists( 'FFC_Activity_Log' ) ) {
-            FFC_Activity_Log::log(
+            \FFC_Activity_Log::log(
                 'columns_dropped',
-                FFC_Activity_Log::LEVEL_CRITICAL,
+                \FFC_Activity_Log::LEVEL_CRITICAL,
                 array(
                     'dropped_columns' => $dropped,
                     'errors' => $errors,

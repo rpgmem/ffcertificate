@@ -2,20 +2,23 @@
 declare(strict_types=1);
 
 /**
- * FFC_Migration_Registry
+ * MigrationRegistry
  *
  * Centralized registry for all available migrations.
  * Separates configuration from execution logic.
  *
  * @since 3.1.0 (Extracted from FFC_Migration_Manager v3.1.0 refactor)
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Migrations;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Migration_Registry {
+class MigrationRegistry {
 
     /**
      * Field definitions for migrations
@@ -56,14 +59,14 @@ class FFC_Migration_Registry {
             'cpf_rf' => array(
                 'json_keys'         => array( 'cpf_rf', 'cpf', 'rf', 'documento' ),
                 'column_name'       => 'cpf_rf',
-                'sanitize_callback' => array( 'FFC_Utils', 'clean_identifier' ),
+                'sanitize_callback' => array( '\FFC_Utils', 'clean_identifier' ),
                 'icon'              => '🆔',
                 'description'       => __( 'CPF or RF number', 'ffc' )
             ),
             'auth_code' => array(
                 'json_keys'         => array( 'auth_code', 'codigo_autenticacao', 'verification_code' ),
                 'column_name'       => 'auth_code',
-                'sanitize_callback' => array( 'FFC_Utils', 'clean_auth_code' ),
+                'sanitize_callback' => array( '\FFC_Utils', 'clean_auth_code' ),
                 'icon'              => '🔐',
                 'description'       => __( 'Authentication code', 'ffc' )
             )

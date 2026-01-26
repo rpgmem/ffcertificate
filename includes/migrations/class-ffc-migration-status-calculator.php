@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * FFC_Migration_Status_Calculator
+ * MigrationStatusCalculator
  *
  * ⭐ CRITICAL COMPONENT ⭐
  *
@@ -14,16 +14,19 @@ declare(strict_types=1);
  *
  * @since 3.1.0 (Migration Manager refactor - Phase 2)
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Migrations;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Migration_Status_Calculator {
+class MigrationStatusCalculator {
 
     /**
-     * @var FFC_Migration_Registry
+     * @var MigrationRegistry
      */
     private $registry;
 
@@ -40,12 +43,12 @@ class FFC_Migration_Status_Calculator {
     /**
      * Constructor
      *
-     * @param FFC_Migration_Registry $registry Migration registry instance
+     * @param MigrationRegistry $registry Migration registry instance
      */
-    public function __construct( FFC_Migration_Registry $registry ) {
+    public function __construct( MigrationRegistry $registry ) {
         global $wpdb;
         $this->registry = $registry;
-        $this->table_name = FFC_Utils::get_submissions_table();
+        $this->table_name = \FFC_Utils::get_submissions_table();
 
         // Initialize strategies
         $this->initialize_strategies();
@@ -61,22 +64,19 @@ class FFC_Migration_Status_Calculator {
      */
     private function initialize_strategies(): void {
         // Field migration strategy (handles email, cpf_rf, auth_code)
-        $field_strategy = new FFC_Field_Migration_Strategy( $this->registry );
+        $field_strategy = new \FFC_Field_Migration_Strategy( $this->registry );
 
         $this->strategies['email']     = $field_strategy;
         $this->strategies['cpf_rf']    = $field_strategy;
         $this->strategies['auth_code'] = $field_strategy;
 
         // Special migration strategies
-        $this->strategies['magic_tokens']          = new FFC_Magic_Token_Migration_Strategy();
-        $this->strategies['encrypt_sensitive_data'] = new FFC_Encryption_Migration_Strategy();
-        $this->strategies['cleanup_unencrypted']   = new FFC_Cleanup_Migration_Strategy();
+        $this->strategies['magic_tokens']          = new \FFC_Magic_Token_Migration_Strategy();
+        $this->strategies['encrypt_sensitive_data'] = new \FFC_Encryption_Migration_Strategy();
+        $this->strategies['cleanup_unencrypted']   = new \FFC_Cleanup_Migration_Strategy();
 
-        // ✅ v3.1.1: User link strategy (uses strategy pattern)
-        if ( ! class_exists( 'FFC_User_Link_Migration_Strategy' ) ) {
-            require_once FFC_PLUGIN_DIR . 'includes/migrations/strategies/class-ffc-user-link-migration-strategy.php';
-        }
-        $this->strategies['user_link'] = new FFC_User_Link_Migration_Strategy();
+        // ✅ v3.1.1: User link strategy (uses strategy pattern) - autoloader handles loading
+        $this->strategies['user_link'] = new \FFC_User_Link_Migration_Strategy();
 
         // Allow plugins to register custom strategies
         $this->strategies = apply_filters( 'ffc_migration_strategies', $this->strategies );
