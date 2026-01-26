@@ -1,19 +1,22 @@
 <?php
 /**
- * FFC_Migration_Strategy Interface
+ * MigrationStrategyInterface
  *
  * Defines the contract that all migration strategies must follow.
  * Part of the Strategy Pattern implementation for migration system refactoring.
  *
  * @since 3.1.0 (Migration Manager refactor)
  * @version 3.3.0 - Added type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Migrations\Strategies;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-interface FFC_Migration_Strategy {
+interface MigrationStrategyInterface {
 
     /**
      * Calculate migration status

@@ -2,20 +2,23 @@
 declare(strict_types=1);
 
 /**
- * FFC_Field_Migration_Strategy
+ * FieldMigrationStrategy
  *
  * Generic strategy for migrating fields from JSON data to dedicated columns.
  * Handles email, cpf_rf, auth_code, and any other configured field migrations.
  *
  * @since 3.1.0 (Extracted from FFC_Migration_Manager)
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Migrations\Strategies;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Field_Migration_Strategy implements FFC_Migration_Strategy {
+class FieldMigrationStrategy implements MigrationStrategyInterface {
 
     /**
      * @var string Database table name
@@ -23,18 +26,18 @@ class FFC_Field_Migration_Strategy implements FFC_Migration_Strategy {
     private string $table_name;
 
     /**
-     * @var FFC_Migration_Registry
+     * @var mixed Registry instance (accepts both old and new classes via alias)
      */
     private $registry;
 
     /**
      * Constructor
      *
-     * @param FFC_Migration_Registry $registry Migration registry instance
+     * @param mixed $registry Migration registry instance
      */
     public function __construct( $registry ) {
         global $wpdb;
-        $this->table_name = FFC_Utils::get_submissions_table();
+        $this->table_name = \FFC_Utils::get_submissions_table();
         $this->registry = $registry;
     }
 

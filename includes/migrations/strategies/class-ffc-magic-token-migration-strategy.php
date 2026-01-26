@@ -2,20 +2,23 @@
 declare(strict_types=1);
 
 /**
- * FFC_Magic_Token_Migration_Strategy
+ * MagicTokenMigrationStrategy
  *
  * Strategy for generating unique magic tokens for secure certificate access.
  * Generates cryptographically secure tokens for submissions that don't have them.
  *
  * @since 3.1.0 (Extracted from FFC_Migration_Manager)
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Migrations\Strategies;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Magic_Token_Migration_Strategy implements FFC_Migration_Strategy {
+class MagicTokenMigrationStrategy implements MigrationStrategyInterface {
 
     /**
      * @var string Database table name
@@ -27,7 +30,7 @@ class FFC_Magic_Token_Migration_Strategy implements FFC_Migration_Strategy {
      */
     public function __construct() {
         global $wpdb;
-        $this->table_name = FFC_Utils::get_submissions_table();
+        $this->table_name = \FFC_Utils::get_submissions_table();
     }
 
     /**
