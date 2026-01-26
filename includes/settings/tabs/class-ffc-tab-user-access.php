@@ -7,13 +7,18 @@ declare(strict_types=1);
  * @package FFC
  * @since 3.1.0
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Settings\Tabs;
+
+use FreeFormCertificate\Settings\SettingsTab;
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class FFC_Tab_User_Access extends FFC_Settings_Tab {
+class TabUserAccess extends SettingsTab {
 
     protected function init(): void {
         $this->tab_id = 'user_access';

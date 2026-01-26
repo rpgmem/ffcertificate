@@ -7,13 +7,18 @@ declare(strict_types=1);
  * @package FFC
  * @since 2.10.0
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+namespace FreeFormCertificate\Settings\Tabs;
+
+use FreeFormCertificate\Settings\SettingsTab;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_Tab_General extends FFC_Settings_Tab {
+class TabGeneral extends SettingsTab {
 
     private ?array $forms = null;
     private ?object $settings = null;
@@ -26,11 +31,8 @@ class FFC_Tab_General extends FFC_Settings_Tab {
     }
     
     public function render(): void {
-        // Load FFC_Form_Cache if not already loaded
-        if ( ! class_exists( 'FFC_Form_Cache' ) ) {
-            require_once FFC_PLUGIN_DIR . 'includes/submissions/class-ffc-form-cache.php';
-        }
-        
+        // Autoloader handles class loading
+
         // Get forms for danger zone
         $this->forms = get_posts( array(
             'post_type' => 'ffc_form',

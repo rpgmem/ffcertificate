@@ -1,12 +1,17 @@
 <?php
 /**
  * Abstract Base Class for Settings Tabs
- * 
+ *
  * Provides common functionality for all settings tabs
- * 
+ *
  * @package FFC
  * @since 2.10.0
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
+
+namespace FreeFormCertificate\Settings;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -17,7 +22,7 @@ if ( ! function_exists( 'wp_kses_post' ) ) {
     require_once( ABSPATH . 'wp-includes/formatting.php' );
 }
 
-abstract class FFC_Settings_Tab {
+abstract class SettingsTab {
     
     /**
      * Tab unique identifier
