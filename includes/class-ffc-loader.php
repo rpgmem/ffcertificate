@@ -5,11 +5,21 @@ declare(strict_types=1);
  * Loader v3.0.0
  * Fixed textdomain loading + REST API integration
  *
+ * @version 4.0.0 - Removed alias usage (Phase 4)
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2) - Removed require_once (autoloader handles)
  */
 
 namespace FreeFormCertificate;
+
+use FreeFormCertificate\Submissions\SubmissionHandler;
+use FreeFormCertificate\Integrations\EmailHandler;
+use FreeFormCertificate\Admin\CSVExporter;
+use FreeFormCertificate\Admin\CPT;
+use FreeFormCertificate\Admin\Admin;
+use FreeFormCertificate\Frontend\Frontend;
+use FreeFormCertificate\Admin\AdminAjax;
+use FreeFormCertificate\API\RestController;
 
 if (!defined('ABSPATH')) exit;
 
@@ -34,13 +44,13 @@ class Loader {
 
     public function init_plugin(): void {
         // Autoloader handles all class loading now
-        $this->submission_handler = new \FFC_Submission_Handler();
-        $this->email_handler      = new \FFC_Email_Handler();
-        $this->csv_exporter       = new \FFC_CSV_Exporter();
-        $this->cpt                = new \FFC_CPT();
-        $this->admin              = new \FFC_Admin($this->submission_handler, $this->csv_exporter, $this->email_handler);
-        $this->frontend           = new \FFC_Frontend($this->submission_handler, $this->email_handler);
-        $this->admin_ajax         = new \FFC_Admin_Ajax();
+        $this->submission_handler = new SubmissionHandler();
+        $this->email_handler      = new EmailHandler();
+        $this->csv_exporter       = new CSVExporter();
+        $this->cpt                = new CPT();
+        $this->admin              = new Admin($this->submission_handler, $this->csv_exporter, $this->email_handler);
+        $this->frontend           = new Frontend($this->submission_handler, $this->email_handler);
+        $this->admin_ajax         = new AdminAjax();
         $this->define_admin_hooks();
         $this->init_rest_api(); // Initialize REST API
     }
@@ -53,15 +63,15 @@ class Loader {
      * @since 3.0.0
      */
     private function init_rest_api(): void {
-        if (class_exists('\FFC_REST_Controller')) {
-            new \FFC_REST_Controller();
+        if (class_exists(RestController::class)) {
+            new RestController();
         }
     }
 
     private function define_activation_hooks(): void {
         // Autoloader handles class loading
-        register_activation_hook(FFC_PLUGIN_DIR . 'wp-ffcertificate.php', ['FFC_Activator', 'activate']);
-        register_deactivation_hook(FFC_PLUGIN_DIR . 'wp-ffcertificate.php', ['FFC_Deactivator', 'deactivate']);
+        register_activation_hook(FFC_PLUGIN_DIR . 'wp-ffcertificate.php', ['\\FFC_Activator', 'activate']);
+        register_deactivation_hook(FFC_PLUGIN_DIR . 'wp-ffcertificate.php', ['\\FFC_Deactivator', 'deactivate']);
     }
 
     private function define_admin_hooks(): void {
