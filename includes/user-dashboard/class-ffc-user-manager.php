@@ -246,7 +246,7 @@ class UserManager {
         try {
             $cpf_plain = \FreeFormCertificate\Core\Encryption::decrypt($cpf_encrypted);
             return self::mask_cpf_rf($cpf_plain);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Use centralized debug system for critical errors
             if (class_exists('\FreeFormCertificate\Core\Debug')) {
                 \FreeFormCertificate\Core\Debug::log_user_manager(
@@ -321,7 +321,7 @@ class UserManager {
                 if (is_email($email)) {
                     $emails[] = $email;
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 continue;
             }
         }

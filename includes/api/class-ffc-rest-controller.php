@@ -80,7 +80,7 @@ class RestController {
         
         // GET /forms - List all published forms
         register_rest_route($this->namespace, '/forms', array(
-            'methods' => WP_REST_Server::READABLE,
+            'methods' => \WP_REST_Server::READABLE,
             'callback' => array($this, 'get_forms'),
             'permission_callback' => '__return_true', // Public endpoint
             'args' => array(
@@ -93,7 +93,7 @@ class RestController {
         
         // GET /forms/{id} - Get single form
         register_rest_route($this->namespace, '/forms/(?P<id>\d+)', array(
-            'methods' => WP_REST_Server::READABLE,
+            'methods' => \WP_REST_Server::READABLE,
             'callback' => array($this, 'get_form'),
             'permission_callback' => '__return_true', // Public endpoint
             'args' => array(
@@ -107,7 +107,7 @@ class RestController {
         
         // POST /forms/{id}/submit - Submit a form
         register_rest_route($this->namespace, '/forms/(?P<id>\d+)/submit', array(
-            'methods' => WP_REST_Server::CREATABLE,
+            'methods' => \WP_REST_Server::CREATABLE,
             'callback' => array($this, 'submit_form'),
             'permission_callback' => '__return_true', // Public endpoint with rate limiting
             'args' => array(
@@ -122,7 +122,7 @@ class RestController {
         
         // GET /submissions - List submissions (admin only)
         register_rest_route($this->namespace, '/submissions', array(
-            'methods' => WP_REST_Server::READABLE,
+            'methods' => \WP_REST_Server::READABLE,
             'callback' => array($this, 'get_submissions'),
             'permission_callback' => array($this, 'check_admin_permission'),
             'args' => array(
@@ -147,7 +147,7 @@ class RestController {
         
         // GET /submissions/{id} - Get single submission (admin only)
         register_rest_route($this->namespace, '/submissions/(?P<id>\d+)', array(
-            'methods' => WP_REST_Server::READABLE,
+            'methods' => \WP_REST_Server::READABLE,
             'callback' => array($this, 'get_submission'),
             'permission_callback' => array($this, 'check_admin_permission'),
             'args' => array(
@@ -161,7 +161,7 @@ class RestController {
         
         // POST /verify - Verify certificate by auth code
         register_rest_route($this->namespace, '/verify', array(
-            'methods' => WP_REST_Server::CREATABLE,
+            'methods' => \WP_REST_Server::CREATABLE,
             'callback' => array($this, 'verify_certificate'),
             'permission_callback' => '__return_true', // Public endpoint
             'args' => array(
@@ -178,14 +178,14 @@ class RestController {
 
         // GET /user/certificates - Get current user's certificates (v3.1.0)
         register_rest_route($this->namespace, '/user/certificates', array(
-            'methods' => WP_REST_Server::READABLE,
+            'methods' => \WP_REST_Server::READABLE,
             'callback' => array($this, 'get_user_certificates'),
             'permission_callback' => 'is_user_logged_in', // Requires logged in user
         ));
 
         // GET /user/profile - Get current user's profile data (v3.1.0)
         register_rest_route($this->namespace, '/user/profile', array(
-            'methods' => WP_REST_Server::READABLE,
+            'methods' => \WP_REST_Server::READABLE,
             'callback' => array($this, 'get_user_profile'),
             'permission_callback' => 'is_user_logged_in', // Requires logged in user
         ));
@@ -195,15 +195,15 @@ class RestController {
      * GET /forms
      * List all published forms
      *
-     * @param WP_REST_Request $request
-     * @return WP_REST_Response|WP_Error
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
      */
     public function get_forms($request) {
         try {
             $limit = $request->get_param('limit');
             
             if (!$this->form_repository) {
-                return new WP_Error(
+                return new \WP_Error(
                     'repository_not_found',
                     __('Form repository not available', 'ffc'),
                     array('status' => 500)
@@ -228,8 +228,8 @@ class RestController {
             
             return rest_ensure_response($response);
             
-        } catch (Exception $e) {
-            return new WP_Error(
+        } catch (\Exception $e) {
+            return new \WP_Error(
                 'get_forms_error',
                 $e->getMessage(),
                 array('status' => 500)
@@ -241,8 +241,8 @@ class RestController {
      * GET /forms/{id}
      * Get single form details
      *
-     * @param WP_REST_Request $request
-     * @return WP_REST_Response|WP_Error
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
      */
     public function get_form($request) {
         try {
@@ -251,7 +251,7 @@ class RestController {
             $form = get_post($form_id);
             
             if (!$form || $form->post_type !== 'ffc_form') {
-                return new WP_Error(
+                return new \WP_Error(
                     'form_not_found',
                     __('Form not found', 'ffc'),
                     array('status' => 404)
@@ -259,7 +259,7 @@ class RestController {
             }
             
             if ($form->post_status !== 'publish') {
-                return new WP_Error(
+                return new \WP_Error(
                     'form_not_published',
                     __('Form is not published', 'ffc'),
                     array('status' => 403)
@@ -279,8 +279,8 @@ class RestController {
             
             return rest_ensure_response($response);
             
-        } catch (Exception $e) {
-            return new WP_Error(
+        } catch (\Exception $e) {
+            return new \WP_Error(
                 'get_form_error',
                 $e->getMessage(),
                 array('status' => 500)
@@ -292,8 +292,8 @@ class RestController {
      * POST /forms/{id}/submit
      * Submit a form via API
      * 
-     * @param WP_REST_Request $request Request object
-     * @return WP_REST_Response|WP_Error Response with submission data or error
+     * @param \WP_REST_Request $request Request object
+     * @return \WP_REST_Response|\WP_Error Response with submission data or error
      */
     public function submit_form($request) {
         try {
@@ -303,7 +303,7 @@ class RestController {
             $params = $request->get_json_params();
             
             if (empty($params)) {
-                return new WP_Error(
+                return new \WP_Error(
                     'no_data',
                     'No data provided in request body',
                     array('status' => 400)
@@ -314,7 +314,7 @@ class RestController {
             $form = get_post($form_id);
             
             if (!$form || $form->post_type !== 'ffc_form') {
-                return new WP_Error(
+                return new \WP_Error(
                     'form_not_found',
                     'Form not found',
                     array('status' => 404)
@@ -322,7 +322,7 @@ class RestController {
             }
             
             if ($form->post_status !== 'publish') {
-                return new WP_Error(
+                return new \WP_Error(
                     'form_not_published',
                     'Form is not published',
                     array('status' => 403)
@@ -339,7 +339,7 @@ class RestController {
             // Validate required fields
             $validation_errors = $this->validate_required_fields($submission_data, $form_fields);
             if (!empty($validation_errors)) {
-                return new WP_Error(
+                return new \WP_Error(
                     'validation_failed',
                     'Validation failed: ' . implode(', ', $validation_errors),
                     array('status' => 400, 'errors' => $validation_errors)
@@ -353,7 +353,7 @@ class RestController {
                 if (strlen($cpf) === 11) {
                     // Validate CPF using FFC_Utils
                     if (class_exists('\FreeFormCertificate\Core\Utils') && !\FreeFormCertificate\Core\Utils::validate_cpf($cpf)) {
-                        return new WP_Error(
+                        return new \WP_Error(
                             'invalid_cpf',
                             'Invalid CPF. Please check the number and try again.',
                             array('status' => 400)
@@ -362,14 +362,14 @@ class RestController {
                 } elseif (strlen($cpf) === 7) {
                     // Validate RF
                     if (class_exists('\FreeFormCertificate\Core\Utils') && !\FreeFormCertificate\Core\Utils::validate_rf($cpf)) {
-                        return new WP_Error(
+                        return new \WP_Error(
                             'invalid_rf',
                             'Invalid RF. Must contain only numbers.',
                             array('status' => 400)
                         );
                     }
                 } else {
-                    return new WP_Error(
+                    return new \WP_Error(
                         'invalid_cpf_rf',
                         'CPF/RF must be exactly 7 or 11 digits',
                         array('status' => 400)
@@ -382,7 +382,7 @@ class RestController {
             // Validate email if present
             if (!empty($submission_data['email'])) {
                 if (!is_email($submission_data['email'])) {
-                    return new WP_Error(
+                    return new \WP_Error(
                         'invalid_email',
                         'Invalid email address',
                         array('status' => 400)
@@ -397,7 +397,7 @@ class RestController {
                 // Check IP rate limit using FFC_Utils
                 $ip = \FreeFormCertificate\Core\Utils::get_user_ip();
                 if (!$rate_limiter->check_limit('ip', $ip)) {
-                    return new WP_Error(
+                    return new \WP_Error(
                         'rate_limit_exceeded',
                         'Too many requests. Please try again later.',
                         array('status' => 429)
@@ -407,7 +407,7 @@ class RestController {
                 // Check email rate limit
                 if (!empty($submission_data['email'])) {
                     if (!$rate_limiter->check_limit('email', $submission_data['email'])) {
-                        return new WP_Error(
+                        return new \WP_Error(
                             'rate_limit_exceeded',
                             'Too many submissions from this email. Please try again later.',
                             array('status' => 429)
@@ -418,7 +418,7 @@ class RestController {
                 // Check CPF rate limit
                 if (!empty($submission_data['cpf_rf'])) {
                     if (!$rate_limiter->check_limit('cpf', $submission_data['cpf_rf'])) {
-                        return new WP_Error(
+                        return new \WP_Error(
                             'rate_limit_exceeded',
                             'Too many submissions with this CPF/RF. Please try again later.',
                             array('status' => 429)
@@ -429,7 +429,7 @@ class RestController {
             
             // Use FFC_Submission_Handler to process submission
             if (!class_exists('\FreeFormCertificate\Submissions\SubmissionHandler')) {
-                return new WP_Error(
+                return new \WP_Error(
                     'handler_not_found',
                     'Submission handler not available',
                     array('status' => 500)
@@ -463,8 +463,8 @@ class RestController {
             
             return rest_ensure_response($response);
             
-        } catch (Exception $e) {
-            return new WP_Error(
+        } catch (\Exception $e) {
+            return new \WP_Error(
                 'submission_error',
                 $e->getMessage(),
                 array('status' => 500)
@@ -476,13 +476,13 @@ class RestController {
      * GET /submissions
      * List submissions with pagination (admin only)
      *
-     * @param WP_REST_Request $request Request object
-     * @return WP_REST_Response|WP_Error Response with submissions list or error
+     * @param \WP_REST_Request $request Request object
+     * @return \WP_REST_Response|\WP_Error Response with submissions list or error
      */
     public function get_submissions($request) {
         try {
             if (!$this->submission_repository) {
-                return new WP_Error(
+                return new \WP_Error(
                     'repository_not_found',
                     'Submission repository not available',
                     array('status' => 500)
@@ -541,8 +541,8 @@ class RestController {
             
             return rest_ensure_response($response);
             
-        } catch (Exception $e) {
-            return new WP_Error(
+        } catch (\Exception $e) {
+            return new \WP_Error(
                 'get_submissions_error',
                 $e->getMessage(),
                 array('status' => 500)
@@ -554,15 +554,15 @@ class RestController {
      * GET /submissions/{id}
      * Get single submission (admin only)
      *
-     * @param WP_REST_Request $request Request object
-     * @return WP_REST_Response|WP_Error Response with submission data or error
+     * @param \WP_REST_Request $request Request object
+     * @return \WP_REST_Response|\WP_Error Response with submission data or error
      */
     public function get_submission($request) {
         try {
             $submission_id = $request->get_param('id');
             
             if (!$this->submission_repository) {
-                return new WP_Error(
+                return new \WP_Error(
                     'repository_not_found',
                     'Submission repository not available',
                     array('status' => 500)
@@ -573,7 +573,7 @@ class RestController {
             $submission = $this->submission_repository->findById($submission_id);
             
             if (!$submission) {
-                return new WP_Error(
+                return new \WP_Error(
                     'submission_not_found',
                     'Submission not found',
                     array('status' => 404)
@@ -608,8 +608,8 @@ class RestController {
             
             return rest_ensure_response($response);
             
-        } catch (Exception $e) {
-            return new WP_Error(
+        } catch (\Exception $e) {
+            return new \WP_Error(
                 'get_submission_error',
                 $e->getMessage(),
                 array('status' => 500)
@@ -621,8 +621,8 @@ class RestController {
      * POST /verify
      * Verify certificate by auth code
      *
-     * @param WP_REST_Request $request Request object
-     * @return WP_REST_Response|WP_Error Response with submission data or error
+     * @param \WP_REST_Request $request Request object
+     * @return \WP_REST_Response|\WP_Error Response with submission data or error
      */
     public function verify_certificate($request) {
         try {
@@ -632,7 +632,7 @@ class RestController {
             $auth_code = \FreeFormCertificate\Core\Utils::clean_auth_code($auth_code);
             
             if (!$this->submission_repository) {
-                return new WP_Error(
+                return new \WP_Error(
                     'repository_not_found',
                     'Submission repository not available',
                     array('status' => 500)
@@ -643,7 +643,7 @@ class RestController {
             $submission = $this->submission_repository->findByAuthCode($auth_code);
             
             if (!$submission) {
-                return new WP_Error(
+                return new \WP_Error(
                     'certificate_not_found',
                     'Certificate not found. Please check the authentication code.',
                     array('status' => 404)
@@ -652,7 +652,7 @@ class RestController {
             
             // Check if submission is published (not trashed)
             if (isset($submission['status']) && $submission['status'] === 'trash') {
-                return new WP_Error(
+                return new \WP_Error(
                     'certificate_deleted',
                     'This certificate has been deleted.',
                     array('status' => 410) // 410 Gone
@@ -699,8 +699,8 @@ class RestController {
             
             return rest_ensure_response($response);
             
-        } catch (Exception $e) {
-            return new WP_Error(
+        } catch (\Exception $e) {
+            return new \WP_Error(
                 'verify_error',
                 $e->getMessage(),
                 array('status' => 500)
@@ -750,15 +750,15 @@ class RestController {
      * Get current user's certificates
      *
      * @since 3.1.0
-     * @param WP_REST_Request $request
-     * @return WP_REST_Response|WP_Error
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
      */
     public function get_user_certificates($request) {
         try {
             $user_id = get_current_user_id();
 
             if (!$user_id) {
-                return new WP_Error(
+                return new \WP_Error(
                     'not_logged_in',
                     __('You must be logged in to view certificates', 'ffc'),
                     array('status' => 401)
@@ -775,7 +775,7 @@ class RestController {
 
             // Safety check for FFC_Utils
             if (!class_exists('\FreeFormCertificate\Core\Utils')) {
-                return new WP_Error('missing_class', 'FFC_Utils class not found', array('status' => 500));
+                return new \WP_Error('missing_class', 'FFC_Utils class not found', array('status' => 500));
             }
 
             $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
@@ -809,7 +809,7 @@ class RestController {
                         $email_plain = \FreeFormCertificate\Core\Encryption::decrypt($submission['email_encrypted']);
                         // Check if decrypt returned valid string before masking
                         $email_display = ($email_plain && is_string($email_plain)) ? \FreeFormCertificate\Core\Utils::mask_email($email_plain) : '';
-                    } catch (Exception $e) {
+                    } catch (\Exception $e) {
                         $email_display = __('Error decrypting', 'ffc');
                     }
                 } elseif (!empty($submission['email'])) {
@@ -861,7 +861,7 @@ class RestController {
                 'total' => count($certificates),
             ));
 
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Log the error for debugging
             if (class_exists('\FreeFormCertificate\Core\Utils')) {
                 \FreeFormCertificate\Core\Utils::debug_log('get_user_certificates error', array(
@@ -871,7 +871,7 @@ class RestController {
                     'trace' => $e->getTraceAsString()
                 ));
             }
-            return new WP_Error(
+            return new \WP_Error(
                 'get_certificates_error',
                 $e->getMessage(),
                 array('status' => 500)
@@ -884,15 +884,15 @@ class RestController {
      * Get current user's profile data
      *
      * @since 3.1.0
-     * @param WP_REST_Request $request
-     * @return WP_REST_Response|WP_Error
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
      */
     public function get_user_profile($request) {
         try {
             $user_id = get_current_user_id();
 
             if (!$user_id) {
-                return new WP_Error(
+                return new \WP_Error(
                     'not_logged_in',
                     __('You must be logged in to view profile', 'ffc'),
                     array('status' => 401)
@@ -916,7 +916,7 @@ class RestController {
             $user = get_user_by('id', $user_id);
 
             if (!$user) {
-                return new WP_Error(
+                return new \WP_Error(
                     'user_not_found',
                     __('User not found', 'ffc'),
                     array('status' => 404)
@@ -954,8 +954,8 @@ class RestController {
                 'roles' => $user->roles,
             ));
 
-        } catch (Exception $e) {
-            return new WP_Error(
+        } catch (\Exception $e) {
+            return new \WP_Error(
                 'get_profile_error',
                 $e->getMessage(),
                 array('status' => 500)
@@ -989,7 +989,7 @@ class RestController {
             if (is_array($decrypted_data)) {
                 return array_merge($data, $decrypted_data);
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Log error but continue with non-encrypted data
             if (class_exists('\FreeFormCertificate\Core\Debug')) {
                 \FreeFormCertificate\Core\Debug::log_rest_api('Decryption failed', $e->getMessage());

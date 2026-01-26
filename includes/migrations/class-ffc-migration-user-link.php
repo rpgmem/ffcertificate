@@ -129,7 +129,7 @@ class MigrationUserLink {
                     continue;
                 }
 
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 $errors[] = sprintf(
                     __('Submission ID %d: Failed to decrypt email - %s', 'ffc'),
                     $submission_id,
@@ -286,7 +286,7 @@ class MigrationUserLink {
                 ));
             }
 
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Silently fail - name is not critical for user creation
             \FreeFormCertificate\Core\Debug::log_migrations('Failed to extract name for user', array(
                 'user_id' => $user_id,
