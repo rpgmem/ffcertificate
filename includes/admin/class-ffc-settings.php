@@ -53,56 +53,36 @@ class Settings {
     
     /**
      * Load all tab classes
+     *
+     * @since 4.0.0 Uses autoloader and namespaces (Hotfix 9)
      */
     private function load_tabs(): void {
-        // Require abstract base class
-        require_once FFC_PLUGIN_DIR . 'includes/settings/views/abstract-ffc-settings-tab.php';
+        // Autoloader handles class loading - no require_once needed
 
-        // Tab files to load
-        $tab_files = array(
-            'documentation' => 'class-ffc-tab-documentation.php',
-            'general'       => 'class-ffc-tab-general.php',
-            'smtp'          => 'class-ffc-tab-smtp.php',
-            'qrcode'        => 'class-ffc-tab-qrcode.php',
-            'rate_limit'    => 'class-ffc-tab-rate-limit.php',
-            'geolocation'   => 'class-ffc-tab-geolocation.php',
-            'user_access'   => 'class-ffc-tab-user-access.php',
-            'migrations'    => 'class-ffc-tab-migrations.php'
+        // Tab classes with proper namespaces
+        $tab_classes = array(
+            'documentation' => '\\FreeFormCertificate\\Settings\\Tabs\\TabDocumentation',
+            'general'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
+            'smtp'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
+            'qrcode'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabQRCode',
+            'rate_limit'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
+            'geolocation'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
+            'user_access'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabUserAccess',
+            'migrations'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabMigrations',
         );
 
-        // Load each tab
-        foreach ( $tab_files as $tab_id => $filename ) {
-            $filepath = FFC_PLUGIN_DIR . 'includes/settings/tabs/' . $filename;
-            
-            if ( file_exists( $filepath ) ) {
-                require_once $filepath;
-                
-                // Instantiate tab class
-                $class_name = 'FFC_Tab_' . ucfirst( str_replace( '-', '_', $tab_id ) );
-                
-                if ( $tab_id === 'qrcode' ) {
-                    $class_name = 'FFC_Tab_QRCode';
-                } elseif ( $tab_id === 'smtp' ) {
-                    $class_name = 'FFC_Tab_SMTP';
-                } elseif ( $tab_id === 'rate_limit' ) {
-                    $class_name = 'FFC_Tab_Rate_Limit';
-                } elseif ( $tab_id === 'geolocation' ) {
-                    $class_name = 'FFC_Tab_Geolocation';
-                } elseif ( $tab_id === 'user_access' ) {
-                    $class_name = 'FFC_Tab_User_Access';
-                }
-                
-                if ( class_exists( $class_name ) ) {
-                    $this->tabs[ $tab_id ] = new $class_name();
-                }
+        // Instantiate each tab
+        foreach ( $tab_classes as $tab_id => $class_name ) {
+            if ( class_exists( $class_name ) ) {
+                $this->tabs[ $tab_id ] = new $class_name();
             }
         }
-        
+
         // Sort tabs by order
         uasort( $this->tabs, function( $a, $b ) {
             return $a->get_order() - $b->get_order();
         });
-        
+
         // Allow plugins to add custom tabs
         $this->tabs = apply_filters( 'ffc_settings_tabs', $this->tabs );
     }
@@ -307,9 +287,8 @@ class Settings {
         if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( $_GET['_wpnonce'], 'ffc_migration_' . $migration_key ) ) {
             wp_die( __( 'Security check failed.', 'ffc' ) );
         }
-        
-        // Load Migration Manager
-        require_once FFC_PLUGIN_DIR . 'includes/migrations/class-ffc-migration-manager.php';
+
+        // Autoloader handles class loading
         $migration_manager = new \FreeFormCertificate\Migrations\MigrationManager();
         
         // Run migration
@@ -371,11 +350,8 @@ class Settings {
         // Warm Cache
         if (isset($_GET['action']) && $_GET['action'] === 'warm_cache') {
             check_admin_referer('ffc_warm_cache');
-            
-            if (!class_exists('\FreeFormCertificate\Submissions\FormCache')) {
-                require_once FFC_PLUGIN_DIR . 'includes/submissions/class-ffc-form-cache.php';
-            }
-            
+
+            // Autoloader handles class loading
             $warmed = \FreeFormCertificate\Submissions\FormCache::warm_all_forms();
             
             wp_redirect(add_query_arg(array(
@@ -391,11 +367,8 @@ class Settings {
         // Clear Cache
         if (isset($_GET['action']) && $_GET['action'] === 'clear_cache') {
             check_admin_referer('ffc_clear_cache');
-            
-            if (!class_exists('\FreeFormCertificate\Submissions\FormCache')) {
-                require_once FFC_PLUGIN_DIR . 'includes/submissions/class-ffc-form-cache.php';
-            }
-            
+
+            // Autoloader handles class loading
             \FreeFormCertificate\Submissions\FormCache::clear_all_cache();
             
             wp_redirect(add_query_arg(array(
