@@ -12,13 +12,29 @@
   "require": {
     "php": ">=7.4"
   },
+  "require-dev": {
+    "phpunit/phpunit": "^9.6",
+    "yoast/phpunit-polyfills": "^1.0"
+  },
   "autoload": {
     "psr-4": {
       "FreeFormCertificate\\": "includes/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "FreeFormCertificate\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit",
+    "test:coverage": "phpunit --coverage-html coverage"
+  },
   "config": {
     "optimize-autoloader": true,
-    "classmap-authoritative": false
+    "classmap-authoritative": false,
+    "allow-plugins": {
+      "phpunit/phpunit": true
+    }
   }
 }
