@@ -4,6 +4,7 @@
  * Handles all database operations for submissions
  *
  * v3.3.0: Added strict types and type hints for better code safety
+ * v3.2.0: Migrated to namespace (Phase 2)
  * v3.0.2: Fixed search to work with encrypted data (removed data_encrypted LIKE, added auth_code/magic_token search)
  * v3.0.1: Added methods for CSV export
  * @since 3.0.0
@@ -11,11 +12,11 @@
 
 declare(strict_types=1);
 
+namespace FreeFormCertificate\Repositories;
+
 if (!defined('ABSPATH')) exit;
 
-require_once __DIR__ . '/ffc-abstract-repository.php';
-
-class FFC_Submission_Repository extends FFC_Abstract_Repository {
+class SubmissionRepository extends AbstractRepository {
     
     protected function get_table_name(): string {
         return $this->wpdb->prefix . 'ffc_submissions';
