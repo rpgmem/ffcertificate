@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * FFC_QRCode_Generator
+ * QRCodeGenerator
  * Generates dynamic QR Codes for certificate verification
  *
  * Features:
@@ -12,15 +12,18 @@ declare(strict_types=1);
  * - Placeholder parsing ({{qr_code:param=value}})
  *
  * @version 3.3.0 - Added strict types and type hints
+ * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 2.9.0
  * @since 2.9.2 OPTIMIZED to use FFC_Utils functions
  */
+
+namespace FreeFormCertificate\Generators;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_QRCode_Generator {
+class QRCodeGenerator {
     
     /**
      * Default settings

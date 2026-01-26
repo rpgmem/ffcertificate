@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * FFC_PDF_Generator
+ * PdfGenerator
  *
  * Centralized PDF generation for all contexts:
  * - Form submission (frontend)
@@ -12,15 +12,18 @@ declare(strict_types=1);
  * - Certificate reprint
  *
  * v3.3.0: Added strict types and type hints
+ * v3.2.0: Migrated to namespace (Phase 2)
  * v2.9.2: Single source of truth for PDF generation
  * v2.9.14: REFACTORED - Moved generate_html logic from FFC_Email_Handler
  */
+
+namespace FreeFormCertificate\Generators;
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class FFC_PDF_Generator {
+class PdfGenerator {
     
     /**
      * Constructor
