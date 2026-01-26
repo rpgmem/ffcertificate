@@ -64,7 +64,7 @@ class Encryption {
             );
             
             if ( $encrypted === false ) {
-                FFC_Utils::debug_log( 'Encryption failed', array(
+                \FFC_Utils::debug_log( 'Encryption failed', array(
                     'value_length' => strlen( $value )
                 ) );
                 return null;
@@ -74,7 +74,7 @@ class Encryption {
             return base64_encode( $iv . $encrypted );
             
         } catch ( Exception $e ) {
-            FFC_Utils::debug_log( 'Encryption exception', array(
+            \FFC_Utils::debug_log( 'Encryption exception', array(
                 'error' => $e->getMessage()
             ) );
             return null;
@@ -100,7 +100,7 @@ class Encryption {
             $data = base64_decode( $encrypted, true );
             
             if ( $data === false ) {
-                FFC_Utils::debug_log( 'Base64 decode failed' );
+                \FFC_Utils::debug_log( 'Base64 decode failed' );
                 return null;
             }
             
@@ -120,14 +120,14 @@ class Encryption {
             );
             
             if ( $decrypted === false ) {
-                FFC_Utils::debug_log( 'Decryption failed' );
+                \FFC_Utils::debug_log( 'Decryption failed' );
                 return null;
             }
             
             return $decrypted;
             
         } catch ( Exception $e ) {
-            FFC_Utils::debug_log( 'Decryption exception', array(
+            \FFC_Utils::debug_log( 'Decryption exception', array(
                 'error' => $e->getMessage()
             ) );
             return null;

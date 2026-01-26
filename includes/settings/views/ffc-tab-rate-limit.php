@@ -1,7 +1,7 @@
 <?php 
 if (!defined('ABSPATH')) exit; 
 $s = $settings; 
-$stats = FFC_Rate_Limiter::get_stats(); 
+$stats = \FFC_Rate_Limiter::get_stats(); 
 ?>
 <div class="ffc-rate-limit-wrap">
 <form method="post">

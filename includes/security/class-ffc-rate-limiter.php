@@ -276,14 +276,14 @@ class RateLimiter {
         $fw = $form_id ? $wpdb->prepare("AND form_id=%d", $form_id) : '';
         
         if ($field === 'email') {
-            if (class_exists('FFC_Encryption') && FFC_Encryption::is_configured()) {
-                return intval($wpdb->get_var("SELECT COUNT(*) FROM $t WHERE email_hash='" . FFC_Encryption::hash($value) . "' $dw $fw"));
+            if (class_exists('\FFC_Encryption') && \FFC_Encryption::is_configured()) {
+                return intval($wpdb->get_var("SELECT COUNT(*) FROM $t WHERE email_hash='" . \FFC_Encryption::hash($value) . "' $dw $fw"));
             } else {
                 return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t WHERE email=%s $dw $fw", $value)));
             }
         } elseif ($field === 'cpf') {
-            if (class_exists('FFC_Encryption') && FFC_Encryption::is_configured()) {
-                return intval($wpdb->get_var("SELECT COUNT(*) FROM $t WHERE cpf_rf_hash='" . FFC_Encryption::hash($value) . "' $dw $fw"));
+            if (class_exists('\FFC_Encryption') && \FFC_Encryption::is_configured()) {
+                return intval($wpdb->get_var("SELECT COUNT(*) FROM $t WHERE cpf_rf_hash='" . \FFC_Encryption::hash($value) . "' $dw $fw"));
             } else {
                 return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t WHERE cpf_rf=%s $dw $fw", $value)));
             }

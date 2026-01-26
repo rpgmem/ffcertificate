@@ -372,11 +372,11 @@ class Settings {
         if (isset($_GET['action']) && $_GET['action'] === 'warm_cache') {
             check_admin_referer('ffc_warm_cache');
             
-            if (!class_exists('FFC_Form_Cache')) {
+            if (!class_exists('\FFC_Form_Cache')) {
                 require_once FFC_PLUGIN_DIR . 'includes/submissions/class-ffc-form-cache.php';
             }
             
-            $warmed = FFC_Form_Cache::warm_all_forms();
+            $warmed = \FFC_Form_Cache::warm_all_forms();
             
             wp_redirect(add_query_arg(array(
                 'post_type' => 'ffc_form',
@@ -392,11 +392,11 @@ class Settings {
         if (isset($_GET['action']) && $_GET['action'] === 'clear_cache') {
             check_admin_referer('ffc_clear_cache');
             
-            if (!class_exists('FFC_Form_Cache')) {
+            if (!class_exists('\FFC_Form_Cache')) {
                 require_once FFC_PLUGIN_DIR . 'includes/submissions/class-ffc-form-cache.php';
             }
             
-            FFC_Form_Cache::clear_all_cache();
+            \FFC_Form_Cache::clear_all_cache();
             
             wp_redirect(add_query_arg(array(
                 'post_type' => 'ffc_form',

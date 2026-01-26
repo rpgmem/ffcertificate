@@ -38,7 +38,7 @@ $base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' );
                         <option value=""><?php esc_html_e( 'All Actions', 'ffc' ); ?></option>
                         <?php foreach ( $unique_actions as $act ) : ?>
                             <option value="<?php echo esc_attr( $act ); ?>" <?php selected( $action, $act ); ?>>
-                                <?php echo esc_html( FFC_Admin_Activity_Log_Page::get_action_label( $act ) ); ?>
+                                <?php echo esc_html( \FFC_Admin_Activity_Log_Page::get_action_label( $act ) ); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -99,12 +99,12 @@ $base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' );
 
                         <!-- Level -->
                         <td>
-                            <?php echo FFC_Admin_Activity_Log_Page::get_level_badge( $log['level'] ); ?>
+                            <?php echo \FFC_Admin_Activity_Log_Page::get_level_badge( $log['level'] ); ?>
                         </td>
 
                         <!-- Action -->
                         <td>
-                            <strong><?php echo esc_html( FFC_Admin_Activity_Log_Page::get_action_label( $log['action'] ) ); ?></strong><br>
+                            <strong><?php echo esc_html( \FFC_Admin_Activity_Log_Page::get_action_label( $log['action'] ) ); ?></strong><br>
                             <code class="description"><?php echo esc_html( $log['action'] ); ?></code>
                         </td>
 
@@ -176,7 +176,7 @@ $base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' );
     <div class="card ffc-activity-card">
         <h2><?php esc_html_e( 'Activity Summary (Last 30 Days)', 'ffc' ); ?></h2>
         <?php
-        $stats = FFC_Activity_Log::get_stats( 30 );
+        $stats = \FFC_Activity_Log::get_stats( 30 );
         ?>
         <p>
             <strong><?php esc_html_e( 'Total Activities:', 'ffc' ); ?></strong> <?php echo esc_html( number_format_i18n( $stats['total'] ) ); ?>
@@ -187,7 +187,7 @@ $base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' );
             <ul class="ffc-ml-20">
                 <?php foreach ( $stats['by_level'] as $level_stat ) : ?>
                     <li>
-                        <?php echo FFC_Admin_Activity_Log_Page::get_level_badge( $level_stat['level'] ); ?>
+                        <?php echo \FFC_Admin_Activity_Log_Page::get_level_badge( $level_stat['level'] ); ?>
                         <?php echo esc_html( number_format_i18n( $level_stat['count'] ) ); ?>
                     </li>
                 <?php endforeach; ?>
@@ -199,7 +199,7 @@ $base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' );
             <ul class="ffc-ml-20">
                 <?php foreach ( array_slice( $stats['top_actions'], 0, 5 ) as $action_stat ) : ?>
                     <li>
-                        <strong><?php echo esc_html( FFC_Admin_Activity_Log_Page::get_action_label( $action_stat['action'] ) ); ?>:</strong>
+                        <strong><?php echo esc_html( \FFC_Admin_Activity_Log_Page::get_action_label( $action_stat['action'] ) ); ?>:</strong>
                         <?php echo esc_html( number_format_i18n( $action_stat['count'] ) ); ?>
                     </li>
                 <?php endforeach; ?>

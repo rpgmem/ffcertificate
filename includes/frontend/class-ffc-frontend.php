@@ -158,7 +158,7 @@ class Frontend {
 
         foreach ($matches[1] as $form_id) {
             $form_id_int = (int) $form_id;
-            $config = FFC_Geofence::get_frontend_config($form_id_int);
+            $config = \FFC_Geofence::get_frontend_config($form_id_int);
 
             if ($config !== null) {
                 $geofence_configs[$form_id_int] = $config;

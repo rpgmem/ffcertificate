@@ -85,9 +85,9 @@ class Shortcodes {
      */
     private function render_magic_link_preview( string $token ): string {
         // ✅ OPTIMIZED v2.9.2: Log magic link access
-        FFC_Utils::debug_log( 'Magic link shortcode rendered', array(
+        \FFC_Utils::debug_log( 'Magic link shortcode rendered', array(
             'token' => substr( $token, 0, 8 ) . '...',
-            'ip' => FFC_Utils::get_user_ip()
+            'ip' => \FFC_Utils::get_user_ip()
         ) );
         
         ob_start();
@@ -120,8 +120,8 @@ class Shortcodes {
         }
 
         // ✅ OPTIMIZED v2.9.2: Log verification page render
-        FFC_Utils::debug_log( 'Verification shortcode rendered', array(
-            'ip' => FFC_Utils::get_user_ip(),
+        \FFC_Utils::debug_log( 'Verification shortcode rendered', array(
+            'ip' => \FFC_Utils::get_user_ip(),
             'has_token' => ! empty( $magic_token )
         ) );
 
@@ -143,9 +143,9 @@ class Shortcodes {
         
         if ( ! $form_id || get_post_type( $form_id ) !== 'ffc_form' ) {
             // ✅ OPTIMIZED v2.9.2: Log invalid form access
-            FFC_Utils::debug_log( 'Invalid form shortcode', array(
+            \FFC_Utils::debug_log( 'Invalid form shortcode', array(
                 'form_id' => $form_id,
-                'ip' => FFC_Utils::get_user_ip()
+                'ip' => \FFC_Utils::get_user_ip()
             ) );
             return '<p>' . esc_html__( 'Form not found.', 'ffc' ) . '</p>';
         }
@@ -156,18 +156,18 @@ class Shortcodes {
         
         if ( empty( $fields ) ) {
             // ✅ OPTIMIZED v2.9.2: Log form with no fields
-            FFC_Utils::debug_log( 'Form has no fields', array(
+            \FFC_Utils::debug_log( 'Form has no fields', array(
                 'form_id' => $form_id
             ) );
             return '<p>' . esc_html__( 'Form has no fields.', 'ffc' ) . '</p>';
         }
 
         // ✅ OPTIMIZED v2.9.2: Log form render
-        FFC_Utils::debug_log( 'Form shortcode rendered', array(
+        \FFC_Utils::debug_log( 'Form shortcode rendered', array(
             'form_id' => $form_id,
-            'form_title' => FFC_Utils::truncate( $form_title, 50 ),
+            'form_title' => \FFC_Utils::truncate( $form_title, 50 ),
             'fields_count' => count( $fields ),
-            'ip' => FFC_Utils::get_user_ip()
+            'ip' => \FFC_Utils::get_user_ip()
         ) );
 
         // ✅ v3.0.0: Check if geofence is active for this form

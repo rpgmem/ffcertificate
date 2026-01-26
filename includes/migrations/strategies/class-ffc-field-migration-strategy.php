@@ -171,14 +171,14 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
             }
 
             // Extract field value using possible JSON keys
-            $field_value = FFC_Data_Sanitizer::extract_field_from_json( $data, $field_def['json_keys'] );
+            $field_value = \FFC_Data_Sanitizer::extract_field_from_json( $data, $field_def['json_keys'] );
 
             if ( empty( $field_value ) ) {
                 continue;
             }
 
             // Sanitize value
-            $sanitized_value = FFC_Data_Sanitizer::sanitize_field_value( $field_value, $field_def );
+            $sanitized_value = \FFC_Data_Sanitizer::sanitize_field_value( $field_value, $field_def );
 
             // Update submission
             $updated = $wpdb->update(

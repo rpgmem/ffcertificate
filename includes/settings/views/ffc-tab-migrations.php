@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Initialize Migration Manager
 require_once FFC_PLUGIN_DIR . 'includes/migrations/class-ffc-migration-manager.php';
-$migration_manager = new FFC_Migration_Manager();
+$migration_manager = new \FFC_Migration_Manager();
 $migrations = $migration_manager->get_migrations();
 ?>
 <div class="ffc-settings-wrap">

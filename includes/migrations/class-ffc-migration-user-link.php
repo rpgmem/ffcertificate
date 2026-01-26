@@ -192,7 +192,7 @@ class MigrationUserLink {
                 self::set_user_display_name($user_id, $submission);
 
                 // STEP 5.2: Send password reset email if enabled (default: disabled)
-                if (class_exists('FFC_Email_Handler')) {
+                if (class_exists('\FFC_Email_Handler')) {
                     $email_handler = new \FFC_Email_Handler();
                     $email_handler->send_wp_user_notification($user_id, 'migration');
                 }

@@ -99,11 +99,11 @@ $get_option = function($key, $default = '') {
     <h2>📊 <?php esc_html_e('Cache Statistics', 'ffc'); ?></h2>
     
     <?php
-    if (!class_exists('FFC_QRCode_Generator')) {
+    if (!class_exists('\FFC_QRCode_Generator')) {
         require_once FFC_PLUGIN_DIR . 'includes/generators/class-ffc-qrcode-generator.php';
     }
     
-    $qr_generator = new FFC_QRCode_Generator();
+    $qr_generator = new \FFC_QRCode_Generator();
     $stats = $qr_generator->get_cache_stats();
     ?>
     

@@ -115,7 +115,7 @@ class UserLinkMigrationStrategy implements MigrationStrategyInterface {
         }
 
         // Delegate to legacy class
-        $result = FFC_Migration_User_Link::run();
+        $result = \FFC_Migration_User_Link::run();
 
         return array(
             'success' => $result['success'],
@@ -140,7 +140,7 @@ class UserLinkMigrationStrategy implements MigrationStrategyInterface {
             );
         }
 
-        if ( ! FFC_Encryption::is_configured() ) {
+        if ( ! \FFC_Encryption::is_configured() ) {
             return new WP_Error(
                 'encryption_not_configured',
                 __( 'Encryption is not configured. Please configure encryption keys first.', 'ffc' )

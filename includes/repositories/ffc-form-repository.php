@@ -49,8 +49,8 @@ class FormRepository extends AbstractRepository {
      * @return mixed
      */
     public function getConfig( int $form_id ) {
-        if (class_exists('FFC_Form_Cache')) {
-            return FFC_Form_Cache::get_form_config($form_id);
+        if (class_exists('\FFC_Form_Cache')) {
+            return \FFC_Form_Cache::get_form_config($form_id);
         }
         
         return get_post_meta($form_id, '_ffc_form_config', true);
@@ -63,8 +63,8 @@ class FormRepository extends AbstractRepository {
      * @return mixed
      */
     public function getFields( int $form_id ) {
-        if (class_exists('FFC_Form_Cache')) {
-            return FFC_Form_Cache::get_form_fields($form_id);
+        if (class_exists('\FFC_Form_Cache')) {
+            return \FFC_Form_Cache::get_form_fields($form_id);
         }
         
         return get_post_meta($form_id, '_ffc_form_fields', true);
@@ -77,8 +77,8 @@ class FormRepository extends AbstractRepository {
      * @return mixed
      */
     public function getBackground( int $form_id ) {
-        if (class_exists('FFC_Form_Cache')) {
-            return FFC_Form_Cache::get_form_background($form_id);
+        if (class_exists('\FFC_Form_Cache')) {
+            return \FFC_Form_Cache::get_form_background($form_id);
         }
         
         return get_post_meta($form_id, '_ffc_form_bg', true);

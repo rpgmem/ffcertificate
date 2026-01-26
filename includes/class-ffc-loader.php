@@ -53,7 +53,7 @@ class Loader {
      * @since 3.0.0
      */
     private function init_rest_api(): void {
-        if (class_exists('FFC_REST_Controller')) {
+        if (class_exists('\FFC_REST_Controller')) {
             new \FFC_REST_Controller();
         }
     }

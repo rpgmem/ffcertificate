@@ -180,7 +180,7 @@ class FormProcessor {
      */
     private function detect_reprint( int $form_id, string $val_cpf, string $val_ticket ): array {
         global $wpdb;
-        $table_name = FFC_Utils::get_submissions_table();
+        $table_name = \FFC_Utils::get_submissions_table();
         $existing_submission = null;
 
         // ✅ PRIORITY 1: Check by ticket (if provided)
@@ -199,9 +199,9 @@ class FormProcessor {
             $clean_cpf = preg_replace( '/[^0-9]/', '', $val_cpf );
             
             // Check if encryption is enabled
-            if (class_exists('FFC_Encryption') && FFC_Encryption::is_configured()) {
+            if (class_exists('\FFC_Encryption') && \FFC_Encryption::is_configured()) {
                 // Use HASH for encrypted data
-                $cpf_hash = FFC_Encryption::hash($clean_cpf);
+                $cpf_hash = \FFC_Encryption::hash($clean_cpf);
                 
                 $existing_submission = $wpdb->get_row( $wpdb->prepare( 
                     "SELECT * FROM {$table_name} 
@@ -312,28 +312,28 @@ class FormProcessor {
         }
         
         // ===== DEBUG CAPTCHA =====
-        FFC_Debug::log_form('===== CAPTCHA DEBUG =====');
-        FFC_Debug::log_form('Answer received', isset($_POST['ffc_captcha_ans']) ? $_POST['ffc_captcha_ans'] : 'NOT SET');
-        FFC_Debug::log_form('Hash received', isset($_POST['ffc_captcha_hash']) ? $_POST['ffc_captcha_hash'] : 'NOT SET');
+        \FFC_Debug::log_form('===== CAPTCHA DEBUG =====');
+        \FFC_Debug::log_form('Answer received', isset($_POST['ffc_captcha_ans']) ? $_POST['ffc_captcha_ans'] : 'NOT SET');
+        \FFC_Debug::log_form('Hash received', isset($_POST['ffc_captcha_hash']) ? $_POST['ffc_captcha_hash'] : 'NOT SET');
 
         if (isset($_POST['ffc_captcha_ans']) && isset($_POST['ffc_captcha_hash'])) {
             $test_answer = trim($_POST['ffc_captcha_ans']);
             $received_hash = $_POST['ffc_captcha_hash'];
             $generated_hash = wp_hash($test_answer . 'ffc_math_salt');
 
-            FFC_Debug::log_form('Trimmed answer', $test_answer);
-            FFC_Debug::log_form('Generated hash from answer', $generated_hash);
-            FFC_Debug::log_form('Hashes match', $generated_hash === $received_hash ? 'YES' : 'NO');
+            \FFC_Debug::log_form('Trimmed answer', $test_answer);
+            \FFC_Debug::log_form('Generated hash from answer', $generated_hash);
+            \FFC_Debug::log_form('Hashes match', $generated_hash === $received_hash ? 'YES' : 'NO');
 
             // Test with different variations
-            FFC_Debug::log_form('Test with (int)', wp_hash((int)$test_answer . 'ffc_math_salt'));
-            FFC_Debug::log_form('Test with (string)', wp_hash((string)$test_answer . 'ffc_math_salt'));
+            \FFC_Debug::log_form('Test with (int)', wp_hash((int)$test_answer . 'ffc_math_salt'));
+            \FFC_Debug::log_form('Test with (string)', wp_hash((string)$test_answer . 'ffc_math_salt'));
         }
-        FFC_Debug::log_form('===== END CAPTCHA DEBUG =====');
+        \FFC_Debug::log_form('===== END CAPTCHA DEBUG =====');
         // ===== END DEBUG =====
         
         // Validate security fields using FFC_Utils
-        $security_check = FFC_Utils::validate_security_fields($_POST);
+        $security_check = \FFC_Utils::validate_security_fields($_POST);
         if ( $security_check !== true ) {
             // Generate new captcha for retry
             $n1 = rand( 1, 9 );
@@ -366,7 +366,7 @@ class FormProcessor {
         foreach ( $fields_config as $field ) {
             $name = $field['name'];
             if ( isset( $_POST[ $name ] ) ) {
-                $value = FFC_Utils::recursive_sanitize( $_POST[ $name ] );
+                $value = \FFC_Utils::recursive_sanitize( $_POST[ $name ] );
                 
                 // Special validation for CPF/RF
                 if ( $name === 'cpf_rf' ) {
@@ -379,14 +379,14 @@ class FormProcessor {
                     
                     // Validate CPF (11 digits) using official algorithm
                     if ( strlen($value) === 11 ) {
-                        if ( ! FFC_Utils::validate_cpf( $value ) ) {
+                        if ( ! \FFC_Utils::validate_cpf( $value ) ) {
                             wp_send_json_error( array( 'message' => __( 'Invalid CPF. Please check the number and try again.', 'ffc' ) ) );
                         }
                     }
                     
                     // Validate RF (7 digits) - must be numeric
                     if ( strlen($value) === 7 ) {
-                        if ( ! FFC_Utils::validate_rf( $value ) ) {
+                        if ( ! \FFC_Utils::validate_rf( $value ) ) {
                             wp_send_json_error( array( 'message' => __( 'Invalid RF. Must contain only numbers.', 'ffc' ) ) );
                         }
                     }
@@ -421,12 +421,12 @@ class FormProcessor {
         $val_cpf = isset($submission_data['cpf_rf']) ? trim($submission_data['cpf_rf']) : '';
 
         // ✅ v2.10.0: Rate Limit Check
-        if (class_exists('FFC_Rate_Limiter')) {
-            $ip = FFC_Utils::get_user_ip();
+        if (class_exists('\FFC_Rate_Limiter')) {
+            $ip = \FFC_Utils::get_user_ip();
             $email = $user_email;
             $cpf = $val_cpf;
             
-            $rate_check = FFC_Rate_Limiter::check_all($ip, $email, $cpf, $form_id);
+            $rate_check = \FFC_Rate_Limiter::check_all($ip, $email, $cpf, $form_id);
             
             if (!$rate_check['allowed']) {
                 wp_send_json_error(array(
@@ -437,15 +437,15 @@ class FormProcessor {
             }
             
             // Record attempt
-            FFC_Rate_Limiter::record_attempt('ip', $ip, $form_id);
-            if ($email) FFC_Rate_Limiter::record_attempt('email', $email, $form_id);
-            if ($cpf) FFC_Rate_Limiter::record_attempt('cpf', preg_replace('/[^0-9]/', '', $cpf), $form_id);
+            \FFC_Rate_Limiter::record_attempt('ip', $ip, $form_id);
+            if ($email) \FFC_Rate_Limiter::record_attempt('email', $email, $form_id);
+            if ($cpf) \FFC_Rate_Limiter::record_attempt('cpf', preg_replace('/[^0-9]/', '', $cpf), $form_id);
         }
 
         // ✅ v3.0.0: Geofence validation (date/time + geolocation)
-        if (class_exists('FFC_Geofence')) {
+        if (class_exists('\FFC_Geofence')) {
             // Get form geofence config to check if IP validation is enabled
-            $geofence_config = FFC_Geofence::get_form_config($form_id);
+            $geofence_config = \FFC_Geofence::get_form_config($form_id);
             $should_validate_ip = false;
 
             // Backend validation logic:
@@ -457,7 +457,7 @@ class FormProcessor {
                 $should_validate_ip = true;
             }
 
-            $geofence_check = FFC_Geofence::can_access_form($form_id, array(
+            $geofence_check = \FFC_Geofence::can_access_form($form_id, array(
                 'check_datetime' => true,        // Always validate date/time server-side
                 'check_geo' => $should_validate_ip, // Only validate IP if explicitly enabled
             ));
@@ -514,7 +514,7 @@ class FormProcessor {
 
         // ✅ v2.10.0: Use unified PDF generation method
         // All we need is the submission_id - everything else is retrieved automatically
-        $pdf_generator = new FFC_PDF_Generator( $this->submission_handler );
+        $pdf_generator = new \FFC_PDF_Generator( $this->submission_handler );
         $pdf_data = $pdf_generator->generate_pdf_data( 
             $submission_id, 
             $this->submission_handler 
@@ -533,7 +533,7 @@ class FormProcessor {
         wp_send_json_success( array( 
             'message' => $msg, 
             'pdf_data' => $pdf_data,
-            'html' => FFC_Utils::generate_success_html(  // ✅ v2.9.13: Centralized in FFC_Utils
+            'html' => \FFC_Utils::generate_success_html(  // ✅ v2.9.13: Centralized in FFC_Utils
                 $submission_data, 
                 $form_id, 
                 $real_submission_date,

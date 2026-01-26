@@ -32,7 +32,7 @@ class CleanupMigrationStrategy implements MigrationStrategyInterface {
      */
     public function __construct() {
         global $wpdb;
-        $this->table_name = FFC_Utils::get_submissions_table();
+        $this->table_name = \FFC_Utils::get_submissions_table();
     }
 
     /**
@@ -224,7 +224,7 @@ class CleanupMigrationStrategy implements MigrationStrategyInterface {
         }
 
         // Check if encryption is configured
-        if ( ! FFC_Encryption::is_configured() ) {
+        if ( ! \FFC_Encryption::is_configured() ) {
             return new WP_Error(
                 'encryption_not_configured',
                 __( 'Encryption must be configured before cleanup.', 'ffc' )

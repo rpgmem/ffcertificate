@@ -123,28 +123,28 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
                 $email_encrypted = null;
                 $email_hash = null;
                 if ( ! empty( $submission['email'] ) ) {
-                    $email_encrypted = FFC_Encryption::encrypt( $submission['email'] );
-                    $email_hash = FFC_Encryption::hash( $submission['email'] );
+                    $email_encrypted = \FFC_Encryption::encrypt( $submission['email'] );
+                    $email_hash = \FFC_Encryption::hash( $submission['email'] );
                 }
 
                 // Encrypt CPF/RF
                 $cpf_encrypted = null;
                 $cpf_hash = null;
                 if ( ! empty( $submission['cpf_rf'] ) ) {
-                    $cpf_encrypted = FFC_Encryption::encrypt( $submission['cpf_rf'] );
-                    $cpf_hash = FFC_Encryption::hash( $submission['cpf_rf'] );
+                    $cpf_encrypted = \FFC_Encryption::encrypt( $submission['cpf_rf'] );
+                    $cpf_hash = \FFC_Encryption::hash( $submission['cpf_rf'] );
                 }
 
                 // Encrypt IP
                 $ip_encrypted = null;
                 if ( ! empty( $submission['user_ip'] ) ) {
-                    $ip_encrypted = FFC_Encryption::encrypt( $submission['user_ip'] );
+                    $ip_encrypted = \FFC_Encryption::encrypt( $submission['user_ip'] );
                 }
 
                 // Encrypt JSON data
                 $data_encrypted = null;
                 if ( ! empty( $submission['data'] ) ) {
-                    $data_encrypted = FFC_Encryption::encrypt( $submission['data'] );
+                    $data_encrypted = \FFC_Encryption::encrypt( $submission['data'] );
                 }
 
                 // Update database
@@ -184,9 +184,9 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
 
         // Log migration batch
         if ( class_exists( 'FFC_Activity_Log' ) ) {
-            FFC_Activity_Log::log(
+            \FFC_Activity_Log::log(
                 'encryption_migration_batch',
-                FFC_Activity_Log::LEVEL_INFO,
+                \FFC_Activity_Log::LEVEL_INFO,
                 array(
                     'offset' => $offset,
                     'migrated' => $migrated,
@@ -230,7 +230,7 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
         }
 
         // Check if encryption is configured
-        if ( ! FFC_Encryption::is_configured() ) {
+        if ( ! \FFC_Encryption::is_configured() ) {
             return new WP_Error(
                 'encryption_not_configured',
                 __( 'Encryption keys not configured. WordPress SECURE_AUTH_KEY and LOGGED_IN_KEY are required.', 'ffc' )

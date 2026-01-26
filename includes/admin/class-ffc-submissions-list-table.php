@@ -118,10 +118,10 @@ class SubmissionsList extends \WP_List_Table {
     private function render_pdf_button( array $item ): string {
         // Use token directly from item (more efficient, avoids extra DB query)
         if (!empty($item['magic_token'])) {
-            $magic_link = FFC_Magic_Link_Helper::generate_magic_link($item['magic_token']);
+            $magic_link = \FFC_Magic_Link_Helper::generate_magic_link($item['magic_token']);
         } else {
             // Fallback: generate token if missing (convert id to int - wpdb returns strings)
-            $magic_link = FFC_Magic_Link_Helper::get_submission_magic_link((int) $item['id'], $this->submission_handler);
+            $magic_link = \FFC_Magic_Link_Helper::get_submission_magic_link((int) $item['id'], $this->submission_handler);
         }
         
         if (empty($magic_link)) {

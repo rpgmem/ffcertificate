@@ -39,7 +39,7 @@ class IpGeolocation {
 
         // Get user IP if not provided
         if (empty($ip)) {
-            $ip = FFC_Utils::get_user_ip();
+            $ip = \FFC_Utils::get_user_ip();
         }
 
         // Validate IP
@@ -322,15 +322,15 @@ class IpGeolocation {
         }
 
         // Log via centralized debug system
-        if (class_exists('FFC_Debug')) {
-            FFC_Debug::log_geofence($message, $context);
+        if (class_exists('\FFC_Debug')) {
+            \FFC_Debug::log_geofence($message, $context);
         }
 
         // Log to activity log
-        if (class_exists('FFC_Activity_Log')) {
-            FFC_Activity_Log::log(
+        if (class_exists('\FFC_Activity_Log')) {
+            \FFC_Activity_Log::log(
                 'ip_geolocation_debug',
-                FFC_Activity_Log::LEVEL_DEBUG,
+                \FFC_Activity_Log::LEVEL_DEBUG,
                 array_merge(array('message' => $message), $context)
             );
         }

@@ -389,12 +389,12 @@ $custom_format = $get_option('date_format_custom', '');
                     </td>
                 </tr>
                 
-                <?php if (class_exists('FFC_Form_Cache')): ?>
+                <?php if (class_exists('\FFC_Form_Cache')): ?>
                 <tr>
                     <th scope="row"><?php esc_html_e('Statistics', 'ffc'); ?></th>
                     <td>
                         <?php 
-                        $stats = FFC_Form_Cache::get_stats();
+                        $stats = \FFC_Form_Cache::get_stats();
                         $total_forms = wp_count_posts('ffc_form')->publish;
                         ?>
                         <div class="ffc-stats-box">

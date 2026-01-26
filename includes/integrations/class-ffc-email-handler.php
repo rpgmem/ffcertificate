@@ -207,18 +207,18 @@ class EmailHandler {
 
             // Format documents (CPF, RF, RG)
             if ( in_array( $k, array( 'cpf', 'cpf_rf', 'rg' ) ) ) {
-                $display_v = FFC_Utils::format_document( $display_v );
+                $display_v = \FFC_Utils::format_document( $display_v );
             }
 
             // Format auth code
             if ( $k === 'auth_code' ) {
-                $display_v = FFC_Utils::format_auth_code( $display_v );
+                $display_v = \FFC_Utils::format_auth_code( $display_v );
             }
 
             $label = ucwords( str_replace('_', ' ', $k) );
             $body .= '<tr>';
             $body .= '<td style="background:#f9f9f9; width:30%; font-weight: bold; border: 1px solid #ddd;">' . esc_html( $label ) . '</td>';
-            $body .= '<td style="border: 1px solid #ddd;">' . wp_kses( $display_v, FFC_Utils::get_allowed_html_tags() ) . '</td>';
+            $body .= '<td style="border: 1px solid #ddd;">' . wp_kses( $display_v, \FFC_Utils::get_allowed_html_tags() ) . '</td>';
             $body .= '</tr>';
         }
         $body .= '</table></div>';

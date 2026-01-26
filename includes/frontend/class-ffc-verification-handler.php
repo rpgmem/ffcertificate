@@ -111,7 +111,7 @@ class VerificationHandler {
      * @return array Result array with 'found', 'submission', 'data', 'magic_token'
      */
     public function verify_by_magic_token( string $token ): array {
-        if ( ! FFC_Magic_Link_Helper::is_valid_token( $token ) ) {
+        if ( ! \FFC_Magic_Link_Helper::is_valid_token( $token ) ) {
             return array(
                 'found' => false,
                 'submission' => null,
@@ -122,8 +122,8 @@ class VerificationHandler {
         }
 
         // Rate limiting check
-        $user_ip = FFC_Utils::get_user_ip();
-        $rate_check = FFC_Rate_Limiter::check_verification( $user_ip );
+        $user_ip = \FFC_Utils::get_user_ip();
+        $rate_check = \FFC_Rate_Limiter::check_verification( $user_ip );
         if ( ! $rate_check['allowed'] ) {
             return array(
                 'found' => false,
@@ -148,12 +148,12 @@ class VerificationHandler {
 
         // v2.10.0: Log access for LGPD compliance
         if ( class_exists( 'FFC_Activity_Log' ) ) {
-            FFC_Activity_Log::log_data_accessed(
+            \FFC_Activity_Log::log_data_accessed(
                 (int) $submission['id'],  // Convert to int (wpdb returns strings)
                 array(
                     'method' => 'magic_link',
                     'token' => substr( $token, 0, 8 ) . '...',
-                    'ip' => FFC_Utils::get_user_ip()
+                    'ip' => \FFC_Utils::get_user_ip()
                 )
             );
         }
@@ -303,7 +303,7 @@ class VerificationHandler {
     // Format documents (CPF, RF, RG)
     if ( in_array( $field_key, array( 'cpf', 'cpf_rf', 'rg' ) ) && ! empty( $value ) ) {
         if ( class_exists( 'FFC_Utils' ) && method_exists( 'FFC_Utils', 'format_document' ) ) {
-            return FFC_Utils::format_document( $value, 'auto' );
+            return \FFC_Utils::format_document( $value, 'auto' );
         }
     }
     
@@ -319,12 +319,12 @@ class VerificationHandler {
         if ( $result['found'] && isset( $result['submission']['id'] ) ) {
         // ✅ v2.10.0: Log access for LGPD compliance
         if ( class_exists( 'FFC_Activity_Log' ) ) {
-            FFC_Activity_Log::log_data_accessed(
+            \FFC_Activity_Log::log_data_accessed(
                 (int) $result['submission']['id'],  // Convert to int (wpdb returns strings)
                 array(
                     'method' => 'manual_verification',
                     'auth_code' => substr( $auth_code, 0, 4 ) . '...',
-                    'ip' => FFC_Utils::get_user_ip()
+                    'ip' => \FFC_Utils::get_user_ip()
                 )
             );
         }
@@ -360,9 +360,9 @@ class VerificationHandler {
         // No captcha - token proves legitimacy
 
         $token = isset( $_POST['token'] ) ? sanitize_text_field( $_POST['token'] ) : '';
-        $user_ip = FFC_Utils::get_user_ip();
+        $user_ip = \FFC_Utils::get_user_ip();
 
-        $rate_check = FFC_Rate_Limiter::check_verification( $user_ip );
+        $rate_check = \FFC_Rate_Limiter::check_verification( $user_ip );
         if ( ! $rate_check['allowed'] ) {
             wp_send_json_error( array(
                 'message' => __( 'Too many verification attempts. Please try again later.', 'ffc' )
@@ -389,7 +389,7 @@ class VerificationHandler {
         }
 
         // ✅ v2.9.2: Use centralized PDF generator
-        $pdf_generator = new FFC_PDF_Generator( $this->email_handler );
+        $pdf_generator = new \FFC_PDF_Generator( $this->email_handler );
         $pdf_data = $pdf_generator->generate_pdf_data(
             (int) $result['submission']->id,  // Convert to int (wpdb returns strings)
             $this->submission_handler
@@ -423,21 +423,21 @@ class VerificationHandler {
         $captcha_ans = isset($_POST['ffc_captcha_ans']) ? sanitize_text_field($_POST['ffc_captcha_ans']) : '';
         $captcha_hash = isset($_POST['ffc_captcha_hash']) ? sanitize_text_field($_POST['ffc_captcha_hash']) : '';
         $honeypot = isset($_POST['ffc_honeypot_trap']) ? sanitize_text_field($_POST['ffc_honeypot_trap']) : '';
-        $user_ip = FFC_Utils::get_user_ip();
+        $user_ip = \FFC_Utils::get_user_ip();
 
         if ( ! empty( $honeypot ) ) {
             wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffc' ) ) );
         }
 
-        $rate_check = FFC_Rate_Limiter::check_verification( $user_ip );  
+        $rate_check = \FFC_Rate_Limiter::check_verification( $user_ip );  
         if ( ! $rate_check['allowed'] ) {
             wp_send_json_error( array( 
                 'message' => __( 'Too many verification attempts. Please try again later.', 'ffc' ) 
             ) );
         }
         
-        if ( ! FFC_Utils::verify_simple_captcha( $captcha_ans, $captcha_hash ) ) {
-            $new_captcha = FFC_Utils::generate_simple_captcha();
+        if ( ! \FFC_Utils::verify_simple_captcha( $captcha_ans, $captcha_hash ) ) {
+            $new_captcha = \FFC_Utils::generate_simple_captcha();
             wp_send_json_error( array( 
                 'message' => __( 'Incorrect answer to math question.', 'ffc' ),
                 'refresh_captcha' => true,
@@ -450,7 +450,7 @@ class VerificationHandler {
         $result = $this->search_certificate( $auth_code );
         
         if ( ! $result['found'] ) {
-            $new_captcha = FFC_Utils::generate_simple_captcha();
+            $new_captcha = \FFC_Utils::generate_simple_captcha();
             wp_send_json_error( array( 
                 'message' => '❌ ' . __( 'Certificate not found or invalid code.', 'ffc' ),
                 'refresh_captcha' => true,
@@ -462,7 +462,7 @@ class VerificationHandler {
         // Get form data for PDF
         
         // ✅ v2.9.2: Use centralized PDF generator
-        $pdf_generator = new FFC_PDF_Generator( $this->email_handler );
+        $pdf_generator = new \FFC_PDF_Generator( $this->email_handler );
         $pdf_data = $pdf_generator->generate_pdf_data(
             (int) $result['submission']->id,  // Convert to int (wpdb returns strings)
             $this->submission_handler

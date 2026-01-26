@@ -117,7 +117,7 @@ class TabGeolocation extends SettingsTab {
         update_option('ffc_geolocation_settings', $settings);
 
         // Log settings change
-        if (class_exists('FFC_Activity_Log')) {
+        if (class_exists('\FFC_Activity_Log')) {
             \FFC_Activity_Log::log_settings_changed('geolocation', get_current_user_id());
         }
     }

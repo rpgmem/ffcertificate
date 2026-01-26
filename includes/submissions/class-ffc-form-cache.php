@@ -40,14 +40,14 @@ class FormCache {
                 wp_cache_set( $cache_key, $config, self::CACHE_GROUP, self::get_expiration() );
                 
                 if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                    FFC_Utils::debug_log( 'Form config cache MISS', array( 'form_id' => $form_id ) );
+                    \FFC_Utils::debug_log( 'Form config cache MISS', array( 'form_id' => $form_id ) );
                 }
             } else {
                 return false;
             }
         } else {
             if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                FFC_Utils::debug_log( 'Form config cache HIT', array( 'form_id' => $form_id ) );
+                \FFC_Utils::debug_log( 'Form config cache HIT', array( 'form_id' => $form_id ) );
             }
         }
         

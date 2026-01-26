@@ -199,7 +199,7 @@ class AdminSubmissionEditPage {
                     <input type="text" value="<?php echo esc_attr( $magic_token ); ?>" class="regular-text ffc-input-readonly" readonly>
                     <p class="description">
                         <?php _e( 'Unique token for certificate access (read-only).', 'ffc' ); ?>
-                        <?php echo FFC_Magic_Link_Helper::get_magic_link_html( $magic_token ); ?>
+                        <?php echo \FFC_Magic_Link_Helper::get_magic_link_html( $magic_token ); ?>
                     </p>
                 <?php else: ?>
                     <p class="description"><?php _e( 'Submission created before magic links', 'ffc' ); ?></p>
@@ -438,7 +438,7 @@ class AdminSubmissionEditPage {
         $clean_data = array();
 
         foreach ( $raw_data as $k => $v ) {
-            $clean_data[ sanitize_key( $k ) ] = wp_kses( $v, FFC_Utils::get_allowed_html_tags() );
+            $clean_data[ sanitize_key( $k ) ] = wp_kses( $v, \FFC_Utils::get_allowed_html_tags() );
         }
 
         $this->submission_handler->update_submission( $id, $new_email, $clean_data );

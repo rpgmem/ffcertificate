@@ -417,6 +417,6 @@ class SubmissionRepository extends AbstractRepository {
      * @return string|null
      */
     private function hash( string $value ): ?string {
-        return class_exists('FFC_Encryption') ? FFC_Encryption::hash($value) : hash('sha256', $value);
+        return class_exists('\FFC_Encryption') ? \FFC_Encryption::hash($value) : hash('sha256', $value);
     }
 }

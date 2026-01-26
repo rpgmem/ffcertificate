@@ -213,7 +213,7 @@ class Geofence {
 
         // Get user location (IP-based or provided)
         if ($user_location === null && !empty($config['geo_ip_enabled'])) {
-            $user_location = FFC_IP_Geolocation::get_location();
+            $user_location = \FFC_IP_Geolocation::get_location();
 
             if (is_wp_error($user_location)) {
                 // IP API failed - apply fallback
@@ -241,7 +241,7 @@ class Geofence {
         }
 
         // Check if within allowed areas
-        $within = FFC_IP_Geolocation::is_within_areas($user_location, $check_areas, 'or'); // Always OR logic for multiple areas
+        $within = \FFC_IP_Geolocation::is_within_areas($user_location, $check_areas, 'or'); // Always OR logic for multiple areas
 
         if (!$within) {
             return array(
@@ -274,8 +274,8 @@ class Geofence {
         $fallback = $global_settings['api_fallback'] ?? 'gps_only';
 
         // Use centralized debug system
-        if (class_exists('FFC_Debug')) {
-            FFC_Debug::log_geofence('IP API failed, applying fallback', array(
+        if (class_exists('\FFC_Debug')) {
+            \FFC_Debug::log_geofence('IP API failed, applying fallback', array(
                 'error' => $error->get_error_message(),
                 'fallback' => $fallback
             ));
@@ -494,15 +494,15 @@ class Geofence {
      * @param array $details Additional details
      */
     private static function log_access_denied(int $form_id, string $reason, array $details = array()): void {
-        if (!class_exists('FFC_Activity_Log')) {
+        if (!class_exists('\FFC_Activity_Log')) {
             return;
         }
 
-        FFC_Activity_Log::log_access_denied($reason, FFC_Utils::get_user_ip());
+        \FFC_Activity_Log::log_access_denied($reason, \FFC_Utils::get_user_ip());
 
         // Use centralized debug system
-        if (class_exists('FFC_Debug')) {
-            FFC_Debug::log_geofence('Access denied', array_merge(array(
+        if (class_exists('\FFC_Debug')) {
+            \FFC_Debug::log_geofence('Access denied', array_merge(array(
                 'form_id' => $form_id,
                 'reason' => $reason,
             ), $details));
