@@ -23,7 +23,7 @@ class AdminSubmissionEditPage {
     /**
      * Submission handler instance
      *
-     * @var FFC_Submission_Handler
+     * @var \FreeFormCertificate\Submissions\SubmissionHandler
      */
     private $submission_handler;
 
@@ -51,7 +51,7 @@ class AdminSubmissionEditPage {
     /**
      * Constructor
      *
-     * @param FFC_Submission_Handler $handler Submission handler instance
+     * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler instance
      */
     public function __construct( object $handler ) {
         $this->submission_handler = $handler;

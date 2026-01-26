@@ -66,7 +66,7 @@ class MagicLinkHelper {
      * Generates token if missing and returns it
      * 
      * @param int $submission_id Submission ID
-     * @param FFC_Submission_Handler $handler Submission handler instance
+     * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler instance
      * @return string Magic token (32 hex characters)
      */
     public static function ensure_token( int $submission_id, object $handler ): string {
@@ -91,7 +91,7 @@ class MagicLinkHelper {
      * Combines ensure_token + generate_magic_link
      * 
      * @param int $submission_id Submission ID
-     * @param FFC_Submission_Handler $handler Submission handler instance
+     * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler instance
      * @return string Complete magic link URL
      */
     public static function get_submission_magic_link( int $submission_id, object $handler ): string {
@@ -110,7 +110,7 @@ class MagicLinkHelper {
      * Useful when you already have the submission data
      * 
      * @param array $submission Submission array with 'magic_token' key
-     * @param FFC_Submission_Handler $handler Submission handler (optional, for generating if missing)
+     * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler (optional, for generating if missing)
      * @return string Complete magic link URL
      */
     public static function get_magic_link_from_submission( $submission, ?object $handler = null ): string {

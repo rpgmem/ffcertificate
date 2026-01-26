@@ -127,7 +127,7 @@ class MigrationStatusCalculator {
      * Get strategy instance for a specific migration
      *
      * @param string $migration_key Migration identifier
-     * @return FFC_Migration_Strategy|WP_Error Strategy instance or error
+     * @return \FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface|WP_Error Strategy instance or error
      */
     private function get_strategy_for_migration( string $migration_key ) {
         if ( ! isset( $this->strategies[ $migration_key ] ) ) {
