@@ -158,7 +158,7 @@ class Activator {
         }
 
         $page_data = array(
-            'post_title'     => __('Certificate Verification', 'ffc'),
+            'post_title'     => 'Certificate Verification',
             'post_content'   => '[ffc_verification]',
             'post_status'    => 'publish',
             'post_type'      => 'page',
@@ -251,7 +251,7 @@ class Activator {
         }
 
         $page_data = array(
-            'post_title'     => __('My Dashboard', 'ffc'),
+            'post_title'     => 'My Dashboard',
             'post_content'   => '[user_dashboard_personal]',
             'post_status'    => 'publish',
             'post_type'      => 'page',

@@ -69,6 +69,11 @@ class Loader {
     }
 
     public function init_plugin(): void {
+        // ✅ v4.1.0: Run calendar migrations if needed
+        if (class_exists('\FreeFormCertificate\Calendars\CalendarActivator')) {
+            \FreeFormCertificate\Calendars\CalendarActivator::maybe_migrate();
+        }
+
         // Autoloader handles all class loading now
         $this->submission_handler = new SubmissionHandler();
         $this->email_handler      = new EmailHandler();
