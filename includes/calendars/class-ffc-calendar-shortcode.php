@@ -57,11 +57,19 @@ class CalendarShortcode {
         wp_enqueue_script('jquery-ui-datepicker');
         wp_enqueue_style('jquery-ui-theme', '//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css');
 
+        // Enqueue FFC common styles (includes honeypot, captcha, etc.)
+        wp_enqueue_style(
+            'ffc-frontend',
+            FFC_PLUGIN_URL . 'assets/css/ffc-frontend.css',
+            array(),
+            FFC_VERSION
+        );
+
         // Enqueue calendar frontend styles
         wp_enqueue_style(
             'ffc-calendar-frontend',
             FFC_PLUGIN_URL . 'assets/css/calendar-frontend.css',
-            array(),
+            array('ffc-frontend'),
             FFC_VERSION
         );
 
@@ -212,7 +220,7 @@ class CalendarShortcode {
                 <h3><?php _e('Your Information', 'ffc'); ?></h3>
 
                 <form id="ffc-booking-form" class="ffc-booking-form">
-                    <?php wp_nonce_field('ffc_calendar_nonce', 'ffc_calendar_nonce'); ?>
+                    <?php wp_nonce_field('ffc_calendar_nonce', 'nonce'); ?>
                     <input type="hidden" name="action" value="ffc_book_appointment">
                     <input type="hidden" name="calendar_id" value="<?php echo esc_attr($calendar['id']); ?>">
                     <input type="hidden" name="date" id="ffc-form-date" value="">
