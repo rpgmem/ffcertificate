@@ -43,8 +43,25 @@ class DashboardShortcode {
         // Enqueue assets
         self::enqueue_assets($view_as_user_id);
 
-        // Get current tab
-        $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'certificates';
+        // Check user permissions
+        $user_id = $view_as_user_id ?: get_current_user_id();
+        $user = get_user_by('id', $user_id);
+
+        // Check if user has FFC permissions
+        $can_view_certificates = $user && (
+            user_can($user, 'view_own_certificates') ||
+            in_array('ffc_user', $user->roles) ||
+            user_can($user, 'manage_options')
+        );
+
+        $can_view_appointments = $user && (
+            in_array('ffc_user', $user->roles) ||
+            user_can($user, 'manage_options')
+        );
+
+        // Get current tab - default to first available tab
+        $default_tab = $can_view_certificates ? 'certificates' : ($can_view_appointments ? 'appointments' : 'profile');
+        $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : $default_tab;
 
         // Start output buffering
         ob_start();
@@ -60,33 +77,43 @@ class DashboardShortcode {
             ?>
 
             <nav class="ffc-dashboard-tabs">
-                <button class="ffc-tab <?php echo $current_tab === 'certificates' ? 'active' : ''; ?>"
-                        data-tab="certificates">
-                    📜 <?php esc_html_e('My Certificates', 'ffc'); ?>
-                </button>
-                <button class="ffc-tab <?php echo $current_tab === 'appointments' ? 'active' : ''; ?>"
-                        data-tab="appointments">
-                    📅 <?php esc_html_e('My Appointments', 'ffc'); ?>
-                </button>
+                <?php if ($can_view_certificates) : ?>
+                    <button class="ffc-tab <?php echo $current_tab === 'certificates' ? 'active' : ''; ?>"
+                            data-tab="certificates">
+                        📜 <?php esc_html_e('My Certificates', 'ffc'); ?>
+                    </button>
+                <?php endif; ?>
+
+                <?php if ($can_view_appointments) : ?>
+                    <button class="ffc-tab <?php echo $current_tab === 'appointments' ? 'active' : ''; ?>"
+                            data-tab="appointments">
+                        📅 <?php esc_html_e('My Appointments', 'ffc'); ?>
+                    </button>
+                <?php endif; ?>
+
                 <button class="ffc-tab <?php echo $current_tab === 'profile' ? 'active' : ''; ?>"
                         data-tab="profile">
                     👤 <?php esc_html_e('My Profile', 'ffc'); ?>
                 </button>
             </nav>
 
-            <div class="ffc-tab-content <?php echo $current_tab === 'certificates' ? 'active' : ''; ?>"
-                 id="tab-certificates">
-                <div class="ffc-loading">
-                    <?php esc_html_e('Loading certificates...', 'ffc'); ?>
+            <?php if ($can_view_certificates) : ?>
+                <div class="ffc-tab-content <?php echo $current_tab === 'certificates' ? 'active' : ''; ?>"
+                     id="tab-certificates">
+                    <div class="ffc-loading">
+                        <?php esc_html_e('Loading certificates...', 'ffc'); ?>
+                    </div>
                 </div>
-            </div>
+            <?php endif; ?>
 
-            <div class="ffc-tab-content <?php echo $current_tab === 'appointments' ? 'active' : ''; ?>"
-                 id="tab-appointments">
-                <div class="ffc-loading">
-                    <?php esc_html_e('Loading appointments...', 'ffc'); ?>
+            <?php if ($can_view_appointments) : ?>
+                <div class="ffc-tab-content <?php echo $current_tab === 'appointments' ? 'active' : ''; ?>"
+                     id="tab-appointments">
+                    <div class="ffc-loading">
+                        <?php esc_html_e('Loading appointments...', 'ffc'); ?>
+                    </div>
                 </div>
-            </div>
+            <?php endif; ?>
 
             <div class="ffc-tab-content <?php echo $current_tab === 'profile' ? 'active' : ''; ?>"
                  id="tab-profile">
@@ -223,6 +250,21 @@ class DashboardShortcode {
      * @param int|false $view_as_user_id User ID in view-as mode
      */
     private static function enqueue_assets($view_as_user_id = false): void {
+        // Get user permissions
+        $user_id = $view_as_user_id ?: get_current_user_id();
+        $user = get_user_by('id', $user_id);
+
+        $can_view_certificates = $user && (
+            user_can($user, 'view_own_certificates') ||
+            in_array('ffc_user', $user->roles) ||
+            user_can($user, 'manage_options')
+        );
+
+        $can_view_appointments = $user && (
+            in_array('ffc_user', $user->roles) ||
+            user_can($user, 'manage_options')
+        );
+
         // Enqueue CSS
         wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . 'assets/css/ffc-user-dashboard.css', array(), FFC_VERSION );
 
@@ -236,6 +278,8 @@ class DashboardShortcode {
             'nonce' => wp_create_nonce('wp_rest'),
             'viewAsUserId' => $view_as_user_id ? $view_as_user_id : false,
             'isAdminViewing' => $view_as_user_id && $view_as_user_id !== get_current_user_id(),
+            'canViewCertificates' => $can_view_certificates,
+            'canViewAppointments' => $can_view_appointments,
             'strings' => array(
                 'loading' => __('Loading...', 'ffc'),
                 'error' => __('Error loading data', 'ffc'),
@@ -267,6 +311,7 @@ class DashboardShortcode {
                 'confirmCancel' => __('Are you sure you want to cancel this appointment?', 'ffc'),
                 'cancelSuccess' => __('Appointment cancelled successfully', 'ffc'),
                 'cancelError' => __('Error cancelling appointment', 'ffc'),
+                'noPermission' => __('You do not have permission to view this content.', 'ffc'),
             ),
         ));
     }

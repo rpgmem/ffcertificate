@@ -77,6 +77,17 @@
         loadCertificates: function() {
             const $container = $('#tab-certificates');
 
+            // Check if container exists (permission check)
+            if ($container.length === 0) {
+                return; // User doesn't have permission
+            }
+
+            // Check if user has permission
+            if (typeof ffcDashboard.canViewCertificates !== 'undefined' && !ffcDashboard.canViewCertificates) {
+                $container.html('<div class="ffc-error">' + ffcDashboard.strings.noPermission + '</div>');
+                return;
+            }
+
             // Check if already loaded
             if ($container.find('.ffc-certificates-table').length > 0) {
                 return; // Already loaded
@@ -162,6 +173,17 @@
          */
         loadAppointments: function() {
             const $container = $('#tab-appointments');
+
+            // Check if container exists (permission check)
+            if ($container.length === 0) {
+                return; // User doesn't have permission
+            }
+
+            // Check if user has permission
+            if (typeof ffcDashboard.canViewAppointments !== 'undefined' && !ffcDashboard.canViewAppointments) {
+                $container.html('<div class="ffc-error">' + ffcDashboard.strings.noPermission + '</div>');
+                return;
+            }
 
             // Check if already loaded
             if ($container.find('.ffc-appointments-table').length > 0) {
