@@ -357,6 +357,67 @@
     color: #1d2327;
 }
 
+/* Confirmation Code */
+.ffc-confirmation-code {
+    background: #e7f5ff;
+    border: 2px solid #2271b1;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.ffc-confirmation-code p:first-child {
+    margin-top: 0;
+    font-weight: 600;
+    color: #1d2327;
+    font-size: 16px;
+}
+
+.ffc-code-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #2271b1;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 3px;
+    padding: 15px;
+    background: #fff;
+    border-radius: 6px;
+    margin: 15px 0;
+    word-break: break-all;
+}
+
+.ffc-code-help {
+    color: #646970;
+    font-size: 14px;
+    margin-bottom: 0 !important;
+}
+
+/* Receipt Actions */
+.ffc-receipt-actions {
+    margin: 25px 0 15px;
+}
+
+.ffc-receipt-actions .ffc-btn-secondary {
+    display: inline-block;
+    background: #2271b1;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.ffc-receipt-actions .ffc-btn-secondary:hover {
+    background: #135e96;
+    color: #fff;
+}
+
+.ffc-appointment-info {
+    margin-bottom: 20px;
+}
+
 .ffc-approval-notice,
 .ffc-confirmation-notice {
     padding: 15px;
