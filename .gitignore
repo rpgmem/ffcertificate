@@ -24,3 +24,7 @@ package-lock.json
 # Build
 /build/
 /dist/
+
+# PHPUnit
+.phpunit.result.cache
+/phpunit.xml
