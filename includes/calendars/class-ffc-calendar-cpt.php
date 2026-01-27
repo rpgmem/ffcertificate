@@ -295,6 +295,9 @@ class CalendarCPT {
     /**
      * Cleanup calendar data when post is deleted
      *
+     * Deletes the calendar record and optionally cancels all future appointments.
+     * The cancellation behavior can be controlled via the 'ffc_cancel_appointments_on_calendar_delete' filter.
+     *
      * @param int $post_id
      * @param object $post
      * @return void
@@ -310,16 +313,153 @@ class CalendarCPT {
         $calendar = $this->calendar_repository->findByPostId($post_id);
 
         if ($calendar) {
-            // Delete calendar record
-            $this->calendar_repository->delete((int)$calendar['id']);
+            $calendar_id = (int)$calendar['id'];
+            $calendar_title = $calendar['title'];
 
-            // TODO: Optionally cancel all future appointments for this calendar
-            // This should be configurable - admin may want to keep appointments data
+            // Check if we should cancel future appointments
+            // By default, cancel future appointments to prevent orphaned bookings
+            // This can be disabled via filter: add_filter('ffc_cancel_appointments_on_calendar_delete', '__return_false');
+            $cancel_appointments = apply_filters('ffc_cancel_appointments_on_calendar_delete', true, $calendar_id, $post_id);
+
+            $cancelled_count = 0;
+
+            if ($cancel_appointments) {
+                $cancelled_count = $this->cancel_future_appointments($calendar_id, $calendar_title);
+            }
+
+            // Delete calendar record
+            $this->calendar_repository->delete($calendar_id);
 
             \FreeFormCertificate\Core\Utils::debug_log('Calendar data cleaned up', array(
                 'post_id' => $post_id,
-                'calendar_id' => $calendar['id'],
+                'calendar_id' => $calendar_id,
+                'calendar_title' => $calendar_title,
+                'cancelled_appointments' => $cancelled_count,
                 'user_id' => get_current_user_id()
+            ));
+        }
+    }
+
+    /**
+     * Cancel all future appointments for a calendar
+     *
+     * Cancels all pending and confirmed appointments with dates >= today.
+     * Sends notification emails to affected users (if email notifications are enabled).
+     *
+     * @param int $calendar_id Calendar ID
+     * @param string $calendar_title Calendar title for notification
+     * @return int Number of appointments cancelled
+     */
+    private function cancel_future_appointments(int $calendar_id, string $calendar_title): int {
+        global $wpdb;
+        $table = $wpdb->prefix . 'ffc_appointments';
+        $today = current_time('Y-m-d');
+
+        // Get all future appointments (pending or confirmed)
+        $future_appointments = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$table}
+             WHERE calendar_id = %d
+             AND appointment_date >= %s
+             AND status IN ('pending', 'confirmed')
+             ORDER BY appointment_date ASC",
+            $calendar_id,
+            $today
+        ), ARRAY_A);
+
+        if (empty($future_appointments)) {
+            return 0;
+        }
+
+        $cancelled_count = 0;
+        $appointment_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
+
+        foreach ($future_appointments as $appointment) {
+            // Cancel the appointment
+            $result = $appointment_repo->cancel(
+                (int)$appointment['id'],
+                get_current_user_id(),
+                sprintf(__('Calendar "%s" was deleted', 'ffc'), $calendar_title)
+            );
+
+            if ($result) {
+                $cancelled_count++;
+
+                // Send cancellation email notification
+                $this->send_calendar_deletion_notification($appointment, $calendar_title);
+            }
+        }
+
+        return $cancelled_count;
+    }
+
+    /**
+     * Send email notification about appointment cancellation due to calendar deletion
+     *
+     * @param array $appointment Appointment data
+     * @param string $calendar_title Calendar title
+     * @return void
+     */
+    private function send_calendar_deletion_notification(array $appointment, string $calendar_title): void {
+        // Check if we should send notifications
+        // Can be disabled via filter: add_filter('ffc_send_calendar_deletion_notification', '__return_false');
+        $send_notification = apply_filters('ffc_send_calendar_deletion_notification', true, $appointment);
+
+        if (!$send_notification) {
+            return;
+        }
+
+        // Get recipient email
+        $email = '';
+        if (!empty($appointment['email'])) {
+            $email = $appointment['email'];
+        } elseif (!empty($appointment['email_encrypted'])) {
+            if (class_exists('\FreeFormCertificate\Core\Encryption')) {
+                $email = \FreeFormCertificate\Core\Encryption::decrypt($appointment['email_encrypted']);
+            }
+        }
+
+        if (empty($email) || !is_email($email)) {
+            return;
+        }
+
+        // Prepare email
+        $subject = sprintf(
+            __('[%s] Appointment Cancelled - Calendar No Longer Available', 'ffc'),
+            get_bloginfo('name')
+        );
+
+        $date_formatted = date_i18n(get_option('date_format'), strtotime($appointment['appointment_date']));
+        $time_formatted = date_i18n(get_option('time_format'), strtotime($appointment['start_time']));
+
+        $message = sprintf(
+            __('Hello,%s%sWe regret to inform you that your appointment has been cancelled because the calendar "%s" is no longer available.%s%sAppointment Details:%s- Date: %s%s- Time: %s%s- Calendar: %s%s%sWe apologize for any inconvenience this may cause.%s%sBest regards,%s%s', 'ffc'),
+            "\n\n",
+            "\n",
+            $calendar_title,
+            "\n\n",
+            "\n",
+            "\n",
+            $date_formatted,
+            "\n",
+            $time_formatted,
+            "\n",
+            $calendar_title,
+            "\n\n",
+            "\n",
+            "\n\n",
+            "\n",
+            get_bloginfo('name')
+        );
+
+        // Send email
+        wp_mail($email, $subject, $message);
+
+        // Log notification
+        if (class_exists('\FreeFormCertificate\Core\Utils')) {
+            \FreeFormCertificate\Core\Utils::debug_log('Calendar deletion notification sent', array(
+                'appointment_id' => $appointment['id'],
+                'email' => $email,
+                'calendar_title' => $calendar_title
             ));
         }
     }
