@@ -1089,10 +1089,25 @@ class RestController {
                 );
             }
 
+            // Check if calendar repository exists
+            if (!class_exists('\FreeFormCertificate\Repositories\CalendarRepository')) {
+                return new \WP_Error(
+                    'calendar_repository_not_found',
+                    __('Calendar repository not available', 'ffc'),
+                    array('status' => 500)
+                );
+            }
+
             $appointment_repository = new \FreeFormCertificate\Repositories\AppointmentRepository();
+            $calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
 
             // Get all appointments for this user
             $appointments = $appointment_repository->findByUserId($user_id);
+
+            // Ensure appointments is an array
+            if (!is_array($appointments)) {
+                $appointments = array();
+            }
 
             // Get date format from settings
             $settings = get_option('ffc_settings', array());
@@ -1102,12 +1117,22 @@ class RestController {
             $appointments_formatted = array();
 
             foreach ($appointments as $appointment) {
+                // Skip invalid appointments
+                if (!is_array($appointment) || empty($appointment['id'])) {
+                    continue;
+                }
+
                 // Get calendar info
-                $calendar_title = '';
+                $calendar_title = __('Unknown Calendar', 'ffc');
                 if (!empty($appointment['calendar_id'])) {
-                    $calendar_repo = new \FreeFormCertificate\Repositories\CalendarRepository();
-                    $calendar = $calendar_repo->findById($appointment['calendar_id']);
-                    $calendar_title = $calendar['title'] ?? __('Unknown Calendar', 'ffc');
+                    try {
+                        $calendar = $calendar_repository->findById((int)$appointment['calendar_id']);
+                        if ($calendar && isset($calendar['title'])) {
+                            $calendar_title = $calendar['title'];
+                        }
+                    } catch (\Exception $e) {
+                        // Calendar not found or error - use default
+                    }
                 }
 
                 // Format date
@@ -1120,20 +1145,30 @@ class RestController {
                 // Format time
                 $time_formatted = '';
                 if (!empty($appointment['start_time'])) {
-                    $time_formatted = date_i18n('H:i', strtotime($appointment['start_time']));
+                    $time_timestamp = strtotime($appointment['start_time']);
+                    $time_formatted = ($time_timestamp !== false) ? date_i18n('H:i', $time_timestamp) : $appointment['start_time'];
                 }
 
                 // Decrypt email if encrypted
                 $email_display = '';
                 if (!empty($appointment['email_encrypted'])) {
                     try {
-                        $email_plain = \FreeFormCertificate\Core\Encryption::decrypt($appointment['email_encrypted']);
-                        $email_display = ($email_plain && is_string($email_plain)) ? $email_plain : '';
+                        if (class_exists('\FreeFormCertificate\Core\Encryption')) {
+                            $email_plain = \FreeFormCertificate\Core\Encryption::decrypt($appointment['email_encrypted']);
+                            $email_display = ($email_plain && is_string($email_plain)) ? $email_plain : '';
+                        }
                     } catch (\Exception $e) {
                         $email_display = '';
                     }
                 } elseif (!empty($appointment['email'])) {
                     $email_display = $appointment['email'];
+                }
+
+                // Format end time
+                $end_time_formatted = '';
+                if (!empty($appointment['end_time'])) {
+                    $end_timestamp = strtotime($appointment['end_time']);
+                    $end_time_formatted = ($end_timestamp !== false) ? date_i18n('H:i', $end_timestamp) : '';
                 }
 
                 // Status badge
@@ -1145,23 +1180,25 @@ class RestController {
                     'no_show' => __('No Show', 'ffc'),
                 );
 
+                $status = $appointment['status'] ?? 'pending';
+
                 $appointments_formatted[] = array(
                     'id' => (int) $appointment['id'],
-                    'calendar_id' => (int) $appointment['calendar_id'],
+                    'calendar_id' => (int) ($appointment['calendar_id'] ?? 0),
                     'calendar_title' => $calendar_title,
                     'appointment_date' => $date_formatted,
-                    'appointment_date_raw' => $appointment['appointment_date'],
+                    'appointment_date_raw' => $appointment['appointment_date'] ?? '',
                     'start_time' => $time_formatted,
-                    'start_time_raw' => $appointment['start_time'],
-                    'end_time' => !empty($appointment['end_time']) ? date_i18n('H:i', strtotime($appointment['end_time'])) : '',
-                    'status' => $appointment['status'],
-                    'status_label' => $status_labels[$appointment['status']] ?? $appointment['status'],
+                    'start_time_raw' => $appointment['start_time'] ?? '',
+                    'end_time' => $end_time_formatted,
+                    'status' => $status,
+                    'status_label' => $status_labels[$status] ?? $status,
                     'name' => $appointment['name'] ?? '',
                     'email' => $email_display,
                     'phone' => $appointment['phone'] ?? '',
                     'user_notes' => $appointment['user_notes'] ?? '',
                     'created_at' => $appointment['created_at'] ?? '',
-                    'can_cancel' => in_array($appointment['status'], ['pending', 'confirmed']),
+                    'can_cancel' => in_array($status, ['pending', 'confirmed']),
                 );
             }
 
@@ -1171,9 +1208,19 @@ class RestController {
             ));
 
         } catch (\Exception $e) {
+            // Log the error for debugging
+            if (class_exists('\FreeFormCertificate\Core\Utils')) {
+                \FreeFormCertificate\Core\Utils::debug_log('get_user_appointments error', array(
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
+                ));
+            }
+
             return new \WP_Error(
                 'get_appointments_error',
-                $e->getMessage(),
+                sprintf(__('Error loading appointments: %s', 'ffc'), $e->getMessage()),
                 array('status' => 500)
             );
         }
