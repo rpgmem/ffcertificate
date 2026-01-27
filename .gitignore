@@ -25,8 +25,6 @@ package-lock.json
 /build/
 /dist/
 
-# Tests
-/coverage/
-/.phpunit.cache/
-/.phpunit.result.cache
-/phpunit.xml.dist
+# PHPUnit
+.phpunit.result.cache
+/phpunit.xml

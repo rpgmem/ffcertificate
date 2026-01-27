@@ -32,6 +32,11 @@ class Activator {
         // ✅ v3.1.0: Create dashboard page
         self::create_dashboard_page();
 
+        // ✅ v4.1.0: Create Calendar tables
+        if (class_exists('\FreeFormCertificate\Calendars\CalendarActivator')) {
+            \FreeFormCertificate\Calendars\CalendarActivator::create_tables();
+        }
+
         self::run_migrations();
         flush_rewrite_rules();
     }

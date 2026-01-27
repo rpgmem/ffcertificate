@@ -1,0 +1,271 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Calendar Activator
+ *
+ * Creates database tables for calendar and appointment system.
+ * Independent from form submissions system as per requirements.
+ *
+ * Tables created:
+ * - wp_ffc_calendars: Calendar definitions with slots and settings
+ * - wp_ffc_appointments: Individual appointments/bookings
+ * - wp_ffc_blocked_dates: Holidays and specific date blocks
+ *
+ * @since 4.1.0
+ * @version 4.1.0
+ */
+
+namespace FreeFormCertificate\Calendars;
+
+if (!defined('ABSPATH')) exit;
+
+class CalendarActivator {
+
+    /**
+     * Create all calendar-related tables
+     *
+     * Called during plugin activation.
+     *
+     * @return void
+     */
+    public static function create_tables(): void {
+        self::create_calendars_table();
+        self::create_appointments_table();
+        self::create_blocked_dates_table();
+    }
+
+    /**
+     * Create calendars table
+     *
+     * Stores calendar configurations with time slots and settings.
+     *
+     * @return void
+     */
+    private static function create_calendars_table(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_calendars';
+        $charset_collate = $wpdb->get_charset_collate();
+
+        // Check if table already exists
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") == $table_name) {
+            return;
+        }
+
+        $sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            post_id bigint(20) unsigned NOT NULL COMMENT 'Reference to wp_posts (CPT)',
+            title varchar(255) NOT NULL,
+            description text DEFAULT NULL,
+
+            -- Time slot configuration
+            slot_duration int unsigned DEFAULT 30 COMMENT 'Duration in minutes',
+            slot_interval int unsigned DEFAULT 0 COMMENT 'Break between slots in minutes',
+            slots_per_day int unsigned DEFAULT 0 COMMENT '0 = unlimited',
+
+            -- Working hours (JSON: [{day: 0-6, start: '09:00', end: '17:00'}])
+            working_hours longtext DEFAULT NULL,
+
+            -- Booking window
+            advance_booking_min int unsigned DEFAULT 0 COMMENT 'Minimum hours in advance',
+            advance_booking_max int unsigned DEFAULT 30 COMMENT 'Maximum days in advance',
+
+            -- Cancellation policy
+            allow_cancellation tinyint(1) DEFAULT 1,
+            cancellation_min_hours int unsigned DEFAULT 24 COMMENT 'Minimum hours before appointment',
+
+            -- Approval workflow
+            requires_approval tinyint(1) DEFAULT 0,
+
+            -- Capacity
+            max_appointments_per_slot int unsigned DEFAULT 1,
+
+            -- User restrictions
+            require_login tinyint(1) DEFAULT 0,
+            allowed_roles longtext DEFAULT NULL COMMENT 'JSON array of role names',
+
+            -- Email notifications (JSON config)
+            email_config longtext DEFAULT NULL,
+
+            -- Status
+            status varchar(20) DEFAULT 'active' COMMENT 'active, inactive, archived',
+
+            -- Metadata
+            created_at datetime NOT NULL,
+            created_by bigint(20) unsigned DEFAULT NULL,
+            updated_at datetime DEFAULT NULL,
+            updated_by bigint(20) unsigned DEFAULT NULL,
+
+            PRIMARY KEY (id),
+            KEY post_id (post_id),
+            KEY status (status),
+            KEY created_at (created_at)
+        ) {$charset_collate};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+    }
+
+    /**
+     * Create appointments table
+     *
+     * Stores individual appointment bookings.
+     *
+     * @return void
+     */
+    private static function create_appointments_table(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_appointments';
+        $charset_collate = $wpdb->get_charset_collate();
+
+        // Check if table already exists
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") == $table_name) {
+            return;
+        }
+
+        $sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            calendar_id bigint(20) unsigned NOT NULL,
+            user_id bigint(20) unsigned DEFAULT NULL COMMENT 'WordPress user (if logged in)',
+
+            -- Appointment details
+            appointment_date date NOT NULL,
+            start_time time NOT NULL,
+            end_time time NOT NULL,
+
+            -- Contact information (for non-logged users or additional info)
+            name varchar(255) DEFAULT NULL,
+            email varchar(255) DEFAULT NULL,
+            email_encrypted text DEFAULT NULL,
+            email_hash varchar(64) DEFAULT NULL,
+            phone varchar(50) DEFAULT NULL,
+            phone_encrypted text DEFAULT NULL,
+
+            -- Additional data (JSON: custom fields)
+            custom_data longtext DEFAULT NULL,
+            custom_data_encrypted longtext DEFAULT NULL,
+
+            -- Notes
+            user_notes text DEFAULT NULL,
+            admin_notes text DEFAULT NULL,
+
+            -- Status workflow
+            status varchar(20) DEFAULT 'pending' COMMENT 'pending, confirmed, cancelled, completed, no_show',
+
+            -- Approval (if calendar requires approval)
+            approved_at datetime DEFAULT NULL,
+            approved_by bigint(20) unsigned DEFAULT NULL,
+
+            -- Cancellation tracking
+            cancelled_at datetime DEFAULT NULL,
+            cancelled_by bigint(20) unsigned DEFAULT NULL,
+            cancellation_reason text DEFAULT NULL,
+
+            -- Verification token for guest users
+            confirmation_token varchar(64) DEFAULT NULL,
+
+            -- LGPD Consent
+            consent_given tinyint(1) DEFAULT 0,
+            consent_date datetime DEFAULT NULL,
+            consent_ip varchar(45) DEFAULT NULL,
+            consent_text text DEFAULT NULL,
+
+            -- Metadata
+            user_ip varchar(45) DEFAULT NULL,
+            user_ip_encrypted text DEFAULT NULL,
+            user_agent varchar(255) DEFAULT NULL,
+
+            created_at datetime NOT NULL,
+            updated_at datetime DEFAULT NULL,
+
+            -- Reminder sent tracking
+            reminder_sent_at datetime DEFAULT NULL,
+
+            PRIMARY KEY (id),
+            KEY calendar_id (calendar_id),
+            KEY user_id (user_id),
+            KEY appointment_date (appointment_date),
+            KEY status (status),
+            KEY email (email),
+            KEY email_hash (email_hash),
+            KEY confirmation_token (confirmation_token),
+            KEY idx_calendar_date (calendar_id, appointment_date),
+            KEY idx_calendar_datetime (calendar_id, appointment_date, start_time)
+        ) {$charset_collate};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+    }
+
+    /**
+     * Create blocked dates table
+     *
+     * Stores holidays and specific date/time blocks per calendar.
+     *
+     * @return void
+     */
+    private static function create_blocked_dates_table(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_blocked_dates';
+        $charset_collate = $wpdb->get_charset_collate();
+
+        // Check if table already exists
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") == $table_name) {
+            return;
+        }
+
+        $sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            calendar_id bigint(20) unsigned DEFAULT NULL COMMENT 'NULL = applies to all calendars',
+
+            -- Block type
+            block_type varchar(20) DEFAULT 'full_day' COMMENT 'full_day, time_range, recurring',
+
+            -- Date range
+            start_date date NOT NULL,
+            end_date date DEFAULT NULL COMMENT 'For multi-day blocks',
+
+            -- Time range (for partial day blocks)
+            start_time time DEFAULT NULL,
+            end_time time DEFAULT NULL,
+
+            -- Recurring pattern (JSON: {type: 'weekly', days: [0,6], etc})
+            recurring_pattern longtext DEFAULT NULL,
+
+            -- Description
+            reason varchar(255) DEFAULT NULL COMMENT 'Holiday, maintenance, etc',
+
+            -- Metadata
+            created_at datetime NOT NULL,
+            created_by bigint(20) unsigned DEFAULT NULL,
+
+            PRIMARY KEY (id),
+            KEY calendar_id (calendar_id),
+            KEY start_date (start_date),
+            KEY block_type (block_type),
+            KEY idx_calendar_daterange (calendar_id, start_date, end_date)
+        ) {$charset_collate};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+    }
+
+    /**
+     * Drop all calendar tables (for uninstall)
+     *
+     * @return void
+     */
+    public static function drop_tables(): void {
+        global $wpdb;
+
+        $tables = array(
+            $wpdb->prefix . 'ffc_calendars',
+            $wpdb->prefix . 'ffc_appointments',
+            $wpdb->prefix . 'ffc_blocked_dates'
+        );
+
+        foreach ($tables as $table) {
+            $wpdb->query("DROP TABLE IF EXISTS {$table}");
+        }
+    }
+}

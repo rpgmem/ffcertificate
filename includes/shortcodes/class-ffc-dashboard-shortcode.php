@@ -64,6 +64,10 @@ class DashboardShortcode {
                         data-tab="certificates">
                     📜 <?php esc_html_e('My Certificates', 'ffc'); ?>
                 </button>
+                <button class="ffc-tab <?php echo $current_tab === 'appointments' ? 'active' : ''; ?>"
+                        data-tab="appointments">
+                    📅 <?php esc_html_e('My Appointments', 'ffc'); ?>
+                </button>
                 <button class="ffc-tab <?php echo $current_tab === 'profile' ? 'active' : ''; ?>"
                         data-tab="profile">
                     👤 <?php esc_html_e('My Profile', 'ffc'); ?>
@@ -74,6 +78,13 @@ class DashboardShortcode {
                  id="tab-certificates">
                 <div class="ffc-loading">
                     <?php esc_html_e('Loading certificates...', 'ffc'); ?>
+                </div>
+            </div>
+
+            <div class="ffc-tab-content <?php echo $current_tab === 'appointments' ? 'active' : ''; ?>"
+                 id="tab-appointments">
+                <div class="ffc-loading">
+                    <?php esc_html_e('Loading appointments...', 'ffc'); ?>
                 </div>
             </div>
 
@@ -229,21 +240,32 @@ class DashboardShortcode {
                 'loading' => __('Loading...', 'ffc'),
                 'error' => __('Error loading data', 'ffc'),
                 'noCertificates' => __('No certificates found', 'ffc'),
+                'noAppointments' => __('No appointments found', 'ffc'),
                 'downloadPdf' => __('View PDF', 'ffc'),
                 'yes' => __('Yes', 'ffc'),
                 'no' => __('No', 'ffc'),
                 // Table headers
                 'eventName' => __('Event Name', 'ffc'),
+                'calendar' => __('Calendar', 'ffc'),
                 'date' => __('Date', 'ffc'),
+                'time' => __('Time', 'ffc'),
+                'status' => __('Status', 'ffc'),
                 'consent' => __('Consent (LGPD)', 'ffc'),
                 'email' => __('Email', 'ffc'),
                 'code' => __('Code', 'ffc'),
                 'actions' => __('Actions', 'ffc'),
+                'notes' => __('Notes', 'ffc'),
                 // Profile fields
                 'name' => __('Name:', 'ffc'),
                 'linkedEmails' => __('Linked Emails:', 'ffc'),
                 'cpfRf' => __('CPF/RF:', 'ffc'),
                 'memberSince' => __('Member Since:', 'ffc'),
+                // Appointment actions
+                'cancelAppointment' => __('Cancel', 'ffc'),
+                'viewDetails' => __('View Details', 'ffc'),
+                'confirmCancel' => __('Are you sure you want to cancel this appointment?', 'ffc'),
+                'cancelSuccess' => __('Appointment cancelled successfully', 'ffc'),
+                'cancelError' => __('Error cancelling appointment', 'ffc'),
             ),
         ));
     }

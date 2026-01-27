@@ -31,6 +31,8 @@
             const activeTab = $('.ffc-tab.active').data('tab');
             if (activeTab === 'certificates') {
                 this.loadCertificates();
+            } else if (activeTab === 'appointments') {
+                this.loadAppointments();
             } else if (activeTab === 'profile') {
                 this.loadProfile();
             }
@@ -62,6 +64,8 @@
             // Load tab data
             if (tab === 'certificates') {
                 this.loadCertificates();
+            } else if (tab === 'appointments') {
+                this.loadAppointments();
             } else if (tab === 'profile') {
                 this.loadProfile();
             }
@@ -151,6 +155,132 @@
             html += '</table>';
 
             $container.html(html);
+        },
+
+        /**
+         * Load appointments via API
+         */
+        loadAppointments: function() {
+            const $container = $('#tab-appointments');
+
+            // Check if already loaded
+            if ($container.find('.ffc-appointments-table').length > 0) {
+                return; // Already loaded
+            }
+
+            $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+
+            // Build URL with viewAsUserId if in admin mode
+            let url = ffcDashboard.restUrl + 'user/appointments';
+            if (ffcDashboard.viewAsUserId) {
+                url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
+            }
+
+            $.ajax({
+                url: url,
+                method: 'GET',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce);
+                },
+                success: function(response) {
+                    FFCDashboard.renderAppointments(response.appointments);
+                },
+                error: function(xhr) {
+                    $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
+                }
+            });
+        },
+
+        /**
+         * Render appointments table
+         */
+        renderAppointments: function(appointments) {
+            const $container = $('#tab-appointments');
+
+            if (!appointments || appointments.length === 0) {
+                $container.html(
+                    '<div class="ffc-empty-state">' +
+                    '<p>📅</p>' +
+                    '<p>' + ffcDashboard.strings.noAppointments + '</p>' +
+                    '</div>'
+                );
+                return;
+            }
+
+            let html = '<table class="ffc-appointments-table">';
+            html += '<thead>';
+            html += '<tr>';
+            html += '<th>' + ffcDashboard.strings.calendar + '</th>';
+            html += '<th>' + ffcDashboard.strings.date + '</th>';
+            html += '<th>' + ffcDashboard.strings.time + '</th>';
+            html += '<th>' + ffcDashboard.strings.status + '</th>';
+            html += '<th>' + ffcDashboard.strings.actions + '</th>';
+            html += '</tr>';
+            html += '</thead>';
+            html += '<tbody>';
+
+            appointments.forEach(function(apt) {
+                html += '<tr>';
+                html += '<td>' + apt.calendar_title + '</td>';
+                html += '<td>' + apt.appointment_date + '</td>';
+                html += '<td>' + apt.start_time + '</td>';
+                html += '<td><span class="appointment-status status-' + apt.status + '">' + apt.status_label + '</span></td>';
+                html += '<td>';
+
+                // Show cancel button only if allowed
+                if (apt.can_cancel) {
+                    html += '<button class="button ffc-cancel-appointment" data-id="' + apt.id + '">';
+                    html += '❌ ' + ffcDashboard.strings.cancelAppointment;
+                    html += '</button>';
+                }
+
+                html += '</td>';
+                html += '</tr>';
+            });
+
+            html += '</tbody>';
+            html += '</table>';
+
+            $container.html(html);
+
+            // Bind cancel event
+            $container.on('click', '.ffc-cancel-appointment', function(e) {
+                e.preventDefault();
+                const appointmentId = $(this).data('id');
+                FFCDashboard.cancelAppointment(appointmentId);
+            });
+        },
+
+        /**
+         * Cancel appointment
+         */
+        cancelAppointment: function(appointmentId) {
+            if (!confirm(ffcDashboard.strings.confirmCancel)) {
+                return;
+            }
+
+            $.ajax({
+                url: ffcDashboard.ajaxUrl,
+                method: 'POST',
+                data: {
+                    action: 'ffc_cancel_appointment',
+                    appointment_id: appointmentId,
+                    nonce: ffcDashboard.nonce
+                },
+                success: function(response) {
+                    if (response.success) {
+                        alert(ffcDashboard.strings.cancelSuccess);
+                        // Reload appointments
+                        $('#tab-appointments').html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+                        FFCDashboard.loadAppointments();
+                    } else {
+                        alert(response.data.message || ffcDashboard.strings.cancelError);
+                    }
+                },
+                error: function() {
+                    alert(ffcDashboard.strings.cancelError);
+                }
+            });
         },
 
         /**

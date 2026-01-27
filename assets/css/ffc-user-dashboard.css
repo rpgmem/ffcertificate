@@ -224,6 +224,78 @@
     display: inline-block;
 }
 
+/* Appointments Table */
+.ffc-appointments-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.ffc-appointments-table th {
+    background: #f5f5f5;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.ffc-appointments-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+    vertical-align: middle;
+}
+
+.ffc-appointments-table tr:hover {
+    background: #f9f9f9;
+}
+
+.appointment-status {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.appointment-status.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.appointment-status.status-confirmed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.appointment-status.status-cancelled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.appointment-status.status-completed {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.appointment-status.status-no_show {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.ffc-appointments-table .ffc-cancel-appointment {
+    padding: 6px 12px;
+    font-size: 13px;
+    background: #dc3545;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.ffc-appointments-table .ffc-cancel-appointment:hover {
+    background: #c82333;
+}
+
 /* Profile Section */
 .ffc-profile-info {
     background: #f9f9f9;
