@@ -225,14 +225,68 @@ class CalendarActivator {
         );
 
         if (empty($column_exists)) {
-            // Add cpf_rf columns after email_hash
-            $wpdb->query(
-                "ALTER TABLE {$table_name}
-                ADD COLUMN cpf_rf varchar(20) DEFAULT NULL AFTER email_hash,
-                ADD COLUMN cpf_rf_encrypted text DEFAULT NULL AFTER cpf_rf,
-                ADD COLUMN cpf_rf_hash varchar(64) DEFAULT NULL AFTER cpf_rf_encrypted,
-                ADD INDEX cpf_rf_hash (cpf_rf_hash)"
+            // Check if email_hash column exists to determine where to add new columns
+            $email_hash_exists = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'email_hash'",
+                    DB_NAME,
+                    $table_name
+                )
             );
+
+            if (!empty($email_hash_exists)) {
+                // Add cpf_rf columns after email_hash
+                $wpdb->query(
+                    "ALTER TABLE {$table_name}
+                    ADD COLUMN cpf_rf varchar(20) DEFAULT NULL AFTER email_hash,
+                    ADD COLUMN cpf_rf_encrypted text DEFAULT NULL AFTER cpf_rf,
+                    ADD COLUMN cpf_rf_hash varchar(64) DEFAULT NULL AFTER cpf_rf_encrypted"
+                );
+
+                // Add index separately to avoid errors if it already exists
+                $index_exists = $wpdb->get_results(
+                    "SHOW INDEX FROM {$table_name} WHERE Key_name = 'cpf_rf_hash'"
+                );
+                if (empty($index_exists)) {
+                    $wpdb->query("ALTER TABLE {$table_name} ADD INDEX cpf_rf_hash (cpf_rf_hash)");
+                }
+            } else {
+                // Fallback: add after email column
+                $wpdb->query(
+                    "ALTER TABLE {$table_name}
+                    ADD COLUMN cpf_rf varchar(20) DEFAULT NULL AFTER email,
+                    ADD COLUMN cpf_rf_encrypted text DEFAULT NULL AFTER cpf_rf,
+                    ADD COLUMN cpf_rf_hash varchar(64) DEFAULT NULL AFTER cpf_rf_encrypted"
+                );
+
+                // Add index
+                $index_exists = $wpdb->get_results(
+                    "SHOW INDEX FROM {$table_name} WHERE Key_name = 'cpf_rf_hash'"
+                );
+                if (empty($index_exists)) {
+                    $wpdb->query("ALTER TABLE {$table_name} ADD INDEX cpf_rf_hash (cpf_rf_hash)");
+                }
+            }
+        }
+    }
+
+    /**
+     * Run migrations on plugin load
+     * This ensures migrations run even if plugin wasn't re-activated
+     *
+     * @return void
+     */
+    public static function maybe_migrate(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_appointments';
+
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") == $table_name;
+
+        if ($table_exists) {
+            // Run migration to ensure cpf_rf columns exist
+            self::migrate_appointments_table();
         }
     }
 
