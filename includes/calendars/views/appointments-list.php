@@ -274,12 +274,26 @@ if (isset($_GET['action']) && isset($_GET['appointment'])) {
     switch ($action) {
         case 'confirm':
             check_admin_referer('ffc_confirm_appointment_' . $appointment_id);
-            $appointment_repo->confirm($appointment_id, get_current_user_id());
+            $result = $appointment_repo->confirm($appointment_id, get_current_user_id());
+
+            if ($result) {
+                // Store success message in transient
+                set_transient('ffc_admin_notice_' . get_current_user_id(), array(
+                    'type' => 'success',
+                    'message' => __('Appointment confirmed successfully.', 'ffc')
+                ), 30);
+            } else {
+                // Store error message in transient
+                set_transient('ffc_admin_notice_' . get_current_user_id(), array(
+                    'type' => 'error',
+                    'message' => __('Failed to confirm appointment.', 'ffc')
+                ), 30);
+            }
+
             $redirect_url = add_query_arg(
                 array(
                     'post_type' => 'ffc_calendar',
-                    'page' => 'ffc-appointments',
-                    'message' => 'confirmed'
+                    'page' => 'ffc-appointments'
                 ),
                 admin_url('edit.php')
             );
@@ -288,12 +302,26 @@ if (isset($_GET['action']) && isset($_GET['appointment'])) {
 
         case 'cancel':
             check_admin_referer('ffc_cancel_appointment_' . $appointment_id);
-            $appointment_repo->cancel($appointment_id, get_current_user_id(), __('Cancelled by admin', 'ffc'));
+            $result = $appointment_repo->cancel($appointment_id, get_current_user_id(), __('Cancelled by admin', 'ffc'));
+
+            if ($result) {
+                // Store success message in transient
+                set_transient('ffc_admin_notice_' . get_current_user_id(), array(
+                    'type' => 'success',
+                    'message' => __('Appointment cancelled successfully.', 'ffc')
+                ), 30);
+            } else {
+                // Store error message in transient
+                set_transient('ffc_admin_notice_' . get_current_user_id(), array(
+                    'type' => 'error',
+                    'message' => __('Failed to cancel appointment.', 'ffc')
+                ), 30);
+            }
+
             $redirect_url = add_query_arg(
                 array(
                     'post_type' => 'ffc_calendar',
-                    'page' => 'ffc-appointments',
-                    'message' => 'cancelled'
+                    'page' => 'ffc-appointments'
                 ),
                 admin_url('edit.php')
             );
@@ -302,17 +330,13 @@ if (isset($_GET['action']) && isset($_GET['appointment'])) {
     }
 }
 
-// Display messages
-if (isset($_GET['message'])) {
-    $message = sanitize_text_field($_GET['message']);
-    $messages = array(
-        'confirmed' => __('Appointment confirmed successfully.', 'ffc'),
-        'cancelled' => __('Appointment cancelled successfully.', 'ffc'),
-    );
-
-    if (isset($messages[$message])) {
-        echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($messages[$message]) . '</p></div>';
-    }
+// Display admin notices from transients
+$admin_notice = get_transient('ffc_admin_notice_' . get_current_user_id());
+if ($admin_notice && is_array($admin_notice)) {
+    $notice_type = $admin_notice['type'] === 'error' ? 'notice-error' : 'notice-success';
+    echo '<div class="notice ' . esc_attr($notice_type) . ' is-dismissible"><p>' . esc_html($admin_notice['message']) . '</p></div>';
+    // Delete transient after displaying
+    delete_transient('ffc_admin_notice_' . get_current_user_id());
 }
 
 // Create and display table
