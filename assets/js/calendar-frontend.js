@@ -270,15 +270,35 @@
             $('.ffc-calendar-datepicker-wrapper').hide();
 
             // Build appointment details
-            var detailsHtml = '<p><strong>Date:</strong> ' + self.selectedDate + '</p>';
-            detailsHtml += '<p><strong>Time:</strong> ' + $('#ffc-form-time option:selected').text() + '</p>';
-            detailsHtml += '<p><strong>Name:</strong> ' + $('#ffc-booking-name').val() + '</p>';
-            detailsHtml += '<p><strong>Email:</strong> ' + $('#ffc-booking-email').val() + '</p>';
+            var detailsHtml = '<div class="ffc-appointment-info">';
+            detailsHtml += '<p><strong>' + ffcCalendar.strings.date + ':</strong> ' + self.selectedDate + '</p>';
+            detailsHtml += '<p><strong>' + ffcCalendar.strings.time + ':</strong> ' + $('#ffc-form-time option:selected').text() + '</p>';
+            detailsHtml += '<p><strong>' + ffcCalendar.strings.name + ':</strong> ' + $('#ffc-booking-name').val() + '</p>';
+            detailsHtml += '<p><strong>' + ffcCalendar.strings.email + ':</strong> ' + $('#ffc-booking-email').val() + '</p>';
 
             if (data.requires_approval) {
-                detailsHtml += '<p><strong>Status:</strong> Pending Approval</p>';
+                detailsHtml += '<p><strong>' + ffcCalendar.strings.status + ':</strong> ' + ffcCalendar.strings.pendingApproval + '</p>';
             } else {
-                detailsHtml += '<p><strong>Status:</strong> Confirmed</p>';
+                detailsHtml += '<p><strong>' + ffcCalendar.strings.status + ':</strong> ' + ffcCalendar.strings.confirmed + '</p>';
+            }
+            detailsHtml += '</div>';
+
+            // Add confirmation code/token if available
+            if (data.confirmation_token) {
+                detailsHtml += '<div class="ffc-confirmation-code">';
+                detailsHtml += '<p><strong>' + ffcCalendar.strings.confirmationCode + ':</strong></p>';
+                detailsHtml += '<p class="ffc-code-value">' + data.confirmation_token + '</p>';
+                detailsHtml += '<p class="ffc-code-help">' + ffcCalendar.strings.confirmationCodeHelp + '</p>';
+                detailsHtml += '</div>';
+            }
+
+            // Add receipt download button if available
+            if (data.receipt_url) {
+                detailsHtml += '<div class="ffc-receipt-actions">';
+                detailsHtml += '<a href="' + data.receipt_url + '" class="ffc-btn ffc-btn-secondary" target="_blank">';
+                detailsHtml += '📄 ' + ffcCalendar.strings.downloadReceipt;
+                detailsHtml += '</a>';
+                detailsHtml += '</div>';
             }
 
             $('.ffc-appointment-details').html(detailsHtml);

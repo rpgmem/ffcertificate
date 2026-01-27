@@ -104,6 +104,17 @@ class CalendarShortcode {
                 'noSlots' => __('No available slots for this date', 'ffc'),
                 'success' => __('Appointment booked successfully!', 'ffc'),
                 'error' => __('An error occurred. Please try again.', 'ffc'),
+                // Confirmation screen
+                'date' => __('Date', 'ffc'),
+                'time' => __('Time', 'ffc'),
+                'name' => __('Name', 'ffc'),
+                'email' => __('Email', 'ffc'),
+                'status' => __('Status', 'ffc'),
+                'confirmed' => __('Confirmed', 'ffc'),
+                'pendingApproval' => __('Pending Approval', 'ffc'),
+                'confirmationCode' => __('Confirmation Code', 'ffc'),
+                'confirmationCodeHelp' => __('Save this code to manage your appointment.', 'ffc'),
+                'downloadReceipt' => __('Download Receipt', 'ffc'),
             )
         ));
     }

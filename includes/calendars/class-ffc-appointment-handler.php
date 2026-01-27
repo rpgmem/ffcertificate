@@ -248,6 +248,11 @@ class AppointmentHandler {
         $data['consent_date'] = current_time('mysql');
         $data['consent_ip'] = $data['user_ip'];
 
+        // Create or link user if CPF/RF is provided and user is not logged in
+        if (!empty($data['cpf_rf']) && empty($data['user_id'])) {
+            $this->create_or_link_user($data);
+        }
+
         // Set initial status
         $data['status'] = $calendar['requires_approval'] ? 'pending' : 'confirmed';
 
@@ -798,6 +803,69 @@ class AppointmentHandler {
                     do_action('ffc_appointment_cancelled_email', $appointment, $calendar);
                 }
                 break;
+        }
+    }
+
+    /**
+     * Create or link WordPress user based on CPF/RF and email
+     *
+     * If CPF/RF is provided and user is not logged in, create or link to
+     * existing WordPress user account. Updates appointment data with user_id.
+     *
+     * @param array &$data Appointment data (passed by reference)
+     * @return void
+     */
+    private function create_or_link_user(array &$data): void {
+        // Validate required data
+        if (empty($data['cpf_rf']) || empty($data['email'])) {
+            return;
+        }
+
+        // Clean CPF/RF (remove formatting)
+        $cpf_rf_clean = preg_replace('/[^0-9]/', '', $data['cpf_rf']);
+        if (empty($cpf_rf_clean)) {
+            return;
+        }
+
+        // Hash CPF/RF for lookup
+        $cpf_rf_hash = hash('sha256', $cpf_rf_clean);
+
+        // Try to find or create user using UserManager
+        if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
+            try {
+                $submission_data = array(
+                    'nome_completo' => $data['name'] ?? '',
+                    'name' => $data['name'] ?? '',
+                    'skip_email' => true // Don't send password reset email for appointments
+                );
+
+                $user_id = \FreeFormCertificate\UserDashboard\UserManager::get_or_create_user(
+                    $cpf_rf_hash,
+                    $data['email'],
+                    $submission_data
+                );
+
+                if (!is_wp_error($user_id) && $user_id > 0) {
+                    $data['user_id'] = $user_id;
+
+                    // Log successful user creation/linking
+                    if (class_exists('\FreeFormCertificate\Core\Utils')) {
+                        \FreeFormCertificate\Core\Utils::debug_log('User created/linked for appointment', array(
+                            'user_id' => $user_id,
+                            'email' => $data['email'],
+                            'has_cpf_rf' => !empty($cpf_rf_clean)
+                        ));
+                    }
+                }
+            } catch (\Exception $e) {
+                // Log error but don't fail the appointment
+                if (class_exists('\FreeFormCertificate\Core\Utils')) {
+                    \FreeFormCertificate\Core\Utils::debug_log('Failed to create user for appointment', array(
+                        'email' => $data['email'],
+                        'error' => $e->getMessage()
+                    ));
+                }
+            }
         }
     }
 }
