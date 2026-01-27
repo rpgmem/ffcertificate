@@ -108,8 +108,23 @@ class CalendarShortcode {
             return '<p class="ffc-error">' . __('Calendar ID is required.', 'ffc') . '</p>';
         }
 
-        // Get calendar
-        $calendar = $this->calendar_repository->getWithWorkingHours($calendar_id);
+        // Try to get calendar by Post ID first (most common usage)
+        $calendar = $this->calendar_repository->findByPostId($calendar_id);
+
+        // If not found, try by table ID
+        if (!$calendar) {
+            $calendar = $this->calendar_repository->findById($calendar_id);
+        }
+
+        // Decode working hours if found
+        if ($calendar) {
+            if (!empty($calendar['working_hours'])) {
+                $calendar['working_hours'] = json_decode($calendar['working_hours'], true);
+            }
+            if (!empty($calendar['allowed_roles'])) {
+                $calendar['allowed_roles'] = json_decode($calendar['allowed_roles'], true);
+            }
+        }
 
         if (!$calendar) {
             return '<p class="ffc-error">' . __('Calendar not found.', 'ffc') . '</p>';
@@ -117,6 +132,11 @@ class CalendarShortcode {
 
         if ($calendar['status'] !== 'active') {
             return '<p class="ffc-error">' . __('This calendar is not accepting bookings.', 'ffc') . '</p>';
+        }
+
+        // Ensure working_hours is an array
+        if (empty($calendar['working_hours']) || !is_array($calendar['working_hours'])) {
+            return '<p class="ffc-error">' . __('Calendar has no working hours configured. Please contact the administrator.', 'ffc') . '</p>';
         }
 
         // Check login requirement
@@ -288,9 +308,9 @@ class CalendarShortcode {
         <script type="text/javascript">
         jQuery(document).ready(function($) {
             var calendarId = <?php echo $calendar['id']; ?>;
-            var workingDays = <?php echo json_encode(array_column($calendar['working_hours'], 'day')); ?>;
-            var minDate = <?php echo $calendar['advance_booking_min']; ?>; // hours
-            var maxDate = <?php echo $calendar['advance_booking_max']; ?>; // days
+            var workingDays = <?php echo json_encode(!empty($calendar['working_hours']) && is_array($calendar['working_hours']) ? array_column($calendar['working_hours'], 'day') : []); ?>;
+            var minDate = <?php echo isset($calendar['advance_booking_min']) ? intval($calendar['advance_booking_min']) : 0; ?>; // hours
+            var maxDate = <?php echo isset($calendar['advance_booking_max']) ? intval($calendar['advance_booking_max']) : 30; ?>; // days
 
             // Initialize datepicker
             $('#ffc-datepicker-' + calendarId).datepicker({
