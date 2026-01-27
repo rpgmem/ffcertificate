@@ -103,6 +103,40 @@ class AppointmentReceiptHandler {
     }
 
     /**
+     * Enqueue PDF generation scripts
+     *
+     * @return void
+     */
+    private function enqueue_pdf_scripts(): void {
+        // Enqueue html2canvas
+        wp_enqueue_script(
+            'html2canvas',
+            'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+            array(),
+            '1.4.1',
+            true
+        );
+
+        // Enqueue jsPDF
+        wp_enqueue_script(
+            'jspdf',
+            'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+            array(),
+            '2.5.1',
+            true
+        );
+
+        // Enqueue PDF generator (reuse from certificates)
+        wp_enqueue_script(
+            'ffc-pdf-generator',
+            FFC_PLUGIN_URL . 'assets/js/ffc-pdf-generator.js',
+            array('jquery', 'html2canvas', 'jspdf'),
+            FFC_VERSION,
+            true
+        );
+    }
+
+    /**
      * Display receipt HTML
      *
      * @param array $appointment
@@ -110,6 +144,9 @@ class AppointmentReceiptHandler {
      * @return void
      */
     private function display_receipt(array $appointment, array $calendar): void {
+        // Enqueue PDF scripts
+        $this->enqueue_pdf_scripts();
+
         // Decrypt sensitive data with safety checks
         $email = $appointment['email'] ?? '';
         if (empty($email) && !empty($appointment['email_encrypted'])) {
@@ -284,10 +321,15 @@ class AppointmentReceiptHandler {
                     font-size: 12px;
                     color: #666;
                 }
-                .print-button {
+                .action-buttons {
                     position: fixed;
                     top: 20px;
                     right: 20px;
+                    z-index: 1000;
+                    display: flex;
+                    gap: 10px;
+                }
+                .action-button {
                     background: #0073aa;
                     color: white;
                     border: none;
@@ -296,10 +338,17 @@ class AppointmentReceiptHandler {
                     cursor: pointer;
                     font-size: 16px;
                     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                    z-index: 1000;
+                    text-decoration: none;
+                    display: inline-block;
                 }
-                .print-button:hover {
+                .action-button:hover {
                     background: #005a87;
+                }
+                .action-button.secondary {
+                    background: #50575e;
+                }
+                .action-button.secondary:hover {
+                    background: #3c434a;
                 }
                 @media print {
                     body {
@@ -310,16 +359,19 @@ class AppointmentReceiptHandler {
                         box-shadow: none;
                         padding: 20px;
                     }
-                    .print-button {
+                    .action-buttons {
                         display: none;
                     }
                 }
             </style>
         </head>
         <body>
-            <button class="print-button" onclick="window.print()">🖨️ <?php echo esc_html__('Print / Save as PDF', 'ffc'); ?></button>
+            <div class="action-buttons">
+                <button class="action-button" id="ffc-download-pdf-btn">📥 <?php echo esc_html__('Download PDF', 'ffc'); ?></button>
+                <button class="action-button secondary" onclick="window.print()">🖨️ <?php echo esc_html__('Print', 'ffc'); ?></button>
+            </div>
 
-            <div class="receipt-container">
+            <div class="receipt-container" id="ffc-receipt-content">
                 <div class="header">
                     <h1><?php echo esc_html__('Appointment Receipt', 'ffc'); ?></h1>
                     <div class="site-name"><?php bloginfo('name'); ?></div>
@@ -351,6 +403,12 @@ class AppointmentReceiptHandler {
                         <span class="info-label"><?php echo esc_html__('Appointment ID:', 'ffc'); ?></span>
                         <span class="info-value">#<?php echo esc_html($appointment['id'] ?? '0'); ?></span>
                     </div>
+                    <?php if (!empty($appointment['validation_code'])): ?>
+                    <div class="info-row">
+                        <span class="info-label"><?php echo esc_html__('Validation Code:', 'ffc'); ?></span>
+                        <span class="info-value" style="font-weight: bold; font-size: 1.1em; letter-spacing: 1px;"><?php echo esc_html($appointment['validation_code']); ?></span>
+                    </div>
+                    <?php endif; ?>
                     <div class="info-row">
                         <span class="info-label"><?php echo esc_html__('Date:', 'ffc'); ?></span>
                         <span class="info-value"><?php echo esc_html($appointment_date); ?></span>
@@ -397,6 +455,43 @@ class AppointmentReceiptHandler {
                     <p><?php bloginfo('name'); ?> - <?php bloginfo('url'); ?></p>
                 </div>
             </div>
+
+            <?php wp_print_scripts('jquery'); ?>
+            <?php wp_print_scripts('html2canvas'); ?>
+            <?php wp_print_scripts('jspdf'); ?>
+            <?php wp_print_scripts('ffc-pdf-generator'); ?>
+
+            <script>
+            jQuery(document).ready(function($) {
+                $('#ffc-download-pdf-btn').on('click', function() {
+                    var $receiptContent = $('#ffc-receipt-content');
+
+                    // Clone the receipt content
+                    var htmlContent = $receiptContent.html();
+
+                    // Generate filename
+                    var appointmentId = '<?php echo esc_js($appointment['id'] ?? '0'); ?>';
+                    var validationCode = '<?php echo esc_js($appointment['validation_code'] ?? ''); ?>';
+                    var filename = validationCode ?
+                        'Appointment_Receipt_' + validationCode + '.pdf' :
+                        'Appointment_Receipt_' + appointmentId + '.pdf';
+
+                    // Prepare PDF data
+                    var pdfData = {
+                        template: htmlContent,
+                        bg_image: null
+                    };
+
+                    // Call PDF generator
+                    if (typeof window.ffcGeneratePDF === 'function') {
+                        window.ffcGeneratePDF(pdfData, filename);
+                    } else {
+                        console.error('FFC PDF Generator not loaded');
+                        alert('<?php echo esc_js(__('Error: PDF generator not loaded. Please refresh the page.', 'ffc')); ?>');
+                    }
+                });
+            });
+            </script>
         </body>
         </html>
         <?php

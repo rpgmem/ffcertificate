@@ -171,6 +171,9 @@ class CalendarActivator {
             -- Verification token for guest users
             confirmation_token varchar(64) DEFAULT NULL,
 
+            -- Validation code (user-friendly code for verification, like certificates)
+            validation_code varchar(20) DEFAULT NULL,
+
             -- LGPD Consent
             consent_given tinyint(1) DEFAULT 0,
             consent_date datetime DEFAULT NULL,
@@ -197,6 +200,7 @@ class CalendarActivator {
             KEY email_hash (email_hash),
             KEY cpf_rf_hash (cpf_rf_hash),
             KEY confirmation_token (confirmation_token),
+            KEY validation_code (validation_code),
             KEY idx_calendar_date (calendar_id, appointment_date),
             KEY idx_calendar_datetime (calendar_id, appointment_date, start_time)
         ) {$charset_collate};";
@@ -272,6 +276,215 @@ class CalendarActivator {
     }
 
     /**
+     * Migrate appointments table to add validation_code column
+     *
+     * @return void
+     */
+    private static function migrate_appointments_validation_code(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_appointments';
+
+        // Check if validation_code column exists
+        $column_exists = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'validation_code'",
+                DB_NAME,
+                $table_name
+            )
+        );
+
+        if (empty($column_exists)) {
+            // Add validation_code column after confirmation_token
+            $wpdb->query(
+                "ALTER TABLE {$table_name}
+                ADD COLUMN validation_code varchar(20) DEFAULT NULL AFTER confirmation_token"
+            );
+
+            // Add index
+            $index_exists = $wpdb->get_results(
+                "SHOW INDEX FROM {$table_name} WHERE Key_name = 'validation_code'"
+            );
+            if (empty($index_exists)) {
+                $wpdb->query("ALTER TABLE {$table_name} ADD INDEX validation_code (validation_code)");
+            }
+
+            // Generate validation codes for existing appointments
+            self::generate_validation_codes_for_existing_appointments();
+        }
+    }
+
+    /**
+     * Generate validation codes for existing appointments that don't have one
+     *
+     * @return void
+     */
+    private static function generate_validation_codes_for_existing_appointments(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_appointments';
+
+        // Get appointments without validation codes
+        $appointments = $wpdb->get_results(
+            "SELECT id FROM {$table_name} WHERE validation_code IS NULL OR validation_code = ''"
+        );
+
+        foreach ($appointments as $appointment) {
+            // Generate unique validation code
+            $validation_code = self::generate_unique_validation_code();
+
+            // Update appointment
+            $wpdb->update(
+                $table_name,
+                array('validation_code' => $validation_code),
+                array('id' => $appointment->id),
+                array('%s'),
+                array('%d')
+            );
+        }
+    }
+
+    /**
+     * Generate unique validation code
+     *
+     * @return string
+     */
+    private static function generate_unique_validation_code(): string {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_appointments';
+
+        do {
+            // Generate code in format XXXX-XXXX-XXXX (12 alphanumeric characters)
+            $code = self::generate_random_string(4) . '-' .
+                    self::generate_random_string(4) . '-' .
+                    self::generate_random_string(4);
+
+            // Check if code already exists
+            $existing = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM {$table_name} WHERE validation_code = %s",
+                    $code
+                )
+            );
+        } while ($existing);
+
+        return $code;
+    }
+
+    /**
+     * Generate random alphanumeric string
+     *
+     * @param int $length
+     * @return string
+     */
+    private static function generate_random_string(int $length = 4): string {
+        $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $chars_length = strlen($chars);
+        $string = '';
+
+        for ($i = 0; $i < $length; $i++) {
+            $string .= $chars[rand(0, $chars_length - 1)];
+        }
+
+        return $string;
+    }
+
+    /**
+     * Encrypt all unencrypted appointment data
+     *
+     * @return void
+     */
+    private static function migrate_encrypt_appointments_data(): void {
+        global $wpdb;
+
+        // Check if encryption is configured
+        if (!class_exists('\FreeFormCertificate\Core\Encryption') ||
+            !\FreeFormCertificate\Core\Encryption::is_configured()) {
+            return;
+        }
+
+        $table_name = $wpdb->prefix . 'ffc_appointments';
+
+        // Get appointments with unencrypted data
+        $appointments = $wpdb->get_results(
+            "SELECT id, email, cpf_rf, phone, user_ip
+             FROM {$table_name}
+             WHERE (email IS NOT NULL AND email != '' AND (email_encrypted IS NULL OR email_encrypted = ''))
+                OR (cpf_rf IS NOT NULL AND cpf_rf != '' AND (cpf_rf_encrypted IS NULL OR cpf_rf_encrypted = ''))
+                OR (phone IS NOT NULL AND phone != '' AND (phone_encrypted IS NULL OR phone_encrypted = ''))
+                OR (user_ip IS NOT NULL AND user_ip != '' AND (user_ip_encrypted IS NULL OR user_ip_encrypted = ''))",
+            ARRAY_A
+        );
+
+        foreach ($appointments as $appointment) {
+            $update_data = array();
+            $update_format = array();
+
+            // Encrypt email
+            if (!empty($appointment['email'])) {
+                $encrypted = \FreeFormCertificate\Core\Encryption::encrypt($appointment['email']);
+                if ($encrypted) {
+                    $update_data['email_encrypted'] = $encrypted;
+                    $update_data['email_hash'] = hash('sha256', strtolower(trim($appointment['email'])));
+                    // Clear plain text
+                    $update_data['email'] = null;
+                    $update_format[] = '%s';
+                    $update_format[] = '%s';
+                    $update_format[] = '%s';
+                }
+            }
+
+            // Encrypt CPF/RF
+            if (!empty($appointment['cpf_rf'])) {
+                $encrypted = \FreeFormCertificate\Core\Encryption::encrypt($appointment['cpf_rf']);
+                if ($encrypted) {
+                    $update_data['cpf_rf_encrypted'] = $encrypted;
+                    $update_data['cpf_rf_hash'] = hash('sha256', preg_replace('/[^0-9]/', '', $appointment['cpf_rf']));
+                    // Clear plain text
+                    $update_data['cpf_rf'] = null;
+                    $update_format[] = '%s';
+                    $update_format[] = '%s';
+                    $update_format[] = '%s';
+                }
+            }
+
+            // Encrypt phone
+            if (!empty($appointment['phone'])) {
+                $encrypted = \FreeFormCertificate\Core\Encryption::encrypt($appointment['phone']);
+                if ($encrypted) {
+                    $update_data['phone_encrypted'] = $encrypted;
+                    // Clear plain text
+                    $update_data['phone'] = null;
+                    $update_format[] = '%s';
+                    $update_format[] = '%s';
+                }
+            }
+
+            // Encrypt user IP
+            if (!empty($appointment['user_ip'])) {
+                $encrypted = \FreeFormCertificate\Core\Encryption::encrypt($appointment['user_ip']);
+                if ($encrypted) {
+                    $update_data['user_ip_encrypted'] = $encrypted;
+                    // Clear plain text
+                    $update_data['user_ip'] = null;
+                    $update_format[] = '%s';
+                    $update_format[] = '%s';
+                }
+            }
+
+            // Update appointment if we have data to encrypt
+            if (!empty($update_data)) {
+                $wpdb->update(
+                    $table_name,
+                    $update_data,
+                    array('id' => $appointment['id']),
+                    $update_format,
+                    array('%d')
+                );
+            }
+        }
+    }
+
+    /**
      * Run migrations on plugin load
      * This ensures migrations run even if plugin wasn't re-activated
      *
@@ -287,6 +500,10 @@ class CalendarActivator {
         if ($appointments_exists) {
             // Run migration to ensure cpf_rf columns exist
             self::migrate_appointments_table();
+            // Run migration to ensure validation_code column exists
+            self::migrate_appointments_validation_code();
+            // Run migration to encrypt all unencrypted data
+            self::migrate_encrypt_appointments_data();
         }
 
         // Migrate calendars table

@@ -160,6 +160,24 @@ class AppointmentRepository extends AbstractRepository {
     }
 
     /**
+     * Find appointment by validation code
+     *
+     * @param string $validation_code
+     * @return array|null
+     */
+    public function findByValidationCode(string $validation_code): ?array {
+        $result = $this->wpdb->get_row(
+            $this->wpdb->prepare(
+                "SELECT * FROM {$this->table} WHERE validation_code = %s",
+                strtoupper($validation_code)
+            ),
+            ARRAY_A
+        );
+
+        return $result ?: null;
+    }
+
+    /**
      * Get appointments for a specific date and calendar
      *
      * @param int $calendar_id
@@ -384,24 +402,34 @@ class AppointmentRepository extends AbstractRepository {
             if (!empty($data['email'])) {
                 $data['email_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($data['email']);
                 $data['email_hash'] = hash('sha256', strtolower(trim($data['email'])));
+                // Clear plain text - do not store unencrypted (LGPD compliance)
+                unset($data['email']);
             }
 
             if (!empty($data['cpf_rf'])) {
                 $data['cpf_rf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($data['cpf_rf']);
                 $data['cpf_rf_hash'] = hash('sha256', preg_replace('/[^0-9]/', '', $data['cpf_rf']));
+                // Clear plain text - do not store unencrypted (LGPD compliance)
+                unset($data['cpf_rf']);
             }
 
             if (!empty($data['phone'])) {
                 $data['phone_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($data['phone']);
+                // Clear plain text - do not store unencrypted (LGPD compliance)
+                unset($data['phone']);
             }
 
             if (!empty($data['custom_data'])) {
                 $custom_json = is_array($data['custom_data']) ? json_encode($data['custom_data']) : $data['custom_data'];
                 $data['custom_data_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($custom_json);
+                // Clear plain text - do not store unencrypted (LGPD compliance)
+                unset($data['custom_data']);
             }
 
             if (!empty($data['user_ip'])) {
                 $data['user_ip_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($data['user_ip']);
+                // Clear plain text - do not store unencrypted (LGPD compliance)
+                unset($data['user_ip']);
             }
         }
 
@@ -410,11 +438,53 @@ class AppointmentRepository extends AbstractRepository {
             $data['confirmation_token'] = bin2hex(random_bytes(32));
         }
 
+        // Generate validation code for all appointments (user-friendly code like certificates)
+        if (empty($data['validation_code'])) {
+            $data['validation_code'] = $this->generate_unique_validation_code();
+        }
+
         // Set timestamps
         if (empty($data['created_at'])) {
             $data['created_at'] = current_time('mysql');
         }
 
         return $this->insert($data);
+    }
+
+    /**
+     * Generate unique validation code
+     *
+     * @return string
+     */
+    private function generate_unique_validation_code(): string {
+        do {
+            // Generate code in format XXXX-XXXX-XXXX (12 alphanumeric characters)
+            $code = $this->generate_random_string(4) . '-' .
+                    $this->generate_random_string(4) . '-' .
+                    $this->generate_random_string(4);
+
+            // Check if code already exists
+            $existing = $this->findAll(['validation_code' => $code], null, null, 1);
+        } while (!empty($existing));
+
+        return $code;
+    }
+
+    /**
+     * Generate random alphanumeric string
+     *
+     * @param int $length
+     * @return string
+     */
+    private function generate_random_string(int $length = 4): string {
+        $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $chars_length = strlen($chars);
+        $string = '';
+
+        for ($i = 0; $i < $length; $i++) {
+            $string .= $chars[rand(0, $chars_length - 1)];
+        }
+
+        return $string;
     }
 }

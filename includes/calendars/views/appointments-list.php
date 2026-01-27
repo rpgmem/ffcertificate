@@ -111,6 +111,17 @@ class FFC_Appointments_List_Table extends WP_List_Table {
             __('View', 'ffc')
         );
 
+        // Add receipt link
+        $receipt_url = \FreeFormCertificate\Calendars\AppointmentReceiptHandler::get_receipt_url(
+            (int)$item['id'],
+            $item['confirmation_token'] ?? ''
+        );
+        $actions['receipt'] = sprintf(
+            '<a href="%s" target="_blank">%s</a>',
+            esc_url($receipt_url),
+            __('View Receipt', 'ffc')
+        );
+
         return sprintf('#%d %s', $item['id'], $this->row_actions($actions));
     }
 

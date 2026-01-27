@@ -177,6 +177,11 @@
             var $messages = $('.ffc-form-messages');
             var $submitBtn = $form.find('button[type="submit"]');
 
+            // Prevent double submission
+            if ($submitBtn.data('submitting')) {
+                return;
+            }
+
             // Clear previous messages
             $messages.html('');
 
@@ -185,18 +190,21 @@
                 return;
             }
 
-            // Disable submit button
+            // Mark as submitting and disable submit button
+            $submitBtn.data('submitting', true);
             $submitBtn.prop('disabled', true).text(ffcCalendar.strings.loading);
 
             // Serialize form data
             var formData = $form.serialize();
 
-            // AJAX request
+            // AJAX request with increased timeout
             $.ajax({
                 url: ffcCalendar.ajaxurl,
                 type: 'POST',
                 data: formData,
+                timeout: 30000, // 30 seconds timeout
                 success: function(response) {
+                    $submitBtn.data('submitting', false);
                     if (response.success) {
                         self.showConfirmation(response.data);
                     } else {
@@ -209,8 +217,18 @@
                         $submitBtn.prop('disabled', false).text(ffcCalendar.strings.submit || 'Book Appointment');
                     }
                 },
-                error: function() {
-                    self.showError(ffcCalendar.strings.error);
+                error: function(xhr, status, error) {
+                    $submitBtn.data('submitting', false);
+                    var errorMsg = ffcCalendar.strings.error;
+
+                    // Provide more specific error messages
+                    if (status === 'timeout') {
+                        errorMsg = ffcCalendar.strings.timeout || 'Connection timeout. Please try again.';
+                    } else if (xhr.status === 0) {
+                        errorMsg = ffcCalendar.strings.networkError || 'Network error. Please check your connection and try again.';
+                    }
+
+                    self.showError(errorMsg);
                     $submitBtn.prop('disabled', false).text(ffcCalendar.strings.submit || 'Book Appointment');
                 }
             });
