@@ -223,6 +223,9 @@ class FFC_Autoloader {
 
             // User Dashboard namespace
             'UserDashboard' => 'user-dashboard',
+
+            // Calendars namespace (v4.1.0)
+            'Calendars' => 'calendars',
         ];
     }
 
