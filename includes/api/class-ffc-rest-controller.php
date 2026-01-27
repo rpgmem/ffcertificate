@@ -1124,6 +1124,7 @@ class RestController {
 
                 // Get calendar info
                 $calendar_title = __('Unknown Calendar', 'ffc');
+                $calendar = null;
                 if (!empty($appointment['calendar_id'])) {
                     try {
                         $calendar = $calendar_repository->findById((int)$appointment['calendar_id']);
@@ -1191,6 +1192,32 @@ class RestController {
                     );
                 }
 
+                // Determine if user can cancel this appointment
+                $can_cancel = false;
+                if (in_array($status, ['pending', 'confirmed'])) {
+                    // Admins can always cancel
+                    if (current_user_can('manage_options')) {
+                        $can_cancel = true;
+                    }
+                    // Regular users: check calendar settings
+                    elseif ($calendar && is_array($calendar)) {
+                        // Check if calendar allows cancellation
+                        if (!empty($calendar['allow_cancellation'])) {
+                            // Check cancellation deadline
+                            $can_cancel = true;
+                            if (!empty($calendar['cancellation_min_hours']) && $calendar['cancellation_min_hours'] > 0) {
+                                $appointment_time = strtotime($appointment['appointment_date'] . ' ' . $appointment['start_time']);
+                                $deadline = $appointment_time - ($calendar['cancellation_min_hours'] * 3600);
+
+                                // If current time is past the deadline, cannot cancel
+                                if (current_time('timestamp') > $deadline) {
+                                    $can_cancel = false;
+                                }
+                            }
+                        }
+                    }
+                }
+
                 $appointments_formatted[] = array(
                     'id' => (int) $appointment['id'],
                     'calendar_id' => (int) ($appointment['calendar_id'] ?? 0),
@@ -1207,7 +1234,7 @@ class RestController {
                     'phone' => $appointment['phone'] ?? '',
                     'user_notes' => $appointment['user_notes'] ?? '',
                     'created_at' => $appointment['created_at'] ?? '',
-                    'can_cancel' => in_array($status, ['pending', 'confirmed']),
+                    'can_cancel' => $can_cancel,
                     'receipt_url' => $receipt_url,
                 );
             }

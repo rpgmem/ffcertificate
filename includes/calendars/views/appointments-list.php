@@ -264,6 +264,11 @@ if (isset($_GET['action']) && isset($_GET['appointment'])) {
     $appointment_id = absint($_GET['appointment']);
     $action = sanitize_text_field($_GET['action']);
 
+    // Verify user has admin permissions
+    if (!\FreeFormCertificate\Core\Utils::current_user_can_manage()) {
+        wp_die(esc_html__('You do not have permission to perform this action.', 'ffc'));
+    }
+
     $appointment_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
 
     switch ($action) {
