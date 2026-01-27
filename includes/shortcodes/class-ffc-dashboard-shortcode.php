@@ -262,6 +262,7 @@ class DashboardShortcode {
                 'memberSince' => __('Member Since:', 'ffc'),
                 // Appointment actions
                 'cancelAppointment' => __('Cancel', 'ffc'),
+                'viewReceipt' => __('View Receipt', 'ffc'),
                 'viewDetails' => __('View Details', 'ffc'),
                 'confirmCancel' => __('Are you sure you want to cancel this appointment?', 'ffc'),
                 'cancelSuccess' => __('Appointment cancelled successfully', 'ffc'),

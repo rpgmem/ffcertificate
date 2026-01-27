@@ -227,6 +227,13 @@
                 html += '<td><span class="appointment-status status-' + apt.status + '">' + apt.status_label + '</span></td>';
                 html += '<td>';
 
+                // Show receipt/print button
+                if (apt.receipt_url) {
+                    html += '<a href="' + apt.receipt_url + '" class="button" target="_blank" style="margin-right: 5px;">';
+                    html += '📄 ' + (ffcDashboard.strings.viewReceipt || 'View Receipt');
+                    html += '</a>';
+                }
+
                 // Show cancel button only if allowed
                 if (apt.can_cancel) {
                     html += '<button class="button ffc-cancel-appointment" data-id="' + apt.id + '">';

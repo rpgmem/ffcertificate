@@ -168,7 +168,22 @@ class AppointmentHandler {
      * @return void
      */
     public function ajax_cancel_appointment(): void {
-        check_ajax_referer('ffc_calendar_nonce', 'nonce');
+        // Verify nonce - accept both calendar nonce and wp_rest nonce (for user dashboard)
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field($_POST['nonce']) : '';
+
+        $nonce_valid = false;
+        if (wp_verify_nonce($nonce, 'ffc_calendar_nonce')) {
+            $nonce_valid = true;
+        } elseif (wp_verify_nonce($nonce, 'wp_rest')) {
+            $nonce_valid = true;
+        }
+
+        if (!$nonce_valid) {
+            wp_send_json_error(array(
+                'message' => __('Security check failed. Please refresh the page and try again.', 'ffc')
+            ));
+            return;
+        }
 
         $appointment_id = isset($_POST['appointment_id']) ? absint($_POST['appointment_id']) : 0;
         $token = isset($_POST['token']) ? sanitize_text_field($_POST['token']) : '';
@@ -271,11 +286,21 @@ class AppointmentHandler {
         // Schedule email notifications
         $this->schedule_email_notifications($appointment, $calendar, 'created');
 
+        // Generate receipt URL
+        $receipt_url = '';
+        if (class_exists('\FreeFormCertificate\Calendars\AppointmentReceiptHandler')) {
+            $receipt_url = \FreeFormCertificate\Calendars\AppointmentReceiptHandler::get_receipt_url(
+                $appointment_id,
+                $appointment['confirmation_token'] ?? ''
+            );
+        }
+
         return array(
             'success' => true,
             'appointment_id' => $appointment_id,
             'confirmation_token' => $appointment['confirmation_token'] ?? null,
-            'requires_approval' => $calendar['requires_approval'] == 1
+            'requires_approval' => $calendar['requires_approval'] == 1,
+            'receipt_url' => $receipt_url
         );
     }
 

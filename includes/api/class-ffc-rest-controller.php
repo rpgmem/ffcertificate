@@ -1182,6 +1182,15 @@ class RestController {
 
                 $status = $appointment['status'] ?? 'pending';
 
+                // Generate receipt URL
+                $receipt_url = '';
+                if (class_exists('\FreeFormCertificate\Calendars\AppointmentReceiptHandler')) {
+                    $receipt_url = \FreeFormCertificate\Calendars\AppointmentReceiptHandler::get_receipt_url(
+                        (int) $appointment['id'],
+                        $appointment['confirmation_token'] ?? ''
+                    );
+                }
+
                 $appointments_formatted[] = array(
                     'id' => (int) $appointment['id'],
                     'calendar_id' => (int) ($appointment['calendar_id'] ?? 0),
@@ -1199,6 +1208,7 @@ class RestController {
                     'user_notes' => $appointment['user_notes'] ?? '',
                     'created_at' => $appointment['created_at'] ?? '',
                     'can_cancel' => in_array($status, ['pending', 'confirmed']),
+                    'receipt_url' => $receipt_url,
                 );
             }
 

@@ -28,6 +28,7 @@ use FreeFormCertificate\Calendars\CalendarAdmin;
 use FreeFormCertificate\Calendars\CalendarEditor;
 use FreeFormCertificate\Calendars\AppointmentHandler;
 use FreeFormCertificate\Calendars\AppointmentEmailHandler;
+use FreeFormCertificate\Calendars\AppointmentReceiptHandler;
 use FreeFormCertificate\Calendars\AppointmentCsvExporter;
 use FreeFormCertificate\Calendars\CalendarShortcode;
 
@@ -47,6 +48,7 @@ class Loader {
     protected $calendar_editor = null;
     protected $appointment_handler = null;
     protected $appointment_email_handler = null;
+    protected $appointment_receipt_handler = null;
     protected $appointment_csv_exporter = null;
     protected $calendar_shortcode = null;
 
@@ -96,10 +98,11 @@ class Loader {
         $this->calendar_cpt              = new CalendarCPT();
         $this->calendar_admin            = new CalendarAdmin();
         $this->calendar_editor           = new CalendarEditor();
-        $this->appointment_handler       = new AppointmentHandler();
-        $this->appointment_email_handler = new AppointmentEmailHandler();
-        $this->appointment_csv_exporter  = new AppointmentCsvExporter();
-        $this->calendar_shortcode        = new CalendarShortcode();
+        $this->appointment_handler        = new AppointmentHandler();
+        $this->appointment_email_handler  = new AppointmentEmailHandler();
+        $this->appointment_receipt_handler = new AppointmentReceiptHandler();
+        $this->appointment_csv_exporter   = new AppointmentCsvExporter();
+        $this->calendar_shortcode         = new CalendarShortcode();
 
         $this->define_admin_hooks();
         $this->init_rest_api(); // Initialize REST API

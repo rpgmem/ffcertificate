@@ -118,6 +118,19 @@ class AppointmentEmailHandler {
             $body .= '</div>';
         }
 
+        // Receipt/Confirmation link
+        if (class_exists('\FreeFormCertificate\Calendars\AppointmentReceiptHandler')) {
+            $receipt_url = \FreeFormCertificate\Calendars\AppointmentReceiptHandler::get_receipt_url(
+                $appointment['id'],
+                $appointment['confirmation_token'] ?? ''
+            );
+            $body .= '<div style="text-align: center; margin: 30px 0;">';
+            $body .= '<a href="' . esc_url($receipt_url) . '" style="display: inline-block; background: #0073aa; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">';
+            $body .= '📄 ' . esc_html__('View/Print Receipt', 'ffc');
+            $body .= '</a>';
+            $body .= '</div>';
+        }
+
         // Cancellation link (if allowed)
         if ($calendar['allow_cancellation']) {
             $cancel_url = $this->get_cancellation_url($appointment);
