@@ -1,0 +1,403 @@
+/**
+ * Calendar Frontend Styles
+ *
+ * Styles for the booking calendar interface
+ *
+ * @since 4.1.0
+ */
+
+/* Calendar Wrapper */
+.ffc-calendar-wrapper {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.ffc-calendar-description {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f7f7f7;
+    border-left: 4px solid #2271b1;
+    border-radius: 4px;
+}
+
+.ffc-calendar-description p {
+    margin: 0;
+    color: #333;
+}
+
+/* Datepicker Wrapper */
+.ffc-calendar-datepicker-wrapper {
+    margin-bottom: 30px;
+}
+
+.ffc-calendar-datepicker-wrapper h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #1d2327;
+    font-size: 18px;
+}
+
+.ffc-datepicker {
+    margin: 0 auto;
+    max-width: 350px;
+}
+
+/* jQuery UI Datepicker Overrides */
+.ui-datepicker {
+    width: 100% !important;
+    padding: 10px !important;
+}
+
+.ffc-unavailable-day .ui-state-default {
+    background: #f0f0f0 !important;
+    color: #999 !important;
+    cursor: not-allowed !important;
+}
+
+.ffc-available-day .ui-state-default {
+    background: #e7f3ff !important;
+    color: #0073aa !important;
+    font-weight: 600 !important;
+}
+
+.ffc-available-day .ui-state-default:hover {
+    background: #2271b1 !important;
+    color: #fff !important;
+}
+
+/* Time Slots */
+.ffc-timeslots-wrapper {
+    margin-bottom: 30px;
+}
+
+.ffc-timeslots-wrapper h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #1d2327;
+    font-size: 18px;
+}
+
+.ffc-timeslots-loading {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.ffc-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #2271b1;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: ffc-spin 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+@keyframes ffc-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.ffc-timeslots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.ffc-timeslot {
+    padding: 12px 16px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #fff;
+}
+
+.ffc-timeslot:hover {
+    border-color: #2271b1;
+    background: #e7f3ff;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(34,113,177,0.2);
+}
+
+.ffc-timeslot.selected {
+    border-color: #2271b1;
+    background: #2271b1;
+    color: #fff;
+    font-weight: 600;
+}
+
+.ffc-timeslot-time {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.ffc-timeslot-available {
+    display: block;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.ffc-timeslot.ffc-timeslot-full {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #ccc;
+}
+
+.ffc-timeslot.ffc-timeslot-full:hover {
+    transform: none;
+    box-shadow: none;
+    background: #fff;
+    border-color: #ccc;
+}
+
+/* Booking Form */
+.ffc-booking-form-wrapper {
+    margin-bottom: 30px;
+}
+
+.ffc-booking-form-wrapper h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #1d2327;
+    font-size: 18px;
+}
+
+.ffc-booking-form .ffc-form-row {
+    margin-bottom: 20px;
+}
+
+.ffc-booking-form label {
+    display: block;
+    margin-bottom: 8px;
+    color: #1d2327;
+    font-weight: 500;
+}
+
+.ffc-booking-form .required {
+    color: #d63638;
+    font-weight: 600;
+}
+
+.ffc-booking-form input[type="text"],
+.ffc-booking-form input[type="email"],
+.ffc-booking-form input[type="tel"],
+.ffc-booking-form textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.ffc-booking-form input[type="text"]:focus,
+.ffc-booking-form input[type="email"]:focus,
+.ffc-booking-form input[type="tel"]:focus,
+.ffc-booking-form textarea:focus {
+    outline: none;
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+.ffc-booking-form input[readonly] {
+    background: #f6f7f7;
+    cursor: not-allowed;
+}
+
+.ffc-booking-form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Consent Row */
+.ffc-consent-row {
+    padding: 15px;
+    background: #f0f6fc;
+    border-left: 4px solid #2271b1;
+    border-radius: 4px;
+}
+
+.ffc-consent-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-weight: normal !important;
+    cursor: pointer;
+}
+
+.ffc-consent-label input[type="checkbox"] {
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+/* Buttons */
+.ffc-submit-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.ffc-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.ffc-btn-primary {
+    background: #2271b1;
+    color: #fff;
+}
+
+.ffc-btn-primary:hover {
+    background: #135e96;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(34,113,177,0.3);
+}
+
+.ffc-btn-primary:disabled {
+    background: #ddd;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.ffc-btn-secondary {
+    background: #f6f7f7;
+    color: #2c3338;
+    border: 1px solid #8c8f94;
+}
+
+.ffc-btn-secondary:hover {
+    background: #e7e8ea;
+}
+
+.ffc-btn-back {
+    margin-left: auto;
+}
+
+/* Messages */
+.ffc-form-messages {
+    margin-top: 20px;
+}
+
+.ffc-message {
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.ffc-message-error {
+    background: #fcf0f1;
+    color: #d63638;
+    border-left: 4px solid #d63638;
+}
+
+.ffc-message-success {
+    background: #f0f6fc;
+    color: #0073aa;
+    border-left: 4px solid #00a32a;
+}
+
+/* Confirmation */
+.ffc-confirmation-wrapper {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.ffc-success-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background: #00a32a;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: 600;
+}
+
+.ffc-confirmation-success h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #1d2327;
+    font-size: 24px;
+}
+
+.ffc-appointment-details {
+    background: #f6f7f7;
+    padding: 20px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.ffc-appointment-details p {
+    margin: 10px 0;
+    font-size: 16px;
+}
+
+.ffc-appointment-details strong {
+    color: #1d2327;
+}
+
+.ffc-approval-notice,
+.ffc-confirmation-notice {
+    padding: 15px;
+    background: #fff9e5;
+    border-left: 4px solid #dba617;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+/* Error Messages */
+.ffc-error {
+    padding: 15px;
+    background: #fcf0f1;
+    color: #d63638;
+    border-left: 4px solid #d63638;
+    border-radius: 4px;
+    margin: 20px 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .ffc-calendar-wrapper {
+        padding: 15px;
+    }
+
+    .ffc-timeslots-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
+    }
+
+    .ffc-submit-row {
+        flex-direction: column;
+    }
+
+    .ffc-btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    .ffc-btn-back {
+        margin-left: 0;
+    }
+}

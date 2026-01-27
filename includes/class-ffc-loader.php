@@ -26,6 +26,8 @@ use FreeFormCertificate\UserDashboard\AccessControl;
 use FreeFormCertificate\Calendars\CalendarCPT;
 use FreeFormCertificate\Calendars\CalendarAdmin;
 use FreeFormCertificate\Calendars\CalendarEditor;
+use FreeFormCertificate\Calendars\AppointmentHandler;
+use FreeFormCertificate\Calendars\CalendarShortcode;
 
 if (!defined('ABSPATH')) exit;
 
@@ -41,6 +43,8 @@ class Loader {
     protected $calendar_cpt = null;
     protected $calendar_admin = null;
     protected $calendar_editor = null;
+    protected $appointment_handler = null;
+    protected $calendar_shortcode = null;
 
     public function __construct() {
         // Let WordPress load textdomain automatically (just-in-time in WP 6.7+)
@@ -71,9 +75,11 @@ class Loader {
         AccessControl::init();
 
         // ✅ v4.1.0: Initialize Calendar System
-        $this->calendar_cpt    = new CalendarCPT();
-        $this->calendar_admin  = new CalendarAdmin();
-        $this->calendar_editor = new CalendarEditor();
+        $this->calendar_cpt        = new CalendarCPT();
+        $this->calendar_admin      = new CalendarAdmin();
+        $this->calendar_editor     = new CalendarEditor();
+        $this->appointment_handler = new AppointmentHandler();
+        $this->calendar_shortcode  = new CalendarShortcode();
 
         $this->define_admin_hooks();
         $this->init_rest_api(); // Initialize REST API
