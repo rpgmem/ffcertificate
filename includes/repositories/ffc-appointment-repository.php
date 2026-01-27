@@ -405,8 +405,8 @@ class AppointmentRepository extends AbstractRepository {
             }
         }
 
-        // Generate confirmation token for guest users
-        if (empty($data['user_id']) && empty($data['confirmation_token'])) {
+        // Generate confirmation token for all appointments (allows receipt access without login)
+        if (empty($data['confirmation_token'])) {
             $data['confirmation_token'] = bin2hex(random_bytes(32));
         }
 
