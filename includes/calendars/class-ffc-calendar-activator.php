@@ -119,7 +119,11 @@ class CalendarActivator {
         $charset_collate = $wpdb->get_charset_collate();
 
         // Check if table already exists
-        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") == $table_name) {
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") == $table_name;
+
+        if ($table_exists) {
+            // Run migration to add cpf_rf columns if they don't exist
+            self::migrate_appointments_table();
             return;
         }
 
@@ -138,6 +142,9 @@ class CalendarActivator {
             email varchar(255) DEFAULT NULL,
             email_encrypted text DEFAULT NULL,
             email_hash varchar(64) DEFAULT NULL,
+            cpf_rf varchar(20) DEFAULT NULL,
+            cpf_rf_encrypted text DEFAULT NULL,
+            cpf_rf_hash varchar(64) DEFAULT NULL,
             phone varchar(50) DEFAULT NULL,
             phone_encrypted text DEFAULT NULL,
 
@@ -188,6 +195,7 @@ class CalendarActivator {
             KEY status (status),
             KEY email (email),
             KEY email_hash (email_hash),
+            KEY cpf_rf_hash (cpf_rf_hash),
             KEY confirmation_token (confirmation_token),
             KEY idx_calendar_date (calendar_id, appointment_date),
             KEY idx_calendar_datetime (calendar_id, appointment_date, start_time)
@@ -195,6 +203,37 @@ class CalendarActivator {
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta($sql);
+    }
+
+    /**
+     * Migrate appointments table to add cpf_rf columns
+     *
+     * @return void
+     */
+    private static function migrate_appointments_table(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_appointments';
+
+        // Check if cpf_rf column exists
+        $column_exists = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'cpf_rf'",
+                DB_NAME,
+                $table_name
+            )
+        );
+
+        if (empty($column_exists)) {
+            // Add cpf_rf columns after email_hash
+            $wpdb->query(
+                "ALTER TABLE {$table_name}
+                ADD COLUMN cpf_rf varchar(20) DEFAULT NULL AFTER email_hash,
+                ADD COLUMN cpf_rf_encrypted text DEFAULT NULL AFTER cpf_rf,
+                ADD COLUMN cpf_rf_hash varchar(64) DEFAULT NULL AFTER cpf_rf_encrypted,
+                ADD INDEX cpf_rf_hash (cpf_rf_hash)"
+            );
+        }
     }
 
     /**

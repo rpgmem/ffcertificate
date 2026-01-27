@@ -50,6 +50,19 @@ class AppointmentHandler {
         // Verify nonce
         check_ajax_referer('ffc_calendar_nonce', 'nonce');
 
+        // Validate security fields (honeypot + captcha)
+        $security_check = \FreeFormCertificate\Core\Utils::validate_security_fields($_POST);
+        if ($security_check !== true) {
+            // Generate new captcha for retry
+            $new_captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
+            wp_send_json_error(array(
+                'message' => $security_check,
+                'refresh_captcha' => true,
+                'new_label' => $new_captcha['label'],
+                'new_hash' => $new_captcha['hash']
+            ));
+        }
+
         // Get and validate input
         $calendar_id = isset($_POST['calendar_id']) ? absint($_POST['calendar_id']) : 0;
         $date = isset($_POST['date']) ? sanitize_text_field($_POST['date']) : '';
@@ -68,7 +81,7 @@ class AppointmentHandler {
             'start_time' => $time,
             'name' => isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '',
             'email' => isset($_POST['email']) ? sanitize_email($_POST['email']) : '',
-            'phone' => isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '',
+            'cpf_rf' => isset($_POST['cpf_rf']) ? sanitize_text_field($_POST['cpf_rf']) : '',
             'user_notes' => isset($_POST['notes']) ? sanitize_textarea_field($_POST['notes']) : '',
             'custom_data' => isset($_POST['custom_data']) ? $_POST['custom_data'] : array(),
             'consent_given' => isset($_POST['consent']) ? 1 : 0,
@@ -357,6 +370,27 @@ class AppointmentHandler {
         // 12. Validate email (if not logged in)
         if (!is_user_logged_in() && empty($data['email'])) {
             return new \WP_Error('email_required', __('Email address is required.', 'ffc'));
+        }
+
+        // 13. Validate CPF/RF
+        if (empty($data['cpf_rf'])) {
+            return new \WP_Error('cpf_rf_required', __('CPF/RF is required.', 'ffc'));
+        }
+
+        // Validate CPF/RF format
+        $cpf_rf_clean = preg_replace('/[^0-9]/', '', $data['cpf_rf']);
+        if (strlen($cpf_rf_clean) == 7) {
+            // RF validation (7 digits)
+            if (!preg_match('/^\d{7}$/', $cpf_rf_clean)) {
+                return new \WP_Error('invalid_rf', __('Invalid RF format.', 'ffc'));
+            }
+        } elseif (strlen($cpf_rf_clean) == 11) {
+            // CPF validation
+            if (!\FreeFormCertificate\Core\Utils::validate_cpf($cpf_rf_clean)) {
+                return new \WP_Error('invalid_cpf', __('Invalid CPF.', 'ffc'));
+            }
+        } else {
+            return new \WP_Error('invalid_cpf_rf', __('CPF/RF must be 7 digits (RF) or 11 digits (CPF).', 'ffc'));
         }
 
         return true;

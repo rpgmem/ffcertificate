@@ -28,6 +28,13 @@
         bindEvents: function() {
             var self = this;
 
+            // Apply CPF/RF mask if the helper function is available
+            if (typeof window.ffcApplyCpfRfMask === 'function') {
+                $(document).on('focus', '#ffc-booking-cpf-rf', function() {
+                    window.ffcApplyCpfRfMask(this);
+                });
+            }
+
             // Time slot selection
             $(document).on('click', '.ffc-timeslot:not(.ffc-timeslot-full)', function() {
                 var $slot = $(this);
@@ -184,6 +191,11 @@
                     if (response.success) {
                         self.showConfirmation(response.data);
                     } else {
+                        // Refresh captcha if security validation failed
+                        if (response.data && response.data.refresh_captcha) {
+                            self.refreshCaptcha(response.data.new_label, response.data.new_hash);
+                        }
+
                         self.showError(response.data.message || ffcCalendar.strings.error);
                         $submitBtn.prop('disabled', false).text(ffcCalendar.strings.submit || 'Book Appointment');
                     }
@@ -269,6 +281,24 @@
             $('html, body').animate({
                 scrollTop: $('.ffc-confirmation-wrapper').offset().top - 100
             }, 500);
+        },
+
+        /**
+         * Refresh captcha with new question
+         */
+        refreshCaptcha: function(newLabel, newHash) {
+            if (!newLabel || !newHash) {
+                return;
+            }
+
+            // Update captcha label
+            $('.ffc-captcha-row label').html(newLabel);
+
+            // Update captcha hash
+            $('#ffc_captcha_hash').val(newHash);
+
+            // Clear captcha answer input
+            $('#ffc_captcha_ans').val('').focus();
         },
 
         /**

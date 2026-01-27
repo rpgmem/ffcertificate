@@ -65,11 +65,20 @@ class CalendarShortcode {
             FFC_VERSION
         );
 
+        // Enqueue FFC frontend helpers (for CPF/RF mask)
+        wp_enqueue_script(
+            'ffc-frontend-helpers',
+            FFC_PLUGIN_URL . 'assets/js/ffc-frontend-helpers.js',
+            array('jquery'),
+            FFC_VERSION,
+            true
+        );
+
         // Enqueue calendar frontend scripts
         wp_enqueue_script(
             'ffc-calendar-frontend',
             FFC_PLUGIN_URL . 'assets/js/calendar-frontend.js',
-            array('jquery', 'jquery-ui-datepicker'),
+            array('jquery', 'jquery-ui-datepicker', 'ffc-frontend-helpers'),
             FFC_VERSION,
             true
         );
@@ -238,10 +247,16 @@ class CalendarShortcode {
                     </div>
 
                     <div class="ffc-form-row">
-                        <label for="ffc-booking-phone">
-                            <?php _e('Phone', 'ffc'); ?>
+                        <label for="ffc-booking-cpf-rf">
+                            <?php _e('CPF / RF', 'ffc'); ?> <span class="required">*</span>
                         </label>
-                        <input type="tel" id="ffc-booking-phone" name="phone">
+                        <input
+                            type="tel"
+                            id="ffc-booking-cpf-rf"
+                            name="cpf_rf"
+                            maxlength="14"
+                            required
+                        >
                     </div>
 
                     <div class="ffc-form-row">
@@ -249,6 +264,27 @@ class CalendarShortcode {
                             <?php _e('Notes (optional)', 'ffc'); ?>
                         </label>
                         <textarea id="ffc-booking-notes" name="notes" rows="3"></textarea>
+                    </div>
+
+                    <!-- Security Fields (Honeypot + Math Captcha) -->
+                    <?php
+                    $captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
+                    ?>
+                    <div class="ffc-security-container">
+                        <!-- Honeypot Field -->
+                        <div class="ffc-honeypot-field">
+                            <label><?php esc_html_e('Do not fill this field if you are human:', 'ffc'); ?></label>
+                            <input type="text" name="ffc_honeypot_trap" value="" tabindex="-1" autocomplete="off">
+                        </div>
+
+                        <!-- Math Captcha -->
+                        <div class="ffc-captcha-row">
+                            <label for="ffc_captcha_ans">
+                                <?php echo $captcha['label']; ?>
+                            </label>
+                            <input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans" class="ffc-input" required>
+                            <input type="hidden" name="ffc_captcha_hash" id="ffc_captcha_hash" value="<?php echo esc_attr($captcha['hash']); ?>">
+                        </div>
                     </div>
 
                     <!-- LGPD Consent -->

@@ -114,6 +114,34 @@ class AppointmentRepository extends AbstractRepository {
     }
 
     /**
+     * Find appointments by CPF/RF
+     *
+     * @param string $cpf_rf
+     * @param int|null $limit
+     * @param int $offset
+     * @return array
+     */
+    public function findByCpfRf(string $cpf_rf, ?int $limit = null, int $offset = 0): array {
+        // Search both plain and hashed CPF/RF
+        $cpf_rf_clean = preg_replace('/[^0-9]/', '', $cpf_rf);
+        $cpf_rf_hash = hash('sha256', $cpf_rf_clean);
+
+        $sql = $this->wpdb->prepare(
+            "SELECT * FROM {$this->table}
+             WHERE cpf_rf = %s OR cpf_rf_hash = %s
+             ORDER BY appointment_date DESC",
+            $cpf_rf,
+            $cpf_rf_hash
+        );
+
+        if ($limit) {
+            $sql = $this->wpdb->prepare($sql . " LIMIT %d OFFSET %d", $limit, $offset);
+        }
+
+        return $this->wpdb->get_results($sql, ARRAY_A);
+    }
+
+    /**
      * Find appointment by confirmation token
      *
      * @param string $token
@@ -356,6 +384,11 @@ class AppointmentRepository extends AbstractRepository {
             if (!empty($data['email'])) {
                 $data['email_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($data['email']);
                 $data['email_hash'] = hash('sha256', strtolower(trim($data['email'])));
+            }
+
+            if (!empty($data['cpf_rf'])) {
+                $data['cpf_rf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($data['cpf_rf']);
+                $data['cpf_rf_hash'] = hash('sha256', preg_replace('/[^0-9]/', '', $data['cpf_rf']));
             }
 
             if (!empty($data['phone'])) {
