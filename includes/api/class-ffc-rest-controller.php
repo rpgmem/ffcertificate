@@ -196,6 +196,90 @@ class RestController {
             'callback' => array($this, 'get_user_appointments'),
             'permission_callback' => 'is_user_logged_in', // Requires logged in user
         ));
+
+        // GET /calendars - List all active calendars (v4.1.0)
+        register_rest_route($this->namespace, '/calendars', array(
+            'methods' => \WP_REST_Server::READABLE,
+            'callback' => array($this, 'get_calendars'),
+            'permission_callback' => '__return_true', // Public endpoint
+        ));
+
+        // GET /calendars/{id} - Get calendar details (v4.1.0)
+        register_rest_route($this->namespace, '/calendars/(?P<id>\d+)', array(
+            'methods' => \WP_REST_Server::READABLE,
+            'callback' => array($this, 'get_calendar'),
+            'permission_callback' => '__return_true', // Public endpoint
+            'args' => array(
+                'id' => array(
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    },
+                ),
+            ),
+        ));
+
+        // GET /calendars/{id}/slots - Get available time slots (v4.1.0)
+        register_rest_route($this->namespace, '/calendars/(?P<id>\d+)/slots', array(
+            'methods' => \WP_REST_Server::READABLE,
+            'callback' => array($this, 'get_calendar_slots'),
+            'permission_callback' => '__return_true', // Public endpoint
+            'args' => array(
+                'id' => array(
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    },
+                ),
+                'date' => array(
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return (bool) strtotime($param);
+                    },
+                ),
+            ),
+        ));
+
+        // POST /calendars/{id}/appointments - Create appointment (v4.1.0)
+        register_rest_route($this->namespace, '/calendars/(?P<id>\d+)/appointments', array(
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => array($this, 'create_appointment'),
+            'permission_callback' => '__return_true', // Public endpoint with validation
+            'args' => array(
+                'id' => array(
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    },
+                ),
+            ),
+        ));
+
+        // GET /appointments/{id} - Get appointment details (v4.1.0)
+        register_rest_route($this->namespace, '/appointments/(?P<id>\d+)', array(
+            'methods' => \WP_REST_Server::READABLE,
+            'callback' => array($this, 'get_appointment'),
+            'permission_callback' => array($this, 'check_appointment_access'),
+            'args' => array(
+                'id' => array(
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    },
+                ),
+            ),
+        ));
+
+        // DELETE /appointments/{id} - Cancel appointment (v4.1.0)
+        register_rest_route($this->namespace, '/appointments/(?P<id>\d+)', array(
+            'methods' => \WP_REST_Server::DELETABLE,
+            'callback' => array($this, 'cancel_appointment'),
+            'permission_callback' => array($this, 'check_appointment_access'),
+            'args' => array(
+                'id' => array(
+                    'validate_callback' => function($param) {
+                        return is_numeric($param);
+                    },
+                ),
+            ),
+        ));
     }
     
     /**
@@ -1093,6 +1177,416 @@ class RestController {
                 array('status' => 500)
             );
         }
+    }
+
+    /**
+     * GET /calendars
+     * List all active calendars
+     *
+     * @since 4.1.0
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function get_calendars($request) {
+        try {
+            if (!class_exists('\FreeFormCertificate\Repositories\CalendarRepository')) {
+                return new \WP_Error(
+                    'repository_not_found',
+                    __('Calendar repository not available', 'ffc'),
+                    array('status' => 500)
+                );
+            }
+
+            $calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
+
+            // Get all active calendars
+            $calendars = $calendar_repository->findAll(
+                array('status' => 'active'),
+                'title',
+                'ASC'
+            );
+
+            $calendars_formatted = array();
+            foreach ($calendars as $calendar) {
+                $calendars_formatted[] = array(
+                    'id' => (int) $calendar['id'],
+                    'title' => $calendar['title'],
+                    'description' => $calendar['description'] ?? '',
+                    'requires_approval' => (bool) $calendar['requires_approval'],
+                    'require_login' => (bool) $calendar['require_login'],
+                    'allow_cancellation' => (bool) $calendar['allow_cancellation'],
+                    'slot_duration' => (int) $calendar['slot_duration'],
+                    'advance_booking_min' => (int) $calendar['advance_booking_min'],
+                    'advance_booking_max' => (int) $calendar['advance_booking_max'],
+                );
+            }
+
+            return rest_ensure_response(array(
+                'calendars' => $calendars_formatted,
+                'total' => count($calendars_formatted),
+            ));
+
+        } catch (\Exception $e) {
+            return new \WP_Error(
+                'get_calendars_error',
+                $e->getMessage(),
+                array('status' => 500)
+            );
+        }
+    }
+
+    /**
+     * GET /calendars/{id}
+     * Get calendar details
+     *
+     * @since 4.1.0
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function get_calendar($request) {
+        try {
+            $calendar_id = $request->get_param('id');
+
+            if (!class_exists('\FreeFormCertificate\Repositories\CalendarRepository')) {
+                return new \WP_Error(
+                    'repository_not_found',
+                    __('Calendar repository not available', 'ffc'),
+                    array('status' => 500)
+                );
+            }
+
+            $calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
+            $calendar = $calendar_repository->getWithWorkingHours($calendar_id);
+
+            if (!$calendar) {
+                return new \WP_Error(
+                    'calendar_not_found',
+                    __('Calendar not found', 'ffc'),
+                    array('status' => 404)
+                );
+            }
+
+            if ($calendar['status'] !== 'active') {
+                return new \WP_Error(
+                    'calendar_inactive',
+                    __('Calendar is not active', 'ffc'),
+                    array('status' => 403)
+                );
+            }
+
+            return rest_ensure_response(array(
+                'id' => (int) $calendar['id'],
+                'title' => $calendar['title'],
+                'description' => $calendar['description'] ?? '',
+                'requires_approval' => (bool) $calendar['requires_approval'],
+                'require_login' => (bool) $calendar['require_login'],
+                'allow_cancellation' => (bool) $calendar['allow_cancellation'],
+                'cancellation_min_hours' => (int) $calendar['cancellation_min_hours'],
+                'slot_duration' => (int) $calendar['slot_duration'],
+                'slot_interval' => (int) $calendar['slot_interval'],
+                'max_appointments_per_slot' => (int) $calendar['max_appointments_per_slot'],
+                'advance_booking_min' => (int) $calendar['advance_booking_min'],
+                'advance_booking_max' => (int) $calendar['advance_booking_max'],
+                'working_hours' => $calendar['working_hours'] ?? array(),
+            ));
+
+        } catch (\Exception $e) {
+            return new \WP_Error(
+                'get_calendar_error',
+                $e->getMessage(),
+                array('status' => 500)
+            );
+        }
+    }
+
+    /**
+     * GET /calendars/{id}/slots
+     * Get available time slots for a date
+     *
+     * @since 4.1.0
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function get_calendar_slots($request) {
+        try {
+            $calendar_id = $request->get_param('id');
+            $date = $request->get_param('date');
+
+            if (!class_exists('\FreeFormCertificate\Calendars\AppointmentHandler')) {
+                return new \WP_Error(
+                    'handler_not_found',
+                    __('Appointment handler not available', 'ffc'),
+                    array('status' => 500)
+                );
+            }
+
+            $appointment_handler = new \FreeFormCertificate\Calendars\AppointmentHandler();
+            $slots = $appointment_handler->get_available_slots($calendar_id, $date);
+
+            if (is_wp_error($slots)) {
+                return $slots;
+            }
+
+            return rest_ensure_response(array(
+                'slots' => $slots,
+                'date' => $date,
+                'calendar_id' => $calendar_id,
+            ));
+
+        } catch (\Exception $e) {
+            return new \WP_Error(
+                'get_slots_error',
+                $e->getMessage(),
+                array('status' => 500)
+            );
+        }
+    }
+
+    /**
+     * POST /calendars/{id}/appointments
+     * Create a new appointment
+     *
+     * @since 4.1.0
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function create_appointment($request) {
+        try {
+            $calendar_id = $request->get_param('id');
+            $params = $request->get_json_params();
+
+            if (empty($params)) {
+                return new \WP_Error(
+                    'no_data',
+                    __('No data provided in request body', 'ffc'),
+                    array('status' => 400)
+                );
+            }
+
+            // Required fields
+            $required_fields = array('date', 'time', 'name', 'email');
+            foreach ($required_fields as $field) {
+                if (empty($params[$field])) {
+                    return new \WP_Error(
+                        'missing_field',
+                        sprintf(__('Missing required field: %s', 'ffc'), $field),
+                        array('status' => 400)
+                    );
+                }
+            }
+
+            // Validate email
+            if (!is_email($params['email'])) {
+                return new \WP_Error(
+                    'invalid_email',
+                    __('Invalid email address', 'ffc'),
+                    array('status' => 400)
+                );
+            }
+
+            // Build appointment data
+            $appointment_data = array(
+                'calendar_id' => $calendar_id,
+                'appointment_date' => sanitize_text_field($params['date']),
+                'start_time' => sanitize_text_field($params['time']),
+                'name' => sanitize_text_field($params['name']),
+                'email' => sanitize_email($params['email']),
+                'phone' => isset($params['phone']) ? sanitize_text_field($params['phone']) : '',
+                'user_notes' => isset($params['notes']) ? sanitize_textarea_field($params['notes']) : '',
+                'custom_data' => isset($params['custom_data']) ? $params['custom_data'] : array(),
+                'consent_given' => isset($params['consent']) ? 1 : 0,
+                'consent_text' => isset($params['consent_text']) ? sanitize_textarea_field($params['consent_text']) : '',
+                'user_ip' => \FreeFormCertificate\Core\Utils::get_user_ip(),
+                'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? sanitize_text_field($_SERVER['HTTP_USER_AGENT']) : ''
+            );
+
+            // Add user ID if logged in
+            if (is_user_logged_in()) {
+                $appointment_data['user_id'] = get_current_user_id();
+            }
+
+            // Process appointment
+            if (!class_exists('\FreeFormCertificate\Calendars\AppointmentHandler')) {
+                return new \WP_Error(
+                    'handler_not_found',
+                    __('Appointment handler not available', 'ffc'),
+                    array('status' => 500)
+                );
+            }
+
+            $appointment_handler = new \FreeFormCertificate\Calendars\AppointmentHandler();
+            $result = $appointment_handler->process_appointment($appointment_data);
+
+            if (is_wp_error($result)) {
+                return $result;
+            }
+
+            return rest_ensure_response(array(
+                'success' => true,
+                'message' => __('Appointment booked successfully!', 'ffc'),
+                'appointment_id' => $result['appointment_id'],
+                'requires_approval' => $result['requires_approval'],
+            ));
+
+        } catch (\Exception $e) {
+            return new \WP_Error(
+                'create_appointment_error',
+                $e->getMessage(),
+                array('status' => 500)
+            );
+        }
+    }
+
+    /**
+     * GET /appointments/{id}
+     * Get appointment details
+     *
+     * @since 4.1.0
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function get_appointment($request) {
+        try {
+            $appointment_id = $request->get_param('id');
+
+            if (!class_exists('\FreeFormCertificate\Repositories\AppointmentRepository')) {
+                return new \WP_Error(
+                    'repository_not_found',
+                    __('Appointment repository not available', 'ffc'),
+                    array('status' => 500)
+                );
+            }
+
+            $appointment_repository = new \FreeFormCertificate\Repositories\AppointmentRepository();
+            $appointment = $appointment_repository->findById($appointment_id);
+
+            if (!$appointment) {
+                return new \WP_Error(
+                    'appointment_not_found',
+                    __('Appointment not found', 'ffc'),
+                    array('status' => 404)
+                );
+            }
+
+            // Get calendar info
+            $calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
+            $calendar = $calendar_repository->findById($appointment['calendar_id']);
+
+            // Decrypt email if encrypted
+            $email_display = '';
+            if (!empty($appointment['email_encrypted'])) {
+                try {
+                    $email_plain = \FreeFormCertificate\Core\Encryption::decrypt($appointment['email_encrypted']);
+                    $email_display = ($email_plain && is_string($email_plain)) ? $email_plain : '';
+                } catch (\Exception $e) {
+                    $email_display = '';
+                }
+            } elseif (!empty($appointment['email'])) {
+                $email_display = $appointment['email'];
+            }
+
+            return rest_ensure_response(array(
+                'id' => (int) $appointment['id'],
+                'calendar_id' => (int) $appointment['calendar_id'],
+                'calendar_title' => $calendar['title'] ?? '',
+                'appointment_date' => $appointment['appointment_date'],
+                'start_time' => $appointment['start_time'],
+                'end_time' => $appointment['end_time'],
+                'status' => $appointment['status'],
+                'name' => $appointment['name'],
+                'email' => $email_display,
+                'phone' => $appointment['phone'] ?? '',
+                'user_notes' => $appointment['user_notes'] ?? '',
+                'created_at' => $appointment['created_at'],
+            ));
+
+        } catch (\Exception $e) {
+            return new \WP_Error(
+                'get_appointment_error',
+                $e->getMessage(),
+                array('status' => 500)
+            );
+        }
+    }
+
+    /**
+     * DELETE /appointments/{id}
+     * Cancel an appointment
+     *
+     * @since 4.1.0
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function cancel_appointment($request) {
+        try {
+            $appointment_id = $request->get_param('id');
+            $params = $request->get_json_params();
+            $reason = isset($params['reason']) ? sanitize_textarea_field($params['reason']) : '';
+
+            if (!class_exists('\FreeFormCertificate\Calendars\AppointmentHandler')) {
+                return new \WP_Error(
+                    'handler_not_found',
+                    __('Appointment handler not available', 'ffc'),
+                    array('status' => 500)
+                );
+            }
+
+            $appointment_handler = new \FreeFormCertificate\Calendars\AppointmentHandler();
+
+            // For REST API, we don't use token-based auth, rely on user ownership
+            $result = $appointment_handler->cancel_appointment($appointment_id, '', $reason);
+
+            if (is_wp_error($result)) {
+                return $result;
+            }
+
+            return rest_ensure_response(array(
+                'success' => true,
+                'message' => __('Appointment cancelled successfully', 'ffc'),
+            ));
+
+        } catch (\Exception $e) {
+            return new \WP_Error(
+                'cancel_appointment_error',
+                $e->getMessage(),
+                array('status' => 500)
+            );
+        }
+    }
+
+    /**
+     * Check appointment access permission
+     *
+     * @since 4.1.0
+     * @param \WP_REST_Request $request
+     * @return bool
+     */
+    public function check_appointment_access($request): bool {
+        $appointment_id = $request->get_param('id');
+
+        // Admin can always access
+        if (current_user_can('manage_options')) {
+            return true;
+        }
+
+        // User must be logged in
+        if (!is_user_logged_in()) {
+            return false;
+        }
+
+        // User can only access their own appointments
+        if (!class_exists('\FreeFormCertificate\Repositories\AppointmentRepository')) {
+            return false;
+        }
+
+        $appointment_repository = new \FreeFormCertificate\Repositories\AppointmentRepository();
+        $appointment = $appointment_repository->findById($appointment_id);
+
+        if (!$appointment) {
+            return false;
+        }
+
+        return (int) $appointment['user_id'] === get_current_user_id();
     }
 
     /**
