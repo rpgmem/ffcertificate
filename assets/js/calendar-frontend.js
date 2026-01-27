@@ -29,13 +29,13 @@
             var self = this;
 
             // Apply CPF/RF mask if the helper function is available
-            if (window.FFC && window.FFC.Frontend && typeof window.FFC.Frontend.applyCpfRfMask === 'function') {
+            if (window.FFC && window.FFC.Frontend && window.FFC.Frontend.Masks && typeof window.FFC.Frontend.Masks.applyCpfRf === 'function') {
                 // Apply mask on page load to any visible fields
-                window.FFC.Frontend.applyCpfRfMask($('#ffc-booking-cpf-rf'));
+                window.FFC.Frontend.Masks.applyCpfRf($('#ffc-booking-cpf-rf'));
 
                 // Also apply on focus as a safeguard
                 $(document).on('focus', '#ffc-booking-cpf-rf', function() {
-                    window.FFC.Frontend.applyCpfRfMask($(this));
+                    window.FFC.Frontend.Masks.applyCpfRf($(this));
                 });
             }
 
@@ -159,8 +159,8 @@
             $wrapper.show();
 
             // Apply CPF/RF mask when form becomes visible
-            if (window.FFC && window.FFC.Frontend && typeof window.FFC.Frontend.applyCpfRfMask === 'function') {
-                window.FFC.Frontend.applyCpfRfMask($('#ffc-booking-cpf-rf'));
+            if (window.FFC && window.FFC.Frontend && window.FFC.Frontend.Masks && typeof window.FFC.Frontend.Masks.applyCpfRf === 'function') {
+                window.FFC.Frontend.Masks.applyCpfRf($('#ffc-booking-cpf-rf'));
             }
 
             // Scroll to form
