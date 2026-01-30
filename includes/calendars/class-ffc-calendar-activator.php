@@ -346,17 +346,18 @@ class CalendarActivator {
     /**
      * Generate unique validation code
      *
-     * @return string
+     * Generates a 12-character alphanumeric code (stored without hyphens).
+     * Use Utils::format_auth_code() to display with hyphens (XXXX-XXXX-XXXX).
+     *
+     * @return string 12-character code without hyphens
      */
     private static function generate_unique_validation_code(): string {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_appointments';
 
         do {
-            // Generate code in format XXXX-XXXX-XXXX (12 alphanumeric characters)
-            $code = self::generate_random_string(4) . '-' .
-                    self::generate_random_string(4) . '-' .
-                    self::generate_random_string(4);
+            // Generate 12 alphanumeric characters (stored clean, without hyphens)
+            $code = \FreeFormCertificate\Core\Utils::generate_random_string(12);
 
             // Check if code already exists
             $existing = $wpdb->get_var(
@@ -368,24 +369,6 @@ class CalendarActivator {
         } while ($existing);
 
         return $code;
-    }
-
-    /**
-     * Generate random alphanumeric string
-     *
-     * @param int $length
-     * @return string
-     */
-    private static function generate_random_string(int $length = 4): string {
-        $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        $chars_length = strlen($chars);
-        $string = '';
-
-        for ($i = 0; $i < $length; $i++) {
-            $string .= $chars[rand(0, $chars_length - 1)];
-        }
-
-        return $string;
     }
 
     /**

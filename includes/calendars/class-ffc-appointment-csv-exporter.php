@@ -88,17 +88,46 @@ class AppointmentCsvExporter {
         $all_keys = array();
 
         foreach ($rows as $r) {
-            if (empty($r['custom_data'])) {
-                continue;
-            }
-
-            $d = json_decode($r['custom_data'], true);
+            $d = $this->get_custom_data($r);
             if (is_array($d)) {
                 $all_keys = array_merge($all_keys, array_keys($d));
             }
         }
 
         return array_unique($all_keys);
+    }
+
+    /**
+     * Get custom data from a row, handling encryption
+     *
+     * @param array $row
+     * @return array
+     */
+    private function get_custom_data(array $row): array {
+        $json = null;
+
+        // Try encrypted first
+        if (!empty($row['custom_data_encrypted'])) {
+            try {
+                if (class_exists('\FreeFormCertificate\Core\Encryption')) {
+                    $json = \FreeFormCertificate\Core\Encryption::decrypt($row['custom_data_encrypted']);
+                }
+            } catch (\Exception $e) {
+                $json = null;
+            }
+        }
+
+        // Fallback to plain text
+        if ($json === null && !empty($row['custom_data'])) {
+            $json = $row['custom_data'];
+        }
+
+        if (empty($json)) {
+            return array();
+        }
+
+        $decoded = json_decode($json, true);
+        return is_array($decoded) ? $decoded : array();
     }
 
     /**
@@ -230,16 +259,15 @@ class AppointmentCsvExporter {
         );
 
         // Dynamic Columns (custom_data fields)
-        $custom_data = array();
-        if (!empty($row['custom_data'])) {
-            $decoded = json_decode($row['custom_data'], true);
-            if (is_array($decoded)) {
-                $custom_data = $decoded;
-            }
-        }
+        $custom_data = $this->get_custom_data($row);
 
         foreach ($dynamic_keys as $key) {
-            $line[] = isset($custom_data[$key]) ? $custom_data[$key] : '';
+            $value = $custom_data[$key] ?? '';
+            // Flatten arrays/objects to string
+            if (is_array($value)) {
+                $value = implode(', ', $value);
+            }
+            $line[] = $value;
         }
 
         return $line;
