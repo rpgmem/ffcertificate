@@ -46,18 +46,46 @@ class CsvExporter {
         $all_keys = array();
 
         foreach( $rows as $r ) {
-            // Skip null or empty data fields
-            if ( empty( $r['data'] ) ) {
-                continue;
-            }
-
-            $d = json_decode( $r['data'], true );
+            $d = $this->get_submission_data( $r );
             if ( is_array( $d ) ) {
                 $all_keys = array_merge( $all_keys, array_keys( $d ) );
             }
         }
 
         return array_unique( $all_keys );
+    }
+
+    /**
+     * Get submission data from a row, handling encryption
+     *
+     * @param array $row
+     * @return array
+     */
+    private function get_submission_data( array $row ): array {
+        $json = null;
+
+        // Try encrypted first
+        if ( !empty( $row['data_encrypted'] ) ) {
+            try {
+                if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
+                    $json = \FreeFormCertificate\Core\Encryption::decrypt( $row['data_encrypted'] );
+                }
+            } catch ( \Exception $e ) {
+                $json = null;
+            }
+        }
+
+        // Fallback to plain text
+        if ( $json === null && !empty( $row['data'] ) ) {
+            $json = $row['data'];
+        }
+
+        if ( empty( $json ) ) {
+            return array();
+        }
+
+        $decoded = json_decode( $json, true );
+        return is_array( $decoded ) ? $decoded : array();
     }
 
     /**
@@ -210,16 +238,15 @@ class CsvExporter {
         }
         
         // Dynamic Columns (each field from 'data' column in separate CSV column)
-        $data = array();
-        if ( ! empty( $row['data'] ) ) {
-            $decoded = json_decode( $row['data'], true );
-            if ( is_array( $decoded ) ) {
-                $data = $decoded;
-            }
-        }
-        
+        $data = $this->get_submission_data( $row );
+
         foreach ( $dynamic_keys as $key ) {
-            $line[] = isset( $data[$key] ) ? $data[$key] : '';
+            $value = $data[$key] ?? '';
+            // Flatten arrays/objects to string
+            if ( is_array( $value ) ) {
+                $value = implode( ', ', $value );
+            }
+            $line[] = $value;
         }
         
         return $line;
