@@ -12,8 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Autoloader handles class loading
-$migration_manager = new \FreeFormCertificate\Migrations\MigrationManager();
-$migrations = $migration_manager->get_migrations();
+$ffc_migration_manager = new \FreeFormCertificate\Migrations\MigrationManager();
+$ffc_migrations = $ffc_migration_manager->get_migrations();
 ?>
 <div class="ffc-settings-wrap">
 
@@ -36,60 +36,60 @@ $migrations = $migration_manager->get_migrations();
 
     <?php
     // Display migrations
-    if ( empty( $migrations ) ) :
+    if ( empty( $ffc_migrations ) ) :
     ?>
         <div class="notice notice-info inline">
             <p><?php esc_html_e( 'No migrations available at this time.', 'wp-ffcertificate' ); ?></p>
         </div>
     <?php
     else :
-        foreach ( $migrations as $key => $migration ) :
+        foreach ( $ffc_migrations as $ffc_key => $ffc_migration ) :
             // Check if migration is available
-            if ( ! $migration_manager->is_migration_available( $key ) ) {
+            if ( ! $ffc_migration_manager->is_migration_available( $ffc_key ) ) {
                 continue;
             }
             
             // Get migration status
-            $status = $migration_manager->get_migration_status( $key );
+            $ffc_status = $ffc_migration_manager->get_migration_status( $ffc_key );
             
-            if ( is_wp_error( $status ) ) {
+            if ( is_wp_error( $ffc_status ) ) {
                 // ✅ v2.9.16: If there's an error, assume no data exists (empty database)
-                $percent = 100;
-                $is_complete = true;
-                $pending = 0;
-                $total = 0;
-                $migrated = 0;
+                $ffc_percent = 100;
+                $ffc_is_complete = true;
+                $ffc_pending = 0;
+                $ffc_total = 0;
+                $ffc_migrated = 0;
             } else {
-                $percent = $status['percent'];
-                $is_complete = $status['is_complete'];
-                $pending = number_format( $status['pending'] );
-                $total = number_format( $status['total'] );
-                $migrated = number_format( $status['migrated'] );
+                $ffc_percent = $ffc_status['percent'];
+                $ffc_is_complete = $ffc_status['is_complete'];
+                $ffc_pending = number_format( $ffc_status['pending'] );
+                $ffc_total = number_format( $ffc_status['total'] );
+                $ffc_migrated = number_format( $ffc_status['migrated'] );
             }
             
             // Generate migration URL
-            $migrate_url = wp_nonce_url(
+            $ffc_migrate_url = wp_nonce_url(
                 add_query_arg( array(
                     'post_type' => 'ffc_form',
                     'page' => 'ffc-settings',
                     'tab' => 'migrations',
-                    'ffc_run_migration' => $key
+                    'ffc_run_migration' => $ffc_key
                 ), admin_url( 'edit.php' ) ),
-                'ffc_migration_' . $key
+                'ffc_migration_' . $ffc_key
             );
             
-            $status_class = $is_complete ? 'complete' : 'pending';
-            $progress_color = $is_complete ? 'complete' : 'pending';
-            $stat_pending_class = $is_complete ? 'success' : 'pending';
-            $stat_progress_class = $is_complete ? 'success' : 'info';
-            $label_class = $percent > 50 ? 'dark' : 'light';
+            $ffc_status_class = $ffc_is_complete ? 'complete' : 'pending';
+            $ffc_progress_color = $ffc_is_complete ? 'complete' : 'pending';
+            $ffc_stat_pending_class = $ffc_is_complete ? 'success' : 'pending';
+            $ffc_stat_progress_class = $ffc_is_complete ? 'success' : 'info';
+            $ffc_label_class = $ffc_percent > 50 ? 'dark' : 'light';
     ?>
     
-    <div class="postbox ffc-migration-card ffc-migration-<?php echo esc_attr( $status_class ); ?>">
+    <div class="postbox ffc-migration-card ffc-migration-<?php echo esc_attr( $ffc_status_class ); ?>">
         <div class="postbox-header">
             <h3 class="hndle">
-                <span><?php echo esc_html( $migration['icon'] . ' ' . $migration['name'] ); ?></span>
-                <?php if ( $is_complete ) : ?>
+                <span><?php echo esc_html( $ffc_migration['icon'] . ' ' . $ffc_migration['name'] ); ?></span>
+                <?php if ( $ffc_is_complete ) : ?>
                     <span class="dashicons dashicons-yes-alt"></span>
                 <?php endif; ?>
             </h3>
@@ -97,7 +97,7 @@ $migrations = $migration_manager->get_migrations();
         
         <div class="inside">
             <p class="description">
-                <?php echo esc_html( $migration['description'] ); ?>
+                <?php echo esc_html( $ffc_migration['description'] ); ?>
             </p>
             
             <!-- Migration Statistics -->
@@ -107,7 +107,7 @@ $migrations = $migration_manager->get_migrations();
                         <?php esc_html_e( 'Total Records', 'wp-ffcertificate' ); ?>
                     </div>
                     <div class="ffc-migration-stat-value">
-                        <?php echo esc_html( $total ); ?>
+                        <?php echo esc_html( $ffc_total ); ?>
                     </div>
                 </div>
                 
@@ -116,7 +116,7 @@ $migrations = $migration_manager->get_migrations();
                         <?php esc_html_e( 'Migrated', 'wp-ffcertificate' ); ?>
                     </div>
                     <div class="ffc-migration-stat-value success">
-                        <?php echo esc_html( $migrated ); ?>
+                        <?php echo esc_html( $ffc_migrated ); ?>
                     </div>
                 </div>
                 
@@ -124,8 +124,8 @@ $migrations = $migration_manager->get_migrations();
                     <div class="ffc-migration-stat-label">
                         <?php esc_html_e( 'Pending', 'wp-ffcertificate' ); ?>
                     </div>
-                    <div class="ffc-migration-stat-value <?php echo esc_attr( $stat_pending_class ); ?>">
-                        <?php echo esc_html( $pending ); ?>
+                    <div class="ffc-migration-stat-value <?php echo esc_attr( $ffc_stat_pending_class ); ?>">
+                        <?php echo esc_html( $ffc_pending ); ?>
                     </div>
                 </div>
                 
@@ -133,8 +133,8 @@ $migrations = $migration_manager->get_migrations();
                     <div class="ffc-migration-stat-label">
                         <?php esc_html_e( 'Progress', 'wp-ffcertificate' ); ?>
                     </div>
-                    <div class="ffc-migration-stat-value <?php echo esc_attr( $stat_progress_class ); ?>">
-                        <?php echo number_format( $percent, 1 ); ?>%
+                    <div class="ffc-migration-stat-value <?php echo esc_attr( $ffc_stat_progress_class ); ?>">
+                        <?php echo number_format( $ffc_percent, 1 ); ?>%
                     </div>
                 </div>
             </div>
@@ -142,16 +142,16 @@ $migrations = $migration_manager->get_migrations();
             <!-- Progress Bar -->
             <div class="ffc-migration-progress-bar">
                 <div class="ffc-progress-bar-container">
-                    <div class="ffc-progress-bar-fill <?php echo esc_attr( $progress_color ); ?>"></div>
-                    <div class="ffc-progress-bar-label <?php echo esc_attr( $label_class ); ?>">
-                        <?php echo number_format( $percent, 1 ); ?>% <?php esc_html_e( 'Complete', 'wp-ffcertificate' ); ?>
+                    <div class="ffc-progress-bar-fill <?php echo esc_attr( $ffc_progress_color ); ?>"></div>
+                    <div class="ffc-progress-bar-label <?php echo esc_attr( $ffc_label_class ); ?>">
+                        <?php echo number_format( $ffc_percent, 1 ); ?>% <?php esc_html_e( 'Complete', 'wp-ffcertificate' ); ?>
                     </div>
                 </div>
             </div>
             
             <!-- Actions -->
             <div class="ffc-migration-actions">
-                <?php if ( $is_complete ) : ?>
+                <?php if ( $ffc_is_complete ) : ?>
                     <span class="button button-secondary" disabled>
                         <span class="dashicons dashicons-yes-alt"></span>
                         <?php esc_html_e( 'Migration Complete', 'wp-ffcertificate' ); ?>
@@ -161,11 +161,11 @@ $migrations = $migration_manager->get_migrations();
                         ✓ <?php esc_html_e( 'All records have been successfully migrated.', 'wp-ffcertificate' ); ?>
                     </p>
                 <?php else : ?>
-                    <a href="<?php echo esc_url( $migrate_url ); ?>"
+                    <a href="<?php echo esc_url( $ffc_migrate_url ); ?>"
                        class="button button-primary"
                        onclick="return confirm('<?php echo esc_js( sprintf(
                            /* translators: %s: migration name */
-                           __( 'Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete.', 'wp-ffcertificate' ), $migration['name'] ) ); ?>')">
+                           __( 'Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete.', 'wp-ffcertificate' ), $ffc_migration['name'] ) ); ?>')">
                         <span class="dashicons dashicons-update"></span>
                         <?php esc_html_e( 'Run Migration', 'wp-ffcertificate' ); ?>
                     </a>
@@ -175,7 +175,7 @@ $migrations = $migration_manager->get_migrations();
                         /* translators: %s: number of pending records */
                         printf(
                             esc_html__( 'Click once to process all records automatically. %s records remaining.', 'wp-ffcertificate' ),
-                            '<strong>' . esc_html( $pending ) . '</strong>'
+                            '<strong>' . esc_html( $ffc_pending ) . '</strong>'
                         );
                         ?>
                     </p>

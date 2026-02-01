@@ -11,27 +11,27 @@ if (!defined('ABSPATH')) {
 }
 
 // Get current settings
-$current_settings = get_option('ffc_user_access_settings', array());
+$ffc_current_settings = get_option('ffc_user_access_settings', array());
 
 // Defaults
-$defaults = array(
+$ffc_defaults = array(
     'block_wp_admin' => false,
     'blocked_roles' => array('ffc_user'),
     'redirect_url' => home_url('/dashboard'),
-    'redirect_message' => __('You were redirected from the admin panel. Use this dashboard to access your certificates.', 'ffc'),
+    'redirect_message' => __('You were redirected from the admin panel. Use this dashboard to access your certificates.', 'wp-ffcertificate'),
     'allow_admin_bar' => false,
     'bypass_for_admins' => true,
 );
 
-$settings = wp_parse_args($current_settings, $defaults);
+$ffc_settings = wp_parse_args($ffc_current_settings, $ffc_defaults);
 
 // Get all WordPress roles
-$wp_roles = wp_roles();
-$available_roles = $wp_roles->get_names();
+$ffc_wp_roles = wp_roles();
+$ffc_available_roles = $ffc_wp_roles->get_names();
 
 // Get dashboard page URL
-$dashboard_page_id = get_option('ffc_dashboard_page_id');
-$dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_url('/dashboard');
+$ffc_dashboard_page_id = get_option('ffc_dashboard_page_id');
+$ffc_dashboard_url = $ffc_dashboard_page_id ? get_permalink($ffc_dashboard_page_id) : home_url('/dashboard');
 ?>
 
 <div class="wrap ffc-settings-page">
@@ -40,12 +40,12 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
 
         <!-- wp-admin Blocking -->
         <div class="card">
-            <h2><?php esc_html_e('WP-Admin Access Control', 'ffc'); ?></h2>
+            <h2><?php esc_html_e('WP-Admin Access Control', 'wp-ffcertificate'); ?></h2>
             <table class="form-table">
                 <tr>
                     <th scope="row">
                         <label for="block_wp_admin">
-                            <?php esc_html_e('Block WP-Admin Access', 'ffc'); ?>
+                            <?php esc_html_e('Block WP-Admin Access', 'wp-ffcertificate'); ?>
                         </label>
                     </th>
                     <td>
@@ -54,11 +54,11 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
                                    name="block_wp_admin"
                                    id="block_wp_admin"
                                    value="1"
-                                   <?php checked($settings['block_wp_admin'], true); ?>>
-                            <?php esc_html_e('Prevent selected roles from accessing /wp-admin', 'ffc'); ?>
+                                   <?php checked($ffc_settings['block_wp_admin'], true); ?>>
+                            <?php esc_html_e('Prevent selected roles from accessing /wp-admin', 'wp-ffcertificate'); ?>
                         </label>
                         <p class="description">
-                            <?php esc_html_e('When enabled, users with selected roles will be redirected when trying to access the WordPress admin panel.', 'ffc'); ?>
+                            <?php esc_html_e('When enabled, users with selected roles will be redirected when trying to access the WordPress admin panel.', 'wp-ffcertificate'); ?>
                         </p>
                     </td>
                 </tr>
@@ -66,26 +66,26 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
                 <tr>
                     <th scope="row">
                         <label for="blocked_roles">
-                            <?php esc_html_e('Blocked Roles', 'ffc'); ?>
+                            <?php esc_html_e('Blocked Roles', 'wp-ffcertificate'); ?>
                         </label>
                     </th>
                     <td>
                         <fieldset>
-                            <?php foreach ($available_roles as $role_slug => $role_name) : ?>
+                            <?php foreach ($ffc_available_roles as $ffc_role_slug => $ffc_role_name) : ?>
                                 <label class="ffc-checkbox-label">
                                     <input type="checkbox"
                                            name="blocked_roles[]"
-                                           value="<?php echo esc_attr($role_slug); ?>"
-                                           <?php checked(in_array($role_slug, $settings['blocked_roles'])); ?>>
-                                    <?php echo esc_html($role_name); ?>
-                                    <?php if ($role_slug === 'ffc_user') : ?>
-                                        <em>(<?php esc_html_e('recommended', 'ffc'); ?>)</em>
+                                           value="<?php echo esc_attr($ffc_role_slug); ?>"
+                                           <?php checked(in_array($ffc_role_slug, $ffc_settings['blocked_roles'])); ?>>
+                                    <?php echo esc_html($ffc_role_name); ?>
+                                    <?php if ($ffc_role_slug === 'ffc_user') : ?>
+                                        <em>(<?php esc_html_e('recommended', 'wp-ffcertificate'); ?>)</em>
                                     <?php endif; ?>
                                 </label>
                             <?php endforeach; ?>
                         </fieldset>
                         <p class="description">
-                            <?php esc_html_e('Select which roles should be blocked from accessing wp-admin.', 'ffc'); ?>
+                            <?php esc_html_e('Select which roles should be blocked from accessing wp-admin.', 'wp-ffcertificate'); ?>
                         </p>
                     </td>
                 </tr>
@@ -93,7 +93,7 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
                 <tr>
                     <th scope="row">
                         <label for="bypass_for_admins">
-                            <?php esc_html_e('Bypass for Administrators', 'ffc'); ?>
+                            <?php esc_html_e('Bypass for Administrators', 'wp-ffcertificate'); ?>
                         </label>
                     </th>
                     <td>
@@ -102,11 +102,11 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
                                    name="bypass_for_admins"
                                    id="bypass_for_admins"
                                    value="1"
-                                   <?php checked($settings['bypass_for_admins'], true); ?>>
-                            <?php esc_html_e('Allow administrators to bypass the block (recommended)', 'ffc'); ?>
+                                   <?php checked($ffc_settings['bypass_for_admins'], true); ?>>
+                            <?php esc_html_e('Allow administrators to bypass the block (recommended)', 'wp-ffcertificate'); ?>
                         </label>
                         <p class="description">
-                            <?php esc_html_e('Even if an admin has a blocked role, they can still access wp-admin.', 'ffc'); ?>
+                            <?php esc_html_e('Even if an admin has a blocked role, they can still access wp-admin.', 'wp-ffcertificate'); ?>
                         </p>
                     </td>
                 </tr>
@@ -115,27 +115,27 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
 
         <!-- Redirect Settings -->
         <div class="card">
-            <h2><?php esc_html_e('Redirect Settings', 'ffc'); ?></h2>
+            <h2><?php esc_html_e('Redirect Settings', 'wp-ffcertificate'); ?></h2>
             <table class="form-table">
                 <tr>
                     <th scope="row">
                         <label for="redirect_url">
-                            <?php esc_html_e('Redirect URL', 'ffc'); ?>
+                            <?php esc_html_e('Redirect URL', 'wp-ffcertificate'); ?>
                         </label>
                     </th>
                     <td>
                         <input type="url"
                                name="redirect_url"
                                id="redirect_url"
-                               value="<?php echo esc_attr($settings['redirect_url']); ?>"
+                               value="<?php echo esc_attr($ffc_settings['redirect_url']); ?>"
                                class="regular-text"
-                               placeholder="<?php echo esc_attr($dashboard_url); ?>">
+                               placeholder="<?php echo esc_attr($ffc_dashboard_url); ?>">
                         <p class="description">
                             <?php
                             printf(
                                 /* translators: %s: Dashboard page URL */
-                                esc_html__('Where to redirect blocked users. Default: %s', 'ffc'),
-                                '<code>' . esc_html($dashboard_url) . '</code>'
+                                esc_html__('Where to redirect blocked users. Default: %s', 'wp-ffcertificate'),
+                                '<code>' . esc_html($ffc_dashboard_url) . '</code>'
                             );
                             ?>
                         </p>
@@ -145,16 +145,16 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
                 <tr>
                     <th scope="row">
                         <label for="redirect_message">
-                            <?php esc_html_e('Redirect Message', 'ffc'); ?>
+                            <?php esc_html_e('Redirect Message', 'wp-ffcertificate'); ?>
                         </label>
                     </th>
                     <td>
                         <textarea name="redirect_message"
                                   id="redirect_message"
                                   rows="3"
-                                  class="large-text"><?php echo esc_textarea($settings['redirect_message']); ?></textarea>
+                                  class="large-text"><?php echo esc_textarea($ffc_settings['redirect_message']); ?></textarea>
                         <p class="description">
-                            <?php esc_html_e('Message shown to users after being redirected (appears on the dashboard page).', 'ffc'); ?>
+                            <?php esc_html_e('Message shown to users after being redirected (appears on the dashboard page).', 'wp-ffcertificate'); ?>
                         </p>
                     </td>
                 </tr>
@@ -163,12 +163,12 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
 
         <!-- Admin Bar -->
         <div class="card">
-            <h2><?php esc_html_e('Admin Bar', 'ffc'); ?></h2>
+            <h2><?php esc_html_e('Admin Bar', 'wp-ffcertificate'); ?></h2>
             <table class="form-table">
                 <tr>
                     <th scope="row">
                         <label for="allow_admin_bar">
-                            <?php esc_html_e('Show Admin Bar', 'ffc'); ?>
+                            <?php esc_html_e('Show Admin Bar', 'wp-ffcertificate'); ?>
                         </label>
                     </th>
                     <td>
@@ -177,11 +177,11 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
                                    name="allow_admin_bar"
                                    id="allow_admin_bar"
                                    value="1"
-                                   <?php checked($settings['allow_admin_bar'], true); ?>>
-                            <?php esc_html_e('Show admin bar on frontend for blocked roles', 'ffc'); ?>
+                                   <?php checked($ffc_settings['allow_admin_bar'], true); ?>>
+                            <?php esc_html_e('Show admin bar on frontend for blocked roles', 'wp-ffcertificate'); ?>
                         </label>
                         <p class="description">
-                            <?php esc_html_e('If unchecked, the WordPress admin bar will be hidden for blocked roles.', 'ffc'); ?>
+                            <?php esc_html_e('If unchecked, the WordPress admin bar will be hidden for blocked roles.', 'wp-ffcertificate'); ?>
                         </p>
                     </td>
                 </tr>
@@ -190,31 +190,31 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
 
         <!-- Info Box -->
         <div class="card ffc-info-card">
-            <h2>ℹ️ <?php esc_html_e('Information', 'ffc'); ?></h2>
+            <h2>ℹ️ <?php esc_html_e('Information', 'wp-ffcertificate'); ?></h2>
             <p>
-                <?php esc_html_e('The "FFC User" role is automatically assigned to users who submit forms with CPF/RF.', 'ffc'); ?>
+                <?php esc_html_e('The "FFC User" role is automatically assigned to users who submit forms with CPF/RF.', 'wp-ffcertificate'); ?>
             </p>
             <p>
                 <?php
                 printf(
                     /* translators: %s: Shortcode */
-                    esc_html__('Users can access their certificates via the dashboard page using the %s shortcode.', 'ffc'),
+                    esc_html__('Users can access their certificates via the dashboard page using the %s shortcode.', 'wp-ffcertificate'),
                     '<code>[user_dashboard_personal]</code>'
                 );
                 ?>
             </p>
             <p>
                 <?php
-                if ($dashboard_page_id) {
+                if ($ffc_dashboard_page_id) {
                     printf(
                         /* translators: %s: Dashboard page URL */
-                        esc_html__('Dashboard page: %s', 'ffc'),
-                        '<a href="' . esc_url($dashboard_url) . '" target="_blank">' . esc_html($dashboard_url) . '</a>'
+                        esc_html__('Dashboard page: %s', 'wp-ffcertificate'),
+                        '<a href="' . esc_url($ffc_dashboard_url) . '" target="_blank">' . esc_html($ffc_dashboard_url) . '</a>'
                     );
                 } else {
                     printf(
                         /* translators: %s: Dashboard page slug */
-                        esc_html__('Dashboard page will be created at: %s (activate the plugin to create it)', 'ffc'),
+                        esc_html__('Dashboard page will be created at: %s (activate the plugin to create it)', 'wp-ffcertificate'),
                         '<code>' . esc_html(home_url('/dashboard')) . '</code>'
                     );
                 }
@@ -224,7 +224,7 @@ $dashboard_url = $dashboard_page_id ? get_permalink($dashboard_page_id) : home_u
 
         <p class="submit">
             <button type="submit" name="save_settings" class="button button-primary">
-                <?php esc_html_e('Save Settings', 'ffc'); ?>
+                <?php esc_html_e('Save Settings', 'wp-ffcertificate'); ?>
             </button>
         </p>
     </form>
