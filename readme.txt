@@ -143,98 +143,223 @@ In the certificate layout editor, use these dynamic tags:
 
 = 4.0.0 (2026-02-02) =
 
-Major release with complete architectural overhaul, new features, and WordPress Plugin Check compliance.
+Major release with complete architectural overhaul, new subsystems, and WordPress Plugin Check compliance.
 
-**Architecture:**
-* Complete migration to PHP namespaces (`FreeFormCertificate\*`)
+**Architecture (Breaking Change):**
+* Complete migration to PHP namespaces (`FreeFormCertificate\*`) - old `FFC_*` class names removed
 * PSR-4 autoloader with 17 namespace modules
-* Repository pattern for all database access
-* Strategy pattern for data migrations
+* Repository pattern for all database access (`AbstractRepository`, `SubmissionRepository`, `FormRepository`, `AppointmentRepository`, `CalendarRepository`, `BlockedDateRepository`)
+* Strategy pattern for data migrations (`EncryptionMigration`, `FieldMigration`, `CleanupMigration`, `MagicTokenMigration`, `UserLinkMigration`)
+* `declare(strict_types=1)` and full type hints across all classes
 * 88 PHP classes organized in 14 directories
 
-**New Features:**
-* Appointment Calendar system with booking, approval workflow, email notifications, and PDF receipts
-* User Dashboard with personal certificate and appointment management (`[user_dashboard_personal]`)
-* REST API controller for external integrations
-* QR Code generator on certificates linking to verification page
-* Geofencing with GPS and IP-based area restrictions
-* Data encryption for sensitive fields (email, CPF, IP)
-* Migration framework with progress tracking, batch processing, and 5 built-in strategies
-* Activity Log with full audit trail
-* IP Geolocation integration
-* Admin submission edit page
-* Admin user columns for certificate counts
+**Appointment Calendar System (New):**
+* Calendar CPT with configurable time slots, durations, business hours, and capacity
+* Frontend booking widget with real-time slot availability (`[ffc_calendar]` shortcode)
+* Approval workflow: auto-approve or manual admin approval
+* Email notifications: confirmation, approval, cancellation, and reminders
+* PDF appointment receipts generated client-side
+* Admin management: view, approve, cancel, and bulk cleanup appointments
+* CSV export for appointments with date and status filters
+* Automatic appointment cancellation when calendar is deleted
+* CPF/RF field, honeypot, and math captcha on booking forms
+* Blocked dates management per calendar
 
-**Improvements:**
-* WordPress Plugin Check compliance (security, escaping, sanitization, nonce verification)
-* All output properly escaped with `esc_html()`, `esc_attr()`, `wp_kses()`
+**User Dashboard (New):**
+* Personal frontend dashboard for logged-in users (`[user_dashboard_personal]` shortcode)
+* View personal certificates and appointment history
+* Custom `ffc_user` role with dashboard access
+* Access control system with permission checks
+* Admin user columns showing certificate and appointment counts
+
+**REST API (New):**
+* Full REST API controller for external integrations
+* Endpoints for submissions, calendars, and appointments
+* Authentication via WordPress REST API nonces
+
+**Security & Data Protection (New):**
+* Geofencing: restrict form access by GPS coordinates or IP-based areas with configurable radius
+* GPS cache TTL configuration for performance
+* Data encryption for sensitive fields (email, CPF/RF, IP) at rest
+* IP Geolocation integration for location-based features
+* LGPD/GDPR compliance: encrypted data cleanup migration
+
+**Migration Framework (New):**
+* Migration manager with batch processing and progress tracking
+* Migration registry with dependency resolution
+* 5 built-in strategies: encryption, field transformation, cleanup, magic token, user link
+* Automatic AJAX processing without memory overload
+* Migration status calculator for admin dashboard
+
+**Administration (New):**
+* Activity Log with full audit trail and admin viewer page
+* Admin submission edit page for manual record updates
+* Admin notice manager for migration and action feedback
+* Assets manager for centralized CSS/JS enqueue
+* Form editor split into renderer and save handler classes
+* Settings tabs: General, SMTP, QR Code, Rate Limit, Geolocation, Migrations, User Access, Documentation
+* Debug utility class with configurable logging
+
+**Code Quality (WordPress Plugin Check):**
+* All output escaped with `esc_html()`, `esc_attr()`, `wp_kses()`
 * All input sanitized with `sanitize_text_field()`, `absint()`, `wp_unslash()`
 * Nonce verification on all form submissions and admin actions
-* Translator comments on all translation strings with placeholders
+* Translator comments on all strings with placeholders
 * Ordered placeholders (`%1$s`, `%2$s`) in all translation strings
-* CDN scripts replaced with locally bundled copies (html2canvas, jsPDF)
+* CDN scripts replaced with locally bundled copies (html2canvas 1.4.1, jsPDF 2.5.1)
+* `date()` replaced with `gmdate()`, `rand()` with `wp_rand()`, `wp_redirect()` with `wp_safe_redirect()`
+* `parse_url()` replaced with `wp_parse_url()`, `unlink()` with `wp_delete_file()`
 * Text domain changed from `ffc` to `wp-ffcertificate`
+* Translation files renamed to match new text domain
+* Removed development files from distribution (tests, docs, CI, composer, phpqrcode cache)
 
 **Database:**
 * New tables: `ffc_calendars`, `ffc_appointments`, `ffc_blocked_dates`, `ffc_rate_limits`, `ffc_rate_limit_logs`, `ffc_activity_logs`
-* New columns on `ffc_submissions`: encryption support, user link fields
-* Automated migration system for schema changes
+* New columns on `ffc_submissions`: `edited_at`, `edited_by`, `data_encrypted`, `email_encrypted`, `cpf_rf_encrypted`, `user_ip_encrypted`
+* New columns on `ffc_forms`: encryption and user link support
+* Automated migration system for all schema changes
+
+= 3.3.0 (2026-01-25) =
+* Added: `declare(strict_types=1)` to all PHP files
+* Added: Full type hints (parameter types, return types) across all classes
+* Affected: Core, Repositories, Migration Strategies, Settings Tabs, User Dashboard, Shortcodes, Security, Generators, Frontend, Integrations, Submissions
+
+= 3.2.0 (2026-01-26) =
+* Added: PSR-4 autoloader (`class-ffc-autoloader.php`) with namespace-to-directory mapping
+* Migrated: All 88 classes to PHP namespaces in 15 migration steps
+* Namespaces: `FreeFormCertificate\Admin`, `API`, `Calendars`, `Core`, `Frontend`, `Generators`, `Integrations`, `Migrations`, `Repositories`, `Security`, `Settings`, `Shortcodes`, `Submissions`, `UserDashboard`
+* Added: Backward-compatibility aliases for all old `FFC_*` class names (removed in 4.0.0)
+* Added: Developer migration guide and hooks documentation
+
+= 3.1.0 (2026-01-24) =
+* Added: User Dashboard system with `ffc_user` role and `[user_dashboard_personal]` shortcode
+* Added: Access control class for permission management
+* Added: User manager for dashboard data retrieval
+* Added: Admin user columns (certificate count, appointment count)
+* Added: Debug utility class with configurable logging
+* Added: Activity Log admin viewer page with filtering
+* Added: Admin assets manager for centralized enqueue
+* Added: Admin submission edit page for manual record updates
+* Added: Admin notice manager for migration feedback
+* Added: Form editor metabox renderer (separated from save handler)
+* Added: Dashboard page auto-creation on activation
+* Refactored: Email handler focused on delivery (removed inline styles)
+* Refactored: REST controller optimized
+* Removed: All inline styles (moved to CSS files)
+* Added: User creation email controls
+
+= 3.0.0 (2026-01-20) =
+* Added: Repository pattern (`AbstractRepository`, `SubmissionRepository`, `FormRepository`)
+* Added: REST API controller for external integrations
+* Added: Geofence class for GPS/IP-based area restrictions
+* Added: IP Geolocation integration
+* Added: Migration manager with batch processing
+* Added: Data sanitizer for input cleaning
+* Added: Migration status calculator
+* Added: Page manager for auto-created plugin pages
+* Added: Magic Link helper class
+* Refactored: Frontend class as lightweight orchestrator
+* Added: Complete JavaScript translations (admin, frontend, form editor, template manager)
+* Added: Form Editor and Template Manager i18n
+* Improved: GPS cache TTL configuration
+* Improved: GPS validation with mandatory fields and meter units
+* Fixed: Incomplete CPF/RF cleanup for LGPD compliance
+* Fixed: OFFSET bug in batch migrations
+* Fixed: Slow submission deletion causing 500 errors
+* Fixed: Missing Activity Log methods
+
+= 2.10.0 (2026-01-20) =
+* Added: Rate Limiter with dedicated database tables (`ffc_rate_limits`, `ffc_rate_limit_logs`)
+* Added: Rate Limit Activator for table creation
+* Added: Configurable rate limit thresholds per action type
+* Migrated: Rate Limiter from WordPress transients to Object Cache API
 
 = 2.9.1 (2025-12-29) =
-* Fixed: Magic links fatal error (critical)
-* Fixed: Duplicate require in loader
-* Added: Rate Limiter with configurable thresholds
-* Added: Activity Log audit system
-* Added: Form Cache for performance
-* Added: CPF validation and 20+ utility helper functions
+* Fixed: Magic Links fatal error (critical bug)
+* Fixed: Duplicate `require` in loader
+* Added: Activity Log with `ffc_activity_logs` table for audit trail
+* Added: Form Cache with daily WP-Cron warming (`ffc_warm_cache_hook`)
+* Added: Utils class with CPF validation and 20+ helper functions (`get_user_ip`, `format_cpf`, `sanitize_cpf`, etc.)
 
 = 2.9.0 (2025-12-28) =
-* Added: QR Code generation on certificates
+* Added: QR Code generation on certificates linking to verification page
+* Added: QR Code generator class using phpqrcode library
+* Added: QR Code settings tab with size and error correction configuration
 
 = 2.8.0 (2025-12-28) =
 * Added: Magic Links for one-click certificate access via email
 * Added: Certificate preview page with modern responsive layout
-* Added: Magic token column with database index
-* Added: Automatic token backfill for existing submissions
-* Added: Rate limiting (10 attempts/minute per IP) for verification
-* Improved: Email template with magic link button and certificate preview
+* Added: `magic_token` column (VARCHAR 32) with database index on `ffc_submissions`
+* Added: Automatic token generation using `random_bytes(16)` for all new submissions
+* Added: Backward migration: token backfill for existing submissions on activation
+* Added: Rate limiting for verification (10 attempts/minute per IP via transients)
+* Added: `verify_by_magic_token()` method in Verification Handler
+* Added: Magic link detection via `?token=` parameter in Shortcodes class
+* Improved: Email template with magic link button, certificate preview, and fallback URL
 * Improved: AJAX verification without page reload
+* Improved: Frontend with loading spinner, download button state management
 
 = 2.7.0 (2025-12-28) =
 * Refactored: Complete modular architecture with 15 specialized classes
-* Refactored: FFC_Frontend reduced from 600 to 150 lines
-* Applied: Single Responsibility Principle throughout
-* Added: Dependency injection via FFC_Loader
+* Added: `FFC_Shortcodes` class for shortcode rendering
+* Added: `FFC_Form_Processor` class for form validation and processing
+* Added: `FFC_Verification_Handler` class for certificate verification
+* Added: `FFC_Email_Handler` class for email functionality
+* Added: `FFC_CSV_Exporter` class for CSV export operations
+* Refactored: `FFC_Frontend` reduced from 600 to 150 lines (now orchestrator only)
+* Refactored: `FFC_Submission_Handler` to pure CRUD operations (400 to 150 lines)
+* Added: Dependency injection container in `FFC_Loader`
+* Applied: Single Responsibility Principle (SRP) throughout
 
 = 2.6.0 (2025-12-28) =
 * Refactored: Complete code reorganization with modular OOP structure
-* Added: Full internationalization (i18n) support with .pot file
-* Added: Consolidated CSS (removed all inline styles)
-* Fixed: Missing method calls, duplicate metabox registration, SMTP toggle
+* Separated: `class-ffc-cpt.php` (CPT registration only) from `class-ffc-form-editor.php` (metaboxes)
+* Added: `update_submission()` and `delete_all_submissions()` methods
+* Added: Full internationalization (i18n) with all PHP strings wrapped in `__()` / `_e()`
+* Added: JavaScript localization via `wp_localize_script()`
+* Added: `.pot` translation template file
+* Consolidated: All inline styles moved to `ffc-admin.css` and `ffc-frontend.css`
+* Removed: Dead code and redundancies
+* Fixed: Missing method calls
+* Fixed: Duplicate metabox registration
+* Fixed: SMTP settings toggle visibility
 
 = 2.0.0 =
-* Refactored: PDF generation from simple image to high-fidelity A4 Landscape using jsPDF
-* Added: Dynamic Math Captcha with hash validation
-* Added: Reprint logic for certificate recovery
-* Added: PDF download buttons in admin submissions list
-* Improved: Mobile optimization with progress overlay
-* Fixed: CORS issues with image rendering
+* Refactored: PDF generation from simple image to high-fidelity A4 Landscape (1123x794px) using jsPDF
+* Added: Dynamic Math Captcha with hash validation on backend
+* Added: Honeypot field for spam bot protection
+* Added: Reprint logic for certificate recovery (duplicate detection)
+* Added: PDF download buttons directly in admin submissions list
+* Added: Mobile optimization with strategic delays and progress overlay
+* Fixed: CORS issues with `crossorigin="anonymous"` on image rendering
 
 = 1.5.0 =
-* Added: Ticket system with single-use codes
-* Added: Form cloning functionality
-* Added: Global settings tab with automatic log cleanup
+* Added: Ticket system with single-use codes for exclusive form access
+* Added: Form cloning (duplication) functionality
+* Added: Global settings tab with automatic log cleanup configuration
+* Added: Denylist for blocking specific IDs
 
 = 1.0.0 =
-* Initial release with Form Builder, PDF certificate generation, and CSV export
+* Initial release
+* Form Builder with drag & drop interface (Text, Email, Number, Date, Select, Radio, Textarea, Hidden fields)
+* PDF certificate generation (client-side)
+* CSV export with form and date filters
+* Submissions management in admin
+* ID-based restriction (CPF/RF) with allowlist mode
+* Asynchronous email notifications via WP-Cron
+* Automatic cleanup of old submissions
+* Verification shortcode `[ffc_verification]`
 
 == Upgrade Notice ==
 
 = 4.0.0 =
-Major release. All classes migrated to PHP namespaces. New calendar system, user dashboard, QR codes, geofencing, and encryption. Database migration runs automatically. Backup recommended before updating. Requires PHP 7.4+.
+Breaking release. All classes migrated to PHP namespaces - old FFC_* class names no longer available. New calendar system, user dashboard, QR codes, geofencing, encryption, and migration framework. 6 new database tables created automatically. Backup recommended. Requires PHP 7.4+.
+
+= 3.0.0 =
+Major internal refactoring with Repository pattern, REST API, geofencing, and migration framework. No breaking changes for end users.
 
 = 2.8.0 =
-New Magic Links feature for one-click certificate access. Database migration runs automatically. Backup recommended.
+New Magic Links feature for one-click certificate access. New database column added automatically. Backup recommended.
 
 == Privacy & Data Handling ==
 
