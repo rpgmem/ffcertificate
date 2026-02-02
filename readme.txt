@@ -91,6 +91,16 @@ Yes! The modular architecture makes it easy to extend. Each class has a single r
 
 == Changelog ==
 
+= 4.0.0 (2026-02-02) =
+* **Namespace Migration:** Complete migration to PHP namespaces (FreeFormCertificate\\*)
+* **Calendar System:** Appointment scheduling with email confirmations, reminders, and PDF receipts
+* **User Dashboard:** Personal certificate and appointment management
+* **REST API:** Full REST API for external integrations
+* **QR Code Generator:** QR codes on certificates linking to verification page
+* **Migration Framework:** Automated data migrations with progress tracking
+* **Geofencing:** GPS/IP-based form access restrictions
+* **Code Quality:** WordPress Plugin Check compliance, security hardening, and i18n improvements
+
 2.9.1 (2025-12-29)
 --------------------
 FIXED:
