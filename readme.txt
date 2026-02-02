@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 4.0.0
+Stable tag: 4.3.0
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -141,66 +141,10 @@ In the certificate layout editor, use these dynamic tags:
 
 == Changelog ==
 
-= 4.0.0 (2026-02-02) =
+= 4.3.0 (2026-02-02) =
 
-Major release with complete architectural overhaul, new subsystems, and WordPress Plugin Check compliance.
+WordPress Plugin Check compliance and distribution cleanup.
 
-**Architecture (Breaking Change):**
-* Complete migration to PHP namespaces (`FreeFormCertificate\*`) - old `FFC_*` class names removed
-* PSR-4 autoloader with 17 namespace modules
-* Repository pattern for all database access (`AbstractRepository`, `SubmissionRepository`, `FormRepository`, `AppointmentRepository`, `CalendarRepository`, `BlockedDateRepository`)
-* Strategy pattern for data migrations (`EncryptionMigration`, `FieldMigration`, `CleanupMigration`, `MagicTokenMigration`, `UserLinkMigration`)
-* `declare(strict_types=1)` and full type hints across all classes
-* 88 PHP classes organized in 14 directories
-
-**Appointment Calendar System (New):**
-* Calendar CPT with configurable time slots, durations, business hours, and capacity
-* Frontend booking widget with real-time slot availability (`[ffc_calendar]` shortcode)
-* Approval workflow: auto-approve or manual admin approval
-* Email notifications: confirmation, approval, cancellation, and reminders
-* PDF appointment receipts generated client-side
-* Admin management: view, approve, cancel, and bulk cleanup appointments
-* CSV export for appointments with date and status filters
-* Automatic appointment cancellation when calendar is deleted
-* CPF/RF field, honeypot, and math captcha on booking forms
-* Blocked dates management per calendar
-
-**User Dashboard (New):**
-* Personal frontend dashboard for logged-in users (`[user_dashboard_personal]` shortcode)
-* View personal certificates and appointment history
-* Custom `ffc_user` role with dashboard access
-* Access control system with permission checks
-* Admin user columns showing certificate and appointment counts
-
-**REST API (New):**
-* Full REST API controller for external integrations
-* Endpoints for submissions, calendars, and appointments
-* Authentication via WordPress REST API nonces
-
-**Security & Data Protection (New):**
-* Geofencing: restrict form access by GPS coordinates or IP-based areas with configurable radius
-* GPS cache TTL configuration for performance
-* Data encryption for sensitive fields (email, CPF/RF, IP) at rest
-* IP Geolocation integration for location-based features
-* LGPD/GDPR compliance: encrypted data cleanup migration
-
-**Migration Framework (New):**
-* Migration manager with batch processing and progress tracking
-* Migration registry with dependency resolution
-* 5 built-in strategies: encryption, field transformation, cleanup, magic token, user link
-* Automatic AJAX processing without memory overload
-* Migration status calculator for admin dashboard
-
-**Administration (New):**
-* Activity Log with full audit trail and admin viewer page
-* Admin submission edit page for manual record updates
-* Admin notice manager for migration and action feedback
-* Assets manager for centralized CSS/JS enqueue
-* Form editor split into renderer and save handler classes
-* Settings tabs: General, SMTP, QR Code, Rate Limit, Geolocation, Migrations, User Access, Documentation
-* Debug utility class with configurable logging
-
-**Code Quality (WordPress Plugin Check):**
 * All output escaped with `esc_html()`, `esc_attr()`, `wp_kses()`
 * All input sanitized with `sanitize_text_field()`, `absint()`, `wp_unslash()`
 * Nonce verification on all form submissions and admin actions
@@ -213,18 +157,91 @@ Major release with complete architectural overhaul, new subsystems, and WordPres
 * Translation files renamed to match new text domain
 * Removed development files from distribution (tests, docs, CI, composer, phpqrcode cache)
 
-**Database:**
-* New tables: `ffc_calendars`, `ffc_appointments`, `ffc_blocked_dates`, `ffc_rate_limits`, `ffc_rate_limit_logs`, `ffc_activity_logs`
-* New columns on `ffc_submissions`: `edited_at`, `edited_by`, `data_encrypted`, `email_encrypted`, `cpf_rf_encrypted`, `user_ip_encrypted`
-* New columns on `ffc_forms`: encryption and user link support
-* Automated migration system for all schema changes
+= 4.2.0 (2026-01-30) =
+
+CSV export enhancements and calendar translations.
+
+* Added: Expand `custom_data` and `data_encrypted` JSON fields into individual CSV columns
+* Added: Decrypt encrypted data for certificate CSV dynamic columns
+* Added: 285 missing pt_BR translations for calendar and appointment system
+* Updated: English language file with all new calendar strings
+
+= 4.1.1 (2026-01-27) =
+
+Appointment receipts, validation codes, and admin improvements.
+
+* Added: Appointment receipt and confirmation page generation
+* Added: Appointment PDF generator for client-side receipts
+* Added: Unique validation codes with formatted display (XXXX-XXXX-XXXX)
+* Added: Appointments column in admin users list
+* Added: Login-as-user link always visible in users list
+* Added: Permission checks to dashboard tabs visibility
+
+= 4.1.0 (2026-01-27) =
+
+New appointment calendar and booking system.
+
+* Added: Calendar Custom Post Type with configurable time slots, durations, business hours, and capacity
+* Added: Frontend booking widget with real-time slot availability (`[ffc_calendar]` shortcode)
+* Added: Appointment booking handler with approval workflow (auto-approve or manual)
+* Added: Email notifications: confirmation, approval, cancellation, and reminders
+* Added: Admin calendar editor with blocked dates management
+* Added: CSV export for appointments with date and status filters
+* Added: REST API endpoints for calendars and appointments
+* Added: CPF/RF field on booking forms with mask validation
+* Added: Honeypot and math captcha security on booking forms
+* Added: Automatic appointment cancellation when calendar is deleted
+* Added: Minimum interval between bookings setting
+* Added: Automatic migration for `cpf_rf` columns on appointments table
+* Added: Appointment cleanup functionality in calendar settings
+* Added: User creation on appointment confirmation
+* New tables: `ffc_calendars`, `ffc_appointments`, `ffc_blocked_dates`
+* New classes: `CalendarCpt`, `CalendarEditor`, `CalendarAdmin`, `CalendarActivator`, `CalendarShortcode`, `AppointmentHandler`, `AppointmentEmailHandler`, `AppointmentCsvExporter`, `CalendarRepository`, `AppointmentRepository`, `BlockedDateRepository`
+
+= 4.0.0 (2026-01-26) =
+
+Breaking release: removal of backward-compatibility aliases and namespace finalization.
+
+* BREAKING: Removed all backward-compatibility aliases for old `FFC_*` class names
+* All 88 classes now exclusively use `FreeFormCertificate\*` namespaces
+* Converted all remaining `\FFC_*` references to fully qualified namespaces
+* Renamed `CSVExporter` to `CsvExporter` for PSR naming consistency
+* Removed all obsolete `require_once` statements (autoloader handles loading)
+* Added global namespace prefix (`\`) to all WordPress core classes in namespaced files
+* Fixed: Loader initialization with correct namespaced class references
+* Fixed: Class autoloading for restructured file paths
+* Fixed: PHPDoc type hints across 3 files
+* Fixed: CSV export error handling, UTF-8 encoding, and multi-form filters
+* Fixed: REST API 500 error from broken encrypted email search
+* Fixed: `json_decode` null handling for PHP 8+ compatibility
+* Enhanced: CSV export with all DB columns and multi-form filters
+* Finalized PSR-4 cleanup across all modules
+
+= 3.3.1 (2026-01-25) =
+
+Bug fixes for strict types introduction.
+
+* Fixed: Type errors caused by `strict_types` across multiple classes
+* Fixed: String-to-int conversions for database IDs in multiple locations
+* Fixed: Return type mismatches in `trash`/`restore`/`delete` operations (int|false to bool)
+* Fixed: `log_submission_updated` call with correct parameter type
+* Fixed: `update_submission` return type conversion to bool
+* Fixed: `ensure_magic_token` to return string type consistently
+* Fixed: `json_decode` null check in `detect_reprint`
+* Fixed: `hasEditInfo` return type conversion to int
+* Fixed: `form_id` and `edited_by` type casting in CSV export
+* Fixed: Missing SMTP fields in settings save handler
+* Fixed: Checkbox styles override for WordPress core compatibility
+* Fixed: `$real_submission_date` initialization in both reprint and new submission paths
+* Fixed: Null handling in `get_user_certificates` and `get_user_profile`
+* Fixed: PHP notices in REST API preventing JSON output corruption
 
 = 3.3.0 (2026-01-25) =
 * Added: `declare(strict_types=1)` to all PHP files
 * Added: Full type hints (parameter types, return types) across all classes
 * Affected: Core, Repositories, Migration Strategies, Settings Tabs, User Dashboard, Shortcodes, Security, Generators, Frontend, Integrations, Submissions
 
-= 3.2.0 (2026-01-26) =
+= 3.2.0 (2026-01-25) =
 * Added: PSR-4 autoloader (`class-ffc-autoloader.php`) with namespace-to-directory mapping
 * Migrated: All 88 classes to PHP namespaces in 15 migration steps
 * Namespaces: `FreeFormCertificate\Admin`, `API`, `Calendars`, `Core`, `Frontend`, `Generators`, `Integrations`, `Migrations`, `Repositories`, `Security`, `Settings`, `Shortcodes`, `Submissions`, `UserDashboard`
@@ -352,8 +369,14 @@ Major release with complete architectural overhaul, new subsystems, and WordPres
 
 == Upgrade Notice ==
 
+= 4.3.0 =
+WordPress Plugin Check compliance. Text domain changed to `wp-ffcertificate`. Translation files renamed. CDN scripts replaced with bundled copies. Recommended update.
+
+= 4.1.0 =
+New appointment calendar and booking system. 3 new database tables created automatically. Backup recommended.
+
 = 4.0.0 =
-Breaking release. All classes migrated to PHP namespaces - old FFC_* class names no longer available. New calendar system, user dashboard, QR codes, geofencing, encryption, and migration framework. 6 new database tables created automatically. Backup recommended. Requires PHP 7.4+.
+Breaking release. All backward-compatibility aliases removed - old `FFC_*` class names no longer work. Only `FreeFormCertificate\*` namespaces supported. Backup recommended. Requires PHP 7.4+.
 
 = 3.0.0 =
 Major internal refactoring with Repository pattern, REST API, geofencing, and migration framework. No breaking changes for end users.
