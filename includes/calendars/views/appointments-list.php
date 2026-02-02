@@ -18,6 +18,7 @@ if (!class_exists('WP_List_Table')) {
 /**
  * Appointments List Table
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Internal class, not part of public API.
 class FFC_Appointments_List_Table extends WP_List_Table {
 
     private $appointment_repository;
@@ -87,7 +88,7 @@ class FFC_Appointments_List_Table extends WP_List_Table {
         if ($item['status'] === 'pending') {
             $actions['confirm'] = sprintf(
                 '<a href="?post_type=ffc_calendar&page=%s&action=confirm&appointment=%d&_wpnonce=%s">%s</a>',
-                esc_attr( sanitize_text_field( wp_unslash( $_REQUEST['page'] ?? '' ) ) ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                esc_attr( ( isset( $_REQUEST['page'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['page'] ) ) : '' ) ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended
                 $item['id'],
                 wp_create_nonce('ffc_confirm_appointment_' . $item['id']),
                 __('Confirm', 'wp-ffcertificate')
@@ -97,7 +98,7 @@ class FFC_Appointments_List_Table extends WP_List_Table {
         if (in_array($item['status'], ['pending', 'confirmed'])) {
             $actions['cancel'] = sprintf(
                 '<a href="?post_type=ffc_calendar&page=%s&action=cancel&appointment=%d&_wpnonce=%s" style="color: #b32d2e;">%s</a>',
-                esc_attr( sanitize_text_field( wp_unslash( $_REQUEST['page'] ?? '' ) ) ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                esc_attr( ( isset( $_REQUEST['page'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['page'] ) ) : '' ) ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended
                 $item['id'],
                 wp_create_nonce('ffc_cancel_appointment_' . $item['id']),
                 __('Cancel', 'wp-ffcertificate')
@@ -106,7 +107,7 @@ class FFC_Appointments_List_Table extends WP_List_Table {
 
         $actions['view'] = sprintf(
             '<a href="?post_type=ffc_calendar&page=%s&action=view&appointment=%d">%s</a>',
-            esc_attr( sanitize_text_field( wp_unslash( $_REQUEST['page'] ?? '' ) ) ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            esc_attr( ( isset( $_REQUEST['page'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['page'] ) ) : '' ) ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             $item['id'],
             __('View', 'wp-ffcertificate')
         );
@@ -367,7 +368,7 @@ $wp_ffcertificate_table->prepare_items();
     <hr class="wp-header-end">
 
     <form method="get">
-        <input type="hidden" name="page" value="<?php echo esc_attr( sanitize_text_field( wp_unslash( $_REQUEST['page'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>" />
+        <input type="hidden" name="page" value="<?php echo esc_attr( ( isset( $_REQUEST['page'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['page'] ) ) : '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>" />
         <?php $wp_ffcertificate_table->display(); ?>
     </form>
 </div>

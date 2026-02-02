@@ -217,7 +217,7 @@ class QRCodeGenerator {
                 $base64 = base64_encode( $image_data );
                 
                 // Clean up
-                unlink( $temp_file );
+                wp_delete_file( $temp_file );
                 
                 return $base64;
             }

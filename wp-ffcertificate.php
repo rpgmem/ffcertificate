@@ -60,9 +60,9 @@ register_activation_hook( __FILE__, array( '\FreeFormCertificate\Activator', 'ac
 /**
  * Run the plugin
  */
-function run_free_form_certificate() {
+function wp_ffcertificate_run() {
     $plugin = new \FreeFormCertificate\Loader();
     $plugin->run();
 }
 
-run_free_form_certificate();
+wp_ffcertificate_run();

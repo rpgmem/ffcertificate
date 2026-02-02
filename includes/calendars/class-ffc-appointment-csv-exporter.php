@@ -141,7 +141,7 @@ class AppointmentCsvExporter {
 
         foreach ($dynamic_keys as $key) {
             $label = ucwords(str_replace(array('_', '-'), ' ', $key));
-            $dynamic_headers[] = __($label, 'wp-ffcertificate');
+            $dynamic_headers[] = $label;
         }
 
         return $dynamic_headers;
@@ -356,6 +356,7 @@ class AppointmentCsvExporter {
             fputcsv($output, $csv_row, ';');
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing php://output stream for CSV export.
         fclose($output);
         exit;
     }
@@ -423,6 +424,7 @@ class AppointmentCsvExporter {
     public function handle_export_request(): void {
         try {
             // Security check
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() is an existence check; value sanitized on next line.
             if (!isset($_POST['ffc_export_appointments_csv_action']) ||
                 !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_export_appointments_csv_action'])), 'ffc_export_appointments_csv_nonce')) {
                 wp_die(esc_html__('Security check failed.', 'wp-ffcertificate'));
@@ -438,7 +440,7 @@ class AppointmentCsvExporter {
             if (!empty($_POST['calendar_ids']) && is_array($_POST['calendar_ids'])) {
                 $calendar_ids = array_map('absint', wp_unslash($_POST['calendar_ids']));
             } elseif (!empty($_POST['calendar_id'])) {
-                $calendar_ids = [absint(wp_unslash($_POST['calendar_id']))];
+                $calendar_ids = [absint( wp_unslash( $_POST['calendar_id'] ) )]; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- absint() is the sanitizer.
             }
 
             $statuses = array();

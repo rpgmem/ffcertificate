@@ -128,7 +128,7 @@ class CsvExporter {
         
         foreach ( $dynamic_keys as $key ) {
             $label = ucwords( str_replace( array('_', '-'), ' ', $key ) );
-            $dynamic_headers[] = __( $label, 'wp-ffcertificate' );
+            $dynamic_headers[] = $label;
         }
         
         return $dynamic_headers;
@@ -333,6 +333,7 @@ class CsvExporter {
             fputcsv( $output, $csv_row, ';' );
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing php://output stream for CSV export.
         fclose( $output );
         exit;
     }

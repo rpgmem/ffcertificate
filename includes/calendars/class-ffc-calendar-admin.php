@@ -112,6 +112,7 @@ class CalendarAdmin {
         ));
 
         // Enqueue jQuery UI theme for datepicker
-        wp_enqueue_style('jquery-ui-theme', '//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css');
+        // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent -- jQuery UI CSS from official CDN, standard practice.
+        wp_enqueue_style('jquery-ui-theme', '//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css', array(), '1.12.1');
     }
 }

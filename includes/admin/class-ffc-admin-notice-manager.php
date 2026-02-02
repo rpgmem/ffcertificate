@@ -90,7 +90,7 @@ class AdminNoticeManager {
     public function redirect_with_message( string $msg ): void {
         $url = remove_query_arg(
             array( 'action', 'action2', 'submission_id', 'submission', '_wpnonce' ),
-            sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) )
+            isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : ''
         );
 
         wp_safe_redirect( add_query_arg( 'msg', $msg, $url ) );

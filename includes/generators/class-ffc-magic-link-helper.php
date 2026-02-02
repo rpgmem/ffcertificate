@@ -148,7 +148,7 @@ class MagicLinkHelper {
      */
     public static function extract_token_from_url( string $url ): string {
         // Try query string parameters
-        $query = parse_url( $url, PHP_URL_QUERY );
+        $query = wp_parse_url( $url, PHP_URL_QUERY );
         if ( $query ) {
             parse_str( $query, $params );
             
@@ -162,7 +162,7 @@ class MagicLinkHelper {
         }
         
         // Try hash fragment
-        $fragment = parse_url( $url, PHP_URL_FRAGMENT );
+        $fragment = wp_parse_url( $url, PHP_URL_FRAGMENT );
         if ( $fragment ) {
             parse_str( $fragment, $params );
             
