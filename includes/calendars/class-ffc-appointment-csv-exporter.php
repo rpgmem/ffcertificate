@@ -421,7 +421,7 @@ class AppointmentCsvExporter {
         try {
             // Security check
             if (!isset($_POST['ffc_export_appointments_csv_action']) ||
-                !wp_verify_nonce($_POST['ffc_export_appointments_csv_action'], 'ffc_export_appointments_csv_nonce')) {
+                !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_export_appointments_csv_action'])), 'ffc_export_appointments_csv_nonce')) {
                 wp_die(esc_html__('Security check failed.', 'wp-ffcertificate'));
             }
 
@@ -439,11 +439,11 @@ class AppointmentCsvExporter {
 
             $statuses = array();
             if (!empty($_POST['statuses']) && is_array($_POST['statuses'])) {
-                $statuses = array_map('sanitize_key', $_POST['statuses']);
+                $statuses = array_map('sanitize_key', wp_unslash($_POST['statuses']));
             }
 
-            $start_date = !empty($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : null;
-            $end_date = !empty($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : null;
+            $start_date = !empty($_POST['start_date']) ? sanitize_text_field(wp_unslash($_POST['start_date'])) : null;
+            $end_date = !empty($_POST['end_date']) ? sanitize_text_field(wp_unslash($_POST['end_date'])) : null;
 
             $this->export_csv($calendar_ids, $statuses, $start_date, $end_date);
 

@@ -1485,7 +1485,7 @@ class RestController {
                 'consent_given' => isset($params['consent']) ? 1 : 0,
                 'consent_text' => isset($params['consent_text']) ? sanitize_textarea_field($params['consent_text']) : '',
                 'user_ip' => \FreeFormCertificate\Core\Utils::get_user_ip(),
-                'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? sanitize_text_field($_SERVER['HTTP_USER_AGENT']) : ''
+                'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])) : ''
             );
 
             // Add user ID if logged in

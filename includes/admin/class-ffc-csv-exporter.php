@@ -346,7 +346,7 @@ class CsvExporter {
             ) );
 
             if ( ! isset( $_POST['ffc_export_csv_action'] ) ||
-                 ! wp_verify_nonce( $_POST['ffc_export_csv_action'], 'ffc_export_csv_nonce' ) ) {
+                 ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_export_csv_action'] ) ), 'ffc_export_csv_nonce' ) ) {
                 \FreeFormCertificate\Core\Utils::debug_log( 'CSV export nonce failed' );
                 wp_die( esc_html__( 'Security check failed.', 'wp-ffcertificate' ) );
             }
@@ -364,7 +364,7 @@ class CsvExporter {
                 $form_ids = [ absint( $_POST['form_id'] ) ];
             }
 
-            $status = isset( $_POST['status'] ) ? sanitize_key( $_POST['status'] ) : 'publish';
+            $status = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : 'publish';
 
             \FreeFormCertificate\Core\Utils::debug_log( 'CSV export starting', array(
                 'form_ids' => $form_ids,

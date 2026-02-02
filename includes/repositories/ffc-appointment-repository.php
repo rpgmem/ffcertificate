@@ -69,6 +69,7 @@ class AppointmentRepository extends AbstractRepository {
         if (!empty($statuses)) {
             // For multiple statuses, we'll need raw SQL
             $status_placeholders = implode(',', array_fill(0, count($statuses), '%s'));
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             $where = $this->wpdb->prepare(
                 "WHERE user_id = %d AND status IN ({$status_placeholders})",
                 array_merge([$user_id], $statuses)
@@ -77,9 +78,11 @@ class AppointmentRepository extends AbstractRepository {
             $sql = "SELECT * FROM {$this->table} {$where} ORDER BY appointment_date DESC";
 
             if ($limit) {
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
                 $sql = $this->wpdb->prepare($sql . " LIMIT %d OFFSET %d", $limit, $offset);
             }
 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             return $this->wpdb->get_results($sql, ARRAY_A);
         }
 
@@ -98,6 +101,7 @@ class AppointmentRepository extends AbstractRepository {
         // Search both plain and hashed email
         $email_hash = hash('sha256', strtolower(trim($email)));
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $sql = $this->wpdb->prepare(
             "SELECT * FROM {$this->table}
              WHERE email = %s OR email_hash = %s
@@ -107,9 +111,11 @@ class AppointmentRepository extends AbstractRepository {
         );
 
         if ($limit) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $sql = $this->wpdb->prepare($sql . " LIMIT %d OFFSET %d", $limit, $offset);
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $this->wpdb->get_results($sql, ARRAY_A);
     }
 
@@ -126,6 +132,7 @@ class AppointmentRepository extends AbstractRepository {
         $cpf_rf_clean = preg_replace('/[^0-9]/', '', $cpf_rf);
         $cpf_rf_hash = hash('sha256', $cpf_rf_clean);
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $sql = $this->wpdb->prepare(
             "SELECT * FROM {$this->table}
              WHERE cpf_rf = %s OR cpf_rf_hash = %s
@@ -135,9 +142,11 @@ class AppointmentRepository extends AbstractRepository {
         );
 
         if ($limit) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $sql = $this->wpdb->prepare($sql . " LIMIT %d OFFSET %d", $limit, $offset);
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $this->wpdb->get_results($sql, ARRAY_A);
     }
 
@@ -148,6 +157,7 @@ class AppointmentRepository extends AbstractRepository {
      * @return array|null
      */
     public function findByConfirmationToken(string $token): ?array {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $result = $this->wpdb->get_row(
             $this->wpdb->prepare(
                 "SELECT * FROM {$this->table} WHERE confirmation_token = %s",
@@ -166,6 +176,7 @@ class AppointmentRepository extends AbstractRepository {
      * @return array|null
      */
     public function findByValidationCode(string $validation_code): ?array {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $result = $this->wpdb->get_row(
             $this->wpdb->prepare(
                 "SELECT * FROM {$this->table} WHERE validation_code = %s",
@@ -188,6 +199,7 @@ class AppointmentRepository extends AbstractRepository {
     public function getAppointmentsByDate(int $calendar_id, string $date, array $statuses = ['confirmed', 'pending']): array {
         $status_placeholders = implode(',', array_fill(0, count($statuses), '%s'));
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $sql = $this->wpdb->prepare(
             "SELECT * FROM {$this->table}
              WHERE calendar_id = %d
@@ -197,6 +209,7 @@ class AppointmentRepository extends AbstractRepository {
             array_merge([$calendar_id, $date], $statuses)
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $this->wpdb->get_results($sql, ARRAY_A);
     }
 
@@ -212,6 +225,7 @@ class AppointmentRepository extends AbstractRepository {
     public function getAppointmentsByDateRange(int $calendar_id, string $start_date, string $end_date, array $statuses = ['confirmed', 'pending']): array {
         $status_placeholders = implode(',', array_fill(0, count($statuses), '%s'));
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $sql = $this->wpdb->prepare(
             "SELECT * FROM {$this->table}
              WHERE calendar_id = %d
@@ -221,6 +235,7 @@ class AppointmentRepository extends AbstractRepository {
             array_merge([$calendar_id, $start_date, $end_date], $statuses)
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $this->wpdb->get_results($sql, ARRAY_A);
     }
 
@@ -234,6 +249,7 @@ class AppointmentRepository extends AbstractRepository {
      * @return bool
      */
     public function isSlotAvailable(int $calendar_id, string $date, string $start_time, int $max_per_slot = 1): bool {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $count = $this->wpdb->get_var(
             $this->wpdb->prepare(
                 "SELECT COUNT(*) FROM {$this->table}
@@ -321,6 +337,7 @@ class AppointmentRepository extends AbstractRepository {
         $target_date = gmdate('Y-m-d', strtotime("+{$hours_before} hours"));
         $target_time = gmdate('H:i:s', strtotime("+{$hours_before} hours"));
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $sql = $this->wpdb->prepare(
             "SELECT a.*, c.title as calendar_title, c.email_config
              FROM {$this->table} a
@@ -335,6 +352,7 @@ class AppointmentRepository extends AbstractRepository {
             $target_time
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $this->wpdb->get_results($sql, ARRAY_A);
     }
 
@@ -365,6 +383,7 @@ class AppointmentRepository extends AbstractRepository {
             $where .= $this->wpdb->prepare(" AND appointment_date BETWEEN %s AND %s", $start_date, $end_date);
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $stats = $this->wpdb->get_row(
             "SELECT
                 COUNT(*) as total,

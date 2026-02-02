@@ -372,7 +372,7 @@ class VerificationHandler {
         // No nonce check - magic token is the authentication
         // No captcha - token proves legitimacy
 
-        $token = isset( $_POST['token'] ) ? sanitize_text_field( $_POST['token'] ) : '';
+        $token = isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '';
         $user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
 
         $rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
@@ -433,9 +433,9 @@ class VerificationHandler {
         check_ajax_referer( 'ffc_frontend_nonce', 'nonce' );
         
         // Validate security
-        $captcha_ans = isset($_POST['ffc_captcha_ans']) ? sanitize_text_field($_POST['ffc_captcha_ans']) : '';
-        $captcha_hash = isset($_POST['ffc_captcha_hash']) ? sanitize_text_field($_POST['ffc_captcha_hash']) : '';
-        $honeypot = isset($_POST['ffc_honeypot_trap']) ? sanitize_text_field($_POST['ffc_honeypot_trap']) : '';
+        $captcha_ans = isset($_POST['ffc_captcha_ans']) ? sanitize_text_field(wp_unslash($_POST['ffc_captcha_ans'])) : '';
+        $captcha_hash = isset($_POST['ffc_captcha_hash']) ? sanitize_text_field(wp_unslash($_POST['ffc_captcha_hash'])) : '';
+        $honeypot = isset($_POST['ffc_honeypot_trap']) ? sanitize_text_field(wp_unslash($_POST['ffc_honeypot_trap'])) : '';
         $user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
 
         if ( ! empty( $honeypot ) ) {
@@ -459,7 +459,7 @@ class VerificationHandler {
             ) );
         }
         
-        $auth_code = isset($_POST['ffc_auth_code']) ? sanitize_text_field($_POST['ffc_auth_code']) : '';
+        $auth_code = isset($_POST['ffc_auth_code']) ? sanitize_text_field(wp_unslash($_POST['ffc_auth_code'])) : '';
         $result = $this->search_certificate( $auth_code );
         
         if ( ! $result['found'] ) {

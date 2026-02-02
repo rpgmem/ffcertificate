@@ -61,6 +61,7 @@ class BlockedDateRepository extends AbstractRepository {
      */
     public function getGlobalBlocks(): array {
         $sql = "SELECT * FROM {$this->table} WHERE calendar_id IS NULL ORDER BY start_date ASC";
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         return $this->wpdb->get_results($sql, ARRAY_A);
     }
 
@@ -79,6 +80,7 @@ class BlockedDateRepository extends AbstractRepository {
                 AND start_date <= %s
                 AND (end_date IS NULL OR end_date >= %s)";
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $blocks = $this->wpdb->get_results(
             $this->wpdb->prepare($sql, $calendar_id, $date, $date),
             ARRAY_A
@@ -117,6 +119,7 @@ class BlockedDateRepository extends AbstractRepository {
      * @return array
      */
     public function getBlockedDatesInRange(int $calendar_id, string $start_date, string $end_date): array {
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $sql = $this->wpdb->prepare(
             "SELECT * FROM {$this->table}
              WHERE (calendar_id = %d OR calendar_id IS NULL)
@@ -135,6 +138,7 @@ class BlockedDateRepository extends AbstractRepository {
             $end_date
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $this->wpdb->get_results($sql, ARRAY_A);
     }
 
@@ -216,6 +220,7 @@ class BlockedDateRepository extends AbstractRepository {
     public function deleteExpiredBlocks(int $days_old = 30) {
         $cutoff_date = gmdate('Y-m-d', strtotime("-{$days_old} days"));
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $sql = $this->wpdb->prepare(
             "DELETE FROM {$this->table}
              WHERE block_type != 'recurring'
@@ -224,6 +229,7 @@ class BlockedDateRepository extends AbstractRepository {
             $cutoff_date
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $this->wpdb->query($sql);
     }
 

@@ -17,7 +17,7 @@ namespace FreeFormCertificate\Repositories;
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class SubmissionRepository extends AbstractRepository {
-    
+
     protected function get_table_name(): string {
         return $this->wpdb->prefix . 'ffc_submissions';
     }
@@ -25,7 +25,7 @@ class SubmissionRepository extends AbstractRepository {
     protected function get_cache_group(): string {
         return 'ffc_submissions';
     }
-    
+
     /**
      * Find by auth code
      *
@@ -35,23 +35,24 @@ class SubmissionRepository extends AbstractRepository {
     public function findByAuthCode( string $auth_code ) {
         $cache_key = "auth_{$auth_code}";
         $cached = $this->get_cache($cache_key);
-        
+
         if ($cached !== false) {
             return $cached;
         }
-        
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $result = $this->wpdb->get_row(
             $this->wpdb->prepare("SELECT * FROM {$this->table} WHERE auth_code = %s", $auth_code),
             ARRAY_A
         );
-        
+
         if ($result) {
             $this->set_cache($cache_key, $result);
         }
-        
+
         return $result;
     }
-    
+
     /**
      * Find by magic token
      *
@@ -66,6 +67,7 @@ class SubmissionRepository extends AbstractRepository {
             return $cached;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $result = $this->wpdb->get_row(
             $this->wpdb->prepare("SELECT * FROM {$this->table} WHERE magic_token = %s", $token),
             ARRAY_A
@@ -77,7 +79,7 @@ class SubmissionRepository extends AbstractRepository {
 
         return $result;
     }
-    
+
     /**
      * Find by email
      *
@@ -86,6 +88,7 @@ class SubmissionRepository extends AbstractRepository {
      * @return array
      */
     public function findByEmail( string $email, int $limit = 10 ): array {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         return $this->wpdb->get_results(
             $this->wpdb->prepare(
                 "SELECT * FROM {$this->table} WHERE email = %s OR email_hash = %s ORDER BY id DESC LIMIT %d",
@@ -96,7 +99,7 @@ class SubmissionRepository extends AbstractRepository {
             ARRAY_A
         );
     }
-    
+
     /**
      * Find by CPF/RF
      *
@@ -106,7 +109,8 @@ class SubmissionRepository extends AbstractRepository {
      */
     public function findByCpfRf( string $cpf, int $limit = 10 ): array {
         $clean_cpf = preg_replace('/[^0-9]/', '', $cpf);
-        
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         return $this->wpdb->get_results(
             $this->wpdb->prepare(
                 "SELECT * FROM {$this->table} WHERE cpf_rf = %s OR cpf_rf_hash = %s ORDER BY id DESC LIMIT %d",
@@ -117,7 +121,7 @@ class SubmissionRepository extends AbstractRepository {
             ARRAY_A
         );
     }
-    
+
     /**
      * Find by form ID
      *
@@ -127,6 +131,7 @@ class SubmissionRepository extends AbstractRepository {
      * @return array
      */
     public function findByFormId( int $form_id, int $limit = 100, int $offset = 0 ): array {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         return $this->wpdb->get_results(
             $this->wpdb->prepare(
                 "SELECT * FROM {$this->table} WHERE form_id = %d ORDER BY id DESC LIMIT %d OFFSET %d",
@@ -137,7 +142,7 @@ class SubmissionRepository extends AbstractRepository {
             ARRAY_A
         );
     }
-    
+
     /**
      * ✅ NEW v4.0.0: Get all submissions by form_id(s) and status for export
      *
@@ -169,9 +174,11 @@ class SubmissionRepository extends AbstractRepository {
             $query = "SELECT * FROM {$this->table} {$where_clause} ORDER BY id DESC";
 
             if ( !empty( $prepare_args ) ) {
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
                 $query = $this->wpdb->prepare( $query, ...$prepare_args );
             }
 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             return $this->wpdb->get_results( $query, ARRAY_A );
         }
 
@@ -189,7 +196,7 @@ class SubmissionRepository extends AbstractRepository {
         // Use inherited findAll() method with no limit
         return $this->findAll( $conditions, 'id', 'DESC', null, 0 );
     }
-    
+
     /**
      * ✅ NEW v3.0.1: Check if any submission has edit information
      *
@@ -197,6 +204,7 @@ class SubmissionRepository extends AbstractRepository {
      */
     public function hasEditInfo(): bool {
         // Check if edited_at column exists
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $column_exists = $this->wpdb->get_var(
             $this->wpdb->prepare(
                 "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
@@ -213,13 +221,14 @@ class SubmissionRepository extends AbstractRepository {
         }
 
         // Check if any row has edit data
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $has_data = $this->wpdb->get_var(
             "SELECT COUNT(*) FROM {$this->table} WHERE edited_at IS NOT NULL"
         );
 
         return (int) $has_data > 0;
     }
-    
+
     /**
      * Find with pagination and filters
      * Optimized search for encrypted data (v3.0.2)
@@ -246,6 +255,7 @@ class SubmissionRepository extends AbstractRepository {
         if ( !empty( $args['form_ids'] ) && is_array( $args['form_ids'] ) ) {
             $form_ids_int = array_map( 'absint', $args['form_ids'] );
             $form_ids_placeholders = implode( ', ', array_fill( 0, count( $form_ids_int ), '%d' ) );
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             $where[] = $this->wpdb->prepare(
                 "form_id IN ({$form_ids_placeholders})",
                 ...$form_ids_int
@@ -292,6 +302,7 @@ class SubmissionRepository extends AbstractRepository {
         $where_clause = 'WHERE ' . implode(' AND ', $where);
         $offset = ($args['page'] - 1) * $args['per_page'];
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $items = $this->wpdb->get_results(
             $this->wpdb->prepare(
                 "SELECT * FROM {$this->table} {$where_clause} ORDER BY {$args['orderby']} {$args['order']} LIMIT %d OFFSET %d",
@@ -301,6 +312,7 @@ class SubmissionRepository extends AbstractRepository {
             ARRAY_A
         );
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $total = $this->wpdb->get_var("SELECT COUNT(*) FROM {$this->table} {$where_clause}");
 
         return [
@@ -309,24 +321,25 @@ class SubmissionRepository extends AbstractRepository {
             'pages' => ceil($total / $args['per_page'])
         ];
     }
-    
+
     /**
      * Count by status
      *
      * @return array
      */
     public function countByStatus(): array {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $results = $this->wpdb->get_results(
             "SELECT status, COUNT(*) as count FROM {$this->table} GROUP BY status",
             OBJECT_K
         );
-        
+
         return [
             'publish' => isset($results['publish']) ? (int) $results['publish']->count : 0,
             'trash' => isset($results['trash']) ? (int) $results['trash']->count : 0
         ];
     }
-    
+
     /**
      * Update status
      *
@@ -337,7 +350,7 @@ class SubmissionRepository extends AbstractRepository {
     public function updateStatus( int $id, string $status ) {
         return $this->update($id, ['status' => $status]);
     }
-    
+
     /**
      * Bulk update status
      *
@@ -349,23 +362,25 @@ class SubmissionRepository extends AbstractRepository {
         if (empty($ids)) {
             return 0;
         }
-        
+
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $query = $this->wpdb->prepare(
             "UPDATE {$this->table} SET status = %s WHERE id IN ({$placeholders})",
             $status,
             ...$ids
         );
-        
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $result = $this->wpdb->query($query);
-        
+
         if ($result) {
             $this->clear_cache();
         }
-        
+
         return $result;
     }
-    
+
     /**
      * Bulk delete
      *
@@ -376,22 +391,24 @@ class SubmissionRepository extends AbstractRepository {
         if (empty($ids)) {
             return 0;
         }
-        
+
         $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $query = $this->wpdb->prepare(
             "DELETE FROM {$this->table} WHERE id IN ({$placeholders})",
             ...$ids
         );
-        
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $result = $this->wpdb->query($query);
-        
+
         if ($result) {
             $this->clear_cache();
         }
-        
+
         return $result;
     }
-    
+
     /**
      * Delete by form ID
      *
@@ -399,15 +416,16 @@ class SubmissionRepository extends AbstractRepository {
      * @return int|false
      */
     public function deleteByFormId( int $form_id ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $result = $this->wpdb->delete($this->table, ['form_id' => $form_id]);
-        
+
         if ($result) {
             $this->clear_cache();
         }
-        
+
         return $result;
     }
-    
+
     /**
      * ✅ NEW v3.0.1: Update submission with edit tracking
      *
@@ -417,40 +435,42 @@ class SubmissionRepository extends AbstractRepository {
      */
     public function updateWithEditTracking( int $id, array $data ) {
         // Check if edited_at column exists
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $column_exists = $this->wpdb->get_var(
             $this->wpdb->prepare(
-                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                WHERE TABLE_SCHEMA = %s 
-                AND TABLE_NAME = %s 
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = %s
                 AND COLUMN_NAME = 'edited_at'",
                 DB_NAME,
                 $this->table
             )
         );
-        
+
         if ($column_exists) {
             $data['edited_at'] = current_time('mysql');
-            
+
             // Add edited_by if column exists
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $edited_by_exists = $this->wpdb->get_var(
                 $this->wpdb->prepare(
-                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                    WHERE TABLE_SCHEMA = %s 
-                    AND TABLE_NAME = %s 
+                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = %s
+                    AND TABLE_NAME = %s
                     AND COLUMN_NAME = 'edited_by'",
                     DB_NAME,
                     $this->table
                 )
             );
-            
+
             if ($edited_by_exists) {
                 $data['edited_by'] = get_current_user_id();
             }
         }
-        
+
         return $this->update($id, $data);
     }
-    
+
     /**
      * Hash helper
      *

@@ -355,7 +355,7 @@ class Utils {
      * @return bool True if local, false otherwise
      */
     public static function is_local_environment(): bool {
-        $server_name = isset( $_SERVER['SERVER_NAME'] ) ? $_SERVER['SERVER_NAME'] : '';
+        $server_name = isset( $_SERVER['SERVER_NAME'] ) ? sanitize_text_field( wp_unslash( $_SERVER['SERVER_NAME'] ) ) : '';
         
         // Common localhost addresses
         $local_hosts = array( 'localhost', '127.0.0.1', '::1' );

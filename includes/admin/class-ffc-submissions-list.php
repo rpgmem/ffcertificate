@@ -182,7 +182,7 @@ class SubmissionsList extends \WP_List_Table {
 
     protected function get_bulk_actions() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Status is a display filter parameter.
-        $status = isset($_GET['status']) ? $_GET['status'] : 'publish';
+        $status = isset($_GET['status']) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
         if ($status === 'trash') {
             return [
                 'bulk_restore' => __('Restore', 'wp-ffcertificate'),
@@ -203,10 +203,10 @@ class SubmissionsList extends \WP_List_Table {
         $per_page = 20;
         $current_page = $this->get_pagenum();
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- These are standard WP_List_Table filter/sort parameters.
-        $status = isset($_GET['status']) ? sanitize_key($_GET['status']) : 'publish';
-        $search = isset($_REQUEST['s']) ? sanitize_text_field($_REQUEST['s']) : '';
-        $orderby = (!empty($_GET['orderby'])) ? sanitize_key($_GET['orderby']) : 'id';
-        $order = (!empty($_GET['order']) && $_GET['order'] === 'asc') ? 'ASC' : 'DESC';
+        $status = isset($_GET['status']) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
+        $search = isset($_REQUEST['s']) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : '';
+        $orderby = (!empty($_GET['orderby'])) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : 'id';
+        $order = (!empty($_GET['order']) && sanitize_text_field( wp_unslash( $_GET['order'] ) ) === 'asc') ? 'ASC' : 'DESC';
 
         // ✅ NEW: Filter by form ID(s)
         $filter_form_ids = [];
@@ -246,7 +246,7 @@ class SubmissionsList extends \WP_List_Table {
     protected function get_views() {
         $counts = $this->repository->countByStatus();
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display parameter for tab highlighting.
-        $current = isset($_GET['status']) ? $_GET['status'] : 'publish';
+        $current = isset($_GET['status']) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
         
         return [
             'all' => sprintf(

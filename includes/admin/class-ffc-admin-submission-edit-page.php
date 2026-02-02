@@ -435,8 +435,9 @@ class AdminSubmissionEditPage {
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_admin_referer.
         $id = absint( $_POST['submission_id'] );
-        $new_email = sanitize_email( $_POST['user_email'] );
-        $raw_data = isset( $_POST['data'] ) ? $_POST['data'] : array();
+        $new_email = sanitize_email( wp_unslash( $_POST['user_email'] ) );
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
+        $raw_data = isset( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : array();
         $clean_data = array();
 
         foreach ( $raw_data as $k => $v ) {

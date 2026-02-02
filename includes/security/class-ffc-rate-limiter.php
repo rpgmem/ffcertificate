@@ -357,7 +357,7 @@ class RateLimiter {
         
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->insert($wpdb->prefix . 'ffc_rate_limit_logs', array('type' => $type, 'identifier' => $identifier, 'form_id' => $form_id, 'action' => $action, 'reason' => $reason, 'ip_address' => self::get_user_ip(), 'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255), 'current_count' => 0, 'max_allowed' => 0), array('%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%d'));
+        $wpdb->insert($wpdb->prefix . 'ffc_rate_limit_logs', array('type' => $type, 'identifier' => $identifier, 'form_id' => $form_id, 'action' => $action, 'reason' => $reason, 'ip_address' => self::get_user_ip(), 'user_agent' => substr(isset($_SERVER['HTTP_USER_AGENT']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])) : '', 0, 255), 'current_count' => 0, 'max_allowed' => 0), array('%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%d'));
         
         self::cleanup_old_logs();
     }
@@ -424,7 +424,7 @@ class RateLimiter {
     private static function get_user_ip(): string {
         foreach (array('HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR') as $key) {
             if (!empty($_SERVER[$key])) {
-                $ip = $_SERVER[$key];
+                $ip = sanitize_text_field(wp_unslash($_SERVER[$key]));
                 if (strpos($ip, ',') !== false) $ip = trim(explode(',', $ip)[0]);
                 if (filter_var($ip, FILTER_VALIDATE_IP)) return $ip;
             }
