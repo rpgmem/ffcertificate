@@ -341,7 +341,7 @@ Bug fixes for strict types introduction.
 * Fixed: Duplicate metabox registration
 * Fixed: SMTP settings toggle visibility
 
-= 2.0.0 =
+= 2.0.0 (2025-12-27) =
 * Refactored: PDF generation from simple image to high-fidelity A4 Landscape (1123x794px) using jsPDF
 * Added: Dynamic Math Captcha with hash validation on backend
 * Added: Honeypot field for spam bot protection
@@ -350,13 +350,13 @@ Bug fixes for strict types introduction.
 * Added: Mobile optimization with strategic delays and progress overlay
 * Fixed: CORS issues with `crossorigin="anonymous"` on image rendering
 
-= 1.5.0 =
+= 1.5.0 (2025-12-24) =
 * Added: Ticket system with single-use codes for exclusive form access
 * Added: Form cloning (duplication) functionality
 * Added: Global settings tab with automatic log cleanup configuration
 * Added: Denylist for blocking specific IDs
 
-= 1.0.0 =
+= 1.0.0 (2025-12-20) =
 * Initial release
 * Form Builder with drag & drop interface (Text, Email, Number, Date, Select, Radio, Textarea, Hidden fields)
 * PDF certificate generation (client-side)
