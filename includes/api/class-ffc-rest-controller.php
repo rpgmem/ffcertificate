@@ -1018,16 +1018,22 @@ class RestController {
                 );
             }
 
-            // Get CPF/RF (masked)
-            $cpf_masked = '';
+            // Get all CPF/RF values (masked)
+            $cpfs_masked = array();
             if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
-                $cpf_masked = \FreeFormCertificate\UserDashboard\UserManager::get_user_cpf_masked($user_id);
+                $cpfs_masked = \FreeFormCertificate\UserDashboard\UserManager::get_user_cpfs_masked($user_id);
             }
 
             // Get all emails used
             $emails = array();
             if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
                 $emails = \FreeFormCertificate\UserDashboard\UserManager::get_user_emails($user_id);
+            }
+
+            // Get all names used in submissions
+            $names = array();
+            if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
+                $names = \FreeFormCertificate\UserDashboard\UserManager::get_user_names($user_id);
             }
 
             // Format member since date
@@ -1042,9 +1048,11 @@ class RestController {
             return rest_ensure_response(array(
                 'user_id' => $user_id,
                 'display_name' => $user->display_name,
+                'names' => $names,
                 'email' => $user->user_email,
                 'emails' => $emails,
-                'cpf_masked' => $cpf_masked ?? __('Not found', 'wp-ffcertificate'),
+                'cpf_masked' => !empty($cpfs_masked) ? $cpfs_masked[0] : __('Not found', 'wp-ffcertificate'),
+                'cpfs_masked' => $cpfs_masked,
                 'member_since' => $member_since,
                 'roles' => $user->roles,
             ));

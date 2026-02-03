@@ -229,40 +229,65 @@ class UserManager {
      * @return string|null Masked CPF/RF or null if not found
      */
     public static function get_user_cpf_masked(int $user_id): ?string {
+        $cpfs = self::get_user_cpfs_masked($user_id);
+        return !empty($cpfs) ? $cpfs[0] : null;
+    }
+
+    /**
+     * Get all user's CPF/RF values (masked)
+     *
+     * Returns all distinct CPF/RF found in user's submissions (masked)
+     *
+     * @since 4.3.0
+     * @param int $user_id WordPress user ID
+     * @return array Array of masked CPF/RF values
+     */
+    public static function get_user_cpfs_masked(int $user_id): array {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // Get first submission with CPF/RF
+        // Get all distinct encrypted CPF/RF values
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $cpf_encrypted = $wpdb->get_var($wpdb->prepare(
-            "SELECT cpf_rf_encrypted FROM {$table}
+        $encrypted_cpfs = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT cpf_rf_encrypted FROM {$table}
              WHERE user_id = %d
              AND cpf_rf_encrypted IS NOT NULL
-             AND cpf_rf_encrypted != ''
-             LIMIT 1",
+             AND cpf_rf_encrypted != ''",
             $user_id
         ));
 
-        if (empty($cpf_encrypted)) {
-            return null;
+        if (empty($encrypted_cpfs)) {
+            return array();
         }
 
-        try {
-            $cpf_plain = \FreeFormCertificate\Core\Encryption::decrypt($cpf_encrypted);
-            return self::mask_cpf_rf($cpf_plain);
-        } catch (\Exception $e) {
-            // Use centralized debug system for critical errors
-            if (class_exists('\FreeFormCertificate\Core\Debug')) {
-                \FreeFormCertificate\Core\Debug::log_user_manager(
-                    'Failed to decrypt CPF/RF',
-                    array(
-                        'user_id' => $user_id,
-                        'error' => $e->getMessage()
-                    )
-                );
+        $cpfs_masked = array();
+
+        foreach ($encrypted_cpfs as $cpf_encrypted) {
+            try {
+                $cpf_plain = \FreeFormCertificate\Core\Encryption::decrypt($cpf_encrypted);
+                if (!empty($cpf_plain)) {
+                    $masked = self::mask_cpf_rf($cpf_plain);
+                    // Avoid duplicates (same CPF could be encrypted differently)
+                    if (!in_array($masked, $cpfs_masked, true)) {
+                        $cpfs_masked[] = $masked;
+                    }
+                }
+            } catch (\Exception $e) {
+                // Use centralized debug system for critical errors
+                if (class_exists('\FreeFormCertificate\Core\Debug')) {
+                    \FreeFormCertificate\Core\Debug::log_user_manager(
+                        'Failed to decrypt CPF/RF',
+                        array(
+                            'user_id' => $user_id,
+                            'error' => $e->getMessage()
+                        )
+                    );
+                }
+                continue;
             }
-            return null;
         }
+
+        return $cpfs_masked;
     }
 
     /**
@@ -338,5 +363,67 @@ class UserManager {
         }
 
         return array_unique($emails);
+    }
+
+    /**
+     * Get all distinct names used by a user in submissions
+     *
+     * Returns distinct names found in user's submissions (from JSON data)
+     *
+     * @since 4.3.0
+     * @param int $user_id WordPress user ID
+     * @return array Array of names
+     */
+    public static function get_user_names(int $user_id): array {
+        global $wpdb;
+        $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+
+        // Get all submissions data for this user
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $submissions = $wpdb->get_col($wpdb->prepare(
+            "SELECT data FROM {$table}
+             WHERE user_id = %d
+             AND data IS NOT NULL
+             AND data != ''",
+            $user_id
+        ));
+
+        if (empty($submissions)) {
+            // Fallback to WordPress user display name
+            $user = get_user_by('id', $user_id);
+            return $user ? array($user->display_name) : array();
+        }
+
+        $names = array();
+        $possible_name_fields = array('nome_completo', 'nome', 'name', 'full_name', 'ffc_nome', 'participante');
+
+        foreach ($submissions as $data_json) {
+            $data = json_decode($data_json, true);
+
+            if (!is_array($data)) {
+                continue;
+            }
+
+            // Search for name in various field names
+            foreach ($possible_name_fields as $field) {
+                if (!empty($data[$field]) && is_string($data[$field])) {
+                    $name = trim($data[$field]);
+                    if (!empty($name) && !in_array($name, $names, true)) {
+                        $names[] = $name;
+                    }
+                    break; // Found name in this submission, move to next
+                }
+            }
+        }
+
+        // If no names found in submissions, use WordPress display name
+        if (empty($names)) {
+            $user = get_user_by('id', $user_id);
+            if ($user && !empty($user->display_name)) {
+                $names[] = $user->display_name;
+            }
+        }
+
+        return $names;
     }
 }
