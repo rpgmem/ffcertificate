@@ -21,6 +21,7 @@ class AdminAjax {
         // Register AJAX handlers
         add_action( 'wp_ajax_ffc_load_template', array( $this, 'load_template' ) );
         add_action( 'wp_ajax_ffc_generate_tickets', array( $this, 'generate_tickets' ) );
+        add_action( 'wp_ajax_ffc_search_user', array( $this, 'search_user' ) );
     }
 
     /**
@@ -197,6 +198,134 @@ class AdminAjax {
         }
 
         return $result;
+    }
+
+    /**
+     * Search for WordPress users
+     *
+     * Searches by name, email, ID, or CPF/RF (via submission lookup).
+     *
+     * @since 4.3.0
+     */
+    public function search_user(): void {
+        // Verify nonce
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only; nonce verified immediately inside.
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'ffc_user_search_nonce' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'wp-ffcertificate' ) ) );
+        }
+
+        // Check permissions
+        if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wp-ffcertificate' ) ) );
+        }
+
+        $search_term = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
+
+        if ( strlen( $search_term ) < 2 ) {
+            wp_send_json_error( array( 'message' => __( 'Please enter at least 2 characters.', 'wp-ffcertificate' ) ) );
+        }
+
+        $users = array();
+
+        // Check if search term is a numeric ID
+        if ( is_numeric( $search_term ) ) {
+            $user = get_userdata( (int) $search_term );
+            if ( $user ) {
+                $users[] = $this->format_user_result( $user );
+            }
+        }
+
+        // Search by email or name
+        $user_query_args = array(
+            'search' => '*' . $search_term . '*',
+            'search_columns' => array( 'user_login', 'user_email', 'display_name', 'user_nicename' ),
+            'number' => 10,
+            'orderby' => 'display_name',
+            'order' => 'ASC',
+        );
+
+        $user_query = new \WP_User_Query( $user_query_args );
+        $found_users = $user_query->get_results();
+
+        foreach ( $found_users as $user ) {
+            // Avoid duplicates if ID search already found this user
+            $exists = false;
+            foreach ( $users as $existing ) {
+                if ( $existing['id'] === $user->ID ) {
+                    $exists = true;
+                    break;
+                }
+            }
+            if ( ! $exists ) {
+                $users[] = $this->format_user_result( $user );
+            }
+        }
+
+        // Search by CPF/RF in submissions (if no users found by standard search)
+        if ( empty( $users ) ) {
+            $users = $this->search_user_by_cpf( $search_term );
+        }
+
+        if ( empty( $users ) ) {
+            wp_send_json_error( array( 'message' => __( 'No users found.', 'wp-ffcertificate' ) ) );
+        }
+
+        wp_send_json_success( array( 'users' => $users ) );
+    }
+
+    /**
+     * Format user data for AJAX response
+     *
+     * @param \WP_User $user WordPress user object
+     * @return array Formatted user data
+     */
+    private function format_user_result( \WP_User $user ): array {
+        return array(
+            'id' => $user->ID,
+            'display_name' => $user->display_name,
+            'email' => $user->user_email,
+            'avatar' => get_avatar_url( $user->ID, array( 'size' => 32 ) ),
+        );
+    }
+
+    /**
+     * Search for user by CPF/RF in submissions
+     *
+     * @param string $cpf_rf CPF/RF to search for
+     * @return array Array of user results
+     */
+    private function search_user_by_cpf( string $cpf_rf ): array {
+        global $wpdb;
+
+        // Clean CPF/RF (remove formatting)
+        $cpf_rf_clean = preg_replace( '/[^0-9]/', '', $cpf_rf );
+
+        if ( strlen( $cpf_rf_clean ) < 6 ) {
+            return array();
+        }
+
+        // Generate hash to search
+        $cpf_rf_hash = hash( 'sha256', $cpf_rf_clean );
+
+        $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $user_id = $wpdb->get_var( $wpdb->prepare(
+            "SELECT user_id FROM {$table} WHERE cpf_rf_hash = %s AND user_id IS NOT NULL LIMIT 1",
+            $cpf_rf_hash
+        ) );
+
+        if ( ! $user_id ) {
+            return array();
+        }
+
+        $user = get_userdata( (int) $user_id );
+
+        if ( ! $user ) {
+            return array();
+        }
+
+        return array( $this->format_user_result( $user ) );
     }
 }
 
