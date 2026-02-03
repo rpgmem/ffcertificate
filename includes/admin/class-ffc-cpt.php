@@ -139,6 +139,7 @@ class CPT {
         $fields = get_post_meta( $post_id, '_ffc_form_fields', true );
         $config = get_post_meta( $post_id, '_ffc_form_config', true );
         $bg_image = get_post_meta( $post_id, '_ffc_form_bg', true );
+        $geofence_config = get_post_meta( $post_id, '_ffc_geofence_config', true );
 
         $metadata_copied = array();
 
@@ -155,6 +156,11 @@ class CPT {
         if ( $bg_image ) {
             update_post_meta( $new_post_id, '_ffc_form_bg', $bg_image );
             $metadata_copied[] = 'bg_image';
+        }
+
+        if ( $geofence_config ) {
+            update_post_meta( $new_post_id, '_ffc_geofence_config', $geofence_config );
+            $metadata_copied[] = 'geofence_config';
         }
 
         // ✅ OPTIMIZED v2.9.2: Log successful duplication
