@@ -291,19 +291,19 @@ Bug fixes for strict types introduction.
 * Added: Configurable rate limit thresholds per action type
 * Migrated: Rate Limiter from WordPress transients to Object Cache API
 
-= 2.9.1 (2025-12-29) =
+= 2.9.1 (2026-01-19) =
 * Fixed: Magic Links fatal error (critical bug)
 * Fixed: Duplicate `require` in loader
 * Added: Activity Log with `ffc_activity_logs` table for audit trail
 * Added: Form Cache with daily WP-Cron warming (`ffc_warm_cache_hook`)
 * Added: Utils class with CPF validation and 20+ helper functions (`get_user_ip`, `format_cpf`, `sanitize_cpf`, etc.)
 
-= 2.9.0 (2025-12-28) =
+= 2.9.0 (2026-01-18) =
 * Added: QR Code generation on certificates linking to verification page
 * Added: QR Code generator class using phpqrcode library
 * Added: QR Code settings tab with size and error correction configuration
 
-= 2.8.0 (2025-12-28) =
+= 2.8.0 (2026-01-16) =
 * Added: Magic Links for one-click certificate access via email
 * Added: Certificate preview page with modern responsive layout
 * Added: `magic_token` column (VARCHAR 32) with database index on `ffc_submissions`
@@ -316,7 +316,7 @@ Bug fixes for strict types introduction.
 * Improved: AJAX verification without page reload
 * Improved: Frontend with loading spinner, download button state management
 
-= 2.7.0 (2025-12-28) =
+= 2.7.0 (2026-01-14) =
 * Refactored: Complete modular architecture with 15 specialized classes
 * Added: `FFC_Shortcodes` class for shortcode rendering
 * Added: `FFC_Form_Processor` class for form validation and processing
@@ -328,7 +328,7 @@ Bug fixes for strict types introduction.
 * Added: Dependency injection container in `FFC_Loader`
 * Applied: Single Responsibility Principle (SRP) throughout
 
-= 2.6.0 (2025-12-28) =
+= 2.6.0 (2026-01-12) =
 * Refactored: Complete code reorganization with modular OOP structure
 * Separated: `class-ffc-cpt.php` (CPT registration only) from `class-ffc-form-editor.php` (metaboxes)
 * Added: `update_submission()` and `delete_all_submissions()` methods
@@ -340,6 +340,21 @@ Bug fixes for strict types introduction.
 * Fixed: Missing method calls
 * Fixed: Duplicate metabox registration
 * Fixed: SMTP settings toggle visibility
+
+= 2.5.0 (2026-01-10) =
+* (Internal improvements)
+
+= 2.4.0 (2026-01-04) =
+* (Internal improvements)
+
+= 2.3.0 (2026-01-03) =
+* (Internal improvements)
+
+= 2.2.0 (2025-12-24) =
+* (Internal improvements)
+
+= 2.1.0 (2025-12-23) =
+* (Internal improvements)
 
 = 2.0.0 (2025-12-22) =
 * Refactored: PDF generation from simple image to high-fidelity A4 Landscape (1123x794px) using jsPDF
