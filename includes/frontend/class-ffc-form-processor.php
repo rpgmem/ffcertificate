@@ -374,12 +374,20 @@ class FormProcessor {
         $submission_data = array();
         $user_email = '';
 
+        // Name fields that should be normalized (capitalized with lowercase connectives)
+        $name_fields = array( 'nome_completo', 'nome', 'name', 'full_name', 'ffc_nome', 'participante' );
+
         foreach ( $fields_config as $field ) {
             $name = $field['name'];
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() check only; value unslashed and sanitized below.
             if ( isset( $_POST[ $name ] ) ) {
                 $value = \FreeFormCertificate\Core\Utils::recursive_sanitize( wp_unslash( $_POST[ $name ] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via recursive_sanitize().
-                
+
+                // Normalize name fields (proper capitalization with lowercase connectives)
+                if ( in_array( $name, $name_fields, true ) && is_string( $value ) && ! empty( $value ) ) {
+                    $value = \FreeFormCertificate\Core\Utils::normalize_brazilian_name( $value );
+                }
+
                 // Special validation for CPF/RF
                 if ( $name === 'cpf_rf' ) {
                     $value = preg_replace( '/\D/', '', $value );

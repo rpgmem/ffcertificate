@@ -514,8 +514,19 @@ class AdminSubmissionEditPage {
         $raw_data = isset( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : array();
         $clean_data = array();
 
+        // Name fields that should be normalized (capitalized with lowercase connectives)
+        $name_fields = array( 'nome_completo', 'nome', 'name', 'full_name', 'ffc_nome', 'participante' );
+
         foreach ( $raw_data as $k => $v ) {
-            $clean_data[ sanitize_key( $k ) ] = wp_kses( $v, \FreeFormCertificate\Core\Utils::get_allowed_html_tags() );
+            $sanitized_key = sanitize_key( $k );
+            $sanitized_value = wp_kses( $v, \FreeFormCertificate\Core\Utils::get_allowed_html_tags() );
+
+            // Normalize name fields (proper capitalization with lowercase connectives)
+            if ( in_array( $sanitized_key, $name_fields, true ) && ! empty( $sanitized_value ) ) {
+                $sanitized_value = \FreeFormCertificate\Core\Utils::normalize_brazilian_name( $sanitized_value );
+            }
+
+            $clean_data[ $sanitized_key ] = $sanitized_value;
         }
 
         // Process user link change (simplified: value is user ID, empty string, or __keep__)
