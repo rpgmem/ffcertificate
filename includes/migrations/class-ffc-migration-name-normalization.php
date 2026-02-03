@@ -4,10 +4,13 @@ declare(strict_types=1);
 /**
  * MigrationNameNormalization
  *
- * Normalizes name fields in existing submissions to proper Brazilian capitalization.
+ * Normalizes name fields and emails in existing submissions:
+ * - Names: Proper Brazilian capitalization (lowercase connectives)
+ * - Emails: Lowercase for consistent lookups
+ *
  * Handles encrypted data: decrypts, normalizes, re-encrypts.
  *
- * This migration is SAFE to run multiple times - it only changes names that
+ * This migration is SAFE to run multiple times - it only changes values that
  * differ from their normalized form.
  *
  * Usage:
@@ -63,8 +66,8 @@ class MigrationNameNormalization {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $total = $wpdb->get_var(
             "SELECT COUNT(*) FROM {$table}
-             WHERE data_encrypted IS NOT NULL
-             AND data_encrypted != ''"
+             WHERE (data_encrypted IS NOT NULL AND data_encrypted != '')
+             OR (email_encrypted IS NOT NULL AND email_encrypted != '')"
         );
 
         if ($total == 0) {
@@ -79,18 +82,20 @@ class MigrationNameNormalization {
 
         $processed = 0;
         $changed = 0;
+        $names_changed = 0;
+        $emails_changed = 0;
         $errors = array();
         $changes_log = array();
         $offset = 0;
 
         // Process in batches
         while ($offset < $total) {
-            // Get batch of submissions
+            // Get batch of submissions (include email_encrypted)
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $submissions = $wpdb->get_results($wpdb->prepare(
-                "SELECT id, data_encrypted FROM {$table}
-                 WHERE data_encrypted IS NOT NULL
-                 AND data_encrypted != ''
+                "SELECT id, data_encrypted, email_encrypted FROM {$table}
+                 WHERE (data_encrypted IS NOT NULL AND data_encrypted != '')
+                 OR (email_encrypted IS NOT NULL AND email_encrypted != '')
                  ORDER BY id ASC
                  LIMIT %d OFFSET %d",
                 $batch_size,
@@ -106,58 +111,82 @@ class MigrationNameNormalization {
                 $processed++;
 
                 try {
-                    // Decrypt data
-                    $data_json = \FreeFormCertificate\Core\Encryption::decrypt($submission['data_encrypted']);
-
-                    if (empty($data_json)) {
-                        continue; // Skip empty data
-                    }
-
-                    $data = json_decode($data_json, true);
-
-                    if (!is_array($data)) {
-                        continue; // Skip invalid JSON
-                    }
-
-                    // Check and normalize name fields
-                    $data_changed = false;
                     $submission_changes = array();
+                    $update_data = array();
 
-                    foreach (self::NAME_FIELDS as $field) {
-                        if (!empty($data[$field]) && is_string($data[$field])) {
-                            $original = $data[$field];
-                            $normalized = \FreeFormCertificate\Core\Utils::normalize_brazilian_name($original);
+                    // ===== NORMALIZE EMAIL (lowercase) =====
+                    if (!empty($submission['email_encrypted'])) {
+                        $email = \FreeFormCertificate\Core\Encryption::decrypt($submission['email_encrypted']);
 
-                            // Only update if different
-                            if ($original !== $normalized) {
-                                $data[$field] = $normalized;
-                                $data_changed = true;
-                                $submission_changes[$field] = array(
-                                    'from' => $original,
-                                    'to' => $normalized,
+                        if (!empty($email) && is_string($email)) {
+                            $email_normalized = strtolower($email);
+
+                            if ($email !== $email_normalized) {
+                                $submission_changes['email'] = array(
+                                    'from' => $email,
+                                    'to' => $email_normalized,
                                 );
+
+                                if (!$dry_run) {
+                                    // Re-encrypt email and recalculate hash
+                                    $update_data['email_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($email_normalized);
+                                    $update_data['email_hash'] = \FreeFormCertificate\Core\Encryption::hash($email_normalized);
+                                }
+
+                                $emails_changed++;
                             }
                         }
                     }
 
-                    // Save if changed (and not dry run)
-                    if ($data_changed) {
+                    // ===== NORMALIZE NAMES (Brazilian capitalization) =====
+                    if (!empty($submission['data_encrypted'])) {
+                        $data_json = \FreeFormCertificate\Core\Encryption::decrypt($submission['data_encrypted']);
+
+                        if (!empty($data_json)) {
+                            $data = json_decode($data_json, true);
+
+                            if (is_array($data)) {
+                                $data_changed = false;
+
+                                foreach (self::NAME_FIELDS as $field) {
+                                    if (!empty($data[$field]) && is_string($data[$field])) {
+                                        $original = $data[$field];
+                                        $normalized = \FreeFormCertificate\Core\Utils::normalize_brazilian_name($original);
+
+                                        if ($original !== $normalized) {
+                                            $data[$field] = $normalized;
+                                            $data_changed = true;
+                                            $submission_changes[$field] = array(
+                                                'from' => $original,
+                                                'to' => $normalized,
+                                            );
+                                            $names_changed++;
+                                        }
+                                    }
+                                }
+
+                                if ($data_changed && !$dry_run) {
+                                    $new_data_json = wp_json_encode($data, JSON_UNESCAPED_UNICODE);
+                                    $update_data['data_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($new_data_json);
+                                }
+                            }
+                        }
+                    }
+
+                    // ===== SAVE CHANGES =====
+                    if (!empty($submission_changes)) {
                         $changes_log[] = array(
                             'id' => $submission_id,
                             'changes' => $submission_changes,
                         );
 
-                        if (!$dry_run) {
-                            // Re-encrypt and save
-                            $new_data_json = wp_json_encode($data, JSON_UNESCAPED_UNICODE);
-                            $new_data_encrypted = \FreeFormCertificate\Core\Encryption::encrypt($new_data_json);
-
+                        if (!$dry_run && !empty($update_data)) {
                             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                             $wpdb->update(
                                 $table,
-                                array('data_encrypted' => $new_data_encrypted),
+                                $update_data,
                                 array('id' => $submission_id),
-                                array('%s'),
+                                array_fill(0, count($update_data), '%s'),
                                 array('%d')
                             );
                         }
@@ -200,15 +229,18 @@ class MigrationNameNormalization {
             'success' => true,
             'processed' => $processed,
             'changed' => $changed,
+            'names_changed' => $names_changed,
+            'emails_changed' => $emails_changed,
             'errors' => count($errors),
             'dry_run' => $dry_run,
             'changes' => $changes_log,
             'message' => sprintf(
-                /* translators: 1: mode, 2: number of processed, 3: number of changed, 4: number of errors */
-                __('%1$s: Processed %2$d submissions, %3$d names normalized, %4$d errors', 'wp-ffcertificate'),
+                /* translators: 1: mode, 2: processed count, 3: names changed, 4: emails changed, 5: errors */
+                __('%1$s: Processed %2$d submissions, %3$d names normalized, %4$d emails normalized, %5$d errors', 'wp-ffcertificate'),
                 $mode,
                 $processed,
-                $changed,
+                $names_changed,
+                $emails_changed,
                 count($errors)
             ),
         );
@@ -235,8 +267,8 @@ class MigrationNameNormalization {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $total = $wpdb->get_var(
             "SELECT COUNT(*) FROM {$table}
-             WHERE data_encrypted IS NOT NULL
-             AND data_encrypted != ''"
+             WHERE (data_encrypted IS NOT NULL AND data_encrypted != '')
+             OR (email_encrypted IS NOT NULL AND email_encrypted != '')"
         );
 
         // Get last run results

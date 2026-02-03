@@ -413,9 +413,10 @@ class FormProcessor {
                 }
                 
                 $submission_data[ $name ] = $value;
-                
+
                 if ( isset($field['type']) && $field['type'] === 'email' ) {
-                    $user_email = sanitize_email( $value );
+                    // Normalize email to lowercase for consistent storage and lookups
+                    $user_email = strtolower( sanitize_email( $value ) );
                 }
             }
         }

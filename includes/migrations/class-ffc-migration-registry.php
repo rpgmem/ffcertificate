@@ -143,10 +143,10 @@ class MigrationRegistry {
             'requires_column' => true
         );
 
-        // v4.3.0: Name normalization migration
+        // v4.3.0: Name and email normalization migration
         $this->migrations['name_normalization'] = array(
-            'name'            => __( 'Normalize Names', 'wp-ffcertificate' ),
-            'description'     => __( 'Normalize name fields to proper Brazilian capitalization (e.g., "ALEX DA SILVA" → "Alex da Silva")', 'wp-ffcertificate' ),
+            'name'            => __( 'Normalize Names & Emails', 'wp-ffcertificate' ),
+            'description'     => __( 'Normalize names (Brazilian capitalization) and emails (lowercase)', 'wp-ffcertificate' ),
             'icon'            => '✍️',
             'batch_size'      => 100,
             'order'           => $order++,
