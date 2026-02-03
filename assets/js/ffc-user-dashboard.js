@@ -354,30 +354,52 @@
 
             let html = '<div class="ffc-profile-info">';
 
-            // Display Name
+            // Name(s) - show all distinct names used in submissions
             html += '<div class="ffc-profile-field">';
             html += '<label>' + ffcDashboard.strings.name + '</label>';
-            html += '<div class="value">' + (profile.display_name || '-') + '</div>';
+            if (profile.names && profile.names.length > 1) {
+                html += '<ul class="name-list">';
+                profile.names.forEach(function(name) {
+                    html += '<li>' + name + '</li>';
+                });
+                html += '</ul>';
+            } else if (profile.names && profile.names.length === 1) {
+                html += '<div class="value">' + profile.names[0] + '</div>';
+            } else {
+                html += '<div class="value">' + (profile.display_name || '-') + '</div>';
+            }
             html += '</div>';
 
             // Email(s)
             html += '<div class="ffc-profile-field">';
             html += '<label>' + ffcDashboard.strings.linkedEmails + '</label>';
-            if (profile.emails && profile.emails.length > 0) {
+            if (profile.emails && profile.emails.length > 1) {
                 html += '<ul class="email-list">';
                 profile.emails.forEach(function(email) {
                     html += '<li>' + email + '</li>';
                 });
                 html += '</ul>';
+            } else if (profile.emails && profile.emails.length === 1) {
+                html += '<div class="value">' + profile.emails[0] + '</div>';
             } else {
                 html += '<div class="value">' + (profile.email || '-') + '</div>';
             }
             html += '</div>';
 
-            // CPF/RF (masked)
+            // CPF/RF (masked) - show all distinct values
             html += '<div class="ffc-profile-field">';
             html += '<label>' + ffcDashboard.strings.cpfRf + '</label>';
-            html += '<div class="value">' + (profile.cpf_masked || '-') + '</div>';
+            if (profile.cpfs_masked && profile.cpfs_masked.length > 1) {
+                html += '<ul class="cpf-list">';
+                profile.cpfs_masked.forEach(function(cpf) {
+                    html += '<li>' + cpf + '</li>';
+                });
+                html += '</ul>';
+            } else if (profile.cpfs_masked && profile.cpfs_masked.length === 1) {
+                html += '<div class="value">' + profile.cpfs_masked[0] + '</div>';
+            } else {
+                html += '<div class="value">' + (profile.cpf_masked || '-') + '</div>';
+            }
             html += '</div>';
 
             // Member Since
