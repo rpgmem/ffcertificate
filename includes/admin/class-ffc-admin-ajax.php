@@ -22,6 +22,7 @@ class AdminAjax {
         add_action( 'wp_ajax_ffc_load_template', array( $this, 'load_template' ) );
         add_action( 'wp_ajax_ffc_generate_tickets', array( $this, 'generate_tickets' ) );
         add_action( 'wp_ajax_ffc_search_user', array( $this, 'search_user' ) );
+        add_action( 'wp_ajax_ffc_run_normalization', array( $this, 'run_normalization_migration' ) );
     }
 
     /**
@@ -326,6 +327,44 @@ class AdminAjax {
         }
 
         return array( $this->format_user_result( $user ) );
+    }
+
+    /**
+     * Run name and email normalization migration via AJAX
+     *
+     * Can be called from browser console for manual execution.
+     *
+     * @since 4.3.0
+     */
+    public function run_normalization_migration(): void {
+        // Verify nonce
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only; nonce verified immediately inside.
+        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'ffc_normalization_nonce' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Security check failed. Please use the provided console command.', 'wp-ffcertificate' ) ) );
+        }
+
+        // Check permissions - must be admin
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied. Administrator access required.', 'wp-ffcertificate' ) ) );
+        }
+
+        // Get parameters
+        $dry_run = isset( $_POST['dry_run'] ) && sanitize_text_field( wp_unslash( $_POST['dry_run'] ) ) === 'true';
+        $batch_size = isset( $_POST['batch_size'] ) ? absint( wp_unslash( $_POST['batch_size'] ) ) : 100;
+
+        // Limit batch size for safety
+        if ( $batch_size > 500 ) {
+            $batch_size = 500;
+        }
+
+        // Run migration
+        $result = \FreeFormCertificate\Migrations\MigrationNameNormalization::run( $batch_size, $dry_run );
+
+        if ( $result['success'] ) {
+            wp_send_json_success( $result );
+        } else {
+            wp_send_json_error( $result );
+        }
     }
 }
 

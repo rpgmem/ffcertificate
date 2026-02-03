@@ -282,9 +282,10 @@ class AdminAssetsManager {
      */
     private function get_localization_data(): array {
         return array(
-            'ajax_url' => admin_url( 'admin-ajax.php' ),
-            'nonce'    => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
-            'strings'  => array(
+            'ajax_url'             => admin_url( 'admin-ajax.php' ),
+            'nonce'                => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
+            'normalization_nonce'  => wp_create_nonce( 'ffc_normalization_nonce' ),
+            'strings'              => array(
                 // General
                 'generating'              => __( 'Generating...', 'wp-ffcertificate' ),
                 'error'                   => __( 'Error: ', 'wp-ffcertificate' ),
