@@ -58,6 +58,16 @@ class AdminSubmissionEditPage {
     }
 
     /**
+     * Check if current user can edit submissions
+     *
+     * @since 4.3.0
+     * @return bool True if user can edit submissions
+     */
+    private function can_edit_submission(): bool {
+        return \FreeFormCertificate\Core\Utils::current_user_can_manage();
+    }
+
+    /**
      * Render the edit page
      *
      * Main entry point that delegates to specialized render methods.
@@ -65,6 +75,12 @@ class AdminSubmissionEditPage {
      * @param int $submission_id Submission ID to edit
      */
     public function render( int $submission_id ): void {
+        // Permission check
+        if ( ! $this->can_edit_submission() ) {
+            echo '<div class="wrap"><div class="notice notice-error"><p>' . esc_html__( 'You do not have permission to edit submissions.', 'wp-ffcertificate' ) . '</p></div></div>';
+            return;
+        }
+
         // Get submission data
         $sub = $this->submission_handler->get_submission( $submission_id );
 
@@ -95,7 +111,6 @@ class AdminSubmissionEditPage {
                 <table class="form-table ffc-edit-table">
                     <?php
                     $this->render_system_info_section();
-                    $this->render_qr_code_section();
                     $this->render_consent_section();
                     $this->render_participant_data_section();
                     $this->render_dynamic_fields();
@@ -233,126 +248,80 @@ class AdminSubmissionEditPage {
     /**
      * Render user link section
      *
-     * Allows linking/unlinking submission to a WordPress user.
+     * Simplified UI: Shows unlink button if linked, search field if not.
      *
      * @since 4.3.0
      */
     private function render_user_link_section(): void {
         $current_user_id = isset( $this->sub_array['user_id'] ) ? (int) $this->sub_array['user_id'] : 0;
         $current_user = $current_user_id ? get_userdata( $current_user_id ) : null;
+        $nonce = wp_create_nonce( 'ffc_user_search_nonce' );
 
         ?>
         <tr>
-            <th><label for="linked_user_id"><?php esc_html_e( 'Linked User', 'wp-ffcertificate' ); ?></label></th>
+            <th><label><?php esc_html_e( 'Linked User', 'wp-ffcertificate' ); ?></label></th>
             <td>
-                <div class="ffc-user-link-container">
+                <div class="ffc-user-link-container" data-submission-id="<?php echo esc_attr( $this->sub_array['id'] ); ?>">
                     <?php if ( $current_user ): ?>
-                        <div class="ffc-current-user">
-                            <span class="ffc-user-info">
-                                <?php echo get_avatar( $current_user_id, 32 ); ?>
-                                <strong><?php echo esc_html( $current_user->display_name ); ?></strong>
-                                <span class="ffc-user-email">(<?php echo esc_html( $current_user->user_email ); ?>)</span>
-                                <span class="ffc-user-id">ID: <?php echo esc_html( $current_user_id ); ?></span>
-                            </span>
-                            <a href="<?php echo esc_url( get_edit_user_link( $current_user_id ) ); ?>" target="_blank" class="button button-small">
-                                <?php esc_html_e( 'View Profile', 'wp-ffcertificate' ); ?>
-                            </a>
+                        <!-- User is linked: show info + unlink button -->
+                        <div class="ffc-linked-user-display">
+                            <div class="ffc-current-user">
+                                <span class="ffc-user-info">
+                                    <?php echo get_avatar( $current_user_id, 32 ); ?>
+                                    <strong><?php echo esc_html( $current_user->display_name ); ?></strong>
+                                    <span class="ffc-user-email">(<?php echo esc_html( $current_user->user_email ); ?>)</span>
+                                    <span class="ffc-user-id">ID: <?php echo esc_html( $current_user_id ); ?></span>
+                                </span>
+                                <a href="<?php echo esc_url( get_edit_user_link( $current_user_id ) ); ?>" target="_blank" class="button button-small">
+                                    <?php esc_html_e( 'View Profile', 'wp-ffcertificate' ); ?>
+                                </a>
+                            </div>
+                            <div class="ffc-unlink-action">
+                                <input type="hidden" name="linked_user_id" value="__keep__">
+                                <button type="button" class="button button-secondary ffc-unlink-user-btn" data-confirm="<?php esc_attr_e( 'Are you sure you want to unlink this user from the submission?', 'wp-ffcertificate' ); ?>">
+                                    <?php esc_html_e( 'Unlink User', 'wp-ffcertificate' ); ?>
+                                </button>
+                                <p class="description">
+                                    <?php esc_html_e( 'Removes the link between this submission and the WordPress user.', 'wp-ffcertificate' ); ?>
+                                </p>
+                            </div>
                         </div>
                     <?php else: ?>
-                        <p class="ffc-no-user">
-                            <em><?php esc_html_e( 'No user linked to this submission.', 'wp-ffcertificate' ); ?></em>
-                        </p>
-                    <?php endif; ?>
-
-                    <div class="ffc-user-link-actions">
-                        <label for="linked_user_id">
-                            <?php esc_html_e( 'Change linked user:', 'wp-ffcertificate' ); ?>
-                        </label>
-                        <select name="linked_user_id" id="linked_user_id" class="regular-text">
-                            <option value=""><?php esc_html_e( '— No user (unlink) —', 'wp-ffcertificate' ); ?></option>
-                            <option value="__keep__" <?php selected( true ); ?>><?php esc_html_e( '— Keep current —', 'wp-ffcertificate' ); ?></option>
-                            <?php
-                            // Get users with ffc_user role or administrators
-                            $users = get_users( array(
-                                'role__in' => array( 'administrator', 'ffc_user' ),
-                                'orderby' => 'display_name',
-                                'order' => 'ASC',
-                                'number' => 100,
-                            ) );
-
-                            foreach ( $users as $user ):
-                                if ( $user->ID === $current_user_id ) continue; // Skip current user (already shown)
-                            ?>
-                                <option value="<?php echo esc_attr( $user->ID ); ?>">
-                                    <?php echo esc_html( $user->display_name . ' (' . $user->user_email . ')' ); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-
-                        <p class="description">
-                            <?php esc_html_e( 'Link this submission to a WordPress user. The user will see this certificate in their dashboard.', 'wp-ffcertificate' ); ?>
-                        </p>
-
-                        <?php if ( count( $users ) >= 100 ): ?>
-                            <p class="description">
-                                <strong><?php esc_html_e( 'Note:', 'wp-ffcertificate' ); ?></strong>
-                                <?php esc_html_e( 'Only the first 100 users are shown. To link to another user, enter their ID directly:', 'wp-ffcertificate' ); ?>
-                                <br>
-                                <input type="number" name="linked_user_id_manual" id="linked_user_id_manual" min="1" placeholder="<?php esc_attr_e( 'User ID', 'wp-ffcertificate' ); ?>" class="small-text">
-                                <span class="description"><?php esc_html_e( '(overrides dropdown if filled)', 'wp-ffcertificate' ); ?></span>
+                        <!-- No user linked: show search field -->
+                        <div class="ffc-user-search-container">
+                            <p class="ffc-no-user">
+                                <em><?php esc_html_e( 'No user linked to this submission.', 'wp-ffcertificate' ); ?></em>
                             </p>
-                        <?php endif; ?>
-                    </div>
+                            <div class="ffc-user-search-form">
+                                <input type="hidden" name="linked_user_id" id="ffc-selected-user-id" value="">
+                                <input type="text" id="ffc-user-search-input" class="regular-text" placeholder="<?php esc_attr_e( 'Search by name, email, ID or CPF/RF...', 'wp-ffcertificate' ); ?>">
+                                <button type="button" class="button ffc-search-user-btn" data-nonce="<?php echo esc_attr( $nonce ); ?>">
+                                    <?php esc_html_e( 'Search', 'wp-ffcertificate' ); ?>
+                                </button>
+                                <span class="spinner" id="ffc-search-spinner"></span>
+                            </div>
+                            <div id="ffc-user-search-results" class="ffc-user-search-results" style="display: none;">
+                                <!-- Results will be populated via AJAX -->
+                            </div>
+                            <div id="ffc-selected-user-preview" class="ffc-selected-user-preview" style="display: none;">
+                                <!-- Selected user preview will be shown here -->
+                            </div>
+                            <p class="description">
+                                <?php esc_html_e( 'Search for a WordPress user to link to this submission. The user will see this certificate in their dashboard.', 'wp-ffcertificate' ); ?>
+                            </p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </td>
         </tr>
         <?php
     }
 
-    /**
-     * Render QR Code usage information section
-     */
-    private function render_qr_code_section(): void {
-        ?>
-        <!-- SEÇÃO: QR CODE USAGE -->
-        <tr>
-            <td colspan="2">
-                <div class="ffc-qr-info-box">
-                    <h3>
-                        📱 <?php esc_html_e( 'QR Code Placeholder Usage', 'wp-ffcertificate' ); ?>
-                    </h3>
-                    <p>
-                        <?php esc_html_e( 'You can add dynamic QR Codes to your certificate template using these placeholders:', 'wp-ffcertificate' ); ?>
-                    </p>
-                    <table>
-                        <tr>
-                            <td><code>{{qr_code}}</code></td>
-                            <td><?php esc_html_e( 'Default QR Code (200x200px)', 'wp-ffcertificate' ); ?></td>
-                        </tr>
-                        <tr>
-                            <td><code>{{qr_code:size=150}}</code></td>
-                            <td><?php esc_html_e( 'Custom size (150x150px)', 'wp-ffcertificate' ); ?></td>
-                        </tr>
-                        <tr>
-                            <td><code>{{qr_code:size=250:margin=0}}</code></td>
-                            <td><?php esc_html_e( 'Custom size without margin', 'wp-ffcertificate' ); ?></td>
-                        </tr>
-                        <tr>
-                            <td><code>{{qr_code:error=H}}</code></td>
-                            <td><?php esc_html_e( 'High error correction (30%)', 'wp-ffcertificate' ); ?></td>
-                        </tr>
-                    </table>
-                    <p class="ffc-qr-note">
-                        💡 <?php esc_html_e( 'QR Codes automatically link to this certificate verification page. Configure defaults in Settings → QR Code.', 'wp-ffcertificate' ); ?>
-                    </p>
-                </div>
-            </td>
-        </tr>
-        <?php
-    }
 
     /**
-     * Render LGPD consent status section
+     * Render LGPD consent status section (collapsible)
+     *
+     * @since 4.3.0 Made collapsible
      */
     private function render_consent_section(): void {
         $consent_given = isset( $this->sub_array['consent_given'] ) ? (int) $this->sub_array['consent_given'] : 0;
@@ -360,50 +329,56 @@ class AdminSubmissionEditPage {
         $consent_ip = isset( $this->sub_array['consent_ip'] ) ? $this->sub_array['consent_ip'] : '';
 
         ?>
-        <!-- ✅ v2.10.0: SEÇÃO LGPD CONSENT STATUS -->
+        <!-- SEÇÃO LGPD CONSENT STATUS (collapsible) -->
         <tr>
             <td colspan="2">
-                <div class="ffc-consent-box <?php echo esc_attr( $consent_given ? 'consent-given' : 'consent-not-given' ); ?>">
-                    <h3>
+                <div class="ffc-consent-box ffc-collapsible <?php echo esc_attr( $consent_given ? 'consent-given' : 'consent-not-given' ); ?>">
+                    <h3 class="ffc-consent-header" tabindex="0" role="button" aria-expanded="false">
+                        <span class="ffc-consent-toggle-icon">&#9654;</span>
                         <?php echo esc_html( $consent_given ? '✅' : '⚠️' ); ?>
                         <?php esc_html_e( 'LGPD Consent Status', 'wp-ffcertificate' ); ?>
+                        <span class="ffc-consent-summary">
+                            — <?php echo esc_html( $consent_given ? __( 'Consent given', 'wp-ffcertificate' ) : __( 'No consent recorded', 'wp-ffcertificate' ) ); ?>
+                        </span>
                     </h3>
 
-                    <?php if ( $consent_given ): ?>
-                        <p>
-                            <strong><?php esc_html_e( 'Consent given:', 'wp-ffcertificate' ); ?></strong>
-                            <?php esc_html_e( 'User explicitly agreed to data storage and privacy policy.', 'wp-ffcertificate' ); ?>
-                        </p>
-                        <?php if ( $consent_date ): ?>
+                    <div class="ffc-consent-details" style="display: none;">
+                        <?php if ( $consent_given ): ?>
+                            <p>
+                                <strong><?php esc_html_e( 'Consent given:', 'wp-ffcertificate' ); ?></strong>
+                                <?php esc_html_e( 'User explicitly agreed to data storage and privacy policy.', 'wp-ffcertificate' ); ?>
+                            </p>
+                            <?php if ( $consent_date ): ?>
+                                <p class="description">
+                                    <?php
+                                    /* translators: %s: consent date/time */
+                                    echo esc_html( sprintf( __( 'Date: %s', 'wp-ffcertificate' ), $consent_date ) );
+                                    ?>
+                                </p>
+                            <?php endif; ?>
+
+                            <?php if ( $consent_ip ): ?>
+                                <p class="description">
+                                    <?php
+                                    /* translators: %s: IP address */
+                                    echo esc_html( sprintf( __( 'IP: %s', 'wp-ffcertificate' ), $consent_ip ) );
+                                    ?>
+                                </p>
+                            <?php endif; ?>
+
                             <p class="description">
-                                <?php
-                                /* translators: %s: consent date/time */
-                                echo esc_html( sprintf( __( 'Date: %s', 'wp-ffcertificate' ), $consent_date ) );
-                                ?>
+                                <?php esc_html_e( 'Sensitive data (email, CPF/RF, IP) is encrypted in the database.', 'wp-ffcertificate' ); ?>
+                            </p>
+                        <?php else: ?>
+                            <p>
+                                <strong><?php esc_html_e( 'No consent recorded:', 'wp-ffcertificate' ); ?></strong>
+                                <?php esc_html_e( 'This submission was created before LGPD consent feature (v2.10.0).', 'wp-ffcertificate' ); ?>
+                            </p>
+                            <p class="description">
+                                <?php esc_html_e( 'Older submissions do not have explicit consent flag but may have been collected under privacy policy.', 'wp-ffcertificate' ); ?>
                             </p>
                         <?php endif; ?>
-
-                        <?php if ( $consent_ip ): ?>
-                            <p class="description">
-                                <?php
-                                /* translators: %s: IP address */
-                                echo esc_html( sprintf( __( 'IP: %s', 'wp-ffcertificate' ), $consent_ip ) );
-                                ?>
-                            </p>
-                        <?php endif; ?>
-
-                        <p class="description">
-                            🔒 <?php esc_html_e( 'Sensitive data (email, CPF/RF, IP) is encrypted in the database.', 'wp-ffcertificate' ); ?>
-                        </p>
-                    <?php else: ?>
-                        <p>
-                            <strong><?php esc_html_e( 'No consent recorded:', 'wp-ffcertificate' ); ?></strong>
-                            <?php esc_html_e( 'This submission was created before LGPD consent feature (v2.10.0).', 'wp-ffcertificate' ); ?>
-                        </p>
-                        <p class="description">
-                            ℹ️ <?php esc_html_e( 'Older submissions do not have explicit consent flag but may have been collected under privacy policy.', 'wp-ffcertificate' ); ?>
-                        </p>
-                    <?php endif; ?>
+                    </div>
                 </div>
             </td>
         </tr>
@@ -523,6 +498,11 @@ class AdminSubmissionEditPage {
             return;
         }
 
+        // Permission check
+        if ( ! $this->can_edit_submission() ) {
+            wp_die( esc_html__( 'You do not have permission to edit submissions.', 'wp-ffcertificate' ) );
+        }
+
         if ( ! check_admin_referer( 'ffc_edit_submission_nonce', 'ffc_edit_submission_action' ) ) {
             return;
         }
@@ -538,14 +518,8 @@ class AdminSubmissionEditPage {
             $clean_data[ sanitize_key( $k ) ] = wp_kses( $v, \FreeFormCertificate\Core\Utils::get_allowed_html_tags() );
         }
 
-        // Process user link change
+        // Process user link change (simplified: value is user ID, empty string, or __keep__)
         $linked_user_id = isset( $_POST['linked_user_id'] ) ? sanitize_text_field( wp_unslash( $_POST['linked_user_id'] ) ) : '__keep__';
-        $linked_user_id_manual = isset( $_POST['linked_user_id_manual'] ) ? absint( wp_unslash( $_POST['linked_user_id_manual'] ) ) : 0;
-
-        // Manual ID overrides dropdown if provided
-        if ( $linked_user_id_manual > 0 ) {
-            $linked_user_id = $linked_user_id_manual;
-        }
 
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 

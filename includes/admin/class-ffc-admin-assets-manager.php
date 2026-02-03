@@ -242,7 +242,11 @@ class AdminAssetsManager {
             'ffc-admin-submission-edit',
             'ffc_submission_edit',
             array(
-                'copied_text' => '✅ ' . __( 'Copied!', 'wp-ffcertificate' )
+                'copied_text' => __( 'Copied!', 'wp-ffcertificate' ),
+                'search_min_chars' => __( 'Please enter at least 2 characters.', 'wp-ffcertificate' ),
+                'no_users_found' => __( 'No users found.', 'wp-ffcertificate' ),
+                'search_error' => __( 'Error searching for users. Please try again.', 'wp-ffcertificate' ),
+                'clear_selection' => __( 'Clear', 'wp-ffcertificate' ),
             )
         );
     }
