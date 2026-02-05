@@ -443,11 +443,23 @@ class SelfSchedulingShortcode {
             maxDate.setDate(maxDate.getDate() + maxDateDays);
             maxDate.setHours(23, 59, 59, 999);
 
-            // Store booking counts
+            // Store booking counts and tracking
             var bookingCounts = {};
+            var lastFetchedMonth = null;
+            var isFetching = false;
 
             // Function to fetch booking counts for a month
             function fetchBookingCounts(year, month, callback) {
+                var monthKey = year + '-' + month;
+
+                // Prevent duplicate fetches
+                if (isFetching || lastFetchedMonth === monthKey) {
+                    if (callback) callback();
+                    return;
+                }
+
+                isFetching = true;
+
                 $.ajax({
                     url: ffcCalendar.ajaxurl,
                     type: 'POST',
@@ -462,9 +474,12 @@ class SelfSchedulingShortcode {
                         if (response.success && response.data.counts) {
                             bookingCounts = response.data.counts;
                         }
+                        lastFetchedMonth = monthKey;
+                        isFetching = false;
                         if (callback) callback();
                     },
                     error: function() {
+                        isFetching = false;
                         if (callback) callback();
                     }
                 });
@@ -518,13 +533,8 @@ class SelfSchedulingShortcode {
                 }
             });
 
-            // Fetch initial booking counts
-            var currentMonth = calendar.getCurrentMonth();
-            fetchBookingCounts(currentMonth.year, currentMonth.month, function() {
-                calendar.refresh();
-            });
-
             // Store calendar instance for later access
+            // Note: Initial booking counts are fetched via onMonthChange during calendar init
             $container.data('calendar', calendar);
         });
         </script>
