@@ -39,6 +39,8 @@ class AppointmentHandler {
         add_action('wp_ajax_nopriv_ffc_get_available_slots', array($this, 'ajax_get_available_slots'));
         add_action('wp_ajax_ffc_cancel_appointment', array($this, 'ajax_cancel_appointment'));
         add_action('wp_ajax_nopriv_ffc_cancel_appointment', array($this, 'ajax_cancel_appointment'));
+        add_action('wp_ajax_ffc_get_month_bookings', array($this, 'ajax_get_month_bookings'));
+        add_action('wp_ajax_nopriv_ffc_get_month_bookings', array($this, 'ajax_get_month_bookings'));
     }
 
     /**
@@ -898,6 +900,39 @@ class AppointmentHandler {
                     ));
                 }
             }
+        }
+    }
+
+    /**
+     * AJAX: Get monthly booking counts
+     *
+     * @return void
+     */
+    public function ajax_get_month_bookings(): void {
+        try {
+            // Verify nonce
+            check_ajax_referer('ffc_self_scheduling_nonce', 'nonce');
+
+            $calendar_id = isset($_POST['calendar_id']) ? absint(wp_unslash($_POST['calendar_id'])) : 0;
+            $year = isset($_POST['year']) ? absint(wp_unslash($_POST['year'])) : (int) gmdate('Y');
+            $month = isset($_POST['month']) ? absint(wp_unslash($_POST['month'])) : (int) gmdate('n');
+
+            if (!$calendar_id) {
+                wp_send_json_error(array('message' => __('Invalid calendar.', 'wp-ffcertificate')));
+                return;
+            }
+
+            // Get start and end dates for the month
+            $start_date = sprintf('%04d-%02d-01', $year, $month);
+            $end_date = gmdate('Y-m-t', strtotime($start_date));
+
+            // Get booking counts per day
+            $counts = $this->appointment_repository->getBookingCountsByDateRange($calendar_id, $start_date, $end_date);
+
+            wp_send_json_success(array('counts' => $counts));
+
+        } catch (\Exception $e) {
+            wp_send_json_error(array('message' => $e->getMessage()));
         }
     }
 }

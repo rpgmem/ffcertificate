@@ -18,6 +18,11 @@
     overflow: hidden;
 }
 
+/* FFCCalendarCore wrapper - ensure full width */
+.ffc-calendar-core {
+    width: 100%;
+}
+
 /* Calendar Header */
 .ffc-calendar-header {
     display: flex;
@@ -166,11 +171,12 @@
 }
 
 .ffc-day.ffc-selected {
-    background: var(--ffc-primary);
+    background: var(--ffc-gray-200);
+    border-color: var(--ffc-gray-400);
 }
 
 .ffc-day.ffc-selected .ffc-day-number {
-    color: #fff;
+    color: var(--ffc-gray-800);
 }
 
 .ffc-day-number {

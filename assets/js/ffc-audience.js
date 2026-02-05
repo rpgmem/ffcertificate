@@ -345,6 +345,13 @@
                         classes.push('ffc-closed');
                     }
 
+                    // Mark available days (not past, not closed, not holiday, not other month)
+                    var isOtherMonth = classes.indexOf('ffc-other-month') !== -1;
+                    var isPast = classes.indexOf('ffc-past') !== -1;
+                    if (!isOtherMonth && !isPast && !isClosed && !isHoliday) {
+                        classes.push('ffc-available');
+                    }
+
                     // Get booking count
                     var bookingCount = getBookingCount(dateStr);
 

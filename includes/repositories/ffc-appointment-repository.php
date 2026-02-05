@@ -491,4 +491,44 @@ class AppointmentRepository extends AbstractRepository {
 
         return $code;
     }
+
+    /**
+     * Get booking counts by date range
+     *
+     * @param int $calendar_id
+     * @param string $start_date YYYY-MM-DD
+     * @param string $end_date YYYY-MM-DD
+     * @return array Array with date => count
+     */
+    public function getBookingCountsByDateRange(int $calendar_id, string $start_date, string $end_date): array {
+        global $wpdb;
+
+        $table = $this->get_table_name();
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT appointment_date, COUNT(*) as count
+                FROM {$table}
+                WHERE calendar_id = %d
+                AND appointment_date >= %s
+                AND appointment_date <= %s
+                AND status IN ('confirmed', 'pending')
+                GROUP BY appointment_date",
+                $calendar_id,
+                $start_date,
+                $end_date
+            ),
+            ARRAY_A
+        );
+
+        $counts = array();
+        if ($results) {
+            foreach ($results as $row) {
+                $counts[$row['appointment_date']] = (int) $row['count'];
+            }
+        }
+
+        return $counts;
+    }
 }

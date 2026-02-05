@@ -153,6 +153,9 @@ class SelfSchedulingShortcode {
                 'holiday' => __('Holiday', 'wp-ffcertificate'),
                 'closed' => __('Closed', 'wp-ffcertificate'),
                 'available' => __('Available', 'wp-ffcertificate'),
+                'booked' => __('Booked', 'wp-ffcertificate'),
+                'booking' => __('booking', 'wp-ffcertificate'),
+                'bookings' => __('bookings', 'wp-ffcertificate'),
                 // Confirmation screen
                 'date' => __('Date', 'wp-ffcertificate'),
                 'time' => __('Time', 'wp-ffcertificate'),
@@ -440,6 +443,33 @@ class SelfSchedulingShortcode {
             maxDate.setDate(maxDate.getDate() + maxDateDays);
             maxDate.setHours(23, 59, 59, 999);
 
+            // Store booking counts
+            var bookingCounts = {};
+
+            // Function to fetch booking counts for a month
+            function fetchBookingCounts(year, month, callback) {
+                $.ajax({
+                    url: ffcCalendar.ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'ffc_get_month_bookings',
+                        nonce: ffcCalendar.nonce,
+                        calendar_id: calendarId,
+                        year: year,
+                        month: month
+                    },
+                    success: function(response) {
+                        if (response.success && response.data.counts) {
+                            bookingCounts = response.data.counts;
+                        }
+                        if (callback) callback();
+                    },
+                    error: function() {
+                        if (callback) callback();
+                    }
+                });
+            }
+
             // Initialize shared calendar component
             var $container = $('#ffc-calendar-container-' + calendarId);
             var calendar = new FFCCalendarCore($container, {
@@ -451,6 +481,7 @@ class SelfSchedulingShortcode {
                 strings: ffcCalendar.strings,
                 legendItems: [
                     { class: 'ffc-available', label: ffcCalendar.strings.available || 'Available' },
+                    { class: 'ffc-booked', label: ffcCalendar.strings.booked || 'Booked' },
                     { class: 'ffc-closed', label: ffcCalendar.strings.closed || 'Closed' }
                 ],
                 getDayClasses: function(dateStr, date) {
@@ -464,6 +495,20 @@ class SelfSchedulingShortcode {
 
                     return classes;
                 },
+                getDayContent: function(dateStr, date, isHoliday) {
+                    var count = bookingCounts[dateStr] || 0;
+                    if (count > 0) {
+                        var label = count === 1 ? (ffcCalendar.strings.booking || 'booking') : (ffcCalendar.strings.bookings || 'bookings');
+                        return '<span class="ffc-day-badge ffc-badge-bookings">' + count + ' ' + label + '</span>';
+                    }
+                    return '';
+                },
+                onMonthChange: function(year, month) {
+                    // Fetch booking counts for the new month
+                    fetchBookingCounts(year, month, function() {
+                        calendar.refresh();
+                    });
+                },
                 onDayClick: function(dateStr, $day) {
                     // Update hidden field
                     $('#ffc-selected-date').val(dateStr);
@@ -471,6 +516,12 @@ class SelfSchedulingShortcode {
                     // Load time slots
                     ffcCalendarFrontend.loadTimeSlots(calendarId, dateStr);
                 }
+            });
+
+            // Fetch initial booking counts
+            var currentMonth = calendar.getCurrentMonth();
+            fetchBookingCounts(currentMonth.year, currentMonth.month, function() {
+                calendar.refresh();
             });
 
             // Store calendar instance for later access
