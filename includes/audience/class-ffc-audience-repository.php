@@ -146,7 +146,7 @@ class AudienceRepository {
         $parents = self::get_parents($status);
 
         foreach ($parents as $parent) {
-            $parent->children = self::get_children($parent->id, $status);
+            $parent->children = self::get_children((int) $parent->id, $status);
         }
 
         return $parents;
