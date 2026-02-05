@@ -203,7 +203,8 @@
         if (state.selectedSchedule > 0) {
             // Get environments for selected schedule
             for (var i = 0; i < schedules.length; i++) {
-                if (schedules[i].id === state.selectedSchedule) {
+                // Use == for loose comparison (int vs string)
+                if (parseInt(schedules[i].id) === parseInt(state.selectedSchedule)) {
                     environments = schedules[i].environments || [];
                     break;
                 }
@@ -222,8 +223,11 @@
             $select.append('<option value="' + env.id + '">' + env.name + '</option>');
         });
 
-        // Re-select if still valid
-        if (state.selectedEnvironment > 0) {
+        // Auto-select first environment if none selected
+        if (state.selectedEnvironment === 0 && environments.length > 0) {
+            state.selectedEnvironment = parseInt(environments[0].id);
+            $select.val(state.selectedEnvironment);
+        } else if (state.selectedEnvironment > 0) {
             $select.val(state.selectedEnvironment);
         }
     }
