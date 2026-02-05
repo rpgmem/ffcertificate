@@ -41,7 +41,9 @@
         cancelled: 'Cancelled',
         cancel: 'Cancel',
         available: 'Available',
-        booked: 'Booked'
+        booked: 'Booked',
+        timeout: 'Request timed out. Please try again.',
+        checkConflicts: 'Check Conflicts'
     };
     for (var key in defaultStrings) {
         if (!ffcAudience.strings[key]) {
@@ -662,13 +664,16 @@
         }
 
         var data = getBookingFormData();
+        var $btn = $('#ffc-check-conflicts-btn');
+        var originalText = $btn.text();
 
-        $('#ffc-check-conflicts-btn').prop('disabled', true).text(ffcAudience.strings.loading);
+        $btn.prop('disabled', true).text(ffcAudience.strings.loading);
 
         $.ajax({
             url: ffcAudience.restUrl + 'conflicts',
             method: 'POST',
             contentType: 'application/json',
+            timeout: 30000, // 30 second timeout
             data: JSON.stringify({
                 environment_id: data.environment_id,
                 booking_date: data.booking_date,
@@ -681,29 +686,41 @@
                 xhr.setRequestHeader('X-WP-Nonce', ffcAudience.nonce);
             },
             success: function(response) {
-                $('#ffc-check-conflicts-btn').prop('disabled', false).text('Check Conflicts');
+                try {
+                    if (response.success) {
+                        var conflicts = response.conflicts || {};
+                        if (conflicts.bookings && conflicts.bookings.length > 0) {
+                            $('#ffc-conflict-warning').show();
+                            var details = (conflicts.affected_users ? conflicts.affected_users.length : 0) + ' member(s) have overlapping bookings.';
+                            $('#ffc-conflict-details').text(details);
+                        } else {
+                            $('#ffc-conflict-warning').hide();
+                        }
 
-                if (response.success) {
-                    var conflicts = response.conflicts || {};
-                    if (conflicts.bookings && conflicts.bookings.length > 0) {
-                        $('#ffc-conflict-warning').show();
-                        var details = (conflicts.affected_users ? conflicts.affected_users.length : 0) + ' member(s) have overlapping bookings.';
-                        $('#ffc-conflict-details').text(details);
+                        // Show create button
+                        $btn.hide();
+                        $('#ffc-create-booking-btn').show();
                     } else {
-                        $('#ffc-conflict-warning').hide();
+                        alert(response.message || ffcAudience.strings.error);
                     }
-
-                    // Show create button
-                    $('#ffc-check-conflicts-btn').hide();
-                    $('#ffc-create-booking-btn').show();
-                } else {
-                    alert(response.message || ffcAudience.strings.error);
+                } catch (e) {
+                    console.error('Error processing conflict response:', e);
+                    alert(ffcAudience.strings.error);
                 }
             },
-            error: function(xhr) {
-                $('#ffc-check-conflicts-btn').prop('disabled', false).text('Check Conflicts');
-                var message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : ffcAudience.strings.error;
+            error: function(xhr, status, error) {
+                console.error('Conflict check error:', status, error, xhr.responseText);
+                var message = ffcAudience.strings.error;
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    message = xhr.responseJSON.message;
+                } else if (status === 'timeout') {
+                    message = ffcAudience.strings.timeout;
+                }
                 alert(message);
+            },
+            complete: function() {
+                // Always restore button state
+                $btn.prop('disabled', false).text(originalText);
             }
         });
     }
