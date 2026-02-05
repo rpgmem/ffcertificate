@@ -105,6 +105,16 @@ class AudienceAdminPage {
             array($this, 'render_bookings_page')
         );
 
+        // Submenu: Import
+        add_submenu_page(
+            self::MENU_SLUG,
+            __('Import', 'wp-ffcertificate'),
+            __('Import', 'wp-ffcertificate'),
+            'manage_options',
+            self::MENU_SLUG . '-import',
+            array($this, 'render_import_page')
+        );
+
         // Submenu: Settings
         add_submenu_page(
             self::MENU_SLUG,
@@ -127,6 +137,9 @@ class AudienceAdminPage {
         if (!isset($_GET['page']) || strpos(sanitize_text_field(wp_unslash($_GET['page'])), self::MENU_SLUG) !== 0) {
             return;
         }
+
+        // Handle CSV import
+        $this->handle_csv_import();
 
         // Handle calendar actions
         $this->handle_calendar_actions();
@@ -1143,6 +1156,235 @@ class AudienceAdminPage {
             <p><?php esc_html_e('Settings will be available in a future update.', 'wp-ffcertificate'); ?></p>
         </div>
         <?php
+    }
+
+    /**
+     * Render import page
+     *
+     * @return void
+     */
+    public function render_import_page(): void {
+        $audiences = AudienceRepository::get_hierarchical();
+        ?>
+        <div class="wrap">
+            <h1><?php esc_html_e('Import', 'wp-ffcertificate'); ?></h1>
+
+            <?php $this->render_admin_notices(); ?>
+
+            <div class="ffc-import-sections">
+                <!-- Import Members -->
+                <div class="ffc-import-section">
+                    <h2><?php esc_html_e('Import Members', 'wp-ffcertificate'); ?></h2>
+                    <p class="description">
+                        <?php esc_html_e('Import users as members of audience groups. Users will be created if they do not exist.', 'wp-ffcertificate'); ?>
+                    </p>
+
+                    <form method="post" enctype="multipart/form-data">
+                        <?php wp_nonce_field('ffc_import_members', 'ffc_import_members_nonce'); ?>
+                        <input type="hidden" name="ffc_action" value="import_members">
+
+                        <table class="form-table">
+                            <tr>
+                                <th scope="row">
+                                    <label for="members_csv"><?php esc_html_e('CSV File', 'wp-ffcertificate'); ?></label>
+                                </th>
+                                <td>
+                                    <input type="file" name="members_csv" id="members_csv" accept=".csv" required>
+                                    <p class="description">
+                                        <?php esc_html_e('Required columns: email. Optional: name, audience_id or audience_name.', 'wp-ffcertificate'); ?>
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">
+                                    <label for="import_audience_id"><?php esc_html_e('Target Audience', 'wp-ffcertificate'); ?></label>
+                                </th>
+                                <td>
+                                    <select name="import_audience_id" id="import_audience_id">
+                                        <option value=""><?php esc_html_e('Use audience from CSV', 'wp-ffcertificate'); ?></option>
+                                        <?php foreach ($audiences as $audience) : ?>
+                                            <option value="<?php echo esc_attr($audience->id); ?>">
+                                                <?php echo esc_html($audience->name); ?>
+                                            </option>
+                                            <?php if (!empty($audience->children)) : ?>
+                                                <?php foreach ($audience->children as $child) : ?>
+                                                    <option value="<?php echo esc_attr($child->id); ?>">
+                                                        &nbsp;&nbsp;&nbsp;<?php echo esc_html($child->name); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <p class="description">
+                                        <?php esc_html_e('Select a specific audience or leave empty to use audience_id/audience_name from CSV.', 'wp-ffcertificate'); ?>
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row"><?php esc_html_e('Options', 'wp-ffcertificate'); ?></th>
+                                <td>
+                                    <label>
+                                        <input type="checkbox" name="create_users" value="1" checked>
+                                        <?php esc_html_e('Create users if they do not exist (with ffc_user role)', 'wp-ffcertificate'); ?>
+                                    </label>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <?php submit_button(__('Import Members', 'wp-ffcertificate'), 'primary', 'import_members'); ?>
+                    </form>
+
+                    <div class="ffc-sample-csv">
+                        <h4><?php esc_html_e('Sample CSV Format', 'wp-ffcertificate'); ?></h4>
+                        <pre><?php echo esc_html(AudienceCsvImporter::get_sample_csv('members')); ?></pre>
+                        <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=' . self::MENU_SLUG . '-import&download_sample=members'), 'download_sample')); ?>" class="button">
+                            <?php esc_html_e('Download Sample', 'wp-ffcertificate'); ?>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Import Audiences -->
+                <div class="ffc-import-section">
+                    <h2><?php esc_html_e('Import Audiences', 'wp-ffcertificate'); ?></h2>
+                    <p class="description">
+                        <?php esc_html_e('Import audience groups from a CSV file. Parent groups are created first, then children.', 'wp-ffcertificate'); ?>
+                    </p>
+
+                    <form method="post" enctype="multipart/form-data">
+                        <?php wp_nonce_field('ffc_import_audiences', 'ffc_import_audiences_nonce'); ?>
+                        <input type="hidden" name="ffc_action" value="import_audiences">
+
+                        <table class="form-table">
+                            <tr>
+                                <th scope="row">
+                                    <label for="audiences_csv"><?php esc_html_e('CSV File', 'wp-ffcertificate'); ?></label>
+                                </th>
+                                <td>
+                                    <input type="file" name="audiences_csv" id="audiences_csv" accept=".csv" required>
+                                    <p class="description">
+                                        <?php esc_html_e('Required columns: name. Optional: color, parent (parent audience name).', 'wp-ffcertificate'); ?>
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <?php submit_button(__('Import Audiences', 'wp-ffcertificate'), 'primary', 'import_audiences'); ?>
+                    </form>
+
+                    <div class="ffc-sample-csv">
+                        <h4><?php esc_html_e('Sample CSV Format', 'wp-ffcertificate'); ?></h4>
+                        <pre><?php echo esc_html(AudienceCsvImporter::get_sample_csv('audiences')); ?></pre>
+                        <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=' . self::MENU_SLUG . '-import&download_sample=audiences'), 'download_sample')); ?>" class="button">
+                            <?php esc_html_e('Download Sample', 'wp-ffcertificate'); ?>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .ffc-import-sections { display: flex; flex-wrap: wrap; gap: 30px; margin-top: 20px; }
+            .ffc-import-section { background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; flex: 1; min-width: 400px; }
+            .ffc-import-section h2 { margin-top: 0; }
+            .ffc-sample-csv { margin-top: 20px; padding-top: 20px; border-top: 1px solid #c3c4c7; }
+            .ffc-sample-csv pre { background: #f6f7f7; padding: 15px; overflow-x: auto; font-size: 12px; }
+            .ffc-sample-csv h4 { margin-bottom: 10px; }
+        </style>
+        <?php
+    }
+
+    /**
+     * Handle CSV import
+     *
+     * @return void
+     */
+    private function handle_csv_import(): void {
+        // Handle sample download
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (isset($_GET['download_sample']) && isset($_GET['_wpnonce'])) {
+            $type = sanitize_text_field(wp_unslash($_GET['download_sample']));
+            if (wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'download_sample')) {
+                $filename = $type === 'audiences' ? 'audiences-sample.csv' : 'members-sample.csv';
+                header('Content-Type: text/csv');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                echo AudienceCsvImporter::get_sample_csv($type);
+                exit;
+            }
+        }
+
+        // Handle members import
+        if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'import_members') {
+            if (!isset($_POST['ffc_import_members_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_import_members_nonce'])), 'ffc_import_members')) {
+                return;
+            }
+
+            if (!isset($_FILES['members_csv']) || $_FILES['members_csv']['error'] !== UPLOAD_ERR_OK) {
+                $this->add_admin_notice('error', __('File upload failed.', 'wp-ffcertificate'));
+                return;
+            }
+
+            $audience_id = isset($_POST['import_audience_id']) ? absint($_POST['import_audience_id']) : 0;
+            $create_users = isset($_POST['create_users']) && $_POST['create_users'] === '1';
+
+            $result = AudienceCsvImporter::import_members(
+                $_FILES['members_csv']['tmp_name'],
+                $audience_id,
+                $create_users
+            );
+
+            if ($result['success']) {
+                $message = sprintf(
+                    __('Import completed. %d imported, %d skipped.', 'wp-ffcertificate'),
+                    $result['imported'],
+                    $result['skipped']
+                );
+                if (!empty($result['errors'])) {
+                    $message .= ' ' . sprintf(__('%d errors occurred.', 'wp-ffcertificate'), count($result['errors']));
+                }
+                $this->add_admin_notice('success', $message);
+
+                // Show first 5 errors
+                foreach (array_slice($result['errors'], 0, 5) as $error) {
+                    $this->add_admin_notice('warning', $error);
+                }
+            } else {
+                $this->add_admin_notice('error', implode(' ', $result['errors']));
+            }
+        }
+
+        // Handle audiences import
+        if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'import_audiences') {
+            if (!isset($_POST['ffc_import_audiences_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_import_audiences_nonce'])), 'ffc_import_audiences')) {
+                return;
+            }
+
+            if (!isset($_FILES['audiences_csv']) || $_FILES['audiences_csv']['error'] !== UPLOAD_ERR_OK) {
+                $this->add_admin_notice('error', __('File upload failed.', 'wp-ffcertificate'));
+                return;
+            }
+
+            $result = AudienceCsvImporter::import_audiences($_FILES['audiences_csv']['tmp_name']);
+
+            if ($result['success']) {
+                $message = sprintf(
+                    __('Import completed. %d imported, %d skipped.', 'wp-ffcertificate'),
+                    $result['imported'],
+                    $result['skipped']
+                );
+                if (!empty($result['errors'])) {
+                    $message .= ' ' . sprintf(__('%d errors occurred.', 'wp-ffcertificate'), count($result['errors']));
+                }
+                $this->add_admin_notice('success', $message);
+
+                // Show first 5 errors
+                foreach (array_slice($result['errors'], 0, 5) as $error) {
+                    $this->add_admin_notice('warning', $error);
+                }
+            } else {
+                $this->add_admin_notice('error', implode(' ', $result['errors']));
+            }
+        }
     }
 
     /**
