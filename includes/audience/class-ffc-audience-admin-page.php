@@ -1380,6 +1380,54 @@ class AudienceAdminPage {
             .tablenav.top { margin-bottom: 15px; }
             .tablenav.top select, .tablenav.top input[type="date"] { margin-right: 5px; }
         </style>
+
+        <script>
+        jQuery(document).ready(function($) {
+            var $scheduleSelect = $('#filter-schedule');
+            var $environmentSelect = $('#filter-environment');
+            var allEnvironmentsText = '<?php echo esc_js(__('All Environments', 'wp-ffcertificate')); ?>';
+            var loadingText = '<?php echo esc_js(__('Loading...', 'wp-ffcertificate')); ?>';
+            var adminNonce = '<?php echo esc_js(wp_create_nonce('ffc_admin_nonce')); ?>';
+
+            $scheduleSelect.on('change', function() {
+                var scheduleId = $(this).val();
+
+                // Reset to all environments if no schedule selected
+                if (!scheduleId) {
+                    $environmentSelect.html('<option value="">' + allEnvironmentsText + '</option>');
+                    return;
+                }
+
+                // Show loading
+                $environmentSelect.html('<option value="">' + loadingText + '</option>');
+
+                // Fetch environments for the selected schedule
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'GET',
+                    data: {
+                        action: 'ffc_audience_get_environments',
+                        schedule_id: scheduleId,
+                        nonce: adminNonce
+                    },
+                    success: function(response) {
+                        if (response.success && response.data) {
+                            var html = '<option value="">' + allEnvironmentsText + '</option>';
+                            $.each(response.data, function(i, env) {
+                                html += '<option value="' + env.id + '">' + $('<div/>').text(env.name).html() + '</option>';
+                            });
+                            $environmentSelect.html(html);
+                        } else {
+                            $environmentSelect.html('<option value="">' + allEnvironmentsText + '</option>');
+                        }
+                    },
+                    error: function() {
+                        $environmentSelect.html('<option value="">' + allEnvironmentsText + '</option>');
+                    }
+                });
+            });
+        });
+        </script>
         <?php
     }
 

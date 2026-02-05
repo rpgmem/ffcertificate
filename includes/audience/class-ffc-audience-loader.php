@@ -90,6 +90,7 @@ class AudienceLoader {
         add_action('wp_ajax_ffc_audience_cancel_booking', array($this, 'ajax_cancel_booking'));
         add_action('wp_ajax_ffc_audience_get_schedule_slots', array($this, 'ajax_get_schedule_slots'));
         add_action('wp_ajax_ffc_search_users', array($this, 'ajax_search_users'));
+        add_action('wp_ajax_ffc_audience_get_environments', array($this, 'ajax_get_environments'));
     }
 
     /**
@@ -401,6 +402,37 @@ class AudienceLoader {
                 'id' => $user->ID,
                 'name' => $user->display_name,
                 'email' => $user->user_email,
+            );
+        }
+
+        wp_send_json_success($results);
+    }
+
+    /**
+     * AJAX: Get environments by schedule ID
+     *
+     * @return void
+     */
+    public function ajax_get_environments(): void {
+        check_ajax_referer('ffc_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'wp-ffcertificate')));
+        }
+
+        $schedule_id = isset($_GET['schedule_id']) ? absint($_GET['schedule_id']) : 0;
+
+        if ($schedule_id <= 0) {
+            wp_send_json_success(array());
+        }
+
+        $environments = AudienceEnvironmentRepository::get_by_schedule($schedule_id);
+
+        $results = array();
+        foreach ($environments as $env) {
+            $results[] = array(
+                'id' => $env->id,
+                'name' => $env->name,
             );
         }
 
