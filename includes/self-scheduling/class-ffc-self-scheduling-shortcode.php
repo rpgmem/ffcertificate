@@ -260,7 +260,7 @@ class SelfSchedulingShortcode {
         $disabled_days = array_diff(array(0, 1, 2, 3, 4, 5, 6), $working_days);
 
         ?>
-        <div class="ffc-audience-calendar ffc-calendar-wrapper" data-calendar-id="<?php echo esc_attr($calendar['id']); ?>">
+        <div class="ffc-audience-calendar" data-calendar-id="<?php echo esc_attr($calendar['id']); ?>">
 
             <?php if (!empty($calendar['description'])): ?>
                 <div class="ffc-calendar-description">

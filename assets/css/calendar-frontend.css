@@ -8,21 +8,13 @@
  * @updated 4.5.0 - Unified visual styles with ffc-audience
  *
  * Uses shared CSS variables from ffc-common.css
+ * Calendar wrapper uses .ffc-audience-calendar from ffc-audience.css
  */
 
 /* ==========================================================================
-   CALENDAR WRAPPER - Same as .ffc-audience-calendar
+   SELF-SCHEDULING SPECIFIC STYLES
+   Calendar base styles inherited from .ffc-audience-calendar in ffc-audience.css
    ========================================================================== */
-
-.ffc-calendar-wrapper {
-    font-family: var(--ffc-font-family);
-    max-width: 1000px;
-    margin: 0 auto;
-    background: #fff;
-    border: 1px solid var(--ffc-gray-200);
-    border-radius: var(--ffc-radius-sm);
-    overflow: hidden;
-}
 
 /* Calendar Description */
 .ffc-calendar-description {
@@ -36,18 +28,6 @@
     color: var(--ffc-gray-800);
     font-size: 14px;
 }
-
-/* ==========================================================================
-   CALENDAR CONTAINER - Uses shared FFCCalendarCore component
-   ========================================================================== */
-
-/* Calendar container inherits styles from ffc-audience.css */
-.ffc-calendar-container {
-    /* Container for FFCCalendarCore component */
-}
-
-/* Self-scheduling uses shared styles from ffc-audience.css */
-/* The .ffc-available class styles are inherited from ffc-audience.css */
 
 /* ==========================================================================
    TIME SLOTS SECTION
@@ -505,10 +485,6 @@
    ========================================================================== */
 
 @media (max-width: 768px) {
-    .ffc-calendar-wrapper {
-        margin: 10px;
-    }
-
     .ffc-timeslots-grid {
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
         gap: 5px;
