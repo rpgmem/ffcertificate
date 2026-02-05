@@ -168,25 +168,19 @@ class FFC_Autoloader {
      * @return string Kebab-case string
      */
     private function to_kebab_case(string $string): string {
-        // Handle known acronyms first - replace them with placeholders that include hyphen marker
+        // Handle known acronyms first - replace them with hyphen + lowercase version
+        // This ensures proper word boundary separation
         $acronyms = ['CPT', 'CSV', 'API', 'PDF', 'HTML', 'REST', 'AJAX', 'URL', 'ID'];
-        $placeholders = [];
 
-        foreach ($acronyms as $i => $acronym) {
-            // Add hyphen marker before the placeholder to preserve word boundary
-            $placeholder = "-{$i}ACRONYM-";
-            $placeholders[$placeholder] = '-' . strtolower($acronym);
-            $string = str_replace($acronym, $placeholder, $string);
+        foreach ($acronyms as $acronym) {
+            // Replace acronym with hyphen-separated lowercase version
+            // The leading hyphen ensures word boundary, preg_replace will clean up doubles
+            $string = str_replace($acronym, '-' . strtolower($acronym), $string);
         }
 
         // Insert hyphens before capital letters and convert to lowercase
         $kebab = preg_replace('/([a-z0-9])([A-Z])/', '$1-$2', $string);
         $kebab = strtolower($kebab ?? '');
-
-        // Restore acronyms (placeholder already lowercase after strtolower)
-        foreach ($placeholders as $placeholder => $value) {
-            $kebab = str_replace(strtolower($placeholder), $value, $kebab);
-        }
 
         // Clean up multiple hyphens and leading/trailing hyphens
         $kebab = preg_replace('/-+/', '-', $kebab ?? '');
