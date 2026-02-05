@@ -588,15 +588,39 @@
     border-top: 1px solid var(--ffc-gray-200);
 }
 
+/* Day Filter */
+.ffc-day-filter {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--ffc-gray-200);
+}
+
+.ffc-day-filter label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--ffc-gray-600);
+}
+
+.ffc-day-filter input[type="checkbox"] {
+    margin: 0;
+}
+
+.ffc-status-cancelled {
+    color: var(--ffc-danger);
+    font-size: 12px;
+    font-weight: normal;
+}
+
 .ffc-booking-cancelled {
     opacity: 0.7;
     background: #fff5f5;
 }
 
 .ffc-booking-cancelled .ffc-booking-time::after {
-    content: " (Cancelled)";
-    font-weight: normal;
-    color: var(--ffc-danger);
+    content: "";
 }
 
 /* Responsive */

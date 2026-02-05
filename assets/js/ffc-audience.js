@@ -119,6 +119,14 @@
             closeModals();
         });
 
+        // Show cancelled checkbox
+        $('#ffc-show-cancelled').on('change', function() {
+            var date = $('#ffc-day-modal').data('date');
+            if (date) {
+                loadDayBookings(date);
+            }
+        });
+
         // Booking type toggle
         $('#booking-type').on('change', function() {
             if ($(this).val() === 'audience') {
@@ -431,10 +439,23 @@
      */
     function loadDayBookings(date) {
         var $container = $('#ffc-day-bookings');
-        var bookings = state.bookings[date] || [];
+        var allBookings = state.bookings[date] || [];
+        var showCancelled = $('#ffc-show-cancelled').is(':checked');
+
+        // Filter bookings based on show cancelled option
+        var bookings = allBookings.filter(function(b) {
+            if (showCancelled) {
+                return true;
+            }
+            return b.status === 'active';
+        });
 
         if (bookings.length === 0) {
-            $container.html('<p class="ffc-no-bookings">' + ffcAudience.strings.noBookings + '</p>');
+            var message = ffcAudience.strings.noBookings;
+            if (!showCancelled && allBookings.length > 0) {
+                message = ffcAudience.strings.noActiveBookings || 'No active bookings for this day.';
+            }
+            $container.html('<p class="ffc-no-bookings">' + message + '</p>');
             return;
         }
 
@@ -455,6 +476,9 @@
 
             html += '<div class="ffc-booking-meta">';
             html += '<span><strong>Environment:</strong> ' + escapeHtml(booking.environment_name) + '</span>';
+            if (booking.status === 'cancelled') {
+                html += ' <span class="ffc-status-cancelled">(' + (ffcAudience.strings.cancelled || 'Cancelled') + ')</span>';
+            }
             html += '</div>';
 
             if (booking.audiences && booking.audiences.length > 0) {

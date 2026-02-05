@@ -247,6 +247,12 @@ class AudienceShortcode {
                     <button type="button" class="ffc-modal-close">&times;</button>
                 </div>
                 <div class="ffc-modal-body">
+                    <div class="ffc-day-filter">
+                        <label>
+                            <input type="checkbox" id="ffc-show-cancelled">
+                            <?php esc_html_e('Show cancelled bookings', 'wp-ffcertificate'); ?>
+                        </label>
+                    </div>
                     <div class="ffc-day-bookings" id="ffc-day-bookings">
                         <div class="ffc-loading"><?php esc_html_e('Loading bookings...', 'wp-ffcertificate'); ?></div>
                     </div>
