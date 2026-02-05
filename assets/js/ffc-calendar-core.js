@@ -17,7 +17,9 @@
      */
     window.FFCCalendarCore = function($container, options) {
         this.$container = $container;
-        this.options = $.extend({
+
+        // Default options
+        var defaults = {
             // Callbacks
             onDayClick: null,
             onMonthChange: null,
@@ -52,7 +54,10 @@
                 { class: 'ffc-holiday', label: 'Holiday' },
                 { class: 'ffc-closed', label: 'Closed' }
             ]
-        }, options);
+        };
+
+        // Deep extend to properly merge nested objects like 'strings'
+        this.options = $.extend(true, {}, defaults, options);
 
         this.currentDate = new Date();
         this.selectedDate = null;
