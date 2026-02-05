@@ -26,7 +26,7 @@ class BlockedDateRepository extends AbstractRepository {
      */
     protected function get_table_name(): string {
         global $wpdb;
-        return $wpdb->prefix . 'ffc_blocked_dates';
+        return $wpdb->prefix . 'ffc_self_scheduling_blocked_dates';
     }
 
     /**
@@ -35,7 +35,7 @@ class BlockedDateRepository extends AbstractRepository {
      * @return string
      */
     protected function get_cache_group(): string {
-        return 'ffc_blocked_dates';
+        return 'ffc_self_scheduling_blocked_dates';
     }
 
     /**

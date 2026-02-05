@@ -53,7 +53,7 @@ class MigrationUserCapabilities {
         }
 
         $submissions_table = \FreeFormCertificate\Core\Utils::get_submissions_table();
-        $appointments_table = $wpdb->prefix . 'ffc_appointments';
+        $appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
         $processed = 0;
         $changed = 0;

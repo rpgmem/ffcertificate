@@ -24,14 +24,15 @@ use FreeFormCertificate\Admin\AdminAjax;
 use FreeFormCertificate\API\RestController;
 use FreeFormCertificate\Shortcodes\DashboardShortcode;
 use FreeFormCertificate\UserDashboard\AccessControl;
-use FreeFormCertificate\Calendars\CalendarCPT;
-use FreeFormCertificate\Calendars\CalendarAdmin;
-use FreeFormCertificate\Calendars\CalendarEditor;
-use FreeFormCertificate\Calendars\AppointmentHandler;
-use FreeFormCertificate\Calendars\AppointmentEmailHandler;
-use FreeFormCertificate\Calendars\AppointmentReceiptHandler;
-use FreeFormCertificate\Calendars\AppointmentCsvExporter;
-use FreeFormCertificate\Calendars\CalendarShortcode;
+// v4.5.0: Self-Scheduling System (renamed from Calendars)
+use FreeFormCertificate\SelfScheduling\SelfSchedulingCPT;
+use FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin;
+use FreeFormCertificate\SelfScheduling\SelfSchedulingEditor;
+use FreeFormCertificate\SelfScheduling\AppointmentHandler;
+use FreeFormCertificate\SelfScheduling\AppointmentEmailHandler;
+use FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler;
+use FreeFormCertificate\SelfScheduling\AppointmentCsvExporter;
+use FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode;
 
 if (!defined('ABSPATH')) exit;
 
@@ -44,14 +45,15 @@ class Loader {
     protected $admin = null;
     protected $frontend = null;
     protected $admin_ajax = null;
-    protected $calendar_cpt = null;
-    protected $calendar_admin = null;
-    protected $calendar_editor = null;
-    protected $appointment_handler = null;
-    protected $appointment_email_handler = null;
-    protected $appointment_receipt_handler = null;
-    protected $appointment_csv_exporter = null;
-    protected $calendar_shortcode = null;
+    // v4.5.0: Self-Scheduling System (renamed from calendar_*)
+    protected $self_scheduling_cpt = null;
+    protected $self_scheduling_admin = null;
+    protected $self_scheduling_editor = null;
+    protected $self_scheduling_appointment_handler = null;
+    protected $self_scheduling_email_handler = null;
+    protected $self_scheduling_receipt_handler = null;
+    protected $self_scheduling_csv_exporter = null;
+    protected $self_scheduling_shortcode = null;
 
     public function __construct() {
         add_action('plugins_loaded', [$this, 'init_plugin'], 10);
@@ -60,9 +62,9 @@ class Loader {
     }
 
     public function init_plugin(): void {
-        // ✅ v4.1.0: Run calendar migrations if needed
-        if (class_exists('\FreeFormCertificate\Calendars\CalendarActivator')) {
-            \FreeFormCertificate\Calendars\CalendarActivator::maybe_migrate();
+        // ✅ v4.5.0: Run self-scheduling migrations if needed
+        if (class_exists('\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator')) {
+            \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::maybe_migrate();
         }
 
         // Autoloader handles all class loading now
@@ -86,15 +88,15 @@ class Loader {
         // ✅ v3.1.0: Initialize Access Control (blocks wp-admin for configured roles)
         AccessControl::init();
 
-        // ✅ v4.1.0: Initialize Calendar System
-        $this->calendar_cpt              = new CalendarCPT();
-        $this->calendar_admin            = new CalendarAdmin();
-        $this->calendar_editor           = new CalendarEditor();
-        $this->appointment_handler        = new AppointmentHandler();
-        $this->appointment_email_handler  = new AppointmentEmailHandler();
-        $this->appointment_receipt_handler = new AppointmentReceiptHandler();
-        $this->appointment_csv_exporter   = new AppointmentCsvExporter();
-        $this->calendar_shortcode         = new CalendarShortcode();
+        // ✅ v4.5.0: Initialize Self-Scheduling System (renamed from Calendar System)
+        $this->self_scheduling_cpt              = new SelfSchedulingCPT();
+        $this->self_scheduling_admin            = new SelfSchedulingAdmin();
+        $this->self_scheduling_editor           = new SelfSchedulingEditor();
+        $this->self_scheduling_appointment_handler = new AppointmentHandler();
+        $this->self_scheduling_email_handler    = new AppointmentEmailHandler();
+        $this->self_scheduling_receipt_handler  = new AppointmentReceiptHandler();
+        $this->self_scheduling_csv_exporter     = new AppointmentCsvExporter();
+        $this->self_scheduling_shortcode        = new SelfSchedulingShortcode();
 
         $this->define_admin_hooks();
         $this->init_rest_api(); // Initialize REST API

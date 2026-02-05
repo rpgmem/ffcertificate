@@ -1215,8 +1215,8 @@ class RestController {
 
                 // Generate receipt URL
                 $receipt_url = '';
-                if (class_exists('\FreeFormCertificate\Calendars\AppointmentReceiptHandler')) {
-                    $receipt_url = \FreeFormCertificate\Calendars\AppointmentReceiptHandler::get_receipt_url(
+                if (class_exists('\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler')) {
+                    $receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
                         (int) $appointment['id'],
                         $appointment['confirmation_token'] ?? ''
                     );
@@ -1427,7 +1427,7 @@ class RestController {
             $calendar_id = $request->get_param('id');
             $date = $request->get_param('date');
 
-            if (!class_exists('\FreeFormCertificate\Calendars\AppointmentHandler')) {
+            if (!class_exists('\FreeFormCertificate\SelfScheduling\AppointmentHandler')) {
                 return new \WP_Error(
                     'handler_not_found',
                     __('Appointment handler not available', 'wp-ffcertificate'),
@@ -1435,7 +1435,7 @@ class RestController {
                 );
             }
 
-            $appointment_handler = new \FreeFormCertificate\Calendars\AppointmentHandler();
+            $appointment_handler = new \FreeFormCertificate\SelfScheduling\AppointmentHandler();
             $slots = $appointment_handler->get_available_slots($calendar_id, $date);
 
             if (is_wp_error($slots)) {
@@ -1522,7 +1522,7 @@ class RestController {
             }
 
             // Process appointment
-            if (!class_exists('\FreeFormCertificate\Calendars\AppointmentHandler')) {
+            if (!class_exists('\FreeFormCertificate\SelfScheduling\AppointmentHandler')) {
                 return new \WP_Error(
                     'handler_not_found',
                     __('Appointment handler not available', 'wp-ffcertificate'),
@@ -1530,7 +1530,7 @@ class RestController {
                 );
             }
 
-            $appointment_handler = new \FreeFormCertificate\Calendars\AppointmentHandler();
+            $appointment_handler = new \FreeFormCertificate\SelfScheduling\AppointmentHandler();
             $result = $appointment_handler->process_appointment($appointment_data);
 
             if (is_wp_error($result)) {
@@ -1639,7 +1639,7 @@ class RestController {
             $params = $request->get_json_params();
             $reason = isset($params['reason']) ? sanitize_textarea_field($params['reason']) : '';
 
-            if (!class_exists('\FreeFormCertificate\Calendars\AppointmentHandler')) {
+            if (!class_exists('\FreeFormCertificate\SelfScheduling\AppointmentHandler')) {
                 return new \WP_Error(
                     'handler_not_found',
                     __('Appointment handler not available', 'wp-ffcertificate'),
@@ -1647,7 +1647,7 @@ class RestController {
                 );
             }
 
-            $appointment_handler = new \FreeFormCertificate\Calendars\AppointmentHandler();
+            $appointment_handler = new \FreeFormCertificate\SelfScheduling\AppointmentHandler();
 
             // For REST API, we don't use token-based auth, rely on user ownership
             $result = $appointment_handler->cancel_appointment($appointment_id, '', $reason);

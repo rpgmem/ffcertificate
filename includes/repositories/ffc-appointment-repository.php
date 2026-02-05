@@ -26,7 +26,7 @@ class AppointmentRepository extends AbstractRepository {
      */
     protected function get_table_name(): string {
         global $wpdb;
-        return $wpdb->prefix . 'ffc_appointments';
+        return $wpdb->prefix . 'ffc_self_scheduling_appointments';
     }
 
     /**
@@ -35,7 +35,7 @@ class AppointmentRepository extends AbstractRepository {
      * @return string
      */
     protected function get_cache_group(): string {
-        return 'ffc_appointments';
+        return 'ffc_self_scheduling_appointments';
     }
 
     /**
@@ -343,7 +343,7 @@ class AppointmentRepository extends AbstractRepository {
         $sql = $this->wpdb->prepare(
             "SELECT a.*, c.title as calendar_title, c.email_config
              FROM {$this->table} a
-             LEFT JOIN {$this->wpdb->prefix}ffc_calendars c ON a.calendar_id = c.id
+             LEFT JOIN {$this->wpdb->prefix}ffc_self_scheduling_calendars c ON a.calendar_id = c.id
              WHERE a.status = 'confirmed'
              AND a.reminder_sent_at IS NULL
              AND a.appointment_date = %s

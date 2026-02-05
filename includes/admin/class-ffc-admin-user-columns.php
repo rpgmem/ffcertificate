@@ -176,7 +176,7 @@ class AdminUserColumns {
      */
     private static function get_user_appointment_count( int $user_id ): int {
         global $wpdb;
-        $table = $wpdb->prefix . 'ffc_appointments';
+        $table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
         // Check if table exists
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter

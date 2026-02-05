@@ -32,9 +32,14 @@ class Activator {
         // ✅ v3.1.0: Create dashboard page
         self::create_dashboard_page();
 
-        // ✅ v4.1.0: Create Calendar tables
-        if (class_exists('\FreeFormCertificate\Calendars\CalendarActivator')) {
-            \FreeFormCertificate\Calendars\CalendarActivator::create_tables();
+        // ✅ v4.5.0: Run table rename migration (calendars -> self_scheduling)
+        if (class_exists('\FreeFormCertificate\Migrations\MigrationSelfSchedulingTables')) {
+            \FreeFormCertificate\Migrations\MigrationSelfSchedulingTables::run();
+        }
+
+        // ✅ v4.5.0: Create Self-Scheduling tables (renamed from Calendar)
+        if (class_exists('\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator')) {
+            \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::create_tables();
         }
 
         self::run_migrations();
