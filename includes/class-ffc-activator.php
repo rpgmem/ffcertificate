@@ -47,6 +47,11 @@ class Activator {
             \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::create_tables();
         }
 
+        // ✅ v4.5.0: Create Audience tables (new audience booking system)
+        if (class_exists('\FreeFormCertificate\Audience\AudienceActivator')) {
+            \FreeFormCertificate\Audience\AudienceActivator::create_tables();
+        }
+
         self::run_migrations();
         flush_rewrite_rules();
     }

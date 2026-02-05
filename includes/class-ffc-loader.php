@@ -33,6 +33,8 @@ use FreeFormCertificate\SelfScheduling\AppointmentEmailHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentCsvExporter;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode;
+// v4.5.0: Audience Scheduling System (new)
+use FreeFormCertificate\Audience\AudienceLoader;
 
 if (!defined('ABSPATH')) exit;
 
@@ -54,6 +56,8 @@ class Loader {
     protected $self_scheduling_receipt_handler = null;
     protected $self_scheduling_csv_exporter = null;
     protected $self_scheduling_shortcode = null;
+    // v4.5.0: Audience Scheduling System (new)
+    protected $audience_loader = null;
 
     public function __construct() {
         add_action('plugins_loaded', [$this, 'init_plugin'], 10);
@@ -97,6 +101,10 @@ class Loader {
         $this->self_scheduling_receipt_handler  = new AppointmentReceiptHandler();
         $this->self_scheduling_csv_exporter     = new AppointmentCsvExporter();
         $this->self_scheduling_shortcode        = new SelfSchedulingShortcode();
+
+        // ✅ v4.5.0: Initialize Audience Scheduling System (new)
+        $this->audience_loader = AudienceLoader::get_instance();
+        $this->audience_loader->init();
 
         $this->define_admin_hooks();
         $this->init_rest_api(); // Initialize REST API
