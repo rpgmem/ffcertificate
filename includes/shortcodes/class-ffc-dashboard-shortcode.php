@@ -54,7 +54,7 @@ class DashboardShortcode {
         );
 
         $can_view_appointments = $user && (
-            user_can($user, 'ffc_view_own_appointments') ||
+            user_can($user, 'ffc_view_self_scheduling') ||
             user_can($user, 'manage_options')
         );
 
@@ -263,7 +263,7 @@ class DashboardShortcode {
         );
 
         $can_view_appointments = $user && (
-            user_can($user, 'ffc_view_own_appointments') ||
+            user_can($user, 'ffc_view_self_scheduling') ||
             user_can($user, 'manage_options')
         );
 

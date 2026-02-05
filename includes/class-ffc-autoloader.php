@@ -224,10 +224,7 @@ class FFC_Autoloader {
             // User Dashboard namespace
             'UserDashboard' => 'user-dashboard',
 
-            // Calendars namespace (v4.1.0) - Legacy, will be removed
-            'Calendars' => 'calendars',
-
-            // Self-Scheduling namespace (v4.5.0) - Renamed from Calendars
+            // Self-Scheduling namespace (v4.5.0) - User self-booking system
             'SelfScheduling' => 'self-scheduling',
 
             // Audience namespace (v4.5.0) - New audience booking system

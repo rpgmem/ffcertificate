@@ -113,8 +113,8 @@ class AdminUserCapabilities {
                             <br>
 
                             <label>
-                                <input type="checkbox" name="ffc_cap_ffc_view_own_appointments" value="1"
-                                    <?php checked($capabilities['ffc_view_own_appointments'] ?? false); ?>>
+                                <input type="checkbox" name="ffc_cap_ffc_view_self_scheduling" value="1"
+                                    <?php checked($capabilities['ffc_view_self_scheduling'] ?? false); ?>>
                                 <?php esc_html_e('View own appointments', 'wp-ffcertificate'); ?>
                             </label>
                             <br>
@@ -235,7 +235,7 @@ class AdminUserCapabilities {
             'view_certificate_history',
             // Appointment capabilities
             'ffc_book_appointments',
-            'ffc_view_own_appointments',
+            'ffc_view_self_scheduling',
             'ffc_cancel_own_appointments',
             // Future capabilities
             'ffc_reregistration',

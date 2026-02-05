@@ -1102,7 +1102,7 @@ class RestController {
             }
 
             // Check capability (admin always has access)
-            if (!current_user_can('manage_options') && !current_user_can('ffc_view_own_appointments')) {
+            if (!current_user_can('manage_options') && !current_user_can('ffc_view_self_scheduling')) {
                 return new \WP_Error(
                     'capability_denied',
                     __('You do not have permission to view appointments', 'wp-ffcertificate'),

@@ -37,6 +37,11 @@ class Activator {
             \FreeFormCertificate\Migrations\MigrationSelfSchedulingTables::run();
         }
 
+        // ✅ v4.5.0: Run capability rename migration
+        if (class_exists('\FreeFormCertificate\Migrations\MigrationRenameCapabilities')) {
+            \FreeFormCertificate\Migrations\MigrationRenameCapabilities::run();
+        }
+
         // ✅ v4.5.0: Create Self-Scheduling tables (renamed from Calendar)
         if (class_exists('\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator')) {
             \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::create_tables();

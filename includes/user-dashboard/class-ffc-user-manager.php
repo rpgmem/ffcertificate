@@ -263,7 +263,7 @@ class UserManager {
      */
     public const APPOINTMENT_CAPABILITIES = array(
         'ffc_book_appointments',
-        'ffc_view_own_appointments',
+        'ffc_view_self_scheduling',
         'ffc_cancel_own_appointments',
     );
 
@@ -296,7 +296,7 @@ class UserManager {
 
                 // Appointment capabilities (enabled by default)
                 'ffc_book_appointments' => true,
-                'ffc_view_own_appointments' => true,
+                'ffc_view_self_scheduling' => true,
                 'ffc_cancel_own_appointments' => true,
 
                 // Future capabilities (disabled by default)
@@ -325,7 +325,7 @@ class UserManager {
 
             // Appointment capabilities
             'ffc_book_appointments' => true,
-            'ffc_view_own_appointments' => true,
+            'ffc_view_self_scheduling' => true,
             'ffc_cancel_own_appointments' => true,
 
             // Future capabilities
