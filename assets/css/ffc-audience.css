@@ -151,6 +151,28 @@
     background: var(--ffc-gray-100);
 }
 
+.ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month) {
+    border-color: var(--ffc-success);
+    border-width: 2px;
+}
+
+.ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month) .ffc-day-number {
+    color: var(--ffc-success);
+}
+
+.ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month):hover {
+    border-color: var(--ffc-success);
+    box-shadow: 0 0 0 2px rgba(0, 167, 60, 0.2);
+}
+
+.ffc-day.ffc-selected {
+    background: var(--ffc-primary);
+}
+
+.ffc-day.ffc-selected .ffc-day-number {
+    color: #fff;
+}
+
 .ffc-day-number {
     font-weight: 600;
     font-size: 14px;

@@ -46,24 +46,8 @@
     /* Container for FFCCalendarCore component */
 }
 
-/* Available day highlight for self-scheduling */
-.ffc-calendar-wrapper .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled) {
-    border-color: var(--ffc-success);
-    border-width: 2px;
-}
-
-.ffc-calendar-wrapper .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):hover {
-    background: var(--ffc-success);
-    color: #fff;
-}
-
-.ffc-calendar-wrapper .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled) .ffc-day-number {
-    color: var(--ffc-success);
-}
-
-.ffc-calendar-wrapper .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):hover .ffc-day-number {
-    color: #fff;
-}
+/* Self-scheduling uses shared styles from ffc-audience.css */
+/* The .ffc-available class styles are inherited from ffc-audience.css */
 
 /* ==========================================================================
    TIME SLOTS SECTION

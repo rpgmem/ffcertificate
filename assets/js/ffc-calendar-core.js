@@ -79,9 +79,9 @@
             // Header
             html += '<div class="ffc-calendar-header">';
             html += '<div class="ffc-calendar-nav">';
-            html += '<button type="button" class="ffc-nav-btn ffc-prev-month">&#9664;</button>';
+            html += '<button type="button" class="ffc-nav-btn ffc-prev-month">&lsaquo;</button>';
             html += '<h2 class="ffc-current-month"></h2>';
-            html += '<button type="button" class="ffc-nav-btn ffc-next-month">&#9654;</button>';
+            html += '<button type="button" class="ffc-nav-btn ffc-next-month">&rsaquo;</button>';
             if (this.options.showTodayButton) {
                 html += '<button type="button" class="ffc-nav-btn ffc-today-btn">' + this.options.strings.today + '</button>';
             }

@@ -443,12 +443,16 @@ class SelfSchedulingShortcode {
             // Initialize shared calendar component
             var $container = $('#ffc-calendar-container-' + calendarId);
             var calendar = new FFCCalendarCore($container, {
-                showLegend: false,
+                showLegend: true,
                 showTodayButton: true,
                 minDate: minDate,
                 maxDate: maxDate,
                 disabledDays: disabledDays,
                 strings: ffcCalendar.strings,
+                legendItems: [
+                    { class: 'ffc-available', label: ffcCalendar.strings.available || 'Available' },
+                    { class: 'ffc-closed', label: ffcCalendar.strings.closed || 'Closed' }
+                ],
                 getDayClasses: function(dateStr, date) {
                     var classes = [];
                     var weekday = date.getDay();

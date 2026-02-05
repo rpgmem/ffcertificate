@@ -115,8 +115,8 @@
             renderCalendar();
         });
 
-        // Day click
-        $(document).on('click', '.ffc-day:not(.ffc-past)', function() {
+        // Day click - scoped to audience calendar only
+        $('#ffc-audience-calendar').on('click', '.ffc-day:not(.ffc-past)', function() {
             var date = $(this).data('date');
             if (date) {
                 openDayModal(date);
