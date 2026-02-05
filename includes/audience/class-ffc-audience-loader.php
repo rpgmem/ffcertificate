@@ -86,6 +86,7 @@ class AudienceLoader {
         add_action('wp_ajax_ffc_audience_create_booking', array($this, 'ajax_create_booking'));
         add_action('wp_ajax_ffc_audience_cancel_booking', array($this, 'ajax_cancel_booking'));
         add_action('wp_ajax_ffc_audience_get_schedule_slots', array($this, 'ajax_get_schedule_slots'));
+        add_action('wp_ajax_ffc_search_users', array($this, 'ajax_search_users'));
     }
 
     /**
@@ -353,5 +354,42 @@ class AudienceLoader {
         // Slot retrieval is handled by AudienceScheduleService
         // This is a placeholder - actual implementation in Phase 5
         wp_send_json_error(array('message' => __('Not implemented yet.', 'wp-ffcertificate')));
+    }
+
+    /**
+     * AJAX: Search users for member selection
+     *
+     * @return void
+     */
+    public function ajax_search_users(): void {
+        check_ajax_referer('ffc_search_users', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'wp-ffcertificate')));
+        }
+
+        $query = isset($_GET['query']) ? sanitize_text_field(wp_unslash($_GET['query'])) : '';
+
+        if (strlen($query) < 2) {
+            wp_send_json_success(array());
+        }
+
+        $users = get_users(array(
+            'search' => '*' . $query . '*',
+            'search_columns' => array('user_login', 'user_email', 'display_name'),
+            'number' => 20,
+            'orderby' => 'display_name',
+        ));
+
+        $results = array();
+        foreach ($users as $user) {
+            $results[] = array(
+                'id' => $user->ID,
+                'name' => $user->display_name,
+                'email' => $user->user_email,
+            );
+        }
+
+        wp_send_json_success($results);
     }
 }
