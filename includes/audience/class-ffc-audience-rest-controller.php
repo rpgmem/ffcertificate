@@ -233,9 +233,9 @@ class AudienceRestController {
         }
 
         // Check if user has cancel_others permission on this schedule
-        $environment = AudienceEnvironmentRepository::get_by_id($booking->environment_id);
+        $environment = AudienceEnvironmentRepository::get_by_id((int) $booking->environment_id);
         if ($environment) {
-            return AudienceScheduleRepository::user_can_cancel_others($environment->schedule_id, get_current_user_id());
+            return AudienceScheduleRepository::user_can_cancel_others((int) $environment->schedule_id, get_current_user_id());
         }
 
         return false;
@@ -394,7 +394,7 @@ class AudienceRestController {
         }
 
         // Check for future days limit
-        $schedule = AudienceScheduleRepository::get_by_id($environment->schedule_id);
+        $schedule = AudienceScheduleRepository::get_by_id((int) $environment->schedule_id);
         if ($schedule && $schedule->future_days_limit && !current_user_can('manage_options')) {
             $max_date = date('Y-m-d', strtotime('+' . $schedule->future_days_limit . ' days'));
             if ($booking_date > $max_date) {

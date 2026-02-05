@@ -568,7 +568,7 @@ class AudienceAdminPage {
                 <?php else : ?>
                     <?php foreach ($environments as $env) : ?>
                         <?php
-                        $schedule = AudienceScheduleRepository::get_by_id($env->schedule_id);
+                        $schedule = AudienceScheduleRepository::get_by_id((int) $env->schedule_id);
                         $edit_url = admin_url('admin.php?page=' . self::MENU_SLUG . '-environments&action=edit&id=' . $env->id);
                         $delete_url = wp_nonce_url(
                             admin_url('admin.php?page=' . self::MENU_SLUG . '-environments&action=delete&id=' . $env->id),

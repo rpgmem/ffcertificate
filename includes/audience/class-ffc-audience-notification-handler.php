@@ -46,12 +46,12 @@ class AudienceNotificationHandler {
             return;
         }
 
-        $environment = AudienceEnvironmentRepository::get_by_id($booking->environment_id);
+        $environment = AudienceEnvironmentRepository::get_by_id((int) $booking->environment_id);
         if (!$environment) {
             return;
         }
 
-        $schedule = AudienceScheduleRepository::get_by_id($environment->schedule_id);
+        $schedule = AudienceScheduleRepository::get_by_id((int) $environment->schedule_id);
         if (!$schedule || !$schedule->notify_on_booking) {
             return;
         }
@@ -124,12 +124,12 @@ class AudienceNotificationHandler {
             return;
         }
 
-        $environment = AudienceEnvironmentRepository::get_by_id($booking->environment_id);
+        $environment = AudienceEnvironmentRepository::get_by_id((int) $booking->environment_id);
         if (!$environment) {
             return;
         }
 
-        $schedule = AudienceScheduleRepository::get_by_id($environment->schedule_id);
+        $schedule = AudienceScheduleRepository::get_by_id((int) $environment->schedule_id);
         if (!$schedule || !$schedule->notify_on_cancellation) {
             return;
         }
