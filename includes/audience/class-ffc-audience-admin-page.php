@@ -406,7 +406,7 @@ class AudienceAdminPage {
                         <label><?php esc_html_e('Shortcode', 'wp-ffcertificate'); ?></label>
                     </th>
                     <td>
-                        <code>[ffc_audience_calendar schedule_id="<?php echo esc_attr($id); ?>"]</code>
+                        <code>[ffc_audience schedule_id="<?php echo esc_attr($id); ?>"]</code>
                         <p class="description">
                             <?php esc_html_e('Use this shortcode to display the calendar on any page or post.', 'wp-ffcertificate'); ?>
                         </p>

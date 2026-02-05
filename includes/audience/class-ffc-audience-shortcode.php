@@ -76,9 +76,9 @@ class AudienceShortcode {
             'view' => sanitize_text_field($atts['view']),
             'schedules' => array_map(function($s) {
                 return array(
-                    'id' => $s->id,
+                    'id' => (int) $s->id,
                     'name' => $s->name,
-                    'environments' => self::get_schedule_environments($s->id),
+                    'environments' => self::get_schedule_environments((int) $s->id),
                 );
             }, $schedules),
             'canBook' => self::can_user_book($user_id, $schedules),
@@ -323,7 +323,7 @@ class AudienceShortcode {
 
         if ($specific_id > 0) {
             $schedules = array_filter($schedules, function($s) use ($specific_id) {
-                return $s->id === $specific_id;
+                return (int) $s->id === $specific_id;
             });
         }
 
