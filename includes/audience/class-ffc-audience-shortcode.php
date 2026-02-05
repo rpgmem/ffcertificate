@@ -452,6 +452,7 @@ class AudienceShortcode {
                 'loading' => __('Loading...', 'wp-ffcertificate'),
                 'error' => __('An error occurred. Please try again.', 'wp-ffcertificate'),
                 'noBookings' => __('No bookings for this day.', 'wp-ffcertificate'),
+                'noActiveBookings' => __('No active bookings for this day.', 'wp-ffcertificate'),
                 'bookingCreated' => __('Booking created successfully!', 'wp-ffcertificate'),
                 'bookingCancelled' => __('Booking cancelled successfully.', 'wp-ffcertificate'),
                 'confirmCancel' => __('Are you sure you want to cancel this booking?', 'wp-ffcertificate'),

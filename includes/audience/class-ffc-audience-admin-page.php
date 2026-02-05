@@ -501,6 +501,69 @@ class AudienceAdminPage {
             <?php submit_button($id > 0 ? __('Update Calendar', 'wp-ffcertificate') : __('Create Calendar', 'wp-ffcertificate')); ?>
         </form>
 
+        <?php if ($id > 0) : ?>
+            <!-- Holidays Section -->
+            <hr>
+            <h2><?php esc_html_e('Holidays / Closed Dates', 'wp-ffcertificate'); ?></h2>
+            <p class="description"><?php esc_html_e('Add specific dates when the calendar will be closed (holidays, maintenance, etc.).', 'wp-ffcertificate'); ?></p>
+
+            <form method="post" action="" class="ffc-holiday-form" style="margin-bottom: 20px; padding: 15px; background: #f6f7f7; border: 1px solid #ddd;">
+                <?php wp_nonce_field('add_holiday', 'ffc_holiday_nonce'); ?>
+                <input type="hidden" name="schedule_id" value="<?php echo esc_attr($id); ?>">
+                <input type="hidden" name="ffc_action" value="add_holiday">
+
+                <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                    <div>
+                        <label for="holiday_date"><strong><?php esc_html_e('Date', 'wp-ffcertificate'); ?></strong></label><br>
+                        <input type="date" name="holiday_date" id="holiday_date" required style="width: 180px;">
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <label for="holiday_description"><strong><?php esc_html_e('Description (optional)', 'wp-ffcertificate'); ?></strong></label><br>
+                        <input type="text" name="holiday_description" id="holiday_description" class="regular-text" placeholder="<?php esc_attr_e('e.g., Christmas Day', 'wp-ffcertificate'); ?>">
+                    </div>
+                    <div>
+                        <?php submit_button(__('Add Holiday', 'wp-ffcertificate'), 'secondary', 'submit', false); ?>
+                    </div>
+                </div>
+            </form>
+
+            <?php
+            $holidays = AudienceEnvironmentRepository::get_holidays($id);
+            if (!empty($holidays)) :
+            ?>
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
+                    <tr>
+                        <th style="width: 150px;"><?php esc_html_e('Date', 'wp-ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Description', 'wp-ffcertificate'); ?></th>
+                        <th style="width: 100px;"><?php esc_html_e('Actions', 'wp-ffcertificate'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($holidays as $holiday) : ?>
+                        <tr>
+                            <td><?php echo esc_html(date_i18n(get_option('date_format'), strtotime($holiday->holiday_date))); ?></td>
+                            <td><?php echo esc_html($holiday->description ?: '—'); ?></td>
+                            <td>
+                                <?php
+                                $delete_url = wp_nonce_url(
+                                    admin_url('admin.php?page=' . self::MENU_SLUG . '-calendars&action=edit&id=' . $id . '&delete_holiday=' . $holiday->id),
+                                    'delete_holiday_' . $holiday->id
+                                );
+                                ?>
+                                <a href="<?php echo esc_url($delete_url); ?>" class="button button-small" onclick="return confirm('<?php esc_attr_e('Delete this holiday?', 'wp-ffcertificate'); ?>');">
+                                    <?php esc_html_e('Delete', 'wp-ffcertificate'); ?>
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php else : ?>
+                <p><em><?php esc_html_e('No holidays defined yet.', 'wp-ffcertificate'); ?></em></p>
+            <?php endif; ?>
+        <?php endif; ?>
+
         <style>
             .ffc-form .required { color: #d63638; }
         </style>
@@ -1451,6 +1514,34 @@ class AudienceAdminPage {
             if (wp_verify_nonce(isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '', 'delete_schedule_' . $id)) {
                 AudienceScheduleRepository::delete($id);
                 wp_safe_redirect(admin_url('admin.php?page=' . self::MENU_SLUG . '-calendars&message=deleted'));
+                exit;
+            }
+        }
+
+        // Handle add holiday
+        if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'add_holiday') {
+            if (!isset($_POST['ffc_holiday_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_holiday_nonce'])), 'add_holiday')) {
+                return;
+            }
+
+            $schedule_id = isset($_POST['schedule_id']) ? absint($_POST['schedule_id']) : 0;
+            $holiday_date = isset($_POST['holiday_date']) ? sanitize_text_field(wp_unslash($_POST['holiday_date'])) : '';
+            $description = isset($_POST['holiday_description']) ? sanitize_text_field(wp_unslash($_POST['holiday_description'])) : '';
+
+            if ($schedule_id > 0 && $holiday_date) {
+                AudienceEnvironmentRepository::add_holiday($schedule_id, $holiday_date, $description);
+                $this->add_admin_notice('success', __('Holiday added successfully.', 'wp-ffcertificate'));
+            }
+        }
+
+        // Handle delete holiday
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (isset($_GET['delete_holiday']) && isset($_GET['id'])) {
+            $holiday_id = absint($_GET['delete_holiday']);
+            $schedule_id = absint($_GET['id']);
+            if (wp_verify_nonce(isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '', 'delete_holiday_' . $holiday_id)) {
+                AudienceEnvironmentRepository::remove_holiday($holiday_id);
+                wp_safe_redirect(admin_url('admin.php?page=' . self::MENU_SLUG . '-calendars&action=edit&id=' . $schedule_id . '&message=holiday_deleted'));
                 exit;
             }
         }
