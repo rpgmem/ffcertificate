@@ -417,6 +417,19 @@ class SelfSchedulingShortcode {
             </div>
         </div>
 
+        <?php
+        // Extract working days safely as integers
+        $working_days_js = array();
+        if (!empty($calendar['working_hours']) && is_array($calendar['working_hours'])) {
+            foreach ($calendar['working_hours'] as $wh) {
+                if (isset($wh['day'])) {
+                    $working_days_js[] = (int) $wh['day'];
+                }
+            }
+        }
+        $min_date_hours = isset($calendar['advance_booking_min']) ? (int) $calendar['advance_booking_min'] : 0;
+        $max_date_days = isset($calendar['advance_booking_max']) ? (int) $calendar['advance_booking_max'] : 30;
+        ?>
         <script type="text/javascript">
         jQuery(document).ready(function($) {
             // Ensure ffcCalendar is defined
@@ -425,10 +438,10 @@ class SelfSchedulingShortcode {
                 return;
             }
 
-            var calendarId = <?php echo intval( $calendar['id'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- intval() is safe ?>;
-            var workingDays = <?php echo wp_json_encode(!empty($calendar['working_hours']) && is_array($calendar['working_hours']) ? array_column($calendar['working_hours'], 'day') : []); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_json_encode() is safe for JS context ?>;
-            var minDateHours = <?php echo intval( isset($calendar['advance_booking_min']) ? $calendar['advance_booking_min'] : 0 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- intval() is safe ?>; // hours
-            var maxDateDays = <?php echo intval( isset($calendar['advance_booking_max']) ? $calendar['advance_booking_max'] : 30 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- intval() is safe ?>; // days
+            var calendarId = <?php echo (int) $calendar['id']; ?>;
+            var workingDays = <?php echo wp_json_encode($working_days_js); ?>;
+            var minDateHours = <?php echo $min_date_hours; ?>;
+            var maxDateDays = <?php echo $max_date_days; ?>;
 
             // Calculate disabled days (weekdays not in workingDays)
             var disabledDays = [];
