@@ -345,10 +345,11 @@
                         classes.push('ffc-closed');
                     }
 
-                    // Mark available days (not past, not closed, not holiday, not other month)
+                    // Mark available days (not past, not closed, not holiday, not other month, within booking window)
                     var isOtherMonth = classes.indexOf('ffc-other-month') !== -1;
                     var isPast = classes.indexOf('ffc-past') !== -1;
-                    if (!isOtherMonth && !isPast && !isClosed && !isHoliday) {
+                    var isWithinBookingWindow = checkWithinBookingWindow(cellDate);
+                    if (!isOtherMonth && !isPast && !isClosed && !isHoliday && isWithinBookingWindow) {
                         classes.push('ffc-available');
                     }
 
@@ -441,6 +442,47 @@
     function getBookingCount(dateStr) {
         var bookings = state.bookings[dateStr] || [];
         return bookings.filter(function(b) { return b.status === 'active'; }).length;
+    }
+
+    /**
+     * Check if a date is within the booking window (based on futureDaysLimit)
+     */
+    function checkWithinBookingWindow(date) {
+        // Get the selected schedule's future days limit
+        var schedules = state.config.schedules || [];
+        var futureDaysLimit = null;
+
+        if (state.selectedSchedule > 0) {
+            // Find the selected schedule
+            for (var i = 0; i < schedules.length; i++) {
+                if (schedules[i].id === state.selectedSchedule) {
+                    futureDaysLimit = schedules[i].futureDaysLimit;
+                    break;
+                }
+            }
+        } else {
+            // No schedule selected - use the minimum limit from all schedules (if any have limits)
+            for (var j = 0; j < schedules.length; j++) {
+                var limit = schedules[j].futureDaysLimit;
+                if (limit !== null && limit > 0) {
+                    if (futureDaysLimit === null || limit < futureDaysLimit) {
+                        futureDaysLimit = limit;
+                    }
+                }
+            }
+        }
+
+        // If no limit, all future dates are within window
+        if (futureDaysLimit === null || futureDaysLimit <= 0) {
+            return true;
+        }
+
+        // Calculate max date
+        var maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() + futureDaysLimit);
+        maxDate.setHours(23, 59, 59, 999);
+
+        return date <= maxDate;
     }
 
     /**

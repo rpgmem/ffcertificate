@@ -503,8 +503,11 @@ class SelfSchedulingShortcode {
                     var classes = [];
                     var weekday = date.getDay();
 
-                    // Mark working days as available
-                    if (workingDays.indexOf(weekday) !== -1) {
+                    // Check if date is within booking window
+                    var isWithinWindow = date >= minDate && date <= maxDate;
+
+                    // Mark working days as available (only if within booking window)
+                    if (workingDays.indexOf(weekday) !== -1 && isWithinWindow) {
                         classes.push('ffc-available');
                     }
 

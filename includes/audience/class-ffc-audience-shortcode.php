@@ -79,6 +79,7 @@ class AudienceShortcode {
                     'id' => (int) $s->id,
                     'name' => $s->name,
                     'environments' => self::get_schedule_environments((int) $s->id),
+                    'futureDaysLimit' => isset($s->future_days_limit) ? (int) $s->future_days_limit : null,
                 );
             }, $schedules),
             'canBook' => self::can_user_book($user_id, $schedules),
