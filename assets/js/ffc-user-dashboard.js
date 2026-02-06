@@ -439,7 +439,7 @@
                 html += '<td>';
                 if (booking.audiences && booking.audiences.length > 0) {
                     booking.audiences.forEach(function(audience) {
-                        html += '<span class="ffc-audience-tag" style="background-color: ' + audience.color + '; color: #fff; padding: 2px 8px; border-radius: 3px; margin-right: 5px; font-size: 12px;">';
+                        html += '<span class="ffc-audience-tag" style="background-color: ' + audience.color + '; color: #fff; padding: 2px 8px; border-radius: 3px; font-size: 12px;">';
                         html += audience.name;
                         html += '</span>';
                     });
