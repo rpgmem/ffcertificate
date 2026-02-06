@@ -124,7 +124,7 @@
         });
 
         // Day click - scoped to audience calendar only
-        $('#ffc-audience-calendar').on('click', '.ffc-day:not(.ffc-past)', function() {
+        $('#ffc-audience-calendar').on('click', '.ffc-day:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month)', function() {
             var date = $(this).data('date');
             if (date) {
                 openDayModal(date);
@@ -344,6 +344,7 @@
                     var isHoliday = state.holidays[dateStr];
                     if (isHoliday) {
                         classes.push('ffc-holiday');
+                        classes.push('ffc-disabled');
                     }
 
                     // Check for closed weekdays
@@ -351,6 +352,7 @@
                     var isClosed = state.closedWeekdays && state.closedWeekdays.indexOf(weekday) !== -1;
                     if (isClosed && !isHoliday) {
                         classes.push('ffc-closed');
+                        classes.push('ffc-disabled');
                     }
 
                     // Mark available days (not past, not closed, not holiday, not other month, within booking window)

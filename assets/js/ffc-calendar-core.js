@@ -257,6 +257,7 @@
                     var isHoliday = this.options.holidays[dateStr];
                     if (isHoliday) {
                         classes.push('ffc-holiday');
+                        classes.push('ffc-disabled');
                     }
 
                     // Check if selected

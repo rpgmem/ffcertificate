@@ -150,10 +150,22 @@
 
 .ffc-day.ffc-holiday {
     background: #fff5f5;
+    cursor: default;
+}
+
+.ffc-day.ffc-holiday:hover {
+    border-color: var(--ffc-gray-200);
+    box-shadow: none;
 }
 
 .ffc-day.ffc-closed {
     background: var(--ffc-gray-100);
+    cursor: default;
+}
+
+.ffc-day.ffc-closed:hover {
+    border-color: var(--ffc-gray-200);
+    box-shadow: none;
 }
 
 .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month) {
