@@ -555,49 +555,70 @@ class AudienceRestController {
                 ), 400);
             }
 
-            // Check environment time slot conflicts
-            $env_conflicts = AudienceBookingRepository::get_conflicts($environment_id, $booking_date, $start_time, $end_time);
-
-            if (!empty($env_conflicts)) {
-                return new \WP_REST_Response(array(
-                    'success' => true,
-                    'conflicts' => array(
-                        'type' => 'environment',
-                        'message' => __('Time slot already booked for this environment.', 'wp-ffcertificate'),
-                        'bookings' => array_map(function($b) {
-                            return array(
-                                'id' => $b->id,
-                                'start_time' => $b->start_time,
-                                'end_time' => $b->end_time,
-                            );
-                        }, $env_conflicts),
-                    ),
-                ), 200);
-            }
-
-            // Check user conflicts (members with overlapping bookings)
-            $user_conflicts = AudienceBookingRepository::get_user_conflicts(
-                $booking_date,
-                $start_time,
-                $end_time,
-                $audience_ids,
-                $user_ids
+            $response_data = array(
+                'type' => 'none',
+                'bookings' => array(),
+                'affected_users' => array(),
+                'audience_same_day' => array(),
             );
 
-            return new \WP_REST_Response(array(
-                'success' => true,
-                'conflicts' => array(
-                    'type' => 'user',
-                    'bookings' => array_map(function($b) {
+            // 1. Check environment time slot conflicts (hard conflict)
+            $env_conflicts = AudienceBookingRepository::get_conflicts($environment_id, $booking_date, $start_time, $end_time);
+            if (!empty($env_conflicts)) {
+                $response_data['type'] = 'environment';
+                $response_data['message'] = __('Time slot already booked for this environment.', 'wp-ffcertificate');
+                $response_data['bookings'] = array_map(function($b) {
+                    return array(
+                        'id' => $b->id,
+                        'start_time' => $b->start_time,
+                        'end_time' => $b->end_time,
+                    );
+                }, $env_conflicts);
+            }
+
+            // 2. Check user conflicts — members with overlapping bookings (soft conflict)
+            if ($response_data['type'] !== 'environment') {
+                $user_conflicts = AudienceBookingRepository::get_user_conflicts(
+                    $booking_date,
+                    $start_time,
+                    $end_time,
+                    $audience_ids,
+                    $user_ids
+                );
+
+                if (!empty($user_conflicts['bookings'])) {
+                    $response_data['type'] = 'user';
+                    $response_data['bookings'] = array_map(function($b) {
                         return array(
                             'id' => $b->id,
                             'start_time' => $b->start_time,
                             'end_time' => $b->end_time,
                             'description' => $b->description,
                         );
-                    }, $user_conflicts['bookings']),
-                    'affected_users' => $user_conflicts['affected_users'],
-                ),
+                    }, $user_conflicts['bookings']);
+                    $response_data['affected_users'] = $user_conflicts['affected_users'];
+                }
+            }
+
+            // 3. Check same audience group on same day (soft conflict / warning)
+            if (!empty($audience_ids)) {
+                $same_day = AudienceBookingRepository::get_audience_same_day_bookings($booking_date, $audience_ids);
+                if (!empty($same_day)) {
+                    $response_data['audience_same_day'] = array_map(function($b) {
+                        return array(
+                            'id' => (int) $b->id,
+                            'start_time' => $b->start_time,
+                            'end_time' => $b->end_time,
+                            'description' => $b->description ?? '',
+                            'audience_name' => $b->audience_name,
+                        );
+                    }, $same_day);
+                }
+            }
+
+            return new \WP_REST_Response(array(
+                'success' => true,
+                'conflicts' => $response_data,
             ), 200);
         } catch (\Exception $e) {
             return new \WP_REST_Response(array(

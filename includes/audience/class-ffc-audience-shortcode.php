@@ -221,11 +221,20 @@ class AudienceShortcode {
                             <span class="ffc-char-count"><span id="desc-char-count">0</span>/300</span>
                         </div>
 
-                        <!-- Conflict Warning -->
-                        <div class="ffc-conflict-warning" id="ffc-conflict-warning" style="display: none;">
+                        <!-- Soft Conflict Warning (user overlap / audience same day) -->
+                        <div class="ffc-conflict-warning ffc-conflict-soft" id="ffc-conflict-warning" style="display: none;">
                             <span class="dashicons dashicons-warning"></span>
-                            <p><?php esc_html_e('Warning: Some selected members already have bookings at this time. You may proceed with the booking.', 'wp-ffcertificate'); ?></p>
                             <div class="ffc-conflict-details" id="ffc-conflict-details"></div>
+                            <label class="ffc-conflict-acknowledge">
+                                <input type="checkbox" id="ffc-conflict-acknowledge">
+                                <?php esc_html_e('I am aware of the conflicts and want to proceed.', 'wp-ffcertificate'); ?>
+                            </label>
+                        </div>
+
+                        <!-- Hard Conflict Error (environment double-booking) -->
+                        <div class="ffc-conflict-error" id="ffc-conflict-error" style="display: none;">
+                            <span class="dashicons dashicons-dismiss"></span>
+                            <div class="ffc-conflict-error-details" id="ffc-conflict-error-details"></div>
                         </div>
                     </form>
                 </div>
@@ -480,6 +489,10 @@ class AudienceShortcode {
                 'selectUser' => __('Please select at least one user.', 'wp-ffcertificate'),
                 'descriptionRequired' => __('Description is required (15-300 characters).', 'wp-ffcertificate'),
                 'conflictWarning' => __('Warning: Conflicts detected with existing bookings.', 'wp-ffcertificate'),
+                'audienceSameDayWarning' => __('Warning: The following groups already have bookings on this day:', 'wp-ffcertificate'),
+                'membersOverlapping' => __('member(s) have overlapping bookings.', 'wp-ffcertificate'),
+                'hardConflict' => __('This time slot is already booked for this environment. You cannot create a booking at this time.', 'wp-ffcertificate'),
+                'noConflicts' => __('No conflicts found. You may proceed.', 'wp-ffcertificate'),
                 'months' => array(
                     __('January', 'wp-ffcertificate'),
                     __('February', 'wp-ffcertificate'),

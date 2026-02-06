@@ -782,6 +782,54 @@ class AudienceBookingRepository {
     }
 
     /**
+     * Find bookings on the same date that include any of the given audience groups
+     *
+     * This is a "soft conflict" check — same audience group booked multiple times
+     * on the same day (regardless of time overlap).
+     *
+     * @param string $date Date (Y-m-d)
+     * @param array<int> $audience_ids Audience IDs to check
+     * @param int|null $exclude_booking_id Booking ID to exclude (for updates)
+     * @return array<object> Bookings with matched audience info
+     */
+    public static function get_audience_same_day_bookings(
+        string $date,
+        array $audience_ids,
+        ?int $exclude_booking_id = null
+    ): array {
+        global $wpdb;
+        $table = self::get_table_name();
+        $ba_table = self::get_booking_audiences_table_name();
+        $audiences_table = AudienceRepository::get_table_name();
+
+        if (empty($audience_ids)) {
+            return array();
+        }
+
+        $placeholders = implode(',', array_fill(0, count($audience_ids), '%d'));
+        $exclude_clause = $exclude_booking_id ? $wpdb->prepare("AND b.id != %d", $exclude_booking_id) : '';
+
+        $values = array($date);
+        $values = array_merge($values, $audience_ids);
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT b.id, b.start_time, b.end_time, b.description, a.name AS audience_name, ba.audience_id
+                FROM {$table} b
+                INNER JOIN {$ba_table} ba ON b.id = ba.booking_id
+                INNER JOIN {$audiences_table} a ON ba.audience_id = a.id
+                WHERE b.booking_date = %s
+                AND b.status = 'active'
+                AND ba.audience_id IN ({$placeholders})
+                {$exclude_clause}
+                ORDER BY a.name ASC, b.start_time ASC",
+                $values
+            )
+        );
+    }
+
+    /**
      * Count bookings
      *
      * @param array $args Query arguments

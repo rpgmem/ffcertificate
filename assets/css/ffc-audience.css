@@ -555,6 +555,42 @@
     margin-top: 10px;
 }
 
+.ffc-conflict-acknowledge {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ffc-conflict-acknowledge input[type="checkbox"] {
+    margin-top: 2px;
+}
+
+/* Hard Conflict Error */
+.ffc-conflict-error {
+    background: #fef2f2;
+    border: 1px solid var(--ffc-danger);
+    border-radius: var(--ffc-radius-sm);
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.ffc-conflict-error .dashicons {
+    color: var(--ffc-danger);
+    float: left;
+    margin-right: 10px;
+    font-size: 24px;
+}
+
+.ffc-conflict-error-details {
+    font-size: 13px;
+    color: var(--ffc-gray-700);
+    margin-top: 5px;
+}
+
 /* Day Detail Bookings */
 .ffc-day-bookings {
     max-height: 400px;
