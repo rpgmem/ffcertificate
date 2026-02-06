@@ -147,6 +147,8 @@ class SelfSchedulingShortcode {
                 'fillRequired' => __('Please fill all required fields', 'wp-ffcertificate'),
                 'consentRequired' => __('You must agree to the terms', 'wp-ffcertificate'),
                 'loading' => __('Loading...', 'wp-ffcertificate'),
+                'availableTimes' => __('Available Times', 'wp-ffcertificate'),
+                'yourInformation' => __('Your Information', 'wp-ffcertificate'),
                 'noSlots' => __('No available slots for this date', 'wp-ffcertificate'),
                 'success' => __('Appointment booked successfully!', 'wp-ffcertificate'),
                 'error' => __('An error occurred. Please try again.', 'wp-ffcertificate'),
@@ -302,128 +304,139 @@ class SelfSchedulingShortcode {
             <div id="ffc-calendar-container-<?php echo esc_attr($calendar['id']); ?>" class="ffc-calendar-container"></div>
             <input type="hidden" id="ffc-selected-date" name="selected_date" value="">
 
-            <!-- Time Slots -->
-            <div class="ffc-timeslots-wrapper" style="display: none;">
-                <h3><?php esc_html_e('Available Times', 'wp-ffcertificate'); ?></h3>
-                <div class="ffc-timeslots-loading">
-                    <div class="ffc-spinner"></div>
-                    <p><?php esc_html_e('Loading available slots...', 'wp-ffcertificate'); ?></p>
+            <!-- Booking Modal (time slots + form) -->
+            <div class="ffc-modal" id="ffc-booking-modal" style="display: none;">
+                <div class="ffc-modal-backdrop"></div>
+                <div class="ffc-modal-content ffc-modal-lg">
+                    <div class="ffc-modal-header">
+                        <h3 class="ffc-modal-title"><?php esc_html_e('Available Times', 'wp-ffcertificate'); ?></h3>
+                        <button type="button" class="ffc-modal-close">&times;</button>
+                    </div>
+                    <div class="ffc-modal-body">
+
+                        <!-- Step 1: Time Slots -->
+                        <div class="ffc-timeslots-wrapper">
+                            <div class="ffc-timeslots-loading">
+                                <div class="ffc-spinner"></div>
+                                <p><?php esc_html_e('Loading available slots...', 'wp-ffcertificate'); ?></p>
+                            </div>
+                            <div id="ffc-timeslots-container" class="ffc-timeslots-grid"></div>
+                        </div>
+
+                        <!-- Step 2: Booking Form (hidden until time slot selected) -->
+                        <div class="ffc-booking-form-wrapper" style="display: none;">
+                            <form id="ffc-booking-form" class="ffc-booking-form" autocomplete="off">
+                                <?php wp_nonce_field('ffc_self_scheduling_nonce', 'nonce'); ?>
+                                <input type="hidden" name="action" value="ffc_book_appointment">
+                                <input type="hidden" name="calendar_id" value="<?php echo esc_attr($calendar['id']); ?>">
+                                <input type="hidden" name="date" id="ffc-form-date" value="">
+                                <input type="hidden" name="time" id="ffc-form-time" value="">
+
+                                <div class="ffc-form-row">
+                                    <label for="ffc-booking-name">
+                                        <?php esc_html_e('Name', 'wp-ffcertificate'); ?> <span class="required">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="ffc-booking-name"
+                                        name="name"
+                                        value="<?php echo $is_logged_in ? esc_attr($user->display_name) : ''; ?>"
+                                        required
+                                        <?php echo esc_attr( $is_logged_in ? 'readonly' : '' ); ?>
+                                    >
+                                </div>
+
+                                <div class="ffc-form-row">
+                                    <label for="ffc-booking-email">
+                                        <?php esc_html_e('Email', 'wp-ffcertificate'); ?> <span class="required">*</span>
+                                    </label>
+                                    <input
+                                        type="email"
+                                        id="ffc-booking-email"
+                                        name="email"
+                                        value="<?php echo $is_logged_in ? esc_attr($user->user_email) : ''; ?>"
+                                        required
+                                        <?php echo esc_attr( $is_logged_in ? 'readonly' : '' ); ?>
+                                    >
+                                </div>
+
+                                <div class="ffc-form-row">
+                                    <label for="ffc-booking-cpf-rf">
+                                        <?php esc_html_e('CPF / RF', 'wp-ffcertificate'); ?> <span class="required">*</span>
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        id="ffc-booking-cpf-rf"
+                                        name="cpf_rf"
+                                        maxlength="14"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="ffc-form-row">
+                                    <label for="ffc-booking-notes">
+                                        <?php esc_html_e('Notes (optional)', 'wp-ffcertificate'); ?>
+                                    </label>
+                                    <textarea id="ffc-booking-notes" name="notes" rows="3"></textarea>
+                                </div>
+
+                                <!-- Security Fields (Honeypot + Math Captcha) -->
+                                <?php
+                                $captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
+                                ?>
+                                <div class="ffc-security-container">
+                                    <!-- Honeypot Field -->
+                                    <div class="ffc-honeypot-field">
+                                        <label><?php esc_html_e('Do not fill this field if you are human:', 'wp-ffcertificate'); ?></label>
+                                        <input type="text" name="ffc_honeypot_trap" value="" tabindex="-1" autocomplete="off">
+                                    </div>
+
+                                    <!-- Math Captcha -->
+                                    <div class="ffc-captcha-row">
+                                        <label for="ffc_captcha_ans">
+                                            <?php echo wp_kses_post( $captcha['label'] ); ?>
+                                        </label>
+                                        <input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans" class="ffc-input" required>
+                                        <input type="hidden" name="ffc_captcha_hash" id="ffc_captcha_hash" value="<?php echo esc_attr($captcha['hash']); ?>">
+                                    </div>
+                                </div>
+
+                                <!-- LGPD Consent -->
+                                <div class="ffc-form-row ffc-consent-row">
+                                    <label class="ffc-consent-label">
+                                        <input type="checkbox" id="ffc-booking-consent" name="consent" value="1" required>
+                                        <?php
+                                        echo wp_kses_post( sprintf(
+                                            /* translators: %s: value */
+                                            __('I agree to the collection and processing of my personal data in accordance with the <a href="%s" target="_blank">Privacy Policy</a> (LGPD).', 'wp-ffcertificate'),
+                                            esc_url( get_privacy_policy_url() )
+                                        ) );
+                                        ?>
+                                        <span class="required">*</span>
+                                    </label>
+                                    <input type="hidden" name="consent_text" value="<?php echo esc_attr(__('User consented to data collection for appointment booking.', 'wp-ffcertificate')); ?>">
+                                </div>
+
+                                <!-- Submit Button -->
+                                <div class="ffc-form-row ffc-submit-row">
+                                    <button type="submit" class="ffc-btn ffc-btn-primary">
+                                        <?php esc_html_e('Book Appointment', 'wp-ffcertificate'); ?>
+                                    </button>
+                                    <button type="button" class="ffc-btn ffc-btn-secondary ffc-btn-back">
+                                        <?php esc_html_e('← Back', 'wp-ffcertificate'); ?>
+                                    </button>
+                                </div>
+
+                                <!-- Messages -->
+                                <div class="ffc-form-messages"></div>
+                            </form>
+                        </div>
+
+                    </div>
                 </div>
-                <div id="ffc-timeslots-container" class="ffc-timeslots-grid"></div>
             </div>
 
-            <!-- Booking Form -->
-            <div class="ffc-booking-form-wrapper" style="display: none;">
-                <h3><?php esc_html_e('Your Information', 'wp-ffcertificate'); ?></h3>
-
-                <form id="ffc-booking-form" class="ffc-booking-form" autocomplete="off">
-                    <?php wp_nonce_field('ffc_self_scheduling_nonce', 'nonce'); ?>
-                    <input type="hidden" name="action" value="ffc_book_appointment">
-                    <input type="hidden" name="calendar_id" value="<?php echo esc_attr($calendar['id']); ?>">
-                    <input type="hidden" name="date" id="ffc-form-date" value="">
-                    <input type="hidden" name="time" id="ffc-form-time" value="">
-
-                    <div class="ffc-form-row">
-                        <label for="ffc-booking-name">
-                            <?php esc_html_e('Name', 'wp-ffcertificate'); ?> <span class="required">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            id="ffc-booking-name"
-                            name="name"
-                            value="<?php echo $is_logged_in ? esc_attr($user->display_name) : ''; ?>"
-                            required
-                            <?php echo esc_attr( $is_logged_in ? 'readonly' : '' ); ?>
-                        >
-                    </div>
-
-                    <div class="ffc-form-row">
-                        <label for="ffc-booking-email">
-                            <?php esc_html_e('Email', 'wp-ffcertificate'); ?> <span class="required">*</span>
-                        </label>
-                        <input
-                            type="email"
-                            id="ffc-booking-email"
-                            name="email"
-                            value="<?php echo $is_logged_in ? esc_attr($user->user_email) : ''; ?>"
-                            required
-                            <?php echo esc_attr( $is_logged_in ? 'readonly' : '' ); ?>
-                        >
-                    </div>
-
-                    <div class="ffc-form-row">
-                        <label for="ffc-booking-cpf-rf">
-                            <?php esc_html_e('CPF / RF', 'wp-ffcertificate'); ?> <span class="required">*</span>
-                        </label>
-                        <input
-                            type="tel"
-                            id="ffc-booking-cpf-rf"
-                            name="cpf_rf"
-                            maxlength="14"
-                            required
-                        >
-                    </div>
-
-                    <div class="ffc-form-row">
-                        <label for="ffc-booking-notes">
-                            <?php esc_html_e('Notes (optional)', 'wp-ffcertificate'); ?>
-                        </label>
-                        <textarea id="ffc-booking-notes" name="notes" rows="3"></textarea>
-                    </div>
-
-                    <!-- Security Fields (Honeypot + Math Captcha) -->
-                    <?php
-                    $captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
-                    ?>
-                    <div class="ffc-security-container">
-                        <!-- Honeypot Field -->
-                        <div class="ffc-honeypot-field">
-                            <label><?php esc_html_e('Do not fill this field if you are human:', 'wp-ffcertificate'); ?></label>
-                            <input type="text" name="ffc_honeypot_trap" value="" tabindex="-1" autocomplete="off">
-                        </div>
-
-                        <!-- Math Captcha -->
-                        <div class="ffc-captcha-row">
-                            <label for="ffc_captcha_ans">
-                                <?php echo wp_kses_post( $captcha['label'] ); ?>
-                            </label>
-                            <input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans" class="ffc-input" required>
-                            <input type="hidden" name="ffc_captcha_hash" id="ffc_captcha_hash" value="<?php echo esc_attr($captcha['hash']); ?>">
-                        </div>
-                    </div>
-
-                    <!-- LGPD Consent -->
-                    <div class="ffc-form-row ffc-consent-row">
-                        <label class="ffc-consent-label">
-                            <input type="checkbox" id="ffc-booking-consent" name="consent" value="1" required>
-                            <?php
-                            echo wp_kses_post( sprintf(
-                                /* translators: %s: value */
-                                __('I agree to the collection and processing of my personal data in accordance with the <a href="%s" target="_blank">Privacy Policy</a> (LGPD).', 'wp-ffcertificate'),
-                                esc_url( get_privacy_policy_url() )
-                            ) );
-                            ?>
-                            <span class="required">*</span>
-                        </label>
-                        <input type="hidden" name="consent_text" value="<?php echo esc_attr(__('User consented to data collection for appointment booking.', 'wp-ffcertificate')); ?>">
-                    </div>
-
-                    <!-- Submit Button -->
-                    <div class="ffc-form-row ffc-submit-row">
-                        <button type="submit" class="ffc-btn ffc-btn-primary">
-                            <?php esc_html_e('Book Appointment', 'wp-ffcertificate'); ?>
-                        </button>
-                        <button type="button" class="ffc-btn ffc-btn-secondary ffc-btn-back">
-                            <?php esc_html_e('← Back to Date Selection', 'wp-ffcertificate'); ?>
-                        </button>
-                    </div>
-
-                    <!-- Messages -->
-                    <div class="ffc-form-messages"></div>
-                </form>
-            </div>
-
-            <!-- Confirmation Message -->
+            <!-- Confirmation Message (shown after successful booking, outside modal) -->
             <div class="ffc-confirmation-wrapper" style="display: none;">
                 <div class="ffc-confirmation-success">
                     <div class="ffc-success-icon">✓</div>

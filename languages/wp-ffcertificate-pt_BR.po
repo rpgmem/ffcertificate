@@ -5459,9 +5459,12 @@ msgstr ""
 msgid "User consented to data collection for appointment booking."
 msgstr "Usuário consentiu com a coleta de dados para agendamento."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:390
-msgid "← Back to Date Selection"
-msgstr "← Voltar à Seleção de Datas"
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "← Back"
+msgstr "← Voltar"
+
+#~ msgid "← Back to Date Selection"
+#~ msgstr "← Voltar à Seleção de Datas"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:408
 msgid ""

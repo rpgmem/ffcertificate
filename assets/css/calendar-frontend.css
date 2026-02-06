@@ -33,10 +33,6 @@
    TIME SLOTS SECTION
    ========================================================================== */
 
-.ffc-timeslots-wrapper {
-    border-top: 1px solid var(--ffc-gray-200);
-}
-
 .ffc-timeslots-wrapper h3 {
     margin: 0;
     padding: 15px 20px;
@@ -136,10 +132,6 @@
    BOOKING FORM SECTION
    ========================================================================== */
 
-.ffc-booking-form-wrapper {
-    border-top: 1px solid var(--ffc-gray-200);
-}
-
 .ffc-booking-form-wrapper h3 {
     margin: 0;
     padding: 15px 20px;
@@ -155,6 +147,7 @@
 }
 
 .ffc-booking-form .ffc-form-row {
+    display: block;
     margin-bottom: 15px;
 }
 
