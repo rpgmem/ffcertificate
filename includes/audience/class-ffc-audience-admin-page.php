@@ -161,78 +161,60 @@ class AudienceAdminPage {
             return;
         }
 
-        $items = &$submenu[self::MENU_SLUG];
-
-        // Remove the auto-generated first submenu item (WP duplicates the parent page)
-        foreach ($items as $index => $item) {
-            if ($item[2] === self::MENU_SLUG) {
-                unset($items[$index]);
-                break;
-            }
-        }
-        $items = array_values($items);
-
-        // Find positions to insert separators
-        $self_pos = null;
-        $audience_pos = null;
-        $tools_pos = null;
-
-        foreach ($items as $index => $item) {
-            // $item[2] is the menu slug
-            // First CPT item = Personal Calendars (slug contains post_type=ffc_self_scheduling)
-            if ($self_pos === null && strpos($item[2] ?? '', 'ffc_self_scheduling') !== false) {
-                $self_pos = $index;
-            }
-            if ($item[2] === self::MENU_SLUG . '-dashboard') {
-                $audience_pos = $index;
-            }
-            if ($item[2] === self::MENU_SLUG . '-import') {
-                $tools_pos = $index;
-            }
+        // Index all items by slug for easy lookup
+        $by_slug = array();
+        foreach ($submenu[self::MENU_SLUG] as $item) {
+            $by_slug[$item[2]] = $item;
         }
 
-        // Insert separators (in reverse order to preserve positions)
-        if ($tools_pos !== null) {
-            $this->insert_submenu_separator($items, $tools_pos, 'tools');
-        }
-        if ($audience_pos !== null) {
-            $this->insert_submenu_separator($items, $audience_pos, 'audience');
-        }
-        if ($self_pos !== null) {
-            $this->insert_submenu_separator($items, $self_pos, 'self');
-        }
-    }
-
-    /**
-     * Insert a separator entry before a given submenu position
-     *
-     * @param array &$items Submenu items array (by reference)
-     * @param int $before_index Index to insert before
-     * @param string $label Section label
-     * @return void
-     */
-    private function insert_submenu_separator(array &$items, int $before_index, string $key): void {
-        $labels = array(
-            'self'     => __('Self', 'wp-ffcertificate'),
-            'audience' => __('Audience', 'wp-ffcertificate'),
-            'tools'    => __('Tools', 'wp-ffcertificate'),
+        // Define the desired order with separators
+        $ordered_slugs = array(
+            // Self section
+            '#ffc-separator-self',
+            'edit.php?post_type=ffc_self_scheduling',               // Personal Calendars
+            'post-new.php?post_type=ffc_self_scheduling',           // New Personal Calendar
+            'ffc-appointments',                                      // Appointments
+            // Audience section
+            '#ffc-separator-audience',
+            self::MENU_SLUG . '-dashboard',                          // Dashboard
+            self::MENU_SLUG . '-calendars',                          // Audience Calendars
+            self::MENU_SLUG . '-environments',                       // Environments
+            self::MENU_SLUG . '-audiences',                          // Audiences
+            self::MENU_SLUG . '-bookings',                           // Audience Bookings
+            // Tools section
+            '#ffc-separator-tools',
+            self::MENU_SLUG . '-import',                             // Import
+            self::MENU_SLUG . '-settings',                           // Settings
         );
 
-        $separator = array(
-            $labels[$key] ?? $key,
-            'manage_options',
-            '#ffc-separator-' . $key,
+        // Build separators
+        $separators = array(
+            '#ffc-separator-self'     => array(__('Self', 'wp-ffcertificate'), 'manage_options', '#ffc-separator-self'),
+            '#ffc-separator-audience' => array(__('Audience', 'wp-ffcertificate'), 'manage_options', '#ffc-separator-audience'),
+            '#ffc-separator-tools'    => array(__('Tools', 'wp-ffcertificate'), 'manage_options', '#ffc-separator-tools'),
         );
 
+        // Rebuild submenu in the desired order
         $new_items = array();
-        foreach ($items as $index => $item) {
-            if ($index === $before_index) {
-                $new_items[] = $separator;
+        foreach ($ordered_slugs as $slug) {
+            if (isset($separators[$slug])) {
+                $new_items[] = $separators[$slug];
+            } elseif (isset($by_slug[$slug])) {
+                $new_items[] = $by_slug[$slug];
             }
-            $new_items[] = $item;
         }
 
-        $items = $new_items;
+        // Append any remaining items not in our ordered list (safety net)
+        foreach ($by_slug as $slug => $item) {
+            if ($slug === self::MENU_SLUG) {
+                continue; // Skip the auto-generated parent duplicate
+            }
+            if (!in_array($slug, $ordered_slugs, true)) {
+                $new_items[] = $item;
+            }
+        }
+
+        $submenu[self::MENU_SLUG] = $new_items;
     }
 
     /**
