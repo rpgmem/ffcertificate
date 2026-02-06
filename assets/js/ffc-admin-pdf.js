@@ -259,8 +259,8 @@
 
     // Sample data for placeholder replacement
     var sampleData = {
-        'name': 'Maria Silva de Oliveira',
-        'email': 'maria.silva@example.com',
+        'name': 'John Doe',
+        'email': 'john_doe@example.com',
         'cpf_rf': '123.456.789-00',
         'cpf': '123.456.789-00',
         'auth_code': 'A1B2-C3D4-E5F6',
@@ -271,7 +271,7 @@
         'date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
         'submission_id': '1234',
         'magic_token': 'abc123def456ghi789jkl012',
-        'ticket': 'TK01-AB2C'
+        'ticket': 'TK01-AB2C-3D4E'
     };
 
     // Collect field names from builder as additional sample data
