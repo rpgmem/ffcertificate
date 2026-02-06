@@ -285,9 +285,7 @@
 }
 
 .ffc-appointments-table .ffc-cancel-appointment {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+    display: inline-block;
     padding: 5px 12px;
     font-size: 12px;
     line-height: 1.4;
@@ -299,6 +297,7 @@
     cursor: pointer;
     white-space: nowrap;
     vertical-align: middle;
+    text-align: center;
 }
 
 .ffc-appointments-table .ffc-cancel-appointment:hover {

@@ -296,7 +296,7 @@
 
                 if (apt.can_cancel) {
                     html += '<button class="button ffc-cancel-appointment" data-id="' + apt.id + '">';
-                    html += '❌ ' + ffcDashboard.strings.cancelAppointment;
+                    html += ffcDashboard.strings.cancelAppointment;
                     html += '</button>';
                 }
 
