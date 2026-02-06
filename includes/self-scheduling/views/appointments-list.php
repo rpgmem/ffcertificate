@@ -112,21 +112,24 @@ class FFC_Appointments_List_Table extends WP_List_Table {
             __('View', 'wp-ffcertificate')
         );
 
-        // Add receipt link (magic link to /valid/ page)
-        $confirmation_token = $item['confirmation_token'] ?? '';
-        if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
-            $receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
-        } else {
-            $receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
-                (int)$item['id'],
-                $confirmation_token
+        // Add receipt link (magic link to /valid/ page) - not for cancelled appointments
+        $item_status = $item['status'] ?? 'pending';
+        if ( $item_status !== 'cancelled' ) {
+            $confirmation_token = $item['confirmation_token'] ?? '';
+            if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
+                $receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
+            } else {
+                $receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
+                    (int)$item['id'],
+                    $confirmation_token
+                );
+            }
+            $actions['receipt'] = sprintf(
+                '<a href="%s" target="_blank">%s</a>',
+                esc_url($receipt_url),
+                __('View Receipt', 'wp-ffcertificate')
             );
         }
-        $actions['receipt'] = sprintf(
-            '<a href="%s" target="_blank">%s</a>',
-            esc_url($receipt_url),
-            __('View Receipt', 'wp-ffcertificate')
-        );
 
         return sprintf('#%d %s', $item['id'], $this->row_actions($actions));
     }

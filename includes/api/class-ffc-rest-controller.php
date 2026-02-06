@@ -1242,17 +1242,19 @@ class RestController {
 
                 $status = $appointment['status'] ?? 'pending';
 
-                // Generate receipt URL (magic link to /valid/ page)
+                // Generate receipt URL (magic link to /valid/ page) - not for cancelled appointments
                 $receipt_url = '';
-                $confirmation_token = $appointment['confirmation_token'] ?? '';
-                if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
-                    $receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
-                } elseif (class_exists('\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler')) {
-                    // Fallback to legacy receipt URL
-                    $receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
-                        (int) $appointment['id'],
-                        $confirmation_token
-                    );
+                if ( $status !== 'cancelled' ) {
+                    $confirmation_token = $appointment['confirmation_token'] ?? '';
+                    if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
+                        $receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
+                    } elseif (class_exists('\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler')) {
+                        // Fallback to legacy receipt URL
+                        $receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
+                            (int) $appointment['id'],
+                            $confirmation_token
+                        );
+                    }
                 }
 
                 // Determine if user can cancel this appointment
