@@ -242,6 +242,9 @@ class FFC_Autoloader {
             // User Dashboard namespace
             'UserDashboard' => 'user-dashboard',
 
+            // Scheduling namespace (v4.6.0) - Shared scheduling services
+            'Scheduling' => 'scheduling',
+
             // Self-Scheduling namespace (v4.5.0) - User self-booking system
             'SelfScheduling' => 'self-scheduling',
 

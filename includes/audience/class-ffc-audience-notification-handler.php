@@ -207,12 +207,8 @@ class AudienceNotificationHandler {
      * @return bool
      */
     private static function send_email(string $to, string $subject, string $body, ?string $ics_content = null): bool {
-        $headers = array(
-            'Content-Type: text/html; charset=UTF-8',
-            'From: ' . get_bloginfo('name') . ' <' . get_option('admin_email') . '>',
-        );
-
         $attachments = array();
+        $temp_files = array();
 
         // Create temporary ICS file if content provided
         if ($ics_content) {
@@ -222,22 +218,18 @@ class AudienceNotificationHandler {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
             if (file_put_contents($ics_file, $ics_content)) {
                 $attachments[] = $ics_file;
+                $temp_files[] = $ics_file;
             }
         }
 
-        // Wrap in basic HTML
-        $html = self::wrap_email_html($body);
-
-        // Send email
-        $result = wp_mail($to, $subject, $html, $headers, $attachments);
+        // Delegate to shared email service
+        $result = \FreeFormCertificate\Scheduling\EmailTemplateService::send($to, $subject, $body, $attachments);
 
         // Clean up temporary ICS file
-        if (!empty($attachments)) {
-            foreach ($attachments as $file) {
-                if (file_exists($file)) {
-                    // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
-                    unlink($file);
-                }
+        foreach ($temp_files as $file) {
+            if (file_exists($file)) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+                unlink($file);
             }
         }
 
@@ -252,58 +244,25 @@ class AudienceNotificationHandler {
      * @return string ICS content
      */
     private static function generate_ics(array $booking_data, string $action): string {
-        $site_name = get_bloginfo('name');
-        $site_domain = wp_parse_url(home_url(), PHP_URL_HOST);
-
-        // Create unique UID for the event
-        $uid = 'ffc-booking-' . $booking_data['booking_id'] . '@' . $site_domain;
-
-        // Build datetime strings
-        $start_datetime = $booking_data['booking_date_raw'] . 'T' . str_replace(':', '', $booking_data['start_time_raw']);
-        $end_datetime = $booking_data['booking_date_raw'] . 'T' . str_replace(':', '', $booking_data['end_time_raw']);
-
-        // Remove dashes from date for ICS format
-        $start_datetime = str_replace('-', '', $start_datetime);
-        $end_datetime = str_replace('-', '', $end_datetime);
-
-        // Current timestamp for DTSTAMP
-        $dtstamp = gmdate('Ymd\THis\Z');
-
-        // Method based on action
-        $method = ($action === 'cancelled') ? 'CANCEL' : 'REQUEST';
-        $status = ($action === 'cancelled') ? 'CANCELLED' : 'CONFIRMED';
-
-        // Build summary
         $summary = $booking_data['description'];
         if ($action === 'cancelled') {
             $summary = '[' . __('CANCELLED', 'wp-ffcertificate') . '] ' . $summary;
         }
 
-        // Escape special characters for ICS
-        $summary = self::escape_ics_text($summary);
-        $description = self::escape_ics_text($booking_data['description']);
-        $location = self::escape_ics_text($booking_data['environment_name']);
+        $method = ($action === 'cancelled') ? 'CANCEL' : 'REQUEST';
 
-        // Build ICS content
-        $ics = "BEGIN:VCALENDAR\r\n";
-        $ics .= "VERSION:2.0\r\n";
-        $ics .= "PRODID:-//{$site_name}//FFC Audience Booking//PT\r\n";
-        $ics .= "CALSCALE:GREGORIAN\r\n";
-        $ics .= "METHOD:{$method}\r\n";
-        $ics .= "BEGIN:VEVENT\r\n";
-        $ics .= "UID:{$uid}\r\n";
-        $ics .= "DTSTAMP:{$dtstamp}\r\n";
-        $ics .= "DTSTART:{$start_datetime}\r\n";
-        $ics .= "DTEND:{$end_datetime}\r\n";
-        $ics .= "SUMMARY:{$summary}\r\n";
-        $ics .= "DESCRIPTION:{$description}\r\n";
-        $ics .= "LOCATION:{$location}\r\n";
-        $ics .= "STATUS:{$status}\r\n";
-        $ics .= "SEQUENCE:" . ($action === 'cancelled' ? '1' : '0') . "\r\n";
-        $ics .= "END:VEVENT\r\n";
-        $ics .= "END:VCALENDAR\r\n";
-
-        return $ics;
+        return \FreeFormCertificate\Scheduling\EmailTemplateService::generate_ics(
+            array(
+                'uid' => 'ffc-booking-' . $booking_data['booking_id'],
+                'summary' => $summary,
+                'description' => $booking_data['description'],
+                'location' => $booking_data['environment_name'],
+                'date' => $booking_data['booking_date_raw'],
+                'start_time' => $booking_data['start_time_raw'],
+                'end_time' => $booking_data['end_time_raw'],
+            ),
+            $method
+        );
     }
 
     /**

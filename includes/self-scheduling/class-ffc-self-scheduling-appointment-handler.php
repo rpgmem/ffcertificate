@@ -569,27 +569,11 @@ class AppointmentHandler {
      * @return bool
      */
     private function is_within_working_hours(string $date, string $time, array $calendar): bool {
-        $day_of_week = (int)gmdate('w', strtotime($date));
-        $working_hours = json_decode($calendar['working_hours'], true);
-
-        if (empty($working_hours) || !is_array($working_hours)) {
-            return true; // No restrictions
-        }
-
-        foreach ($working_hours as $hours) {
-            if ((int)$hours['day'] === $day_of_week) {
-                // Check if time is within this working hour range
-                $time_numeric = strtotime('1970-01-01 ' . $time);
-                $start_numeric = strtotime('1970-01-01 ' . $hours['start']);
-                $end_numeric = strtotime('1970-01-01 ' . $hours['end']);
-
-                if ($time_numeric >= $start_numeric && $time_numeric < $end_numeric) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return \FreeFormCertificate\Scheduling\WorkingHoursService::is_within_working_hours(
+            $date,
+            $time,
+            $calendar['working_hours'] ?? ''
+        );
     }
 
     /**

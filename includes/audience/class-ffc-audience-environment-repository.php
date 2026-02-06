@@ -265,42 +265,15 @@ class AudienceEnvironmentRepository {
 
         $working_hours = self::get_working_hours($id);
         if (!$working_hours) {
-            // No working hours defined = always open
-            return true;
+            return true; // No working hours defined = always open
         }
 
-        // Get day of week
-        $day_num = (int) date('w', strtotime($date));
-        $days = array('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat');
-        $day = $days[$day_num];
-
-        // Check if day is defined in working hours
-        if (!isset($working_hours[$day])) {
-            return true; // Not defined = open
+        // Delegate to shared service
+        if ($time) {
+            return \FreeFormCertificate\Scheduling\WorkingHoursService::is_within_working_hours($date, $time, $working_hours);
         }
 
-        $day_hours = $working_hours[$day];
-
-        // Check if closed
-        if (isset($day_hours['closed']) && $day_hours['closed']) {
-            return false;
-        }
-
-        // If no time specified, just check if day is not closed
-        if (!$time) {
-            return true;
-        }
-
-        // Check time range
-        if (!isset($day_hours['start']) || !isset($day_hours['end'])) {
-            return true;
-        }
-
-        $check_time = strtotime($time);
-        $start_time = strtotime($day_hours['start']);
-        $end_time = strtotime($day_hours['end']);
-
-        return $check_time >= $start_time && $check_time <= $end_time;
+        return \FreeFormCertificate\Scheduling\WorkingHoursService::is_working_day($date, $working_hours);
     }
 
     /**
