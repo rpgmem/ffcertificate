@@ -172,46 +172,53 @@ class AppointmentHandler {
      * @return void
      */
     public function ajax_cancel_appointment(): void {
-        // Verify nonce - accept both calendar nonce and wp_rest nonce (for user dashboard)
-        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        try {
+            // Verify nonce - accept both calendar nonce and wp_rest nonce (for user dashboard)
+            $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
 
-        $nonce_valid = false;
-        if (wp_verify_nonce($nonce, 'ffc_self_scheduling_nonce')) {
-            $nonce_valid = true;
-        } elseif (wp_verify_nonce($nonce, 'wp_rest')) {
-            $nonce_valid = true;
-        }
+            $nonce_valid = false;
+            if (wp_verify_nonce($nonce, 'ffc_self_scheduling_nonce')) {
+                $nonce_valid = true;
+            } elseif (wp_verify_nonce($nonce, 'wp_rest')) {
+                $nonce_valid = true;
+            }
 
-        if (!$nonce_valid) {
-            wp_send_json_error(array(
-                'message' => __('Security check failed. Please refresh the page and try again.', 'wp-ffcertificate')
+            if (!$nonce_valid) {
+                wp_send_json_error(array(
+                    'message' => __('Security check failed. Please refresh the page and try again.', 'wp-ffcertificate')
+                ));
+                return;
+            }
+
+            $appointment_id = isset($_POST['appointment_id']) ? absint(wp_unslash($_POST['appointment_id'])) : 0;
+            $token = isset($_POST['token']) ? sanitize_text_field(wp_unslash($_POST['token'])) : '';
+            $reason = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])) : '';
+
+            if (!$appointment_id) {
+                wp_send_json_error(array(
+                    'message' => __('Invalid appointment ID.', 'wp-ffcertificate')
+                ));
+                return;
+            }
+
+            $result = $this->cancel_appointment($appointment_id, $token, $reason);
+
+            if (is_wp_error($result)) {
+                wp_send_json_error(array(
+                    'message' => $result->get_error_message()
+                ));
+                return;
+            }
+
+            wp_send_json_success(array(
+                'message' => __('Appointment cancelled successfully.', 'wp-ffcertificate')
             ));
-            return;
-        }
 
-        $appointment_id = isset($_POST['appointment_id']) ? absint(wp_unslash($_POST['appointment_id'])) : 0;
-        $token = isset($_POST['token']) ? sanitize_text_field(wp_unslash($_POST['token'])) : '';
-        $reason = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])) : '';
-
-        if (!$appointment_id) {
+        } catch (\Throwable $e) {
             wp_send_json_error(array(
-                'message' => __('Invalid appointment ID.', 'wp-ffcertificate')
+                'message' => $e->getMessage()
             ));
-            return;
         }
-
-        $result = $this->cancel_appointment($appointment_id, $token, $reason);
-
-        if (is_wp_error($result)) {
-            wp_send_json_error(array(
-                'message' => $result->get_error_message()
-            ));
-            return;
-        }
-
-        wp_send_json_success(array(
-            'message' => __('Appointment cancelled successfully.', 'wp-ffcertificate')
-        ));
     }
 
     /**
@@ -951,7 +958,7 @@ class AppointmentHandler {
                 'holidays' => $holidays,
             ));
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             wp_send_json_error(array('message' => $e->getMessage()));
         }
     }
