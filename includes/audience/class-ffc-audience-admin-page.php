@@ -46,6 +46,8 @@ class AudienceAdminPage {
      */
     public function init(): void {
         add_action('admin_menu', array($this, 'add_admin_menus'), 20);
+        add_action('admin_menu', array($this, 'add_menu_separators'), 99);
+        add_action('admin_head', array($this, 'print_menu_separator_css'));
         add_action('admin_init', array($this, 'handle_form_submissions'));
     }
 
@@ -142,6 +144,102 @@ class AudienceAdminPage {
             self::MENU_SLUG . '-settings',
             array($this, 'render_settings_page')
         );
+    }
+
+    /**
+     * Insert visual separators between menu sections
+     *
+     * Runs at priority 99 so all submenu items are already registered.
+     * Inserts non-clickable separator labels before "Audience Calendars" and "Import".
+     *
+     * @return void
+     */
+    public function add_menu_separators(): void {
+        global $submenu;
+
+        if (!isset($submenu[self::MENU_SLUG])) {
+            return;
+        }
+
+        $items = &$submenu[self::MENU_SLUG];
+
+        // Find positions to insert separators
+        $audience_pos = null;
+        $tools_pos = null;
+
+        foreach ($items as $index => $item) {
+            // $item[2] is the menu slug
+            if ($item[2] === self::MENU_SLUG . '-calendars') {
+                $audience_pos = $index;
+            }
+            if ($item[2] === self::MENU_SLUG . '-import') {
+                $tools_pos = $index;
+            }
+        }
+
+        // Insert separators (in reverse order to preserve positions)
+        if ($tools_pos !== null) {
+            $this->insert_submenu_separator($items, $tools_pos, __('Tools', 'wp-ffcertificate'));
+        }
+        if ($audience_pos !== null) {
+            $this->insert_submenu_separator($items, $audience_pos, __('Audience', 'wp-ffcertificate'));
+        }
+    }
+
+    /**
+     * Insert a separator entry before a given submenu position
+     *
+     * @param array &$items Submenu items array (by reference)
+     * @param int $before_index Index to insert before
+     * @param string $label Section label
+     * @return void
+     */
+    private function insert_submenu_separator(array &$items, int $before_index, string $label): void {
+        // Build a non-functional submenu entry styled as a separator
+        $separator = array(
+            $label,                                     // [0] menu title
+            'manage_options',                           // [1] capability
+            '#ffc-separator-' . sanitize_key($label),  // [2] slug (non-navigable)
+        );
+
+        // Re-index and insert
+        $new_items = array();
+        foreach ($items as $index => $item) {
+            if ($index === $before_index) {
+                $new_items[] = $separator;
+            }
+            $new_items[] = $item;
+        }
+
+        $items = $new_items;
+    }
+
+    /**
+     * Print CSS to style menu separators
+     *
+     * @return void
+     */
+    public function print_menu_separator_css(): void {
+        ?>
+        <style>
+            #adminmenu .wp-submenu a[href^="#ffc-separator-"] {
+                pointer-events: none;
+                cursor: default;
+                color: #a7aaad !important;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                border-top: 1px solid rgba(255,255,255,0.1);
+                margin-top: 6px;
+                padding-top: 8px;
+            }
+            #adminmenu .wp-submenu a[href^="#ffc-separator-"]:hover {
+                color: #a7aaad !important;
+                background: none !important;
+            }
+        </style>
+        <?php
     }
 
     /**
