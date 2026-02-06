@@ -325,7 +325,7 @@ class SelfSchedulingShortcode {
 
                         <!-- Step 2: Booking Form (hidden until time slot selected) -->
                         <div class="ffc-booking-form-wrapper" style="display: none;">
-                            <form id="ffc-booking-form" class="ffc-booking-form" autocomplete="off">
+                            <form id="ffc-self-scheduling-form" class="ffc-booking-form" autocomplete="off">
                                 <?php wp_nonce_field('ffc_self_scheduling_nonce', 'nonce'); ?>
                                 <input type="hidden" name="action" value="ffc_book_appointment">
                                 <input type="hidden" name="calendar_id" value="<?php echo esc_attr($calendar['id']); ?>">

@@ -131,8 +131,11 @@
             }
         });
 
-        // Modal controls
-        $('.ffc-modal-close, .ffc-modal-cancel, .ffc-modal-backdrop').on('click', function() {
+        // Modal controls - scoped to audience modals only
+        $('#ffc-booking-modal, #ffc-day-modal').on('click', '.ffc-modal-close, .ffc-modal-cancel', function() {
+            closeModals();
+        });
+        $('#ffc-booking-modal > .ffc-modal-backdrop, #ffc-day-modal > .ffc-modal-backdrop').on('click', function() {
             closeModals();
         });
 
@@ -209,8 +212,8 @@
             openBookingModal(date);
         });
 
-        // Prevent modal close on content click
-        $('.ffc-modal-content').on('click', function(e) {
+        // Prevent modal close on content click - scoped to audience modals only
+        $('#ffc-booking-modal .ffc-modal-content, #ffc-day-modal .ffc-modal-content').on('click', function(e) {
             e.stopPropagation();
         });
     }
@@ -929,7 +932,7 @@
      * Close all modals
      */
     function closeModals() {
-        $('.ffc-modal').hide();
+        $('#ffc-booking-modal, #ffc-day-modal').hide();
     }
 
     /**

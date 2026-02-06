@@ -52,7 +52,7 @@
             });
 
             // Form submission
-            $(document).on('submit', '#ffc-booking-form', function(e) {
+            $(document).on('submit', '#ffc-self-scheduling-form', function(e) {
                 e.preventDefault();
                 self.submitBooking($(this));
             });
@@ -450,7 +450,7 @@
             $('.ffc-calendar-container').show();
 
             // Reset form
-            $('#ffc-booking-form')[0].reset();
+            $('#ffc-self-scheduling-form')[0].reset();
             $('.ffc-form-messages').html('');
             $('.ffc-timeslot').removeClass('selected');
 
@@ -459,7 +459,7 @@
             $('.ffc-timeslots-wrapper').show();
 
             // Reset submit button
-            var $submitBtn = $('#ffc-booking-form button[type="submit"]');
+            var $submitBtn = $('#ffc-self-scheduling-form button[type="submit"]');
             $submitBtn.data('submitting', false);
             $submitBtn.prop('disabled', false).text(ffcCalendar.strings.submit || 'Book Appointment');
 
