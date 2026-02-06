@@ -1,0 +1,11 @@
+/**
+ * FFC Self-Scheduling Calendar Admin Styles
+ *
+ * @since 4.1.0
+ * @package FreeFormCertificate\SelfScheduling
+ */
+
+/* Calendar admin list table adjustments */
+.post-type-ffc_self_scheduling .wp-list-table {
+    margin-top: 10px;
+}
