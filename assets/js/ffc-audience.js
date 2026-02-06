@@ -131,8 +131,9 @@
             }
         });
 
-        // Modal controls - scoped to audience modals only
-        $('#ffc-booking-modal, #ffc-day-modal').on('click', '.ffc-modal-close, .ffc-modal-cancel', function() {
+        // Modal controls - scoped to audience modals only (direct binding, not delegation,
+        // because .ffc-modal-content has stopPropagation which blocks delegated handlers)
+        $('#ffc-booking-modal .ffc-modal-close, #ffc-booking-modal .ffc-modal-cancel, #ffc-day-modal .ffc-modal-close, #ffc-day-modal .ffc-modal-cancel').on('click', function() {
             closeModals();
         });
         $('#ffc-booking-modal > .ffc-modal-backdrop, #ffc-day-modal > .ffc-modal-backdrop').on('click', function() {
