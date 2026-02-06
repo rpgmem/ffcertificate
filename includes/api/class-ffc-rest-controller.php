@@ -1254,22 +1254,21 @@ class RestController {
                 // Determine if user can cancel this appointment
                 $can_cancel = false;
                 if (in_array($status, ['pending', 'confirmed'])) {
-                    // Admins can always cancel
-                    if (current_user_can('manage_options')) {
-                        $can_cancel = true;
-                    }
-                    // Regular users: check calendar settings
-                    elseif ($calendar && is_array($calendar)) {
-                        // Check if calendar allows cancellation
-                        if (!empty($calendar['allow_cancellation'])) {
-                            // Check cancellation deadline
-                            $can_cancel = true;
-                            if (!empty($calendar['cancellation_min_hours']) && $calendar['cancellation_min_hours'] > 0) {
-                                $appointment_time = strtotime($appointment['appointment_date'] . ' ' . $appointment['start_time']);
-                                $deadline = $appointment_time - ($calendar['cancellation_min_hours'] * 3600);
+                    $appointment_time = strtotime($appointment['appointment_date'] . ' ' . ($appointment['start_time'] ?? '23:59:59'));
+                    $now = current_time('timestamp');
 
-                                // If current time is past the deadline, cannot cancel
-                                if (current_time('timestamp') > $deadline) {
+                    // Only future appointments can be cancelled
+                    if ($appointment_time > $now) {
+                        if (current_user_can('manage_options')) {
+                            $can_cancel = true;
+                        }
+                        // Regular users: check calendar settings
+                        elseif ($calendar && is_array($calendar) && !empty($calendar['allow_cancellation'])) {
+                            $can_cancel = true;
+                            // Check minimum advance hours for cancellation
+                            if (!empty($calendar['cancellation_min_hours']) && $calendar['cancellation_min_hours'] > 0) {
+                                $deadline = $appointment_time - ($calendar['cancellation_min_hours'] * 3600);
+                                if ($now > $deadline) {
                                     $can_cancel = false;
                                 }
                             }
