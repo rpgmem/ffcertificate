@@ -439,6 +439,61 @@
     margin: 10px 0;
 }
 
+/* Pagination */
+.ffc-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.ffc-pagination-btn {
+    padding: 6px 16px;
+    font-size: 13px;
+    background: #0073aa;
+    color: #fff;
+    border: 1px solid #0073aa;
+    border-radius: 4px;
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.ffc-pagination-btn:hover {
+    background: #005a87;
+    border-color: #005a87;
+}
+
+.ffc-pagination-btn:disabled {
+    background: #ccc;
+    border-color: #ccc;
+    cursor: not-allowed;
+}
+
+.ffc-pagination-info {
+    font-size: 13px;
+    color: #666;
+}
+
+/* Audience Groups in Profile */
+.ffc-audience-groups-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.ffc-audience-group-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #fff;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .ffc-user-dashboard {

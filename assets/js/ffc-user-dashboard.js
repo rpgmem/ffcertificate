@@ -1,13 +1,15 @@
 /**
  * FFC User Dashboard JavaScript
- * v3.1.0: Standardized to use event delegation pattern
+ * v3.2.0: Added client-side pagination and audience groups in profile
  * @since 3.1.0
  */
 
 (function($) {
     'use strict';
 
-    const FFCDashboard = {
+    var PAGE_SIZE = 25;
+
+    var FFCDashboard = {
 
         /**
          * Initialize dashboard
@@ -22,13 +24,14 @@
          */
         bindEvents: function() {
             $(document).on('click', '.ffc-tab', this.switchTab.bind(this));
+            $(document).on('click', '.ffc-pagination-btn', this.handlePagination.bind(this));
         },
 
         /**
          * Load initial tab content
          */
         loadInitialTab: function() {
-            const activeTab = $('.ffc-tab.active').data('tab');
+            var activeTab = $('.ffc-tab.active').data('tab');
             if (activeTab === 'certificates') {
                 this.loadCertificates();
             } else if (activeTab === 'appointments') {
@@ -45,8 +48,8 @@
          */
         switchTab: function(e) {
             e.preventDefault();
-            const $button = $(e.currentTarget);
-            const tab = $button.data('tab');
+            var $button = $(e.currentTarget);
+            var tab = $button.data('tab');
 
             // Update active tab button
             $('.ffc-tab').removeClass('active');
@@ -58,7 +61,7 @@
 
             // Update URL without reload
             if (history.pushState) {
-                const url = new URL(window.location);
+                var url = new URL(window.location);
                 url.searchParams.set('tab', tab);
                 history.pushState({}, '', url);
             }
@@ -76,31 +79,66 @@
         },
 
         /**
-         * Load certificates via API
+         * Build pagination controls
          */
-        loadCertificates: function() {
-            const $container = $('#tab-certificates');
+        buildPagination: function(total, page, dataAttr) {
+            if (total <= PAGE_SIZE) return '';
 
-            // Check if container exists (permission check)
-            if ($container.length === 0) {
-                return; // User doesn't have permission
+            var totalPages = Math.ceil(total / PAGE_SIZE);
+            var html = '<div class="ffc-pagination" style="margin-top: 15px; text-align: center;">';
+
+            if (page > 1) {
+                html += '<button class="button ffc-pagination-btn" data-page="' + (page - 1) + '" data-target="' + dataAttr + '">&laquo; ' + (ffcDashboard.strings.previous || 'Previous') + '</button> ';
             }
 
-            // Check if user has permission
+            html += '<span style="margin: 0 10px; color: #666; font-size: 13px;">';
+            html += (ffcDashboard.strings.pageOf || 'Page {current} of {total}').replace('{current}', page).replace('{total}', totalPages);
+            html += '</span>';
+
+            if (page < totalPages) {
+                html += ' <button class="button ffc-pagination-btn" data-page="' + (page + 1) + '" data-target="' + dataAttr + '">' + (ffcDashboard.strings.next || 'Next') + ' &raquo;</button>';
+            }
+
+            html += '</div>';
+            return html;
+        },
+
+        /**
+         * Handle pagination click
+         */
+        handlePagination: function(e) {
+            e.preventDefault();
+            var $btn = $(e.currentTarget);
+            var page = parseInt($btn.data('page'), 10);
+            var target = $btn.data('target');
+
+            if (target === 'certificates') {
+                this.renderCertificates(this._certificatesData, page);
+            } else if (target === 'appointments') {
+                this.renderAppointments(this._appointmentsData, page);
+            } else if (target === 'audience') {
+                this.renderAudienceBookings(this._audienceData, page);
+            }
+        },
+
+        // ---- Certificates ----
+
+        _certificatesData: null,
+
+        loadCertificates: function() {
+            var $container = $('#tab-certificates');
+            if ($container.length === 0) return;
+
             if (typeof ffcDashboard.canViewCertificates !== 'undefined' && !ffcDashboard.canViewCertificates) {
                 $container.html('<div class="ffc-error">' + ffcDashboard.strings.noPermission + '</div>');
                 return;
             }
 
-            // Check if already loaded
-            if ($container.find('.ffc-certificates-table').length > 0) {
-                return; // Already loaded
-            }
+            if (this._certificatesData !== null) return;
 
             $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
 
-            // Build URL with viewAsUserId if in admin mode
-            let url = ffcDashboard.restUrl + 'user/certificates';
+            var url = ffcDashboard.restUrl + 'user/certificates';
             if (ffcDashboard.viewAsUserId) {
                 url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
             }
@@ -112,19 +150,18 @@
                     xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce);
                 },
                 success: function(response) {
-                    FFCDashboard.renderCertificates(response.certificates);
+                    FFCDashboard._certificatesData = response.certificates || [];
+                    FFCDashboard.renderCertificates(FFCDashboard._certificatesData, 1);
                 },
-                error: function(xhr) {
+                error: function() {
                     $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
                 }
             });
         },
 
-        /**
-         * Render certificates table
-         */
-        renderCertificates: function(certificates) {
-            const $container = $('#tab-certificates');
+        renderCertificates: function(certificates, page) {
+            var $container = $('#tab-certificates');
+            page = page || 1;
 
             if (!certificates || certificates.length === 0) {
                 $container.html(
@@ -136,7 +173,10 @@
                 return;
             }
 
-            let html = '<table class="ffc-certificates-table">';
+            var start = (page - 1) * PAGE_SIZE;
+            var pageItems = certificates.slice(start, start + PAGE_SIZE);
+
+            var html = '<table class="ffc-certificates-table">';
             html += '<thead>';
             html += '<tr>';
             html += '<th>' + ffcDashboard.strings.eventName + '</th>';
@@ -149,7 +189,7 @@
             html += '</thead>';
             html += '<tbody>';
 
-            certificates.forEach(function(cert) {
+            pageItems.forEach(function(cert) {
                 html += '<tr>';
                 html += '<td>' + cert.form_title + '</td>';
                 html += '<td>' + cert.submission_date + '</td>';
@@ -168,36 +208,29 @@
 
             html += '</tbody>';
             html += '</table>';
+            html += this.buildPagination(certificates.length, page, 'certificates');
 
             $container.html(html);
         },
 
-        /**
-         * Load appointments via API
-         */
+        // ---- Appointments ----
+
+        _appointmentsData: null,
+
         loadAppointments: function() {
-            const $container = $('#tab-appointments');
+            var $container = $('#tab-appointments');
+            if ($container.length === 0) return;
 
-            // Check if container exists (permission check)
-            if ($container.length === 0) {
-                return; // User doesn't have permission
-            }
-
-            // Check if user has permission
             if (typeof ffcDashboard.canViewAppointments !== 'undefined' && !ffcDashboard.canViewAppointments) {
                 $container.html('<div class="ffc-error">' + ffcDashboard.strings.noPermission + '</div>');
                 return;
             }
 
-            // Check if already loaded
-            if ($container.find('.ffc-appointments-table').length > 0) {
-                return; // Already loaded
-            }
+            if (this._appointmentsData !== null) return;
 
             $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
 
-            // Build URL with viewAsUserId if in admin mode
-            let url = ffcDashboard.restUrl + 'user/appointments';
+            var url = ffcDashboard.restUrl + 'user/appointments';
             if (ffcDashboard.viewAsUserId) {
                 url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
             }
@@ -209,19 +242,18 @@
                     xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce);
                 },
                 success: function(response) {
-                    FFCDashboard.renderAppointments(response.appointments);
+                    FFCDashboard._appointmentsData = response.appointments || [];
+                    FFCDashboard.renderAppointments(FFCDashboard._appointmentsData, 1);
                 },
-                error: function(xhr) {
+                error: function() {
                     $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
                 }
             });
         },
 
-        /**
-         * Render appointments table
-         */
-        renderAppointments: function(appointments) {
-            const $container = $('#tab-appointments');
+        renderAppointments: function(appointments, page) {
+            var $container = $('#tab-appointments');
+            page = page || 1;
 
             if (!appointments || appointments.length === 0) {
                 $container.html(
@@ -233,7 +265,10 @@
                 return;
             }
 
-            let html = '<table class="ffc-appointments-table">';
+            var start = (page - 1) * PAGE_SIZE;
+            var pageItems = appointments.slice(start, start + PAGE_SIZE);
+
+            var html = '<table class="ffc-appointments-table">';
             html += '<thead>';
             html += '<tr>';
             html += '<th>' + ffcDashboard.strings.calendar + '</th>';
@@ -245,7 +280,7 @@
             html += '</thead>';
             html += '<tbody>';
 
-            appointments.forEach(function(apt) {
+            pageItems.forEach(function(apt) {
                 html += '<tr>';
                 html += '<td>' + apt.calendar_title + '</td>';
                 html += '<td>' + apt.appointment_date + '</td>';
@@ -253,14 +288,12 @@
                 html += '<td><span class="appointment-status status-' + apt.status + '">' + apt.status_label + '</span></td>';
                 html += '<td>';
 
-                // Show receipt/print button
                 if (apt.receipt_url) {
                     html += '<a href="' + apt.receipt_url + '" class="button" target="_blank" style="margin-right: 5px;">';
                     html += '📄 ' + (ffcDashboard.strings.viewReceipt || 'View Receipt');
                     html += '</a>';
                 }
 
-                // Show cancel button only if allowed
                 if (apt.can_cancel) {
                     html += '<button class="button ffc-cancel-appointment" data-id="' + apt.id + '">';
                     html += '❌ ' + ffcDashboard.strings.cancelAppointment;
@@ -273,43 +306,36 @@
 
             html += '</tbody>';
             html += '</table>';
+            html += this.buildPagination(appointments.length, page, 'appointments');
 
             $container.html(html);
 
             // Bind cancel event
             $container.on('click', '.ffc-cancel-appointment', function(e) {
                 e.preventDefault();
-                const appointmentId = $(this).data('id');
+                var appointmentId = $(this).data('id');
                 FFCDashboard.cancelAppointment(appointmentId);
             });
         },
 
-        /**
-         * Load audience bookings via API
-         */
+        // ---- Audience Bookings ----
+
+        _audienceData: null,
+
         loadAudienceBookings: function() {
-            const $container = $('#tab-audience');
+            var $container = $('#tab-audience');
+            if ($container.length === 0) return;
 
-            // Check if container exists (permission check)
-            if ($container.length === 0) {
-                return; // User doesn't have permission
-            }
-
-            // Check if user has permission
             if (typeof ffcDashboard.canViewAudienceBookings !== 'undefined' && !ffcDashboard.canViewAudienceBookings) {
                 $container.html('<div class="ffc-error">' + ffcDashboard.strings.noPermission + '</div>');
                 return;
             }
 
-            // Check if already loaded
-            if ($container.find('.ffc-audience-bookings-table').length > 0) {
-                return; // Already loaded
-            }
+            if (this._audienceData !== null) return;
 
             $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
 
-            // Build URL with viewAsUserId if in admin mode
-            let url = ffcDashboard.restUrl + 'user/audience-bookings';
+            var url = ffcDashboard.restUrl + 'user/audience-bookings';
             if (ffcDashboard.viewAsUserId) {
                 url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
             }
@@ -321,19 +347,18 @@
                     xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce);
                 },
                 success: function(response) {
-                    FFCDashboard.renderAudienceBookings(response.bookings);
+                    FFCDashboard._audienceData = response.bookings || [];
+                    FFCDashboard.renderAudienceBookings(FFCDashboard._audienceData, 1);
                 },
-                error: function(xhr) {
+                error: function() {
                     $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
                 }
             });
         },
 
-        /**
-         * Render audience bookings table
-         */
-        renderAudienceBookings: function(bookings) {
-            const $container = $('#tab-audience');
+        renderAudienceBookings: function(bookings, page) {
+            var $container = $('#tab-audience');
+            page = page || 1;
 
             if (!bookings || bookings.length === 0) {
                 $container.html(
@@ -345,53 +370,63 @@
                 return;
             }
 
-            // Separate upcoming, past, and cancelled bookings
-            const upcoming = bookings.filter(b => !b.is_past && b.status !== 'cancelled');
-            const past = bookings.filter(b => b.is_past && b.status !== 'cancelled');
-            const cancelled = bookings.filter(b => b.status === 'cancelled');
+            // Separate by category
+            var upcoming = bookings.filter(function(b) { return !b.is_past && b.status !== 'cancelled'; });
+            var past = bookings.filter(function(b) { return b.is_past && b.status !== 'cancelled'; });
+            var cancelled = bookings.filter(function(b) { return b.status === 'cancelled'; });
 
-            let html = '';
+            // Flatten all into single list for pagination
+            var allOrdered = [].concat(upcoming, past, cancelled);
+            var start = (page - 1) * PAGE_SIZE;
+            var pageItems = allOrdered.slice(start, start + PAGE_SIZE);
 
-            // Upcoming bookings
-            if (upcoming.length > 0) {
-                html += '<h3>' + (ffcDashboard.strings.upcoming || 'Upcoming') + '</h3>';
-                html += FFCDashboard.buildAudienceBookingsTable(upcoming);
-            }
+            // Build section headers based on which items are on this page
+            var html = '';
+            var currentSection = '';
 
-            // Past bookings
-            if (past.length > 0) {
-                html += '<h3 style="margin-top: 30px;">' + (ffcDashboard.strings.past || 'Past') + '</h3>';
-                html += FFCDashboard.buildAudienceBookingsTable(past, true);
-            }
+            pageItems.forEach(function(booking) {
+                var section;
+                if (booking.status === 'cancelled') {
+                    section = 'cancelled';
+                } else if (booking.is_past) {
+                    section = 'past';
+                } else {
+                    section = 'upcoming';
+                }
 
-            // Cancelled bookings
-            if (cancelled.length > 0) {
-                html += '<h3 style="margin-top: 30px;">' + (ffcDashboard.strings.cancelled || 'Cancelled') + '</h3>';
-                html += FFCDashboard.buildAudienceBookingsTable(cancelled, true);
-            }
+                if (section !== currentSection) {
+                    if (currentSection !== '') {
+                        html += '</tbody></table>';
+                    }
+                    currentSection = section;
 
-            $container.html(html);
-        },
+                    var sectionLabel;
+                    var isPastSection = false;
+                    if (section === 'upcoming') {
+                        sectionLabel = ffcDashboard.strings.upcoming || 'Upcoming';
+                    } else if (section === 'past') {
+                        sectionLabel = ffcDashboard.strings.past || 'Past';
+                        isPastSection = true;
+                    } else {
+                        sectionLabel = ffcDashboard.strings.cancelled || 'Cancelled';
+                        isPastSection = true;
+                    }
 
-        /**
-         * Build audience bookings table HTML
-         */
-        buildAudienceBookingsTable: function(bookings, isPast) {
-            let html = '<table class="ffc-audience-bookings-table' + (isPast ? ' past-bookings' : '') + '">';
-            html += '<thead>';
-            html += '<tr>';
-            html += '<th>' + (ffcDashboard.strings.environment || 'Environment') + '</th>';
-            html += '<th>' + (ffcDashboard.strings.date || 'Date') + '</th>';
-            html += '<th>' + (ffcDashboard.strings.time || 'Time') + '</th>';
-            html += '<th>' + (ffcDashboard.strings.description || 'Description') + '</th>';
-            html += '<th>' + (ffcDashboard.strings.audiences || 'Audiences') + '</th>';
-            html += '</tr>';
-            html += '</thead>';
-            html += '<tbody>';
+                    html += '<h3' + (currentSection !== 'upcoming' ? ' style="margin-top: 30px;"' : '') + '>' + sectionLabel + '</h3>';
+                    html += '<table class="ffc-audience-bookings-table' + (isPastSection ? ' past-bookings' : '') + '">';
+                    html += '<thead><tr>';
+                    html += '<th>' + (ffcDashboard.strings.environment || 'Environment') + '</th>';
+                    html += '<th>' + (ffcDashboard.strings.date || 'Date') + '</th>';
+                    html += '<th>' + (ffcDashboard.strings.time || 'Time') + '</th>';
+                    html += '<th>' + (ffcDashboard.strings.description || 'Description') + '</th>';
+                    html += '<th>' + (ffcDashboard.strings.audiences || 'Audiences') + '</th>';
+                    html += '</tr></thead><tbody>';
+                }
 
-            bookings.forEach(function(booking) {
-                var rowClass = isPast ? 'past-row' : '';
+                var rowClass = '';
                 if (booking.status === 'cancelled') rowClass = 'cancelled-row';
+                else if (booking.is_past) rowClass = 'past-row';
+
                 html += '<tr' + (rowClass ? ' class="' + rowClass + '"' : '') + '>';
                 html += '<td>' + booking.environment_name;
                 if (booking.schedule_name) {
@@ -413,15 +448,17 @@
                 html += '</tr>';
             });
 
-            html += '</tbody>';
-            html += '</table>';
+            if (currentSection !== '') {
+                html += '</tbody></table>';
+            }
 
-            return html;
+            html += this.buildPagination(allOrdered.length, page, 'audience');
+
+            $container.html(html);
         },
 
-        /**
-         * Cancel appointment
-         */
+        // ---- Cancel Appointment ----
+
         cancelAppointment: function(appointmentId) {
             if (!confirm(ffcDashboard.strings.confirmCancel)) {
                 return;
@@ -438,7 +475,8 @@
                 success: function(response) {
                     if (response.success) {
                         alert(ffcDashboard.strings.cancelSuccess);
-                        // Reload appointments
+                        // Force reload
+                        FFCDashboard._appointmentsData = null;
                         $('#tab-appointments').html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
                         FFCDashboard.loadAppointments();
                     } else {
@@ -451,21 +489,18 @@
             });
         },
 
-        /**
-         * Load profile via API
-         */
-        loadProfile: function() {
-            const $container = $('#tab-profile');
+        // ---- Profile ----
 
-            // Check if already loaded
+        loadProfile: function() {
+            var $container = $('#tab-profile');
+
             if ($container.find('.ffc-profile-info').length > 0) {
-                return; // Already loaded
+                return;
             }
 
             $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
 
-            // Build URL with viewAsUserId if in admin mode
-            let url = ffcDashboard.restUrl + 'user/profile';
+            var url = ffcDashboard.restUrl + 'user/profile';
             if (ffcDashboard.viewAsUserId) {
                 url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
             }
@@ -479,21 +514,18 @@
                 success: function(response) {
                     FFCDashboard.renderProfile(response);
                 },
-                error: function(xhr) {
+                error: function() {
                     $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
                 }
             });
         },
 
-        /**
-         * Render profile information
-         */
         renderProfile: function(profile) {
-            const $container = $('#tab-profile');
+            var $container = $('#tab-profile');
 
-            let html = '<div class="ffc-profile-info">';
+            var html = '<div class="ffc-profile-info">';
 
-            // Name(s) - show all distinct names used in submissions
+            // Name(s)
             html += '<div class="ffc-profile-field">';
             html += '<label>' + ffcDashboard.strings.name + '</label>';
             if (profile.names && profile.names.length > 1) {
@@ -525,7 +557,7 @@
             }
             html += '</div>';
 
-            // CPF/RF (masked) - show all distinct values
+            // CPF/RF (masked)
             html += '<div class="ffc-profile-field">';
             html += '<label>' + ffcDashboard.strings.cpfRf + '</label>';
             if (profile.cpfs_masked && profile.cpfs_masked.length > 1) {
@@ -540,6 +572,20 @@
                 html += '<div class="value">' + (profile.cpf_masked || '-') + '</div>';
             }
             html += '</div>';
+
+            // Audience Groups
+            if (profile.audience_groups && profile.audience_groups.length > 0) {
+                html += '<div class="ffc-profile-field">';
+                html += '<label>' + (ffcDashboard.strings.audienceGroups || 'Groups') + '</label>';
+                html += '<div class="value" style="display: flex; flex-wrap: wrap; gap: 6px;">';
+                profile.audience_groups.forEach(function(group) {
+                    html += '<span style="background-color: ' + (group.color || '#2271b1') + '; color: #fff; padding: 4px 12px; border-radius: 3px; font-size: 13px;">';
+                    html += group.name;
+                    html += '</span>';
+                });
+                html += '</div>';
+                html += '</div>';
+            }
 
             // Member Since
             html += '<div class="ffc-profile-field">';
