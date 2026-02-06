@@ -951,7 +951,7 @@ class AppointmentHandler {
                 'holidays' => $holidays,
             ));
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             wp_send_json_error(array('message' => $e->getMessage()));
         }
     }
