@@ -265,23 +265,69 @@
                 return;
             }
 
-            var start = (page - 1) * PAGE_SIZE;
-            var pageItems = appointments.slice(start, start + PAGE_SIZE);
+            // Separate into upcoming, past, cancelled
+            var today = new Date().toISOString().slice(0, 10);
+            var upcoming = [], past = [], cancelled = [];
+            appointments.forEach(function(apt) {
+                if (apt.status === 'cancelled') {
+                    cancelled.push(apt);
+                } else if (apt.appointment_date_raw < today || apt.status === 'completed' || apt.status === 'no_show') {
+                    past.push(apt);
+                } else {
+                    upcoming.push(apt);
+                }
+            });
 
-            var html = '<table class="ffc-appointments-table">';
-            html += '<thead>';
-            html += '<tr>';
-            html += '<th>' + ffcDashboard.strings.calendar + '</th>';
-            html += '<th>' + ffcDashboard.strings.date + '</th>';
-            html += '<th>' + ffcDashboard.strings.time + '</th>';
-            html += '<th>' + ffcDashboard.strings.status + '</th>';
-            html += '<th>' + ffcDashboard.strings.actions + '</th>';
-            html += '</tr>';
-            html += '</thead>';
-            html += '<tbody>';
+            // Build ordered list: upcoming first, then past, then cancelled
+            var allOrdered = [];
+            upcoming.forEach(function(b) { b._section = 'upcoming'; allOrdered.push(b); });
+            past.forEach(function(b) { b._section = 'past'; allOrdered.push(b); });
+            cancelled.forEach(function(b) { b._section = 'cancelled'; allOrdered.push(b); });
+
+            var start = (page - 1) * PAGE_SIZE;
+            var pageItems = allOrdered.slice(start, start + PAGE_SIZE);
+
+            var html = '';
+            var currentSection = '';
 
             pageItems.forEach(function(apt) {
-                html += '<tr>';
+                var section = apt._section;
+
+                // New section header + new table
+                if (section !== currentSection) {
+                    if (currentSection !== '') {
+                        html += '</tbody></table>';
+                    }
+                    currentSection = section;
+
+                    var sectionLabel = '';
+                    var isPastSection = false;
+                    if (section === 'upcoming') {
+                        sectionLabel = ffcDashboard.strings.upcoming || 'Upcoming';
+                    } else if (section === 'past') {
+                        sectionLabel = ffcDashboard.strings.past || 'Past';
+                        isPastSection = true;
+                    } else {
+                        sectionLabel = ffcDashboard.strings.cancelled || 'Cancelled';
+                        isPastSection = true;
+                    }
+
+                    html += '<h3' + (section !== 'upcoming' ? ' style="margin-top: 30px;"' : '') + '>' + sectionLabel + '</h3>';
+                    html += '<table class="ffc-appointments-table' + (isPastSection ? ' past-appointments' : '') + '">';
+                    html += '<thead><tr>';
+                    html += '<th>' + ffcDashboard.strings.calendar + '</th>';
+                    html += '<th>' + ffcDashboard.strings.date + '</th>';
+                    html += '<th>' + ffcDashboard.strings.time + '</th>';
+                    html += '<th>' + ffcDashboard.strings.status + '</th>';
+                    html += '<th>' + ffcDashboard.strings.actions + '</th>';
+                    html += '</tr></thead><tbody>';
+                }
+
+                var rowClass = '';
+                if (apt.status === 'cancelled') rowClass = 'cancelled-row';
+                else if (section === 'past') rowClass = 'past-row';
+
+                html += '<tr' + (rowClass ? ' class="' + rowClass + '"' : '') + '>';
                 html += '<td>' + apt.calendar_title + '</td>';
                 html += '<td>' + apt.appointment_date + '</td>';
                 html += '<td>' + apt.start_time + '</td>';
@@ -304,9 +350,11 @@
                 html += '</tr>';
             });
 
-            html += '</tbody>';
-            html += '</table>';
-            html += this.buildPagination(appointments.length, page, 'appointments');
+            if (currentSection !== '') {
+                html += '</tbody></table>';
+            }
+
+            html += this.buildPagination(allOrdered.length, page, 'appointments');
 
             $container.html(html);
 
