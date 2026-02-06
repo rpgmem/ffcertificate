@@ -391,18 +391,28 @@
          * Initialize calendar core component using config from PHP
          */
         initCalendarCore: function() {
-        if (typeof ffcCalendar === 'undefined' || typeof ffcCalendarConfig === 'undefined') {
-            return;
-        }
-        if (typeof FFCCalendarCore === 'undefined') {
+        if (typeof ffcCalendar === 'undefined' || typeof FFCCalendarCore === 'undefined') {
             return;
         }
 
+        // Read config from JSON script tag embedded by shortcode
         var self = this;
-        var calendarId = ffcCalendarConfig.calendarId;
-        var workingDays = ffcCalendarConfig.workingDays || [];
-        var minDateHours = ffcCalendarConfig.minDateHours || 0;
-        var maxDateDays = ffcCalendarConfig.maxDateDays || 30;
+        var configEl = $('script[id^="ffc-calendar-config-"]').first();
+        if (!configEl.length) {
+            return;
+        }
+
+        var config;
+        try {
+            config = JSON.parse(configEl.text());
+        } catch (e) {
+            return;
+        }
+
+        var calendarId = config.calendarId;
+        var workingDays = config.workingDays || [];
+        var minDateHours = config.minDateHours || 0;
+        var maxDateDays = config.maxDateDays || 30;
 
         // Calculate disabled days (weekdays not in workingDays)
         var disabledDays = [];

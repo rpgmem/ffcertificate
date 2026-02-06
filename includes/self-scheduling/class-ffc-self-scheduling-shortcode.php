@@ -418,8 +418,8 @@ class SelfSchedulingShortcode {
         </div>
 
         <?php
-        // Pass calendar config via localize_script to avoid WordPress content filters
-        // mangling inline JS (e.g., converting && to &#038;&#038;)
+        // Build calendar config as data attribute (avoids wp_localize_script timing issues
+        // and WordPress content filter mangling of inline JS)
         $working_days_js = array();
         if (!empty($calendar['working_hours']) && is_array($calendar['working_hours'])) {
             foreach ($calendar['working_hours'] as $wh) {
@@ -429,12 +429,14 @@ class SelfSchedulingShortcode {
             }
         }
 
-        // Add calendar instance config - the init logic is in calendar-frontend.js
-        wp_localize_script('ffc-calendar-frontend', 'ffcCalendarConfig', array(
+        $calendar_config = array(
             'calendarId'   => (int) $calendar['id'],
             'workingDays'  => $working_days_js,
             'minDateHours' => isset($calendar['advance_booking_min']) ? (int) $calendar['advance_booking_min'] : 0,
             'maxDateDays'  => isset($calendar['advance_booking_max']) ? (int) $calendar['advance_booking_max'] : 30,
-        ));
+        );
+        ?>
+        <script type="application/json" id="ffc-calendar-config-<?php echo (int) $calendar['id']; ?>"><?php echo wp_json_encode($calendar_config); ?></script>
+        <?php
     }
 }
