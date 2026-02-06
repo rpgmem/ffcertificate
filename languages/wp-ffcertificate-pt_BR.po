@@ -3375,7 +3375,15 @@ msgstr "A descrição é obrigatória (15-300 caracteres)."
 msgid "Warning: Conflicts detected with existing bookings."
 msgstr "Atenção: Conflitos detectados com reservas existentes."
 
+#: includes/audience/class-ffc-audience-shortcode.php:483
+msgid "Warning: The following groups already have bookings on this day:"
+msgstr "Atenção: Os seguintes grupos já possuem agendamentos neste dia:"
+
 #: includes/audience/class-ffc-audience-shortcode.php:484
+msgid "member(s) have overlapping bookings."
+msgstr "membro(s) possuem agendamentos sobrepostos."
+
+#: includes/audience/class-ffc-audience-shortcode.php:486
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:130
 msgid "January"
 msgstr "Janeiro"

@@ -480,6 +480,8 @@ class AudienceShortcode {
                 'selectUser' => __('Please select at least one user.', 'wp-ffcertificate'),
                 'descriptionRequired' => __('Description is required (15-300 characters).', 'wp-ffcertificate'),
                 'conflictWarning' => __('Warning: Conflicts detected with existing bookings.', 'wp-ffcertificate'),
+                'audienceSameDayWarning' => __('Warning: The following groups already have bookings on this day:', 'wp-ffcertificate'),
+                'membersOverlapping' => __('member(s) have overlapping bookings.', 'wp-ffcertificate'),
                 'months' => array(
                     __('January', 'wp-ffcertificate'),
                     __('February', 'wp-ffcertificate'),

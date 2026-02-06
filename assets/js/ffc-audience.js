@@ -752,10 +752,40 @@
                 try {
                     if (response.success) {
                         var conflicts = response.conflicts || {};
+                        var warnings = [];
+
+                        // Environment or user overlap conflicts
                         if (conflicts.bookings && conflicts.bookings.length > 0) {
+                            if (conflicts.type === 'environment') {
+                                warnings.push(conflicts.message);
+                            } else {
+                                var count = conflicts.affected_users ? conflicts.affected_users.length : 0;
+                                warnings.push(count + ' ' + (ffcAudience.strings.membersOverlapping || 'member(s) have overlapping bookings.'));
+                            }
+                        }
+
+                        // Same audience group on same day (soft conflict)
+                        if (conflicts.audience_same_day && conflicts.audience_same_day.length > 0) {
+                            var grouped = {};
+                            conflicts.audience_same_day.forEach(function(b) {
+                                if (!grouped[b.audience_name]) {
+                                    grouped[b.audience_name] = [];
+                                }
+                                grouped[b.audience_name].push(b.start_time + '–' + b.end_time);
+                            });
+                            var lines = [];
+                            for (var name in grouped) {
+                                lines.push('<strong>' + name + '</strong>: ' + grouped[name].join(', '));
+                            }
+                            warnings.push(
+                                (ffcAudience.strings.audienceSameDayWarning || 'Warning: The following groups already have bookings on this day:') +
+                                '<br>' + lines.join('<br>')
+                            );
+                        }
+
+                        if (warnings.length > 0) {
                             $('#ffc-conflict-warning').show();
-                            var details = (conflicts.affected_users ? conflicts.affected_users.length : 0) + ' member(s) have overlapping bookings.';
-                            $('#ffc-conflict-details').text(details);
+                            $('#ffc-conflict-details').html(warnings.join('<br><br>'));
                         } else {
                             $('#ffc-conflict-warning').hide();
                         }
