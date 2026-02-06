@@ -1,9 +1,11 @@
 /**
  * Calendar Frontend JavaScript
  *
- * Handles calendar booking interface interactions
+ * Handles calendar booking interface interactions.
+ * Uses modal overlay for time slots and booking form.
  *
  * @since 4.1.0
+ * @updated 4.6.0 - Modal overlay instead of inline scroll
  */
 
 (function($) {
@@ -30,10 +32,8 @@
 
             // Apply CPF/RF mask if the helper function is available
             if (window.FFC && window.FFC.Frontend && window.FFC.Frontend.Masks && typeof window.FFC.Frontend.Masks.applyCpfRf === 'function') {
-                // Apply mask on page load to any visible fields
                 window.FFC.Frontend.Masks.applyCpfRf($('#ffc-booking-cpf-rf'));
 
-                // Also apply on focus as a safeguard
                 $(document).on('focus', '#ffc-booking-cpf-rf', function() {
                     window.FFC.Frontend.Masks.applyCpfRf($(this));
                 });
@@ -44,14 +44,10 @@
                 var $slot = $(this);
                 var time = $slot.data('time');
 
-                // Deselect other slots
                 $('.ffc-timeslot').removeClass('selected');
                 $slot.addClass('selected');
 
-                // Store selected time
                 self.selectedTime = time;
-
-                // Show booking form
                 self.showBookingForm();
             });
 
@@ -61,16 +57,33 @@
                 self.submitBooking($(this));
             });
 
-            // Back button
+            // Back button (form → time slots within modal)
             $(document).on('click', '.ffc-btn-back', function(e) {
                 e.preventDefault();
-                self.backToDateSelection();
+                self.backToTimeSlots();
             });
 
             // New booking button
             $(document).on('click', '.ffc-btn-new-booking', function(e) {
                 e.preventDefault();
                 self.resetCalendar();
+            });
+
+            // Modal close handlers
+            $(document).on('click', '#ffc-booking-modal .ffc-modal-close, #ffc-booking-modal .ffc-modal-backdrop', function() {
+                self.closeModal();
+            });
+
+            // Prevent clicks inside modal content from closing
+            $(document).on('click', '#ffc-booking-modal .ffc-modal-content', function(e) {
+                e.stopPropagation();
+            });
+
+            // Close modal on Escape key
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' && $('#ffc-booking-modal').is(':visible')) {
+                    self.closeModal();
+                }
             });
 
             // Manual receipt PDF download button
@@ -85,6 +98,30 @@
         },
 
         /**
+         * Open booking modal
+         */
+        openModal: function() {
+            var $modal = $('#ffc-booking-modal');
+            $modal.show();
+            $('body').css('overflow', 'hidden');
+        },
+
+        /**
+         * Close booking modal
+         */
+        closeModal: function() {
+            var $modal = $('#ffc-booking-modal');
+            $modal.hide();
+            $('body').css('overflow', '');
+
+            // Reset modal to time slots view
+            $('.ffc-booking-form-wrapper').hide();
+            $('.ffc-timeslots-wrapper').show();
+            $('.ffc-timeslot').removeClass('selected');
+            this.selectedTime = null;
+        },
+
+        /**
          * Load available time slots for selected date
          */
         loadTimeSlots: function(calendarId, date) {
@@ -92,17 +129,23 @@
             this.calendarId = calendarId;
             this.selectedDate = date;
 
-            var $wrapper = $('.ffc-timeslots-wrapper');
             var $container = $('#ffc-timeslots-container');
             var $loading = $('.ffc-timeslots-loading');
 
-            // Show wrapper and loading
-            $wrapper.show();
+            // Update modal title with selected date
+            var $modal = $('#ffc-booking-modal');
+            $modal.find('.ffc-modal-title').text(
+                (ffcCalendar.strings.availableTimes || 'Available Times') + ' — ' + self.formatDate(date)
+            );
+
+            // Reset modal state: show time slots, hide form
+            $('.ffc-timeslots-wrapper').show();
+            $('.ffc-booking-form-wrapper').hide();
             $loading.show();
             $container.html('');
 
-            // Hide booking form
-            $('.ffc-booking-form-wrapper').hide();
+            // Open modal
+            self.openModal();
 
             // AJAX request
             $.ajax({
@@ -131,6 +174,23 @@
         },
 
         /**
+         * Format date string (YYYY-MM-DD) to localized display
+         */
+        formatDate: function(dateStr) {
+            var parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+
+            var year = parseInt(parts[0], 10);
+            var monthIndex = parseInt(parts[1], 10) - 1;
+            var day = parseInt(parts[2], 10);
+
+            var months = ffcCalendar.strings.months || [];
+            var monthName = months[monthIndex] || parts[1];
+
+            return day + ' ' + monthName + ' ' + year;
+        },
+
+        /**
          * Render time slots
          */
         renderTimeSlots: function(slots) {
@@ -156,27 +216,29 @@
         },
 
         /**
-         * Show booking form
+         * Show booking form (step 2 inside modal)
          */
         showBookingForm: function() {
-            var $wrapper = $('.ffc-booking-form-wrapper');
-
             // Set hidden fields
             $('#ffc-form-date').val(this.selectedDate);
             $('#ffc-form-time').val(this.selectedTime);
 
-            // Show form
-            $wrapper.show();
+            // Switch modal view: hide time slots, show form
+            $('.ffc-timeslots-wrapper').hide();
+            $('.ffc-booking-form-wrapper').show();
+
+            // Update modal title
+            $('#ffc-booking-modal .ffc-modal-title').text(
+                ffcCalendar.strings.yourInformation || 'Your Information'
+            );
 
             // Apply CPF/RF mask when form becomes visible
             if (window.FFC && window.FFC.Frontend && window.FFC.Frontend.Masks && typeof window.FFC.Frontend.Masks.applyCpfRf === 'function') {
                 window.FFC.Frontend.Masks.applyCpfRf($('#ffc-booking-cpf-rf'));
             }
 
-            // Scroll to form
-            $('html, body').animate({
-                scrollTop: $wrapper.offset().top - 100
-            }, 500);
+            // Scroll modal body to top
+            $('#ffc-booking-modal .ffc-modal-content').scrollTop(0);
         },
 
         /**
@@ -187,38 +249,31 @@
             var $messages = $('.ffc-form-messages');
             var $submitBtn = $form.find('button[type="submit"]');
 
-            // Prevent double submission
             if ($submitBtn.data('submitting')) {
                 return;
             }
 
-            // Clear previous messages
             $messages.html('');
 
-            // Validate
             if (!this.validateForm($form)) {
                 return;
             }
 
-            // Mark as submitting and disable submit button
             $submitBtn.data('submitting', true);
             $submitBtn.prop('disabled', true).text(ffcCalendar.strings.loading);
 
-            // Serialize form data
             var formData = $form.serialize();
 
-            // AJAX request with increased timeout
             $.ajax({
                 url: ffcCalendar.ajaxurl,
                 type: 'POST',
                 data: formData,
-                timeout: 30000, // 30 seconds timeout
+                timeout: 30000,
                 success: function(response) {
                     $submitBtn.data('submitting', false);
                     if (response.success) {
                         self.showConfirmation(response.data);
                     } else {
-                        // Refresh captcha if security validation failed
                         if (response.data && response.data.refresh_captcha) {
                             self.refreshCaptcha(response.data.new_label, response.data.new_hash);
                         }
@@ -227,11 +282,10 @@
                         $submitBtn.prop('disabled', false).text(ffcCalendar.strings.submit || 'Book Appointment');
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function(xhr, status) {
                     $submitBtn.data('submitting', false);
                     var errorMsg = ffcCalendar.strings.error;
 
-                    // Provide more specific error messages
                     if (status === 'timeout') {
                         errorMsg = ffcCalendar.strings.timeout || 'Connection timeout. Please try again.';
                     } else if (xhr.status === 0) {
@@ -249,16 +303,13 @@
          */
         validateForm: function($form) {
             var isValid = true;
-            var $messages = $('.ffc-form-messages');
 
-            // Check required fields
             $form.find('[required]').each(function() {
                 if (!$(this).val() || $(this).val().trim() === '') {
                     isValid = false;
                 }
             });
 
-            // Check consent
             if (!$('#ffc-booking-consent').is(':checked')) {
                 this.showError(ffcCalendar.strings.consentRequired);
                 return false;
@@ -277,13 +328,11 @@
          */
         showError: function(message) {
             var $messages = $('.ffc-form-messages');
-            var html = '<div class="ffc-message ffc-message-error">' + message + '</div>';
-            $messages.html(html);
+            $messages.html('<div class="ffc-message ffc-message-error">' + message + '</div>');
 
-            // Scroll to message
-            $('html, body').animate({
-                scrollTop: $messages.offset().top - 100
-            }, 300);
+            // Scroll modal body to bottom to show the message
+            var $modalContent = $('#ffc-booking-modal .ffc-modal-content');
+            $modalContent.scrollTop($modalContent[0].scrollHeight);
         },
 
         /**
@@ -292,14 +341,13 @@
         showConfirmation: function(data) {
             var self = this;
 
-            // Hide form
-            $('.ffc-booking-form-wrapper').hide();
-            $('.ffc-timeslots-wrapper').hide();
-            $('.ffc-calendar-container').hide();
+            // Close modal
+            $('#ffc-booking-modal').hide();
+            $('body').css('overflow', '');
 
             // Build appointment details
             var detailsHtml = '<div class="ffc-appointment-info">';
-            detailsHtml += '<p><strong>' + ffcCalendar.strings.date + ':</strong> ' + self.selectedDate + '</p>';
+            detailsHtml += '<p><strong>' + ffcCalendar.strings.date + ':</strong> ' + self.formatDate(self.selectedDate) + '</p>';
             detailsHtml += '<p><strong>' + ffcCalendar.strings.time + ':</strong> ' + (self.selectedTime || '') + '</p>';
             detailsHtml += '<p><strong>' + ffcCalendar.strings.name + ':</strong> ' + $('#ffc-booking-name').val() + '</p>';
             detailsHtml += '<p><strong>' + ffcCalendar.strings.email + ':</strong> ' + $('#ffc-booking-email').val() + '</p>';
@@ -311,7 +359,7 @@
             }
             detailsHtml += '</div>';
 
-            // Show validation code if available
+            // Validation code
             if (data.validation_code) {
                 detailsHtml += '<div class="ffc-confirmation-code">';
                 detailsHtml += '<p><strong>' + (ffcCalendar.strings.validationCode || 'Validation Code') + ':</strong></p>';
@@ -320,7 +368,7 @@
                 detailsHtml += '</div>';
             }
 
-            // Add receipt actions (download PDF + view receipt)
+            // Receipt actions
             detailsHtml += '<div class="ffc-receipt-actions">';
             if (data.pdf_data) {
                 detailsHtml += '<button type="button" class="ffc-btn ffc-btn-primary ffc-download-receipt-btn">';
@@ -341,10 +389,11 @@
                 $('.ffc-download-receipt-btn').data('pdfData', data.pdf_data);
             }
 
-            // Show confirmation
+            // Hide calendar, show confirmation
+            $('.ffc-calendar-container').hide();
             $('.ffc-confirmation-wrapper').show();
 
-            // Scroll to top
+            // Scroll to confirmation
             $('html, body').animate({
                 scrollTop: $('.ffc-confirmation-wrapper').offset().top - 100
             }, 500);
@@ -366,53 +415,62 @@
                 return;
             }
 
-            // Update captcha label
             $('.ffc-captcha-row label').html(newLabel);
-
-            // Update captcha hash
             $('#ffc_captcha_hash').val(newHash);
-
-            // Clear captcha answer input
             $('#ffc_captcha_ans').val('').focus();
         },
 
         /**
-         * Back to date selection
+         * Back to time slots (within modal)
          */
-        backToDateSelection: function() {
+        backToTimeSlots: function() {
+            var self = this;
+
+            // Switch modal view: hide form, show time slots
             $('.ffc-booking-form-wrapper').hide();
             $('.ffc-timeslots-wrapper').show();
             $('.ffc-timeslot').removeClass('selected');
             this.selectedTime = null;
 
-            // Scroll to time slots
-            $('html, body').animate({
-                scrollTop: $('.ffc-timeslots-wrapper').offset().top - 100
-            }, 300);
+            // Restore modal title
+            $('#ffc-booking-modal .ffc-modal-title').text(
+                (ffcCalendar.strings.availableTimes || 'Available Times') + ' — ' + self.formatDate(self.selectedDate)
+            );
+
+            // Scroll modal to top
+            $('#ffc-booking-modal .ffc-modal-content').scrollTop(0);
         },
 
         /**
          * Reset calendar to initial state
          */
         resetCalendar: function() {
-            // Hide all sections except calendar
-            $('.ffc-booking-form-wrapper').hide();
-            $('.ffc-timeslots-wrapper').hide();
+            // Hide confirmation, show calendar
             $('.ffc-confirmation-wrapper').hide();
             $('.ffc-calendar-container').show();
 
             // Reset form
             $('#ffc-booking-form')[0].reset();
+            $('.ffc-form-messages').html('');
             $('.ffc-timeslot').removeClass('selected');
+
+            // Reset modal state
+            $('.ffc-booking-form-wrapper').hide();
+            $('.ffc-timeslots-wrapper').show();
+
+            // Reset submit button
+            var $submitBtn = $('#ffc-booking-form button[type="submit"]');
+            $submitBtn.data('submitting', false);
+            $submitBtn.prop('disabled', false).text(ffcCalendar.strings.submit || 'Book Appointment');
 
             // Reset selections
             this.selectedDate = null;
             this.selectedTime = null;
 
-            // Scroll to top
+            // Scroll to calendar
             $('html, body').animate({
-                scrollTop: $('.ffc-calendar-wrapper').offset().top - 100
-            }, 500);
+                scrollTop: $('.ffc-audience-calendar').offset().top - 50
+            }, 300);
         },
 
         /**
@@ -533,17 +591,14 @@
                 var weekday = date.getDay();
                 var isHoliday = calendarHolidays[dateStr];
 
-                // Holiday takes priority
                 if (isHoliday) {
                     return classes;
                 }
 
-                // Check if date is within booking window
                 var isAfterMin = date >= minDate;
                 var isBeforeMax = date <= maxDate;
                 var isWorkingDay = workingDays.indexOf(weekday) !== -1;
 
-                // Mark working days as available (only if within booking window)
                 if (isWorkingDay && isAfterMin && isBeforeMax) {
                     classes.push('ffc-available');
                 }
@@ -551,13 +606,11 @@
                 return classes;
             },
             getDayContent: function(dateStr, date, isHoliday) {
-                // Holiday badge
                 if (isHoliday) {
                     var holidayLabel = typeof isHoliday === 'string' ? isHoliday : (ffcCalendar.strings.holiday || 'Holiday');
                     return '<span class="ffc-day-badge ffc-badge-holiday">' + holidayLabel + '</span>';
                 }
 
-                // Booking count badge
                 var count = bookingCounts[dateStr] ? bookingCounts[dateStr] : 0;
                 if (count > 0) {
                     var singularLabel = ffcCalendar.strings.booking || 'booking';
