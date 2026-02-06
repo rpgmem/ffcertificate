@@ -254,6 +254,149 @@
     });
 
     // ==========================================================================
+    // CERTIFICATE PREVIEW
+    // ==========================================================================
+
+    // Sample data for placeholder replacement
+    var sampleData = {
+        'name': 'Maria Silva de Oliveira',
+        'email': 'maria.silva@example.com',
+        'cpf_rf': '123.456.789-00',
+        'cpf': '123.456.789-00',
+        'auth_code': 'A1B2-C3D4-E5F6',
+        'form_title': $('#title').val() || 'Certificate Title',
+        'submission_date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
+        'print_date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
+        'fill_date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
+        'date': new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }),
+        'submission_id': '1234',
+        'magic_token': 'abc123def456ghi789jkl012',
+        'ticket': 'TK01-AB2C'
+    };
+
+    // Collect field names from builder as additional sample data
+    function getSampleFieldData() {
+        var fieldData = $.extend({}, sampleData);
+        // Use actual form title
+        fieldData['form_title'] = $('#title').val() || fieldData['form_title'];
+        // Scan form builder fields for custom variables
+        $('#ffc-fields-container .ffc-field-row').each(function() {
+            var fieldName = $(this).find('input[name*="[name]"]').val();
+            var fieldLabel = $(this).find('input[name*="[label]"]').val();
+            if (fieldName && !fieldData[fieldName]) {
+                fieldData[fieldName] = fieldLabel || fieldName;
+            }
+        });
+        return fieldData;
+    }
+
+    // Replace placeholders in HTML with sample data
+    function replacePlaceholders(html, data) {
+        // Replace simple {{variable}} placeholders
+        html = html.replace(/\{\{(\w+)\}\}/g, function(match, key) {
+            return data[key] !== undefined ? data[key] : match;
+        });
+        // Replace {{qr_code}} and variants with a placeholder SVG
+        html = html.replace(/\{\{qr_code[^}]*\}\}/g,
+            '<svg width="150" height="150" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">' +
+            '<rect width="150" height="150" fill="#f0f0f0" stroke="#ccc" stroke-width="1"/>' +
+            '<text x="75" y="70" text-anchor="middle" font-size="12" fill="#999">QR Code</text>' +
+            '<text x="75" y="90" text-anchor="middle" font-size="10" fill="#bbb">(preview)</text>' +
+            '</svg>'
+        );
+        // Replace {{validation_url}} and variants with a sample link
+        html = html.replace(/\{\{validation_url[^}]*\}\}/g,
+            '<a href="#" style="color:#0073aa;">https://example.com/valid/#token=abc123</a>'
+        );
+        return html;
+    }
+
+    // Preview button click handler
+    $(document).on('click', '#ffc_btn_preview', function(e) {
+        e.preventDefault();
+
+        var htmlContent = $('#ffc_pdf_layout').val();
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+
+        if (!htmlContent || !htmlContent.trim()) {
+            var emptyMsg = strings.previewEmpty || 'The HTML editor is empty. Add a template first.';
+            alert(emptyMsg);
+            return;
+        }
+
+        var bgImage = $('#ffc_bg_image_input, #ffc_bg_image_url').first().val() || '';
+        var data = getSampleFieldData();
+        var processedHtml = replacePlaceholders(htmlContent, data);
+
+        // Build the iframe content
+        var iframeHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
+        iframeHtml += '<style>';
+        iframeHtml += 'html, body { margin: 0; padding: 0; }';
+        iframeHtml += 'body { font-family: Arial, Helvetica, sans-serif; ';
+        if (bgImage) {
+            iframeHtml += 'background-image: url(' + bgImage + '); ';
+            iframeHtml += 'background-size: cover; background-position: center; background-repeat: no-repeat; ';
+        }
+        iframeHtml += '}';
+        iframeHtml += '</style></head><body>';
+        iframeHtml += processedHtml;
+        iframeHtml += '</body></html>';
+
+        // Build modal
+        var previewTitle = strings.previewTitle || 'Certificate Preview';
+        var closeText = strings.close || 'Close';
+        var sampleDataNote = strings.previewSampleNote || 'Placeholders replaced with sample data. QR code shown as placeholder.';
+
+        var $modal = $('<div id="ffc-preview-modal">' +
+            '<div class="ffc-preview-backdrop"></div>' +
+            '<div class="ffc-preview-container">' +
+                '<div class="ffc-preview-header">' +
+                    '<h2>' + previewTitle + '</h2>' +
+                    '<button type="button" class="ffc-preview-close" title="' + closeText + '">&times;</button>' +
+                '</div>' +
+                '<div class="ffc-preview-note">' + sampleDataNote + '</div>' +
+                '<div class="ffc-preview-body">' +
+                    '<iframe id="ffc-preview-iframe" frameborder="0"></iframe>' +
+                '</div>' +
+            '</div>' +
+        '</div>');
+
+        $('body').append($modal);
+
+        // Write content to iframe
+        var iframe = document.getElementById('ffc-preview-iframe');
+        var iframeDoc = iframe.contentWindow || iframe.contentDocument;
+        if (iframeDoc.document) {
+            iframeDoc = iframeDoc.document;
+        }
+        iframeDoc.open();
+        iframeDoc.write(iframeHtml);
+        iframeDoc.close();
+
+        // Show with fade
+        requestAnimationFrame(function() {
+            $modal.addClass('ffc-preview-visible');
+        });
+
+        // Close handlers
+        function closePreview() {
+            $modal.removeClass('ffc-preview-visible');
+            setTimeout(function() { $modal.remove(); }, 200);
+        }
+
+        $modal.find('.ffc-preview-close').on('click', closePreview);
+        $modal.find('.ffc-preview-backdrop').on('click', closePreview);
+
+        // ESC key to close
+        $(document).on('keydown.ffcPreview', function(e) {
+            if (e.key === 'Escape') {
+                closePreview();
+                $(document).off('keydown.ffcPreview');
+            }
+        });
+    });
+
+    // ==========================================================================
     // MEDIA LIBRARY - Background Image
     // ==========================================================================
 

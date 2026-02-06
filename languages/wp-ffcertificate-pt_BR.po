@@ -8045,3 +8045,19 @@ msgstr "XXXX-XXXX-XXXX"
 
 #~ msgid "View Calendar"
 #~ msgstr "Visualizar Calendário"
+
+#: includes/admin/class-ffc-form-editor-metabox-renderer.php
+msgid "Preview"
+msgstr "Visualizar"
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Certificate Preview"
+msgstr "Visualizar Certificado"
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "The HTML editor is empty. Add a template first."
+msgstr "O editor HTML está vazio. Adicione um template primeiro."
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Placeholders replaced with sample data. QR code shown as placeholder."
+msgstr "Placeholders substituídos por dados de exemplo. QR code exibido como placeholder."

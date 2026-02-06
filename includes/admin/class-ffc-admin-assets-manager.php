@@ -365,6 +365,12 @@ class AdminAssetsManager {
                 'htmlTextareaNotFound'    => __( 'Error: HTML textarea not found', 'wp-ffcertificate' ),
                 'wpMediaNotAvailable'     => __( 'WordPress Media Library is not available. Please reload the page.', 'wp-ffcertificate' ),
                 'backgroundImageSelected' => __( 'Background image selected!', 'wp-ffcertificate' ),
+
+                // Certificate Preview
+                'previewTitle'            => __( 'Certificate Preview', 'wp-ffcertificate' ),
+                'previewEmpty'            => __( 'The HTML editor is empty. Add a template first.', 'wp-ffcertificate' ),
+                'previewSampleNote'       => __( 'Placeholders replaced with sample data. QR code shown as placeholder.', 'wp-ffcertificate' ),
+                'close'                   => __( 'Close', 'wp-ffcertificate' ),
             )
         );
     }

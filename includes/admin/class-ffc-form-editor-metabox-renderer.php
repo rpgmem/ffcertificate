@@ -73,6 +73,10 @@ class FormEditorMetaboxRenderer {
                             <button type="button" class="button" id="ffc_btn_media_lib">
                                 <?php esc_html_e( 'Background Image', 'wp-ffcertificate' ); ?>
                             </button>
+                            <button type="button" class="button button-primary" id="ffc_btn_preview">
+                                <span class="dashicons dashicons-visibility" style="vertical-align:text-bottom;margin-right:2px;"></span>
+                                <?php esc_html_e( 'Preview', 'wp-ffcertificate' ); ?>
+                            </button>
                         </div>
 
                         <?php if($templates): ?>
