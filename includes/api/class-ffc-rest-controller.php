@@ -1000,6 +1000,7 @@ class RestController {
      */
     public function get_user_profile($request) {
         try {
+            global $wpdb;
             $user_id = get_current_user_id();
 
             if (!$user_id) {
