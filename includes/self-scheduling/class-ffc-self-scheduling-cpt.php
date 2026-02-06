@@ -65,19 +65,19 @@ class SelfSchedulingCPT {
      */
     public function register_calendar_cpt(): void {
         $labels = array(
-            'name'                  => _x('Calendars', 'Post Type General Name', 'wp-ffcertificate'),
-            'singular_name'         => _x('Calendar', 'Post Type Singular Name', 'wp-ffcertificate'),
-            'menu_name'             => __('FFC Calendars', 'wp-ffcertificate'),
-            'name_admin_bar'        => __('FFC Calendar', 'wp-ffcertificate'),
-            'add_new'               => __('Add New', 'wp-ffcertificate'),
-            'add_new_item'          => __('Add New Calendar', 'wp-ffcertificate'),
-            'new_item'              => __('New Calendar', 'wp-ffcertificate'),
-            'edit_item'             => __('Edit Calendar', 'wp-ffcertificate'),
-            'view_item'             => __('View Calendar', 'wp-ffcertificate'),
-            'all_items'             => __('All Calendars', 'wp-ffcertificate'),
-            'search_items'          => __('Search Calendars', 'wp-ffcertificate'),
-            'not_found'             => __('No calendars found.', 'wp-ffcertificate'),
-            'not_found_in_trash'    => __('No calendars found in Trash.', 'wp-ffcertificate'),
+            'name'                  => _x('Personal Calendars', 'Post Type General Name', 'wp-ffcertificate'),
+            'singular_name'         => _x('Personal Calendar', 'Post Type Singular Name', 'wp-ffcertificate'),
+            'menu_name'             => __('Personal Calendars', 'wp-ffcertificate'),
+            'name_admin_bar'        => __('Personal Calendar', 'wp-ffcertificate'),
+            'add_new'               => __('New Personal Calendar', 'wp-ffcertificate'),
+            'add_new_item'          => __('Add New Personal Calendar', 'wp-ffcertificate'),
+            'new_item'              => __('New Personal Calendar', 'wp-ffcertificate'),
+            'edit_item'             => __('Edit Personal Calendar', 'wp-ffcertificate'),
+            'view_item'             => __('View Personal Calendar', 'wp-ffcertificate'),
+            'all_items'             => __('Personal Calendars', 'wp-ffcertificate'),
+            'search_items'          => __('Search Personal Calendars', 'wp-ffcertificate'),
+            'not_found'             => __('No personal calendars found.', 'wp-ffcertificate'),
+            'not_found_in_trash'    => __('No personal calendars found in Trash.', 'wp-ffcertificate'),
         );
 
         $args = array(
