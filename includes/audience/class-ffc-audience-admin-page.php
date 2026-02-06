@@ -259,6 +259,15 @@ class AudienceAdminPage {
             #adminmenu .wp-submenu a[href="#ffc-separator-tools"]::before {
                 content: "\f107"; /* dashicons-admin-tools */
             }
+            #adminmenu .wp-submenu a[href$="ffc-scheduling-dashboard"]::before {
+                font-family: dashicons;
+                font-size: 14px;
+                margin-right: 4px;
+                vertical-align: middle;
+                position: relative;
+                top: -1px;
+                content: "\f226"; /* dashicons-dashboard */
+            }
         </style>
         <?php
     }
