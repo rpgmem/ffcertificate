@@ -1530,10 +1530,166 @@ class AudienceAdminPage {
      * @return void
      */
     public function render_settings_page(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $active_tab = isset($_GET['tab']) ? sanitize_text_field(wp_unslash($_GET['tab'])) : 'general';
+
         ?>
         <div class="wrap">
             <h1><?php esc_html_e('Scheduling Settings', 'wp-ffcertificate'); ?></h1>
-            <p><?php esc_html_e('Settings will be available in a future update.', 'wp-ffcertificate'); ?></p>
+
+            <nav class="nav-tab-wrapper">
+                <a href="<?php echo esc_url(admin_url('admin.php?page=' . self::MENU_SLUG . '-settings&tab=general')); ?>"
+                   class="nav-tab <?php echo $active_tab === 'general' ? 'nav-tab-active' : ''; ?>">
+                    <?php esc_html_e('General', 'wp-ffcertificate'); ?>
+                </a>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=' . self::MENU_SLUG . '-settings&tab=self-scheduling')); ?>"
+                   class="nav-tab <?php echo $active_tab === 'self-scheduling' ? 'nav-tab-active' : ''; ?>">
+                    <?php esc_html_e('Self-Scheduling', 'wp-ffcertificate'); ?>
+                </a>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=' . self::MENU_SLUG . '-settings&tab=audience')); ?>"
+                   class="nav-tab <?php echo $active_tab === 'audience' ? 'nav-tab-active' : ''; ?>">
+                    <?php esc_html_e('Audience', 'wp-ffcertificate'); ?>
+                </a>
+            </nav>
+
+            <div class="tab-content" style="margin-top: 20px;">
+                <?php
+                switch ($active_tab) {
+                    case 'self-scheduling':
+                        $this->render_settings_self_scheduling_tab();
+                        break;
+                    case 'audience':
+                        $this->render_settings_audience_tab();
+                        break;
+                    default:
+                        $this->render_settings_general_tab();
+                        break;
+                }
+                ?>
+            </div>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render General settings tab
+     *
+     * @return void
+     */
+    private function render_settings_general_tab(): void {
+        ?>
+        <div class="card" style="max-width: 800px;">
+            <h2><?php esc_html_e('General Settings', 'wp-ffcertificate'); ?></h2>
+            <p class="description">
+                <?php esc_html_e('General scheduling settings that apply to both Self-Scheduling and Audience systems.', 'wp-ffcertificate'); ?>
+            </p>
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><?php esc_html_e('Status', 'wp-ffcertificate'); ?></th>
+                    <td>
+                        <p>
+                            <strong><?php esc_html_e('Self-Scheduling:', 'wp-ffcertificate'); ?></strong>
+                            <?php
+                            $calendars_count = wp_count_posts('ffc_self_scheduling');
+                            $published = isset($calendars_count->publish) ? $calendars_count->publish : 0;
+                            printf(
+                                /* translators: %d: number of published calendars */
+                                esc_html__('%d published calendar(s)', 'wp-ffcertificate'),
+                                (int) $published
+                            );
+                            ?>
+                        </p>
+                        <p>
+                            <strong><?php esc_html_e('Audience:', 'wp-ffcertificate'); ?></strong>
+                            <?php
+                            printf(
+                                /* translators: %d: number of active schedules */
+                                esc_html__('%d active schedule(s)', 'wp-ffcertificate'),
+                                AudienceScheduleRepository::count(array('status' => 'active'))
+                            );
+                            ?>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+            <p class="description">
+                <?php esc_html_e('Additional global settings will be available in a future update.', 'wp-ffcertificate'); ?>
+            </p>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render Self-Scheduling settings tab
+     *
+     * @return void
+     */
+    private function render_settings_self_scheduling_tab(): void {
+        ?>
+        <div class="card" style="max-width: 800px;">
+            <h2><?php esc_html_e('Self-Scheduling Settings', 'wp-ffcertificate'); ?></h2>
+            <p class="description">
+                <?php esc_html_e('Settings specific to the personal appointment booking system. Calendar-specific settings (slots, working hours, email templates) are configured on each calendar\'s edit page.', 'wp-ffcertificate'); ?>
+            </p>
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><?php esc_html_e('Manage Calendars', 'wp-ffcertificate'); ?></th>
+                    <td>
+                        <a href="<?php echo esc_url(admin_url('edit.php?post_type=ffc_self_scheduling')); ?>" class="button">
+                            <?php esc_html_e('View All Calendars', 'wp-ffcertificate'); ?>
+                        </a>
+                        <a href="<?php echo esc_url(admin_url('post-new.php?post_type=ffc_self_scheduling')); ?>" class="button">
+                            <?php esc_html_e('Add New Calendar', 'wp-ffcertificate'); ?>
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e('Appointments', 'wp-ffcertificate'); ?></th>
+                    <td>
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=ffc-appointments')); ?>" class="button">
+                            <?php esc_html_e('View All Appointments', 'wp-ffcertificate'); ?>
+                        </a>
+                    </td>
+                </tr>
+            </table>
+            <p class="description">
+                <?php esc_html_e('Additional self-scheduling settings will be available in a future update.', 'wp-ffcertificate'); ?>
+            </p>
+        </div>
+        <?php
+    }
+
+    /**
+     * Render Audience settings tab
+     *
+     * @return void
+     */
+    private function render_settings_audience_tab(): void {
+        ?>
+        <div class="card" style="max-width: 800px;">
+            <h2><?php esc_html_e('Audience Scheduling Settings', 'wp-ffcertificate'); ?></h2>
+            <p class="description">
+                <?php esc_html_e('Settings specific to the audience/group booking system.', 'wp-ffcertificate'); ?>
+            </p>
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><?php esc_html_e('Manage', 'wp-ffcertificate'); ?></th>
+                    <td>
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=' . self::MENU_SLUG . '-calendars')); ?>" class="button">
+                            <?php esc_html_e('Audience Calendars', 'wp-ffcertificate'); ?>
+                        </a>
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=' . self::MENU_SLUG . '-environments')); ?>" class="button">
+                            <?php esc_html_e('Environments', 'wp-ffcertificate'); ?>
+                        </a>
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=' . self::MENU_SLUG . '-audiences')); ?>" class="button">
+                            <?php esc_html_e('Audiences', 'wp-ffcertificate'); ?>
+                        </a>
+                    </td>
+                </tr>
+            </table>
+            <p class="description">
+                <?php esc_html_e('Additional audience settings will be available in a future update.', 'wp-ffcertificate'); ?>
+            </p>
         </div>
         <?php
     }
