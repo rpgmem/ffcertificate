@@ -769,7 +769,7 @@ class AudienceBookingRepository {
         // Find which specific users have conflicts
         $affected_users = array();
         foreach ($conflicting_bookings as $booking) {
-            $booking_users = self::get_all_affected_users($booking->id);
+            $booking_users = self::get_all_affected_users((int) $booking->id);
             $conflicting = array_intersect($all_user_ids, $booking_users);
             $affected_users = array_merge($affected_users, $conflicting);
         }
