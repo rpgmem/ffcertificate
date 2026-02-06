@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-06 03:12+0000\n"
+"POT-Creation-Date: 2026-02-06 09:07+0000\n"
 "PO-Revision-Date: 2026-02-04 01:16+0000\n"
 "Last-Translator: Alex Meusburger\n"
 "Language-Team: Português do Brasil\n"
@@ -403,8 +403,9 @@ msgstr "Template \"%s\" carregado com sucesso!"
 
 #: includes/admin/class-ffc-admin-assets-manager.php:355
 msgid "Template file not found. Check if file exists in html/ folder."
-msgstr "Arquivo de modelo não encontrado. Verifique se o arquivo existe na pasta html/."
-
+msgstr ""
+"Arquivo de modelo não encontrado. Verifique se o arquivo existe na pasta "
+"html/."
 
 #: includes/admin/class-ffc-admin-assets-manager.php:356
 msgid "Access denied. Check file permissions."
@@ -441,58 +442,13 @@ msgstr "Erro: Área de texto HTML não encontrada"
 
 #: includes/admin/class-ffc-admin-assets-manager.php:366
 msgid "WordPress Media Library is not available. Please reload the page."
-msgstr "A Biblioteca de Mídia do WordPress não está disponível. Por favor, recarregue a página."
-
+msgstr ""
+"A Biblioteca de Mídia do WordPress não está disponível. Por favor, "
+"recarregue a página."
 
 #: includes/admin/class-ffc-admin-assets-manager.php:367
 msgid "Background image selected!"
 msgstr "Imagem de fundo selecionada!"
-
-#: includes/admin/class-ffc-admin-notice-manager.php:44
-#: includes/admin/class-ffc-admin.php:233
-msgid "Item moved to trash."
-msgstr "Item movido para a lixeira."
-
-#: includes/admin/class-ffc-admin-notice-manager.php:48
-#: includes/admin/class-ffc-admin.php:236
-msgid "Item restored."
-msgstr "Item restaurado."
-
-#: includes/admin/class-ffc-admin-notice-manager.php:52
-#: includes/admin/class-ffc-admin.php:239
-msgid "Item permanently deleted."
-msgstr "Item excluído permanentemente."
-
-#: includes/admin/class-ffc-admin-notice-manager.php:56
-#: includes/admin/class-ffc-admin.php:242
-msgid "Bulk action completed."
-msgstr "Ação em massa concluída."
-
-#: includes/admin/class-ffc-admin-notice-manager.php:60
-#: includes/admin/class-ffc-admin.php:245
-msgid "Submission updated successfully."
-msgstr "Envio atualizado com sucesso."
-
-#: includes/admin/class-ffc-admin-notice-manager.php:65
-#: includes/admin/class-ffc-admin.php:249
-msgid "Migration"
-msgstr "Migração"
-
-#: includes/admin/class-ffc-admin-notice-manager.php:67
-#: includes/admin/class-ffc-admin.php:251
-#, php-format
-msgid "%1$s: %2$d records migrated successfully."
-msgstr "%1$s: %2$d registros migrados com sucesso."
-
-#: includes/admin/class-ffc-admin-notice-manager.php:71
-#: includes/admin/class-ffc-admin.php:254
-msgid "Unknown error"
-msgstr "Erro desconhecido"
-
-#: includes/admin/class-ffc-admin-notice-manager.php:72
-#: includes/admin/class-ffc-admin.php:255
-msgid "Migration Error: "
-msgstr "Erro de Migração:"
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:80
 #: includes/admin/class-ffc-admin-submission-edit-page.php:503
@@ -661,8 +617,9 @@ msgstr "Consentimento concedido:"
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:349
 msgid "User explicitly agreed to data storage and privacy policy."
-msgstr "O usuário concordou explicitamente com o armazenamento de dados e a política de privacidade."
-
+msgstr ""
+"O usuário concordou explicitamente com o armazenamento de dados e a política "
+"de privacidade."
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:355
 #, php-format
@@ -676,8 +633,8 @@ msgstr "IP: %s"
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:370
 msgid "Sensitive data (email, CPF/RF, IP) is encrypted in the database."
-msgstr "Dados sensíveis (e-mail, CPF/RF, IP) são criptografados no banco de dados."
-
+msgstr ""
+"Dados sensíveis (e-mail, CPF/RF, IP) são criptografados no banco de dados."
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:374
 msgid "No consent recorded:"
@@ -685,8 +642,8 @@ msgstr "Nenhum consentimento registrado:"
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:375
 msgid "This submission was created before LGPD consent feature (v2.10.0)."
-msgstr "Esta submissão foi criada antes do recurso de consentimento LGPD (v2.10.0)."
-
+msgstr ""
+"Esta submissão foi criada antes do recurso de consentimento LGPD (v2.10.0)."
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:378
 msgid ""
@@ -759,8 +716,9 @@ msgstr "Ver histórico de certificados"
 
 #: includes/admin/class-ffc-admin-user-capabilities.php:93
 msgid "Allow access to certificate-related features in the user dashboard."
-msgstr "Permitir o acesso a recursos relacionados a certificados no painel do usuário."
-
+msgstr ""
+"Permitir o acesso a recursos relacionados a certificados no painel do "
+"usuário."
 
 #: includes/admin/class-ffc-admin-user-capabilities.php:101
 #: includes/admin/class-ffc-admin-user-capabilities.php:105
@@ -875,6 +833,43 @@ msgstr "Exportar CSV Filtrado"
 #: includes/admin/class-ffc-admin.php:196
 msgid "Export All CSV"
 msgstr "Exportar Tudo CSV"
+
+#: includes/admin/class-ffc-admin.php:233
+msgid "Item moved to trash."
+msgstr "Item movido para a lixeira."
+
+#: includes/admin/class-ffc-admin.php:236
+msgid "Item restored."
+msgstr "Item restaurado."
+
+#: includes/admin/class-ffc-admin.php:239
+msgid "Item permanently deleted."
+msgstr "Item excluído permanentemente."
+
+#: includes/admin/class-ffc-admin.php:242
+msgid "Bulk action completed."
+msgstr "Ação em massa concluída."
+
+#: includes/admin/class-ffc-admin.php:245
+msgid "Submission updated successfully."
+msgstr "Envio atualizado com sucesso."
+
+#: includes/admin/class-ffc-admin.php:249
+msgid "Migration"
+msgstr "Migração"
+
+#: includes/admin/class-ffc-admin.php:251
+#, php-format
+msgid "%1$s: %2$d records migrated successfully."
+msgstr "%1$s: %2$d registros migrados com sucesso."
+
+#: includes/admin/class-ffc-admin.php:254
+msgid "Unknown error"
+msgstr "Erro desconhecido"
+
+#: includes/admin/class-ffc-admin.php:255
+msgid "Migration Error: "
+msgstr "Erro de Migração:"
 
 #: includes/admin/class-ffc-admin.php:297
 msgid "Insufficient permissions"
@@ -1065,15 +1060,14 @@ msgstr "Copie este código curto:"
 msgid "Paste this code into any Page or Post to display the form."
 msgstr "Cole este código em qualquer Página ou Post para exibir o formulário."
 
-
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:40
 msgid "Tips:"
 msgstr "Dicas:"
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:42
 msgid "Use <b>{{field_name}}</b> in the PDF Layout to insert user data."
-msgstr "Use <b>{{field_name}}</b> no Layout do PDF para inserir dados do usuário."
-
+msgstr ""
+"Use <b>{{field_name}}</b> no Layout do PDF para inserir dados do usuário."
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:43
 msgid ""
@@ -1182,8 +1176,9 @@ msgstr "Requer ingresso válido (consumido após o uso)"
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:224
 msgid "Note: If no restriction is selected, form is Open (no restrictions)."
-msgstr "Nota: Se nenhuma restrição for selecionada, o formulário ficará Aberto (sem restrições)."
-
+msgstr ""
+"Nota: Se nenhuma restrição for selecionada, o formulário ficará Aberto (sem "
+"restrições)."
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:230
 msgid "Password Value"
@@ -1270,8 +1265,9 @@ msgstr "Este formulário não está disponível na sua região."
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:349
 msgid "Unable to determine your location. Please enable location services."
-msgstr "Não foi possível determinar sua localização. Por favor, ative os serviços de localização."
-
+msgstr ""
+"Não foi possível determinar sua localização. Por favor, ative os serviços de "
+"localização."
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:356
 msgid "Date & Time"
@@ -1328,7 +1324,6 @@ msgstr "Para:"
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:391
 msgid "Leave empty for 24/7 access. Default: 00:00 to 23:59"
 msgstr "Deixe vazio para acesso 24h. Padrão: 00:00 a 23:59"
-
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:395
 msgid "Time Behavior"
@@ -1405,8 +1400,8 @@ msgstr "Mensagem Bloqueada"
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:433
 msgid "Message shown when form is accessed outside allowed date/time."
-msgstr "Mensagem exibida quando o formulário é acessado fora da data/hora permitida."
-
+msgstr ""
+"Mensagem exibida quando o formulário é acessado fora da data/hora permitida."
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:443
 msgid "Enable Geolocation"
@@ -1418,8 +1413,9 @@ msgstr "Restringir o acesso ao formulário por localização geográfica."
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:449
 msgid "Limit form access to users within specific geographic areas."
-msgstr "Limitar o acesso ao formulário a usuários dentro de áreas geográficas específicas."
-
+msgstr ""
+"Limitar o acesso ao formulário a usuários dentro de áreas geográficas "
+"específicas."
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:453
 msgid "Validation Methods"
@@ -1481,21 +1477,19 @@ msgstr "\"OU\" - Permitir se o GPS OU o IP for válido (recomendado)"
 msgid "AND - Require both GPS AND IP to be valid (stricter)"
 msgstr "E - Exigir que tanto o GPS quanto o IP sejam válidos (mais rigoroso)"
 
-
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:491
 msgid "When both GPS and IP are enabled, how to combine the results."
 msgstr "Quando GPS e IP estão habilitados, como combinar os resultados."
 
-
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:502
 msgid "How to display the form when user is outside allowed areas."
-msgstr "Como exibir o formulário quando o usuário está fora das áreas permitidas."
-
+msgstr ""
+"Como exibir o formulário quando o usuário está fora das áreas permitidas."
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:509
 msgid "Message shown when user is outside allowed geographic areas."
-msgstr "Mensagem exibida quando o usuário está fora das áreas geográficas permitidas."
-
+msgstr ""
+"Mensagem exibida quando o usuário está fora das áreas geográficas permitidas."
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:513
 msgid "Error Message"
@@ -1503,8 +1497,8 @@ msgstr "Mensagem de Erro"
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:516
 msgid "Message shown when location detection fails (GPS denied, etc)."
-msgstr "Mensagem exibida quando a detecção de localização falha (GPS negado, etc)."
-
+msgstr ""
+"Mensagem exibida quando a detecção de localização falha (GPS negado, etc)."
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:544
 msgid "Field"
@@ -1557,8 +1551,9 @@ msgstr "Exemplo: Opção 1, Opção 2, Opção 3"
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:151
 msgid "GPS Geolocation is enabled but no allowed areas are defined."
-msgstr "A Geolocalização GPS está habilitada, mas nenhuma área permitida foi definida."
-
+msgstr ""
+"A Geolocalização GPS está habilitada, mas nenhuma área permitida foi "
+"definida."
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:156
 msgid ""
@@ -1570,14 +1565,14 @@ msgstr ""
 #: includes/admin/class-ffc-form-editor-save-handler.php:198
 #, php-format
 msgid "%1$s Area line %2$d: Invalid format. Use: latitude, longitude, radius"
-msgstr "Linha de área %1$s %2$d: Formato inválido. Use: latitude, longitude, raio"
-
+msgstr ""
+"Linha de área %1$s %2$d: Formato inválido. Use: latitude, longitude, raio"
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:215
 #, php-format
 msgid "%1$s Area line %2$d: Invalid latitude %3$s (must be between -90 and 90)"
-msgstr "Linha de área %1$s %2$d: Latitude inválida %3$s (deve estar entre -90 e 90)"
-
+msgstr ""
+"Linha de área %1$s %2$d: Latitude inválida %3$s (deve estar entre -90 e 90)"
 
 #: includes/admin/class-ffc-form-editor-save-handler.php:226
 #, php-format
@@ -1770,8 +1765,9 @@ msgstr "Limpar Filtro"
 
 #: includes/admin/views/ffc-admin-activity-log.php:16
 msgid "Activity logs track important actions for audit and LGPD compliance."
-msgstr "Os registros de atividades rastreiam ações importantes para auditoria e conformidade com a LGPD."
-
+msgstr ""
+"Os registros de atividades rastreiam ações importantes para auditoria e "
+"conformidade com a LGPD."
 
 #: includes/admin/views/ffc-admin-activity-log.php:28
 msgid "All Levels"
@@ -1946,7 +1942,6 @@ msgstr "Pendente"
 #: includes/api/class-ffc-rest-controller.php:1842
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:225
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:429
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:79
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:214
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:165
 #: includes/self-scheduling/views/appointments-list.php:185
@@ -1961,7 +1956,6 @@ msgstr "Confirmado"
 #: includes/audience/class-ffc-audience-shortcode.php:502
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:226
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:430
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:80
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:215
 #: includes/self-scheduling/views/appointments-list.php:186
 #: includes/self-scheduling/views/appointments-list.php:267
@@ -1972,7 +1966,6 @@ msgstr "Cancelado"
 #: includes/api/class-ffc-rest-controller.php:1239
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:227
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:431
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:81
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:216
 #: includes/self-scheduling/views/appointments-list.php:187
 #: includes/self-scheduling/views/appointments-list.php:268
@@ -1982,7 +1975,6 @@ msgstr "Concluído"
 #: includes/api/class-ffc-rest-controller.php:1240
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:228
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:432
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:82
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:217
 #: includes/self-scheduling/views/appointments-list.php:188
 #: includes/self-scheduling/views/appointments-list.php:269
@@ -2248,7 +2240,6 @@ msgstr "Adicionar Novo Calendário"
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:235
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:601
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:706
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:41
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:210
 msgid "Calendar not found."
 msgstr "Calendário não encontrado."
@@ -2273,7 +2264,8 @@ msgstr "Código curto"
 
 #: includes/audience/class-ffc-audience-admin-page.php:705
 msgid "Use this shortcode to display the calendar on any page or post."
-msgstr "Use este shortcode para exibir o calendário em qualquer página ou post."
+msgstr ""
+"Use este shortcode para exibir o calendário em qualquer página ou post."
 
 #: includes/audience/class-ffc-audience-admin-page.php:721
 #: includes/audience/class-ffc-audience-admin-page.php:832
@@ -2308,8 +2300,8 @@ msgid ""
 "Maximum days in advance that non-admin users can book. Leave empty for no "
 "limit."
 msgstr ""
-"Máximo de dias de antecedência que usuários não-admin podem reservar. "
-"Deixe vazio para sem limite."
+"Máximo de dias de antecedência que usuários não-admin podem reservar. Deixe "
+"vazio para sem limite."
 
 #: includes/audience/class-ffc-audience-admin-page.php:755
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:431
@@ -2525,7 +2517,8 @@ msgstr "Nenhuma (audiência de nível superior)"
 
 #: includes/audience/class-ffc-audience-admin-page.php:1328
 msgid "Select a parent to create a sub-group (2-level hierarchy only)."
-msgstr "Selecione um pai para criar um subgrupo (apenas hierarquia de 2 níveis)."
+msgstr ""
+"Selecione um pai para criar um subgrupo (apenas hierarquia de 2 níveis)."
 
 #: includes/audience/class-ffc-audience-admin-page.php:1348
 msgid "Update Audience"
@@ -2734,11 +2727,14 @@ msgstr "Configurações de Agendamento de Audiência"
 
 #: includes/audience/class-ffc-audience-admin-page.php:1962
 msgid "Settings specific to the audience/group booking system."
-msgstr "Configurações específicas para o sistema de agendamento de audiência/grupo."
+msgstr ""
+"Configurações específicas para o sistema de agendamento de audiência/grupo."
 
 #: includes/audience/class-ffc-audience-admin-page.php:1981
 msgid "Additional audience settings will be available in a future update."
-msgstr "Configurações adicionais de audiência estarão disponíveis em uma atualização futura."
+msgstr ""
+"Configurações adicionais de audiência estarão disponíveis em uma atualização "
+"futura."
 
 #: includes/audience/class-ffc-audience-admin-page.php:2003
 #: includes/audience/class-ffc-audience-admin-page.php:2060
@@ -2760,7 +2756,8 @@ msgstr "Arquivo CSV"
 
 #: includes/audience/class-ffc-audience-admin-page.php:2020
 msgid "Required columns: email. Optional: name, audience_id or audience_name."
-msgstr "Colunas obrigatórias: email. Opcionais: name, audience_id ou audience_name."
+msgstr ""
+"Colunas obrigatórias: email. Opcionais: name, audience_id ou audience_name."
 
 #: includes/audience/class-ffc-audience-admin-page.php:2026
 msgid "Target Audience"
@@ -2811,7 +2808,8 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-page.php:2091
 msgid "Required columns: name. Optional: color, parent (parent audience name)."
-msgstr "Colunas obrigatórias: name. Opcionais: color, parent (nome da audiência pai)."
+msgstr ""
+"Colunas obrigatórias: name. Opcionais: color, parent (nome da audiência pai)."
 
 #: includes/audience/class-ffc-audience-admin-page.php:2149
 #: includes/audience/class-ffc-audience-admin-page.php:2189
@@ -2890,8 +2888,8 @@ msgid ""
 "No audience specified. Provide audience_id parameter or include audience_id/"
 "audience_name column in CSV."
 msgstr ""
-"Nenhuma audiência especificada. Forneça o parâmetro audience_id ou inclua "
-"a coluna audience_id/audience_name no CSV."
+"Nenhuma audiência especificada. Forneça o parâmetro audience_id ou inclua a "
+"coluna audience_id/audience_name no CSV."
 
 #: includes/audience/class-ffc-audience-csv-importer.php:107
 #, php-format
@@ -3106,7 +3104,6 @@ msgstr "Ambiente:"
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:264
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:315
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:374
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:252
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:411
 #: templates/submission-success.php:28
 msgid "Date:"
@@ -3118,14 +3115,12 @@ msgstr "Data:"
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:265
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:316
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:375
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:256
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:415
 msgid "Time:"
 msgstr "Horário:"
 
 #: includes/audience/class-ffc-audience-notification-handler.php:374
 #: includes/audience/class-ffc-audience-notification-handler.php:402
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:238
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:392
 msgid "Description:"
 msgstr "Descrição:"
@@ -3344,8 +3339,8 @@ msgid ""
 "Warning: Some selected members already have bookings at this time. You may "
 "proceed with the booking."
 msgstr ""
-"Atenção: Alguns membros selecionados já possuem reservas neste horário. "
-"Você pode prosseguir com a reserva."
+"Atenção: Alguns membros selecionados já possuem reservas neste horário. Você "
+"pode prosseguir com a reserva."
 
 #: includes/audience/class-ffc-audience-shortcode.php:237
 #: includes/audience/class-ffc-audience-shortcode.php:504
@@ -3477,25 +3472,6 @@ msgstr "A solicitação expirou. Por favor, tente novamente."
 msgid "Please confirm the uninstallation to proceed."
 msgstr "Por favor, confirme a desinstalação para prosseguir."
 
-#: includes/core/class-ffc-page-manager.php:107
-msgid "Certificate Verification"
-msgstr "Verificação de Certificados"
-
-#: includes/core/class-ffc-page-manager.php:152
-msgid "Free Form Certificate:"
-msgstr "Formulário Grátis para Certificado:"
-
-#: includes/core/class-ffc-page-manager.php:153
-msgid ""
-"The verification page is missing. Magic links and PDF downloads won't work!"
-msgstr ""
-"A página de verificação não está funcionando. Links mágicos e downloads de "
-"PDF não estão funcionando!"
-
-#: includes/core/class-ffc-page-manager.php:157
-msgid "Create Verification Page"
-msgstr "Criar Página de Verificação"
-
 #: includes/core/class-ffc-utils.php:600
 #: includes/frontend/class-ffc-form-processor.php:355
 #: includes/frontend/class-ffc-shortcodes.php:50
@@ -3615,7 +3591,6 @@ msgstr ""
 msgid "The ID must have exactly 7 digits (RF) or 11 digits (CPF)."
 msgstr "O ID deve ter exatamente 7 dígitos (RF) ou 11 dígitos (CPF)."
 
-
 #: includes/frontend/class-ffc-frontend.php:96
 #: includes/frontend/class-ffc-verification-handler.php:387
 msgid "Invalid token."
@@ -3693,13 +3668,15 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:174
 msgid "Admin Bypass: Date/Time restrictions are disabled for administrators"
-msgstr "Acesso Administrativo: As restrições de data/hora estão desativadas para administradores"
-
+msgstr ""
+"Acesso Administrativo: As restrições de data/hora estão desativadas para "
+"administradores"
 
 #: includes/frontend/class-ffc-frontend.php:175
 msgid "Admin Bypass: Geolocation restrictions are disabled for administrators"
-msgstr "Acesso Administrativo: As restrições de geolocalização estão desativadas para administradores"
-
+msgstr ""
+"Acesso Administrativo: As restrições de geolocalização estão desativadas "
+"para administradores"
 
 #: includes/frontend/class-ffc-frontend.php:176
 msgid "Admin Bypass Mode Active"
@@ -3728,8 +3705,8 @@ msgstr "Não foi possível determinar sua localização."
 
 #: includes/frontend/class-ffc-frontend.php:183
 msgid "Location permission denied. Please enable location services."
-msgstr "Permissão de localização negada. Por favor, ative os serviços de localização."
-
+msgstr ""
+"Permissão de localização negada. Por favor, ative os serviços de localização."
 
 #: includes/frontend/class-ffc-frontend.php:184
 msgid "Location information is unavailable."
@@ -3917,8 +3894,8 @@ msgstr "Certificado não encontrado ou código inválido."
 #: includes/frontend/class-ffc-verification-handler.php:382
 #: includes/frontend/class-ffc-verification-handler.php:450
 msgid "Too many verification attempts. Please try again later."
-msgstr "Muitas tentativas de verificação. Por favor, tente novamente mais tarde."
-
+msgstr ""
+"Muitas tentativas de verificação. Por favor, tente novamente mais tarde."
 
 #: includes/frontend/class-ffc-verification-handler.php:395
 msgid "Too many attempts. Please try again in 1 minute."
@@ -4032,7 +4009,8 @@ msgstr "Data de conclusão da criptografia não encontrada."
 #: includes/migrations/class-ffc-migration-manager.php:244
 #, php-format
 msgid "Must wait 15 days after encryption completion. Days remaining: %d"
-msgstr "Deve aguardar 15 dias após a conclusão da criptografia. Dias restantes: %d"
+msgstr ""
+"Deve aguardar 15 dias após a conclusão da criptografia. Dias restantes: %d"
 
 #: includes/migrations/class-ffc-migration-manager.php:255
 msgid "User confirmation required. Type \"CONFIRMAR EXCLUSÃO\" to proceed."
@@ -4053,14 +4031,15 @@ msgstr "A migração da criptografia deve estar 100% concluída."
 #: includes/migrations/class-ffc-migration-manager.php:390
 #, php-format
 msgid "Must wait 30 days after encryption completion. Days remaining: %d"
-msgstr "Deve aguardar 30 dias após a conclusão da criptografia. Dias restantes: %d"
-
+msgstr ""
+"Deve aguardar 30 dias após a conclusão da criptografia. Dias restantes: %d"
 
 #: includes/migrations/class-ffc-migration-name-normalization.php:61
 #: includes/migrations/strategies/class-ffc-name-normalization-migration-strategy.php:139
 msgid "Encryption is not configured. Cannot process encrypted data."
-msgstr "A criptografia não está configurada. Não é possível processar dados criptografados."
-
+msgstr ""
+"A criptografia não está configurada. Não é possível processar dados "
+"criptografados."
 
 #: includes/migrations/class-ffc-migration-name-normalization.php:79
 msgid "No submissions with encrypted data found."
@@ -4137,15 +4116,14 @@ msgstr "Criptografar Dados Sensíveis"
 msgid "Encrypt email, data, and user_ip for LGPD compliance"
 msgstr "Criptografar e-mail, dados e user_ip para conformidade com a LGPD"
 
-
 #: includes/migrations/class-ffc-migration-registry.php:128
 msgid "Cleanup Unencrypted Data (15+ days)"
 msgstr "Limpeza de dados não criptografados (mais de 15 dias)"
 
 #: includes/migrations/class-ffc-migration-registry.php:129
 msgid "Remove unencrypted copies of sensitive data older than 15 days"
-msgstr "Remover cópias não criptografadas de dados sensíveis com mais de 15 dias"
-
+msgstr ""
+"Remover cópias não criptografadas de dados sensíveis com mais de 15 dias"
 
 #: includes/migrations/class-ffc-migration-registry.php:138
 msgid "Link Submissions to Users"
@@ -4163,15 +4141,15 @@ msgstr "Normalizar Nomes e E-mails"
 msgid "Normalize names (Brazilian capitalization) and emails (lowercase)"
 msgstr "Normalizar nomes (capitalização brasileira) e e-mails (minúsculas)"
 
-
 #: includes/migrations/class-ffc-migration-registry.php:158
 msgid "User Capabilities"
 msgstr "Recursos do Usuário"
 
 #: includes/migrations/class-ffc-migration-registry.php:159
 msgid "Set user capabilities based on submission/appointment history"
-msgstr "Definir permissões de usuário com base no histórico de submissões/agendamentos"
-
+msgstr ""
+"Definir permissões de usuário com base no histórico de submissões/"
+"agendamentos"
 
 #: includes/migrations/class-ffc-migration-registry.php:168
 msgid "Data Cleanup"
@@ -4316,8 +4294,9 @@ msgstr "Não existem submissões com mais de 15 dias e dados criptografados."
 #: includes/migrations/strategies/class-ffc-cleanup-migration-strategy.php:93
 #, php-format
 msgid "%d submissions eligible for cleanup (15+ days old with encrypted data)"
-msgstr "%d submissões elegíveis para limpeza (com mais de 15 dias e dados criptografados)"
-
+msgstr ""
+"%d submissões elegíveis para limpeza (com mais de 15 dias e dados "
+"criptografados)"
 
 #: includes/migrations/strategies/class-ffc-cleanup-migration-strategy.php:136
 msgid "No submissions to cleanup"
@@ -4330,8 +4309,8 @@ msgstr "Submissões %d limpas"
 
 #: includes/migrations/strategies/class-ffc-cleanup-migration-strategy.php:231
 msgid "FFC_Encryption class required for cleanup. Encrypt data first."
-msgstr "Classe FFC_Encryption necessária para limpeza. Criptografe os dados primeiro."
-
+msgstr ""
+"Classe FFC_Encryption necessária para limpeza. Criptografe os dados primeiro."
 
 #: includes/migrations/strategies/class-ffc-cleanup-migration-strategy.php:239
 msgid "Encryption must be configured before cleanup."
@@ -4392,8 +4371,9 @@ msgstr "Migrados %1$d %2$s valores"
 #: includes/migrations/strategies/class-ffc-field-migration-strategy.php:248
 #, php-format
 msgid "%s column does not exist. Please update the database schema first."
-msgstr "A coluna %s não existe. Por favor, atualize o esquema do banco de dados primeiro."
-
+msgstr ""
+"A coluna %s não existe. Por favor, atualize o esquema do banco de dados "
+"primeiro."
 
 #: includes/migrations/strategies/class-ffc-field-migration-strategy.php:256
 msgid "Field definition not found in registry"
@@ -4444,8 +4424,9 @@ msgstr ""
 
 #: includes/migrations/strategies/class-ffc-user-link-migration-strategy.php:147
 msgid "Encryption is not configured. Please configure encryption keys first."
-msgstr "A criptografia não está configurada. Por favor, configure as chaves de criptografia primeiro."
-
+msgstr ""
+"A criptografia não está configurada. Por favor, configure as chaves de "
+"criptografia primeiro."
 
 #: includes/migrations/strategies/class-ffc-user-link-migration-strategy.php:160
 msgid "User Link Migration"
@@ -4682,7 +4663,6 @@ msgid "This is a reminder about your upcoming appointment."
 msgstr "Este é um lembrete sobre seu próximo agendamento."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:428
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:78
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:213
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:166
 msgid "Pending Approval"
@@ -4706,8 +4686,9 @@ msgstr "Parâmetros inválidos."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:188
 msgid "Security check failed. Please refresh the page and try again."
-msgstr "Verificação de segurança falhou. Por favor, atualize a página e tente novamente."
-
+msgstr ""
+"Verificação de segurança falhou. Por favor, atualize a página e tente "
+"novamente."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:199
 msgid "Invalid appointment ID."
@@ -4750,14 +4731,14 @@ msgstr "Não é possível agendar no passado."
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:363
 #, php-format
 msgid "Appointments must be booked at least %d hours in advance."
-msgstr "Agendamentos devem ser realizados com pelo menos %d horas de antecedência."
-
+msgstr ""
+"Agendamentos devem ser realizados com pelo menos %d horas de antecedência."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:378
 #, php-format
 msgid "Appointments cannot be booked more than %d days in advance."
-msgstr "Agendamentos não podem ser realizados com mais de %d dias de antecedência."
-
+msgstr ""
+"Agendamentos não podem ser realizados com mais de %d dias de antecedência."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:387
 msgid "This date is a holiday."
@@ -4822,7 +4803,6 @@ msgid "Calendar is not active."
 msgstr "Calendário não está ativo."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:699
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:34
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:67
 msgid "Appointment not found."
 msgstr "Agendamento não encontrado."
@@ -4862,70 +4842,6 @@ msgstr "Falha ao cancelar agendamento."
 msgid "Invalid calendar."
 msgstr "Calendário inválido."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:129
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:217
-msgid "Appointment Confirmation"
-msgstr "Confirmação de Agendamento"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:231
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:385
-msgid "Event Details"
-msgstr "Detalhes do Evento"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:233
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:387
-#: templates/certificate-preview.php:39
-msgid "Event:"
-msgstr "Evento:"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:246
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:399
-msgid "Appointment Information"
-msgstr "Informações do Agendamento"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:248
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:401
-msgid "Appointment ID:"
-msgstr "ID do Agendamento:"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:260
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:419
-msgid "Booked on:"
-msgstr "Agendado em:"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:267
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:425
-msgid "Personal Information"
-msgstr "Informações Pessoais"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:269
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:427
-#: includes/shortcodes/class-ffc-dashboard-shortcode.php:333
-msgid "Name:"
-msgstr "Nome:"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:274
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:432
-msgid "Email:"
-msgstr "E-mail:"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:280
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:438
-msgid "Phone:"
-msgstr "Telefone:"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:289
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:446
-#: includes/shortcodes/class-ffc-dashboard-shortcode.php:331
-msgid "Notes"
-msgstr "Notas"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:298
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:454
-#, php-format
-msgid "Generated on %s"
-msgstr "Gerado em %s"
-
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:56
 msgid "Invalid appointment receipt request."
 msgstr "Solicitação de comprovante de agendamento inválida."
@@ -4933,7 +4849,6 @@ msgstr "Solicitação de comprovante de agendamento inválida."
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:82
 msgid "You do not have permission to view this appointment receipt."
 msgstr "Você não tem permissão para ver este comprovante de agendamento."
-
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:95
 msgid "(Calendar Deleted)"
@@ -4948,9 +4863,57 @@ msgstr "Comprovante de Agendamento"
 msgid "Print"
 msgstr "Imprimir"
 
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:385
+msgid "Event Details"
+msgstr "Detalhes do Evento"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:387
+#: templates/certificate-preview.php:39
+msgid "Event:"
+msgstr "Evento:"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:399
+msgid "Appointment Information"
+msgstr "Informações do Agendamento"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:401
+msgid "Appointment ID:"
+msgstr "ID do Agendamento:"
+
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:406
 msgid "Validation Code:"
 msgstr "Código de Validação:"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:419
+msgid "Booked on:"
+msgstr "Agendado em:"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:425
+msgid "Personal Information"
+msgstr "Informações Pessoais"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:427
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php:333
+msgid "Name:"
+msgstr "Nome:"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:432
+msgid "Email:"
+msgstr "E-mail:"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:438
+msgid "Phone:"
+msgstr "Telefone:"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:446
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php:331
+msgid "Notes"
+msgstr "Notas"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:454
+#, php-format
+msgid "Generated on %s"
+msgstr "Gerado em %s"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:490
 msgid "Error: PDF generator not loaded. Please refresh the page."
@@ -5336,8 +5299,8 @@ msgstr "Ação de limpeza inválida"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:753
 msgid "Calendar not found in database. Save the calendar first."
-msgstr "Calendário não encontrado no banco de dados. Salve o calendário primeiro."
-
+msgstr ""
+"Calendário não encontrado no banco de dados. Salve o calendário primeiro."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:793
 msgid ""
@@ -5622,7 +5585,6 @@ msgstr "Acesso do Usuário"
 msgid "User Access settings view file not found."
 msgstr "Arquivo de visualização de Acesso do Usuário não encontrado."
 
-
 #: includes/settings/views/ffc-tab-documentation.php:14
 msgid "Complete Plugin Documentation"
 msgstr "Documentação Completa do Plugin"
@@ -5708,8 +5670,8 @@ msgstr "Exibe a página de verificação pública."
 
 #: includes/settings/views/ffc-tab-documentation.php:58
 msgid "Users can validate certificates by entering the authentication code."
-msgstr "Os usuários podem validar certificados inserindo o código de autenticação."
-
+msgstr ""
+"Os usuários podem validar certificados inserindo o código de autenticação."
 
 #: includes/settings/views/ffc-tab-documentation.php:64
 msgid "Displays dashboard page."
@@ -6025,8 +5987,8 @@ msgstr "Passo 1:"
 
 #: includes/settings/views/ffc-tab-documentation.php:365
 msgid "Create a field in Form Builder (e.g., field name:"
-msgstr "Crie um campo no Construtor de Formulários (por exemplo, nome do campo:"
-
+msgstr ""
+"Crie um campo no Construtor de Formulários (por exemplo, nome do campo:"
 
 #: includes/settings/views/ffc-tab-documentation.php:366
 msgid "Step 2:"
@@ -6076,8 +6038,8 @@ msgstr "Validação do código QR:"
 
 #: includes/settings/views/ffc-tab-documentation.php:393
 msgid "Scan to instantly verify certificate authenticity"
-msgstr "Escaneie para verificar instantaneamente a autenticidade do certificado"
-
+msgstr ""
+"Escaneie para verificar instantaneamente a autenticidade do certificado"
 
 #: includes/settings/views/ffc-tab-documentation.php:396
 msgid "Magic Links:"
@@ -6165,8 +6127,8 @@ msgstr "Cache de Formulários:"
 #: includes/settings/views/ffc-tab-documentation.php:429
 #: includes/settings/views/ffc-tab-general.php:338
 msgid "The cache stores form settings to improve performance."
-msgstr "O cache armazena configurações do formulário para melhorar o desempenho."
-
+msgstr ""
+"O cache armazena configurações do formulário para melhorar o desempenho."
 
 #: includes/settings/views/ffc-tab-documentation.php:432
 msgid "Multi-language Support:"
@@ -6390,8 +6352,8 @@ msgstr "Formato de Data"
 
 #: includes/settings/views/ffc-tab-general.php:67
 msgid "Format used for {{submission_date}} placeholder in PDFs and emails."
-msgstr "Formato utilizado para o marcador {{submission_date}} em PDFs e e-mails."
-
+msgstr ""
+"Formato utilizado para o marcador {{submission_date}} em PDFs e e-mails."
 
 #: includes/settings/views/ffc-tab-general.php:81
 msgid "Custom Format:"
@@ -6427,8 +6389,9 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-general.php:99
 msgid "If this option is disabled, debug logging will also be disabled."
-msgstr "Se esta opção estiver desativada, o registro de depuração também será desativado."
-
+msgstr ""
+"Se esta opção estiver desativada, o registro de depuração também será "
+"desativado."
 
 #: includes/settings/views/ffc-tab-general.php:100
 msgid ""
@@ -6455,8 +6418,8 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-general.php:116
 msgid "Includes user ID, IP address, and timestamp for LGPD compliance."
-msgstr "Inclui ID do usuário, endereço IP e timestamp para conformidade com a LGPD."
-
+msgstr ""
+"Inclui ID do usuário, endereço IP e timestamp para conformidade com a LGPD."
 
 #: includes/settings/views/ffc-tab-general.php:120
 msgid "View Activity Logs"
@@ -6513,11 +6476,10 @@ msgstr "Processador de Formulários"
 msgid "Enable debug logging for form submission processing"
 msgstr "Habilitar registro de depuração para processamento de submissões"
 
-
 #: includes/settings/views/ffc-tab-general.php:177
 msgid "Logs form data validation, processing steps, and submission creation."
-msgstr "Registra validação de dados, etapas de processamento e criação de submissões."
-
+msgstr ""
+"Registra validação de dados, etapas de processamento e criação de submissões."
 
 #: includes/settings/views/ffc-tab-general.php:184
 #: includes/settings/views/ffc-tab-smtp.php:147
@@ -6530,8 +6492,8 @@ msgstr "Ative o registro de depuração para operações de criptografia."
 
 #: includes/settings/views/ffc-tab-general.php:192
 msgid "Logs encryption/decryption operations and key management."
-msgstr "Registra operações de criptografia/descriptografia e gerenciamento de chaves."
-
+msgstr ""
+"Registra operações de criptografia/descriptografia e gerenciamento de chaves."
 
 #: includes/settings/views/ffc-tab-general.php:193
 msgid "Never enables actual data logging, only operation status."
@@ -6598,13 +6560,13 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-general.php:265
 msgid "Enable debug logging for activity log system"
-msgstr "Habilitar registro de depuração para o sistema de registro de atividades"
-
+msgstr ""
+"Habilitar registro de depuração para o sistema de registro de atividades"
 
 #: includes/settings/views/ffc-tab-general.php:268
 msgid "Logs activity log operations and database queries."
-msgstr "Registra operações do registro de atividades e consultas ao banco de dados."
-
+msgstr ""
+"Registra operações do registro de atividades e consultas ao banco de dados."
 
 #: includes/settings/views/ffc-tab-general.php:281
 msgid "Danger Zone"
@@ -6828,13 +6790,15 @@ msgstr "Cache de IP"
 
 #: includes/settings/views/ffc-tab-geolocation.php:105
 msgid "Cache IP geolocation results to reduce API calls"
-msgstr "Armazene em cache os resultados de geolocalização de IP para reduzir as chamadas à API"
-
+msgstr ""
+"Armazene em cache os resultados de geolocalização de IP para reduzir as "
+"chamadas à API"
 
 #: includes/settings/views/ffc-tab-geolocation.php:108
 msgid "Recommended. Caches geolocation by IP to avoid repeated API calls."
-msgstr "Recomendado. Armazena geolocalização por IP em cache para evitar chamadas repetidas à API."
-
+msgstr ""
+"Recomendado. Armazena geolocalização por IP em cache para evitar chamadas "
+"repetidas à API."
 
 #: includes/settings/views/ffc-tab-geolocation.php:116
 msgid "IP Cache Duration (TTL)"
@@ -6905,8 +6869,9 @@ msgstr "Usar somente GPS (ignorar validação de IP)"
 
 #: includes/settings/views/ffc-tab-geolocation.php:195
 msgid "What to do when IP geolocation API is unavailable or returns error."
-msgstr "O que fazer quando a API de geolocalização por IP estiver indisponível ou retornar erro."
-
+msgstr ""
+"O que fazer quando a API de geolocalização por IP estiver indisponível ou "
+"retornar erro."
 
 #: includes/settings/views/ffc-tab-geolocation.php:203
 msgid "When GPS Fails"
@@ -6942,8 +6907,9 @@ msgstr "Bloquear acesso (maior segurança)"
 
 #: includes/settings/views/ffc-tab-geolocation.php:235
 msgid "What to do when both GPS and IP geolocation fail (if both are enabled)."
-msgstr "O que fazer quando tanto a geolocalização GPS quanto a por IP falharem (se ambas estiverem habilitadas)."
-
+msgstr ""
+"O que fazer quando tanto a geolocalização GPS quanto a por IP falharem (se "
+"ambas estiverem habilitadas)."
 
 #: includes/settings/views/ffc-tab-geolocation.php:246
 msgid "Administrator Bypass"
@@ -6997,8 +6963,9 @@ msgstr "Modo de Depuração"
 
 #: includes/settings/views/ffc-tab-geolocation.php:292
 msgid "Enable debug mode for testing and troubleshooting geolocation features."
-msgstr "Habilitar modo de depuração para testar e solucionar problemas de geolocalização."
-
+msgstr ""
+"Habilitar modo de depuração para testar e solucionar problemas de "
+"geolocalização."
 
 #: includes/settings/views/ffc-tab-geolocation.php:299
 msgid "Enable Debug"
@@ -7148,8 +7115,9 @@ msgstr "Executar Migração"
 #: includes/settings/views/ffc-tab-migrations.php:177
 #, php-format
 msgid "Click once to process all records automatically. %s records remaining."
-msgstr "Clique uma vez para processar todos os registros automaticamente. %s registros restantes."
-
+msgstr ""
+"Clique uma vez para processar todos os registros automaticamente. %s "
+"registros restantes."
 
 #: includes/settings/views/ffc-tab-migrations.php:194
 msgid "Need Help?"
@@ -7288,8 +7256,9 @@ msgstr "Alto (correção de 30%)"
 
 #: includes/settings/views/ffc-tab-qrcode.php:86
 msgid "Higher levels allow more damage to QR Code but create denser patterns."
-msgstr "Níveis mais altos permitem mais danos ao QR Code, mas criam padrões mais densos."
-
+msgstr ""
+"Níveis mais altos permitem mais danos ao QR Code, mas criam padrões mais "
+"densos."
 
 #: includes/settings/views/ffc-tab-qrcode.php:99
 msgid "Cache Statistics"
@@ -7336,8 +7305,9 @@ msgstr "Manutenção"
 
 #: includes/settings/views/ffc-tab-qrcode.php:155
 msgid "Use this to clear outdated QR Codes or free database space."
-msgstr "Use isto para limpar QR Codes desatualizados ou liberar espaço no banco de dados."
-
+msgstr ""
+"Use isto para limpar QR Codes desatualizados ou liberar espaço no banco de "
+"dados."
 
 #: includes/settings/views/ffc-tab-qrcode.php:160
 msgid ""
@@ -7620,7 +7590,6 @@ msgstr "SMTP Personalizado"
 msgid "Use an external SMTP server. Better deliverability and tracking."
 msgstr "Use um servidor SMTP externo. Melhor entregabilidade e rastreamento."
 
-
 #: includes/settings/views/ffc-tab-smtp.php:114
 msgid "SMTP Server Configuration"
 msgstr "Configuração do servidor SMTP"
@@ -7691,8 +7660,8 @@ msgstr "Use a chave da API como senha."
 
 #: includes/settings/views/ffc-tab-smtp.php:209
 msgid "Use API key as password, or find your settings in hPanel."
-msgstr "Use a chave da API como senha, ou encontre suas configurações no hPanel."
-
+msgstr ""
+"Use a chave da API como senha, ou encontre suas configurações no hPanel."
 
 #: includes/settings/views/ffc-tab-user-access.php:21
 #: includes/shortcodes/class-ffc-dashboard-shortcode.php:260
@@ -7736,7 +7705,6 @@ msgstr "recomendado"
 msgid "Select which roles should be blocked from accessing wp-admin."
 msgstr "Selecione quais funções devem ser bloqueadas de acessar o wp-admin."
 
-
 #: includes/settings/views/ffc-tab-user-access.php:96
 msgid "Bypass for Administrators"
 msgstr "Ignorar para Administradores"
@@ -7747,8 +7715,9 @@ msgstr "Permitir que os administradores ignorem o bloqueio (recomendado)"
 
 #: includes/settings/views/ffc-tab-user-access.php:109
 msgid "Even if an admin has a blocked role, they can still access wp-admin."
-msgstr "Mesmo que um administrador tenha uma função bloqueada, ele ainda pode acessar o wp-admin."
-
+msgstr ""
+"Mesmo que um administrador tenha uma função bloqueada, ele ainda pode "
+"acessar o wp-admin."
 
 #: includes/settings/views/ffc-tab-user-access.php:118
 msgid "Redirect Settings"
@@ -7789,8 +7758,9 @@ msgstr "Exibir a barra de administração no frontend para funções bloqueadas.
 
 #: includes/settings/views/ffc-tab-user-access.php:184
 msgid "If unchecked, the WordPress admin bar will be hidden for blocked roles."
-msgstr "Se desmarcado, a barra de administração do WordPress será ocultada para funções bloqueadas."
-
+msgstr ""
+"Se desmarcado, a barra de administração do WordPress será ocultada para "
+"funções bloqueadas."
 
 #: includes/settings/views/ffc-tab-user-access.php:193
 msgid "Information"
@@ -7953,8 +7923,8 @@ msgstr "Página {current} de {total}"
 
 #: includes/submissions/class-ffc-submission-handler.php:148
 msgid "User agreed to Privacy Policy and data storage"
-msgstr "Usuário concordou com a Política de Privacidade e armazenamento de dados"
-
+msgstr ""
+"Usuário concordou com a Política de Privacidade e armazenamento de dados"
 
 #: includes/submissions/class-ffc-submission-handler.php:211
 msgid "Error saving submission to the database."
@@ -7994,12 +7964,32 @@ msgstr "Verificar Certificado"
 
 #: templates/verification-page.php:27
 msgid "Enter the authentication code to verify the certificate authenticity."
-msgstr "Insira o código de autenticação para verificar a autenticidade do certificado."
-
+msgstr ""
+"Insira o código de autenticação para verificar a autenticidade do "
+"certificado."
 
 #: templates/verification-page.php:36
 msgid "XXXX-XXXX-XXXX"
 msgstr "XXXX-XXXX-XXXX"
+
+#~ msgid "Certificate Verification"
+#~ msgstr "Verificação de Certificados"
+
+#~ msgid "Free Form Certificate:"
+#~ msgstr "Formulário Grátis para Certificado:"
+
+#~ msgid ""
+#~ "The verification page is missing. Magic links and PDF downloads won't "
+#~ "work!"
+#~ msgstr ""
+#~ "A página de verificação não está funcionando. Links mágicos e downloads "
+#~ "de PDF não estão funcionando!"
+
+#~ msgid "Create Verification Page"
+#~ msgstr "Criar Página de Verificação"
+
+#~ msgid "Appointment Confirmation"
+#~ msgstr "Confirmação de Agendamento"
 
 #~ msgid "Alex Meusburger"
 #~ msgstr "Alex Meusburger"

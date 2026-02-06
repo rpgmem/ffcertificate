@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-06 03:12+0000\n"
+"POT-Creation-Date: 2026-02-06 09:07+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -449,52 +449,6 @@ msgstr ""
 msgid "Background image selected!"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-notice-manager.php:44
-#: includes/admin/class-ffc-admin.php:233
-msgid "Item moved to trash."
-msgstr ""
-
-#: includes/admin/class-ffc-admin-notice-manager.php:48
-#: includes/admin/class-ffc-admin.php:236
-msgid "Item restored."
-msgstr ""
-
-#: includes/admin/class-ffc-admin-notice-manager.php:52
-#: includes/admin/class-ffc-admin.php:239
-msgid "Item permanently deleted."
-msgstr ""
-
-#: includes/admin/class-ffc-admin-notice-manager.php:56
-#: includes/admin/class-ffc-admin.php:242
-msgid "Bulk action completed."
-msgstr ""
-
-#: includes/admin/class-ffc-admin-notice-manager.php:60
-#: includes/admin/class-ffc-admin.php:245
-msgid "Submission updated successfully."
-msgstr ""
-
-#: includes/admin/class-ffc-admin-notice-manager.php:65
-#: includes/admin/class-ffc-admin.php:249
-msgid "Migration"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-notice-manager.php:67
-#: includes/admin/class-ffc-admin.php:251
-#, php-format
-msgid "%1$s: %2$d records migrated successfully."
-msgstr ""
-
-#: includes/admin/class-ffc-admin-notice-manager.php:71
-#: includes/admin/class-ffc-admin.php:254
-msgid "Unknown error"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-notice-manager.php:72
-#: includes/admin/class-ffc-admin.php:255
-msgid "Migration Error: "
-msgstr ""
-
 #: includes/admin/class-ffc-admin-submission-edit-page.php:80
 #: includes/admin/class-ffc-admin-submission-edit-page.php:503
 msgid "You do not have permission to edit submissions."
@@ -863,6 +817,43 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin.php:196
 msgid "Export All CSV"
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:233
+msgid "Item moved to trash."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:236
+msgid "Item restored."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:239
+msgid "Item permanently deleted."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:242
+msgid "Bulk action completed."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:245
+msgid "Submission updated successfully."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:249
+msgid "Migration"
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:251
+#, php-format
+msgid "%1$s: %2$d records migrated successfully."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:254
+msgid "Unknown error"
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:255
+msgid "Migration Error: "
 msgstr ""
 
 #: includes/admin/class-ffc-admin.php:297
@@ -1892,7 +1883,6 @@ msgstr ""
 #: includes/api/class-ffc-rest-controller.php:1842
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:225
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:429
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:79
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:214
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:165
 #: includes/self-scheduling/views/appointments-list.php:185
@@ -1907,7 +1897,6 @@ msgstr ""
 #: includes/audience/class-ffc-audience-shortcode.php:502
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:226
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:430
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:80
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:215
 #: includes/self-scheduling/views/appointments-list.php:186
 #: includes/self-scheduling/views/appointments-list.php:267
@@ -1918,7 +1907,6 @@ msgstr ""
 #: includes/api/class-ffc-rest-controller.php:1239
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:227
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:431
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:81
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:216
 #: includes/self-scheduling/views/appointments-list.php:187
 #: includes/self-scheduling/views/appointments-list.php:268
@@ -1928,7 +1916,6 @@ msgstr ""
 #: includes/api/class-ffc-rest-controller.php:1240
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:228
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:432
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:82
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:217
 #: includes/self-scheduling/views/appointments-list.php:188
 #: includes/self-scheduling/views/appointments-list.php:269
@@ -2194,7 +2181,6 @@ msgstr ""
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:235
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:601
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:706
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:41
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:210
 msgid "Calendar not found."
 msgstr ""
@@ -3028,7 +3014,6 @@ msgstr ""
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:264
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:315
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:374
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:252
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:411
 #: templates/submission-success.php:28
 msgid "Date:"
@@ -3040,14 +3025,12 @@ msgstr ""
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:265
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:316
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:375
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:256
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:415
 msgid "Time:"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-notification-handler.php:374
 #: includes/audience/class-ffc-audience-notification-handler.php:402
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:238
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:392
 msgid "Description:"
 msgstr ""
@@ -3395,23 +3378,6 @@ msgstr ""
 
 #: includes/class-ffc-deactivator.php:42
 msgid "Please confirm the uninstallation to proceed."
-msgstr ""
-
-#: includes/core/class-ffc-page-manager.php:107
-msgid "Certificate Verification"
-msgstr ""
-
-#: includes/core/class-ffc-page-manager.php:152
-msgid "Free Form Certificate:"
-msgstr ""
-
-#: includes/core/class-ffc-page-manager.php:153
-msgid ""
-"The verification page is missing. Magic links and PDF downloads won't work!"
-msgstr ""
-
-#: includes/core/class-ffc-page-manager.php:157
-msgid "Create Verification Page"
 msgstr ""
 
 #: includes/core/class-ffc-utils.php:600
@@ -4547,7 +4513,6 @@ msgid "This is a reminder about your upcoming appointment."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:428
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:78
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:213
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:166
 msgid "Pending Approval"
@@ -4682,7 +4647,6 @@ msgid "Calendar is not active."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:699
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:34
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:67
 msgid "Appointment not found."
 msgstr ""
@@ -4720,70 +4684,6 @@ msgstr ""
 msgid "Invalid calendar."
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:129
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:217
-msgid "Appointment Confirmation"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:231
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:385
-msgid "Event Details"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:233
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:387
-#: templates/certificate-preview.php:39
-msgid "Event:"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:246
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:399
-msgid "Appointment Information"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:248
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:401
-msgid "Appointment ID:"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:260
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:419
-msgid "Booked on:"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:267
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:425
-msgid "Personal Information"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:269
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:427
-#: includes/shortcodes/class-ffc-dashboard-shortcode.php:333
-msgid "Name:"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:274
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:432
-msgid "Email:"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:280
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:438
-msgid "Phone:"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:289
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:446
-#: includes/shortcodes/class-ffc-dashboard-shortcode.php:331
-msgid "Notes"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-pdf-generator.php:298
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:454
-#, php-format
-msgid "Generated on %s"
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:56
 msgid "Invalid appointment receipt request."
 msgstr ""
@@ -4805,8 +4705,56 @@ msgstr ""
 msgid "Print"
 msgstr ""
 
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:385
+msgid "Event Details"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:387
+#: templates/certificate-preview.php:39
+msgid "Event:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:399
+msgid "Appointment Information"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:401
+msgid "Appointment ID:"
+msgstr ""
+
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:406
 msgid "Validation Code:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:419
+msgid "Booked on:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:425
+msgid "Personal Information"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:427
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php:333
+msgid "Name:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:432
+msgid "Email:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:438
+msgid "Phone:"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:446
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php:331
+msgid "Notes"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:454
+#, php-format
+msgid "Generated on %s"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:490
@@ -6964,22 +6912,18 @@ msgid "Default Error Correction Level"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-qrcode.php:73
-#, php-format
 msgid "Low (7% correction)"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-qrcode.php:76
-#, php-format
 msgid "Medium (15% correction) - Recommended"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-qrcode.php:79
-#, php-format
 msgid "Quartile (25% correction)"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-qrcode.php:82
-#, php-format
 msgid "High (30% correction)"
 msgstr ""
 
