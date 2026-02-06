@@ -418,7 +418,8 @@ class SelfSchedulingShortcode {
         </div>
 
         <?php
-        // Extract working days safely as integers
+        // Pass calendar config via localize_script to avoid WordPress content filters
+        // mangling inline JS (e.g., converting && to &#038;&#038;)
         $working_days_js = array();
         if (!empty($calendar['working_hours']) && is_array($calendar['working_hours'])) {
             foreach ($calendar['working_hours'] as $wh) {
@@ -427,169 +428,13 @@ class SelfSchedulingShortcode {
                 }
             }
         }
-        $min_date_hours = isset($calendar['advance_booking_min']) ? (int) $calendar['advance_booking_min'] : 0;
-        $max_date_days = isset($calendar['advance_booking_max']) ? (int) $calendar['advance_booking_max'] : 30;
-        ?>
-        <script type="text/javascript">
-        jQuery(document).ready(function($) {
-            // Ensure ffcCalendar is defined
-            if (typeof ffcCalendar === 'undefined') {
-                console.error('ffcCalendar not defined');
-                return;
-            }
 
-            var calendarId = <?php echo (int) $calendar['id']; ?>;
-            var workingDays = <?php echo wp_json_encode($working_days_js); ?>;
-            var minDateHours = <?php echo $min_date_hours; ?>;
-            var maxDateDays = <?php echo $max_date_days; ?>;
-
-            // Calculate disabled days (weekdays not in workingDays)
-            var disabledDays = [];
-            for (var i = 0; i < 7; i++) {
-                if (workingDays.indexOf(i) === -1) {
-                    disabledDays.push(i);
-                }
-            }
-
-            // Calculate min/max dates
-            var minDate = new Date();
-            if (minDateHours > 0) {
-                minDate.setHours(minDate.getHours() + minDateHours);
-            }
-            minDate.setHours(0, 0, 0, 0);
-
-            var maxDate = new Date();
-            maxDate.setDate(maxDate.getDate() + maxDateDays);
-            maxDate.setHours(23, 59, 59, 999);
-
-            // Store booking counts, holidays and tracking
-            var bookingCounts = {};
-            var calendarHolidays = {};
-            var lastFetchedMonth = null;
-            var isFetching = false;
-
-            // Function to fetch booking counts and holidays for a month
-            function fetchBookingCounts(year, month, callback) {
-                var monthKey = year + '-' + month;
-
-                // Prevent duplicate fetches - DON'T call callback to avoid infinite loop
-                if (isFetching) {
-                    return;
-                }
-                if (lastFetchedMonth === monthKey) {
-                    return;
-                }
-
-                isFetching = true;
-
-                $.ajax({
-                    url: ffcCalendar.ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'ffc_get_month_bookings',
-                        nonce: ffcCalendar.nonce,
-                        calendar_id: calendarId,
-                        year: year,
-                        month: month
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            if (response.data.counts) {
-                                bookingCounts = response.data.counts;
-                            }
-                            if (response.data.holidays) {
-                                calendarHolidays = response.data.holidays;
-                                // Update calendar core holidays option
-                                if (calendar) {
-                                    calendar.options.holidays = calendarHolidays;
-                                }
-                            }
-                        }
-                        lastFetchedMonth = monthKey;
-                        isFetching = false;
-                        if (callback) callback();
-                    },
-                    error: function() {
-                        isFetching = false;
-                        if (callback) callback();
-                    }
-                });
-            }
-
-            // Initialize shared calendar component
-            var $container = $('#ffc-calendar-container-' + calendarId);
-            var calendar = new FFCCalendarCore($container, {
-                showLegend: true,
-                showTodayButton: true,
-                minDate: minDate,
-                maxDate: maxDate,
-                disabledDays: disabledDays,
-                strings: ffcCalendar.strings,
-                legendItems: [
-                    { class: 'ffc-available', label: ffcCalendar.strings.available ? ffcCalendar.strings.available : 'Available' },
-                    { class: 'ffc-booked', label: ffcCalendar.strings.booked ? ffcCalendar.strings.booked : 'Booked' },
-                    { class: 'ffc-holiday', label: ffcCalendar.strings.holiday ? ffcCalendar.strings.holiday : 'Holiday' },
-                    { class: 'ffc-closed', label: ffcCalendar.strings.closed ? ffcCalendar.strings.closed : 'Closed' }
-                ],
-                getDayClasses: function(dateStr, date) {
-                    var classes = [];
-                    var weekday = date.getDay();
-                    var isHoliday = calendarHolidays[dateStr];
-
-                    // Holiday takes priority
-                    if (isHoliday) {
-                        return classes; // calendar-core handles ffc-holiday class via options.holidays
-                    }
-
-                    // Check if date is within booking window
-                    var isAfterMin = date >= minDate;
-                    var isBeforeMax = date <= maxDate;
-                    var isWorkingDay = workingDays.indexOf(weekday) !== -1;
-
-                    // Mark working days as available (only if within booking window)
-                    if (isWorkingDay && isAfterMin && isBeforeMax) {
-                        classes.push('ffc-available');
-                    }
-
-                    return classes;
-                },
-                getDayContent: function(dateStr, date, isHoliday) {
-                    // Holiday badge
-                    if (isHoliday) {
-                        var holidayLabel = typeof isHoliday === 'string' ? isHoliday : (ffcCalendar.strings.holiday || 'Holiday');
-                        return '<span class="ffc-day-badge ffc-badge-holiday">' + holidayLabel + '</span>';
-                    }
-
-                    // Booking count badge
-                    var count = bookingCounts[dateStr] ? bookingCounts[dateStr] : 0;
-                    if (count > 0) {
-                        var singularLabel = ffcCalendar.strings.booking ? ffcCalendar.strings.booking : 'booking';
-                        var pluralLabel = ffcCalendar.strings.bookings ? ffcCalendar.strings.bookings : 'bookings';
-                        var label = count === 1 ? singularLabel : pluralLabel;
-                        return '<span class="ffc-day-badge ffc-badge-bookings">' + count + ' ' + label + '</span>';
-                    }
-                    return '';
-                },
-                onMonthChange: function(year, month) {
-                    // Fetch booking counts for the new month
-                    fetchBookingCounts(year, month, function() {
-                        calendar.refresh();
-                    });
-                },
-                onDayClick: function(dateStr, $day) {
-                    // Update hidden field
-                    $('#ffc-selected-date').val(dateStr);
-
-                    // Load time slots
-                    ffcCalendarFrontend.loadTimeSlots(calendarId, dateStr);
-                }
-            });
-
-            // Store calendar instance for later access
-            // Note: Initial booking counts are fetched via onMonthChange during calendar init
-            $container.data('calendar', calendar);
-        });
-        </script>
-        <?php
+        // Add calendar instance config - the init logic is in calendar-frontend.js
+        wp_localize_script('ffc-calendar-frontend', 'ffcCalendarConfig', array(
+            'calendarId'   => (int) $calendar['id'],
+            'workingDays'  => $working_days_js,
+            'minDateHours' => isset($calendar['advance_booking_min']) ? (int) $calendar['advance_booking_min'] : 0,
+            'maxDateDays'  => isset($calendar['advance_booking_max']) ? (int) $calendar['advance_booking_max'] : 30,
+        ));
     }
 }

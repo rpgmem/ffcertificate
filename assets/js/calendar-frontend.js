@@ -385,12 +385,170 @@
             $('html, body').animate({
                 scrollTop: $('.ffc-calendar-wrapper').offset().top - 100
             }, 500);
+        },
+
+        /**
+         * Initialize calendar core component using config from PHP
+         */
+        initCalendarCore: function() {
+        if (typeof ffcCalendar === 'undefined' || typeof ffcCalendarConfig === 'undefined') {
+            return;
+        }
+        if (typeof FFCCalendarCore === 'undefined') {
+            return;
+        }
+
+        var self = this;
+        var calendarId = ffcCalendarConfig.calendarId;
+        var workingDays = ffcCalendarConfig.workingDays || [];
+        var minDateHours = ffcCalendarConfig.minDateHours || 0;
+        var maxDateDays = ffcCalendarConfig.maxDateDays || 30;
+
+        // Calculate disabled days (weekdays not in workingDays)
+        var disabledDays = [];
+        for (var i = 0; i < 7; i++) {
+            if (workingDays.indexOf(i) === -1) {
+                disabledDays.push(i);
+            }
+        }
+
+        // Calculate min/max dates
+        var minDate = new Date();
+        if (minDateHours > 0) {
+            minDate.setHours(minDate.getHours() + minDateHours);
+        }
+        minDate.setHours(0, 0, 0, 0);
+
+        var maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() + maxDateDays);
+        maxDate.setHours(23, 59, 59, 999);
+
+        // Store booking counts, holidays and tracking
+        var bookingCounts = {};
+        var calendarHolidays = {};
+        var lastFetchedMonth = null;
+        var isFetching = false;
+
+        // Function to fetch booking counts and holidays for a month
+        function fetchBookingCounts(year, month, callback) {
+            var monthKey = year + '-' + month;
+
+            if (isFetching) {
+                return;
+            }
+            if (lastFetchedMonth === monthKey) {
+                return;
+            }
+
+            isFetching = true;
+
+            $.ajax({
+                url: ffcCalendar.ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'ffc_get_month_bookings',
+                    nonce: ffcCalendar.nonce,
+                    calendar_id: calendarId,
+                    year: year,
+                    month: month
+                },
+                success: function(response) {
+                    if (response.success) {
+                        if (response.data.counts) {
+                            bookingCounts = response.data.counts;
+                        }
+                        if (response.data.holidays) {
+                            calendarHolidays = response.data.holidays;
+                            if (calendar) {
+                                calendar.options.holidays = calendarHolidays;
+                            }
+                        }
+                    }
+                    lastFetchedMonth = monthKey;
+                    isFetching = false;
+                    if (callback) callback();
+                },
+                error: function() {
+                    isFetching = false;
+                    if (callback) callback();
+                }
+            });
+        }
+
+        // Initialize shared calendar component
+        var $container = $('#ffc-calendar-container-' + calendarId);
+        var calendar = new FFCCalendarCore($container, {
+            showLegend: true,
+            showTodayButton: true,
+            minDate: minDate,
+            maxDate: maxDate,
+            disabledDays: disabledDays,
+            strings: ffcCalendar.strings,
+            legendItems: [
+                { 'class': 'ffc-available', label: ffcCalendar.strings.available || 'Available' },
+                { 'class': 'ffc-booked', label: ffcCalendar.strings.booked || 'Booked' },
+                { 'class': 'ffc-holiday', label: ffcCalendar.strings.holiday || 'Holiday' },
+                { 'class': 'ffc-closed', label: ffcCalendar.strings.closed || 'Closed' }
+            ],
+            getDayClasses: function(dateStr, date) {
+                var classes = [];
+                var weekday = date.getDay();
+                var isHoliday = calendarHolidays[dateStr];
+
+                // Holiday takes priority
+                if (isHoliday) {
+                    return classes;
+                }
+
+                // Check if date is within booking window
+                var isAfterMin = date >= minDate;
+                var isBeforeMax = date <= maxDate;
+                var isWorkingDay = workingDays.indexOf(weekday) !== -1;
+
+                // Mark working days as available (only if within booking window)
+                if (isWorkingDay && isAfterMin && isBeforeMax) {
+                    classes.push('ffc-available');
+                }
+
+                return classes;
+            },
+            getDayContent: function(dateStr, date, isHoliday) {
+                // Holiday badge
+                if (isHoliday) {
+                    var holidayLabel = typeof isHoliday === 'string' ? isHoliday : (ffcCalendar.strings.holiday || 'Holiday');
+                    return '<span class="ffc-day-badge ffc-badge-holiday">' + holidayLabel + '</span>';
+                }
+
+                // Booking count badge
+                var count = bookingCounts[dateStr] ? bookingCounts[dateStr] : 0;
+                if (count > 0) {
+                    var singularLabel = ffcCalendar.strings.booking || 'booking';
+                    var pluralLabel = ffcCalendar.strings.bookings || 'bookings';
+                    var label = count === 1 ? singularLabel : pluralLabel;
+                    return '<span class="ffc-day-badge ffc-badge-bookings">' + count + ' ' + label + '</span>';
+                }
+                return '';
+            },
+            onMonthChange: function(year, month) {
+                fetchBookingCounts(year, month, function() {
+                    calendar.refresh();
+                });
+            },
+            onDayClick: function(dateStr, $day) {
+                $('#ffc-selected-date').val(dateStr);
+                self.loadTimeSlots(calendarId, dateStr);
+            }
+        });
+
+        // Store calendar instance for later access
+        $container.data('calendar', calendar);
         }
     };
 
     // Initialize on document ready
     $(document).ready(function() {
         ffcCalendarFrontend.init();
+        ffcCalendarFrontend.initCalendarCore();
     });
 
 })(jQuery);
