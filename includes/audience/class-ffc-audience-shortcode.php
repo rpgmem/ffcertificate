@@ -502,6 +502,10 @@ class AudienceShortcode {
                 'cancelled' => __('Cancelled', 'wp-ffcertificate'),
                 'timeout' => __('Request timed out. Please try again.', 'wp-ffcertificate'),
                 'checkConflicts' => __('Check Conflicts', 'wp-ffcertificate'),
+                'booking' => __('booking', 'wp-ffcertificate'),
+                'bookings' => __('bookings', 'wp-ffcertificate'),
+                'createBooking' => __('Create Booking', 'wp-ffcertificate'),
+                'newBooking' => __('New Booking', 'wp-ffcertificate'),
             ),
         ));
     }

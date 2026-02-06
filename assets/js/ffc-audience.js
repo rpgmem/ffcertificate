@@ -43,7 +43,11 @@
         available: 'Available',
         booked: 'Booked',
         timeout: 'Request timed out. Please try again.',
-        checkConflicts: 'Check Conflicts'
+        checkConflicts: 'Check Conflicts',
+        booking: 'booking',
+        bookings: 'bookings',
+        createBooking: 'Create Booking',
+        newBooking: 'New Booking'
     };
     for (var key in defaultStrings) {
         if (!ffcAudience.strings[key]) {
@@ -365,7 +369,7 @@
                     } else if (isClosed) {
                         html += '<span class="ffc-day-badge ffc-badge-closed">' + ffcAudience.strings.closed + '</span>';
                     } else if (bookingCount > 0) {
-                        html += '<span class="ffc-day-badge ffc-badge-bookings">' + bookingCount + ' ' + (bookingCount === 1 ? 'booking' : 'bookings') + '</span>';
+                        html += '<span class="ffc-day-badge ffc-badge-bookings">' + bookingCount + ' ' + (bookingCount === 1 ? ffcAudience.strings.booking : ffcAudience.strings.bookings) + '</span>';
                     }
 
                     html += '</div></div>';
@@ -800,12 +804,12 @@
                     closeModals();
                     renderCalendar();
                 } else {
-                    $('#ffc-create-booking-btn').prop('disabled', false).text('Create Booking');
+                    $('#ffc-create-booking-btn').prop('disabled', false).text(ffcAudience.strings.createBooking);
                     alert(response.message || ffcAudience.strings.error);
                 }
             },
             error: function() {
-                $('#ffc-create-booking-btn').prop('disabled', false).text('Create Booking');
+                $('#ffc-create-booking-btn').prop('disabled', false).text(ffcAudience.strings.createBooking);
                 alert(ffcAudience.strings.error);
             }
         });

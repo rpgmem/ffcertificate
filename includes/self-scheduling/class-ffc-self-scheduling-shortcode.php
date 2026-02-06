@@ -167,6 +167,9 @@ class SelfSchedulingShortcode {
                 'confirmationCode' => __('Confirmation Code', 'wp-ffcertificate'),
                 'confirmationCodeHelp' => __('Save this code to manage your appointment.', 'wp-ffcertificate'),
                 'downloadReceipt' => __('Download Receipt', 'wp-ffcertificate'),
+                'submit' => __('Book Appointment', 'wp-ffcertificate'),
+                'timeout' => __('Connection timeout. Please try again.', 'wp-ffcertificate'),
+                'networkError' => __('Network error. Please check your connection and try again.', 'wp-ffcertificate'),
             )
         ));
     }

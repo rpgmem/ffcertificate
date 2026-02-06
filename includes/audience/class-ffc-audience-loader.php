@@ -239,14 +239,6 @@ class AudienceLoader {
             FFC_VERSION,
             true
         );
-
-        // Localize script
-        wp_localize_script('ffc-audience', 'ffcAudience', array(
-            'ajaxUrl' => admin_url('admin-ajax.php'),
-            'restUrl' => rest_url('ffc/v1/audience/'),
-            'nonce' => wp_create_nonce('wp_rest'),
-            'strings' => $this->get_frontend_strings(),
-        ));
     }
 
     /**
@@ -270,27 +262,6 @@ class AudienceLoader {
         );
     }
 
-    /**
-     * Get frontend translation strings
-     *
-     * @return array<string, string>
-     */
-    private function get_frontend_strings(): array {
-        return array(
-            'loading' => __('Loading calendar...', 'wp-ffcertificate'),
-            'error' => __('Error loading calendar. Please refresh the page.', 'wp-ffcertificate'),
-            'noSchedules' => __('No calendars available.', 'wp-ffcertificate'),
-            'conflictAlert' => __('Warning: This time slot overlaps with existing bookings for some selected members.', 'wp-ffcertificate'),
-            'bookingSuccess' => __('Booking created successfully!', 'wp-ffcertificate'),
-            'bookingError' => __('Error creating booking. Please try again.', 'wp-ffcertificate'),
-            'cancelSuccess' => __('Booking cancelled successfully.', 'wp-ffcertificate'),
-            'cancelError' => __('Error cancelling booking. Please try again.', 'wp-ffcertificate'),
-            'holiday' => __('Holiday', 'wp-ffcertificate'),
-            'closed' => __('Closed', 'wp-ffcertificate'),
-            'available' => __('Available', 'wp-ffcertificate'),
-            'booked' => __('Booked', 'wp-ffcertificate'),
-        );
-    }
 
     /**
      * AJAX: Check for conflicts

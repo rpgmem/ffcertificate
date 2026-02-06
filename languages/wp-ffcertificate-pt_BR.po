@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-06 09:07+0000\n"
+"POT-Creation-Date: 2026-02-06 11:00+0000\n"
 "PO-Revision-Date: 2026-02-04 01:16+0000\n"
 "Last-Translator: Alex Meusburger\n"
 "Language-Team: Português do Brasil\n"
@@ -73,12 +73,12 @@ msgstr "A verificação de segurança falhou. Por favor, recarregue a página."
 #: includes/admin/class-ffc-admin-ajax.php:53
 #: includes/admin/class-ffc-admin-ajax.php:109
 #: includes/admin/class-ffc-admin-ajax.php:219
-#: includes/audience/class-ffc-audience-loader.php:304
-#: includes/audience/class-ffc-audience-loader.php:338
-#: includes/audience/class-ffc-audience-loader.php:355
-#: includes/audience/class-ffc-audience-loader.php:372
-#: includes/audience/class-ffc-audience-loader.php:389
-#: includes/audience/class-ffc-audience-loader.php:426
+#: includes/audience/class-ffc-audience-loader.php:275
+#: includes/audience/class-ffc-audience-loader.php:309
+#: includes/audience/class-ffc-audience-loader.php:326
+#: includes/audience/class-ffc-audience-loader.php:343
+#: includes/audience/class-ffc-audience-loader.php:360
+#: includes/audience/class-ffc-audience-loader.php:397
 msgid "Permission denied."
 msgstr "Permissão negada."
 
@@ -157,7 +157,7 @@ msgstr "Este conteúdo substituirá o atual. Deseja continuar?"
 
 #: includes/admin/class-ffc-admin-assets-manager.php:296
 #: includes/audience/class-ffc-audience-admin-page.php:1683
-#: includes/audience/class-ffc-audience-loader.php:264
+#: includes/audience/class-ffc-audience-loader.php:256
 #: includes/audience/class-ffc-audience-shortcode.php:470
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:124
 #: includes/shortcodes/class-ffc-dashboard-shortcode.php:313
@@ -334,7 +334,7 @@ msgstr "Campo de Texto"
 #: includes/frontend/class-ffc-verification-handler.php:280
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:58
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:163
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:312
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:315
 #: includes/self-scheduling/views/appointments-list.php:47
 #: includes/shortcodes/class-ffc-dashboard-shortcode.php:328
 msgid "Email"
@@ -2183,7 +2183,7 @@ msgstr "Adicionar Novo"
 #: includes/frontend/class-ffc-verification-handler.php:279
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:57
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:162
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:298
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:301
 #: includes/self-scheduling/views/appointments-list.php:46
 msgid "Name"
 msgstr "Nome"
@@ -2240,7 +2240,7 @@ msgstr "Adicionar Novo Calendário"
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:235
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:601
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:706
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:210
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:213
 msgid "Calendar not found."
 msgstr "Calendário não encontrado."
 
@@ -2443,7 +2443,6 @@ msgid "Sunday"
 msgstr "Domingo"
 
 #: includes/audience/class-ffc-audience-admin-page.php:1084
-#: includes/audience/class-ffc-audience-loader.php:289
 #: includes/audience/class-ffc-audience-shortcode.php:155
 #: includes/audience/class-ffc-audience-shortcode.php:498
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:948
@@ -2939,126 +2938,63 @@ msgstr "Coluna obrigatória \"email\" não encontrada."
 msgid "Required column \"name\" not found."
 msgstr "Coluna obrigatória \"name\" não encontrada."
 
-#: includes/audience/class-ffc-audience-loader.php:259
+#: includes/audience/class-ffc-audience-loader.php:251
 msgid "Are you sure you want to delete this item?"
 msgstr "Tem certeza que deseja excluir este item?"
 
-#: includes/audience/class-ffc-audience-loader.php:260
+#: includes/audience/class-ffc-audience-loader.php:252
 #: includes/audience/class-ffc-audience-shortcode.php:476
 msgid "Are you sure you want to cancel this booking?"
 msgstr "Tem certeza que deseja cancelar esta reserva?"
 
-#: includes/audience/class-ffc-audience-loader.php:261
+#: includes/audience/class-ffc-audience-loader.php:253
 msgid "Saving..."
 msgstr "Salvando..."
 
-#: includes/audience/class-ffc-audience-loader.php:262
+#: includes/audience/class-ffc-audience-loader.php:254
 msgid "Saved!"
 msgstr "Salvo!"
 
-#: includes/audience/class-ffc-audience-loader.php:263
+#: includes/audience/class-ffc-audience-loader.php:255
 #: includes/audience/class-ffc-audience-shortcode.php:471
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:127
 msgid "An error occurred. Please try again."
 msgstr "Ocorreu um erro. Por favor, tente novamente."
 
-#: includes/audience/class-ffc-audience-loader.php:265
+#: includes/audience/class-ffc-audience-loader.php:257
 msgid "No results found."
 msgstr "Nenhum resultado encontrado."
 
-#: includes/audience/class-ffc-audience-loader.php:266
+#: includes/audience/class-ffc-audience-loader.php:258
 msgid "Select audience groups"
 msgstr "Selecionar grupos de audiência"
 
-#: includes/audience/class-ffc-audience-loader.php:267
+#: includes/audience/class-ffc-audience-loader.php:259
 msgid "Select users"
 msgstr "Selecionar usuários"
 
-#: includes/audience/class-ffc-audience-loader.php:268
+#: includes/audience/class-ffc-audience-loader.php:260
 msgid "This field is required."
 msgstr "Este campo é obrigatório."
 
-#: includes/audience/class-ffc-audience-loader.php:269
+#: includes/audience/class-ffc-audience-loader.php:261
 #: includes/audience/class-ffc-audience-rest-controller.php:394
 #: includes/audience/class-ffc-audience-shortcode.php:478
 msgid "End time must be after start time."
 msgstr "O horário final deve ser posterior ao horário inicial."
 
-#: includes/audience/class-ffc-audience-loader.php:280
-#: includes/audience/class-ffc-audience-shortcode.php:145
-msgid "Loading calendar..."
-msgstr "Carregando calendário..."
-
-#: includes/audience/class-ffc-audience-loader.php:281
-msgid "Error loading calendar. Please refresh the page."
-msgstr "Erro ao carregar o calendário. Por favor, atualize a página."
-
-#: includes/audience/class-ffc-audience-loader.php:282
-msgid "No calendars available."
-msgstr "Nenhum calendário disponível."
-
-#: includes/audience/class-ffc-audience-loader.php:283
-msgid ""
-"Warning: This time slot overlaps with existing bookings for some selected "
-"members."
-msgstr ""
-"Atenção: Este horário conflita com reservas existentes para alguns membros "
-"selecionados."
-
-#: includes/audience/class-ffc-audience-loader.php:284
-#: includes/audience/class-ffc-audience-shortcode.php:474
-msgid "Booking created successfully!"
-msgstr "Reserva criada com sucesso!"
-
-#: includes/audience/class-ffc-audience-loader.php:285
-msgid "Error creating booking. Please try again."
-msgstr "Erro ao criar a reserva. Por favor, tente novamente."
-
-#: includes/audience/class-ffc-audience-loader.php:286
-#: includes/audience/class-ffc-audience-rest-controller.php:531
-#: includes/audience/class-ffc-audience-shortcode.php:475
-msgid "Booking cancelled successfully."
-msgstr "Reserva cancelada com sucesso."
-
 #: includes/audience/class-ffc-audience-loader.php:287
-msgid "Error cancelling booking. Please try again."
-msgstr "Erro ao cancelar a reserva. Por favor, tente novamente."
-
-#: includes/audience/class-ffc-audience-loader.php:288
-#: includes/audience/class-ffc-audience-rest-controller.php:322
-#: includes/audience/class-ffc-audience-shortcode.php:154
-#: includes/audience/class-ffc-audience-shortcode.php:497
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:935
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:153
-msgid "Holiday"
-msgstr "Feriado"
-
-#: includes/audience/class-ffc-audience-loader.php:290
-#: includes/audience/class-ffc-audience-shortcode.php:152
-#: includes/audience/class-ffc-audience-shortcode.php:499
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:155
-msgid "Available"
-msgstr "Disponível"
-
-#: includes/audience/class-ffc-audience-loader.php:291
-#: includes/audience/class-ffc-audience-shortcode.php:153
-#: includes/audience/class-ffc-audience-shortcode.php:500
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:156
-msgid "Booked"
-msgstr "Reservado"
-
-#: includes/audience/class-ffc-audience-loader.php:316
 #: includes/audience/class-ffc-audience-rest-controller.php:554
 msgid "Missing required parameters."
 msgstr "Parâmetros obrigatórios faltando."
 
-#: includes/audience/class-ffc-audience-loader.php:326
+#: includes/audience/class-ffc-audience-loader.php:297
 msgid "Service not available."
 msgstr "Serviço não disponível."
 
-#: includes/audience/class-ffc-audience-loader.php:343
-#: includes/audience/class-ffc-audience-loader.php:360
-#: includes/audience/class-ffc-audience-loader.php:377
+#: includes/audience/class-ffc-audience-loader.php:314
+#: includes/audience/class-ffc-audience-loader.php:331
+#: includes/audience/class-ffc-audience-loader.php:348
 msgid "Not implemented yet."
 msgstr "Ainda não implementado."
 
@@ -3172,6 +3108,14 @@ msgstr "[%1$s] Nova Atividade Agendada - %2$s"
 msgid "[%1$s] Activity Cancelled - %2$s"
 msgstr "[%1$s] Atividade Cancelada - %2$s"
 
+#: includes/audience/class-ffc-audience-rest-controller.php:322
+#: includes/audience/class-ffc-audience-shortcode.php:154
+#: includes/audience/class-ffc-audience-shortcode.php:497
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:935
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:153
+msgid "Holiday"
+msgstr "Feriado"
+
 #: includes/audience/class-ffc-audience-rest-controller.php:369
 msgid "Invalid environment."
 msgstr "Ambiente inválido."
@@ -3233,6 +3177,11 @@ msgstr "A reserva já está cancelada."
 msgid "Failed to cancel booking."
 msgstr "Falha ao cancelar a reserva."
 
+#: includes/audience/class-ffc-audience-rest-controller.php:531
+#: includes/audience/class-ffc-audience-shortcode.php:475
+msgid "Booking cancelled successfully."
+msgstr "Reserva cancelada com sucesso."
+
 #: includes/audience/class-ffc-audience-rest-controller.php:566
 msgid "Time slot already booked for this environment."
 msgstr "Horário já reservado para este ambiente."
@@ -3289,8 +3238,25 @@ msgstr "Sex"
 msgid "Sat"
 msgstr "Sáb"
 
+#: includes/audience/class-ffc-audience-shortcode.php:145
+msgid "Loading calendar..."
+msgstr "Carregando calendário..."
+
+#: includes/audience/class-ffc-audience-shortcode.php:152
+#: includes/audience/class-ffc-audience-shortcode.php:499
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:155
+msgid "Available"
+msgstr "Disponível"
+
+#: includes/audience/class-ffc-audience-shortcode.php:153
+#: includes/audience/class-ffc-audience-shortcode.php:500
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:156
+msgid "Booked"
+msgstr "Reservado"
+
 #: includes/audience/class-ffc-audience-shortcode.php:164
 #: includes/audience/class-ffc-audience-shortcode.php:270
+#: includes/audience/class-ffc-audience-shortcode.php:508
 msgid "New Booking"
 msgstr "Nova Reserva"
 
@@ -3348,6 +3314,7 @@ msgid "Check Conflicts"
 msgstr "Verificar Conflitos"
 
 #: includes/audience/class-ffc-audience-shortcode.php:240
+#: includes/audience/class-ffc-audience-shortcode.php:507
 msgid "Create Booking"
 msgstr "Criar Reserva"
 
@@ -3383,6 +3350,10 @@ msgstr "Nenhuma reserva para este dia."
 #: includes/audience/class-ffc-audience-shortcode.php:473
 msgid "No active bookings for this day."
 msgstr "Nenhuma reserva ativa para este dia."
+
+#: includes/audience/class-ffc-audience-shortcode.php:474
+msgid "Booking created successfully!"
+msgstr "Reserva criada com sucesso!"
 
 #: includes/audience/class-ffc-audience-shortcode.php:477
 msgid "Please provide a reason for cancellation:"
@@ -3467,6 +3438,16 @@ msgstr "Dezembro"
 #: includes/audience/class-ffc-audience-shortcode.php:503
 msgid "Request timed out. Please try again."
 msgstr "A solicitação expirou. Por favor, tente novamente."
+
+#: includes/audience/class-ffc-audience-shortcode.php:505
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:157
+msgid "booking"
+msgstr "reserva"
+
+#: includes/audience/class-ffc-audience-shortcode.php:506
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:158
+msgid "bookings"
+msgstr "reservas"
 
 #: includes/class-ffc-deactivator.php:42
 msgid "Please confirm the uninstallation to proceed."
@@ -3765,7 +3746,7 @@ msgid "This form is only available during specific hours."
 msgstr "Este formulário está disponível apenas em horários específicos."
 
 #: includes/frontend/class-ffc-shortcodes.php:64
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:351
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:354
 msgid "Do not fill this field if you are human:"
 msgstr "Não preencha este campo se você for humano:"
 
@@ -4624,7 +4605,7 @@ msgid "Appointment Approved: %s"
 msgstr "Agendamento Aprovado: %s"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:257
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:400
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:403
 msgid "Appointment Confirmed!"
 msgstr "Agendamento Confirmado!"
 
@@ -4700,7 +4681,7 @@ msgid "Appointment cancelled successfully."
 msgstr "Agendamento cancelado com sucesso."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:240
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:214
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:217
 msgid "This calendar is not accepting bookings."
 msgstr "Este calendário não está aceitando agendamentos."
 
@@ -4769,7 +4750,7 @@ msgid "You must be logged in to book this calendar."
 msgstr "Você deve estar logado para agendar neste calendário."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:473
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:236
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:239
 msgid "You do not have permission to book this calendar."
 msgstr "Você não tem permissão para agendar neste calendário."
 
@@ -5394,14 +5375,6 @@ msgstr "Você deve concordar com os termos"
 msgid "No available slots for this date"
 msgstr "Nenhum horário disponível para esta data"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:157
-msgid "booking"
-msgstr "reserva"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:158
-msgid "bookings"
-msgstr "reservas"
-
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:167
 msgid "Confirmation Code"
 msgstr "Código de Confirmação"
@@ -5414,44 +5387,57 @@ msgstr "Salve este código para gerenciar seu agendamento."
 msgid "Download Receipt"
 msgstr "Baixar Comprovante"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:188
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:170
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:387
+msgid "Book Appointment"
+msgstr "Agendar Horário"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:171
+msgid "Connection timeout. Please try again."
+msgstr "Tempo de conexão esgotado. Por favor, tente novamente."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:172
+msgid "Network error. Please check your connection and try again."
+msgstr "Erro de rede. Por favor, verifique sua conexão e tente novamente."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:191
 msgid "Calendar ID is required."
 msgstr "O ID do Calendário é obrigatório."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:219
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:222
 msgid ""
 "Calendar has no working hours configured. Please contact the administrator."
 msgstr ""
 "O calendário não possui horários de funcionamento configurados. Entre em "
 "contato com o administrador."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:226
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:229
 #, php-format
 msgid "You must be <a href=\"%s\">logged in</a> to book this calendar."
 msgstr ""
 "Você deve estar <a href=\"%s\">logado</a> para agendar neste calendário."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:277
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:280
 msgid "Available Times"
 msgstr "Horários Disponíveis"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:280
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:283
 msgid "Loading available slots..."
 msgstr "Carregando horários disponíveis..."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:287
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:290
 msgid "Your Information"
 msgstr "Suas Informações"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:326
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:329
 msgid "CPF / RF"
 msgstr "CPF / RF"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:339
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:342
 msgid "Notes (optional)"
 msgstr "Notas (opcional)"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:372
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:375
 #, php-format
 msgid ""
 "I agree to the collection and processing of my personal data in accordance "
@@ -5460,19 +5446,15 @@ msgstr ""
 "Concordo com a coleta e processamento dos meus dados pessoais de acordo com "
 "a <a href=\"%s\" target=\"_blank\">Política de Privacidade</a> (LGPD)."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:378
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:381
 msgid "User consented to data collection for appointment booking."
 msgstr "Usuário consentiu com a coleta de dados para agendamento."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:384
-msgid "Book Appointment"
-msgstr "Agendar Horário"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:387
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:390
 msgid "← Back to Date Selection"
 msgstr "← Voltar à Seleção de Datas"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:405
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:408
 msgid ""
 "Your appointment is pending approval. You will receive an email confirmation "
 "once it is approved."
@@ -5480,11 +5462,11 @@ msgstr ""
 "Seu agendamento está aguardando aprovação. Você receberá uma confirmação por "
 "e-mail assim que for aprovado."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:409
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:412
 msgid "A confirmation email has been sent to your email address."
 msgstr "Um e-mail de confirmação foi enviado para o seu endereço de e-mail."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:414
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:417
 msgid "Book Another Appointment"
 msgstr "Agendar Outro Horário"
 
@@ -7971,6 +7953,25 @@ msgstr ""
 #: templates/verification-page.php:36
 msgid "XXXX-XXXX-XXXX"
 msgstr "XXXX-XXXX-XXXX"
+
+#~ msgid "Error loading calendar. Please refresh the page."
+#~ msgstr "Erro ao carregar o calendário. Por favor, atualize a página."
+
+#~ msgid "No calendars available."
+#~ msgstr "Nenhum calendário disponível."
+
+#~ msgid ""
+#~ "Warning: This time slot overlaps with existing bookings for some selected "
+#~ "members."
+#~ msgstr ""
+#~ "Atenção: Este horário conflita com reservas existentes para alguns "
+#~ "membros selecionados."
+
+#~ msgid "Error creating booking. Please try again."
+#~ msgstr "Erro ao criar a reserva. Por favor, tente novamente."
+
+#~ msgid "Error cancelling booking. Please try again."
+#~ msgstr "Erro ao cancelar a reserva. Por favor, tente novamente."
 
 #~ msgid "Certificate Verification"
 #~ msgstr "Verificação de Certificados"
