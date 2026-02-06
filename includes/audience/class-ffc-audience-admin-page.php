@@ -284,6 +284,9 @@ class AudienceAdminPage {
             return;
         }
 
+        // Handle global holidays
+        $this->handle_global_holiday_actions();
+
         // Handle CSV import
         $this->handle_csv_import();
 
@@ -295,6 +298,76 @@ class AudienceAdminPage {
 
         // Handle audience actions
         $this->handle_audience_actions();
+    }
+
+    /**
+     * Handle global holiday add/delete actions
+     *
+     * @return void
+     */
+    private function handle_global_holiday_actions(): void {
+        // Add global holiday (POST)
+        if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'add_global_holiday') {
+            if (!isset($_POST['ffc_global_holiday_nonce']) ||
+                !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_global_holiday_nonce'])), 'ffc_global_holiday_action')) {
+                return;
+            }
+
+            if (!current_user_can('manage_options')) {
+                return;
+            }
+
+            $date = isset($_POST['global_holiday_date']) ? sanitize_text_field(wp_unslash($_POST['global_holiday_date'])) : '';
+            $description = isset($_POST['global_holiday_description']) ? sanitize_text_field(wp_unslash($_POST['global_holiday_description'])) : '';
+
+            if (!empty($date)) {
+                $holidays = get_option('ffc_global_holidays', array());
+
+                // Avoid duplicates
+                $exists = false;
+                foreach ($holidays as $h) {
+                    if ($h['date'] === $date) {
+                        $exists = true;
+                        break;
+                    }
+                }
+
+                if (!$exists) {
+                    $holidays[] = array(
+                        'date' => $date,
+                        'description' => $description,
+                    );
+                    update_option('ffc_global_holidays', $holidays);
+                }
+            }
+
+            wp_safe_redirect(admin_url('admin.php?page=' . self::MENU_SLUG . '-settings&tab=general&message=holiday_added'));
+            exit;
+        }
+
+        // Delete global holiday (GET)
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (isset($_GET['ffc_action']) && $_GET['ffc_action'] === 'delete_global_holiday') {
+            $index = isset($_GET['holiday_index']) ? absint($_GET['holiday_index']) : -1;
+
+            if (!isset($_GET['ffc_global_holiday_nonce']) ||
+                !wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['ffc_global_holiday_nonce'])), 'delete_global_holiday_' . $index)) {
+                return;
+            }
+
+            if (!current_user_can('manage_options')) {
+                return;
+            }
+
+            $holidays = get_option('ffc_global_holidays', array());
+            if (isset($holidays[$index])) {
+                array_splice($holidays, $index, 1);
+                update_option('ffc_global_holidays', $holidays);
+            }
+
+            wp_safe_redirect(admin_url('admin.php?page=' . self::MENU_SLUG . '-settings&tab=general&message=holiday_deleted'));
+            exit;
+        }
     }
 
     /**
@@ -1705,6 +1778,12 @@ class AudienceAdminPage {
      * @return void
      */
     private function render_settings_general_tab(): void {
+        $holidays = get_option('ffc_global_holidays', array());
+        // Sort by date ascending
+        usort($holidays, function ($a, $b) {
+            return strcmp($a['date'], $b['date']);
+        });
+
         ?>
         <div class="card" style="max-width: 800px;">
             <h2><?php esc_html_e('General Settings', 'wp-ffcertificate'); ?></h2>
@@ -1740,9 +1819,92 @@ class AudienceAdminPage {
                     </td>
                 </tr>
             </table>
+        </div>
+
+        <!-- Global Holidays -->
+        <div class="card" style="max-width: 800px; margin-top: 20px;">
+            <h2><?php esc_html_e('Global Holidays', 'wp-ffcertificate'); ?></h2>
             <p class="description">
-                <?php esc_html_e('Additional global settings will be available in a future update.', 'wp-ffcertificate'); ?>
+                <?php esc_html_e('Holidays added here will block bookings across all calendars in both scheduling systems. Use per-calendar blocked dates for calendar-specific closures.', 'wp-ffcertificate'); ?>
             </p>
+
+            <form method="post" style="margin: 15px 0;">
+                <?php wp_nonce_field('ffc_global_holiday_action', 'ffc_global_holiday_nonce'); ?>
+                <input type="hidden" name="ffc_action" value="add_global_holiday">
+                <table class="form-table" style="margin: 0;">
+                    <tr>
+                        <th scope="row">
+                            <label for="global_holiday_date"><?php esc_html_e('Date', 'wp-ffcertificate'); ?></label>
+                        </th>
+                        <td>
+                            <input type="date" id="global_holiday_date" name="global_holiday_date" required
+                                   style="width: 180px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="global_holiday_description"><?php esc_html_e('Description', 'wp-ffcertificate'); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" id="global_holiday_description" name="global_holiday_description"
+                                   placeholder="<?php esc_attr_e('e.g. Christmas, Carnival...', 'wp-ffcertificate'); ?>"
+                                   style="width: 100%; max-width: 400px;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <td>
+                            <button type="submit" class="button button-primary">
+                                <?php esc_html_e('Add Holiday', 'wp-ffcertificate'); ?>
+                            </button>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+
+            <?php if (!empty($holidays)) : ?>
+                <table class="widefat striped" style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th style="width: 150px;"><?php esc_html_e('Date', 'wp-ffcertificate'); ?></th>
+                            <th><?php esc_html_e('Description', 'wp-ffcertificate'); ?></th>
+                            <th style="width: 80px;"><?php esc_html_e('Actions', 'wp-ffcertificate'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($holidays as $index => $holiday) : ?>
+                            <tr>
+                                <td>
+                                    <?php
+                                    $timestamp = strtotime($holiday['date']);
+                                    echo esc_html($timestamp ? date_i18n(get_option('date_format', 'F j, Y'), $timestamp) : $holiday['date']);
+                                    ?>
+                                </td>
+                                <td><?php echo esc_html($holiday['description'] ?? ''); ?></td>
+                                <td>
+                                    <?php
+                                    $delete_url = wp_nonce_url(
+                                        admin_url('admin.php?page=' . self::MENU_SLUG . '-settings&tab=general&ffc_action=delete_global_holiday&holiday_index=' . $index),
+                                        'delete_global_holiday_' . $index,
+                                        'ffc_global_holiday_nonce'
+                                    );
+                                    ?>
+                                    <a href="<?php echo esc_url($delete_url); ?>"
+                                       class="button button-small"
+                                       onclick="return confirm('<?php esc_attr_e('Remove this holiday?', 'wp-ffcertificate'); ?>');"
+                                       style="color: #a00;">
+                                        <?php esc_html_e('Delete', 'wp-ffcertificate'); ?>
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php else : ?>
+                <p style="color: #666; font-style: italic; margin-top: 15px;">
+                    <?php esc_html_e('No global holidays configured.', 'wp-ffcertificate'); ?>
+                </p>
+            <?php endif; ?>
         </div>
         <?php
     }

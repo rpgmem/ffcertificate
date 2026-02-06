@@ -22,6 +22,62 @@ if (!defined('ABSPATH')) {
 class DateBlockingService {
 
     /**
+     * Check if a date is a global holiday (applies to all calendars/schedules).
+     *
+     * Global holidays are stored in wp_options as ffc_global_holidays.
+     *
+     * @param string $date Date (Y-m-d)
+     * @return bool
+     */
+    public static function is_global_holiday(string $date): bool {
+        $holidays = get_option('ffc_global_holidays', array());
+
+        if (!is_array($holidays) || empty($holidays)) {
+            return false;
+        }
+
+        foreach ($holidays as $holiday) {
+            if (isset($holiday['date']) && $holiday['date'] === $date) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get all global holidays, optionally filtered by date range.
+     *
+     * @param string|null $start_date Optional start date filter (Y-m-d)
+     * @param string|null $end_date Optional end date filter (Y-m-d)
+     * @return array
+     */
+    public static function get_global_holidays(?string $start_date = null, ?string $end_date = null): array {
+        $holidays = get_option('ffc_global_holidays', array());
+
+        if (!is_array($holidays)) {
+            return array();
+        }
+
+        if ($start_date || $end_date) {
+            $holidays = array_filter($holidays, function ($h) use ($start_date, $end_date) {
+                if (!isset($h['date'])) {
+                    return false;
+                }
+                if ($start_date && $h['date'] < $start_date) {
+                    return false;
+                }
+                if ($end_date && $h['date'] > $end_date) {
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        return array_values($holidays);
+    }
+
+    /**
      * Check if a date is blocked for self-scheduling.
      *
      * Delegates to BlockedDateRepository if available.
@@ -60,6 +116,8 @@ class DateBlockingService {
     /**
      * Check if a date is available for scheduling, combining working hours and blocking.
      *
+     * Checks in order: global holidays → working hours → system-specific blocks.
+     *
      * @param string $date Date (Y-m-d)
      * @param string|null $time Optional time (H:i or H:i:s)
      * @param string|array $working_hours Working hours config
@@ -74,7 +132,12 @@ class DateBlockingService {
         ?int $calendar_id = null,
         ?int $environment_id = null
     ): bool {
-        // Check working hours first
+        // Check global holidays first (applies to all systems)
+        if (self::is_global_holiday($date)) {
+            return false;
+        }
+
+        // Check working hours
         if ($time !== null) {
             if (!WorkingHoursService::is_within_working_hours($date, $time, $working_hours)) {
                 return false;

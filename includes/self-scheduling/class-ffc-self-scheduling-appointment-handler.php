@@ -375,7 +375,10 @@ class AppointmentHandler {
             }
         }
 
-        // 7. Check if date is blocked
+        // 7. Check global holidays and blocked dates
+        if (\FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday($data['appointment_date'])) {
+            return new \WP_Error('date_blocked', __('This date is a holiday.', 'wp-ffcertificate'));
+        }
         if ($this->blocked_date_repository->isDateBlocked($data['calendar_id'], $data['appointment_date'], $data['start_time'])) {
             return new \WP_Error('date_blocked', __('This date/time is not available.', 'wp-ffcertificate'));
         }
@@ -595,7 +598,10 @@ class AppointmentHandler {
             return new \WP_Error('calendar_inactive', __('Calendar is not active.', 'wp-ffcertificate'));
         }
 
-        // Check if date is blocked
+        // Check global holidays and blocked dates
+        if (\FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday($date)) {
+            return array(); // Global holiday - no slots
+        }
         if ($this->blocked_date_repository->isDateBlocked($calendar_id, $date)) {
             return array(); // No slots available
         }
@@ -913,7 +919,37 @@ class AppointmentHandler {
             // Get booking counts per day
             $counts = $this->appointment_repository->getBookingCountsByDateRange($calendar_id, $start_date, $end_date);
 
-            wp_send_json_success(array('counts' => $counts));
+            // Get holidays for the month (global + calendar-specific blocked dates)
+            $holidays = array();
+
+            // Global holidays
+            $global_holidays = \FreeFormCertificate\Scheduling\DateBlockingService::get_global_holidays($start_date, $end_date);
+            foreach ($global_holidays as $gh) {
+                $holidays[$gh['date']] = $gh['description'] ?: __('Holiday', 'wp-ffcertificate');
+            }
+
+            // Calendar-specific full-day blocked dates
+            $blocked = $this->blocked_date_repository->getBlockedDatesInRange($calendar_id, $start_date, $end_date);
+            if (is_array($blocked)) {
+                foreach ($blocked as $block) {
+                    if (isset($block['block_type']) && $block['block_type'] === 'full_day') {
+                        $block_start = $block['start_date'];
+                        $block_end = $block['end_date'] ?? $block['start_date'];
+                        $current = $block_start;
+                        while ($current <= $block_end) {
+                            if (!isset($holidays[$current])) {
+                                $holidays[$current] = $block['reason'] ?: __('Closed', 'wp-ffcertificate');
+                            }
+                            $current = gmdate('Y-m-d', strtotime($current . ' +1 day'));
+                        }
+                    }
+                }
+            }
+
+            wp_send_json_success(array(
+                'counts' => $counts,
+                'holidays' => $holidays,
+            ));
 
         } catch (\Exception $e) {
             wp_send_json_error(array('message' => $e->getMessage()));

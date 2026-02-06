@@ -253,7 +253,12 @@ class AudienceEnvironmentRepository {
      * @return bool
      */
     public static function is_open(int $id, string $date, ?string $time = null): bool {
-        // Check for holiday first
+        // Check global holidays first
+        if (\FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday($date)) {
+            return false;
+        }
+
+        // Check schedule-specific holiday
         if (self::is_holiday($id, $date)) {
             return false;
         }

@@ -462,12 +462,13 @@ class SelfSchedulingShortcode {
             maxDate.setDate(maxDate.getDate() + maxDateDays);
             maxDate.setHours(23, 59, 59, 999);
 
-            // Store booking counts and tracking
+            // Store booking counts, holidays and tracking
             var bookingCounts = {};
+            var calendarHolidays = {};
             var lastFetchedMonth = null;
             var isFetching = false;
 
-            // Function to fetch booking counts for a month
+            // Function to fetch booking counts and holidays for a month
             function fetchBookingCounts(year, month, callback) {
                 var monthKey = year + '-' + month;
 
@@ -496,6 +497,13 @@ class SelfSchedulingShortcode {
                             if (response.data.counts) {
                                 bookingCounts = response.data.counts;
                             }
+                            if (response.data.holidays) {
+                                calendarHolidays = response.data.holidays;
+                                // Update calendar core holidays option
+                                if (calendar) {
+                                    calendar.options.holidays = calendarHolidays;
+                                }
+                            }
                         }
                         lastFetchedMonth = monthKey;
                         isFetching = false;
@@ -520,11 +528,18 @@ class SelfSchedulingShortcode {
                 legendItems: [
                     { class: 'ffc-available', label: ffcCalendar.strings.available ? ffcCalendar.strings.available : 'Available' },
                     { class: 'ffc-booked', label: ffcCalendar.strings.booked ? ffcCalendar.strings.booked : 'Booked' },
+                    { class: 'ffc-holiday', label: ffcCalendar.strings.holiday ? ffcCalendar.strings.holiday : 'Holiday' },
                     { class: 'ffc-closed', label: ffcCalendar.strings.closed ? ffcCalendar.strings.closed : 'Closed' }
                 ],
                 getDayClasses: function(dateStr, date) {
                     var classes = [];
                     var weekday = date.getDay();
+                    var isHoliday = calendarHolidays[dateStr];
+
+                    // Holiday takes priority
+                    if (isHoliday) {
+                        return classes; // calendar-core handles ffc-holiday class via options.holidays
+                    }
 
                     // Check if date is within booking window
                     var isAfterMin = date >= minDate;
@@ -532,17 +547,20 @@ class SelfSchedulingShortcode {
                     var isWorkingDay = workingDays.indexOf(weekday) !== -1;
 
                     // Mark working days as available (only if within booking window)
-                    if (isWorkingDay) {
-                        if (isAfterMin) {
-                            if (isBeforeMax) {
-                                classes.push('ffc-available');
-                            }
-                        }
+                    if (isWorkingDay && isAfterMin && isBeforeMax) {
+                        classes.push('ffc-available');
                     }
 
                     return classes;
                 },
                 getDayContent: function(dateStr, date, isHoliday) {
+                    // Holiday badge
+                    if (isHoliday) {
+                        var holidayLabel = typeof isHoliday === 'string' ? isHoliday : (ffcCalendar.strings.holiday || 'Holiday');
+                        return '<span class="ffc-day-badge ffc-badge-holiday">' + holidayLabel + '</span>';
+                    }
+
+                    // Booking count badge
                     var count = bookingCounts[dateStr] ? bookingCounts[dateStr] : 0;
                     if (count > 0) {
                         var singularLabel = ffcCalendar.strings.booking ? ffcCalendar.strings.booking : 'booking';

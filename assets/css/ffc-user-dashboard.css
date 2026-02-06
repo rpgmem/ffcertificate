@@ -285,17 +285,26 @@
 }
 
 .ffc-appointments-table .ffc-cancel-appointment {
-    padding: 6px 12px;
-    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    font-size: 12px;
+    line-height: 1.4;
+    min-height: 0;
     background: #dc3545;
     color: #fff;
-    border: none;
+    border: 1px solid #dc3545;
     border-radius: 4px;
     cursor: pointer;
+    white-space: nowrap;
+    vertical-align: middle;
 }
 
 .ffc-appointments-table .ffc-cancel-appointment:hover {
     background: #c82333;
+    border-color: #c82333;
+    color: #fff;
 }
 
 /* Audience Bookings Table */
@@ -336,6 +345,11 @@
 
 .ffc-audience-bookings-table .past-row {
     background: #f9f9f9;
+}
+
+.ffc-audience-bookings-table .cancelled-row {
+    background: #f8d7da;
+    opacity: 0.7;
 }
 
 .ffc-audience-bookings-table .ffc-audience-tag {

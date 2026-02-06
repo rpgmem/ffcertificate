@@ -345,9 +345,10 @@
                 return;
             }
 
-            // Separate upcoming and past bookings
-            const upcoming = bookings.filter(b => !b.is_past);
-            const past = bookings.filter(b => b.is_past);
+            // Separate upcoming, past, and cancelled bookings
+            const upcoming = bookings.filter(b => !b.is_past && b.status !== 'cancelled');
+            const past = bookings.filter(b => b.is_past && b.status !== 'cancelled');
+            const cancelled = bookings.filter(b => b.status === 'cancelled');
 
             let html = '';
 
@@ -361,6 +362,12 @@
             if (past.length > 0) {
                 html += '<h3 style="margin-top: 30px;">' + (ffcDashboard.strings.past || 'Past') + '</h3>';
                 html += FFCDashboard.buildAudienceBookingsTable(past, true);
+            }
+
+            // Cancelled bookings
+            if (cancelled.length > 0) {
+                html += '<h3 style="margin-top: 30px;">' + (ffcDashboard.strings.cancelled || 'Cancelled') + '</h3>';
+                html += FFCDashboard.buildAudienceBookingsTable(cancelled, true);
             }
 
             $container.html(html);
@@ -383,7 +390,9 @@
             html += '<tbody>';
 
             bookings.forEach(function(booking) {
-                html += '<tr' + (isPast ? ' class="past-row"' : '') + '>';
+                var rowClass = isPast ? 'past-row' : '';
+                if (booking.status === 'cancelled') rowClass = 'cancelled-row';
+                html += '<tr' + (rowClass ? ' class="' + rowClass + '"' : '') + '>';
                 html += '<td>' + booking.environment_name;
                 if (booking.schedule_name) {
                     html += '<br><small style="color: #666;">' + booking.schedule_name + '</small>';
@@ -391,7 +400,7 @@
                 html += '</td>';
                 html += '<td>' + booking.booking_date + '</td>';
                 html += '<td>' + booking.start_time + ' - ' + booking.end_time + '</td>';
-                html += '<td>' + booking.description + '</td>';
+                html += '<td>' + (booking.description || '') + '</td>';
                 html += '<td>';
                 if (booking.audiences && booking.audiences.length > 0) {
                     booking.audiences.forEach(function(audience) {

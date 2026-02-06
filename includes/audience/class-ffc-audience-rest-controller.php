@@ -301,10 +301,26 @@ class AudienceRestController {
             );
         }, $bookings);
 
-        // Get holidays for the date range
+        // Get schedule-specific holidays for the date range
         $holidays = array();
         if ($schedule_id) {
             $holidays = AudienceEnvironmentRepository::get_holidays((int) $schedule_id, $start_date, $end_date);
+        }
+
+        // Merge global holidays into the response
+        $global_holidays = \FreeFormCertificate\Scheduling\DateBlockingService::get_global_holidays($start_date, $end_date);
+        $holidays_formatted = array_map(function($h) {
+            return array(
+                'holiday_date' => $h->holiday_date,
+                'description' => $h->description,
+            );
+        }, $holidays);
+
+        foreach ($global_holidays as $gh) {
+            $holidays_formatted[] = array(
+                'holiday_date' => $gh['date'],
+                'description' => $gh['description'] ?? __('Holiday', 'wp-ffcertificate'),
+            );
         }
 
         // Get closed weekdays from environment working hours
@@ -324,12 +340,7 @@ class AudienceRestController {
         return new \WP_REST_Response(array(
             'success' => true,
             'bookings' => $bookings_data,
-            'holidays' => array_map(function($h) {
-                return array(
-                    'holiday_date' => $h->holiday_date,
-                    'description' => $h->description,
-                );
-            }, $holidays),
+            'holidays' => $holidays_formatted,
             'closed_weekdays' => $closed_weekdays,
         ), 200);
     }

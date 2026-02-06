@@ -1146,9 +1146,8 @@ class RestController {
                 $appointments = array();
             }
 
-            // Get date format from settings
-            $settings = get_option('ffc_settings', array());
-            $date_format = $settings['date_format'] ?? 'F j, Y';
+            // Use WordPress date-only format (no time)
+            $date_format = get_option('date_format', 'F j, Y');
 
             // Format response
             $appointments_formatted = array();
@@ -1749,9 +1748,8 @@ class RestController {
 
             global $wpdb;
 
-            // Get date format from settings
-            $settings = get_option('ffc_settings', array());
-            $date_format = $settings['date_format'] ?? 'F j, Y';
+            // Use WordPress date-only format
+            $date_format = get_option('date_format', 'F j, Y');
 
             // Get bookings where user is affected (directly or via audience membership)
             $bookings_table = $wpdb->prefix . 'ffc_audience_bookings';
@@ -1772,7 +1770,6 @@ class RestController {
                  LEFT JOIN {$environments_table} e ON b.environment_id = e.id
                  LEFT JOIN {$schedules_table} s ON e.schedule_id = s.id
                  WHERE (bu.user_id = %d OR am.user_id = %d)
-                 AND b.status != 'cancelled'
                  ORDER BY b.booking_date DESC, b.start_time DESC",
                 $user_id,
                 $user_id
@@ -1791,7 +1788,7 @@ class RestController {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $audiences = $wpdb->get_results($wpdb->prepare(
                     "SELECT a.name, a.color
-                     FROM {$audiences_table} ba
+                     FROM {$booking_audiences_table} ba
                      INNER JOIN {$audience_names_table} a ON ba.audience_id = a.id
                      WHERE ba.booking_id = %d",
                     $booking['id']
