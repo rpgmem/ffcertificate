@@ -62,8 +62,16 @@
             ]
         };
 
-        // Deep extend to properly merge nested objects like 'strings'
+        // Deep extend to properly merge nested objects like 'strings'.
+        // legendItems is an array that should be replaced entirely, not merged by index.
+        var legendOverride = options.legendItems || null;
+        if (legendOverride) {
+            delete options.legendItems;
+        }
         this.options = $.extend(true, {}, defaults, options);
+        if (legendOverride) {
+            this.options.legendItems = legendOverride;
+        }
 
         this.currentDate = new Date();
         this.selectedDate = null;
