@@ -919,7 +919,37 @@ class AppointmentHandler {
             // Get booking counts per day
             $counts = $this->appointment_repository->getBookingCountsByDateRange($calendar_id, $start_date, $end_date);
 
-            wp_send_json_success(array('counts' => $counts));
+            // Get holidays for the month (global + calendar-specific blocked dates)
+            $holidays = array();
+
+            // Global holidays
+            $global_holidays = \FreeFormCertificate\Scheduling\DateBlockingService::get_global_holidays($start_date, $end_date);
+            foreach ($global_holidays as $gh) {
+                $holidays[$gh['date']] = $gh['description'] ?: __('Holiday', 'wp-ffcertificate');
+            }
+
+            // Calendar-specific full-day blocked dates
+            $blocked = $this->blocked_date_repository->getBlockedDatesInRange($calendar_id, $start_date, $end_date);
+            if (is_array($blocked)) {
+                foreach ($blocked as $block) {
+                    if (isset($block['block_type']) && $block['block_type'] === 'full_day') {
+                        $block_start = $block['start_date'];
+                        $block_end = $block['end_date'] ?? $block['start_date'];
+                        $current = $block_start;
+                        while ($current <= $block_end) {
+                            if (!isset($holidays[$current])) {
+                                $holidays[$current] = $block['reason'] ?: __('Closed', 'wp-ffcertificate');
+                            }
+                            $current = gmdate('Y-m-d', strtotime($current . ' +1 day'));
+                        }
+                    }
+                }
+            }
+
+            wp_send_json_success(array(
+                'counts' => $counts,
+                'holidays' => $holidays,
+            ));
 
         } catch (\Exception $e) {
             wp_send_json_error(array('message' => $e->getMessage()));
