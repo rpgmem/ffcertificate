@@ -348,6 +348,13 @@ class DashboardShortcode {
                 'audiences' => __('Audiences', 'wp-ffcertificate'),
                 'upcoming' => __('Upcoming', 'wp-ffcertificate'),
                 'past' => __('Past', 'wp-ffcertificate'),
+                'cancelled' => __('Cancelled', 'wp-ffcertificate'),
+                // Profile
+                'audienceGroups' => __('Groups:', 'wp-ffcertificate'),
+                // Pagination
+                'previous' => __('Previous', 'wp-ffcertificate'),
+                'next' => __('Next', 'wp-ffcertificate'),
+                'pageOf' => __('Page {current} of {total}', 'wp-ffcertificate'),
             ),
         ));
     }

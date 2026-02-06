@@ -1061,6 +1061,27 @@ class RestController {
                 $member_since = ($timestamp !== false) ? date_i18n($date_format, $timestamp) : '';
             }
 
+            // Get user's audience groups
+            $audience_groups = array();
+            $audiences_table = $wpdb->prefix . 'ffc_audiences';
+            $members_table = $wpdb->prefix . 'ffc_audience_members';
+
+            $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table));
+            if ($table_exists) {
+                $audience_groups = $wpdb->get_results($wpdb->prepare(
+                    "SELECT a.name, a.color
+                     FROM {$members_table} m
+                     INNER JOIN {$audiences_table} a ON a.id = m.audience_id
+                     WHERE m.user_id = %d AND a.status = 'active'
+                     ORDER BY a.name ASC",
+                    $user_id
+                ), ARRAY_A);
+
+                if (!is_array($audience_groups)) {
+                    $audience_groups = array();
+                }
+            }
+
             return rest_ensure_response(array(
                 'user_id' => $user_id,
                 'display_name' => $user->display_name,
@@ -1071,6 +1092,7 @@ class RestController {
                 'cpfs_masked' => $cpfs_masked,
                 'member_since' => $member_since,
                 'roles' => $user->roles,
+                'audience_groups' => $audience_groups,
             ));
 
         } catch (\Exception $e) {
