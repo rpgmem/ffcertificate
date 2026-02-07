@@ -735,6 +735,7 @@ class PdfGenerator {
         $filename = $this->generate_filename( $safe_title, $validation_code );
 
         // Allow background image customization via filter
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
         $bg_image = apply_filters( 'ffc_appointment_receipt_bg_image', '', $appointment, $calendar );
 
         return array(
@@ -759,6 +760,7 @@ class PdfGenerator {
         $template_file = FFC_PLUGIN_DIR . 'html/default_appointment_receipt_1.html';
 
         // Allow override via filter
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
         $template_file = apply_filters( 'ffc_appointment_receipt_template_file', $template_file );
 
         if ( file_exists( $template_file ) ) {

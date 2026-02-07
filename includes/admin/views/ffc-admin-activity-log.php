@@ -6,6 +6,8 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
+
 $wp_ffcertificate_base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activity-log' );
 ?>
 

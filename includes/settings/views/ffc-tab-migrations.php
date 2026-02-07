@@ -11,6 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
+
 // Autoloader handles class loading
 $wp_ffcertificate_migration_manager = new \FreeFormCertificate\Migrations\MigrationManager();
 $wp_ffcertificate_migrations = $wp_ffcertificate_migration_manager->get_migrations();

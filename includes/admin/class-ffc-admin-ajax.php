@@ -311,7 +311,7 @@ class AdminAjax {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $user_id = $wpdb->get_var( $wpdb->prepare(
-            "SELECT user_id FROM {$table} WHERE cpf_rf_hash = %s AND user_id IS NOT NULL LIMIT 1",
+            "SELECT user_id FROM {$table} WHERE cpf_rf_hash = %s AND user_id IS NOT NULL LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $cpf_rf_hash
         ) );
 

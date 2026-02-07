@@ -1067,8 +1067,10 @@ class RestController {
             $audiences_table = $wpdb->prefix . 'ffc_audiences';
             $members_table = $wpdb->prefix . 'ffc_audience_members';
 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table));
             if ($table_exists) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $audience_groups = $wpdb->get_results($wpdb->prepare(
                     "SELECT a.name, a.color
                      FROM {$members_table} m
@@ -1788,7 +1790,7 @@ class RestController {
             $environments_table = $wpdb->prefix . 'ffc_audience_environments';
             $schedules_table = $wpdb->prefix . 'ffc_audience_schedules';
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             $bookings = $wpdb->get_results($wpdb->prepare(
                 "SELECT DISTINCT b.*, e.name as environment_name, s.name as schedule_name
                  FROM {$bookings_table} b
@@ -1813,7 +1815,7 @@ class RestController {
 
             foreach ($bookings as $booking) {
                 // Get audiences for this booking
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $audiences = $wpdb->get_results($wpdb->prepare(
                     "SELECT a.name, a.color
                      FROM {$booking_audiences_table} ba

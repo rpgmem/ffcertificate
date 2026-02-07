@@ -535,7 +535,7 @@ class AudienceAdminPage {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $upcoming = (int) $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$appointments_table} WHERE appointment_date >= %s AND status IN ('pending', 'confirmed')",
+                    "SELECT COUNT(*) FROM {$appointments_table} WHERE appointment_date >= %s AND status IN ('pending', 'confirmed')", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                     current_time('Y-m-d')
                 )
             );
@@ -667,7 +667,7 @@ class AudienceAdminPage {
         if ($id > 0) {
             $schedule = AudienceScheduleRepository::get_by_id($id);
             if (!$schedule) {
-                wp_die(__('Calendar not found.', 'wp-ffcertificate'));
+                wp_die(esc_html__('Calendar not found.', 'wp-ffcertificate'));
             }
             $page_title = __('Edit Calendar', 'wp-ffcertificate');
         }
@@ -1000,7 +1000,7 @@ class AudienceAdminPage {
         if ($id > 0) {
             $environment = AudienceEnvironmentRepository::get_by_id($id);
             if (!$environment) {
-                wp_die(__('Environment not found.', 'wp-ffcertificate'));
+                wp_die(esc_html__('Environment not found.', 'wp-ffcertificate'));
             }
             $page_title = __('Edit Environment', 'wp-ffcertificate');
         }
@@ -1271,7 +1271,7 @@ class AudienceAdminPage {
         if ($id > 0) {
             $audience = AudienceRepository::get_by_id($id);
             if (!$audience) {
-                wp_die(__('Audience not found.', 'wp-ffcertificate'));
+                wp_die(esc_html__('Audience not found.', 'wp-ffcertificate'));
             }
             $page_title = __('Edit Audience', 'wp-ffcertificate');
         }
@@ -1359,14 +1359,14 @@ class AudienceAdminPage {
     private function render_audience_members(int $id): void {
         $audience = AudienceRepository::get_by_id($id);
         if (!$audience) {
-            wp_die(__('Audience not found.', 'wp-ffcertificate'));
+            wp_die(esc_html__('Audience not found.', 'wp-ffcertificate'));
         }
 
         $members = AudienceRepository::get_members((int) $audience->id);
         $back_url = admin_url('admin.php?page=' . self::MENU_SLUG . '-audiences');
 
         ?>
-        <h1><?php echo esc_html(sprintf(__('Members of %s', 'wp-ffcertificate'), $audience->name)); ?></h1>
+        <h1><?php /* translators: %s: audience name */ echo esc_html(sprintf(__('Members of %s', 'wp-ffcertificate'), $audience->name)); ?></h1>
         <a href="<?php echo esc_url($back_url); ?>">&larr; <?php esc_html_e('Back to Audiences', 'wp-ffcertificate'); ?></a>
 
         <?php $this->render_admin_notices(); ?>
@@ -1459,7 +1459,7 @@ class AudienceAdminPage {
                         data: {
                             action: 'ffc_search_users',
                             query: query,
-                            nonce: '<?php echo wp_create_nonce('ffc_search_users'); ?>'
+                            nonce: '<?php echo esc_attr(wp_create_nonce('ffc_search_users')); ?>'
                         },
                         success: function(response) {
                             if (response.success && response.data.length > 0) {
@@ -1515,11 +1515,13 @@ class AudienceAdminPage {
      */
     public function render_bookings_page(): void {
         // Get filter parameters
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters on admin page
         $schedule_id = isset($_GET['schedule_id']) ? absint($_GET['schedule_id']) : 0;
         $environment_id = isset($_GET['environment_id']) ? absint($_GET['environment_id']) : 0;
         $status_filter = isset($_GET['status']) ? sanitize_text_field(wp_unslash($_GET['status'])) : '';
         $date_from = isset($_GET['date_from']) ? sanitize_text_field(wp_unslash($_GET['date_from'])) : '';
         $date_to = isset($_GET['date_to']) ? sanitize_text_field(wp_unslash($_GET['date_to'])) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
         // Build query args
         $args = array(
@@ -1664,7 +1666,7 @@ class AudienceAdminPage {
             </table>
 
             <p class="description" style="margin-top: 15px;">
-                <?php printf(esc_html__('Total: %d bookings', 'wp-ffcertificate'), count($bookings)); ?>
+                <?php /* translators: %d: number of bookings */ printf(esc_html__('Total: %d bookings', 'wp-ffcertificate'), count($bookings)); ?>
             </p>
         </div>
 
@@ -1812,7 +1814,7 @@ class AudienceAdminPage {
                             printf(
                                 /* translators: %d: number of active schedules */
                                 esc_html__('%d active schedule(s)', 'wp-ffcertificate'),
-                                AudienceScheduleRepository::count(array('status' => 'active'))
+                                absint(AudienceScheduleRepository::count(array('status' => 'active')))
                             );
                             ?>
                         </p>
@@ -2145,7 +2147,7 @@ class AudienceAdminPage {
                 return;
             }
 
-            if (!isset($_FILES['members_csv']) || $_FILES['members_csv']['error'] !== UPLOAD_ERR_OK) {
+            if (!isset($_FILES['members_csv'], $_FILES['members_csv']['error']) || $_FILES['members_csv']['error'] !== UPLOAD_ERR_OK) {
                 $this->add_admin_notice('error', __('File upload failed.', 'wp-ffcertificate'));
                 return;
             }
@@ -2153,20 +2155,26 @@ class AudienceAdminPage {
             $audience_id = isset($_POST['import_audience_id']) ? absint($_POST['import_audience_id']) : 0;
             $create_users = isset($_POST['create_users']) && $_POST['create_users'] === '1';
 
+            $tmp_name = isset($_FILES['members_csv']['tmp_name']) ? sanitize_text_field(wp_unslash($_FILES['members_csv']['tmp_name'])) : '';
             $result = AudienceCsvImporter::import_members(
-                $_FILES['members_csv']['tmp_name'],
+                $tmp_name,
                 $audience_id,
                 $create_users
             );
 
             if ($result['success']) {
                 $message = sprintf(
-                    __('Import completed. %d imported, %d skipped.', 'wp-ffcertificate'),
+                    /* translators: 1: number imported, 2: number skipped */
+                    __('Import completed. %1$d imported, %2$d skipped.', 'wp-ffcertificate'),
                     $result['imported'],
                     $result['skipped']
                 );
                 if (!empty($result['errors'])) {
-                    $message .= ' ' . sprintf(__('%d errors occurred.', 'wp-ffcertificate'), count($result['errors']));
+                    $message .= ' ' . sprintf(
+                        /* translators: %d: number of errors */
+                        __('%d errors occurred.', 'wp-ffcertificate'),
+                        count($result['errors'])
+                    );
                 }
                 $this->add_admin_notice('success', $message);
 
@@ -2185,21 +2193,27 @@ class AudienceAdminPage {
                 return;
             }
 
-            if (!isset($_FILES['audiences_csv']) || $_FILES['audiences_csv']['error'] !== UPLOAD_ERR_OK) {
+            if (!isset($_FILES['audiences_csv'], $_FILES['audiences_csv']['error']) || $_FILES['audiences_csv']['error'] !== UPLOAD_ERR_OK) {
                 $this->add_admin_notice('error', __('File upload failed.', 'wp-ffcertificate'));
                 return;
             }
 
-            $result = AudienceCsvImporter::import_audiences($_FILES['audiences_csv']['tmp_name']);
+            $tmp_name = isset($_FILES['audiences_csv']['tmp_name']) ? sanitize_text_field(wp_unslash($_FILES['audiences_csv']['tmp_name'])) : '';
+            $result = AudienceCsvImporter::import_audiences($tmp_name);
 
             if ($result['success']) {
                 $message = sprintf(
-                    __('Import completed. %d imported, %d skipped.', 'wp-ffcertificate'),
+                    /* translators: 1: number imported, 2: number skipped */
+                    __('Import completed. %1$d imported, %2$d skipped.', 'wp-ffcertificate'),
                     $result['imported'],
                     $result['skipped']
                 );
                 if (!empty($result['errors'])) {
-                    $message .= ' ' . sprintf(__('%d errors occurred.', 'wp-ffcertificate'), count($result['errors']));
+                    $message .= ' ' . sprintf(
+                        /* translators: %d: number of errors */
+                        __('%d errors occurred.', 'wp-ffcertificate'),
+                        count($result['errors'])
+                    );
                 }
                 $this->add_admin_notice('success', $message);
 
@@ -2307,7 +2321,7 @@ class AudienceAdminPage {
             $working_hours = array();
             if (isset($_POST['working_hours']) && is_array($_POST['working_hours'])) {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-                foreach ($_POST['working_hours'] as $day => $hours) {
+                foreach (wp_unslash($_POST['working_hours']) as $day => $hours) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
                     $day = sanitize_key($day);
                     $working_hours[$day] = array(
                         'closed' => isset($hours['closed']) ? true : false,
@@ -2393,6 +2407,7 @@ class AudienceAdminPage {
             if ($audience_id > 0 && !empty($user_ids_string)) {
                 $user_ids = array_map('absint', explode(',', $user_ids_string));
                 $added = AudienceRepository::bulk_add_members($audience_id, $user_ids);
+                /* translators: %d: number of members added */
                 $this->add_admin_notice('success', sprintf(__('%d member(s) added successfully.', 'wp-ffcertificate'), $added));
             }
         }

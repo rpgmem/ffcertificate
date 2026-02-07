@@ -20,6 +20,8 @@
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
 ?>
 
 <div class="ffc-certificate-preview">

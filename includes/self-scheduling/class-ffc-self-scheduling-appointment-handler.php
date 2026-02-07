@@ -842,21 +842,25 @@ class AppointmentHandler {
         switch ($event) {
             case 'created':
                 if (!empty($email_config['send_user_confirmation'])) {
+                    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
                     do_action('ffc_self_scheduling_appointment_created_email', $appointment, $calendar);
                 }
                 if (!empty($email_config['send_admin_notification'])) {
+                    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
                     do_action('ffc_self_scheduling_appointment_admin_notification', $appointment, $calendar);
                 }
                 break;
 
             case 'confirmed':
                 if (!empty($email_config['send_approval_notification'])) {
+                    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
                     do_action('ffc_self_scheduling_appointment_confirmed_email', $appointment, $calendar);
                 }
                 break;
 
             case 'cancelled':
                 if (!empty($email_config['send_cancellation_notification'])) {
+                    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
                     do_action('ffc_self_scheduling_appointment_cancelled_email', $appointment, $calendar);
                 }
                 break;

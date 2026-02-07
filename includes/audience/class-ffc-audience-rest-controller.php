@@ -422,12 +422,13 @@ class AudienceRestController {
         // Check for future days limit
         $schedule = AudienceScheduleRepository::get_by_id((int) $environment->schedule_id);
         if ($schedule && $schedule->future_days_limit && !current_user_can('manage_options')) {
-            $max_date = date('Y-m-d', strtotime('+' . $schedule->future_days_limit . ' days'));
+            $max_date = gmdate('Y-m-d', strtotime('+' . $schedule->future_days_limit . ' days'));
             if ($booking_date > $max_date) {
                 return new \WP_REST_Response(array(
                     'success' => false,
                     'message' => sprintf(
-                        __('Cannot book more than %d days in advance.', 'wp-ffcertificate'),
+                        /* translators: %d: maximum number of days allowed for advance booking */
+                    __('Cannot book more than %d days in advance.', 'wp-ffcertificate'),
                         $schedule->future_days_limit
                     ),
                 ), 400);
@@ -471,6 +472,7 @@ class AudienceRestController {
         }
 
         // Trigger notification hook
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix.
         do_action('ffc_audience_booking_created', $booking_id);
 
         return new \WP_REST_Response(array(
@@ -524,6 +526,7 @@ class AudienceRestController {
         }
 
         // Trigger notification hook
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix.
         do_action('ffc_audience_booking_cancelled', $booking_id, $reason);
 
         return new \WP_REST_Response(array(

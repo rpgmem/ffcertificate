@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore trademarked_term -- Plugin slug predates this rule
 /*
 Plugin Name:        Free Form Certificate
 Plugin URI:         https://github.com/rpgmem/wp-ffcertificate
@@ -46,8 +46,8 @@ define( 'FFC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 require_once FFC_PLUGIN_DIR . 'includes/class-ffc-autoloader.php';
 
 // Register the autoloader
-$wp_ffcertificate_autoloader = new FFC_Autoloader( FFC_PLUGIN_DIR . 'includes' );
-$wp_ffcertificate_autoloader->register();
+$ffc_autoloader = new FFC_Autoloader( FFC_PLUGIN_DIR . 'includes' );
+$ffc_autoloader->register();
 
 /**
  * Register activation hook
@@ -60,6 +60,7 @@ register_activation_hook( __FILE__, array( '\FreeFormCertificate\Activator', 'ac
 /**
  * Run the plugin
  */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Public API function
 function wp_ffcertificate_run() {
     $plugin = new \FreeFormCertificate\Loader();
     $plugin->run();

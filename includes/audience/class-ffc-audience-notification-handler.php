@@ -137,7 +137,7 @@ class AudienceNotificationHandler {
         // Get all affected users (from booking_users table)
         global $wpdb;
         $booking_users_table = $wpdb->prefix . 'ffc_audience_booking_users';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $affected_users = $wpdb->get_col($wpdb->prepare(
             "SELECT user_id FROM {$booking_users_table} WHERE booking_id = %d",
             $booking_id

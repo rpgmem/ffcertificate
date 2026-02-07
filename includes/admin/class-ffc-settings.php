@@ -84,6 +84,7 @@ class Settings {
         });
 
         // Allow plugins to add custom tabs
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_ffcertificate is the plugin prefix
         $this->tabs = apply_filters( 'wp_ffcertificate_settings_tabs', $this->tabs );
     }
     

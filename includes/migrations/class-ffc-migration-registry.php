@@ -73,6 +73,7 @@ class MigrationRegistry {
         );
 
         // Allow plugins to add custom fields
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_ffcertificate is the plugin prefix
         $this->field_definitions = apply_filters( 'wp_ffcertificate_migratable_fields', $this->field_definitions );
     }
 
@@ -174,6 +175,7 @@ class MigrationRegistry {
         );
 
         // Allow plugins to add custom migrations
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_ffcertificate is the plugin prefix
         $this->migrations = apply_filters( 'wp_ffcertificate_migrations_registry', $this->migrations );
     }
 

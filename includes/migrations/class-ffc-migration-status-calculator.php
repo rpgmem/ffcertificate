@@ -85,6 +85,7 @@ class MigrationStatusCalculator {
         $this->strategies['user_capabilities'] = new \FreeFormCertificate\Migrations\Strategies\UserCapabilitiesMigrationStrategy();
 
         // Allow plugins to register custom strategies
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_ffcertificate is the plugin prefix
         $this->strategies = apply_filters( 'wp_ffcertificate_migration_strategies', $this->strategies );
     }
 

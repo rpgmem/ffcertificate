@@ -60,7 +60,7 @@ class MigrationSelfSchedulingTables {
         if (self::is_completed()) {
             return [
                 'success' => true,
-                'message' => __('Migration already completed.', 'developer-portal'),
+                'message' => __('Migration already completed.', 'wp-ffcertificate'),
                 'details' => [],
             ];
         }
@@ -88,8 +88,8 @@ class MigrationSelfSchedulingTables {
         return [
             'success' => $all_success,
             'message' => $all_success
-                ? __('All tables renamed successfully.', 'developer-portal')
-                : __('Some tables could not be renamed. Check details.', 'developer-portal'),
+                ? __('All tables renamed successfully.', 'wp-ffcertificate')
+                : __('Some tables could not be renamed. Check details.', 'wp-ffcertificate'),
             'details' => $results,
         ];
     }
@@ -130,7 +130,7 @@ class MigrationSelfSchedulingTables {
                 'success' => true,
                 'message' => sprintf(
                     /* translators: %s: table name */
-                    __('Table %s already exists, skipping.', 'developer-portal'),
+                    __('Table %s already exists, skipping.', 'wp-ffcertificate'),
                     $new_table
                 ),
             ];
@@ -142,7 +142,7 @@ class MigrationSelfSchedulingTables {
                 'success' => true,
                 'message' => sprintf(
                     /* translators: %s: table name */
-                    __('Table %s does not exist, nothing to rename.', 'developer-portal'),
+                    __('Table %s does not exist, nothing to rename.', 'wp-ffcertificate'),
                     $old_table
                 ),
             ];
@@ -157,7 +157,7 @@ class MigrationSelfSchedulingTables {
                 'success' => false,
                 'message' => sprintf(
                     /* translators: 1: old table name, 2: new table name, 3: error message */
-                    __('Failed to rename %1$s to %2$s: %3$s', 'developer-portal'),
+                    __('Failed to rename %1$s to %2$s: %3$s', 'wp-ffcertificate'),
                     $old_table,
                     $new_table,
                     $wpdb->last_error
@@ -169,7 +169,7 @@ class MigrationSelfSchedulingTables {
             'success' => true,
             'message' => sprintf(
                 /* translators: 1: old table name, 2: new table name */
-                __('Successfully renamed %1$s to %2$s.', 'developer-portal'),
+                __('Successfully renamed %1$s to %2$s.', 'wp-ffcertificate'),
                 $old_table,
                 $new_table
             ),
@@ -208,8 +208,8 @@ class MigrationSelfSchedulingTables {
         return [
             'success' => $all_success,
             'message' => $all_success
-                ? __('Rollback completed successfully.', 'developer-portal')
-                : __('Some tables could not be rolled back. Check details.', 'developer-portal'),
+                ? __('Rollback completed successfully.', 'wp-ffcertificate')
+                : __('Some tables could not be rolled back. Check details.', 'wp-ffcertificate'),
             'details' => $results,
         ];
     }

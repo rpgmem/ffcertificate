@@ -321,6 +321,7 @@ class SelfSchedulingCPT {
             // Check if we should cancel future appointments
             // By default, cancel future appointments to prevent orphaned bookings
             // This can be disabled via filter: add_filter('ffc_self_scheduling_cancel_appointments_on_delete', '__return_false');
+            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
             $cancel_appointments = apply_filters('ffc_self_scheduling_cancel_appointments_on_delete', true, $calendar_id, $post_id);
 
             $cancelled_count = 0;
@@ -406,6 +407,7 @@ class SelfSchedulingCPT {
     private function send_calendar_deletion_notification(array $appointment, string $calendar_title): void {
         // Check if we should send notifications
         // Can be disabled via filter: add_filter('ffc_self_scheduling_send_deletion_notification', '__return_false');
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
         $send_notification = apply_filters('ffc_self_scheduling_send_deletion_notification', true, $appointment);
 
         if (!$send_notification) {

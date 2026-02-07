@@ -115,6 +115,7 @@ class Utils {
          * Allows developers to filter or add new tags 
          * without modifying the plugin core.
          */
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_ffcertificate is the plugin prefix
         return apply_filters( 'wp_ffcertificate_allowed_html_tags', $allowed );
     }
     

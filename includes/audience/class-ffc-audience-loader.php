@@ -101,7 +101,7 @@ class AudienceLoader {
     public function register_capabilities(): void {
         // Capabilities are added per-user via schedule permissions
         // This hook is for future global capability registration if needed
-        do_action('ffc_audience_register_capabilities');
+        do_action('ffc_audience_register_capabilities'); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
     }
 
     /**
