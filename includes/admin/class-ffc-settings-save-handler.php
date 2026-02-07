@@ -46,6 +46,10 @@ class SettingsSaveHandler {
      * Main entry point called by FFC_Settings
      */
     public function handle_all_submissions(): void {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
         // Handle General/SMTP/QR Settings
         if ( isset( $_POST['ffc_settings_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_settings_nonce'] ) ), 'ffc_settings_action' ) ) {
             $this->save_general_and_specific_settings();

@@ -199,9 +199,9 @@ class AudienceRestController {
             return true;
         }
 
-        // Check if user has booking permission on any schedule
-        // This is a simplified check - actual permission is verified per booking
-        return true;
+        // Check if user has booking permission on at least one schedule
+        // Detailed per-schedule permission is verified inside create_booking()
+        return current_user_can('ffc_view_audience_bookings');
     }
 
     /**

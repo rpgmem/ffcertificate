@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 4.6.2
+Stable tag: 4.6.3
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -154,6 +154,16 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.6.3 (2026-02-07) =
+
+Security: Permission audit — add missing capability checks to admin handlers.
+
+* Security: Added `current_user_can('manage_options')` to SettingsSaveHandler (covers all settings + danger zone)
+* Security: Added capability check to migration execution handler
+* Security: Added capability check to cache warm/clear actions
+* Security: Added capability check to date format preview AJAX handler
+* Security: Tightened audience booking REST write permission (requires `ffc_view_audience_bookings` capability)
 
 = 4.6.2 (2026-02-07) =
 
@@ -504,6 +514,9 @@ Bug fixes for strict types introduction.
 * Verification shortcode `[ffc_verification]`
 
 == Upgrade Notice ==
+
+= 4.6.3 =
+Security hardening: Added missing capability checks to 5 admin handlers (settings save, migrations, cache actions, date format preview, audience booking REST endpoint). No data changes required.
 
 = 4.6.2 =
 Performance improvement: Fixed N+1 database queries in 4 locations (submissions list, appointments, audience bookings, admin bookings). Added 7 composite indexes for faster query performance. Reactivate plugin to apply new indexes.
