@@ -490,22 +490,7 @@ class AudienceAdminPage {
             </div>
         </div>
 
-        <style>
-            .ffc-scheduling-dashboard { margin-top: 20px; }
-            .ffc-scheduling-dashboard > h2 { margin: 25px 0 15px; padding-bottom: 8px; border-bottom: 1px solid #c3c4c7; }
-            .ffc-scheduling-dashboard > h2:first-of-type { margin-top: 0; }
-            .ffc-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 20px; }
-            .ffc-stat-card { background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-            .ffc-stat-label { color: #50575e; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
-            .ffc-stat-number { display: flex; align-items: center; gap: 10px; }
-            .ffc-stat-icon { font-size: 28px; color: #2271b1; flex-shrink: 0; line-height: 1; }
-            .ffc-stat-value { font-size: 32px; font-weight: 600; color: #1d2327; }
-            .ffc-stat-link { margin-top: auto; color: #2271b1; text-decoration: none; font-size: 13px; }
-            .ffc-stat-link:hover { text-decoration: underline; }
-            .ffc-quick-actions { background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; margin-top: 10px; }
-            .ffc-quick-actions h2 { margin-top: 0; }
-            .ffc-action-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
-        </style>
+        <!-- Styles loaded via ffc-audience-admin.css -->
         <?php
     }
 
@@ -643,14 +628,7 @@ class AudienceAdminPage {
             </tbody>
         </table>
 
-        <style>
-            .ffc-status-badge { padding: 3px 8px; border-radius: 3px; font-size: 12px; }
-            .ffc-status-active { background: #d1e7dd; color: #0f5132; }
-            .ffc-status-inactive { background: #f8d7da; color: #842029; }
-            .column-visibility, .column-environments, .column-status { width: 100px; }
-            .column-actions { width: 120px; }
-            .delete-link { color: #b32d2e; }
-        </style>
+        <!-- Styles in ffc-audience-admin.css -->
         <?php
     }
 
@@ -858,9 +836,7 @@ class AudienceAdminPage {
             <?php endif; ?>
         <?php endif; ?>
 
-        <style>
-            .ffc-form .required { color: #d63638; }
-        </style>
+        <!-- Styles in ffc-audience-admin.css -->
         <?php
     }
 
@@ -980,10 +956,7 @@ class AudienceAdminPage {
             </tbody>
         </table>
 
-        <style>
-            .ffc-filter-form { margin: 15px 0; display: flex; gap: 10px; align-items: center; }
-            .column-calendar { width: 200px; }
-        </style>
+        <!-- Styles in ffc-audience-admin.css -->
         <?php
     }
 
@@ -1112,12 +1085,7 @@ class AudienceAdminPage {
             <?php submit_button($id > 0 ? __('Update Environment', 'wp-ffcertificate') : __('Create Environment', 'wp-ffcertificate')); ?>
         </form>
 
-        <style>
-            .ffc-working-hours { background: #f6f7f7; padding: 15px; border-radius: 4px; }
-            .ffc-day-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-            .ffc-day-label { width: 100px; font-weight: 600; }
-            .ffc-day-row input[type="time"] { width: 120px; }
-        </style>
+        <!-- Styles in ffc-audience-admin.css -->
 
         <script>
         jQuery(document).ready(function($) {
@@ -1205,13 +1173,7 @@ class AudienceAdminPage {
             </tbody>
         </table>
 
-        <style>
-            .column-color { width: 80px; }
-            .column-members { width: 80px; }
-            .ffc-color-swatch { width: 24px; height: 24px; border-radius: 4px; display: inline-block; border: 1px solid #ccc; }
-            .ffc-hierarchy-child { padding-left: 25px; }
-            .ffc-hierarchy-child::before { content: "└ "; color: #999; }
-        </style>
+        <!-- Styles in ffc-audience-admin.css -->
         <?php
     }
 
@@ -1429,16 +1391,7 @@ class AudienceAdminPage {
             <?php endif; ?>
         </div>
 
-        <style>
-            .ffc-members-section { background: #fff; padding: 20px; margin: 20px 0; border: 1px solid #c3c4c7; }
-            .ffc-user-results { max-height: 200px; overflow-y: auto; border: 1px solid #ddd; display: none; }
-            .ffc-user-results.active { display: block; }
-            .ffc-user-result { padding: 8px 12px; cursor: pointer; }
-            .ffc-user-result:hover { background: #f0f0f1; }
-            .ffc-selected-users { margin: 15px 0; }
-            .ffc-selected-user { display: inline-block; background: #2271b1; color: #fff; padding: 5px 10px; margin: 3px; border-radius: 3px; }
-            .ffc-selected-user .remove { cursor: pointer; margin-left: 8px; }
-        </style>
+        <!-- Styles in ffc-audience-admin.css -->
 
         <script>
         jQuery(document).ready(function($) {
@@ -1670,12 +1623,7 @@ class AudienceAdminPage {
             </p>
         </div>
 
-        <style>
-            .status-active { color: #00a32a; font-weight: 600; }
-            .status-cancelled { color: #d63638; font-weight: 600; }
-            .tablenav.top { margin-bottom: 15px; }
-            .tablenav.top select, .tablenav.top input[type="date"] { margin-right: 5px; }
-        </style>
+        <!-- Styles in ffc-audience-admin.css -->
 
         <script>
         jQuery(document).ready(function($) {
@@ -2116,14 +2064,7 @@ class AudienceAdminPage {
             </div>
         </div>
 
-        <style>
-            .ffc-import-sections { display: flex; flex-wrap: wrap; gap: 30px; margin-top: 20px; }
-            .ffc-import-section { background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; padding: 20px; flex: 1; min-width: 400px; }
-            .ffc-import-section h2 { margin-top: 0; }
-            .ffc-sample-csv { margin-top: 20px; padding-top: 20px; border-top: 1px solid #c3c4c7; }
-            .ffc-sample-csv pre { background: #f6f7f7; padding: 15px; overflow-x: auto; font-size: 12px; }
-            .ffc-sample-csv h4 { margin-bottom: 10px; }
-        </style>
+        <!-- Styles in ffc-audience-admin.css -->
         <?php
     }
 

@@ -61,7 +61,7 @@ class Loader {
 
     public function __construct() {
         add_action('plugins_loaded', [$this, 'init_plugin'], 10);
-        add_action('wp_enqueue_scripts', [$this, 'enqueue_rate_limit_assets']);
+        add_action('wp_enqueue_scripts', [$this, 'register_frontend_assets']);
         $this->define_activation_hooks();
     }
 
@@ -133,12 +133,11 @@ class Loader {
         add_action('ffc_daily_cleanup_hook', [$this->submission_handler, 'run_data_cleanup']);
     }
     
-    public function enqueue_rate_limit_assets(): void {
-        wp_enqueue_script('ffc-rate-limit', FFC_PLUGIN_URL . 'assets/js/ffc-frontend-helpers.js', ['jquery'], FFC_VERSION, true);
-        // ✅ v3.1.0: Rate limit styles consolidated into ffc-admin-settings.css
-        wp_enqueue_style('ffc-admin-settings', FFC_PLUGIN_URL . 'assets/css/ffc-admin-settings.css', [], FFC_VERSION);
+    /**
+     * Register frontend assets (scripts used as dependencies by shortcodes).
+     * Only registers -- actual enqueue happens when shortcodes load their dependencies.
+     */
+    public function register_frontend_assets(): void {
+        wp_register_script('ffc-rate-limit', FFC_PLUGIN_URL . 'assets/js/ffc-frontend-helpers.js', ['jquery'], FFC_VERSION, true);
     }
-    
-    // For future use
-    public function run(): void {}
 }

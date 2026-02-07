@@ -156,6 +156,45 @@
 }
 
 /* ==========================================================================
+   RATE LIMIT NOTICE - Frontend & Admin
+   ========================================================================== */
+
+/**
+ * Rate limit warning banner (created dynamically by ffc-frontend-helpers.js)
+ * Moved from ffc-admin-settings.css -- these styles are needed on the frontend.
+ */
+.ffc-rate-limit-notice {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ffc-rate-limit-icon {
+    font-size: 24px;
+}
+
+.ffc-rate-limit-message {
+    flex: 1;
+    color: #856404;
+}
+
+.ffc-rate-limit-message strong {
+    color: #d63384;
+    font-family: monospace;
+}
+
+/* Disabled submit buttons during rate limit */
+.ffc-form button[type="submit"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ==========================================================================
    ACCESSIBILITY
    ========================================================================== */
 

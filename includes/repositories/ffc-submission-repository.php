@@ -28,6 +28,10 @@ class SubmissionRepository extends AbstractRepository {
         return 'ffc_submissions';
     }
 
+    protected function get_allowed_order_columns(): array {
+        return [ 'id', 'form_id', 'email', 'cpf_rf', 'auth_code', 'status', 'submission_date', 'created_at', 'updated_at' ];
+    }
+
     /**
      * Find by auth code
      *
@@ -303,11 +307,13 @@ class SubmissionRepository extends AbstractRepository {
 
         $where_clause = 'WHERE ' . implode(' AND ', $where);
         $offset = ($args['page'] - 1) * $args['per_page'];
+        $orderby = $this->sanitize_order_column( $args['orderby'] );
+        $order   = strtoupper( $args['order'] ) === 'ASC' ? 'ASC' : 'DESC';
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $items = $this->wpdb->get_results(
             $this->wpdb->prepare(
-                "SELECT * FROM {$this->table} {$where_clause} ORDER BY {$args['orderby']} {$args['order']} LIMIT %d OFFSET %d",
+                "SELECT * FROM {$this->table} {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
                 $args['per_page'],
                 $offset
             ),

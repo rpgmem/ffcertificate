@@ -72,6 +72,8 @@ abstract class AbstractRepository {
      */
     public function findAll( array $conditions = [], string $order_by = 'id', string $order = 'DESC', ?int $limit = null, int $offset = 0 ): array {
         $where = $this->build_where_clause($conditions);
+        $order_by = $this->sanitize_order_column( $order_by );
+        $order    = strtoupper( $order ) === 'ASC' ? 'ASC' : 'DESC';
         $sql = "SELECT * FROM {$this->table} {$where} ORDER BY {$order_by} {$order}";
 
         if ($limit) {
@@ -150,6 +152,26 @@ abstract class AbstractRepository {
         }
 
         return $result;
+    }
+
+    /**
+     * Sanitize ORDER BY column name against an allowlist.
+     *
+     * @param string $column Requested column name
+     * @return string Sanitized column name (defaults to 'id' if not allowed)
+     */
+    protected function sanitize_order_column( string $column ): string {
+        $allowed = $this->get_allowed_order_columns();
+        return in_array( $column, $allowed, true ) ? $column : 'id';
+    }
+
+    /**
+     * Get allowed ORDER BY columns. Override in child classes to extend.
+     *
+     * @return array
+     */
+    protected function get_allowed_order_columns(): array {
+        return [ 'id', 'created_at', 'updated_at', 'status' ];
     }
 
     /**

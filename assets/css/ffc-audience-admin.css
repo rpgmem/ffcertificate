@@ -239,6 +239,83 @@
     text-overflow: ellipsis;
 }
 
+/* Menu Separators: loaded via admin_head hook in AudienceAdminPage::print_menu_separator_css()
+ * (must be inline because menu is visible on ALL admin pages, not just scheduling pages) */
+
+/* Booking Status (non-prefixed -- used in bookings list) */
+.status-active {
+    color: #00a32a;
+    font-weight: 600;
+}
+
+.status-cancelled {
+    color: #d63638;
+    font-weight: 600;
+}
+
+/* Bookings Filter Bar */
+.tablenav.top {
+    margin-bottom: 15px;
+}
+
+.tablenav.top select,
+.tablenav.top input[type="date"] {
+    margin-right: 5px;
+}
+
+/* Import Page */
+.ffc-import-sections {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.ffc-import-section {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    flex: 1;
+    min-width: 400px;
+}
+
+.ffc-import-section h2 {
+    margin-top: 0;
+}
+
+.ffc-sample-csv {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #c3c4c7;
+}
+
+.ffc-sample-csv pre {
+    background: #f6f7f7;
+    padding: 15px;
+    overflow-x: auto;
+    font-size: 12px;
+}
+
+.ffc-sample-csv h4 {
+    margin-bottom: 10px;
+}
+
+/* Dashboard Headings */
+.ffc-scheduling-dashboard {
+    margin-top: 20px;
+}
+
+.ffc-scheduling-dashboard > h2 {
+    margin: 25px 0 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #c3c4c7;
+}
+
+.ffc-scheduling-dashboard > h2:first-of-type {
+    margin-top: 0;
+}
+
 /* Responsive */
 @media screen and (max-width: 782px) {
     .ffc-stats-grid {
