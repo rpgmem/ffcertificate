@@ -265,6 +265,19 @@ class AppointmentEmailHandler {
         $body .= '<p style="margin: 0;"><strong>' . esc_html__('Time:', 'ffcertificate') . '</strong> ' . esc_html($time_formatted) . '</p>';
         $body .= '</div>';
 
+        // Receipt link
+        if (class_exists('\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler')) {
+            $receipt_url = AppointmentReceiptHandler::get_receipt_url(
+                $appointment['id'],
+                $appointment['confirmation_token'] ?? ''
+            );
+            $body .= '<div style="text-align: center; margin: 30px 0;">';
+            $body .= '<a href="' . esc_url($receipt_url) . '" style="display: inline-block; background: #0073aa; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">';
+            $body .= '📄 ' . esc_html__('View/Print Receipt', 'ffcertificate');
+            $body .= '</a>';
+            $body .= '</div>';
+        }
+
         $body .= '</div>';
 
         $body .= $this->get_email_template_footer();

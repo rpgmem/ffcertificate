@@ -305,6 +305,17 @@ if (isset($_GET['action']) && isset($_GET['appointment'])) {
             $ffcertificate_result = $ffcertificate_repo->confirm($ffc_self_scheduling_appointment_id, get_current_user_id());
 
             if ($ffcertificate_result) {
+                // Send approval notification email with receipt link
+                $ffcertificate_appointment = $ffcertificate_repo->findById($ffc_self_scheduling_appointment_id);
+                if ($ffcertificate_appointment && !empty($ffcertificate_appointment['calendar_id'])) {
+                    $ffcertificate_cal_repo = new \FreeFormCertificate\Repositories\CalendarRepository();
+                    $ffcertificate_calendar = $ffcertificate_cal_repo->findById((int) $ffcertificate_appointment['calendar_id']);
+                    if ($ffcertificate_calendar) {
+                        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
+                        do_action('ffc_self_scheduling_appointment_confirmed_email', $ffcertificate_appointment, $ffcertificate_calendar);
+                    }
+                }
+
                 // Store success message in transient
                 set_transient('ffc_admin_notice_' . get_current_user_id(), array(
                     'type' => 'success',

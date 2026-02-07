@@ -1,40 +1,36 @@
 <div style="width: 1123px;height: 794px;position: relative;overflow: hidden;font-family: Arial, sans-serif;color: #000;background: #fff">
 
-    <div style="position: relative;z-index: 1;padding: 50px 60px;width: 100%;height: 100%;display: flex;flex-direction: column;box-sizing: border-box">
+    <div style="position: relative;z-index: 1;padding: 40px 50px;width: 100%;height: 100%;display: flex;flex-direction: column;box-sizing: border-box">
 
-        <!-- Header -->
-        <div style="text-align: center;margin-bottom: 20px">
-            <strong style="font-size: 36pt;color: #0073aa;margin: 0;letter-spacing: 6px;text-transform: uppercase">ACOMPROVANTE DE AGENDAMENTO</strong>
-            <div style="width: 120px;height: 4px;background-color: #0073aa;margin: 12px auto 0;border-radius: 3px"></div>
+        <!-- Header: Full width - Title + Status -->
+        <div style="display: flex;align-items: center;justify-content: space-between;margin-bottom: 20px;padding-bottom: 16px;border-bottom: 3px solid #0073aa">
+            <strong style="font-size: 28pt;color: #0073aa;letter-spacing: 4px;text-transform: uppercase">COMPROVANTE DE AGENDAMENTO</strong>
+            <span style="display: inline-block;padding: 8px 24px;border-radius: 4px;font-weight: bold;font-size: 13pt;text-transform: uppercase;background: #d5e8d4;color: #2e7d32">{{status}}</span>
         </div>
 
-        <!-- Status Badge -->
-        <div style="text-align: center;margin-bottom: 15px">
-            <span style="display: inline-block;padding: 6px 20px;border-radius: 4px;font-weight: bold;font-size: 12pt;text-transform: uppercase;background: #d5e8d4;color: #2e7d32">{{status}}</span>
-        </div>
-
-        <!-- Main Content -->
+        <!-- Two Column Layout -->
         <div style="flex: 1;display: flex;gap: 30px">
 
-            <!-- Left Column: Event & Appointment Details -->
-            <div style="flex: 1.2">
-                <!-- Event Section -->
-                <div style="margin-bottom: 20px">
+            <!-- Left Column: Details -->
+            <div style="flex: 1;display: flex;flex-direction: column;gap: 16px">
+
+                <!-- Calendar Details -->
+                <div>
                     <div style="font-size: 13pt;font-weight: bold;color: #0073aa;border-bottom: 2px solid #e0e0e0;padding-bottom: 6px;margin-bottom: 10px">Detalhes do Calendário</div>
                     <table style="width: 100%;border-collapse: collapse;font-size: 11pt">
                         <tr>
-                            <td style="padding: 5px 0;font-weight: bold;color: #555;width: 120px;vertical-align: top">Calendário:</td>
+                            <td style="padding: 5px 0;font-weight: bold;color: #555;width: 130px;vertical-align: top">Evento:</td>
                             <td style="padding: 5px 0;color: #333">{{calendar_title}}</td>
                         </tr>
                     </table>
                 </div>
 
-                <!-- Appointment Section -->
-                <div style="margin-bottom: 20px">
+                <!-- Appointment Information -->
+                <div>
                     <div style="font-size: 13pt;font-weight: bold;color: #0073aa;border-bottom: 2px solid #e0e0e0;padding-bottom: 6px;margin-bottom: 10px">Informações do Agendamento</div>
                     <table style="width: 100%;border-collapse: collapse;font-size: 11pt">
                         <tr>
-                            <td style="padding: 5px 0;font-weight: bold;color: #555;width: 120px">Data:</td>
+                            <td style="padding: 5px 0;font-weight: bold;color: #555;width: 130px">Data:</td>
                             <td style="padding: 5px 0;color: #333">{{appointment_date}}</td>
                         </tr>
                         <tr>
@@ -42,18 +38,18 @@
                             <td style="padding: 5px 0;color: #333">{{appointment_time}}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 5px 0;font-weight: bold;color: #555">Reservado em:</td>
+                            <td style="padding: 5px 0;font-weight: bold;color: #555">Agendado em:</td>
                             <td style="padding: 5px 0;color: #333">{{created_at}}</td>
                         </tr>
                     </table>
                 </div>
 
-                <!-- Personal Info Section -->
+                <!-- Personal Information -->
                 <div>
                     <div style="font-size: 13pt;font-weight: bold;color: #0073aa;border-bottom: 2px solid #e0e0e0;padding-bottom: 6px;margin-bottom: 10px">Informações Pessoais</div>
                     <table style="width: 100%;border-collapse: collapse;font-size: 11pt">
                         <tr>
-                            <td style="padding: 5px 0;font-weight: bold;color: #555;width: 120px">Nome:</td>
+                            <td style="padding: 5px 0;font-weight: bold;color: #555;width: 130px">Nome:</td>
                             <td style="padding: 5px 0;color: #333">{{name}}</td>
                         </tr>
                         <tr>
@@ -66,24 +62,26 @@
                         </tr>
                     </table>
                 </div>
+
             </div>
 
-            <!-- Right Column: Validation -->
-            <div style="width: 280px;text-align: center;display: flex;flex-direction: column;align-items: center;justify-content: center;background: #f8f9fa;border-radius: 8px;padding: 20px;border: 1px solid #e0e0e0">
-                <div style="font-size: 11pt;font-weight: bold;color: #555;margin-bottom: 10px">Código de Validação</div>
-                <div style="font-size: 18pt;font-weight: bold;color: #0073aa;letter-spacing: 2px;margin-bottom: 15px">{{validation_code}}</div>
-                <div style="margin-bottom: 15px">{{qr_code:size=120:margin=0}}</div>
-                <div style="font-size: 9pt;color: #666;line-height: 1.4">
-                    Para verificar este comprovante, acesse<br>
-                    <span style="color: #0073aa">{{validation_url}}</span><br>
+            <!-- Right Column: Validation Box -->
+            <div style="width: 280px;text-align: center;display: flex;flex-direction: column;align-items: center;justify-content: center;background: #f8f9fa;border-radius: 8px;padding: 25px;border: 1px solid #e0e0e0">
+                <div style="font-size: 11pt;font-weight: bold;color: #555;margin-bottom: 12px">Código de Verificação</div>
+                <div style="font-size: 18pt;font-weight: bold;color: #0073aa;letter-spacing: 2px;margin-bottom: 18px">{{validation_code}}</div>
+                <div style="margin-bottom: 18px">{{qr_code:size=140:margin=0}}</div>
+                <div style="font-size: 9pt;color: #666;line-height: 1.5">
+                    Para verificar este comprovante,<br>
+                    acesse <span style="color: #0073aa">{{validation_url}}</span><br>
                     e insira o código acima
                 </div>
             </div>
+
         </div>
 
         <!-- Footer -->
-        <div style="border-top: 2px solid #e0e0e0;padding-top: 8px;margin-top: 15px;text-align: center">
-            <p style="font-size: 9pt;color: #888;margin: 0">{{site_name}} - Gerado em: {{print_date}}</p>
+        <div style="border-top: 2px solid #e0e0e0;padding-top: 8px;margin-top: 12px;text-align: center">
+            <p style="font-size: 9pt;color: #888;margin: 0">{{site_name}} - Gerado em {{print_date}}</p>
         </div>
     </div>
 </div>
