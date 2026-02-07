@@ -140,4 +140,12 @@ class Loader {
     public function register_frontend_assets(): void {
         wp_register_script('ffc-rate-limit', FFC_PLUGIN_URL . 'assets/js/ffc-frontend-helpers.js', ['jquery'], FFC_VERSION, true);
     }
+
+    /**
+     * Run the plugin
+     *
+     * Kept for backwards compatibility — initialization happens via
+     * plugins_loaded hook in constructor.
+     */
+    public function run(): void {}
 }
