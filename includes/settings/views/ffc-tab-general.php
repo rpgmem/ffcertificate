@@ -29,6 +29,8 @@ $ffcertificate_date_formats = array(
 
 $ffcertificate_current_format = $ffcertificate_get_option('date_format', 'F j, Y');
 $ffcertificate_custom_format = $ffcertificate_get_option('date_format_custom', '');
+$ffcertificate_main_address = $ffcertificate_get_option('main_address', '');
+$ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
 ?>
 
 <div class="ffc-settings-wrap">
@@ -89,6 +91,32 @@ $ffcertificate_custom_format = $ffcertificate_get_option('date_format_custom', '
                                 </p>
                             </div>
                         </div>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="main_address"><?php esc_html_e('Main Address', 'ffcertificate'); ?></label>
+                    </th>
+                    <td>
+                        <input type="text" name="ffc_settings[main_address]" id="main_address" value="<?php echo esc_attr($ffcertificate_main_address); ?>" class="large-text">
+                        <p class="description">
+                            <?php esc_html_e('Main institutional address. Available as {{main_address}} placeholder in certificate and appointment templates.', 'ffcertificate'); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="main_geo_areas"><?php esc_html_e('Address Georeferencing', 'ffcertificate'); ?></label>
+                    </th>
+                    <td>
+                        <textarea name="ffc_settings[main_geo_areas]" id="main_geo_areas" rows="4" class="large-text" placeholder="-23.5505, -46.6333, 5000"><?php echo esc_textarea($ffcertificate_main_geo_areas); ?></textarea>
+                        <p class="description">
+                            <?php esc_html_e('Format: latitude, longitude, radius (meters) — one per line.', 'ffcertificate'); ?><br>
+                            <?php esc_html_e('Example: -23.5505, -46.6333, 5000', 'ffcertificate'); ?><br>
+                            <span class="ffc-text-info">ℹ️ <?php esc_html_e('Used as default geofencing area when creating new forms.', 'ffcertificate'); ?></span>
+                        </p>
                     </td>
                 </tr>
             </tbody>

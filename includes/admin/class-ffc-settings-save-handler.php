@@ -100,6 +100,16 @@ class SettingsSaveHandler {
             $clean['cleanup_days'] = absint( $new['cleanup_days'] );
         }
 
+        // Main Address
+        if ( isset( $new['main_address'] ) ) {
+            $clean['main_address'] = sanitize_text_field( $new['main_address'] );
+        }
+
+        // Main Geo Areas (textarea - needs special handling since array_map uses sanitize_text_field)
+        if ( isset( $_POST['ffc_settings']['main_geo_areas'] ) ) {
+            $clean['main_geo_areas'] = sanitize_textarea_field( wp_unslash( $_POST['ffc_settings']['main_geo_areas'] ) );
+        }
+
         // Activity Log (v3.1.1)
         if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'general' ) {
             $clean['enable_activity_log'] = isset( $new['enable_activity_log'] ) ? 1 : 0;

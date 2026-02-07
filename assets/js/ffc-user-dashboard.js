@@ -564,7 +564,7 @@
                         uid: 'ffc-apt-' + apt.id,
                         summary: apt.calendar_title,
                         description: apt.calendar_title + (apt.name ? '\n' + (ffcDashboard.strings.name || 'Nome:') + ' ' + apt.name : '') + (apt.email ? '\n' + (ffcDashboard.strings.email || 'Email:') + ' ' + apt.email : ''),
-                        location: '',
+                        location: ffcDashboard.mainAddress || '',
                         date: apt.appointment_date_raw,
                         startTime: apt.start_time_raw,
                         endTime: apt.end_time || apt.start_time_raw

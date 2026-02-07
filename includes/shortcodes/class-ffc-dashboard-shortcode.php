@@ -311,6 +311,7 @@ class DashboardShortcode {
             'canViewAudienceBookings' => $can_view_audience_bookings,
             'siteName' => get_bloginfo('name'),
             'wpTimezone' => wp_timezone_string(),
+            'mainAddress' => (get_option('ffc_settings', array()))['main_address'] ?? '',
             'strings' => array(
                 'loading' => __('Loading...', 'ffcertificate'),
                 'error' => __('Error loading data', 'ffcertificate'),

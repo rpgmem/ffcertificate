@@ -344,7 +344,12 @@ class FormEditorMetaboxRenderer {
         $geo_enabled = ($config['geo_enabled'] ?? '0') == '1' ? '1' : '0';
         $geo_gps_enabled = ($config['geo_gps_enabled'] ?? '0') == '1' ? '1' : '0';
         $geo_ip_enabled = ($config['geo_ip_enabled'] ?? '0') == '1' ? '1' : '0';
-        $geo_areas = $config['geo_areas'] ?? '';
+        $geo_areas_default = '';
+        if ( $post->post_status === 'auto-draft' ) {
+            $ffc_global = get_option( 'ffc_settings', array() );
+            $geo_areas_default = $ffc_global['main_geo_areas'] ?? '';
+        }
+        $geo_areas = $config['geo_areas'] ?? $geo_areas_default;
         $geo_ip_areas_permissive = ($config['geo_ip_areas_permissive'] ?? '0') == '1' ? '1' : '0';
         $geo_ip_areas = $config['geo_ip_areas'] ?? '';
         $geo_gps_ip_logic = $config['geo_gps_ip_logic'] ?? 'or';
