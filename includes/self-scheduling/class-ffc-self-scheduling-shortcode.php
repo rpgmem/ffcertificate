@@ -80,7 +80,7 @@ class SelfSchedulingShortcode {
         // Enqueue calendar frontend styles (timeslots, form, confirmation)
         wp_enqueue_style(
             'ffc-calendar-frontend',
-            FFC_PLUGIN_URL . 'assets/css/calendar-frontend.css',
+            FFC_PLUGIN_URL . 'assets/css/ffc-calendar-frontend.css',
             array('ffc-audience'),
             FFC_VERSION
         );
@@ -131,7 +131,7 @@ class SelfSchedulingShortcode {
         // Enqueue calendar frontend scripts
         wp_enqueue_script(
             'ffc-calendar-frontend',
-            FFC_PLUGIN_URL . 'assets/js/calendar-frontend.js',
+            FFC_PLUGIN_URL . 'assets/js/ffc-calendar-frontend.js',
             array('jquery', 'ffc-calendar-core', 'ffc-frontend-helpers', 'ffc-pdf-generator'),
             FFC_VERSION,
             true

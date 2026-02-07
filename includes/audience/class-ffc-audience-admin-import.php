@@ -59,7 +59,7 @@ class AudienceAdminImport {
                         <?php wp_nonce_field('ffc_import_members', 'ffc_import_members_nonce'); ?>
                         <input type="hidden" name="ffc_action" value="import_members">
 
-                        <table class="form-table">
+                        <table class="form-table" role="presentation"><tbody>
                             <tr>
                                 <th scope="row">
                                     <label for="members_csv"><?php esc_html_e('CSV File', 'wp-ffcertificate'); ?></label>
@@ -105,7 +105,7 @@ class AudienceAdminImport {
                                     </label>
                                 </td>
                             </tr>
-                        </table>
+                        </tbody></table>
 
                         <?php submit_button(__('Import Members', 'wp-ffcertificate'), 'primary', 'import_members'); ?>
                     </form>
@@ -130,7 +130,7 @@ class AudienceAdminImport {
                         <?php wp_nonce_field('ffc_import_audiences', 'ffc_import_audiences_nonce'); ?>
                         <input type="hidden" name="ffc_action" value="import_audiences">
 
-                        <table class="form-table">
+                        <table class="form-table" role="presentation"><tbody>
                             <tr>
                                 <th scope="row">
                                     <label for="audiences_csv"><?php esc_html_e('CSV File', 'wp-ffcertificate'); ?></label>
@@ -142,7 +142,7 @@ class AudienceAdminImport {
                                     </p>
                                 </td>
                             </tr>
-                        </table>
+                        </tbody></table>
 
                         <?php submit_button(__('Import Audiences', 'wp-ffcertificate'), 'primary', 'import_audiences'); ?>
                     </form>

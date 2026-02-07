@@ -11,32 +11,32 @@ $wp_ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats()
 <div class="card">
     <h2><?php esc_html_e('IP Rate Limit', 'wp-ffcertificate'); ?></h2>
     <p><label><input type="checkbox" name="ip_enabled" <?php checked($wp_ffcertificate_s['ip']['enabled']); ?>> <?php esc_html_e('Enable', 'wp-ffcertificate'); ?></label></p>
-    <table class="form-table">
+    <table class="form-table" role="presentation"><tbody>
         <tr><th><?php esc_html_e('Max per hour', 'wp-ffcertificate'); ?></th><td><input type="number" name="ip_max_per_hour" value="<?php echo esc_attr($wp_ffcertificate_s['ip']['max_per_hour']); ?>" min="1" max="1000"></td></tr>
         <tr><th><?php esc_html_e('Max per day', 'wp-ffcertificate'); ?></th><td><input type="number" name="ip_max_per_day" value="<?php echo esc_attr($wp_ffcertificate_s['ip']['max_per_day']); ?>" min="1" max="10000"></td></tr>
         <tr><th><?php esc_html_e('Cooldown (sec)', 'wp-ffcertificate'); ?></th><td><input type="number" name="ip_cooldown_seconds" value="<?php echo esc_attr($wp_ffcertificate_s['ip']['cooldown_seconds']); ?>" min="1" max="3600"></td></tr>
         <tr><th><?php esc_html_e('Apply to', 'wp-ffcertificate'); ?></th><td><select name="ip_apply_to"><option value="all"><?php esc_html_e('All forms', 'wp-ffcertificate'); ?></option></select></td></tr>
         <tr><th><?php esc_html_e('Message', 'wp-ffcertificate'); ?></th><td><textarea name="ip_message" rows="3" class="large-text"><?php echo esc_textarea($wp_ffcertificate_s['ip']['message']); ?></textarea></td></tr>
-    </table>
+    </tbody></table>
 </div>
 
 <div class="card">
     <h2><?php esc_html_e('Email Rate Limit', 'wp-ffcertificate'); ?></h2>
     <p><label><input type="checkbox" name="email_enabled" <?php checked($wp_ffcertificate_s['email']['enabled']); ?>> <?php esc_html_e('Enable', 'wp-ffcertificate'); ?></label></p>
     <p><label><input type="checkbox" name="email_check_database" <?php checked($wp_ffcertificate_s['email']['check_database']); ?>> <?php esc_html_e('Check database', 'wp-ffcertificate'); ?></label></p>
-    <table class="form-table">
+    <table class="form-table" role="presentation"><tbody>
         <tr><th><?php esc_html_e('Max per day', 'wp-ffcertificate'); ?></th><td><input type="number" name="email_max_per_day" value="<?php echo esc_attr($wp_ffcertificate_s['email']['max_per_day']); ?>" min="1"></td></tr>
         <tr><th><?php esc_html_e('Max per week', 'wp-ffcertificate'); ?></th><td><input type="number" name="email_max_per_week" value="<?php echo esc_attr($wp_ffcertificate_s['email']['max_per_week']); ?>" min="1"></td></tr>
         <tr><th><?php esc_html_e('Max per month', 'wp-ffcertificate'); ?></th><td><input type="number" name="email_max_per_month" value="<?php echo esc_attr($wp_ffcertificate_s['email']['max_per_month']); ?>" min="1"></td></tr>
         <tr><th><?php esc_html_e('Message', 'wp-ffcertificate'); ?></th><td><textarea name="email_message" rows="3" class="large-text"><?php echo esc_textarea($wp_ffcertificate_s['email']['message']); ?></textarea></td></tr>
-    </table>
+    </tbody></table>
 </div>
 
 <div class="card">
     <h2><?php esc_html_e('Tax ID (CPF) Rate Limit', 'wp-ffcertificate'); ?></h2>
     <p><label><input type="checkbox" name="cpf_enabled" <?php checked($wp_ffcertificate_s['cpf']['enabled']); ?>> <?php esc_html_e('Enable', 'wp-ffcertificate'); ?></label></p>
     <p><label><input type="checkbox" name="cpf_check_database" <?php checked($wp_ffcertificate_s['cpf']['check_database']); ?>> <?php esc_html_e('Check database', 'wp-ffcertificate'); ?></label></p>
-    <table class="form-table">
+    <table class="form-table" role="presentation"><tbody>
         <tr><th><?php esc_html_e('Max per month', 'wp-ffcertificate'); ?></th><td><input type="number" name="cpf_max_per_month" value="<?php echo esc_attr($wp_ffcertificate_s['cpf']['max_per_month']); ?>" min="1"></td></tr>
         <tr><th><?php esc_html_e('Max per year', 'wp-ffcertificate'); ?></th><td><input type="number" name="cpf_max_per_year" value="<?php echo esc_attr($wp_ffcertificate_s['cpf']['max_per_year']); ?>" min="1"></td></tr>
         <tr>
@@ -69,37 +69,37 @@ $wp_ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats()
             </td>
         </tr>
         <tr><th><?php esc_html_e('Message', 'wp-ffcertificate'); ?></th><td><textarea name="cpf_message" rows="3" class="large-text"><?php echo esc_textarea($wp_ffcertificate_s['cpf']['message']); ?></textarea></td></tr>
-    </table>
+    </tbody></table>
 </div>
 
 <div class="card">
     <h2><?php esc_html_e('Global Rate Limit', 'wp-ffcertificate'); ?></h2>
     <p><label><input type="checkbox" name="global_enabled" <?php checked($wp_ffcertificate_s['global']['enabled']); ?>> <?php esc_html_e('Enable', 'wp-ffcertificate'); ?></label></p>
-    <table class="form-table">
+    <table class="form-table" role="presentation"><tbody>
         <tr><th><?php esc_html_e('Max per minute', 'wp-ffcertificate'); ?></th><td><input type="number" name="global_max_per_minute" value="<?php echo esc_attr($wp_ffcertificate_s['global']['max_per_minute']); ?>" min="1"></td></tr>
         <tr><th><?php esc_html_e('Max per hour', 'wp-ffcertificate'); ?></th><td><input type="number" name="global_max_per_hour" value="<?php echo esc_attr($wp_ffcertificate_s['global']['max_per_hour']); ?>" min="1"></td></tr>
         <tr><th><?php esc_html_e('Message', 'wp-ffcertificate'); ?></th><td><textarea name="global_message" rows="3" class="large-text"><?php echo esc_textarea($wp_ffcertificate_s['global']['message']); ?></textarea></td></tr>
-    </table>
+    </tbody></table>
 </div>
 
 <div class="card">
     <h2><?php esc_html_e('Whitelist', 'wp-ffcertificate'); ?></h2>
-    <table class="form-table">
+    <table class="form-table" role="presentation"><tbody>
         <tr><th><?php esc_html_e('IPs', 'wp-ffcertificate'); ?></th><td><textarea name="whitelist_ips" rows="5" class="large-text"><?php echo esc_textarea(implode("\n", $wp_ffcertificate_s['whitelist']['ips'])); ?></textarea><p class="description"><?php esc_html_e('One per line', 'wp-ffcertificate'); ?></p></td></tr>
         <tr><th><?php esc_html_e('Emails', 'wp-ffcertificate'); ?></th><td><textarea name="whitelist_emails" rows="5" class="large-text"><?php echo esc_textarea(implode("\n", $wp_ffcertificate_s['whitelist']['emails'])); ?></textarea></td></tr>
         <tr><th><?php esc_html_e('Domains', 'wp-ffcertificate'); ?></th><td><textarea name="whitelist_email_domains" rows="5" class="large-text"><?php echo esc_textarea(implode("\n", $wp_ffcertificate_s['whitelist']['email_domains'])); ?></textarea><p class="description"><?php esc_html_e('Format: *@domain.com', 'wp-ffcertificate'); ?></p></td></tr>
         <tr><th><?php esc_html_e('Tax IDs (CPFs)', 'wp-ffcertificate'); ?></th><td><textarea name="whitelist_cpfs" rows="5" class="large-text"><?php echo esc_textarea(implode("\n", $wp_ffcertificate_s['whitelist']['cpfs'])); ?></textarea></td></tr>
-    </table>
+    </tbody></table>
 </div>
 
 <div class="card">
     <h2><?php esc_html_e('Blacklist', 'wp-ffcertificate'); ?></h2>
-    <table class="form-table">
+    <table class="form-table" role="presentation"><tbody>
         <tr><th><?php esc_html_e('IPs', 'wp-ffcertificate'); ?></th><td><textarea name="blacklist_ips" rows="5" class="large-text"><?php echo esc_textarea(implode("\n", $wp_ffcertificate_s['blacklist']['ips'])); ?></textarea></td></tr>
         <tr><th><?php esc_html_e('Emails', 'wp-ffcertificate'); ?></th><td><textarea name="blacklist_emails" rows="5" class="large-text"><?php echo esc_textarea(implode("\n", $wp_ffcertificate_s['blacklist']['emails'])); ?></textarea></td></tr>
         <tr><th><?php esc_html_e('Domains', 'wp-ffcertificate'); ?></th><td><textarea name="blacklist_email_domains" rows="5" class="large-text"><?php echo esc_textarea(implode("\n", $wp_ffcertificate_s['blacklist']['email_domains'])); ?></textarea><p class="description"><?php esc_html_e('Format: *@domain.com', 'wp-ffcertificate'); ?></p></td></tr>
         <tr><th><?php esc_html_e('Tax IDs (CPFs)', 'wp-ffcertificate'); ?></th><td><textarea name="blacklist_cpfs" rows="5" class="large-text"><?php echo esc_textarea(implode("\n", $wp_ffcertificate_s['blacklist']['cpfs'])); ?></textarea></td></tr>
-    </table>
+    </tbody></table>
 </div>
 
 <div class="card">
@@ -107,10 +107,10 @@ $wp_ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats()
     <p><label><input type="checkbox" name="logging_enabled" <?php checked($wp_ffcertificate_s['logging']['enabled']); ?>> <?php esc_html_e('Enable logs', 'wp-ffcertificate'); ?></label></p>
     <p><label><input type="checkbox" name="logging_log_allowed" <?php checked($wp_ffcertificate_s['logging']['log_allowed']); ?>> <?php esc_html_e('Log allowed requests', 'wp-ffcertificate'); ?></label></p>
     <p><label><input type="checkbox" name="logging_log_blocked" <?php checked($wp_ffcertificate_s['logging']['log_blocked']); ?>> <?php esc_html_e('Log blocked requests', 'wp-ffcertificate'); ?></label></p>
-    <table class="form-table">
+    <table class="form-table" role="presentation"><tbody>
         <tr><th><?php esc_html_e('Retention', 'wp-ffcertificate'); ?></th><td><input type="number" name="logging_retention_days" value="<?php echo esc_attr($wp_ffcertificate_s['logging']['retention_days']); ?>" min="1"> <?php esc_html_e('days', 'wp-ffcertificate'); ?></td></tr>
         <tr><th><?php esc_html_e('Max logs', 'wp-ffcertificate'); ?></th><td><input type="number" name="logging_max_logs" value="<?php echo esc_attr($wp_ffcertificate_s['logging']['max_logs']); ?>" min="100"></td></tr>
-    </table>
+    </tbody></table>
 </div>
 
 <div class="card">

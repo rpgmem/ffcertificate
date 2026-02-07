@@ -43,7 +43,7 @@ $wp_ffcertificate_dashboard_url = $wp_ffcertificate_dashboard_page_id ? get_perm
         <!-- wp-admin Blocking -->
         <div class="card">
             <h2><?php esc_html_e('WP-Admin Access Control', 'wp-ffcertificate'); ?></h2>
-            <table class="form-table">
+            <table class="form-table" role="presentation"><tbody>
                 <tr>
                     <th scope="row">
                         <label for="block_wp_admin">
@@ -112,13 +112,13 @@ $wp_ffcertificate_dashboard_url = $wp_ffcertificate_dashboard_page_id ? get_perm
                         </p>
                     </td>
                 </tr>
-            </table>
+            </tbody></table>
         </div>
 
         <!-- Redirect Settings -->
         <div class="card">
             <h2><?php esc_html_e('Redirect Settings', 'wp-ffcertificate'); ?></h2>
-            <table class="form-table">
+            <table class="form-table" role="presentation"><tbody>
                 <tr>
                     <th scope="row">
                         <label for="redirect_url">
@@ -160,13 +160,13 @@ $wp_ffcertificate_dashboard_url = $wp_ffcertificate_dashboard_page_id ? get_perm
                         </p>
                     </td>
                 </tr>
-            </table>
+            </tbody></table>
         </div>
 
         <!-- Admin Bar -->
         <div class="card">
             <h2><?php esc_html_e('Admin Bar', 'wp-ffcertificate'); ?></h2>
-            <table class="form-table">
+            <table class="form-table" role="presentation"><tbody>
                 <tr>
                     <th scope="row">
                         <label for="allow_admin_bar">
@@ -187,7 +187,7 @@ $wp_ffcertificate_dashboard_url = $wp_ffcertificate_dashboard_page_id ? get_perm
                         </p>
                     </td>
                 </tr>
-            </table>
+            </tbody></table>
         </div>
 
         <!-- Info Box -->

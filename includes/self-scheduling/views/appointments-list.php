@@ -383,4 +383,4 @@ $wp_ffcertificate_table->prepare_items();
     </form>
 </div>
 
-<!-- Styles in calendar-admin.css -->
+<!-- Styles in ffc-calendar-admin.css -->

@@ -79,14 +79,14 @@ class SelfSchedulingAdmin {
 
         wp_enqueue_style(
             'ffc-calendar-admin',
-            plugins_url('assets/css/calendar-admin.css', dirname(__FILE__, 2)),
+            plugins_url('assets/css/ffc-calendar-admin.css', dirname(__FILE__, 2)),
             array(),
             '4.1.0'
         );
 
         wp_enqueue_script(
             'ffc-calendar-admin',
-            plugins_url('assets/js/calendar-admin.js', dirname(__FILE__, 2)),
+            plugins_url('assets/js/ffc-calendar-admin.js', dirname(__FILE__, 2)),
             array('jquery', 'jquery-ui-sortable', 'jquery-ui-datepicker'),
             '4.1.0',
             true

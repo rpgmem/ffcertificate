@@ -161,7 +161,7 @@ class AudienceAdminCalendar {
             <input type="hidden" name="schedule_id" value="<?php echo esc_attr($id); ?>">
             <input type="hidden" name="ffc_action" value="save_schedule">
 
-            <table class="form-table">
+            <table class="form-table" role="presentation"><tbody>
                 <?php if ($id > 0) : ?>
                 <tr>
                     <th scope="row">
@@ -266,7 +266,7 @@ class AudienceAdminCalendar {
                         </select>
                     </td>
                 </tr>
-            </table>
+            </tbody></table>
 
             <?php submit_button($id > 0 ? __('Update Calendar', 'wp-ffcertificate') : __('Create Calendar', 'wp-ffcertificate')); ?>
         </form>

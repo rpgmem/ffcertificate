@@ -22,7 +22,7 @@ if (!defined('ABSPATH')) exit;
                 <?php esc_html_e('Configure external IP geolocation services for backend validation. These services detect user location by IP address.', 'wp-ffcertificate'); ?>
             </p>
 
-            <table class="form-table">
+            <table class="form-table" role="presentation"><tbody>
                 <!-- Enable IP API -->
                 <tr>
                     <th scope="row">
@@ -129,7 +129,7 @@ if (!defined('ABSPATH')) exit;
                         </p>
                     </td>
                 </tr>
-            </table>
+            </tbody></table>
         </div>
 
         <hr>
@@ -141,7 +141,7 @@ if (!defined('ABSPATH')) exit;
                 <?php esc_html_e('Configure GPS location caching on the frontend (browser localStorage). GPS cache is always enabled for better performance.', 'wp-ffcertificate'); ?>
             </p>
 
-            <table class="form-table">
+            <table class="form-table" role="presentation"><tbody>
                 <!-- GPS Cache TTL -->
                 <tr>
                     <th scope="row">
@@ -161,7 +161,7 @@ if (!defined('ABSPATH')) exit;
                         </p>
                     </td>
                 </tr>
-            </table>
+            </tbody></table>
         </div>
 
         <hr>
@@ -173,7 +173,7 @@ if (!defined('ABSPATH')) exit;
                 <?php esc_html_e('Define what happens when geolocation services fail or are denied by the user.', 'wp-ffcertificate'); ?>
             </p>
 
-            <table class="form-table">
+            <table class="form-table" role="presentation"><tbody>
                 <!-- API Failure Fallback -->
                 <tr>
                     <th scope="row">
@@ -236,7 +236,7 @@ if (!defined('ABSPATH')) exit;
                         </p>
                     </td>
                 </tr>
-            </table>
+            </tbody></table>
         </div>
 
         <hr>
@@ -248,7 +248,7 @@ if (!defined('ABSPATH')) exit;
                 <?php esc_html_e('Allow administrators to bypass geofence restrictions for testing and content management.', 'wp-ffcertificate'); ?>
             </p>
 
-            <table class="form-table">
+            <table class="form-table" role="presentation"><tbody>
                 <!-- Bypass Date/Time -->
                 <tr>
                     <th scope="row">
@@ -280,7 +280,7 @@ if (!defined('ABSPATH')) exit;
                         </p>
                     </td>
                 </tr>
-            </table>
+            </tbody></table>
         </div>
 
         <hr>
@@ -292,7 +292,7 @@ if (!defined('ABSPATH')) exit;
                 <?php esc_html_e('Enable debug mode for testing and troubleshooting geolocation features.', 'wp-ffcertificate'); ?>
             </p>
 
-            <table class="form-table">
+            <table class="form-table" role="presentation"><tbody>
                 <!-- Enable Debug -->
                 <tr>
                     <th scope="row">
@@ -308,7 +308,7 @@ if (!defined('ABSPATH')) exit;
                         </p>
                     </td>
                 </tr>
-            </table>
+            </tbody></table>
         </div>
 
         <p class="submit">

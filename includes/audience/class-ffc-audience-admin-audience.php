@@ -183,7 +183,7 @@ class AudienceAdminAudience {
             <input type="hidden" name="audience_id" value="<?php echo esc_attr($id); ?>">
             <input type="hidden" name="ffc_action" value="save_audience">
 
-            <table class="form-table">
+            <table class="form-table" role="presentation"><tbody>
                 <tr>
                     <th scope="row">
                         <label for="audience_name"><?php esc_html_e('Name', 'wp-ffcertificate'); ?> <span class="required">*</span></label>
@@ -236,7 +236,7 @@ class AudienceAdminAudience {
                         </select>
                     </td>
                 </tr>
-            </table>
+            </tbody></table>
 
             <?php submit_button($id > 0 ? __('Update Audience', 'wp-ffcertificate') : __('Create Audience', 'wp-ffcertificate')); ?>
         </form>

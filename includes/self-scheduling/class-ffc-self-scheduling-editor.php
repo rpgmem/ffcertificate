@@ -49,7 +49,7 @@ class SelfSchedulingEditor {
 
         wp_enqueue_script(
             'ffc-calendar-editor',
-            FFC_PLUGIN_URL . 'assets/js/calendar-editor.js',
+            FFC_PLUGIN_URL . 'assets/js/ffc-calendar-editor.js',
             array('jquery', 'jquery-ui-sortable'),
             FFC_VERSION,
             true
@@ -57,7 +57,7 @@ class SelfSchedulingEditor {
 
         wp_enqueue_style(
             'ffc-calendar-editor',
-            FFC_PLUGIN_URL . 'assets/css/calendar-editor.css',
+            FFC_PLUGIN_URL . 'assets/css/ffc-calendar-editor.css',
             array(),
             FFC_VERSION
         );
@@ -391,7 +391,7 @@ class SelfSchedulingEditor {
             </tr>
         </table>
 
-        <!-- Toggle logic handled by calendar-editor.js -->
+        <!-- Toggle logic handled by ffc-calendar-editor.js -->
         <?php
     }
 
@@ -870,7 +870,7 @@ class SelfSchedulingEditor {
             <?php endif; ?>
         </div>
 
-        <!-- Cleanup scripts in calendar-editor.js -->
+        <!-- Cleanup scripts in ffc-calendar-editor.js -->
         <?php
     }
 

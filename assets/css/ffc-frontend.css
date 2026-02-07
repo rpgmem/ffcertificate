@@ -271,13 +271,7 @@
     width: 100%; /* ← Pega largura total do form (450px) */
 }
 
-.ffc-honeypot-field {
-    position: absolute;
-    left: -9999px;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-}
+/* .ffc-honeypot-field defined in ffc-common.css */
 
 .ffc-captcha-row {
     margin-bottom: 20px;

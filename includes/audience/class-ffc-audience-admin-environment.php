@@ -188,7 +188,7 @@ class AudienceAdminEnvironment {
             <input type="hidden" name="environment_id" value="<?php echo esc_attr($id); ?>">
             <input type="hidden" name="ffc_action" value="save_environment">
 
-            <table class="form-table">
+            <table class="form-table" role="presentation"><tbody>
                 <tr>
                     <th scope="row">
                         <label for="environment_schedule"><?php esc_html_e('Calendar', 'wp-ffcertificate'); ?> <span class="required">*</span></label>
@@ -270,7 +270,7 @@ class AudienceAdminEnvironment {
                         </select>
                     </td>
                 </tr>
-            </table>
+            </tbody></table>
 
             <?php submit_button($id > 0 ? __('Update Environment', 'wp-ffcertificate') : __('Create Environment', 'wp-ffcertificate')); ?>
         </form>
