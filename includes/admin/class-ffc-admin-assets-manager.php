@@ -277,11 +277,12 @@ class AdminAssetsManager {
      * @return bool
      */
     private function is_settings_page(): bool {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading, no data processing.
         if ( ! isset( $_GET['page'] ) ) {
             return false;
         }
         $page = sanitize_key( wp_unslash( $_GET['page'] ) );
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         return $page === 'ffc-settings' || $page === 'ffc-scheduling-settings';
     }
 
