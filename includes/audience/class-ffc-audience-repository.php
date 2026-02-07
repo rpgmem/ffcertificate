@@ -361,7 +361,7 @@ class AudienceRepository {
 
         $placeholders = implode(',', array_fill(0, count($audience_ids), '%d'));
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
         $results = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT user_id FROM {$table} WHERE audience_id IN ({$placeholders})",
@@ -408,7 +408,7 @@ class AudienceRepository {
                 $parent_ids = array_unique($parent_ids);
                 $placeholders = implode(',', array_fill(0, count($parent_ids), '%d'));
 
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
                 $parents = $wpdb->get_results(
                     $wpdb->prepare(
                         "SELECT * FROM {$table} WHERE id IN ({$placeholders}) AND status = 'active'",
