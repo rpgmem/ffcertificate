@@ -93,7 +93,7 @@ class UserCapabilitiesMigrationStrategy implements MigrationStrategyInterface {
         if ( ! class_exists( '\\FreeFormCertificate\\UserDashboard\\UserManager' ) ) {
             return new \WP_Error(
                 'user_manager_not_available',
-                __( 'UserManager class not available.', 'wp-ffcertificate' )
+                __( 'UserManager class not available.', 'ffcertificate' )
             );
         }
 
@@ -106,6 +106,6 @@ class UserCapabilitiesMigrationStrategy implements MigrationStrategyInterface {
      * @return string Strategy name
      */
     public function get_name(): string {
-        return __( 'User Capabilities Migration', 'wp-ffcertificate' );
+        return __( 'User Capabilities Migration', 'ffcertificate' );
     }
 }

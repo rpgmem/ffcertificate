@@ -90,7 +90,7 @@ class MagicTokenMigrationStrategy implements MigrationStrategyInterface {
             return array(
                 'success' => true,
                 'processed' => 0,
-                'message' => __( 'No submissions to process', 'wp-ffcertificate' )
+                'message' => __( 'No submissions to process', 'ffcertificate' )
             );
         }
 
@@ -121,7 +121,7 @@ class MagicTokenMigrationStrategy implements MigrationStrategyInterface {
             'processed' => $processed,
             'has_more' => $has_more,
             /* translators: %d: number */
-            'message' => sprintf( __( 'Generated %d magic tokens', 'wp-ffcertificate' ), $processed )
+            'message' => sprintf( __( 'Generated %d magic tokens', 'ffcertificate' ), $processed )
         );
     }
 
@@ -150,7 +150,7 @@ class MagicTokenMigrationStrategy implements MigrationStrategyInterface {
         if ( ! $column_exists ) {
             return new WP_Error(
                 'missing_column',
-                __( 'magic_token column does not exist. Please update the database schema first.', 'wp-ffcertificate' )
+                __( 'magic_token column does not exist. Please update the database schema first.', 'ffcertificate' )
             );
         }
 
@@ -163,6 +163,6 @@ class MagicTokenMigrationStrategy implements MigrationStrategyInterface {
      * @return string
      */
     public function get_name(): string {
-        return __( 'Magic Token Generation Strategy', 'wp-ffcertificate' );
+        return __( 'Magic Token Generation Strategy', 'ffcertificate' );
     }
 }

@@ -65,13 +65,13 @@ class SelfSchedulingEditor {
         wp_localize_script('ffc-calendar-editor', 'ffcSelfSchedulingEditor', array(
             'nonce' => wp_create_nonce('ffc_self_scheduling_editor_nonce'),
             'strings' => array(
-                'confirmDelete'     => __('Are you sure you want to delete this?', 'wp-ffcertificate'),
-                'addWorkingHour'    => __('Add Working Hours', 'wp-ffcertificate'),
-                'confirmCleanup'    => __('Are you sure you want to delete these appointments? This action cannot be undone.', 'wp-ffcertificate'),
-                'confirmCleanupAll' => __('Are you sure you want to delete ALL appointments? This will permanently remove all appointment data and cannot be undone!', 'wp-ffcertificate'),
-                'deleting'          => __('Deleting...', 'wp-ffcertificate'),
-                'errorDeleting'     => __('Error deleting appointments', 'wp-ffcertificate'),
-                'errorServer'       => __('Error communicating with server', 'wp-ffcertificate'),
+                'confirmDelete'     => __('Are you sure you want to delete this?', 'ffcertificate'),
+                'addWorkingHour'    => __('Add Working Hours', 'ffcertificate'),
+                'confirmCleanup'    => __('Are you sure you want to delete these appointments? This action cannot be undone.', 'ffcertificate'),
+                'confirmCleanupAll' => __('Are you sure you want to delete ALL appointments? This will permanently remove all appointment data and cannot be undone!', 'ffcertificate'),
+                'deleting'          => __('Deleting...', 'ffcertificate'),
+                'errorDeleting'     => __('Error deleting appointments', 'ffcertificate'),
+                'errorServer'       => __('Error communicating with server', 'ffcertificate'),
             )
         ));
     }
@@ -85,7 +85,7 @@ class SelfSchedulingEditor {
         // Main configuration
         add_meta_box(
             'ffc_self_scheduling_box_config',
-            __('1. Calendar Configuration', 'wp-ffcertificate'),
+            __('1. Calendar Configuration', 'ffcertificate'),
             array($this, 'render_box_config'),
             'ffc_self_scheduling',
             'normal',
@@ -95,7 +95,7 @@ class SelfSchedulingEditor {
         // Working hours
         add_meta_box(
             'ffc_self_scheduling_box_hours',
-            __('2. Working Hours & Availability', 'wp-ffcertificate'),
+            __('2. Working Hours & Availability', 'ffcertificate'),
             array($this, 'render_box_hours'),
             'ffc_self_scheduling',
             'normal',
@@ -105,7 +105,7 @@ class SelfSchedulingEditor {
         // Booking rules
         add_meta_box(
             'ffc_self_scheduling_box_rules',
-            __('3. Booking Rules & Restrictions', 'wp-ffcertificate'),
+            __('3. Booking Rules & Restrictions', 'ffcertificate'),
             array($this, 'render_box_rules'),
             'ffc_self_scheduling',
             'normal',
@@ -115,7 +115,7 @@ class SelfSchedulingEditor {
         // Email notifications
         add_meta_box(
             'ffc_self_scheduling_box_email',
-            __('4. Email Notifications', 'wp-ffcertificate'),
+            __('4. Email Notifications', 'ffcertificate'),
             array($this, 'render_box_email'),
             'ffc_self_scheduling',
             'normal',
@@ -125,7 +125,7 @@ class SelfSchedulingEditor {
         // Shortcode (sidebar)
         add_meta_box(
             'ffc_self_scheduling_shortcode',
-            __('How to Use / Shortcode', 'wp-ffcertificate'),
+            __('How to Use / Shortcode', 'ffcertificate'),
             array($this, 'render_shortcode_metabox'),
             'ffc_self_scheduling',
             'side',
@@ -137,7 +137,7 @@ class SelfSchedulingEditor {
         if ($post_id) {
             add_meta_box(
                 'ffc_self_scheduling_cleanup',
-                __('Clean Up Appointments', 'wp-ffcertificate'),
+                __('Clean Up Appointments', 'ffcertificate'),
                 array($this, 'render_cleanup_metabox'),
                 'ffc_self_scheduling',
                 'side',
@@ -173,49 +173,49 @@ class SelfSchedulingEditor {
         ?>
         <table class="form-table">
             <tr>
-                <th><label for="calendar_description"><?php esc_html_e('Description', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="calendar_description"><?php esc_html_e('Description', 'ffcertificate'); ?></label></th>
                 <td>
                     <textarea id="calendar_description" name="ffc_self_scheduling_config[description]" rows="3" class="large-text"><?php echo esc_textarea($config['description']); ?></textarea>
-                    <p class="description"><?php esc_html_e('Brief description of this calendar (optional)', 'wp-ffcertificate'); ?></p>
+                    <p class="description"><?php esc_html_e('Brief description of this calendar (optional)', 'ffcertificate'); ?></p>
                 </td>
             </tr>
             <tr>
-                <th><label for="slot_duration"><?php esc_html_e('Appointment Duration', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="slot_duration"><?php esc_html_e('Appointment Duration', 'ffcertificate'); ?></label></th>
                 <td>
-                    <input type="number" id="slot_duration" name="ffc_self_scheduling_config[slot_duration]" value="<?php echo esc_attr($config['slot_duration']); ?>" min="5" max="480" step="5" /> <?php esc_html_e('minutes', 'wp-ffcertificate'); ?>
-                    <p class="description"><?php esc_html_e('Duration of each appointment slot', 'wp-ffcertificate'); ?></p>
+                    <input type="number" id="slot_duration" name="ffc_self_scheduling_config[slot_duration]" value="<?php echo esc_attr($config['slot_duration']); ?>" min="5" max="480" step="5" /> <?php esc_html_e('minutes', 'ffcertificate'); ?>
+                    <p class="description"><?php esc_html_e('Duration of each appointment slot', 'ffcertificate'); ?></p>
                 </td>
             </tr>
             <tr>
-                <th><label for="slot_interval"><?php esc_html_e('Break Between Appointments', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="slot_interval"><?php esc_html_e('Break Between Appointments', 'ffcertificate'); ?></label></th>
                 <td>
-                    <input type="number" id="slot_interval" name="ffc_self_scheduling_config[slot_interval]" value="<?php echo esc_attr($config['slot_interval']); ?>" min="0" max="120" step="5" /> <?php esc_html_e('minutes', 'wp-ffcertificate'); ?>
-                    <p class="description"><?php esc_html_e('Buffer time between appointments (0 = no break)', 'wp-ffcertificate'); ?></p>
+                    <input type="number" id="slot_interval" name="ffc_self_scheduling_config[slot_interval]" value="<?php echo esc_attr($config['slot_interval']); ?>" min="0" max="120" step="5" /> <?php esc_html_e('minutes', 'ffcertificate'); ?>
+                    <p class="description"><?php esc_html_e('Buffer time between appointments (0 = no break)', 'ffcertificate'); ?></p>
                 </td>
             </tr>
             <tr>
-                <th><label for="max_appointments_per_slot"><?php esc_html_e('Max Bookings Per Slot', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="max_appointments_per_slot"><?php esc_html_e('Max Bookings Per Slot', 'ffcertificate'); ?></label></th>
                 <td>
                     <input type="number" id="max_appointments_per_slot" name="ffc_self_scheduling_config[max_appointments_per_slot]" value="<?php echo esc_attr($config['max_appointments_per_slot']); ?>" min="1" max="100" />
-                    <p class="description"><?php esc_html_e('Maximum number of people per time slot (1 = exclusive)', 'wp-ffcertificate'); ?></p>
+                    <p class="description"><?php esc_html_e('Maximum number of people per time slot (1 = exclusive)', 'ffcertificate'); ?></p>
                 </td>
             </tr>
             <tr>
-                <th><label for="slots_per_day"><?php esc_html_e('Daily Booking Limit', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="slots_per_day"><?php esc_html_e('Daily Booking Limit', 'ffcertificate'); ?></label></th>
                 <td>
                     <input type="number" id="slots_per_day" name="ffc_self_scheduling_config[slots_per_day]" value="<?php echo esc_attr($config['slots_per_day']); ?>" min="0" max="200" />
-                    <p class="description"><?php esc_html_e('Maximum appointments per day (0 = unlimited)', 'wp-ffcertificate'); ?></p>
+                    <p class="description"><?php esc_html_e('Maximum appointments per day (0 = unlimited)', 'ffcertificate'); ?></p>
                 </td>
             </tr>
             <tr>
-                <th><label for="calendar_status"><?php esc_html_e('Status', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="calendar_status"><?php esc_html_e('Status', 'ffcertificate'); ?></label></th>
                 <td>
                     <select id="calendar_status" name="ffc_self_scheduling_config[status]">
-                        <option value="active" <?php selected($config['status'], 'active'); ?>><?php esc_html_e('Active', 'wp-ffcertificate'); ?></option>
-                        <option value="inactive" <?php selected($config['status'], 'inactive'); ?>><?php esc_html_e('Inactive', 'wp-ffcertificate'); ?></option>
-                        <option value="archived" <?php selected($config['status'], 'archived'); ?>><?php esc_html_e('Archived', 'wp-ffcertificate'); ?></option>
+                        <option value="active" <?php selected($config['status'], 'active'); ?>><?php esc_html_e('Active', 'ffcertificate'); ?></option>
+                        <option value="inactive" <?php selected($config['status'], 'inactive'); ?>><?php esc_html_e('Inactive', 'ffcertificate'); ?></option>
+                        <option value="archived" <?php selected($config['status'], 'archived'); ?>><?php esc_html_e('Archived', 'ffcertificate'); ?></option>
                     </select>
-                    <p class="description"><?php esc_html_e('Calendar status (inactive = no new bookings allowed)', 'wp-ffcertificate'); ?></p>
+                    <p class="description"><?php esc_html_e('Calendar status (inactive = no new bookings allowed)', 'ffcertificate'); ?></p>
                 </td>
             </tr>
         </table>
@@ -241,26 +241,26 @@ class SelfSchedulingEditor {
         }
 
         $days_of_week = array(
-            0 => __('Sunday', 'wp-ffcertificate'),
-            1 => __('Monday', 'wp-ffcertificate'),
-            2 => __('Tuesday', 'wp-ffcertificate'),
-            3 => __('Wednesday', 'wp-ffcertificate'),
-            4 => __('Thursday', 'wp-ffcertificate'),
-            5 => __('Friday', 'wp-ffcertificate'),
-            6 => __('Saturday', 'wp-ffcertificate'),
+            0 => __('Sunday', 'ffcertificate'),
+            1 => __('Monday', 'ffcertificate'),
+            2 => __('Tuesday', 'ffcertificate'),
+            3 => __('Wednesday', 'ffcertificate'),
+            4 => __('Thursday', 'ffcertificate'),
+            5 => __('Friday', 'ffcertificate'),
+            6 => __('Saturday', 'ffcertificate'),
         );
 
         ?>
         <div id="ffc-working-hours-wrapper">
-            <p><?php esc_html_e('Define which days and times appointments can be booked:', 'wp-ffcertificate'); ?></p>
+            <p><?php esc_html_e('Define which days and times appointments can be booked:', 'ffcertificate'); ?></p>
 
             <table class="widefat ffc-working-hours-table">
                 <thead>
                     <tr>
-                        <th><?php esc_html_e('Day', 'wp-ffcertificate'); ?></th>
-                        <th><?php esc_html_e('Start Time', 'wp-ffcertificate'); ?></th>
-                        <th><?php esc_html_e('End Time', 'wp-ffcertificate'); ?></th>
-                        <th><?php esc_html_e('Actions', 'wp-ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Day', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Start Time', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('End Time', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Actions', 'ffcertificate'); ?></th>
                     </tr>
                 </thead>
                 <tbody id="ffc-working-hours-list">
@@ -280,7 +280,7 @@ class SelfSchedulingEditor {
                                 <input type="time" name="ffc_self_scheduling_working_hours[<?php echo esc_attr( $index ); ?>][end]" value="<?php echo esc_attr($hours['end']); ?>" required />
                             </td>
                             <td>
-                                <button type="button" class="button ffc-remove-hour"><?php esc_html_e('Remove', 'wp-ffcertificate'); ?></button>
+                                <button type="button" class="button ffc-remove-hour"><?php esc_html_e('Remove', 'ffcertificate'); ?></button>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -288,7 +288,7 @@ class SelfSchedulingEditor {
             </table>
 
             <p>
-                <button type="button" class="button" id="ffc-add-working-hour"><?php esc_html_e('+ Add Working Hours', 'wp-ffcertificate'); ?></button>
+                <button type="button" class="button" id="ffc-add-working-hour"><?php esc_html_e('+ Add Working Hours', 'ffcertificate'); ?></button>
             </p>
         </div>
         <?php
@@ -323,62 +323,62 @@ class SelfSchedulingEditor {
         ?>
         <table class="form-table">
             <tr>
-                <th><label for="advance_booking_min"><?php esc_html_e('Minimum Advance Booking', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="advance_booking_min"><?php esc_html_e('Minimum Advance Booking', 'ffcertificate'); ?></label></th>
                 <td>
-                    <input type="number" id="advance_booking_min" name="ffc_self_scheduling_config[advance_booking_min]" value="<?php echo esc_attr($config['advance_booking_min']); ?>" min="0" max="720" /> <?php esc_html_e('hours', 'wp-ffcertificate'); ?>
-                    <p class="description"><?php esc_html_e('Minimum time in advance required to book (0 = same day allowed)', 'wp-ffcertificate'); ?></p>
+                    <input type="number" id="advance_booking_min" name="ffc_self_scheduling_config[advance_booking_min]" value="<?php echo esc_attr($config['advance_booking_min']); ?>" min="0" max="720" /> <?php esc_html_e('hours', 'ffcertificate'); ?>
+                    <p class="description"><?php esc_html_e('Minimum time in advance required to book (0 = same day allowed)', 'ffcertificate'); ?></p>
                 </td>
             </tr>
             <tr>
-                <th><label for="advance_booking_max"><?php esc_html_e('Maximum Advance Booking', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="advance_booking_max"><?php esc_html_e('Maximum Advance Booking', 'ffcertificate'); ?></label></th>
                 <td>
-                    <input type="number" id="advance_booking_max" name="ffc_self_scheduling_config[advance_booking_max]" value="<?php echo esc_attr($config['advance_booking_max']); ?>" min="1" max="365" /> <?php esc_html_e('days', 'wp-ffcertificate'); ?>
-                    <p class="description"><?php esc_html_e('How far in advance can users book?', 'wp-ffcertificate'); ?></p>
+                    <input type="number" id="advance_booking_max" name="ffc_self_scheduling_config[advance_booking_max]" value="<?php echo esc_attr($config['advance_booking_max']); ?>" min="1" max="365" /> <?php esc_html_e('days', 'ffcertificate'); ?>
+                    <p class="description"><?php esc_html_e('How far in advance can users book?', 'ffcertificate'); ?></p>
                 </td>
             </tr>
             <tr>
-                <th><label for="allow_cancellation"><?php esc_html_e('Allow User Cancellation', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="allow_cancellation"><?php esc_html_e('Allow User Cancellation', 'ffcertificate'); ?></label></th>
                 <td>
                     <label>
                         <input type="checkbox" id="allow_cancellation" name="ffc_self_scheduling_config[allow_cancellation]" value="1" <?php checked($config['allow_cancellation'], 1); ?> />
-                        <?php esc_html_e('Users can cancel their own appointments', 'wp-ffcertificate'); ?>
+                        <?php esc_html_e('Users can cancel their own appointments', 'ffcertificate'); ?>
                     </label>
                 </td>
             </tr>
             <tr class="ffc-cancellation-hours" <?php echo esc_attr( $config['allow_cancellation'] ? '' : 'style="display:none;"' ); ?>>
-                <th><label for="cancellation_min_hours"><?php esc_html_e('Cancellation Deadline', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="cancellation_min_hours"><?php esc_html_e('Cancellation Deadline', 'ffcertificate'); ?></label></th>
                 <td>
-                    <input type="number" id="cancellation_min_hours" name="ffc_self_scheduling_config[cancellation_min_hours]" value="<?php echo esc_attr($config['cancellation_min_hours']); ?>" min="0" max="168" /> <?php esc_html_e('hours before', 'wp-ffcertificate'); ?>
-                    <p class="description"><?php esc_html_e('Minimum notice required to cancel (e.g., 24 hours)', 'wp-ffcertificate'); ?></p>
+                    <input type="number" id="cancellation_min_hours" name="ffc_self_scheduling_config[cancellation_min_hours]" value="<?php echo esc_attr($config['cancellation_min_hours']); ?>" min="0" max="168" /> <?php esc_html_e('hours before', 'ffcertificate'); ?>
+                    <p class="description"><?php esc_html_e('Minimum notice required to cancel (e.g., 24 hours)', 'ffcertificate'); ?></p>
                 </td>
             </tr>
             <tr>
-                <th><label for="minimum_interval_between_bookings"><?php esc_html_e('Minimum Interval Between Bookings', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="minimum_interval_between_bookings"><?php esc_html_e('Minimum Interval Between Bookings', 'ffcertificate'); ?></label></th>
                 <td>
-                    <input type="number" id="minimum_interval_between_bookings" name="ffc_self_scheduling_config[minimum_interval_between_bookings]" value="<?php echo esc_attr($config['minimum_interval_between_bookings']); ?>" min="0" max="720" /> <?php esc_html_e('hours', 'wp-ffcertificate'); ?>
-                    <p class="description"><?php esc_html_e('Prevent users from booking another appointment within X hours of their last booking (0 = disabled, default: 24 hours)', 'wp-ffcertificate'); ?></p>
+                    <input type="number" id="minimum_interval_between_bookings" name="ffc_self_scheduling_config[minimum_interval_between_bookings]" value="<?php echo esc_attr($config['minimum_interval_between_bookings']); ?>" min="0" max="720" /> <?php esc_html_e('hours', 'ffcertificate'); ?>
+                    <p class="description"><?php esc_html_e('Prevent users from booking another appointment within X hours of their last booking (0 = disabled, default: 24 hours)', 'ffcertificate'); ?></p>
                 </td>
             </tr>
             <tr>
-                <th><label for="requires_approval"><?php esc_html_e('Require Manual Approval', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="requires_approval"><?php esc_html_e('Require Manual Approval', 'ffcertificate'); ?></label></th>
                 <td>
                     <label>
                         <input type="checkbox" id="requires_approval" name="ffc_self_scheduling_config[requires_approval]" value="1" <?php checked($config['requires_approval'], 1); ?> />
-                        <?php esc_html_e('Admin must manually approve all bookings', 'wp-ffcertificate'); ?>
+                        <?php esc_html_e('Admin must manually approve all bookings', 'ffcertificate'); ?>
                     </label>
                 </td>
             </tr>
             <tr>
-                <th><label for="require_login"><?php esc_html_e('Require User Login', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="require_login"><?php esc_html_e('Require User Login', 'ffcertificate'); ?></label></th>
                 <td>
                     <label>
                         <input type="checkbox" id="require_login" name="ffc_self_scheduling_config[require_login]" value="1" <?php checked($config['require_login'], 1); ?> />
-                        <?php esc_html_e('Only logged-in users can book', 'wp-ffcertificate'); ?>
+                        <?php esc_html_e('Only logged-in users can book', 'ffcertificate'); ?>
                     </label>
                 </td>
             </tr>
             <tr class="ffc-allowed-roles" <?php echo esc_attr( $config['require_login'] ? '' : 'style="display:none;"' ); ?>>
-                <th><label><?php esc_html_e('Allowed Roles', 'wp-ffcertificate'); ?></label></th>
+                <th><label><?php esc_html_e('Allowed Roles', 'ffcertificate'); ?></label></th>
                 <td>
                     <?php foreach ($roles as $role_key => $role_name): ?>
                         <label style="display: block; margin-bottom: 5px;">
@@ -386,7 +386,7 @@ class SelfSchedulingEditor {
                             <?php echo esc_html($role_name); ?>
                         </label>
                     <?php endforeach; ?>
-                    <p class="description"><?php esc_html_e('Leave empty to allow all logged-in users', 'wp-ffcertificate'); ?></p>
+                    <p class="description"><?php esc_html_e('Leave empty to allow all logged-in users', 'ffcertificate'); ?></p>
                 </td>
             </tr>
         </table>
@@ -415,8 +415,8 @@ class SelfSchedulingEditor {
             'send_reminder' => 0,
             'reminder_hours_before' => 24,
             'admin_emails' => '',
-            'user_confirmation_subject' => __('Appointment Confirmation - {{calendar_title}}', 'wp-ffcertificate'),
-            'user_confirmation_body' => __("Hello {{user_name}},\n\nYour appointment has been scheduled:\n\nCalendar: {{calendar_title}}\nDate: {{appointment_date}}\nTime: {{appointment_time}}\n\nThank you!", 'wp-ffcertificate'),
+            'user_confirmation_subject' => __('Appointment Confirmation - {{calendar_title}}', 'ffcertificate'),
+            'user_confirmation_body' => __("Hello {{user_name}},\n\nYour appointment has been scheduled:\n\nCalendar: {{calendar_title}}\nDate: {{appointment_date}}\nTime: {{appointment_time}}\n\nThank you!", 'ffcertificate'),
         );
 
         $email_config = array_merge($defaults, $email_config);
@@ -424,58 +424,58 @@ class SelfSchedulingEditor {
         ?>
         <table class="form-table">
             <tr>
-                <th><?php esc_html_e('Notifications', 'wp-ffcertificate'); ?></th>
+                <th><?php esc_html_e('Notifications', 'ffcertificate'); ?></th>
                 <td>
                     <fieldset>
                         <label style="display: block; margin-bottom: 8px;">
                             <input type="checkbox" name="ffc_self_scheduling_email_config[send_user_confirmation]" value="1" <?php checked($email_config['send_user_confirmation'], 1); ?> />
-                            <?php esc_html_e('Send confirmation email to user', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Send confirmation email to user', 'ffcertificate'); ?>
                         </label>
                         <label style="display: block; margin-bottom: 8px;">
                             <input type="checkbox" name="ffc_self_scheduling_email_config[send_admin_notification]" value="1" <?php checked($email_config['send_admin_notification'], 1); ?> />
-                            <?php esc_html_e('Send notification to admin on new booking', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Send notification to admin on new booking', 'ffcertificate'); ?>
                         </label>
                         <label style="display: block; margin-bottom: 8px;">
                             <input type="checkbox" name="ffc_self_scheduling_email_config[send_approval_notification]" value="1" <?php checked($email_config['send_approval_notification'], 1); ?> />
-                            <?php esc_html_e('Send notification when booking is approved', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Send notification when booking is approved', 'ffcertificate'); ?>
                         </label>
                         <label style="display: block; margin-bottom: 8px;">
                             <input type="checkbox" name="ffc_self_scheduling_email_config[send_cancellation_notification]" value="1" <?php checked($email_config['send_cancellation_notification'], 1); ?> />
-                            <?php esc_html_e('Send notification when booking is cancelled', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Send notification when booking is cancelled', 'ffcertificate'); ?>
                         </label>
                         <label style="display: block; margin-bottom: 8px;">
                             <input type="checkbox" name="ffc_self_scheduling_email_config[send_reminder]" value="1" <?php checked($email_config['send_reminder'], 1); ?> />
-                            <?php esc_html_e('Send reminder before appointment', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Send reminder before appointment', 'ffcertificate'); ?>
                         </label>
                     </fieldset>
-                    <p class="description"><?php esc_html_e('Default: All notifications disabled', 'wp-ffcertificate'); ?></p>
+                    <p class="description"><?php esc_html_e('Default: All notifications disabled', 'ffcertificate'); ?></p>
                 </td>
             </tr>
             <tr>
-                <th><label for="reminder_hours_before"><?php esc_html_e('Reminder Timing', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="reminder_hours_before"><?php esc_html_e('Reminder Timing', 'ffcertificate'); ?></label></th>
                 <td>
-                    <input type="number" id="reminder_hours_before" name="ffc_self_scheduling_email_config[reminder_hours_before]" value="<?php echo esc_attr($email_config['reminder_hours_before']); ?>" min="1" max="168" /> <?php esc_html_e('hours before appointment', 'wp-ffcertificate'); ?>
+                    <input type="number" id="reminder_hours_before" name="ffc_self_scheduling_email_config[reminder_hours_before]" value="<?php echo esc_attr($email_config['reminder_hours_before']); ?>" min="1" max="168" /> <?php esc_html_e('hours before appointment', 'ffcertificate'); ?>
                 </td>
             </tr>
             <tr>
-                <th><label for="admin_emails"><?php esc_html_e('Admin Email Addresses', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="admin_emails"><?php esc_html_e('Admin Email Addresses', 'ffcertificate'); ?></label></th>
                 <td>
                     <input type="text" id="admin_emails" name="ffc_self_scheduling_email_config[admin_emails]" value="<?php echo esc_attr($email_config['admin_emails']); ?>" class="large-text" placeholder="<?php echo esc_attr(get_option('admin_email')); ?>" />
-                    <p class="description"><?php esc_html_e('Comma-separated email addresses for admin notifications (leave empty to use site admin email)', 'wp-ffcertificate'); ?></p>
+                    <p class="description"><?php esc_html_e('Comma-separated email addresses for admin notifications (leave empty to use site admin email)', 'ffcertificate'); ?></p>
                 </td>
             </tr>
             <tr>
-                <th><label for="user_confirmation_subject"><?php esc_html_e('Confirmation Email Subject', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="user_confirmation_subject"><?php esc_html_e('Confirmation Email Subject', 'ffcertificate'); ?></label></th>
                 <td>
                     <input type="text" id="user_confirmation_subject" name="ffc_self_scheduling_email_config[user_confirmation_subject]" value="<?php echo esc_attr($email_config['user_confirmation_subject']); ?>" class="large-text" />
                 </td>
             </tr>
             <tr>
-                <th><label for="user_confirmation_body"><?php esc_html_e('Confirmation Email Body', 'wp-ffcertificate'); ?></label></th>
+                <th><label for="user_confirmation_body"><?php esc_html_e('Confirmation Email Body', 'ffcertificate'); ?></label></th>
                 <td>
                     <textarea id="user_confirmation_body" name="ffc_self_scheduling_email_config[user_confirmation_body]" rows="10" class="large-text"><?php echo esc_textarea($email_config['user_confirmation_body']); ?></textarea>
                     <p class="description">
-                        <?php esc_html_e('Available variables:', 'wp-ffcertificate'); ?>
+                        <?php esc_html_e('Available variables:', 'ffcertificate'); ?>
                         <code>{{user_name}}</code>,
                         <code>{{user_email}}</code>,
                         <code>{{calendar_title}}</code>,
@@ -497,15 +497,15 @@ class SelfSchedulingEditor {
     public function render_shortcode_metabox(object $post): void {
         ?>
         <div class="ffc-shortcode-box">
-            <p><strong><?php esc_html_e('Use this shortcode to display the calendar:', 'wp-ffcertificate'); ?></strong></p>
+            <p><strong><?php esc_html_e('Use this shortcode to display the calendar:', 'ffcertificate'); ?></strong></p>
 
             <?php if ($post->post_status === 'publish'): ?>
                 <input type="text" readonly value='[ffc_self_scheduling id="<?php echo esc_attr( $post->ID ); ?>"]' onclick="this.select();" style="width: 100%; padding: 6px; font-family: monospace; background: #f0f0f1;" />
 
-                <p style="margin-top: 15px;"><strong><?php esc_html_e('Preview:', 'wp-ffcertificate'); ?></strong></p>
-                <p><a href="<?php echo esc_url( add_query_arg('calendar_preview', $post->ID, home_url('/')) ); ?>" target="_blank" class="button button-secondary"><?php esc_html_e('Preview Calendar', 'wp-ffcertificate'); ?></a></p>
+                <p style="margin-top: 15px;"><strong><?php esc_html_e('Preview:', 'ffcertificate'); ?></strong></p>
+                <p><a href="<?php echo esc_url( add_query_arg('calendar_preview', $post->ID, home_url('/')) ); ?>" target="_blank" class="button button-secondary"><?php esc_html_e('Preview Calendar', 'ffcertificate'); ?></a></p>
             <?php else: ?>
-                <p class="description"><?php esc_html_e('Publish this calendar to generate the shortcode.', 'wp-ffcertificate'); ?></p>
+                <p class="description"><?php esc_html_e('Publish this calendar to generate the shortcode.', 'ffcertificate'); ?></p>
             <?php endif; ?>
         </div>
         <?php
@@ -608,7 +608,7 @@ class SelfSchedulingEditor {
         // Verify nonce
         if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'ffc_cleanup_appointments_nonce')) {
             wp_send_json_error(array(
-                'message' => __('Security check failed', 'wp-ffcertificate')
+                'message' => __('Security check failed', 'ffcertificate')
             ));
             return;
         }
@@ -616,7 +616,7 @@ class SelfSchedulingEditor {
         // Verify permissions
         if (!\FreeFormCertificate\Core\Utils::current_user_can_manage()) {
             wp_send_json_error(array(
-                'message' => __('You do not have permission to perform this action', 'wp-ffcertificate')
+                'message' => __('You do not have permission to perform this action', 'ffcertificate')
             ));
             return;
         }
@@ -627,7 +627,7 @@ class SelfSchedulingEditor {
 
         if (!$calendar_id || !$cleanup_action) {
             wp_send_json_error(array(
-                'message' => __('Invalid parameters', 'wp-ffcertificate')
+                'message' => __('Invalid parameters', 'ffcertificate')
             ));
             return;
         }
@@ -638,7 +638,7 @@ class SelfSchedulingEditor {
 
         if (!$calendar) {
             wp_send_json_error(array(
-                'message' => __('Calendar not found', 'wp-ffcertificate')
+                'message' => __('Calendar not found', 'ffcertificate')
             ));
             return;
         }
@@ -657,7 +657,7 @@ class SelfSchedulingEditor {
                 $deleted = $wpdb->delete($table, ['calendar_id' => $calendar_id], ['%d']);
                 $message = sprintf(
                     /* translators: %d: number of deleted appointments */
-                    __('Successfully deleted %d appointment(s).', 'wp-ffcertificate'),
+                    __('Successfully deleted %d appointment(s).', 'ffcertificate'),
                     $deleted
                 );
                 break;
@@ -672,7 +672,7 @@ class SelfSchedulingEditor {
                 ));
                 $message = sprintf(
                     /* translators: %d: number of deleted past appointments */
-                    __('Successfully deleted %d past appointment(s).', 'wp-ffcertificate'),
+                    __('Successfully deleted %d past appointment(s).', 'ffcertificate'),
                     $deleted
                 );
                 break;
@@ -687,7 +687,7 @@ class SelfSchedulingEditor {
                 ));
                 $message = sprintf(
                     /* translators: %d: number of deleted future appointments */
-                    __('Successfully deleted %d future appointment(s).', 'wp-ffcertificate'),
+                    __('Successfully deleted %d future appointment(s).', 'ffcertificate'),
                     $deleted
                 );
                 break;
@@ -701,14 +701,14 @@ class SelfSchedulingEditor {
                 ], ['%d', '%s']);
                 $message = sprintf(
                     /* translators: %d: number of deleted cancelled appointments */
-                    __('Successfully deleted %d cancelled appointment(s).', 'wp-ffcertificate'),
+                    __('Successfully deleted %d cancelled appointment(s).', 'ffcertificate'),
                     $deleted
                 );
                 break;
 
             default:
                 wp_send_json_error(array(
-                    'message' => __('Invalid cleanup action', 'wp-ffcertificate')
+                    'message' => __('Invalid cleanup action', 'ffcertificate')
                 ));
                 return;
         }
@@ -746,7 +746,7 @@ class SelfSchedulingEditor {
         $calendar = $calendar_repository->findByPostId($post->ID);
 
         if (!$calendar) {
-            echo '<p>' . esc_html__('Calendar not found in database. Save the calendar first.', 'wp-ffcertificate') . '</p>';
+            echo '<p>' . esc_html__('Calendar not found in database. Save the calendar first.', 'ffcertificate') . '</p>';
             return;
         }
 
@@ -786,25 +786,25 @@ class SelfSchedulingEditor {
         ?>
         <div class="ffc-cleanup-appointments">
             <p class="description">
-                <?php esc_html_e('Permanently delete appointments from this calendar. This action cannot be undone.', 'wp-ffcertificate'); ?>
+                <?php esc_html_e('Permanently delete appointments from this calendar. This action cannot be undone.', 'ffcertificate'); ?>
             </p>
 
             <div class="ffc-cleanup-stats" style="margin: 15px 0;">
                 <table class="widefat" style="border: none;">
                     <tr>
-                        <td><strong><?php esc_html_e('Total:', 'wp-ffcertificate'); ?></strong></td>
+                        <td><strong><?php esc_html_e('Total:', 'ffcertificate'); ?></strong></td>
                         <td><?php echo esc_html($count_all); ?></td>
                     </tr>
                     <tr>
-                        <td><strong><?php esc_html_e('Past:', 'wp-ffcertificate'); ?></strong></td>
+                        <td><strong><?php esc_html_e('Past:', 'ffcertificate'); ?></strong></td>
                         <td><?php echo esc_html($count_old); ?></td>
                     </tr>
                     <tr>
-                        <td><strong><?php esc_html_e('Future:', 'wp-ffcertificate'); ?></strong></td>
+                        <td><strong><?php esc_html_e('Future:', 'ffcertificate'); ?></strong></td>
                         <td><?php echo esc_html($count_future); ?></td>
                     </tr>
                     <tr>
-                        <td><strong><?php esc_html_e('Cancelled:', 'wp-ffcertificate'); ?></strong></td>
+                        <td><strong><?php esc_html_e('Cancelled:', 'ffcertificate'); ?></strong></td>
                         <td><?php echo esc_html($count_cancelled); ?></td>
                     </tr>
                 </table>
@@ -812,7 +812,7 @@ class SelfSchedulingEditor {
 
             <?php if ($count_all > 0) : ?>
                 <div class="ffc-cleanup-actions">
-                    <p><strong><?php esc_html_e('Delete appointments:', 'wp-ffcertificate'); ?></strong></p>
+                    <p><strong><?php esc_html_e('Delete appointments:', 'ffcertificate'); ?></strong></p>
 
                     <?php if ($count_cancelled > 0) : ?>
                         <button type="button"
@@ -822,7 +822,7 @@ class SelfSchedulingEditor {
                                 style="width: 100%; margin-bottom: 5px;">
                             🗑️ <?php
                             /* translators: %d: number of cancelled appointments */
-                            printf(esc_html__('Cancelled (%d)', 'wp-ffcertificate'), intval($count_cancelled)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format ?>
+                            printf(esc_html__('Cancelled (%d)', 'ffcertificate'), intval($count_cancelled)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format ?>
                         </button>
                     <?php endif; ?>
 
@@ -834,7 +834,7 @@ class SelfSchedulingEditor {
                                 style="width: 100%; margin-bottom: 5px;">
                             📅 <?php
                             /* translators: %d: number of past appointments */
-                            printf(esc_html__('Past (%d)', 'wp-ffcertificate'), intval($count_old)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format ?>
+                            printf(esc_html__('Past (%d)', 'ffcertificate'), intval($count_old)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format ?>
                         </button>
                     <?php endif; ?>
 
@@ -846,7 +846,7 @@ class SelfSchedulingEditor {
                                 style="width: 100%; margin-bottom: 5px;">
                             ⏭️ <?php
                             /* translators: %d: number of future appointments */
-                            printf(esc_html__('Future (%d)', 'wp-ffcertificate'), intval($count_future)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format ?>
+                            printf(esc_html__('Future (%d)', 'ffcertificate'), intval($count_future)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format ?>
                         </button>
                     <?php endif; ?>
 
@@ -857,16 +857,16 @@ class SelfSchedulingEditor {
                             style="width: 100%; margin-top: 10px;">
                         <?php
                         /* translators: %d: total number of appointments */
-                        printf(esc_html__('All Appointments (%d)', 'wp-ffcertificate'), intval($count_all)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format
+                        printf(esc_html__('All Appointments (%d)', 'ffcertificate'), intval($count_all)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format
                         ?>
                     </button>
                 </div>
 
                 <p class="description" style="margin-top: 10px; color: #d63638;">
-                    ⚠️ <?php esc_html_e('Warning: This action is permanent and cannot be undone!', 'wp-ffcertificate'); ?>
+                    ⚠️ <?php esc_html_e('Warning: This action is permanent and cannot be undone!', 'ffcertificate'); ?>
                 </p>
             <?php else : ?>
-                <p><?php esc_html_e('No appointments to clean up.', 'wp-ffcertificate'); ?></p>
+                <p><?php esc_html_e('No appointments to clean up.', 'ffcertificate'); ?></p>
             <?php endif; ?>
         </div>
 

@@ -176,7 +176,7 @@ class RateLimiter {
             return array(
                 'allowed' => false,
                 /* translators: %s: formatted wait time */
-                'message' => sprintf(__('Too many verification attempts. Please wait %s.', 'wp-ffcertificate'), self::format_wait_time($wait_seconds)),
+                'message' => sprintf(__('Too many verification attempts. Please wait %s.', 'ffcertificate'), self::format_wait_time($wait_seconds)),
                 'wait_seconds' => $wait_seconds
             );
         }
@@ -193,7 +193,7 @@ class RateLimiter {
 
             return array(
                 'allowed' => false,
-                'message' => __('Daily verification limit reached. Please try again tomorrow.', 'wp-ffcertificate'),
+                'message' => __('Daily verification limit reached. Please try again tomorrow.', 'ffcertificate'),
                 'wait_seconds' => $wait_seconds
             );
         }
@@ -211,18 +211,18 @@ class RateLimiter {
     private static function format_wait_time(int $seconds): string {
         if ($seconds < 60) {
             /* translators: %d: number of seconds */
-            return sprintf(_n('%d second', '%d seconds', $seconds, 'wp-ffcertificate'), $seconds);
+            return sprintf(_n('%d second', '%d seconds', $seconds, 'ffcertificate'), $seconds);
         }
         
         $minutes = ceil($seconds / 60);
         if ($minutes < 60) {
             /* translators: %d: number of minutes */
-            return sprintf(_n('%d minute', '%d minutes', $minutes, 'wp-ffcertificate'), $minutes);
+            return sprintf(_n('%d minute', '%d minutes', $minutes, 'ffcertificate'), $minutes);
         }
         
         $hours = ceil($minutes / 60);
         /* translators: %d: number of hours */
-        return sprintf(_n('%d hour', '%d hours', $hours, 'wp-ffcertificate'), $hours);
+        return sprintf(_n('%d hour', '%d hours', $hours, 'ffcertificate'), $hours);
     }
     public static function record_attempt(string $type, string $identifier, ?int $form_id = null): void {
         $s = self::get_settings();
@@ -315,12 +315,12 @@ class RateLimiter {
         if (in_array($ip, $bl['ips'])) return array('allowed' => false, 'reason' => 'ip_blacklisted', 'message' => 'IP bloqueado.');
         
         if ($email) {
-            if (in_array($email, $bl['emails'])) return array('allowed' => false, 'reason' => 'email_blacklisted', 'message' => __( 'Email blocked.', 'wp-ffcertificate' ));
+            if (in_array($email, $bl['emails'])) return array('allowed' => false, 'reason' => 'email_blacklisted', 'message' => __( 'Email blocked.', 'ffcertificate' ));
             $d = substr(strrchr($email, '@'), 1);
-            if (in_array('*@' . $d, $bl['email_domains'])) return array('allowed' => false, 'reason' => 'domain_blacklisted', 'message' => __( 'Domain blocked.', 'wp-ffcertificate' ));
+            if (in_array('*@' . $d, $bl['email_domains'])) return array('allowed' => false, 'reason' => 'domain_blacklisted', 'message' => __( 'Domain blocked.', 'ffcertificate' ));
         }
 
-        if ($cpf && in_array(preg_replace('/[^0-9]/', '', $cpf), $bl['cpfs'])) return array('allowed' => false, 'reason' => 'cpf_blacklisted', 'message' => __( 'CPF blocked.', 'wp-ffcertificate' ));
+        if ($cpf && in_array(preg_replace('/[^0-9]/', '', $cpf), $bl['cpfs'])) return array('allowed' => false, 'reason' => 'cpf_blacklisted', 'message' => __( 'CPF blocked.', 'ffcertificate' ));
         
         return array('allowed' => true);
     }

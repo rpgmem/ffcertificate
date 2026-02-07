@@ -99,8 +99,8 @@ class AudienceAdminPage {
     public function add_admin_menus(): void {
         // Main menu: Scheduling — unified for both systems
         add_menu_page(
-            __('Scheduling', 'wp-ffcertificate'),
-            __('Scheduling', 'wp-ffcertificate'),
+            __('Scheduling', 'ffcertificate'),
+            __('Scheduling', 'ffcertificate'),
             'manage_options',
             self::MENU_SLUG,
             array($this->dashboard, 'render_dashboard_page'),
@@ -116,8 +116,8 @@ class AudienceAdminPage {
         // Submenu: Dashboard
         add_submenu_page(
             self::MENU_SLUG,
-            __('Dashboard', 'wp-ffcertificate'),
-            __('Dashboard', 'wp-ffcertificate'),
+            __('Dashboard', 'ffcertificate'),
+            __('Dashboard', 'ffcertificate'),
             'manage_options',
             self::MENU_SLUG . '-dashboard',
             array($this->dashboard, 'render_dashboard_page')
@@ -126,8 +126,8 @@ class AudienceAdminPage {
         // Submenu: Audience Calendars
         add_submenu_page(
             self::MENU_SLUG,
-            __('Audience Calendars', 'wp-ffcertificate'),
-            __('Audience Calendars', 'wp-ffcertificate'),
+            __('Audience Calendars', 'ffcertificate'),
+            __('Audience Calendars', 'ffcertificate'),
             'manage_options',
             self::MENU_SLUG . '-calendars',
             array($this->calendar, 'render_page')
@@ -136,8 +136,8 @@ class AudienceAdminPage {
         // Submenu: Environments
         add_submenu_page(
             self::MENU_SLUG,
-            __('Environments', 'wp-ffcertificate'),
-            __('Environments', 'wp-ffcertificate'),
+            __('Environments', 'ffcertificate'),
+            __('Environments', 'ffcertificate'),
             'manage_options',
             self::MENU_SLUG . '-environments',
             array($this->environment, 'render_page')
@@ -146,8 +146,8 @@ class AudienceAdminPage {
         // Submenu: Audiences
         add_submenu_page(
             self::MENU_SLUG,
-            __('Audiences', 'wp-ffcertificate'),
-            __('Audiences', 'wp-ffcertificate'),
+            __('Audiences', 'ffcertificate'),
+            __('Audiences', 'ffcertificate'),
             'manage_options',
             self::MENU_SLUG . '-audiences',
             array($this->audience, 'render_page')
@@ -156,8 +156,8 @@ class AudienceAdminPage {
         // Submenu: Audience Bookings
         add_submenu_page(
             self::MENU_SLUG,
-            __('Audience Bookings', 'wp-ffcertificate'),
-            __('Audience Bookings', 'wp-ffcertificate'),
+            __('Audience Bookings', 'ffcertificate'),
+            __('Audience Bookings', 'ffcertificate'),
             'manage_options',
             self::MENU_SLUG . '-bookings',
             array($this->bookings, 'render_page')
@@ -168,8 +168,8 @@ class AudienceAdminPage {
         // Submenu: Import
         add_submenu_page(
             self::MENU_SLUG,
-            __('Import', 'wp-ffcertificate'),
-            __('Import', 'wp-ffcertificate'),
+            __('Import', 'ffcertificate'),
+            __('Import', 'ffcertificate'),
             'manage_options',
             self::MENU_SLUG . '-import',
             array($this->import, 'render_page')
@@ -178,8 +178,8 @@ class AudienceAdminPage {
         // Submenu: Settings
         add_submenu_page(
             self::MENU_SLUG,
-            __('Settings', 'wp-ffcertificate'),
-            __('Settings', 'wp-ffcertificate'),
+            __('Settings', 'ffcertificate'),
+            __('Settings', 'ffcertificate'),
             'manage_options',
             self::MENU_SLUG . '-settings',
             array($this->settings, 'render_page')
@@ -230,9 +230,9 @@ class AudienceAdminPage {
 
         // Build separators
         $separators = array(
-            '#ffc-separator-self'     => array(__('Self', 'wp-ffcertificate'), 'manage_options', '#ffc-separator-self'),
-            '#ffc-separator-audience' => array(__('Audience', 'wp-ffcertificate'), 'manage_options', '#ffc-separator-audience'),
-            '#ffc-separator-tools'    => array(__('Tools', 'wp-ffcertificate'), 'manage_options', '#ffc-separator-tools'),
+            '#ffc-separator-self'     => array(__('Self', 'ffcertificate'), 'manage_options', '#ffc-separator-self'),
+            '#ffc-separator-audience' => array(__('Audience', 'ffcertificate'), 'manage_options', '#ffc-separator-audience'),
+            '#ffc-separator-tools'    => array(__('Tools', 'ffcertificate'), 'manage_options', '#ffc-separator-tools'),
         );
 
         // Rebuild submenu in the desired order

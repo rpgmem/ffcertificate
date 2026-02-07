@@ -56,7 +56,7 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
         $column = isset( $migration_config['column'] ) ? $migration_config['column'] : null;
 
         if ( ! $column ) {
-            return new WP_Error( 'invalid_config', __( 'Missing column configuration', 'wp-ffcertificate' ) );
+            return new WP_Error( 'invalid_config', __( 'Missing column configuration', 'ffcertificate' ) );
         }
 
         // Count total records
@@ -139,7 +139,7 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
             return array(
                 'success' => false,
                 'processed' => 0,
-                'message' => __( 'Field definition not found', 'wp-ffcertificate' )
+                'message' => __( 'Field definition not found', 'ffcertificate' )
             );
         }
 
@@ -165,7 +165,7 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
                 'success' => true,
                 'processed' => 0,
                 'has_more' => false,
-                'message' => __( 'No submissions to process', 'wp-ffcertificate' )
+                'message' => __( 'No submissions to process', 'ffcertificate' )
             );
         }
 
@@ -209,7 +209,7 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
             'processed' => $processed,
             'has_more' => $has_more,
             /* translators: %d: number of records, %s: error message */
-            'message' => sprintf( __( 'Migrated %1$d %2$s values', 'wp-ffcertificate' ), $processed, $field_def['description'] )
+            'message' => sprintf( __( 'Migrated %1$d %2$s values', 'ffcertificate' ), $processed, $field_def['description'] )
         );
     }
 
@@ -226,7 +226,7 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
         $column = isset( $migration_config['column'] ) ? $migration_config['column'] : null;
 
         if ( ! $column ) {
-            return new WP_Error( 'invalid_config', __( 'Missing column configuration', 'wp-ffcertificate' ) );
+            return new WP_Error( 'invalid_config', __( 'Missing column configuration', 'ffcertificate' ) );
         }
 
         // Check if column exists
@@ -245,7 +245,7 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
             return new WP_Error(
                 'missing_column',
                 /* translators: %s: date/time */
-                sprintf( __( '%s column does not exist. Please update the database schema first.', 'wp-ffcertificate' ), $column )
+                sprintf( __( '%s column does not exist. Please update the database schema first.', 'ffcertificate' ), $column )
             );
         }
 
@@ -253,7 +253,7 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
         $field_def = $this->registry->get_field_definition( $migration_key );
 
         if ( ! $field_def ) {
-            return new WP_Error( 'missing_field_def', __( 'Field definition not found in registry', 'wp-ffcertificate' ) );
+            return new WP_Error( 'missing_field_def', __( 'Field definition not found in registry', 'ffcertificate' ) );
         }
 
         return true;
@@ -265,6 +265,6 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
      * @return string
      */
     public function get_name(): string {
-        return __( 'Field Migration Strategy', 'wp-ffcertificate' );
+        return __( 'Field Migration Strategy', 'ffcertificate' );
     }
 }

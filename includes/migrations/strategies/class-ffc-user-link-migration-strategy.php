@@ -137,14 +137,14 @@ class UserLinkMigrationStrategy implements MigrationStrategyInterface {
         if ( ! class_exists( '\\FreeFormCertificate\\Core\\Encryption' ) ) {
             return new WP_Error(
                 'encryption_not_available',
-                __( 'Encryption class not available. Cannot link users without decrypting emails.', 'wp-ffcertificate' )
+                __( 'Encryption class not available. Cannot link users without decrypting emails.', 'ffcertificate' )
             );
         }
 
         if ( ! \FreeFormCertificate\Core\Encryption::is_configured() ) {
             return new WP_Error(
                 'encryption_not_configured',
-                __( 'Encryption is not configured. Please configure encryption keys first.', 'wp-ffcertificate' )
+                __( 'Encryption is not configured. Please configure encryption keys first.', 'ffcertificate' )
             );
         }
 
@@ -157,6 +157,6 @@ class UserLinkMigrationStrategy implements MigrationStrategyInterface {
      * @return string Strategy name
      */
     public function get_name(): string {
-        return __( 'User Link Migration', 'wp-ffcertificate' );
+        return __( 'User Link Migration', 'ffcertificate' );
     }
 }

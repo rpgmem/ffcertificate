@@ -349,7 +349,7 @@ class VerificationHandler {
      */
     private function format_verification_response( object $submission, array $data, bool $show_download_button = false ): string {
         $form = get_post( $submission->form_id );
-        $form_title = $form ? $form->post_title : __( 'N/A', 'wp-ffcertificate' );
+        $form_title = $form ? $form->post_title : __( 'N/A', 'ffcertificate' );
         $date_generated = date_i18n(
             get_option('date_format') . ' ' . get_option('time_format'),
             strtotime( $submission->submission_date )
@@ -396,23 +396,23 @@ class VerificationHandler {
     private function get_field_label( string $field_key ): string {
     // Custom labels for known fields
     $labels = array(
-        'cpf_rf'   => __( 'CPF/RF', 'wp-ffcertificate' ),
-        'cpf'      => __( 'CPF', 'wp-ffcertificate' ),
-        'rf'       => __( 'RF', 'wp-ffcertificate' ),
-        'name'     => __( 'Name', 'wp-ffcertificate' ),
-        'email'    => __( 'Email', 'wp-ffcertificate' ),
-        'program'  => __( 'Program', 'wp-ffcertificate' ),
-        'date'     => __( 'Date', 'wp-ffcertificate' ),
-        'rg'       => __( 'RG', 'wp-ffcertificate' ),
-        'phone'    => __( 'Phone', 'wp-ffcertificate' ),
-        'address'  => __( 'Address', 'wp-ffcertificate' ),
-        'city'     => __( 'City', 'wp-ffcertificate' ),
-        'state'    => __( 'State', 'wp-ffcertificate' ),
-        'zip'      => __( 'ZIP Code', 'wp-ffcertificate' ),
-        'course'   => __( 'Course', 'wp-ffcertificate' ),
-        'duration' => __( 'Duration', 'wp-ffcertificate' ),
-        'hours'    => __( 'Hours', 'wp-ffcertificate' ),
-        'grade'    => __( 'Grade', 'wp-ffcertificate' ),
+        'cpf_rf'   => __( 'CPF/RF', 'ffcertificate' ),
+        'cpf'      => __( 'CPF', 'ffcertificate' ),
+        'rf'       => __( 'RF', 'ffcertificate' ),
+        'name'     => __( 'Name', 'ffcertificate' ),
+        'email'    => __( 'Email', 'ffcertificate' ),
+        'program'  => __( 'Program', 'ffcertificate' ),
+        'date'     => __( 'Date', 'ffcertificate' ),
+        'rg'       => __( 'RG', 'ffcertificate' ),
+        'phone'    => __( 'Phone', 'ffcertificate' ),
+        'address'  => __( 'Address', 'ffcertificate' ),
+        'city'     => __( 'City', 'ffcertificate' ),
+        'state'    => __( 'State', 'ffcertificate' ),
+        'zip'      => __( 'ZIP Code', 'ffcertificate' ),
+        'course'   => __( 'Course', 'ffcertificate' ),
+        'duration' => __( 'Duration', 'ffcertificate' ),
+        'hours'    => __( 'Hours', 'ffcertificate' ),
+        'grade'    => __( 'Grade', 'ffcertificate' ),
     );
     
     if ( isset( $labels[$field_key] ) ) {
@@ -470,7 +470,7 @@ class VerificationHandler {
             return array(
                 'success' => false,
                 'html' => '',
-                'message' => __( 'Document not found or invalid code.', 'wp-ffcertificate' )
+                'message' => __( 'Document not found or invalid code.', 'ffcertificate' )
             );
         }
 
@@ -506,12 +506,12 @@ class VerificationHandler {
         $rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
         if ( ! $rate_check['allowed'] ) {
             wp_send_json_error( array(
-                'message' => __( 'Too many verification attempts. Please try again later.', 'wp-ffcertificate' )
+                'message' => __( 'Too many verification attempts. Please try again later.', 'ffcertificate' )
             ) );
         }
 
         if ( empty( $token ) ) {
-            wp_send_json_error( array( 'message' => __( 'Invalid token.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Invalid token.', 'ffcertificate' ) ) );
         }
 
         // Verify by magic token
@@ -519,13 +519,13 @@ class VerificationHandler {
 
         if ( isset( $result['error'] ) && $result['error'] === 'rate_limited' ) {
             wp_send_json_error( array(
-                'message' => __( 'Too many attempts. Please try again in 1 minute.', 'wp-ffcertificate' )
+                'message' => __( 'Too many attempts. Please try again in 1 minute.', 'ffcertificate' )
             ) );
         }
 
         if ( ! $result['found'] ) {
             wp_send_json_error( array(
-                'message' => '❌ ' . __( 'Document not found or invalid link.', 'wp-ffcertificate' )
+                'message' => '❌ ' . __( 'Document not found or invalid link.', 'ffcertificate' )
             ) );
         }
 
@@ -578,20 +578,20 @@ class VerificationHandler {
         $user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
 
         if ( ! empty( $honeypot ) ) {
-            wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
         }
 
         $rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );  
         if ( ! $rate_check['allowed'] ) {
             wp_send_json_error( array( 
-                'message' => __( 'Too many verification attempts. Please try again later.', 'wp-ffcertificate' ) 
+                'message' => __( 'Too many verification attempts. Please try again later.', 'ffcertificate' ) 
             ) );
         }
         
         if ( ! \FreeFormCertificate\Core\Utils::verify_simple_captcha( $captcha_ans, $captcha_hash ) ) {
             $new_captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
             wp_send_json_error( array( 
-                'message' => __( 'Incorrect answer to math question.', 'wp-ffcertificate' ),
+                'message' => __( 'Incorrect answer to math question.', 'ffcertificate' ),
                 'refresh_captcha' => true,
                 'new_label' => $new_captcha['label'],
                 'new_hash' => $new_captcha['hash']
@@ -605,7 +605,7 @@ class VerificationHandler {
         if ( ! $result['found'] ) {
             $new_captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
             wp_send_json_error( array(
-                'message' => '❌ ' . __( 'Document not found or invalid code.', 'wp-ffcertificate' ),
+                'message' => '❌ ' . __( 'Document not found or invalid code.', 'ffcertificate' ),
                 'refresh_captcha' => true,
                 'new_label' => $new_captcha['label'],
                 'new_hash' => $new_captcha['hash']
@@ -656,7 +656,7 @@ class VerificationHandler {
      */
     private function generate_appointment_verification_pdf( array $result, \FreeFormCertificate\Generators\PdfGenerator $pdf_generator ): array {
         $appointment = $result['appointment'];
-        $calendar = array( 'title' => $result['data']['calendar_title'] ?? __( 'N/A', 'wp-ffcertificate' ) );
+        $calendar = array( 'title' => $result['data']['calendar_title'] ?? __( 'N/A', 'ffcertificate' ) );
 
         // Get full calendar data if available
         if ( ! empty( $appointment['calendar_id'] ) ) {
@@ -687,7 +687,7 @@ class VerificationHandler {
         $time_format = get_option( 'time_format' );
 
         // Format date
-        $formatted_date = __( 'N/A', 'wp-ffcertificate' );
+        $formatted_date = __( 'N/A', 'ffcertificate' );
         if ( ! empty( $appointment['appointment_date'] ) ) {
             $ts = strtotime( $appointment['appointment_date'] );
             if ( $ts !== false ) {
@@ -696,7 +696,7 @@ class VerificationHandler {
         }
 
         // Format time
-        $formatted_time = __( 'N/A', 'wp-ffcertificate' );
+        $formatted_time = __( 'N/A', 'ffcertificate' );
         if ( ! empty( $appointment['start_time'] ) ) {
             $ts = strtotime( $appointment['start_time'] );
             if ( $ts !== false ) {
@@ -711,7 +711,7 @@ class VerificationHandler {
         }
 
         // Format created_at
-        $formatted_created = __( 'N/A', 'wp-ffcertificate' );
+        $formatted_created = __( 'N/A', 'ffcertificate' );
         if ( ! empty( $appointment['created_at'] ) ) {
             $ts = strtotime( $appointment['created_at'] );
             if ( $ts !== false ) {
@@ -721,11 +721,11 @@ class VerificationHandler {
 
         // Status labels
         $status_labels = array(
-            'pending'   => __( 'Pending Approval', 'wp-ffcertificate' ),
-            'confirmed' => __( 'Confirmed', 'wp-ffcertificate' ),
-            'cancelled' => __( 'Cancelled', 'wp-ffcertificate' ),
-            'completed' => __( 'Completed', 'wp-ffcertificate' ),
-            'no_show'   => __( 'No Show', 'wp-ffcertificate' ),
+            'pending'   => __( 'Pending Approval', 'ffcertificate' ),
+            'confirmed' => __( 'Confirmed', 'ffcertificate' ),
+            'cancelled' => __( 'Cancelled', 'ffcertificate' ),
+            'completed' => __( 'Completed', 'ffcertificate' ),
+            'no_show'   => __( 'No Show', 'ffcertificate' ),
         );
         $status = $appointment['status'] ?? 'pending';
         $status_label = $status_labels[ $status ] ?? $status;
@@ -747,18 +747,18 @@ class VerificationHandler {
 
         // Header with gradient badge
         $html .= '<div class="ffc-preview-header">';
-        $html .= '<span class="ffc-status-badge success">✅ ' . esc_html__( 'Appointment Receipt Valid', 'wp-ffcertificate' ) . '</span>';
+        $html .= '<span class="ffc-status-badge success">✅ ' . esc_html__( 'Appointment Receipt Valid', 'ffcertificate' ) . '</span>';
         $html .= '<br><span class="ffc-appointment-status ffc-status-' . esc_attr( $status ) . '">' . esc_html( $status_label ) . '</span>';
         $html .= '</div>';
 
         // Body with detail rows
         $html .= '<div class="ffc-preview-body">';
-        $html .= '<h3>' . esc_html__( 'Appointment Details', 'wp-ffcertificate' ) . '</h3>';
+        $html .= '<h3>' . esc_html__( 'Appointment Details', 'ffcertificate' ) . '</h3>';
 
         // Validation code
         if ( ! empty( $display_code ) ) {
             $html .= '<div class="ffc-detail-row">';
-            $html .= '<span class="label">' . esc_html__( 'Validation Code:', 'wp-ffcertificate' ) . '</span>';
+            $html .= '<span class="label">' . esc_html__( 'Validation Code:', 'ffcertificate' ) . '</span>';
             $html .= '<span class="value code">' . esc_html( $display_code ) . '</span>';
             $html .= '</div>';
         }
@@ -766,30 +766,30 @@ class VerificationHandler {
         // Event
         if ( ! empty( $data['calendar_title'] ) ) {
             $html .= '<div class="ffc-detail-row">';
-            $html .= '<span class="label">' . esc_html__( 'Event:', 'wp-ffcertificate' ) . '</span>';
+            $html .= '<span class="label">' . esc_html__( 'Event:', 'ffcertificate' ) . '</span>';
             $html .= '<span class="value">' . esc_html( $data['calendar_title'] ) . '</span>';
             $html .= '</div>';
         }
 
         // Date
         $html .= '<div class="ffc-detail-row">';
-        $html .= '<span class="label">' . esc_html__( 'Date:', 'wp-ffcertificate' ) . '</span>';
+        $html .= '<span class="label">' . esc_html__( 'Date:', 'ffcertificate' ) . '</span>';
         $html .= '<span class="value">' . esc_html( $formatted_date ) . '</span>';
         $html .= '</div>';
 
         // Time
         $html .= '<div class="ffc-detail-row">';
-        $html .= '<span class="label">' . esc_html__( 'Time:', 'wp-ffcertificate' ) . '</span>';
+        $html .= '<span class="label">' . esc_html__( 'Time:', 'ffcertificate' ) . '</span>';
         $html .= '<span class="value">' . esc_html( $formatted_time ) . '</span>';
         $html .= '</div>';
 
         $html .= '<hr>';
-        $html .= '<h4>' . esc_html__( 'Participant Data:', 'wp-ffcertificate' ) . '</h4>';
+        $html .= '<h4>' . esc_html__( 'Participant Data:', 'ffcertificate' ) . '</h4>';
 
         // Name
         if ( ! empty( $data['name'] ) ) {
             $html .= '<div class="ffc-detail-row">';
-            $html .= '<span class="label">' . esc_html__( 'Name:', 'wp-ffcertificate' ) . '</span>';
+            $html .= '<span class="label">' . esc_html__( 'Name:', 'ffcertificate' ) . '</span>';
             $html .= '<span class="value">' . esc_html( $data['name'] ) . '</span>';
             $html .= '</div>';
         }
@@ -797,14 +797,14 @@ class VerificationHandler {
         // CPF/RF
         if ( ! empty( $cpf_rf_display ) ) {
             $html .= '<div class="ffc-detail-row">';
-            $html .= '<span class="label">' . esc_html__( 'CPF/RF:', 'wp-ffcertificate' ) . '</span>';
+            $html .= '<span class="label">' . esc_html__( 'CPF/RF:', 'ffcertificate' ) . '</span>';
             $html .= '<span class="value">' . esc_html( $cpf_rf_display ) . '</span>';
             $html .= '</div>';
         }
 
         // Booked on
         $html .= '<div class="ffc-detail-row">';
-        $html .= '<span class="label">' . esc_html__( 'Booked on:', 'wp-ffcertificate' ) . '</span>';
+        $html .= '<span class="label">' . esc_html__( 'Booked on:', 'ffcertificate' ) . '</span>';
         $html .= '<span class="value">' . esc_html( $formatted_created ) . '</span>';
         $html .= '</div>';
 
@@ -812,7 +812,7 @@ class VerificationHandler {
 
         // Download button (same structure as certificate)
         $html .= '<div class="ffc-preview-actions">';
-        $html .= '<button class="ffc-download-btn ffc-download-pdf-btn">⬇️ ' . esc_html__( 'Download Receipt (PDF)', 'wp-ffcertificate' ) . '</button>';
+        $html .= '<button class="ffc-download-btn ffc-download-pdf-btn">⬇️ ' . esc_html__( 'Download Receipt (PDF)', 'ffcertificate' ) . '</button>';
         $html .= '</div>';
 
         $html .= '</div>'; // .ffc-certificate-preview

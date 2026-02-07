@@ -38,12 +38,12 @@ class SubmissionsList extends \WP_List_Table {
     public function get_columns() {
         return [
             'cb' => '<input type="checkbox" />',
-            'id' => __('ID', 'wp-ffcertificate'),
-            'form' => __('Form', 'wp-ffcertificate'),
-            'email' => __('Email', 'wp-ffcertificate'),
-            'data' => __('Data', 'wp-ffcertificate'),
-            'submission_date' => __('Date', 'wp-ffcertificate'),
-            'actions' => __('Actions', 'wp-ffcertificate')
+            'id' => __('ID', 'ffcertificate'),
+            'form' => __('Form', 'ffcertificate'),
+            'email' => __('Email', 'ffcertificate'),
+            'data' => __('Data', 'ffcertificate'),
+            'submission_date' => __('Date', 'ffcertificate'),
+            'actions' => __('Actions', 'ffcertificate')
         ];
     }
 
@@ -63,7 +63,7 @@ class SubmissionsList extends \WP_List_Table {
                 
             case 'form':
                 $form_title = get_the_title((int) $item['form_id']);
-                return $form_title ? \FreeFormCertificate\Core\Utils::truncate($form_title, 30) : __('(Deleted)', 'wp-ffcertificate');
+                return $form_title ? \FreeFormCertificate\Core\Utils::truncate($form_title, 30) : __('(Deleted)', 'ffcertificate');
                 
             case 'email':
                 return esc_html($item['email']);
@@ -89,7 +89,7 @@ class SubmissionsList extends \WP_List_Table {
         $base_url = admin_url('edit.php?post_type=ffc_form&page=ffc-submissions');
         $edit_url = add_query_arg(['action' => 'edit', 'submission_id' => $item['id']], $base_url);
         
-        $actions = '<a href="' . esc_url($edit_url) . '" class="button button-small">' . __('Edit', 'wp-ffcertificate') . '</a> ';
+        $actions = '<a href="' . esc_url($edit_url) . '" class="button button-small">' . __('Edit', 'ffcertificate') . '</a> ';
         $actions .= $this->render_pdf_button($item);
         
         if (isset($item['status']) && $item['status'] === 'publish') {
@@ -97,7 +97,7 @@ class SubmissionsList extends \WP_List_Table {
                 add_query_arg(['action' => 'trash', 'submission_id' => $item['id']], $base_url),
                 'ffc_action_' . $item['id']
             );
-            $actions .= '<a href="' . esc_url($trash_url) . '" class="button button-small">' . __('Trash', 'wp-ffcertificate') . '</a>';
+            $actions .= '<a href="' . esc_url($trash_url) . '" class="button button-small">' . __('Trash', 'ffcertificate') . '</a>';
         } else {
             $restore_url = wp_nonce_url(
                 add_query_arg(['action' => 'restore', 'submission_id' => $item['id']], $base_url),
@@ -108,8 +108,8 @@ class SubmissionsList extends \WP_List_Table {
                 'ffc_action_' . $item['id']
             );
             
-            $actions .= '<a href="' . esc_url($restore_url) . '" class="button button-small">' . __('Restore', 'wp-ffcertificate') . '</a> ';
-            $actions .= '<a href="' . esc_url($delete_url) . '" class="button button-small ffc-delete-btn" onclick="return confirm(\'' . esc_js(__('Permanently delete?', 'wp-ffcertificate')) . '\')">' . __('Delete', 'wp-ffcertificate') . '</a>';
+            $actions .= '<a href="' . esc_url($restore_url) . '" class="button button-small">' . __('Restore', 'ffcertificate') . '</a> ';
+            $actions .= '<a href="' . esc_url($delete_url) . '" class="button button-small ffc-delete-btn" onclick="return confirm(\'' . esc_js(__('Permanently delete?', 'ffcertificate')) . '\')">' . __('Delete', 'ffcertificate') . '</a>';
         }
         
         return $actions;
@@ -131,14 +131,14 @@ class SubmissionsList extends \WP_List_Table {
         return sprintf(
             '<a href="%s" target="_blank" class="button button-small" title="%s">%s</a>',
             esc_url($magic_link),
-            esc_attr__('Opens PDF in new tab', 'wp-ffcertificate'),
-            __('PDF', 'wp-ffcertificate')
+            esc_attr__('Opens PDF in new tab', 'ffcertificate'),
+            __('PDF', 'ffcertificate')
         );
     }
 
     private function format_data_preview( ?string $data_json ): string {
         if ($data_json === null || $data_json === 'null' || $data_json === '') {
-            return '<em class="ffc-empty-data">' . __('Only mandatory fields', 'wp-ffcertificate') . '</em>';
+            return '<em class="ffc-empty-data">' . __('Only mandatory fields', 'ffcertificate') . '</em>';
         }
         
         $data = json_decode($data_json, true);
@@ -147,7 +147,7 @@ class SubmissionsList extends \WP_List_Table {
         }
         
         if (!is_array($data) || empty($data)) {
-            return '<em class="ffc-empty-data">' . __('Only mandatory fields', 'wp-ffcertificate') . '</em>';
+            return '<em class="ffc-empty-data">' . __('Only mandatory fields', 'ffcertificate') . '</em>';
         }
         
         $skip_fields = ['email', 'user_email', 'e-mail', 'auth_code', 'cpf_rf', 'cpf', 'rf', 'is_edited', 'edited_at'];
@@ -170,7 +170,7 @@ class SubmissionsList extends \WP_List_Table {
         }
         
         if (empty($preview_items)) {
-            return '<em class="ffc-empty-data">' . __('Only mandatory fields', 'wp-ffcertificate') . '</em>';
+            return '<em class="ffc-empty-data">' . __('Only mandatory fields', 'ffcertificate') . '</em>';
         }
         
         return '<div class="ffc-data-preview">' . implode('<br>', $preview_items) . '</div>';
@@ -185,11 +185,11 @@ class SubmissionsList extends \WP_List_Table {
         $status = isset($_GET['status']) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
         if ($status === 'trash') {
             return [
-                'bulk_restore' => __('Restore', 'wp-ffcertificate'),
-                'bulk_delete' => __('Delete Permanently', 'wp-ffcertificate')
+                'bulk_restore' => __('Restore', 'ffcertificate'),
+                'bulk_delete' => __('Delete Permanently', 'ffcertificate')
             ];
         }
-        return ['bulk_trash' => __('Move to Trash', 'wp-ffcertificate')];
+        return ['bulk_trash' => __('Move to Trash', 'ffcertificate')];
     }
 
     public function prepare_items() {
@@ -255,21 +255,21 @@ class SubmissionsList extends \WP_List_Table {
                 '<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
                 remove_query_arg('status'),
                 ($current == 'publish' ? 'current' : ''),
-                __('Published', 'wp-ffcertificate'),
+                __('Published', 'ffcertificate'),
                 $counts['publish']
             ),
             'trash' => sprintf(
                 '<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
                 add_query_arg('status', 'trash'),
                 ($current == 'trash' ? 'current' : ''),
-                __('Trash', 'wp-ffcertificate'),
+                __('Trash', 'ffcertificate'),
                 $counts['trash']
             )
         ];
     }
 
     public function no_items() {
-        esc_html_e('No submissions found.', 'wp-ffcertificate');
+        esc_html_e('No submissions found.', 'ffcertificate');
     }
 
     /**
@@ -310,7 +310,7 @@ class SubmissionsList extends \WP_List_Table {
 
         ?>
         <div class="alignleft actions">
-            <label for="filter-form-id" class="screen-reader-text"><?php esc_html_e( 'Filter by form', 'wp-ffcertificate' ); ?></label>
+            <label for="filter-form-id" class="screen-reader-text"><?php esc_html_e( 'Filter by form', 'ffcertificate' ); ?></label>
             <select name="filter_form_id[]" id="filter-form-id" multiple style="min-width: 200px; height: 100px;">
                 <?php foreach ( $forms as $form ) : ?>
                     <option value="<?php echo esc_attr( $form->ID ); ?>" <?php echo in_array( $form->ID, $selected_form_ids ) ? 'selected' : ''; ?>>
@@ -318,10 +318,10 @@ class SubmissionsList extends \WP_List_Table {
                     </option>
                 <?php endforeach; ?>
             </select>
-            <input type="submit" class="button" value="<?php esc_html_e( 'Filter', 'wp-ffcertificate' ); ?>">
+            <input type="submit" class="button" value="<?php esc_html_e( 'Filter', 'ffcertificate' ); ?>">
             <?php if ( !empty( $selected_form_ids ) ) : ?>
                 <a href="<?php echo esc_url( remove_query_arg( 'filter_form_id' ) ); ?>" class="button">
-                    <?php esc_html_e( 'Clear Filter', 'wp-ffcertificate' ); ?>
+                    <?php esc_html_e( 'Clear Filter', 'ffcertificate' ); ?>
                 </a>
             <?php endif; ?>
         </div>

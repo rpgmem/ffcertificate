@@ -28,8 +28,8 @@ class AdminActivityLogPage {
     public function register_menu(): void {
         add_submenu_page(
             'edit.php?post_type=ffc_form',
-            __( 'Activity Log', 'wp-ffcertificate' ),
-            __( 'Activity Log', 'wp-ffcertificate' ),
+            __( 'Activity Log', 'ffcertificate' ),
+            __( 'Activity Log', 'ffcertificate' ),
             'manage_options',
             'ffc-activity-log',
             array( $this, 'render_page' )
@@ -91,8 +91,8 @@ class AdminActivityLogPage {
         if ( file_exists( $view_file ) ) {
             include $view_file;
         } else {
-            echo '<div class="wrap"><h1>' . esc_html__( 'Activity Log', 'wp-ffcertificate' ) . '</h1>';
-            echo '<div class="notice notice-error"><p>' . esc_html__( 'View file not found.', 'wp-ffcertificate' ) . '</p></div></div>';
+            echo '<div class="wrap"><h1>' . esc_html__( 'Activity Log', 'ffcertificate' ) . '</h1>';
+            echo '<div class="notice notice-error"><p>' . esc_html__( 'View file not found.', 'ffcertificate' ) . '</p></div></div>';
         }
     }
 
@@ -102,15 +102,15 @@ class AdminActivityLogPage {
     private function render_disabled_notice(): void {
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e( 'Activity Log', 'wp-ffcertificate' ); ?></h1>
+            <h1><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h1>
             <div class="notice notice-warning">
                 <p>
-                    <strong><?php esc_html_e( 'Activity Log is currently disabled.', 'wp-ffcertificate' ); ?></strong>
+                    <strong><?php esc_html_e( 'Activity Log is currently disabled.', 'ffcertificate' ); ?></strong>
                 </p>
                 <p>
-                    <?php esc_html_e( 'To enable activity logging, go to:', 'wp-ffcertificate' ); ?>
+                    <?php esc_html_e( 'To enable activity logging, go to:', 'ffcertificate' ); ?>
                     <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=general' ) ); ?>">
-                        <?php esc_html_e( 'Settings > General > Activity Log Settings', 'wp-ffcertificate' ); ?>
+                        <?php esc_html_e( 'Settings > General > Activity Log Settings', 'ffcertificate' ); ?>
                     </a>
                 </p>
             </div>
@@ -138,12 +138,12 @@ class AdminActivityLogPage {
      */
     public static function get_action_label( string $action ): string {
         $labels = array(
-            'submission_created' => __( 'Submission Created', 'wp-ffcertificate' ),
-            'submission_updated' => __( 'Submission Updated', 'wp-ffcertificate' ),
-            'submission_deleted' => __( 'Submission Deleted', 'wp-ffcertificate' ),
-            'data_accessed' => __( 'Data Accessed', 'wp-ffcertificate' ),
-            'access_denied' => __( 'Access Denied', 'wp-ffcertificate' ),
-            'settings_changed' => __( 'Settings Changed', 'wp-ffcertificate' )
+            'submission_created' => __( 'Submission Created', 'ffcertificate' ),
+            'submission_updated' => __( 'Submission Updated', 'ffcertificate' ),
+            'submission_deleted' => __( 'Submission Deleted', 'ffcertificate' ),
+            'data_accessed' => __( 'Data Accessed', 'ffcertificate' ),
+            'access_denied' => __( 'Access Denied', 'ffcertificate' ),
+            'settings_changed' => __( 'Settings Changed', 'ffcertificate' )
         );
 
         return isset( $labels[ $action ] ) ? $labels[ $action ] : ucwords( str_replace( '_', ' ', $action ) );

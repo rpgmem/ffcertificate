@@ -45,25 +45,25 @@ class AdminAjax {
         }
 
         if ( ! $nonce_verified ) {
-            wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'ffcertificate' ) ) );
         }
 
         // Check permissions
         if ( ! current_user_can( 'edit_posts' ) ) {
-            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
         }
 
         $template_id = isset( $_POST['template_id'] ) ? absint( wp_unslash( $_POST['template_id'] ) ) : 0;
 
         if ( ! $template_id ) {
-            wp_send_json_error( array( 'message' => __( 'Invalid template ID.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Invalid template ID.', 'ffcertificate' ) ) );
         }
 
         // Get template post
         $template = get_post( $template_id );
 
         if ( ! $template || $template->post_type !== 'ffc_template' ) {
-            wp_send_json_error( array( 'message' => __( 'Template not found.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Template not found.', 'ffcertificate' ) ) );
         }
 
         // Get template HTML from post meta
@@ -101,23 +101,23 @@ class AdminAjax {
         }
 
         if ( ! $nonce_verified ) {
-            wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'ffcertificate' ) ) );
         }
 
         // Check permissions
         if ( ! current_user_can( 'edit_posts' ) ) {
-            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
         }
 
         $quantity = isset( $_POST['quantity'] ) ? absint( wp_unslash( $_POST['quantity'] ) ) : 0;
         $form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
 
         if ( $quantity < 1 || $quantity > 1000 ) {
-            wp_send_json_error( array( 'message' => __( 'Quantity must be between 1 and 1000.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Quantity must be between 1 and 1000.', 'ffcertificate' ) ) );
         }
 
         if ( ! $form_id ) {
-            wp_send_json_error( array( 'message' => __( 'Invalid form ID.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Invalid form ID.', 'ffcertificate' ) ) );
         }
 
         // Generate unique codes
@@ -132,7 +132,7 @@ class AdminAjax {
 
                 // Prevent infinite loop
                 if ( $attempts > 100 ) {
-                    wp_send_json_error( array( 'message' => __( 'Error generating unique codes. Please try a smaller quantity.', 'wp-ffcertificate' ) ) );
+                    wp_send_json_error( array( 'message' => __( 'Error generating unique codes. Please try a smaller quantity.', 'ffcertificate' ) ) );
                 }
             } while ( in_array( $code, $existing_codes ) || in_array( $code, $codes ) );
 
@@ -211,18 +211,18 @@ class AdminAjax {
         // Verify nonce
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only; nonce verified immediately inside.
         if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'ffc_user_search_nonce' ) ) {
-            wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'ffcertificate' ) ) );
         }
 
         // Check permissions
         if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
-            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
         }
 
         $search_term = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
 
         if ( strlen( $search_term ) < 2 ) {
-            wp_send_json_error( array( 'message' => __( 'Please enter at least 2 characters.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Please enter at least 2 characters.', 'ffcertificate' ) ) );
         }
 
         $users = array();
@@ -267,7 +267,7 @@ class AdminAjax {
         }
 
         if ( empty( $users ) ) {
-            wp_send_json_error( array( 'message' => __( 'No users found.', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'No users found.', 'ffcertificate' ) ) );
         }
 
         wp_send_json_success( array( 'users' => $users ) );

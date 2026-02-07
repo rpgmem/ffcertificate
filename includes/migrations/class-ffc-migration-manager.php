@@ -163,7 +163,7 @@ class MigrationManager {
         $batch_number = ( $limit > 0 ) ? floor( $offset / $limit ) + 1 : 1;
 
         // Update migration config with custom limit
-        add_filter( 'wp_ffcertificate_migrations_registry', function( $migrations ) use ( $limit ) {
+        add_filter( 'ffcertificate_migrations_registry', function( $migrations ) use ( $limit ) {
             if ( isset( $migrations['encrypt_sensitive_data'] ) ) {
                 $migrations['encrypt_sensitive_data']['batch_size'] = $limit;
             }
@@ -188,7 +188,7 @@ class MigrationManager {
         $batch_number = ( $limit > 0 ) ? floor( $offset / $limit ) + 1 : 1;
 
         // Update migration config with custom limit
-        add_filter( 'wp_ffcertificate_migrations_registry', function( $migrations ) use ( $limit ) {
+        add_filter( 'ffcertificate_migrations_registry', function( $migrations ) use ( $limit ) {
             if ( isset( $migrations['cleanup_unencrypted'] ) ) {
                 $migrations['cleanup_unencrypted']['batch_size'] = $limit;
             }
@@ -220,7 +220,7 @@ class MigrationManager {
         if ( ! $status['is_complete'] ) {
             return new WP_Error(
                 'encryption_not_complete',
-                __( 'Encryption migration must be 100% complete before cleanup.', 'wp-ffcertificate' )
+                __( 'Encryption migration must be 100% complete before cleanup.', 'ffcertificate' )
             );
         }
 
@@ -230,7 +230,7 @@ class MigrationManager {
         if ( ! $encryption_completed_date ) {
             return new WP_Error(
                 'no_completion_date',
-                __( 'Encryption completion date not found.', 'wp-ffcertificate' )
+                __( 'Encryption completion date not found.', 'ffcertificate' )
             );
         }
 
@@ -241,7 +241,7 @@ class MigrationManager {
                 'grace_period_not_met',
                 sprintf(
                     /* translators: %d: number of days remaining */
-                    __( 'Must wait 15 days after encryption completion. Days remaining: %d', 'wp-ffcertificate' ),
+                    __( 'Must wait 15 days after encryption completion. Days remaining: %d', 'ffcertificate' ),
                     15 - $days_since_completion
                 )
             );
@@ -252,7 +252,7 @@ class MigrationManager {
         if ( ! isset( $_POST['confirm_cleanup'] ) || sanitize_text_field( wp_unslash( $_POST['confirm_cleanup'] ) ) !== 'CONFIRMAR EXCLUSÃO' ) {
             return new WP_Error(
                 'confirmation_required',
-                __( 'User confirmation required. Type "CONFIRMAR EXCLUSÃO" to proceed.', 'wp-ffcertificate' )
+                __( 'User confirmation required. Type "CONFIRMAR EXCLUSÃO" to proceed.', 'ffcertificate' )
             );
         }
 
@@ -299,7 +299,7 @@ class MigrationManager {
         if ( ! isset( $_POST['confirm_drop'] ) || sanitize_text_field( wp_unslash( $_POST['confirm_drop'] ) ) !== 'CONFIRMAR EXCLUSÃO' ) {
             return new WP_Error(
                 'confirmation_required',
-                __( 'CRITICAL: This is IRREVERSIBLE! Type "CONFIRMAR EXCLUSÃO" to proceed.', 'wp-ffcertificate' )
+                __( 'CRITICAL: This is IRREVERSIBLE! Type "CONFIRMAR EXCLUSÃO" to proceed.', 'ffcertificate' )
             );
         }
 
@@ -366,7 +366,7 @@ class MigrationManager {
         if ( ! $status['is_complete'] ) {
             return new WP_Error(
                 'encryption_not_complete',
-                __( 'Encryption migration must be 100% complete.', 'wp-ffcertificate' )
+                __( 'Encryption migration must be 100% complete.', 'ffcertificate' )
             );
         }
 
@@ -376,7 +376,7 @@ class MigrationManager {
         if ( ! $encryption_completed_date ) {
             return new WP_Error(
                 'no_completion_date',
-                __( 'Encryption completion date not found.', 'wp-ffcertificate' )
+                __( 'Encryption completion date not found.', 'ffcertificate' )
             );
         }
 
@@ -387,7 +387,7 @@ class MigrationManager {
                 'grace_period_not_met',
                 sprintf(
                     /* translators: %d: number of days remaining */
-                    __( 'Must wait 30 days after encryption completion. Days remaining: %d', 'wp-ffcertificate' ),
+                    __( 'Must wait 30 days after encryption completion. Days remaining: %d', 'ffcertificate' ),
                     30 - $days_since_completion
                 )
             );

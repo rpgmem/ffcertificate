@@ -111,7 +111,7 @@ class Geofence {
             if ($now < $start_datetime) {
                 return array(
                     'valid' => false,
-                    'message' => $config['msg_datetime'] ?? __('This form is not yet available.', 'wp-ffcertificate'),
+                    'message' => $config['msg_datetime'] ?? __('This form is not yet available.', 'ffcertificate'),
                     'details' => array(
                         'reason' => 'before_start_datetime',
                         'mode' => 'span',
@@ -124,7 +124,7 @@ class Geofence {
             if ($now > $end_datetime) {
                 return array(
                     'valid' => false,
-                    'message' => $config['msg_datetime'] ?? __('This form is no longer available.', 'wp-ffcertificate'),
+                    'message' => $config['msg_datetime'] ?? __('This form is no longer available.', 'ffcertificate'),
                     'details' => array(
                         'reason' => 'after_end_datetime',
                         'mode' => 'span',
@@ -143,7 +143,7 @@ class Geofence {
         if (!empty($config['date_start']) && $current_date < $config['date_start']) {
             return array(
                 'valid' => false,
-                'message' => $config['msg_datetime'] ?? __('This form is not yet available.', 'wp-ffcertificate'),
+                'message' => $config['msg_datetime'] ?? __('This form is not yet available.', 'ffcertificate'),
                 'details' => array(
                     'reason' => 'before_start_date',
                     'current_date' => $current_date,
@@ -155,7 +155,7 @@ class Geofence {
         if (!empty($config['date_end']) && $current_date > $config['date_end']) {
             return array(
                 'valid' => false,
-                'message' => $config['msg_datetime'] ?? __('This form is no longer available.', 'wp-ffcertificate'),
+                'message' => $config['msg_datetime'] ?? __('This form is no longer available.', 'ffcertificate'),
                 'details' => array(
                     'reason' => 'after_end_date',
                     'current_date' => $current_date,
@@ -173,7 +173,7 @@ class Geofence {
             if ($current_time < $time_start || $current_time > $time_end) {
                 return array(
                     'valid' => false,
-                    'message' => $config['msg_datetime'] ?? __('This form is only available during specific hours.', 'wp-ffcertificate'),
+                    'message' => $config['msg_datetime'] ?? __('This form is only available during specific hours.', 'ffcertificate'),
                     'details' => array(
                         'reason' => 'outside_time_range',
                         'mode' => 'daily',
@@ -224,7 +224,7 @@ class Geofence {
         if (empty($user_location) || empty($user_location['latitude']) || empty($user_location['longitude'])) {
             return array(
                 'valid' => false,
-                'message' => $config['msg_geo_error'] ?? __('Unable to determine your location.', 'wp-ffcertificate'),
+                'message' => $config['msg_geo_error'] ?? __('Unable to determine your location.', 'ffcertificate'),
                 'details' => array('reason' => 'location_unavailable')
             );
         }
@@ -246,7 +246,7 @@ class Geofence {
         if (!$within) {
             return array(
                 'valid' => false,
-                'message' => $config['msg_geo_blocked'] ?? __('This form is not available in your location.', 'wp-ffcertificate'),
+                'message' => $config['msg_geo_blocked'] ?? __('This form is not available in your location.', 'ffcertificate'),
                 'details' => array(
                     'reason' => 'outside_allowed_areas',
                     'user_location' => $user_location,
@@ -292,7 +292,7 @@ class Geofence {
             case 'block':
                 return array(
                     'valid' => false,
-                    'message' => $config['msg_geo_error'] ?? __('Location verification failed.', 'wp-ffcertificate'),
+                    'message' => $config['msg_geo_error'] ?? __('Location verification failed.', 'ffcertificate'),
                     'details' => array('reason' => 'ip_fallback_block', 'error' => $error->get_error_message())
                 );
 

@@ -65,19 +65,19 @@ class SelfSchedulingCPT {
      */
     public function register_calendar_cpt(): void {
         $labels = array(
-            'name'                  => _x('Personal Calendars', 'Post Type General Name', 'wp-ffcertificate'),
-            'singular_name'         => _x('Personal Calendar', 'Post Type Singular Name', 'wp-ffcertificate'),
-            'menu_name'             => __('Personal Calendars', 'wp-ffcertificate'),
-            'name_admin_bar'        => __('Personal Calendar', 'wp-ffcertificate'),
-            'add_new'               => __('New Personal Calendar', 'wp-ffcertificate'),
-            'add_new_item'          => __('Add New Personal Calendar', 'wp-ffcertificate'),
-            'new_item'              => __('New Personal Calendar', 'wp-ffcertificate'),
-            'edit_item'             => __('Edit Personal Calendar', 'wp-ffcertificate'),
-            'view_item'             => __('View Personal Calendar', 'wp-ffcertificate'),
-            'all_items'             => __('Personal Calendars', 'wp-ffcertificate'),
-            'search_items'          => __('Search Personal Calendars', 'wp-ffcertificate'),
-            'not_found'             => __('No personal calendars found.', 'wp-ffcertificate'),
-            'not_found_in_trash'    => __('No personal calendars found in Trash.', 'wp-ffcertificate'),
+            'name'                  => _x('Personal Calendars', 'Post Type General Name', 'ffcertificate'),
+            'singular_name'         => _x('Personal Calendar', 'Post Type Singular Name', 'ffcertificate'),
+            'menu_name'             => __('Personal Calendars', 'ffcertificate'),
+            'name_admin_bar'        => __('Personal Calendar', 'ffcertificate'),
+            'add_new'               => __('New Personal Calendar', 'ffcertificate'),
+            'add_new_item'          => __('Add New Personal Calendar', 'ffcertificate'),
+            'new_item'              => __('New Personal Calendar', 'ffcertificate'),
+            'edit_item'             => __('Edit Personal Calendar', 'ffcertificate'),
+            'view_item'             => __('View Personal Calendar', 'ffcertificate'),
+            'all_items'             => __('Personal Calendars', 'ffcertificate'),
+            'search_items'          => __('Search Personal Calendars', 'ffcertificate'),
+            'not_found'             => __('No personal calendars found.', 'ffcertificate'),
+            'not_found_in_trash'    => __('No personal calendars found in Trash.', 'ffcertificate'),
         );
 
         $args = array(
@@ -117,7 +117,7 @@ class SelfSchedulingCPT {
             'ffc_duplicate_calendar_nonce'
         );
 
-        $actions['duplicate'] = '<a href="' . esc_url($url) . '" title="' . esc_attr__('Duplicate this calendar', 'wp-ffcertificate') . '">' . esc_html__('Duplicate', 'wp-ffcertificate') . '</a>';
+        $actions['duplicate'] = '<a href="' . esc_url($url) . '" title="' . esc_attr__('Duplicate this calendar', 'ffcertificate') . '">' . esc_html__('Duplicate', 'ffcertificate') . '</a>';
 
         return $actions;
     }
@@ -133,7 +133,7 @@ class SelfSchedulingCPT {
                 'user_id' => get_current_user_id(),
                 'ip' => \FreeFormCertificate\Core\Utils::get_user_ip()
             ));
-            wp_die(esc_html__('You do not have permission to duplicate this calendar.', 'wp-ffcertificate'));
+            wp_die(esc_html__('You do not have permission to duplicate this calendar.', 'ffcertificate'));
         }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below via check_admin_referer.
@@ -148,12 +148,12 @@ class SelfSchedulingCPT {
                 'post_id' => $post_id,
                 'user_id' => get_current_user_id()
             ));
-            wp_die(esc_html__('Invalid calendar.', 'wp-ffcertificate'));
+            wp_die(esc_html__('Invalid calendar.', 'ffcertificate'));
         }
 
         $original_title = $post->post_title;
         /* translators: %s: original calendar title */
-        $new_title = sprintf(__('%s (Copy)', 'wp-ffcertificate'), $original_title);
+        $new_title = sprintf(__('%s (Copy)', 'ffcertificate'), $original_title);
 
         // Create new post
         $new_post_args = array(
@@ -383,7 +383,7 @@ class SelfSchedulingCPT {
                 (int)$appointment['id'],
                 get_current_user_id(),
                 /* translators: %s: calendar title */
-                sprintf(__('Calendar "%s" was deleted', 'wp-ffcertificate'), $calendar_title)
+                sprintf(__('Calendar "%s" was deleted', 'ffcertificate'), $calendar_title)
             );
 
             if ($result) {
@@ -431,7 +431,7 @@ class SelfSchedulingCPT {
         // Prepare email
         $subject = sprintf(
             /* translators: %s: site name */
-            __('[%s] Appointment Cancelled - Calendar No Longer Available', 'wp-ffcertificate'),
+            __('[%s] Appointment Cancelled - Calendar No Longer Available', 'ffcertificate'),
             get_bloginfo('name')
         );
 
@@ -440,7 +440,7 @@ class SelfSchedulingCPT {
 
         $message = sprintf(
             /* translators: %1$s, %2$s, %4$s, %5$s, %6$s, %8$s, %10$s, %12$s, %13$s, %14$s, %15$s: line breaks, %3$s: calendar title, %7$s: appointment date, %9$s: appointment time, %11$s: calendar title, %16$s: site name */
-            __('Hello,%1$s%2$sWe regret to inform you that your appointment has been cancelled because the calendar "%3$s" is no longer available.%4$s%5$sAppointment Details:%6$s- Date: %7$s%8$s- Time: %9$s%10$s- Calendar: %11$s%12$s%13$sWe apologize for any inconvenience this may cause.%14$s%15$sBest regards,%16$s%17$s', 'wp-ffcertificate'),
+            __('Hello,%1$s%2$sWe regret to inform you that your appointment has been cancelled because the calendar "%3$s" is no longer available.%4$s%5$sAppointment Details:%6$s- Date: %7$s%8$s- Time: %9$s%10$s- Calendar: %11$s%12$s%13$sWe apologize for any inconvenience this may cause.%14$s%15$sBest regards,%16$s%17$s', 'ffcertificate'),
             "\n\n",
             "\n",
             $calendar_title,

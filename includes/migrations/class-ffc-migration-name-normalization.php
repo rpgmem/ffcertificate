@@ -58,7 +58,7 @@ class MigrationNameNormalization {
                 'processed' => 0,
                 'changed' => 0,
                 'errors' => 1,
-                'message' => __('Encryption is not configured. Cannot process encrypted data.', 'wp-ffcertificate'),
+                'message' => __('Encryption is not configured. Cannot process encrypted data.', 'ffcertificate'),
             );
         }
 
@@ -76,7 +76,7 @@ class MigrationNameNormalization {
                 'processed' => 0,
                 'changed' => 0,
                 'errors' => 0,
-                'message' => __('No submissions with encrypted data found.', 'wp-ffcertificate'),
+                'message' => __('No submissions with encrypted data found.', 'ffcertificate'),
             );
         }
 
@@ -197,7 +197,7 @@ class MigrationNameNormalization {
                 } catch (\Exception $e) {
                     $errors[] = sprintf(
                         /* translators: %d: submission ID, %s: error message */
-                        __('Submission ID %1$d: %2$s', 'wp-ffcertificate'),
+                        __('Submission ID %1$d: %2$s', 'ffcertificate'),
                         $submission_id,
                         $e->getMessage()
                     );
@@ -223,7 +223,7 @@ class MigrationNameNormalization {
             update_option('ffc_migration_name_normalization_changes', $changes_log);
         }
 
-        $mode = $dry_run ? __('DRY RUN', 'wp-ffcertificate') : __('EXECUTED', 'wp-ffcertificate');
+        $mode = $dry_run ? __('DRY RUN', 'ffcertificate') : __('EXECUTED', 'ffcertificate');
 
         return array(
             'success' => true,
@@ -236,7 +236,7 @@ class MigrationNameNormalization {
             'changes' => $changes_log,
             'message' => sprintf(
                 /* translators: 1: mode, 2: processed count, 3: names changed, 4: emails changed, 5: errors */
-                __('%1$s: Processed %2$d submissions, %3$d names normalized, %4$d emails normalized, %5$d errors', 'wp-ffcertificate'),
+                __('%1$s: Processed %2$d submissions, %3$d names normalized, %4$d emails normalized, %5$d errors', 'ffcertificate'),
                 $mode,
                 $processed,
                 $names_changed,
@@ -259,7 +259,7 @@ class MigrationNameNormalization {
         if (!class_exists('\FreeFormCertificate\Core\Encryption') || !\FreeFormCertificate\Core\Encryption::is_configured()) {
             return array(
                 'available' => false,
-                'message' => __('Encryption not configured', 'wp-ffcertificate'),
+                'message' => __('Encryption not configured', 'ffcertificate'),
             );
         }
 
@@ -282,7 +282,7 @@ class MigrationNameNormalization {
             'last_run_errors' => count($last_errors),
             'message' => sprintf(
                 /* translators: %d: number of submissions */
-                __('%d submissions with encrypted data', 'wp-ffcertificate'),
+                __('%d submissions with encrypted data', 'ffcertificate'),
                 $total
             ),
         );

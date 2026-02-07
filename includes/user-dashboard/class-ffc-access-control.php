@@ -97,7 +97,7 @@ class AccessControl {
             'block_wp_admin' => false,
             'blocked_roles' => array('ffc_user'),
             'redirect_url' => home_url('/dashboard'),
-            'redirect_message' => __('You were redirected from the admin panel. Use this dashboard to access your certificates.', 'wp-ffcertificate'),
+            'redirect_message' => __('You were redirected from the admin panel. Use this dashboard to access your certificates.', 'ffcertificate'),
             'allow_admin_bar' => false,
             'bypass_for_admins' => true,
         );

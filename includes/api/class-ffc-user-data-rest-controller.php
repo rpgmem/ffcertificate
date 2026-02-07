@@ -79,7 +79,7 @@ class UserDataRestController {
             if (!$user_id) {
                 return new \WP_Error(
                     'not_logged_in',
-                    __('You must be logged in to view certificates', 'wp-ffcertificate'),
+                    __('You must be logged in to view certificates', 'ffcertificate'),
                     array('status' => 401)
                 );
             }
@@ -93,7 +93,7 @@ class UserDataRestController {
             if (!current_user_can('manage_options') && !current_user_can('view_own_certificates')) {
                 return new \WP_Error(
                     'capability_denied',
-                    __('You do not have permission to view certificates', 'wp-ffcertificate'),
+                    __('You do not have permission to view certificates', 'ffcertificate'),
                     array('status' => 403)
                 );
             }
@@ -129,7 +129,7 @@ class UserDataRestController {
                         $email_plain = \FreeFormCertificate\Core\Encryption::decrypt($submission['email_encrypted']);
                         $email_display = ($email_plain && is_string($email_plain)) ? \FreeFormCertificate\Core\Utils::mask_email($email_plain) : '';
                     } catch (\Exception $e) {
-                        $email_display = __('Error decrypting', 'wp-ffcertificate');
+                        $email_display = __('Error decrypting', 'ffcertificate');
                     }
                 } elseif (!empty($submission['email'])) {
                     $email_display = \FreeFormCertificate\Core\Utils::mask_email($submission['email']);
@@ -157,7 +157,7 @@ class UserDataRestController {
                 $certificates[] = array(
                     'id' => (int) ($submission['id'] ?? 0),
                     'form_id' => (int) ($submission['form_id'] ?? 0),
-                    'form_title' => $submission['form_title'] ?? __('Unknown Form', 'wp-ffcertificate'),
+                    'form_title' => $submission['form_title'] ?? __('Unknown Form', 'ffcertificate'),
                     'submission_date' => $date_formatted ?: '',
                     'submission_date_raw' => $submission['submission_date'] ?? '',
                     'consent_given' => !empty($submission['consent_given']),
@@ -205,7 +205,7 @@ class UserDataRestController {
             if (!$user_id) {
                 return new \WP_Error(
                     'not_logged_in',
-                    __('You must be logged in to view profile', 'wp-ffcertificate'),
+                    __('You must be logged in to view profile', 'ffcertificate'),
                     array('status' => 401)
                 );
             }
@@ -227,7 +227,7 @@ class UserDataRestController {
             if (!$user) {
                 return new \WP_Error(
                     'user_not_found',
-                    __('User not found', 'wp-ffcertificate'),
+                    __('User not found', 'ffcertificate'),
                     array('status' => 404)
                 );
             }
@@ -283,7 +283,7 @@ class UserDataRestController {
                 'names' => $names,
                 'email' => $user->user_email,
                 'emails' => $emails,
-                'cpf_masked' => !empty($cpfs_masked) ? $cpfs_masked[0] : __('Not found', 'wp-ffcertificate'),
+                'cpf_masked' => !empty($cpfs_masked) ? $cpfs_masked[0] : __('Not found', 'ffcertificate'),
                 'cpfs_masked' => $cpfs_masked,
                 'member_since' => $member_since,
                 'roles' => $user->roles,
@@ -313,7 +313,7 @@ class UserDataRestController {
             if (!$user_id) {
                 return new \WP_Error(
                     'not_logged_in',
-                    __('You must be logged in to view appointments', 'wp-ffcertificate'),
+                    __('You must be logged in to view appointments', 'ffcertificate'),
                     array('status' => 401)
                 );
             }
@@ -326,7 +326,7 @@ class UserDataRestController {
             if (!current_user_can('manage_options') && !current_user_can('ffc_view_self_scheduling')) {
                 return new \WP_Error(
                     'capability_denied',
-                    __('You do not have permission to view appointments', 'wp-ffcertificate'),
+                    __('You do not have permission to view appointments', 'ffcertificate'),
                     array('status' => 403)
                 );
             }
@@ -334,7 +334,7 @@ class UserDataRestController {
             if (!class_exists('\FreeFormCertificate\Repositories\AppointmentRepository')) {
                 return new \WP_Error(
                     'repository_not_found',
-                    __('Appointment repository not available', 'wp-ffcertificate'),
+                    __('Appointment repository not available', 'ffcertificate'),
                     array('status' => 500)
                 );
             }
@@ -342,7 +342,7 @@ class UserDataRestController {
             if (!class_exists('\FreeFormCertificate\Repositories\CalendarRepository')) {
                 return new \WP_Error(
                     'calendar_repository_not_found',
-                    __('Calendar repository not available', 'wp-ffcertificate'),
+                    __('Calendar repository not available', 'ffcertificate'),
                     array('status' => 500)
                 );
             }
@@ -365,7 +365,7 @@ class UserDataRestController {
                     continue;
                 }
 
-                $calendar_title = __('Unknown Calendar', 'wp-ffcertificate');
+                $calendar_title = __('Unknown Calendar', 'ffcertificate');
                 $calendar = null;
                 if (!empty($appointment['calendar_id'])) {
                     try {
@@ -411,11 +411,11 @@ class UserDataRestController {
                 }
 
                 $status_labels = array(
-                    'pending' => __('Pending', 'wp-ffcertificate'),
-                    'confirmed' => __('Confirmed', 'wp-ffcertificate'),
-                    'cancelled' => __('Cancelled', 'wp-ffcertificate'),
-                    'completed' => __('Completed', 'wp-ffcertificate'),
-                    'no_show' => __('No Show', 'wp-ffcertificate'),
+                    'pending' => __('Pending', 'ffcertificate'),
+                    'confirmed' => __('Confirmed', 'ffcertificate'),
+                    'cancelled' => __('Cancelled', 'ffcertificate'),
+                    'completed' => __('Completed', 'ffcertificate'),
+                    'no_show' => __('No Show', 'ffcertificate'),
                 );
 
                 $status = $appointment['status'] ?? 'pending';
@@ -492,7 +492,7 @@ class UserDataRestController {
             return new \WP_Error(
                 'get_appointments_error',
                 /* translators: %s: error message */
-                sprintf(__('Error loading appointments: %s', 'wp-ffcertificate'), $e->getMessage()),
+                sprintf(__('Error loading appointments: %s', 'ffcertificate'), $e->getMessage()),
                 array('status' => 500)
             );
         }
@@ -512,7 +512,7 @@ class UserDataRestController {
             if (!$user_id) {
                 return new \WP_Error(
                     'not_logged_in',
-                    __('You must be logged in to view bookings', 'wp-ffcertificate'),
+                    __('You must be logged in to view bookings', 'ffcertificate'),
                     array('status' => 401)
                 );
             }
@@ -525,7 +525,7 @@ class UserDataRestController {
             if (!current_user_can('manage_options') && !current_user_can('ffc_view_audience_bookings')) {
                 return new \WP_Error(
                     'capability_denied',
-                    __('You do not have permission to view audience bookings', 'wp-ffcertificate'),
+                    __('You do not have permission to view audience bookings', 'ffcertificate'),
                     array('status' => 403)
                 );
             }
@@ -592,8 +592,8 @@ class UserDataRestController {
                 }
 
                 $status_labels = array(
-                    'active' => __('Confirmed', 'wp-ffcertificate'),
-                    'cancelled' => __('Cancelled', 'wp-ffcertificate'),
+                    'active' => __('Confirmed', 'ffcertificate'),
+                    'cancelled' => __('Cancelled', 'ffcertificate'),
                 );
 
                 $status = $booking['status'] ?? 'active';
@@ -602,7 +602,7 @@ class UserDataRestController {
                 $bookings_formatted[] = array(
                     'id' => (int) $booking['id'],
                     'environment_id' => (int) ($booking['environment_id'] ?? 0),
-                    'environment_name' => $booking['environment_name'] ?? __('Unknown', 'wp-ffcertificate'),
+                    'environment_name' => $booking['environment_name'] ?? __('Unknown', 'ffcertificate'),
                     'schedule_name' => $booking['schedule_name'] ?? '',
                     'booking_date' => $date_formatted,
                     'booking_date_raw' => $booking['booking_date'] ?? '',
@@ -639,7 +639,7 @@ class UserDataRestController {
             return new \WP_Error(
                 'get_audience_bookings_error',
                 /* translators: %s: error message */
-                sprintf(__('Error loading audience bookings: %s', 'wp-ffcertificate'), $e->getMessage()),
+                sprintf(__('Error loading audience bookings: %s', 'ffcertificate'), $e->getMessage()),
                 array('status' => 500)
             );
         }

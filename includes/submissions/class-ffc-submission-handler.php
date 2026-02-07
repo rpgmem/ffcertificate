@@ -146,7 +146,7 @@ class SubmissionHandler {
         // 7. LGPD Consent
         $consent_given = isset($submission_data['ffc_lgpd_consent']) && $submission_data['ffc_lgpd_consent'] == '1' ? 1 : 0;
         $consent_date = $consent_given ? current_time('mysql') : null;
-        $consent_text = $consent_given ? __('User agreed to Privacy Policy and data storage', 'wp-ffcertificate') : null;
+        $consent_text = $consent_given ? __('User agreed to Privacy Policy and data storage', 'ffcertificate') : null;
 
         // 8. Link to WordPress user (v3.1.0)
         $user_id = null;
@@ -209,7 +209,7 @@ class SubmissionHandler {
         $submission_id = $this->repository->insert($insert_data);
 
         if (!$submission_id) {
-            return new WP_Error('db_error', __('Error saving submission to the database.', 'wp-ffcertificate'));
+            return new WP_Error('db_error', __('Error saving submission to the database.', 'ffcertificate'));
         }
 
         // 10. Log activity

@@ -21,16 +21,16 @@ if ( ! defined( 'ABSPATH' ) ) {
     <h3><?php echo esc_html( $success_message ); ?></h3>
     <div class="ffc-success-details">
         <p>
-            <strong><?php esc_html_e( 'Form:', 'wp-ffcertificate' ); ?></strong>
+            <strong><?php esc_html_e( 'Form:', 'ffcertificate' ); ?></strong>
             <?php echo esc_html( $form_title ); ?>
         </p>
         <p>
-            <strong><?php esc_html_e( 'Date:', 'wp-ffcertificate' ); ?></strong>
+            <strong><?php esc_html_e( 'Date:', 'ffcertificate' ); ?></strong>
             <?php echo esc_html( $date_formatted ); ?>
         </p>
         <?php if ( ! empty( $auth_code ) ): ?>
             <p>
-                <strong><?php esc_html_e( 'Authentication Code:', 'wp-ffcertificate' ); ?></strong>
+                <strong><?php esc_html_e( 'Authentication Code:', 'ffcertificate' ); ?></strong>
                 <code><?php echo esc_html( $auth_code ); ?></code>
             </p>
         <?php endif; ?>

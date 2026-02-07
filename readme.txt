@@ -60,7 +60,7 @@ Free Form Certificate is a complete WordPress solution for creating dynamic form
 
 == Installation ==
 
-1. Upload the `wp-ffcertificate` folder to `/wp-content/plugins/`.
+1. Upload the `ffcertificate` folder to `/wp-content/plugins/`.
 2. Activate the plugin through the "Plugins" menu in WordPress.
 3. Navigate to "Free Form Certificate" to create your first form.
 4. Use the shortcode `[ffc_form id="FORM_ID"]` on any page or post.
@@ -94,7 +94,7 @@ Yes. In each form's "Restriction & Security" section you can enable allowlist mo
 
 = How do I translate the plugin? =
 
-The plugin is fully translation-ready with the `wp-ffcertificate` text domain. Use Loco Translate or Poedit with the `languages/wp-ffcertificate.pot` template file. Portuguese (Brazil) translation is included.
+The plugin is fully translation-ready with the `ffcertificate` text domain. Use Loco Translate or Poedit with the `languages/ffcertificate.pot` template file. Portuguese (Brazil) translation is included.
 
 == Screenshots ==
 
@@ -173,6 +173,10 @@ Security, accessibility, code quality, and structural refactoring.
 * Fixed: Frontend CSS duplication causing style conflicts
 * Fixed: Restored `Loader::run()` method accidentally removed during refactoring
 * New classes: `AudienceAdminDashboard`, `AudienceAdminCalendar`, `AudienceAdminEnvironment`, `AudienceAdminAudience`, `AudienceAdminBookings`, `AudienceAdminSettings`, `AudienceAdminImport`, `FormRestController`, `SubmissionRestController`, `UserDataRestController`, `CalendarRestController`, `AppointmentRestController`
+* Changed: Plugin slug from `wp-ffcertificate` to `ffcertificate` (removed restricted "wp-" prefix)
+* Changed: Text domain from `wp-ffcertificate` to `ffcertificate`
+* Changed: Hook prefix from `wp_ffcertificate_` to `ffcertificate_`
+* Changed: Language files renamed to match new text domain
 
 = 4.6.0 (2026-02-06) =
 
@@ -253,7 +257,7 @@ WordPress Plugin Check compliance and distribution cleanup.
 * CDN scripts replaced with locally bundled copies (html2canvas 1.4.1, jsPDF 2.5.1)
 * `date()` replaced with `gmdate()`, `rand()` with `wp_rand()`, `wp_redirect()` with `wp_safe_redirect()`
 * `parse_url()` replaced with `wp_parse_url()`, `unlink()` with `wp_delete_file()`
-* Text domain changed from `ffc` to `wp-ffcertificate`
+* Text domain changed from `ffc` to `ffcertificate`
 * Translation files renamed to match new text domain
 * Removed development files from distribution (tests, docs, CI, composer, phpqrcode cache)
 
@@ -485,7 +489,7 @@ Bug fixes for strict types introduction.
 == Upgrade Notice ==
 
 = 4.6.1 =
-Security hardening, accessibility improvements, and major structural refactoring. AudienceAdminPage and RestController split into focused sub-classes. No breaking changes.
+BREAKING: Plugin slug changed from `wp-ffcertificate` to `ffcertificate`. Existing installations must deactivate and reactivate. All settings and data are preserved. Security hardening, accessibility improvements, and major structural refactoring.
 
 = 4.6.0 =
 Scheduling consolidation with unified admin menu and settings. Global holidays system. User dashboard pagination and improvements. Multiple bug fixes. Translation update with 278 new pt_BR strings.
@@ -497,7 +501,7 @@ New audience scheduling system for group bookings. 5 new database tables created
 Per-user capability system. Self-scheduling rename. Capability migration runs automatically.
 
 = 4.3.0 =
-WordPress Plugin Check compliance. Text domain changed to `wp-ffcertificate`. Translation files renamed. CDN scripts replaced with bundled copies. Recommended update.
+WordPress Plugin Check compliance. Text domain changed to `ffcertificate`. Translation files renamed. CDN scripts replaced with bundled copies. Recommended update.
 
 = 4.1.0 =
 New appointment calendar and booking system. 3 new database tables created automatically. Backup recommended.

@@ -319,7 +319,7 @@ class AudienceRestController {
         foreach ($global_holidays as $gh) {
             $holidays_formatted[] = array(
                 'holiday_date' => $gh['date'],
-                'description' => $gh['description'] ?? __('Holiday', 'wp-ffcertificate'),
+                'description' => $gh['description'] ?? __('Holiday', 'ffcertificate'),
             );
         }
 
@@ -366,7 +366,7 @@ class AudienceRestController {
         if (!$environment) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('Invalid environment.', 'wp-ffcertificate'),
+                'message' => __('Invalid environment.', 'ffcertificate'),
             ), 400);
         }
 
@@ -375,7 +375,7 @@ class AudienceRestController {
         if (!current_user_can('manage_options') && !AudienceScheduleRepository::user_can_book((int) $environment->schedule_id, $user_id)) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('You do not have permission to book on this calendar.', 'wp-ffcertificate'),
+                'message' => __('You do not have permission to book on this calendar.', 'ffcertificate'),
             ), 403);
         }
 
@@ -383,7 +383,7 @@ class AudienceRestController {
         if ($booking_date < current_time('Y-m-d')) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('Cannot book dates in the past.', 'wp-ffcertificate'),
+                'message' => __('Cannot book dates in the past.', 'ffcertificate'),
             ), 400);
         }
 
@@ -391,7 +391,7 @@ class AudienceRestController {
         if ($start_time >= $end_time) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('End time must be after start time.', 'wp-ffcertificate'),
+                'message' => __('End time must be after start time.', 'ffcertificate'),
             ), 400);
         }
 
@@ -400,7 +400,7 @@ class AudienceRestController {
         if ($desc_length < 15 || $desc_length > 300) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('Description must be between 15 and 300 characters.', 'wp-ffcertificate'),
+                'message' => __('Description must be between 15 and 300 characters.', 'ffcertificate'),
             ), 400);
         }
 
@@ -408,14 +408,14 @@ class AudienceRestController {
         if ($booking_type === 'audience' && empty($audience_ids)) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('At least one audience must be selected.', 'wp-ffcertificate'),
+                'message' => __('At least one audience must be selected.', 'ffcertificate'),
             ), 400);
         }
 
         if ($booking_type === 'individual' && empty($user_ids)) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('At least one user must be selected.', 'wp-ffcertificate'),
+                'message' => __('At least one user must be selected.', 'ffcertificate'),
             ), 400);
         }
 
@@ -428,7 +428,7 @@ class AudienceRestController {
                     'success' => false,
                     'message' => sprintf(
                         /* translators: %d: maximum number of days allowed for advance booking */
-                    __('Cannot book more than %d days in advance.', 'wp-ffcertificate'),
+                    __('Cannot book more than %d days in advance.', 'ffcertificate'),
                         $schedule->future_days_limit
                     ),
                 ), 400);
@@ -439,7 +439,7 @@ class AudienceRestController {
         if (!AudienceEnvironmentRepository::is_open($environment_id, $booking_date, $start_time)) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('The environment is closed at this time.', 'wp-ffcertificate'),
+                'message' => __('The environment is closed at this time.', 'ffcertificate'),
             ), 400);
         }
 
@@ -448,7 +448,7 @@ class AudienceRestController {
         if (!empty($conflicts)) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('This time slot is already booked for this environment.', 'wp-ffcertificate'),
+                'message' => __('This time slot is already booked for this environment.', 'ffcertificate'),
             ), 400);
         }
 
@@ -467,7 +467,7 @@ class AudienceRestController {
         if (!$booking_id) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('Failed to create booking.', 'wp-ffcertificate'),
+                'message' => __('Failed to create booking.', 'ffcertificate'),
             ), 500);
         }
 
@@ -478,7 +478,7 @@ class AudienceRestController {
         return new \WP_REST_Response(array(
             'success' => true,
             'booking_id' => $booking_id,
-            'message' => __('Booking created successfully.', 'wp-ffcertificate'),
+            'message' => __('Booking created successfully.', 'ffcertificate'),
         ), 201);
     }
 
@@ -496,7 +496,7 @@ class AudienceRestController {
         if (empty($reason) || mb_strlen($reason) < 5) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('Cancellation reason is required.', 'wp-ffcertificate'),
+                'message' => __('Cancellation reason is required.', 'ffcertificate'),
             ), 400);
         }
 
@@ -504,14 +504,14 @@ class AudienceRestController {
         if (!$booking) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('Booking not found.', 'wp-ffcertificate'),
+                'message' => __('Booking not found.', 'ffcertificate'),
             ), 404);
         }
 
         if ($booking->status === 'cancelled') {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('Booking is already cancelled.', 'wp-ffcertificate'),
+                'message' => __('Booking is already cancelled.', 'ffcertificate'),
             ), 400);
         }
 
@@ -521,7 +521,7 @@ class AudienceRestController {
         if (!$result) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('Failed to cancel booking.', 'wp-ffcertificate'),
+                'message' => __('Failed to cancel booking.', 'ffcertificate'),
             ), 500);
         }
 
@@ -531,7 +531,7 @@ class AudienceRestController {
 
         return new \WP_REST_Response(array(
             'success' => true,
-            'message' => __('Booking cancelled successfully.', 'wp-ffcertificate'),
+            'message' => __('Booking cancelled successfully.', 'ffcertificate'),
         ), 200);
     }
 
@@ -554,7 +554,7 @@ class AudienceRestController {
             if (!$environment_id || !$booking_date || !$start_time || !$end_time) {
                 return new \WP_REST_Response(array(
                     'success' => false,
-                    'message' => __('Missing required parameters.', 'wp-ffcertificate'),
+                    'message' => __('Missing required parameters.', 'ffcertificate'),
                 ), 400);
             }
 
@@ -571,7 +571,7 @@ class AudienceRestController {
             $env_conflicts = AudienceBookingRepository::get_conflicts($environment_id, $booking_date, $start_time, $end_time);
             if (!empty($env_conflicts)) {
                 $response_data['type'] = 'environment';
-                $response_data['message'] = __('Time slot already booked for this environment.', 'wp-ffcertificate');
+                $response_data['message'] = __('Time slot already booked for this environment.', 'ffcertificate');
                 $response_data['bookings'] = array_map(function($b) {
                     return array(
                         'id' => $b->id,
@@ -632,7 +632,7 @@ class AudienceRestController {
         } catch (\Exception $e) {
             return new \WP_REST_Response(array(
                 'success' => false,
-                'message' => __('Error checking conflicts.', 'wp-ffcertificate') . ' ' . $e->getMessage(),
+                'message' => __('Error checking conflicts.', 'ffcertificate') . ' ' . $e->getMessage(),
             ), 500);
         }
     }

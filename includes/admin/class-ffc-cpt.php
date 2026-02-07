@@ -29,19 +29,19 @@ class CPT {
      */
     public function register_form_cpt(): void {
         $labels = array(
-            'name'                  => _x( 'Forms', 'Post Type General Name', 'wp-ffcertificate' ),
-            'singular_name'         => _x( 'Form', 'Post Type Singular Name', 'wp-ffcertificate' ),
-            'menu_name'             => __( 'Free Form Certificate', 'wp-ffcertificate' ),
-            'name_admin_bar'        => __( 'FFC Form', 'wp-ffcertificate' ),
-            'add_new'               => __( 'Add New Form', 'wp-ffcertificate' ),
-            'add_new_item'          => __( 'Add New Form', 'wp-ffcertificate' ),
-            'new_item'              => __( 'New Form', 'wp-ffcertificate' ),
-            'edit_item'             => __( 'Edit Form', 'wp-ffcertificate' ),
-            'view_item'             => __( 'View Form', 'wp-ffcertificate' ),
-            'all_items'             => __( 'All Forms', 'wp-ffcertificate' ),
-            'search_items'          => __( 'Search Forms', 'wp-ffcertificate' ),
-            'not_found'             => __( 'No forms found.', 'wp-ffcertificate' ),
-            'not_found_in_trash'    => __( 'No forms found in Trash.', 'wp-ffcertificate' ),
+            'name'                  => _x( 'Forms', 'Post Type General Name', 'ffcertificate' ),
+            'singular_name'         => _x( 'Form', 'Post Type Singular Name', 'ffcertificate' ),
+            'menu_name'             => __( 'Free Form Certificate', 'ffcertificate' ),
+            'name_admin_bar'        => __( 'FFC Form', 'ffcertificate' ),
+            'add_new'               => __( 'Add New Form', 'ffcertificate' ),
+            'add_new_item'          => __( 'Add New Form', 'ffcertificate' ),
+            'new_item'              => __( 'New Form', 'ffcertificate' ),
+            'edit_item'             => __( 'Edit Form', 'ffcertificate' ),
+            'view_item'             => __( 'View Form', 'ffcertificate' ),
+            'all_items'             => __( 'All Forms', 'ffcertificate' ),
+            'search_items'          => __( 'Search Forms', 'ffcertificate' ),
+            'not_found'             => __( 'No forms found.', 'ffcertificate' ),
+            'not_found_in_trash'    => __( 'No forms found in Trash.', 'ffcertificate' ),
         );
 
         $args = array(
@@ -79,7 +79,7 @@ class CPT {
             'ffc_duplicate_form_nonce'
         );
 
-        $actions['duplicate'] = '<a href="' . esc_url( $url ) . '" title="' . esc_attr__( 'Duplicate this form', 'wp-ffcertificate' ) . '">' . esc_html__( 'Duplicate', 'wp-ffcertificate' ) . '</a>';
+        $actions['duplicate'] = '<a href="' . esc_url( $url ) . '" title="' . esc_attr__( 'Duplicate this form', 'ffcertificate' ) . '">' . esc_html__( 'Duplicate', 'ffcertificate' ) . '</a>';
 
         return $actions;
     }
@@ -94,7 +94,7 @@ class CPT {
                 'user_id' => get_current_user_id(),
                 'ip' => \FreeFormCertificate\Core\Utils::get_user_ip()
             ) );
-            wp_die( esc_html__( 'You do not have permission to duplicate this post.', 'wp-ffcertificate' ) );
+            wp_die( esc_html__( 'You do not have permission to duplicate this post.', 'ffcertificate' ) );
         }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below via check_admin_referer.
@@ -109,13 +109,13 @@ class CPT {
                 'post_id' => $post_id,
                 'user_id' => get_current_user_id()
             ) );
-            wp_die( esc_html__( 'Invalid post.', 'wp-ffcertificate' ) );
+            wp_die( esc_html__( 'Invalid post.', 'ffcertificate' ) );
         }
 
         // ✅ OPTIMIZED v2.9.2: Use \FreeFormCertificate\Core\Utils::sanitize_filename() for title
         $original_title = $post->post_title;
         /* translators: %s: original post title */
-        $new_title = sprintf( __( '%s (Copy)', 'wp-ffcertificate' ), $original_title );
+        $new_title = sprintf( __( '%s (Copy)', 'ffcertificate' ), $original_title );
 
         // Create new post
         $new_post_args = array(

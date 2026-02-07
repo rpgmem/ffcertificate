@@ -111,7 +111,7 @@ class EmailHandler {
         $subject = ! empty( $form_config['email_subject'] )
             ? $form_config['email_subject']
             /* translators: %s: form title */
-            : sprintf( __( 'Your Certificate: %s', 'wp-ffcertificate' ), $form_title );
+            : sprintf( __( 'Your Certificate: %s', 'ffcertificate' ), $form_title );
 
         // Generate magic link URL
         $magic_link_url = '';
@@ -134,7 +134,7 @@ class EmailHandler {
 
         // Main content card
         $body .= '<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-        $body .= '<h2 style="margin: 0 0 20px 0; color: #0073aa; font-size: 24px;">' . esc_html__( 'Your Certificate has been Issued!', 'wp-ffcertificate' ) . '</h2>';
+        $body .= '<h2 style="margin: 0 0 20px 0; color: #0073aa; font-size: 24px;">' . esc_html__( 'Your Certificate has been Issued!', 'ffcertificate' ) . '</h2>';
 
         // Custom message (if configured)
         if ( ! empty( $body_text ) ) {
@@ -144,7 +144,7 @@ class EmailHandler {
         // Auth code display
         if ( ! empty( $auth_code ) ) {
             $body .= '<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">';
-            $body .= '<p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">' . esc_html__( 'Authentication Code:', 'wp-ffcertificate' ) . '</p>';
+            $body .= '<p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">' . esc_html__( 'Authentication Code:', 'ffcertificate' ) . '</p>';
             $body .= '<p style="font-size: 24px; font-weight: bold; margin: 0; font-family: monospace; color: #0073aa; letter-spacing: 2px;">' . esc_html( $auth_code ) . '</p>';
             $body .= '</div>';
         }
@@ -153,9 +153,9 @@ class EmailHandler {
         if ( ! empty( $magic_link_url ) ) {
             $body .= '<div style="text-align: center; margin: 30px 0;">';
             $body .= '<a href="' . esc_url( $magic_link_url ) . '" style="display: inline-block; background: #0073aa; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,115,170,0.3);">';
-            $body .= '🔗 ' . esc_html__( 'View and Download Certificate', 'wp-ffcertificate' );
+            $body .= '🔗 ' . esc_html__( 'View and Download Certificate', 'ffcertificate' );
             $body .= '</a>';
-            $body .= '<p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">' . esc_html__( 'Click the button above to access your certificate online', 'wp-ffcertificate' ) . '</p>';
+            $body .= '<p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">' . esc_html__( 'Click the button above to access your certificate online', 'ffcertificate' ) . '</p>';
             $body .= '</div>';
         }
 
@@ -164,7 +164,7 @@ class EmailHandler {
         // Footer with manual verification link
         $body .= '<div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
         $body .= '<p style="margin: 0; font-size: 12px; color: #999; text-align: center;">';
-        $body .= esc_html__( 'You can also verify this certificate manually at', 'wp-ffcertificate' ) . ' ';
+        $body .= esc_html__( 'You can also verify this certificate manually at', 'ffcertificate' ) . ' ';
         $body .= '<a href="' . esc_url( untrailingslashit( site_url( 'valid' ) ) ) . '" style="color: #0073aa;">' . esc_url( untrailingslashit( site_url( 'valid' ) ) ) . '</a>';
         $body .= '</p></div>';
 
@@ -197,11 +197,11 @@ class EmailHandler {
 
         // Email subject
         /* translators: %s: form title */
-        $subject = sprintf( __( 'New Issuance: %s', 'wp-ffcertificate' ), $form_title );
+        $subject = sprintf( __( 'New Issuance: %s', 'ffcertificate' ), $form_title );
 
         // Build email body with data table
         $body    = '<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">';
-        $body   .= '<h3 style="color: #0073aa;">' . __( 'Submission Details:', 'wp-ffcertificate' ) . '</h3>';
+        $body   .= '<h3 style="color: #0073aa;">' . __( 'Submission Details:', 'ffcertificate' ) . '</h3>';
         $body   .= '<table border="1" cellpadding="10" style="border-collapse:collapse; width:100%; font-family: sans-serif; border: 1px solid #ddd;">';
 
         foreach ( $data as $k => $v ) {

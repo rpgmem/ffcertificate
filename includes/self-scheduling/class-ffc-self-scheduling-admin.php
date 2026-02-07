@@ -34,8 +34,8 @@ class SelfSchedulingAdmin {
         // Add Appointments submenu under unified Scheduling menu
         add_submenu_page(
             'ffc-scheduling',
-            __('Appointments', 'wp-ffcertificate'),
-            __('Appointments', 'wp-ffcertificate'),
+            __('Appointments', 'ffcertificate'),
+            __('Appointments', 'ffcertificate'),
             'edit_posts',
             'ffc-appointments',
             array($this, 'render_appointments_page')
@@ -49,7 +49,7 @@ class SelfSchedulingAdmin {
      */
     public function render_appointments_page(): void {
         if (!\FreeFormCertificate\Core\Utils::current_user_can_manage()) {
-            wp_die(esc_html__('You do not have permission to access this page.', 'wp-ffcertificate'));
+            wp_die(esc_html__('You do not have permission to access this page.', 'ffcertificate'));
         }
 
         require_once plugin_dir_path(__FILE__) . 'views/appointments-list.php';
@@ -96,11 +96,11 @@ class SelfSchedulingAdmin {
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('ffc_self_scheduling_admin_nonce'),
             'strings' => array(
-                'confirmDelete' => __('Are you sure you want to delete this?', 'wp-ffcertificate'),
-                'confirmCancel' => __('Are you sure you want to cancel this appointment?', 'wp-ffcertificate'),
-                'selectCalendar' => __('Please select a calendar', 'wp-ffcertificate'),
-                'selectDate' => __('Please select a date', 'wp-ffcertificate'),
-                'selectTime' => __('Please select a time', 'wp-ffcertificate'),
+                'confirmDelete' => __('Are you sure you want to delete this?', 'ffcertificate'),
+                'confirmCancel' => __('Are you sure you want to cancel this appointment?', 'ffcertificate'),
+                'selectCalendar' => __('Please select a calendar', 'ffcertificate'),
+                'selectDate' => __('Please select a date', 'ffcertificate'),
+                'selectTime' => __('Please select a time', 'ffcertificate'),
             )
         ));
 

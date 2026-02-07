@@ -85,7 +85,7 @@ class AudienceAdminBookings {
 
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e('Bookings', 'wp-ffcertificate'); ?></h1>
+            <h1><?php esc_html_e('Bookings', 'ffcertificate'); ?></h1>
 
             <?php settings_errors('ffc_audience'); ?>
 
@@ -95,7 +95,7 @@ class AudienceAdminBookings {
                     <input type="hidden" name="page" value="<?php echo esc_attr($this->menu_slug); ?>-bookings">
 
                     <select name="schedule_id" id="filter-schedule">
-                        <option value=""><?php esc_html_e('All Schedules', 'wp-ffcertificate'); ?></option>
+                        <option value=""><?php esc_html_e('All Schedules', 'ffcertificate'); ?></option>
                         <?php foreach ($schedules as $schedule) : ?>
                             <option value="<?php echo esc_attr($schedule->id); ?>" <?php selected($schedule_id, $schedule->id); ?>>
                                 <?php echo esc_html($schedule->name); ?>
@@ -104,7 +104,7 @@ class AudienceAdminBookings {
                     </select>
 
                     <select name="environment_id" id="filter-environment">
-                        <option value=""><?php esc_html_e('All Environments', 'wp-ffcertificate'); ?></option>
+                        <option value=""><?php esc_html_e('All Environments', 'ffcertificate'); ?></option>
                         <?php foreach ($environments as $env) : ?>
                             <option value="<?php echo esc_attr($env->id); ?>" <?php selected($environment_id, $env->id); ?>>
                                 <?php echo esc_html($env->name); ?>
@@ -113,16 +113,16 @@ class AudienceAdminBookings {
                     </select>
 
                     <select name="status">
-                        <option value=""><?php esc_html_e('All Status', 'wp-ffcertificate'); ?></option>
-                        <option value="active" <?php selected($status_filter, 'active'); ?>><?php esc_html_e('Active', 'wp-ffcertificate'); ?></option>
-                        <option value="cancelled" <?php selected($status_filter, 'cancelled'); ?>><?php esc_html_e('Cancelled', 'wp-ffcertificate'); ?></option>
+                        <option value=""><?php esc_html_e('All Status', 'ffcertificate'); ?></option>
+                        <option value="active" <?php selected($status_filter, 'active'); ?>><?php esc_html_e('Active', 'ffcertificate'); ?></option>
+                        <option value="cancelled" <?php selected($status_filter, 'cancelled'); ?>><?php esc_html_e('Cancelled', 'ffcertificate'); ?></option>
                     </select>
 
-                    <input type="date" name="date_from" value="<?php echo esc_attr($date_from); ?>" placeholder="<?php esc_attr_e('From', 'wp-ffcertificate'); ?>">
-                    <input type="date" name="date_to" value="<?php echo esc_attr($date_to); ?>" placeholder="<?php esc_attr_e('To', 'wp-ffcertificate'); ?>">
+                    <input type="date" name="date_from" value="<?php echo esc_attr($date_from); ?>" placeholder="<?php esc_attr_e('From', 'ffcertificate'); ?>">
+                    <input type="date" name="date_to" value="<?php echo esc_attr($date_to); ?>" placeholder="<?php esc_attr_e('To', 'ffcertificate'); ?>">
 
-                    <input type="submit" class="button" value="<?php esc_attr_e('Filter', 'wp-ffcertificate'); ?>">
-                    <a href="<?php echo esc_url(admin_url('admin.php?page=' . $this->menu_slug . '-bookings')); ?>" class="button"><?php esc_html_e('Clear', 'wp-ffcertificate'); ?></a>
+                    <input type="submit" class="button" value="<?php esc_attr_e('Filter', 'ffcertificate'); ?>">
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=' . $this->menu_slug . '-bookings')); ?>" class="button"><?php esc_html_e('Clear', 'ffcertificate'); ?></a>
                 </form>
             </div>
 
@@ -130,27 +130,27 @@ class AudienceAdminBookings {
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
-                        <th scope="col" class="manage-column"><?php esc_html_e('ID', 'wp-ffcertificate'); ?></th>
-                        <th scope="col" class="manage-column"><?php esc_html_e('Date', 'wp-ffcertificate'); ?></th>
-                        <th scope="col" class="manage-column"><?php esc_html_e('Time', 'wp-ffcertificate'); ?></th>
-                        <th scope="col" class="manage-column"><?php esc_html_e('Environment', 'wp-ffcertificate'); ?></th>
-                        <th scope="col" class="manage-column"><?php esc_html_e('Description', 'wp-ffcertificate'); ?></th>
-                        <th scope="col" class="manage-column"><?php esc_html_e('Type', 'wp-ffcertificate'); ?></th>
-                        <th scope="col" class="manage-column"><?php esc_html_e('Status', 'wp-ffcertificate'); ?></th>
-                        <th scope="col" class="manage-column"><?php esc_html_e('Created By', 'wp-ffcertificate'); ?></th>
-                        <th scope="col" class="manage-column"><?php esc_html_e('Actions', 'wp-ffcertificate'); ?></th>
+                        <th scope="col" class="manage-column"><?php esc_html_e('ID', 'ffcertificate'); ?></th>
+                        <th scope="col" class="manage-column"><?php esc_html_e('Date', 'ffcertificate'); ?></th>
+                        <th scope="col" class="manage-column"><?php esc_html_e('Time', 'ffcertificate'); ?></th>
+                        <th scope="col" class="manage-column"><?php esc_html_e('Environment', 'ffcertificate'); ?></th>
+                        <th scope="col" class="manage-column"><?php esc_html_e('Description', 'ffcertificate'); ?></th>
+                        <th scope="col" class="manage-column"><?php esc_html_e('Type', 'ffcertificate'); ?></th>
+                        <th scope="col" class="manage-column"><?php esc_html_e('Status', 'ffcertificate'); ?></th>
+                        <th scope="col" class="manage-column"><?php esc_html_e('Created By', 'ffcertificate'); ?></th>
+                        <th scope="col" class="manage-column"><?php esc_html_e('Actions', 'ffcertificate'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($bookings)) : ?>
                         <tr>
-                            <td colspan="9"><?php esc_html_e('No bookings found.', 'wp-ffcertificate'); ?></td>
+                            <td colspan="9"><?php esc_html_e('No bookings found.', 'ffcertificate'); ?></td>
                         </tr>
                     <?php else : ?>
                         <?php foreach ($bookings as $booking) : ?>
                             <?php
                             $creator = get_userdata($booking->created_by);
-                            $creator_name = $creator ? $creator->display_name : __('Unknown', 'wp-ffcertificate');
+                            $creator_name = $creator ? $creator->display_name : __('Unknown', 'ffcertificate');
                             $status_class = $booking->status === 'active' ? 'status-active' : 'status-cancelled';
                             ?>
                             <tr>
@@ -162,26 +162,26 @@ class AudienceAdminBookings {
                                 <td>
                                     <?php
                                     $type_labels = array(
-                                        'audience' => __('Audience', 'wp-ffcertificate'),
-                                        'custom' => __('Custom Users', 'wp-ffcertificate'),
+                                        'audience' => __('Audience', 'ffcertificate'),
+                                        'custom' => __('Custom Users', 'ffcertificate'),
                                     );
                                     echo esc_html($type_labels[$booking->booking_type] ?? $booking->booking_type);
                                     ?>
                                 </td>
                                 <td>
                                     <span class="<?php echo esc_attr($status_class); ?>">
-                                        <?php echo $booking->status === 'active' ? esc_html__('Active', 'wp-ffcertificate') : esc_html__('Cancelled', 'wp-ffcertificate'); ?>
+                                        <?php echo $booking->status === 'active' ? esc_html__('Active', 'ffcertificate') : esc_html__('Cancelled', 'ffcertificate'); ?>
                                     </span>
                                 </td>
                                 <td><?php echo esc_html($creator_name); ?></td>
                                 <td>
                                     <a href="#" class="ffc-view-booking" data-booking-id="<?php echo esc_attr($booking->id); ?>">
-                                        <?php esc_html_e('View', 'wp-ffcertificate'); ?>
+                                        <?php esc_html_e('View', 'ffcertificate'); ?>
                                     </a>
                                     <?php if ($booking->status === 'active') : ?>
                                         |
                                         <a href="#" class="ffc-cancel-booking" data-booking-id="<?php echo esc_attr($booking->id); ?>" style="color: #a00;">
-                                            <?php esc_html_e('Cancel', 'wp-ffcertificate'); ?>
+                                            <?php esc_html_e('Cancel', 'ffcertificate'); ?>
                                         </a>
                                     <?php endif; ?>
                                 </td>
@@ -192,7 +192,7 @@ class AudienceAdminBookings {
             </table>
 
             <p class="description" style="margin-top: 15px;">
-                <?php /* translators: %d: number of bookings */ printf(esc_html__('Total: %d bookings', 'wp-ffcertificate'), count($bookings)); ?>
+                <?php /* translators: %d: number of bookings */ printf(esc_html__('Total: %d bookings', 'ffcertificate'), count($bookings)); ?>
             </p>
         </div>
 

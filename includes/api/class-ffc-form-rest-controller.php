@@ -103,7 +103,7 @@ class FormRestController {
             if (!$this->form_repository) {
                 return new \WP_Error(
                     'repository_not_found',
-                    __('Form repository not available', 'wp-ffcertificate'),
+                    __('Form repository not available', 'ffcertificate'),
                     array('status' => 500)
                 );
             }
@@ -150,7 +150,7 @@ class FormRestController {
             if (!$form || $form->post_type !== 'ffc_form') {
                 return new \WP_Error(
                     'form_not_found',
-                    __('Form not found', 'wp-ffcertificate'),
+                    __('Form not found', 'ffcertificate'),
                     array('status' => 404)
                 );
             }
@@ -158,7 +158,7 @@ class FormRestController {
             if ($form->post_status !== 'publish') {
                 return new \WP_Error(
                     'form_not_published',
-                    __('Form is not published', 'wp-ffcertificate'),
+                    __('Form is not published', 'ffcertificate'),
                     array('status' => 403)
                 );
             }

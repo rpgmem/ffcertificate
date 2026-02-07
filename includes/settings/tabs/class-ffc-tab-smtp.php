@@ -22,7 +22,7 @@ class TabSMTP extends SettingsTab {
 
     protected function init(): void {
         $this->tab_id = 'smtp';
-        $this->tab_title = __( 'SMTP', 'wp-ffcertificate' );
+        $this->tab_title = __( 'SMTP', 'ffcertificate' );
         $this->tab_icon = '📧';
         $this->tab_order = 30;
 
@@ -59,7 +59,7 @@ class TabSMTP extends SettingsTab {
             include $view_file;
         } else {
             echo '<div class="notice notice-error"><p>';
-            echo esc_html__( 'SMTP settings view file not found.', 'wp-ffcertificate' );
+            echo esc_html__( 'SMTP settings view file not found.', 'ffcertificate' );
             echo '</p></div>';
         }
     }

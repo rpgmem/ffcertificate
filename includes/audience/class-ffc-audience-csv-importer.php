@@ -47,14 +47,14 @@ class AudienceCsvImporter {
         );
 
         if (!file_exists($file_path) || !is_readable($file_path)) {
-            $result['errors'][] = __('File not found or not readable.', 'wp-ffcertificate');
+            $result['errors'][] = __('File not found or not readable.', 'ffcertificate');
             return $result;
         }
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
         $handle = fopen($file_path, 'r');
         if (!$handle) {
-            $result['errors'][] = __('Could not open file.', 'wp-ffcertificate');
+            $result['errors'][] = __('Could not open file.', 'ffcertificate');
             return $result;
         }
 
@@ -63,7 +63,7 @@ class AudienceCsvImporter {
         if (!$header) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
             fclose($handle);
-            $result['errors'][] = __('Empty file or invalid CSV format.', 'wp-ffcertificate');
+            $result['errors'][] = __('Empty file or invalid CSV format.', 'ffcertificate');
             return $result;
         }
 
@@ -83,7 +83,7 @@ class AudienceCsvImporter {
         if ($email_col === false) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
             fclose($handle);
-            $result['errors'][] = __('Required column "email" not found in CSV.', 'wp-ffcertificate');
+            $result['errors'][] = __('Required column "email" not found in CSV.', 'ffcertificate');
             return $result;
         }
 
@@ -91,7 +91,7 @@ class AudienceCsvImporter {
         if ($audience_id === 0 && $audience_col === false && $audience_name_col === false) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
             fclose($handle);
-            $result['errors'][] = __('No audience specified. Provide audience_id parameter or include audience_id/audience_name column in CSV.', 'wp-ffcertificate');
+            $result['errors'][] = __('No audience specified. Provide audience_id parameter or include audience_id/audience_name column in CSV.', 'ffcertificate');
             return $result;
         }
 
@@ -109,7 +109,7 @@ class AudienceCsvImporter {
 
             if (empty($email) || !is_email($email)) {
                 /* translators: %d: row number */
-                $result['errors'][] = sprintf(__('Row %d: Invalid email address.', 'wp-ffcertificate'), $row_num);
+                $result['errors'][] = sprintf(__('Row %d: Invalid email address.', 'ffcertificate'), $row_num);
                 $result['skipped']++;
                 continue;
             }
@@ -127,7 +127,7 @@ class AudienceCsvImporter {
 
             if ($target_audience_id === 0) {
                 /* translators: %d: row number */
-                $result['errors'][] = sprintf(__('Row %d: Could not determine audience.', 'wp-ffcertificate'), $row_num);
+                $result['errors'][] = sprintf(__('Row %d: Could not determine audience.', 'ffcertificate'), $row_num);
                 $result['skipped']++;
                 continue;
             }
@@ -140,13 +140,13 @@ class AudienceCsvImporter {
                     $user_id = self::create_ffc_user($email, $name);
                     if (is_wp_error($user_id)) {
                         /* translators: %1$d: row number, %2$s: error message */
-                        $result['errors'][] = sprintf(__('Row %1$d: Could not create user: %2$s', 'wp-ffcertificate'), $row_num, $user_id->get_error_message());
+                        $result['errors'][] = sprintf(__('Row %1$d: Could not create user: %2$s', 'ffcertificate'), $row_num, $user_id->get_error_message());
                         $result['skipped']++;
                         continue;
                     }
                 } else {
                     /* translators: %1$d: row number, %2$s: email address */
-                    $result['errors'][] = sprintf(__('Row %1$d: User not found: %2$s', 'wp-ffcertificate'), $row_num, $email);
+                    $result['errors'][] = sprintf(__('Row %1$d: User not found: %2$s', 'ffcertificate'), $row_num, $email);
                     $result['skipped']++;
                     continue;
                 }
@@ -186,14 +186,14 @@ class AudienceCsvImporter {
         );
 
         if (!file_exists($file_path) || !is_readable($file_path)) {
-            $result['errors'][] = __('File not found or not readable.', 'wp-ffcertificate');
+            $result['errors'][] = __('File not found or not readable.', 'ffcertificate');
             return $result;
         }
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
         $handle = fopen($file_path, 'r');
         if (!$handle) {
-            $result['errors'][] = __('Could not open file.', 'wp-ffcertificate');
+            $result['errors'][] = __('Could not open file.', 'ffcertificate');
             return $result;
         }
 
@@ -202,7 +202,7 @@ class AudienceCsvImporter {
         if (!$header) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
             fclose($handle);
-            $result['errors'][] = __('Empty file or invalid CSV format.', 'wp-ffcertificate');
+            $result['errors'][] = __('Empty file or invalid CSV format.', 'ffcertificate');
             return $result;
         }
 
@@ -220,7 +220,7 @@ class AudienceCsvImporter {
         if ($name_col === false) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
             fclose($handle);
-            $result['errors'][] = __('Required column "name" not found in CSV.', 'wp-ffcertificate');
+            $result['errors'][] = __('Required column "name" not found in CSV.', 'ffcertificate');
             return $result;
         }
 
@@ -240,7 +240,7 @@ class AudienceCsvImporter {
 
             if (empty($name)) {
                 /* translators: %d: row number */
-                $result['errors'][] = sprintf(__('Row %d: Empty name.', 'wp-ffcertificate'), $row_num);
+                $result['errors'][] = sprintf(__('Row %d: Empty name.', 'ffcertificate'), $row_num);
                 $result['skipped']++;
                 continue;
             }
@@ -278,7 +278,7 @@ class AudienceCsvImporter {
                 $result['imported']++;
             } else {
                 /* translators: %d: row number */
-                $result['errors'][] = sprintf(__('Row %d: Could not create audience.', 'wp-ffcertificate'), $audience_data['row']);
+                $result['errors'][] = sprintf(__('Row %d: Could not create audience.', 'ffcertificate'), $audience_data['row']);
                 $result['skipped']++;
             }
         }
@@ -298,7 +298,7 @@ class AudienceCsvImporter {
             $parent_id = self::get_audience_id_by_name($audience_data['parent_name']);
             if (!$parent_id) {
                 /* translators: %1$d: row number, %2$s: parent audience name */
-                $result['errors'][] = sprintf(__('Row %1$d: Parent audience "%2$s" not found.', 'wp-ffcertificate'), $audience_data['row'], $audience_data['parent_name']);
+                $result['errors'][] = sprintf(__('Row %1$d: Parent audience "%2$s" not found.', 'ffcertificate'), $audience_data['row'], $audience_data['parent_name']);
                 $result['skipped']++;
                 continue;
             }
@@ -313,7 +313,7 @@ class AudienceCsvImporter {
                 $result['imported']++;
             } else {
                 /* translators: %d: row number */
-                $result['errors'][] = sprintf(__('Row %d: Could not create audience.', 'wp-ffcertificate'), $audience_data['row']);
+                $result['errors'][] = sprintf(__('Row %d: Could not create audience.', 'ffcertificate'), $audience_data['row']);
                 $result['skipped']++;
             }
         }
@@ -403,14 +403,14 @@ class AudienceCsvImporter {
         );
 
         if (!file_exists($file_path) || !is_readable($file_path)) {
-            $result['errors'][] = __('File not found or not readable.', 'wp-ffcertificate');
+            $result['errors'][] = __('File not found or not readable.', 'ffcertificate');
             return $result;
         }
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
         $handle = fopen($file_path, 'r');
         if (!$handle) {
-            $result['errors'][] = __('Could not open file.', 'wp-ffcertificate');
+            $result['errors'][] = __('Could not open file.', 'ffcertificate');
             return $result;
         }
 
@@ -419,7 +419,7 @@ class AudienceCsvImporter {
         if (!$header) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
             fclose($handle);
-            $result['errors'][] = __('Empty file or invalid CSV format.', 'wp-ffcertificate');
+            $result['errors'][] = __('Empty file or invalid CSV format.', 'ffcertificate');
             return $result;
         }
 
@@ -428,11 +428,11 @@ class AudienceCsvImporter {
         // Check required columns
         if ($type === 'members') {
             if (!in_array('email', $header, true)) {
-                $result['errors'][] = __('Required column "email" not found.', 'wp-ffcertificate');
+                $result['errors'][] = __('Required column "email" not found.', 'ffcertificate');
             }
         } else {
             if (!in_array('name', $header, true)) {
-                $result['errors'][] = __('Required column "name" not found.', 'wp-ffcertificate');
+                $result['errors'][] = __('Required column "name" not found.', 'ffcertificate');
             }
         }
 

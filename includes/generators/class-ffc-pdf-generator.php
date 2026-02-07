@@ -46,7 +46,7 @@ class PdfGenerator {
         $submission = $submission_handler->get_submission( $submission_id );
         
         if ( ! $submission ) {
-            return new WP_Error( 'submission_not_found', __( 'Submission not found.', 'wp-ffcertificate' ) );
+            return new WP_Error( 'submission_not_found', __( 'Submission not found.', 'ffcertificate' ) );
         }
         
         // Convert to array
@@ -504,7 +504,7 @@ class PdfGenerator {
     private function generate_default_html( array $data, string $form_title ): string {
         $layout = '<div style="text-align:center; padding: 50px;">';
         $layout .= '<h1>' . esc_html( $form_title ) . '</h1>';
-        $layout .= '<p>' . esc_html__( 'We certify that the holder of the data below has completed the event.', 'wp-ffcertificate' ) . '</p>';
+        $layout .= '<p>' . esc_html__( 'We certify that the holder of the data below has completed the event.', 'ffcertificate' ) . '</p>';
         
         // Show name if exists
         if ( isset( $data['name'] ) ) {
@@ -513,7 +513,7 @@ class PdfGenerator {
         
         // Show auth code if exists
         if ( isset( $data['auth_code'] ) ) {
-            $layout .= '<p>' . esc_html__( 'Authenticity:', 'wp-ffcertificate' ) . ' ' . esc_html( \FreeFormCertificate\Core\Utils::format_auth_code( $data['auth_code'] ) ) . '</p>';
+            $layout .= '<p>' . esc_html__( 'Authenticity:', 'ffcertificate' ) . ' ' . esc_html( \FreeFormCertificate\Core\Utils::format_auth_code( $data['auth_code'] ) ) . '</p>';
         }
         
         $layout .= '</div>';
@@ -564,7 +564,7 @@ class PdfGenerator {
         // Get form data
         $form_post = get_post( $form_id );
         if ( ! $form_post ) {
-            return new WP_Error( 'form_not_found', __( 'Form not found.', 'wp-ffcertificate' ) );
+            return new WP_Error( 'form_not_found', __( 'Form not found.', 'ffcertificate' ) );
         }
         
         $form_title = $form_post->post_title;
@@ -627,7 +627,7 @@ class PdfGenerator {
         $time_format = get_option( 'time_format' );
 
         // Format appointment date
-        $formatted_date = __( 'N/A', 'wp-ffcertificate' );
+        $formatted_date = __( 'N/A', 'ffcertificate' );
         if ( ! empty( $appointment['appointment_date'] ) ) {
             $ts = strtotime( $appointment['appointment_date'] );
             if ( $ts !== false ) {
@@ -636,7 +636,7 @@ class PdfGenerator {
         }
 
         // Format time range
-        $formatted_time = __( 'N/A', 'wp-ffcertificate' );
+        $formatted_time = __( 'N/A', 'ffcertificate' );
         if ( ! empty( $appointment['start_time'] ) ) {
             $ts = strtotime( $appointment['start_time'] );
             if ( $ts !== false ) {
@@ -651,7 +651,7 @@ class PdfGenerator {
         }
 
         // Format created_at
-        $formatted_created = __( 'N/A', 'wp-ffcertificate' );
+        $formatted_created = __( 'N/A', 'ffcertificate' );
         if ( ! empty( $appointment['created_at'] ) ) {
             $ts = strtotime( $appointment['created_at'] );
             if ( $ts !== false ) {
@@ -684,11 +684,11 @@ class PdfGenerator {
 
         // Status labels
         $status_labels = array(
-            'pending'   => __( 'Pending Approval', 'wp-ffcertificate' ),
-            'confirmed' => __( 'Confirmed', 'wp-ffcertificate' ),
-            'cancelled' => __( 'Cancelled', 'wp-ffcertificate' ),
-            'completed' => __( 'Completed', 'wp-ffcertificate' ),
-            'no_show'   => __( 'No Show', 'wp-ffcertificate' ),
+            'pending'   => __( 'Pending Approval', 'ffcertificate' ),
+            'confirmed' => __( 'Confirmed', 'ffcertificate' ),
+            'cancelled' => __( 'Cancelled', 'ffcertificate' ),
+            'completed' => __( 'Completed', 'ffcertificate' ),
+            'no_show'   => __( 'No Show', 'ffcertificate' ),
         );
         $status = $appointment['status'] ?? 'pending';
         $status_label = $status_labels[ $status ] ?? $status;
@@ -698,7 +698,7 @@ class PdfGenerator {
             'name'              => $appointment['name'] ?? '',
             'email'             => $email,
             'cpf_rf'            => $cpf_rf,
-            'calendar_title'    => $calendar['title'] ?? __( 'N/A', 'wp-ffcertificate' ),
+            'calendar_title'    => $calendar['title'] ?? __( 'N/A', 'ffcertificate' ),
             'appointment_date'  => $formatted_date,
             'appointment_time'  => $formatted_time,
             'created_at'        => $formatted_created,
@@ -726,12 +726,12 @@ class PdfGenerator {
         );
 
         // Generate HTML using the existing generate_html() method
-        $calendar_title = $calendar['title'] ?? __( 'Appointment Receipt', 'wp-ffcertificate' );
+        $calendar_title = $calendar['title'] ?? __( 'Appointment Receipt', 'ffcertificate' );
         $html = $this->generate_html( $data, $calendar_title, $form_config, $appointment['created_at'] ?? null );
 
         // Generate filename
         $validation_code = $appointment['validation_code'] ?? '';
-        $safe_title = __( 'Appointment_Receipt', 'wp-ffcertificate' );
+        $safe_title = __( 'Appointment_Receipt', 'ffcertificate' );
         $filename = $this->generate_filename( $safe_title, $validation_code );
 
         // Allow background image customization via filter
@@ -773,12 +773,12 @@ class PdfGenerator {
 
         // Fallback: minimal receipt template
         return '<div style="width:1123px;height:794px;padding:60px;box-sizing:border-box;font-family:Arial,sans-serif">'
-            . '<h1 style="text-align:center;color:#0073aa">' . esc_html__( 'Appointment Receipt', 'wp-ffcertificate' ) . '</h1>'
-            . '<p><strong>' . esc_html__( 'Name:', 'wp-ffcertificate' ) . '</strong> {{name}}</p>'
-            . '<p><strong>' . esc_html__( 'Event:', 'wp-ffcertificate' ) . '</strong> {{calendar_title}}</p>'
-            . '<p><strong>' . esc_html__( 'Date:', 'wp-ffcertificate' ) . '</strong> {{appointment_date}}</p>'
-            . '<p><strong>' . esc_html__( 'Time:', 'wp-ffcertificate' ) . '</strong> {{appointment_time}}</p>'
-            . '<p><strong>' . esc_html__( 'Validation Code:', 'wp-ffcertificate' ) . '</strong> {{validation_code}}</p>'
+            . '<h1 style="text-align:center;color:#0073aa">' . esc_html__( 'Appointment Receipt', 'ffcertificate' ) . '</h1>'
+            . '<p><strong>' . esc_html__( 'Name:', 'ffcertificate' ) . '</strong> {{name}}</p>'
+            . '<p><strong>' . esc_html__( 'Event:', 'ffcertificate' ) . '</strong> {{calendar_title}}</p>'
+            . '<p><strong>' . esc_html__( 'Date:', 'ffcertificate' ) . '</strong> {{appointment_date}}</p>'
+            . '<p><strong>' . esc_html__( 'Time:', 'ffcertificate' ) . '</strong> {{appointment_time}}</p>'
+            . '<p><strong>' . esc_html__( 'Validation Code:', 'ffcertificate' ) . '</strong> {{validation_code}}</p>'
             . '</div>';
     }
 }

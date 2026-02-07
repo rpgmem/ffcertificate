@@ -61,7 +61,7 @@ class FormEditor {
             'ffc-geofence-admin',
             'ffc_geofence_admin',
             array(
-                'alert_message' => __( 'At least one geolocation method (GPS or IP) must be enabled when geolocation is active.', 'wp-ffcertificate' )
+                'alert_message' => __( 'At least one geolocation method (GPS or IP) must be enabled when geolocation is active.', 'ffcertificate' )
             )
         );
     }
@@ -80,7 +80,7 @@ class FormEditor {
         // Main metaboxes (content area) - Delegated to Metabox Renderer
         add_meta_box(
             'ffc_box_layout',
-            __( '1. Certificate Layout', 'wp-ffcertificate' ),
+            __( '1. Certificate Layout', 'ffcertificate' ),
             array( $this->metabox_renderer, 'render_box_layout' ),
             'ffc_form',
             'normal',
@@ -89,7 +89,7 @@ class FormEditor {
 
         add_meta_box(
             'ffc_box_builder',
-            __( '2. Form Builder (Fields)', 'wp-ffcertificate' ),
+            __( '2. Form Builder (Fields)', 'ffcertificate' ),
             array( $this->metabox_renderer, 'render_box_builder' ),
             'ffc_form',
             'normal',
@@ -98,7 +98,7 @@ class FormEditor {
 
         add_meta_box(
             'ffc_box_restriction',
-            __( '3. Restriction & Security', 'wp-ffcertificate' ),
+            __( '3. Restriction & Security', 'ffcertificate' ),
             array( $this->metabox_renderer, 'render_box_restriction' ),
             'ffc_form',
             'normal',
@@ -107,7 +107,7 @@ class FormEditor {
 
         add_meta_box(
             'ffc_box_email',
-            __( '4. Email Configuration', 'wp-ffcertificate' ),
+            __( '4. Email Configuration', 'ffcertificate' ),
             array( $this->metabox_renderer, 'render_box_email' ),
             'ffc_form',
             'normal',
@@ -116,7 +116,7 @@ class FormEditor {
 
         add_meta_box(
             'ffc_box_geofence',
-            __( '5. Geolocation & Date/Time Restrictions', 'wp-ffcertificate' ),
+            __( '5. Geolocation & Date/Time Restrictions', 'ffcertificate' ),
             array( $this->metabox_renderer, 'render_box_geofence' ),
             'ffc_form',
             'normal',
@@ -126,7 +126,7 @@ class FormEditor {
         // Sidebar metabox (shortcode + instructions) - Delegated to Metabox Renderer
         add_meta_box(
             'ffc_form_shortcode',
-            __( 'How to Use / Shortcode', 'wp-ffcertificate' ),
+            __( 'How to Use / Shortcode', 'ffcertificate' ),
             array( $this->metabox_renderer, 'render_shortcode_metabox' ),
             'ffc_form',
             'side',

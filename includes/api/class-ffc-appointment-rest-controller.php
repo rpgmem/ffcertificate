@@ -97,7 +97,7 @@ class AppointmentRestController {
             if (empty($params)) {
                 return new \WP_Error(
                     'no_data',
-                    __('No data provided in request body', 'wp-ffcertificate'),
+                    __('No data provided in request body', 'ffcertificate'),
                     array('status' => 400)
                 );
             }
@@ -108,7 +108,7 @@ class AppointmentRestController {
                     return new \WP_Error(
                         'missing_field',
                         /* translators: %s: field name */
-                        sprintf(__('Missing required field: %s', 'wp-ffcertificate'), $field),
+                        sprintf(__('Missing required field: %s', 'ffcertificate'), $field),
                         array('status' => 400)
                     );
                 }
@@ -117,7 +117,7 @@ class AppointmentRestController {
             if (!is_email($params['email'])) {
                 return new \WP_Error(
                     'invalid_email',
-                    __('Invalid email address', 'wp-ffcertificate'),
+                    __('Invalid email address', 'ffcertificate'),
                     array('status' => 400)
                 );
             }
@@ -144,7 +144,7 @@ class AppointmentRestController {
             if (!class_exists('\FreeFormCertificate\SelfScheduling\AppointmentHandler')) {
                 return new \WP_Error(
                     'handler_not_found',
-                    __('Appointment handler not available', 'wp-ffcertificate'),
+                    __('Appointment handler not available', 'ffcertificate'),
                     array('status' => 500)
                 );
             }
@@ -158,7 +158,7 @@ class AppointmentRestController {
 
             return rest_ensure_response(array(
                 'success' => true,
-                'message' => __('Appointment booked successfully!', 'wp-ffcertificate'),
+                'message' => __('Appointment booked successfully!', 'ffcertificate'),
                 'appointment_id' => $result['appointment_id'],
                 'requires_approval' => $result['requires_approval'],
             ));
@@ -187,7 +187,7 @@ class AppointmentRestController {
             if (!class_exists('\FreeFormCertificate\Repositories\AppointmentRepository')) {
                 return new \WP_Error(
                     'repository_not_found',
-                    __('Appointment repository not available', 'wp-ffcertificate'),
+                    __('Appointment repository not available', 'ffcertificate'),
                     array('status' => 500)
                 );
             }
@@ -198,7 +198,7 @@ class AppointmentRestController {
             if (!$appointment) {
                 return new \WP_Error(
                     'appointment_not_found',
-                    __('Appointment not found', 'wp-ffcertificate'),
+                    __('Appointment not found', 'ffcertificate'),
                     array('status' => 404)
                 );
             }
@@ -259,7 +259,7 @@ class AppointmentRestController {
             if (!class_exists('\FreeFormCertificate\SelfScheduling\AppointmentHandler')) {
                 return new \WP_Error(
                     'handler_not_found',
-                    __('Appointment handler not available', 'wp-ffcertificate'),
+                    __('Appointment handler not available', 'ffcertificate'),
                     array('status' => 500)
                 );
             }
@@ -273,7 +273,7 @@ class AppointmentRestController {
 
             return rest_ensure_response(array(
                 'success' => true,
-                'message' => __('Appointment cancelled successfully', 'wp-ffcertificate'),
+                'message' => __('Appointment cancelled successfully', 'ffcertificate'),
             ));
 
         } catch (\Exception $e) {

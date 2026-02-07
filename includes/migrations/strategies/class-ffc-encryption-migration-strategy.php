@@ -115,7 +115,7 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
                 'success' => true,
                 'processed' => 0,
                 'has_more' => false,
-                'message' => __( 'No submissions to encrypt', 'wp-ffcertificate' )
+                'message' => __( 'No submissions to encrypt', 'ffcertificate' )
             );
         }
 
@@ -215,7 +215,7 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
             'processed' => $migrated,
             'has_more' => $has_more,
             /* translators: %d: number of records */
-            'message' => sprintf( __( 'Encrypted %d submissions', 'wp-ffcertificate' ), $migrated ),
+            'message' => sprintf( __( 'Encrypted %d submissions', 'ffcertificate' ), $migrated ),
             'errors' => $errors
         );
     }
@@ -232,7 +232,7 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
         if ( ! class_exists( '\\FreeFormCertificate\\Core\\Encryption' ) ) {
             return new WP_Error(
                 'encryption_class_missing',
-                __( 'FFC_Encryption class not found. Please ensure class-ffc-encryption.php is loaded.', 'wp-ffcertificate' )
+                __( 'FFC_Encryption class not found. Please ensure class-ffc-encryption.php is loaded.', 'ffcertificate' )
             );
         }
 
@@ -240,7 +240,7 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
         if ( ! \FreeFormCertificate\Core\Encryption::is_configured() ) {
             return new WP_Error(
                 'encryption_not_configured',
-                __( 'Encryption keys not configured. WordPress SECURE_AUTH_KEY and LOGGED_IN_KEY are required.', 'wp-ffcertificate' )
+                __( 'Encryption keys not configured. WordPress SECURE_AUTH_KEY and LOGGED_IN_KEY are required.', 'ffcertificate' )
             );
         }
 
@@ -269,6 +269,6 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
      * @return string
      */
     public function get_name(): string {
-        return __( 'Encryption Migration Strategy', 'wp-ffcertificate' );
+        return __( 'Encryption Migration Strategy', 'ffcertificate' );
     }
 }

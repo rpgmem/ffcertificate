@@ -70,8 +70,8 @@ class AudienceAdminAudience {
         $add_url = admin_url('admin.php?page=' . $this->menu_slug . '-audiences&action=new');
 
         ?>
-        <h1 class="wp-heading-inline"><?php esc_html_e('Audiences', 'wp-ffcertificate'); ?></h1>
-        <a href="<?php echo esc_url($add_url); ?>" class="page-title-action"><?php esc_html_e('Add New', 'wp-ffcertificate'); ?></a>
+        <h1 class="wp-heading-inline"><?php esc_html_e('Audiences', 'ffcertificate'); ?></h1>
+        <a href="<?php echo esc_url($add_url); ?>" class="page-title-action"><?php esc_html_e('Add New', 'ffcertificate'); ?></a>
         <hr class="wp-header-end">
 
         <?php settings_errors('ffc_audience'); ?>
@@ -79,17 +79,17 @@ class AudienceAdminAudience {
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
-                    <th scope="col" class="column-name"><?php esc_html_e('Name', 'wp-ffcertificate'); ?></th>
-                    <th scope="col" class="column-color"><?php esc_html_e('Color', 'wp-ffcertificate'); ?></th>
-                    <th scope="col" class="column-members"><?php esc_html_e('Members', 'wp-ffcertificate'); ?></th>
-                    <th scope="col" class="column-status"><?php esc_html_e('Status', 'wp-ffcertificate'); ?></th>
-                    <th scope="col" class="column-actions"><?php esc_html_e('Actions', 'wp-ffcertificate'); ?></th>
+                    <th scope="col" class="column-name"><?php esc_html_e('Name', 'ffcertificate'); ?></th>
+                    <th scope="col" class="column-color"><?php esc_html_e('Color', 'ffcertificate'); ?></th>
+                    <th scope="col" class="column-members"><?php esc_html_e('Members', 'ffcertificate'); ?></th>
+                    <th scope="col" class="column-status"><?php esc_html_e('Status', 'ffcertificate'); ?></th>
+                    <th scope="col" class="column-actions"><?php esc_html_e('Actions', 'ffcertificate'); ?></th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($audiences)) : ?>
                     <tr>
-                        <td colspan="5"><?php esc_html_e('No audiences found.', 'wp-ffcertificate'); ?></td>
+                        <td colspan="5"><?php esc_html_e('No audiences found.', 'ffcertificate'); ?></td>
                     </tr>
                 <?php else : ?>
                     <?php foreach ($audiences as $audience) : ?>
@@ -137,14 +137,14 @@ class AudienceAdminAudience {
             </td>
             <td class="column-status">
                 <span class="ffc-status-badge ffc-status-<?php echo esc_attr($audience->status); ?>">
-                    <?php echo $audience->status === 'active' ? esc_html__('Active', 'wp-ffcertificate') : esc_html__('Inactive', 'wp-ffcertificate'); ?>
+                    <?php echo $audience->status === 'active' ? esc_html__('Active', 'ffcertificate') : esc_html__('Inactive', 'ffcertificate'); ?>
                 </span>
             </td>
             <td class="column-actions">
-                <a href="<?php echo esc_url($edit_url); ?>"><?php esc_html_e('Edit', 'wp-ffcertificate'); ?></a> |
-                <a href="<?php echo esc_url($members_url); ?>"><?php esc_html_e('Members', 'wp-ffcertificate'); ?></a> |
-                <a href="<?php echo esc_url($delete_url); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e('Are you sure you want to delete this audience?', 'wp-ffcertificate'); ?>');">
-                    <?php esc_html_e('Delete', 'wp-ffcertificate'); ?>
+                <a href="<?php echo esc_url($edit_url); ?>"><?php esc_html_e('Edit', 'ffcertificate'); ?></a> |
+                <a href="<?php echo esc_url($members_url); ?>"><?php esc_html_e('Members', 'ffcertificate'); ?></a> |
+                <a href="<?php echo esc_url($delete_url); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e('Are you sure you want to delete this audience?', 'ffcertificate'); ?>');">
+                    <?php esc_html_e('Delete', 'ffcertificate'); ?>
                 </a>
             </td>
         </tr>
@@ -159,14 +159,14 @@ class AudienceAdminAudience {
      */
     private function render_form(int $id): void {
         $audience = null;
-        $page_title = __('Add New Audience', 'wp-ffcertificate');
+        $page_title = __('Add New Audience', 'ffcertificate');
 
         if ($id > 0) {
             $audience = AudienceRepository::get_by_id($id);
             if (!$audience) {
-                wp_die(esc_html__('Audience not found.', 'wp-ffcertificate'));
+                wp_die(esc_html__('Audience not found.', 'ffcertificate'));
             }
-            $page_title = __('Edit Audience', 'wp-ffcertificate');
+            $page_title = __('Edit Audience', 'ffcertificate');
         }
 
         $parents = AudienceRepository::get_parents();
@@ -174,7 +174,7 @@ class AudienceAdminAudience {
 
         ?>
         <h1><?php echo esc_html($page_title); ?></h1>
-        <a href="<?php echo esc_url($back_url); ?>">&larr; <?php esc_html_e('Back to Audiences', 'wp-ffcertificate'); ?></a>
+        <a href="<?php echo esc_url($back_url); ?>">&larr; <?php esc_html_e('Back to Audiences', 'ffcertificate'); ?></a>
 
         <?php settings_errors('ffc_audience'); ?>
 
@@ -186,7 +186,7 @@ class AudienceAdminAudience {
             <table class="form-table" role="presentation"><tbody>
                 <tr>
                     <th scope="row">
-                        <label for="audience_name"><?php esc_html_e('Name', 'wp-ffcertificate'); ?> <span class="required">*</span></label>
+                        <label for="audience_name"><?php esc_html_e('Name', 'ffcertificate'); ?> <span class="required">*</span></label>
                     </th>
                     <td>
                         <input type="text" name="audience_name" id="audience_name" class="regular-text"
@@ -195,21 +195,21 @@ class AudienceAdminAudience {
                 </tr>
                 <tr>
                     <th scope="row">
-                        <label for="audience_color"><?php esc_html_e('Color', 'wp-ffcertificate'); ?></label>
+                        <label for="audience_color"><?php esc_html_e('Color', 'ffcertificate'); ?></label>
                     </th>
                     <td>
                         <input type="color" name="audience_color" id="audience_color"
                                value="<?php echo esc_attr($audience->color ?? '#3788d8'); ?>">
-                        <p class="description"><?php esc_html_e('Color used for visual identification in calendars.', 'wp-ffcertificate'); ?></p>
+                        <p class="description"><?php esc_html_e('Color used for visual identification in calendars.', 'ffcertificate'); ?></p>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <label for="audience_parent"><?php esc_html_e('Parent Audience', 'wp-ffcertificate'); ?></label>
+                        <label for="audience_parent"><?php esc_html_e('Parent Audience', 'ffcertificate'); ?></label>
                     </th>
                     <td>
                         <select name="audience_parent" id="audience_parent">
-                            <option value=""><?php esc_html_e('None (top-level audience)', 'wp-ffcertificate'); ?></option>
+                            <option value=""><?php esc_html_e('None (top-level audience)', 'ffcertificate'); ?></option>
                             <?php foreach ($parents as $parent) : ?>
                                 <?php if ($parent->id !== $id) : // Prevent selecting self as parent ?>
                                     <option value="<?php echo esc_attr($parent->id); ?>" <?php selected($audience->parent_id ?? '', $parent->id); ?>>
@@ -218,27 +218,27 @@ class AudienceAdminAudience {
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </select>
-                        <p class="description"><?php esc_html_e('Select a parent to create a sub-group (2-level hierarchy only).', 'wp-ffcertificate'); ?></p>
+                        <p class="description"><?php esc_html_e('Select a parent to create a sub-group (2-level hierarchy only).', 'ffcertificate'); ?></p>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <label for="audience_status"><?php esc_html_e('Status', 'wp-ffcertificate'); ?></label>
+                        <label for="audience_status"><?php esc_html_e('Status', 'ffcertificate'); ?></label>
                     </th>
                     <td>
                         <select name="audience_status" id="audience_status">
                             <option value="active" <?php selected($audience->status ?? 'active', 'active'); ?>>
-                                <?php esc_html_e('Active', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('Active', 'ffcertificate'); ?>
                             </option>
                             <option value="inactive" <?php selected($audience->status ?? '', 'inactive'); ?>>
-                                <?php esc_html_e('Inactive', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('Inactive', 'ffcertificate'); ?>
                             </option>
                         </select>
                     </td>
                 </tr>
             </tbody></table>
 
-            <?php submit_button($id > 0 ? __('Update Audience', 'wp-ffcertificate') : __('Create Audience', 'wp-ffcertificate')); ?>
+            <?php submit_button($id > 0 ? __('Update Audience', 'ffcertificate') : __('Create Audience', 'ffcertificate')); ?>
         </form>
         <?php
     }
@@ -252,48 +252,48 @@ class AudienceAdminAudience {
     private function render_members(int $id): void {
         $audience = AudienceRepository::get_by_id($id);
         if (!$audience) {
-            wp_die(esc_html__('Audience not found.', 'wp-ffcertificate'));
+            wp_die(esc_html__('Audience not found.', 'ffcertificate'));
         }
 
         $members = AudienceRepository::get_members((int) $audience->id);
         $back_url = admin_url('admin.php?page=' . $this->menu_slug . '-audiences');
 
         ?>
-        <h1><?php /* translators: %s: audience name */ echo esc_html(sprintf(__('Members of %s', 'wp-ffcertificate'), $audience->name)); ?></h1>
-        <a href="<?php echo esc_url($back_url); ?>">&larr; <?php esc_html_e('Back to Audiences', 'wp-ffcertificate'); ?></a>
+        <h1><?php /* translators: %s: audience name */ echo esc_html(sprintf(__('Members of %s', 'ffcertificate'), $audience->name)); ?></h1>
+        <a href="<?php echo esc_url($back_url); ?>">&larr; <?php esc_html_e('Back to Audiences', 'ffcertificate'); ?></a>
 
         <?php settings_errors('ffc_audience'); ?>
 
         <div class="ffc-members-section">
-            <h2><?php esc_html_e('Add Members', 'wp-ffcertificate'); ?></h2>
+            <h2><?php esc_html_e('Add Members', 'ffcertificate'); ?></h2>
             <form method="post" action="">
                 <?php wp_nonce_field('add_members', 'ffc_add_members_nonce'); ?>
                 <input type="hidden" name="audience_id" value="<?php echo esc_attr($id); ?>">
                 <input type="hidden" name="ffc_action" value="add_members">
 
                 <p>
-                    <label for="user_search"><?php esc_html_e('Search users:', 'wp-ffcertificate'); ?></label>
-                    <input type="text" id="user_search" class="regular-text" placeholder="<?php esc_attr_e('Type to search...', 'wp-ffcertificate'); ?>">
+                    <label for="user_search"><?php esc_html_e('Search users:', 'ffcertificate'); ?></label>
+                    <input type="text" id="user_search" class="regular-text" placeholder="<?php esc_attr_e('Type to search...', 'ffcertificate'); ?>">
                 </p>
                 <div id="user_results" class="ffc-user-results"></div>
                 <input type="hidden" name="user_ids" id="selected_user_ids" value="">
                 <div id="selected_users" class="ffc-selected-users"></div>
-                <?php submit_button(__('Add Selected Members', 'wp-ffcertificate'), 'primary', 'add_members', false); ?>
+                <?php submit_button(__('Add Selected Members', 'ffcertificate'), 'primary', 'add_members', false); ?>
             </form>
         </div>
 
         <div class="ffc-members-section">
-            <h2><?php esc_html_e('Current Members', 'wp-ffcertificate'); ?> (<?php echo count($members); ?>)</h2>
+            <h2><?php esc_html_e('Current Members', 'ffcertificate'); ?> (<?php echo count($members); ?>)</h2>
 
             <?php if (empty($members)) : ?>
-                <p><?php esc_html_e('No members yet.', 'wp-ffcertificate'); ?></p>
+                <p><?php esc_html_e('No members yet.', 'ffcertificate'); ?></p>
             <?php else : ?>
                 <table class="wp-list-table widefat fixed striped">
                     <thead>
                         <tr>
-                            <th><?php esc_html_e('User', 'wp-ffcertificate'); ?></th>
-                            <th><?php esc_html_e('Email', 'wp-ffcertificate'); ?></th>
-                            <th class="column-actions"><?php esc_html_e('Actions', 'wp-ffcertificate'); ?></th>
+                            <th><?php esc_html_e('User', 'ffcertificate'); ?></th>
+                            <th><?php esc_html_e('Email', 'ffcertificate'); ?></th>
+                            <th class="column-actions"><?php esc_html_e('Actions', 'ffcertificate'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -310,8 +310,8 @@ class AudienceAdminAudience {
                                     <td><?php echo esc_html($user->display_name); ?></td>
                                     <td><?php echo esc_html($user->user_email); ?></td>
                                     <td class="column-actions">
-                                        <a href="<?php echo esc_url($remove_url); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e('Remove this member?', 'wp-ffcertificate'); ?>');">
-                                            <?php esc_html_e('Remove', 'wp-ffcertificate'); ?>
+                                        <a href="<?php echo esc_url($remove_url); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e('Remove this member?', 'ffcertificate'); ?>');">
+                                            <?php esc_html_e('Remove', 'ffcertificate'); ?>
                                         </a>
                                     </td>
                                 </tr>
@@ -353,7 +353,7 @@ class AudienceAdminAudience {
 
             if ($id > 0) {
                 AudienceRepository::update($id, $data);
-                add_settings_error('ffc_audience', 'ffc_message', __('Audience updated successfully.', 'wp-ffcertificate'), 'success');
+                add_settings_error('ffc_audience', 'ffc_message', __('Audience updated successfully.', 'ffcertificate'), 'success');
             } else {
                 $new_id = AudienceRepository::create($data);
                 if ($new_id) {
@@ -376,7 +376,7 @@ class AudienceAdminAudience {
                 $user_ids = array_map('absint', explode(',', $user_ids_string));
                 $added = AudienceRepository::bulk_add_members($audience_id, $user_ids);
                 /* translators: %d: number of members added */
-                add_settings_error('ffc_audience', 'ffc_message', sprintf(__('%d member(s) added successfully.', 'wp-ffcertificate'), $added), 'success');
+                add_settings_error('ffc_audience', 'ffc_message', sprintf(__('%d member(s) added successfully.', 'ffcertificate'), $added), 'success');
             }
         }
 

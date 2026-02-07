@@ -101,7 +101,7 @@
     function loadTemplateFile(filename, displayName) {
         console.log('[FFC] Loading template:', filename);
 
-        var templateUrl = '/wp-content/plugins/wp-ffcertificate/html/' + filename;
+        var templateUrl = '/wp-content/plugins/ffcertificate/html/' + filename;
         var showNotification = window.FFC.Admin.showNotification || function() {};
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 

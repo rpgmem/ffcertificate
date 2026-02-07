@@ -22,7 +22,7 @@ class TabMigrations extends SettingsTab {
 
     protected function init(): void {
         $this->tab_id = 'migrations';
-        $this->tab_title = __( 'Data Migrations', 'wp-ffcertificate' );
+        $this->tab_title = __( 'Data Migrations', 'ffcertificate' );
         $this->tab_icon = '🔄';
         $this->tab_order = 50;
     }
@@ -35,7 +35,7 @@ class TabMigrations extends SettingsTab {
             include $view_file;
         } else {
             echo '<div class="notice notice-error"><p>';
-            echo esc_html__( 'Migrations view file not found.', 'wp-ffcertificate' );
+            echo esc_html__( 'Migrations view file not found.', 'ffcertificate' );
             echo '</p></div>';
         }
     }

@@ -49,9 +49,9 @@ class AdminUserColumns {
             $new_columns[$key] = $value;
 
             if ($key === 'posts') {
-                $new_columns['ffc_certificates'] = __('Certificates', 'wp-ffcertificate');
-                $new_columns['ffc_appointments'] = __('Appointments', 'wp-ffcertificate');
-                $new_columns['ffc_user_actions'] = __('User Actions', 'wp-ffcertificate');
+                $new_columns['ffc_certificates'] = __('Certificates', 'ffcertificate');
+                $new_columns['ffc_appointments'] = __('Appointments', 'ffcertificate');
+                $new_columns['ffc_user_actions'] = __('User Actions', 'ffcertificate');
             }
         }
 
@@ -98,7 +98,7 @@ class AdminUserColumns {
         return sprintf(
             '<strong>%d</strong> %s',
             $count,
-            _n('certificate', 'certificates', $count, 'wp-ffcertificate')
+            _n('certificate', 'certificates', $count, 'ffcertificate')
         );
     }
 
@@ -118,7 +118,7 @@ class AdminUserColumns {
         return sprintf(
             '<strong>%d</strong> %s',
             $count,
-            _n('appointment', 'appointments', $count, 'wp-ffcertificate')
+            _n('appointment', 'appointments', $count, 'ffcertificate')
         );
     }
 
@@ -144,8 +144,8 @@ class AdminUserColumns {
         return sprintf(
             '<a href="%s" class="ffc-view-as-user button button-small" target="_blank" title="%s">%s</a>',
             esc_url($view_as_url),
-            esc_attr__('View dashboard as this user', 'wp-ffcertificate'),
-            __('Login as User', 'wp-ffcertificate')
+            esc_attr__('View dashboard as this user', 'ffcertificate'),
+            __('Login as User', 'ffcertificate')
         );
     }
 

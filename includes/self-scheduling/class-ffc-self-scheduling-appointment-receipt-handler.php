@@ -53,7 +53,7 @@ class AppointmentReceiptHandler {
         $token = get_query_var('token');
 
         if (!$appointment_id) {
-            wp_die(esc_html__('Invalid appointment receipt request.', 'wp-ffcertificate'), 400);
+            wp_die(esc_html__('Invalid appointment receipt request.', 'ffcertificate'), 400);
         }
 
         // Load repositories
@@ -64,7 +64,7 @@ class AppointmentReceiptHandler {
         $appointment = $appointment_repo->findById($appointment_id);
 
         if (!$appointment) {
-            wp_die(esc_html__('Appointment not found.', 'wp-ffcertificate'), 404);
+            wp_die(esc_html__('Appointment not found.', 'ffcertificate'), 404);
         }
 
         // Verify access (either logged in user owns it, admin, or has valid token)
@@ -79,7 +79,7 @@ class AppointmentReceiptHandler {
         }
 
         if (!$has_access) {
-            wp_die(esc_html__('You do not have permission to view this appointment receipt.', 'wp-ffcertificate'), 403);
+            wp_die(esc_html__('You do not have permission to view this appointment receipt.', 'ffcertificate'), 403);
         }
 
         // Get calendar (may be null if deleted)
@@ -92,7 +92,7 @@ class AppointmentReceiptHandler {
         if (!$calendar) {
             $calendar = array(
                 'id' => 0,
-                'title' => __('(Calendar Deleted)', 'wp-ffcertificate'),
+                'title' => __('(Calendar Deleted)', 'ffcertificate'),
                 'description' => '',
             );
         }
@@ -173,7 +173,7 @@ class AppointmentReceiptHandler {
         $time_format = get_option('time_format');
 
         // Validate and format appointment date
-        $appointment_date = __('N/A', 'wp-ffcertificate');
+        $appointment_date = __('N/A', 'ffcertificate');
         if (!empty($appointment['appointment_date'])) {
             $timestamp = strtotime($appointment['appointment_date']);
             if ($timestamp !== false) {
@@ -182,7 +182,7 @@ class AppointmentReceiptHandler {
         }
 
         // Validate and format start time
-        $start_time = __('N/A', 'wp-ffcertificate');
+        $start_time = __('N/A', 'ffcertificate');
         if (!empty($appointment['start_time'])) {
             $timestamp = strtotime($appointment['start_time']);
             if ($timestamp !== false) {
@@ -200,7 +200,7 @@ class AppointmentReceiptHandler {
         }
 
         // Validate and format created at
-        $created_at = __('N/A', 'wp-ffcertificate');
+        $created_at = __('N/A', 'ffcertificate');
         if (!empty($appointment['created_at'])) {
             $timestamp = strtotime($appointment['created_at']);
             if ($timestamp !== false) {
@@ -210,11 +210,11 @@ class AppointmentReceiptHandler {
 
         // Status label with safety check
         $status_labels = array(
-            'pending' => __('Pending Approval', 'wp-ffcertificate'),
-            'confirmed' => __('Confirmed', 'wp-ffcertificate'),
-            'cancelled' => __('Cancelled', 'wp-ffcertificate'),
-            'completed' => __('Completed', 'wp-ffcertificate'),
-            'no_show' => __('No Show', 'wp-ffcertificate'),
+            'pending' => __('Pending Approval', 'ffcertificate'),
+            'confirmed' => __('Confirmed', 'ffcertificate'),
+            'cancelled' => __('Cancelled', 'ffcertificate'),
+            'completed' => __('Completed', 'ffcertificate'),
+            'no_show' => __('No Show', 'ffcertificate'),
         );
         $appointment_status = $appointment['status'] ?? 'pending';
         $status_label = $status_labels[$appointment_status] ?? $appointment_status;
@@ -225,7 +225,7 @@ class AppointmentReceiptHandler {
         <head>
             <meta charset="<?php bloginfo('charset'); ?>">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title><?php echo esc_html__('Appointment Receipt', 'wp-ffcertificate'); ?> #<?php echo esc_html($appointment['id'] ?? '0'); ?></title>
+            <title><?php echo esc_html__('Appointment Receipt', 'ffcertificate'); ?> #<?php echo esc_html($appointment['id'] ?? '0'); ?></title>
             <style>
                 * {
                     margin: 0;
@@ -365,13 +365,13 @@ class AppointmentReceiptHandler {
         </head>
         <body>
             <div class="action-buttons">
-                <button class="action-button" id="ffc-download-pdf-btn">📥 <?php echo esc_html__('Download PDF', 'wp-ffcertificate'); ?></button>
-                <button class="action-button secondary" onclick="window.print()">🖨️ <?php echo esc_html__('Print', 'wp-ffcertificate'); ?></button>
+                <button class="action-button" id="ffc-download-pdf-btn">📥 <?php echo esc_html__('Download PDF', 'ffcertificate'); ?></button>
+                <button class="action-button secondary" onclick="window.print()">🖨️ <?php echo esc_html__('Print', 'ffcertificate'); ?></button>
             </div>
 
             <div class="receipt-container" id="ffc-receipt-content">
                 <div class="header">
-                    <h1><?php echo esc_html__('Appointment Receipt', 'wp-ffcertificate'); ?></h1>
+                    <h1><?php echo esc_html__('Appointment Receipt', 'ffcertificate'); ?></h1>
                     <div class="site-name"><?php bloginfo('name'); ?></div>
                 </div>
 
@@ -382,60 +382,60 @@ class AppointmentReceiptHandler {
                 </div>
 
                 <div class="info-section">
-                    <h2><?php echo esc_html__('Event Details', 'wp-ffcertificate'); ?></h2>
+                    <h2><?php echo esc_html__('Event Details', 'ffcertificate'); ?></h2>
                     <div class="info-row">
-                        <span class="info-label"><?php echo esc_html__('Event:', 'wp-ffcertificate'); ?></span>
-                        <span class="info-value"><?php echo esc_html($calendar['title'] ?? __('N/A', 'wp-ffcertificate')); ?></span>
+                        <span class="info-label"><?php echo esc_html__('Event:', 'ffcertificate'); ?></span>
+                        <span class="info-value"><?php echo esc_html($calendar['title'] ?? __('N/A', 'ffcertificate')); ?></span>
                     </div>
                     <?php if (!empty($calendar['description'])): ?>
                     <div class="info-row">
-                        <span class="info-label"><?php echo esc_html__('Description:', 'wp-ffcertificate'); ?></span>
+                        <span class="info-label"><?php echo esc_html__('Description:', 'ffcertificate'); ?></span>
                         <span class="info-value"><?php echo esc_html($calendar['description']); ?></span>
                     </div>
                     <?php endif; ?>
                 </div>
 
                 <div class="info-section">
-                    <h2><?php echo esc_html__('Appointment Information', 'wp-ffcertificate'); ?></h2>
+                    <h2><?php echo esc_html__('Appointment Information', 'ffcertificate'); ?></h2>
                     <div class="info-row">
-                        <span class="info-label"><?php echo esc_html__('Appointment ID:', 'wp-ffcertificate'); ?></span>
+                        <span class="info-label"><?php echo esc_html__('Appointment ID:', 'ffcertificate'); ?></span>
                         <span class="info-value">#<?php echo esc_html($appointment['id'] ?? '0'); ?></span>
                     </div>
                     <?php if (!empty($appointment['validation_code'])): ?>
                     <div class="info-row">
-                        <span class="info-label"><?php echo esc_html__('Validation Code:', 'wp-ffcertificate'); ?></span>
+                        <span class="info-label"><?php echo esc_html__('Validation Code:', 'ffcertificate'); ?></span>
                         <span class="info-value" style="font-weight: bold; font-size: 1.1em; letter-spacing: 1px;"><?php echo esc_html(\FreeFormCertificate\Core\Utils::format_auth_code($appointment['validation_code'])); ?></span>
                     </div>
                     <?php endif; ?>
                     <div class="info-row">
-                        <span class="info-label"><?php echo esc_html__('Date:', 'wp-ffcertificate'); ?></span>
+                        <span class="info-label"><?php echo esc_html__('Date:', 'ffcertificate'); ?></span>
                         <span class="info-value"><?php echo esc_html($appointment_date); ?></span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label"><?php echo esc_html__('Time:', 'wp-ffcertificate'); ?></span>
+                        <span class="info-label"><?php echo esc_html__('Time:', 'ffcertificate'); ?></span>
                         <span class="info-value"><?php echo esc_html($start_time); ?><?php echo !empty($end_time) ? ' - ' . esc_html($end_time) : ''; ?></span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label"><?php echo esc_html__('Booked on:', 'wp-ffcertificate'); ?></span>
+                        <span class="info-label"><?php echo esc_html__('Booked on:', 'ffcertificate'); ?></span>
                         <span class="info-value"><?php echo esc_html($created_at); ?></span>
                     </div>
                 </div>
 
                 <div class="info-section">
-                    <h2><?php echo esc_html__('Personal Information', 'wp-ffcertificate'); ?></h2>
+                    <h2><?php echo esc_html__('Personal Information', 'ffcertificate'); ?></h2>
                     <div class="info-row">
-                        <span class="info-label"><?php echo esc_html__('Name:', 'wp-ffcertificate'); ?></span>
+                        <span class="info-label"><?php echo esc_html__('Name:', 'ffcertificate'); ?></span>
                         <span class="info-value"><?php echo esc_html($appointment['name'] ?? ''); ?></span>
                     </div>
                     <?php if (!empty($email)): ?>
                     <div class="info-row">
-                        <span class="info-label"><?php echo esc_html__('Email:', 'wp-ffcertificate'); ?></span>
+                        <span class="info-label"><?php echo esc_html__('Email:', 'ffcertificate'); ?></span>
                         <span class="info-value"><?php echo esc_html($email); ?></span>
                     </div>
                     <?php endif; ?>
                     <?php if (!empty($phone)): ?>
                     <div class="info-row">
-                        <span class="info-label"><?php echo esc_html__('Phone:', 'wp-ffcertificate'); ?></span>
+                        <span class="info-label"><?php echo esc_html__('Phone:', 'ffcertificate'); ?></span>
                         <span class="info-value"><?php echo esc_html($phone); ?></span>
                     </div>
                     <?php endif; ?>
@@ -443,7 +443,7 @@ class AppointmentReceiptHandler {
 
                 <?php if (!empty($appointment['user_notes'])): ?>
                 <div class="info-section">
-                    <h2><?php echo esc_html__('Notes', 'wp-ffcertificate'); ?></h2>
+                    <h2><?php echo esc_html__('Notes', 'ffcertificate'); ?></h2>
                     <div class="info-value"><?php echo nl2br(esc_html($appointment['user_notes'])); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- nl2br() on esc_html() output is safe ?></div>
                 </div>
                 <?php endif; ?>
@@ -451,7 +451,7 @@ class AppointmentReceiptHandler {
                 <div class="footer">
                     <p><?php
                     /* translators: %s: date and time of generation */
-                    echo esc_html(sprintf(__('Generated on %s', 'wp-ffcertificate'), date_i18n(get_option('date_format') . ' ' . get_option('time_format')))); ?></p>
+                    echo esc_html(sprintf(__('Generated on %s', 'ffcertificate'), date_i18n(get_option('date_format') . ' ' . get_option('time_format')))); ?></p>
                     <p><?php bloginfo('name'); ?> - <?php bloginfo('url'); ?></p>
                 </div>
             </div>
@@ -487,7 +487,7 @@ class AppointmentReceiptHandler {
                         window.ffcGeneratePDF(pdfData, filename);
                     } else {
                         console.error('FFC PDF Generator not loaded');
-                        alert('<?php echo esc_js(__('Error: PDF generator not loaded. Please refresh the page.', 'wp-ffcertificate')); ?>');
+                        alert('<?php echo esc_js(__('Error: PDF generator not loaded. Please refresh the page.', 'ffcertificate')); ?>');
                     }
                 });
             });

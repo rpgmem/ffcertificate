@@ -22,7 +22,7 @@ class TabDocumentation extends SettingsTab {
 
     protected function init(): void {
         $this->tab_id = 'documentation';
-        $this->tab_title = __( 'Documentation', 'wp-ffcertificate' );
+        $this->tab_title = __( 'Documentation', 'ffcertificate' );
         $this->tab_icon = '📚';
         $this->tab_order = 10;
     }
@@ -36,7 +36,7 @@ class TabDocumentation extends SettingsTab {
         } else {
             echo '<div class="notice notice-error"><p>';
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-            echo esc_html__( 'Documentation view file not found.', 'wp-ffcertificate' );
+            echo esc_html__( 'Documentation view file not found.', 'ffcertificate' );
             echo '</p></div>';
         }
     }

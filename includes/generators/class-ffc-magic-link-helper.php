@@ -183,7 +183,7 @@ class MagicLinkHelper {
      */
     public static function get_magic_link_html( string $token, bool $with_copy_button = true ): string {
         if ( empty( $token ) ) {
-            return '<em>' . __( 'No magic token', 'wp-ffcertificate' ) . '</em>';
+            return '<em>' . __( 'No magic token', 'ffcertificate' ) . '</em>';
         }
         
         $magic_link = self::generate_magic_link( $token );
@@ -195,8 +195,8 @@ class MagicLinkHelper {
         if ( $with_copy_button ) {
             $html .= ' <button type="button" class="button button-small ffc-copy-magic-link" ';
             $html .= 'data-url="' . esc_attr( $magic_link ) . '" ';
-            $html .= 'title="' . esc_attr__( 'Copy to clipboard', 'wp-ffcertificate' ) . '">';
-            $html .= '📋 ' . __( 'Copy', 'wp-ffcertificate' );
+            $html .= 'title="' . esc_attr__( 'Copy to clipboard', 'ffcertificate' ) . '">';
+            $html .= '📋 ' . __( 'Copy', 'ffcertificate' );
             $html .= '</button>';
         }
         

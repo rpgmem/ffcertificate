@@ -95,22 +95,22 @@ class AudienceShortcode {
             <!-- Header -->
             <div class="ffc-calendar-header">
                 <div class="ffc-calendar-nav">
-                    <button type="button" class="ffc-nav-btn ffc-prev-month" aria-label="<?php esc_attr_e('Previous month', 'wp-ffcertificate'); ?>">
+                    <button type="button" class="ffc-nav-btn ffc-prev-month" aria-label="<?php esc_attr_e('Previous month', 'ffcertificate'); ?>">
                         &lsaquo;
                     </button>
                     <h2 class="ffc-current-month"></h2>
-                    <button type="button" class="ffc-nav-btn ffc-next-month" aria-label="<?php esc_attr_e('Next month', 'wp-ffcertificate'); ?>">
+                    <button type="button" class="ffc-nav-btn ffc-next-month" aria-label="<?php esc_attr_e('Next month', 'ffcertificate'); ?>">
                         &rsaquo;
                     </button>
                     <button type="button" class="ffc-nav-btn ffc-today-btn">
-                        <?php esc_html_e('Today', 'wp-ffcertificate'); ?>
+                        <?php esc_html_e('Today', 'ffcertificate'); ?>
                     </button>
                 </div>
 
                 <div class="ffc-calendar-filters">
                     <?php if (count($schedules) > 1) : ?>
                         <select class="ffc-schedule-select" id="ffc-schedule-select">
-                            <option value=""><?php esc_html_e('All Calendars', 'wp-ffcertificate'); ?></option>
+                            <option value=""><?php esc_html_e('All Calendars', 'ffcertificate'); ?></option>
                             <?php foreach ($schedules as $schedule) : ?>
                                 <option value="<?php echo esc_attr($schedule->id); ?>" <?php selected(absint($atts['schedule_id']), $schedule->id); ?>>
                                     <?php echo esc_html($schedule->name); ?>
@@ -120,7 +120,7 @@ class AudienceShortcode {
                     <?php endif; ?>
 
                     <select class="ffc-environment-select" id="ffc-environment-select">
-                        <option value=""><?php esc_html_e('All Environments', 'wp-ffcertificate'); ?></option>
+                        <option value=""><?php esc_html_e('All Environments', 'ffcertificate'); ?></option>
                         <!-- Populated by JavaScript -->
                     </select>
                 </div>
@@ -130,29 +130,29 @@ class AudienceShortcode {
             <div class="ffc-calendar-grid">
                 <!-- Day headers -->
                 <div class="ffc-calendar-weekdays">
-                    <div class="ffc-weekday"><?php esc_html_e('Sun', 'wp-ffcertificate'); ?></div>
-                    <div class="ffc-weekday"><?php esc_html_e('Mon', 'wp-ffcertificate'); ?></div>
-                    <div class="ffc-weekday"><?php esc_html_e('Tue', 'wp-ffcertificate'); ?></div>
-                    <div class="ffc-weekday"><?php esc_html_e('Wed', 'wp-ffcertificate'); ?></div>
-                    <div class="ffc-weekday"><?php esc_html_e('Thu', 'wp-ffcertificate'); ?></div>
-                    <div class="ffc-weekday"><?php esc_html_e('Fri', 'wp-ffcertificate'); ?></div>
-                    <div class="ffc-weekday"><?php esc_html_e('Sat', 'wp-ffcertificate'); ?></div>
+                    <div class="ffc-weekday"><?php esc_html_e('Sun', 'ffcertificate'); ?></div>
+                    <div class="ffc-weekday"><?php esc_html_e('Mon', 'ffcertificate'); ?></div>
+                    <div class="ffc-weekday"><?php esc_html_e('Tue', 'ffcertificate'); ?></div>
+                    <div class="ffc-weekday"><?php esc_html_e('Wed', 'ffcertificate'); ?></div>
+                    <div class="ffc-weekday"><?php esc_html_e('Thu', 'ffcertificate'); ?></div>
+                    <div class="ffc-weekday"><?php esc_html_e('Fri', 'ffcertificate'); ?></div>
+                    <div class="ffc-weekday"><?php esc_html_e('Sat', 'ffcertificate'); ?></div>
                 </div>
 
                 <!-- Calendar days (populated by JavaScript) -->
                 <div class="ffc-calendar-days" id="ffc-calendar-days">
                     <div class="ffc-loading">
-                        <?php esc_html_e('Loading calendar...', 'wp-ffcertificate'); ?>
+                        <?php esc_html_e('Loading calendar...', 'ffcertificate'); ?>
                     </div>
                 </div>
             </div>
 
             <!-- Legend -->
             <div class="ffc-calendar-legend">
-                <span class="ffc-legend-item"><span class="ffc-legend-dot ffc-available"></span> <?php esc_html_e('Available', 'wp-ffcertificate'); ?></span>
-                <span class="ffc-legend-item"><span class="ffc-legend-dot ffc-booked"></span> <?php esc_html_e('Booked', 'wp-ffcertificate'); ?></span>
-                <span class="ffc-legend-item"><span class="ffc-legend-dot ffc-holiday"></span> <?php esc_html_e('Holiday', 'wp-ffcertificate'); ?></span>
-                <span class="ffc-legend-item"><span class="ffc-legend-dot ffc-closed"></span> <?php esc_html_e('Closed', 'wp-ffcertificate'); ?></span>
+                <span class="ffc-legend-item"><span class="ffc-legend-dot ffc-available"></span> <?php esc_html_e('Available', 'ffcertificate'); ?></span>
+                <span class="ffc-legend-item"><span class="ffc-legend-dot ffc-booked"></span> <?php esc_html_e('Booked', 'ffcertificate'); ?></span>
+                <span class="ffc-legend-item"><span class="ffc-legend-dot ffc-holiday"></span> <?php esc_html_e('Holiday', 'ffcertificate'); ?></span>
+                <span class="ffc-legend-item"><span class="ffc-legend-dot ffc-closed"></span> <?php esc_html_e('Closed', 'ffcertificate'); ?></span>
             </div>
         </div>
 
@@ -161,7 +161,7 @@ class AudienceShortcode {
             <div class="ffc-modal-backdrop"></div>
             <div class="ffc-modal-content">
                 <div class="ffc-modal-header">
-                    <h3><?php esc_html_e('New Booking', 'wp-ffcertificate'); ?></h3>
+                    <h3><?php esc_html_e('New Booking', 'ffcertificate'); ?></h3>
                     <button type="button" class="ffc-modal-close">&times;</button>
                 </div>
                 <div class="ffc-modal-body">
@@ -169,12 +169,12 @@ class AudienceShortcode {
                         <input type="hidden" name="booking_date" id="booking-date">
 
                         <div class="ffc-form-group">
-                            <label><?php esc_html_e('Date', 'wp-ffcertificate'); ?></label>
+                            <label><?php esc_html_e('Date', 'ffcertificate'); ?></label>
                             <p class="ffc-booking-date-display"></p>
                         </div>
 
                         <div class="ffc-form-group">
-                            <label for="booking-environment-id"><?php esc_html_e('Environment', 'wp-ffcertificate'); ?> *</label>
+                            <label for="booking-environment-id"><?php esc_html_e('Environment', 'ffcertificate'); ?> *</label>
                             <select name="environment_id" id="booking-environment-id" required>
                                 <!-- Populated by JavaScript -->
                             </select>
@@ -182,42 +182,42 @@ class AudienceShortcode {
 
                         <div class="ffc-form-row">
                             <div class="ffc-form-group">
-                                <label for="booking-start-time"><?php esc_html_e('Start Time', 'wp-ffcertificate'); ?> *</label>
+                                <label for="booking-start-time"><?php esc_html_e('Start Time', 'ffcertificate'); ?> *</label>
                                 <input type="time" name="start_time" id="booking-start-time" required>
                             </div>
                             <div class="ffc-form-group">
-                                <label for="booking-end-time"><?php esc_html_e('End Time', 'wp-ffcertificate'); ?> *</label>
+                                <label for="booking-end-time"><?php esc_html_e('End Time', 'ffcertificate'); ?> *</label>
                                 <input type="time" name="end_time" id="booking-end-time" required>
                             </div>
                         </div>
 
                         <div class="ffc-form-group">
-                            <label for="booking-type"><?php esc_html_e('Booking Type', 'wp-ffcertificate'); ?> *</label>
+                            <label for="booking-type"><?php esc_html_e('Booking Type', 'ffcertificate'); ?> *</label>
                             <select name="booking_type" id="booking-type" required>
-                                <option value="audience"><?php esc_html_e('Audience Groups', 'wp-ffcertificate'); ?></option>
-                                <option value="individual"><?php esc_html_e('Individual Users', 'wp-ffcertificate'); ?></option>
+                                <option value="audience"><?php esc_html_e('Audience Groups', 'ffcertificate'); ?></option>
+                                <option value="individual"><?php esc_html_e('Individual Users', 'ffcertificate'); ?></option>
                             </select>
                         </div>
 
                         <div class="ffc-form-group" id="audience-select-group">
-                            <label for="booking-audiences"><?php esc_html_e('Select Audiences', 'wp-ffcertificate'); ?> *</label>
+                            <label for="booking-audiences"><?php esc_html_e('Select Audiences', 'ffcertificate'); ?> *</label>
                             <select name="audience_ids[]" id="booking-audiences" multiple class="ffc-multiselect">
                                 <!-- Populated by JavaScript -->
                             </select>
                         </div>
 
                         <div class="ffc-form-group" id="user-select-group" style="display: none;">
-                            <label for="booking-users"><?php esc_html_e('Select Users', 'wp-ffcertificate'); ?> *</label>
-                            <input type="text" id="booking-user-search" placeholder="<?php esc_attr_e('Search users...', 'wp-ffcertificate'); ?>">
+                            <label for="booking-users"><?php esc_html_e('Select Users', 'ffcertificate'); ?> *</label>
+                            <input type="text" id="booking-user-search" placeholder="<?php esc_attr_e('Search users...', 'ffcertificate'); ?>">
                             <div id="booking-user-results" class="ffc-user-results"></div>
                             <div id="booking-selected-users" class="ffc-selected-users"></div>
                             <input type="hidden" name="user_ids" id="booking-user-ids">
                         </div>
 
                         <div class="ffc-form-group">
-                            <label for="booking-description"><?php esc_html_e('Description', 'wp-ffcertificate'); ?> *</label>
+                            <label for="booking-description"><?php esc_html_e('Description', 'ffcertificate'); ?> *</label>
                             <textarea name="description" id="booking-description" rows="3" required minlength="15" maxlength="300"
-                                      placeholder="<?php esc_attr_e('Describe the purpose of this booking (15-300 characters)', 'wp-ffcertificate'); ?>"></textarea>
+                                      placeholder="<?php esc_attr_e('Describe the purpose of this booking (15-300 characters)', 'ffcertificate'); ?>"></textarea>
                             <span class="ffc-char-count"><span id="desc-char-count">0</span>/300</span>
                         </div>
 
@@ -227,7 +227,7 @@ class AudienceShortcode {
                             <div class="ffc-conflict-details" id="ffc-conflict-details"></div>
                             <label class="ffc-conflict-acknowledge">
                                 <input type="checkbox" id="ffc-conflict-acknowledge">
-                                <?php esc_html_e('I am aware of the conflicts and want to proceed.', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('I am aware of the conflicts and want to proceed.', 'ffcertificate'); ?>
                             </label>
                         </div>
 
@@ -240,13 +240,13 @@ class AudienceShortcode {
                 </div>
                 <div class="ffc-modal-footer">
                     <button type="button" class="ffc-btn ffc-btn-secondary ffc-modal-cancel">
-                        <?php esc_html_e('Cancel', 'wp-ffcertificate'); ?>
+                        <?php esc_html_e('Cancel', 'ffcertificate'); ?>
                     </button>
                     <button type="button" class="ffc-btn ffc-btn-primary" id="ffc-check-conflicts-btn">
-                        <?php esc_html_e('Check Conflicts', 'wp-ffcertificate'); ?>
+                        <?php esc_html_e('Check Conflicts', 'ffcertificate'); ?>
                     </button>
                     <button type="button" class="ffc-btn ffc-btn-success" id="ffc-create-booking-btn" style="display: none;">
-                        <?php esc_html_e('Create Booking', 'wp-ffcertificate'); ?>
+                        <?php esc_html_e('Create Booking', 'ffcertificate'); ?>
                     </button>
                 </div>
             </div>
@@ -264,19 +264,19 @@ class AudienceShortcode {
                     <div class="ffc-day-filter">
                         <label>
                             <input type="checkbox" id="ffc-show-cancelled">
-                            <?php esc_html_e('Show cancelled bookings', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Show cancelled bookings', 'ffcertificate'); ?>
                         </label>
                     </div>
                     <div class="ffc-day-bookings" id="ffc-day-bookings">
-                        <div class="ffc-loading"><?php esc_html_e('Loading bookings...', 'wp-ffcertificate'); ?></div>
+                        <div class="ffc-loading"><?php esc_html_e('Loading bookings...', 'ffcertificate'); ?></div>
                     </div>
                 </div>
                 <div class="ffc-modal-footer">
                     <button type="button" class="ffc-btn ffc-btn-secondary ffc-modal-cancel">
-                        <?php esc_html_e('Close', 'wp-ffcertificate'); ?>
+                        <?php esc_html_e('Close', 'ffcertificate'); ?>
                     </button>
                     <button type="button" class="ffc-btn ffc-btn-primary" id="ffc-new-booking-btn">
-                        <?php esc_html_e('New Booking', 'wp-ffcertificate'); ?>
+                        <?php esc_html_e('New Booking', 'ffcertificate'); ?>
                     </button>
                 </div>
             </div>
@@ -295,10 +295,10 @@ class AudienceShortcode {
         ob_start();
         ?>
         <div class="ffc-audience-notice ffc-notice-warning">
-            <p><?php esc_html_e('You must be logged in to view the calendar.', 'wp-ffcertificate'); ?></p>
+            <p><?php esc_html_e('You must be logged in to view the calendar.', 'ffcertificate'); ?></p>
             <p>
                 <a href="<?php echo esc_url(wp_login_url(get_permalink())); ?>" class="ffc-btn ffc-btn-primary">
-                    <?php esc_html_e('Login', 'wp-ffcertificate'); ?>
+                    <?php esc_html_e('Login', 'ffcertificate'); ?>
                 </a>
             </p>
         </div>
@@ -315,7 +315,7 @@ class AudienceShortcode {
         ob_start();
         ?>
         <div class="ffc-audience-notice ffc-notice-info">
-            <p><?php esc_html_e('You do not have access to any calendars.', 'wp-ffcertificate'); ?></p>
+            <p><?php esc_html_e('You do not have access to any calendars.', 'ffcertificate'); ?></p>
         </div>
         <?php
         return ob_get_clean();
@@ -476,50 +476,50 @@ class AudienceShortcode {
             'timeFormat' => get_option('time_format', 'H:i'),
             'firstDayOfWeek' => (int) get_option('start_of_week', 0),
             'strings' => array(
-                'loading' => __('Loading...', 'wp-ffcertificate'),
-                'error' => __('An error occurred. Please try again.', 'wp-ffcertificate'),
-                'noBookings' => __('No bookings for this day.', 'wp-ffcertificate'),
-                'noActiveBookings' => __('No active bookings for this day.', 'wp-ffcertificate'),
-                'bookingCreated' => __('Booking created successfully!', 'wp-ffcertificate'),
-                'bookingCancelled' => __('Booking cancelled successfully.', 'wp-ffcertificate'),
-                'confirmCancel' => __('Are you sure you want to cancel this booking?', 'wp-ffcertificate'),
-                'cancelReason' => __('Please provide a reason for cancellation:', 'wp-ffcertificate'),
-                'invalidTime' => __('End time must be after start time.', 'wp-ffcertificate'),
-                'selectAudience' => __('Please select at least one audience.', 'wp-ffcertificate'),
-                'selectUser' => __('Please select at least one user.', 'wp-ffcertificate'),
-                'descriptionRequired' => __('Description is required (15-300 characters).', 'wp-ffcertificate'),
-                'conflictWarning' => __('Warning: Conflicts detected with existing bookings.', 'wp-ffcertificate'),
-                'audienceSameDayWarning' => __('Warning: The following groups already have bookings on this day:', 'wp-ffcertificate'),
-                'audienceSameDayHard' => __('This audience group already has a booking on this day. You cannot create another booking for the same group on the same day.', 'wp-ffcertificate'),
-                'membersOverlapping' => __('member(s) have overlapping bookings.', 'wp-ffcertificate'),
-                'hardConflict' => __('This time slot is already booked for this environment. You cannot create a booking at this time.', 'wp-ffcertificate'),
-                'noConflicts' => __('No conflicts found. You may proceed.', 'wp-ffcertificate'),
+                'loading' => __('Loading...', 'ffcertificate'),
+                'error' => __('An error occurred. Please try again.', 'ffcertificate'),
+                'noBookings' => __('No bookings for this day.', 'ffcertificate'),
+                'noActiveBookings' => __('No active bookings for this day.', 'ffcertificate'),
+                'bookingCreated' => __('Booking created successfully!', 'ffcertificate'),
+                'bookingCancelled' => __('Booking cancelled successfully.', 'ffcertificate'),
+                'confirmCancel' => __('Are you sure you want to cancel this booking?', 'ffcertificate'),
+                'cancelReason' => __('Please provide a reason for cancellation:', 'ffcertificate'),
+                'invalidTime' => __('End time must be after start time.', 'ffcertificate'),
+                'selectAudience' => __('Please select at least one audience.', 'ffcertificate'),
+                'selectUser' => __('Please select at least one user.', 'ffcertificate'),
+                'descriptionRequired' => __('Description is required (15-300 characters).', 'ffcertificate'),
+                'conflictWarning' => __('Warning: Conflicts detected with existing bookings.', 'ffcertificate'),
+                'audienceSameDayWarning' => __('Warning: The following groups already have bookings on this day:', 'ffcertificate'),
+                'audienceSameDayHard' => __('This audience group already has a booking on this day. You cannot create another booking for the same group on the same day.', 'ffcertificate'),
+                'membersOverlapping' => __('member(s) have overlapping bookings.', 'ffcertificate'),
+                'hardConflict' => __('This time slot is already booked for this environment. You cannot create a booking at this time.', 'ffcertificate'),
+                'noConflicts' => __('No conflicts found. You may proceed.', 'ffcertificate'),
                 'months' => array(
-                    __('January', 'wp-ffcertificate'),
-                    __('February', 'wp-ffcertificate'),
-                    __('March', 'wp-ffcertificate'),
-                    __('April', 'wp-ffcertificate'),
-                    __('May', 'wp-ffcertificate'),
-                    __('June', 'wp-ffcertificate'),
-                    __('July', 'wp-ffcertificate'),
-                    __('August', 'wp-ffcertificate'),
-                    __('September', 'wp-ffcertificate'),
-                    __('October', 'wp-ffcertificate'),
-                    __('November', 'wp-ffcertificate'),
-                    __('December', 'wp-ffcertificate'),
+                    __('January', 'ffcertificate'),
+                    __('February', 'ffcertificate'),
+                    __('March', 'ffcertificate'),
+                    __('April', 'ffcertificate'),
+                    __('May', 'ffcertificate'),
+                    __('June', 'ffcertificate'),
+                    __('July', 'ffcertificate'),
+                    __('August', 'ffcertificate'),
+                    __('September', 'ffcertificate'),
+                    __('October', 'ffcertificate'),
+                    __('November', 'ffcertificate'),
+                    __('December', 'ffcertificate'),
                 ),
-                'holiday' => __('Holiday', 'wp-ffcertificate'),
-                'closed' => __('Closed', 'wp-ffcertificate'),
-                'available' => __('Available', 'wp-ffcertificate'),
-                'booked' => __('Booked', 'wp-ffcertificate'),
-                'cancel' => __('Cancel', 'wp-ffcertificate'),
-                'cancelled' => __('Cancelled', 'wp-ffcertificate'),
-                'timeout' => __('Request timed out. Please try again.', 'wp-ffcertificate'),
-                'checkConflicts' => __('Check Conflicts', 'wp-ffcertificate'),
-                'booking' => __('booking', 'wp-ffcertificate'),
-                'bookings' => __('bookings', 'wp-ffcertificate'),
-                'createBooking' => __('Create Booking', 'wp-ffcertificate'),
-                'newBooking' => __('New Booking', 'wp-ffcertificate'),
+                'holiday' => __('Holiday', 'ffcertificate'),
+                'closed' => __('Closed', 'ffcertificate'),
+                'available' => __('Available', 'ffcertificate'),
+                'booked' => __('Booked', 'ffcertificate'),
+                'cancel' => __('Cancel', 'ffcertificate'),
+                'cancelled' => __('Cancelled', 'ffcertificate'),
+                'timeout' => __('Request timed out. Please try again.', 'ffcertificate'),
+                'checkConflicts' => __('Check Conflicts', 'ffcertificate'),
+                'booking' => __('booking', 'ffcertificate'),
+                'bookings' => __('bookings', 'ffcertificate'),
+                'createBooking' => __('Create Booking', 'ffcertificate'),
+                'newBooking' => __('New Booking', 'ffcertificate'),
             ),
         ));
     }

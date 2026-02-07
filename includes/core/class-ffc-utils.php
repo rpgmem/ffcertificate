@@ -115,8 +115,8 @@ class Utils {
          * Allows developers to filter or add new tags 
          * without modifying the plugin core.
          */
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_ffcertificate is the plugin prefix
-        return apply_filters( 'wp_ffcertificate_allowed_html_tags', $allowed );
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
+        return apply_filters( 'ffcertificate_allowed_html_tags', $allowed );
     }
     
     /**
@@ -598,7 +598,7 @@ class Utils {
         
         return array(
             /* translators: 1: first number, 2: second number */
-            'label' => sprintf( esc_html__( 'Security: How much is %1$d + %2$d?', 'wp-ffcertificate' ), $n1, $n2 ) . ' <span class="required">*</span>',
+            'label' => sprintf( esc_html__( 'Security: How much is %1$d + %2$d?', 'ffcertificate' ), $n1, $n2 ) . ' <span class="required">*</span>',
             'hash'  => wp_hash( $answer . 'ffc_math_salt' ),
             'answer' => $answer  // For internal use only
         );
@@ -632,17 +632,17 @@ class Utils {
     public static function validate_security_fields( array $data ) {
         // Check honeypot
         if ( ! empty( $data['ffc_honeypot_trap'] ) ) {
-            return __( 'Security Error: Request blocked (Honeypot).', 'wp-ffcertificate' );
+            return __( 'Security Error: Request blocked (Honeypot).', 'ffcertificate' );
         }
         
         // Check captcha presence
         if ( ! isset( $data['ffc_captcha_ans'] ) || ! isset( $data['ffc_captcha_hash'] ) ) {
-            return __( 'Error: Please answer the security question.', 'wp-ffcertificate' );
+            return __( 'Error: Please answer the security question.', 'ffcertificate' );
         }
         
         // Validate captcha answer using verify_simple_captcha()
         if ( ! self::verify_simple_captcha( $data['ffc_captcha_ans'], $data['ffc_captcha_hash'] ) ) {
-            return __( 'Error: The math answer is incorrect.', 'wp-ffcertificate' );
+            return __( 'Error: The math answer is incorrect.', 'ffcertificate' );
         }
         
         return true; 
@@ -748,13 +748,13 @@ class Utils {
 
         // Get form title
         $form_post = get_post( $form_id );
-        $form_title = $form_post ? $form_post->post_title : __( 'Certificate', 'wp-ffcertificate' );
+        $form_title = $form_post ? $form_post->post_title : __( 'Certificate', 'ffcertificate' );
 
         // Default success message
         if ( empty( $success_message ) ) {
             $success_message = isset( $form_config['success_message'] ) && ! empty( $form_config['success_message'] )
                 ? $form_config['success_message']
-                : __( 'Success! Your certificate has been generated.', 'wp-ffcertificate' );
+                : __( 'Success! Your certificate has been generated.', 'ffcertificate' );
         }
 
         // Format date

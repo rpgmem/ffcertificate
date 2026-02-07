@@ -83,7 +83,7 @@ class SettingsSaveHandler {
 
         update_option( 'ffc_settings', $clean );
         // phpcs:enable WordPress.Security.NonceVerification.Missing
-        add_settings_error( 'ffc_settings', 'ffc_settings_updated', __( 'Settings saved.', 'wp-ffcertificate' ), 'updated' );
+        add_settings_error( 'ffc_settings', 'ffc_settings_updated', __( 'Settings saved.', 'ffcertificate' ), 'updated' );
     }
 
     /**
@@ -274,7 +274,7 @@ class SettingsSaveHandler {
         add_settings_error(
             'ffc_user_access_settings',
             'ffc_user_access_updated',
-            __( 'User Access settings saved successfully.', 'wp-ffcertificate' ),
+            __( 'User Access settings saved successfully.', 'ffcertificate' ),
             'updated'
         );
     }
@@ -297,11 +297,11 @@ class SettingsSaveHandler {
 
         if ( $result !== false ) {
             $message = $reset_counter
-                ? __( 'Data deleted and counter reset successfully.', 'wp-ffcertificate' )
-                : __( 'Data deleted successfully.', 'wp-ffcertificate' );
+                ? __( 'Data deleted and counter reset successfully.', 'ffcertificate' )
+                : __( 'Data deleted successfully.', 'ffcertificate' );
             add_settings_error( 'ffc_settings', 'ffc_data_deleted', $message, 'updated' );
         } else {
-            add_settings_error( 'ffc_settings', 'ffc_data_delete_failed', __( 'Failed to delete data.', 'wp-ffcertificate' ), 'error' );
+            add_settings_error( 'ffc_settings', 'ffc_data_delete_failed', __( 'Failed to delete data.', 'ffcertificate' ), 'error' );
         }
     }
 }

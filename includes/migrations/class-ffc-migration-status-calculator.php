@@ -85,8 +85,8 @@ class MigrationStatusCalculator {
         $this->strategies['user_capabilities'] = new \FreeFormCertificate\Migrations\Strategies\UserCapabilitiesMigrationStrategy();
 
         // Allow plugins to register custom strategies
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_ffcertificate is the plugin prefix
-        $this->strategies = apply_filters( 'wp_ffcertificate_migration_strategies', $this->strategies );
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
+        $this->strategies = apply_filters( 'ffcertificate_migration_strategies', $this->strategies );
     }
 
     /**
@@ -108,7 +108,7 @@ class MigrationStatusCalculator {
     public function calculate( string $migration_key ) {
         // Validate migration exists
         if ( ! $this->registry->exists( $migration_key ) ) {
-            return new WP_Error( 'invalid_migration', __( 'Migration not found', 'wp-ffcertificate' ) );
+            return new WP_Error( 'invalid_migration', __( 'Migration not found', 'ffcertificate' ) );
         }
 
         // Handle data_cleanup special case (option-based, not strategy-based)
@@ -141,7 +141,7 @@ class MigrationStatusCalculator {
             return new WP_Error(
                 'strategy_not_found',
                 /* translators: %s: migration key */
-                sprintf( __( 'No strategy found for migration: %s', 'wp-ffcertificate' ), $migration_key )
+                sprintf( __( 'No strategy found for migration: %s', 'ffcertificate' ), $migration_key )
             );
         }
 
@@ -244,7 +244,7 @@ class MigrationStatusCalculator {
             'success' => true,
             'processed' => 1,
             'has_more' => false,
-            'message' => __( 'Data cleanup completed', 'wp-ffcertificate' )
+            'message' => __( 'Data cleanup completed', 'ffcertificate' )
         );
     }
 

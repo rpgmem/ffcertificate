@@ -25,7 +25,7 @@ class TabGeneral extends SettingsTab {
 
     protected function init(): void {
         $this->tab_id = 'general';
-        $this->tab_title = __( 'General', 'wp-ffcertificate' );
+        $this->tab_title = __( 'General', 'ffcertificate' );
         $this->tab_icon = '⚙️';
         $this->tab_order = 20;
     }
@@ -56,7 +56,7 @@ class TabGeneral extends SettingsTab {
             include $view_file;
         } else {
             echo '<div class="notice notice-error"><p>';
-            echo esc_html__( 'General settings view file not found.', 'wp-ffcertificate' );
+            echo esc_html__( 'General settings view file not found.', 'ffcertificate' );
             echo '</p></div>';
         }
     }

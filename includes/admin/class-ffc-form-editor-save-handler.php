@@ -148,12 +148,12 @@ class FormEditorSaveHandler {
 
         // Check if GPS is enabled but areas are empty
         if ( $config['geo_gps_enabled'] === '1' && trim( $config['geo_areas'] ) === '' ) {
-            $errors[] = __( 'GPS Geolocation is enabled but no allowed areas are defined.', 'wp-ffcertificate' );
+            $errors[] = __( 'GPS Geolocation is enabled but no allowed areas are defined.', 'ffcertificate' );
         }
 
         // Check if IP is enabled with independent areas but areas are empty
         if ( $config['geo_ip_enabled'] === '1' && $config['geo_ip_areas_permissive'] === '1' && trim( $config['geo_ip_areas'] ) === '' ) {
-            $errors[] = __( 'IP Geolocation is enabled with independent areas but no IP areas are defined.', 'wp-ffcertificate' );
+            $errors[] = __( 'IP Geolocation is enabled with independent areas but no IP areas are defined.', 'ffcertificate' );
         }
 
         // Validate GPS areas format
@@ -195,7 +195,7 @@ class FormEditorSaveHandler {
             if ( ! preg_match( '/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*,\s*\d+(\.\d+)?$/', $line ) ) {
                 $errors[] = sprintf(
                     /* translators: 1: Area type (GPS/IP), 2: Line number */
-                    __( '%1$s Area line %2$d: Invalid format. Use: latitude, longitude, radius', 'wp-ffcertificate' ),
+                    __( '%1$s Area line %2$d: Invalid format. Use: latitude, longitude, radius', 'ffcertificate' ),
                     $type,
                     $line_number
                 );
@@ -212,7 +212,7 @@ class FormEditorSaveHandler {
             if ( $lat < -90 || $lat > 90 ) {
                 $errors[] = sprintf(
                     /* translators: 1: Area type (GPS/IP), 2: Line number, 3: Latitude value */
-                    __( '%1$s Area line %2$d: Invalid latitude %3$s (must be between -90 and 90)', 'wp-ffcertificate' ),
+                    __( '%1$s Area line %2$d: Invalid latitude %3$s (must be between -90 and 90)', 'ffcertificate' ),
                     $type,
                     $line_number,
                     $lat
@@ -223,7 +223,7 @@ class FormEditorSaveHandler {
             if ( $lng < -180 || $lng > 180 ) {
                 $errors[] = sprintf(
                     /* translators: 1: Area type (GPS/IP), 2: Line number, 3: Longitude value */
-                    __( '%1$s Area line %2$d: Invalid longitude %3$s (must be between -180 and 180)', 'wp-ffcertificate' ),
+                    __( '%1$s Area line %2$d: Invalid longitude %3$s (must be between -180 and 180)', 'ffcertificate' ),
                     $type,
                     $line_number,
                     $lng
@@ -234,7 +234,7 @@ class FormEditorSaveHandler {
             if ( $radius <= 0 ) {
                 $errors[] = sprintf(
                     /* translators: 1: Area type (GPS/IP), 2: Line number */
-                    __( '%1$s Area line %2$d: Radius must be greater than 0', 'wp-ffcertificate' ),
+                    __( '%1$s Area line %2$d: Radius must be greater than 0', 'ffcertificate' ),
                     $type,
                     $line_number
                 );
@@ -254,7 +254,7 @@ class FormEditorSaveHandler {
             delete_transient( 'ffc_save_error_' . get_current_user_id() );
             ?>
             <div class="notice notice-error is-dismissible">
-                <p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'wp-ffcertificate' ); ?></strong> <code><?php echo esc_html(implode( ', ', $error_tags )); ?></code>.</p>
+                <p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html(implode( ', ', $error_tags )); ?></code>.</p>
             </div>
             <?php
         }
@@ -265,7 +265,7 @@ class FormEditorSaveHandler {
             delete_transient( 'ffc_geofence_error_' . get_current_user_id() );
             ?>
             <div class="notice notice-error is-dismissible">
-                <p><strong><?php esc_html_e( 'Geolocation Configuration Error:', 'wp-ffcertificate' ); ?></strong></p>
+                <p><strong><?php esc_html_e( 'Geolocation Configuration Error:', 'ffcertificate' ); ?></strong></p>
                 <ul class="ffc-list-disc ffc-ml-20">
                     <?php foreach ( $geofence_errors as $error ) : ?>
                         <li><?php echo esc_html( $error ); ?></li>

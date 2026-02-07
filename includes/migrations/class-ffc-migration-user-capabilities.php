@@ -48,7 +48,7 @@ class MigrationUserCapabilities {
                 'processed' => 0,
                 'changed' => 0,
                 'errors' => 0,
-                'message' => __('No FFC users found.', 'wp-ffcertificate'),
+                'message' => __('No FFC users found.', 'ffcertificate'),
             );
         }
 
@@ -134,7 +134,7 @@ class MigrationUserCapabilities {
             } catch (\Exception $e) {
                 $errors[] = sprintf(
                     /* translators: %d: user ID, %s: error message */
-                    __('User ID %1$d: %2$s', 'wp-ffcertificate'),
+                    __('User ID %1$d: %2$s', 'ffcertificate'),
                     $user_id,
                     $e->getMessage()
                 );
@@ -157,7 +157,7 @@ class MigrationUserCapabilities {
             update_option('ffc_migration_user_capabilities_last_run', current_time('mysql'));
         }
 
-        $mode = $dry_run ? __('DRY RUN', 'wp-ffcertificate') : __('EXECUTED', 'wp-ffcertificate');
+        $mode = $dry_run ? __('DRY RUN', 'ffcertificate') : __('EXECUTED', 'ffcertificate');
 
         return array(
             'success' => true,
@@ -170,7 +170,7 @@ class MigrationUserCapabilities {
             'changes' => $changes_log,
             'message' => sprintf(
                 /* translators: 1: mode, 2: processed count, 3: cert granted, 4: appt granted, 5: errors */
-                __('%1$s: Processed %2$d users, %3$d granted certificate access, %4$d granted appointment access, %5$d errors', 'wp-ffcertificate'),
+                __('%1$s: Processed %2$d users, %3$d granted certificate access, %4$d granted appointment access, %5$d errors', 'ffcertificate'),
                 $mode,
                 $processed,
                 $cert_granted,
@@ -210,7 +210,7 @@ class MigrationUserCapabilities {
                 'is_complete' => true,
                 'message' => sprintf(
                     /* translators: %s: last run date */
-                    __('Migration completed on %s', 'wp-ffcertificate'),
+                    __('Migration completed on %s', 'ffcertificate'),
                     $last_run
                 ),
             );
@@ -222,7 +222,7 @@ class MigrationUserCapabilities {
             'is_complete' => false,
             'message' => sprintf(
                 /* translators: %d: number of users */
-                __('%d FFC users need capability migration', 'wp-ffcertificate'),
+                __('%d FFC users need capability migration', 'ffcertificate'),
                 $total
             ),
         );

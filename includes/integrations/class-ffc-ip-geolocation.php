@@ -36,7 +36,7 @@ class IpGeolocation {
         $settings = get_option('ffc_geolocation_settings', array());
 
         if (empty($settings['ip_api_enabled'])) {
-            return new WP_Error('ip_api_disabled', __('IP Geolocation API is disabled.', 'wp-ffcertificate'));
+            return new WP_Error('ip_api_disabled', __('IP Geolocation API is disabled.', 'ffcertificate'));
         }
 
         // Get user IP if not provided
@@ -46,7 +46,7 @@ class IpGeolocation {
 
         // Validate IP
         if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-            return new WP_Error('invalid_ip', __('Invalid IP address for geolocation.', 'wp-ffcertificate'));
+            return new WP_Error('invalid_ip', __('Invalid IP address for geolocation.', 'ffcertificate'));
         }
 
         // Check cache
@@ -99,7 +99,7 @@ class IpGeolocation {
             return self::fetch_from_ipinfo($ip, $api_key);
         }
 
-        return new WP_Error('unknown_service', __('Unknown geolocation service.', 'wp-ffcertificate'));
+        return new WP_Error('unknown_service', __('Unknown geolocation service.', 'ffcertificate'));
     }
 
     /**
@@ -125,11 +125,11 @@ class IpGeolocation {
         $data = json_decode($body, true);
 
         if (empty($data) || !is_array($data)) {
-            return new WP_Error('invalid_response', __('Invalid response from ip-api.com', 'wp-ffcertificate'));
+            return new WP_Error('invalid_response', __('Invalid response from ip-api.com', 'ffcertificate'));
         }
 
         if ($data['status'] !== 'success') {
-            return new WP_Error('api_error', $data['message'] ?? __('Unknown error from ip-api.com', 'wp-ffcertificate'));
+            return new WP_Error('api_error', $data['message'] ?? __('Unknown error from ip-api.com', 'ffcertificate'));
         }
 
         // Normalize response format
@@ -178,12 +178,12 @@ class IpGeolocation {
         $data = json_decode($body, true);
 
         if (empty($data) || !is_array($data)) {
-            return new WP_Error('invalid_response', __('Invalid response from ipinfo.io', 'wp-ffcertificate'));
+            return new WP_Error('invalid_response', __('Invalid response from ipinfo.io', 'ffcertificate'));
         }
 
         // Check for API errors
         if (isset($data['error'])) {
-            return new WP_Error('api_error', $data['error']['title'] ?? __('Unknown error from ipinfo.io', 'wp-ffcertificate'));
+            return new WP_Error('api_error', $data['error']['title'] ?? __('Unknown error from ipinfo.io', 'ffcertificate'));
         }
 
         // Parse location coordinates

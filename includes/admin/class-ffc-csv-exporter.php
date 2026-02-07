@@ -94,27 +94,27 @@ class CsvExporter {
      */
     private function get_fixed_headers( bool $include_edit_columns = false ): array {
         $headers = array(
-            __( 'ID', 'wp-ffcertificate' ),
-            __( 'Form', 'wp-ffcertificate' ),
-            __( 'User ID', 'wp-ffcertificate' ),
-            __( 'Submission Date', 'wp-ffcertificate' ),
-            __( 'E-mail', 'wp-ffcertificate' ),
-            __( 'User IP', 'wp-ffcertificate' ),
-            __( 'CPF/RF', 'wp-ffcertificate' ),
-            __( 'Auth Code', 'wp-ffcertificate' ),
-            __( 'Token', 'wp-ffcertificate' ),
-            __( 'Consent Given', 'wp-ffcertificate' ),
-            __( 'Consent Date', 'wp-ffcertificate' ),
-            __( 'Consent IP', 'wp-ffcertificate' ),
-            __( 'Consent Text', 'wp-ffcertificate' ),
-            __( 'Status', 'wp-ffcertificate' )
+            __( 'ID', 'ffcertificate' ),
+            __( 'Form', 'ffcertificate' ),
+            __( 'User ID', 'ffcertificate' ),
+            __( 'Submission Date', 'ffcertificate' ),
+            __( 'E-mail', 'ffcertificate' ),
+            __( 'User IP', 'ffcertificate' ),
+            __( 'CPF/RF', 'ffcertificate' ),
+            __( 'Auth Code', 'ffcertificate' ),
+            __( 'Token', 'ffcertificate' ),
+            __( 'Consent Given', 'ffcertificate' ),
+            __( 'Consent Date', 'ffcertificate' ),
+            __( 'Consent IP', 'ffcertificate' ),
+            __( 'Consent Text', 'ffcertificate' ),
+            __( 'Status', 'ffcertificate' )
         );
 
         // Only add edit columns if there's data
         if ( $include_edit_columns ) {
-            $headers[] = __( 'Was Edited', 'wp-ffcertificate' );
-            $headers[] = __( 'Edit Date', 'wp-ffcertificate' );
-            $headers[] = __( 'Edited By', 'wp-ffcertificate' );
+            $headers[] = __( 'Was Edited', 'ffcertificate' );
+            $headers[] = __( 'Edit Date', 'ffcertificate' );
+            $headers[] = __( 'Edited By', 'ffcertificate' );
         }
 
         return $headers;
@@ -144,7 +144,7 @@ class CsvExporter {
      */
     private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {
         $form_title = get_the_title( (int) $row['form_id'] );
-        $form_display = $form_title ? $form_title : __( '(Deleted)', 'wp-ffcertificate' );
+        $form_display = $form_title ? $form_title : __( '(Deleted)', 'ffcertificate' );
         
         // Decrypt email
         $email = '';
@@ -182,7 +182,7 @@ class CsvExporter {
         // Consent Given (Yes/No)
         $consent_given = '';
         if ( isset( $row['consent_given'] ) ) {
-            $consent_given = $row['consent_given'] ? __( 'Yes', 'wp-ffcertificate' ) : __( 'No', 'wp-ffcertificate' );
+            $consent_given = $row['consent_given'] ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' );
         }
 
         // Consent Date (omit if empty)
@@ -222,7 +222,7 @@ class CsvExporter {
             $edited_by = '';
             
             if ( !empty( $row['edited_at'] ) ) {
-                $was_edited = __( 'Yes', 'wp-ffcertificate' );
+                $was_edited = __( 'Yes', 'ffcertificate' );
                 $edit_date = $row['edited_at'];
                 
                 // Get editor name if edited_by exists
@@ -276,7 +276,7 @@ class CsvExporter {
         $rows = $this->repository->getForExport( $form_ids, $status );
 
         if ( empty( $rows ) ) {
-            wp_die( esc_html__( 'No records available for export.', 'wp-ffcertificate' ) );
+            wp_die( esc_html__( 'No records available for export.', 'ffcertificate' ) );
         }
 
         // ✅ Use Repository to check if edit columns exist
@@ -355,12 +355,12 @@ class CsvExporter {
             if ( ! isset( $_POST['ffc_export_csv_action'] ) ||
                  ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_export_csv_action'] ) ), 'ffc_export_csv_nonce' ) ) {
                 \FreeFormCertificate\Core\Utils::debug_log( 'CSV export nonce failed' );
-                wp_die( esc_html__( 'Security check failed.', 'wp-ffcertificate' ) );
+                wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
             }
 
             if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
                 \FreeFormCertificate\Core\Utils::debug_log( 'CSV export permission denied' );
-                wp_die( esc_html__( 'You do not have permission to export data.', 'wp-ffcertificate' ) );
+                wp_die( esc_html__( 'You do not have permission to export data.', 'ffcertificate' ) );
             }
 
             // ✅ Support multiple form IDs or single form_id
@@ -386,7 +386,7 @@ class CsvExporter {
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ) );
-            wp_die( esc_html__( 'Error generating CSV: ', 'wp-ffcertificate' ) . esc_html( $e->getMessage() ) );
+            wp_die( esc_html__( 'Error generating CSV: ', 'ffcertificate' ) . esc_html( $e->getMessage() ) );
         }
     }
 

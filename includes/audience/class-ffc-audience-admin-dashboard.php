@@ -57,98 +57,98 @@ class AudienceAdminDashboard {
 
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e('Scheduling Dashboard', 'wp-ffcertificate'); ?></h1>
+            <h1><?php esc_html_e('Scheduling Dashboard', 'ffcertificate'); ?></h1>
 
             <div class="ffc-scheduling-dashboard">
 
                 <!-- Self-Scheduling Section -->
-                <h2><?php esc_html_e('Self-Scheduling (Personal)', 'wp-ffcertificate'); ?></h2>
+                <h2><?php esc_html_e('Self-Scheduling (Personal)', 'ffcertificate'); ?></h2>
                 <div class="ffc-stats-grid">
                     <div class="ffc-stat-card">
-                        <span class="ffc-stat-label"><?php esc_html_e('Active Calendars', 'wp-ffcertificate'); ?></span>
+                        <span class="ffc-stat-label"><?php esc_html_e('Active Calendars', 'ffcertificate'); ?></span>
                         <div class="ffc-stat-number">
                             <span class="ffc-stat-icon dashicons dashicons-calendar"></span>
                             <span class="ffc-stat-value"><?php echo esc_html($self_stats['calendars']); ?></span>
                         </div>
                         <a href="<?php echo esc_url(admin_url('edit.php?post_type=ffc_self_scheduling')); ?>" class="ffc-stat-link">
-                            <?php esc_html_e('Manage', 'wp-ffcertificate'); ?> &rarr;
+                            <?php esc_html_e('Manage', 'ffcertificate'); ?> &rarr;
                         </a>
                     </div>
 
                     <div class="ffc-stat-card">
-                        <span class="ffc-stat-label"><?php esc_html_e('Upcoming Appointments', 'wp-ffcertificate'); ?></span>
+                        <span class="ffc-stat-label"><?php esc_html_e('Upcoming Appointments', 'ffcertificate'); ?></span>
                         <div class="ffc-stat-number">
                             <span class="ffc-stat-icon dashicons dashicons-clock"></span>
                             <span class="ffc-stat-value"><?php echo esc_html($self_stats['upcoming_appointments']); ?></span>
                         </div>
                         <a href="<?php echo esc_url(admin_url('admin.php?page=ffc-appointments')); ?>" class="ffc-stat-link">
-                            <?php esc_html_e('View All', 'wp-ffcertificate'); ?> &rarr;
+                            <?php esc_html_e('View All', 'ffcertificate'); ?> &rarr;
                         </a>
                     </div>
                 </div>
 
                 <!-- Audience Section -->
-                <h2><?php esc_html_e('Audience Scheduling', 'wp-ffcertificate'); ?></h2>
+                <h2><?php esc_html_e('Audience Scheduling', 'ffcertificate'); ?></h2>
                 <div class="ffc-stats-grid">
                     <div class="ffc-stat-card">
-                        <span class="ffc-stat-label"><?php esc_html_e('Active Calendars', 'wp-ffcertificate'); ?></span>
+                        <span class="ffc-stat-label"><?php esc_html_e('Active Calendars', 'ffcertificate'); ?></span>
                         <div class="ffc-stat-number">
                             <span class="ffc-stat-icon dashicons dashicons-calendar-alt"></span>
                             <span class="ffc-stat-value"><?php echo esc_html($audience_stats['schedules']); ?></span>
                         </div>
                         <a href="<?php echo esc_url(admin_url('admin.php?page=' . $this->menu_slug . '-calendars')); ?>" class="ffc-stat-link">
-                            <?php esc_html_e('Manage', 'wp-ffcertificate'); ?> &rarr;
+                            <?php esc_html_e('Manage', 'ffcertificate'); ?> &rarr;
                         </a>
                     </div>
 
                     <div class="ffc-stat-card">
-                        <span class="ffc-stat-label"><?php esc_html_e('Active Environments', 'wp-ffcertificate'); ?></span>
+                        <span class="ffc-stat-label"><?php esc_html_e('Active Environments', 'ffcertificate'); ?></span>
                         <div class="ffc-stat-number">
                             <span class="ffc-stat-icon dashicons dashicons-building"></span>
                             <span class="ffc-stat-value"><?php echo esc_html($audience_stats['environments']); ?></span>
                         </div>
                         <a href="<?php echo esc_url(admin_url('admin.php?page=' . $this->menu_slug . '-environments')); ?>" class="ffc-stat-link">
-                            <?php esc_html_e('Manage', 'wp-ffcertificate'); ?> &rarr;
+                            <?php esc_html_e('Manage', 'ffcertificate'); ?> &rarr;
                         </a>
                     </div>
 
                     <div class="ffc-stat-card">
-                        <span class="ffc-stat-label"><?php esc_html_e('Active Audiences', 'wp-ffcertificate'); ?></span>
+                        <span class="ffc-stat-label"><?php esc_html_e('Active Audiences', 'ffcertificate'); ?></span>
                         <div class="ffc-stat-number">
                             <span class="ffc-stat-icon dashicons dashicons-groups"></span>
                             <span class="ffc-stat-value"><?php echo esc_html($audience_stats['audiences']); ?></span>
                         </div>
                         <a href="<?php echo esc_url(admin_url('admin.php?page=' . $this->menu_slug . '-audiences')); ?>" class="ffc-stat-link">
-                            <?php esc_html_e('Manage', 'wp-ffcertificate'); ?> &rarr;
+                            <?php esc_html_e('Manage', 'ffcertificate'); ?> &rarr;
                         </a>
                     </div>
 
                     <div class="ffc-stat-card">
-                        <span class="ffc-stat-label"><?php esc_html_e('Upcoming Bookings', 'wp-ffcertificate'); ?></span>
+                        <span class="ffc-stat-label"><?php esc_html_e('Upcoming Bookings', 'ffcertificate'); ?></span>
                         <div class="ffc-stat-number">
                             <span class="ffc-stat-icon dashicons dashicons-clock"></span>
                             <span class="ffc-stat-value"><?php echo esc_html($audience_stats['upcoming_bookings']); ?></span>
                         </div>
                         <a href="<?php echo esc_url(admin_url('admin.php?page=' . $this->menu_slug . '-bookings')); ?>" class="ffc-stat-link">
-                            <?php esc_html_e('View All', 'wp-ffcertificate'); ?> &rarr;
+                            <?php esc_html_e('View All', 'ffcertificate'); ?> &rarr;
                         </a>
                     </div>
                 </div>
 
                 <div class="ffc-quick-actions">
-                    <h2><?php esc_html_e('Quick Actions', 'wp-ffcertificate'); ?></h2>
+                    <h2><?php esc_html_e('Quick Actions', 'ffcertificate'); ?></h2>
                     <div class="ffc-action-buttons">
                         <a href="<?php echo esc_url(admin_url('post-new.php?post_type=ffc_self_scheduling')); ?>" class="button button-primary">
-                            <?php esc_html_e('New Personal Calendar', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('New Personal Calendar', 'ffcertificate'); ?>
                         </a>
                         <a href="<?php echo esc_url(admin_url('admin.php?page=' . $this->menu_slug . '-calendars&action=new')); ?>" class="button button-primary">
-                            <?php esc_html_e('New Audience Calendar', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('New Audience Calendar', 'ffcertificate'); ?>
                         </a>
                         <a href="<?php echo esc_url(admin_url('admin.php?page=' . $this->menu_slug . '-environments&action=new')); ?>" class="button">
-                            <?php esc_html_e('Add Environment', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Add Environment', 'ffcertificate'); ?>
                         </a>
                         <a href="<?php echo esc_url(admin_url('admin.php?page=' . $this->menu_slug . '-audiences&action=new')); ?>" class="button">
-                            <?php esc_html_e('Create Audience', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Create Audience', 'ffcertificate'); ?>
                         </a>
                     </div>
                 </div>

@@ -75,8 +75,8 @@ class AudienceAdminEnvironment {
         $add_url = admin_url('admin.php?page=' . $this->menu_slug . '-environments&action=new');
 
         ?>
-        <h1 class="wp-heading-inline"><?php esc_html_e('Environments', 'wp-ffcertificate'); ?></h1>
-        <a href="<?php echo esc_url($add_url); ?>" class="page-title-action"><?php esc_html_e('Add New', 'wp-ffcertificate'); ?></a>
+        <h1 class="wp-heading-inline"><?php esc_html_e('Environments', 'ffcertificate'); ?></h1>
+        <a href="<?php echo esc_url($add_url); ?>" class="page-title-action"><?php esc_html_e('Add New', 'ffcertificate'); ?></a>
         <hr class="wp-header-end">
 
         <?php settings_errors('ffc_audience'); ?>
@@ -85,29 +85,29 @@ class AudienceAdminEnvironment {
         <form method="get" class="ffc-filter-form">
             <input type="hidden" name="page" value="<?php echo esc_attr($this->menu_slug . '-environments'); ?>">
             <select name="schedule_id">
-                <option value=""><?php esc_html_e('All Calendars', 'wp-ffcertificate'); ?></option>
+                <option value=""><?php esc_html_e('All Calendars', 'ffcertificate'); ?></option>
                 <?php foreach ($schedules as $schedule) : ?>
                     <option value="<?php echo esc_attr($schedule->id); ?>" <?php selected($filter_schedule, $schedule->id); ?>>
                         <?php echo esc_html($schedule->name); ?>
                     </option>
                 <?php endforeach; ?>
             </select>
-            <?php submit_button(__('Filter', 'wp-ffcertificate'), 'secondary', 'filter', false); ?>
+            <?php submit_button(__('Filter', 'ffcertificate'), 'secondary', 'filter', false); ?>
         </form>
 
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
-                    <th scope="col" class="column-name"><?php esc_html_e('Name', 'wp-ffcertificate'); ?></th>
-                    <th scope="col" class="column-calendar"><?php esc_html_e('Calendar', 'wp-ffcertificate'); ?></th>
-                    <th scope="col" class="column-status"><?php esc_html_e('Status', 'wp-ffcertificate'); ?></th>
-                    <th scope="col" class="column-actions"><?php esc_html_e('Actions', 'wp-ffcertificate'); ?></th>
+                    <th scope="col" class="column-name"><?php esc_html_e('Name', 'ffcertificate'); ?></th>
+                    <th scope="col" class="column-calendar"><?php esc_html_e('Calendar', 'ffcertificate'); ?></th>
+                    <th scope="col" class="column-status"><?php esc_html_e('Status', 'ffcertificate'); ?></th>
+                    <th scope="col" class="column-actions"><?php esc_html_e('Actions', 'ffcertificate'); ?></th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($environments)) : ?>
                     <tr>
-                        <td colspan="4"><?php esc_html_e('No environments found.', 'wp-ffcertificate'); ?></td>
+                        <td colspan="4"><?php esc_html_e('No environments found.', 'ffcertificate'); ?></td>
                     </tr>
                 <?php else : ?>
                     <?php foreach ($environments as $env) : ?>
@@ -131,13 +131,13 @@ class AudienceAdminEnvironment {
                             </td>
                             <td class="column-status">
                                 <span class="ffc-status-badge ffc-status-<?php echo esc_attr($env->status); ?>">
-                                    <?php echo $env->status === 'active' ? esc_html__('Active', 'wp-ffcertificate') : esc_html__('Inactive', 'wp-ffcertificate'); ?>
+                                    <?php echo $env->status === 'active' ? esc_html__('Active', 'ffcertificate') : esc_html__('Inactive', 'ffcertificate'); ?>
                                 </span>
                             </td>
                             <td class="column-actions">
-                                <a href="<?php echo esc_url($edit_url); ?>"><?php esc_html_e('Edit', 'wp-ffcertificate'); ?></a> |
-                                <a href="<?php echo esc_url($delete_url); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e('Are you sure you want to delete this environment?', 'wp-ffcertificate'); ?>');">
-                                    <?php esc_html_e('Delete', 'wp-ffcertificate'); ?>
+                                <a href="<?php echo esc_url($edit_url); ?>"><?php esc_html_e('Edit', 'ffcertificate'); ?></a> |
+                                <a href="<?php echo esc_url($delete_url); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e('Are you sure you want to delete this environment?', 'ffcertificate'); ?>');">
+                                    <?php esc_html_e('Delete', 'ffcertificate'); ?>
                                 </a>
                             </td>
                         </tr>
@@ -158,14 +158,14 @@ class AudienceAdminEnvironment {
      */
     private function render_form(int $id): void {
         $environment = null;
-        $page_title = __('Add New Environment', 'wp-ffcertificate');
+        $page_title = __('Add New Environment', 'ffcertificate');
 
         if ($id > 0) {
             $environment = AudienceEnvironmentRepository::get_by_id($id);
             if (!$environment) {
-                wp_die(esc_html__('Environment not found.', 'wp-ffcertificate'));
+                wp_die(esc_html__('Environment not found.', 'ffcertificate'));
             }
-            $page_title = __('Edit Environment', 'wp-ffcertificate');
+            $page_title = __('Edit Environment', 'ffcertificate');
         }
 
         $schedules = AudienceScheduleRepository::get_all(array('status' => 'active'));
@@ -179,7 +179,7 @@ class AudienceAdminEnvironment {
 
         ?>
         <h1><?php echo esc_html($page_title); ?></h1>
-        <a href="<?php echo esc_url($back_url); ?>">&larr; <?php esc_html_e('Back to Environments', 'wp-ffcertificate'); ?></a>
+        <a href="<?php echo esc_url($back_url); ?>">&larr; <?php esc_html_e('Back to Environments', 'ffcertificate'); ?></a>
 
         <?php settings_errors('ffc_audience'); ?>
 
@@ -191,11 +191,11 @@ class AudienceAdminEnvironment {
             <table class="form-table" role="presentation"><tbody>
                 <tr>
                     <th scope="row">
-                        <label for="environment_schedule"><?php esc_html_e('Calendar', 'wp-ffcertificate'); ?> <span class="required">*</span></label>
+                        <label for="environment_schedule"><?php esc_html_e('Calendar', 'ffcertificate'); ?> <span class="required">*</span></label>
                     </th>
                     <td>
                         <select name="environment_schedule" id="environment_schedule" required>
-                            <option value=""><?php esc_html_e('Select a calendar', 'wp-ffcertificate'); ?></option>
+                            <option value=""><?php esc_html_e('Select a calendar', 'ffcertificate'); ?></option>
                             <?php foreach ($schedules as $schedule) : ?>
                                 <option value="<?php echo esc_attr($schedule->id); ?>" <?php selected($environment->schedule_id ?? '', $schedule->id); ?>>
                                     <?php echo esc_html($schedule->name); ?>
@@ -206,7 +206,7 @@ class AudienceAdminEnvironment {
                 </tr>
                 <tr>
                     <th scope="row">
-                        <label for="environment_name"><?php esc_html_e('Name', 'wp-ffcertificate'); ?> <span class="required">*</span></label>
+                        <label for="environment_name"><?php esc_html_e('Name', 'ffcertificate'); ?> <span class="required">*</span></label>
                     </th>
                     <td>
                         <input type="text" name="environment_name" id="environment_name" class="regular-text"
@@ -215,25 +215,25 @@ class AudienceAdminEnvironment {
                 </tr>
                 <tr>
                     <th scope="row">
-                        <label for="environment_description"><?php esc_html_e('Description', 'wp-ffcertificate'); ?></label>
+                        <label for="environment_description"><?php esc_html_e('Description', 'ffcertificate'); ?></label>
                     </th>
                     <td>
                         <textarea name="environment_description" id="environment_description" rows="3" class="large-text"><?php echo esc_textarea($environment->description ?? ''); ?></textarea>
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row"><?php esc_html_e('Working Hours', 'wp-ffcertificate'); ?></th>
+                    <th scope="row"><?php esc_html_e('Working Hours', 'ffcertificate'); ?></th>
                     <td>
                         <div class="ffc-working-hours">
                             <?php
                             $days = array(
-                                'mon' => __('Monday', 'wp-ffcertificate'),
-                                'tue' => __('Tuesday', 'wp-ffcertificate'),
-                                'wed' => __('Wednesday', 'wp-ffcertificate'),
-                                'thu' => __('Thursday', 'wp-ffcertificate'),
-                                'fri' => __('Friday', 'wp-ffcertificate'),
-                                'sat' => __('Saturday', 'wp-ffcertificate'),
-                                'sun' => __('Sunday', 'wp-ffcertificate'),
+                                'mon' => __('Monday', 'ffcertificate'),
+                                'tue' => __('Tuesday', 'ffcertificate'),
+                                'wed' => __('Wednesday', 'ffcertificate'),
+                                'thu' => __('Thursday', 'ffcertificate'),
+                                'fri' => __('Friday', 'ffcertificate'),
+                                'sat' => __('Saturday', 'ffcertificate'),
+                                'sun' => __('Sunday', 'ffcertificate'),
                             );
                             foreach ($days as $key => $label) :
                                 $closed = isset($working_hours[$key]['closed']) && $working_hours[$key]['closed'];
@@ -244,35 +244,35 @@ class AudienceAdminEnvironment {
                                     <label class="ffc-day-label"><?php echo esc_html($label); ?></label>
                                     <label>
                                         <input type="checkbox" name="working_hours[<?php echo esc_attr($key); ?>][closed]" value="1" <?php checked($closed); ?>>
-                                        <?php esc_html_e('Closed', 'wp-ffcertificate'); ?>
+                                        <?php esc_html_e('Closed', 'ffcertificate'); ?>
                                     </label>
                                     <input type="time" name="working_hours[<?php echo esc_attr($key); ?>][start]" value="<?php echo esc_attr($start); ?>" <?php echo $closed ? 'disabled' : ''; ?>>
-                                    <span><?php esc_html_e('to', 'wp-ffcertificate'); ?></span>
+                                    <span><?php esc_html_e('to', 'ffcertificate'); ?></span>
                                     <input type="time" name="working_hours[<?php echo esc_attr($key); ?>][end]" value="<?php echo esc_attr($end); ?>" <?php echo $closed ? 'disabled' : ''; ?>>
                                 </div>
                             <?php endforeach; ?>
                         </div>
-                        <p class="description"><?php esc_html_e('Leave times empty to use default (08:00 - 18:00).', 'wp-ffcertificate'); ?></p>
+                        <p class="description"><?php esc_html_e('Leave times empty to use default (08:00 - 18:00).', 'ffcertificate'); ?></p>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">
-                        <label for="environment_status"><?php esc_html_e('Status', 'wp-ffcertificate'); ?></label>
+                        <label for="environment_status"><?php esc_html_e('Status', 'ffcertificate'); ?></label>
                     </th>
                     <td>
                         <select name="environment_status" id="environment_status">
                             <option value="active" <?php selected($environment->status ?? 'active', 'active'); ?>>
-                                <?php esc_html_e('Active', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('Active', 'ffcertificate'); ?>
                             </option>
                             <option value="inactive" <?php selected($environment->status ?? '', 'inactive'); ?>>
-                                <?php esc_html_e('Inactive', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('Inactive', 'ffcertificate'); ?>
                             </option>
                         </select>
                     </td>
                 </tr>
             </tbody></table>
 
-            <?php submit_button($id > 0 ? __('Update Environment', 'wp-ffcertificate') : __('Create Environment', 'wp-ffcertificate')); ?>
+            <?php submit_button($id > 0 ? __('Update Environment', 'ffcertificate') : __('Create Environment', 'ffcertificate')); ?>
         </form>
 
         <!-- Styles in ffc-audience-admin.css -->
@@ -322,7 +322,7 @@ class AudienceAdminEnvironment {
 
             if ($id > 0) {
                 AudienceEnvironmentRepository::update($id, $data);
-                add_settings_error('ffc_audience', 'ffc_message', __('Environment updated successfully.', 'wp-ffcertificate'), 'success');
+                add_settings_error('ffc_audience', 'ffc_message', __('Environment updated successfully.', 'ffcertificate'), 'success');
             } else {
                 $new_id = AudienceEnvironmentRepository::create($data);
                 if ($new_id) {

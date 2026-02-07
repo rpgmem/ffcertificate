@@ -74,44 +74,44 @@ class AdminUserCapabilities {
         wp_nonce_field('ffc_user_capabilities', 'ffc_capabilities_nonce');
 
         ?>
-        <h2><?php esc_html_e('FFC Permissions', 'wp-ffcertificate'); ?></h2>
+        <h2><?php esc_html_e('FFC Permissions', 'ffcertificate'); ?></h2>
         <p class="description">
-            <?php esc_html_e('Manage which FFC features this user can access. Capabilities are checked in addition to role permissions.', 'wp-ffcertificate'); ?>
+            <?php esc_html_e('Manage which FFC features this user can access. Capabilities are checked in addition to role permissions.', 'ffcertificate'); ?>
         </p>
 
         <table class="form-table" role="presentation">
             <tbody>
                 <!-- Certificate Capabilities -->
                 <tr>
-                    <th scope="row"><?php esc_html_e('Certificate Permissions', 'wp-ffcertificate'); ?></th>
+                    <th scope="row"><?php esc_html_e('Certificate Permissions', 'ffcertificate'); ?></th>
                     <td>
                         <fieldset>
                             <legend class="screen-reader-text">
-                                <span><?php esc_html_e('Certificate Permissions', 'wp-ffcertificate'); ?></span>
+                                <span><?php esc_html_e('Certificate Permissions', 'ffcertificate'); ?></span>
                             </legend>
 
                             <label>
                                 <input type="checkbox" name="ffc_cap_view_own_certificates" value="1"
                                     <?php checked($capabilities['view_own_certificates'] ?? false); ?>>
-                                <?php esc_html_e('View own certificates', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('View own certificates', 'ffcertificate'); ?>
                             </label>
                             <br>
 
                             <label>
                                 <input type="checkbox" name="ffc_cap_download_own_certificates" value="1"
                                     <?php checked($capabilities['download_own_certificates'] ?? false); ?>>
-                                <?php esc_html_e('Download own certificates', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('Download own certificates', 'ffcertificate'); ?>
                             </label>
                             <br>
 
                             <label>
                                 <input type="checkbox" name="ffc_cap_view_certificate_history" value="1"
                                     <?php checked($capabilities['view_certificate_history'] ?? false); ?>>
-                                <?php esc_html_e('View certificate history', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('View certificate history', 'ffcertificate'); ?>
                             </label>
 
                             <p class="description">
-                                <?php esc_html_e('Allow access to certificate-related features in the user dashboard.', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('Allow access to certificate-related features in the user dashboard.', 'ffcertificate'); ?>
                             </p>
                         </fieldset>
                     </td>
@@ -119,35 +119,35 @@ class AdminUserCapabilities {
 
                 <!-- Appointment Capabilities -->
                 <tr>
-                    <th scope="row"><?php esc_html_e('Appointment Permissions', 'wp-ffcertificate'); ?></th>
+                    <th scope="row"><?php esc_html_e('Appointment Permissions', 'ffcertificate'); ?></th>
                     <td>
                         <fieldset>
                             <legend class="screen-reader-text">
-                                <span><?php esc_html_e('Appointment Permissions', 'wp-ffcertificate'); ?></span>
+                                <span><?php esc_html_e('Appointment Permissions', 'ffcertificate'); ?></span>
                             </legend>
 
                             <label>
                                 <input type="checkbox" name="ffc_cap_ffc_book_appointments" value="1"
                                     <?php checked($capabilities['ffc_book_appointments'] ?? false); ?>>
-                                <?php esc_html_e('Book appointments', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('Book appointments', 'ffcertificate'); ?>
                             </label>
                             <br>
 
                             <label>
                                 <input type="checkbox" name="ffc_cap_ffc_view_self_scheduling" value="1"
                                     <?php checked($capabilities['ffc_view_self_scheduling'] ?? false); ?>>
-                                <?php esc_html_e('View own appointments', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('View own appointments', 'ffcertificate'); ?>
                             </label>
                             <br>
 
                             <label>
                                 <input type="checkbox" name="ffc_cap_ffc_cancel_own_appointments" value="1"
                                     <?php checked($capabilities['ffc_cancel_own_appointments'] ?? false); ?>>
-                                <?php esc_html_e('Cancel own appointments', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('Cancel own appointments', 'ffcertificate'); ?>
                             </label>
 
                             <p class="description">
-                                <?php esc_html_e('Allow access to appointment-related features. Calendar-specific settings also apply.', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('Allow access to appointment-related features. Calendar-specific settings also apply.', 'ffcertificate'); ?>
                             </p>
                         </fieldset>
                     </td>
@@ -155,46 +155,46 @@ class AdminUserCapabilities {
 
                 <!-- Future Capabilities -->
                 <tr>
-                    <th scope="row"><?php esc_html_e('Advanced Permissions', 'wp-ffcertificate'); ?></th>
+                    <th scope="row"><?php esc_html_e('Advanced Permissions', 'ffcertificate'); ?></th>
                     <td>
                         <fieldset>
                             <legend class="screen-reader-text">
-                                <span><?php esc_html_e('Advanced Permissions', 'wp-ffcertificate'); ?></span>
+                                <span><?php esc_html_e('Advanced Permissions', 'ffcertificate'); ?></span>
                             </legend>
 
                             <label>
                                 <input type="checkbox" name="ffc_cap_ffc_reregistration" value="1"
                                     <?php checked($capabilities['ffc_reregistration'] ?? false); ?>>
-                                <?php esc_html_e('Re-registration', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('Re-registration', 'ffcertificate'); ?>
                             </label>
-                            <span class="description"><?php esc_html_e('(Future feature)', 'wp-ffcertificate'); ?></span>
+                            <span class="description"><?php esc_html_e('(Future feature)', 'ffcertificate'); ?></span>
                             <br>
 
                             <label>
                                 <input type="checkbox" name="ffc_cap_ffc_certificate_update" value="1"
                                     <?php checked($capabilities['ffc_certificate_update'] ?? false); ?>>
-                                <?php esc_html_e('Certificate update', 'wp-ffcertificate'); ?>
+                                <?php esc_html_e('Certificate update', 'ffcertificate'); ?>
                             </label>
-                            <span class="description"><?php esc_html_e('(Future feature)', 'wp-ffcertificate'); ?></span>
+                            <span class="description"><?php esc_html_e('(Future feature)', 'ffcertificate'); ?></span>
                         </fieldset>
                     </td>
                 </tr>
 
                 <!-- Quick Actions -->
                 <tr>
-                    <th scope="row"><?php esc_html_e('Quick Actions', 'wp-ffcertificate'); ?></th>
+                    <th scope="row"><?php esc_html_e('Quick Actions', 'ffcertificate'); ?></th>
                     <td>
                         <button type="button" class="button" id="ffc-grant-all-caps">
-                            <?php esc_html_e('Grant All', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Grant All', 'ffcertificate'); ?>
                         </button>
                         <button type="button" class="button" id="ffc-revoke-all-caps">
-                            <?php esc_html_e('Revoke All', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Revoke All', 'ffcertificate'); ?>
                         </button>
                         <button type="button" class="button" id="ffc-grant-certificates">
-                            <?php esc_html_e('Grant Certificates Only', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Grant Certificates Only', 'ffcertificate'); ?>
                         </button>
                         <button type="button" class="button" id="ffc-grant-appointments">
-                            <?php esc_html_e('Grant Appointments Only', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Grant Appointments Only', 'ffcertificate'); ?>
                         </button>
                         <!-- Scripts in ffc-user-capabilities.js -->
                     </td>

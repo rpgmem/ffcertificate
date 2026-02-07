@@ -22,7 +22,7 @@ class TabUserAccess extends SettingsTab {
 
     protected function init(): void {
         $this->tab_id = 'user_access';
-        $this->tab_title = __('User Access', 'wp-ffcertificate');
+        $this->tab_title = __('User Access', 'ffcertificate');
         $this->tab_icon = '👥';
         $this->tab_order = 85;
 
@@ -55,7 +55,7 @@ class TabUserAccess extends SettingsTab {
             include $view_file;
         } else {
             echo '<div class="notice notice-error"><p>';
-            echo esc_html__('User Access settings view file not found.', 'wp-ffcertificate');
+            echo esc_html__('User Access settings view file not found.', 'ffcertificate');
             echo '</p></div>';
         }
     }
@@ -96,7 +96,7 @@ class TabUserAccess extends SettingsTab {
         add_settings_error(
             'ffc_user_access_settings',
             'ffc_user_access_updated',
-            __('User Access settings saved successfully.', 'wp-ffcertificate'),
+            __('User Access settings saved successfully.', 'ffcertificate'),
             'updated'
         );
     }

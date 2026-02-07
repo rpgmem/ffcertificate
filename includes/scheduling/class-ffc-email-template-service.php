@@ -54,7 +54,7 @@ class EmailTemplateService {
             {$body}
         </div>
         <div class='footer'>
-            <p>" . esc_html__('This is an automated notification from', 'wp-ffcertificate') . " {$site_name}</p>
+            <p>" . esc_html__('This is an automated notification from', 'ffcertificate') . " {$site_name}</p>
         </div>
     </div>
 </body>

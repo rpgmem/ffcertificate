@@ -361,13 +361,14 @@ class AudienceRepository {
 
         $placeholders = implode(',', array_fill(0, count($audience_ids), '%d'));
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic IN() placeholders built from array_fill above.
         $results = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT user_id FROM {$table} WHERE audience_id IN ({$placeholders})",
                 $audience_ids
             )
         );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
         return array_map('intval', $results);
     }
@@ -408,13 +409,14 @@ class AudienceRepository {
                 $parent_ids = array_unique($parent_ids);
                 $placeholders = implode(',', array_fill(0, count($parent_ids), '%d'));
 
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+                // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic IN() placeholders built from array_fill above.
                 $parents = $wpdb->get_results(
                     $wpdb->prepare(
                         "SELECT * FROM {$table} WHERE id IN ({$placeholders}) AND status = 'active'",
                         $parent_ids
                     )
                 );
+                // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
                 // Merge and remove duplicates
                 $existing_ids = array_column($audiences, 'id');

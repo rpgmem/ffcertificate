@@ -249,18 +249,18 @@ class AudienceLoader {
      */
     private function get_admin_strings(): array {
         return array(
-            'confirmDelete' => __('Are you sure you want to delete this item?', 'wp-ffcertificate'),
-            'confirmCancel' => __('Are you sure you want to cancel this booking?', 'wp-ffcertificate'),
-            'saving' => __('Saving...', 'wp-ffcertificate'),
-            'saved' => __('Saved!', 'wp-ffcertificate'),
-            'error' => __('An error occurred. Please try again.', 'wp-ffcertificate'),
-            'loading' => __('Loading...', 'wp-ffcertificate'),
-            'noResults' => __('No results found.', 'wp-ffcertificate'),
-            'selectAudience' => __('Select audience groups', 'wp-ffcertificate'),
-            'selectUsers' => __('Select users', 'wp-ffcertificate'),
-            'requiredField' => __('This field is required.', 'wp-ffcertificate'),
-            'invalidTime' => __('End time must be after start time.', 'wp-ffcertificate'),
-            'allEnvironments' => __('All Environments', 'wp-ffcertificate'),
+            'confirmDelete' => __('Are you sure you want to delete this item?', 'ffcertificate'),
+            'confirmCancel' => __('Are you sure you want to cancel this booking?', 'ffcertificate'),
+            'saving' => __('Saving...', 'ffcertificate'),
+            'saved' => __('Saved!', 'ffcertificate'),
+            'error' => __('An error occurred. Please try again.', 'ffcertificate'),
+            'loading' => __('Loading...', 'ffcertificate'),
+            'noResults' => __('No results found.', 'ffcertificate'),
+            'selectAudience' => __('Select audience groups', 'ffcertificate'),
+            'selectUsers' => __('Select users', 'ffcertificate'),
+            'requiredField' => __('This field is required.', 'ffcertificate'),
+            'invalidTime' => __('End time must be after start time.', 'ffcertificate'),
+            'allEnvironments' => __('All Environments', 'ffcertificate'),
         );
     }
 
@@ -274,7 +274,7 @@ class AudienceLoader {
         check_ajax_referer('wp_rest', 'nonce');
 
         if (!current_user_can('read')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'wp-ffcertificate')));
+            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
         }
 
         // Get parameters
@@ -286,7 +286,7 @@ class AudienceLoader {
         $user_ids = isset($_POST['user_ids']) ? array_map('absint', (array) $_POST['user_ids']) : array();
 
         if (!$environment_id || !$booking_date || !$start_time || !$end_time) {
-            wp_send_json_error(array('message' => __('Missing required parameters.', 'wp-ffcertificate')));
+            wp_send_json_error(array('message' => __('Missing required parameters.', 'ffcertificate')));
         }
 
         // Check conflicts using service
@@ -296,7 +296,7 @@ class AudienceLoader {
             wp_send_json_success(array('conflicts' => $conflicts));
         }
 
-        wp_send_json_error(array('message' => __('Service not available.', 'wp-ffcertificate')));
+        wp_send_json_error(array('message' => __('Service not available.', 'ffcertificate')));
     }
 
     /**
@@ -308,12 +308,12 @@ class AudienceLoader {
         check_ajax_referer('wp_rest', 'nonce');
 
         if (!current_user_can('read')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'wp-ffcertificate')));
+            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
         }
 
         // Booking creation is handled by AudienceBookingService
         // This is a placeholder - actual implementation in Phase 6
-        wp_send_json_error(array('message' => __('Not implemented yet.', 'wp-ffcertificate')));
+        wp_send_json_error(array('message' => __('Not implemented yet.', 'ffcertificate')));
     }
 
     /**
@@ -325,12 +325,12 @@ class AudienceLoader {
         check_ajax_referer('wp_rest', 'nonce');
 
         if (!current_user_can('read')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'wp-ffcertificate')));
+            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
         }
 
         // Booking cancellation is handled by AudienceBookingService
         // This is a placeholder - actual implementation in Phase 6
-        wp_send_json_error(array('message' => __('Not implemented yet.', 'wp-ffcertificate')));
+        wp_send_json_error(array('message' => __('Not implemented yet.', 'ffcertificate')));
     }
 
     /**
@@ -342,12 +342,12 @@ class AudienceLoader {
         check_ajax_referer('wp_rest', 'nonce');
 
         if (!current_user_can('read')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'wp-ffcertificate')));
+            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
         }
 
         // Slot retrieval is handled by AudienceScheduleService
         // This is a placeholder - actual implementation in Phase 5
-        wp_send_json_error(array('message' => __('Not implemented yet.', 'wp-ffcertificate')));
+        wp_send_json_error(array('message' => __('Not implemented yet.', 'ffcertificate')));
     }
 
     /**
@@ -359,7 +359,7 @@ class AudienceLoader {
         check_ajax_referer('ffc_search_users', 'nonce');
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'wp-ffcertificate')));
+            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
         }
 
         $query = isset($_GET['query']) ? sanitize_text_field(wp_unslash($_GET['query'])) : '';
@@ -396,7 +396,7 @@ class AudienceLoader {
         check_ajax_referer('ffc_admin_nonce', 'nonce');
 
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'wp-ffcertificate')));
+            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
         }
 
         $schedule_id = isset($_GET['schedule_id']) ? absint($_GET['schedule_id']) : 0;

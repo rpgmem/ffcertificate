@@ -22,7 +22,7 @@ class TabQRCode extends SettingsTab {
 
     protected function init(): void {
         $this->tab_id = 'qr_code';
-        $this->tab_title = __( 'QR Code', 'wp-ffcertificate' );
+        $this->tab_title = __( 'QR Code', 'ffcertificate' );
         $this->tab_icon = '📱';
         $this->tab_order = 40;
     }
@@ -35,7 +35,7 @@ class TabQRCode extends SettingsTab {
             include $view_file;
         } else {
             echo '<div class="notice notice-error"><p>';
-            echo esc_html__( 'QR Code settings view file not found.', 'wp-ffcertificate' );
+            echo esc_html__( 'QR Code settings view file not found.', 'ffcertificate' );
             echo '</p></div>';
         }
     }

@@ -39,7 +39,7 @@ class Deactivator {
         // Note: WordPress deactivation via the "Plugins" page doesn't send POST data by default.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Deactivation hook; nonce handled by WordPress plugin deactivation flow.
         if ( ! isset( $_POST['confirm_uninstall'] ) || sanitize_text_field( wp_unslash( $_POST['confirm_uninstall'] ) ) !== 'yes' ) {
-            wp_die( esc_html__( 'Please confirm the uninstallation to proceed.', 'wp-ffcertificate' ) );
+            wp_die( esc_html__( 'Please confirm the uninstallation to proceed.', 'ffcertificate' ) );
         }
         
         global $wpdb;

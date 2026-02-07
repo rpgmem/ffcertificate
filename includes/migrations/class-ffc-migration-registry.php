@@ -54,27 +54,27 @@ class MigrationRegistry {
                 'column_name'       => 'email',
                 'sanitize_callback' => 'sanitize_email',
                 'icon'              => '📧',
-                'description'       => __( 'Email address', 'wp-ffcertificate' )
+                'description'       => __( 'Email address', 'ffcertificate' )
             ),
             'cpf_rf' => array(
                 'json_keys'         => array( 'cpf_rf', 'cpf', 'rf', 'documento' ),
                 'column_name'       => 'cpf_rf',
                 'sanitize_callback' => array( '\FreeFormCertificate\Core\Utils', 'clean_identifier' ),
                 'icon'              => '🆔',
-                'description'       => __( 'CPF or RF number', 'wp-ffcertificate' )
+                'description'       => __( 'CPF or RF number', 'ffcertificate' )
             ),
             'auth_code' => array(
                 'json_keys'         => array( 'auth_code', 'codigo_autenticacao', 'verification_code' ),
                 'column_name'       => 'auth_code',
                 'sanitize_callback' => array( '\FreeFormCertificate\Core\Utils', 'clean_auth_code' ),
                 'icon'              => '🔐',
-                'description'       => __( 'Authentication code', 'wp-ffcertificate' )
+                'description'       => __( 'Authentication code', 'ffcertificate' )
             )
         );
 
         // Allow plugins to add custom fields
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_ffcertificate is the plugin prefix
-        $this->field_definitions = apply_filters( 'wp_ffcertificate_migratable_fields', $this->field_definitions );
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
+        $this->field_definitions = apply_filters( 'ffcertificate_migratable_fields', $this->field_definitions );
     }
 
     /**
@@ -90,10 +90,10 @@ class MigrationRegistry {
         foreach ( $this->field_definitions as $field_key => $field_config ) {
             $this->migrations[ $field_key ] = array(
                 /* translators: %s: field description */
-                'name'            => sprintf( __( '%s Migration', 'wp-ffcertificate' ), $field_config['description'] ),
+                'name'            => sprintf( __( '%s Migration', 'ffcertificate' ), $field_config['description'] ),
                 'description'     => sprintf(
                     /* translators: 1: field description, 2: column name */
-                    __( 'Migrate %1$s from JSON data to dedicated %2$s column', 'wp-ffcertificate' ),
+                    __( 'Migrate %1$s from JSON data to dedicated %2$s column', 'ffcertificate' ),
                     strtolower( $field_config['description'] ),
                     $field_config['column_name']
                 ),
@@ -107,8 +107,8 @@ class MigrationRegistry {
 
         // Special migrations
         $this->migrations['magic_tokens'] = array(
-            'name'            => __( 'Magic Tokens', 'wp-ffcertificate' ),
-            'description'     => __( 'Generate unique magic tokens for secure certificate access', 'wp-ffcertificate' ),
+            'name'            => __( 'Magic Tokens', 'ffcertificate' ),
+            'description'     => __( 'Generate unique magic tokens for secure certificate access', 'ffcertificate' ),
             'icon'            => '🔮',
             'batch_size'      => 100,
             'order'           => $order++,
@@ -117,8 +117,8 @@ class MigrationRegistry {
 
         // v2.10.0: Encryption migrations
         $this->migrations['encrypt_sensitive_data'] = array(
-            'name'            => __( 'Encrypt Sensitive Data', 'wp-ffcertificate' ),
-            'description'     => __( 'Encrypt email, data, and user_ip for LGPD compliance', 'wp-ffcertificate' ),
+            'name'            => __( 'Encrypt Sensitive Data', 'ffcertificate' ),
+            'description'     => __( 'Encrypt email, data, and user_ip for LGPD compliance', 'ffcertificate' ),
             'icon'            => '🔒',
             'batch_size'      => 50,
             'order'           => $order++,
@@ -126,8 +126,8 @@ class MigrationRegistry {
         );
 
         $this->migrations['cleanup_unencrypted'] = array(
-            'name'            => __( 'Cleanup Unencrypted Data (15+ days)', 'wp-ffcertificate' ),
-            'description'     => __( 'Remove unencrypted copies of sensitive data older than 15 days', 'wp-ffcertificate' ),
+            'name'            => __( 'Cleanup Unencrypted Data (15+ days)', 'ffcertificate' ),
+            'description'     => __( 'Remove unencrypted copies of sensitive data older than 15 days', 'ffcertificate' ),
             'icon'            => '🧹',
             'batch_size'      => 100,
             'order'           => $order++,
@@ -136,8 +136,8 @@ class MigrationRegistry {
 
         // v3.1.0: User linking migration
         $this->migrations['user_link'] = array(
-            'name'            => __( 'Link Submissions to Users', 'wp-ffcertificate' ),
-            'description'     => __( 'Associate submissions with WordPress users based on CPF/RF', 'wp-ffcertificate' ),
+            'name'            => __( 'Link Submissions to Users', 'ffcertificate' ),
+            'description'     => __( 'Associate submissions with WordPress users based on CPF/RF', 'ffcertificate' ),
             'icon'            => '👤',
             'batch_size'      => 100,
             'order'           => $order++,
@@ -146,8 +146,8 @@ class MigrationRegistry {
 
         // v4.3.0: Name and email normalization migration
         $this->migrations['name_normalization'] = array(
-            'name'            => __( 'Normalize Names & Emails', 'wp-ffcertificate' ),
-            'description'     => __( 'Normalize names (Brazilian capitalization) and emails (lowercase)', 'wp-ffcertificate' ),
+            'name'            => __( 'Normalize Names & Emails', 'ffcertificate' ),
+            'description'     => __( 'Normalize names (Brazilian capitalization) and emails (lowercase)', 'ffcertificate' ),
             'icon'            => '✍️',
             'batch_size'      => 100,
             'order'           => $order++,
@@ -156,8 +156,8 @@ class MigrationRegistry {
 
         // v4.4.0: User capabilities migration
         $this->migrations['user_capabilities'] = array(
-            'name'            => __( 'User Capabilities', 'wp-ffcertificate' ),
-            'description'     => __( 'Set user capabilities based on submission/appointment history', 'wp-ffcertificate' ),
+            'name'            => __( 'User Capabilities', 'ffcertificate' ),
+            'description'     => __( 'Set user capabilities based on submission/appointment history', 'ffcertificate' ),
             'icon'            => '🔑',
             'batch_size'      => 50,
             'order'           => $order++,
@@ -166,8 +166,8 @@ class MigrationRegistry {
 
         // Data cleanup (option-based, not batch)
         $this->migrations['data_cleanup'] = array(
-            'name'            => __( 'Data Cleanup', 'wp-ffcertificate' ),
-            'description'     => __( 'Remove old migration data and cleanup database', 'wp-ffcertificate' ),
+            'name'            => __( 'Data Cleanup', 'ffcertificate' ),
+            'description'     => __( 'Remove old migration data and cleanup database', 'ffcertificate' ),
             'icon'            => '🗑️',
             'batch_size'      => 0,
             'order'           => 999, // Always last
@@ -175,8 +175,8 @@ class MigrationRegistry {
         );
 
         // Allow plugins to add custom migrations
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_ffcertificate is the plugin prefix
-        $this->migrations = apply_filters( 'wp_ffcertificate_migrations_registry', $this->migrations );
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
+        $this->migrations = apply_filters( 'ffcertificate_migrations_registry', $this->migrations );
     }
 
     /**

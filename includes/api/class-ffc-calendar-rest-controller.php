@@ -92,7 +92,7 @@ class CalendarRestController {
             if (!class_exists('\FreeFormCertificate\Repositories\CalendarRepository')) {
                 return new \WP_Error(
                     'repository_not_found',
-                    __('Calendar repository not available', 'wp-ffcertificate'),
+                    __('Calendar repository not available', 'ffcertificate'),
                     array('status' => 500)
                 );
             }
@@ -149,7 +149,7 @@ class CalendarRestController {
             if (!class_exists('\FreeFormCertificate\Repositories\CalendarRepository')) {
                 return new \WP_Error(
                     'repository_not_found',
-                    __('Calendar repository not available', 'wp-ffcertificate'),
+                    __('Calendar repository not available', 'ffcertificate'),
                     array('status' => 500)
                 );
             }
@@ -160,7 +160,7 @@ class CalendarRestController {
             if (!$calendar) {
                 return new \WP_Error(
                     'calendar_not_found',
-                    __('Calendar not found', 'wp-ffcertificate'),
+                    __('Calendar not found', 'ffcertificate'),
                     array('status' => 404)
                 );
             }
@@ -168,7 +168,7 @@ class CalendarRestController {
             if ($calendar['status'] !== 'active') {
                 return new \WP_Error(
                     'calendar_inactive',
-                    __('Calendar is not active', 'wp-ffcertificate'),
+                    __('Calendar is not active', 'ffcertificate'),
                     array('status' => 403)
                 );
             }
@@ -214,7 +214,7 @@ class CalendarRestController {
             if (!class_exists('\FreeFormCertificate\SelfScheduling\AppointmentHandler')) {
                 return new \WP_Error(
                     'handler_not_found',
-                    __('Appointment handler not available', 'wp-ffcertificate'),
+                    __('Appointment handler not available', 'ffcertificate'),
                     array('status' => 500)
                 );
             }

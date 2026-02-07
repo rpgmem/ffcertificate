@@ -43,16 +43,16 @@ class AudienceAdminImport {
         $audiences = AudienceRepository::get_hierarchical();
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e('Import', 'wp-ffcertificate'); ?></h1>
+            <h1><?php esc_html_e('Import', 'ffcertificate'); ?></h1>
 
             <?php settings_errors('ffc_audience'); ?>
 
             <div class="ffc-import-sections">
                 <!-- Import Members -->
                 <div class="ffc-import-section">
-                    <h2><?php esc_html_e('Import Members', 'wp-ffcertificate'); ?></h2>
+                    <h2><?php esc_html_e('Import Members', 'ffcertificate'); ?></h2>
                     <p class="description">
-                        <?php esc_html_e('Import users as members of audience groups. Users will be created if they do not exist.', 'wp-ffcertificate'); ?>
+                        <?php esc_html_e('Import users as members of audience groups. Users will be created if they do not exist.', 'ffcertificate'); ?>
                     </p>
 
                     <form method="post" enctype="multipart/form-data">
@@ -62,22 +62,22 @@ class AudienceAdminImport {
                         <table class="form-table" role="presentation"><tbody>
                             <tr>
                                 <th scope="row">
-                                    <label for="members_csv"><?php esc_html_e('CSV File', 'wp-ffcertificate'); ?></label>
+                                    <label for="members_csv"><?php esc_html_e('CSV File', 'ffcertificate'); ?></label>
                                 </th>
                                 <td>
                                     <input type="file" name="members_csv" id="members_csv" accept=".csv" required>
                                     <p class="description">
-                                        <?php esc_html_e('Required columns: email. Optional: name, audience_id or audience_name.', 'wp-ffcertificate'); ?>
+                                        <?php esc_html_e('Required columns: email. Optional: name, audience_id or audience_name.', 'ffcertificate'); ?>
                                     </p>
                                 </td>
                             </tr>
                             <tr>
                                 <th scope="row">
-                                    <label for="import_audience_id"><?php esc_html_e('Target Audience', 'wp-ffcertificate'); ?></label>
+                                    <label for="import_audience_id"><?php esc_html_e('Target Audience', 'ffcertificate'); ?></label>
                                 </th>
                                 <td>
                                     <select name="import_audience_id" id="import_audience_id">
-                                        <option value=""><?php esc_html_e('Use audience from CSV', 'wp-ffcertificate'); ?></option>
+                                        <option value=""><?php esc_html_e('Use audience from CSV', 'ffcertificate'); ?></option>
                                         <?php foreach ($audiences as $audience) : ?>
                                             <option value="<?php echo esc_attr($audience->id); ?>">
                                                 <?php echo esc_html($audience->name); ?>
@@ -92,38 +92,38 @@ class AudienceAdminImport {
                                         <?php endforeach; ?>
                                     </select>
                                     <p class="description">
-                                        <?php esc_html_e('Select a specific audience or leave empty to use audience_id/audience_name from CSV.', 'wp-ffcertificate'); ?>
+                                        <?php esc_html_e('Select a specific audience or leave empty to use audience_id/audience_name from CSV.', 'ffcertificate'); ?>
                                     </p>
                                 </td>
                             </tr>
                             <tr>
-                                <th scope="row"><?php esc_html_e('Options', 'wp-ffcertificate'); ?></th>
+                                <th scope="row"><?php esc_html_e('Options', 'ffcertificate'); ?></th>
                                 <td>
                                     <label>
                                         <input type="checkbox" name="create_users" value="1" checked>
-                                        <?php esc_html_e('Create users if they do not exist (with ffc_user role)', 'wp-ffcertificate'); ?>
+                                        <?php esc_html_e('Create users if they do not exist (with ffc_user role)', 'ffcertificate'); ?>
                                     </label>
                                 </td>
                             </tr>
                         </tbody></table>
 
-                        <?php submit_button(__('Import Members', 'wp-ffcertificate'), 'primary', 'import_members'); ?>
+                        <?php submit_button(__('Import Members', 'ffcertificate'), 'primary', 'import_members'); ?>
                     </form>
 
                     <div class="ffc-sample-csv">
-                        <h4><?php esc_html_e('Sample CSV Format', 'wp-ffcertificate'); ?></h4>
+                        <h4><?php esc_html_e('Sample CSV Format', 'ffcertificate'); ?></h4>
                         <pre><?php echo esc_html(AudienceCsvImporter::get_sample_csv('members')); ?></pre>
                         <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=' . $this->menu_slug . '-import&download_sample=members'), 'download_sample')); ?>" class="button">
-                            <?php esc_html_e('Download Sample', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Download Sample', 'ffcertificate'); ?>
                         </a>
                     </div>
                 </div>
 
                 <!-- Import Audiences -->
                 <div class="ffc-import-section">
-                    <h2><?php esc_html_e('Import Audiences', 'wp-ffcertificate'); ?></h2>
+                    <h2><?php esc_html_e('Import Audiences', 'ffcertificate'); ?></h2>
                     <p class="description">
-                        <?php esc_html_e('Import audience groups from a CSV file. Parent groups are created first, then children.', 'wp-ffcertificate'); ?>
+                        <?php esc_html_e('Import audience groups from a CSV file. Parent groups are created first, then children.', 'ffcertificate'); ?>
                     </p>
 
                     <form method="post" enctype="multipart/form-data">
@@ -133,25 +133,25 @@ class AudienceAdminImport {
                         <table class="form-table" role="presentation"><tbody>
                             <tr>
                                 <th scope="row">
-                                    <label for="audiences_csv"><?php esc_html_e('CSV File', 'wp-ffcertificate'); ?></label>
+                                    <label for="audiences_csv"><?php esc_html_e('CSV File', 'ffcertificate'); ?></label>
                                 </th>
                                 <td>
                                     <input type="file" name="audiences_csv" id="audiences_csv" accept=".csv" required>
                                     <p class="description">
-                                        <?php esc_html_e('Required columns: name. Optional: color, parent (parent audience name).', 'wp-ffcertificate'); ?>
+                                        <?php esc_html_e('Required columns: name. Optional: color, parent (parent audience name).', 'ffcertificate'); ?>
                                     </p>
                                 </td>
                             </tr>
                         </tbody></table>
 
-                        <?php submit_button(__('Import Audiences', 'wp-ffcertificate'), 'primary', 'import_audiences'); ?>
+                        <?php submit_button(__('Import Audiences', 'ffcertificate'), 'primary', 'import_audiences'); ?>
                     </form>
 
                     <div class="ffc-sample-csv">
-                        <h4><?php esc_html_e('Sample CSV Format', 'wp-ffcertificate'); ?></h4>
+                        <h4><?php esc_html_e('Sample CSV Format', 'ffcertificate'); ?></h4>
                         <pre><?php echo esc_html(AudienceCsvImporter::get_sample_csv('audiences')); ?></pre>
                         <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin.php?page=' . $this->menu_slug . '-import&download_sample=audiences'), 'download_sample')); ?>" class="button">
-                            <?php esc_html_e('Download Sample', 'wp-ffcertificate'); ?>
+                            <?php esc_html_e('Download Sample', 'ffcertificate'); ?>
                         </a>
                     </div>
                 </div>
@@ -193,7 +193,7 @@ class AudienceAdminImport {
             }
 
             if (!isset($_FILES['members_csv'], $_FILES['members_csv']['error']) || $_FILES['members_csv']['error'] !== UPLOAD_ERR_OK) {
-                add_settings_error('ffc_audience', 'ffc_message', __('File upload failed.', 'wp-ffcertificate'), 'error');
+                add_settings_error('ffc_audience', 'ffc_message', __('File upload failed.', 'ffcertificate'), 'error');
                 return;
             }
 
@@ -210,14 +210,14 @@ class AudienceAdminImport {
             if ($result['success']) {
                 $message = sprintf(
                     /* translators: 1: number imported, 2: number skipped */
-                    __('Import completed. %1$d imported, %2$d skipped.', 'wp-ffcertificate'),
+                    __('Import completed. %1$d imported, %2$d skipped.', 'ffcertificate'),
                     $result['imported'],
                     $result['skipped']
                 );
                 if (!empty($result['errors'])) {
                     $message .= ' ' . sprintf(
                         /* translators: %d: number of errors */
-                        __('%d errors occurred.', 'wp-ffcertificate'),
+                        __('%d errors occurred.', 'ffcertificate'),
                         count($result['errors'])
                     );
                 }
@@ -239,7 +239,7 @@ class AudienceAdminImport {
             }
 
             if (!isset($_FILES['audiences_csv'], $_FILES['audiences_csv']['error']) || $_FILES['audiences_csv']['error'] !== UPLOAD_ERR_OK) {
-                add_settings_error('ffc_audience', 'ffc_message', __('File upload failed.', 'wp-ffcertificate'), 'error');
+                add_settings_error('ffc_audience', 'ffc_message', __('File upload failed.', 'ffcertificate'), 'error');
                 return;
             }
 
@@ -249,14 +249,14 @@ class AudienceAdminImport {
             if ($result['success']) {
                 $message = sprintf(
                     /* translators: 1: number imported, 2: number skipped */
-                    __('Import completed. %1$d imported, %2$d skipped.', 'wp-ffcertificate'),
+                    __('Import completed. %1$d imported, %2$d skipped.', 'ffcertificate'),
                     $result['imported'],
                     $result['skipped']
                 );
                 if (!empty($result['errors'])) {
                     $message .= ' ' . sprintf(
                         /* translators: %d: number of errors */
-                        __('%d errors occurred.', 'wp-ffcertificate'),
+                        __('%d errors occurred.', 'ffcertificate'),
                         count($result['errors'])
                     );
                 }

@@ -1,4 +1,4 @@
-<?php // phpcs:ignore trademarked_term -- Plugin slug predates this rule
+<?php
 /*
 Plugin Name:        Free Form Certificate
 Plugin URI:         https://github.com/rpgmem/wp-ffcertificate
@@ -9,7 +9,7 @@ Author:             Alex Meusburger
 Author URI:         https://github.com/rpgmem
 License:             GPLv3 or later
 License URI:         https://www.gnu.org/licenses/gpl-3.0.html
-Text Domain:        wp-ffcertificate
+Text Domain:        ffcertificate
 Domain Path:        /languages
 */
 
@@ -62,9 +62,9 @@ register_activation_hook( __FILE__, array( '\FreeFormCertificate\Activator', 'ac
  * Run the plugin
  */
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Public API function
-function wp_ffcertificate_run() {
+function ffcertificate_run() {
     $plugin = new \FreeFormCertificate\Loader();
     $plugin->run();
 }
 
-wp_ffcertificate_run();
+ffcertificate_run();

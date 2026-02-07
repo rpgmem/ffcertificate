@@ -129,14 +129,14 @@ class NameNormalizationMigrationStrategy implements MigrationStrategyInterface {
         if ( ! class_exists( '\\FreeFormCertificate\\Core\\Encryption' ) ) {
             return new \WP_Error(
                 'encryption_not_available',
-                __( 'Encryption class not available.', 'wp-ffcertificate' )
+                __( 'Encryption class not available.', 'ffcertificate' )
             );
         }
 
         if ( ! \FreeFormCertificate\Core\Encryption::is_configured() ) {
             return new \WP_Error(
                 'encryption_not_configured',
-                __( 'Encryption is not configured. Cannot process encrypted data.', 'wp-ffcertificate' )
+                __( 'Encryption is not configured. Cannot process encrypted data.', 'ffcertificate' )
             );
         }
 
@@ -149,6 +149,6 @@ class NameNormalizationMigrationStrategy implements MigrationStrategyInterface {
      * @return string Strategy name
      */
     public function get_name(): string {
-        return __( 'Name Normalization Migration', 'wp-ffcertificate' );
+        return __( 'Name Normalization Migration', 'ffcertificate' );
     }
 }

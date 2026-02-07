@@ -75,8 +75,8 @@ class Admin {
     public function register_admin_menu(): void {
         add_submenu_page(
             'edit.php?post_type=ffc_form',
-            __( 'Submissions', 'wp-ffcertificate' ),
-            __( 'Submissions', 'wp-ffcertificate' ),
+            __( 'Submissions', 'ffcertificate' ),
+            __( 'Submissions', 'ffcertificate' ),
             'manage_options',
             'ffc-submissions',
             array( $this, 'display_submissions_page' )
@@ -164,7 +164,7 @@ class Admin {
         $table->prepare_items();
         ?>
         <div class="wrap">
-            <h1 class="wp-heading-inline"><?php esc_html_e( 'Submissions', 'wp-ffcertificate' ); ?></h1>
+            <h1 class="wp-heading-inline"><?php esc_html_e( 'Submissions', 'ffcertificate' ); ?></h1>
             <div class="ffc-admin-top-actions">
                 <form method="POST" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                     <input type="hidden" name="action" value="ffc_export_csv">
@@ -191,9 +191,9 @@ class Admin {
                     <?php
                         endforeach;
                     ?>
-                        <button type="submit" class="button button-primary"><?php esc_html_e( 'Export Filtered CSV', 'wp-ffcertificate' ); ?></button>
+                        <button type="submit" class="button button-primary"><?php esc_html_e( 'Export Filtered CSV', 'ffcertificate' ); ?></button>
                     <?php else: ?>
-                        <button type="submit" class="button"><?php esc_html_e( 'Export All CSV', 'wp-ffcertificate' ); ?></button>
+                        <button type="submit" class="button"><?php esc_html_e( 'Export All CSV', 'ffcertificate' ); ?></button>
                     <?php endif; ?>
                     <?php wp_nonce_field('ffc_export_csv_nonce','ffc_export_csv_action'); ?>
                 </form>
@@ -204,7 +204,7 @@ class Admin {
                 <input type="hidden" name="page" value="ffc-submissions">
                 <?php
                 $table->views();
-                $table->search_box( __( 'Search', 'wp-ffcertificate' ), 's' );
+                $table->search_box( __( 'Search', 'ffcertificate' ), 's' );
                 ?>
                 <div class="ffc-table-responsive">
                     <?php $table->display(); ?>
@@ -230,29 +230,29 @@ class Admin {
 
         switch ($msg) {
             case 'trash':
-                $text = __('Item moved to trash.', 'wp-ffcertificate');
+                $text = __('Item moved to trash.', 'ffcertificate');
                 break;
             case 'restore':
-                $text = __('Item restored.', 'wp-ffcertificate');
+                $text = __('Item restored.', 'ffcertificate');
                 break;
             case 'delete':
-                $text = __('Item permanently deleted.', 'wp-ffcertificate');
+                $text = __('Item permanently deleted.', 'ffcertificate');
                 break;
             case 'bulk_done':
-                $text = __('Bulk action completed.', 'wp-ffcertificate');
+                $text = __('Bulk action completed.', 'ffcertificate');
                 break;
             case 'updated':
-                $text = __('Submission updated successfully.', 'wp-ffcertificate');
+                $text = __('Submission updated successfully.', 'ffcertificate');
                 break;
             case 'migration_success':
                 $migrated = isset( $_GET['migrated'] ) ? absint( wp_unslash( $_GET['migrated'] ) ) : 0;
-                $migration_name = isset($_GET['migration_name']) ? sanitize_text_field( urldecode( wp_unslash( $_GET['migration_name'] ) ) ) : __('Migration', 'wp-ffcertificate'); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
+                $migration_name = isset($_GET['migration_name']) ? sanitize_text_field( urldecode( wp_unslash( $_GET['migration_name'] ) ) ) : __('Migration', 'ffcertificate'); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
                 /* translators: 1: migration name, 2: number of records migrated */
-                $text = sprintf(__('%1$s: %2$d records migrated successfully.', 'wp-ffcertificate'), $migration_name, $migrated);
+                $text = sprintf(__('%1$s: %2$d records migrated successfully.', 'ffcertificate'), $migration_name, $migrated);
                 break;
             case 'migration_error':
-                $error_msg = isset($_GET['error_msg']) ? sanitize_text_field( urldecode( wp_unslash( $_GET['error_msg'] ) ) ) : __('Unknown error', 'wp-ffcertificate'); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
-                $text = __('Migration Error: ', 'wp-ffcertificate') . $error_msg;
+                $error_msg = isset($_GET['error_msg']) ? sanitize_text_field( urldecode( wp_unslash( $_GET['error_msg'] ) ) ) : __('Unknown error', 'ffcertificate'); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
+                $text = __('Migration Error: ', 'ffcertificate') . $error_msg;
                 $type = 'error';
                 break;
         }
@@ -294,7 +294,7 @@ class Admin {
         }
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Insufficient permissions', 'wp-ffcertificate' ) );
+            wp_die( esc_html__( 'Insufficient permissions', 'ffcertificate' ) );
         }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below via check_admin_referer.
@@ -306,7 +306,7 @@ class Admin {
         // Get migration info
         $migration = $this->migration_manager->get_migration( $migration_key );
         if ( ! $migration ) {
-            wp_die( esc_html__( 'Invalid migration key', 'wp-ffcertificate' ) );
+            wp_die( esc_html__( 'Invalid migration key', 'ffcertificate' ) );
         }
 
         // Run migration

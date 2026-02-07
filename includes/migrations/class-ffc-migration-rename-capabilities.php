@@ -52,7 +52,7 @@ class MigrationRenameCapabilities {
         if (self::is_completed()) {
             return [
                 'success' => true,
-                'message' => __('Capability migration already completed.', 'wp-ffcertificate'),
+                'message' => __('Capability migration already completed.', 'ffcertificate'),
                 'updated_users' => 0,
             ];
         }
@@ -100,7 +100,7 @@ class MigrationRenameCapabilities {
             'success' => true,
             'message' => sprintf(
                 /* translators: %d: number of users updated */
-                __('Capability migration completed. Updated %d users.', 'wp-ffcertificate'),
+                __('Capability migration completed. Updated %d users.', 'ffcertificate'),
                 $updated_users
             ),
             'updated_users' => $updated_users,

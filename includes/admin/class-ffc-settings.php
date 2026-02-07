@@ -84,15 +84,15 @@ class Settings {
         });
 
         // Allow plugins to add custom tabs
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- wp_ffcertificate is the plugin prefix
-        $this->tabs = apply_filters( 'wp_ffcertificate_settings_tabs', $this->tabs );
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
+        $this->tabs = apply_filters( 'ffcertificate_settings_tabs', $this->tabs );
     }
     
     public function add_settings_page(): void {
         add_submenu_page(
             'edit.php?post_type=ffc_form',
-            __( 'Settings', 'wp-ffcertificate' ),
-            __( 'Settings', 'wp-ffcertificate' ),
+            __( 'Settings', 'ffcertificate' ),
+            __( 'Settings', 'ffcertificate' ),
             'manage_options',
             'ffc-settings',
             array( $this, 'display_settings_page' )
@@ -202,7 +202,7 @@ class Settings {
                 $cleared = isset( $_GET['cleared'] ) ? absint( wp_unslash( $_GET['cleared'] ) ) : 0;
                 echo '<div class="notice notice-success is-dismissible">';
                 /* translators: %d: number of QR codes cleared */
-                echo '<p>' . esc_html( sprintf( __( '%d QR Code(s) cleared from cache successfully.', 'wp-ffcertificate' ), $cleared ) ) . '</p>';
+                echo '<p>' . esc_html( sprintf( __( '%d QR Code(s) cleared from cache successfully.', 'ffcertificate' ), $cleared ) ) . '</p>';
                 echo '</div>';
             }
         }
@@ -226,7 +226,7 @@ class Settings {
                 echo '<div class="notice notice-success is-dismissible">';
                 echo '<p>' . esc_html( sprintf(
                     /* translators: %d: number of forms pre-loaded */
-                    __( '✅ Cache warmed! %d form(s) pre-loaded.', 'wp-ffcertificate' ),
+                    __( '✅ Cache warmed! %d form(s) pre-loaded.', 'ffcertificate' ),
                     $count
                 ) ) . '</p>';
                 echo '</div>';
@@ -234,14 +234,14 @@ class Settings {
 
             if ($msg === 'cache_cleared') {
                 echo '<div class="notice notice-success is-dismissible">';
-                echo '<p>' . esc_html__( '✅ Cache cleared successfully!', 'wp-ffcertificate' ) . '</p>';
+                echo '<p>' . esc_html__( '✅ Cache cleared successfully!', 'ffcertificate' ) . '</p>';
                 echo '</div>';
             }
         }
         
         ?>
         <div class="wrap ffc-settings-wrap">
-            <h1><?php esc_html_e( 'Certificate Settings', 'wp-ffcertificate' ); ?></h1>
+            <h1><?php esc_html_e( 'Certificate Settings', 'ffcertificate' ); ?></h1>
             <?php settings_errors( 'ffc_settings' ); ?>
             
             <?php
@@ -299,7 +299,7 @@ class Settings {
 
         // Verify nonce
         if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'ffc_migration_' . $migration_key ) ) {
-            wp_die( esc_html__( 'Security check failed.', 'wp-ffcertificate' ) );
+            wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
         }
 
         // Autoloader handles class loading
@@ -324,7 +324,7 @@ class Settings {
         } else {
             $message = sprintf(
                 /* translators: %d: number of records processed */
-                __( 'Migration executed: %d records processed.', 'wp-ffcertificate' ),
+                __( 'Migration executed: %d records processed.', 'ffcertificate' ),
                 isset( $result['processed'] ) ? $result['processed'] : 0
             );
             $redirect_url = add_query_arg( 'migration_success', urlencode( $message ), $redirect_url );
@@ -359,7 +359,7 @@ class Settings {
             $formatted = date_i18n( $format, strtotime( $sample_date ) );
             wp_send_json_success( array( 'formatted' => $formatted ) );
         } catch ( Exception $e ) {
-            wp_send_json_error( array( 'message' => __( 'Invalid date format', 'wp-ffcertificate' ) ) );
+            wp_send_json_error( array( 'message' => __( 'Invalid date format', 'ffcertificate' ) ) );
         }
     }
 

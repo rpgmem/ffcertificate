@@ -285,7 +285,7 @@ class UserManager {
         // Add ffc_user role with all capabilities
         add_role(
             'ffc_user',
-            __('FFC User', 'wp-ffcertificate'),
+            __('FFC User', 'ffcertificate'),
             array(
                 'read' => true,
 

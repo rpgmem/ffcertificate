@@ -82,7 +82,7 @@ class AppointmentEmailHandler {
         // Email subject
         $subject = sprintf(
             /* translators: %s: calendar title */
-            __('Appointment Confirmation: %s', 'wp-ffcertificate'),
+            __('Appointment Confirmation: %s', 'ffcertificate'),
             $calendar['title']
         );
 
@@ -92,29 +92,29 @@ class AppointmentEmailHandler {
 
         // Status message
         $status_message = $calendar['requires_approval']
-            ? __('Your appointment is pending approval. You will receive a confirmation email once it is approved.', 'wp-ffcertificate')
-            : __('Your appointment has been confirmed!', 'wp-ffcertificate');
+            ? __('Your appointment is pending approval. You will receive a confirmation email once it is approved.', 'ffcertificate')
+            : __('Your appointment has been confirmed!', 'ffcertificate');
 
         // Build email HTML
         $body = $this->get_email_template_header();
 
         $body .= '<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-        $body .= '<h2 style="margin: 0 0 20px 0; color: #0073aa; font-size: 24px;">📅 ' . esc_html__('Appointment Booked!', 'wp-ffcertificate') . '</h2>';
+        $body .= '<h2 style="margin: 0 0 20px 0; color: #0073aa; font-size: 24px;">📅 ' . esc_html__('Appointment Booked!', 'ffcertificate') . '</h2>';
 
         $body .= '<p style="margin: 0 0 15px 0; font-size: 16px;">' . esc_html($status_message) . '</p>';
 
         // Appointment details box
         $body .= '<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">';
-        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Calendar:', 'wp-ffcertificate') . '</strong> ' . esc_html($calendar['title']) . '</p>';
-        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Date:', 'wp-ffcertificate') . '</strong> ' . esc_html($date_formatted) . '</p>';
-        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Time:', 'wp-ffcertificate') . '</strong> ' . esc_html($time_formatted) . '</p>';
-        $body .= '<p style="margin: 0;"><strong>' . esc_html__('Status:', 'wp-ffcertificate') . '</strong> ' . esc_html($this->get_status_label($appointment['status'])) . '</p>';
+        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Calendar:', 'ffcertificate') . '</strong> ' . esc_html($calendar['title']) . '</p>';
+        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Date:', 'ffcertificate') . '</strong> ' . esc_html($date_formatted) . '</p>';
+        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Time:', 'ffcertificate') . '</strong> ' . esc_html($time_formatted) . '</p>';
+        $body .= '<p style="margin: 0;"><strong>' . esc_html__('Status:', 'ffcertificate') . '</strong> ' . esc_html($this->get_status_label($appointment['status'])) . '</p>';
         $body .= '</div>';
 
         // User notes if provided
         if (!empty($appointment['user_notes'])) {
             $body .= '<div style="margin: 20px 0;">';
-            $body .= '<p style="margin: 0 0 5px 0; font-weight: bold; color: #666;">' . esc_html__('Your Notes:', 'wp-ffcertificate') . '</p>';
+            $body .= '<p style="margin: 0 0 5px 0; font-weight: bold; color: #666;">' . esc_html__('Your Notes:', 'ffcertificate') . '</p>';
             $body .= '<p style="margin: 0; color: #333;">' . esc_html($appointment['user_notes']) . '</p>';
             $body .= '</div>';
         }
@@ -127,7 +127,7 @@ class AppointmentEmailHandler {
             );
             $body .= '<div style="text-align: center; margin: 30px 0;">';
             $body .= '<a href="' . esc_url($receipt_url) . '" style="display: inline-block; background: #0073aa; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">';
-            $body .= '📄 ' . esc_html__('View/Print Receipt', 'wp-ffcertificate');
+            $body .= '📄 ' . esc_html__('View/Print Receipt', 'ffcertificate');
             $body .= '</a>';
             $body .= '</div>';
         }
@@ -136,9 +136,9 @@ class AppointmentEmailHandler {
         if ($calendar['allow_cancellation']) {
             $cancel_url = $this->get_cancellation_url($appointment);
             $body .= '<div style="text-align: center; margin: 30px 0;">';
-            $body .= '<p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">' . esc_html__('Need to cancel?', 'wp-ffcertificate') . '</p>';
+            $body .= '<p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">' . esc_html__('Need to cancel?', 'ffcertificate') . '</p>';
             $body .= '<a href="' . esc_url($cancel_url) . '" style="display: inline-block; background: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 14px;">';
-            $body .= esc_html__('Cancel Appointment', 'wp-ffcertificate');
+            $body .= esc_html__('Cancel Appointment', 'ffcertificate');
             $body .= '</a>';
             $body .= '</div>';
         }
@@ -172,7 +172,7 @@ class AppointmentEmailHandler {
         // Email subject
         $subject = sprintf(
             /* translators: %s: calendar title */
-            __('New Appointment: %s', 'wp-ffcertificate'),
+            __('New Appointment: %s', 'ffcertificate'),
             $calendar['title']
         );
 
@@ -182,7 +182,7 @@ class AppointmentEmailHandler {
 
         // Build email HTML
         $body = '<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">';
-        $body .= '<h3 style="color: #0073aa;">' . __('New Appointment Booking', 'wp-ffcertificate') . '</h3>';
+        $body .= '<h3 style="color: #0073aa;">' . __('New Appointment Booking', 'ffcertificate') . '</h3>';
         $body .= '<table border="1" cellpadding="10" style="border-collapse:collapse; width:100%; font-family: sans-serif; border: 1px solid #ddd;">';
 
         // Appointment details
@@ -209,7 +209,7 @@ class AppointmentEmailHandler {
         // Link to manage appointment
         $manage_url = admin_url('edit.php?post_type=ffc_self_scheduling');
         $body .= '<p style="margin: 20px 0;"><a href="' . esc_url($manage_url) . '" style="background: #0073aa; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">';
-        $body .= esc_html__('Manage Appointments', 'wp-ffcertificate');
+        $body .= esc_html__('Manage Appointments', 'ffcertificate');
         $body .= '</a></p>';
 
         $body .= '</div>';
@@ -242,7 +242,7 @@ class AppointmentEmailHandler {
         // Email subject
         $subject = sprintf(
             /* translators: %s: calendar title */
-            __('Appointment Approved: %s', 'wp-ffcertificate'),
+            __('Appointment Approved: %s', 'ffcertificate'),
             $calendar['title']
         );
 
@@ -254,15 +254,15 @@ class AppointmentEmailHandler {
         $body = $this->get_email_template_header();
 
         $body .= '<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-        $body .= '<h2 style="margin: 0 0 20px 0; color: #28a745; font-size: 24px;">✅ ' . esc_html__('Appointment Confirmed!', 'wp-ffcertificate') . '</h2>';
+        $body .= '<h2 style="margin: 0 0 20px 0; color: #28a745; font-size: 24px;">✅ ' . esc_html__('Appointment Confirmed!', 'ffcertificate') . '</h2>';
 
-        $body .= '<p style="margin: 0 0 15px 0; font-size: 16px;">' . esc_html__('Your appointment has been approved and confirmed.', 'wp-ffcertificate') . '</p>';
+        $body .= '<p style="margin: 0 0 15px 0; font-size: 16px;">' . esc_html__('Your appointment has been approved and confirmed.', 'ffcertificate') . '</p>';
 
         // Appointment details box
         $body .= '<div style="background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #c3e6cb;">';
-        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Calendar:', 'wp-ffcertificate') . '</strong> ' . esc_html($calendar['title']) . '</p>';
-        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Date:', 'wp-ffcertificate') . '</strong> ' . esc_html($date_formatted) . '</p>';
-        $body .= '<p style="margin: 0;"><strong>' . esc_html__('Time:', 'wp-ffcertificate') . '</strong> ' . esc_html($time_formatted) . '</p>';
+        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Calendar:', 'ffcertificate') . '</strong> ' . esc_html($calendar['title']) . '</p>';
+        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Date:', 'ffcertificate') . '</strong> ' . esc_html($date_formatted) . '</p>';
+        $body .= '<p style="margin: 0;"><strong>' . esc_html__('Time:', 'ffcertificate') . '</strong> ' . esc_html($time_formatted) . '</p>';
         $body .= '</div>';
 
         $body .= '</div>';
@@ -293,7 +293,7 @@ class AppointmentEmailHandler {
         // Email subject
         $subject = sprintf(
             /* translators: %s: calendar title */
-            __('Appointment Cancelled: %s', 'wp-ffcertificate'),
+            __('Appointment Cancelled: %s', 'ffcertificate'),
             $calendar['title']
         );
 
@@ -305,21 +305,21 @@ class AppointmentEmailHandler {
         $body = $this->get_email_template_header();
 
         $body .= '<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-        $body .= '<h2 style="margin: 0 0 20px 0; color: #dc3545; font-size: 24px;">❌ ' . esc_html__('Appointment Cancelled', 'wp-ffcertificate') . '</h2>';
+        $body .= '<h2 style="margin: 0 0 20px 0; color: #dc3545; font-size: 24px;">❌ ' . esc_html__('Appointment Cancelled', 'ffcertificate') . '</h2>';
 
-        $body .= '<p style="margin: 0 0 15px 0; font-size: 16px;">' . esc_html__('Your appointment has been cancelled.', 'wp-ffcertificate') . '</p>';
+        $body .= '<p style="margin: 0 0 15px 0; font-size: 16px;">' . esc_html__('Your appointment has been cancelled.', 'ffcertificate') . '</p>';
 
         // Appointment details box
         $body .= '<div style="background: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #f5c6cb;">';
-        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Calendar:', 'wp-ffcertificate') . '</strong> ' . esc_html($calendar['title']) . '</p>';
-        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Date:', 'wp-ffcertificate') . '</strong> ' . esc_html($date_formatted) . '</p>';
-        $body .= '<p style="margin: 0;"><strong>' . esc_html__('Time:', 'wp-ffcertificate') . '</strong> ' . esc_html($time_formatted) . '</p>';
+        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Calendar:', 'ffcertificate') . '</strong> ' . esc_html($calendar['title']) . '</p>';
+        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Date:', 'ffcertificate') . '</strong> ' . esc_html($date_formatted) . '</p>';
+        $body .= '<p style="margin: 0;"><strong>' . esc_html__('Time:', 'ffcertificate') . '</strong> ' . esc_html($time_formatted) . '</p>';
         $body .= '</div>';
 
         // Cancellation reason if provided
         if (!empty($appointment['cancellation_reason'])) {
             $body .= '<div style="margin: 20px 0;">';
-            $body .= '<p style="margin: 0 0 5px 0; font-weight: bold; color: #666;">' . esc_html__('Cancellation Reason:', 'wp-ffcertificate') . '</p>';
+            $body .= '<p style="margin: 0 0 5px 0; font-weight: bold; color: #666;">' . esc_html__('Cancellation Reason:', 'ffcertificate') . '</p>';
             $body .= '<p style="margin: 0; color: #333;">' . esc_html($appointment['cancellation_reason']) . '</p>';
             $body .= '</div>';
         }
@@ -352,7 +352,7 @@ class AppointmentEmailHandler {
         // Email subject
         $subject = sprintf(
             /* translators: %s: calendar title */
-            __('Reminder: Appointment Tomorrow - %s', 'wp-ffcertificate'),
+            __('Reminder: Appointment Tomorrow - %s', 'ffcertificate'),
             $calendar['title']
         );
 
@@ -364,24 +364,24 @@ class AppointmentEmailHandler {
         $body = $this->get_email_template_header();
 
         $body .= '<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-        $body .= '<h2 style="margin: 0 0 20px 0; color: #ff9800; font-size: 24px;">⏰ ' . esc_html__('Appointment Reminder', 'wp-ffcertificate') . '</h2>';
+        $body .= '<h2 style="margin: 0 0 20px 0; color: #ff9800; font-size: 24px;">⏰ ' . esc_html__('Appointment Reminder', 'ffcertificate') . '</h2>';
 
-        $body .= '<p style="margin: 0 0 15px 0; font-size: 16px;">' . esc_html__('This is a reminder about your upcoming appointment.', 'wp-ffcertificate') . '</p>';
+        $body .= '<p style="margin: 0 0 15px 0; font-size: 16px;">' . esc_html__('This is a reminder about your upcoming appointment.', 'ffcertificate') . '</p>';
 
         // Appointment details box
         $body .= '<div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #ffeaa7;">';
-        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Calendar:', 'wp-ffcertificate') . '</strong> ' . esc_html($calendar['title']) . '</p>';
-        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Date:', 'wp-ffcertificate') . '</strong> ' . esc_html($date_formatted) . '</p>';
-        $body .= '<p style="margin: 0;"><strong>' . esc_html__('Time:', 'wp-ffcertificate') . '</strong> ' . esc_html($time_formatted) . '</p>';
+        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Calendar:', 'ffcertificate') . '</strong> ' . esc_html($calendar['title']) . '</p>';
+        $body .= '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__('Date:', 'ffcertificate') . '</strong> ' . esc_html($date_formatted) . '</p>';
+        $body .= '<p style="margin: 0;"><strong>' . esc_html__('Time:', 'ffcertificate') . '</strong> ' . esc_html($time_formatted) . '</p>';
         $body .= '</div>';
 
         // Cancellation link (if allowed and not too late)
         if ($calendar['allow_cancellation']) {
             $cancel_url = $this->get_cancellation_url($appointment);
             $body .= '<div style="text-align: center; margin: 20px 0;">';
-            $body .= '<p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">' . esc_html__('Need to cancel?', 'wp-ffcertificate') . '</p>';
+            $body .= '<p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">' . esc_html__('Need to cancel?', 'ffcertificate') . '</p>';
             $body .= '<a href="' . esc_url($cancel_url) . '" style="display: inline-block; background: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 14px;">';
-            $body .= esc_html__('Cancel Appointment', 'wp-ffcertificate');
+            $body .= esc_html__('Cancel Appointment', 'ffcertificate');
             $body .= '</a>';
             $body .= '</div>';
         }
@@ -425,11 +425,11 @@ class AppointmentEmailHandler {
      */
     private function get_status_label(string $status): string {
         $labels = array(
-            'pending' => __('Pending Approval', 'wp-ffcertificate'),
-            'confirmed' => __('Confirmed', 'wp-ffcertificate'),
-            'cancelled' => __('Cancelled', 'wp-ffcertificate'),
-            'completed' => __('Completed', 'wp-ffcertificate'),
-            'no_show' => __('No Show', 'wp-ffcertificate'),
+            'pending' => __('Pending Approval', 'ffcertificate'),
+            'confirmed' => __('Confirmed', 'ffcertificate'),
+            'cancelled' => __('Cancelled', 'ffcertificate'),
+            'completed' => __('Completed', 'ffcertificate'),
+            'no_show' => __('No Show', 'ffcertificate'),
         );
 
         return $labels[$status] ?? $status;
