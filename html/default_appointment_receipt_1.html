@@ -1,75 +1,81 @@
 <div style="width: 1123px;height: 794px;position: relative;overflow: hidden;font-family: Arial, sans-serif;color: #333;background: #fff;box-sizing: border-box">
 
     <!-- Accent bar top -->
-    <div style="position: absolute;top: 0;left: 0;width: 100%;height: 6px;background: linear-gradient(90deg, #0073aa 0%, #005a87 100%)"></div>
+    <div style="position: absolute;top: 0;left: 0;width: 100%;height: 5px;background: #0073aa"></div>
 
-    <div style="padding: 45px 55px 30px;width: 100%;height: 100%;box-sizing: border-box">
+    <div style="padding: 30px 50px 25px;width: 100%;height: 100%;box-sizing: border-box">
 
-        <!-- Header row: Title + Status -->
-        <table style="width: 100%;border-collapse: collapse;margin-bottom: 25px" role="presentation">
+        <!-- Institutional Header: Logo + Title + Logo -->
+        <table style="width: 100%;border-collapse: collapse;margin-bottom: 8px" role="presentation">
             <tr>
-                <td style="vertical-align: middle">
-                    <div style="font-size: 26pt;font-weight: bold;color: #0073aa;letter-spacing: 3px;text-transform: uppercase">COMPROVANTE DE AGENDAMENTO</div>
+                <td style="vertical-align: middle;width: 140px">
+                    <img src="/wp-content/plugins/ffcertificate/html/Logo_Cidade_SP_SemFundo.png" alt="Prefeitura" style="width: 100px;height: auto">
                 </td>
-                <td style="vertical-align: middle;text-align: right;width: 200px">
-                    <span style="display: inline-block;padding: 8px 22px;border-radius: 20px;font-weight: bold;font-size: 11pt;text-transform: uppercase;background: #d5e8d4;color: #2e7d32;letter-spacing: 1px">{{status}}</span>
+                <td style="vertical-align: middle;text-align: center">
+                    <div style="font-size: 22pt;font-weight: bold;color: #0073aa;letter-spacing: 2px;text-transform: uppercase">COMPROVANTE DE AGENDAMENTO</div>
+                    <div style="margin-top: 8px">
+                        <span style="display: inline-block;padding: 5px 20px;border-radius: 20px;font-weight: bold;font-size: 10pt;text-transform: uppercase;background: #d5e8d4;color: #2e7d32;letter-spacing: 1px">{{status}}</span>
+                    </div>
+                </td>
+                <td style="vertical-align: middle;text-align: right;width: 180px">
+                    <img src="/wp-content/plugins/ffcertificate/html/Logo_DRE_v2-scaled.png" alt="DRE" style="width: 160px;height: auto">
                 </td>
             </tr>
         </table>
 
-        <div style="height: 3px;background: #0073aa;margin-bottom: 28px;border-radius: 2px"></div>
+        <div style="height: 2px;background: #0073aa;margin-bottom: 20px"></div>
 
         <!-- Two-column layout via table -->
         <table style="width: 100%;border-collapse: collapse" role="presentation">
             <tr>
                 <!-- LEFT COLUMN -->
-                <td style="vertical-align: top;padding-right: 35px;width: 65%">
+                <td style="vertical-align: top;padding-right: 30px;width: 62%">
 
                     <!-- Calendar Details -->
-                    <div style="margin-bottom: 22px">
-                        <div style="font-size: 12pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 8px;border-bottom: 2px solid #e8e8e8;margin-bottom: 12px">Detalhes do Calendário</div>
-                        <table style="width: 100%;border-collapse: collapse;font-size: 11pt" role="presentation">
+                    <div style="margin-bottom: 18px">
+                        <div style="font-size: 11pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 6px;border-bottom: 2px solid #e8e8e8;margin-bottom: 10px">Detalhes do Calendário</div>
+                        <table style="width: 100%;border-collapse: collapse;font-size: 10.5pt" role="presentation">
                             <tr>
-                                <td style="padding: 6px 0;font-weight: bold;color: #666;width: 130px;vertical-align: top">Evento:</td>
-                                <td style="padding: 6px 0;color: #222">{{calendar_title}}</td>
+                                <td style="padding: 5px 0;font-weight: bold;color: #666;width: 120px;vertical-align: top">Evento:</td>
+                                <td style="padding: 5px 0;color: #222">{{calendar_title}}</td>
                             </tr>
                         </table>
                     </div>
 
                     <!-- Appointment Information -->
-                    <div style="margin-bottom: 22px">
-                        <div style="font-size: 12pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 8px;border-bottom: 2px solid #e8e8e8;margin-bottom: 12px">Informações do Agendamento</div>
-                        <table style="width: 100%;border-collapse: collapse;font-size: 11pt" role="presentation">
+                    <div style="margin-bottom: 18px">
+                        <div style="font-size: 11pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 6px;border-bottom: 2px solid #e8e8e8;margin-bottom: 10px">Informações do Agendamento</div>
+                        <table style="width: 100%;border-collapse: collapse;font-size: 10.5pt" role="presentation">
                             <tr>
-                                <td style="padding: 6px 0;font-weight: bold;color: #666;width: 130px">Data:</td>
-                                <td style="padding: 6px 0;color: #222">{{appointment_date}}</td>
+                                <td style="padding: 5px 0;font-weight: bold;color: #666;width: 120px">Data:</td>
+                                <td style="padding: 5px 0;color: #222">{{appointment_date}}</td>
                             </tr>
                             <tr>
-                                <td style="padding: 6px 0;font-weight: bold;color: #666">Horário:</td>
-                                <td style="padding: 6px 0;color: #222">{{appointment_time}}</td>
+                                <td style="padding: 5px 0;font-weight: bold;color: #666">Horário:</td>
+                                <td style="padding: 5px 0;color: #222">{{appointment_time}}</td>
                             </tr>
                             <tr>
-                                <td style="padding: 6px 0;font-weight: bold;color: #666">Agendado em:</td>
-                                <td style="padding: 6px 0;color: #222">{{created_at}}</td>
+                                <td style="padding: 5px 0;font-weight: bold;color: #666">Agendado em:</td>
+                                <td style="padding: 5px 0;color: #222">{{created_at}}</td>
                             </tr>
                         </table>
                     </div>
 
                     <!-- Personal Information -->
                     <div>
-                        <div style="font-size: 12pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 8px;border-bottom: 2px solid #e8e8e8;margin-bottom: 12px">Informações Pessoais</div>
-                        <table style="width: 100%;border-collapse: collapse;font-size: 11pt" role="presentation">
+                        <div style="font-size: 11pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 6px;border-bottom: 2px solid #e8e8e8;margin-bottom: 10px">Informações Pessoais</div>
+                        <table style="width: 100%;border-collapse: collapse;font-size: 10.5pt" role="presentation">
                             <tr>
-                                <td style="padding: 6px 0;font-weight: bold;color: #666;width: 130px">Nome:</td>
-                                <td style="padding: 6px 0;color: #222">{{name}}</td>
+                                <td style="padding: 5px 0;font-weight: bold;color: #666;width: 120px">Nome:</td>
+                                <td style="padding: 5px 0;color: #222">{{name}}</td>
                             </tr>
                             <tr>
-                                <td style="padding: 6px 0;font-weight: bold;color: #666">CPF/RF:</td>
-                                <td style="padding: 6px 0;color: #222">{{cpf_rf}}</td>
+                                <td style="padding: 5px 0;font-weight: bold;color: #666">CPF/RF:</td>
+                                <td style="padding: 5px 0;color: #222">{{cpf_rf}}</td>
                             </tr>
                             <tr>
-                                <td style="padding: 6px 0;font-weight: bold;color: #666">E-mail:</td>
-                                <td style="padding: 6px 0;color: #222">{{email}}</td>
+                                <td style="padding: 5px 0;font-weight: bold;color: #666">E-mail:</td>
+                                <td style="padding: 5px 0;color: #222">{{email}}</td>
                             </tr>
                         </table>
                     </div>
@@ -77,12 +83,12 @@
                 </td>
 
                 <!-- RIGHT COLUMN: Validation Card -->
-                <td style="vertical-align: top;width: 35%">
-                    <div style="background: #f7f8fa;border: 1px solid #dde0e4;border-radius: 10px;padding: 30px 25px;text-align: center">
-                        <div style="font-size: 10pt;font-weight: bold;color: #666;text-transform: uppercase;letter-spacing: 1px;margin-bottom: 16px">Código de Verificação</div>
-                        <div style="font-size: 20pt;font-weight: bold;color: #0073aa;letter-spacing: 2px;margin-bottom: 22px;font-family: 'Courier New', monospace">{{validation_code}}</div>
-                        <div style="margin-bottom: 22px;padding: 12px;background: #fff;border-radius: 8px;display: inline-block;border: 1px solid #eee">{{qr_code:size=150:margin=0}}</div>
-                        <div style="font-size: 9pt;color: #888;line-height: 1.6;margin-top: 8px">
+                <td style="vertical-align: top;width: 38%">
+                    <div style="background: #f7f8fa;border: 1px solid #dde0e4;border-radius: 10px;padding: 25px 20px;text-align: center">
+                        <div style="font-size: 9.5pt;font-weight: bold;color: #666;text-transform: uppercase;letter-spacing: 1px;margin-bottom: 14px">Código de Verificação</div>
+                        <div style="font-size: 17pt;font-weight: bold;color: #0073aa;letter-spacing: 2px;margin-bottom: 18px;font-family: 'Courier New', monospace">{{validation_code}}</div>
+                        <div style="margin-bottom: 18px;padding: 10px;background: #fff;border-radius: 8px;display: inline-block;border: 1px solid #eee">{{qr_code:size=140:margin=0}}</div>
+                        <div style="font-size: 8.5pt;color: #888;line-height: 1.6;margin-top: 6px">
                             Para verificar este comprovante,<br>
                             acesse <span style="color: #0073aa;font-weight: bold">{{validation_url}}</span><br>
                             e insira o código acima
@@ -93,8 +99,8 @@
         </table>
 
         <!-- Footer -->
-        <div style="position: absolute;bottom: 30px;left: 55px;right: 55px;border-top: 2px solid #e8e8e8;padding-top: 10px;text-align: center">
-            <span style="font-size: 9pt;color: #999">{{site_name}} &mdash; Gerado em {{print_date}}</span>
+        <div style="position: absolute;bottom: 25px;left: 50px;right: 50px;border-top: 2px solid #e8e8e8;padding-top: 8px;text-align: center">
+            <span style="font-size: 8.5pt;color: #999">{{site_name}} &mdash; Gerado em {{print_date}}</span>
         </div>
 
     </div>
