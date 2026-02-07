@@ -32,7 +32,7 @@ declare(strict_types=1);
  *
  * @since 4.5.0
  * @version 4.6.0 - Unified scheduling menu with self-scheduling integration
- * @version 4.6.1 - Refactored into coordinator + 7 sub-page classes
+ * @version 4.6.1 - Refactored into coordinator + 7 focused sub-page classes
  * @package FreeFormCertificate\Audience
  */
 

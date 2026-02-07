@@ -168,6 +168,10 @@ class AudienceAdminImport {
      * @return void
      */
     public function handle_csv_import(): void {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
         // Handle sample download
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         if (isset($_GET['download_sample']) && isset($_GET['_wpnonce'])) {

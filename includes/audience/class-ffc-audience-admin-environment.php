@@ -286,6 +286,10 @@ class AudienceAdminEnvironment {
      * @return void
      */
     public function handle_actions(): void {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
         // Handle save
         if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'save_environment') {
             if (!isset($_POST['ffc_environment_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_environment_nonce'])), 'save_environment')) {

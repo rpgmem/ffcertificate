@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 4.6.0
+Stable tag: 4.6.1
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -154,6 +154,25 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.6.1 (2026-02-07) =
+
+Security, accessibility, code quality, and structural refactoring.
+
+* Security: Fixed SQL injection vulnerabilities with prepared statements in repository queries
+* Security: Added `current_user_can('manage_options')` capability checks to audience admin form handlers
+* Security: Externalized inline CSS and JavaScript to proper asset files (XSS hardening)
+* Accessibility: Added `prefers-reduced-motion` media queries to all animations and transitions
+* Accessibility: Added `focus-visible` styles for keyboard navigation across admin and frontend
+* Accessibility: Added `role="presentation"` to all layout tables and `<tbody>` for HTML consistency
+* Compatibility: Added vendor prefixes (`-webkit-`, `-moz-`) for cross-browser CSS support
+* Refactored: Split `AudienceAdminPage` (~2,300 lines) into coordinator + 7 focused sub-classes
+* Refactored: Split `RestController` (~1,940 lines) into coordinator + 5 domain-specific sub-controllers
+* Improved: Renamed calendar asset files with `ffc-` prefix for naming consistency
+* Improved: Removed duplicate CSS declarations across stylesheets
+* Fixed: Frontend CSS duplication causing style conflicts
+* Fixed: Restored `Loader::run()` method accidentally removed during refactoring
+* New classes: `AudienceAdminDashboard`, `AudienceAdminCalendar`, `AudienceAdminEnvironment`, `AudienceAdminAudience`, `AudienceAdminBookings`, `AudienceAdminSettings`, `AudienceAdminImport`, `FormRestController`, `SubmissionRestController`, `UserDataRestController`, `CalendarRestController`, `AppointmentRestController`
 
 = 4.6.0 (2026-02-06) =
 
@@ -464,6 +483,9 @@ Bug fixes for strict types introduction.
 * Verification shortcode `[ffc_verification]`
 
 == Upgrade Notice ==
+
+= 4.6.1 =
+Security hardening, accessibility improvements, and major structural refactoring. AudienceAdminPage and RestController split into focused sub-classes. No breaking changes.
 
 = 4.6.0 =
 Scheduling consolidation with unified admin menu and settings. Global holidays system. User dashboard pagination and improvements. Multiple bug fixes. Translation update with 278 new pt_BR strings.
