@@ -118,13 +118,14 @@ class AppointmentHandler {
                 return;
             }
 
-            // Generate receipt PDF data for auto-download
+            // Generate receipt PDF data for auto-download (only for confirmed appointments)
             $pdf_data = null;
             $appointment = null;
+            $requires_approval = $result['requires_approval'] ?? false;
             try {
                 $appointment = $this->appointment_repository->findById($result['appointment_id']);
                 $calendar = $this->calendar_repository->findById((int) $appointment_data['calendar_id']);
-                if ( $appointment && $calendar ) {
+                if ( $appointment && $calendar && ! $requires_approval ) {
                     $pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator();
                     $pdf_data = $pdf_generator->generate_appointment_pdf_data( $appointment, $calendar );
                 }
@@ -135,11 +136,14 @@ class AppointmentHandler {
             }
 
             $response = array(
-                'message' => __('Appointment booked successfully!', 'ffcertificate'),
+                'message' => $requires_approval
+                    ? __('Appointment booked successfully! Awaiting admin approval.', 'ffcertificate')
+                    : __('Appointment booked successfully!', 'ffcertificate'),
                 'appointment_id' => $result['appointment_id'],
                 'confirmation_token' => $result['confirmation_token'] ?? null,
                 'validation_code' => $appointment ? ( $appointment['validation_code'] ?? null ) : null,
-                'receipt_url' => $result['receipt_url'] ?? '',
+                'receipt_url' => $requires_approval ? '' : ( $result['receipt_url'] ?? '' ),
+                'requires_approval' => $requires_approval,
             );
 
             if ( $pdf_data && ! is_wp_error( $pdf_data ) ) {

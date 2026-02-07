@@ -82,6 +82,12 @@ class AppointmentReceiptHandler {
             wp_die(esc_html__('You do not have permission to view this appointment receipt.', 'ffcertificate'), 403);
         }
 
+        // Block receipt for pending appointments (awaiting admin approval)
+        $appointment_status = $appointment['status'] ?? 'pending';
+        if ($appointment_status === 'pending' && !current_user_can('manage_options')) {
+            wp_die(esc_html__('This appointment is awaiting admin approval. The receipt will be available after confirmation.', 'ffcertificate'), 403);
+        }
+
         // Get calendar (may be null if deleted)
         $calendar = null;
         if (!empty($appointment['calendar_id'])) {
