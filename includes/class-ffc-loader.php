@@ -66,6 +66,8 @@ class Loader {
     }
 
     public function init_plugin(): void {
+        load_plugin_textdomain('ffcertificate', false, dirname(plugin_basename(FFC_PLUGIN_DIR . 'ffcertificate.php')) . '/languages');
+
         // ✅ v4.5.0: Run self-scheduling migrations if needed
         if (class_exists('\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator')) {
             \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::maybe_migrate();
