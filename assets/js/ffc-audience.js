@@ -257,11 +257,8 @@
             $select.append('<option value="' + env.id + '">' + env.name + '</option>');
         });
 
-        // Auto-select first environment if none selected
-        if (state.selectedEnvironment === 0 && environments.length > 0) {
-            state.selectedEnvironment = parseInt(environments[0].id);
-            $select.val(state.selectedEnvironment);
-        } else if (state.selectedEnvironment > 0) {
+        // Set dropdown value (0 = "All Environments" stays as default)
+        if (state.selectedEnvironment > 0) {
             $select.val(state.selectedEnvironment);
         }
     }
@@ -658,7 +655,7 @@
         }
 
         // Set selected environment
-        var selectedEnv = environmentId || state.selectedEnvironment || (allEnvironments.length > 0 ? allEnvironments[0].id : 0);
+        var selectedEnv = environmentId || state.selectedEnvironment || '';
         $envSelect.val(selectedEnv);
 
         // Show audience select by default
