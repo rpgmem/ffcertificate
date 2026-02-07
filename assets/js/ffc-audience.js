@@ -159,39 +159,44 @@
             }
         });
 
-        // Audience select: selecting a parent auto-selects children, deselecting removes children
-        $('#booking-audiences').on('change', function() {
-            var $sel = $(this);
-            var selected = ($sel.val() || []).map(function(v) { return parseInt(v); });
-            var audiences = state.config.audiences || [];
-            var newSelected = selected.slice();
+        // Audience select: selecting a parent auto-selects children
+        (function() {
+            var prevSelected = [];
+            $('#booking-audiences').on('change', function() {
+                var $sel = $(this);
+                var selected = ($sel.val() || []).map(function(v) { return parseInt(v); });
+                var audiences = state.config.audiences || [];
+                var newSelected = selected.slice();
 
-            audiences.forEach(function(audience) {
-                if (!audience.children || audience.children.length === 0) return;
-                var parentId = parseInt(audience.id);
-                var childIds = audience.children.map(function(c) { return parseInt(c.id); });
-                var parentSelected = selected.indexOf(parentId) !== -1;
+                audiences.forEach(function(audience) {
+                    if (!audience.children || audience.children.length === 0) return;
+                    var parentId = parseInt(audience.id);
+                    var childIds = audience.children.map(function(c) { return parseInt(c.id); });
+                    var parentNowSelected = selected.indexOf(parentId) !== -1;
+                    var parentWasSelected = prevSelected.indexOf(parentId) !== -1;
 
-                if (parentSelected) {
-                    // Parent selected — add all children
-                    childIds.forEach(function(cid) {
-                        if (newSelected.indexOf(cid) === -1) {
-                            newSelected.push(cid);
-                        }
-                    });
-                } else {
-                    // Parent deselected — remove all children
-                    newSelected = newSelected.filter(function(id) {
-                        return childIds.indexOf(id) === -1;
-                    });
+                    if (parentNowSelected && !parentWasSelected) {
+                        // Parent just selected — add all children
+                        childIds.forEach(function(cid) {
+                            if (newSelected.indexOf(cid) === -1) {
+                                newSelected.push(cid);
+                            }
+                        });
+                    } else if (!parentNowSelected && parentWasSelected) {
+                        // Parent just deselected — remove all children
+                        newSelected = newSelected.filter(function(id) {
+                            return childIds.indexOf(id) === -1;
+                        });
+                    }
+                });
+
+                // Only update if selection changed to avoid infinite loop
+                if (newSelected.length !== selected.length || !newSelected.every(function(v) { return selected.indexOf(v) !== -1; })) {
+                    $sel.val(newSelected.map(String));
                 }
+                prevSelected = ($sel.val() || []).map(function(v) { return parseInt(v); });
             });
-
-            // Only update if selection changed to avoid infinite loop
-            if (newSelected.length !== selected.length || !newSelected.every(function(v) { return selected.indexOf(v) !== -1; })) {
-                $sel.val(newSelected.map(String));
-            }
-        });
+        })();
 
         // Description character count
         $('#booking-description').on('input', function() {
