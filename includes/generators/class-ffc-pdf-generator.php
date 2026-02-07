@@ -83,21 +83,53 @@ class PdfGenerator {
         // Enrich data with submission metadata
         $data = $this->enrich_submission_data( $data, $sub_array );
 
+        /**
+         * Filters certificate template data before HTML generation.
+         *
+         * @since 4.6.4
+         * @param array $data          Enriched submission data used as template variables.
+         * @param int   $submission_id Submission ID.
+         * @param array $sub_array     Raw submission database row.
+         */
+        $data = apply_filters( 'ffc_certificate_data', $data, $submission_id, $sub_array );
+
         // Get form data (convert form_id to int - wpdb returns strings)
         $form_id = (int) $sub_array['form_id'];
         $form_title = get_the_title( $form_id );
         $form_config = get_post_meta( $form_id, '_ffc_form_config', true );
         $bg_image_url = get_post_meta( $form_id, '_ffc_form_bg', true );
-        
+
         // ✅ Generate HTML using internal method (not email handler)
         $html = $this->generate_html( $data, $form_title, $form_config, $sub_array['submission_date'] );
-        
+
+        /**
+         * Filters the generated certificate HTML before it is returned.
+         *
+         * @since 4.6.4
+         * @param string $html          Generated certificate HTML.
+         * @param array  $data          Template data.
+         * @param int    $submission_id Submission ID.
+         * @param int    $form_id       Form ID.
+         */
+        $html = apply_filters( 'ffc_certificate_html', $html, $data, $submission_id, $form_id );
+
         // Get verification code from submission data
         $auth_code = isset( $data['auth_code'] ) ? $data['auth_code'] : '';
-        
+
         // Generate safe filename with verification code
         $filename = $this->generate_filename( $form_title, $auth_code );
-        
+
+        /**
+         * Filters the certificate PDF filename.
+         *
+         * @since 4.6.4
+         * @param string $filename      Generated filename.
+         * @param string $form_title    Form title.
+         * @param string $auth_code     Authentication code.
+         * @param int    $submission_id Submission ID.
+         */
+        $filename = apply_filters( 'ffc_certificate_filename', $filename, $form_title, $auth_code, $submission_id );
+
         // Log generation
         if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) && method_exists( '\\FreeFormCertificate\\Core\\Utils', 'debug_log' ) ) {
             \FreeFormCertificate\Core\Utils::debug_log( 'PDF data generated', array(
@@ -111,7 +143,7 @@ class PdfGenerator {
             ) );
         }
         
-        return array(
+        $pdf_data = array(
             'html'          => $html,
             'template'      => $html,  // Alias for backward compatibility
             'filename'      => $filename,
@@ -121,6 +153,17 @@ class PdfGenerator {
             'submission'    => $data,
             'bg_image'      => $bg_image_url
         );
+
+        /**
+         * Fires after PDF data is fully generated.
+         *
+         * @since 4.6.4
+         * @param array $pdf_data     Complete PDF data array.
+         * @param int   $submission_id Submission ID.
+         */
+        do_action( 'ffc_after_pdf_generation', $pdf_data, $submission_id );
+
+        return $pdf_data;
     }
     
     /**

@@ -74,6 +74,17 @@ class EmailHandler {
      * @param string $magic_token Magic token for verification
      */
     public function async_process_submission( int $submission_id, int $form_id, string $form_title, array $submission_data, string $user_email, array $fields_config, array $form_config, string $magic_token = '' ): void {
+        /**
+         * Fires before email processing for a submission.
+         *
+         * @since 4.6.4
+         * @param int    $submission_id  Submission ID.
+         * @param string $user_email     User email.
+         * @param int    $form_id        Form ID.
+         * @param array  $form_config    Form configuration.
+         */
+        do_action( 'ffc_before_email_send', $submission_id, $user_email, $form_id, $form_config );
+
         // Send user email if enabled
         if ( isset( $form_config['send_user_email'] ) && $form_config['send_user_email'] == 1 ) {
             $this->send_user_email( $user_email, $form_title, $form_config, $submission_data, $magic_token );
@@ -112,6 +123,26 @@ class EmailHandler {
             ? $form_config['email_subject']
             /* translators: %s: form title */
             : sprintf( __( 'Your Certificate: %s', 'ffcertificate' ), $form_title );
+
+        /**
+         * Filters the user email subject.
+         *
+         * @since 4.6.4
+         * @param string $subject    Email subject.
+         * @param string $form_title Form title.
+         * @param array  $form_config Form configuration.
+         */
+        $subject = apply_filters( 'ffc_user_email_subject', $subject, $form_title, $form_config );
+
+        /**
+         * Filters the user email recipient.
+         *
+         * @since 4.6.4
+         * @param string $to          Recipient email address.
+         * @param string $form_title  Form title.
+         * @param array  $submission_data Submission data.
+         */
+        $to = apply_filters( 'ffc_user_email_recipients', $to, $form_title, $submission_data );
 
         // Generate magic link URL
         $magic_link_url = '';
@@ -170,6 +201,17 @@ class EmailHandler {
 
         $body .= '</div>';
 
+        /**
+         * Filters the user email body HTML.
+         *
+         * @since 4.6.4
+         * @param string $body       Email body HTML.
+         * @param string $to         Recipient email.
+         * @param string $form_title Form title.
+         * @param array  $submission_data Submission data.
+         */
+        $body = apply_filters( 'ffc_user_email_body', $body, $to, $form_title, $submission_data );
+
         // Send email
         wp_mail( $to, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
     }
@@ -194,6 +236,16 @@ class EmailHandler {
         $admins = isset( $form_config['email_admin'] )
             ? array_filter(array_map('trim', explode( ',', $form_config['email_admin'] )))
             : array( get_option( 'admin_email' ) );
+
+        /**
+         * Filters the admin notification email recipients.
+         *
+         * @since 4.6.4
+         * @param array  $admins     Array of admin email addresses.
+         * @param string $form_title Form title.
+         * @param array  $data       Submission data.
+         */
+        $admins = apply_filters( 'ffc_admin_email_recipients', $admins, $form_title, $data );
 
         // Email subject
         /* translators: %s: form title */
