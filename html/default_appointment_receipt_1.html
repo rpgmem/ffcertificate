@@ -4,7 +4,7 @@
 
         <!-- Header -->
         <div style="text-align: center;margin-bottom: 20px">
-            <strong style="font-size: 36pt;color: #0073aa;margin: 0;letter-spacing: 6px;text-transform: uppercase">APPOINTMENT RECEIPT</strong>
+            <strong style="font-size: 36pt;color: #0073aa;margin: 0;letter-spacing: 6px;text-transform: uppercase">ACOMPROVANTE DE AGENDAMENTO</strong>
             <div style="width: 120px;height: 4px;background-color: #0073aa;margin: 12px auto 0;border-radius: 3px"></div>
         </div>
 
@@ -20,10 +20,10 @@
             <div style="flex: 1.2">
                 <!-- Event Section -->
                 <div style="margin-bottom: 20px">
-                    <div style="font-size: 13pt;font-weight: bold;color: #0073aa;border-bottom: 2px solid #e0e0e0;padding-bottom: 6px;margin-bottom: 10px">Event Details</div>
+                    <div style="font-size: 13pt;font-weight: bold;color: #0073aa;border-bottom: 2px solid #e0e0e0;padding-bottom: 6px;margin-bottom: 10px">Detalhes do Calendário</div>
                     <table style="width: 100%;border-collapse: collapse;font-size: 11pt">
                         <tr>
-                            <td style="padding: 5px 0;font-weight: bold;color: #555;width: 120px;vertical-align: top">Event:</td>
+                            <td style="padding: 5px 0;font-weight: bold;color: #555;width: 120px;vertical-align: top">Calendário:</td>
                             <td style="padding: 5px 0;color: #333">{{calendar_title}}</td>
                         </tr>
                     </table>
@@ -31,18 +31,18 @@
 
                 <!-- Appointment Section -->
                 <div style="margin-bottom: 20px">
-                    <div style="font-size: 13pt;font-weight: bold;color: #0073aa;border-bottom: 2px solid #e0e0e0;padding-bottom: 6px;margin-bottom: 10px">Appointment Information</div>
+                    <div style="font-size: 13pt;font-weight: bold;color: #0073aa;border-bottom: 2px solid #e0e0e0;padding-bottom: 6px;margin-bottom: 10px">Informações do Agendamento</div>
                     <table style="width: 100%;border-collapse: collapse;font-size: 11pt">
                         <tr>
-                            <td style="padding: 5px 0;font-weight: bold;color: #555;width: 120px">Date:</td>
+                            <td style="padding: 5px 0;font-weight: bold;color: #555;width: 120px">Data:</td>
                             <td style="padding: 5px 0;color: #333">{{appointment_date}}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 5px 0;font-weight: bold;color: #555">Time:</td>
+                            <td style="padding: 5px 0;font-weight: bold;color: #555">Horário:</td>
                             <td style="padding: 5px 0;color: #333">{{appointment_time}}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 5px 0;font-weight: bold;color: #555">Booked on:</td>
+                            <td style="padding: 5px 0;font-weight: bold;color: #555">Reservado em:</td>
                             <td style="padding: 5px 0;color: #333">{{created_at}}</td>
                         </tr>
                     </table>
@@ -50,10 +50,10 @@
 
                 <!-- Personal Info Section -->
                 <div>
-                    <div style="font-size: 13pt;font-weight: bold;color: #0073aa;border-bottom: 2px solid #e0e0e0;padding-bottom: 6px;margin-bottom: 10px">Personal Information</div>
+                    <div style="font-size: 13pt;font-weight: bold;color: #0073aa;border-bottom: 2px solid #e0e0e0;padding-bottom: 6px;margin-bottom: 10px">Informações Pessoais</div>
                     <table style="width: 100%;border-collapse: collapse;font-size: 11pt">
                         <tr>
-                            <td style="padding: 5px 0;font-weight: bold;color: #555;width: 120px">Name:</td>
+                            <td style="padding: 5px 0;font-weight: bold;color: #555;width: 120px">Nome:</td>
                             <td style="padding: 5px 0;color: #333">{{name}}</td>
                         </tr>
                         <tr>
@@ -61,7 +61,7 @@
                             <td style="padding: 5px 0;color: #333">{{cpf_rf}}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 5px 0;font-weight: bold;color: #555">Email:</td>
+                            <td style="padding: 5px 0;font-weight: bold;color: #555">E-mail:</td>
                             <td style="padding: 5px 0;color: #333">{{email}}</td>
                         </tr>
                     </table>
@@ -70,20 +70,20 @@
 
             <!-- Right Column: Validation -->
             <div style="width: 280px;text-align: center;display: flex;flex-direction: column;align-items: center;justify-content: center;background: #f8f9fa;border-radius: 8px;padding: 20px;border: 1px solid #e0e0e0">
-                <div style="font-size: 11pt;font-weight: bold;color: #555;margin-bottom: 10px">Validation Code</div>
+                <div style="font-size: 11pt;font-weight: bold;color: #555;margin-bottom: 10px">Código de Validação</div>
                 <div style="font-size: 18pt;font-weight: bold;color: #0073aa;letter-spacing: 2px;margin-bottom: 15px">{{validation_code}}</div>
                 <div style="margin-bottom: 15px">{{qr_code:size=120:margin=0}}</div>
                 <div style="font-size: 9pt;color: #666;line-height: 1.4">
-                    To verify this receipt, access<br>
+                    Para verificar este comprovante, acesse<br>
                     <span style="color: #0073aa">{{validation_url}}</span><br>
-                    and enter the code above
+                    e insira o código acima
                 </div>
             </div>
         </div>
 
         <!-- Footer -->
         <div style="border-top: 2px solid #e0e0e0;padding-top: 8px;margin-top: 15px;text-align: center">
-            <p style="font-size: 9pt;color: #888;margin: 0">{{site_name}} - Generated on {{print_date}}</p>
+            <p style="font-size: 9pt;color: #888;margin: 0">{{site_name}} - Gerado em: {{print_date}}</p>
         </div>
     </div>
 </div>
