@@ -687,6 +687,20 @@ pre code {
     color: #0073aa;
 }
 
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-collapsible-content,
+    .ffc-provider-card,
+    .ffc-progress-bar-fill,
+    .card,
+    .ffc-doc-toc-list a {
+        transition: none;
+    }
+}
+
 /* Tab Content Container */
 .ffc-settings-tab-content {
     max-width: 1500px;

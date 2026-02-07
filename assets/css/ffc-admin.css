@@ -776,3 +776,17 @@ td .ffc-restriction-label {
         padding: 10px;
     }
 }
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    #ffc-preview-modal {
+        transition: none;
+    }
+
+    .ffc-preview-close {
+        transition: none;
+    }
+}

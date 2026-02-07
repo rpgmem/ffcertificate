@@ -64,6 +64,11 @@
     border-color: var(--ffc-gray-400);
 }
 
+.ffc-nav-btn:focus-visible {
+    outline: 2px solid var(--ffc-primary);
+    outline-offset: 2px;
+}
+
 .ffc-today-btn {
     font-size: 13px;
     padding: 6px 12px;
@@ -321,6 +326,11 @@
     background: var(--ffc-primary-hover);
 }
 
+.ffc-btn:focus-visible {
+    outline: 2px solid var(--ffc-primary);
+    outline-offset: 2px;
+}
+
 .ffc-btn-secondary {
     background: var(--ffc-gray-200);
     color: var(--ffc-gray-800);
@@ -387,7 +397,7 @@
 }
 
 .ffc-modal-lg {
-    max-width: 700px;
+    max-width: min(700px, 95vw);
 }
 
 .ffc-modal-header {
@@ -741,5 +751,17 @@
     .ffc-current-month {
         font-size: 15px;
         min-width: auto;
+    }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-nav-btn,
+    .ffc-day,
+    .ffc-btn {
+        transition: none;
     }
 }

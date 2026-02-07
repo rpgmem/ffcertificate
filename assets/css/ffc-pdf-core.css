@@ -350,8 +350,15 @@ body.wp-admin .ffc-pdf-temp-wrapper {
    12. ANIMATIONS
    ========================================================================== */
 @keyframes ffc-spin {
-    to { 
-        transform: rotate(360deg); 
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-btn-loading::after,
+    .ffc-progress-spinner {
+        animation: none;
     }
 }
 

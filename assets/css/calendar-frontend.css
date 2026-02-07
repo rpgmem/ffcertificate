@@ -90,6 +90,11 @@
     box-shadow: var(--ffc-shadow-sm);
 }
 
+.ffc-timeslot:focus-visible {
+    outline: 2px solid var(--ffc-primary);
+    outline-offset: 2px;
+}
+
 .ffc-timeslot.selected {
     border-color: var(--ffc-primary);
     border-width: 2px;
@@ -516,5 +521,23 @@
 
     .ffc-timeslot-time {
         font-size: 14px;
+    }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-spinner {
+        animation: none;
+    }
+
+    .ffc-timeslot,
+    .ffc-booking-form input,
+    .ffc-booking-form textarea,
+    .ffc-booking-form select,
+    .ffc-submit-row .button {
+        transition: none;
     }
 }

@@ -171,3 +171,14 @@
         width: 100%;
     }
 }
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-cancellation-hours,
+    .ffc-allowed-roles {
+        transition: none;
+    }
+}

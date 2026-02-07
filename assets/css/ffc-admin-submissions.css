@@ -329,6 +329,24 @@
 }
 
 /* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-table-responsive .button {
+        transition: none;
+    }
+
+    .ffc-table-responsive tbody tr {
+        transition: none;
+    }
+
+    .ffc-loading-row .spinner::after {
+        animation: none;
+    }
+}
+
+/* ==========================================================================
    PRINT STYLES
    ========================================================================== */
 

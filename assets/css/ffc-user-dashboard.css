@@ -592,3 +592,21 @@
         font-size: 11px;
     }
 }
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-tab-content {
+        animation: none;
+    }
+
+    .ffc-loading::after {
+        animation: none;
+    }
+
+    .ffc-tab {
+        transition: none;
+    }
+}

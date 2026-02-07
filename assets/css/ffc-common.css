@@ -198,8 +198,8 @@
    ACCESSIBILITY
    ========================================================================== */
 
-/* ✅ v3.1.0 Phase 3: Removed unused accessibility classes
- * - .ffc-sr-only (never used in templates)
- * - .ffc-skip-link (never rendered)
- * These can be re-added if accessibility features are implemented in the future.
- */
+@media (prefers-reduced-motion: reduce) {
+    .ffc-loading::after {
+        animation: none;
+    }
+}

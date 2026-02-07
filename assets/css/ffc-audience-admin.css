@@ -336,4 +336,8 @@
     .column-members {
         display: none;
     }
+
+    .ffc-import-section {
+        min-width: 0;
+    }
 }
