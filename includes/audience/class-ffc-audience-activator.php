@@ -50,6 +50,7 @@ class AudienceActivator {
         self::create_booking_audiences_table();
         self::create_booking_users_table();
         self::register_capabilities();
+        self::add_composite_indexes();
     }
 
     /**
@@ -465,5 +466,29 @@ class AudienceActivator {
         }
 
         return $status;
+    }
+
+    /**
+     * Add composite indexes for common query patterns.
+     *
+     * @since 4.6.2
+     */
+    private static function add_composite_indexes(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+        $indexes = [
+            'idx_date_status'       => '(booking_date, status)',
+            'idx_created_by_date'   => '(created_by, booking_date)',
+        ];
+
+        foreach ( $indexes as $index_name => $columns ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $exists = $wpdb->get_results( "SHOW INDEX FROM {$table_name} WHERE Key_name = '{$index_name}'" );
+            if ( empty( $exists ) ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                $wpdb->query( "ALTER TABLE {$table_name} ADD INDEX {$index_name} {$columns}" );
+            }
+        }
     }
 }

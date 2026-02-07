@@ -299,6 +299,15 @@ class AppointmentHandler {
             $data['approved_at'] = current_time('mysql');
         }
 
+        /**
+         * Fires before an appointment is created in the database.
+         *
+         * @since 4.6.4
+         * @param array $data     Appointment data.
+         * @param array $calendar Calendar configuration.
+         */
+        do_action( 'ffc_before_appointment_create', $data, $calendar );
+
         // Create appointment
         $appointment_id = $this->appointment_repository->createAppointment($data);
 
@@ -306,23 +315,15 @@ class AppointmentHandler {
             return new \WP_Error('creation_failed', __('Failed to create appointment. Please try again.', 'ffcertificate'));
         }
 
-        // Log activity
-        if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-            \FreeFormCertificate\Core\ActivityLog::log(
-                'appointment_created',
-                \FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
-                array(
-                    'appointment_id' => $appointment_id,
-                    'calendar_id' => $data['calendar_id'],
-                    'date' => $data['appointment_date'],
-                    'time' => $data['start_time'],
-                    'status' => $data['status'],
-                    'user_id' => $data['user_id'] ?? null,
-                    'ip' => $data['user_ip']
-                ),
-                $appointment_id
-            );
-        }
+        /**
+         * Fires after an appointment is created.
+         *
+         * @since 4.6.4
+         * @param int   $appointment_id New appointment ID.
+         * @param array $data           Appointment data.
+         * @param array $calendar       Calendar configuration.
+         */
+        do_action( 'ffc_after_appointment_create', $appointment_id, $data, $calendar );
 
         // Get appointment for email
         $appointment = $this->appointment_repository->findById($appointment_id);
@@ -699,7 +700,16 @@ class AppointmentHandler {
             }
         }
 
-        return $slots;
+        /**
+         * Filters available appointment slots for a date.
+         *
+         * @since 4.6.4
+         * @param array  $slots       Array of available slot data.
+         * @param int    $calendar_id  Calendar ID.
+         * @param string $date         Date string (Y-m-d).
+         * @param array  $calendar     Calendar configuration.
+         */
+        return apply_filters( 'ffc_available_slots', $slots, $calendar_id, $date, $calendar );
     }
 
     /**
@@ -799,20 +809,16 @@ class AppointmentHandler {
             return new \WP_Error('cancellation_failed', __('Failed to cancel appointment.', 'ffcertificate'));
         }
 
-        // Log activity
-        if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-            \FreeFormCertificate\Core\ActivityLog::log(
-                'appointment_cancelled',
-                \FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
-                array(
-                    'appointment_id' => $appointment_id,
-                    'calendar_id' => $appointment['calendar_id'],
-                    'cancelled_by' => $cancelled_by,
-                    'reason' => $reason
-                ),
-                $appointment_id
-            );
-        }
+        /**
+         * Fires after an appointment is cancelled.
+         *
+         * @since 4.6.4
+         * @param int    $appointment_id Appointment ID.
+         * @param array  $appointment    Original appointment data.
+         * @param string $reason         Cancellation reason.
+         * @param int|null $cancelled_by User ID who cancelled (null for guest).
+         */
+        do_action( 'ffc_appointment_cancelled', $appointment_id, $appointment, $reason, $cancelled_by );
 
         // Send cancellation emails
         $this->schedule_email_notifications($appointment, $calendar, 'cancelled');

@@ -358,6 +358,12 @@ class UserDataRestController {
 
             $date_format = get_option('date_format', 'F j, Y');
 
+            // Batch load all calendars to avoid N+1 queries
+            $calendar_ids = array_unique( array_filter( array_map( function ( $apt ) {
+                return (int) ( $apt['calendar_id'] ?? 0 );
+            }, $appointments ) ) );
+            $calendars_map = ! empty( $calendar_ids ) ? $calendar_repository->findByIds( $calendar_ids ) : [];
+
             $appointments_formatted = array();
 
             foreach ($appointments as $appointment) {
@@ -368,13 +374,9 @@ class UserDataRestController {
                 $calendar_title = __('Unknown Calendar', 'ffcertificate');
                 $calendar = null;
                 if (!empty($appointment['calendar_id'])) {
-                    try {
-                        $calendar = $calendar_repository->findById((int)$appointment['calendar_id']);
-                        if ($calendar && isset($calendar['title'])) {
-                            $calendar_title = $calendar['title'];
-                        }
-                    } catch (\Exception $e) {
-                        // Calendar not found - use default
+                    $calendar = $calendars_map[ (int) $appointment['calendar_id'] ] ?? null;
+                    if ($calendar && isset($calendar['title'])) {
+                        $calendar_title = $calendar['title'];
                     }
                 }
 
@@ -561,18 +563,36 @@ class UserDataRestController {
                 $bookings = array();
             }
 
+            // Batch load audiences for all bookings to avoid N+1 queries
+            $audiences_map = [];
+            $booking_ids = array_filter( array_map( function ( $b ) {
+                return (int) ( $b['id'] ?? 0 );
+            }, $bookings ) );
+
+            if ( ! empty( $booking_ids ) ) {
+                $id_placeholders = implode( ',', array_fill( 0, count( $booking_ids ), '%d' ) );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $all_audiences = $wpdb->get_results( $wpdb->prepare(
+                    "SELECT ba.booking_id, a.name, a.color
+                     FROM {$booking_audiences_table} ba
+                     INNER JOIN {$audience_names_table} a ON ba.audience_id = a.id
+                     WHERE ba.booking_id IN ({$id_placeholders})",
+                    ...$booking_ids
+                ), ARRAY_A );
+
+                if ( is_array( $all_audiences ) ) {
+                    foreach ( $all_audiences as $aud ) {
+                        $audiences_map[ (int) $aud['booking_id'] ][] = [
+                            'name'  => $aud['name'],
+                            'color' => $aud['color'] ?? '#2271b1',
+                        ];
+                    }
+                }
+            }
+
             $bookings_formatted = array();
 
             foreach ($bookings as $booking) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                $audiences = $wpdb->get_results($wpdb->prepare(
-                    "SELECT a.name, a.color
-                     FROM {$booking_audiences_table} ba
-                     INNER JOIN {$audience_names_table} a ON ba.audience_id = a.id
-                     WHERE ba.booking_id = %d",
-                    $booking['id']
-                ), ARRAY_A);
-
                 $date_formatted = '';
                 if (!empty($booking['booking_date'])) {
                     $timestamp = strtotime($booking['booking_date']);
@@ -612,12 +632,7 @@ class UserDataRestController {
                     'status' => $status,
                     'status_label' => $status_labels[$status] ?? $status,
                     'is_past' => $is_past,
-                    'audiences' => array_map(function($a) {
-                        return array(
-                            'name' => $a['name'],
-                            'color' => $a['color'] ?? '#2271b1',
-                        );
-                    }, $audiences ?: array()),
+                    'audiences' => $audiences_map[ (int) $booking['id'] ] ?? [],
                 );
             }
 

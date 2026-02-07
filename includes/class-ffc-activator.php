@@ -52,6 +52,7 @@ class Activator {
             \FreeFormCertificate\Audience\AudienceActivator::create_tables();
         }
 
+        self::add_composite_indexes();
         self::run_migrations();
         flush_rewrite_rules();
     }
@@ -140,6 +141,31 @@ class Activator {
         if (empty($composite_index)) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $wpdb->query("ALTER TABLE {$table_name} ADD INDEX idx_form_cpf (form_id, cpf_rf)");
+        }
+    }
+
+    /**
+     * Add composite indexes for common query patterns.
+     *
+     * @since 4.6.2
+     */
+    private static function add_composite_indexes(): void {
+        global $wpdb;
+        $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+
+        $indexes = [
+            'idx_form_status'           => '(form_id, status)',
+            'idx_status_submission_date' => '(status, submission_date)',
+            'idx_email_hash_form_id'    => '(email_hash, form_id)',
+        ];
+
+        foreach ( $indexes as $index_name => $columns ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $exists = $wpdb->get_results( "SHOW INDEX FROM {$table_name} WHERE Key_name = '{$index_name}'" );
+            if ( empty( $exists ) ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                $wpdb->query( "ALTER TABLE {$table_name} ADD INDEX {$index_name} {$columns}" );
+            }
         }
     }
 

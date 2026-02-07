@@ -46,6 +46,10 @@ class SettingsSaveHandler {
      * Main entry point called by FFC_Settings
      */
     public function handle_all_submissions(): void {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
         // Handle General/SMTP/QR Settings
         if ( isset( $_POST['ffc_settings_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_settings_nonce'] ) ), 'ffc_settings_action' ) ) {
             $this->save_general_and_specific_settings();
@@ -81,7 +85,25 @@ class SettingsSaveHandler {
         $clean = $this->save_qrcode_settings( $clean, $new );
         $clean = $this->save_date_format_settings( $clean, $new );
 
+        /**
+         * Filters plugin settings before they are saved.
+         *
+         * @since 4.6.4
+         * @param array $clean   Settings to be saved.
+         * @param array $current Previous settings.
+         */
+        $clean = apply_filters( 'ffc_settings_before_save', $clean, $current );
+
         update_option( 'ffc_settings', $clean );
+
+        /**
+         * Fires after plugin settings are saved.
+         *
+         * @since 4.6.4
+         * @param array $clean Saved settings.
+         */
+        do_action( 'ffc_settings_saved', $clean );
+
         // phpcs:enable WordPress.Security.NonceVerification.Missing
         add_settings_error( 'ffc_settings', 'ffc_settings_updated', __( 'Settings saved.', 'ffcertificate' ), 'updated' );
     }
@@ -299,6 +321,15 @@ class SettingsSaveHandler {
         $target = isset( $_POST['delete_target'] ) ? sanitize_text_field( wp_unslash( $_POST['delete_target'] ) ) : 'all';
         $reset_counter = isset( $_POST['reset_counter'] ) && sanitize_text_field( wp_unslash( $_POST['reset_counter'] ) ) == '1';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+        /**
+         * Fires before bulk data deletion from the danger zone.
+         *
+         * @since 4.6.4
+         * @param string $target        Deletion target ('all' or form ID).
+         * @param bool   $reset_counter Whether the auto-increment counter is reset.
+         */
+        do_action( 'ffc_before_data_deletion', $target, $reset_counter );
 
         $result = $this->submission_handler->delete_all_submissions(
             $target === 'all' ? null : absint( $target ),

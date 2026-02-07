@@ -35,6 +35,7 @@ use FreeFormCertificate\SelfScheduling\AppointmentCsvExporter;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode;
 // v4.5.0: Audience Scheduling System (new)
 use FreeFormCertificate\Audience\AudienceLoader;
+use FreeFormCertificate\Core\ActivityLogSubscriber;
 
 if (!defined('ABSPATH')) exit;
 
@@ -107,6 +108,9 @@ class Loader {
         // ✅ v4.5.0: Initialize Audience Scheduling System (new)
         $this->audience_loader = AudienceLoader::get_instance();
         $this->audience_loader->init();
+
+        // v4.6.5: Hook-based logging — plugin consumes its own hooks
+        new ActivityLogSubscriber();
 
         $this->define_admin_hooks();
         $this->init_rest_api(); // Initialize REST API

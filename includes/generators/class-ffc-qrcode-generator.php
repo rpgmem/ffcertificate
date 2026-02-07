@@ -104,9 +104,19 @@ class QRCodeGenerator {
             }
         }
         
+        /**
+         * Filters the URL encoded in the QR code.
+         *
+         * @since 4.6.4
+         * @param string $url           Target URL for QR code.
+         * @param int    $submission_id  Submission ID (0 if not provided).
+         * @param array  $params        QR code parameters (size, margin, error_level).
+         */
+        $url = apply_filters( 'ffc_qrcode_url', $url, $submission_id, $params );
+
         // Generate QR Code
         $qr_base64 = $this->generate( $url, $params );
-        
+
         if ( empty( $qr_base64 ) ) {
             // ✅ OPTIMIZED v2.9.2: Log generation failure
             \FreeFormCertificate\Core\Utils::debug_log( 'QR Code generation failed', array(
@@ -124,9 +134,19 @@ class QRCodeGenerator {
             ) );
         }
         
-        return $this->format_as_img_tag( $qr_base64, $params['size'] );
+        $img_html = $this->format_as_img_tag( $qr_base64, $params['size'] );
+
+        /**
+         * Filters the QR code HTML output (img tag).
+         *
+         * @since 4.6.4
+         * @param string $img_html      HTML img tag with base64 QR code.
+         * @param string $url           Target URL.
+         * @param int    $submission_id  Submission ID.
+         */
+        return apply_filters( 'ffc_qrcode_html', $img_html, $url, $submission_id );
     }
-    
+
     /**
      * Parse parameters from placeholder string
      * 

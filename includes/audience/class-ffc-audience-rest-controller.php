@@ -199,9 +199,9 @@ class AudienceRestController {
             return true;
         }
 
-        // Check if user has booking permission on any schedule
-        // This is a simplified check - actual permission is verified per booking
-        return true;
+        // Check if user has booking permission on at least one schedule
+        // Detailed per-schedule permission is verified inside create_booking()
+        return current_user_can('ffc_view_audience_bookings');
     }
 
     /**
@@ -452,8 +452,7 @@ class AudienceRestController {
             ), 400);
         }
 
-        // Create the booking
-        $booking_id = AudienceBookingRepository::create(array(
+        $booking_data = array(
             'environment_id' => $environment_id,
             'booking_date' => $booking_date,
             'start_time' => $start_time,
@@ -462,7 +461,18 @@ class AudienceRestController {
             'description' => $description,
             'audience_ids' => $audience_ids,
             'user_ids' => $user_ids,
-        ));
+        );
+
+        /**
+         * Fires before an audience booking is created.
+         *
+         * @since 4.6.4
+         * @param array $booking_data Booking data to be inserted.
+         */
+        do_action( 'ffc_before_audience_booking_create', $booking_data );
+
+        // Create the booking
+        $booking_id = AudienceBookingRepository::create($booking_data);
 
         if (!$booking_id) {
             return new \WP_REST_Response(array(

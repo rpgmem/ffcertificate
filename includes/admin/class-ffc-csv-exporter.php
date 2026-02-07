@@ -275,6 +275,16 @@ class CsvExporter {
         // ✅ Use Repository Pattern - much cleaner!
         $rows = $this->repository->getForExport( $form_ids, $status );
 
+        /**
+         * Filters submission rows before CSV export.
+         *
+         * @since 4.6.4
+         * @param array      $rows     Submission rows to export.
+         * @param array|null $form_ids Form IDs filter (null for all).
+         * @param string     $status   Status filter.
+         */
+        $rows = apply_filters( 'ffc_csv_export_data', $rows, $form_ids, $status );
+
         if ( empty( $rows ) ) {
             wp_die( esc_html__( 'No records available for export.', 'ffcertificate' ) );
         }

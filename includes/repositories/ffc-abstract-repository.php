@@ -61,6 +61,52 @@ abstract class AbstractRepository {
     }
 
     /**
+     * Find multiple records by IDs in a single query.
+     *
+     * @param array $ids Array of integer IDs
+     * @return array Associative array keyed by ID => row data
+     */
+    public function findByIds( array $ids ): array {
+        $ids = array_unique( array_filter( array_map( 'intval', $ids ) ) );
+
+        if ( empty( $ids ) ) {
+            return [];
+        }
+
+        // Check cache first, collect misses
+        $results = [];
+        $missing = [];
+        foreach ( $ids as $id ) {
+            $cached = $this->get_cache( "id_{$id}" );
+            if ( $cached !== false ) {
+                $results[ $id ] = $cached;
+            } else {
+                $missing[] = $id;
+            }
+        }
+
+        // Batch load cache misses
+        if ( ! empty( $missing ) ) {
+            $placeholders = implode( ',', array_fill( 0, count( $missing ), '%d' ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $rows = $this->wpdb->get_results(
+                $this->wpdb->prepare( "SELECT * FROM {$this->table} WHERE id IN ({$placeholders})", ...$missing ),
+                ARRAY_A
+            );
+
+            if ( is_array( $rows ) ) {
+                foreach ( $rows as $row ) {
+                    $row_id = (int) $row['id'];
+                    $this->set_cache( "id_{$row_id}", $row );
+                    $results[ $row_id ] = $row;
+                }
+            }
+        }
+
+        return $results;
+    }
+
+    /**
      * Find all with conditions
      *
      * @param array $conditions

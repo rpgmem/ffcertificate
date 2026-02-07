@@ -294,6 +294,10 @@ class Settings {
             return;
         }
 
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have permission to run migrations.', 'ffcertificate' ) );
+        }
+
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below.
         $migration_key = sanitize_key( wp_unslash( $_GET['ffc_run_migration'] ) );
 
@@ -342,6 +346,10 @@ class Settings {
     public function ajax_preview_date_format(): void {
         check_ajax_referer( 'ffc_preview_date', 'nonce' );
 
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
+        }
+
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_ajax_referer.
         $format = isset( $_POST['format'] ) ? sanitize_text_field( wp_unslash( $_POST['format'] ) ) : 'F j, Y';
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_ajax_referer.
@@ -364,6 +372,10 @@ class Settings {
     }
 
     public function handle_cache_actions(): void {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
         // Warm Cache
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below via check_admin_referer.
         if (isset($_GET['action']) && sanitize_key( wp_unslash( $_GET['action'] ) ) === 'warm_cache') {

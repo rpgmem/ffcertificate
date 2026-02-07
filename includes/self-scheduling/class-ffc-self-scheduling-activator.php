@@ -35,6 +35,7 @@ class SelfSchedulingActivator {
         self::create_calendars_table();
         self::create_appointments_table();
         self::create_blocked_dates_table();
+        self::add_composite_indexes();
     }
 
     /**
@@ -629,6 +630,30 @@ class SelfSchedulingActivator {
         foreach ($tables as $table) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $wpdb->query("DROP TABLE IF EXISTS {$table}");
+        }
+    }
+
+    /**
+     * Add composite indexes for common query patterns.
+     *
+     * @since 4.6.2
+     */
+    private static function add_composite_indexes(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+
+        $indexes = [
+            'idx_calendar_status_date' => '(calendar_id, status, appointment_date)',
+            'idx_user_status'          => '(user_id, status)',
+        ];
+
+        foreach ( $indexes as $index_name => $columns ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $exists = $wpdb->get_results( "SHOW INDEX FROM {$table_name} WHERE Key_name = '{$index_name}'" );
+            if ( empty( $exists ) ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                $wpdb->query( "ALTER TABLE {$table_name} ADD INDEX {$index_name} {$columns}" );
+            }
         }
     }
 }

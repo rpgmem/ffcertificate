@@ -24,7 +24,8 @@ class SubmissionsList extends \WP_List_Table {
     
     private $submission_handler;
     private $repository;
-    
+    private array $form_titles_cache = [];
+
     public function __construct( object $handler ) {
         parent::__construct([
             'singular' => 'submission',
@@ -62,7 +63,8 @@ class SubmissionsList extends \WP_List_Table {
                 return $item['id'];
                 
             case 'form':
-                $form_title = get_the_title((int) $item['form_id']);
+                $form_id = (int) $item['form_id'];
+                $form_title = $this->form_titles_cache[ $form_id ] ?? '';
                 return $form_title ? \FreeFormCertificate\Core\Utils::truncate($form_title, 30) : __('(Deleted)', 'ffcertificate');
                 
             case 'email':
@@ -238,11 +240,42 @@ class SubmissionsList extends \WP_List_Table {
             }
         }
 
+        // Batch load form titles to avoid N+1 queries in column_default()
+        $this->preload_form_titles();
+
         $this->set_pagination_args([
             'total_items' => $result['total'],
             'per_page' => $per_page,
             'total_pages' => $result['pages']
         ]);
+    }
+
+    /**
+     * Batch load form titles for all items to avoid N+1 queries.
+     */
+    private function preload_form_titles(): void {
+        if ( empty( $this->items ) ) {
+            return;
+        }
+
+        $form_ids = array_unique( array_filter( array_map( function ( $item ) {
+            return (int) ( $item['form_id'] ?? 0 );
+        }, $this->items ) ) );
+
+        if ( empty( $form_ids ) ) {
+            return;
+        }
+
+        $posts = get_posts( [
+            'post_type'      => 'ffc_form',
+            'include'        => $form_ids,
+            'posts_per_page' => count( $form_ids ),
+            'post_status'    => 'any',
+        ] );
+
+        foreach ( $posts as $post ) {
+            $this->form_titles_cache[ $post->ID ] = $post->post_title;
+        }
     }
 
     protected function get_views() {

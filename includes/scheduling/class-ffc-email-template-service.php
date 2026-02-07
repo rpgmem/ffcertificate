@@ -84,7 +84,23 @@ class EmailTemplateService {
 
         $html = $wrap ? self::wrap_html($body) : $body;
 
-        return wp_mail($to, $subject, $html, $headers, $attachments);
+        /**
+         * Filters scheduling email data before sending.
+         *
+         * @since 4.6.4
+         * @param array $email_data {
+         *     @type string $to      Recipient email.
+         *     @type string $subject Email subject.
+         *     @type string $body    Email HTML body.
+         * }
+         */
+        $email_data = apply_filters( 'ffc_scheduling_email', [
+            'to'      => $to,
+            'subject' => $subject,
+            'body'    => $html,
+        ] );
+
+        return wp_mail( $email_data['to'], $email_data['subject'], $email_data['body'], $headers, $attachments );
     }
 
     /**

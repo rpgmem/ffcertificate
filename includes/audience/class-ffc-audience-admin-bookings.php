@@ -147,10 +147,22 @@ class AudienceAdminBookings {
                             <td colspan="9"><?php esc_html_e('No bookings found.', 'ffcertificate'); ?></td>
                         </tr>
                     <?php else : ?>
+                        <?php
+                        // Batch load creator names to avoid N+1 get_userdata() calls
+                        $creator_ids = array_unique( array_filter( array_map( function ( $b ) {
+                            return (int) $b->created_by;
+                        }, $bookings ) ) );
+                        $creators_map = [];
+                        if ( ! empty( $creator_ids ) ) {
+                            $creator_users = get_users( [ 'include' => $creator_ids, 'fields' => [ 'ID', 'display_name' ] ] );
+                            foreach ( $creator_users as $u ) {
+                                $creators_map[ (int) $u->ID ] = $u->display_name;
+                            }
+                        }
+                        ?>
                         <?php foreach ($bookings as $booking) : ?>
                             <?php
-                            $creator = get_userdata($booking->created_by);
-                            $creator_name = $creator ? $creator->display_name : __('Unknown', 'ffcertificate');
+                            $creator_name = $creators_map[ (int) $booking->created_by ] ?? __('Unknown', 'ffcertificate');
                             $status_class = $booking->status === 'active' ? 'status-active' : 'status-cancelled';
                             ?>
                             <tr>

@@ -87,6 +87,17 @@ class SubmissionHandler {
      * @uses Repository::insert()
      */
     public function process_submission(int $form_id, string $form_title, array &$submission_data, string $user_email, array $fields_config, array $form_config) {
+        /**
+         * Fires before a submission is saved to the database.
+         *
+         * @since 4.6.4
+         * @param int    $form_id         Form ID.
+         * @param array  $submission_data Submission data (passed by reference via the method).
+         * @param string $user_email      User email.
+         * @param array  $form_config     Form configuration.
+         */
+        do_action( 'ffc_before_submission_save', $form_id, $submission_data, $user_email, $form_config );
+
         // 1. Generate auth code if not present
         if (empty($submission_data['auth_code'])) {
             $submission_data['auth_code'] = $this->generate_unique_auth_code();
@@ -212,14 +223,16 @@ class SubmissionHandler {
             return new WP_Error('db_error', __('Error saving submission to the database.', 'ffcertificate'));
         }
 
-        // 10. Log activity
-        if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-            \FreeFormCertificate\Core\ActivityLog::log_submission_created($submission_id, [
-                'form_id' => $form_id,
-                'has_cpf' => !empty($clean_cpf_rf),
-                'encrypted' => !empty($email_encrypted)
-            ]);
-        }
+        /**
+         * Fires after a submission is saved to the database.
+         *
+         * @since 4.6.4
+         * @param int    $submission_id   Newly created submission ID.
+         * @param int    $form_id         Form ID.
+         * @param array  $submission_data Original submission data.
+         * @param string $user_email      User email.
+         */
+        do_action( 'ffc_after_submission_save', $submission_id, $form_id, $submission_data, $user_email );
 
         return $submission_id;
     }
@@ -229,6 +242,16 @@ class SubmissionHandler {
      * @uses Repository::updateWithEditTracking()
      */
     public function update_submission(int $id, string $new_email, array $clean_data): bool {
+        /**
+         * Fires before a submission is updated.
+         *
+         * @since 4.6.4
+         * @param int    $id         Submission ID.
+         * @param string $new_email  New email value.
+         * @param array  $clean_data Sanitized submission data.
+         */
+        do_action( 'ffc_before_submission_update', $id, $new_email, $clean_data );
+
         $update_data = [];
 
         // Update email if provided
@@ -268,8 +291,15 @@ class SubmissionHandler {
             $result = $this->repository->update($id, $update_data);
         }
 
-        if ($result !== false && class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-            \FreeFormCertificate\Core\ActivityLog::log_submission_updated($id, get_current_user_id());
+        if ( $result !== false ) {
+            /**
+             * Fires after a submission is updated.
+             *
+             * @since 4.6.4
+             * @param int   $id          Submission ID.
+             * @param array $update_data Data that was updated.
+             */
+            do_action( 'ffc_after_submission_update', $id, $update_data );
         }
 
         return (bool) $result;  // Convert int|false to bool
@@ -350,11 +380,12 @@ class SubmissionHandler {
     public function trash_submission(int $id): bool {
         $result = $this->repository->updateStatus($id, 'trash');
 
-        if ($result && class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-            \FreeFormCertificate\Core\ActivityLog::log_submission_trashed($id);
+        if ( $result ) {
+            /** @since 4.6.4 */
+            do_action( 'ffc_submission_trashed', $id );
         }
 
-        return (bool) $result;  // Convert int|false to bool
+        return (bool) $result;
     }
 
     /**
@@ -364,11 +395,12 @@ class SubmissionHandler {
     public function restore_submission(int $id): bool {
         $result = $this->repository->updateStatus($id, 'publish');
 
-        if ($result && class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-            \FreeFormCertificate\Core\ActivityLog::log_submission_restored($id);
+        if ( $result ) {
+            /** @since 4.6.4 */
+            do_action( 'ffc_submission_restored', $id );
         }
 
-        return (bool) $result;  // Convert int|false to bool
+        return (bool) $result;
     }
 
     /**
@@ -376,13 +408,17 @@ class SubmissionHandler {
      * @uses Repository::delete()
      */
     public function delete_submission(int $id): bool {
+        /** @since 4.6.4 */
+        do_action( 'ffc_before_submission_delete', $id );
+
         $result = $this->repository->delete($id);
 
-        if ($result && class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-            \FreeFormCertificate\Core\ActivityLog::log_submission_deleted($id);
+        if ( $result ) {
+            /** @since 4.6.4 */
+            do_action( 'ffc_after_submission_delete', $id );
         }
 
-        return (bool) $result;  // Convert int|false to bool
+        return (bool) $result;
     }
 
     /**

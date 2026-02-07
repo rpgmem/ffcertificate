@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 4.6.1
+Stable tag: 4.6.5
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -154,6 +154,56 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.6.5 (2026-02-07) =
+
+Architecture: Internal hook consumption — plugin uses its own hooks for activity logging.
+
+* New: ActivityLogSubscriber class listens to ffc_ hooks for decoupled logging
+* Refactor: Removed direct ActivityLog calls from SubmissionHandler (5 calls → hook-based)
+* Refactor: Removed direct ActivityLog calls from AppointmentHandler (2 calls → hook-based)
+* New: ffc_settings_saved hook now triggers cache invalidation (options + transients)
+* Architecture: Plugin "eats its own dog food" — business logic decoupled from logging
+
+= 4.6.4 (2026-02-07) =
+
+Extensibility: Add 31 action/filter hooks for developer customization.
+
+* Submissions: ffc_before_submission_save, ffc_after_submission_save, ffc_before_submission_update, ffc_after_submission_update, ffc_submission_trashed, ffc_submission_restored, ffc_before_submission_delete, ffc_after_submission_delete
+* PDF/Certificate: ffc_certificate_data, ffc_certificate_html, ffc_certificate_filename, ffc_after_pdf_generation
+* QR Code: ffc_qrcode_url, ffc_qrcode_html
+* Email: ffc_before_email_send, ffc_user_email_subject, ffc_user_email_recipients, ffc_user_email_body, ffc_admin_email_recipients, ffc_scheduling_email
+* Appointments: ffc_before_appointment_create, ffc_after_appointment_create, ffc_appointment_cancelled, ffc_available_slots
+* Audience: ffc_before_audience_booking_create (existing: ffc_audience_booking_created, ffc_audience_booking_cancelled)
+* Settings: ffc_settings_before_save, ffc_settings_saved, ffc_before_data_deletion
+* Export: ffc_csv_export_data
+
+= 4.6.3 (2026-02-07) =
+
+Security: Permission audit — add missing capability checks to admin handlers.
+
+* Security: Added `current_user_can('manage_options')` to SettingsSaveHandler (covers all settings + danger zone)
+* Security: Added capability check to migration execution handler
+* Security: Added capability check to cache warm/clear actions
+* Security: Added capability check to date format preview AJAX handler
+* Security: Tightened audience booking REST write permission (requires `ffc_view_audience_bookings` capability)
+
+= 4.6.2 (2026-02-07) =
+
+Performance: Fix N+1 queries and add composite database indexes.
+
+* Performance: Batch load form titles in submissions list (replaces per-row get_the_title)
+* Performance: Batch load calendars in user appointments REST endpoint (replaces per-row findById)
+* Performance: Batch load audiences in user audience-bookings REST endpoint (replaces per-row query)
+* Performance: Batch load user data in admin bookings list (replaces per-row get_userdata)
+* Performance: Added findByIds() batch method to AbstractRepository for reusable multi-ID lookups
+* Database: Added composite index idx_form_status (form_id, status) on submissions table
+* Database: Added composite index idx_status_submission_date (status, submission_date) on submissions table
+* Database: Added composite index idx_email_hash_form_id (email_hash, form_id) on submissions table
+* Database: Added composite index idx_calendar_status_date (calendar_id, status, appointment_date) on appointments table
+* Database: Added composite index idx_user_status (user_id, status) on appointments table
+* Database: Added composite index idx_date_status (booking_date, status) on audience bookings table
+* Database: Added composite index idx_created_by_date (created_by, booking_date) on audience bookings table
 
 = 4.6.1 (2026-02-07) =
 
@@ -487,6 +537,18 @@ Bug fixes for strict types introduction.
 * Verification shortcode `[ffc_verification]`
 
 == Upgrade Notice ==
+
+= 4.6.5 =
+Architecture: ActivityLog decoupled from business logic via new ActivityLogSubscriber class. Logging now happens through plugin hooks instead of direct calls. Settings save triggers automatic cache invalidation. No data changes required.
+
+= 4.6.4 =
+Extensibility: Added 31 action/filter hooks across submissions, PDF generation, email, appointments, audience bookings, settings, and CSV export. Developers can now customize all major plugin workflows.
+
+= 4.6.3 =
+Security hardening: Added missing capability checks to 5 admin handlers (settings save, migrations, cache actions, date format preview, audience booking REST endpoint). No data changes required.
+
+= 4.6.2 =
+Performance improvement: Fixed N+1 database queries in 4 locations (submissions list, appointments, audience bookings, admin bookings). Added 7 composite indexes for faster query performance. Reactivate plugin to apply new indexes.
 
 = 4.6.1 =
 BREAKING: Plugin slug changed from `wp-ffcertificate` to `ffcertificate`. Existing installations must deactivate and reactivate. All settings and data are preserved. Security hardening, accessibility improvements, and major structural refactoring.
