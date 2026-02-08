@@ -29,6 +29,6 @@ package-lock.json
 .phpunit.result.cache
 /phpunit.xml
 
-# Others
+# Images Assignatures
+html/*.png
 html/atestado_jair.html
-html/jair_sipioni.png
