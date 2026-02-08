@@ -437,8 +437,8 @@ class UserDataRestController {
 
                 $can_cancel = false;
                 if (in_array($status, ['pending', 'confirmed'])) {
-                    $appointment_time = strtotime($appointment['appointment_date'] . ' ' . ($appointment['start_time'] ?? '23:59:59'));
-                    $now = current_time('timestamp');
+                    $appointment_time = ( new \DateTimeImmutable( $appointment['appointment_date'] . ' ' . ( $appointment['start_time'] ?? '23:59:59' ), wp_timezone() ) )->getTimestamp();
+                    $now = time();
 
                     if ($appointment_time > $now) {
                         if (current_user_can('manage_options')) {

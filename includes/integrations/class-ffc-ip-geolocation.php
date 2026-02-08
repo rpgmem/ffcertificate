@@ -143,7 +143,7 @@ class IpGeolocation {
             'latitude' => floatval($data['lat'] ?? 0),
             'longitude' => floatval($data['lon'] ?? 0),
             'service' => 'ip-api',
-            'timestamp' => current_time('timestamp'),
+            'timestamp' => time(),
         );
 
         self::debug_log('ip-api success', $location);
@@ -202,7 +202,7 @@ class IpGeolocation {
             'latitude' => $latitude,
             'longitude' => $longitude,
             'service' => 'ipinfo',
-            'timestamp' => current_time('timestamp'),
+            'timestamp' => time(),
         );
 
         self::debug_log('ipinfo success', $location);

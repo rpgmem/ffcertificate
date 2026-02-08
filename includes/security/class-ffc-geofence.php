@@ -96,9 +96,9 @@ class Geofence {
      * @return array ['valid' => bool, 'message' => string, 'details' => array]
      */
     public static function validate_datetime(array $config): array {
-        $now = current_time('timestamp');
-        $current_date = gmdate('Y-m-d', $now);
-        $current_time = gmdate('H:i', $now);
+        $now = time();
+        $current_date = wp_date('Y-m-d', $now);
+        $current_time = wp_date('H:i', $now);
         $time_mode = $config['time_mode'] ?? 'daily';
 
         // Determine if time validation is needed
@@ -108,8 +108,9 @@ class Geofence {
 
         // MODE 1: Time spans across dates (start datetime → end datetime)
         if ($time_mode === 'span' && $has_date_range && $has_time_range && $different_dates) {
-            $start_datetime = strtotime($config['date_start'] . ' ' . $config['time_start']);
-            $end_datetime = strtotime($config['date_end'] . ' ' . $config['time_end']);
+            $tz = wp_timezone();
+            $start_datetime = ( new \DateTimeImmutable( $config['date_start'] . ' ' . $config['time_start'], $tz ) )->getTimestamp();
+            $end_datetime = ( new \DateTimeImmutable( $config['date_end'] . ' ' . $config['time_end'], $tz ) )->getTimestamp();
 
             if ($now < $start_datetime) {
                 return array(

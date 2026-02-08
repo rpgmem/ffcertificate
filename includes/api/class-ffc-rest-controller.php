@@ -56,17 +56,16 @@ class RestController {
     }
 
     /**
-     * Suppress PHP notices in REST API to prevent JSON corruption
-     * Fixes: parsererror when notices are output before JSON
+     * Buffer REST API output to prevent stray PHP notices from corrupting JSON.
+     *
+     * Uses output buffering only — warnings are still logged via WP_DEBUG_LOG
+     * but never leak into REST responses.
      */
     public function suppress_rest_api_notices(): void {
         if (defined('REST_REQUEST') && REST_REQUEST) {
             if (!ob_get_level()) {
                 ob_start();
             }
-
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.prevent_path_disclosure_error_reporting
-            error_reporting(E_ERROR | E_PARSE);
 
             add_filter('rest_pre_serve_request', function($served, $result, $request, $server) {
                 if (ob_get_level()) {
