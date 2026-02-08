@@ -435,7 +435,6 @@ class AppointmentHandler {
                 $submission_data = array(
                     'nome_completo' => $data['name'] ?? '',
                     'name' => $data['name'] ?? '',
-                    'skip_email' => true
                 );
 
                 $user_id = \FreeFormCertificate\UserDashboard\UserManager::get_or_create_user(

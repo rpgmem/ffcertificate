@@ -385,6 +385,12 @@ class AudienceCsvImporter {
             $user->add_cap('view_certificate_history', true);
         }
 
+        // Send welcome email (respects per-context settings, default: disabled for CSV)
+        if (class_exists('\FreeFormCertificate\Integrations\EmailHandler')) {
+            $email_handler = new \FreeFormCertificate\Integrations\EmailHandler();
+            $email_handler->send_wp_user_notification($user_id, 'csv_import');
+        }
+
         return $user_id;
     }
 

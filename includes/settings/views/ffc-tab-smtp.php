@@ -64,6 +64,50 @@ $ffcertificate_get_option = function($key, $default = '') {
 
                 <tr>
                     <th scope="row">
+                        <label for="send_wp_user_email_appointment"><?php esc_html_e('User Creation Emails (Appointment)', 'ffcertificate'); ?></label>
+                    </th>
+                    <td>
+                        <fieldset>
+                            <label>
+                                <input type="radio" name="ffc_settings[send_wp_user_email_appointment]" value="1" <?php checked('1', $ffcertificate_get_option('send_wp_user_email_appointment', '1')); ?>>
+                                <strong><?php esc_html_e('Enabled', 'ffcertificate'); ?></strong>
+                            </label>
+                            <br>
+                            <label>
+                                <input type="radio" name="ffc_settings[send_wp_user_email_appointment]" value="0" <?php checked('0', $ffcertificate_get_option('send_wp_user_email_appointment', '1')); ?>>
+                                <strong><?php esc_html_e('Disabled', 'ffcertificate'); ?></strong>
+                            </label>
+                        </fieldset>
+                        <p class="description">
+                            <?php esc_html_e('Send welcome email when a new WordPress user is created via appointment booking. The email contains a password reset link.', 'ffcertificate'); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="send_wp_user_email_csv_import"><?php esc_html_e('User Creation Emails (CSV Import)', 'ffcertificate'); ?></label>
+                    </th>
+                    <td>
+                        <fieldset>
+                            <label>
+                                <input type="radio" name="ffc_settings[send_wp_user_email_csv_import]" value="1" <?php checked('1', $ffcertificate_get_option('send_wp_user_email_csv_import', '0')); ?>>
+                                <strong><?php esc_html_e('Enabled', 'ffcertificate'); ?></strong>
+                            </label>
+                            <br>
+                            <label>
+                                <input type="radio" name="ffc_settings[send_wp_user_email_csv_import]" value="0" <?php checked('0', $ffcertificate_get_option('send_wp_user_email_csv_import', '0')); ?>>
+                                <strong><?php esc_html_e('Disabled (Recommended)', 'ffcertificate'); ?></strong>
+                            </label>
+                        </fieldset>
+                        <p class="description">
+                            <?php esc_html_e('Send welcome email when a new WordPress user is created via CSV import. Recommended to keep disabled to avoid sending bulk emails.', 'ffcertificate'); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">
                         <label for="send_wp_user_email_migration"><?php esc_html_e('User Creation Emails (Migration)', 'ffcertificate'); ?></label>
                     </th>
                     <td>

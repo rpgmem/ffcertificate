@@ -195,6 +195,14 @@ class SettingsSaveHandler {
             $clean['send_wp_user_email_submission'] = sanitize_text_field( $new['send_wp_user_email_submission'] );
         }
 
+        if ( isset( $new['send_wp_user_email_appointment'] ) ) {
+            $clean['send_wp_user_email_appointment'] = sanitize_text_field( $new['send_wp_user_email_appointment'] );
+        }
+
+        if ( isset( $new['send_wp_user_email_csv_import'] ) ) {
+            $clean['send_wp_user_email_csv_import'] = sanitize_text_field( $new['send_wp_user_email_csv_import'] );
+        }
+
         if ( isset( $new['send_wp_user_email_migration'] ) ) {
             $clean['send_wp_user_email_migration'] = sanitize_text_field( $new['send_wp_user_email_migration'] );
         }

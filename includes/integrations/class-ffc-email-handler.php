@@ -307,7 +307,7 @@ class EmailHandler {
      *
      * @since 3.1.0
      * @param int $user_id WordPress user ID
-     * @param string $context Context: 'submission' or 'migration'
+     * @param string $context Context: 'submission', 'appointment', 'csv_import', or 'migration'
      * @return bool True if email was sent, false otherwise
      */
     public function send_wp_user_notification( int $user_id, string $context = 'submission' ): bool {
@@ -321,8 +321,6 @@ class EmailHandler {
                     'user_id' => $user_id,
                     'context' => $context,
                     'disable_all_emails' => isset( $settings['disable_all_emails'] ) ? $settings['disable_all_emails'] : 'NOT SET',
-                    'send_wp_user_email_submission' => isset( $settings['send_wp_user_email_submission'] ) ? $settings['send_wp_user_email_submission'] : 'NOT SET',
-                    'send_wp_user_email_migration' => isset( $settings['send_wp_user_email_migration'] ) ? $settings['send_wp_user_email_migration'] : 'NOT SET',
                 )
             );
         }
@@ -333,16 +331,18 @@ class EmailHandler {
         }
 
         // Check context-specific setting
-        if ( $context === 'submission' ) {
-            // Default: enabled (1)
-            $enabled = isset( $settings['send_wp_user_email_submission'] )
-                ? absint( $settings['send_wp_user_email_submission'] ) === 1
-                : true; // Default enabled for submissions
-        } else { // migration
-            // Default: disabled (0)
-            $enabled = isset( $settings['send_wp_user_email_migration'] )
-                && absint( $settings['send_wp_user_email_migration'] ) === 1;
-        }
+        // Each context has its own setting key and default value
+        $context_settings = array(
+            'submission'  => array( 'key' => 'send_wp_user_email_submission',  'default' => true ),
+            'appointment' => array( 'key' => 'send_wp_user_email_appointment', 'default' => true ),
+            'csv_import'  => array( 'key' => 'send_wp_user_email_csv_import',  'default' => false ),
+            'migration'   => array( 'key' => 'send_wp_user_email_migration',   'default' => false ),
+        );
+
+        $ctx = $context_settings[ $context ] ?? $context_settings['submission'];
+        $enabled = isset( $settings[ $ctx['key'] ] )
+            ? absint( $settings[ $ctx['key'] ] ) === 1
+            : $ctx['default'];
 
         // Debug logging
         if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {

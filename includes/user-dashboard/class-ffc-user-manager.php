@@ -164,20 +164,18 @@ class UserManager {
         // Sync user metadata from submission (only on creation)
         self::sync_user_metadata($user_id, $submission_data);
 
-        // Send password reset email via Email Handler (respects settings)
-        if (!isset($submission_data['skip_email'])) {
-            // Load Email Handler if not already loaded
-            if (!class_exists('\FreeFormCertificate\Integrations\EmailHandler')) {
-                $email_handler_file = FFC_PLUGIN_DIR . 'includes/integrations/class-ffc-email-handler.php';
-                if (file_exists($email_handler_file)) {
-                    require_once $email_handler_file;
-                }
+        // Send welcome email via Email Handler (respects per-context settings)
+        if (!class_exists('\FreeFormCertificate\Integrations\EmailHandler')) {
+            $email_handler_file = FFC_PLUGIN_DIR . 'includes/integrations/class-ffc-email-handler.php';
+            if (file_exists($email_handler_file)) {
+                require_once $email_handler_file;
             }
+        }
 
-            if (class_exists('\FreeFormCertificate\Integrations\EmailHandler')) {
-                $email_handler = new \FreeFormCertificate\Integrations\EmailHandler();
-                $email_handler->send_wp_user_notification($user_id, 'submission');
-            }
+        if (class_exists('\FreeFormCertificate\Integrations\EmailHandler')) {
+            $email_context = $context === self::CONTEXT_APPOINTMENT ? 'appointment' : 'submission';
+            $email_handler = new \FreeFormCertificate\Integrations\EmailHandler();
+            $email_handler->send_wp_user_notification($user_id, $email_context);
         }
 
         return $user_id;
