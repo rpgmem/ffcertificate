@@ -678,9 +678,8 @@ class ActivityLog {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_activity_log';
 
-        // Check if submission_id column exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $columns = $wpdb->get_col( "DESCRIBE {$table_name}", 0 );
+        // Check if submission_id column exists (uses cached DESCRIBE)
+        $columns = self::get_table_columns( $table_name );
         if ( ! in_array( 'submission_id', $columns ) ) {
             return array(); // Column doesn't exist yet
         }

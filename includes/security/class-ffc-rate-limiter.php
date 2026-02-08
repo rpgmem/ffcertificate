@@ -27,8 +27,19 @@ class RateLimiter {
      * @since 3.2.0
      */
     const CACHE_GROUP = 'ffc_rate_limit';
-    
+
+    /**
+     * Cached settings for the current request
+     *
+     * @since 4.6.13
+     * @var array|null
+     */
+    private static ?array $settings_cache = null;
+
     private static function get_settings(): array {
+        if ( self::$settings_cache !== null ) {
+            return self::$settings_cache;
+        }
         $defaults = array(
             'ip' => array('enabled' => true, 'max_per_hour' => 5, 'max_per_day' => 20, 'cooldown_seconds' => 60, 'apply_to' => 'all', 'message' => __( 'Limit reached. Please wait {time}.', 'ffcertificate' )),
             'email' => array('enabled' => true, 'max_per_day' => 3, 'max_per_week' => 10, 'max_per_month' => 30, 'wait_hours' => 24, 'apply_to' => 'all', 'message' => __( 'You already have {count} certificates.', 'ffcertificate' ), 'check_database' => true),
@@ -39,7 +50,8 @@ class RateLimiter {
             'logging' => array('enabled' => true, 'log_allowed' => false, 'log_blocked' => true, 'retention_days' => 30, 'max_logs' => 10000),
             'ui' => array('show_remaining' => true, 'show_wait_time' => true, 'countdown_timer' => true)
         );
-        return wp_parse_args(get_option('ffc_rate_limit_settings', $defaults), $defaults);
+        self::$settings_cache = wp_parse_args(get_option('ffc_rate_limit_settings', $defaults), $defaults);
+        return self::$settings_cache;
     }
     
     public static function check_all(string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null): array {

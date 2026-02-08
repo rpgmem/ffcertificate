@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 4.6.12
+Stable tag: 4.6.13
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -154,6 +154,17 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.6.13 (2026-02-08) =
+
+Performance: Query caching, conditional loading, and N+1 elimination.
+
+* Perf: Cache RateLimiter settings in static variable (eliminates 10+ repeated get_option + __() calls per request)
+* Perf: Cache SHOW TABLES check in AdminUserColumns (eliminates N+1 query per user row on users list)
+* Perf: Cache dashboard URL in AdminUserColumns render_user_actions (eliminates repeated get_option per row)
+* Perf: Cache INFORMATION_SCHEMA column existence checks in SubmissionRepository (eliminates repeated schema queries)
+* Perf: Fix ActivityLog get_submission_logs() to use existing cached get_table_columns() instead of raw DESCRIBE
+* Perf: Conditional class loading — skip admin-only classes (CsvExporter, Admin, AdminAjax, AdminUserColumns, AdminUserCapabilities, SelfSchedulingAdmin, SelfSchedulingEditor, AppointmentCsvExporter) on frontend page loads
 
 = 4.6.12 (2026-02-08) =
 

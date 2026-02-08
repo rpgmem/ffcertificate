@@ -20,6 +20,44 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class SubmissionRepository extends AbstractRepository {
 
+    /**
+     * Cached column existence checks to avoid repeated INFORMATION_SCHEMA queries
+     *
+     * @since 4.6.13
+     * @var array<string, bool>
+     */
+    private static array $column_exists_cache = array();
+
+    /**
+     * Check if a column exists in the submissions table (cached per request)
+     *
+     * @since 4.6.13
+     * @param string $column_name Column name to check
+     * @return bool
+     */
+    private function column_exists( string $column_name ): bool {
+        $cache_key = $this->table . '.' . $column_name;
+        if ( isset( self::$column_exists_cache[ $cache_key ] ) ) {
+            return self::$column_exists_cache[ $cache_key ];
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $result = (bool) $this->wpdb->get_var(
+            $this->wpdb->prepare(
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = %s
+                AND COLUMN_NAME = %s",
+                DB_NAME,
+                $this->table,
+                $column_name
+            )
+        );
+
+        self::$column_exists_cache[ $cache_key ] = $result;
+        return $result;
+    }
+
     protected function get_table_name(): string {
         return $this->wpdb->prefix . 'ffc_submissions';
     }
@@ -209,20 +247,8 @@ class SubmissionRepository extends AbstractRepository {
      * @return bool True if edited_at column exists and has data
      */
     public function hasEditInfo(): bool {
-        // Check if edited_at column exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $this->wpdb->get_var(
-            $this->wpdb->prepare(
-                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s
-                AND TABLE_NAME = %s
-                AND COLUMN_NAME = 'edited_at'",
-                DB_NAME,
-                $this->table
-            )
-        );
-
-        if ((int) $column_exists === 0) {
+        // Check if edited_at column exists (cached per request)
+        if ( ! $this->column_exists( 'edited_at' ) ) {
             return false;
         }
 
@@ -442,36 +468,12 @@ class SubmissionRepository extends AbstractRepository {
      * @return int|false Number of rows updated or false on error
      */
     public function updateWithEditTracking( int $id, array $data ) {
-        // Check if edited_at column exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $this->wpdb->get_var(
-            $this->wpdb->prepare(
-                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s
-                AND TABLE_NAME = %s
-                AND COLUMN_NAME = 'edited_at'",
-                DB_NAME,
-                $this->table
-            )
-        );
-
-        if ($column_exists) {
+        // Check if edited_at column exists (cached per request)
+        if ( $this->column_exists( 'edited_at' ) ) {
             $data['edited_at'] = current_time('mysql');
 
-            // Add edited_by if column exists
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $edited_by_exists = $this->wpdb->get_var(
-                $this->wpdb->prepare(
-                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-                    WHERE TABLE_SCHEMA = %s
-                    AND TABLE_NAME = %s
-                    AND COLUMN_NAME = 'edited_by'",
-                    DB_NAME,
-                    $this->table
-                )
-            );
-
-            if ($edited_by_exists) {
+            // Add edited_by if column exists (cached per request)
+            if ( $this->column_exists( 'edited_by' ) ) {
                 $data['edited_by'] = get_current_user_id();
             }
         }

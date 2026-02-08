@@ -24,6 +24,22 @@ if (!defined('ABSPATH')) exit;
 class AdminUserColumns {
 
     /**
+     * Cached flag for appointments table existence
+     *
+     * @since 4.6.13
+     * @var bool|null
+     */
+    private static ?bool $appointments_table_exists = null;
+
+    /**
+     * Cached dashboard URL for user actions column
+     *
+     * @since 4.6.13
+     * @var string|null
+     */
+    private static ?string $dashboard_url_cache = null;
+
+    /**
      * Initialize user columns
      */
     public static function init(): void {
@@ -129,11 +145,14 @@ class AdminUserColumns {
      * @return string Column HTML
      */
     private static function render_user_actions( int $user_id ): string {
-        // Get dashboard URL from User Access Settings
-        $user_access_settings = get_option('ffc_user_access_settings', array());
-        $dashboard_url = isset($user_access_settings['redirect_url']) && !empty($user_access_settings['redirect_url'])
-            ? $user_access_settings['redirect_url']
-            : home_url('/dashboard'); // Fallback if not configured
+        // Get dashboard URL from User Access Settings (cached per request)
+        if ( self::$dashboard_url_cache === null ) {
+            $user_access_settings = get_option('ffc_user_access_settings', array());
+            self::$dashboard_url_cache = isset($user_access_settings['redirect_url']) && !empty($user_access_settings['redirect_url'])
+                ? $user_access_settings['redirect_url']
+                : home_url('/dashboard');
+        }
+        $dashboard_url = self::$dashboard_url_cache;
 
         // Create view-as link with nonce
         $view_as_url = add_query_arg(array(
@@ -178,10 +197,12 @@ class AdminUserColumns {
         global $wpdb;
         $table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-        // Check if table exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table}'") == $table;
-        if (!$table_exists) {
+        // Check if table exists (cached per request to avoid N+1 SHOW TABLES queries)
+        if ( self::$appointments_table_exists === null ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            self::$appointments_table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table}'") == $table;
+        }
+        if ( ! self::$appointments_table_exists ) {
             return 0;
         }
 

@@ -75,20 +75,25 @@ class Loader {
             \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::maybe_migrate();
         }
 
-        // Autoloader handles all class loading now
+        // Shared classes (needed in both admin and frontend contexts)
         $this->submission_handler = new SubmissionHandler();
         $this->email_handler      = new EmailHandler();
-        $this->csv_exporter       = new CsvExporter();
         $this->cpt                = new CPT();
-        $this->admin              = new Admin($this->submission_handler, $this->csv_exporter, $this->email_handler);
+
+        // v4.6.13: Conditional loading — admin-only classes skipped on frontend
+        if ( is_admin() ) {
+            $this->csv_exporter   = new CsvExporter();
+            $this->admin          = new Admin($this->submission_handler, $this->csv_exporter, $this->email_handler);
+            $this->admin_ajax     = new AdminAjax();
+            AdminUserColumns::init();
+            AdminUserCapabilities::init();
+            $this->self_scheduling_admin    = new SelfSchedulingAdmin();
+            $this->self_scheduling_editor   = new SelfSchedulingEditor();
+            $this->self_scheduling_csv_exporter = new AppointmentCsvExporter();
+        }
+
+        // Frontend + AJAX classes
         $this->frontend           = new Frontend($this->submission_handler, $this->email_handler);
-        $this->admin_ajax         = new AdminAjax();
-
-        // ✅ v3.1.0: Initialize Admin User Columns (adds "View Dashboard" link to users list)
-        AdminUserColumns::init();
-
-        // ✅ v4.4.0: Initialize Admin User Capabilities (FFC capability management on user profile)
-        AdminUserCapabilities::init();
 
         // ✅ v3.1.0: Initialize Dashboard Shortcode ([user_dashboard_personal])
         DashboardShortcode::init();
@@ -96,15 +101,12 @@ class Loader {
         // ✅ v3.1.0: Initialize Access Control (blocks wp-admin for configured roles)
         AccessControl::init();
 
-        // ✅ v4.5.0: Initialize Self-Scheduling System (renamed from Calendar System)
+        // ✅ v4.5.0: Initialize Self-Scheduling System (shared classes)
         $this->self_scheduling_cpt              = new SelfSchedulingCPT();
-        $this->self_scheduling_admin            = new SelfSchedulingAdmin();
-        $this->self_scheduling_editor           = new SelfSchedulingEditor();
         $this->self_scheduling_appointment_handler = new AppointmentHandler();
         new AppointmentAjaxHandler( $this->self_scheduling_appointment_handler );
         $this->self_scheduling_email_handler    = new AppointmentEmailHandler();
         $this->self_scheduling_receipt_handler  = new AppointmentReceiptHandler();
-        $this->self_scheduling_csv_exporter     = new AppointmentCsvExporter();
         $this->self_scheduling_shortcode        = new SelfSchedulingShortcode();
 
         // ✅ v4.5.0: Initialize Audience Scheduling System (new)
