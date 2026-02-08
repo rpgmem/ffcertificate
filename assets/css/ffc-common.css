@@ -111,80 +111,80 @@
 }
 
 /* ==========================================================================
-   DARK MODE - Automatic detection via prefers-color-scheme
+   DARK MODE - Class-based toggle
+   Applied via .ffc-dark-mode class on <html> element.
+   Controlled by plugin setting: off / on / auto (follow OS).
    ========================================================================== */
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        /* Primary Colors */
-        --ffc-primary: #5dabde;
-        --ffc-primary-hover: #7cbde8;
-        --ffc-primary-light: #1a2f42;
+:root.ffc-dark-mode {
+    /* Primary Colors */
+    --ffc-primary: #5dabde;
+    --ffc-primary-hover: #7cbde8;
+    --ffc-primary-light: #1a2f42;
 
-        /* Status Colors */
-        --ffc-success: #4caf50;
-        --ffc-success-light: #1a2e1a;
-        --ffc-warning: #f0b849;
-        --ffc-warning-light: #332b10;
-        --ffc-danger: #e57373;
-        --ffc-danger-light: #2e1515;
-        --ffc-info: #4fc3f7;
-        --ffc-info-light: #0d2b3a;
+    /* Status Colors */
+    --ffc-success: #4caf50;
+    --ffc-success-light: #1a2e1a;
+    --ffc-warning: #f0b849;
+    --ffc-warning-light: #332b10;
+    --ffc-danger: #e57373;
+    --ffc-danger-light: #2e1515;
+    --ffc-info: #4fc3f7;
+    --ffc-info-light: #0d2b3a;
 
-        /* Gray Scale (inverted) */
-        --ffc-gray-50: #1d2327;
-        --ffc-gray-100: #23282d;
-        --ffc-gray-200: #2c3338;
-        --ffc-gray-300: #3c434a;
-        --ffc-gray-400: #646970;
-        --ffc-gray-500: #8c8f94;
-        --ffc-gray-600: #a7aaad;
-        --ffc-gray-700: #c3c4c7;
-        --ffc-gray-800: #e7e8ea;
+    /* Gray Scale (inverted) */
+    --ffc-gray-50: #1d2327;
+    --ffc-gray-100: #23282d;
+    --ffc-gray-200: #2c3338;
+    --ffc-gray-300: #3c434a;
+    --ffc-gray-400: #646970;
+    --ffc-gray-500: #8c8f94;
+    --ffc-gray-600: #a7aaad;
+    --ffc-gray-700: #c3c4c7;
+    --ffc-gray-800: #e7e8ea;
 
-        /* Shadows */
-        --ffc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-        --ffc-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.3);
-        --ffc-shadow-lg: 0 5px 30px rgba(0, 0, 0, 0.4);
+    /* Shadows */
+    --ffc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --ffc-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --ffc-shadow-lg: 0 5px 30px rgba(0, 0, 0, 0.4);
 
-        /* Semantic Tokens - Surfaces */
-        --ffc-bg: #1d2327;
-        --ffc-bg-alt: #23282d;
-        --ffc-bg-card: #2c3338;
-        --ffc-bg-input: #23282d;
-        --ffc-bg-overlay: rgba(0, 0, 0, 0.7);
+    /* Semantic Tokens - Surfaces */
+    --ffc-bg: #1d2327;
+    --ffc-bg-alt: #23282d;
+    --ffc-bg-card: #2c3338;
+    --ffc-bg-input: #23282d;
+    --ffc-bg-overlay: rgba(0, 0, 0, 0.7);
 
-        /* Semantic Tokens - Text */
-        --ffc-text: #e7e8ea;
-        --ffc-text-secondary: #c3c4c7;
-        --ffc-text-muted: #a7aaad;
-        --ffc-text-light: #8c8f94;
-        --ffc-text-on-primary: #ffffff;
+    /* Semantic Tokens - Text */
+    --ffc-text: #e7e8ea;
+    --ffc-text-secondary: #c3c4c7;
+    --ffc-text-muted: #a7aaad;
+    --ffc-text-light: #8c8f94;
+    --ffc-text-on-primary: #ffffff;
 
-        /* Semantic Tokens - Borders */
-        --ffc-border: #3c434a;
-        --ffc-border-light: #2c3338;
-        --ffc-border-focus: #5dabde;
+    /* Semantic Tokens - Borders */
+    --ffc-border: #3c434a;
+    --ffc-border-light: #2c3338;
+    --ffc-border-focus: #5dabde;
 
-        /* Semantic Tokens - Status Surfaces */
-        --ffc-success-bg: #1a2e1a;
-        --ffc-success-border: #4caf50;
-        --ffc-success-text: #81c784;
-        --ffc-warning-bg: #332b10;
-        --ffc-warning-border: #f0b849;
-        --ffc-warning-text: #ffe082;
-        --ffc-danger-bg: #2e1515;
-        --ffc-danger-border: #e57373;
-        --ffc-danger-text: #ef9a9a;
-        --ffc-info-bg: #0d2b3a;
-        --ffc-info-border: #4fc3f7;
-        --ffc-info-text: #81d4fa;
+    /* Semantic Tokens - Status Surfaces */
+    --ffc-success-bg: #1a2e1a;
+    --ffc-success-border: #4caf50;
+    --ffc-success-text: #81c784;
+    --ffc-warning-bg: #332b10;
+    --ffc-warning-border: #f0b849;
+    --ffc-warning-text: #ffe082;
+    --ffc-danger-bg: #2e1515;
+    --ffc-danger-border: #e57373;
+    --ffc-danger-text: #ef9a9a;
+    --ffc-info-bg: #0d2b3a;
+    --ffc-info-border: #4fc3f7;
+    --ffc-info-text: #81d4fa;
 
-        /* Semantic Tokens - Interactive */
-        --ffc-link: #5dabde;
-        --ffc-link-hover: #7cbde8;
-        --ffc-focus-ring: rgba(93, 171, 222, 0.4);
-    }
+    /* Semantic Tokens - Interactive */
+    --ffc-link: #5dabde;
+    --ffc-link-hover: #7cbde8;
+    --ffc-focus-ring: rgba(93, 171, 222, 0.4);
 }
 
 /* ==========================================================================

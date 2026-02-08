@@ -60,6 +60,14 @@ class Frontend {
         if ( has_shortcode( $post->post_content, 'ffc_form' ) || has_shortcode( $post->post_content, 'ffc_verification' ) ) {
             $s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
+            // Dark mode script (loaded early to prevent flash)
+            $ffc_settings = get_option( 'ffc_settings', array() );
+            $ffc_dark_mode = isset( $ffc_settings['dark_mode'] ) ? $ffc_settings['dark_mode'] : 'off';
+            if ( $ffc_dark_mode !== 'off' ) {
+                wp_enqueue_script( 'ffc-dark-mode', FFC_PLUGIN_URL . "assets/js/ffc-dark-mode{$s}.js", array(), FFC_VERSION, false );
+                wp_localize_script( 'ffc-dark-mode', 'ffcDarkMode', array( 'mode' => $ffc_dark_mode ) );
+            }
+
             // CSS - Using centralized version constant
             wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css", array(), FFC_VERSION );
             wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );

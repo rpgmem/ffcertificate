@@ -117,6 +117,12 @@ class SettingsSaveHandler {
      */
     private function save_general_settings( array $clean, array $new ): array {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
+        // Dark Mode (v4.6.16)
+        if ( isset( $new['dark_mode'] ) ) {
+            $allowed_modes = array( 'off', 'on', 'auto' );
+            $clean['dark_mode'] = in_array( $new['dark_mode'], $allowed_modes, true ) ? $new['dark_mode'] : 'off';
+        }
+
         // Cleanup Days
         if ( isset( $new['cleanup_days'] ) ) {
             $clean['cleanup_days'] = absint( $new['cleanup_days'] );

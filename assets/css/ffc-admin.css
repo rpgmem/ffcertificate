@@ -19,13 +19,13 @@
 }
 
 .ffc-field-row {
-    background: #fff;
-    border: 1px solid #ccd0d4;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
     padding: 15px;
     margin-bottom: 12px;
-    border-left: 4px solid #2271b1;
+    border-left: 4px solid var(--ffc-primary);
     border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    box-shadow: var(--ffc-shadow-sm);
 }
 
 .ffc-field-row:hover { 
@@ -38,7 +38,7 @@
     align-items: center;
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #f0f0f1;
+    border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-field-title {
@@ -81,22 +81,22 @@
 
 .ffc-options-field {
     margin-top: 15px;
-    background: #f6f7f7;
+    background: var(--ffc-bg-alt);
     padding: 12px;
     border-radius: 4px;
-    border: 1px dashed #c3c4c7;
+    border: 1px dashed var(--ffc-border);
 }
 
 .ffc-options-desc {
     margin: 0 0 5px !important;
     font-weight: bold;
-    color: #2271b1;
+    color: var(--ffc-primary);
 }
 
 .ffc-builder-actions {
     margin-top: 20px;
     padding: 10px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--ffc-border-light);
 }
 
 /* ==========================================================================
@@ -121,17 +121,17 @@
    4. TICKET GENERATOR & CODE FIELDS
    ========================================================================== */
 #ffc_generated_list {
-    background: #fff;
+    background: var(--ffc-bg-card);
     font-family: 'Courier New', Courier, monospace;
     width: 100%;
     min-height: 150px;
-    border: 1px solid #8c8f94;
+    border: 1px solid var(--ffc-gray-400);
     font-size: 12px;
 }
 
 .ffc-gen-status {
     margin-left: 10px;
-    color: #2271b1;
+    color: var(--ffc-primary);
     font-weight: 600;
 }
 
@@ -222,13 +222,13 @@
 .ffc-danger-zone {
     margin-top: 40px;
     padding: 20px;
-    background: #fff;
-    border: 2px solid #d63638;
+    background: var(--ffc-bg-card);
+    border: 2px solid var(--ffc-danger);
     border-radius: 4px;
 }
 
 .ffc-danger-zone h2 {
-    color: #d63638;
+    color: var(--ffc-danger);
     margin-top: 0;
 }
 
@@ -236,17 +236,17 @@
    7. SHORTCODE SIDEBAR METABOX
    ========================================================================== */
 .ffc-shortcode-box {
-    background: #f0f0f1;
+    background: var(--ffc-bg-alt);
     padding: 10px;
     border-radius: 4px;
-    border: 1px solid #c3c4c7;
+    border: 1px solid var(--ffc-border);
 }
 
 .ffc-shortcode-display {
     display: block;
     padding: 8px;
-    background: #fff;
-    border: 1px solid #ddd;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border-light);
     margin: 10px 0;
     user-select: all;
     font-family: 'Courier New', Courier, monospace;
@@ -258,7 +258,7 @@
     list-style: disc;
     padding-left: 20px;
     font-size: 12px;
-    color: #666;
+    color: var(--ffc-text-muted);
 }
 
 .ffc-tips-list li {
@@ -274,28 +274,28 @@
  */
 
 /* Sort handle and interactive elements */
-.ffc-sort-handle { 
-    cursor: move; 
-    color: #c3c4c7; 
-    padding: 5px; 
+.ffc-sort-handle {
+    cursor: move;
+    color: var(--ffc-gray-300);
+    padding: 5px;
     font-size: 18px;
     display: flex;
     align-items: center;
 }
 
 .ffc-sort-handle:hover {
-    color: #2271b1;
+    color: var(--ffc-primary);
 }
 
-.ffc-remove-field { 
-    color: #d63638; 
-    cursor: pointer; 
-    text-decoration: none; 
-    font-size: 13px; 
+.ffc-remove-field {
+    color: var(--ffc-danger);
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 13px;
 }
 
-.ffc-remove-field:hover { 
-    color: #b32d2e; 
+.ffc-remove-field:hover {
+    color: var(--ffc-danger-text);
 }
 
 /* ==========================================================================
@@ -317,13 +317,13 @@
 /* ==========================================================================
    12. HIGHLIGHTS
    ========================================================================== */
-.ffc-highlight-row { 
-    background: #f0f6fc; 
+.ffc-highlight-row {
+    background: var(--ffc-primary-light);
 }
 
-.ffc-label-accent { 
-    color: #2271b1; 
-    font-weight: bold; 
+.ffc-label-accent {
+    color: var(--ffc-primary);
+    font-weight: bold;
 }
 
 /* ==========================================================================
@@ -360,9 +360,9 @@
 }
 
 .ffc-copy-magic-link:hover {
-    background: #0073aa;
-    color: white;
-    border-color: #006799;
+    background: var(--ffc-primary-hover);
+    color: var(--ffc-text-on-primary);
+    border-color: var(--ffc-primary-hover);
 }
 
 /* Links de magic link - quebra de linha */
@@ -370,17 +370,17 @@
     display: inline-block;
     max-width: 100%;
     word-break: break-all;
-    color: #2271b1;
+    color: var(--ffc-link);
     text-decoration: underline;
 }
 
 .form-table td a[href*="token="]:hover {
-    color: #135e96;
+    color: var(--ffc-link-hover);
 }
 
 /* Descrições mais legíveis */
 .form-table .description strong {
-    color: #1d2327;
+    color: var(--ffc-text);
 }
 
 /* ========================================
@@ -433,8 +433,8 @@
 
 /* Warning Box */
 .ffc-migration-warning {
-    background: #fff3cd;
-    border-left: 4px solid #ffc107;
+    background: var(--ffc-warning-bg);
+    border-left: 4px solid var(--ffc-warning-border);
     padding: 12px;
     margin: 15px 0;
 }
@@ -468,12 +468,12 @@
 /* Tab Navigation */
 .ffc-geofence-tabs {
     margin-bottom: 20px;
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid var(--ffc-border);
 }
 
 .ffc-geo-tab-btn {
-    background: #f1f1f1;
-    border: 1px solid #ccc;
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-border);
     border-bottom: none;
     padding: 10px 20px;
     cursor: pointer;
@@ -482,8 +482,8 @@
 }
 
 .ffc-geo-tab-btn.active {
-    background: #fff;
-    border-bottom: 1px solid #fff;
+    background: var(--ffc-bg-card);
+    border-bottom: 1px solid var(--ffc-bg-card);
     margin-bottom: -1px;
     font-weight: bold;
 }
@@ -508,19 +508,19 @@
 
 /* View as user link */
 .ffc-view-as-user {
-    color: #2271b1;
+    color: var(--ffc-link);
     text-decoration: none;
     font-size: 12px;
 }
 
 .ffc-view-as-user:hover {
-    color: #135e96;
+    color: var(--ffc-link-hover);
     text-decoration: underline;
 }
 
 /* Empty value indicator */
 .ffc-empty-value {
-    color: #999;
+    color: var(--ffc-text-light);
 }
 
 /* ==========================================================================
@@ -530,11 +530,11 @@
 /* Highlight placeholders in TinyMCE editor */
 .ffc-placeholder,
 .mce-content-body .ffc-placeholder {
-    background: #e7f3ff;
-    border: 1px dashed #2271b1;
+    background: var(--ffc-primary-light);
+    border: 1px dashed var(--ffc-primary);
     border-radius: 3px;
     padding: 2px 6px;
-    color: #2271b1;
+    color: var(--ffc-primary);
     font-family: "Courier New", monospace;
     font-size: 13px;
     white-space: nowrap;
@@ -544,8 +544,8 @@
 }
 
 .ffc-placeholder:hover {
-    background: #d4edff;
-    border-color: #135e96;
+    background: var(--ffc-info-bg);
+    border-color: var(--ffc-primary-hover);
 }
 
 /* ==========================================================================
@@ -562,20 +562,20 @@
     line-height: 1;
 }
 .ffc-badge-info {
-    background: #d5e8f7;
-    color: #135e96;
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
 }
 .ffc-badge-warning {
-    background: #fcf3cf;
-    color: #856404;
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
 }
 .ffc-badge-error {
-    background: #f8d7da;
-    color: #721c24;
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
 }
 .ffc-badge-debug {
-    background: #e2e3e5;
-    color: #383d41;
+    background: var(--ffc-gray-200);
+    color: var(--ffc-gray-700);
 }
 
 /* ==========================================================================
@@ -612,7 +612,7 @@
 /* Activity log details */
 .ffc-log-summary {
     cursor: pointer;
-    color: #2271b1;
+    color: var(--ffc-link);
 }
 
 .ffc-log-pre {
@@ -621,8 +621,8 @@
     overflow: auto;
     margin-top: 8px;
     padding: 8px;
-    background: #f6f7f7;
-    border: 1px solid #dcdcde;
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-border-light);
 }
 
 /* Activity log card */
@@ -661,8 +661,8 @@ td .ffc-restriction-label {
 
 /* Info card */
 .ffc-info-card {
-    background: #f0f6fc;
-    border-left: 4px solid #0073aa;
+    background: var(--ffc-info-bg);
+    border-left: 4px solid var(--ffc-info-border);
 }
 
 /* ==========================================================================
@@ -701,7 +701,7 @@ td .ffc-restriction-label {
     max-width: 900px;
     height: 85vh;
     margin: 5vh auto;
-    background: #fff;
+    background: var(--ffc-bg-card);
     border-radius: 8px;
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
     overflow: hidden;
@@ -741,17 +741,17 @@ td .ffc-restriction-label {
 
 .ffc-preview-note {
     padding: 8px 20px;
-    background: #f0f6fc;
-    border-bottom: 1px solid #c3c4c7;
+    background: var(--ffc-info-bg);
+    border-bottom: 1px solid var(--ffc-border);
     font-size: 12px;
-    color: #50575e;
+    color: var(--ffc-text-secondary);
     flex-shrink: 0;
 }
 
 .ffc-preview-body {
     flex: 1;
     overflow: hidden;
-    background: #f0f0f0;
+    background: var(--ffc-bg-alt);
     padding: 20px;
     display: flex;
     justify-content: center;
@@ -760,8 +760,8 @@ td .ffc-restriction-label {
 #ffc-preview-iframe {
     width: 100%;
     height: 100%;
-    border: 1px solid #ddd;
-    background: #fff;
+    border: 1px solid var(--ffc-border-light);
+    background: var(--ffc-bg);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 

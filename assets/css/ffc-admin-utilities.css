@@ -81,7 +81,7 @@
  * Readonly input styling
  */
 .ffc-input-readonly {
-    background-color: #f0f0f1 !important;
+    background-color: var(--ffc-bg-alt) !important;
     cursor: not-allowed;
 }
 
@@ -145,22 +145,22 @@
  * Text color utilities
  */
 .ffc-text-success {
-    color: #00a32a;
+    color: var(--ffc-success);
     font-weight: 600;
 }
 
 .ffc-text-error {
-    color: #d63638;
+    color: var(--ffc-danger);
     font-weight: 600;
 }
 
 .ffc-text-info {
-    color: #2271b1;
+    color: var(--ffc-primary);
     font-weight: 600;
 }
 
 .ffc-text-warning {
-    color: #f0b849;
+    color: var(--ffc-warning);
     font-weight: 600;
 }
 

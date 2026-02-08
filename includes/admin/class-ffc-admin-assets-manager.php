@@ -62,6 +62,7 @@ class AdminAssetsManager {
         wp_enqueue_media();
 
         // Enqueue assets in proper order
+        $this->enqueue_dark_mode_script();
         $this->enqueue_core_module();
         $this->enqueue_css_assets();
         $this->enqueue_javascript_modules();
@@ -79,6 +80,33 @@ class AdminAssetsManager {
         $is_ffc_menu = ( isset( $_GET['page'] ) && strpos( sanitize_text_field( wp_unslash( $_GET['page'] ) ), 'ffc-' ) !== false );
 
         return $is_ffc_post_type || $is_ffc_menu;
+    }
+
+    /**
+     * Enqueue dark mode script (loaded early to prevent flash)
+     *
+     * @since 4.6.16
+     */
+    private function enqueue_dark_mode_script(): void {
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+        $settings = get_option( 'ffc_settings', array() );
+        $dark_mode = isset( $settings['dark_mode'] ) ? $settings['dark_mode'] : 'off';
+
+        if ( $dark_mode === 'off' ) {
+            return;
+        }
+
+        wp_enqueue_script(
+            'ffc-dark-mode',
+            FFC_PLUGIN_URL . "assets/js/ffc-dark-mode{$s}.js",
+            array(),
+            FFC_VERSION,
+            false // Load in <head> to avoid flash
+        );
+
+        wp_localize_script( 'ffc-dark-mode', 'ffcDarkMode', array(
+            'mode' => $dark_mode,
+        ) );
     }
 
     /**

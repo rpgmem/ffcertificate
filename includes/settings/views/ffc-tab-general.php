@@ -47,6 +47,22 @@ $ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
             <tbody>
                 <tr>
                     <th scope="row">
+                        <label for="ffc_dark_mode"><?php esc_html_e('Dark Mode', 'ffcertificate'); ?></label>
+                    </th>
+                    <td>
+                        <select name="ffc_settings[dark_mode]" id="ffc_dark_mode" class="regular-text">
+                            <option value="off" <?php selected($ffcertificate_get_option('dark_mode', 'off'), 'off'); ?>><?php esc_html_e('Off', 'ffcertificate'); ?></option>
+                            <option value="on" <?php selected($ffcertificate_get_option('dark_mode', 'off'), 'on'); ?>><?php esc_html_e('On (always dark)', 'ffcertificate'); ?></option>
+                            <option value="auto" <?php selected($ffcertificate_get_option('dark_mode', 'off'), 'auto'); ?>><?php esc_html_e('Auto (follow OS)', 'ffcertificate'); ?></option>
+                        </select>
+                        <p class="description">
+                            <?php esc_html_e('Controls the dark mode appearance for plugin admin pages.', 'ffcertificate'); ?><br>
+                            <span class="ffc-text-info ffc-icon-info"><?php esc_html_e('"Auto" follows your operating system preference.', 'ffcertificate'); ?></span>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
                         <label for="cleanup_days"><?php esc_html_e('Auto-delete (days)', 'ffcertificate'); ?></label>
                     </th>
                     <td>

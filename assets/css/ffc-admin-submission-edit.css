@@ -10,16 +10,16 @@
 .ffc-section-header {
     margin: 20px 0 10px 0;
     padding: 10px;
-    background: #f0f0f1;
-    border-left: 4px solid #2271b1;
+    background: var(--ffc-bg-alt);
+    border-left: 4px solid var(--ffc-primary);
 }
 
 /* QR Code info box */
 .ffc-qr-info-box {
     margin: 20px 0;
     padding: 15px;
-    background: #f0f6fc;
-    border-left: 4px solid #0073aa;
+    background: var(--ffc-info-bg);
+    border-left: 4px solid var(--ffc-info-border);
     border-radius: 4px;
 }
 
@@ -43,14 +43,14 @@
 }
 
 .ffc-qr-info-box td:first-child {
-    background: #fff;
-    border: 1px solid #ddd;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border-light);
 }
 
 .ffc-qr-info-box .ffc-qr-note {
     margin: 10px 0 0 0;
     font-size: 12px;
-    color: #666;
+    color: var(--ffc-text-muted);
 }
 
 /* LGPD consent box */
@@ -62,13 +62,13 @@
 }
 
 .ffc-consent-box.consent-given {
-    background: #e7f5e7;
-    border-color: #46a049;
+    background: var(--ffc-success-bg);
+    border-color: var(--ffc-success-border);
 }
 
 .ffc-consent-box.consent-not-given {
-    background: #fff8e1;
-    border-color: #ffa500;
+    background: var(--ffc-warning-bg);
+    border-color: var(--ffc-warning-border);
 }
 
 .ffc-consent-box h3 {
@@ -80,11 +80,11 @@
 }
 
 .ffc-consent-box.consent-given p {
-    color: #2d5c2e;
+    color: var(--ffc-success-text);
 }
 
 .ffc-consent-box.consent-not-given p {
-    color: #856404;
+    color: var(--ffc-warning-text);
 }
 
 /* Table spacing fix */
@@ -102,8 +102,8 @@
     align-items: center;
     gap: 10px;
     padding: 10px;
-    background: #f0f6fc;
-    border-left: 4px solid #2271b1;
+    background: var(--ffc-info-bg);
+    border-left: 4px solid var(--ffc-primary);
     border-radius: 4px;
 }
 
@@ -119,19 +119,19 @@
 }
 
 .ffc-user-email {
-    color: #666;
+    color: var(--ffc-text-muted);
     font-size: 12px;
 }
 
 .ffc-user-id {
-    color: #999;
+    color: var(--ffc-text-light);
     font-size: 11px;
     margin-left: 5px;
 }
 
 .ffc-no-user {
     margin: 0 0 10px 0;
-    color: #666;
+    color: var(--ffc-text-muted);
 }
 
 /* Linked user display */
@@ -144,14 +144,14 @@
 }
 
 .ffc-unlink-user-btn {
-    color: #b32d2e;
-    border-color: #b32d2e;
+    color: var(--ffc-danger);
+    border-color: var(--ffc-danger);
 }
 
 .ffc-unlink-user-btn:hover {
-    background: #b32d2e;
-    color: #fff;
-    border-color: #b32d2e;
+    background: var(--ffc-danger);
+    color: var(--ffc-text-on-primary);
+    border-color: var(--ffc-danger);
 }
 
 /* User search section */
@@ -173,7 +173,7 @@
 
 .ffc-user-search-results {
     margin: 10px 0;
-    border: 1px solid #ddd;
+    border: 1px solid var(--ffc-border-light);
     border-radius: 4px;
     max-height: 200px;
     overflow-y: auto;
@@ -185,7 +185,7 @@
     gap: 10px;
     padding: 8px 10px;
     cursor: pointer;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--ffc-border-light);
     transition: background-color 0.15s;
 }
 
@@ -194,7 +194,7 @@
 }
 
 .ffc-user-search-results .ffc-search-result-item:hover {
-    background: #f0f6fc;
+    background: var(--ffc-primary-light);
 }
 
 .ffc-user-search-results .ffc-search-result-item img {
@@ -211,27 +211,27 @@
 }
 
 .ffc-user-search-results .ffc-search-result-email {
-    color: #666;
+    color: var(--ffc-text-muted);
     font-size: 12px;
 }
 
 .ffc-user-search-results .ffc-search-result-id {
-    color: #999;
+    color: var(--ffc-text-light);
     font-size: 11px;
 }
 
 .ffc-user-search-results .ffc-no-results {
     padding: 15px;
     text-align: center;
-    color: #666;
+    color: var(--ffc-text-muted);
 }
 
 /* Selected user preview */
 .ffc-selected-user-preview {
     margin: 10px 0;
     padding: 10px;
-    background: #e7f5e7;
-    border-left: 4px solid #46a049;
+    background: var(--ffc-success-bg);
+    border-left: 4px solid var(--ffc-success-border);
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -247,7 +247,7 @@
 }
 
 .ffc-selected-user-preview .ffc-clear-selection {
-    color: #b32d2e;
+    color: var(--ffc-danger);
     cursor: pointer;
     text-decoration: underline;
 }
@@ -271,7 +271,7 @@
 }
 
 .ffc-consent-header:focus {
-    outline: 2px solid #2271b1;
+    outline: 2px solid var(--ffc-primary);
     outline-offset: 2px;
 }
 
@@ -288,7 +288,7 @@
 .ffc-consent-summary {
     font-weight: normal;
     font-size: 13px;
-    color: #666;
+    color: var(--ffc-text-muted);
 }
 
 .ffc-consent-details {

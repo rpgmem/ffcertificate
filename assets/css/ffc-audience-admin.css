@@ -14,8 +14,8 @@
 }
 
 .ffc-stat-card {
-    background: #fff;
-    border: 1px solid #c3c4c7;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
     padding: 20px;
     display: flex;
@@ -24,7 +24,7 @@
 
 .ffc-stat-icon {
     font-size: 32px;
-    color: #2271b1;
+    color: var(--ffc-primary);
     margin-bottom: 10px;
 }
 
@@ -32,17 +32,17 @@
     font-size: 36px;
     font-weight: 600;
     display: block;
-    color: #1d2327;
+    color: var(--ffc-text);
 }
 
 .ffc-stat-label {
-    color: #50575e;
+    color: var(--ffc-text-secondary);
     font-size: 14px;
 }
 
 .ffc-stat-link {
     margin-top: 15px;
-    color: #2271b1;
+    color: var(--ffc-link);
     text-decoration: none;
 }
 
@@ -52,8 +52,8 @@
 
 /* Quick Actions */
 .ffc-quick-actions {
-    background: #fff;
-    border: 1px solid #c3c4c7;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
     padding: 20px;
 }
@@ -77,18 +77,18 @@
 }
 
 .ffc-status-active {
-    background: #d1e7dd;
-    color: #0f5132;
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
 }
 
 .ffc-status-inactive {
-    background: #f8d7da;
-    color: #842029;
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
 }
 
 .ffc-status-cancelled {
-    background: #fff3cd;
-    color: #664d03;
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
 }
 
 /* Table Columns */
@@ -110,11 +110,11 @@
 
 /* Delete Link */
 .delete-link {
-    color: #b32d2e;
+    color: var(--ffc-danger);
 }
 
 .delete-link:hover {
-    color: #a00;
+    color: var(--ffc-danger-text);
 }
 
 /* Filter Form */
@@ -127,7 +127,7 @@
 
 /* Form Styles */
 .ffc-form .required {
-    color: #d63638;
+    color: var(--ffc-danger);
 }
 
 /* Color Swatch */
@@ -136,7 +136,7 @@
     height: 24px;
     border-radius: 4px;
     display: inline-block;
-    border: 1px solid #ccc;
+    border: 1px solid var(--ffc-border);
 }
 
 /* Hierarchy */
@@ -146,12 +146,12 @@
 
 .ffc-hierarchy-child::before {
     content: "\2514 ";
-    color: #999;
+    color: var(--ffc-text-light);
 }
 
 /* Working Hours */
 .ffc-working-hours {
-    background: #f6f7f7;
+    background: var(--ffc-bg-alt);
     padding: 15px;
     border-radius: 4px;
 }
@@ -174,19 +174,19 @@
 
 /* Members Section */
 .ffc-members-section {
-    background: #fff;
+    background: var(--ffc-bg-card);
     padding: 20px;
     margin: 20px 0;
-    border: 1px solid #c3c4c7;
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
 }
 
 .ffc-user-results {
     max-height: 200px;
     overflow-y: auto;
-    border: 1px solid #ddd;
+    border: 1px solid var(--ffc-border-light);
     display: none;
-    background: #fff;
+    background: var(--ffc-bg-card);
 }
 
 .ffc-user-results.active {
@@ -196,7 +196,7 @@
 .ffc-user-result {
     padding: 8px 12px;
     cursor: pointer;
-    border-bottom: 1px solid #f0f0f1;
+    border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-user-result:last-child {
@@ -204,7 +204,7 @@
 }
 
 .ffc-user-result:hover {
-    background: #f0f0f1;
+    background: var(--ffc-bg-alt);
 }
 
 .ffc-selected-users {
@@ -213,8 +213,8 @@
 
 .ffc-selected-user {
     display: inline-block;
-    background: #2271b1;
-    color: #fff;
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
     padding: 5px 10px;
     margin: 3px;
     border-radius: 3px;
@@ -244,12 +244,12 @@
 
 /* Booking Status (non-prefixed -- used in bookings list) */
 .status-active {
-    color: #00a32a;
+    color: var(--ffc-success);
     font-weight: 600;
 }
 
 .status-cancelled {
-    color: #d63638;
+    color: var(--ffc-danger);
     font-weight: 600;
 }
 
@@ -272,8 +272,8 @@
 }
 
 .ffc-import-section {
-    background: #fff;
-    border: 1px solid #c3c4c7;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
     padding: 20px;
     flex: 1;
@@ -287,11 +287,11 @@
 .ffc-sample-csv {
     margin-top: 20px;
     padding-top: 20px;
-    border-top: 1px solid #c3c4c7;
+    border-top: 1px solid var(--ffc-border);
 }
 
 .ffc-sample-csv pre {
-    background: #f6f7f7;
+    background: var(--ffc-bg-alt);
     padding: 15px;
     overflow-x: auto;
     font-size: 12px;
@@ -309,7 +309,7 @@
 .ffc-scheduling-dashboard > h2 {
     margin: 25px 0 15px;
     padding-bottom: 8px;
-    border-bottom: 1px solid #c3c4c7;
+    border-bottom: 1px solid var(--ffc-border);
 }
 
 .ffc-scheduling-dashboard > h2:first-of-type {
