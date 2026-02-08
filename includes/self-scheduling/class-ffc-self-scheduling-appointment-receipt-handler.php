@@ -114,6 +114,8 @@ class AppointmentReceiptHandler {
      * @return void
      */
     private function enqueue_pdf_scripts(): void {
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
         wp_enqueue_script(
             'html2canvas',
             FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js',
@@ -133,7 +135,7 @@ class AppointmentReceiptHandler {
         // Enqueue PDF generator (reuse from certificates)
         wp_enqueue_script(
             'ffc-pdf-generator',
-            FFC_PLUGIN_URL . 'assets/js/ffc-pdf-generator.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js",
             array('jquery', 'html2canvas', 'jspdf'),
             FFC_VERSION,
             true

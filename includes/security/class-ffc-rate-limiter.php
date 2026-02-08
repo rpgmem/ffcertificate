@@ -30,10 +30,10 @@ class RateLimiter {
     
     private static function get_settings(): array {
         $defaults = array(
-            'ip' => array('enabled' => true, 'max_per_hour' => 5, 'max_per_day' => 20, 'cooldown_seconds' => 60, 'apply_to' => 'all', 'message' => 'Limite atingido. Aguarde {time}.'),
-            'email' => array('enabled' => true, 'max_per_day' => 3, 'max_per_week' => 10, 'max_per_month' => 30, 'wait_hours' => 24, 'apply_to' => 'all', 'message' => 'Você já possui {count} certificados.', 'check_database' => true),
-            'cpf' => array('enabled' => false, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 3, 'block_hours' => 1, 'block_duration' => 24, 'apply_to' => 'all', 'message' => 'Limite de CPF/RF atingido.', 'check_database' => true),
-            'global' => array('enabled' => false, 'max_per_minute' => 100, 'max_per_hour' => 1000, 'message' => 'Sistema indisponível.'),
+            'ip' => array('enabled' => true, 'max_per_hour' => 5, 'max_per_day' => 20, 'cooldown_seconds' => 60, 'apply_to' => 'all', 'message' => __( 'Limit reached. Please wait {time}.', 'ffcertificate' )),
+            'email' => array('enabled' => true, 'max_per_day' => 3, 'max_per_week' => 10, 'max_per_month' => 30, 'wait_hours' => 24, 'apply_to' => 'all', 'message' => __( 'You already have {count} certificates.', 'ffcertificate' ), 'check_database' => true),
+            'cpf' => array('enabled' => false, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 3, 'block_hours' => 1, 'block_duration' => 24, 'apply_to' => 'all', 'message' => __( 'CPF/RF limit reached.', 'ffcertificate' ), 'check_database' => true),
+            'global' => array('enabled' => false, 'max_per_minute' => 100, 'max_per_hour' => 1000, 'message' => __( 'System unavailable.', 'ffcertificate' )),
             'whitelist' => array('ips' => array(), 'emails' => array(), 'email_domains' => array(), 'cpfs' => array()),
             'blacklist' => array('ips' => array(), 'emails' => array(), 'email_domains' => array(), 'cpfs' => array()),
             'logging' => array('enabled' => true, 'log_allowed' => false, 'log_blocked' => true, 'retention_days' => 30, 'max_logs' => 10000),
@@ -81,15 +81,16 @@ class RateLimiter {
         // v3.2.0: Use Object Cache API (auto Redis/Memcached if available)
         $hc = wp_cache_get($hk, self::CACHE_GROUP);
         $hc = $hc !== false ? $hc : 0;
-        if ($hc >= $s['max_per_hour']) return array('allowed' => false, 'reason' => 'ip_hour_limit', 'message' => self::format_message($s['message'], array('time' => '1 hora')), 'wait_seconds' => 3600);
+        if ($hc >= $s['max_per_hour']) return array('allowed' => false, 'reason' => 'ip_hour_limit', 'message' => self::format_message($s['message'], array('time' => __( '1 hour', 'ffcertificate' ))), 'wait_seconds' => 3600);
 
         $dc = self::get_count_from_db('ip', $ip, 'day', $form_id);
-        if ($dc >= $s['max_per_day']) return array('allowed' => false, 'reason' => 'ip_day_limit', 'message' => self::format_message($s['message'], array('time' => '24 horas')), 'wait_seconds' => 86400);
+        if ($dc >= $s['max_per_day']) return array('allowed' => false, 'reason' => 'ip_day_limit', 'message' => self::format_message($s['message'], array('time' => __( '24 hours', 'ffcertificate' ))), 'wait_seconds' => 86400);
 
         $last = wp_cache_get('ffc_rate_ip_' . md5($ip . $form_id) . '_last', self::CACHE_GROUP);
         if ($last && (time() - $last) < $s['cooldown_seconds']) {
             $w = $s['cooldown_seconds'] - (time() - $last);
-            return array('allowed' => false, 'reason' => 'ip_cooldown', 'message' => "Aguarde {$w} segundos.", 'wait_seconds' => $w);
+            /* translators: %d: number of seconds to wait */
+            return array('allowed' => false, 'reason' => 'ip_cooldown', 'message' => sprintf( __( 'Please wait %d seconds.', 'ffcertificate' ), $w ), 'wait_seconds' => $w);
         }
 
         return array('allowed' => true);
@@ -100,13 +101,13 @@ class RateLimiter {
         if (!$s['check_database']) return array('allowed' => true);
         
         $dc = self::get_submission_count('email', $email, 'day', $form_id);
-        if ($dc >= $s['max_per_day']) return array('allowed' => false, 'reason' => 'email_day_limit', 'message' => self::format_message($s['message'], array('count' => $dc, 'time' => '24 horas')), 'wait_seconds' => 86400);
+        if ($dc >= $s['max_per_day']) return array('allowed' => false, 'reason' => 'email_day_limit', 'message' => self::format_message($s['message'], array('count' => $dc, 'time' => __( '24 hours', 'ffcertificate' ))), 'wait_seconds' => 86400);
         
         $wc = self::get_submission_count('email', $email, 'week', $form_id);
-        if ($wc >= $s['max_per_week']) return array('allowed' => false, 'reason' => 'email_week_limit', 'message' => self::format_message($s['message'], array('count' => $wc, 'time' => '1 semana')), 'wait_seconds' => 604800);
+        if ($wc >= $s['max_per_week']) return array('allowed' => false, 'reason' => 'email_week_limit', 'message' => self::format_message($s['message'], array('count' => $wc, 'time' => __( '1 week', 'ffcertificate' ))), 'wait_seconds' => 604800);
         
         $mc = self::get_submission_count('email', $email, 'month', $form_id);
-        if ($mc >= $s['max_per_month']) return array('allowed' => false, 'reason' => 'email_month_limit', 'message' => self::format_message($s['message'], array('count' => $mc, 'time' => '1 mês')), 'wait_seconds' => 2592000);
+        if ($mc >= $s['max_per_month']) return array('allowed' => false, 'reason' => 'email_month_limit', 'message' => self::format_message($s['message'], array('count' => $mc, 'time' => __( '1 month', 'ffcertificate' ))), 'wait_seconds' => 2592000);
         
         return array('allowed' => true);
     }
@@ -115,7 +116,7 @@ class RateLimiter {
         $s = self::get_settings()['cpf'];
         $cc = preg_replace('/[^0-9]/', '', $cpf);
         
-        if (self::is_temporarily_blocked('cpf', $cc, $form_id)) return array('allowed' => false, 'reason' => 'cpf_blocked', 'message' => 'CPF bloqueado.', 'wait_seconds' => 86400);
+        if (self::is_temporarily_blocked('cpf', $cc, $form_id)) return array('allowed' => false, 'reason' => 'cpf_blocked', 'message' => __( 'CPF blocked.', 'ffcertificate' ), 'wait_seconds' => 86400);
         
         if ($s['check_database']) {
             $mc = self::get_submission_count('cpf', $cc, 'month', $form_id);
@@ -128,7 +129,7 @@ class RateLimiter {
         $ac = self::get_count_from_db('cpf', $cc, 'hour', $form_id);
         if ($ac >= $s['block_threshold']) {
             self::block_temporarily('cpf', $cc, $form_id, $s['block_duration']);
-            return array('allowed' => false, 'reason' => 'cpf_abuse', 'message' => 'CPF bloqueado.', 'wait_seconds' => $s['block_duration'] * 3600);
+            return array('allowed' => false, 'reason' => 'cpf_abuse', 'message' => __( 'CPF blocked.', 'ffcertificate' ), 'wait_seconds' => $s['block_duration'] * 3600);
         }
         
         return array('allowed' => true);
@@ -312,7 +313,7 @@ class RateLimiter {
         $s = self::get_settings();
         $bl = $s['blacklist'];
         
-        if (in_array($ip, $bl['ips'])) return array('allowed' => false, 'reason' => 'ip_blacklisted', 'message' => 'IP bloqueado.');
+        if (in_array($ip, $bl['ips'])) return array('allowed' => false, 'reason' => 'ip_blacklisted', 'message' => __( 'IP blocked.', 'ffcertificate' ));
         
         if ($email) {
             if (in_array($email, $bl['emails'])) return array('allowed' => false, 'reason' => 'email_blacklisted', 'message' => __( 'Email blocked.', 'ffcertificate' ));

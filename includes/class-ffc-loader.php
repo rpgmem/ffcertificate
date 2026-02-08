@@ -151,7 +151,8 @@ class Loader {
      * Only registers -- actual enqueue happens when shortcodes load their dependencies.
      */
     public function register_frontend_assets(): void {
-        wp_register_script('ffc-rate-limit', FFC_PLUGIN_URL . 'assets/js/ffc-frontend-helpers.js', ['jquery'], FFC_VERSION, true);
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+        wp_register_script('ffc-rate-limit', FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js", ['jquery'], FFC_VERSION, true);
     }
 
     /**

@@ -439,15 +439,16 @@ class AudienceShortcode {
      * Enqueue CSS only (safe for all users)
      */
     private static function enqueue_styles(): void {
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
         wp_enqueue_style(
             'ffc-common',
-            FFC_PLUGIN_URL . 'assets/css/ffc-common.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
             array(),
             FFC_VERSION
         );
         wp_enqueue_style(
             'ffc-audience',
-            FFC_PLUGIN_URL . 'assets/css/ffc-audience.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-audience{$s}.css",
             array('ffc-common'),
             FFC_VERSION
         );
@@ -458,9 +459,10 @@ class AudienceShortcode {
         self::enqueue_styles();
 
         // JavaScript
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
         wp_enqueue_script(
             'ffc-audience',
-            FFC_PLUGIN_URL . 'assets/js/ffc-audience.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-audience{$s}.js",
             array('jquery'),
             FFC_VERSION,
             true

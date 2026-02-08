@@ -179,10 +179,12 @@ class AudienceLoader {
             return;
         }
 
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
         // Admin CSS
         wp_enqueue_style(
             'ffc-audience-admin',
-            FFC_PLUGIN_URL . 'assets/css/ffc-audience-admin.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-audience-admin{$s}.css",
             array(),
             FFC_VERSION
         );
@@ -190,7 +192,7 @@ class AudienceLoader {
         // Admin JS
         wp_enqueue_script(
             'ffc-audience-admin',
-            FFC_PLUGIN_URL . 'assets/js/ffc-audience-admin.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-audience-admin{$s}.js",
             array('jquery', 'wp-util'),
             FFC_VERSION,
             true
@@ -218,16 +220,18 @@ class AudienceLoader {
             return;
         }
 
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
         // Frontend CSS
         wp_enqueue_style(
             'ffc-common',
-            FFC_PLUGIN_URL . 'assets/css/ffc-common.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
             array(),
             FFC_VERSION
         );
         wp_enqueue_style(
             'ffc-audience',
-            FFC_PLUGIN_URL . 'assets/css/ffc-audience.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-audience{$s}.css",
             array('ffc-common'),
             FFC_VERSION
         );
@@ -235,7 +239,7 @@ class AudienceLoader {
         // Frontend JS
         wp_enqueue_script(
             'ffc-audience',
-            FFC_PLUGIN_URL . 'assets/js/ffc-audience.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-audience{$s}.js",
             array('jquery'),
             FFC_VERSION,
             true

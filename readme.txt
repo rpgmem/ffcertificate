@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 4.6.10
+Stable tag: 4.6.12
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -154,6 +154,29 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.6.12 (2026-02-08) =
+
+Quality: Unit testing, i18n compliance, and asset minification.
+
+* New: Add PHPUnit test infrastructure (composer.json, phpunit.xml.dist, bootstrap)
+* New: Add 14 unit tests covering Geofence bypass, ActivityLog buffer, and EmailHandler contexts
+* New: Generate minified .min.css and .min.js for all 34 plugin assets (~45% average size reduction)
+* New: Conditional asset loading — serve .min files in production, full files when SCRIPT_DEBUG is on
+* New: Add Utils::asset_suffix() helper for consistent minification suffix across all enqueue calls
+* Fix: Replace 13 hardcoded Portuguese strings in RateLimiter with __() for proper i18n
+* Fix: PHPUnit bootstrap load order — define ABSPATH before requiring autoloader (prevents silent exit)
+
+= 4.6.11 (2026-02-08) =
+
+Security hardening: REST API protection, uninstall cleanup, deprecated API removal.
+
+* Security: Add geofence validation (date/time + IP) to REST API form submission endpoint
+* Security: Add rate limiting to REST API appointment creation endpoint
+* Security: Remove error_reporting() suppression in REST controller (use output buffering only)
+* New: Add uninstall.php — full cleanup of all tables, options, roles, capabilities, transients, and cron hooks on plugin deletion
+* Fix: Replace all deprecated current_time('timestamp') calls (deprecated since WP 5.3) with time() + wp_date()
+* Fix: Timezone-aware datetime comparisons in Geofence, AppointmentValidator, and AppointmentHandler using DateTimeImmutable + wp_timezone()
 
 = 4.6.10 (2026-02-08) =
 

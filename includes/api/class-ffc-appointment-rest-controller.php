@@ -122,6 +122,20 @@ class AppointmentRestController {
                 );
             }
 
+            // Rate limiting (prevent automated booking abuse)
+            if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
+                $ip = \FreeFormCertificate\Core\Utils::get_user_ip();
+                $rate_limiter = new \FreeFormCertificate\Security\RateLimiter();
+
+                if (!$rate_limiter->check_limit('ip', $ip)) {
+                    return new \WP_Error(
+                        'rate_limit_exceeded',
+                        __('Too many requests. Please try again later.', 'ffcertificate'),
+                        array('status' => 429)
+                    );
+                }
+            }
+
             $appointment_data = array(
                 'calendar_id' => $calendar_id,
                 'appointment_date' => sanitize_text_field($params['date']),

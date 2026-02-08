@@ -58,24 +58,25 @@ class Frontend {
         }
 
         if ( has_shortcode( $post->post_content, 'ffc_form' ) || has_shortcode( $post->post_content, 'ffc_verification' ) ) {
-            
+            $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
             // CSS - Using centralized version constant
-            wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . 'assets/css/ffc-pdf-core.css', array(), FFC_VERSION );
-            wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.css', array(), FFC_VERSION );
-            wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . 'assets/css/ffc-frontend.css', array('ffc-pdf-core', 'ffc-common'), FFC_VERSION );
+            wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css", array(), FFC_VERSION );
+            wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
+            wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css", array('ffc-pdf-core', 'ffc-common'), FFC_VERSION );
             
             // PDF Libraries - Using centralized version constants
             wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
             wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true );
             
             // PDF Generator (shared module)
-            wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . 'assets/js/ffc-pdf-generator.js', array( 'jquery', 'html2canvas', 'jspdf' ), FFC_VERSION, true );
+            wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js", array( 'jquery', 'html2canvas', 'jspdf' ), FFC_VERSION, true );
 
             // ✅ v3.1.0: ffc-frontend.js depends on PDF generator and ffc-rate-limit (which loads ffc-frontend-helpers.js)
-            wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . 'assets/js/ffc-frontend.js', array( 'jquery', 'ffc-pdf-generator', 'ffc-rate-limit' ), FFC_VERSION, true );
+            wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-pdf-generator', 'ffc-rate-limit' ), FFC_VERSION, true );
 
             // ✅ v3.0.0: Geofence frontend validation - NEW!
-            wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . 'assets/js/ffc-geofence-frontend.js', array( 'jquery' ), FFC_VERSION, true );
+            wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . "assets/js/ffc-geofence-frontend{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 
             // Pass geofence configurations to frontend
             $this->localize_geofence_config();

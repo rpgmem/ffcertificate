@@ -20,6 +20,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Utils {
 
     /**
+     * Get minified asset suffix based on SCRIPT_DEBUG constant
+     *
+     * Returns '.min' when SCRIPT_DEBUG is off (production),
+     * or '' when SCRIPT_DEBUG is on (development).
+     *
+     * @since 4.6.12
+     * @return string '.min' or ''
+     */
+    public static function asset_suffix(): string {
+        return defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+    }
+
+    /**
      * Get submissions table name with current prefix
      *
      * Centralizes table name generation for consistency across all classes.

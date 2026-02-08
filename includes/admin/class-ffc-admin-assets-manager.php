@@ -87,9 +87,10 @@ class AdminAssetsManager {
      * @since 3.1.0
      */
     private function enqueue_core_module(): void {
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
         wp_enqueue_script(
             'ffc-core',
-            FFC_PLUGIN_URL . 'assets/js/ffc-core.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
             array( 'jquery' ),
             FFC_VERSION,
             true
@@ -109,10 +110,12 @@ class AdminAssetsManager {
      * 7. Conditional: ffc-admin-submission-edit (only on edit page)
      */
     private function enqueue_css_assets(): void {
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
         // 1. Base styles (PDF core)
         wp_enqueue_style(
             'ffc-pdf-core',
-            FFC_PLUGIN_URL . 'assets/css/ffc-pdf-core.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css",
             array(),
             FFC_VERSION
         );
@@ -120,7 +123,7 @@ class AdminAssetsManager {
         // 2. Common utilities (shared between admin and frontend)
         wp_enqueue_style(
             'ffc-common',
-            FFC_PLUGIN_URL . 'assets/css/ffc-common.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
             array(),
             FFC_VERSION
         );
@@ -128,7 +131,7 @@ class AdminAssetsManager {
         // 3. Admin-specific utilities (v3.1.0)
         wp_enqueue_style(
             'ffc-admin-utilities',
-            FFC_PLUGIN_URL . 'assets/css/ffc-admin-utilities.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-admin-utilities{$s}.css",
             array( 'ffc-common' ),
             FFC_VERSION
         );
@@ -136,7 +139,7 @@ class AdminAssetsManager {
         // 4. Admin general styles (depends on pdf-core, common, and admin-utilities)
         wp_enqueue_style(
             'ffc-admin-css',
-            FFC_PLUGIN_URL . 'assets/css/ffc-admin.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-admin{$s}.css",
             array( 'ffc-pdf-core', 'ffc-common', 'ffc-admin-utilities' ),
             FFC_VERSION
         );
@@ -144,7 +147,7 @@ class AdminAssetsManager {
         // 5. Submissions page styles (depends on ffc-admin.css)
         wp_enqueue_style(
             'ffc-admin-submissions-css',
-            FFC_PLUGIN_URL . 'assets/css/ffc-admin-submissions.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-admin-submissions{$s}.css",
             array( 'ffc-admin-css' ),
             FFC_VERSION
         );
@@ -162,10 +165,12 @@ class AdminAssetsManager {
      * @since 3.1.0 - Modular architecture
      */
     private function enqueue_javascript_modules(): void {
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
         // 1. Field Builder module
         wp_enqueue_script(
             'ffc-admin-field-builder',
-            FFC_PLUGIN_URL . 'assets/js/ffc-admin-field-builder.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-admin-field-builder{$s}.js",
             array( 'jquery', 'jquery-ui-sortable', 'ffc-core' ),
             FFC_VERSION,
             true
@@ -174,7 +179,7 @@ class AdminAssetsManager {
         // 2. PDF Management module
         wp_enqueue_script(
             'ffc-admin-pdf',
-            FFC_PLUGIN_URL . 'assets/js/ffc-admin-pdf.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-admin-pdf{$s}.js",
             array( 'jquery', 'ffc-core' ),
             FFC_VERSION,
             true
@@ -183,7 +188,7 @@ class AdminAssetsManager {
         // 3. Main admin script (depends on modules)
         wp_enqueue_script(
             'ffc-admin-js',
-            FFC_PLUGIN_URL . 'assets/js/ffc-admin.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-admin{$s}.js",
             array( 'jquery', 'ffc-admin-field-builder', 'ffc-admin-pdf' ),
             FFC_VERSION,
             true
@@ -200,18 +205,20 @@ class AdminAssetsManager {
      * - Submission Edit CSS + JS (only on edit page)
      */
     private function enqueue_conditional_assets(): void {
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
         // Settings page styles + scripts
         if ( $this->is_settings_page() ) {
             wp_enqueue_style(
                 'ffc-admin-settings',
-                FFC_PLUGIN_URL . 'assets/css/ffc-admin-settings.css',
+                FFC_PLUGIN_URL . "assets/css/ffc-admin-settings{$s}.css",
                 array( 'ffc-admin-css' ),
                 FFC_VERSION
             );
 
             wp_enqueue_script(
                 'ffc-admin-migrations',
-                FFC_PLUGIN_URL . 'assets/js/ffc-admin-migrations.js',
+                FFC_PLUGIN_URL . "assets/js/ffc-admin-migrations{$s}.js",
                 array( 'jquery' ),
                 FFC_VERSION,
                 true
@@ -240,10 +247,12 @@ class AdminAssetsManager {
      * Enqueue submission edit page specific assets
      */
     private function enqueue_submission_edit_assets(): void {
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
         // Edit page CSS
         wp_enqueue_style(
             'ffc-admin-submission-edit',
-            FFC_PLUGIN_URL . 'assets/css/ffc-admin-submission-edit.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-admin-submission-edit{$s}.css",
             array( 'ffc-admin-css' ),
             FFC_VERSION
         );
@@ -251,7 +260,7 @@ class AdminAssetsManager {
         // Edit page JS
         wp_enqueue_script(
             'ffc-admin-submission-edit',
-            FFC_PLUGIN_URL . 'assets/js/ffc-admin-submission-edit.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-admin-submission-edit{$s}.js",
             array( 'jquery' ),
             FFC_VERSION,
             true

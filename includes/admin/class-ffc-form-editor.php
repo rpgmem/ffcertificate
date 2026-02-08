@@ -49,9 +49,10 @@ class FormEditor {
             return;
         }
 
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
         wp_enqueue_script(
             'ffc-geofence-admin',
-            FFC_PLUGIN_URL . 'assets/js/ffc-geofence-admin.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-geofence-admin{$s}.js",
             array( 'jquery' ),
             FFC_VERSION,
             true

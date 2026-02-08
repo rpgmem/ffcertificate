@@ -321,11 +321,13 @@ class DashboardShortcode {
             user_can($user, 'manage_options')
         );
 
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
         // Enqueue CSS
-        wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . 'assets/css/ffc-user-dashboard.css', array(), FFC_VERSION );
+        wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/css/ffc-user-dashboard{$s}.css", array(), FFC_VERSION );
 
         // Enqueue JavaScript
-        wp_enqueue_script( 'ffc-dashboard', FFC_PLUGIN_URL . 'assets/js/ffc-user-dashboard.js', array('jquery'), FFC_VERSION, true );
+        wp_enqueue_script( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard{$s}.js", array('jquery'), FFC_VERSION, true );
 
         // Localize script
         wp_localize_script('ffc-dashboard', 'ffcDashboard', array(

@@ -322,10 +322,11 @@ class AppointmentHandler {
 
         // Check cancellation deadline
         if (!current_user_can('manage_options') && $calendar['cancellation_min_hours'] > 0) {
-            $appointment_time = strtotime($appointment['appointment_date'] . ' ' . $appointment['start_time']);
+            $tz = wp_timezone();
+            $appointment_time = ( new \DateTimeImmutable( $appointment['appointment_date'] . ' ' . $appointment['start_time'], $tz ) )->getTimestamp();
             $deadline = $appointment_time - ($calendar['cancellation_min_hours'] * 3600);
 
-            if (current_time('timestamp') > $deadline) {
+            if (time() > $deadline) {
                 return new \WP_Error(
                     'deadline_passed',
                     sprintf(

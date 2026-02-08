@@ -47,9 +47,11 @@ class SelfSchedulingEditor {
             return;
         }
 
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
         wp_enqueue_script(
             'ffc-calendar-editor',
-            FFC_PLUGIN_URL . 'assets/js/ffc-calendar-editor.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-calendar-editor{$s}.js",
             array('jquery', 'jquery-ui-sortable'),
             FFC_VERSION,
             true
@@ -57,7 +59,7 @@ class SelfSchedulingEditor {
 
         wp_enqueue_style(
             'ffc-calendar-editor',
-            FFC_PLUGIN_URL . 'assets/css/ffc-calendar-editor.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-calendar-editor{$s}.css",
             array(),
             FFC_VERSION
         );

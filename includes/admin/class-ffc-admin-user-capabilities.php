@@ -41,9 +41,10 @@ class AdminUserCapabilities {
         if ( $hook_suffix !== 'user-edit.php' && $hook_suffix !== 'profile.php' ) {
             return;
         }
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
         wp_enqueue_script(
             'ffc-user-capabilities',
-            FFC_PLUGIN_URL . 'assets/js/ffc-user-capabilities.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-user-capabilities{$s}.js",
             array( 'jquery' ),
             FFC_VERSION,
             true

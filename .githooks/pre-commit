@@ -1,0 +1,46 @@
+#!/bin/bash
+#
+# Pre-commit hook: auto-minify CSS/JS assets when source files change.
+# Install: git config core.hooksPath .githooks
+#    or: npm run setup-hooks
+#
+
+# Check if any non-minified CSS or JS source files are staged
+STAGED_CSS=$(git diff --cached --name-only --diff-filter=ACM -- 'assets/css/*.css' | grep -v '\.min\.css$')
+STAGED_JS=$(git diff --cached --name-only --diff-filter=ACM -- 'assets/js/*.js' | grep -v '\.min\.js$')
+
+if [ -z "$STAGED_CSS" ] && [ -z "$STAGED_JS" ]; then
+    exit 0
+fi
+
+# Check if npm dependencies are installed
+if [ ! -d "node_modules" ]; then
+    echo "FFC: node_modules not found. Run 'npm install' first."
+    exit 1
+fi
+
+echo "FFC: Asset changes detected, rebuilding minified files..."
+
+if [ -n "$STAGED_CSS" ]; then
+    npm run build:css --silent 2>/dev/null
+    # Stage the regenerated .min.css files
+    for f in $STAGED_CSS; do
+        min="${f%.css}.min.css"
+        if [ -f "$min" ]; then
+            git add "$min"
+        fi
+    done
+fi
+
+if [ -n "$STAGED_JS" ]; then
+    npm run build:js --silent 2>/dev/null
+    # Stage the regenerated .min.js files
+    for f in $STAGED_JS; do
+        min="${f%.js}.min.js"
+        if [ -f "$min" ]; then
+            git add "$min"
+        fi
+    done
+fi
+
+echo "FFC: Minified assets updated and staged."

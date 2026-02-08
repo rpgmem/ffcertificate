@@ -285,6 +285,29 @@ class FormRestController {
                 }
             }
             
+            // Geofence validation (date/time + IP geolocation)
+            if (class_exists('\FreeFormCertificate\Security\Geofence')) {
+                $geofence_config = \FreeFormCertificate\Security\Geofence::get_form_config($form_id);
+                $should_validate_ip = false;
+
+                if ($geofence_config && !empty($geofence_config['geo_enabled']) && !empty($geofence_config['geo_ip_enabled'])) {
+                    $should_validate_ip = true;
+                }
+
+                $geofence_check = \FreeFormCertificate\Security\Geofence::can_access_form($form_id, array(
+                    'check_datetime' => true,
+                    'check_geo' => $should_validate_ip,
+                ));
+
+                if (!$geofence_check['allowed']) {
+                    return new \WP_Error(
+                        'geofence_blocked',
+                        $geofence_check['message'],
+                        array('status' => 403, 'reason' => $geofence_check['reason'])
+                    );
+                }
+            }
+
             // Rate limiting check
             if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
                 $rate_limiter = new \FreeFormCertificate\Security\RateLimiter();

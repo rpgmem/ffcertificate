@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "scripts": {
+    "build:css": "for f in assets/css/*.css; do case \"$f\" in *.min.css) continue;; esac; npx cleancss -o \"${f%.css}.min.css\" \"$f\"; done && echo 'CSS minified.'",
+    "build:js": "for f in assets/js/*.js; do case \"$f\" in *.min.js) continue;; esac; npx terser \"$f\" -o \"${f%.js}.min.js\" --compress --mangle; done && echo 'JS minified.'",
+    "build": "npm run build:css && npm run build:js",
+    "setup-hooks": "git config core.hooksPath .githooks && echo 'Git hooks configured.'"
+  },
+  "devDependencies": {
+    "clean-css-cli": "^5.6.3",
+    "terser": "^5.46.0"
+  }
+}

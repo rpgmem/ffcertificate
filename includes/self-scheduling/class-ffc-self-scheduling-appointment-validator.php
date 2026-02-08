@@ -64,8 +64,9 @@ class AppointmentValidator {
         }
 
         // 4. Check if date is in the past
-        $now = current_time('timestamp');
-        $appointment_timestamp = strtotime($data['appointment_date'] . ' ' . $data['start_time']);
+        $now = time();
+        $tz = wp_timezone();
+        $appointment_timestamp = ( new \DateTimeImmutable( $data['appointment_date'] . ' ' . $data['start_time'], $tz ) )->getTimestamp();
 
         if ($appointment_timestamp < $now) {
             return new \WP_Error('past_date', __('Cannot book appointments in the past.', 'ffcertificate'));
@@ -222,7 +223,7 @@ class AppointmentValidator {
      * @return true|\WP_Error
      */
     public function check_booking_interval($user_identifier, int $calendar_id, int $interval_hours) {
-        $now = current_time('timestamp');
+        $now = time();
         $cutoff_time = $now + ($interval_hours * 3600);
 
         $recent_appointments = array();
@@ -246,7 +247,7 @@ class AppointmentValidator {
                 continue;
             }
 
-            $apt_timestamp = strtotime($appointment['appointment_date'] . ' ' . $appointment['start_time']);
+            $apt_timestamp = ( new \DateTimeImmutable( $appointment['appointment_date'] . ' ' . $appointment['start_time'], wp_timezone() ) )->getTimestamp();
 
             if ($apt_timestamp >= $now && $apt_timestamp <= $cutoff_time) {
                 $next_available = date_i18n(

@@ -53,10 +53,12 @@ class SelfSchedulingShortcode {
             return;
         }
 
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
         // Enqueue FFC common styles (includes CSS variables, honeypot, captcha, etc.)
         wp_enqueue_style(
             'ffc-common',
-            FFC_PLUGIN_URL . 'assets/css/ffc-common.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
             array(),
             FFC_VERSION
         );
@@ -64,7 +66,7 @@ class SelfSchedulingShortcode {
         // Enqueue FFC frontend styles
         wp_enqueue_style(
             'ffc-frontend',
-            FFC_PLUGIN_URL . 'assets/css/ffc-frontend.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css",
             array('ffc-common'),
             FFC_VERSION
         );
@@ -72,7 +74,7 @@ class SelfSchedulingShortcode {
         // Enqueue shared calendar styles (same as ffc-audience)
         wp_enqueue_style(
             'ffc-audience',
-            FFC_PLUGIN_URL . 'assets/css/ffc-audience.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-audience{$s}.css",
             array('ffc-common'),
             FFC_VERSION
         );
@@ -80,7 +82,7 @@ class SelfSchedulingShortcode {
         // Enqueue calendar frontend styles (timeslots, form, confirmation)
         wp_enqueue_style(
             'ffc-calendar-frontend',
-            FFC_PLUGIN_URL . 'assets/css/ffc-calendar-frontend.css',
+            FFC_PLUGIN_URL . "assets/css/ffc-calendar-frontend{$s}.css",
             array('ffc-audience'),
             FFC_VERSION
         );
@@ -88,7 +90,7 @@ class SelfSchedulingShortcode {
         // Enqueue FFC frontend helpers (for CPF/RF mask)
         wp_enqueue_script(
             'ffc-frontend-helpers',
-            FFC_PLUGIN_URL . 'assets/js/ffc-frontend-helpers.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js",
             array('jquery'),
             FFC_VERSION,
             true
@@ -97,7 +99,7 @@ class SelfSchedulingShortcode {
         // Enqueue shared calendar core component
         wp_enqueue_script(
             'ffc-calendar-core',
-            FFC_PLUGIN_URL . 'assets/js/ffc-calendar-core.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-calendar-core{$s}.js",
             array('jquery'),
             FFC_VERSION,
             true
@@ -122,7 +124,7 @@ class SelfSchedulingShortcode {
 
         wp_enqueue_script(
             'ffc-pdf-generator',
-            FFC_PLUGIN_URL . 'assets/js/ffc-pdf-generator.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js",
             array('jquery', 'html2canvas', 'jspdf'),
             FFC_VERSION,
             true
@@ -131,7 +133,7 @@ class SelfSchedulingShortcode {
         // Enqueue calendar frontend scripts
         wp_enqueue_script(
             'ffc-calendar-frontend',
-            FFC_PLUGIN_URL . 'assets/js/ffc-calendar-frontend.js',
+            FFC_PLUGIN_URL . "assets/js/ffc-calendar-frontend{$s}.js",
             array('jquery', 'ffc-calendar-core', 'ffc-frontend-helpers', 'ffc-pdf-generator'),
             FFC_VERSION,
             true
