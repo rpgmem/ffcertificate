@@ -24,7 +24,7 @@ class TabDocumentation extends SettingsTab {
         $this->tab_id = 'documentation';
         $this->tab_title = __( 'Documentation', 'ffcertificate' );
         $this->tab_icon = 'ffc-icon-doc';
-        $this->tab_order = 10;
+        $this->tab_order = 90;
     }
     
     public function render(): void {

@@ -24,7 +24,7 @@ class TabUserAccess extends SettingsTab {
         $this->tab_id = 'user_access';
         $this->tab_title = __('User Access', 'ffcertificate');
         $this->tab_icon = 'ffc-icon-users';
-        $this->tab_order = 85;
+        $this->tab_order = 60;
 
         // Enqueue styles for this tab
         add_action('admin_enqueue_scripts', array($this, 'enqueue_styles'));

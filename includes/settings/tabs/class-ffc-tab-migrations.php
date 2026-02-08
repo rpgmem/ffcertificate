@@ -24,7 +24,7 @@ class TabMigrations extends SettingsTab {
         $this->tab_id = 'migrations';
         $this->tab_title = __( 'Data Migrations', 'ffcertificate' );
         $this->tab_icon = 'ffc-icon-sync';
-        $this->tab_order = 50;
+        $this->tab_order = 80;
     }
     
     public function render(): void {

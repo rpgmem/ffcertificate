@@ -15,6 +15,7 @@ declare(strict_types=1);
  *
  * @package FFC
  * @since 3.1.1
+ * @version 4.6.16 - Updated tab checks for reorganized settings (advanced, cache tabs)
  * @version 4.0.0 - Fixed type hint (Phase 4 Hotfix 8)
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
@@ -133,23 +134,36 @@ class SettingsSaveHandler {
             $clean['main_address'] = sanitize_text_field( $new['main_address'] );
         }
 
-        // Main Geo Areas (textarea - needs special handling since array_map uses sanitize_text_field)
-        if ( isset( $_POST['ffc_settings']['main_geo_areas'] ) ) {
-            $clean['main_geo_areas'] = sanitize_textarea_field( wp_unslash( $_POST['ffc_settings']['main_geo_areas'] ) );
-        }
+        // v4.6.16: Activity Log + Debug moved to Advanced tab
+        $ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
 
-        // Activity Log (v3.1.1)
-        if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'general' ) {
+        if ( $ffc_tab === 'advanced' ) {
             $clean['enable_activity_log'] = isset( $new['enable_activity_log'] ) ? 1 : 0;
 
-            // Log retention days (v4.6.9)
             if ( isset( $new['activity_log_retention_days'] ) ) {
                 $clean['activity_log_retention_days'] = min( 365, absint( $new['activity_log_retention_days'] ) );
             }
+
+            // Debug Settings
+            $debug_flags = array(
+                'debug_pdf_generator',
+                'debug_email_handler',
+                'debug_form_processor',
+                'debug_encryption',
+                'debug_geofence',
+                'debug_user_manager',
+                'debug_rest_api',
+                'debug_migrations',
+                'debug_activity_log'
+            );
+
+            foreach ( $debug_flags as $flag ) {
+                $clean[ $flag ] = isset( $new[ $flag ] ) ? 1 : 0;
+            }
         }
 
-        // Form Cache Settings (v3.1.0)
-        if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'general' ) {
+        // v4.6.16: Cache settings moved to Cache tab
+        if ( $ffc_tab === 'cache' ) {
             $clean['cache_enabled'] = isset( $new['cache_enabled'] ) ? 1 : 0;
 
             if ( isset( $new['cache_expiration'] ) ) {
@@ -157,25 +171,6 @@ class SettingsSaveHandler {
             }
 
             $clean['cache_auto_warm'] = isset( $new['cache_auto_warm'] ) ? 1 : 0;
-        }
-
-        // Debug Settings
-        $debug_flags = array(
-            'debug_pdf_generator',
-            'debug_email_handler',
-            'debug_form_processor',
-            'debug_encryption',
-            'debug_geofence',
-            'debug_user_manager',
-            'debug_rest_api',
-            'debug_migrations',
-            'debug_activity_log'
-        );
-
-        if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'general' ) {
-            foreach ( $debug_flags as $flag ) {
-                $clean[ $flag ] = isset( $new[ $flag ] ) ? 1 : 0;
-            }
         }
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
@@ -256,9 +251,9 @@ class SettingsSaveHandler {
      * @return array Updated settings
      */
     private function save_qrcode_settings( array $clean, array $new ): array {
-        // QR Cache (checkbox - only set if on QR tab)
+        // QR Cache checkbox - v4.6.16: now on Cache tab (was qr_code tab)
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
-        if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'qr_code' ) {
+        if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'cache' ) {
             $clean['qr_cache_enabled'] = isset( $new['qr_cache_enabled'] ) ? 1 : 0;
         }
 

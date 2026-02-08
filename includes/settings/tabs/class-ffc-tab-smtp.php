@@ -24,7 +24,7 @@ class TabSMTP extends SettingsTab {
         $this->tab_id = 'smtp';
         $this->tab_title = __( 'SMTP', 'ffcertificate' );
         $this->tab_icon = 'ffc-icon-email';
-        $this->tab_order = 30;
+        $this->tab_order = 20;
 
         // Enqueue scripts for this tab
         add_action('admin_enqueue_scripts', array($this, 'enqueue_scripts'));

@@ -60,15 +60,17 @@ class Settings {
         // Autoloader handles class loading - no require_once needed
 
         // Tab classes with proper namespaces
+        // v4.6.16: Reorganized tabs for better UX
         $tab_classes = array(
-            'documentation' => '\\FreeFormCertificate\\Settings\\Tabs\\TabDocumentation',
             'general'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
             'smtp'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
-            'qrcode'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabQRCode',
+            'cache'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
             'rate_limit'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
             'geolocation'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
             'user_access'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabUserAccess',
+            'advanced'      => '\\FreeFormCertificate\\Settings\\Tabs\\TabAdvanced',
             'migrations'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabMigrations',
+            'documentation' => '\\FreeFormCertificate\\Settings\\Tabs\\TabDocumentation',
         );
 
         // Instantiate each tab
@@ -181,7 +183,7 @@ class Settings {
         wp_safe_redirect( add_query_arg( array(
             'post_type' => 'ffc_form',
             'page' => 'ffc-settings',
-            'tab' => 'qr_code',
+            'tab' => 'cache',
             'msg' => 'qr_cache_cleared',
             'cleared' => $cleared
         ), admin_url( 'edit.php' ) ) );
@@ -386,7 +388,7 @@ class Settings {
             wp_safe_redirect(add_query_arg(array(
                 'post_type' => 'ffc_form',
                 'page' => 'ffc-settings',
-                'tab' => 'general',
+                'tab' => 'cache',
                 'msg' => 'cache_warmed',
                 'count' => $warmed
             ), admin_url('edit.php')));
@@ -404,7 +406,7 @@ class Settings {
             wp_safe_redirect(add_query_arg(array(
                 'post_type' => 'ffc_form',
                 'page' => 'ffc-settings',
-                'tab' => 'general',
+                'tab' => 'cache',
                 'msg' => 'cache_cleared'
             ), admin_url('edit.php')));
             exit;

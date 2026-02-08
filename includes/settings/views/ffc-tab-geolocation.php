@@ -15,6 +15,36 @@ if (!defined('ABSPATH')) exit;
     <form method="POST" action="">
         <?php wp_nonce_field('ffc_geolocation_nonce'); ?>
 
+        <!-- Default Geofencing Areas -->
+        <div class="card">
+            <h2><?php esc_html_e('Default Geofencing Areas', 'ffcertificate'); ?></h2>
+            <p class="description">
+                <?php esc_html_e('Define default geographic areas used when creating new forms with geolocation restrictions.', 'ffcertificate'); ?>
+            </p>
+
+            <table class="form-table" role="presentation"><tbody>
+                <tr>
+                    <th scope="row">
+                        <label for="main_geo_areas"><?php esc_html_e('Address Georeferencing', 'ffcertificate'); ?></label>
+                    </th>
+                    <td>
+                        <?php
+                        $ffcertificate_ffc_settings = get_option('ffc_settings', array());
+                        $ffcertificate_main_geo_areas = isset($ffcertificate_ffc_settings['main_geo_areas']) ? $ffcertificate_ffc_settings['main_geo_areas'] : '';
+                        ?>
+                        <textarea name="main_geo_areas" id="main_geo_areas" rows="4" class="large-text" placeholder="-23.5505, -46.6333, 5000"><?php echo esc_textarea($ffcertificate_main_geo_areas); ?></textarea>
+                        <p class="description">
+                            <?php esc_html_e('Format: latitude, longitude, radius (meters) — one per line.', 'ffcertificate'); ?><br>
+                            <?php esc_html_e('Example: -23.5505, -46.6333, 5000', 'ffcertificate'); ?><br>
+                            <span class="ffc-text-info ffc-icon-info"><?php esc_html_e('Used as default geofencing area when creating new forms.', 'ffcertificate'); ?></span>
+                        </p>
+                    </td>
+                </tr>
+            </tbody></table>
+        </div>
+
+        <hr>
+
         <!-- IP Geolocation API Section -->
         <div class="card">
             <h2><?php esc_html_e('IP Geolocation API', 'ffcertificate'); ?></h2>

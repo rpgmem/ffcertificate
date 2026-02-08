@@ -20,7 +20,7 @@ class TabRateLimit extends SettingsTab {
         $this->tab_id = 'rate_limit';
         $this->tab_title = __('Rate Limit', 'ffcertificate');
         $this->tab_icon = 'ffc-icon-shield';
-        $this->tab_order = 60;
+        $this->tab_order = 40;
     }
     
     private function get_settings(): array {
