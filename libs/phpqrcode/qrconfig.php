@@ -5,7 +5,7 @@
  * Config file, feel free to modify
  */
      
-    define('QR_CACHEABLE', true);                                                               // use cache - more disk reads but less CPU power, masks and format templates are stored there
+    define('QR_CACHEABLE', false);                                                              // disabled: plugin has its own QR cache via transients, and plugin dirs may not be writable
     define('QR_CACHE_DIR', dirname(__FILE__).DIRECTORY_SEPARATOR.'cache'.DIRECTORY_SEPARATOR);  // used when QR_CACHEABLE === true
     define('QR_LOG_DIR', dirname(__FILE__).DIRECTORY_SEPARATOR);                                // default error logs dir   
     
