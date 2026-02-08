@@ -155,6 +155,30 @@ In the certificate layout editor, use these dynamic tags:
 
 == Changelog ==
 
+= 4.6.16 (2026-02-08) =
+
+Settings UX, dead code removal, code deduplication, version centralization, and bug fixes.
+
+* UX: Reorganize settings into 9 tabs — new Cache and Advanced tabs, QR Code tab removed
+* UX: Move debug flags and danger zone to Advanced tab, cache settings to Cache tab
+* Cleanup: Remove dead QR Code tab files (class + view), empty Admin::admin_assets(), unused CsvExporter::export_to_csv() wrapper
+* Cleanup: Remove 'template' alias from PdfGenerator, empty Loader::run() method, old ffc_ cron hook migration code
+* Cleanup: Remove 50+ stale version annotation comments (✅ v*.*.*) across 21 files
+* Cleanup: Remove commented-out debug error_log() and TinyMCE CSS blocks
+* Refactor: Extract duplicate get_option() from 4 tab classes into base SettingsTab class
+* Refactor: Extract duplicate dark mode enqueue into Utils::enqueue_dark_mode() (shared by admin + frontend)
+* Refactor: Remove redundant = null initialization from 16 Loader properties
+* Refactor: View files delegate to tab method via Closure::fromCallable instead of inline lambdas
+* Fix: TypeError in SettingsTab::get_option() — cast return value to string (strict_types with int DB values)
+* Fix: phpqrcode cache directory warning — disable QR_CACHEABLE (plugin has own QR cache via transients)
+* Fix: Missing icons on user dashboard — load ffc-common.css (defines .ffc-icon-* classes) + dark mode support
+* Fix: Outdated FFC_VERSION in tests/bootstrap.php (4.6.13 → 4.6.16)
+* Fix: Outdated stable tag in readme.txt (4.6.15 → 4.6.16)
+* Fix: Hardcoded '4.1.0' version in self-scheduling admin enqueues — now uses FFC_VERSION
+* New: FFC_JQUERY_UI_VERSION constant for centralized jQuery UI CDN version management
+* New: Dynamic JS console version via wp_localize_script — modules now show FFC_VERSION instead of hardcoded 3.1.0
+* Removed: Unnecessary defined() fallbacks for library version constants in self-scheduling shortcode
+
 = 4.6.15 (2026-02-08) =
 
 Plugin Check Compliance: Hook prefix, SQL placeholders, deprecated API removal, and query caching.
@@ -668,6 +692,9 @@ Bug fixes for strict types introduction.
 * Verification shortcode `[ffc_verification]`
 
 == Upgrade Notice ==
+
+= 4.6.16 =
+Settings UX reorganization, dead code removal, and centralized version management. Fixes missing dashboard icons and phpqrcode cache warning. All JS console versions now dynamic. No data changes required.
 
 = 4.6.6 =
 Reliability: Standardized error handling — fixed encryption namespace bug, email failure logging, REST API no longer exposes internal errors, AJAX responses include error codes, database errors logged. No data changes required.
