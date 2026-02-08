@@ -29,6 +29,7 @@ use FreeFormCertificate\SelfScheduling\SelfSchedulingCPT;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingEditor;
 use FreeFormCertificate\SelfScheduling\AppointmentHandler;
+use FreeFormCertificate\SelfScheduling\AppointmentAjaxHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentEmailHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentCsvExporter;
@@ -100,6 +101,7 @@ class Loader {
         $this->self_scheduling_admin            = new SelfSchedulingAdmin();
         $this->self_scheduling_editor           = new SelfSchedulingEditor();
         $this->self_scheduling_appointment_handler = new AppointmentHandler();
+        new AppointmentAjaxHandler( $this->self_scheduling_appointment_handler );
         $this->self_scheduling_email_handler    = new AppointmentEmailHandler();
         $this->self_scheduling_receipt_handler  = new AppointmentReceiptHandler();
         $this->self_scheduling_csv_exporter     = new AppointmentCsvExporter();
@@ -111,6 +113,11 @@ class Loader {
 
         // v4.6.5: Hook-based logging — plugin consumes its own hooks
         new ActivityLogSubscriber();
+
+        // v4.6.9: Ensure daily cleanup cron is scheduled (safety net for existing installs)
+        if ( ! wp_next_scheduled( 'ffc_daily_cleanup_hook' ) ) {
+            wp_schedule_event( time(), 'daily', 'ffc_daily_cleanup_hook' );
+        }
 
         $this->define_admin_hooks();
         $this->init_rest_api(); // Initialize REST API

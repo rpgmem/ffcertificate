@@ -153,6 +153,18 @@ $ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
                         </p>
                     </td>
                 </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="activity_log_retention_days"><?php esc_html_e('Log Retention (days)', 'ffcertificate'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="ffc_settings[activity_log_retention_days]" id="activity_log_retention_days" value="<?php echo esc_attr($ffcertificate_get_option('activity_log_retention_days', 90)); ?>" min="0" max="365" class="small-text">
+                        <p class="description">
+                            <?php esc_html_e('Automatically delete activity logs older than this many days. Set to 0 to keep logs indefinitely.', 'ffcertificate'); ?><br>
+                            <?php esc_html_e('Cleanup runs daily via scheduled cron task.', 'ffcertificate'); ?>
+                        </p>
+                    </td>
+                </tr>
             </tbody>
         </table>
 

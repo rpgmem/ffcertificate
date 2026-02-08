@@ -164,10 +164,11 @@ class AppointmentRestController {
             ));
 
         } catch (\Exception $e) {
+            $this->log_rest_error( 'create_appointment', $e );
             return new \WP_Error(
-                'create_appointment_error',
-                $e->getMessage(),
-                array('status' => 500)
+                'ffc_internal_error',
+                __( 'An unexpected error occurred.', 'ffcertificate' ),
+                array( 'status' => 500 )
             );
         }
     }
@@ -234,10 +235,11 @@ class AppointmentRestController {
             ));
 
         } catch (\Exception $e) {
+            $this->log_rest_error( 'get_appointment', $e );
             return new \WP_Error(
-                'get_appointment_error',
-                $e->getMessage(),
-                array('status' => 500)
+                'ffc_internal_error',
+                __( 'An unexpected error occurred.', 'ffcertificate' ),
+                array( 'status' => 500 )
             );
         }
     }
@@ -277,10 +279,11 @@ class AppointmentRestController {
             ));
 
         } catch (\Exception $e) {
+            $this->log_rest_error( 'cancel_appointment', $e );
             return new \WP_Error(
-                'cancel_appointment_error',
-                $e->getMessage(),
-                array('status' => 500)
+                'ffc_internal_error',
+                __( 'An unexpected error occurred.', 'ffcertificate' ),
+                array( 'status' => 500 )
             );
         }
     }
@@ -315,5 +318,22 @@ class AppointmentRestController {
         }
 
         return (int) $appointment['user_id'] === get_current_user_id();
+    }
+
+    /**
+     * Log REST API error without exposing details to clients.
+     *
+     * @since 4.6.6
+     * @param string     $context Action that caused the error.
+     * @param \Exception $e       The exception.
+     */
+    private function log_rest_error( string $context, \Exception $e ): void {
+        if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+            \FreeFormCertificate\Core\Utils::debug_log( "REST API error: {$context}", array(
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ) );
+        }
     }
 }

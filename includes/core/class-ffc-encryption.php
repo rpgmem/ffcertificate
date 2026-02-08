@@ -73,7 +73,7 @@ class Encryption {
             // Prepend IV to encrypted data and encode
             return base64_encode( $iv . $encrypted );
             
-        } catch ( Exception $e ) {
+        } catch ( \Exception $e ) {
             \FreeFormCertificate\Core\Utils::debug_log( 'Encryption exception', array(
                 'error' => $e->getMessage()
             ) );
@@ -126,7 +126,7 @@ class Encryption {
             
             return $decrypted;
             
-        } catch ( Exception $e ) {
+        } catch ( \Exception $e ) {
             \FreeFormCertificate\Core\Utils::debug_log( 'Decryption exception', array(
                 'error' => $e->getMessage()
             ) );

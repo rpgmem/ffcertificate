@@ -181,7 +181,7 @@ $inputs.each(function() {
                     
                     // Skip if empty (not required check)
                     if (value.length === 0) {
-                        $(this).removeClass('ffc-invalid ffc-valid');
+                        $(this).removeClass('ffc-invalid ffc-valid').removeAttr('aria-invalid aria-describedby');
                         $(this).next('.ffc-field-error').remove();
                         return;
                     }
@@ -204,20 +204,26 @@ $inputs.each(function() {
                         errorMsg = strings.enterValidCpfRf || 'Enter a valid CPF (11 digits) or RF (7 digits)';
                     }
                     
-                    // Apply visual feedback
+                    // Apply visual feedback with ARIA
+                    var inputId = $(this).attr('id') || $(this).attr('name') || 'cpfrf';
+                    var errorId = 'ffc-error-' + inputId;
+
                     if (isValid) {
-                        $(this).removeClass('ffc-invalid').addClass('ffc-valid');
+                        $(this).removeClass('ffc-invalid').addClass('ffc-valid')
+                               .removeAttr('aria-invalid aria-describedby');
                         $(this).next('.ffc-field-error').fadeOut(function() { $(this).remove(); });
                     } else {
-                        $(this).removeClass('ffc-valid').addClass('ffc-invalid');
-                        
+                        $(this).removeClass('ffc-valid').addClass('ffc-invalid')
+                               .attr('aria-invalid', 'true')
+                               .attr('aria-describedby', errorId);
+
                         // Show error message near field
                         var $errorSpan = $(this).next('.ffc-field-error');
                         if ($errorSpan.length === 0) {
-                            $errorSpan = $('<span class="ffc-field-error"></span>').insertAfter($(this));
+                            $errorSpan = $('<span class="ffc-field-error" role="alert"></span>').insertAfter($(this));
                         }
-                        $errorSpan.text(errorMsg).fadeIn();
-                        
+                        $errorSpan.attr('id', errorId).text(errorMsg).fadeIn();
+
                         // Hide error after 5 seconds
                         setTimeout(function() {
                             $errorSpan.fadeOut();

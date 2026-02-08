@@ -305,22 +305,22 @@ class SelfSchedulingShortcode {
             <input type="hidden" id="ffc-selected-date" name="selected_date" value="">
 
             <!-- Booking Modal (time slots + form) -->
-            <div class="ffc-modal" id="ffc-self-scheduling-modal" style="display: none;">
+            <div class="ffc-modal" id="ffc-self-scheduling-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-modal-title" style="display: none;">
                 <div class="ffc-modal-backdrop"></div>
                 <div class="ffc-modal-content ffc-modal-lg">
                     <div class="ffc-modal-header">
-                        <h3 class="ffc-modal-title"><?php esc_html_e('Available Times', 'ffcertificate'); ?></h3>
-                        <button type="button" class="ffc-modal-close">&times;</button>
+                        <h3 class="ffc-modal-title" id="ffc-modal-title"><?php esc_html_e('Available Times', 'ffcertificate'); ?></h3>
+                        <button type="button" class="ffc-modal-close" aria-label="<?php esc_attr_e('Close', 'ffcertificate'); ?>">&times;</button>
                     </div>
                     <div class="ffc-modal-body">
 
                         <!-- Step 1: Time Slots -->
                         <div class="ffc-timeslots-wrapper">
-                            <div class="ffc-timeslots-loading">
-                                <div class="ffc-spinner"></div>
+                            <div class="ffc-timeslots-loading" role="status" aria-live="polite">
+                                <div class="ffc-spinner" aria-hidden="true"></div>
                                 <p><?php esc_html_e('Loading available slots...', 'ffcertificate'); ?></p>
                             </div>
-                            <div id="ffc-timeslots-container" class="ffc-timeslots-grid"></div>
+                            <div id="ffc-timeslots-container" class="ffc-timeslots-grid" role="listbox" aria-label="<?php esc_attr_e('Available time slots', 'ffcertificate'); ?>"></div>
                         </div>
 
                         <!-- Step 2: Booking Form (hidden until time slot selected) -->
@@ -342,6 +342,7 @@ class SelfSchedulingShortcode {
                                         name="name"
                                         value="<?php echo $is_logged_in ? esc_attr($user->display_name) : ''; ?>"
                                         required
+                                        aria-required="true"
                                         <?php echo esc_attr( $is_logged_in ? 'readonly' : '' ); ?>
                                     >
                                 </div>
@@ -356,6 +357,7 @@ class SelfSchedulingShortcode {
                                         name="email"
                                         value="<?php echo $is_logged_in ? esc_attr($user->user_email) : ''; ?>"
                                         required
+                                        aria-required="true"
                                         <?php echo esc_attr( $is_logged_in ? 'readonly' : '' ); ?>
                                     >
                                 </div>
@@ -370,6 +372,7 @@ class SelfSchedulingShortcode {
                                         name="cpf_rf"
                                         maxlength="14"
                                         required
+                                        aria-required="true"
                                     >
                                 </div>
 
@@ -396,7 +399,7 @@ class SelfSchedulingShortcode {
                                         <label for="ffc_captcha_ans">
                                             <?php echo wp_kses_post( $captcha['label'] ); ?>
                                         </label>
-                                        <input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans" class="ffc-input" required>
+                                        <input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans" class="ffc-input" required aria-required="true">
                                         <input type="hidden" name="ffc_captcha_hash" id="ffc_captcha_hash" value="<?php echo esc_attr($captcha['hash']); ?>">
                                     </div>
                                 </div>
@@ -404,7 +407,7 @@ class SelfSchedulingShortcode {
                                 <!-- LGPD Consent -->
                                 <div class="ffc-form-row ffc-consent-row">
                                     <label class="ffc-consent-label">
-                                        <input type="checkbox" id="ffc-booking-consent" name="consent" value="1" required>
+                                        <input type="checkbox" id="ffc-booking-consent" name="consent" value="1" required aria-required="true">
                                         <?php
                                         echo wp_kses_post( sprintf(
                                             /* translators: %s: value */
@@ -428,7 +431,7 @@ class SelfSchedulingShortcode {
                                 </div>
 
                                 <!-- Messages -->
-                                <div class="ffc-form-messages"></div>
+                                <div class="ffc-form-messages" role="alert" aria-live="assertive"></div>
                             </form>
                         </div>
 
@@ -437,9 +440,9 @@ class SelfSchedulingShortcode {
             </div>
 
             <!-- Confirmation Message (shown after successful booking, outside modal) -->
-            <div class="ffc-confirmation-wrapper" style="display: none;">
+            <div class="ffc-confirmation-wrapper" role="status" aria-live="polite" style="display: none;">
                 <div class="ffc-confirmation-success">
-                    <div class="ffc-success-icon">✓</div>
+                    <div class="ffc-success-icon" aria-hidden="true">✓</div>
                     <h3><?php esc_html_e('Appointment Confirmed!', 'ffcertificate'); ?></h3>
                     <div class="ffc-appointment-details"></div>
 

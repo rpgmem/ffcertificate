@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 4.6.5
+Stable tag: 4.6.10
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -154,6 +154,75 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.6.10 (2026-02-08) =
+
+Fix: Race condition in concurrent appointment booking (TOCTOU vulnerability).
+
+* Fix: Wrap validate + insert in MySQL transaction with row-level locking (FOR UPDATE)
+* Fix: Add transaction support (begin/commit/rollback) to AbstractRepository
+* Fix: AppointmentRepository::isSlotAvailable() now supports FOR UPDATE lock
+* Fix: AppointmentRepository::getAppointmentsByDate() now supports FOR UPDATE lock
+* Fix: AppointmentValidator accepts lock flag for capacity queries inside transaction
+* Fix: Upgrade validation_code index from KEY to UNIQUE KEY (prevents duplicate codes)
+* Fix: Catch exceptions during booking and rollback on failure
+
+= 4.6.9 (2026-02-08) =
+
+Performance: Activity Log optimization with batch writes, auto-cleanup, and stats caching.
+
+* Perf: Buffer activity log writes and flush as single multi-row INSERT on shutdown (or at 20-entry threshold)
+* Feature: Automatic log cleanup via daily cron with configurable retention period (default 90 days)
+* Feature: Add "Log Retention (days)" setting under Settings > General > Activity Log
+* Perf: Cache get_stats() results with 1-hour transient, invalidated on cleanup and settings save
+* Fix: Activator schema mismatch — delegate to ActivityLog::create_table() for consistent schema
+* Fix: MigrationManager used undefined LEVEL_CRITICAL, changed to LEVEL_ERROR
+* Fix: Schedule ffc_daily_cleanup_hook cron on activation (was registered but never scheduled)
+* Fix: Clear cron on plugin deactivation
+
+= 4.6.8 (2026-02-08) =
+
+Refactor: Break down God classes into focused single-responsibility classes.
+
+* Refactor: Extract AppointmentValidator from AppointmentHandler (all validation logic)
+* Refactor: Extract AppointmentAjaxHandler from AppointmentHandler (4 AJAX endpoints)
+* Refactor: Slim AppointmentHandler from 1,027 to 457 lines (core business logic only)
+* Refactor: Extract VerificationResponseRenderer from VerificationHandler (HTML rendering + PDF generation)
+* Refactor: Slim VerificationHandler from 822 to 547 lines (search + verification logic only)
+* Refactor: Wire AppointmentAjaxHandler via Loader using dependency injection
+
+= 4.6.7 (2026-02-07) =
+
+Accessibility: WCAG 2.1 AA compliance for all frontend components.
+
+* A11y: Add aria-required="true" to all required form fields (forms, booking, verification, captcha)
+* A11y: Add role="group" and aria-label to radio button groups
+* A11y: Add role="dialog", aria-modal="true", aria-labelledby to booking modal
+* A11y: Add focus trap inside booking modal (Tab/Shift+Tab cycle)
+* A11y: Return focus to trigger element on modal close
+* A11y: Time slots rendered with role="option", tabindex="0", keyboard support (Enter/Space)
+* A11y: Dashboard tabs use role="tablist"/role="tab"/role="tabpanel" with aria-selected and aria-controls
+* A11y: Arrow key navigation between dashboard tabs (Left/Right/Home/End)
+* A11y: Replace all alert() calls with accessible inline messages (role="alert")
+* A11y: Add aria-invalid and aria-describedby to validation errors (CPF/RF fields)
+* A11y: Add role="status" and aria-live="polite" to loading indicators and result regions
+* A11y: Add role="alert" and aria-live="assertive" to form error/success message containers
+* A11y: Decorative emoji wrapped in aria-hidden="true" in dashboard tabs
+* A11y: Focus management after AJAX operations (form errors, booking confirmation)
+* A11y: Verification page auth code input gets aria-describedby linking to description text
+
+= 4.6.6 (2026-02-07) =
+
+Reliability: Standardize error handling across all modules.
+
+* Fix: Encryption catch blocks now use \Exception (namespace bug prevented catching errors)
+* Fix: wp_mail() return values checked and failures logged in EmailHandler and AppointmentEmailHandler
+* Security: REST API catch blocks no longer expose internal exception messages to clients
+* Improve: AJAX error responses now include structured error codes alongside messages
+* Improve: WP_Error codes propagated through AJAX handlers (FormProcessor, AppointmentHandler)
+* Improve: AbstractRepository logs $wpdb->last_error on insert/update/delete failures
+* Refactor: AppointmentEmailHandler uses centralized send_mail() with failure logging
+* Improve: Catch blocks in AppointmentHandler AJAX use debug_log instead of error_log/getMessage exposure
 
 = 4.6.5 (2026-02-07) =
 
@@ -537,6 +606,9 @@ Bug fixes for strict types introduction.
 * Verification shortcode `[ffc_verification]`
 
 == Upgrade Notice ==
+
+= 4.6.6 =
+Reliability: Standardized error handling — fixed encryption namespace bug, email failure logging, REST API no longer exposes internal errors, AJAX responses include error codes, database errors logged. No data changes required.
 
 = 4.6.5 =
 Architecture: ActivityLog decoupled from business logic via new ActivityLogSubscriber class. Logging now happens through plugin hooks instead of direct calls. Settings save triggers automatic cache invalidation. No data changes required.

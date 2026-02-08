@@ -10,6 +10,7 @@ declare(strict_types=1);
  * its own hooks internally.
  *
  * @since 4.6.5
+ * @version 4.6.9 - Added daily log cleanup hook
  */
 
 namespace FreeFormCertificate\Core;
@@ -37,6 +38,9 @@ class ActivityLogSubscriber {
 
 		// Settings hooks
 		add_action( 'ffc_settings_saved', [ $this, 'on_settings_saved' ], 10, 1 );
+
+		// Daily cron: automatic log cleanup (v4.6.9)
+		add_action( 'ffc_daily_cleanup_hook', [ $this, 'on_daily_cleanup' ] );
 	}
 
 	/**
@@ -186,5 +190,23 @@ class ActivityLogSubscriber {
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			ActivityLog::clear_column_cache();
 		}
+
+		// Clear stats transients so new settings take effect
+		delete_transient( 'ffc_activity_stats_7' );
+		delete_transient( 'ffc_activity_stats_30' );
+		delete_transient( 'ffc_activity_stats_90' );
+	}
+
+	/**
+	 * Run automatic activity log cleanup on daily cron.
+	 *
+	 * @since 4.6.9
+	 */
+	public function on_daily_cleanup(): void {
+		if ( ! class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+			return;
+		}
+
+		ActivityLog::run_cleanup();
 	}
 }

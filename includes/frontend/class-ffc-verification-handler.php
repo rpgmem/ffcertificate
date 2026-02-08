@@ -11,6 +11,7 @@ declare(strict_types=1);
  * v2.10.0: ENCRYPTION - Auto-decryption via Submission Handler + Access logging
  * v3.3.0: Added strict types and type hints
  * v3.2.0: Migrated to namespace (Phase 2)
+ * v4.6.8: Extracted rendering to VerificationResponseRenderer (M7 refactoring)
  */
 
 namespace FreeFormCertificate\Frontend;
@@ -26,6 +27,7 @@ class VerificationHandler {
 
     private $submission_handler;
     private $email_handler;
+    private VerificationResponseRenderer $renderer;
 
     /**
      * Constructor
@@ -36,6 +38,7 @@ class VerificationHandler {
     public function __construct( ?SubmissionHandler $submission_handler = null, $email_handler = null ) {
         $this->submission_handler = $submission_handler;
         $this->email_handler = $email_handler;
+        $this->renderer = new VerificationResponseRenderer();
     }
 
     /**
@@ -342,111 +345,6 @@ class VerificationHandler {
     }
 
     /**
-     * Format verification response HTML
-     *
-     * ✅ v2.9.7 ENHANCED: Shows more fields with better formatting
-     * ✅ v3.1.0: Refactored to use template file
-     */
-    private function format_verification_response( object $submission, array $data, bool $show_download_button = false ): string {
-        $form = get_post( $submission->form_id );
-        $form_title = $form ? $form->post_title : __( 'N/A', 'ffcertificate' );
-        $date_generated = date_i18n(
-            get_option('date_format') . ' ' . get_option('time_format'),
-            strtotime( $submission->submission_date )
-        );
-        $display_code = isset($data['auth_code']) ? $data['auth_code'] : '';
-
-        // Format auth code (XXXX-XXXX-XXXX)
-        if ( strlen( $display_code ) === 12 ) {
-            $display_code = substr( $display_code, 0, 4 ) . '-' . substr( $display_code, 4, 4 ) . '-' . substr( $display_code, 8, 4 );
-        }
-
-        // ✅ v2.9.7: Show MORE fields with better formatting
-        // Only skip internal/technical fields
-        $skip_fields = array(
-            'auth_code',        // Already shown above
-            'ticket',           // Internal field
-            'fill_date',        // Redundant with submission_date
-            'fill_time',        // Redundant
-            'is_edited',        // Internal
-            'edited_at',        // Internal
-            'submission_id',    // Internal
-            'magic_token'       // Internal/security
-        );
-
-        // ✅ Priority fields to show first (in order)
-        $priority_fields = array('name', 'cpf_rf', 'email', 'program', 'date');
-
-        // Callbacks for template
-        $get_field_label_callback = array( $this, 'get_field_label' );
-        $format_field_value_callback = array( $this, 'format_field_value' );
-
-        // Render template
-        ob_start();
-        include FFC_PLUGIN_DIR . 'templates/certificate-preview.php';
-        return ob_get_clean();
-    }
-
-    /**
-     * Get human-readable field label
-     *
-     * @param string $field_key Field key
-     * @return string Formatted label
-     */
-    private function get_field_label( string $field_key ): string {
-    // Custom labels for known fields
-    $labels = array(
-        'cpf_rf'   => __( 'CPF/RF', 'ffcertificate' ),
-        'cpf'      => __( 'CPF', 'ffcertificate' ),
-        'rf'       => __( 'RF', 'ffcertificate' ),
-        'name'     => __( 'Name', 'ffcertificate' ),
-        'email'    => __( 'Email', 'ffcertificate' ),
-        'program'  => __( 'Program', 'ffcertificate' ),
-        'date'     => __( 'Date', 'ffcertificate' ),
-        'rg'       => __( 'RG', 'ffcertificate' ),
-        'phone'    => __( 'Phone', 'ffcertificate' ),
-        'address'  => __( 'Address', 'ffcertificate' ),
-        'city'     => __( 'City', 'ffcertificate' ),
-        'state'    => __( 'State', 'ffcertificate' ),
-        'zip'      => __( 'ZIP Code', 'ffcertificate' ),
-        'course'   => __( 'Course', 'ffcertificate' ),
-        'duration' => __( 'Duration', 'ffcertificate' ),
-        'hours'    => __( 'Hours', 'ffcertificate' ),
-        'grade'    => __( 'Grade', 'ffcertificate' ),
-    );
-    
-    if ( isset( $labels[$field_key] ) ) {
-        return $labels[$field_key];
-    }
-    
-    // Auto-format unknown fields
-    return ucwords( str_replace( array('_', '-'), ' ', $field_key ) );
-}
-
-    /**
-     * Format field value for display
-     *
-     * @param string $field_key Field key
-     * @param mixed $value Field value
-     * @return string Formatted value
-     */
-    private function format_field_value( string $field_key, $value ): string {
-    // Handle arrays
-    if ( is_array( $value ) ) {
-        return implode( ', ', $value );
-    }
-    
-    // Format documents (CPF, RF, RG)
-    if ( in_array( $field_key, array( 'cpf', 'cpf_rf', 'rg' ) ) && ! empty( $value ) ) {
-        if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) && method_exists( '\\FreeFormCertificate\\Core\\Utils', 'format_document' ) ) {
-            return \FreeFormCertificate\Core\Utils::format_document( $value, 'auto' );
-        }
-    }
-
-    return $value;
-}
-
-    /**
      * Verify certificate (used by shortcode fallback - non-AJAX)
      * Returns array with 'success' (bool), 'html' (string), 'message' (string)
      */
@@ -475,9 +373,9 @@ class VerificationHandler {
         }
 
         if ( ! empty( $result['type'] ) && $result['type'] === 'appointment' ) {
-            $html = $this->format_appointment_verification_response( $result );
+            $html = $this->renderer->format_appointment_verification_response( $result );
         } else {
-            $html = $this->format_verification_response( $result['submission'], $result['data'], true );
+            $html = $this->renderer->format_verification_response( $result['submission'], $result['data'], true );
         }
 
         return array(
@@ -533,7 +431,7 @@ class VerificationHandler {
 
         // Check if this is an appointment result
         if ( ! empty( $result['type'] ) && $result['type'] === 'appointment' && ! empty( $result['appointment'] ) ) {
-            $pdf_data = $this->generate_appointment_verification_pdf( $result, $pdf_generator );
+            $pdf_data = $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator );
         } else {
             // Certificate: use standard PDF generator
             $pdf_data = $pdf_generator->generate_pdf_data(
@@ -548,9 +446,9 @@ class VerificationHandler {
 
         // Format response HTML with download button
         if ( ! empty( $result['type'] ) && $result['type'] === 'appointment' ) {
-            $html = $this->format_appointment_verification_response( $result );
+            $html = $this->renderer->format_appointment_verification_response( $result );
         } else {
-            $html = $this->format_verification_response(
+            $html = $this->renderer->format_verification_response(
                 $result['submission'],
                 $result['data'],
                 true
@@ -616,7 +514,7 @@ class VerificationHandler {
 
         // Check if this is an appointment result
         if ( ! empty( $result['type'] ) && $result['type'] === 'appointment' && ! empty( $result['appointment'] ) ) {
-            $pdf_data = $this->generate_appointment_verification_pdf( $result, $pdf_generator );
+            $pdf_data = $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator );
         } else {
             // Certificate: use standard PDF generator
             $pdf_data = $pdf_generator->generate_pdf_data(
@@ -630,9 +528,9 @@ class VerificationHandler {
         }
 
         if ( ! empty( $result['type'] ) && $result['type'] === 'appointment' ) {
-            $html = $this->format_appointment_verification_response( $result );
+            $html = $this->renderer->format_appointment_verification_response( $result );
         } else {
-            $html = $this->format_verification_response(
+            $html = $this->renderer->format_verification_response(
                 $result['submission'],
                 $result['data'],
                 true
@@ -646,177 +544,4 @@ class VerificationHandler {
         ) );
     }
 
-    /**
-     * Generate appointment PDF data for verification context
-     *
-     * @since 4.2.0
-     * @param array $result Search result array
-     * @param \FreeFormCertificate\Generators\PdfGenerator $pdf_generator PDF generator instance
-     * @return array PDF data array
-     */
-    private function generate_appointment_verification_pdf( array $result, \FreeFormCertificate\Generators\PdfGenerator $pdf_generator ): array {
-        $appointment = $result['appointment'];
-        $calendar = array( 'title' => $result['data']['calendar_title'] ?? __( 'N/A', 'ffcertificate' ) );
-
-        // Get full calendar data if available
-        if ( ! empty( $appointment['calendar_id'] ) ) {
-            $calendar_repo = new \FreeFormCertificate\Repositories\CalendarRepository();
-            $full_calendar = $calendar_repo->findById( (int) $appointment['calendar_id'] );
-            if ( $full_calendar ) {
-                $calendar = $full_calendar;
-            }
-        }
-
-        return $pdf_generator->generate_appointment_pdf_data( $appointment, $calendar );
-    }
-
-    /**
-     * Format appointment verification response HTML
-     *
-     * Displays appointment details in the same verification page layout
-     *
-     * @since 4.2.0
-     * @param array $result Appointment search result
-     * @return string HTML output
-     */
-    private function format_appointment_verification_response( array $result ): string {
-        $data = $result['data'];
-        $appointment = $result['appointment'];
-
-        $date_format = get_option( 'date_format' );
-        $time_format = get_option( 'time_format' );
-
-        // Format date
-        $formatted_date = __( 'N/A', 'ffcertificate' );
-        if ( ! empty( $appointment['appointment_date'] ) ) {
-            $ts = strtotime( $appointment['appointment_date'] );
-            if ( $ts !== false ) {
-                $formatted_date = date_i18n( $date_format, $ts );
-            }
-        }
-
-        // Format time
-        $formatted_time = __( 'N/A', 'ffcertificate' );
-        if ( ! empty( $appointment['start_time'] ) ) {
-            $ts = strtotime( $appointment['start_time'] );
-            if ( $ts !== false ) {
-                $formatted_time = date_i18n( $time_format, $ts );
-            }
-            if ( ! empty( $appointment['end_time'] ) ) {
-                $ts2 = strtotime( $appointment['end_time'] );
-                if ( $ts2 !== false ) {
-                    $formatted_time .= ' - ' . date_i18n( $time_format, $ts2 );
-                }
-            }
-        }
-
-        // Format created_at
-        $formatted_created = __( 'N/A', 'ffcertificate' );
-        if ( ! empty( $appointment['created_at'] ) ) {
-            $ts = strtotime( $appointment['created_at'] );
-            if ( $ts !== false ) {
-                $formatted_created = date_i18n( $date_format . ' ' . $time_format, $ts );
-            }
-        }
-
-        // Status labels
-        $status_labels = array(
-            'pending'   => __( 'Pending Approval', 'ffcertificate' ),
-            'confirmed' => __( 'Confirmed', 'ffcertificate' ),
-            'cancelled' => __( 'Cancelled', 'ffcertificate' ),
-            'completed' => __( 'Completed', 'ffcertificate' ),
-            'no_show'   => __( 'No Show', 'ffcertificate' ),
-        );
-        $status = $appointment['status'] ?? 'pending';
-        $status_label = $status_labels[ $status ] ?? $status;
-
-        // Format validation code
-        $display_code = '';
-        if ( ! empty( $appointment['validation_code'] ) ) {
-            $display_code = \FreeFormCertificate\Core\Utils::format_auth_code( $appointment['validation_code'] );
-        }
-
-        // Format CPF/RF
-        $cpf_rf_display = '';
-        if ( ! empty( $data['cpf_rf'] ) ) {
-            $cpf_rf_display = \FreeFormCertificate\Core\Utils::format_document( $data['cpf_rf'] );
-        }
-
-        // Build HTML - uses same structure as certificate-preview.php for visual consistency
-        $html = '<div class="ffc-certificate-preview ffc-appointment-verification">';
-
-        // Header with gradient badge
-        $html .= '<div class="ffc-preview-header">';
-        $html .= '<span class="ffc-status-badge success">✅ ' . esc_html__( 'Appointment Receipt Valid', 'ffcertificate' ) . '</span>';
-        $html .= '<br><span class="ffc-appointment-status ffc-status-' . esc_attr( $status ) . '">' . esc_html( $status_label ) . '</span>';
-        $html .= '</div>';
-
-        // Body with detail rows
-        $html .= '<div class="ffc-preview-body">';
-        $html .= '<h3>' . esc_html__( 'Appointment Details', 'ffcertificate' ) . '</h3>';
-
-        // Validation code
-        if ( ! empty( $display_code ) ) {
-            $html .= '<div class="ffc-detail-row">';
-            $html .= '<span class="label">' . esc_html__( 'Validation Code:', 'ffcertificate' ) . '</span>';
-            $html .= '<span class="value code">' . esc_html( $display_code ) . '</span>';
-            $html .= '</div>';
-        }
-
-        // Event
-        if ( ! empty( $data['calendar_title'] ) ) {
-            $html .= '<div class="ffc-detail-row">';
-            $html .= '<span class="label">' . esc_html__( 'Event:', 'ffcertificate' ) . '</span>';
-            $html .= '<span class="value">' . esc_html( $data['calendar_title'] ) . '</span>';
-            $html .= '</div>';
-        }
-
-        // Date
-        $html .= '<div class="ffc-detail-row">';
-        $html .= '<span class="label">' . esc_html__( 'Date:', 'ffcertificate' ) . '</span>';
-        $html .= '<span class="value">' . esc_html( $formatted_date ) . '</span>';
-        $html .= '</div>';
-
-        // Time
-        $html .= '<div class="ffc-detail-row">';
-        $html .= '<span class="label">' . esc_html__( 'Time:', 'ffcertificate' ) . '</span>';
-        $html .= '<span class="value">' . esc_html( $formatted_time ) . '</span>';
-        $html .= '</div>';
-
-        $html .= '<hr>';
-        $html .= '<h4>' . esc_html__( 'Participant Data:', 'ffcertificate' ) . '</h4>';
-
-        // Name
-        if ( ! empty( $data['name'] ) ) {
-            $html .= '<div class="ffc-detail-row">';
-            $html .= '<span class="label">' . esc_html__( 'Name:', 'ffcertificate' ) . '</span>';
-            $html .= '<span class="value">' . esc_html( $data['name'] ) . '</span>';
-            $html .= '</div>';
-        }
-
-        // CPF/RF
-        if ( ! empty( $cpf_rf_display ) ) {
-            $html .= '<div class="ffc-detail-row">';
-            $html .= '<span class="label">' . esc_html__( 'CPF/RF:', 'ffcertificate' ) . '</span>';
-            $html .= '<span class="value">' . esc_html( $cpf_rf_display ) . '</span>';
-            $html .= '</div>';
-        }
-
-        // Booked on
-        $html .= '<div class="ffc-detail-row">';
-        $html .= '<span class="label">' . esc_html__( 'Booked on:', 'ffcertificate' ) . '</span>';
-        $html .= '<span class="value">' . esc_html( $formatted_created ) . '</span>';
-        $html .= '</div>';
-
-        $html .= '</div>'; // .ffc-preview-body
-
-        // Download button (same structure as certificate)
-        $html .= '<div class="ffc-preview-actions">';
-        $html .= '<button class="ffc-download-btn ffc-download-pdf-btn">⬇️ ' . esc_html__( 'Download Receipt (PDF)', 'ffcertificate' ) . '</button>';
-        $html .= '</div>';
-
-        $html .= '</div>'; // .ffc-certificate-preview
-
-        return $html;
-    }
 }

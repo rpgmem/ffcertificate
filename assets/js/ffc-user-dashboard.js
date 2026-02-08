@@ -206,6 +206,7 @@
          */
         bindEvents: function() {
             $(document).on('click', '.ffc-tab', this.switchTab.bind(this));
+            $(document).on('keydown', '.ffc-tab', this.handleTabKeydown.bind(this));
             $(document).on('click', '.ffc-pagination-btn', this.handlePagination.bind(this));
 
             // Calendar export: toggle dropdown
@@ -263,9 +264,13 @@
             var $button = $(e.currentTarget);
             var tab = $button.data('tab');
 
-            // Update active tab button
-            $('.ffc-tab').removeClass('active');
-            $button.addClass('active');
+            // Update ARIA states on tab buttons
+            $('.ffc-tab').removeClass('active')
+                         .attr('aria-selected', 'false')
+                         .attr('tabindex', '-1');
+            $button.addClass('active')
+                   .attr('aria-selected', 'true')
+                   .attr('tabindex', '0');
 
             // Update active tab content
             $('.ffc-tab-content').removeClass('active');
@@ -287,6 +292,34 @@
                 this.loadAudienceBookings();
             } else if (tab === 'profile') {
                 this.loadProfile();
+            }
+        },
+
+        /**
+         * Handle arrow key navigation between tabs
+         */
+        handleTabKeydown: function(e) {
+            var $tabs = $('.ffc-tab');
+            var $current = $(e.currentTarget);
+            var index = $tabs.index($current);
+            var newIndex = -1;
+
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                newIndex = (index + 1) % $tabs.length;
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                newIndex = (index - 1 + $tabs.length) % $tabs.length;
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                newIndex = 0;
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                newIndex = $tabs.length - 1;
+            }
+
+            if (newIndex >= 0) {
+                $tabs.eq(newIndex).focus().trigger('click');
             }
         },
 

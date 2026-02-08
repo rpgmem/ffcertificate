@@ -18,7 +18,11 @@ declare(strict_types=1);
  * - Column caching to avoid repeated DESCRIBE queries (v3.1.2)
  * - Bulk operation support with temporary logging suspension (v3.1.2)
  * - Fixed: Admin settings now properly enforced (v3.1.4)
+ * - Batch write buffer with shutdown flush (v4.6.9)
+ * - Automatic cleanup via daily cron (v4.6.9)
+ * - Stats caching with transient (v4.6.9)
  *
+ * @version 4.6.9 - Batch writes, auto-cleanup, stats caching
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 2.9.1
@@ -56,6 +60,23 @@ class ActivityLog {
     private static $logging_disabled = false;
 
     /**
+     * Write buffer for batch inserts
+     * @var array
+     */
+    private static array $write_buffer = [];
+
+    /**
+     * Whether shutdown hook is registered
+     * @var bool
+     */
+    private static bool $shutdown_registered = false;
+
+    /**
+     * Max entries before auto-flushing buffer
+     */
+    private const BUFFER_THRESHOLD = 20;
+
+    /**
      * Log an activity
      *
      * @param string $action Action performed (e.g., 'submission_created', 'pdf_generated')
@@ -66,15 +87,12 @@ class ActivityLog {
      * @return bool Success
      */
     public static function log( string $action, string $level = self::LEVEL_INFO, array $context = array(), int $user_id = 0, int $submission_id = 0 ): bool {
-        global $wpdb;
-
         // CRITICAL: Check admin settings FIRST (before temporary flag)
-        // This ensures logging stays disabled even if enable_logging() is called
         $settings = get_option( 'ffc_settings', array() );
         $is_enabled = isset( $settings['enable_activity_log'] ) && absint( $settings['enable_activity_log'] ) === 1;
 
         if ( ! $is_enabled ) {
-            return false; // Logging disabled in admin settings
+            return false;
         }
 
         // Check if logging is temporarily disabled (bulk operations)
@@ -88,12 +106,11 @@ class ActivityLog {
             $level = self::LEVEL_INFO;
         }
 
-        // ✅ v2.10.0: Encrypt context if contains sensitive data
+        // Encrypt context if contains sensitive data
         $context_json = wp_json_encode( $context );
         $context_encrypted = null;
 
         if ( class_exists( '\\FreeFormCertificate\\Core\\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-            // Encrypt context for sensitive operations
             $sensitive_actions = array(
                 'submission_created',
                 'data_accessed',
@@ -107,37 +124,34 @@ class ActivityLog {
             }
         }
 
-        // Prepare data
+        // Prepare log entry for buffer
         $log_data = array(
             'action' => sanitize_text_field( $action ),
             'level' => sanitize_key( $level ),
             'context' => $context_json,
+            'context_encrypted' => $context_encrypted,
             'user_id' => absint( $user_id ),
             'user_ip' => \FreeFormCertificate\Core\Utils::get_user_ip(),
+            'submission_id' => absint( $submission_id ),
             'created_at' => current_time( 'mysql' )
         );
 
-        // ✅ v2.10.0: Add new fields if columns exist
-        $table_name = $wpdb->prefix . 'ffc_activity_log';
+        // Add to write buffer
+        self::$write_buffer[] = $log_data;
 
-        // Get columns (cached to avoid repeated DESCRIBE queries)
-        $columns = self::get_table_columns( $table_name );
-
-        if ( in_array( 'submission_id', $columns ) ) {
-            $log_data['submission_id'] = absint( $submission_id );
+        // Register shutdown hook on first buffered entry
+        if ( ! self::$shutdown_registered ) {
+            add_action( 'shutdown', [ self::class, 'flush_buffer' ] );
+            self::$shutdown_registered = true;
         }
 
-        if ( in_array( 'context_encrypted', $columns ) && $context_encrypted !== null ) {
-            $log_data['context_encrypted'] = $context_encrypted;
+        // Auto-flush when buffer reaches threshold
+        if ( count( self::$write_buffer ) >= self::BUFFER_THRESHOLD ) {
+            self::flush_buffer();
         }
 
-        // Insert into database
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-        $result = $wpdb->insert( $table_name, $log_data );
-
-        // Also log via debug system if enabled (respects Activity Log setting)
-        // Debug logging only happens when Activity Log is enabled in admin
-        if ( $result !== false && class_exists( '\\FreeFormCertificate\\Core\\Debug' ) ) {
+        // Debug system logging (immediate, lightweight)
+        if ( class_exists( '\\FreeFormCertificate\\Core\\Debug' ) ) {
             \FreeFormCertificate\Core\Debug::log_activity_log( $action, array(
                 'level' => strtoupper( $level ),
                 'user_id' => $user_id,
@@ -147,7 +161,80 @@ class ActivityLog {
             ) );
         }
 
-        return $result !== false;
+        return true;
+    }
+
+    /**
+     * Flush the write buffer to database using a single multi-row INSERT
+     *
+     * Called automatically on shutdown or when buffer reaches threshold.
+     *
+     * @since 4.6.9
+     * @return int Number of rows inserted
+     */
+    public static function flush_buffer(): int {
+        if ( empty( self::$write_buffer ) ) {
+            return 0;
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_activity_log';
+
+        // Get available columns (cached)
+        $columns = self::get_table_columns( $table_name );
+        $has_submission_id = in_array( 'submission_id', $columns );
+        $has_context_encrypted = in_array( 'context_encrypted', $columns );
+
+        // Build column list based on available columns
+        $insert_columns = [ 'action', 'level', 'context', 'user_id', 'user_ip', 'created_at' ];
+        if ( $has_submission_id ) {
+            $insert_columns[] = 'submission_id';
+        }
+        if ( $has_context_encrypted ) {
+            $insert_columns[] = 'context_encrypted';
+        }
+
+        $column_list = implode( ', ', $insert_columns );
+        $placeholders = [];
+        $values = [];
+
+        foreach ( self::$write_buffer as $entry ) {
+            $row_placeholders = [ '%s', '%s', '%s', '%d', '%s', '%s' ];
+            $row_values = [
+                $entry['action'],
+                $entry['level'],
+                $entry['context'],
+                $entry['user_id'],
+                $entry['user_ip'],
+                $entry['created_at'],
+            ];
+
+            if ( $has_submission_id ) {
+                $row_placeholders[] = '%d';
+                $row_values[] = $entry['submission_id'];
+            }
+
+            if ( $has_context_encrypted ) {
+                $row_placeholders[] = '%s';
+                $row_values[] = $entry['context_encrypted'] ?? '';
+            }
+
+            $placeholders[] = '(' . implode( ', ', $row_placeholders ) . ')';
+            $values = array_merge( $values, $row_values );
+        }
+
+        $count = count( self::$write_buffer );
+        self::$write_buffer = [];
+
+        $placeholders_sql = implode( ', ', $placeholders );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $wpdb->query( $wpdb->prepare(
+            "INSERT INTO {$table_name} ({$column_list}) VALUES {$placeholders_sql}",
+            $values
+        ) );
+
+        return $count;
     }
 
     /**
@@ -356,7 +443,33 @@ class ActivityLog {
             $cutoff_date
         ) );
 
+        // Invalidate stats cache after cleanup
+        delete_transient( 'ffc_activity_stats_7' );
+        delete_transient( 'ffc_activity_stats_30' );
+        delete_transient( 'ffc_activity_stats_90' );
+
         return (int) $deleted;
+    }
+
+    /**
+     * Run automatic log cleanup (called by daily cron)
+     *
+     * Uses configurable retention period from settings, defaults to 90 days.
+     *
+     * @since 4.6.9
+     * @return int Number of deleted rows
+     */
+    public static function run_cleanup(): int {
+        $settings = get_option( 'ffc_settings', array() );
+        $retention_days = isset( $settings['activity_log_retention_days'] )
+            ? absint( $settings['activity_log_retention_days'] )
+            : 90;
+
+        if ( $retention_days <= 0 ) {
+            return 0; // Retention disabled (keep indefinitely)
+        }
+
+        return self::cleanup( $retention_days );
     }
 
     /**
@@ -366,6 +479,13 @@ class ActivityLog {
      * @return array Statistics
      */
     public static function get_stats( int $days = 30 ): array {
+        // Check transient cache first
+        $cache_key = 'ffc_activity_stats_' . $days;
+        $cached = get_transient( $cache_key );
+        if ( $cached !== false ) {
+            return $cached;
+        }
+
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_activity_log';
 
@@ -409,13 +529,18 @@ class ActivityLog {
             $date_from
         ), ARRAY_A );
 
-        return array(
+        $stats = array(
             'total' => (int) $total,
             'by_level' => $by_level,
             'top_actions' => $top_actions,
             'top_users' => $top_users,
             'period_days' => $days
         );
+
+        // Cache for 1 hour
+        set_transient( $cache_key, $stats, HOUR_IN_SECONDS );
+
+        return $stats;
     }
 
     // ============================================

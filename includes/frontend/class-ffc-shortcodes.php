@@ -69,7 +69,7 @@ class Shortcodes {
                 <label for="ffc_captcha_ans">
                     <?php echo wp_kses_post( $captcha['label'] ); ?>
                 </label>
-                <input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans" class="ffc-input" required>
+                <input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans" class="ffc-input" required aria-required="true">
                 <input type="hidden" name="ffc_captcha_hash" value="<?php echo esc_attr( $captcha['hash'] ); ?>">
             </div>
         </div>
@@ -94,11 +94,11 @@ class Shortcodes {
         ob_start();
         ?>
         <div class="ffc-verification-container ffc-magic-link-container" data-token="<?php echo esc_attr( $token ); ?>">
-            <div class="ffc-verify-loading">
-                <div class="ffc-spinner"></div>
+            <div class="ffc-verify-loading" role="status" aria-live="polite">
+                <div class="ffc-spinner" aria-hidden="true"></div>
                 <p><?php esc_html_e( 'Verifying certificate...', 'ffcertificate' ); ?></p>
             </div>
-            <div class="ffc-verify-result"></div>
+            <div class="ffc-verify-result" role="region" aria-live="polite"></div>
         </div>
         <?php
         return ob_get_clean();
@@ -211,11 +211,12 @@ class Shortcodes {
                         <label for="ffc_password">
                             <?php esc_html_e('Password', 'ffcertificate'); ?> <span class="required">*</span>
                         </label>
-                        <input type="password" 
-                               class="ffc-input" 
-                               name="ffc_password" 
-                               id="ffc_password" 
-                               required 
+                        <input type="password"
+                               class="ffc-input"
+                               name="ffc_password"
+                               id="ffc_password"
+                               required
+                               aria-required="true"
                                autocomplete="off"
                                maxlength="20"
                                placeholder="<?php esc_attr_e('Enter password', 'ffcertificate'); ?>">
@@ -230,13 +231,13 @@ class Shortcodes {
                         <label for="ffc_ticket">
                             <?php esc_html_e('Ticket Code', 'ffcertificate'); ?> <span class="required">*</span>
                         </label>
-                        <input type="text" 
-                               class="ffc-input ffc-ticket-input" 
-                               name="ffc_ticket" 
-                               id="ffc_ticket" 
-                               required 
+                        <input type="text"
+                               class="ffc-input ffc-ticket-input ffc-uppercase"
+                               name="ffc_ticket"
+                               id="ffc_ticket"
+                               required
+                               aria-required="true"
                                placeholder="ABCD-1234"
-                               class="ffc-uppercase"
                                autocomplete="off"
                                maxlength="9">
                         <p class="description"><?php esc_html_e('Enter your unique ticket code', 'ffcertificate'); ?></p>
@@ -248,10 +249,11 @@ class Shortcodes {
                 <?php // ✅ v2.10.0: LGPD Consent Checkbox (MANDATORY) ?>
                 <div class="ffc-lgpd-consent">
                     <label class="ffc-consent-label">
-                        <input type="checkbox" 
-                               name="ffc_lgpd_consent" 
-                               id="ffc_lgpd_consent" 
-                               required 
+                        <input type="checkbox"
+                               name="ffc_lgpd_consent"
+                               id="ffc_lgpd_consent"
+                               required
+                               aria-required="true"
                                value="1">
                         
                         <span class="ffc-consent-text">
@@ -272,7 +274,7 @@ class Shortcodes {
                 </div>
 
                 <button type="submit" class="ffc-submit-btn"><?php esc_html_e( 'Submit', 'ffcertificate' ); ?></button>
-                <div class="ffc-message"></div>
+                <div class="ffc-message" role="alert" aria-live="assertive"></div>
             </form>
         </div>
         <?php
@@ -288,7 +290,7 @@ class Shortcodes {
         $label = isset($field['label']) ? $field['label'] : '';
         $default = isset($field['default_value']) ? $field['default_value'] : '';
         $is_req = ! empty( $field['required'] );
-        $required_attr = $is_req ? 'required' : '';
+        $required_attr = $is_req ? 'required aria-required="true"' : '';
         $options = ! empty( $field['options'] ) ? explode( ',', $field['options'] ) : array();
 
         if ( empty( $name ) ) return '';
@@ -321,7 +323,7 @@ class Shortcodes {
                 </select>
 
             <?php elseif ( $type === 'radio' ) : ?>
-                <div class="ffc-radio-group">
+                <div class="ffc-radio-group" role="group" aria-label="<?php echo esc_attr( $label ); ?>">
                     <?php foreach ( $options as $opt ) : $opt_val = trim( $opt ); ?>
                         <label><input type="radio" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $opt_val ); ?>" <?php echo esc_attr( $required_attr ); ?> <?php checked($default, $opt_val); ?>> <?php echo esc_html( $opt_val ); ?></label>
                     <?php endforeach; ?>

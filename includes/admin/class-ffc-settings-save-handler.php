@@ -135,6 +135,11 @@ class SettingsSaveHandler {
         // Activity Log (v3.1.1)
         if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'general' ) {
             $clean['enable_activity_log'] = isset( $new['enable_activity_log'] ) ? 1 : 0;
+
+            // Log retention days (v4.6.9)
+            if ( isset( $new['activity_log_retention_days'] ) ) {
+                $clean['activity_log_retention_days'] = min( 365, absint( $new['activity_log_retention_days'] ) );
+            }
         }
 
         // Form Cache Settings (v3.1.0)

@@ -327,7 +327,7 @@ class MigrationManager {
         if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
             \FreeFormCertificate\Core\ActivityLog::log(
                 'columns_dropped',
-                \FreeFormCertificate\Core\ActivityLog::LEVEL_CRITICAL,
+                \FreeFormCertificate\Core\ActivityLog::LEVEL_ERROR,
                 array(
                     'dropped_columns' => $dropped,
                     'errors' => $errors,

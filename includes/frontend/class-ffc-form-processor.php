@@ -521,7 +521,10 @@ class FormProcessor {
             );
 
             if ( is_wp_error( $submission_id ) ) {
-                wp_send_json_error( array( 'message' => $submission_id->get_error_message() ) );
+                wp_send_json_error( array(
+                    'code'    => $submission_id->get_error_code(),
+                    'message' => $submission_id->get_error_message(),
+                ) );
             }
 
             // Get the submission date from the newly created submission
@@ -542,7 +545,10 @@ class FormProcessor {
         );
         
         if ( is_wp_error( $pdf_data ) ) {
-            wp_send_json_error( array( 'message' => $pdf_data->get_error_message() ) );
+            wp_send_json_error( array(
+                'code'    => $pdf_data->get_error_code(),
+                'message' => $pdf_data->get_error_message(),
+            ) );
         }
 
         // Success message with HTML response (v2.9.7+)

@@ -4,11 +4,13 @@ declare(strict_types=1);
 /**
  * Appointment Handler
  *
- * Handles appointment booking processing, validation, and business logic.
- * Similar to SubmissionHandler but for calendar appointments.
+ * Core business logic for appointment booking, cancellation, and slot availability.
+ * AJAX handling extracted to AppointmentAjaxHandler (v4.6.8).
+ * Validation logic extracted to AppointmentValidator (v4.6.8).
  *
  * @since 4.1.0
- * @version 4.1.0
+ * @version 4.6.10 - Transaction-based booking with row-level locking (race condition fix)
+ * @version 4.6.8 - Refactored: extracted AJAX + validation into separate classes
  */
 
 namespace FreeFormCertificate\SelfScheduling;
@@ -25,6 +27,11 @@ class AppointmentHandler {
     private $blocked_date_repository;
 
     /**
+     * Validator
+     */
+    private AppointmentValidator $validator;
+
+    /**
      * Constructor
      */
     public function __construct() {
@@ -32,238 +39,41 @@ class AppointmentHandler {
         $this->appointment_repository = new \FreeFormCertificate\Repositories\AppointmentRepository();
         $this->blocked_date_repository = new \FreeFormCertificate\Repositories\BlockedDateRepository();
 
-        // AJAX handlers
-        add_action('wp_ajax_ffc_book_appointment', array($this, 'ajax_book_appointment'));
-        add_action('wp_ajax_nopriv_ffc_book_appointment', array($this, 'ajax_book_appointment'));
-        add_action('wp_ajax_ffc_get_available_slots', array($this, 'ajax_get_available_slots'));
-        add_action('wp_ajax_nopriv_ffc_get_available_slots', array($this, 'ajax_get_available_slots'));
-        add_action('wp_ajax_ffc_cancel_appointment', array($this, 'ajax_cancel_appointment'));
-        add_action('wp_ajax_nopriv_ffc_cancel_appointment', array($this, 'ajax_cancel_appointment'));
-        add_action('wp_ajax_ffc_get_month_bookings', array($this, 'ajax_get_month_bookings'));
-        add_action('wp_ajax_nopriv_ffc_get_month_bookings', array($this, 'ajax_get_month_bookings'));
+        $this->validator = new AppointmentValidator(
+            $this->appointment_repository,
+            $this->blocked_date_repository
+        );
     }
 
     /**
-     * AJAX: Book appointment
-     *
-     * @return void
+     * Repository accessors for AJAX handler
      */
-    public function ajax_book_appointment(): void {
-        try {
-            // Verify nonce
-            check_ajax_referer('ffc_self_scheduling_nonce', 'nonce');
-
-            // Validate security fields (honeypot + captcha)
-            if (!class_exists('\FreeFormCertificate\Core\Utils')) {
-                wp_send_json_error(array(
-                    'message' => __('System error: Utils class not loaded.', 'ffcertificate')
-                ));
-                return;
-            }
-
-            $security_check = \FreeFormCertificate\Core\Utils::validate_security_fields($_POST);
-            if ($security_check !== true) {
-                // Generate new captcha for retry
-                $new_captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
-                wp_send_json_error(array(
-                    'message' => $security_check,
-                    'refresh_captcha' => true,
-                    'new_label' => $new_captcha['label'],
-                    'new_hash' => $new_captcha['hash']
-                ));
-                return;
-            }
-
-            // Get and validate input
-            $calendar_id = isset($_POST['calendar_id']) ? absint(wp_unslash($_POST['calendar_id'])) : 0;
-            $date = isset($_POST['date']) ? sanitize_text_field(wp_unslash($_POST['date'])) : '';
-            $time = isset($_POST['time']) ? sanitize_text_field(wp_unslash($_POST['time'])) : '';
-
-            if (!$calendar_id || !$date || !$time) {
-                wp_send_json_error(array(
-                    'message' => __('Missing required fields.', 'ffcertificate')
-                ));
-                return;
-            }
-
-            // Collect appointment data
-            $appointment_data = array(
-                'calendar_id' => $calendar_id,
-                'appointment_date' => $date,
-                'start_time' => $time,
-                'name' => isset($_POST['name']) ? sanitize_text_field(wp_unslash($_POST['name'])) : '',
-                'email' => isset($_POST['email']) ? sanitize_email(wp_unslash($_POST['email'])) : '',
-                'cpf_rf' => isset($_POST['cpf_rf']) ? sanitize_text_field(wp_unslash($_POST['cpf_rf'])) : '',
-                'user_notes' => isset($_POST['notes']) ? sanitize_textarea_field(wp_unslash($_POST['notes'])) : '',
-                'custom_data' => isset($_POST['custom_data']) ? array_map('sanitize_text_field', wp_unslash($_POST['custom_data'])) : array(),
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() used as boolean only.
-                'consent_given' => isset($_POST['consent']) ? 1 : 0,
-                'consent_text' => isset($_POST['consent_text']) ? sanitize_textarea_field(wp_unslash($_POST['consent_text'])) : '',
-                'user_ip' => \FreeFormCertificate\Core\Utils::get_user_ip(),
-                'user_agent' => isset($_SERVER['HTTP_USER_AGENT']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])) : ''
-            );
-
-            // Add user ID if logged in
-            if (is_user_logged_in()) {
-                $appointment_data['user_id'] = get_current_user_id();
-            }
-
-            // Process appointment
-            $result = $this->process_appointment($appointment_data);
-
-            if (is_wp_error($result)) {
-                wp_send_json_error(array(
-                    'message' => $result->get_error_message()
-                ));
-                return;
-            }
-
-            // Generate receipt PDF data for auto-download (only for confirmed appointments)
-            $pdf_data = null;
-            $appointment = null;
-            $requires_approval = $result['requires_approval'] ?? false;
-            try {
-                $appointment = $this->appointment_repository->findById($result['appointment_id']);
-                $calendar = $this->calendar_repository->findById((int) $appointment_data['calendar_id']);
-                if ( $appointment && $calendar && ! $requires_approval ) {
-                    $pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator();
-                    $pdf_data = $pdf_generator->generate_appointment_pdf_data( $appointment, $calendar );
-                }
-            } catch ( \Exception $e ) {
-                // PDF generation failure should not block the booking response
-                // phpcs:ignore WordPress.PHP.DevelopmentFunctions
-                error_log( 'FFC Appointment PDF Error: ' . $e->getMessage() );
-            }
-
-            $response = array(
-                'message' => $requires_approval
-                    ? __('Appointment booked successfully! Awaiting admin approval.', 'ffcertificate')
-                    : __('Appointment booked successfully!', 'ffcertificate'),
-                'appointment_id' => $result['appointment_id'],
-                'confirmation_token' => $result['confirmation_token'] ?? null,
-                'validation_code' => $appointment ? ( $appointment['validation_code'] ?? null ) : null,
-                'receipt_url' => $requires_approval ? '' : ( $result['receipt_url'] ?? '' ),
-                'requires_approval' => $requires_approval,
-            );
-
-            if ( $pdf_data && ! is_wp_error( $pdf_data ) ) {
-                $response['pdf_data'] = $pdf_data;
-            }
-
-            wp_send_json_success( $response );
-        } catch (\Exception $e) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions
-            error_log('FFC Calendar Appointment Error: ' . $e->getMessage());
-            wp_send_json_error(array(
-                'message' => __('An unexpected error occurred. Please try again.', 'ffcertificate'),
-                'debug' => WP_DEBUG ? $e->getMessage() : null
-            ));
-        }
+    public function get_calendar_repository(): \FreeFormCertificate\Repositories\CalendarRepository {
+        return $this->calendar_repository;
     }
 
-    /**
-     * AJAX: Get available slots for a date
-     *
-     * @return void
-     */
-    public function ajax_get_available_slots(): void {
-        check_ajax_referer('ffc_self_scheduling_nonce', 'nonce');
-
-        $calendar_id = isset($_POST['calendar_id']) ? absint(wp_unslash($_POST['calendar_id'])) : 0;
-        $date = isset($_POST['date']) ? sanitize_text_field(wp_unslash($_POST['date'])) : '';
-
-        if (!$calendar_id || !$date) {
-            wp_send_json_error(array(
-                'message' => __('Invalid parameters.', 'ffcertificate')
-            ));
-            return;
-        }
-
-        $slots = $this->get_available_slots($calendar_id, $date);
-
-        if (is_wp_error($slots)) {
-            wp_send_json_error(array(
-                'message' => $slots->get_error_message()
-            ));
-            return;
-        }
-
-        wp_send_json_success(array(
-            'slots' => $slots,
-            'date' => $date
-        ));
+    public function get_appointment_repository(): \FreeFormCertificate\Repositories\AppointmentRepository {
+        return $this->appointment_repository;
     }
 
-    /**
-     * AJAX: Cancel appointment
-     *
-     * @return void
-     */
-    public function ajax_cancel_appointment(): void {
-        try {
-            // Verify nonce - accept both calendar nonce and wp_rest nonce (for user dashboard)
-            $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
-
-            $nonce_valid = false;
-            if (wp_verify_nonce($nonce, 'ffc_self_scheduling_nonce')) {
-                $nonce_valid = true;
-            } elseif (wp_verify_nonce($nonce, 'wp_rest')) {
-                $nonce_valid = true;
-            }
-
-            if (!$nonce_valid) {
-                wp_send_json_error(array(
-                    'message' => __('Security check failed. Please refresh the page and try again.', 'ffcertificate')
-                ));
-                return;
-            }
-
-            $appointment_id = isset($_POST['appointment_id']) ? absint(wp_unslash($_POST['appointment_id'])) : 0;
-            $token = isset($_POST['token']) ? sanitize_text_field(wp_unslash($_POST['token'])) : '';
-            $reason = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])) : '';
-
-            if (!$appointment_id) {
-                wp_send_json_error(array(
-                    'message' => __('Invalid appointment ID.', 'ffcertificate')
-                ));
-                return;
-            }
-
-            $result = $this->cancel_appointment($appointment_id, $token, $reason);
-
-            if (is_wp_error($result)) {
-                wp_send_json_error(array(
-                    'message' => $result->get_error_message()
-                ));
-                return;
-            }
-
-            wp_send_json_success(array(
-                'message' => __('Appointment cancelled successfully.', 'ffcertificate')
-            ));
-
-        } catch (\Throwable $e) {
-            wp_send_json_error(array(
-                'message' => $e->getMessage()
-            ));
-        }
+    public function get_blocked_date_repository(): \FreeFormCertificate\Repositories\BlockedDateRepository {
+        return $this->blocked_date_repository;
     }
 
     /**
      * Process appointment booking
      *
      * @param array $data Appointment data
-     * @return array|WP_Error
+     * @return array|\WP_Error
      */
     public function process_appointment(array $data) {
-        // Get calendar
+        // Get calendar (outside transaction — immutable config)
         $calendar = $this->calendar_repository->findById((int) $data['calendar_id']);
 
         if (!$calendar) {
             return new \WP_Error('invalid_calendar', __('Calendar not found.', 'ffcertificate'));
         }
 
-        // Validate calendar status
         if ($calendar['status'] !== 'active') {
             return new \WP_Error('calendar_inactive', __('This calendar is not accepting bookings.', 'ffcertificate'));
         }
@@ -273,13 +83,7 @@ class AppointmentHandler {
         $end_timestamp = strtotime($start_datetime) + ($calendar['slot_duration'] * 60);
         $data['end_time'] = gmdate('H:i:s', $end_timestamp);
 
-        // Run validations
-        $validation = $this->validate_appointment($data, $calendar);
-        if (is_wp_error($validation)) {
-            return $validation;
-        }
-
-        // Check LGPD consent
+        // Check LGPD consent (outside transaction — no DB needed)
         if (empty($data['consent_given'])) {
             return new \WP_Error('consent_required', __('You must agree to the terms to book an appointment.', 'ffcertificate'));
         }
@@ -299,21 +103,40 @@ class AppointmentHandler {
             $data['approved_at'] = current_time('mysql');
         }
 
-        /**
-         * Fires before an appointment is created in the database.
-         *
-         * @since 4.6.4
-         * @param array $data     Appointment data.
-         * @param array $calendar Calendar configuration.
-         */
-        do_action( 'ffc_before_appointment_create', $data, $calendar );
+        // === BEGIN TRANSACTION: Atomic validate + insert ===
+        $this->appointment_repository->begin_transaction();
 
-        // Create appointment
-        $appointment_id = $this->appointment_repository->createAppointment($data);
+        try {
+            // Validate with row-level locks (FOR UPDATE) to prevent concurrent overbooking
+            $validation = $this->validator->validate($data, $calendar, true);
+            if (is_wp_error($validation)) {
+                $this->appointment_repository->rollback();
+                return $validation;
+            }
 
-        if (!$appointment_id) {
-            return new \WP_Error('creation_failed', __('Failed to create appointment. Please try again.', 'ffcertificate'));
+            /**
+             * Fires before an appointment is created in the database.
+             *
+             * @since 4.6.4
+             * @param array $data     Appointment data.
+             * @param array $calendar Calendar configuration.
+             */
+            do_action( 'ffc_before_appointment_create', $data, $calendar );
+
+            // Create appointment (inside transaction — protected by locks)
+            $appointment_id = $this->appointment_repository->createAppointment($data);
+
+            if (!$appointment_id) {
+                $this->appointment_repository->rollback();
+                return new \WP_Error('creation_failed', __('Failed to create appointment. Please try again.', 'ffcertificate'));
+            }
+
+            $this->appointment_repository->commit();
+        } catch (\Exception $e) {
+            $this->appointment_repository->rollback();
+            return new \WP_Error('booking_error', __('An error occurred while booking. Please try again.', 'ffcertificate'));
         }
+        // === END TRANSACTION ===
 
         /**
          * Fires after an appointment is created.
@@ -325,7 +148,7 @@ class AppointmentHandler {
          */
         do_action( 'ffc_after_appointment_create', $appointment_id, $data, $calendar );
 
-        // Get appointment for email
+        // Get appointment for email (outside transaction — read-only)
         $appointment = $this->appointment_repository->findById($appointment_id);
 
         // Schedule email notifications
@@ -353,277 +176,11 @@ class AppointmentHandler {
     }
 
     /**
-     * Validate appointment booking
-     *
-     * @param array $data Appointment data
-     * @param array $calendar Calendar configuration
-     * @return bool|WP_Error
-     */
-    private function validate_appointment(array $data, array $calendar) {
-        // 1. Validate required fields
-        if (empty($data['appointment_date']) || empty($data['start_time'])) {
-            return new \WP_Error('missing_fields', __('Date and time are required.', 'ffcertificate'));
-        }
-
-        // 2. Validate date format
-        $date_obj = \DateTime::createFromFormat('Y-m-d', $data['appointment_date']);
-        if (!$date_obj || $date_obj->format('Y-m-d') !== $data['appointment_date']) {
-            return new \WP_Error('invalid_date', __('Invalid date format.', 'ffcertificate'));
-        }
-
-        // 3. Validate time format
-        if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', $data['start_time'])) {
-            return new \WP_Error('invalid_time', __('Invalid time format.', 'ffcertificate'));
-        }
-
-        // 4. Check if date is in the past
-        $now = current_time('timestamp');
-        $appointment_timestamp = strtotime($data['appointment_date'] . ' ' . $data['start_time']);
-
-        if ($appointment_timestamp < $now) {
-            return new \WP_Error('past_date', __('Cannot book appointments in the past.', 'ffcertificate'));
-        }
-
-        // 5. Validate advance booking window (minimum)
-        if ($calendar['advance_booking_min'] > 0) {
-            $min_advance = $now + ($calendar['advance_booking_min'] * 3600);
-            if ($appointment_timestamp < $min_advance) {
-                return new \WP_Error(
-                    'too_soon',
-                    sprintf(
-                        /* translators: %d: minimum number of hours for advance booking */
-                        __('Appointments must be booked at least %d hours in advance.', 'ffcertificate'),
-                        $calendar['advance_booking_min']
-                    )
-                );
-            }
-        }
-
-        // 6. Validate advance booking window (maximum)
-        if ($calendar['advance_booking_max'] > 0) {
-            $max_advance = $now + ($calendar['advance_booking_max'] * 86400);
-            if ($appointment_timestamp > $max_advance) {
-                return new \WP_Error(
-                    'too_far',
-                    sprintf(
-                        /* translators: %d: maximum number of days for advance booking */
-                        __('Appointments cannot be booked more than %d days in advance.', 'ffcertificate'),
-                        $calendar['advance_booking_max']
-                    )
-                );
-            }
-        }
-
-        // 7. Check global holidays and blocked dates
-        if (\FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday($data['appointment_date'])) {
-            return new \WP_Error('date_blocked', __('This date is a holiday.', 'ffcertificate'));
-        }
-        if ($this->blocked_date_repository->isDateBlocked($data['calendar_id'], $data['appointment_date'], $data['start_time'])) {
-            return new \WP_Error('date_blocked', __('This date/time is not available.', 'ffcertificate'));
-        }
-
-        // 8. Check working hours
-        $is_working_hour = $this->is_within_working_hours($data['appointment_date'], $data['start_time'], $calendar);
-        if (!$is_working_hour) {
-            return new \WP_Error('outside_hours', __('Selected time is outside working hours.', 'ffcertificate'));
-        }
-
-        // 9. Check slot availability
-        $is_available = $this->appointment_repository->isSlotAvailable(
-            $data['calendar_id'],
-            $data['appointment_date'],
-            $data['start_time'],
-            (int)$calendar['max_appointments_per_slot']
-        );
-
-        if (!$is_available) {
-            return new \WP_Error('slot_full', __('This time slot is fully booked.', 'ffcertificate'));
-        }
-
-        // 10. Check daily limit
-        if ($calendar['slots_per_day'] > 0) {
-            $daily_count = $this->get_daily_appointment_count($data['calendar_id'], $data['appointment_date']);
-            if ($daily_count >= $calendar['slots_per_day']) {
-                return new \WP_Error('daily_limit', __('Daily booking limit reached for this date.', 'ffcertificate'));
-            }
-        }
-
-        // 11. Check minimum interval between bookings
-        if (!empty($calendar['minimum_interval_between_bookings']) && $calendar['minimum_interval_between_bookings'] > 0) {
-            // Get identifier (user_id or email/cpf)
-            $user_identifier = null;
-
-            if (!empty($data['user_id'])) {
-                $user_identifier = $data['user_id'];
-            } elseif (!empty($data['email'])) {
-                $user_identifier = $data['email'];
-            } elseif (!empty($data['cpf_rf'])) {
-                $user_identifier = $data['cpf_rf'];
-            }
-
-            if ($user_identifier) {
-                $interval_hours = (int) $calendar['minimum_interval_between_bookings'];
-                $interval_check = $this->check_booking_interval($user_identifier, $data['calendar_id'], $interval_hours);
-
-                if (is_wp_error($interval_check)) {
-                    return $interval_check;
-                }
-            }
-        }
-
-        // 12. Validate user permissions (capability AND calendar config)
-        // Check user capability first (if logged in)
-        if (is_user_logged_in()) {
-            $current_user_id = get_current_user_id();
-
-            // Admin always has access
-            if (!current_user_can('manage_options')) {
-                // Check ffc_book_appointments capability
-                if (!current_user_can('ffc_book_appointments')) {
-                    return new \WP_Error(
-                        'capability_denied',
-                        __('You do not have permission to book appointments.', 'ffcertificate')
-                    );
-                }
-            }
-        }
-
-        // Calendar-specific login requirement
-        if ($calendar['require_login']) {
-            if (!is_user_logged_in()) {
-                return new \WP_Error('login_required', __('You must be logged in to book this calendar.', 'ffcertificate'));
-            }
-
-            // Check allowed roles (calendar-specific restriction)
-            if (!empty($calendar['allowed_roles'])) {
-                $allowed_roles = json_decode($calendar['allowed_roles'], true);
-                if (is_array($allowed_roles) && !empty($allowed_roles)) {
-                    $user = wp_get_current_user();
-                    $has_role = array_intersect($user->roles, $allowed_roles);
-                    // Admin bypasses role check
-                    if (empty($has_role) && !current_user_can('manage_options')) {
-                        return new \WP_Error('insufficient_permissions', __('You do not have permission to book this calendar.', 'ffcertificate'));
-                    }
-                }
-            }
-        }
-
-        // 13. Validate email (if not logged in)
-        if (!is_user_logged_in() && empty($data['email'])) {
-            return new \WP_Error('email_required', __('Email address is required.', 'ffcertificate'));
-        }
-
-        // 14. Validate CPF/RF
-        if (empty($data['cpf_rf'])) {
-            return new \WP_Error('cpf_rf_required', __('CPF/RF is required.', 'ffcertificate'));
-        }
-
-        // Validate CPF/RF format
-        $cpf_rf_clean = preg_replace('/[^0-9]/', '', $data['cpf_rf']);
-        if (strlen($cpf_rf_clean) == 7) {
-            // RF validation (7 digits)
-            if (!preg_match('/^\d{7}$/', $cpf_rf_clean)) {
-                return new \WP_Error('invalid_rf', __('Invalid RF format.', 'ffcertificate'));
-            }
-        } elseif (strlen($cpf_rf_clean) == 11) {
-            // CPF validation
-            if (!\FreeFormCertificate\Core\Utils::validate_cpf($cpf_rf_clean)) {
-                return new \WP_Error('invalid_cpf', __('Invalid CPF.', 'ffcertificate'));
-            }
-        } else {
-            return new \WP_Error('invalid_cpf_rf', __('CPF/RF must be 7 digits (RF) or 11 digits (CPF).', 'ffcertificate'));
-        }
-
-        return true;
-    }
-
-    /**
-     * Check minimum interval between bookings for a user
-     *
-     * @param mixed $user_identifier User ID, email, or CPF/RF
-     * @param int $calendar_id Calendar ID
-     * @param int $interval_hours Minimum hours between bookings
-     * @return bool|WP_Error True if valid, WP_Error if too soon
-     */
-    private function check_booking_interval($user_identifier, int $calendar_id, int $interval_hours) {
-        $now = current_time('timestamp');
-        $cutoff_time = $now + ($interval_hours * 3600);
-
-        // Get user's recent appointments for this calendar
-        $recent_appointments = array();
-
-        if (is_int($user_identifier)) {
-            // User ID
-            $recent_appointments = $this->appointment_repository->findByUserId($user_identifier);
-        } else {
-            // Email or CPF/RF
-            if (filter_var($user_identifier, FILTER_VALIDATE_EMAIL)) {
-                $recent_appointments = $this->appointment_repository->findByEmail($user_identifier);
-            } else {
-                $recent_appointments = $this->appointment_repository->findByCpfRf($user_identifier);
-            }
-        }
-
-        // Check if any appointment exists within the interval window
-        foreach ($recent_appointments as $appointment) {
-            // Skip cancelled appointments
-            if ($appointment['status'] === 'cancelled') {
-                continue;
-            }
-
-            // Only check for the same calendar
-            if ((int)$appointment['calendar_id'] !== $calendar_id) {
-                continue;
-            }
-
-            // Get appointment timestamp
-            $apt_timestamp = strtotime($appointment['appointment_date'] . ' ' . $appointment['start_time']);
-
-            // Check if appointment is in the future and within the interval window
-            if ($apt_timestamp >= $now && $apt_timestamp <= $cutoff_time) {
-                // Format the next available time
-                $next_available = date_i18n(
-                    get_option('date_format') . ' ' . get_option('time_format'),
-                    $apt_timestamp + ($interval_hours * 3600)
-                );
-
-                return new \WP_Error(
-                    'booking_too_soon',
-                    sprintf(
-                        /* translators: %1$d: number of hours, %2$s: next available date/time */
-                        __('You already have an appointment scheduled within the next %1$d hours. You can book again after %2$s.', 'ffcertificate'),
-                        $interval_hours,
-                        $next_available
-                    )
-                );
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Check if time is within working hours
-     *
-     * @param string $date
-     * @param string $time
-     * @param array $calendar
-     * @return bool
-     */
-    private function is_within_working_hours(string $date, string $time, array $calendar): bool {
-        return \FreeFormCertificate\Scheduling\WorkingHoursService::is_within_working_hours(
-            $date,
-            $time,
-            $calendar['working_hours'] ?? ''
-        );
-    }
-
-    /**
      * Get available time slots for a date
      *
      * @param int $calendar_id
      * @param string $date
-     * @return array|WP_Error
+     * @return array|\WP_Error
      */
     public function get_available_slots(int $calendar_id, string $date) {
         // Get calendar
@@ -713,50 +270,34 @@ class AppointmentHandler {
     }
 
     /**
-     * Get daily appointment count
-     *
-     * @param int $calendar_id
-     * @param string $date
-     * @return int
-     */
-    private function get_daily_appointment_count(int $calendar_id, string $date): int {
-        $appointments = $this->appointment_repository->getAppointmentsByDate($calendar_id, $date);
-        return count($appointments);
-    }
-
-    /**
      * Cancel appointment
      *
      * @param int $appointment_id
      * @param string $token Confirmation token for guest users
      * @param string $reason Cancellation reason
-     * @return bool|WP_Error
+     * @return true|\WP_Error
      */
     public function cancel_appointment(int $appointment_id, string $token = '', string $reason = '') {
-        // Get appointment
         $appointment = $this->appointment_repository->findById($appointment_id);
 
         if (!$appointment) {
             return new \WP_Error('not_found', __('Appointment not found.', 'ffcertificate'));
         }
 
-        // Get calendar
         $calendar = $this->calendar_repository->findById((int) $appointment['calendar_id']);
 
         if (!$calendar) {
             return new \WP_Error('calendar_not_found', __('Calendar not found.', 'ffcertificate'));
         }
 
-        // Verify ownership and capability (user must own appointment + have capability, or be admin)
+        // Verify ownership and capability
         $can_cancel = false;
         $cancelled_by = null;
 
         if (current_user_can('manage_options')) {
-            // Admin can always cancel
             $can_cancel = true;
             $cancelled_by = get_current_user_id();
         } elseif (is_user_logged_in() && $appointment['user_id'] == get_current_user_id()) {
-            // User owns appointment - check capability
             if (current_user_can('ffc_cancel_own_appointments')) {
                 $can_cancel = true;
                 $cancelled_by = get_current_user_id();
@@ -767,7 +308,6 @@ class AppointmentHandler {
                 );
             }
         } elseif (!empty($token) && $appointment['confirmation_token'] === $token) {
-            // Guest with valid token
             $can_cancel = true;
         }
 
@@ -832,23 +372,19 @@ class AppointmentHandler {
      * @param array $appointment
      * @param array $calendar
      * @param string $event (created, confirmed, cancelled, reminder)
-     * @return void
      */
     private function schedule_email_notifications(array $appointment, array $calendar, string $event): void {
-        // Get email config
         $email_config = json_decode($calendar['email_config'], true);
 
         if (!is_array($email_config)) {
             return;
         }
 
-        // Check if global emails are disabled
         $global_settings = get_option('ffc_settings', array());
         if (!empty($global_settings['disable_all_emails'])) {
             return;
         }
 
-        // Schedule based on event type
         switch ($event) {
             case 'created':
                 if (!empty($email_config['send_user_confirmation'])) {
@@ -880,34 +416,26 @@ class AppointmentHandler {
     /**
      * Create or link WordPress user based on CPF/RF and email
      *
-     * If CPF/RF is provided and user is not logged in, create or link to
-     * existing WordPress user account. Updates appointment data with user_id.
-     *
      * @param array &$data Appointment data (passed by reference)
-     * @return void
      */
     private function create_or_link_user(array &$data): void {
-        // Validate required data
         if (empty($data['cpf_rf']) || empty($data['email'])) {
             return;
         }
 
-        // Clean CPF/RF (remove formatting)
         $cpf_rf_clean = preg_replace('/[^0-9]/', '', $data['cpf_rf']);
         if (empty($cpf_rf_clean)) {
             return;
         }
 
-        // Hash CPF/RF for lookup
         $cpf_rf_hash = hash('sha256', $cpf_rf_clean);
 
-        // Try to find or create user using UserManager
         if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
             try {
                 $submission_data = array(
                     'nome_completo' => $data['name'] ?? '',
                     'name' => $data['name'] ?? '',
-                    'skip_email' => true // Don't send password reset email for appointments
+                    'skip_email' => true
                 );
 
                 $user_id = \FreeFormCertificate\UserDashboard\UserManager::get_or_create_user(
@@ -920,7 +448,6 @@ class AppointmentHandler {
                 if (!is_wp_error($user_id) && $user_id > 0) {
                     $data['user_id'] = $user_id;
 
-                    // Log successful user creation/linking
                     if (class_exists('\FreeFormCertificate\Core\Utils')) {
                         \FreeFormCertificate\Core\Utils::debug_log('User created/linked for appointment', array(
                             'user_id' => $user_id,
@@ -930,7 +457,6 @@ class AppointmentHandler {
                     }
                 }
             } catch (\Exception $e) {
-                // Log error but don't fail the appointment
                 if (class_exists('\FreeFormCertificate\Core\Utils')) {
                     \FreeFormCertificate\Core\Utils::debug_log('Failed to create user for appointment', array(
                         'email' => $data['email'],
@@ -938,69 +464,6 @@ class AppointmentHandler {
                     ));
                 }
             }
-        }
-    }
-
-    /**
-     * AJAX: Get monthly booking counts
-     *
-     * @return void
-     */
-    public function ajax_get_month_bookings(): void {
-        try {
-            // Verify nonce
-            check_ajax_referer('ffc_self_scheduling_nonce', 'nonce');
-
-            $calendar_id = isset($_POST['calendar_id']) ? absint(wp_unslash($_POST['calendar_id'])) : 0;
-            $year = isset($_POST['year']) ? absint(wp_unslash($_POST['year'])) : (int) gmdate('Y');
-            $month = isset($_POST['month']) ? absint(wp_unslash($_POST['month'])) : (int) gmdate('n');
-
-            if (!$calendar_id) {
-                wp_send_json_error(array('message' => __('Invalid calendar.', 'ffcertificate')));
-                return;
-            }
-
-            // Get start and end dates for the month
-            $start_date = sprintf('%04d-%02d-01', $year, $month);
-            $end_date = gmdate('Y-m-t', strtotime($start_date));
-
-            // Get booking counts per day
-            $counts = $this->appointment_repository->getBookingCountsByDateRange($calendar_id, $start_date, $end_date);
-
-            // Get holidays for the month (global + calendar-specific blocked dates)
-            $holidays = array();
-
-            // Global holidays
-            $global_holidays = \FreeFormCertificate\Scheduling\DateBlockingService::get_global_holidays($start_date, $end_date);
-            foreach ($global_holidays as $gh) {
-                $holidays[$gh['date']] = $gh['description'] ?: __('Holiday', 'ffcertificate');
-            }
-
-            // Calendar-specific full-day blocked dates
-            $blocked = $this->blocked_date_repository->getBlockedDatesInRange($calendar_id, $start_date, $end_date);
-            if (is_array($blocked)) {
-                foreach ($blocked as $block) {
-                    if (isset($block['block_type']) && $block['block_type'] === 'full_day') {
-                        $block_start = $block['start_date'];
-                        $block_end = $block['end_date'] ?? $block['start_date'];
-                        $current = $block_start;
-                        while ($current <= $block_end) {
-                            if (!isset($holidays[$current])) {
-                                $holidays[$current] = $block['reason'] ?: __('Closed', 'ffcertificate');
-                            }
-                            $current = gmdate('Y-m-d', strtotime($current . ' +1 day'));
-                        }
-                    }
-                }
-            }
-
-            wp_send_json_success(array(
-                'counts' => $counts,
-                'holidays' => $holidays,
-            ));
-
-        } catch (\Throwable $e) {
-            wp_send_json_error(array('message' => $e->getMessage()));
         }
     }
 }

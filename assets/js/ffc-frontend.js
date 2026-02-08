@@ -19,6 +19,33 @@
     window.ffcUtils = window.FFC.Frontend.Masks;
 
     /**
+     * Show an accessible inline alert message instead of window.alert()
+     *
+     * @param {string} message - Message text
+     * @param {jQuery|null} $context - Element near which to show the message (falls back to body)
+     */
+    function showAccessibleAlert(message, $context) {
+        // Remove any previous transient alerts
+        $('.ffc-accessible-alert').remove();
+
+        var $alert = $('<div class="ffc-accessible-alert ffc-message ffc-message-error" role="alert">' + message + '</div>');
+
+        if ($context && $context.length) {
+            $context.before($alert);
+        } else {
+            $('body').prepend($alert);
+        }
+
+        // Auto-remove after 8 seconds
+        setTimeout(function() {
+            $alert.fadeOut(300, function() { $(this).remove(); });
+        }, 8000);
+
+        // Focus the alert for screen readers
+        $alert.attr('tabindex', '-1').focus();
+    }
+
+    /**
      * Handle magic link verification (automatic on page load)
      * 
      * v2.8.0: Supports both query string (?token=) and hash (#token=)
@@ -178,7 +205,7 @@
         var honeypot = $form.find('input[name="ffc_honeypot_trap"]').val();
         
         if (!authCode) {
-            alert(ffc_ajax.strings.enterCode || 'Please enter the code');
+            showAccessibleAlert(ffc_ajax.strings.enterCode || 'Please enter the code', $form);
             return;
         }
         
@@ -213,7 +240,7 @@
                 }
             },
             error: function() {
-                alert(ffc_ajax.strings.connectionError || 'Connection error');
+                showAccessibleAlert(ffc_ajax.strings.connectionError || 'Connection error', $form);
             }
         });
     });
@@ -240,11 +267,11 @@
                 window.ffcGeneratePDF(pdfData, filename);
             } else {
                 console.error('[FFC] PDF generator not loaded');
-                alert(ffc_ajax.strings.pdfLibrariesFailed || 'PDF generation not available');
+                showAccessibleAlert(ffc_ajax.strings.pdfLibrariesFailed || 'PDF generation not available', $(this).parent());
             }
         } catch (e) {
             console.error('[FFC] Error parsing PDF data:', e);
-            alert(ffc_ajax.strings.error || 'Error occurred');
+            showAccessibleAlert(ffc_ajax.strings.error || 'Error occurred', $(this).parent());
         }
     });
 
@@ -266,14 +293,16 @@
             $form.find('[required]').each(function() {
                 if (!$(this).val()) {
                     isValid = false;
-                    $(this).addClass('ffc-field-error');
+                    $(this).addClass('ffc-field-error').attr('aria-invalid', 'true');
                 } else {
-                    $(this).removeClass('ffc-field-error');
+                    $(this).removeClass('ffc-field-error').removeAttr('aria-invalid');
                 }
             });
             
             if (!isValid) {
-                alert(ffc_ajax.strings.fillRequired || 'Please fill all required fields');
+                showAccessibleAlert(ffc_ajax.strings.fillRequired || 'Please fill all required fields', $form);
+                // Focus the first invalid field
+                $form.find('.ffc-field-error').first().focus();
                 return;
             }
             
@@ -337,7 +366,7 @@
                         }
                     } catch(e) {}
 
-                    alert(ffc_ajax.strings.connectionError || 'Connection error');
+                    showAccessibleAlert(ffc_ajax.strings.connectionError || 'Connection error', $form);
                     $submitBtn.prop('disabled', false).text(originalBtnText);
                 }
             });

@@ -8,7 +8,7 @@ declare(strict_types=1);
  * Follows Repository pattern for separation of concerns.
  *
  * @since 4.1.0
- * @version 4.1.0
+ * @version 4.6.10 - Added FOR UPDATE lock support for concurrent booking safety
  */
 
 namespace FreeFormCertificate\Repositories;
@@ -196,10 +196,12 @@ class AppointmentRepository extends AbstractRepository {
      * @param int $calendar_id
      * @param string $date Date in Y-m-d format
      * @param array $statuses Optional status filter (default: confirmed appointments)
+     * @param bool $use_lock Use FOR UPDATE lock (requires active transaction)
      * @return array
      */
-    public function getAppointmentsByDate(int $calendar_id, string $date, array $statuses = ['confirmed', 'pending']): array {
+    public function getAppointmentsByDate(int $calendar_id, string $date, array $statuses = ['confirmed', 'pending'], bool $use_lock = false): array {
         $status_placeholders = implode(',', array_fill(0, count($statuses), '%s'));
+        $lock_clause = $use_lock ? ' FOR UPDATE' : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $sql = $this->wpdb->prepare(
@@ -207,7 +209,7 @@ class AppointmentRepository extends AbstractRepository {
              WHERE calendar_id = %d
              AND appointment_date = %s
              AND status IN ({$status_placeholders})
-             ORDER BY start_time ASC",
+             ORDER BY start_time ASC{$lock_clause}",
             array_merge([$calendar_id, $date], $statuses)
         );
 
@@ -248,9 +250,12 @@ class AppointmentRepository extends AbstractRepository {
      * @param string $date
      * @param string $start_time
      * @param int $max_per_slot
+     * @param bool $use_lock Use FOR UPDATE lock (requires active transaction)
      * @return bool
      */
-    public function isSlotAvailable(int $calendar_id, string $date, string $start_time, int $max_per_slot = 1): bool {
+    public function isSlotAvailable(int $calendar_id, string $date, string $start_time, int $max_per_slot = 1, bool $use_lock = false): bool {
+        $lock_clause = $use_lock ? ' FOR UPDATE' : '';
+
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $count = $this->wpdb->get_var(
             $this->wpdb->prepare(
@@ -258,7 +263,7 @@ class AppointmentRepository extends AbstractRepository {
                  WHERE calendar_id = %d
                  AND appointment_date = %s
                  AND start_time = %s
-                 AND status IN ('confirmed', 'pending')",
+                 AND status IN ('confirmed', 'pending'){$lock_clause}",
                 $calendar_id,
                 $date,
                 $start_time

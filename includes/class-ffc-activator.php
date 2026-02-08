@@ -54,6 +54,12 @@ class Activator {
 
         self::add_composite_indexes();
         self::run_migrations();
+
+        // Schedule daily cleanup cron (v4.6.9)
+        if ( ! wp_next_scheduled( 'ffc_daily_cleanup_hook' ) ) {
+            wp_schedule_event( time(), 'daily', 'ffc_daily_cleanup_hook' );
+        }
+
         flush_rewrite_rules();
     }
 
@@ -170,34 +176,10 @@ class Activator {
     }
 
     private static function create_activity_log_table(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_activity_log';
-        $charset_collate = $wpdb->get_charset_collate();
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") == $table_name) {
-            return;
+        // Delegate to ActivityLog::create_table() to avoid schema mismatch (v4.6.9)
+        if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+            \FreeFormCertificate\Core\ActivityLog::create_table();
         }
-
-        $sql = "CREATE TABLE {$table_name} (
-            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            submission_id bigint(20) unsigned NOT NULL,
-            action_type varchar(50) NOT NULL,
-            action_details longtext DEFAULT NULL,
-            user_id bigint(20) unsigned DEFAULT NULL,
-            user_ip varchar(45) DEFAULT NULL,
-            user_agent varchar(255) DEFAULT NULL,
-            created_at datetime NOT NULL,
-            PRIMARY KEY (id),
-            KEY submission_id (submission_id),
-            KEY action_type (action_type),
-            KEY created_at (created_at),
-            KEY user_id (user_id)
-        ) {$charset_collate};";
-
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
     }
 
     private static function create_verification_page(): void {

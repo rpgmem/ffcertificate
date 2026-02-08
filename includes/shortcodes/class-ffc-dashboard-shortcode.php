@@ -80,38 +80,60 @@ class DashboardShortcode {
             echo wp_kses_post( self::render_redirect_message() );
             ?>
 
-            <nav class="ffc-dashboard-tabs">
+            <nav class="ffc-dashboard-tabs" role="tablist" aria-label="<?php esc_attr_e('Dashboard', 'ffcertificate'); ?>">
                 <?php if ($can_view_certificates) : ?>
                     <button class="ffc-tab <?php echo esc_attr( $current_tab === 'certificates' ? 'active' : '' ); ?>"
-                            data-tab="certificates">
-                        📜 <?php esc_html_e('Certificates', 'ffcertificate'); ?>
+                            data-tab="certificates"
+                            role="tab"
+                            id="ffc-tab-certificates"
+                            aria-selected="<?php echo esc_attr( $current_tab === 'certificates' ? 'true' : 'false' ); ?>"
+                            aria-controls="tab-certificates"
+                            tabindex="<?php echo esc_attr( $current_tab === 'certificates' ? '0' : '-1' ); ?>">
+                        <span aria-hidden="true">📜</span> <?php esc_html_e('Certificates', 'ffcertificate'); ?>
                     </button>
                 <?php endif; ?>
 
                 <?php if ($can_view_appointments) : ?>
                     <button class="ffc-tab <?php echo esc_attr( $current_tab === 'appointments' ? 'active' : '' ); ?>"
-                            data-tab="appointments">
-                        📅 <?php esc_html_e('Personal Schedule', 'ffcertificate'); ?>
+                            data-tab="appointments"
+                            role="tab"
+                            id="ffc-tab-appointments"
+                            aria-selected="<?php echo esc_attr( $current_tab === 'appointments' ? 'true' : 'false' ); ?>"
+                            aria-controls="tab-appointments"
+                            tabindex="<?php echo esc_attr( $current_tab === 'appointments' ? '0' : '-1' ); ?>">
+                        <span aria-hidden="true">📅</span> <?php esc_html_e('Personal Schedule', 'ffcertificate'); ?>
                     </button>
                 <?php endif; ?>
 
                 <?php if ($can_view_audience_bookings) : ?>
                     <button class="ffc-tab <?php echo esc_attr( $current_tab === 'audience' ? 'active' : '' ); ?>"
-                            data-tab="audience">
-                        👥 <?php esc_html_e('Group Schedule', 'ffcertificate'); ?>
+                            data-tab="audience"
+                            role="tab"
+                            id="ffc-tab-audience"
+                            aria-selected="<?php echo esc_attr( $current_tab === 'audience' ? 'true' : 'false' ); ?>"
+                            aria-controls="tab-audience"
+                            tabindex="<?php echo esc_attr( $current_tab === 'audience' ? '0' : '-1' ); ?>">
+                        <span aria-hidden="true">👥</span> <?php esc_html_e('Group Schedule', 'ffcertificate'); ?>
                     </button>
                 <?php endif; ?>
 
                 <button class="ffc-tab <?php echo esc_attr( $current_tab === 'profile' ? 'active' : '' ); ?>"
-                        data-tab="profile">
-                    👤 <?php esc_html_e('Profile', 'ffcertificate'); ?>
+                        data-tab="profile"
+                        role="tab"
+                        id="ffc-tab-profile"
+                        aria-selected="<?php echo esc_attr( $current_tab === 'profile' ? 'true' : 'false' ); ?>"
+                        aria-controls="tab-profile"
+                        tabindex="<?php echo esc_attr( $current_tab === 'profile' ? '0' : '-1' ); ?>">
+                    <span aria-hidden="true">👤</span> <?php esc_html_e('Profile', 'ffcertificate'); ?>
                 </button>
             </nav>
 
             <?php if ($can_view_certificates) : ?>
                 <div class="ffc-tab-content <?php echo esc_attr( $current_tab === 'certificates' ? 'active' : '' ); ?>"
-                     id="tab-certificates">
-                    <div class="ffc-loading">
+                     id="tab-certificates"
+                     role="tabpanel"
+                     aria-labelledby="ffc-tab-certificates">
+                    <div class="ffc-loading" role="status">
                         <?php esc_html_e('Loading certificates...', 'ffcertificate'); ?>
                     </div>
                 </div>
@@ -119,8 +141,10 @@ class DashboardShortcode {
 
             <?php if ($can_view_appointments) : ?>
                 <div class="ffc-tab-content <?php echo esc_attr( $current_tab === 'appointments' ? 'active' : '' ); ?>"
-                     id="tab-appointments">
-                    <div class="ffc-loading">
+                     id="tab-appointments"
+                     role="tabpanel"
+                     aria-labelledby="ffc-tab-appointments">
+                    <div class="ffc-loading" role="status">
                         <?php esc_html_e('Loading appointments...', 'ffcertificate'); ?>
                     </div>
                 </div>
@@ -128,16 +152,20 @@ class DashboardShortcode {
 
             <?php if ($can_view_audience_bookings) : ?>
                 <div class="ffc-tab-content <?php echo esc_attr( $current_tab === 'audience' ? 'active' : '' ); ?>"
-                     id="tab-audience">
-                    <div class="ffc-loading">
+                     id="tab-audience"
+                     role="tabpanel"
+                     aria-labelledby="ffc-tab-audience">
+                    <div class="ffc-loading" role="status">
                         <?php esc_html_e('Loading scheduled activities...', 'ffcertificate'); ?>
                     </div>
                 </div>
             <?php endif; ?>
 
             <div class="ffc-tab-content <?php echo esc_attr( $current_tab === 'profile' ? 'active' : '' ); ?>"
-                 id="tab-profile">
-                <div class="ffc-loading">
+                 id="tab-profile"
+                 role="tabpanel"
+                 aria-labelledby="ffc-tab-profile">
+                <div class="ffc-loading" role="status">
                     <?php esc_html_e('Loading profile...', 'ffcertificate'); ?>
                 </div>
             </div>

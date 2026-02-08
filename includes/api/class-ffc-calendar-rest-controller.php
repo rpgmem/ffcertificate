@@ -126,10 +126,11 @@ class CalendarRestController {
             ));
 
         } catch (\Exception $e) {
+            $this->log_rest_error( 'get_calendars', $e );
             return new \WP_Error(
-                'get_calendars_error',
-                $e->getMessage(),
-                array('status' => 500)
+                'ffc_internal_error',
+                __( 'An unexpected error occurred.', 'ffcertificate' ),
+                array( 'status' => 500 )
             );
         }
     }
@@ -190,10 +191,11 @@ class CalendarRestController {
             ));
 
         } catch (\Exception $e) {
+            $this->log_rest_error( 'get_calendar', $e );
             return new \WP_Error(
-                'get_calendar_error',
-                $e->getMessage(),
-                array('status' => 500)
+                'ffc_internal_error',
+                __( 'An unexpected error occurred.', 'ffcertificate' ),
+                array( 'status' => 500 )
             );
         }
     }
@@ -233,11 +235,29 @@ class CalendarRestController {
             ));
 
         } catch (\Exception $e) {
+            $this->log_rest_error( 'get_calendar_slots', $e );
             return new \WP_Error(
-                'get_slots_error',
-                $e->getMessage(),
-                array('status' => 500)
+                'ffc_internal_error',
+                __( 'An unexpected error occurred.', 'ffcertificate' ),
+                array( 'status' => 500 )
             );
+        }
+    }
+
+    /**
+     * Log REST API error without exposing details to clients.
+     *
+     * @since 4.6.6
+     * @param string     $context Action that caused the error.
+     * @param \Exception $e       The exception.
+     */
+    private function log_rest_error( string $context, \Exception $e ): void {
+        if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+            \FreeFormCertificate\Core\Utils::debug_log( "REST API error: {$context}", array(
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ) );
         }
     }
 }

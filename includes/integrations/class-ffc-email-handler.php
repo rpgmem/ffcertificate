@@ -213,7 +213,14 @@ class EmailHandler {
         $body = apply_filters( 'ffc_user_email_body', $body, $to, $form_title, $submission_data );
 
         // Send email
-        wp_mail( $to, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+        $sent = wp_mail( $to, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+
+        if ( ! $sent && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+            \FreeFormCertificate\Core\Utils::debug_log( 'User email send failed', array(
+                'to' => $to,
+                'subject' => $subject,
+            ) );
+        }
     }
 
     /**
@@ -280,7 +287,14 @@ class EmailHandler {
         // Send to all admin emails
         foreach ( $admins as $email ) {
             if ( is_email( $email ) ) {
-                wp_mail( $email, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+                $sent = wp_mail( $email, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+
+                if ( ! $sent && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+                    \FreeFormCertificate\Core\Utils::debug_log( 'Admin notification email send failed', array(
+                        'to' => $email,
+                        'subject' => $subject,
+                    ) );
+                }
             }
         }
     }

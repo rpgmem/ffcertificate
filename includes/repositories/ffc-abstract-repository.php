@@ -4,6 +4,7 @@
  * Base class for all repositories
  *
  * @since 3.0.0
+ * @version 4.6.10 - Added transaction support (begin/commit/rollback)
  * @version 3.3.0 - Added strict types and type hints for better code safety
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
@@ -158,6 +159,7 @@ abstract class AbstractRepository {
             return $this->wpdb->insert_id;
         }
 
+        $this->log_db_error( 'insert' );
         return false;
     }
 
@@ -178,6 +180,8 @@ abstract class AbstractRepository {
 
         if ($result !== false) {
             $this->clear_cache("id_{$id}");
+        } else {
+            $this->log_db_error( 'update', $id );
         }
 
         return $result;
@@ -195,6 +199,8 @@ abstract class AbstractRepository {
 
         if ($result) {
             $this->clear_cache("id_{$id}");
+        } elseif ( $result === false ) {
+            $this->log_db_error( 'delete', $id );
         }
 
         return $result;
@@ -274,6 +280,60 @@ abstract class AbstractRepository {
             wp_cache_delete($key, $this->cache_group);
         } else {
             wp_cache_flush();
+        }
+    }
+
+    /**
+     * Start a database transaction.
+     *
+     * @since 4.6.10
+     * @return bool
+     */
+    public function begin_transaction(): bool {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $this->wpdb->query( 'START TRANSACTION' ) !== false;
+    }
+
+    /**
+     * Commit the current transaction.
+     *
+     * @since 4.6.10
+     * @return bool
+     */
+    public function commit(): bool {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $this->wpdb->query( 'COMMIT' ) !== false;
+    }
+
+    /**
+     * Rollback the current transaction.
+     *
+     * @since 4.6.10
+     * @return bool
+     */
+    public function rollback(): bool {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $this->wpdb->query( 'ROLLBACK' ) !== false;
+    }
+
+    /**
+     * Log database error from $wpdb->last_error.
+     *
+     * @since 4.6.6
+     * @param string   $operation Operation name (insert, update, delete).
+     * @param int|null $id        Record ID if applicable.
+     */
+    protected function log_db_error( string $operation, ?int $id = null ): void {
+        if ( empty( $this->wpdb->last_error ) ) {
+            return;
+        }
+
+        if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+            \FreeFormCertificate\Core\Utils::debug_log( "Database {$operation} failed", array(
+                'table' => $this->table,
+                'id'    => $id,
+                'error' => $this->wpdb->last_error,
+            ) );
         }
     }
 }

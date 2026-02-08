@@ -55,7 +55,11 @@ class AppointmentEmailHandler {
                     }
                 }
             } catch (\Exception $e) {
-                // Fall through to plain email
+                if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+                    \FreeFormCertificate\Core\Utils::debug_log( 'Appointment email decryption failed', array(
+                        'error' => $e->getMessage(),
+                    ) );
+                }
             }
         }
 
@@ -148,7 +152,7 @@ class AppointmentEmailHandler {
         $body .= $this->get_email_template_footer();
 
         // Send email
-        wp_mail($email, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
+        $this->send_mail($email, $subject, $body);
     }
 
     /**
@@ -217,7 +221,7 @@ class AppointmentEmailHandler {
         // Send to all admin emails
         foreach ($admin_emails as $admin_email) {
             if (is_email($admin_email)) {
-                wp_mail($admin_email, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
+                $this->send_mail($admin_email, $subject, $body);
             }
         }
     }
@@ -283,7 +287,7 @@ class AppointmentEmailHandler {
         $body .= $this->get_email_template_footer();
 
         // Send email
-        wp_mail($email, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
+        $this->send_mail($email, $subject, $body);
     }
 
     /**
@@ -342,7 +346,7 @@ class AppointmentEmailHandler {
         $body .= $this->get_email_template_footer();
 
         // Send email
-        wp_mail($email, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
+        $this->send_mail($email, $subject, $body);
     }
 
     /**
@@ -404,7 +408,29 @@ class AppointmentEmailHandler {
         $body .= $this->get_email_template_footer();
 
         // Send email
-        wp_mail($email, $subject, $body, array('Content-Type: text/html; charset=UTF-8'));
+        $this->send_mail($email, $subject, $body);
+    }
+
+    /**
+     * Send email with failure logging.
+     *
+     * @since 4.6.6
+     * @param string $to      Recipient email.
+     * @param string $subject Email subject.
+     * @param string $body    Email body HTML.
+     * @return bool Whether the email was sent.
+     */
+    private function send_mail( string $to, string $subject, string $body ): bool {
+        $sent = wp_mail( $to, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+
+        if ( ! $sent && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+            \FreeFormCertificate\Core\Utils::debug_log( 'Appointment email send failed', array(
+                'to'      => $to,
+                'subject' => $subject,
+            ) );
+        }
+
+        return $sent;
     }
 
     /**

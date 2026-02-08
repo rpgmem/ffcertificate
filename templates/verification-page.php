@@ -18,8 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <div class="ffc-verification-container ffc-verification-auto-check">
     <!-- Loading (hidden initially, shown by JS if hash token found) -->
-    <div class="ffc-verify-loading" style="display:none;">
-        <div class="ffc-spinner"></div>
+    <div class="ffc-verify-loading" role="status" aria-live="polite" style="display:none;">
+        <div class="ffc-spinner" aria-hidden="true"></div>
         <p><?php esc_html_e( 'Verifying document...', 'ffcertificate' ); ?></p>
     </div>
 
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     <div class="ffc-verification-manual">
         <div class="ffc-verification-header">
             <h2><?php esc_html_e( 'Verify Document', 'ffcertificate' ); ?></h2>
-            <p><?php esc_html_e( 'Enter the authentication code to verify document authenticity.', 'ffcertificate' ); ?></p>
+            <p id="ffc-auth-code-desc"><?php esc_html_e( 'Enter the authentication code to verify document authenticity.', 'ffcertificate' ); ?></p>
         </div>
 
         <form method="POST" class="ffc-verification-form">
@@ -42,6 +42,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                     class="ffc-input ffc-verify-input"
                     placeholder="<?php esc_attr_e( 'XXXX-XXXX-XXXX', 'ffcertificate' ); ?>"
                     required
+                    aria-required="true"
+                    aria-describedby="ffc-auth-code-desc"
                     maxlength="14"
                     pattern="[A-Za-z0-9\-]+"
                 >
@@ -55,5 +57,5 @@ if ( ! defined( 'ABSPATH' ) ) {
     </div>
 
     <!-- Verification result -->
-    <div class="ffc-verify-result"></div>
+    <div class="ffc-verify-result" role="region" aria-live="polite"></div>
 </div>

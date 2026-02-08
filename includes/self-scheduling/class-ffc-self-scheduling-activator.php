@@ -36,6 +36,7 @@ class SelfSchedulingActivator {
         self::create_appointments_table();
         self::create_blocked_dates_table();
         self::add_composite_indexes();
+        self::ensure_unique_validation_code_index();
     }
 
     /**
@@ -655,5 +656,36 @@ class SelfSchedulingActivator {
                 $wpdb->query( "ALTER TABLE {$table_name} ADD INDEX {$index_name} {$columns}" );
             }
         }
+    }
+
+    /**
+     * Ensure validation_code has a UNIQUE index (prevents race condition duplicates).
+     *
+     * Upgrades the existing non-unique KEY to UNIQUE KEY.
+     *
+     * @since 4.6.10
+     */
+    private static function ensure_unique_validation_code_index(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+
+        // Check if validation_code index exists and whether it's already unique
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $indexes = $wpdb->get_results( "SHOW INDEX FROM {$table_name} WHERE Key_name = 'validation_code'" );
+
+        if ( ! empty( $indexes ) ) {
+            // Check if Non_unique = 0 (already unique)
+            if ( (int) $indexes[0]->Non_unique === 0 ) {
+                return; // Already unique
+            }
+
+            // Drop the non-unique index first
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $wpdb->query( "ALTER TABLE {$table_name} DROP INDEX validation_code" );
+        }
+
+        // Add UNIQUE index
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $wpdb->query( "ALTER TABLE {$table_name} ADD UNIQUE KEY validation_code (validation_code)" );
     }
 }

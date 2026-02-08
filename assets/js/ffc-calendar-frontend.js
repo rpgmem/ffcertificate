@@ -39,16 +39,16 @@
                 });
             }
 
-            // Time slot selection
+            // Time slot selection (click and keyboard)
             $(document).on('click', '.ffc-timeslot:not(.ffc-timeslot-full)', function() {
-                var $slot = $(this);
-                var time = $slot.data('time');
+                self.selectTimeSlot($(this));
+            });
 
-                $('.ffc-timeslot').removeClass('selected');
-                $slot.addClass('selected');
-
-                self.selectedTime = time;
-                self.showBookingForm();
+            $(document).on('keydown', '.ffc-timeslot:not(.ffc-timeslot-full)', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    self.selectTimeSlot($(this));
+                }
             });
 
             // Form submission
@@ -98,16 +98,37 @@
         },
 
         /**
-         * Open booking modal
+         * Select a time slot
          */
-        openModal: function() {
-            var $modal = $('#ffc-self-scheduling-modal');
-            $modal.show();
-            $('body').css('overflow', 'hidden');
+        selectTimeSlot: function($slot) {
+            var time = $slot.data('time');
+
+            $('.ffc-timeslot').removeClass('selected').attr('aria-selected', 'false');
+            $slot.addClass('selected').attr('aria-selected', 'true');
+
+            this.selectedTime = time;
+            this.showBookingForm();
         },
 
         /**
-         * Close booking modal
+         * Open booking modal with focus management
+         */
+        openModal: function() {
+            var $modal = $('#ffc-self-scheduling-modal');
+            // Store the element that opened the modal for focus return
+            this._triggerElement = document.activeElement;
+            $modal.show();
+            $('body').css('overflow', 'hidden');
+
+            // Move focus to the modal close button
+            $modal.find('.ffc-modal-close').focus();
+
+            // Set up focus trap
+            this._trapFocus($modal);
+        },
+
+        /**
+         * Close booking modal and return focus
          */
         closeModal: function() {
             var $modal = $('#ffc-self-scheduling-modal');
@@ -117,8 +138,35 @@
             // Reset modal to time slots view
             $('.ffc-booking-form-wrapper').hide();
             $('.ffc-timeslots-wrapper').show();
-            $('.ffc-timeslot').removeClass('selected');
+            $('.ffc-timeslot').removeClass('selected').attr('aria-selected', 'false');
             this.selectedTime = null;
+
+            // Return focus to the trigger element
+            if (this._triggerElement) {
+                this._triggerElement.focus();
+                this._triggerElement = null;
+            }
+        },
+
+        /**
+         * Trap focus within the modal
+         */
+        _trapFocus: function($modal) {
+            $modal.off('keydown.focustrap').on('keydown.focustrap', function(e) {
+                if (e.key !== 'Tab') return;
+
+                var focusable = $modal.find('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])').filter(':visible');
+                var first = focusable.first()[0];
+                var last = focusable.last()[0];
+
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            });
         },
 
         /**
@@ -204,9 +252,12 @@
 
             $.each(slots, function(index, slot) {
                 var availableText = slot.available + ' / ' + slot.total;
-                var fullClass = slot.available === 0 ? ' ffc-timeslot-full' : '';
+                var isFull = slot.available === 0;
+                var fullClass = isFull ? ' ffc-timeslot-full' : '';
+                var tabIdx = isFull ? '' : ' tabindex="0"';
+                var ariaDisabled = isFull ? ' aria-disabled="true"' : '';
 
-                html += '<div class="ffc-timeslot' + fullClass + '" data-time="' + slot.time + '">';
+                html += '<div class="ffc-timeslot' + fullClass + '" role="option" aria-selected="false"' + tabIdx + ariaDisabled + ' data-time="' + slot.time + '">';
                 html += '<span class="ffc-timeslot-time">' + slot.display + '</span>';
                 html += '<span class="ffc-timeslot-available">' + availableText + '</span>';
                 html += '</div>';
@@ -239,6 +290,12 @@
 
             // Scroll modal body to top
             $('#ffc-self-scheduling-modal .ffc-modal-content').scrollTop(0);
+
+            // Move focus to first non-readonly input in the form
+            var $firstInput = $('#ffc-self-scheduling-form input:not([type="hidden"]):not([readonly]):visible').first();
+            if ($firstInput.length) {
+                $firstInput.focus();
+            }
         },
 
         /**
@@ -393,10 +450,12 @@
             $('.ffc-calendar-container').hide();
             $('.ffc-confirmation-wrapper').show();
 
-            // Scroll to confirmation
+            // Scroll to confirmation and move focus
             $('html, body').animate({
                 scrollTop: $('.ffc-confirmation-wrapper').offset().top - 100
-            }, 500);
+            }, 500, function() {
+                $('.ffc-confirmation-success h3').attr('tabindex', '-1').focus();
+            });
 
             // Auto-download PDF receipt if available
             if (data.pdf_data && typeof window.ffcGeneratePDF === 'function') {
@@ -437,8 +496,12 @@
                 (ffcCalendar.strings.availableTimes || 'Available Times') + ' — ' + self.formatDate(self.selectedDate)
             );
 
-            // Scroll modal to top
+            // Scroll modal to top and focus first available slot
             $('#ffc-self-scheduling-modal .ffc-modal-content').scrollTop(0);
+            var $firstSlot = $('.ffc-timeslot:not(.ffc-timeslot-full)').first();
+            if ($firstSlot.length) {
+                $firstSlot.focus();
+            }
         },
 
         /**
