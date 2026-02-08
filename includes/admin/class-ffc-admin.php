@@ -44,7 +44,6 @@ class Admin {
         $this->form_editor   = new FormEditor();
         $this->settings_page = new Settings( $handler );
 
-        $this->migration_manager = new MigrationManager();
         $this->assets_manager = new AdminAssetsManager();
         $this->assets_manager->register();
         $this->edit_page = new AdminSubmissionEditPage( $handler );
@@ -274,6 +273,11 @@ class Admin {
 
         // Verify nonce
         check_admin_referer( 'ffc_migration_' . $migration_key );
+
+        // Lazy-load MigrationManager (avoids early translation calls)
+        if ( ! $this->migration_manager ) {
+            $this->migration_manager = new MigrationManager();
+        }
 
         // Get migration info
         $migration = $this->migration_manager->get_migration( $migration_key );
