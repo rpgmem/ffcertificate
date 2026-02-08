@@ -97,7 +97,7 @@
 
     function generateAndDownloadPDF(pdfData, filename) {
         console.log('[FFC PDF] Starting PDF generation...');
-        console.log('[FFC PDF] Template length:', pdfData.template ? pdfData.template.length : 0);
+        console.log('[FFC PDF] Template length:', pdfData.html ? pdfData.html.length : 0);
         
         if (!checkPDFLibraries()) {
             var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfLibrariesFailed)
@@ -126,7 +126,7 @@
             'opacity': '0'        // ← Invisível mas renderizado
         }).appendTo('body');
 
-        var processedHTML = pdfData.template || '';
+        var processedHTML = pdfData.html || '';
         
         console.log('[FFC PDF] HTML preview:', processedHTML.substring(0, 200));
 
