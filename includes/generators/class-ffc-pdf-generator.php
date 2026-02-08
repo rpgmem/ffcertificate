@@ -224,6 +224,8 @@ class PdfGenerator {
      * - {{name}}, {{email}}, {{auth_code}}, etc.
      * - {{submission_date}} - Date when submission was created (from database)
      * - {{print_date}} - Current date/time when PDF is being generated
+     * - {{main_address}} - Institutional address from Settings > General
+     * - {{site_name}} - WordPress site name
      * - {{qr_code}} - QR Code with default settings
      * - {{qr_code:size=150}} - Custom size
      * - {{qr_code:size=200:margin=0}} - Custom size and margin
@@ -263,7 +265,15 @@ class PdfGenerator {
         $layout = str_replace( '{{print_date}}', date_i18n( $date_format, current_time( 'timestamp' ) ), $layout );
 
         $layout = str_replace( '{{form_title}}', $form_title, $layout );
-        
+
+        // Inject settings-based placeholders into data (v4.6.10)
+        if ( ! isset( $data['main_address'] ) && ! empty( $settings['main_address'] ) ) {
+            $data['main_address'] = $settings['main_address'];
+        }
+        if ( ! isset( $data['site_name'] ) ) {
+            $data['site_name'] = get_bloginfo( 'name' );
+        }
+
         // Ensure email field exists
         if ( ! isset( $data['email'] ) && isset( $data['user_email'] ) ) {
             $data['email'] = $data['user_email'];

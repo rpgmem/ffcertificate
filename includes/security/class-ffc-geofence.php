@@ -47,8 +47,12 @@ class Geofence {
             );
         }
 
-        // PRIORITY 1: Date/Time Validation (always server-side)
-        if ($options['check_datetime'] && $config['datetime_enabled']) {
+        // Check admin bypass settings (require manage_options capability)
+        $bypass_datetime = self::should_bypass_datetime();
+        $bypass_geo = self::should_bypass_geo();
+
+        // PRIORITY 1: Date/Time Validation (skip if admin bypass enabled)
+        if ($options['check_datetime'] && $config['datetime_enabled'] && !$bypass_datetime) {
             $datetime_check = self::validate_datetime($config);
 
             if (!$datetime_check['valid']) {
@@ -62,9 +66,8 @@ class Geofence {
             }
         }
 
-        // PRIORITY 2: Geolocation Validation (if explicitly requested)
-        // Note: GPS validation happens on frontend, IP validation can happen here
-        if ($options['check_geo'] && $config['geo_enabled']) {
+        // PRIORITY 2: Geolocation Validation (skip if admin bypass enabled)
+        if ($options['check_geo'] && $config['geo_enabled'] && !$bypass_geo) {
             $geo_check = self::validate_geolocation($config, $options['user_location']);
 
             if (!$geo_check['valid']) {
