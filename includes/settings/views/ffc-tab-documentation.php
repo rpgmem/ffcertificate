@@ -39,8 +39,8 @@ if (!defined('ABSPATH')) exit;
     <table class="widefat striped">
         <thead>
             <tr>
-                <th><?php esc_html_e('Shortcode', 'ffcertificate'); ?></th>
-                <th><?php esc_html_e('Description', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Shortcode', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Description', 'ffcertificate'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -91,9 +91,9 @@ if (!defined('ABSPATH')) exit;
     <table class="widefat striped">
         <thead>
             <tr>
-                <th><?php esc_html_e('Variable', 'ffcertificate'); ?></th>
-                <th><?php esc_html_e('Description', 'ffcertificate'); ?></th>
-                <th><?php esc_html_e('Example Output', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Variable', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Description', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Example Output', 'ffcertificate'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -179,8 +179,8 @@ if (!defined('ABSPATH')) exit;
     <table class="widefat striped">
         <thead>
             <tr>
-                <th><?php esc_html_e('Usage', 'ffcertificate'); ?></th>
-                <th><?php esc_html_e('Description', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Usage', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Description', 'ffcertificate'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -232,8 +232,8 @@ if (!defined('ABSPATH')) exit;
     <table class="widefat striped">
         <thead>
             <tr>
-                <th><?php esc_html_e('Usage', 'ffcertificate'); ?></th>
-                <th><?php esc_html_e('Description', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Usage', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Description', 'ffcertificate'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -269,8 +269,8 @@ if (!defined('ABSPATH')) exit;
     <table class="widefat striped">
         <thead>
             <tr>
-                <th><?php esc_html_e('Tag', 'ffcertificate'); ?></th>
-                <th><?php esc_html_e('Usage', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Tag', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Usage', 'ffcertificate'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -321,8 +321,8 @@ if (!defined('ABSPATH')) exit;
     <table class="widefat striped">
         <thead>
             <tr>
-                <th><?php esc_html_e('Example', 'ffcertificate'); ?></th>
-                <th><?php esc_html_e('Result', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Example', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Result', 'ffcertificate'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -345,8 +345,8 @@ if (!defined('ABSPATH')) exit;
     <table class="widefat striped">
         <thead>
             <tr>
-                <th><?php esc_html_e('Style', 'ffcertificate'); ?></th>
-                <th><?php esc_html_e('Example', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Style', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Example', 'ffcertificate'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -596,8 +596,8 @@ if (!defined('ABSPATH')) exit;
     <table class="widefat striped">
         <thead>
             <tr>
-                <th><?php esc_html_e('Problem', 'ffcertificate'); ?></th>
-                <th><?php esc_html_e('Solution', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Problem', 'ffcertificate'); ?></th>
+                <th scope="col"><?php esc_html_e('Solution', 'ffcertificate'); ?></th>
             </tr>
         </thead>
         <tbody>

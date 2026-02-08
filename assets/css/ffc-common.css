@@ -70,6 +70,121 @@
     --ffc-transition-fast: 0.15s ease;
     --ffc-transition-base: 0.2s ease;
     --ffc-transition-slow: 0.3s ease;
+
+    /* Semantic Tokens - Surfaces */
+    --ffc-bg: #ffffff;
+    --ffc-bg-alt: #f6f7f7;
+    --ffc-bg-card: #ffffff;
+    --ffc-bg-input: #ffffff;
+    --ffc-bg-overlay: rgba(0, 0, 0, 0.5);
+
+    /* Semantic Tokens - Text */
+    --ffc-text: #1d2327;
+    --ffc-text-secondary: #50575e;
+    --ffc-text-muted: #646970;
+    --ffc-text-light: #8c8f94;
+    --ffc-text-on-primary: #ffffff;
+
+    /* Semantic Tokens - Borders */
+    --ffc-border: #c3c4c7;
+    --ffc-border-light: #dcdcde;
+    --ffc-border-focus: #2271b1;
+
+    /* Semantic Tokens - Status Surfaces */
+    --ffc-success-bg: #e7f5ec;
+    --ffc-success-border: #00a32a;
+    --ffc-success-text: #0a5c1a;
+    --ffc-warning-bg: #fff8e5;
+    --ffc-warning-border: #dba617;
+    --ffc-warning-text: #6e4e00;
+    --ffc-danger-bg: #fcf0f1;
+    --ffc-danger-border: #d63638;
+    --ffc-danger-text: #8a2424;
+    --ffc-info-bg: #e5f5fa;
+    --ffc-info-border: #006ba1;
+    --ffc-info-text: #004b70;
+
+    /* Semantic Tokens - Interactive */
+    --ffc-link: #2271b1;
+    --ffc-link-hover: #135e96;
+    --ffc-focus-ring: rgba(34, 113, 177, 0.4);
+}
+
+/* ==========================================================================
+   DARK MODE - Automatic detection via prefers-color-scheme
+   ========================================================================== */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Primary Colors */
+        --ffc-primary: #5dabde;
+        --ffc-primary-hover: #7cbde8;
+        --ffc-primary-light: #1a2f42;
+
+        /* Status Colors */
+        --ffc-success: #4caf50;
+        --ffc-success-light: #1a2e1a;
+        --ffc-warning: #f0b849;
+        --ffc-warning-light: #332b10;
+        --ffc-danger: #e57373;
+        --ffc-danger-light: #2e1515;
+        --ffc-info: #4fc3f7;
+        --ffc-info-light: #0d2b3a;
+
+        /* Gray Scale (inverted) */
+        --ffc-gray-50: #1d2327;
+        --ffc-gray-100: #23282d;
+        --ffc-gray-200: #2c3338;
+        --ffc-gray-300: #3c434a;
+        --ffc-gray-400: #646970;
+        --ffc-gray-500: #8c8f94;
+        --ffc-gray-600: #a7aaad;
+        --ffc-gray-700: #c3c4c7;
+        --ffc-gray-800: #e7e8ea;
+
+        /* Shadows */
+        --ffc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+        --ffc-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.3);
+        --ffc-shadow-lg: 0 5px 30px rgba(0, 0, 0, 0.4);
+
+        /* Semantic Tokens - Surfaces */
+        --ffc-bg: #1d2327;
+        --ffc-bg-alt: #23282d;
+        --ffc-bg-card: #2c3338;
+        --ffc-bg-input: #23282d;
+        --ffc-bg-overlay: rgba(0, 0, 0, 0.7);
+
+        /* Semantic Tokens - Text */
+        --ffc-text: #e7e8ea;
+        --ffc-text-secondary: #c3c4c7;
+        --ffc-text-muted: #a7aaad;
+        --ffc-text-light: #8c8f94;
+        --ffc-text-on-primary: #ffffff;
+
+        /* Semantic Tokens - Borders */
+        --ffc-border: #3c434a;
+        --ffc-border-light: #2c3338;
+        --ffc-border-focus: #5dabde;
+
+        /* Semantic Tokens - Status Surfaces */
+        --ffc-success-bg: #1a2e1a;
+        --ffc-success-border: #4caf50;
+        --ffc-success-text: #81c784;
+        --ffc-warning-bg: #332b10;
+        --ffc-warning-border: #f0b849;
+        --ffc-warning-text: #ffe082;
+        --ffc-danger-bg: #2e1515;
+        --ffc-danger-border: #e57373;
+        --ffc-danger-text: #ef9a9a;
+        --ffc-info-bg: #0d2b3a;
+        --ffc-info-border: #4fc3f7;
+        --ffc-info-text: #81d4fa;
+
+        /* Semantic Tokens - Interactive */
+        --ffc-link: #5dabde;
+        --ffc-link-hover: #7cbde8;
+        --ffc-focus-ring: rgba(93, 171, 222, 0.4);
+    }
 }
 
 /* ==========================================================================
@@ -119,8 +234,8 @@
 
 /* Status variants - Submission status */
 .ffc-status-pending {
-    background: #fef8e6;
-    color: #886400;
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
 }
 
 /* ==========================================================================
@@ -144,8 +259,8 @@
     width: 20px;
     height: 20px;
     margin: -10px 0 0 -10px;
-    border: 2px solid #f3f3f3;
-    border-top: 2px solid #0073aa;
+    border: 2px solid var(--ffc-border-light);
+    border-top: 2px solid var(--ffc-primary);
     border-radius: 50%;
     animation: ffc-spin 1s linear infinite;
 }
@@ -164,14 +279,14 @@
  * Moved from ffc-admin-settings.css -- these styles are needed on the frontend.
  */
 .ffc-rate-limit-notice {
-    background: #fff3cd;
-    border: 1px solid #ffc107;
-    border-radius: 4px;
-    padding: 15px;
-    margin-bottom: 20px;
+    background: var(--ffc-warning-bg);
+    border: 1px solid var(--ffc-warning-border);
+    border-radius: var(--ffc-radius-sm);
+    padding: var(--ffc-spacing-md);
+    margin-bottom: var(--ffc-spacing-lg);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--ffc-spacing-sm);
 }
 
 .ffc-rate-limit-icon {
@@ -180,11 +295,11 @@
 
 .ffc-rate-limit-message {
     flex: 1;
-    color: #856404;
+    color: var(--ffc-warning-text);
 }
 
 .ffc-rate-limit-message strong {
-    color: #d63384;
+    color: var(--ffc-danger);
     font-family: monospace;
 }
 

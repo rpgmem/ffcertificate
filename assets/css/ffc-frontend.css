@@ -1,7 +1,8 @@
 /**
  * Free Form Certificate - Frontend Styles
- * 
+ *
  * v2.8.0: Added magic link preview styles
+ * v4.6.14: CSS variables for dark mode support
  */
 
 /* ==========================================================================
@@ -12,22 +13,23 @@
     max-width: none !important; /* ← Remove limitação antiga */
     height: 45px !important;
     padding: 10px 12px !important;
-    border: 1px solid #ccc !important;
-    border-radius: 4px !important;
+    border: 1px solid var(--ffc-border) !important;
+    border-radius: var(--ffc-radius-sm) !important;
     font-size: 18px !important;
     line-height: 1.5 !important;
     box-sizing: border-box !important;
-    background-color: #fff !important;
+    background-color: var(--ffc-bg-input) !important;
+    color: var(--ffc-text);
     display: block !important;
     margin-bottom: 15px;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color var(--ffc-transition-base), box-shadow var(--ffc-transition-base);
     -webkit-appearance: none;
 }
 
 .ffc-input:focus {
     outline: none;
-    border-color: #0073aa;
-    box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.1);
+    border-color: var(--ffc-primary);
+    box-shadow: 0 0 0 3px var(--ffc-focus-ring);
 }
 
 /* ============================================
@@ -37,9 +39,9 @@
     max-width: 600px;
     margin: 30px auto;
     padding: 30px;
-    background: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    background: var(--ffc-bg-card);
+    border-radius: var(--ffc-radius-lg);
+    box-shadow: var(--ffc-shadow-md);
     display: flex; /* ← CENTRALIZAÇÃO */
     flex-direction: column; /* ← CENTRALIZAÇÃO */
     align-items: center; /* ← CENTRALIZAÇÃO */
@@ -48,7 +50,7 @@
 .ffc-form-title {
     margin: 0 0 25px 0;
     font-size: 24px;
-    color: #333;
+    color: var(--ffc-text);
     text-align: center;
     font-weight: 600;
     width: 100%; /* ← Título pega largura total */
@@ -74,12 +76,12 @@
     display: block;
     margin-bottom: 8px;
     font-weight: 500;
-    color: #555;
+    color: var(--ffc-text-secondary);
     font-size: 18px;
 }
 
 .ffc-form-field label .required {
-    color: #d63638;
+    color: var(--ffc-danger);
     font-weight: bold;
     margin-left: 3px;
 }
@@ -105,10 +107,10 @@
 .ffc-lgpd-consent {
     margin: 25px 0 20px 0;
     padding: 20px;
-    background: #f8f9fa;
-    border: 2px solid #0073aa;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 115, 170, 0.1);
+    background: var(--ffc-bg-alt);
+    border: 2px solid var(--ffc-primary);
+    border-radius: var(--ffc-radius-lg);
+    box-shadow: 0 2px 8px var(--ffc-focus-ring);
 }
 
 .ffc-consent-label {
@@ -127,30 +129,30 @@
     margin: 2px 0 0 0;
     cursor: pointer;
     flex-shrink: 0;
-    accent-color: #0073aa;
+    accent-color: var(--ffc-primary);
 }
 
 .ffc-consent-text {
     flex: 1;
     font-size: 15px;
     line-height: 1.6;
-    color: #333;
+    color: var(--ffc-text);
 }
 
 .ffc-consent-text a {
-    color: #0073aa;
+    color: var(--ffc-link);
     text-decoration: underline;
     font-weight: 500;
-    transition: color 0.2s;
+    transition: color var(--ffc-transition-base);
 }
 
 .ffc-consent-text a:hover {
-    color: #005a87;
+    color: var(--ffc-link-hover);
     text-decoration: none;
 }
 
 .ffc-consent-text .required {
-    color: #d63638;
+    color: var(--ffc-danger);
     font-weight: bold;
     margin-left: 3px;
 }
@@ -158,16 +160,16 @@
 .ffc-consent-description {
     margin: 12px 0 0 32px;
     padding: 12px;
-    background: #fff;
-    border-left: 3px solid #0073aa;
-    border-radius: 4px;
+    background: var(--ffc-bg);
+    border-left: 3px solid var(--ffc-primary);
+    border-radius: var(--ffc-radius-sm);
     font-size: 13px;
     line-height: 1.5;
-    color: #666;
+    color: var(--ffc-text-muted);
 }
 
 .ffc-consent-description a {
-    color: #0073aa;
+    color: var(--ffc-link);
     text-decoration: none;
     font-weight: 500;
 }
@@ -178,7 +180,7 @@
 
 /* Checkbox validation states */
 .ffc-consent-label input[type="checkbox"]:invalid {
-    outline: 2px solid #d63638;
+    outline: 2px solid var(--ffc-danger);
     outline-offset: 2px;
 }
 
@@ -187,24 +189,24 @@
 }
 
 .ffc-consent-label input[type="checkbox"]:focus-visible {
-    outline: 2px solid #0073aa;
+    outline: 2px solid var(--ffc-primary);
     outline-offset: 2px;
 }
 
 /* Error state para validação customizada */
 .ffc-lgpd-consent.error {
-    border-color: #d63638;
-    background: #fff5f5;
+    border-color: var(--ffc-danger);
+    background: var(--ffc-danger-bg);
 }
 
 .ffc-lgpd-consent.error .ffc-consent-text {
-    color: #d63638;
+    color: var(--ffc-danger-text);
 }
 
 /* Success state (opcional - quando checkbox marcado) */
 .ffc-lgpd-consent.checked {
-    border-color: #46a049;
-    background: #f0f9f0;
+    border-color: var(--ffc-success);
+    background: var(--ffc-success-bg);
 }
 
 /* ============================================
@@ -216,15 +218,15 @@
         padding: 15px;
         margin: 20px 0 15px 0;
     }
-    
+
     .ffc-consent-label {
         gap: 10px;
     }
-    
+
     .ffc-consent-text {
         font-size: 14px;
     }
-    
+
     .ffc-consent-description {
         margin-left: 0;
         font-size: 12px;
@@ -240,11 +242,11 @@
         border-width: 3px;
         border-color: #000;
     }
-    
+
     .ffc-consent-text {
         color: #000;
     }
-    
+
     .ffc-consent-text a {
         color: #0000EE;
         text-decoration: underline;
@@ -267,7 +269,7 @@
 .ffc-security-container {
     margin-top: 25px;
     padding-top: 25px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--ffc-border-light);
     width: 100%; /* ← Pega largura total do form (450px) */
 }
 
@@ -276,10 +278,10 @@
 .ffc-captcha-row {
     margin-bottom: 20px;
     padding: 20px; /* ← Padding confortável */
-    background: #f0f6fc; /* ← DESTAQUE: fundo azul claro */
-    border: 2px solid #0073aa; /* ← DESTAQUE: borda azul */
-    border-radius: 8px; /* ← DESTAQUE: bordas arredondadas */
-    box-shadow: 0 2px 8px rgba(0, 115, 170, 0.1); /* ← DESTAQUE: sombra suave */
+    background: var(--ffc-primary-light); /* ← DESTAQUE: fundo azul claro */
+    border: 2px solid var(--ffc-primary); /* ← DESTAQUE: borda azul */
+    border-radius: var(--ffc-radius-lg); /* ← DESTAQUE: bordas arredondadas */
+    box-shadow: 0 2px 8px var(--ffc-focus-ring); /* ← DESTAQUE: sombra suave */
     width: 100%; /* ← 100% do security-container (450px) */
     box-sizing: border-box; /* ← Padding incluído na largura */
 }
@@ -288,19 +290,19 @@
     display: block;
     margin-bottom: 10px;
     font-weight: 600; /* ← DESTAQUE: negrito mais forte */
-    color: #0073aa; /* ← DESTAQUE: cor azul */
+    color: var(--ffc-primary); /* ← DESTAQUE: cor azul */
     font-size: 18px; /* ← DESTAQUE: fonte um pouco maior */
 }
 
 .ffc-captcha-row .ffc-input {
-    border: 2px solid #0073aa !important; /* ← DESTAQUE: borda azul mais grossa */
-    background: #fff !important; /* ← Fundo branco para contraste */
+    border: 2px solid var(--ffc-primary) !important; /* ← DESTAQUE: borda azul mais grossa */
+    background: var(--ffc-bg-input) !important; /* ← Fundo branco para contraste */
     margin-bottom: 0 !important; /* ← Remove margem inferior */
 }
 
 .ffc-captcha-row .ffc-input:focus {
-    border-color: #005a87; /* ← DESTAQUE: azul mais escuro no focus */
-    box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.2); /* ← Sombra mais visível */
+    border-color: var(--ffc-primary-hover); /* ← DESTAQUE: azul mais escuro no focus */
+    box-shadow: 0 0 0 3px var(--ffc-focus-ring); /* ← Sombra mais visível */
 }
 
 /* ============================================
@@ -309,19 +311,19 @@
 .ffc-submit-btn {
     width: 100%; /* ← 100% do form (450px) */
     padding: 15px;
-    background: #0073aa;
-    color: white;
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
     border: none;
     border-radius: 5px;
     font-size: 18px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.3s, transform 0.1s;
+    transition: background var(--ffc-transition-slow), transform 0.1s;
     box-sizing: border-box; /* ← Padding incluído */
 }
 
 .ffc-submit-btn:hover {
-    background: #005a87;
+    background: var(--ffc-primary-hover);
 }
 
 .ffc-submit-btn:active {
@@ -329,12 +331,12 @@
 }
 
 .ffc-submit-btn:focus-visible {
-    outline: 2px solid #0073aa;
+    outline: 2px solid var(--ffc-primary);
     outline-offset: 2px;
 }
 
 .ffc-submit-btn:disabled {
-    background: #ccc;
+    background: var(--ffc-border);
     cursor: not-allowed;
     transform: none;
 }
@@ -351,15 +353,15 @@
 }
 
 .ffc-message.ffc-success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+    border: 1px solid var(--ffc-success-border);
 }
 
 .ffc-message.ffc-error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+    border: 1px solid var(--ffc-danger-border);
 }
 
 /* ============================================
@@ -369,9 +371,9 @@
     max-width: 600px;
     margin: 30px auto;
     padding: 30px;
-    background: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    background: var(--ffc-bg-card);
+    border-radius: var(--ffc-radius-lg);
+    box-shadow: var(--ffc-shadow-md);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -386,13 +388,13 @@
 .ffc-verification-header h2 {
     margin: 0 0 10px 0;
     font-size: 24px;
-    color: #333;
+    color: var(--ffc-text);
     font-weight: 600;
 }
 
 .ffc-verification-header p {
     margin: 0;
-    color: #666;
+    color: var(--ffc-text-muted);
     font-size: 16px;
 }
 
@@ -425,20 +427,22 @@
 
 .ffc-verify-input {
     padding: 12px 15px !important;
-    border: 2px solid #ddd !important;
+    border: 2px solid var(--ffc-border-light) !important;
     border-radius: 5px !important;
     font-size: 18px !important;
     font-family: monospace !important;
     text-transform: uppercase;
     letter-spacing: 2px;
     text-align: center;
-    transition: border-color 0.3s;
+    background: var(--ffc-bg-input);
+    color: var(--ffc-text);
+    transition: border-color var(--ffc-transition-slow);
 }
 
 .ffc-verify-input:focus {
     outline: none;
-    border-color: #0073aa !important;
-    box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.1);
+    border-color: var(--ffc-primary) !important;
+    box-shadow: 0 0 0 3px var(--ffc-focus-ring);
 }
 
 .ffc-verify-input-group .ffc-submit-btn {
@@ -460,18 +464,18 @@
 
 .ffc-verify-error {
     padding: 15px;
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+    border: 1px solid var(--ffc-danger-border);
     border-radius: 5px;
     font-size: 18px;
 }
 
 .ffc-verify-success {
     padding: 20px;
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+    border: 1px solid var(--ffc-success-border);
     border-radius: 5px;
 }
 
@@ -488,7 +492,7 @@
 .ffc-verify-success hr {
     margin: 15px 0;
     border: none;
-    border-top: 1px solid #c3e6cb;
+    border-top: 1px solid var(--ffc-success-border);
 }
 
 .ffc-verify-success h4 {
@@ -504,7 +508,7 @@
 
 .ffc-verify-data-list li {
     padding: 8px 0;
-    border-bottom: 1px solid #c3e6cb;
+    border-bottom: 1px solid var(--ffc-success-border);
     font-size: 18px;
 }
 
@@ -523,11 +527,11 @@
 .ffc-certificate-preview {
     max-width: 700px;
     margin: 0 auto;
-    background: white;
-    border: 2px solid #0073aa;
-    border-radius: 8px;
+    background: var(--ffc-bg-card);
+    border: 2px solid var(--ffc-primary);
+    border-radius: var(--ffc-radius-lg);
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 115, 170, 0.15);
+    box-shadow: 0 4px 12px var(--ffc-focus-ring);
     animation: fadeInUp 0.5s ease;
 }
 
@@ -546,8 +550,8 @@
    PREVIEW HEADER (Badge)
    ============================================ */
 .ffc-preview-header {
-    background: linear-gradient(135deg, #0073aa 0%, #005a87 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--ffc-primary) 0%, var(--ffc-primary-hover) 100%);
+    color: var(--ffc-text-on-primary);
     padding: 20px;
     text-align: center;
 }
@@ -577,16 +581,16 @@
 .ffc-preview-body h3 {
     margin: 0 0 20px 0;
     font-size: 20px;
-    color: #333;
+    color: var(--ffc-text);
     font-weight: 600;
-    border-bottom: 2px solid #0073aa;
+    border-bottom: 2px solid var(--ffc-primary);
     padding-bottom: 10px;
 }
 
 .ffc-preview-body h4 {
     margin: 25px 0 15px 0;
     font-size: 16px;
-    color: #555;
+    color: var(--ffc-text-secondary);
     font-weight: 600;
 }
 
@@ -595,7 +599,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 0;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-detail-row:last-child {
@@ -604,12 +608,12 @@
 
 .ffc-detail-row .label {
     font-weight: 600;
-    color: #555;
+    color: var(--ffc-text-secondary);
     font-size: 14px;
 }
 
 .ffc-detail-row .value {
-    color: #333;
+    color: var(--ffc-text);
     font-size: 14px;
     text-align: right;
     max-width: 60%;
@@ -619,7 +623,7 @@
 .ffc-detail-row .value.code {
     font-family: 'Courier New', monospace;
     font-size: 16px;
-    color: #0073aa;
+    color: var(--ffc-primary);
     font-weight: 600;
     letter-spacing: 1px;
 }
@@ -627,7 +631,7 @@
 .ffc-preview-body hr {
     margin: 20px 0;
     border: none;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--ffc-border-light);
 }
 
 /* ============================================
@@ -646,33 +650,33 @@
     font-family: 'Courier New', monospace;
     font-size: 20px;
     font-weight: 700;
-    color: #0073aa;
+    color: var(--ffc-primary);
     letter-spacing: 2px;
 }
 
 .ffc-appointment-status {
     display: inline-block;
     padding: 4px 14px;
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     font-size: 13px;
     font-weight: 600;
     text-transform: uppercase;
 }
 
-.ffc-status-pending { background: #f0f0f1; color: #646970; }
-.ffc-status-confirmed { background: #d5e8d4; color: #2e7d32; }
-.ffc-status-cancelled { background: #f8d7da; color: #b32d2e; }
-.ffc-status-completed { background: #cfe2ff; color: #004085; }
-.ffc-status-no_show { background: #fff3cd; color: #856404; }
+.ffc-status-pending { background: var(--ffc-bg-alt); color: var(--ffc-text-muted); }
+.ffc-status-confirmed { background: var(--ffc-success-bg); color: var(--ffc-success-text); }
+.ffc-status-cancelled { background: var(--ffc-danger-bg); color: var(--ffc-danger-text); }
+.ffc-status-completed { background: var(--ffc-info-bg); color: var(--ffc-info-text); }
+.ffc-status-no_show { background: var(--ffc-warning-bg); color: var(--ffc-warning-text); }
 
 .ffc-appointment-verification .ffc-detail-row .ffc-detail-label {
     font-weight: 600;
-    color: #555;
+    color: var(--ffc-text-secondary);
     min-width: 120px;
 }
 
 .ffc-appointment-verification .ffc-detail-row .ffc-detail-value {
-    color: #333;
+    color: var(--ffc-text);
 }
 
 /* ============================================
@@ -681,41 +685,41 @@
 .ffc-preview-actions {
     padding: 25px 30px;
     text-align: center;
-    background: #f9f9f9;
-    border-top: 1px solid #eee;
+    background: var(--ffc-bg-alt);
+    border-top: 1px solid var(--ffc-border-light);
 }
 
 .ffc-download-btn {
     display: inline-block;
-    background: linear-gradient(135deg, #0073aa 0%, #005a87 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--ffc-primary) 0%, var(--ffc-primary-hover) 100%);
+    color: var(--ffc-text-on-primary);
     border: none;
     padding: 15px 40px;
     font-size: 18px;
     font-weight: 600;
     border-radius: 5px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 115, 170, 0.3);
+    transition: all var(--ffc-transition-slow);
+    box-shadow: 0 4px 12px var(--ffc-focus-ring);
 }
 
 .ffc-download-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 115, 170, 0.4);
+    box-shadow: 0 6px 16px var(--ffc-focus-ring);
 }
 
 .ffc-download-btn:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(0, 115, 170, 0.2);
+    box-shadow: var(--ffc-shadow-sm);
 }
 
 .ffc-download-btn:focus-visible {
-    outline: 2px solid #0073aa;
+    outline: 2px solid var(--ffc-primary);
     outline-offset: 2px;
 }
 
 .ffc-download-btn:disabled {
-    background: #ccc;
+    background: var(--ffc-border);
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
@@ -742,37 +746,37 @@
 
 .ffc-geofence-loading-msg p {
     margin: 20px 0 0 0;
-    color: #666;
+    color: var(--ffc-text-muted);
     font-size: 16px;
 }
 
 /* Geofence blocked message */
 .ffc-geofence-blocked {
-    background: #fff3cd;
-    border-left: 4px solid #ffc107;
+    background: var(--ffc-warning-bg);
+    border-left: 4px solid var(--ffc-warning-border);
     padding: 15px 20px;
     margin: 20px 0;
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
 }
 
 .ffc-geofence-blocked p {
     margin: 0;
-    color: #856404;
+    color: var(--ffc-warning-text);
     font-size: 15px;
 }
 
 /* Admin bypass message (informational - blue theme) */
 .ffc-geofence-admin-bypass {
-    background: #d1ecf1;
-    border-left: 4px solid #0c5460;
+    background: var(--ffc-info-bg);
+    border-left: 4px solid var(--ffc-info-border);
     padding: 15px 20px;
     margin: 0 0 20px 0;
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
 }
 
 .ffc-geofence-admin-bypass p {
     margin: 0;
-    color: #0c5460;
+    color: var(--ffc-info-text);
     font-size: 15px;
     font-weight: 500;
 }
@@ -787,7 +791,7 @@
 
 .ffc-verify-loading p {
     margin: 20px 0 0 0;
-    color: #666;
+    color: var(--ffc-text-muted);
     font-size: 18px;
 }
 
@@ -795,8 +799,8 @@
     width: 50px;
     height: 50px;
     margin: 0 auto;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #0073aa;
+    border: 4px solid var(--ffc-border-light);
+    border-top: 4px solid var(--ffc-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -880,16 +884,16 @@
 .ffc-success-container {
     text-align: center;
     padding: 40px 20px;
-    background: #f9f9f9;
-    border-radius: 8px;
+    background: var(--ffc-bg-alt);
+    border-radius: var(--ffc-radius-lg);
     margin: 20px 0;
 }
 
 .ffc-success-icon {
     width: 80px;
     height: 80px;
-    background: #00a32a;
-    color: white;
+    background: var(--ffc-success);
+    color: var(--ffc-text-on-primary);
     font-size: 50px;
     line-height: 80px;
     border-radius: 50%;
@@ -898,12 +902,12 @@
 }
 
 .ffc-success-title {
-    color: #1d2327;
+    color: var(--ffc-text);
     margin-bottom: 20px;
 }
 
 .ffc-auth-code {
-    background: #f0f0f1;
+    background: var(--ffc-bg-alt);
     padding: 5px 10px;
     border-radius: 3px;
     font-family: monospace;

@@ -143,7 +143,7 @@ $ffcertificate_migrations = $ffcertificate_migration_manager->get_migrations();
             
             <!-- Progress Bar -->
             <div class="ffc-migration-progress-bar">
-                <div class="ffc-progress-bar-container">
+                <div class="ffc-progress-bar-container" role="progressbar" aria-valuenow="<?php echo esc_attr( number_format( $ffcertificate_percent, 1 ) ); ?>" aria-valuemin="0" aria-valuemax="100" aria-label="<?php esc_attr_e( 'Migration progress', 'ffcertificate' ); ?>">
                     <div class="ffc-progress-bar-fill <?php echo esc_attr( $ffcertificate_progress_color ); ?>"></div>
                     <div class="ffc-progress-bar-label <?php echo esc_attr( $ffcertificate_label_class ); ?>">
                         <?php echo esc_html( number_format( $ffcertificate_percent, 1 ) ); ?>% <?php esc_html_e( 'Complete', 'ffcertificate' ); ?>

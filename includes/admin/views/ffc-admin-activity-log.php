@@ -26,6 +26,7 @@ $ffcertificate_base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activ
                 <input type="hidden" name="page" value="ffc-activity-log">
 
                 <!-- Level Filter -->
+                <label for="filter-by-level" class="screen-reader-text"><?php esc_html_e( 'Filter by level', 'ffcertificate' ); ?></label>
                 <select name="level" id="filter-by-level">
                     <option value=""><?php esc_html_e( 'All Levels', 'ffcertificate' ); ?></option>
                     <option value="info" <?php selected( $level, 'info' ); ?>><?php esc_html_e( 'Info', 'ffcertificate' ); ?></option>
@@ -36,6 +37,7 @@ $ffcertificate_base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activ
 
                 <!-- Action Filter -->
                 <?php if ( ! empty( $unique_actions ) ) : ?>
+                    <label for="filter-by-action" class="screen-reader-text"><?php esc_html_e( 'Filter by action', 'ffcertificate' ); ?></label>
                     <select name="log_action" id="filter-by-action">
                         <option value=""><?php esc_html_e( 'All Actions', 'ffcertificate' ); ?></option>
                         <?php foreach ( $unique_actions as $ffcertificate_act ) : ?>
@@ -67,7 +69,8 @@ $ffcertificate_base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activ
                 <?php if ( $action ) : ?>
                     <input type="hidden" name="log_action" value="<?php echo esc_attr( $action ); ?>">
                 <?php endif; ?>
-                <input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search logs...', 'ffcertificate' ); ?>">
+                <label for="ffc-log-search" class="screen-reader-text"><?php esc_html_e( 'Search activity logs', 'ffcertificate' ); ?></label>
+                <input type="search" id="ffc-log-search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search logs...', 'ffcertificate' ); ?>">
                 <input type="submit" class="button" value="<?php esc_attr_e( 'Search', 'ffcertificate' ); ?>">
             </form>
         </div>

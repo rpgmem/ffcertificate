@@ -16,8 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 
-<div class="ffc-success-response">
-    <div class="ffc-success-icon">✓</div>
+<div class="ffc-success-response" role="status" aria-live="polite">
+    <div class="ffc-success-icon" aria-hidden="true">✓</div>
     <h3><?php echo esc_html( $success_message ); ?></h3>
     <div class="ffc-success-details">
         <p>

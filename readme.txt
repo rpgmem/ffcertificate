@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 4.6.13
+Stable tag: 4.6.14
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -154,6 +154,18 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.6.14 (2026-02-08) =
+
+Accessibility & Responsive Design: Dark mode, CSS variables, ARIA attributes, and template accessibility.
+
+* A11y: Add semantic CSS design tokens (40+ variables for surfaces, text, borders, status colors) in :root
+* A11y: Add automatic dark mode via prefers-color-scheme media query with full variable overrides
+* A11y: Replace 50+ hardcoded colors in ffc-frontend.css with CSS custom properties
+* A11y: Add role="status" and aria-live="polite" to submission success template
+* A11y: Add role="progressbar" with aria-valuenow/min/max to migration progress bars
+* A11y: Add screen-reader-text labels for activity log filter/search controls
+* A11y: Add scope="col" to all documentation tab table headers
 
 = 4.6.13 (2026-02-08) =
 
