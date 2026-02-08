@@ -323,8 +323,12 @@ class DashboardShortcode {
 
         $s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
-        // Enqueue CSS
-        wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/css/ffc-user-dashboard{$s}.css", array(), FFC_VERSION );
+        // Enqueue CSS (ffc-common provides icon classes)
+        wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
+        wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/css/ffc-user-dashboard{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+
+        // Dark mode
+        \FreeFormCertificate\Core\Utils::enqueue_dark_mode();
 
         // Enqueue JavaScript
         wp_enqueue_script( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard{$s}.js", array('jquery'), FFC_VERSION, true );
