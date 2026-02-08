@@ -86,21 +86,6 @@ class Admin {
         $this->activity_log_page->register_menu();
     }
 
-    /**
-     * Legacy admin assets method
-     *
-     * @deprecated 3.1.1 Asset management now handled by FFC_Admin_Assets_Manager
-     * @param string $hook Hook suffix
-     */
-    public function admin_assets( string $hook ): void {
-        // ✅ v3.1.1: This method is now managed by FFC_Admin_Assets_Manager
-        // The Assets Manager is registered in the constructor and handles all asset loading.
-        // This method is kept for backward compatibility in case it's called directly,
-        // but the actual functionality has been extracted to improve code organization.
-        //
-        // See: class-ffc-admin-assets-manager.php
-    }
-
     public function handle_submission_actions(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified per-action below via wp_verify_nonce and check_admin_referer.
         if ( ! isset( $_GET['page'] ) || sanitize_text_field( wp_unslash( $_GET['page'] ) ) !== 'ffc-submissions' ) return;

@@ -114,12 +114,7 @@ class Loader {
         // v4.6.5: Hook-based logging — plugin consumes its own hooks
         new ActivityLogSubscriber();
 
-        // v4.6.9: Ensure daily cleanup cron is scheduled (safety net for existing installs)
-        // v4.6.15: Migrate old cron hook name to new prefixed name
-        $old_cleanup = wp_next_scheduled( 'ffc_daily_cleanup_hook' );
-        if ( $old_cleanup ) {
-            wp_unschedule_event( $old_cleanup, 'ffc_daily_cleanup_hook' );
-        }
+        // Ensure daily cleanup cron is scheduled
         if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
             wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
         }
@@ -159,12 +154,4 @@ class Loader {
         $s = \FreeFormCertificate\Core\Utils::asset_suffix();
         wp_register_script('ffc-rate-limit', FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js", ['jquery'], FFC_VERSION, true);
     }
-
-    /**
-     * Run the plugin
-     *
-     * Kept for backwards compatibility — initialization happens via
-     * plugins_loaded hook in constructor.
-     */
-    public function run(): void {}
 }

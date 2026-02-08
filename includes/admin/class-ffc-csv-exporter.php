@@ -399,13 +399,4 @@ class CsvExporter {
             wp_die( esc_html__( 'Error generating CSV: ', 'ffcertificate' ) . esc_html( $e->getMessage() ) );
         }
     }
-
-    /**
-     * Backward compatibility method
-     *
-     * @param int|null $form_id Single form ID or null
-     */
-    public function export_to_csv( ?int $form_id = null ): void {
-        $this->export_csv( $form_id, 'publish' );
-    }
 }

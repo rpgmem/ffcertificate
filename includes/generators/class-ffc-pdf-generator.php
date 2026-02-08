@@ -145,7 +145,6 @@ class PdfGenerator {
         
         $pdf_data = array(
             'html'          => $html,
-            'template'      => $html,  // Alias for backward compatibility
             'filename'      => $filename,
             'form_title'    => $form_title,
             'auth_code'     => $auth_code,
@@ -655,7 +654,6 @@ class PdfGenerator {
         
         return array(
             'html'       => $html,
-            'template'   => $html,  // Alias for backward compatibility
             'filename'   => $filename,
             'form_title' => $form_title,
             'submission' => $submission_data,
@@ -793,7 +791,6 @@ class PdfGenerator {
 
         return array(
             'html'       => $html,
-            'template'   => $html,
             'filename'   => $filename,
             'form_title' => $calendar_title,
             'bg_image'   => $bg_image,

@@ -150,12 +150,8 @@ class Settings {
     
     /**
      * Handle settings form submission
-     *
-     * @deprecated 3.1.1 Settings saving now handled by FFC_Settings_Save_Handler
      */
     public function handle_settings_submission(): void {
-        // ✅ v3.1.1: All settings saving logic extracted to FFC_Settings_Save_Handler
-        // This maintains backward compatibility while delegating to specialized handler
         $this->save_handler->handle_all_submissions();
     }
     
