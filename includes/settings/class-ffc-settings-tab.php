@@ -181,6 +181,6 @@ abstract class SettingsTab {
      */
     public function get_option( string $key, string $default = '' ): string {
         $settings = get_option( 'ffc_settings', array() );
-        return isset( $settings[ $key ] ) ? $settings[ $key ] : $default;
+        return (string) ( isset( $settings[ $key ] ) ? $settings[ $key ] : $default );
     }
 }
