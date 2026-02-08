@@ -25,6 +25,11 @@ class Deactivator {
         // Clear scheduled cron tasks
         wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 
+        // Clear legacy cron hooks from pre-4.6.15 versions
+        wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
+        wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
+        wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
+
         flush_rewrite_rules();
     }
 
@@ -59,6 +64,11 @@ class Deactivator {
         // 3. Clear scheduled CRON tasks
         wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
         wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
+
+        // Clear legacy cron hooks from pre-4.6.15 versions
+        wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
+        wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
+        wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
         
         // 4. Delete all Custom Post Type 'ffc_form' entries
         $args = array(

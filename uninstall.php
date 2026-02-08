@@ -92,6 +92,11 @@ wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 
+// Clear legacy cron hooks from pre-4.6.15 versions
+wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
+wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
+wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
+
 // ──────────────────────────────────────
 // 5. Delete all ffc_form custom posts
 // ──────────────────────────────────────
