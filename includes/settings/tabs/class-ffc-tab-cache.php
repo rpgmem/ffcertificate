@@ -39,12 +39,4 @@ class TabCache extends SettingsTab {
             echo '</p></div>';
         }
     }
-
-    /**
-     * Get option value (for view compatibility)
-     */
-    public static function get_option( string $key, string $default = '' ): string {
-        $settings = get_option( 'ffc_settings', array() );
-        return isset( $settings[ $key ] ) ? $settings[ $key ] : $default;
-    }
 }

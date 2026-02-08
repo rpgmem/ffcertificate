@@ -225,7 +225,6 @@ class AdminUserColumns {
             return;
         }
 
-        // ✅ v3.1.0: User columns styles consolidated into ffc-admin.css
         $s = \FreeFormCertificate\Core\Utils::asset_suffix();
         wp_enqueue_style( 'ffc-admin', FFC_PLUGIN_URL . "assets/css/ffc-admin{$s}.css", array(), FFC_VERSION );
     }

@@ -61,12 +61,7 @@ class Frontend {
             $s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
             // Dark mode script (loaded early to prevent flash)
-            $ffc_settings = get_option( 'ffc_settings', array() );
-            $ffc_dark_mode = isset( $ffc_settings['dark_mode'] ) ? $ffc_settings['dark_mode'] : 'off';
-            if ( $ffc_dark_mode !== 'off' ) {
-                wp_enqueue_script( 'ffc-dark-mode', FFC_PLUGIN_URL . "assets/js/ffc-dark-mode{$s}.js", array(), FFC_VERSION, false );
-                wp_localize_script( 'ffc-dark-mode', 'ffcDarkMode', array( 'mode' => $ffc_dark_mode ) );
-            }
+            \FreeFormCertificate\Core\Utils::enqueue_dark_mode();
 
             // CSS - Using centralized version constant
             wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css", array(), FFC_VERSION );
@@ -80,10 +75,8 @@ class Frontend {
             // PDF Generator (shared module)
             wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js", array( 'jquery', 'html2canvas', 'jspdf' ), FFC_VERSION, true );
 
-            // ✅ v3.1.0: ffc-frontend.js depends on PDF generator and ffc-rate-limit (which loads ffc-frontend-helpers.js)
             wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-pdf-generator', 'ffc-rate-limit' ), FFC_VERSION, true );
 
-            // ✅ v3.0.0: Geofence frontend validation - NEW!
             wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . "assets/js/ffc-geofence-frontend{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 
             // Pass geofence configurations to frontend

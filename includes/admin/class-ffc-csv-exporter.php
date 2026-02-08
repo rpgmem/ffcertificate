@@ -35,7 +35,6 @@ class CsvExporter {
      * Constructor
      */
     public function __construct() {
-        // ✅ Use Repository Pattern instead of direct DB access
         $this->repository = new SubmissionRepository();
     }
 
@@ -215,7 +214,6 @@ class CsvExporter {
             $status                     // Status
         );
         
-        // ✅ CONDITIONAL: Only add edit columns if they should be included
         if ( $include_edit_columns ) {
             $was_edited = '';
             $edit_date = '';
@@ -272,7 +270,6 @@ class CsvExporter {
             'status' => $status
         ) );
 
-        // ✅ Use Repository Pattern - much cleaner!
         $rows = $this->repository->getForExport( $form_ids, $status );
 
         /**
@@ -289,7 +286,6 @@ class CsvExporter {
             wp_die( esc_html__( 'No records available for export.', 'ffcertificate' ) );
         }
 
-        // ✅ Use Repository to check if edit columns exist
         $include_edit_columns = $this->repository->hasEditInfo();
 
         // Generate filename based on filters
@@ -320,7 +316,7 @@ class CsvExporter {
             $this->get_dynamic_headers( $dynamic_keys )
         );
 
-        // ✅ Convert all headers to UTF-8
+        // Convert all headers to UTF-8
         $headers = array_map( function( $header ) {
             return mb_convert_encoding( $header, 'UTF-8', 'UTF-8' );
         }, $headers );
@@ -373,7 +369,6 @@ class CsvExporter {
                 wp_die( esc_html__( 'You do not have permission to export data.', 'ffcertificate' ) );
             }
 
-            // ✅ Support multiple form IDs or single form_id
             $form_ids = null;
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty()/is_array() existence and type checks only.
             if ( !empty( $_POST['form_ids'] ) && is_array( $_POST['form_ids'] ) ) {

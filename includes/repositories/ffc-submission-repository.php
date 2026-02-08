@@ -285,7 +285,6 @@ class SubmissionRepository extends AbstractRepository {
 
         $where = [$this->wpdb->prepare("status = %s", $args['status'])];
 
-        // ✅ NEW: Filter by form ID(s)
         if ( !empty( $args['form_ids'] ) && is_array( $args['form_ids'] ) ) {
             $form_ids_int = array_map( 'absint', $args['form_ids'] );
             $form_ids_placeholders = implode( ', ', array_fill( 0, count( $form_ids_int ), '%d' ) );

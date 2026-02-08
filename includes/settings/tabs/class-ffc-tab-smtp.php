@@ -57,19 +57,12 @@ class TabSMTP extends SettingsTab {
         $view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-smtp.php';
         
         if ( file_exists( $view_file ) ) {
+            $settings = $this;
             include $view_file;
         } else {
             echo '<div class="notice notice-error"><p>';
             echo esc_html__( 'SMTP settings view file not found.', 'ffcertificate' );
             echo '</p></div>';
         }
-    }
-    
-    /**
-     * Get option value (for view compatibility)
-     */
-    public static function get_option( string $key, string $default = '' ): string {
-        $settings = get_option( 'ffc_settings', array() );
-        return isset( $settings[ $key ] ) ? $settings[ $key ] : $default;
     }
 }

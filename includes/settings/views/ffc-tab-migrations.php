@@ -55,7 +55,7 @@ $ffcertificate_migrations = $ffcertificate_migration_manager->get_migrations();
             $ffcertificate_status = $ffcertificate_migration_manager->get_migration_status( $ffcertificate_key );
             
             if ( is_wp_error( $ffcertificate_status ) ) {
-                // ✅ v2.9.16: If there's an error, assume no data exists (empty database)
+                // If there's an error, assume no data exists (empty database)
                 $ffcertificate_percent = 100;
                 $ffcertificate_is_complete = true;
                 $ffcertificate_pending = 0;

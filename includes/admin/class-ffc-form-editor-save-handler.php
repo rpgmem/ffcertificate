@@ -67,7 +67,7 @@ class FormEditorSaveHandler {
             $clean_config['send_user_email']    = sanitize_key( $config['send_user_email'] );
             $clean_config['email_subject']      = sanitize_text_field( $config['email_subject'] );
 
-            // ✅ v2.10.0: Restrictions (checkboxes)
+            // Restrictions (checkboxes)
             $clean_config['restrictions'] = array(
                 'password'  => isset($config['restrictions']['password']) ? '1' : '0',
                 'allowlist' => isset($config['restrictions']['allowlist']) ? '1' : '0',

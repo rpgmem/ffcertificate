@@ -17,11 +17,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class FormEditor {
 
-    private $metabox_renderer; // ✅ v3.1.1: Metabox Renderer
-    private $save_handler;     // ✅ v3.1.1: Save Handler
+    private $metabox_renderer;
+    private $save_handler;
 
     public function __construct() {
-        // ✅ Autoloader handles class loading
         $this->metabox_renderer = new \FreeFormCertificate\Admin\FormEditorMetaboxRenderer();
         $this->save_handler = new \FreeFormCertificate\Admin\FormEditorSaveHandler();
 

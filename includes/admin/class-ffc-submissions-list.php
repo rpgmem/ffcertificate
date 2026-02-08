@@ -210,7 +210,6 @@ class SubmissionsList extends \WP_List_Table {
         $orderby = (!empty($_GET['orderby'])) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : 'id';
         $order = (!empty($_GET['order']) && sanitize_text_field( wp_unslash( $_GET['order'] ) ) === 'asc') ? 'ASC' : 'DESC';
 
-        // ✅ NEW: Filter by form ID(s)
         $filter_form_ids = [];
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty() existence check only.
         if ( !empty( $_GET['filter_form_id'] ) ) {

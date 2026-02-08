@@ -171,4 +171,16 @@ abstract class SettingsTab {
     protected function get_tab_url() {
         return admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=' . $this->tab_id );
     }
+
+    /**
+     * Get option value from ffc_settings
+     *
+     * @param string $key Option key
+     * @param string $default Default value
+     * @return string
+     */
+    public function get_option( string $key, string $default = '' ): string {
+        $settings = get_option( 'ffc_settings', array() );
+        return isset( $settings[ $key ] ) ? $settings[ $key ] : $default;
+    }
 }

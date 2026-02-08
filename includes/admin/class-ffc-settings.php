@@ -31,12 +31,10 @@ class Settings {
 
     private $submission_handler;
     private $tabs = array();
-    private $save_handler;  // ✅ v3.1.1: Save Handler
+    private $save_handler;
 
     public function __construct( object $handler ) {
         $this->submission_handler = $handler;
-
-        // ✅ Autoloader handles class loading
         $this->save_handler = new \FreeFormCertificate\Admin\SettingsSaveHandler( $handler );
 
         // Load tabs

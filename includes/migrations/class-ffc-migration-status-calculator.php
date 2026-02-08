@@ -75,13 +75,8 @@ class MigrationStatusCalculator {
         $this->strategies['encrypt_sensitive_data'] = new \FreeFormCertificate\Migrations\Strategies\EncryptionMigrationStrategy();
         $this->strategies['cleanup_unencrypted']   = new \FreeFormCertificate\Migrations\Strategies\CleanupMigrationStrategy();
 
-        // ✅ v3.1.1: User link strategy (uses strategy pattern) - autoloader handles loading
         $this->strategies['user_link'] = new \FreeFormCertificate\Migrations\Strategies\UserLinkMigrationStrategy();
-
-        // ✅ v4.3.0: Name normalization strategy
         $this->strategies['name_normalization'] = new \FreeFormCertificate\Migrations\Strategies\NameNormalizationMigrationStrategy();
-
-        // ✅ v4.4.0: User capabilities strategy
         $this->strategies['user_capabilities'] = new \FreeFormCertificate\Migrations\Strategies\UserCapabilitiesMigrationStrategy();
 
         // Allow plugins to register custom strategies

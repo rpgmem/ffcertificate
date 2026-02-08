@@ -33,6 +33,34 @@ class Utils {
     }
 
     /**
+     * Enqueue dark mode script if enabled
+     *
+     * Shared between admin and frontend to avoid duplicate logic.
+     *
+     * @since 4.6.17
+     */
+    public static function enqueue_dark_mode(): void {
+        $settings  = get_option( 'ffc_settings', array() );
+        $dark_mode = isset( $settings['dark_mode'] ) ? $settings['dark_mode'] : 'off';
+
+        if ( $dark_mode === 'off' ) {
+            return;
+        }
+
+        $s = self::asset_suffix();
+        wp_enqueue_script(
+            'ffc-dark-mode',
+            FFC_PLUGIN_URL . "assets/js/ffc-dark-mode{$s}.js",
+            array(),
+            FFC_VERSION,
+            false
+        );
+        wp_localize_script( 'ffc-dark-mode', 'ffcDarkMode', array(
+            'mode' => $dark_mode,
+        ) );
+    }
+
+    /**
      * Get submissions table name with current prefix
      *
      * Centralizes table name generation for consistency across all classes.

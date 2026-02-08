@@ -152,7 +152,7 @@ class FormProcessor {
                 );
             }
             
-            // ✅ CONSUME TICKET (remove from list)
+            // Consume ticket (remove from list)
             $tickets = array_diff($tickets, array($ticket));
             $form_config['generated_codes_list'] = implode("\n", $tickets);
             update_post_meta($form_id, '_ffc_form_config', $form_config);
@@ -186,7 +186,7 @@ class FormProcessor {
         $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
         $existing_submission = null;
 
-        // ✅ PRIORITY 1: Check by ticket (if provided)
+        // Check by ticket first (if provided)
         if ( ! empty( $val_ticket ) ) {
             $like_query = '%' . $wpdb->esc_like( '"ticket":"' . $val_ticket . '"' ) . '%';
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -198,7 +198,7 @@ class FormProcessor {
             ) );
         }
         
-        // ✅ PRIORITY 2: Check by CPF/RF (OPTIMIZED - if ticket not provided)
+        // Check by CPF/RF (if ticket not provided)
         elseif ( ! empty( $val_cpf ) ) {
             // Remove formatting for comparison
             $clean_cpf = preg_replace( '/[^0-9]/', '', $val_cpf );
@@ -258,7 +258,6 @@ class FormProcessor {
                 $decoded_data = array();
             }
 
-            // ✅ v2.9.16: REBUILD complete data (columns + JSON)
             // Ensure required column fields are included
             if ( ! isset( $decoded_data['email'] ) && ! empty( $existing_submission->email ) ) {
                 $decoded_data['email'] = $existing_submission->email;
@@ -272,7 +271,7 @@ class FormProcessor {
             
             return array(
                 'is_reprint' => true,
-                'data' => $decoded_data,  // ✅ Agora tem dados completos!
+                'data' => $decoded_data,
                 'id' => $existing_submission->id,
                 'email' => $existing_submission->email,
                 'date' => $existing_submission->submission_date
@@ -416,24 +415,23 @@ class FormProcessor {
         if ( empty( $user_email ) ) {
             wp_send_json_error( array( 'message' => __( 'Email address is required.', 'ffcertificate' ) ) );
         }
-        // ✅ v2.10.0: Validate LGPD consent (mandatory)
+        // Validate LGPD consent (mandatory)
         if ( empty( $_POST['ffc_lgpd_consent'] ) || sanitize_text_field( wp_unslash( $_POST['ffc_lgpd_consent'] ) ) !== '1' ) {
             wp_send_json_error( array( 
                 'message' => __( 'You must agree to the Privacy Policy to continue.', 'ffcertificate' ) 
             ) );
         }
         
-        // ✅ v2.10.0: Add consent to submission data
+        // Add consent to submission data
         $submission_data['ffc_lgpd_consent'] = '1';
 
-        // ✅ v2.10.0: Capture restriction fields (password/ticket) from POST
-        // These are NOT in $fields_config, so capture separately
+        // Capture restriction fields (password/ticket) from POST
         $val_password = isset($_POST['ffc_password']) ? trim(sanitize_text_field(wp_unslash($_POST['ffc_password']))) : '';
         $val_ticket = isset($_POST['ffc_ticket']) ? strtoupper(trim(sanitize_text_field(wp_unslash($_POST['ffc_ticket'])))) : '';
         
         $val_cpf = isset($submission_data['cpf_rf']) ? trim($submission_data['cpf_rf']) : '';
 
-        // ✅ v2.10.0: Rate Limit Check
+        // Rate Limit Check
         if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
             $ip = \FreeFormCertificate\Core\Utils::get_user_ip();
             $email = $user_email;
@@ -455,7 +453,7 @@ class FormProcessor {
             if ($cpf) \FreeFormCertificate\Security\RateLimiter::record_attempt('cpf', preg_replace('/[^0-9]/', '', $cpf), $form_id);
         }
 
-        // ✅ v3.0.0: Geofence validation (date/time + geolocation)
+        // Geofence validation (date/time + geolocation)
         if (class_exists('\FreeFormCertificate\Security\Geofence')) {
             // Get form geofence config to check if IP validation is enabled
             $geofence_config = \FreeFormCertificate\Security\Geofence::get_form_config($form_id);
@@ -528,8 +526,7 @@ class FormProcessor {
             }
         }
 
-        // ✅ v2.10.0: Use unified PDF generation method
-        // All we need is the submission_id - everything else is retrieved automatically
+        // Generate PDF data
         $pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator( $this->submission_handler );
         $pdf_data = $pdf_generator->generate_pdf_data( 
             $submission_id, 
@@ -554,7 +551,7 @@ class FormProcessor {
         wp_send_json_success( array(
             'message' => $msg,
             'pdf_data' => $pdf_data,
-            'html' => \FreeFormCertificate\Core\Utils::generate_success_html(  // ✅ v2.9.13: Centralized in FFC_Utils
+            'html' => \FreeFormCertificate\Core\Utils::generate_success_html(
                 $submission_data,
                 $form_id,
                 $real_submission_date,

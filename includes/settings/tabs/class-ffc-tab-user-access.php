@@ -40,8 +40,6 @@ class TabUserAccess extends SettingsTab {
         }
 
         $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for conditional script loading.
-        // ✅ v3.1.0: User access styles consolidated into ffc-admin-settings.css (already loaded)
-        // No need to enqueue separate stylesheet anymore
     }
 
     public function render(): void {

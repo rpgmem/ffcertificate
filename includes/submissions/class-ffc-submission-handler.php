@@ -267,7 +267,7 @@ class SubmissionHandler {
 
         // Update data if provided
         if ($clean_data !== null && is_array($clean_data)) {
-            // ✅ Remove edit tracking from JSON data (should be in columns)
+            // Remove edit tracking from JSON data (should be in columns)
             unset($clean_data['is_edited']);
             unset($clean_data['edited_at']);
 
@@ -281,7 +281,6 @@ class SubmissionHandler {
             }
         }
 
-        // ✅ Use Repository method with automatic edit tracking
         if (method_exists($this->repository, 'updateWithEditTracking')) {
             $result = $this->repository->updateWithEditTracking($id, $update_data);
         } else {

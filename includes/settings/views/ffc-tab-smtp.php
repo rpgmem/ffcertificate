@@ -8,10 +8,7 @@ if (!defined('ABSPATH')) exit;
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
 
-$ffcertificate_get_option = function($key, $default = '') {
-    $settings = get_option('ffc_settings', array());
-    return isset($settings[$key]) ? $settings[$key] : $default;
-};
+$ffcertificate_get_option = \Closure::fromCallable( [ $settings, 'get_option' ] );
 ?>
 
 <div class="ffc-settings-wrap">

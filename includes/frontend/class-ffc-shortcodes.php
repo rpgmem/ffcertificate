@@ -85,7 +85,6 @@ class Shortcodes {
      * @return string HTML output
      */
     private function render_magic_link_preview( string $token ): string {
-        // ✅ OPTIMIZED v2.9.2: Log magic link access
         \FreeFormCertificate\Core\Utils::debug_log( 'Magic link shortcode rendered', array(
             'token' => substr( $token, 0, 8 ) . '...',
             'ip' => \FreeFormCertificate\Core\Utils::get_user_ip()
@@ -121,7 +120,6 @@ class Shortcodes {
             return $this->render_magic_link_preview( $magic_token );
         }
 
-        // ✅ OPTIMIZED v2.9.2: Log verification page render
         \FreeFormCertificate\Core\Utils::debug_log( 'Verification shortcode rendered', array(
             'ip' => \FreeFormCertificate\Core\Utils::get_user_ip(),
             'has_token' => ! empty( $magic_token )
@@ -144,7 +142,6 @@ class Shortcodes {
         $form_id = absint( $atts['id'] );
         
         if ( ! $form_id || get_post_type( $form_id ) !== 'ffc_form' ) {
-            // ✅ OPTIMIZED v2.9.2: Log invalid form access
             \FreeFormCertificate\Core\Utils::debug_log( 'Invalid form shortcode', array(
                 'form_id' => $form_id,
                 'ip' => \FreeFormCertificate\Core\Utils::get_user_ip()
@@ -157,14 +154,12 @@ class Shortcodes {
         $fields = get_post_meta( $form_id, '_ffc_form_fields', true );
         
         if ( empty( $fields ) ) {
-            // ✅ OPTIMIZED v2.9.2: Log form with no fields
             \FreeFormCertificate\Core\Utils::debug_log( 'Form has no fields', array(
                 'form_id' => $form_id
             ) );
             return '<p>' . esc_html__( 'Form has no fields.', 'ffcertificate' ) . '</p>';
         }
 
-        // ✅ OPTIMIZED v2.9.2: Log form render
         \FreeFormCertificate\Core\Utils::debug_log( 'Form shortcode rendered', array(
             'form_id' => $form_id,
             'form_title' => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
@@ -172,7 +167,6 @@ class Shortcodes {
             'ip' => \FreeFormCertificate\Core\Utils::get_user_ip()
         ) );
 
-        // ✅ v3.0.0: Check if geofence is active for this form
         $geofence_config = get_post_meta( $form_id, '_ffc_geofence_config', true );
         $has_geofence = false;
         if ( is_array( $geofence_config ) ) {
@@ -199,8 +193,7 @@ class Shortcodes {
                 echo $this->generate_security_fields();
                 ?>
 
-                <?php 
-                // ✅ v2.10.0: Dynamic restriction fields (password/ticket)
+                <?php
                 $form_config = get_post_meta($form_id, '_ffc_form_config', true);
                 $restrictions = isset($form_config['restrictions']) ? $form_config['restrictions'] : array();
 
@@ -246,7 +239,6 @@ class Shortcodes {
                 }
                 ?>
 
-                <?php // ✅ v2.10.0: LGPD Consent Checkbox (MANDATORY) ?>
                 <div class="ffc-lgpd-consent">
                     <label class="ffc-consent-label">
                         <input type="checkbox"

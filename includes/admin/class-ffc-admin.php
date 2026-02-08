@@ -30,10 +30,10 @@ class Admin {
     private $email_handler;
     private $form_editor;
     private $settings_page;
-    private $migration_manager;  // ✅ v2.9.13: Migration Manager
-    private $assets_manager;     // ✅ v3.1.1: Assets Manager
-    private $edit_page;          // ✅ v3.1.1: Submission Edit Page
-    private $activity_log_page;  // ✅ v3.1.1: Activity Log Page
+    private $migration_manager;
+    private $assets_manager;
+    private $edit_page;
+    private $activity_log_page;
 
     public function __construct( object $handler, object $exporter, ?object $email_handler = null ) {
         $this->submission_handler = $handler;
@@ -44,31 +44,22 @@ class Admin {
         $this->form_editor   = new FormEditor();
         $this->settings_page = new Settings( $handler );
 
-        // ✅ v2.9.13: Initialize Migration Manager
         $this->migration_manager = new MigrationManager();
-
-        // ✅ v3.1.1: Initialize Assets Manager (extracted from FFC_Admin)
         $this->assets_manager = new AdminAssetsManager();
         $this->assets_manager->register();
-
-        // ✅ v3.1.1: Initialize Submission Edit Page (extracted from FFC_Admin)
         $this->edit_page = new AdminSubmissionEditPage( $handler );
-
-        // ✅ v3.1.1: Initialize Activity Log Page
         $this->activity_log_page = new AdminActivityLogPage();
 
         add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 
-        // ✅ v2.9.3: Configure TinyMCE to protect placeholders
         // Priority 999 to run AFTER other plugins
         add_filter( 'tiny_mce_before_init', array( $this, 'configure_tinymce_placeholders' ), 999 );
 
         add_action( 'admin_init', array( $this, 'handle_submission_actions' ) );
         add_action( 'admin_init', array( $this, 'handle_csv_export_request' ) );
         add_action( 'admin_init', array( $this, 'handle_submission_edit_save' ) );
-        add_action( 'admin_init', array( $this, 'handle_migration_action' ) );  // ✅ v2.9.13: Unified handler
+        add_action( 'admin_init', array( $this, 'handle_migration_action' ) );
 
-        // ✅ v4.0.0 HOTFIX 14: Register admin-post handler for CSV export
         add_action( 'admin_post_ffc_export_csv', array( $this, 'handle_csv_export_request' ) );
     }
 
@@ -82,7 +73,6 @@ class Admin {
             array( $this, 'display_submissions_page' )
         );
 
-        // ✅ v3.1.1: Register Activity Log page
         $this->activity_log_page->register_menu();
     }
 
@@ -155,7 +145,6 @@ class Admin {
                     <input type="hidden" name="action" value="ffc_export_csv">
                     <input type="hidden" name="ffc_action" value="export_csv_smart">
                     <?php
-                    // ✅ Support multiple form filters
                     // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameter for form selection.
                     $filter_form_ids = [];
                     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty() existence check only.
@@ -250,14 +239,12 @@ class Admin {
 
 
     private function render_edit_page(): void {
-        // ✅ v3.1.1: Extracted to FFC_Admin_Submission_Edit_Page
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing parameter for edit page display.
         $submission_id = isset( $_GET['submission_id'] ) ? absint( wp_unslash( $_GET['submission_id'] ) ) : 0;
         $this->edit_page->render( $submission_id );
     }
 
     public function handle_submission_edit_save(): void {
-        // ✅ v3.1.1: Extracted to FFC_Admin_Submission_Edit_Page
         $this->edit_page->handle_save();
     }
     public function handle_csv_export_request(): void {
@@ -338,50 +325,21 @@ class Admin {
      * @return array Modified settings
      */
     public function configure_tinymce_placeholders( array $init ): array {
-        // ⭐ DEBUG: Uncomment to verify this is being called
-        // error_log('FFC: TinyMCE filter called!');
-        // error_log('FFC: Init keys: ' . implode(', ', array_keys($init)));
-
-        // ✅ STRATEGY 1: noneditable_regexp
-        // Protect all content between {{ and }}
-        // TinyMCE will NOT process the content inside
+        // Protect all content between {{ and }} from entity encoding
         $init['noneditable_regexp'] = '/{{[^}]+}}/g';
-
-        // ✅ STRATEGY 2: noneditable_class
-        // Mark placeholders with a class that TinyMCE won't edit
         $init['noneditable_class'] = 'ffc-placeholder';
-
-        // ✅ STRATEGY 3: entity_encoding
-        // Try to prevent entity encoding
         $init['entity_encoding'] = 'raw';
 
-        // ✅ STRATEGY 4: valid_elements
-        // Ensure our placeholders are considered valid
         if ( ! isset( $init['extended_valid_elements'] ) ) {
             $init['extended_valid_elements'] = '';
         }
 
-        // ✅ STRATEGY 5: protect patterns
-        // Additional protection for specific patterns
         if ( ! isset( $init['protect'] ) ) {
             $init['protect'] = array();
         }
         if ( is_array( $init['protect'] ) ) {
             $init['protect'][] = '/{{[^}]+}}/g';
         }
-
-        // ✅ Visual styling (optional)
-        // Uncomment to add custom CSS for placeholder highlighting
-        // if ( ! isset( $init['content_css'] ) ) {
-        //     $init['content_css'] = '';
-        // } else {
-        //     $init['content_css'] .= ',';
-        // }
-        // $init['content_css'] .= plugins_url( 'assets/css/ffc-editor-placeholders.css', FFC_PLUGIN_FILE );
-
-        // ⭐ DEBUG: Uncomment to see final config
-        // error_log('FFC: noneditable_regexp = ' . $init['noneditable_regexp']);
-        // error_log('FFC: entity_encoding = ' . $init['entity_encoding']);
 
         return $init;
     }

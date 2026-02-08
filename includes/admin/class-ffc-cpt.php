@@ -69,7 +69,6 @@ class CPT {
             return $actions;
         }
 
-        // ✅ OPTIMIZED v2.9.2: Check permissions before adding link
         if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
             return $actions;
         }
@@ -88,7 +87,6 @@ class CPT {
      * Handles the duplication process when the action is triggered
      */
     public function handle_form_duplication(): void {
-        // ✅ OPTIMIZED v2.9.2: Use FFC_Utils for permission check
         if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
             \FreeFormCertificate\Core\Utils::debug_log( 'Unauthorized form duplication attempt', array(
                 'user_id' => get_current_user_id(),
@@ -112,7 +110,6 @@ class CPT {
             wp_die( esc_html__( 'Invalid post.', 'ffcertificate' ) );
         }
 
-        // ✅ OPTIMIZED v2.9.2: Use \FreeFormCertificate\Core\Utils::sanitize_filename() for title
         $original_title = $post->post_title;
         /* translators: %s: original post title */
         $new_title = sprintf( __( '%s (Copy)', 'ffcertificate' ), $original_title );
@@ -163,7 +160,6 @@ class CPT {
             $metadata_copied[] = 'geofence_config';
         }
 
-        // ✅ OPTIMIZED v2.9.2: Log successful duplication
         \FreeFormCertificate\Core\Utils::debug_log( 'Form duplicated successfully', array(
             'original_post_id' => $post_id,
             'new_post_id' => $new_post_id,

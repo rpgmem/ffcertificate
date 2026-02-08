@@ -21,33 +21,25 @@ class Activator {
         self::add_columns();
         self::create_verification_page();
 
-        // ✅ v2.10.0: Create Rate Limit tables
         if (class_exists('\FreeFormCertificate\Security\RateLimitActivator')) {
             \FreeFormCertificate\Security\RateLimitActivator::create_tables();
         }
 
-        // ✅ v3.1.0: Register ffc_user role
         self::register_user_role();
-
-        // ✅ v3.1.0: Create dashboard page
         self::create_dashboard_page();
 
-        // ✅ v4.5.0: Run table rename migration (calendars -> self_scheduling)
         if (class_exists('\FreeFormCertificate\Migrations\MigrationSelfSchedulingTables')) {
             \FreeFormCertificate\Migrations\MigrationSelfSchedulingTables::run();
         }
 
-        // ✅ v4.5.0: Run capability rename migration
         if (class_exists('\FreeFormCertificate\Migrations\MigrationRenameCapabilities')) {
             \FreeFormCertificate\Migrations\MigrationRenameCapabilities::run();
         }
 
-        // ✅ v4.5.0: Create Self-Scheduling tables (renamed from Calendar)
         if (class_exists('\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator')) {
             \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::create_tables();
         }
 
-        // ✅ v4.5.0: Create Audience tables (new audience booking system)
         if (class_exists('\FreeFormCertificate\Audience\AudienceActivator')) {
             \FreeFormCertificate\Audience\AudienceActivator::create_tables();
         }
@@ -55,7 +47,7 @@ class Activator {
         self::add_composite_indexes();
         self::run_migrations();
 
-        // Schedule daily cleanup cron (v4.6.9)
+        // Schedule daily cleanup cron
         if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
             wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
         }

@@ -24,7 +24,6 @@ use FreeFormCertificate\Admin\AdminAjax;
 use FreeFormCertificate\API\RestController;
 use FreeFormCertificate\Shortcodes\DashboardShortcode;
 use FreeFormCertificate\UserDashboard\AccessControl;
-// v4.5.0: Self-Scheduling System (renamed from Calendars)
 use FreeFormCertificate\SelfScheduling\SelfSchedulingCPT;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingEditor;
@@ -34,7 +33,6 @@ use FreeFormCertificate\SelfScheduling\AppointmentEmailHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentCsvExporter;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode;
-// v4.5.0: Audience Scheduling System (new)
 use FreeFormCertificate\Audience\AudienceLoader;
 use FreeFormCertificate\Core\ActivityLogSubscriber;
 
@@ -42,24 +40,22 @@ if (!defined('ABSPATH')) exit;
 
 class Loader {
 
-    protected $submission_handler = null;
-    protected $email_handler = null;
-    protected $csv_exporter = null;
-    protected $cpt = null;
-    protected $admin = null;
-    protected $frontend = null;
-    protected $admin_ajax = null;
-    // v4.5.0: Self-Scheduling System (renamed from calendar_*)
-    protected $self_scheduling_cpt = null;
-    protected $self_scheduling_admin = null;
-    protected $self_scheduling_editor = null;
-    protected $self_scheduling_appointment_handler = null;
-    protected $self_scheduling_email_handler = null;
-    protected $self_scheduling_receipt_handler = null;
-    protected $self_scheduling_csv_exporter = null;
-    protected $self_scheduling_shortcode = null;
-    // v4.5.0: Audience Scheduling System (new)
-    protected $audience_loader = null;
+    protected $submission_handler;
+    protected $email_handler;
+    protected $csv_exporter;
+    protected $cpt;
+    protected $admin;
+    protected $frontend;
+    protected $admin_ajax;
+    protected $self_scheduling_cpt;
+    protected $self_scheduling_admin;
+    protected $self_scheduling_editor;
+    protected $self_scheduling_appointment_handler;
+    protected $self_scheduling_email_handler;
+    protected $self_scheduling_receipt_handler;
+    protected $self_scheduling_csv_exporter;
+    protected $self_scheduling_shortcode;
+    protected $audience_loader;
 
     public function __construct() {
         add_action('plugins_loaded', [$this, 'init_plugin'], 10);
@@ -68,7 +64,6 @@ class Loader {
     }
 
     public function init_plugin(): void {
-        // ✅ v4.5.0: Run self-scheduling migrations if needed
         if (class_exists('\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator')) {
             \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::maybe_migrate();
         }
@@ -78,7 +73,7 @@ class Loader {
         $this->email_handler      = new EmailHandler();
         $this->cpt                = new CPT();
 
-        // v4.6.13: Conditional loading — admin-only classes skipped on frontend
+        // Admin-only classes skipped on frontend
         if ( is_admin() ) {
             $this->csv_exporter   = new CsvExporter();
             $this->admin          = new Admin($this->submission_handler, $this->csv_exporter, $this->email_handler);
@@ -93,13 +88,9 @@ class Loader {
         // Frontend + AJAX classes
         $this->frontend           = new Frontend($this->submission_handler, $this->email_handler);
 
-        // ✅ v3.1.0: Initialize Dashboard Shortcode ([user_dashboard_personal])
         DashboardShortcode::init();
-
-        // ✅ v3.1.0: Initialize Access Control (blocks wp-admin for configured roles)
         AccessControl::init();
 
-        // ✅ v4.5.0: Initialize Self-Scheduling System (shared classes)
         $this->self_scheduling_cpt              = new SelfSchedulingCPT();
         $this->self_scheduling_appointment_handler = new AppointmentHandler();
         new AppointmentAjaxHandler( $this->self_scheduling_appointment_handler );
@@ -107,11 +98,9 @@ class Loader {
         $this->self_scheduling_receipt_handler  = new AppointmentReceiptHandler();
         $this->self_scheduling_shortcode        = new SelfSchedulingShortcode();
 
-        // ✅ v4.5.0: Initialize Audience Scheduling System (new)
         $this->audience_loader = AudienceLoader::get_instance();
         $this->audience_loader->init();
 
-        // v4.6.5: Hook-based logging — plugin consumes its own hooks
         new ActivityLogSubscriber();
 
         // Ensure daily cleanup cron is scheduled
@@ -120,10 +109,8 @@ class Loader {
         }
 
         $this->define_admin_hooks();
-        $this->init_rest_api(); // Initialize REST API
+        $this->init_rest_api();
     }
-
-    // Removed load_dependencies() - PSR-4 autoloader handles all class loading now
 
     /**
      * Initialize REST API

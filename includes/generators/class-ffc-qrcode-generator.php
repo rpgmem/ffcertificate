@@ -86,7 +86,6 @@ class QRCodeGenerator {
         // Parse parameters from placeholder
         $params = $this->parse_placeholder_params( $placeholder );
         
-        // ✅ OPTIMIZED v2.9.2: Add debug logging
         \FreeFormCertificate\Core\Utils::debug_log( 'QR Code generation requested', array(
             'submission_id' => $submission_id,
             'size' => $params['size'],
@@ -118,7 +117,6 @@ class QRCodeGenerator {
         $qr_base64 = $this->generate( $url, $params );
 
         if ( empty( $qr_base64 ) ) {
-            // ✅ OPTIMIZED v2.9.2: Log generation failure
             \FreeFormCertificate\Core\Utils::debug_log( 'QR Code generation failed', array(
                 'url' => substr( $url, 0, 50 ) . '...',
                 'submission_id' => $submission_id
@@ -247,7 +245,6 @@ class QRCodeGenerator {
             return '';
             
         } catch ( Exception $e ) {
-            // ✅ OPTIMIZED v2.9.2: Log exceptions
             \FreeFormCertificate\Core\Utils::debug_log( 'QR Code generation exception', array(
                 'error' => $e->getMessage(),
                 'url' => substr( $url, 0, 50 ) . '...'
@@ -385,7 +382,6 @@ class QRCodeGenerator {
         global $wpdb;
         $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
         
-        // ✅ OPTIMIZED v2.9.2: Log column creation
         \FreeFormCertificate\Core\Utils::debug_log( 'Creating qr_code_cache column', array(
             'table' => $table_name
         ) );
@@ -420,7 +416,6 @@ class QRCodeGenerator {
             return 0;
         }
         
-        // ✅ OPTIMIZED v2.9.2: Log cache clearing
         \FreeFormCertificate\Core\Utils::debug_log( 'Clearing QR cache', array(
             'submission_id' => $submission_id,
             'scope' => $submission_id ? 'single' : 'all'
@@ -479,7 +474,6 @@ class QRCodeGenerator {
         return '';
     }
     
-    // ✅ Use helper to generate magic link
     $magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $submission['magic_token'] );
     
     if ( empty( $magic_link ) ) {
@@ -529,7 +523,6 @@ class QRCodeGenerator {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $cached = $wpdb->get_var( "SELECT COUNT(*) FROM {$table_name} WHERE qr_code_cache IS NOT NULL" );
         
-        // ✅ OPTIMIZED v2.9.2: Use \FreeFormCertificate\Core\Utils::format_bytes() for cache size
         $avg_size_bytes = 4096; // 4 KB per QR Code (estimate)
         $total_bytes = $cached * $avg_size_bytes;
         
@@ -537,7 +530,7 @@ class QRCodeGenerator {
             'enabled' => $this->is_cache_enabled(),
             'total_submissions' => (int) $total,
             'cached_qr_codes' => (int) $cached,
-            'cache_size' => \FreeFormCertificate\Core\Utils::format_bytes( $total_bytes ), // ✅ Formatted!
+            'cache_size' => \FreeFormCertificate\Core\Utils::format_bytes( $total_bytes ),
             'cache_dir' => 'Database (qr_code_cache column)'
         );
     }

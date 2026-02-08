@@ -546,15 +546,8 @@ class ActivityLog {
         return $stats;
     }
 
-    // ============================================
-    // CONVENIENCE METHODS FOR COMMON ACTIONS
-    // ✅ v3.1.1: Kept only 6 actively used methods
-    // Removed 18 unused methods (75% reduction)
-    // ============================================
-
     /**
-     * ✅ USED: Log submission created (v2.10.0 LGPD)
-     * Called by: FFC_Submission_Handler
+     * Log submission created
      *
      * @param int $submission_id Submission ID
      * @param array $data Additional data (form_id, encrypted status, etc)
@@ -571,8 +564,7 @@ class ActivityLog {
     }
 
     /**
-     * ✅ USED: Log submission updated
-     * Called by: FFC_Submission_Handler
+     * Log submission updated
      */
     public static function log_submission_updated( int $submission_id, int $admin_user_id ): bool {
         return self::log( 'submission_updated', self::LEVEL_INFO, array(
@@ -581,8 +573,7 @@ class ActivityLog {
     }
 
     /**
-     * ✅ USED: Log submission deleted
-     * Called by: FFC_Submission_Handler
+     * Log submission deleted
      */
     public static function log_submission_deleted( int $submission_id, int $admin_user_id = 0 ): bool {
         return self::log( 'submission_deleted', self::LEVEL_WARNING, array(
@@ -591,8 +582,7 @@ class ActivityLog {
     }
 
     /**
-     * ✅ USED: Log submission trashed
-     * Called by: FFC_Submission_Handler
+     * Log submission trashed
      *
      * @param int $submission_id Submission ID
      * @return bool Success
@@ -608,8 +598,7 @@ class ActivityLog {
     }
 
     /**
-     * ✅ USED: Log submission restored
-     * Called by: FFC_Submission_Handler
+     * Log submission restored
      *
      * @param int $submission_id Submission ID
      * @return bool Success
@@ -625,8 +614,7 @@ class ActivityLog {
     }
 
     /**
-     * ✅ USED: Log data access (v2.10.0 LGPD)
-     * Called by: FFC_Verification_Handler (magic link, admin view)
+     * Log data access (LGPD audit trail)
      *
      * @param int $submission_id Submission ID
      * @param array $context Access context (method, IP, etc)
@@ -643,8 +631,7 @@ class ActivityLog {
     }
 
     /**
-     * ✅ USED: Log access denied
-     * Called by: FFC_Geofence (datetime/geo restrictions)
+     * Log access denied
      */
     public static function log_access_denied( string $reason, string $identifier ): bool {
         return self::log( 'access_denied', self::LEVEL_WARNING, array(
@@ -654,8 +641,7 @@ class ActivityLog {
     }
 
     /**
-     * ✅ USED: Log settings changed
-     * Called by: FFC_Tab_Geolocation
+     * Log settings changed
      */
     public static function log_settings_changed( string $setting_key, int $admin_user_id ): bool {
         return self::log( 'settings_changed', self::LEVEL_INFO, array(
@@ -664,7 +650,7 @@ class ActivityLog {
     }
 
     /**
-     * ✅ v2.10.0: Get logs for specific submission (LGPD audit trail)
+     * Get logs for specific submission (LGPD audit trail)
      *
      * @param int $submission_id Submission ID
      * @param int $limit Maximum number of logs to retrieve

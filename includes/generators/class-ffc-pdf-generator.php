@@ -52,32 +52,28 @@ class PdfGenerator {
         // Convert to array
         $sub_array = (array) $submission;
         
-        // ✅ v2.9.15: REBUILD complete data (columns + JSON)
-
-        // Step 1: Required fields from columns
+        // Rebuild complete data (columns + JSON)
         $data = array(
-            'email' => $sub_array['email'],  // ✅ Da coluna
+            'email' => $sub_array['email'],
         );
-        
-        // Adicionar auth_code se existir na coluna
+
         if ( ! empty( $sub_array['auth_code'] ) ) {
-            $data['auth_code'] = $sub_array['auth_code'];  // ✅ Da coluna
+            $data['auth_code'] = $sub_array['auth_code'];
         }
-        
-        // Adicionar cpf_rf se existir na coluna
+
         if ( ! empty( $sub_array['cpf_rf'] ) ) {
-            $data['cpf_rf'] = $sub_array['cpf_rf'];  // ✅ Da coluna
+            $data['cpf_rf'] = $sub_array['cpf_rf'];
         }
-        
-        // Step 2: Extra fields from JSON
+
+        // Extra fields from JSON
         $extra_data = json_decode( $sub_array['data'], true );
         if ( ! is_array( $extra_data ) ) {
             $extra_data = json_decode( stripslashes( $sub_array['data'] ), true );
         }
 
-        // Step 3: Merge (extras do NOT overwrite required fields)
+        // Merge — columns have priority over JSON fields
         if ( is_array( $extra_data ) && ! empty( $extra_data ) ) {
-            $data = array_merge( $extra_data, $data );  // ✅ Important order: columns have priority
+            $data = array_merge( $extra_data, $data );
         }
         
         // Enrich data with submission metadata
@@ -99,7 +95,6 @@ class PdfGenerator {
         $form_config = get_post_meta( $form_id, '_ffc_form_config', true );
         $bg_image_url = get_post_meta( $form_id, '_ffc_form_bg', true );
 
-        // ✅ Generate HTML using internal method (not email handler)
         $html = $this->generate_html( $data, $form_title, $form_config, $sub_array['submission_date'] );
 
         /**
@@ -180,7 +175,6 @@ class PdfGenerator {
         
         // Add formatted date if missing
         if ( ! isset( $data['fill_date'] ) ) {
-            // ✅ v2.10.0: Use plugin date format setting
             $settings = get_option( 'ffc_settings', array() );
             $date_format = isset( $settings['date_format'] ) ? $settings['date_format'] : 'F j, Y';
             
@@ -246,7 +240,6 @@ class PdfGenerator {
         }
         
         // Replace standard placeholders
-        // ✅ v2.10.0: Use plugin date format setting
         $settings = get_option( 'ffc_settings', array() );
         $date_format = isset( $settings['date_format'] ) ? $settings['date_format'] : 'F j, Y';
 
@@ -633,7 +626,6 @@ class PdfGenerator {
             $submission_data['date'] = $formatted_date;
         }
         
-        // ✅ Generate HTML using internal method
         $html = $this->generate_html( $submission_data, $form_title, $form_config, $submission_date );
         
         // Get verification code
