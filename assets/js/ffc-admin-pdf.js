@@ -475,9 +475,7 @@
 
     // Register module
     if (FFC.registerModule) {
-        FFC.registerModule('Admin.PDF', '3.1.0');
+        FFC.registerModule('Admin.PDF', FFC.version);
     }
-
-    console.log('[FFC Admin PDF] Module loaded v3.1.0');
 
 })(jQuery, window.FFC);

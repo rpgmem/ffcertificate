@@ -23,7 +23,7 @@
         /**
          * Plugin version
          */
-        version: '3.1.0',
+        version: (window.ffcCoreConfig && window.ffcCoreConfig.version) || '0.0.0',
         
         /**
          * Shared configuration

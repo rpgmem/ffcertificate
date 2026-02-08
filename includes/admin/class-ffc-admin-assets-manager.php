@@ -105,6 +105,9 @@ class AdminAssetsManager {
             FFC_VERSION,
             true
         );
+        wp_localize_script( 'ffc-core', 'ffcCoreConfig', array(
+            'version' => FFC_VERSION,
+        ) );
     }
 
     /**

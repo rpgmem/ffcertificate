@@ -260,9 +260,7 @@
 
     // Register module
     if (FFC.registerModule) {
-        FFC.registerModule('Admin.FieldBuilder', '3.1.0');
+        FFC.registerModule('Admin.FieldBuilder', FFC.version);
     }
-
-    console.log('[FFC Admin Field Builder] Module loaded v3.1.0');
 
 })(jQuery, window.FFC);
