@@ -37,9 +37,6 @@ class Settings {
         $this->submission_handler = $handler;
         $this->save_handler = new \FreeFormCertificate\Admin\SettingsSaveHandler( $handler );
 
-        // Load tabs
-        $this->load_tabs();
-        
         // Hooks
         add_action( 'admin_menu', array( $this, 'add_settings_page' ), 20 );
         add_action( 'admin_init', array( $this, 'handle_settings_submission' ) );
@@ -188,6 +185,11 @@ class Settings {
      * Display settings page with modular tabs
      */
     public function display_settings_page(): void {
+        // Lazy-load tabs on first render (avoids translation calls before 'init' hook)
+        if ( empty( $this->tabs ) ) {
+            $this->load_tabs();
+        }
+
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- These are display-only URL parameters from redirects.
         // Handle messages
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
