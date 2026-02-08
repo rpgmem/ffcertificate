@@ -48,9 +48,9 @@ abstract class AbstractRepository {
             return $cached;
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $result = $this->wpdb->get_row(
-            $this->wpdb->prepare("SELECT * FROM {$this->table} WHERE id = %d", $id),
+            $this->wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $this->table, $id ),
             ARRAY_A
         );
 
@@ -88,10 +88,11 @@ abstract class AbstractRepository {
 
         // Batch load cache misses
         if ( ! empty( $missing ) ) {
-            $placeholders = implode( ',', array_fill( 0, count( $missing ), '%d' ) );
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $safe_ids = array_map( 'absint', $missing );
+            $id_list  = implode( ',', $safe_ids );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             $rows = $this->wpdb->get_results(
-                $this->wpdb->prepare( "SELECT * FROM {$this->table} WHERE id IN ({$placeholders})", ...$missing ),
+                $this->wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$id_list})", $this->table ),
                 ARRAY_A
             );
 
@@ -121,15 +122,19 @@ abstract class AbstractRepository {
         $where = $this->build_where_clause($conditions);
         $order_by = $this->sanitize_order_column( $order_by );
         $order    = strtoupper( $order ) === 'ASC' ? 'ASC' : 'DESC';
-        $sql = "SELECT * FROM {$this->table} {$where} ORDER BY {$order_by} {$order}";
-
         if ($limit) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $sql = $this->wpdb->prepare($sql . " LIMIT %d OFFSET %d", $limit, $offset);
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            return $this->wpdb->get_results(
+                $this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order} LIMIT %d OFFSET %d", $this->table, $limit, $offset ),
+                ARRAY_A
+            );
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        return $this->wpdb->get_results($sql, ARRAY_A);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return $this->wpdb->get_results(
+            $this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order}", $this->table ),
+            ARRAY_A
+        );
     }
 
     /**
@@ -140,8 +145,8 @@ abstract class AbstractRepository {
      */
     public function count( array $conditions = [] ): int {
         $where = $this->build_where_clause($conditions);
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        return (int) $this->wpdb->get_var("SELECT COUNT(*) FROM {$this->table} {$where}");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return (int) $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", $this->table ) );
     }
 
     /**

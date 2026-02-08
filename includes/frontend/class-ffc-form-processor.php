@@ -189,13 +189,14 @@ class FormProcessor {
         // ✅ PRIORITY 1: Check by ticket (if provided)
         if ( ! empty( $val_ticket ) ) {
             $like_query = '%' . $wpdb->esc_like( '"ticket":"' . $val_ticket . '"' ) . '%';
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $existing_submission = $wpdb->get_row( $wpdb->prepare( 
-                "SELECT * FROM {$table_name} WHERE form_id = %d AND data LIKE %s ORDER BY id DESC LIMIT 1", 
-                $form_id, 
-                $like_query 
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $existing_submission = $wpdb->get_row( $wpdb->prepare(
+                'SELECT * FROM %i WHERE form_id = %d AND data LIKE %s ORDER BY id DESC LIMIT 1',
+                $table_name,
+                $form_id,
+                $like_query
             ) );
-        } 
+        }
         
         // ✅ PRIORITY 2: Check by CPF/RF (OPTIMIZED - if ticket not provided)
         elseif ( ! empty( $val_cpf ) ) {
@@ -207,26 +208,20 @@ class FormProcessor {
                 // Use HASH for encrypted data
                 $cpf_hash = \FreeFormCertificate\Core\Encryption::hash($clean_cpf);
                 
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $existing_submission = $wpdb->get_row( $wpdb->prepare( 
-                    "SELECT * FROM {$table_name} 
-                     WHERE form_id = %d 
-                     AND cpf_rf_hash = %s 
-                     ORDER BY id DESC 
-                     LIMIT 1", 
-                    $form_id, 
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                $existing_submission = $wpdb->get_row( $wpdb->prepare(
+                    'SELECT * FROM %i WHERE form_id = %d AND cpf_rf_hash = %s ORDER BY id DESC LIMIT 1',
+                    $table_name,
+                    $form_id,
                     $cpf_hash
                 ) );
             } else {
                 // Use plain CPF for non-encrypted data
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $existing_submission = $wpdb->get_row( $wpdb->prepare( 
-                    "SELECT * FROM {$table_name} 
-                     WHERE form_id = %d 
-                     AND cpf_rf = %s 
-                     ORDER BY id DESC 
-                     LIMIT 1", 
-                    $form_id, 
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                $existing_submission = $wpdb->get_row( $wpdb->prepare(
+                    'SELECT * FROM %i WHERE form_id = %d AND cpf_rf = %s ORDER BY id DESC LIMIT 1',
+                    $table_name,
+                    $form_id,
                     $clean_cpf
                 ) );
             }
@@ -234,15 +229,12 @@ class FormProcessor {
             // ⚠️ Fallback: If column doesn't exist or is NULL, search in JSON
             if ( ! $existing_submission ) {
                 $like_query = '%' . $wpdb->esc_like( '"cpf_rf":"' . $val_cpf . '"' ) . '%';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $existing_submission = $wpdb->get_row( $wpdb->prepare( 
-                    "SELECT * FROM {$table_name} 
-                     WHERE form_id = %d 
-                     AND data LIKE %s 
-                     ORDER BY id DESC 
-                     LIMIT 1", 
-                    $form_id, 
-                    $like_query 
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                $existing_submission = $wpdb->get_row( $wpdb->prepare(
+                    'SELECT * FROM %i WHERE form_id = %d AND data LIKE %s ORDER BY id DESC LIMIT 1',
+                    $table_name,
+                    $form_id,
+                    $like_query
                 ) );
             }
         }

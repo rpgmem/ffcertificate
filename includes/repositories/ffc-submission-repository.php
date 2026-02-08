@@ -84,9 +84,9 @@ class SubmissionRepository extends AbstractRepository {
             return $cached;
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $result = $this->wpdb->get_row(
-            $this->wpdb->prepare("SELECT * FROM {$this->table} WHERE auth_code = %s", $auth_code),
+            $this->wpdb->prepare( 'SELECT * FROM %i WHERE auth_code = %s', $this->table, $auth_code ),
             ARRAY_A
         );
 
@@ -111,9 +111,9 @@ class SubmissionRepository extends AbstractRepository {
             return $cached;
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $result = $this->wpdb->get_row(
-            $this->wpdb->prepare("SELECT * FROM {$this->table} WHERE magic_token = %s", $token),
+            $this->wpdb->prepare( 'SELECT * FROM %i WHERE magic_token = %s', $this->table, $token ),
             ARRAY_A
         );
 
@@ -132,10 +132,11 @@ class SubmissionRepository extends AbstractRepository {
      * @return array
      */
     public function findByEmail( string $email, int $limit = 10 ): array {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $this->wpdb->get_results(
             $this->wpdb->prepare(
-                "SELECT * FROM {$this->table} WHERE email = %s OR email_hash = %s ORDER BY id DESC LIMIT %d",
+                'SELECT * FROM %i WHERE email = %s OR email_hash = %s ORDER BY id DESC LIMIT %d',
+                $this->table,
                 $email,
                 $this->hash($email),
                 $limit
@@ -154,10 +155,11 @@ class SubmissionRepository extends AbstractRepository {
     public function findByCpfRf( string $cpf, int $limit = 10 ): array {
         $clean_cpf = preg_replace('/[^0-9]/', '', $cpf);
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $this->wpdb->get_results(
             $this->wpdb->prepare(
-                "SELECT * FROM {$this->table} WHERE cpf_rf = %s OR cpf_rf_hash = %s ORDER BY id DESC LIMIT %d",
+                'SELECT * FROM %i WHERE cpf_rf = %s OR cpf_rf_hash = %s ORDER BY id DESC LIMIT %d',
+                $this->table,
                 $clean_cpf,
                 $this->hash($clean_cpf),
                 $limit
@@ -175,10 +177,11 @@ class SubmissionRepository extends AbstractRepository {
      * @return array
      */
     public function findByFormId( int $form_id, int $limit = 100, int $offset = 0 ): array {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $this->wpdb->get_results(
             $this->wpdb->prepare(
-                "SELECT * FROM {$this->table} WHERE form_id = %d ORDER BY id DESC LIMIT %d OFFSET %d",
+                'SELECT * FROM %i WHERE form_id = %d ORDER BY id DESC LIMIT %d OFFSET %d',
+                $this->table,
                 $form_id,
                 $limit,
                 $offset
@@ -215,12 +218,11 @@ class SubmissionRepository extends AbstractRepository {
 
             $where_clause = 'WHERE ' . implode( ' AND ', $where );
 
-            $query = "SELECT * FROM {$this->table} {$where_clause} ORDER BY id DESC";
+            $prepare_args = array_merge( [ $this->table ], $prepare_args );
+            $query = "SELECT * FROM %i {$where_clause} ORDER BY id DESC";
 
-            if ( !empty( $prepare_args ) ) {
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $query = $this->wpdb->prepare( $query, ...$prepare_args );
-            }
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $query = $this->wpdb->prepare( $query, ...$prepare_args );
 
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             return $this->wpdb->get_results( $query, ARRAY_A );
@@ -253,9 +255,9 @@ class SubmissionRepository extends AbstractRepository {
         }
 
         // Check if any row has edit data
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $has_data = $this->wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->table} WHERE edited_at IS NOT NULL"
+            $this->wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE edited_at IS NOT NULL', $this->table )
         );
 
         return (int) $has_data > 0;
@@ -336,18 +338,19 @@ class SubmissionRepository extends AbstractRepository {
         $orderby = $this->sanitize_order_column( $args['orderby'] );
         $order   = strtoupper( $args['order'] ) === 'ASC' ? 'ASC' : 'DESC';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $items = $this->wpdb->get_results(
             $this->wpdb->prepare(
-                "SELECT * FROM {$this->table} {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
+                "SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
+                $this->table,
                 $args['per_page'],
                 $offset
             ),
             ARRAY_A
         );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $total = $this->wpdb->get_var("SELECT COUNT(*) FROM {$this->table} {$where_clause}");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $total = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $this->table ) );
 
         return [
             'items' => $items,
@@ -362,9 +365,9 @@ class SubmissionRepository extends AbstractRepository {
      * @return array
      */
     public function countByStatus(): array {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $results = $this->wpdb->get_results(
-            "SELECT status, COUNT(*) as count FROM {$this->table} GROUP BY status",
+            $this->wpdb->prepare( 'SELECT status, COUNT(*) as count FROM %i GROUP BY status', $this->table ),
             OBJECT_K
         );
 
@@ -397,12 +400,13 @@ class SubmissionRepository extends AbstractRepository {
             return 0;
         }
 
-        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $safe_ids = array_map( 'absint', $ids );
+        $id_list  = implode( ',', $safe_ids );
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $query = $this->wpdb->prepare(
-            "UPDATE {$this->table} SET status = %s WHERE id IN ({$placeholders})",
-            $status,
-            ...$ids
+            "UPDATE %i SET status = %s WHERE id IN ({$id_list})",
+            $this->table,
+            $status
         );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -426,11 +430,12 @@ class SubmissionRepository extends AbstractRepository {
             return 0;
         }
 
-        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $safe_ids = array_map( 'absint', $ids );
+        $id_list  = implode( ',', $safe_ids );
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $query = $this->wpdb->prepare(
-            "DELETE FROM {$this->table} WHERE id IN ({$placeholders})",
-            ...$ids
+            "DELETE FROM %i WHERE id IN ({$id_list})",
+            $this->table
         );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

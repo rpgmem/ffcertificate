@@ -199,16 +199,17 @@ class AdminUserColumns {
 
         // Check if table exists (cached per request to avoid N+1 SHOW TABLES queries)
         if ( self::$appointments_table_exists === null ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            self::$appointments_table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table}'") == $table;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            self::$appointments_table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) == $table;
         }
         if ( ! self::$appointments_table_exists ) {
             return 0;
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $count = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND status != 'cancelled'",
+            "SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'cancelled'",
+            $table,
             $user_id
         ));
 

@@ -52,8 +52,8 @@ class SelfSchedulingActivator {
         $charset_collate = $wpdb->get_charset_collate();
 
         // Check if table already exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") == $table_name) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
             return;
         }
 
@@ -128,8 +128,8 @@ class SelfSchedulingActivator {
         $charset_collate = $wpdb->get_charset_collate();
 
         // Check if table already exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") == $table_name;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name;
 
         if ($table_exists) {
             // Run migration to add cpf_rf columns if they don't exist
@@ -506,8 +506,8 @@ class SelfSchedulingActivator {
 
         // Migrate appointments table
         $appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $appointments_exists = $wpdb->get_var("SHOW TABLES LIKE '{$appointments_table}'") == $appointments_table;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $appointments_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $appointments_table ) ) == $appointments_table;
 
         if ($appointments_exists) {
             // Run migration to ensure cpf_rf columns exist
@@ -520,8 +520,8 @@ class SelfSchedulingActivator {
 
         // Migrate calendars table
         $calendars_table = $wpdb->prefix . 'ffc_self_scheduling_calendars';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $calendars_exists = $wpdb->get_var("SHOW TABLES LIKE '{$calendars_table}'") == $calendars_table;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $calendars_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $calendars_table ) ) == $calendars_table;
 
         if ($calendars_exists) {
             // Run migration to ensure minimum_interval_between_bookings column exists
@@ -572,8 +572,8 @@ class SelfSchedulingActivator {
         $charset_collate = $wpdb->get_charset_collate();
 
         // Check if table already exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        if ($wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") == $table_name) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
             return;
         }
 

@@ -125,9 +125,9 @@ class AdminActivityLogPage {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_activity_log';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $actions = $wpdb->get_col(
-            "SELECT DISTINCT action FROM {$table_name} ORDER BY action ASC"
+            $wpdb->prepare( 'SELECT DISTINCT action FROM %i ORDER BY action ASC', $table_name )
         );
 
         return $actions;

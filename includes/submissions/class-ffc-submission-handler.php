@@ -538,11 +538,11 @@ class SubmissionHandler {
 
             // Reset AUTO_INCREMENT if table is empty and requested
             if ($reset_auto_increment) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $count = $wpdb->get_var("SELECT COUNT(*) FROM {$table}");
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                $count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
                 if ($count == 0) {
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                    $wpdb->query("ALTER TABLE {$table} AUTO_INCREMENT = 1");
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+                    $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i AUTO_INCREMENT = 1', $table ) );
                 }
             }
 
@@ -554,8 +554,8 @@ class SubmissionHandler {
 
         if ($reset_auto_increment) {
             // TRUNCATE resets AUTO_INCREMENT automatically
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.SchemaChange
-            $result = $wpdb->query("TRUNCATE TABLE {$table}");
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+            $result = $wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
 
             // Also reset migration counters when resetting auto increment
             // This ensures migration panel shows correct stats after cleanup
@@ -564,8 +564,8 @@ class SubmissionHandler {
             }
         } else {
             // DELETE keeps AUTO_INCREMENT
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $result = $wpdb->query("DELETE FROM {$table}");
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $result = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $table ) );
         }
 
         return $result !== false ? (int) $result : 0;  // Convert false to 0, ensure int
@@ -581,10 +581,13 @@ class SubmissionHandler {
         global $wpdb;
 
         // Delete all migration completion flags
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->query(
-            "DELETE FROM {$wpdb->options}
-             WHERE option_name LIKE 'ffc_migration_%_completed'"
+            $wpdb->prepare(
+                "DELETE FROM %i WHERE option_name LIKE %s",
+                $wpdb->options,
+                'ffc_migration_%_completed'
+            )
         );
 
         // Clear object cache for affected options
@@ -601,8 +604,8 @@ class SubmissionHandler {
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
         // Get current max ID
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $max_id = $wpdb->get_var("SELECT MAX(id) FROM {$table}");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $max_id = $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(id) FROM %i', $table ) );
 
         if ($max_id === null) {
             // Table is empty, reset to 1
@@ -612,8 +615,8 @@ class SubmissionHandler {
             $next_id = intval($max_id) + 1;
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.SchemaChange
-        return $wpdb->query("ALTER TABLE {$table} AUTO_INCREMENT = {$next_id}");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+        return $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i AUTO_INCREMENT = %d', $table, $next_id ) );
     }
 
     /**
@@ -631,9 +634,10 @@ class SubmissionHandler {
 
         $cutoff_date = gmdate('Y-m-d H:i:s', strtotime("-{$cleanup_days} days"));
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $deleted = $wpdb->query($wpdb->prepare(
-            "DELETE FROM {$table} WHERE submission_date < %s AND status = 'publish'",
+            "DELETE FROM %i WHERE submission_date < %s AND status = 'publish'",
+            $table,
             $cutoff_date
         ));
 
@@ -685,9 +689,9 @@ class SubmissionHandler {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $submissions = $wpdb->get_results(
-            "SELECT id, email FROM {$table} WHERE email IS NOT NULL AND email_encrypted IS NULL LIMIT 100",
+            $wpdb->prepare( 'SELECT id, email FROM %i WHERE email IS NOT NULL AND email_encrypted IS NULL LIMIT 100', $table ),
             ARRAY_A
         );
 

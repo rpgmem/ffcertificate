@@ -62,9 +62,11 @@ class BlockedDateRepository extends AbstractRepository {
      * @return array
      */
     public function getGlobalBlocks(): array {
-        $sql = "SELECT * FROM {$this->table} WHERE calendar_id IS NULL ORDER BY start_date ASC";
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        return $this->wpdb->get_results($sql, ARRAY_A);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $this->wpdb->get_results(
+            $this->wpdb->prepare( 'SELECT * FROM %i WHERE calendar_id IS NULL ORDER BY start_date ASC', $this->table ),
+            ARRAY_A
+        );
     }
 
     /**
@@ -77,14 +79,15 @@ class BlockedDateRepository extends AbstractRepository {
      */
     public function isDateBlocked(int $calendar_id, string $date, ?string $time = null): bool {
         // Check calendar-specific and global blocks
-        $sql = "SELECT * FROM {$this->table}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $blocks = $this->wpdb->get_results(
+            $this->wpdb->prepare(
+                'SELECT * FROM %i
                 WHERE (calendar_id = %d OR calendar_id IS NULL)
                 AND start_date <= %s
-                AND (end_date IS NULL OR end_date >= %s)";
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $blocks = $this->wpdb->get_results(
-            $this->wpdb->prepare($sql, $calendar_id, $date, $date),
+                AND (end_date IS NULL OR end_date >= %s)',
+                $this->table, $calendar_id, $date, $date
+            ),
             ARRAY_A
         );
 
@@ -121,16 +124,16 @@ class BlockedDateRepository extends AbstractRepository {
      * @return array
      */
     public function getBlockedDatesInRange(int $calendar_id, string $start_date, string $end_date): array {
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $sql = $this->wpdb->prepare(
-            "SELECT * FROM {$this->table}
+            'SELECT * FROM %i
              WHERE (calendar_id = %d OR calendar_id IS NULL)
              AND (
                  (start_date BETWEEN %s AND %s)
                  OR (end_date BETWEEN %s AND %s)
                  OR (start_date <= %s AND (end_date >= %s OR end_date IS NULL))
              )
-             ORDER BY start_date ASC",
+             ORDER BY start_date ASC',
+            $this->table,
             $calendar_id,
             $start_date,
             $end_date,
@@ -222,12 +225,12 @@ class BlockedDateRepository extends AbstractRepository {
     public function deleteExpiredBlocks(int $days_old = 30) {
         $cutoff_date = gmdate('Y-m-d', strtotime("-{$days_old} days"));
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $sql = $this->wpdb->prepare(
-            "DELETE FROM {$this->table}
+            "DELETE FROM %i
              WHERE block_type != 'recurring'
              AND end_date IS NOT NULL
              AND end_date < %s",
+            $this->table,
             $cutoff_date
         );
 

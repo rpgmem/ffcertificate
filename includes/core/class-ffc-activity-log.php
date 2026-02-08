@@ -236,8 +236,8 @@ class ActivityLog {
         $charset_collate = $wpdb->get_charset_collate();
 
         // Check if table already exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        if ( $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" ) === $table_name ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
             return true; // Table exists
         }
 
@@ -332,14 +332,20 @@ class ActivityLog {
         // Validate order
         $order = strtoupper( $args['order'] ) === 'ASC' ? 'ASC' : 'DESC';
 
-        // Execute query
-        $query = "SELECT * FROM {$table_name}
-                  WHERE {$where_clause}
-                  ORDER BY {$orderby} {$order}
-                  LIMIT {$args['offset']}, {$args['limit']}";
+        // Sanitize pagination values
+        $offset = absint( $args['offset'] );
+        $limit  = absint( $args['limit'] );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $results = $wpdb->get_results( $query, ARRAY_A );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT * FROM %i WHERE {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d, %d",
+                $table_name,
+                $offset,
+                $limit
+            ),
+            ARRAY_A
+        );
 
         // Decode context JSON
         foreach ( $results as &$result ) {
@@ -408,8 +414,13 @@ class ActivityLog {
 
         $where_clause = implode( ' AND ', $where );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table_name} WHERE {$where_clause}" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM %i WHERE {$where_clause}",
+                $table_name
+            )
+        );
     }
 
     /**
@@ -424,9 +435,10 @@ class ActivityLog {
 
         $cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $deleted = $wpdb->query( $wpdb->prepare(
-            "DELETE FROM {$table_name} WHERE created_at < %s",
+            'DELETE FROM %i WHERE created_at < %s',
+            $table_name,
             $cutoff_date
         ) );
 
@@ -479,40 +491,44 @@ class ActivityLog {
         $date_from = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
         // Total activities
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $total = $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$table_name} WHERE created_at >= %s",
+            'SELECT COUNT(*) FROM %i WHERE created_at >= %s',
+            $table_name,
             $date_from
         ) );
 
         // By level
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $by_level = $wpdb->get_results( $wpdb->prepare(
-            "SELECT level, COUNT(*) as count FROM {$table_name}
+            'SELECT level, COUNT(*) as count FROM %i
              WHERE created_at >= %s
-             GROUP BY level",
+             GROUP BY level',
+            $table_name,
             $date_from
         ), ARRAY_A );
 
         // Top actions
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $top_actions = $wpdb->get_results( $wpdb->prepare(
-            "SELECT action, COUNT(*) as count FROM {$table_name}
+            'SELECT action, COUNT(*) as count FROM %i
              WHERE created_at >= %s
              GROUP BY action
              ORDER BY count DESC
-             LIMIT 10",
+             LIMIT 10',
+            $table_name,
             $date_from
         ), ARRAY_A );
 
         // Top users
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $top_users = $wpdb->get_results( $wpdb->prepare(
-            "SELECT user_id, COUNT(*) as count FROM {$table_name}
+            'SELECT user_id, COUNT(*) as count FROM %i
              WHERE created_at >= %s AND user_id > 0
              GROUP BY user_id
              ORDER BY count DESC
-             LIMIT 10",
+             LIMIT 10',
+            $table_name,
             $date_from
         ), ARRAY_A );
 
@@ -664,13 +680,14 @@ class ActivityLog {
             return array(); // Column doesn't exist yet
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $logs = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$table_name}
+                'SELECT * FROM %i
                  WHERE submission_id = %d
                  ORDER BY created_at DESC
-                 LIMIT %d",
+                 LIMIT %d',
+                $table_name,
                 $submission_id,
                 $limit
             ),
@@ -708,8 +725,8 @@ class ActivityLog {
         }
 
         // Query columns and cache result
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        self::$table_columns_cache = $wpdb->get_col( "DESCRIBE {$table_name}", 0 );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        self::$table_columns_cache = $wpdb->get_col( $wpdb->prepare( 'DESCRIBE %i', $table_name ), 0 );
 
         return self::$table_columns_cache;
     }
