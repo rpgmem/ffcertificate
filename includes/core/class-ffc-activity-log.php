@@ -177,6 +177,13 @@ class ActivityLog {
             return 0;
         }
 
+        // Re-check admin setting before flushing — entries may have been
+        // buffered while logging was enabled, then disabled before shutdown.
+        if ( ! self::is_enabled() ) {
+            self::$write_buffer = [];
+            return 0;
+        }
+
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_activity_log';
 
