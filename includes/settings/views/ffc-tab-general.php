@@ -37,7 +37,7 @@ $ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
 
 <!-- General Settings Card -->
 <div class="card">
-    <h2>⚙️ <?php esc_html_e('General Settings', 'ffcertificate'); ?></h2>
+    <h2 class="ffc-icon-settings"><?php esc_html_e('General Settings', 'ffcertificate'); ?></h2>
     
     <form method="post">
         <?php wp_nonce_field('ffc_settings_action', 'ffc_settings_nonce'); ?>
@@ -115,19 +115,19 @@ $ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
                         <p class="description">
                             <?php esc_html_e('Format: latitude, longitude, radius (meters) — one per line.', 'ffcertificate'); ?><br>
                             <?php esc_html_e('Example: -23.5505, -46.6333, 5000', 'ffcertificate'); ?><br>
-                            <span class="ffc-text-info">ℹ️ <?php esc_html_e('Used as default geofencing area when creating new forms.', 'ffcertificate'); ?></span>
+                            <span class="ffc-text-info ffc-icon-info"><?php esc_html_e('Used as default geofencing area when creating new forms.', 'ffcertificate'); ?></span>
                         </p>
                     </td>
                 </tr>
             </tbody>
         </table>
 
-        <h3>📋 <?php esc_html_e('Activity Log Settings', 'ffcertificate'); ?></h3>
+        <h3 class="ffc-icon-clipboard"><?php esc_html_e('Activity Log Settings', 'ffcertificate'); ?></h3>
         <p class="description">
             <?php esc_html_e('Activity Log tracks important actions in your system for audit and compliance purposes (LGPD).', 'ffcertificate'); ?> <br>
             <?php esc_html_e('This option has a significant impact on website speed and stability, so use it wisely.', 'ffcertificate'); ?> <br>
-            <span class="ffc-text-warning">⚠️ <?php esc_html_e('If this option is disabled, debug logging will also be disabled.', 'ffcertificate'); ?></span><br>
-            <span class="ffc-text-info">ℹ️ <?php esc_html_e('When enabled, actions like submission creation, data access, and settings changes are logged.', 'ffcertificate'); ?></span>
+            <span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e('If this option is disabled, debug logging will also be disabled.', 'ffcertificate'); ?></span><br>
+            <span class="ffc-text-info ffc-icon-info"><?php esc_html_e('When enabled, actions like submission creation, data access, and settings changes are logged.', 'ffcertificate'); ?></span>
         </p>
 
         <table class="form-table" role="presentation">
@@ -143,11 +143,11 @@ $ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
                         </label>
                         <p class="description">
                             <?php esc_html_e('Logs submission creation, data access, settings changes, and security events.', 'ffcertificate'); ?><br>
-                            <span class="ffc-text-success">✅ <?php esc_html_e('Includes user ID, IP address, and timestamp for LGPD compliance.', 'ffcertificate'); ?></span>
+                            <span class="ffc-text-success ffc-icon-success"><?php esc_html_e('Includes user ID, IP address, and timestamp for LGPD compliance.', 'ffcertificate'); ?></span>
                             <?php if ($ffcertificate_get_option('enable_activity_log') == 1) : ?>
                                 <br>
                                 <a href="<?php echo esc_url( admin_url('edit.php?post_type=ffc_form&page=ffc-activity-log') ); ?>" class="button button-secondary ffc-mt-10">
-                                    📊 <?php esc_html_e('View Activity Logs', 'ffcertificate'); ?>
+                                    <span class="ffc-icon-chart"></span><?php esc_html_e('View Activity Logs', 'ffcertificate'); ?>
                                 </a>
                             <?php endif; ?>
                         </p>
@@ -168,10 +168,10 @@ $ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
             </tbody>
         </table>
 
-        <h3>🐛 <?php esc_html_e('Debug Settings', 'ffcertificate'); ?></h3>
+        <h3 class="ffc-icon-debug"><?php esc_html_e('Debug Settings', 'ffcertificate'); ?></h3>
         <p class="description">
             <?php esc_html_e('Enable debug logging for specific areas. Debug logs are written to the PHP error log.', 'ffcertificate'); ?><br>
-            <span class="ffc-text-warning">⚠️ <?php esc_html_e('Only enable in development or when troubleshooting issues.', 'ffcertificate'); ?></span>
+            <span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e('Only enable in development or when troubleshooting issues.', 'ffcertificate'); ?></span>
         </p>
 
         <table class="form-table" role="presentation">
@@ -232,7 +232,7 @@ $ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
                         </label>
                         <p class="description">
                             <?php esc_html_e('Logs encryption/decryption operations and key management.', 'ffcertificate'); ?><br>
-                            <span class="ffc-text-warning">⚠️ <?php esc_html_e('Never enables actual data logging, only operation status.', 'ffcertificate'); ?></span>
+                            <span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e('Never enables actual data logging, only operation status.', 'ffcertificate'); ?></span>
                         </p>
                     </td>
                 </tr>
@@ -320,7 +320,7 @@ $ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
 
 <!-- Danger Zone Card -->
 <div class="card ffc-danger-zone">
-    <h2>⚠️ <?php esc_html_e('Danger Zone', 'ffcertificate'); ?></h2>
+    <h2 class="ffc-icon-warning"><?php esc_html_e('Danger Zone', 'ffcertificate'); ?></h2>
     <p class="description"><?php esc_html_e('Warning: These actions cannot be undone.', 'ffcertificate'); ?></p>
     
     <form method="post" id="ffc-danger-zone-form">
@@ -335,7 +335,7 @@ $ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
                     </th>
                     <td>
                         <select name="delete_target" id="ffc_delete_target" class="regular-text">
-                            <option value="all"><?php esc_html_e('🗑️ Delete All Submissions (All Forms)', 'ffcertificate'); ?></option>
+                            <option value="all"><?php esc_html_e('Delete All Submissions (All Forms)', 'ffcertificate'); ?></option>
                             <?php 
                             $ffcertificate_forms = get_posts(['post_type' => 'ffc_form', 'posts_per_page' => -1, 'post_status' => 'publish']);
                             if (!empty($ffcertificate_forms)) :
@@ -362,8 +362,8 @@ $ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
                         </div>
                         
                         <div class="ffc-mt-20">
-                            <button type="submit" class="button button-link-delete" onclick="return confirm('<?php echo esc_js(__('⚠️ Are you absolutely sure?\n\nThis action CANNOT be undone!\n\nAll selected data will be permanently deleted.', 'ffcertificate')); ?>');">
-                                <?php esc_html_e('🗑️ Delete Data Permanently', 'ffcertificate'); ?>
+                            <button type="submit" class="button button-link-delete ffc-icon-delete" onclick="return confirm('<?php echo esc_js(__('Are you absolutely sure?\n\nThis action CANNOT be undone!\n\nAll selected data will be permanently deleted.', 'ffcertificate')); ?>');">
+                                <?php esc_html_e('Delete Data Permanently', 'ffcertificate'); ?>
                             </button>
                         </div>
                     </td>
@@ -375,13 +375,13 @@ $ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
 
 <!-- Form Cache Card -->
 <div class="card">
-    <h2>📦 <?php esc_html_e('Form Cache', 'ffcertificate'); ?></h2>
+    <h2 class="ffc-icon-package"><?php esc_html_e('Form Cache', 'ffcertificate'); ?></h2>
     <p class="description">
         <?php esc_html_e('The cache stores form settings to improve performance.', 'ffcertificate'); ?> 
         <?php if (wp_using_ext_object_cache()): ?>
-            <span class="ffc-text-success">✅ <?php esc_html_e('External cache active (Redis/Memcached)', 'ffcertificate'); ?></span>
+            <span class="ffc-text-success ffc-icon-success"><?php esc_html_e('External cache active (Redis/Memcached)', 'ffcertificate'); ?></span>
         <?php else: ?>
-            <span class="ffc-text-warning">⚠️ <?php esc_html_e('Using default WordPress cache (database)', 'ffcertificate'); ?></span>
+            <span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e('Using default WordPress cache (database)', 'ffcertificate'); ?></span>
         <?php endif; ?>
     </p>
     
@@ -461,7 +461,7 @@ $ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
                             </table>
                             <?php if (!wp_using_ext_object_cache()): ?>
                                 <p class="ffc-text-warning ffc-mt-20">
-                                    💡 <?php esc_html_e('Tip: Install Redis or Memcached for better performance.', 'ffcertificate'); ?>
+                                    <span class="ffc-icon-bulb"></span><?php esc_html_e('Tip: Install Redis or Memcached for better performance.', 'ffcertificate'); ?>
                                 </p>
                             <?php endif; ?>
                         </div>
@@ -472,10 +472,10 @@ $ffcertificate_main_geo_areas = $ffcertificate_get_option('main_geo_areas', '');
                     <th scope="row"><?php esc_html_e('Actions', 'ffcertificate'); ?></th>
                     <td>
                         <a href="<?php echo esc_url( wp_nonce_url(admin_url('edit.php?post_type=ffc_form&page=ffc-settings&tab=general&action=warm_cache'), 'ffc_warm_cache') ); ?>" class="button">
-                            🔥 <?php esc_html_e('Warm Cache Now', 'ffcertificate'); ?>
+                            <?php esc_html_e('Warm Cache Now', 'ffcertificate'); ?>
                         </a>
                         <a href="<?php echo esc_url( wp_nonce_url(admin_url('edit.php?post_type=ffc_form&page=ffc-settings&tab=general&action=clear_cache'), 'ffc_clear_cache') ); ?>" class="button" onclick="return confirm('<?php echo esc_js(__('Clear all cache?', 'ffcertificate')); ?>');">
-                            🗑️ <?php esc_html_e('Clear Cache', 'ffcertificate'); ?>
+                            <span class="ffc-icon-delete"></span><?php esc_html_e('Clear Cache', 'ffcertificate'); ?>
                         </a>
                     </td>
                 </tr>

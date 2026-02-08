@@ -17,7 +17,7 @@ $ffcertificate_get_option = function($key, $default = '') {
 <div class="ffc-settings-wrap">
 
 <div class="card">
-    <h2>📧 <?php esc_html_e('Email Configuration', 'ffcertificate'); ?></h2>
+    <h2 class="ffc-icon-email"><?php esc_html_e('Email Configuration', 'ffcertificate'); ?></h2>
     
     <form method="post">
         <?php wp_nonce_field('ffc_settings_action', 'ffc_settings_nonce'); ?>
@@ -224,7 +224,7 @@ $ffcertificate_get_option = function($key, $default = '') {
 </div>
 
 <div class="card">
-    <h2>💡 <?php esc_html_e('Popular SMTP Providers', 'ffcertificate'); ?></h2>
+    <h2 class="ffc-icon-bulb"><?php esc_html_e('Popular SMTP Providers', 'ffcertificate'); ?></h2>
     
     <div class="ffc-provider-grid">
         <div class="ffc-provider-card gmail">

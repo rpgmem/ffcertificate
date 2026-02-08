@@ -297,7 +297,7 @@ class SubmissionRestController {
                     'status' => $submission['status'],
                     'data' => $data,
                 ),
-                'message' => 'Certificate is valid and authentic.'
+                'message' => __( 'Certificate is valid and authentic.', 'ffcertificate' )
             );
 
             if (!empty($submission['email'])) {

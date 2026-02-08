@@ -150,7 +150,7 @@ class AdminSubmissionEditPage {
         ?>
         <div class="notice notice-warning ffc-edited-notice">
             <p>
-                <strong><?php esc_html_e( '⚠️ Warning:', 'ffcertificate' ); ?></strong>
+                <strong class="ffc-icon-warning"><?php esc_html_e( 'Warning:', 'ffcertificate' ); ?></strong>
                 <?php
                 echo wp_kses_post( sprintf(
                     /* translators: %s: name */
@@ -235,7 +235,7 @@ class AdminSubmissionEditPage {
             <td>
                 <input type="text" value="<?php echo esc_attr( $this->sub_array['user_ip'] ); ?>" class="regular-text ffc-input-readonly" readonly>
                 <?php if ( ! empty( $this->sub_array['user_ip_encrypted'] ) ): ?>
-                    <p class="description">🔒 <?php esc_html_e( 'This IP is encrypted in the database.', 'ffcertificate' ); ?></p>
+                    <p class="description"><span class="ffc-icon-lock"></span><?php esc_html_e( 'This IP is encrypted in the database.', 'ffcertificate' ); ?></p>
                 <?php endif; ?>
             </td>
         </tr>
@@ -335,7 +335,7 @@ class AdminSubmissionEditPage {
                 <div class="ffc-consent-box ffc-collapsible <?php echo esc_attr( $consent_given ? 'consent-given' : 'consent-not-given' ); ?>">
                     <h3 class="ffc-consent-header" tabindex="0" role="button" aria-expanded="false">
                         <span class="ffc-consent-toggle-icon">&#9654;</span>
-                        <?php echo esc_html( $consent_given ? '✅' : '⚠️' ); ?>
+                        <span class="<?php echo esc_attr( $consent_given ? 'ffc-icon-success' : 'ffc-icon-warning' ); ?>"></span>
                         <?php esc_html_e( 'LGPD Consent Status', 'ffcertificate' ); ?>
                         <span class="ffc-consent-summary">
                             — <?php echo esc_html( $consent_given ? __( 'Consent given', 'ffcertificate' ) : __( 'No consent recorded', 'ffcertificate' ) ); ?>
@@ -407,7 +407,7 @@ class AdminSubmissionEditPage {
             <td>
                 <input type="email" name="user_email" id="user_email" value="<?php echo esc_attr($this->sub_array['email']); ?>" class="regular-text" required>
                 <?php if ( ! empty( $this->sub_array['email_encrypted'] ) ): ?>
-                    <p class="description">🔒 <?php esc_html_e( 'This email is encrypted in the database.', 'ffcertificate' ); ?></p>
+                    <p class="description"><span class="ffc-icon-lock"></span><?php esc_html_e( 'This email is encrypted in the database.', 'ffcertificate' ); ?></p>
                 <?php endif; ?>
             </td>
         </tr>
@@ -419,7 +419,7 @@ class AdminSubmissionEditPage {
             <td>
                 <input type="text" value="<?php echo esc_attr( $this->sub_array['cpf_rf'] ); ?>" class="regular-text ffc-input-readonly" readonly>
                 <?php if ( ! empty( $this->sub_array['cpf_rf_encrypted'] ) ): ?>
-                    <p class="description">🔒 <?php esc_html_e( 'This CPF/RF is encrypted in the database.', 'ffcertificate' ); ?></p>
+                    <p class="description"><span class="ffc-icon-lock"></span><?php esc_html_e( 'This CPF/RF is encrypted in the database.', 'ffcertificate' ); ?></p>
                 <?php endif; ?>
             </td>
         </tr>

@@ -135,7 +135,7 @@ class VerificationResponseRenderer {
         $html = '<div class="ffc-certificate-preview ffc-appointment-verification">';
 
         $html .= '<div class="ffc-preview-header">';
-        $html .= '<span class="ffc-status-badge success">✅ ' . esc_html__( 'Appointment Receipt Valid', 'ffcertificate' ) . '</span>';
+        $html .= '<span class="ffc-status-badge success ffc-icon-success">' . esc_html__( 'Appointment Receipt Valid', 'ffcertificate' ) . '</span>';
         $html .= '<br><span class="ffc-appointment-status ffc-status-' . esc_attr( $status ) . '">' . esc_html( $status_label ) . '</span>';
         $html .= '</div>';
 
@@ -191,7 +191,7 @@ class VerificationResponseRenderer {
         $html .= '</div>'; // .ffc-preview-body
 
         $html .= '<div class="ffc-preview-actions">';
-        $html .= '<button class="ffc-download-btn ffc-download-pdf-btn">⬇️ ' . esc_html__( 'Download Receipt (PDF)', 'ffcertificate' ) . '</button>';
+        $html .= '<button class="ffc-download-btn ffc-download-pdf-btn ffc-icon-download">' . esc_html__( 'Download Receipt (PDF)', 'ffcertificate' ) . '</button>';
         $html .= '</div>';
 
         $html .= '</div>'; // .ffc-certificate-preview

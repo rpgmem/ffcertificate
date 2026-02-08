@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <div class="ffc-certificate-preview">
     <div class="ffc-preview-header">
-        <span class="ffc-status-badge success">✅ <?php esc_html_e( 'Valid Certificate', 'ffcertificate' ); ?></span>
+        <span class="ffc-status-badge success ffc-icon-success"><?php esc_html_e( 'Valid Certificate', 'ffcertificate' ); ?></span>
     </div>
 
     <div class="ffc-preview-body">
@@ -91,8 +91,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     <?php if ( $show_download_button ) : ?>
         <div class="ffc-preview-actions">
-            <button class="ffc-download-btn ffc-download-pdf-btn" data-submission-id="<?php echo esc_attr( $submission->id ); ?>">
-                ⬇️ <?php esc_html_e( 'Download Certificate (PDF)', 'ffcertificate' ); ?>
+            <button class="ffc-download-btn ffc-download-pdf-btn ffc-icon-download" data-submission-id="<?php echo esc_attr( $submission->id ); ?>">
+                <?php esc_html_e( 'Download Certificate (PDF)', 'ffcertificate' ); ?>
             </button>
         </div>
     <?php endif; ?>

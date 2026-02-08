@@ -18,7 +18,7 @@ $ffcertificate_get_option = function($key, $default = '') {
 
 <!-- QR Code Settings Card -->
 <div class="card">
-    <h2>📱 <?php esc_html_e('QR Code Generation Settings', 'ffcertificate'); ?></h2>
+    <h2 class="ffc-icon-phone"><?php esc_html_e('QR Code Generation Settings', 'ffcertificate'); ?></h2>
     
     <form method="post">
         <?php wp_nonce_field('ffc_settings_action', 'ffc_settings_nonce'); ?>
@@ -98,7 +98,7 @@ $ffcertificate_get_option = function($key, $default = '') {
 
 <!-- Cache Statistics Card -->
 <div class="card">
-    <h2>📊 <?php esc_html_e('Cache Statistics', 'ffcertificate'); ?></h2>
+    <h2 class="ffc-icon-chart"><?php esc_html_e('Cache Statistics', 'ffcertificate'); ?></h2>
     
     <?php
     // Autoloader handles class loading
@@ -112,9 +112,9 @@ $ffcertificate_get_option = function($key, $default = '') {
                 <td><strong><?php esc_html_e('Cache Status:', 'ffcertificate'); ?></strong></td>
                 <td>
                     <?php if ($ffcertificate_stats['enabled']): ?>
-                        <span class="ffc-text-success">✓ <?php esc_html_e('Enabled', 'ffcertificate'); ?></span>
+                        <span class="ffc-text-success ffc-icon-checkmark"><?php esc_html_e('Enabled', 'ffcertificate'); ?></span>
                     <?php else: ?>
-                        <span class="ffc-text-error">✗ <?php esc_html_e('Disabled', 'ffcertificate'); ?></span>
+                        <span class="ffc-text-error ffc-icon-cross"><?php esc_html_e('Disabled', 'ffcertificate'); ?></span>
                     <?php endif; ?>
                 </td>
             </tr>
@@ -134,13 +134,13 @@ $ffcertificate_get_option = function($key, $default = '') {
     </div>
     
     <p class="description ffc-mt-15">
-        💡 <?php esc_html_e('Cache stores generated QR Codes to improve performance. Enable "QR Code Cache" above to start caching.', 'ffcertificate'); ?>
+        <span class="ffc-icon-bulb"></span><?php esc_html_e('Cache stores generated QR Codes to improve performance. Enable "QR Code Cache" above to start caching.', 'ffcertificate'); ?>
     </p>
 </div>
 
 <!-- Maintenance Card -->
 <div class="card">
-    <h2>🗑️ <?php esc_html_e('Maintenance', 'ffcertificate'); ?></h2>
+    <h2 class="ffc-icon-delete"><?php esc_html_e('Maintenance', 'ffcertificate'); ?></h2>
     
     <?php
     $ffcertificate_clear_url = wp_nonce_url(
@@ -160,7 +160,7 @@ $ffcertificate_get_option = function($key, $default = '') {
         <a href="<?php echo esc_url($ffcertificate_clear_url); ?>" 
            class="button button-secondary" 
            onclick="return confirm('<?php echo esc_js(__('Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed.', 'ffcertificate')); ?>');">
-            🗑️ <?php esc_html_e('Clear All QR Code Cache', 'ffcertificate'); ?>
+            <span class="ffc-icon-delete"></span><?php esc_html_e('Clear All QR Code Cache', 'ffcertificate'); ?>
         </a>
     </p>
     

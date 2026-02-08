@@ -89,7 +89,7 @@ class DashboardShortcode {
                             aria-selected="<?php echo esc_attr( $current_tab === 'certificates' ? 'true' : 'false' ); ?>"
                             aria-controls="tab-certificates"
                             tabindex="<?php echo esc_attr( $current_tab === 'certificates' ? '0' : '-1' ); ?>">
-                        <span aria-hidden="true">📜</span> <?php esc_html_e('Certificates', 'ffcertificate'); ?>
+                        <span class="ffc-icon-scroll" aria-hidden="true"></span> <?php esc_html_e('Certificates', 'ffcertificate'); ?>
                     </button>
                 <?php endif; ?>
 
@@ -101,7 +101,7 @@ class DashboardShortcode {
                             aria-selected="<?php echo esc_attr( $current_tab === 'appointments' ? 'true' : 'false' ); ?>"
                             aria-controls="tab-appointments"
                             tabindex="<?php echo esc_attr( $current_tab === 'appointments' ? '0' : '-1' ); ?>">
-                        <span aria-hidden="true">📅</span> <?php esc_html_e('Personal Schedule', 'ffcertificate'); ?>
+                        <span class="ffc-icon-calendar" aria-hidden="true"></span> <?php esc_html_e('Personal Schedule', 'ffcertificate'); ?>
                     </button>
                 <?php endif; ?>
 
@@ -113,7 +113,7 @@ class DashboardShortcode {
                             aria-selected="<?php echo esc_attr( $current_tab === 'audience' ? 'true' : 'false' ); ?>"
                             aria-controls="tab-audience"
                             tabindex="<?php echo esc_attr( $current_tab === 'audience' ? '0' : '-1' ); ?>">
-                        <span aria-hidden="true">👥</span> <?php esc_html_e('Group Schedule', 'ffcertificate'); ?>
+                        <span class="ffc-icon-users" aria-hidden="true"></span> <?php esc_html_e('Group Schedule', 'ffcertificate'); ?>
                     </button>
                 <?php endif; ?>
 

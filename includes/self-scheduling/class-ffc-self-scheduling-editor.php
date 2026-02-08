@@ -822,7 +822,7 @@ class SelfSchedulingEditor {
                                 data-action="cancelled"
                                 data-calendar-id="<?php echo esc_attr($calendar_id); ?>"
                                 style="width: 100%; margin-bottom: 5px;">
-                            🗑️ <?php
+                            <span class="ffc-icon-delete"></span><?php
                             /* translators: %d: number of cancelled appointments */
                             printf(esc_html__('Cancelled (%d)', 'ffcertificate'), intval($count_cancelled)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format ?>
                         </button>
@@ -834,7 +834,7 @@ class SelfSchedulingEditor {
                                 data-action="old"
                                 data-calendar-id="<?php echo esc_attr($calendar_id); ?>"
                                 style="width: 100%; margin-bottom: 5px;">
-                            📅 <?php
+                            <span class="dashicons dashicons-calendar"></span> <?php
                             /* translators: %d: number of past appointments */
                             printf(esc_html__('Past (%d)', 'ffcertificate'), intval($count_old)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format ?>
                         </button>
@@ -846,7 +846,7 @@ class SelfSchedulingEditor {
                                 data-action="future"
                                 data-calendar-id="<?php echo esc_attr($calendar_id); ?>"
                                 style="width: 100%; margin-bottom: 5px;">
-                            ⏭️ <?php
+                            <span class="ffc-icon-skip"></span><?php
                             /* translators: %d: number of future appointments */
                             printf(esc_html__('Future (%d)', 'ffcertificate'), intval($count_future)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format ?>
                         </button>
@@ -865,7 +865,7 @@ class SelfSchedulingEditor {
                 </div>
 
                 <p class="description" style="margin-top: 10px; color: #d63638;">
-                    ⚠️ <?php esc_html_e('Warning: This action is permanent and cannot be undone!', 'ffcertificate'); ?>
+                    <span class="ffc-icon-warning"></span><?php esc_html_e('Warning: This action is permanent and cannot be undone!', 'ffcertificate'); ?>
                 </p>
             <?php else : ?>
                 <p><?php esc_html_e('No appointments to clean up.', 'ffcertificate'); ?></p>

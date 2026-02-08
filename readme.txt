@@ -157,7 +157,7 @@ In the certificate layout editor, use these dynamic tags:
 
 = 4.6.13 (2026-02-08) =
 
-Performance: Query caching, conditional loading, and N+1 elimination.
+Performance: Query caching, conditional loading, and N+1 elimination. Quality: i18n, documentation, icon CSS refactor.
 
 * Perf: Cache RateLimiter settings in static variable (eliminates 10+ repeated get_option + __() calls per request)
 * Perf: Cache SHOW TABLES check in AdminUserColumns (eliminates N+1 query per user row on users list)
@@ -165,6 +165,10 @@ Performance: Query caching, conditional loading, and N+1 elimination.
 * Perf: Cache INFORMATION_SCHEMA column existence checks in SubmissionRepository (eliminates repeated schema queries)
 * Perf: Fix ActivityLog get_submission_logs() to use existing cached get_table_columns() instead of raw DESCRIBE
 * Perf: Conditional class loading — skip admin-only classes (CsvExporter, Admin, AdminAjax, AdminUserColumns, AdminUserCapabilities, SelfSchedulingAdmin, SelfSchedulingEditor, AppointmentCsvExporter) on frontend page loads
+* i18n: Wrap 7 hardcoded strings (4 Portuguese, 3 English) with __() for proper translation support
+* Docs: Add missing shortcodes [ffc_self_scheduling] and [ffc_audience] to documentation tab
+* Docs: Add missing PDF placeholders {{submission_id}}, {{main_address}}, {{site_name}} to documentation tab
+* Refactor: Move 40+ inline emoji icons from PHP/HTML to CSS utility classes (ffc-icon-*) in ffc-common.css
 
 = 4.6.12 (2026-02-08) =
 

@@ -192,7 +192,7 @@ $ffcertificate_dashboard_url = $ffcertificate_dashboard_page_id ? get_permalink(
 
         <!-- Info Box -->
         <div class="card ffc-info-card">
-            <h2>ℹ️ <?php esc_html_e('Information', 'ffcertificate'); ?></h2>
+            <h2 class="ffc-icon-info"><?php esc_html_e('Information', 'ffcertificate'); ?></h2>
             <p>
                 <?php esc_html_e('The "FFC User" role is automatically assigned to users who submit forms with CPF/RF.', 'ffcertificate'); ?>
             </p>

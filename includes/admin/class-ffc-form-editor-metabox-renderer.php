@@ -361,11 +361,11 @@ class FormEditorMetaboxRenderer {
         <div class="ffc-geofence-container">
             <!-- Tab Navigation -->
             <div class="ffc-geofence-tabs">
-                <button type="button" class="ffc-geo-tab-btn active" data-tab="datetime">
-                    📅 <?php esc_html_e('Date & Time', 'ffcertificate'); ?>
+                <button type="button" class="ffc-geo-tab-btn active ffc-icon-calendar" data-tab="datetime">
+                    <?php esc_html_e('Date & Time', 'ffcertificate'); ?>
                 </button>
-                <button type="button" class="ffc-geo-tab-btn" data-tab="geolocation">
-                    🌍 <?php esc_html_e('Geolocation', 'ffcertificate'); ?>
+                <button type="button" class="ffc-geo-tab-btn ffc-icon-globe" data-tab="geolocation">
+                    <?php esc_html_e('Geolocation', 'ffcertificate'); ?>
                 </button>
             </div>
 

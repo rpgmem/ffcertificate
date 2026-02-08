@@ -362,7 +362,7 @@ class FormRestController {
                 'success' => true,
                 'submission_id' => $result['submission_id'],
                 'auth_code' => \FreeFormCertificate\Core\Utils::format_auth_code($result['auth_code']),
-                'message' => 'Form submitted successfully',
+                'message' => __( 'Form submitted successfully', 'ffcertificate' ),
             );
             
             if (!empty($result['pdf_url'])) {

@@ -22,7 +22,7 @@ $ffcertificate_migrations = $ffcertificate_migration_manager->get_migrations();
 <div class="ffc-migrations-settings-wrap">
     
     <div class="card">
-        <h2>⚙️ <?php esc_html_e( 'Database Migrations', 'ffcertificate' ); ?></h2>
+        <h2 class="ffc-icon-settings"><?php esc_html_e( 'Database Migrations', 'ffcertificate' ); ?></h2>
         
         <p class="description">
             <?php esc_html_e( 'Manage database structure migrations to improve performance and data organization. These migrations move data from JSON storage to dedicated database columns for faster queries and better reliability.', 'ffcertificate' ); ?>
@@ -30,7 +30,7 @@ $ffcertificate_migrations = $ffcertificate_migration_manager->get_migrations();
         
         <div class="ffc-migration-warning">
             <p>
-                <strong>ℹ️ <?php esc_html_e( 'Important:', 'ffcertificate' ); ?></strong>
+                <strong class="ffc-icon-info"><?php esc_html_e( 'Important:', 'ffcertificate' ); ?></strong>
                 <?php esc_html_e( 'Migrations are safe to run multiple times. Each migration processes up to 100 records at a time. Run again if needed until 100% complete.', 'ffcertificate' ); ?>
             </p>
         </div>
@@ -90,7 +90,7 @@ $ffcertificate_migrations = $ffcertificate_migration_manager->get_migrations();
     <div class="postbox ffc-migration-card ffc-migration-<?php echo esc_attr( $ffcertificate_status_class ); ?>">
         <div class="postbox-header">
             <h3 class="hndle">
-                <span><?php echo esc_html( $ffcertificate_migration['icon'] . ' ' . $ffcertificate_migration['name'] ); ?></span>
+                <span class="<?php echo esc_attr( $ffcertificate_migration['icon'] ); ?>"><?php echo esc_html( $ffcertificate_migration['name'] ); ?></span>
                 <?php if ( $ffcertificate_is_complete ) : ?>
                     <span class="dashicons dashicons-yes-alt"></span>
                 <?php endif; ?>
@@ -160,7 +160,7 @@ $ffcertificate_migrations = $ffcertificate_migration_manager->get_migrations();
                     </span>
                     
                     <p class="description">
-                        ✓ <?php esc_html_e( 'All records have been successfully migrated.', 'ffcertificate' ); ?>
+                        <span class="ffc-icon-checkmark"></span><?php esc_html_e( 'All records have been successfully migrated.', 'ffcertificate' ); ?>
                     </p>
                 <?php else : ?>
                     <a href="<?php echo esc_url( $ffcertificate_migrate_url ); ?>"
@@ -193,7 +193,7 @@ $ffcertificate_migrations = $ffcertificate_migration_manager->get_migrations();
     
     <!-- Help Section -->
     <div class="card ffc-migration-help">
-        <h3>❓ <?php esc_html_e( 'Need Help?', 'ffcertificate' ); ?></h3>
+        <h3 class="ffc-icon-help"><?php esc_html_e( 'Need Help?', 'ffcertificate' ); ?></h3>
         
         <p><strong><?php esc_html_e( 'What are migrations?', 'ffcertificate' ); ?></strong></p>
         <p><?php esc_html_e( 'Migrations improve database performance by moving frequently queried data from JSON format to dedicated database columns. This makes searches and filtering much faster.', 'ffcertificate' ); ?></p>

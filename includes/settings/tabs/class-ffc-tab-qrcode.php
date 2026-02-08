@@ -23,7 +23,7 @@ class TabQRCode extends SettingsTab {
     protected function init(): void {
         $this->tab_id = 'qr_code';
         $this->tab_title = __( 'QR Code', 'ffcertificate' );
-        $this->tab_icon = '📱';
+        $this->tab_icon = 'ffc-icon-phone';
         $this->tab_order = 40;
     }
     

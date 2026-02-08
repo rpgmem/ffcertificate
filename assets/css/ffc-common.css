@@ -203,3 +203,49 @@
         animation: none;
     }
 }
+
+/* ==========================================================================
+   ICON UTILITY CLASSES - v4.6.13
+   Icons via CSS ::before to separate presentation from markup.
+   Placed in ffc-common.css so they are available on admin and frontend.
+   ========================================================================== */
+.ffc-icon-settings::before { content: "\2699\FE0F "; }
+.ffc-icon-info::before { content: "\2139\FE0F "; }
+.ffc-icon-warning::before { content: "\26A0\FE0F "; }
+.ffc-icon-success::before { content: "\2705 "; }
+.ffc-icon-clipboard::before { content: "\1F4CB "; }
+.ffc-icon-chart::before { content: "\1F4CA "; }
+.ffc-icon-debug::before { content: "\1F41B "; }
+.ffc-icon-delete::before { content: "\1F5D1\FE0F "; }
+.ffc-icon-package::before { content: "\1F4E6 "; }
+.ffc-icon-help::before { content: "\2753 "; }
+.ffc-icon-doc::before { content: "\1F4DA "; }
+.ffc-icon-pin::before { content: "\1F4CC "; }
+.ffc-icon-tag::before { content: "\1F3F7\FE0F "; }
+.ffc-icon-phone::before { content: "\1F4F1 "; }
+.ffc-icon-link::before { content: "\1F517 "; }
+.ffc-icon-palette::before { content: "\1F3A8 "; }
+.ffc-icon-edit::before { content: "\270F\FE0F "; }
+.ffc-icon-celebrate::before { content: "\1F389 "; }
+.ffc-icon-lock::before { content: "\1F512 "; }
+.ffc-icon-note::before { content: "\1F4DD "; }
+.ffc-icon-wrench::before { content: "\1F527 "; }
+.ffc-icon-shield::before { content: "\1F6E1\FE0F "; }
+.ffc-icon-download::before { content: "\2B07\FE0F "; }
+.ffc-icon-bulb::before { content: "\1F4A1 "; }
+.ffc-icon-checkmark::before { content: "\2713 "; }
+.ffc-icon-cross::before { content: "\2717 "; }
+.ffc-icon-inbox::before { content: "\1F4E5 "; }
+.ffc-icon-print::before { content: "\1F5A8\FE0F "; }
+.ffc-icon-skip::before { content: "\23ED\FE0F "; }
+.ffc-icon-email::before { content: "\1F4E7 "; }
+.ffc-icon-sync::before { content: "\1F504 "; }
+.ffc-icon-globe::before { content: "\1F30D "; }
+.ffc-icon-users::before { content: "\1F465 "; }
+.ffc-icon-scroll::before { content: "\1F4DC "; }
+.ffc-icon-calendar::before { content: "\1F4C5 "; }
+.ffc-icon-id::before { content: "\1F194 "; }
+.ffc-icon-magic::before { content: "\1F52E "; }
+.ffc-icon-broom::before { content: "\1F9F9 "; }
+.ffc-icon-user::before { content: "\1F464 "; }
+.ffc-icon-key::before { content: "\1F511 "; }

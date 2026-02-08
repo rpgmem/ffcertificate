@@ -53,21 +53,21 @@ class MigrationRegistry {
                 'json_keys'         => array( 'email', 'user_email', 'e-mail', 'ffc_email' ),
                 'column_name'       => 'email',
                 'sanitize_callback' => 'sanitize_email',
-                'icon'              => '📧',
+                'icon'              => 'ffc-icon-email',
                 'description'       => __( 'Email address', 'ffcertificate' )
             ),
             'cpf_rf' => array(
                 'json_keys'         => array( 'cpf_rf', 'cpf', 'rf', 'documento' ),
                 'column_name'       => 'cpf_rf',
                 'sanitize_callback' => array( '\FreeFormCertificate\Core\Utils', 'clean_identifier' ),
-                'icon'              => '🆔',
+                'icon'              => 'ffc-icon-id',
                 'description'       => __( 'CPF or RF number', 'ffcertificate' )
             ),
             'auth_code' => array(
                 'json_keys'         => array( 'auth_code', 'codigo_autenticacao', 'verification_code' ),
                 'column_name'       => 'auth_code',
                 'sanitize_callback' => array( '\FreeFormCertificate\Core\Utils', 'clean_auth_code' ),
-                'icon'              => '🔐',
+                'icon'              => 'ffc-icon-lock',
                 'description'       => __( 'Authentication code', 'ffcertificate' )
             )
         );
@@ -109,7 +109,7 @@ class MigrationRegistry {
         $this->migrations['magic_tokens'] = array(
             'name'            => __( 'Magic Tokens', 'ffcertificate' ),
             'description'     => __( 'Generate unique magic tokens for secure certificate access', 'ffcertificate' ),
-            'icon'            => '🔮',
+            'icon'            => 'ffc-icon-magic',
             'batch_size'      => 100,
             'order'           => $order++,
             'requires_column' => true
@@ -119,7 +119,7 @@ class MigrationRegistry {
         $this->migrations['encrypt_sensitive_data'] = array(
             'name'            => __( 'Encrypt Sensitive Data', 'ffcertificate' ),
             'description'     => __( 'Encrypt email, data, and user_ip for LGPD compliance', 'ffcertificate' ),
-            'icon'            => '🔒',
+            'icon'            => 'ffc-icon-lock',
             'batch_size'      => 50,
             'order'           => $order++,
             'requires_column' => true
@@ -128,7 +128,7 @@ class MigrationRegistry {
         $this->migrations['cleanup_unencrypted'] = array(
             'name'            => __( 'Cleanup Unencrypted Data (15+ days)', 'ffcertificate' ),
             'description'     => __( 'Remove unencrypted copies of sensitive data older than 15 days', 'ffcertificate' ),
-            'icon'            => '🧹',
+            'icon'            => 'ffc-icon-broom',
             'batch_size'      => 100,
             'order'           => $order++,
             'requires_column' => false
@@ -138,7 +138,7 @@ class MigrationRegistry {
         $this->migrations['user_link'] = array(
             'name'            => __( 'Link Submissions to Users', 'ffcertificate' ),
             'description'     => __( 'Associate submissions with WordPress users based on CPF/RF', 'ffcertificate' ),
-            'icon'            => '👤',
+            'icon'            => 'ffc-icon-user',
             'batch_size'      => 100,
             'order'           => $order++,
             'requires_column' => true
@@ -148,7 +148,7 @@ class MigrationRegistry {
         $this->migrations['name_normalization'] = array(
             'name'            => __( 'Normalize Names & Emails', 'ffcertificate' ),
             'description'     => __( 'Normalize names (Brazilian capitalization) and emails (lowercase)', 'ffcertificate' ),
-            'icon'            => '✍️',
+            'icon'            => 'ffc-icon-edit',
             'batch_size'      => 100,
             'order'           => $order++,
             'requires_column' => false
@@ -158,7 +158,7 @@ class MigrationRegistry {
         $this->migrations['user_capabilities'] = array(
             'name'            => __( 'User Capabilities', 'ffcertificate' ),
             'description'     => __( 'Set user capabilities based on submission/appointment history', 'ffcertificate' ),
-            'icon'            => '🔑',
+            'icon'            => 'ffc-icon-key',
             'batch_size'      => 50,
             'order'           => $order++,
             'requires_column' => false
@@ -168,7 +168,7 @@ class MigrationRegistry {
         $this->migrations['data_cleanup'] = array(
             'name'            => __( 'Data Cleanup', 'ffcertificate' ),
             'description'     => __( 'Remove old migration data and cleanup database', 'ffcertificate' ),
-            'icon'            => '🗑️',
+            'icon'            => 'ffc-icon-delete',
             'batch_size'      => 0,
             'order'           => 999, // Always last
             'requires_column' => false

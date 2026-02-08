@@ -679,7 +679,7 @@ class SubmissionHandler {
      */
     public function migrate_emails_to_column() {
         if (!class_exists('\FreeFormCertificate\Core\Encryption') || !\FreeFormCertificate\Core\Encryption::is_configured()) {
-            return ['success' => false, 'message' => 'Encryption not configured'];
+            return ['success' => false, 'message' => __( 'Encryption not configured', 'ffcertificate' )];
         }
 
         global $wpdb;

@@ -11,30 +11,30 @@ if (!defined('ABSPATH')) exit;
 
 <!-- Main Documentation Card with TOC -->
 <div class="card">
-    <h2>📚 <?php esc_html_e('Complete Plugin Documentation', 'ffcertificate'); ?></h2>
+    <h2 class="ffc-icon-doc"><?php esc_html_e('Complete Plugin Documentation', 'ffcertificate'); ?></h2>
     <p><?php esc_html_e('This plugin allows you to create certificate issuance forms, generate PDFs automatically, and verify authenticity with QR codes.', 'ffcertificate'); ?></p>
     
     <!-- Table of Contents -->
     <div class="ffc-doc-toc">
         <h3><?php esc_html_e('Quick Navigation', 'ffcertificate'); ?></h3>
         <ul class="ffc-doc-toc-list">
-            <li><a href="#shortcodes">📌 <?php esc_html_e('1. Shortcodes', 'ffcertificate'); ?></a></li>
-            <li><a href="#variables">🏷️ <?php esc_html_e('2. Template Variables', 'ffcertificate'); ?></a></li>
-            <li><a href="#qr-code">📱 <?php esc_html_e('3. QR Code Options', 'ffcertificate'); ?></a></li>
-            <li><a href="#validation-url">🔗 <?php esc_html_e('4. Validation URL', 'ffcertificate'); ?></a></li>
-            <li><a href="#html-styling">🎨 <?php esc_html_e('5. HTML & Styling', 'ffcertificate'); ?></a></li>
-            <li><a href="#custom-fields">✏️ <?php esc_html_e('6. Custom Fields', 'ffcertificate'); ?></a></li>
-            <li><a href="#features">🎉 <?php esc_html_e('7. Features', 'ffcertificate'); ?></a></li>
-            <li><a href="#security">🔒 <?php esc_html_e('8. Security Features', 'ffcertificate'); ?></a></li>
-            <li><a href="#examples">📝 <?php esc_html_e('9. Complete Examples', 'ffcertificate'); ?></a></li>
-            <li><a href="#troubleshooting">🔧 <?php esc_html_e('10. Troubleshooting', 'ffcertificate'); ?></a></li>
+            <li><a href="#shortcodes" class="ffc-icon-pin"><?php esc_html_e('1. Shortcodes', 'ffcertificate'); ?></a></li>
+            <li><a href="#variables" class="ffc-icon-tag"><?php esc_html_e('2. Template Variables', 'ffcertificate'); ?></a></li>
+            <li><a href="#qr-code" class="ffc-icon-phone"><?php esc_html_e('3. QR Code Options', 'ffcertificate'); ?></a></li>
+            <li><a href="#validation-url" class="ffc-icon-link"><?php esc_html_e('4. Validation URL', 'ffcertificate'); ?></a></li>
+            <li><a href="#html-styling" class="ffc-icon-palette"><?php esc_html_e('5. HTML & Styling', 'ffcertificate'); ?></a></li>
+            <li><a href="#custom-fields" class="ffc-icon-edit"><?php esc_html_e('6. Custom Fields', 'ffcertificate'); ?></a></li>
+            <li><a href="#features" class="ffc-icon-celebrate"><?php esc_html_e('7. Features', 'ffcertificate'); ?></a></li>
+            <li><a href="#security" class="ffc-icon-lock"><?php esc_html_e('8. Security Features', 'ffcertificate'); ?></a></li>
+            <li><a href="#examples" class="ffc-icon-note"><?php esc_html_e('9. Complete Examples', 'ffcertificate'); ?></a></li>
+            <li><a href="#troubleshooting" class="ffc-icon-wrench"><?php esc_html_e('10. Troubleshooting', 'ffcertificate'); ?></a></li>
         </ul>
     </div>
 </div>
 
 <!-- 1. Shortcodes Section -->
 <div class="card">
-    <h3 id="shortcodes">📌 <?php esc_html_e('1. Shortcodes', 'ffcertificate'); ?></h3>
+    <h3 id="shortcodes" class="ffc-icon-pin"><?php esc_html_e('1. Shortcodes', 'ffcertificate'); ?></h3>
     
     <table class="widefat striped">
         <thead>
@@ -64,14 +64,28 @@ if (!defined('ABSPATH')) exit;
                     <?php esc_html_e('Displays dashboard page.', 'ffcertificate'); ?><br>
                     <strong><?php esc_html_e('Usage:', 'ffcertificate'); ?></strong> <?php esc_html_e('Logged-in users will be able to view all certificates generated for their own CPF/RF (Brazilian tax identification number).', 'ffcertificate'); ?>
                 </td>
-            </tr>            
+            </tr>
+            <tr>
+                <td><code>[ffc_self_scheduling id="456"]</code></td>
+                <td>
+                    <?php esc_html_e('Displays a personal calendar with appointment booking.', 'ffcertificate'); ?><br>
+                    <strong><?php esc_html_e('Usage:', 'ffcertificate'); ?></strong> <?php esc_html_e('Replace "456" with your Calendar ID. Users can view available slots and book appointments.', 'ffcertificate'); ?>
+                </td>
+            </tr>
+            <tr>
+                <td><code>[ffc_audience]</code></td>
+                <td>
+                    <?php esc_html_e('Displays the audience scheduling calendar for group bookings.', 'ffcertificate'); ?><br>
+                    <strong><?php esc_html_e('Usage:', 'ffcertificate'); ?></strong> <?php esc_html_e('Administrators can schedule activities for audiences (groups) in configured environments.', 'ffcertificate'); ?>
+                </td>
+            </tr>
         </tbody>
     </table>
 </div>
 
 <!-- 2. Template Variables Section -->
 <div class="card">
-    <h3 id="variables">🏷️ <?php esc_html_e('2. PDF Template Variables', 'ffcertificate'); ?></h3>
+    <h3 id="variables" class="ffc-icon-tag"><?php esc_html_e('2. PDF Template Variables', 'ffcertificate'); ?></h3>
     <p><?php esc_html_e('Use these variables in your PDF template (HTML editor). They will be automatically replaced with user data:', 'ffcertificate'); ?></p>
     
     <table class="widefat striped">
@@ -119,6 +133,21 @@ if (!defined('ABSPATH')) exit;
                 <td><em>20/01/2026</em></td>
             </tr>
             <tr>
+                <td><code>{{submission_id}}</code></td>
+                <td><?php esc_html_e('Numeric submission ID', 'ffcertificate'); ?></td>
+                <td><em>123</em></td>
+            </tr>
+            <tr>
+                <td><code>{{main_address}}</code></td>
+                <td><?php esc_html_e('Institutional address from Settings > General', 'ffcertificate'); ?></td>
+                <td><em>123 Main St, City</em></td>
+            </tr>
+            <tr>
+                <td><code>{{site_name}}</code></td>
+                <td><?php esc_html_e('WordPress site name', 'ffcertificate'); ?></td>
+                <td><em>My Organization</em></td>
+            </tr>
+            <tr>
                 <td><code>{{program}}</code></td>
                 <td><?php esc_html_e('Program/Course name (if custom field exists)', 'ffcertificate'); ?></td>
                 <td><em>Advanced Training</em></td>
@@ -144,7 +173,7 @@ if (!defined('ABSPATH')) exit;
 
 <!-- 3. QR Code Options Section -->
 <div class="card">
-    <h3 id="qr-code">📱 <?php esc_html_e('3. QR Code Options & Attributes', 'ffcertificate'); ?></h3>
+    <h3 id="qr-code" class="ffc-icon-phone"><?php esc_html_e('3. QR Code Options & Attributes', 'ffcertificate'); ?></h3>
     <p><?php esc_html_e('The QR code can be customized with various attributes:', 'ffcertificate'); ?></p>
     
     <table class="widefat striped">
@@ -197,7 +226,7 @@ if (!defined('ABSPATH')) exit;
 
 <!-- 4. Validation URL Section -->
 <div class="card">
-    <h3 id="validation-url">🔗 <?php esc_html_e('4. Validation URL', 'ffcertificate'); ?></h3>
+    <h3 id="validation-url" class="ffc-icon-link"><?php esc_html_e('4. Validation URL', 'ffcertificate'); ?></h3>
     <p><?php esc_html_e('The Validation URL can be customized with various attributes:', 'ffcertificate'); ?></p>
     
     <table class="widefat striped">
@@ -233,7 +262,7 @@ if (!defined('ABSPATH')) exit;
 
 <!-- 5. HTML & Styling Section -->
 <div class="card">
-    <h3 id="html-styling">🎨 <?php esc_html_e('5. HTML & Styling', 'ffcertificate'); ?></h3>
+    <h3 id="html-styling" class="ffc-icon-palette"><?php esc_html_e('5. HTML & Styling', 'ffcertificate'); ?></h3>
     <p><?php esc_html_e('You can use HTML and inline CSS to style your certificate:', 'ffcertificate'); ?></p>
 
     <h4><?php esc_html_e('Supported HTML Tags:', 'ffcertificate'); ?></h4>
@@ -355,7 +384,7 @@ if (!defined('ABSPATH')) exit;
 
 <!-- 6. Custom Fields Section -->
 <div class="card">
-    <h3 id="custom-fields">✏️ <?php esc_html_e('6. Custom Fields', 'ffcertificate'); ?></h3>
+    <h3 id="custom-fields" class="ffc-icon-edit"><?php esc_html_e('6. Custom Fields', 'ffcertificate'); ?></h3>
     
     <p><?php esc_html_e('Any custom field you create in Form Builder automatically becomes a template variable:', 'ffcertificate'); ?></p>
     
@@ -381,7 +410,7 @@ if (!defined('ABSPATH')) exit;
 
 <!-- 7. Features Section -->
 <div class="card">
-    <h3 id="features">🎉 <?php esc_html_e('7. Features', 'ffcertificate'); ?></h3>
+    <h3 id="features" class="ffc-icon-celebrate"><?php esc_html_e('7. Features', 'ffcertificate'); ?></h3>
     
     <ul class="ffc-doc-list">
         <li>
@@ -437,7 +466,7 @@ if (!defined('ABSPATH')) exit;
 
 <!-- 8. Security Features Section -->
 <div class="card">
-    <h3 id="security">🔒 <?php esc_html_e('8. Security Features', 'ffcertificate'); ?></h3>
+    <h3 id="security" class="ffc-icon-lock"><?php esc_html_e('8. Security Features', 'ffcertificate'); ?></h3>
     
     <ul class="ffc-doc-list">
         <li>
@@ -473,7 +502,7 @@ if (!defined('ABSPATH')) exit;
 
 <!-- 9. Complete Examples Section -->
 <div class="card">
-    <h3 id="examples">📝 <?php esc_html_e('9. Complete Template Examples', 'ffcertificate'); ?></h3>
+    <h3 id="examples" class="ffc-icon-note"><?php esc_html_e('9. Complete Template Examples', 'ffcertificate'); ?></h3>
 
     <div class="ffc-doc-example">
         <h4><?php esc_html_e('Example 1: Simple Certificate', 'ffcertificate'); ?></h4>
@@ -562,7 +591,7 @@ if (!defined('ABSPATH')) exit;
 
 <!-- 10. Troubleshooting Section -->
 <div class="card">
-    <h3 id="troubleshooting">🔧 <?php esc_html_e('10. Troubleshooting', 'ffcertificate'); ?></h3>
+    <h3 id="troubleshooting" class="ffc-icon-wrench"><?php esc_html_e('10. Troubleshooting', 'ffcertificate'); ?></h3>
 
     <table class="widefat striped">
         <thead>
@@ -623,7 +652,7 @@ if (!defined('ABSPATH')) exit;
 
     <div class="ffc-alert ffc-alert-info ffc-mt-20">
         <p>
-            <strong>ℹ️ <?php esc_html_e('Need More Help?', 'ffcertificate'); ?></strong><br>
+            <strong class="ffc-icon-info"><?php esc_html_e('Need More Help?', 'ffcertificate'); ?></strong><br>
             <?php esc_html_e('For additional support, check the plugin repository documentation or contact support.', 'ffcertificate'); ?>
         </p>
     </div>

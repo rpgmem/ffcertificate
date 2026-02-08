@@ -196,7 +196,7 @@ class MagicLinkHelper {
             $html .= ' <button type="button" class="button button-small ffc-copy-magic-link" ';
             $html .= 'data-url="' . esc_attr( $magic_link ) . '" ';
             $html .= 'title="' . esc_attr__( 'Copy to clipboard', 'ffcertificate' ) . '">';
-            $html .= '📋 ' . __( 'Copy', 'ffcertificate' );
+            $html .= '<span class="ffc-icon-clipboard"></span>' . __( 'Copy', 'ffcertificate' );
             $html .= '</button>';
         }
         

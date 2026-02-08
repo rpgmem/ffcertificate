@@ -258,9 +258,8 @@ class Settings {
             
             <h2 class="nav-tab-wrapper">
                 <?php foreach ( $this->tabs as $tab_id => $tab_obj ) : ?>
-                    <a href="?post_type=ffc_form&page=ffc-settings&tab=<?php echo esc_attr( $tab_id ); ?>" 
-                       class="nav-tab <?php echo esc_attr( $active_tab === $tab_id ? 'nav-tab-active' : '' ); ?>">
-                        <?php echo wp_kses_post( $tab_obj->get_icon() ); ?>
+                    <a href="?post_type=ffc_form&page=ffc-settings&tab=<?php echo esc_attr( $tab_id ); ?>"
+                       class="nav-tab <?php echo esc_attr( $active_tab === $tab_id ? 'nav-tab-active' : '' ); ?> <?php echo esc_attr( $tab_obj->get_icon() ); ?>">
                         <?php echo esc_html( $tab_obj->get_title() ); ?>
                     </a>
                 <?php endforeach; ?>
