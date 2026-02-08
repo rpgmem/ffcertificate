@@ -30,8 +30,8 @@ class AudienceNotificationHandler {
      * @return void
      */
     public static function init(): void {
-        add_action('ffc_audience_booking_created', array(__CLASS__, 'send_booking_created_notification'));
-        add_action('ffc_audience_booking_cancelled', array(__CLASS__, 'send_booking_cancelled_notification'), 10, 2);
+        add_action('ffcertificate_audience_booking_created', array(__CLASS__, 'send_booking_created_notification'));
+        add_action('ffcertificate_audience_booking_cancelled', array(__CLASS__, 'send_booking_cancelled_notification'), 10, 2);
     }
 
     /**

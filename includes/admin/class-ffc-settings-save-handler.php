@@ -92,7 +92,7 @@ class SettingsSaveHandler {
          * @param array $clean   Settings to be saved.
          * @param array $current Previous settings.
          */
-        $clean = apply_filters( 'ffc_settings_before_save', $clean, $current );
+        $clean = apply_filters( 'ffcertificate_settings_before_save', $clean, $current );
 
         update_option( 'ffc_settings', $clean );
 
@@ -102,7 +102,7 @@ class SettingsSaveHandler {
          * @since 4.6.4
          * @param array $clean Saved settings.
          */
-        do_action( 'ffc_settings_saved', $clean );
+        do_action( 'ffcertificate_settings_saved', $clean );
 
         // phpcs:enable WordPress.Security.NonceVerification.Missing
         add_settings_error( 'ffc_settings', 'ffc_settings_updated', __( 'Settings saved.', 'ffcertificate' ), 'updated' );
@@ -342,7 +342,7 @@ class SettingsSaveHandler {
          * @param string $target        Deletion target ('all' or form ID).
          * @param bool   $reset_counter Whether the auto-increment counter is reset.
          */
-        do_action( 'ffc_before_data_deletion', $target, $reset_counter );
+        do_action( 'ffcertificate_before_data_deletion', $target, $reset_counter );
 
         $result = $this->submission_handler->delete_all_submissions(
             $target === 'all' ? null : absint( $target ),

@@ -22,7 +22,8 @@ class Deactivator {
      * Usually, we only flush rewrite rules here to avoid breaking permalinks.
      */
     public static function deactivate(): void {
-        // Clear scheduled cron tasks
+        // Clear scheduled cron tasks (both old and new prefixed names)
+        wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
         wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
 
         flush_rewrite_rules();
@@ -56,7 +57,9 @@ class Deactivator {
         delete_option( 'ffc_db_version' );
         delete_option( 'ffc_settings' );
         
-        // 3. Clear scheduled CRON tasks
+        // 3. Clear scheduled CRON tasks (both old and new prefixed names)
+        wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
+        wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
         wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
         wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
         

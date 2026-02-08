@@ -22,11 +22,11 @@ class AppointmentEmailHandler {
      */
     public function __construct() {
         // Hook into appointment events
-        add_action('ffc_self_scheduling_appointment_created_email', array($this, 'send_booking_confirmation'), 10, 2);
-        add_action('ffc_self_scheduling_appointment_admin_notification', array($this, 'send_admin_notification'), 10, 2);
-        add_action('ffc_self_scheduling_appointment_confirmed_email', array($this, 'send_approval_notification'), 10, 2);
-        add_action('ffc_self_scheduling_appointment_cancelled_email', array($this, 'send_cancellation_notification'), 10, 2);
-        add_action('ffc_self_scheduling_appointment_reminder_email', array($this, 'send_reminder'), 10, 2);
+        add_action('ffcertificate_self_scheduling_appointment_created_email', array($this, 'send_booking_confirmation'), 10, 2);
+        add_action('ffcertificate_self_scheduling_appointment_admin_notification', array($this, 'send_admin_notification'), 10, 2);
+        add_action('ffcertificate_self_scheduling_appointment_confirmed_email', array($this, 'send_approval_notification'), 10, 2);
+        add_action('ffcertificate_self_scheduling_appointment_cancelled_email', array($this, 'send_cancellation_notification'), 10, 2);
+        add_action('ffcertificate_self_scheduling_appointment_reminder_email', array($this, 'send_reminder'), 10, 2);
     }
 
     /**

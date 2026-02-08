@@ -253,7 +253,7 @@ class FormCache {
     public static function register_hooks(): void {
         add_action( 'save_post_ffc_form', array( __CLASS__, 'on_form_saved' ), 10, 3 );
         add_action( 'before_delete_post', array( __CLASS__, 'on_form_deleted' ), 10, 2 );
-        add_action( 'ffc_warm_cache_hook', array( __CLASS__, 'warm_all_forms' ) );
+        add_action( 'ffcertificate_warm_cache_hook', array( __CLASS__, 'warm_all_forms' ) );
     }
     
     /**
@@ -284,8 +284,8 @@ class FormCache {
      * Schedule cache warming cron job
      */
     public static function schedule_cache_warming(): void {
-        if ( ! wp_next_scheduled( 'ffc_warm_cache_hook' ) ) {
-            wp_schedule_event( time(), 'daily', 'ffc_warm_cache_hook' );
+        if ( ! wp_next_scheduled( 'ffcertificate_warm_cache_hook' ) ) {
+            wp_schedule_event( time(), 'daily', 'ffcertificate_warm_cache_hook' );
         }
     }
     
@@ -293,9 +293,9 @@ class FormCache {
      * Unschedule cache warming cron job
      */
     public static function unschedule_cache_warming(): void {
-        $timestamp = wp_next_scheduled( 'ffc_warm_cache_hook' );
+        $timestamp = wp_next_scheduled( 'ffcertificate_warm_cache_hook' );
         if ( $timestamp ) {
-            wp_unschedule_event( $timestamp, 'ffc_warm_cache_hook' );
+            wp_unschedule_event( $timestamp, 'ffcertificate_warm_cache_hook' );
         }
     }
 }

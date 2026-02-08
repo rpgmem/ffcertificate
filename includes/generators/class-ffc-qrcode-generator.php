@@ -112,7 +112,7 @@ class QRCodeGenerator {
          * @param int    $submission_id  Submission ID (0 if not provided).
          * @param array  $params        QR code parameters (size, margin, error_level).
          */
-        $url = apply_filters( 'ffc_qrcode_url', $url, $submission_id, $params );
+        $url = apply_filters( 'ffcertificate_qrcode_url', $url, $submission_id, $params );
 
         // Generate QR Code
         $qr_base64 = $this->generate( $url, $params );
@@ -144,7 +144,7 @@ class QRCodeGenerator {
          * @param string $url           Target URL.
          * @param int    $submission_id  Submission ID.
          */
-        return apply_filters( 'ffc_qrcode_html', $img_html, $url, $submission_id );
+        return apply_filters( 'ffcertificate_qrcode_html', $img_html, $url, $submission_id );
     }
 
     /**

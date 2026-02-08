@@ -96,7 +96,7 @@ class SubmissionHandler {
          * @param string $user_email      User email.
          * @param array  $form_config     Form configuration.
          */
-        do_action( 'ffc_before_submission_save', $form_id, $submission_data, $user_email, $form_config );
+        do_action( 'ffcertificate_before_submission_save', $form_id, $submission_data, $user_email, $form_config );
 
         // 1. Generate auth code if not present
         if (empty($submission_data['auth_code'])) {
@@ -232,7 +232,7 @@ class SubmissionHandler {
          * @param array  $submission_data Original submission data.
          * @param string $user_email      User email.
          */
-        do_action( 'ffc_after_submission_save', $submission_id, $form_id, $submission_data, $user_email );
+        do_action( 'ffcertificate_after_submission_save', $submission_id, $form_id, $submission_data, $user_email );
 
         return $submission_id;
     }
@@ -250,7 +250,7 @@ class SubmissionHandler {
          * @param string $new_email  New email value.
          * @param array  $clean_data Sanitized submission data.
          */
-        do_action( 'ffc_before_submission_update', $id, $new_email, $clean_data );
+        do_action( 'ffcertificate_before_submission_update', $id, $new_email, $clean_data );
 
         $update_data = [];
 
@@ -299,7 +299,7 @@ class SubmissionHandler {
              * @param int   $id          Submission ID.
              * @param array $update_data Data that was updated.
              */
-            do_action( 'ffc_after_submission_update', $id, $update_data );
+            do_action( 'ffcertificate_after_submission_update', $id, $update_data );
         }
 
         return (bool) $result;  // Convert int|false to bool
@@ -382,7 +382,7 @@ class SubmissionHandler {
 
         if ( $result ) {
             /** @since 4.6.4 */
-            do_action( 'ffc_submission_trashed', $id );
+            do_action( 'ffcertificate_submission_trashed', $id );
         }
 
         return (bool) $result;
@@ -397,7 +397,7 @@ class SubmissionHandler {
 
         if ( $result ) {
             /** @since 4.6.4 */
-            do_action( 'ffc_submission_restored', $id );
+            do_action( 'ffcertificate_submission_restored', $id );
         }
 
         return (bool) $result;
@@ -409,13 +409,13 @@ class SubmissionHandler {
      */
     public function delete_submission(int $id): bool {
         /** @since 4.6.4 */
-        do_action( 'ffc_before_submission_delete', $id );
+        do_action( 'ffcertificate_before_submission_delete', $id );
 
         $result = $this->repository->delete($id);
 
         if ( $result ) {
             /** @since 4.6.4 */
-            do_action( 'ffc_after_submission_delete', $id );
+            do_action( 'ffcertificate_after_submission_delete', $id );
         }
 
         return (bool) $result;

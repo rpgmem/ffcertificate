@@ -91,7 +91,7 @@ class PdfGenerator {
          * @param int   $submission_id Submission ID.
          * @param array $sub_array     Raw submission database row.
          */
-        $data = apply_filters( 'ffc_certificate_data', $data, $submission_id, $sub_array );
+        $data = apply_filters( 'ffcertificate_certificate_data', $data, $submission_id, $sub_array );
 
         // Get form data (convert form_id to int - wpdb returns strings)
         $form_id = (int) $sub_array['form_id'];
@@ -111,7 +111,7 @@ class PdfGenerator {
          * @param int    $submission_id Submission ID.
          * @param int    $form_id       Form ID.
          */
-        $html = apply_filters( 'ffc_certificate_html', $html, $data, $submission_id, $form_id );
+        $html = apply_filters( 'ffcertificate_certificate_html', $html, $data, $submission_id, $form_id );
 
         // Get verification code from submission data
         $auth_code = isset( $data['auth_code'] ) ? $data['auth_code'] : '';
@@ -128,7 +128,7 @@ class PdfGenerator {
          * @param string $auth_code     Authentication code.
          * @param int    $submission_id Submission ID.
          */
-        $filename = apply_filters( 'ffc_certificate_filename', $filename, $form_title, $auth_code, $submission_id );
+        $filename = apply_filters( 'ffcertificate_certificate_filename', $filename, $form_title, $auth_code, $submission_id );
 
         // Log generation
         if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) && method_exists( '\\FreeFormCertificate\\Core\\Utils', 'debug_log' ) ) {
@@ -161,7 +161,7 @@ class PdfGenerator {
          * @param array $pdf_data     Complete PDF data array.
          * @param int   $submission_id Submission ID.
          */
-        do_action( 'ffc_after_pdf_generation', $pdf_data, $submission_id );
+        do_action( 'ffcertificate_after_pdf_generation', $pdf_data, $submission_id );
 
         return $pdf_data;
     }
@@ -789,7 +789,7 @@ class PdfGenerator {
 
         // Allow background image customization via filter
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
-        $bg_image = apply_filters( 'ffc_appointment_receipt_bg_image', '', $appointment, $calendar );
+        $bg_image = apply_filters( 'ffcertificate_appointment_receipt_bg_image', '', $appointment, $calendar );
 
         return array(
             'html'       => $html,
@@ -814,7 +814,7 @@ class PdfGenerator {
 
         // Allow override via filter
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
-        $template_file = apply_filters( 'ffc_appointment_receipt_template_file', $template_file );
+        $template_file = apply_filters( 'ffcertificate_appointment_receipt_template_file', $template_file );
 
         if ( file_exists( $template_file ) ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local template file.

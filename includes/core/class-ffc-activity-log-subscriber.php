@@ -26,21 +26,21 @@ class ActivityLogSubscriber {
 	 */
 	public function __construct() {
 		// Submission hooks
-		add_action( 'ffc_after_submission_save', [ $this, 'on_submission_created' ], 10, 4 );
-		add_action( 'ffc_after_submission_update', [ $this, 'on_submission_updated' ], 10, 2 );
-		add_action( 'ffc_submission_trashed', [ $this, 'on_submission_trashed' ], 10, 1 );
-		add_action( 'ffc_submission_restored', [ $this, 'on_submission_restored' ], 10, 1 );
-		add_action( 'ffc_after_submission_delete', [ $this, 'on_submission_deleted' ], 10, 1 );
+		add_action( 'ffcertificate_after_submission_save', [ $this, 'on_submission_created' ], 10, 4 );
+		add_action( 'ffcertificate_after_submission_update', [ $this, 'on_submission_updated' ], 10, 2 );
+		add_action( 'ffcertificate_submission_trashed', [ $this, 'on_submission_trashed' ], 10, 1 );
+		add_action( 'ffcertificate_submission_restored', [ $this, 'on_submission_restored' ], 10, 1 );
+		add_action( 'ffcertificate_after_submission_delete', [ $this, 'on_submission_deleted' ], 10, 1 );
 
 		// Appointment hooks
-		add_action( 'ffc_after_appointment_create', [ $this, 'on_appointment_created' ], 10, 3 );
-		add_action( 'ffc_appointment_cancelled', [ $this, 'on_appointment_cancelled' ], 10, 4 );
+		add_action( 'ffcertificate_after_appointment_create', [ $this, 'on_appointment_created' ], 10, 3 );
+		add_action( 'ffcertificate_appointment_cancelled', [ $this, 'on_appointment_cancelled' ], 10, 4 );
 
 		// Settings hooks
-		add_action( 'ffc_settings_saved', [ $this, 'on_settings_saved' ], 10, 1 );
+		add_action( 'ffcertificate_settings_saved', [ $this, 'on_settings_saved' ], 10, 1 );
 
 		// Daily cron: automatic log cleanup (v4.6.9)
-		add_action( 'ffc_daily_cleanup_hook', [ $this, 'on_daily_cleanup' ] );
+		add_action( 'ffcertificate_daily_cleanup_hook', [ $this, 'on_daily_cleanup' ] );
 	}
 
 	/**

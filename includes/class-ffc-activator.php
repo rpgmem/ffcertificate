@@ -56,8 +56,8 @@ class Activator {
         self::run_migrations();
 
         // Schedule daily cleanup cron (v4.6.9)
-        if ( ! wp_next_scheduled( 'ffc_daily_cleanup_hook' ) ) {
-            wp_schedule_event( time(), 'daily', 'ffc_daily_cleanup_hook' );
+        if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
+            wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
         }
 
         flush_rewrite_rules();

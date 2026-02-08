@@ -375,10 +375,16 @@ class AudienceEnvironmentRepository {
             return false;
         }
 
+        $cache_key = 'ffcertificate_holiday_' . $environment_id . '_' . $date;
+        $cached = wp_cache_get( $cache_key, 'ffcertificate' );
+        if ( false !== $cached ) {
+            return (bool) $cached;
+        }
+
         global $wpdb;
         $table = self::get_holidays_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $count = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT COUNT(*) FROM {$table} WHERE schedule_id = %d AND holiday_date = %s",
@@ -387,7 +393,10 @@ class AudienceEnvironmentRepository {
             )
         );
 
-        return (int) $count > 0;
+        $result = (int) $count > 0;
+        wp_cache_set( $cache_key, $result, 'ffcertificate' );
+
+        return $result;
     }
 
     /**
@@ -397,6 +406,12 @@ class AudienceEnvironmentRepository {
      * @return int
      */
     public static function count(array $args = array()): int {
+        $cache_key = 'ffcertificate_env_count_' . md5( wp_json_encode( $args ) );
+        $cached = wp_cache_get( $cache_key, 'ffcertificate' );
+        if ( false !== $cached ) {
+            return (int) $cached;
+        }
+
         global $wpdb;
         $table = self::get_table_name();
 
@@ -423,7 +438,10 @@ class AudienceEnvironmentRepository {
             $sql = $wpdb->prepare($sql, $values);
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-        return (int) $wpdb->get_var($sql);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared
+        $result = (int) $wpdb->get_var($sql);
+        wp_cache_set( $cache_key, $result, 'ffcertificate' );
+
+        return $result;
     }
 }

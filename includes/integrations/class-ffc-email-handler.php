@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class EmailHandler {
 
     public function __construct() {
-        add_action( 'ffc_process_submission_hook', array( $this, 'async_process_submission' ), 10, 8 );
+        add_action( 'ffcertificate_process_submission_hook', array( $this, 'async_process_submission' ), 10, 8 );
         add_action( 'phpmailer_init', array( $this, 'configure_custom_smtp' ) );
     }
 
@@ -62,7 +62,7 @@ class EmailHandler {
     /**
      * Process submission and send emails asynchronously
      *
-     * Called via WP-Cron hook 'ffc_process_submission_hook'
+     * Called via WP-Cron hook 'ffcertificate_process_submission_hook'
      *
      * @param int $submission_id Submission ID
      * @param int $form_id Form ID
@@ -83,7 +83,7 @@ class EmailHandler {
          * @param int    $form_id        Form ID.
          * @param array  $form_config    Form configuration.
          */
-        do_action( 'ffc_before_email_send', $submission_id, $user_email, $form_id, $form_config );
+        do_action( 'ffcertificate_before_email_send', $submission_id, $user_email, $form_id, $form_config );
 
         // Send user email if enabled
         if ( isset( $form_config['send_user_email'] ) && $form_config['send_user_email'] == 1 ) {
@@ -132,7 +132,7 @@ class EmailHandler {
          * @param string $form_title Form title.
          * @param array  $form_config Form configuration.
          */
-        $subject = apply_filters( 'ffc_user_email_subject', $subject, $form_title, $form_config );
+        $subject = apply_filters( 'ffcertificate_user_email_subject', $subject, $form_title, $form_config );
 
         /**
          * Filters the user email recipient.
@@ -142,7 +142,7 @@ class EmailHandler {
          * @param string $form_title  Form title.
          * @param array  $submission_data Submission data.
          */
-        $to = apply_filters( 'ffc_user_email_recipients', $to, $form_title, $submission_data );
+        $to = apply_filters( 'ffcertificate_user_email_recipients', $to, $form_title, $submission_data );
 
         // Generate magic link URL
         $magic_link_url = '';
@@ -210,7 +210,7 @@ class EmailHandler {
          * @param string $form_title Form title.
          * @param array  $submission_data Submission data.
          */
-        $body = apply_filters( 'ffc_user_email_body', $body, $to, $form_title, $submission_data );
+        $body = apply_filters( 'ffcertificate_user_email_body', $body, $to, $form_title, $submission_data );
 
         // Send email
         $sent = wp_mail( $to, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
@@ -252,7 +252,7 @@ class EmailHandler {
          * @param string $form_title Form title.
          * @param array  $data       Submission data.
          */
-        $admins = apply_filters( 'ffc_admin_email_recipients', $admins, $form_title, $data );
+        $admins = apply_filters( 'ffcertificate_admin_email_recipients', $admins, $form_title, $data );
 
         // Email subject
         /* translators: %s: form title */

@@ -88,6 +88,9 @@ delete_transient( 'ffc_activity_stats_90' );
 // ──────────────────────────────────────
 // 4. Clear scheduled cron hooks
 // ──────────────────────────────────────
+wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
+wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
+wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
 wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
 

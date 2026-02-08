@@ -311,8 +311,7 @@ if (isset($_GET['action']) && isset($_GET['appointment'])) {
                     $ffcertificate_cal_repo = new \FreeFormCertificate\Repositories\CalendarRepository();
                     $ffcertificate_calendar = $ffcertificate_cal_repo->findById((int) $ffcertificate_appointment['calendar_id']);
                     if ($ffcertificate_calendar) {
-                        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
-                        do_action('ffc_self_scheduling_appointment_confirmed_email', $ffcertificate_appointment, $ffcertificate_calendar);
+                        do_action('ffcertificate_self_scheduling_appointment_confirmed_email', $ffcertificate_appointment, $ffcertificate_calendar);
                     }
                 }
 

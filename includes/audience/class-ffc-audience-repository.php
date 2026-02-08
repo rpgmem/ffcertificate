@@ -381,11 +381,17 @@ class AudienceRepository {
      * @return array<object>
      */
     public static function get_user_audiences(int $user_id, bool $include_parents = false): array {
+        $cache_key = 'ffcertificate_user_aud_' . $user_id . '_' . ( $include_parents ? '1' : '0' );
+        $cached = wp_cache_get( $cache_key, 'ffcertificate' );
+        if ( false !== $cached ) {
+            return $cached;
+        }
+
         global $wpdb;
         $table = self::get_table_name();
         $members_table = self::get_members_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $audiences = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT a.* FROM {$table} a
@@ -432,6 +438,8 @@ class AudienceRepository {
                 });
             }
         }
+
+        wp_cache_set( $cache_key, $audiences, 'ffcertificate' );
 
         return $audiences;
     }
@@ -493,12 +501,18 @@ class AudienceRepository {
         $table = self::get_members_table_name();
 
         // Remove all existing members
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
         $wpdb->delete($table, array('audience_id' => $audience_id), array('%d'));
 
         // Add new members
         foreach ($user_ids as $user_id) {
             self::add_member($audience_id, (int) $user_id);
+        }
+
+        // Invalidate audience membership caches for affected users
+        foreach ( $user_ids as $uid ) {
+            wp_cache_delete( 'ffcertificate_user_aud_' . (int) $uid . '_0', 'ffcertificate' );
+            wp_cache_delete( 'ffcertificate_user_aud_' . (int) $uid . '_1', 'ffcertificate' );
         }
 
         return true;
@@ -511,6 +525,12 @@ class AudienceRepository {
      * @return int
      */
     public static function count(array $args = array()): int {
+        $cache_key = 'ffcertificate_aud_count_' . md5( wp_json_encode( $args ) );
+        $cached = wp_cache_get( $cache_key, 'ffcertificate' );
+        if ( false !== $cached ) {
+            return (int) $cached;
+        }
+
         global $wpdb;
         $table = self::get_table_name();
 
@@ -541,8 +561,11 @@ class AudienceRepository {
             $sql = $wpdb->prepare($sql, $values);
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-        return (int) $wpdb->get_var($sql);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared
+        $result = (int) $wpdb->get_var($sql);
+        wp_cache_set( $cache_key, $result, 'ffcertificate' );
+
+        return $result;
     }
 
     /**
@@ -553,11 +576,17 @@ class AudienceRepository {
      * @return array<object>
      */
     public static function search(string $search, int $limit = 10): array {
+        $cache_key = 'ffcertificate_aud_search_' . md5( $search . '_' . $limit );
+        $cached = wp_cache_get( $cache_key, 'ffcertificate' );
+        if ( false !== $cached ) {
+            return $cached;
+        }
+
         global $wpdb;
         $table = self::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        return $wpdb->get_results(
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $results = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT * FROM {$table}
                 WHERE name LIKE %s AND status = 'active'
@@ -567,5 +596,9 @@ class AudienceRepository {
                 $limit
             )
         );
+
+        wp_cache_set( $cache_key, $results, 'ffcertificate' );
+
+        return $results;
     }
 }

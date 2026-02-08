@@ -469,7 +469,7 @@ class AudienceRestController {
          * @since 4.6.4
          * @param array $booking_data Booking data to be inserted.
          */
-        do_action( 'ffc_before_audience_booking_create', $booking_data );
+        do_action( 'ffcertificate_before_audience_booking_create', $booking_data );
 
         // Create the booking
         $booking_id = AudienceBookingRepository::create($booking_data);
@@ -483,7 +483,7 @@ class AudienceRestController {
 
         // Trigger notification hook
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix.
-        do_action('ffc_audience_booking_created', $booking_id);
+        do_action('ffcertificate_audience_booking_created', $booking_id);
 
         return new \WP_REST_Response(array(
             'success' => true,
@@ -537,7 +537,7 @@ class AudienceRestController {
 
         // Trigger notification hook
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix.
-        do_action('ffc_audience_booking_cancelled', $booking_id, $reason);
+        do_action('ffcertificate_audience_booking_cancelled', $booking_id, $reason);
 
         return new \WP_REST_Response(array(
             'success' => true,

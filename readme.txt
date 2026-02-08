@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 4.6.14
+Stable tag: 4.6.15
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -154,6 +154,18 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.6.15 (2026-02-08) =
+
+Plugin Check Compliance: Hook prefix, SQL placeholders, deprecated API removal, and query caching.
+
+* Fix: Remove deprecated load_plugin_textdomain() call (automatic since WordPress 4.6)
+* Fix: Rename all 44 hook names from ffc_ to ffcertificate_ prefix for WordPress Plugin Check compliance
+* Fix: Add WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare to phpcs:ignore for dynamic IN() queries
+* Fix: Add WordPress.DB.PreparedSQL.InterpolatedNotPrepared to phpcs:ignore for safe table name interpolation
+* Perf: Add wp_cache_get/set to 5 audience repository read queries (is_holiday, count, get_user_audiences, search)
+* Fix: Migrate old ffc_daily_cleanup_hook cron to new ffcertificate_daily_cleanup_hook name on init
+* Fix: Clean up both old and new cron hook names in deactivator and uninstall.php
 
 = 4.6.14 (2026-02-08) =
 

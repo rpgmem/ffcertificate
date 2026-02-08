@@ -68,8 +68,6 @@ class Loader {
     }
 
     public function init_plugin(): void {
-        load_plugin_textdomain('ffcertificate', false, dirname(plugin_basename(FFC_PLUGIN_DIR . 'ffcertificate.php')) . '/languages');
-
         // ✅ v4.5.0: Run self-scheduling migrations if needed
         if (class_exists('\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator')) {
             \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::maybe_migrate();
@@ -117,8 +115,13 @@ class Loader {
         new ActivityLogSubscriber();
 
         // v4.6.9: Ensure daily cleanup cron is scheduled (safety net for existing installs)
-        if ( ! wp_next_scheduled( 'ffc_daily_cleanup_hook' ) ) {
-            wp_schedule_event( time(), 'daily', 'ffc_daily_cleanup_hook' );
+        // v4.6.15: Migrate old cron hook name to new prefixed name
+        $old_cleanup = wp_next_scheduled( 'ffc_daily_cleanup_hook' );
+        if ( $old_cleanup ) {
+            wp_unschedule_event( $old_cleanup, 'ffc_daily_cleanup_hook' );
+        }
+        if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
+            wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
         }
 
         $this->define_admin_hooks();
@@ -145,7 +148,7 @@ class Loader {
     }
 
     private function define_admin_hooks(): void {
-        add_action('ffc_daily_cleanup_hook', [$this->submission_handler, 'run_data_cleanup']);
+        add_action('ffcertificate_daily_cleanup_hook', [$this->submission_handler, 'run_data_cleanup']);
     }
     
     /**

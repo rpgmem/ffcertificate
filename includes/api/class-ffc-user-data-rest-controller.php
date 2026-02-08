@@ -571,7 +571,7 @@ class UserDataRestController {
 
             if ( ! empty( $booking_ids ) ) {
                 $id_placeholders = implode( ',', array_fill( 0, count( $booking_ids ), '%d' ) );
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
                 $all_audiences = $wpdb->get_results( $wpdb->prepare(
                     "SELECT ba.booking_id, a.name, a.color
                      FROM {$booking_audiences_table} ba

@@ -283,7 +283,7 @@ class CsvExporter {
          * @param array|null $form_ids Form IDs filter (null for all).
          * @param string     $status   Status filter.
          */
-        $rows = apply_filters( 'ffc_csv_export_data', $rows, $form_ids, $status );
+        $rows = apply_filters( 'ffcertificate_csv_export_data', $rows, $form_ids, $status );
 
         if ( empty( $rows ) ) {
             wp_die( esc_html__( 'No records available for export.', 'ffcertificate' ) );

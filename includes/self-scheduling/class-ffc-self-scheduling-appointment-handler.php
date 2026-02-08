@@ -121,7 +121,7 @@ class AppointmentHandler {
              * @param array $data     Appointment data.
              * @param array $calendar Calendar configuration.
              */
-            do_action( 'ffc_before_appointment_create', $data, $calendar );
+            do_action( 'ffcertificate_before_appointment_create', $data, $calendar );
 
             // Create appointment (inside transaction — protected by locks)
             $appointment_id = $this->appointment_repository->createAppointment($data);
@@ -146,7 +146,7 @@ class AppointmentHandler {
          * @param array $data           Appointment data.
          * @param array $calendar       Calendar configuration.
          */
-        do_action( 'ffc_after_appointment_create', $appointment_id, $data, $calendar );
+        do_action( 'ffcertificate_after_appointment_create', $appointment_id, $data, $calendar );
 
         // Get appointment for email (outside transaction — read-only)
         $appointment = $this->appointment_repository->findById($appointment_id);
@@ -266,7 +266,7 @@ class AppointmentHandler {
          * @param string $date         Date string (Y-m-d).
          * @param array  $calendar     Calendar configuration.
          */
-        return apply_filters( 'ffc_available_slots', $slots, $calendar_id, $date, $calendar );
+        return apply_filters( 'ffcertificate_available_slots', $slots, $calendar_id, $date, $calendar );
     }
 
     /**
@@ -359,7 +359,7 @@ class AppointmentHandler {
          * @param string $reason         Cancellation reason.
          * @param int|null $cancelled_by User ID who cancelled (null for guest).
          */
-        do_action( 'ffc_appointment_cancelled', $appointment_id, $appointment, $reason, $cancelled_by );
+        do_action( 'ffcertificate_appointment_cancelled', $appointment_id, $appointment, $reason, $cancelled_by );
 
         // Send cancellation emails
         $this->schedule_email_notifications($appointment, $calendar, 'cancelled');
@@ -389,26 +389,22 @@ class AppointmentHandler {
         switch ($event) {
             case 'created':
                 if (!empty($email_config['send_user_confirmation'])) {
-                    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
-                    do_action('ffc_self_scheduling_appointment_created_email', $appointment, $calendar);
+                    do_action('ffcertificate_self_scheduling_appointment_created_email', $appointment, $calendar);
                 }
                 if (!empty($email_config['send_admin_notification'])) {
-                    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
-                    do_action('ffc_self_scheduling_appointment_admin_notification', $appointment, $calendar);
+                    do_action('ffcertificate_self_scheduling_appointment_admin_notification', $appointment, $calendar);
                 }
                 break;
 
             case 'confirmed':
                 if (!empty($email_config['send_approval_notification'])) {
-                    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
-                    do_action('ffc_self_scheduling_appointment_confirmed_email', $appointment, $calendar);
+                    do_action('ffcertificate_self_scheduling_appointment_confirmed_email', $appointment, $calendar);
                 }
                 break;
 
             case 'cancelled':
                 if (!empty($email_config['send_cancellation_notification'])) {
-                    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
-                    do_action('ffc_self_scheduling_appointment_cancelled_email', $appointment, $calendar);
+                    do_action('ffcertificate_self_scheduling_appointment_cancelled_email', $appointment, $calendar);
                 }
                 break;
         }

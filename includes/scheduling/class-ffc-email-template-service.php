@@ -94,7 +94,7 @@ class EmailTemplateService {
          *     @type string $body    Email HTML body.
          * }
          */
-        $email_data = apply_filters( 'ffc_scheduling_email', [
+        $email_data = apply_filters( 'ffcertificate_scheduling_email', [
             'to'      => $to,
             'subject' => $subject,
             'body'    => $html,
