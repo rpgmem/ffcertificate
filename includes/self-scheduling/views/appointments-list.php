@@ -98,11 +98,16 @@ class FFC_Appointments_List_Table extends WP_List_Table {
         }
 
         if (in_array($item['status'], ['pending', 'confirmed'])) {
-            $actions['cancel'] = sprintf(
-                '<a href="?post_type=ffc_self_scheduling&page=%s&action=cancel&appointment=%d&_wpnonce=%s" style="color: #b32d2e;">%s</a>',
+            $cancel_url = sprintf(
+                '?post_type=ffc_self_scheduling&page=%s&action=cancel&appointment=%d&_wpnonce=%s',
                 esc_attr( ( isset( $_REQUEST['page'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['page'] ) ) : '' ) ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended
                 $item['id'],
-                wp_create_nonce('ffc_cancel_appointment_' . $item['id']),
+                wp_create_nonce('ffc_cancel_appointment_' . $item['id'])
+            );
+            $actions['cancel'] = sprintf(
+                '<a href="#" onclick="var r=prompt(\'%s\'); if(r && r.length >= 5){window.location=\'%s&reason=\'+encodeURIComponent(r);} return false;" style="color: #b32d2e;">%s</a>',
+                esc_js(__('Please provide a reason for cancellation (minimum 5 characters):', 'ffcertificate')),
+                esc_url($cancel_url),
                 __('Cancel', 'ffcertificate')
             );
         }
@@ -340,7 +345,9 @@ if (isset($_GET['action']) && isset($_GET['appointment'])) {
 
         case 'cancel':
             check_admin_referer('ffc_cancel_appointment_' . $ffc_self_scheduling_appointment_id);
-            $ffcertificate_result = $ffcertificate_repo->cancel($ffc_self_scheduling_appointment_id, get_current_user_id(), __('Cancelled by admin', 'ffcertificate'));
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+            $ffcertificate_cancel_reason = isset($_GET['reason']) ? sanitize_textarea_field(wp_unslash($_GET['reason'])) : __('Cancelled by admin', 'ffcertificate');
+            $ffcertificate_result = $ffcertificate_repo->cancel($ffc_self_scheduling_appointment_id, get_current_user_id(), $ffcertificate_cancel_reason);
 
             if ($ffcertificate_result) {
                 // Store success message in transient

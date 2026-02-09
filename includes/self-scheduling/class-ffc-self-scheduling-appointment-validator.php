@@ -47,6 +47,8 @@ class AppointmentValidator {
      * @return true|\WP_Error
      */
     public function validate(array $data, array $calendar, bool $use_lock = false) {
+        $has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
+
         // 1. Validate required fields
         if (empty($data['appointment_date']) || empty($data['start_time'])) {
             return new \WP_Error('missing_fields', __('Date and time are required.', 'ffcertificate'));
@@ -63,17 +65,17 @@ class AppointmentValidator {
             return new \WP_Error('invalid_time', __('Invalid time format.', 'ffcertificate'));
         }
 
-        // 4. Check if date is in the past
+        // 4. Check if date is in the past (bypass allowed)
         $now = time();
         $tz = wp_timezone();
         $appointment_timestamp = ( new \DateTimeImmutable( $data['appointment_date'] . ' ' . $data['start_time'], $tz ) )->getTimestamp();
 
-        if ($appointment_timestamp < $now) {
+        if ($appointment_timestamp < $now && !$has_bypass) {
             return new \WP_Error('past_date', __('Cannot book appointments in the past.', 'ffcertificate'));
         }
 
-        // 5. Validate advance booking window (minimum)
-        if ($calendar['advance_booking_min'] > 0) {
+        // 5. Validate advance booking window (minimum) - bypass skips
+        if (!$has_bypass && $calendar['advance_booking_min'] > 0) {
             $min_advance = $now + ($calendar['advance_booking_min'] * 3600);
             if ($appointment_timestamp < $min_advance) {
                 return new \WP_Error(
@@ -87,8 +89,8 @@ class AppointmentValidator {
             }
         }
 
-        // 6. Validate advance booking window (maximum)
-        if ($calendar['advance_booking_max'] > 0) {
+        // 6. Validate advance booking window (maximum) - bypass skips
+        if (!$has_bypass && $calendar['advance_booking_max'] > 0) {
             $max_advance = $now + ($calendar['advance_booking_max'] * 86400);
             if ($appointment_timestamp > $max_advance) {
                 return new \WP_Error(
@@ -102,20 +104,22 @@ class AppointmentValidator {
             }
         }
 
-        // 7. Check global holidays and blocked dates
-        if (\FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday($data['appointment_date'])) {
-            return new \WP_Error('date_blocked', __('This date is a holiday.', 'ffcertificate'));
-        }
-        if ($this->blocked_date_repository->isDateBlocked($data['calendar_id'], $data['appointment_date'], $data['start_time'])) {
-            return new \WP_Error('date_blocked', __('This date/time is not available.', 'ffcertificate'));
+        // 7. Check global holidays and blocked dates (bypass skips)
+        if (!$has_bypass) {
+            if (\FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday($data['appointment_date'])) {
+                return new \WP_Error('date_blocked', __('This date is a holiday.', 'ffcertificate'));
+            }
+            if ($this->blocked_date_repository->isDateBlocked($data['calendar_id'], $data['appointment_date'], $data['start_time'])) {
+                return new \WP_Error('date_blocked', __('This date/time is not available.', 'ffcertificate'));
+            }
         }
 
-        // 8. Check working hours
-        if (!$this->is_within_working_hours($data['appointment_date'], $data['start_time'], $calendar)) {
+        // 8. Check working hours (bypass skips)
+        if (!$has_bypass && !$this->is_within_working_hours($data['appointment_date'], $data['start_time'], $calendar)) {
             return new \WP_Error('outside_hours', __('Selected time is outside working hours.', 'ffcertificate'));
         }
 
-        // 9. Check slot availability (with row lock inside transaction)
+        // 9. Check slot availability — NEVER bypassed (spec: above limit = not allowed)
         $is_available = $this->appointment_repository->isSlotAvailable(
             $data['calendar_id'],
             $data['appointment_date'],
@@ -128,16 +132,16 @@ class AppointmentValidator {
             return new \WP_Error('slot_full', __('This time slot is fully booked.', 'ffcertificate'));
         }
 
-        // 10. Check daily limit (with row lock inside transaction)
-        if ($calendar['slots_per_day'] > 0) {
+        // 10. Check daily limit — bypass skips
+        if (!$has_bypass && $calendar['slots_per_day'] > 0) {
             $daily_count = $this->get_daily_appointment_count($data['calendar_id'], $data['appointment_date'], $use_lock);
             if ($daily_count >= $calendar['slots_per_day']) {
                 return new \WP_Error('daily_limit', __('Daily booking limit reached for this date.', 'ffcertificate'));
             }
         }
 
-        // 11. Check minimum interval between bookings
-        if (!empty($calendar['minimum_interval_between_bookings']) && $calendar['minimum_interval_between_bookings'] > 0) {
+        // 11. Check minimum interval between bookings — bypass skips
+        if (!$has_bypass && !empty($calendar['minimum_interval_between_bookings']) && $calendar['minimum_interval_between_bookings'] > 0) {
             $user_identifier = null;
 
             if (!empty($data['user_id'])) {
@@ -159,33 +163,19 @@ class AppointmentValidator {
         }
 
         // 12. Validate user permissions (capability AND calendar config)
-        if (is_user_logged_in()) {
-            if (!current_user_can('manage_options')) {
-                if (!current_user_can('ffc_book_appointments')) {
-                    return new \WP_Error(
-                        'capability_denied',
-                        __('You do not have permission to book appointments.', 'ffcertificate')
-                    );
-                }
+        if (is_user_logged_in() && !$has_bypass) {
+            if (!current_user_can('ffc_book_appointments')) {
+                return new \WP_Error(
+                    'capability_denied',
+                    __('You do not have permission to book appointments.', 'ffcertificate')
+                );
             }
         }
 
-        // Calendar-specific login requirement
-        if ($calendar['require_login']) {
-            if (!is_user_logged_in()) {
-                return new \WP_Error('login_required', __('You must be logged in to book this calendar.', 'ffcertificate'));
-            }
-
-            if (!empty($calendar['allowed_roles'])) {
-                $allowed_roles = json_decode($calendar['allowed_roles'], true);
-                if (is_array($allowed_roles) && !empty($allowed_roles)) {
-                    $user = wp_get_current_user();
-                    $has_role = array_intersect($user->roles, $allowed_roles);
-                    if (empty($has_role) && !current_user_can('manage_options')) {
-                        return new \WP_Error('insufficient_permissions', __('You do not have permission to book this calendar.', 'ffcertificate'));
-                    }
-                }
-            }
+        // Calendar-specific scheduling visibility check
+        $scheduling_visibility = $calendar['scheduling_visibility'] ?? 'public';
+        if ($scheduling_visibility === 'private' && !is_user_logged_in() && !$has_bypass) {
+            return new \WP_Error('login_required', __('You must be logged in to book this calendar.', 'ffcertificate'));
         }
 
         // 13. Validate email (if not logged in)

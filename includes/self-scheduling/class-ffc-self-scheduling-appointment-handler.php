@@ -194,12 +194,16 @@ class AppointmentHandler {
             return new \WP_Error('calendar_inactive', __('Calendar is not active.', 'ffcertificate'));
         }
 
-        // Check global holidays and blocked dates
-        if (\FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday($date)) {
-            return array(); // Global holiday - no slots
-        }
-        if ($this->blocked_date_repository->isDateBlocked($calendar_id, $date)) {
-            return array(); // No slots available
+        $has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
+
+        // Check global holidays and blocked dates (bypass can see slots on these dates)
+        if (!$has_bypass) {
+            if (\FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday($date)) {
+                return array(); // Global holiday - no slots
+            }
+            if ($this->blocked_date_repository->isDateBlocked($calendar_id, $date)) {
+                return array(); // No slots available
+            }
         }
 
         // Get day of week
@@ -212,7 +216,12 @@ class AppointmentHandler {
         });
 
         if (empty($day_hours)) {
-            return array(); // Not a working day
+            // Admin bypass: generate default slots (09:00-18:00) for non-working days
+            if ($has_bypass) {
+                $day_hours = array(array('start' => '09:00', 'end' => '18:00', 'day' => $day_of_week));
+            } else {
+                return array(); // Not a working day
+            }
         }
 
         // Get existing appointments for this date
@@ -231,8 +240,8 @@ class AppointmentHandler {
             while ($current_time < $end_time) {
                 $slot_time = gmdate('H:i:s', $current_time);
 
-                // Check if slot is not blocked by time-range blocks
-                if (!$this->blocked_date_repository->isDateBlocked($calendar_id, $date, $slot_time)) {
+                // Check if slot is not blocked by time-range blocks (bypass skips this check)
+                if ($has_bypass || !$this->blocked_date_repository->isDateBlocked($calendar_id, $date, $slot_time)) {
                     // Count existing appointments for this slot
                     $count = 0;
                     foreach ($existing_appointments as $apt) {
@@ -294,7 +303,7 @@ class AppointmentHandler {
         $can_cancel = false;
         $cancelled_by = null;
 
-        if (current_user_can('manage_options')) {
+        if (\FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass()) {
             $can_cancel = true;
             $cancelled_by = get_current_user_id();
         } elseif (is_user_logged_in() && $appointment['user_id'] == get_current_user_id()) {
@@ -316,12 +325,12 @@ class AppointmentHandler {
         }
 
         // Check if calendar allows cancellation (admin always can)
-        if (!current_user_can('manage_options') && !$calendar['allow_cancellation']) {
+        if (!\FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() && !$calendar['allow_cancellation']) {
             return new \WP_Error('cancellation_disabled', __('Cancellation is not allowed for this calendar.', 'ffcertificate'));
         }
 
         // Check cancellation deadline
-        if (!current_user_can('manage_options') && $calendar['cancellation_min_hours'] > 0) {
+        if (!\FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() && $calendar['cancellation_min_hours'] > 0) {
             $tz = wp_timezone();
             $appointment_time = ( new \DateTimeImmutable( $appointment['appointment_date'] . ' ' . $appointment['start_time'], $tz ) )->getTimestamp();
             $deadline = $appointment_time - ($calendar['cancellation_min_hours'] * 3600);
