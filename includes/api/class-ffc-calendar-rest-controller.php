@@ -98,12 +98,18 @@ class CalendarRestController {
             }
 
             $calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
+            $has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
 
-            $calendars = $calendar_repository->findAll(
-                array('status' => 'active'),
-                'title',
-                'ASC'
-            );
+            // Non-authenticated users only see public calendars
+            if (!is_user_logged_in() && !$has_bypass) {
+                $calendars = $calendar_repository->getPublicActiveCalendars();
+            } else {
+                $calendars = $calendar_repository->findAll(
+                    array('status' => 'active'),
+                    'title',
+                    'ASC'
+                );
+            }
 
             $calendars_formatted = array();
             foreach ($calendars as $calendar) {
@@ -112,7 +118,8 @@ class CalendarRestController {
                     'title' => $calendar['title'],
                     'description' => $calendar['description'] ?? '',
                     'requires_approval' => (bool) $calendar['requires_approval'],
-                    'require_login' => (bool) $calendar['require_login'],
+                    'visibility' => $calendar['visibility'] ?? 'public',
+                    'scheduling_visibility' => $calendar['scheduling_visibility'] ?? 'public',
                     'allow_cancellation' => (bool) $calendar['allow_cancellation'],
                     'slot_duration' => (int) $calendar['slot_duration'],
                     'advance_booking_min' => (int) $calendar['advance_booking_min'],
@@ -174,12 +181,25 @@ class CalendarRestController {
                 );
             }
 
+            // Check visibility for non-authenticated users
+            $visibility = $calendar['visibility'] ?? 'public';
+            $has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
+
+            if ($visibility === 'private' && !is_user_logged_in() && !$has_bypass) {
+                return new \WP_Error(
+                    'calendar_private',
+                    __('This calendar requires authentication.', 'ffcertificate'),
+                    array('status' => 403)
+                );
+            }
+
             return rest_ensure_response(array(
                 'id' => (int) $calendar['id'],
                 'title' => $calendar['title'],
                 'description' => $calendar['description'] ?? '',
                 'requires_approval' => (bool) $calendar['requires_approval'],
-                'require_login' => (bool) $calendar['require_login'],
+                'visibility' => $visibility,
+                'scheduling_visibility' => $calendar['scheduling_visibility'] ?? 'public',
                 'allow_cancellation' => (bool) $calendar['allow_cancellation'],
                 'cancellation_min_hours' => (int) $calendar['cancellation_min_hours'],
                 'slot_duration' => (int) $calendar['slot_duration'],

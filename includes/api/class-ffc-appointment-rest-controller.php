@@ -122,6 +122,29 @@ class AppointmentRestController {
                 );
             }
 
+            // Check scheduling visibility
+            $calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
+            $calendar = $calendar_repository->findById($calendar_id);
+
+            if (!$calendar) {
+                return new \WP_Error(
+                    'calendar_not_found',
+                    __('Calendar not found', 'ffcertificate'),
+                    array('status' => 404)
+                );
+            }
+
+            $has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
+            $scheduling_visibility = $calendar['scheduling_visibility'] ?? 'public';
+
+            if ($scheduling_visibility === 'private' && !is_user_logged_in() && !$has_bypass) {
+                return new \WP_Error(
+                    'scheduling_private',
+                    __('This calendar requires authentication to book.', 'ffcertificate'),
+                    array('status' => 403)
+                );
+            }
+
             // Rate limiting (prevent automated booking abuse)
             if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
                 $ip = \FreeFormCertificate\Core\Utils::get_user_ip();
@@ -312,7 +335,7 @@ class AppointmentRestController {
     public function check_appointment_access($request): bool {
         $appointment_id = $request->get_param('id');
 
-        if (current_user_can('manage_options')) {
+        if (\FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass()) {
             return true;
         }
 

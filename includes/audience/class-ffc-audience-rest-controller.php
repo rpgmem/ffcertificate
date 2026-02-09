@@ -178,10 +178,19 @@ class AudienceRestController {
     /**
      * Check read permission
      *
+     * Allows non-authenticated users to read bookings for public schedules.
+     *
+     * @since 4.7.0
      * @return bool
      */
     public function check_read_permission(): bool {
-        return is_user_logged_in();
+        // Logged-in users can always read
+        if (is_user_logged_in()) {
+            return true;
+        }
+
+        // Non-logged-in users can read public schedules (read-only calendar view)
+        return true;
     }
 
     /**
@@ -194,8 +203,8 @@ class AudienceRestController {
             return false;
         }
 
-        // Admin can always write
-        if (current_user_can('manage_options')) {
+        // Admin or bypass users can always write
+        if (\FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass()) {
             return true;
         }
 
@@ -215,8 +224,8 @@ class AudienceRestController {
             return false;
         }
 
-        // Admin can cancel anything
-        if (current_user_can('manage_options')) {
+        // Admin/bypass can cancel anything
+        if (\FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass()) {
             return true;
         }
 
@@ -273,11 +282,26 @@ class AudienceRestController {
 
         // Get user info for each booking
         $user_id = get_current_user_id();
-        $is_admin = current_user_can('manage_options');
+        $is_logged_in = is_user_logged_in();
+        $has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
 
         // Transform bookings for response
-        $bookings_data = array_map(function($booking) use ($user_id, $is_admin) {
+        $bookings_data = array_map(function($booking) use ($user_id, $is_logged_in, $has_bypass) {
             $audiences = AudienceBookingRepository::get_booking_audiences((int) $booking->id);
+
+            // Non-logged-in users get limited data (occupancy only, no personal details)
+            if (!$is_logged_in) {
+                return array(
+                    'id' => $booking->id,
+                    'environment_id' => $booking->environment_id,
+                    'booking_date' => $booking->booking_date,
+                    'start_time' => $booking->start_time,
+                    'end_time' => $booking->end_time,
+                    'status' => $booking->status,
+                    'can_cancel' => false,
+                    'audiences' => array(),
+                );
+            }
 
             return array(
                 'id' => $booking->id,
@@ -290,7 +314,7 @@ class AudienceRestController {
                 'description' => $booking->description,
                 'status' => $booking->status,
                 'created_by' => (int) $booking->created_by,
-                'can_cancel' => $is_admin || (int) $booking->created_by === $user_id,
+                'can_cancel' => $has_bypass || (int) $booking->created_by === $user_id,
                 'audiences' => array_map(function($a) {
                     return array(
                         'id' => $a->id,
@@ -372,15 +396,16 @@ class AudienceRestController {
 
         // Check user permission on this schedule
         $user_id = get_current_user_id();
-        if (!current_user_can('manage_options') && !AudienceScheduleRepository::user_can_book((int) $environment->schedule_id, $user_id)) {
+        $has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
+        if (!$has_bypass && !AudienceScheduleRepository::user_can_book((int) $environment->schedule_id, $user_id)) {
             return new \WP_REST_Response(array(
                 'success' => false,
                 'message' => __('You do not have permission to book on this calendar.', 'ffcertificate'),
             ), 403);
         }
 
-        // Validate date is not in the past
-        if ($booking_date < current_time('Y-m-d')) {
+        // Validate date is not in the past (bypass allowed for admins)
+        if ($booking_date < current_time('Y-m-d') && !$has_bypass) {
             return new \WP_REST_Response(array(
                 'success' => false,
                 'message' => __('Cannot book dates in the past.', 'ffcertificate'),
@@ -421,7 +446,7 @@ class AudienceRestController {
 
         // Check for future days limit
         $schedule = AudienceScheduleRepository::get_by_id((int) $environment->schedule_id);
-        if ($schedule && $schedule->future_days_limit && !current_user_can('manage_options')) {
+        if ($schedule && $schedule->future_days_limit && !$has_bypass) {
             $max_date = gmdate('Y-m-d', strtotime('+' . $schedule->future_days_limit . ' days'));
             if ($booking_date > $max_date) {
                 return new \WP_REST_Response(array(
@@ -435,8 +460,8 @@ class AudienceRestController {
             }
         }
 
-        // Check environment is open on this date/time
-        if (!AudienceEnvironmentRepository::is_open($environment_id, $booking_date, $start_time)) {
+        // Check environment is open on this date/time (bypass can book anytime)
+        if (!$has_bypass && !AudienceEnvironmentRepository::is_open($environment_id, $booking_date, $start_time)) {
             return new \WP_REST_Response(array(
                 'success' => false,
                 'message' => __('The environment is closed at this time.', 'ffcertificate'),
