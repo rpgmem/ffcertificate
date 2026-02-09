@@ -227,6 +227,11 @@ class AudienceAdminSettings {
      * @return void
      */
     private function render_self_scheduling_tab(): void {
+        // Get current settings
+        $display_mode = get_option('ffc_ss_private_display_mode', 'show_message');
+        $visibility_message = get_option('ffc_ss_visibility_message', __('Para visualizar este calendário é necessário estar logado. <a href="%login_url%">Faça login</a> para continuar.', 'ffcertificate'));
+        $scheduling_message = get_option('ffc_ss_scheduling_message', __('Para agendar neste calendário é necessário estar logado. <a href="%login_url%">Faça login</a> para continuar.', 'ffcertificate'));
+
         ?>
         <div class="card">
             <h2><?php esc_html_e('Self-Scheduling Settings', 'ffcertificate'); ?></h2>
@@ -256,10 +261,66 @@ class AudienceAdminSettings {
                     </tr>
                 </tbody>
             </table>
-            <p class="description">
-                <?php esc_html_e('Additional self-scheduling settings will be available in a future update.', 'ffcertificate'); ?>
-            </p>
         </div>
+
+        <!-- Visibility Settings -->
+        <form method="post" action="">
+            <?php wp_nonce_field('ffc_ss_visibility_settings', 'ffc_ss_visibility_nonce'); ?>
+            <input type="hidden" name="ffc_action" value="save_ss_visibility_settings">
+
+            <div class="card">
+                <h2><?php esc_html_e('Visibility Settings', 'ffcertificate'); ?></h2>
+                <p class="description">
+                    <?php esc_html_e('Configure how private calendars are displayed to non-logged-in visitors.', 'ffcertificate'); ?>
+                </p>
+                <table class="form-table" role="presentation">
+                    <tbody>
+                        <tr>
+                            <th scope="row">
+                                <label for="ffc_ss_private_display_mode"><?php esc_html_e('Private Calendar Display', 'ffcertificate'); ?></label>
+                            </th>
+                            <td>
+                                <select name="ffc_ss_private_display_mode" id="ffc_ss_private_display_mode">
+                                    <option value="show_message" <?php selected($display_mode, 'show_message'); ?>>
+                                        <?php esc_html_e('Show message', 'ffcertificate'); ?>
+                                    </option>
+                                    <option value="show_title_message" <?php selected($display_mode, 'show_title_message'); ?>>
+                                        <?php esc_html_e('Show calendar title + message', 'ffcertificate'); ?>
+                                    </option>
+                                    <option value="hide" <?php selected($display_mode, 'hide'); ?>>
+                                        <?php esc_html_e('Hide completely', 'ffcertificate'); ?>
+                                    </option>
+                                </select>
+                                <p class="description"><?php esc_html_e('What to show when a private calendar is accessed by a non-logged-in user.', 'ffcertificate'); ?></p>
+                            </td>
+                        </tr>
+                        <tr class="ffc-ss-message-row" <?php echo $display_mode === 'hide' ? 'style="display:none;"' : ''; ?>>
+                            <th scope="row">
+                                <label for="ffc_ss_visibility_message"><?php esc_html_e('Visibility Message', 'ffcertificate'); ?></label>
+                            </th>
+                            <td>
+                                <textarea name="ffc_ss_visibility_message" id="ffc_ss_visibility_message" rows="3" class="large-text"><?php echo esc_textarea($visibility_message); ?></textarea>
+                                <p class="description">
+                                    <?php esc_html_e('Shown when the calendar is private and user is not logged in. Use %login_url% for the login link.', 'ffcertificate'); ?>
+                                </p>
+                            </td>
+                        </tr>
+                        <tr class="ffc-ss-message-row" <?php echo $display_mode === 'hide' ? 'style="display:none;"' : ''; ?>>
+                            <th scope="row">
+                                <label for="ffc_ss_scheduling_message"><?php esc_html_e('Scheduling Message', 'ffcertificate'); ?></label>
+                            </th>
+                            <td>
+                                <textarea name="ffc_ss_scheduling_message" id="ffc_ss_scheduling_message" rows="3" class="large-text"><?php echo esc_textarea($scheduling_message); ?></textarea>
+                                <p class="description">
+                                    <?php esc_html_e('Shown when the calendar is public but scheduling is private and user is not logged in. Use %login_url% for the login link.', 'ffcertificate'); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <?php submit_button(__('Save Settings', 'ffcertificate')); ?>
+            </div>
+        </form>
         <?php
     }
 
@@ -269,6 +330,11 @@ class AudienceAdminSettings {
      * @return void
      */
     private function render_audience_tab(): void {
+        // Get current settings
+        $display_mode = get_option('ffc_aud_private_display_mode', 'show_message');
+        $visibility_message = get_option('ffc_aud_visibility_message', __('Para visualizar este calendário é necessário estar logado. <a href="%login_url%">Faça login</a> para continuar.', 'ffcertificate'));
+        $scheduling_message = get_option('ffc_aud_scheduling_message', __('Para agendar neste calendário é necessário estar logado. <a href="%login_url%">Faça login</a> para continuar.', 'ffcertificate'));
+
         ?>
         <div class="card">
             <h2><?php esc_html_e('Audience Scheduling Settings', 'ffcertificate'); ?></h2>
@@ -293,11 +359,119 @@ class AudienceAdminSettings {
                     </tr>
                 </tbody>
             </table>
-            <p class="description">
-                <?php esc_html_e('Additional audience settings will be available in a future update.', 'ffcertificate'); ?>
-            </p>
         </div>
+
+        <!-- Visibility Settings -->
+        <form method="post" action="">
+            <?php wp_nonce_field('ffc_aud_visibility_settings', 'ffc_aud_visibility_nonce'); ?>
+            <input type="hidden" name="ffc_action" value="save_aud_visibility_settings">
+
+            <div class="card">
+                <h2><?php esc_html_e('Visibility Settings', 'ffcertificate'); ?></h2>
+                <p class="description">
+                    <?php esc_html_e('Configure how private audience calendars are displayed to non-logged-in visitors. Note: Scheduling is always restricted to authorized members.', 'ffcertificate'); ?>
+                </p>
+                <table class="form-table" role="presentation">
+                    <tbody>
+                        <tr>
+                            <th scope="row">
+                                <label for="ffc_aud_private_display_mode"><?php esc_html_e('Private Calendar Display', 'ffcertificate'); ?></label>
+                            </th>
+                            <td>
+                                <select name="ffc_aud_private_display_mode" id="ffc_aud_private_display_mode">
+                                    <option value="show_message" <?php selected($display_mode, 'show_message'); ?>>
+                                        <?php esc_html_e('Show message', 'ffcertificate'); ?>
+                                    </option>
+                                    <option value="show_title_message" <?php selected($display_mode, 'show_title_message'); ?>>
+                                        <?php esc_html_e('Show calendar title + message', 'ffcertificate'); ?>
+                                    </option>
+                                    <option value="hide" <?php selected($display_mode, 'hide'); ?>>
+                                        <?php esc_html_e('Hide completely', 'ffcertificate'); ?>
+                                    </option>
+                                </select>
+                                <p class="description"><?php esc_html_e('What to show when a private calendar is accessed by a non-logged-in user.', 'ffcertificate'); ?></p>
+                            </td>
+                        </tr>
+                        <tr class="ffc-aud-message-row" <?php echo $display_mode === 'hide' ? 'style="display:none;"' : ''; ?>>
+                            <th scope="row">
+                                <label for="ffc_aud_visibility_message"><?php esc_html_e('Visibility Message', 'ffcertificate'); ?></label>
+                            </th>
+                            <td>
+                                <textarea name="ffc_aud_visibility_message" id="ffc_aud_visibility_message" rows="3" class="large-text"><?php echo esc_textarea($visibility_message); ?></textarea>
+                                <p class="description">
+                                    <?php esc_html_e('Shown when the calendar is private and user is not logged in. Use %login_url% for the login link.', 'ffcertificate'); ?>
+                                </p>
+                            </td>
+                        </tr>
+                        <tr class="ffc-aud-message-row" <?php echo $display_mode === 'hide' ? 'style="display:none;"' : ''; ?>>
+                            <th scope="row">
+                                <label for="ffc_aud_scheduling_message"><?php esc_html_e('Scheduling Message', 'ffcertificate'); ?></label>
+                            </th>
+                            <td>
+                                <textarea name="ffc_aud_scheduling_message" id="ffc_aud_scheduling_message" rows="3" class="large-text"><?php echo esc_textarea($scheduling_message); ?></textarea>
+                                <p class="description">
+                                    <?php esc_html_e('Shown when the calendar is public but user is not logged in and tries to book. Use %login_url% for the login link.', 'ffcertificate'); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <?php submit_button(__('Save Settings', 'ffcertificate')); ?>
+            </div>
+        </form>
         <?php
+    }
+
+    /**
+     * Handle visibility settings save actions
+     *
+     * @since 4.7.0
+     * @return void
+     */
+    public function handle_visibility_settings(): void {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        // Save Self-Scheduling visibility settings
+        if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'save_ss_visibility_settings') {
+            if (!isset($_POST['ffc_ss_visibility_nonce']) ||
+                !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_ss_visibility_nonce'])), 'ffc_ss_visibility_settings')) {
+                return;
+            }
+
+            $display_mode = isset($_POST['ffc_ss_private_display_mode'])
+                ? sanitize_text_field(wp_unslash($_POST['ffc_ss_private_display_mode'])) : 'show_message';
+            if (!in_array($display_mode, ['show_message', 'show_title_message', 'hide'], true)) {
+                $display_mode = 'show_message';
+            }
+
+            update_option('ffc_ss_private_display_mode', $display_mode);
+            update_option('ffc_ss_visibility_message', wp_kses_post(wp_unslash($_POST['ffc_ss_visibility_message'] ?? '')));
+            update_option('ffc_ss_scheduling_message', wp_kses_post(wp_unslash($_POST['ffc_ss_scheduling_message'] ?? '')));
+
+            add_settings_error('ffc_audience', 'ffc_message', __('Self-scheduling visibility settings saved.', 'ffcertificate'), 'success');
+        }
+
+        // Save Audience visibility settings
+        if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'save_aud_visibility_settings') {
+            if (!isset($_POST['ffc_aud_visibility_nonce']) ||
+                !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_aud_visibility_nonce'])), 'ffc_aud_visibility_settings')) {
+                return;
+            }
+
+            $display_mode = isset($_POST['ffc_aud_private_display_mode'])
+                ? sanitize_text_field(wp_unslash($_POST['ffc_aud_private_display_mode'])) : 'show_message';
+            if (!in_array($display_mode, ['show_message', 'show_title_message', 'hide'], true)) {
+                $display_mode = 'show_message';
+            }
+
+            update_option('ffc_aud_private_display_mode', $display_mode);
+            update_option('ffc_aud_visibility_message', wp_kses_post(wp_unslash($_POST['ffc_aud_visibility_message'] ?? '')));
+            update_option('ffc_aud_scheduling_message', wp_kses_post(wp_unslash($_POST['ffc_aud_scheduling_message'] ?? '')));
+
+            add_settings_error('ffc_audience', 'ffc_message', __('Audience visibility settings saved.', 'ffcertificate'), 'success');
+        }
     }
 
     /**

@@ -328,6 +328,7 @@ class AudienceAdminPage {
         }
 
         $this->settings->handle_global_holiday_actions();
+        $this->settings->handle_visibility_settings();
         $this->import->handle_csv_import();
         $this->calendar->handle_actions();
         $this->environment->handle_actions();
