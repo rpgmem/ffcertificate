@@ -91,6 +91,9 @@ class AudienceLoader {
         add_action('wp_ajax_ffc_audience_get_schedule_slots', array($this, 'ajax_get_schedule_slots'));
         add_action('wp_ajax_ffc_search_users', array($this, 'ajax_search_users'));
         add_action('wp_ajax_ffc_audience_get_environments', array($this, 'ajax_get_environments'));
+        add_action('wp_ajax_ffc_audience_add_user_permission', array($this, 'ajax_add_user_permission'));
+        add_action('wp_ajax_ffc_audience_update_user_permission', array($this, 'ajax_update_user_permission'));
+        add_action('wp_ajax_ffc_audience_remove_user_permission', array($this, 'ajax_remove_user_permission'));
     }
 
     /**
@@ -421,5 +424,150 @@ class AudienceLoader {
         }
 
         wp_send_json_success($results);
+    }
+
+    /**
+     * AJAX: Add user permission to a schedule
+     *
+     * @return void
+     */
+    public function ajax_add_user_permission(): void {
+        check_ajax_referer('ffc_schedule_permissions', '_wpnonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
+        }
+
+        $schedule_id = isset($_POST['schedule_id']) ? absint($_POST['schedule_id']) : 0;
+        $user_id = isset($_POST['user_id']) ? absint($_POST['user_id']) : 0;
+
+        if (!$schedule_id || !$user_id) {
+            wp_send_json_error(array('message' => __('Missing required parameters.', 'ffcertificate')));
+        }
+
+        $schedule = AudienceScheduleRepository::get_by_id($schedule_id);
+        if (!$schedule) {
+            wp_send_json_error(array('message' => __('Calendar not found.', 'ffcertificate')));
+        }
+
+        $user = get_userdata($user_id);
+        if (!$user) {
+            wp_send_json_error(array('message' => __('User not found.', 'ffcertificate')));
+        }
+
+        $existing = AudienceScheduleRepository::get_user_permissions($schedule_id, $user_id);
+        if ($existing) {
+            wp_send_json_error(array('message' => __('User already has access to this calendar.', 'ffcertificate')));
+        }
+
+        $result = AudienceScheduleRepository::set_user_permissions($schedule_id, $user_id, array(
+            'can_book' => 1,
+            'can_cancel_others' => 0,
+            'can_override_conflicts' => 0,
+        ));
+
+        if (!$result) {
+            wp_send_json_error(array('message' => __('Error adding user permissions.', 'ffcertificate')));
+        }
+
+        ob_start();
+        ?>
+        <tr data-user-id="<?php echo esc_attr($user_id); ?>">
+            <td>
+                <strong><?php echo esc_html($user->display_name); ?></strong>
+                <br><span class="description"><?php echo esc_html($user->user_email); ?></span>
+            </td>
+            <td>
+                <input type="checkbox" class="ffc-perm-toggle" data-perm="can_book" checked>
+            </td>
+            <td>
+                <input type="checkbox" class="ffc-perm-toggle" data-perm="can_cancel_others">
+            </td>
+            <td>
+                <input type="checkbox" class="ffc-perm-toggle" data-perm="can_override_conflicts">
+            </td>
+            <td>
+                <button type="button" class="button button-small button-link-delete ffc-remove-user-btn"><?php esc_html_e('Remove', 'ffcertificate'); ?></button>
+            </td>
+        </tr>
+        <?php
+        $html = ob_get_clean();
+
+        wp_send_json_success(array('html' => $html));
+    }
+
+    /**
+     * AJAX: Update a single user permission on a schedule
+     *
+     * @return void
+     */
+    public function ajax_update_user_permission(): void {
+        check_ajax_referer('ffc_schedule_permissions', '_wpnonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
+        }
+
+        $schedule_id = isset($_POST['schedule_id']) ? absint($_POST['schedule_id']) : 0;
+        $user_id = isset($_POST['user_id']) ? absint($_POST['user_id']) : 0;
+        $permission = isset($_POST['permission']) ? sanitize_text_field(wp_unslash($_POST['permission'])) : '';
+        $value = isset($_POST['value']) ? absint($_POST['value']) : 0;
+
+        if (!$schedule_id || !$user_id || !$permission) {
+            wp_send_json_error(array('message' => __('Missing required parameters.', 'ffcertificate')));
+        }
+
+        $allowed_permissions = array('can_book', 'can_cancel_others', 'can_override_conflicts');
+        if (!in_array($permission, $allowed_permissions, true)) {
+            wp_send_json_error(array('message' => __('Invalid permission.', 'ffcertificate')));
+        }
+
+        $existing = AudienceScheduleRepository::get_user_permissions($schedule_id, $user_id);
+        if (!$existing) {
+            wp_send_json_error(array('message' => __('User does not have access to this calendar.', 'ffcertificate')));
+        }
+
+        $perms = array(
+            'can_book' => (int) $existing->can_book,
+            'can_cancel_others' => (int) $existing->can_cancel_others,
+            'can_override_conflicts' => (int) $existing->can_override_conflicts,
+        );
+        $perms[$permission] = $value ? 1 : 0;
+
+        $result = AudienceScheduleRepository::set_user_permissions($schedule_id, $user_id, $perms);
+
+        if (!$result) {
+            wp_send_json_error(array('message' => __('Error updating permission.', 'ffcertificate')));
+        }
+
+        wp_send_json_success();
+    }
+
+    /**
+     * AJAX: Remove user permission from a schedule
+     *
+     * @return void
+     */
+    public function ajax_remove_user_permission(): void {
+        check_ajax_referer('ffc_schedule_permissions', '_wpnonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
+        }
+
+        $schedule_id = isset($_POST['schedule_id']) ? absint($_POST['schedule_id']) : 0;
+        $user_id = isset($_POST['user_id']) ? absint($_POST['user_id']) : 0;
+
+        if (!$schedule_id || !$user_id) {
+            wp_send_json_error(array('message' => __('Missing required parameters.', 'ffcertificate')));
+        }
+
+        $result = AudienceScheduleRepository::remove_user_permissions($schedule_id, $user_id);
+
+        if (!$result) {
+            wp_send_json_error(array('message' => __('Error removing user access.', 'ffcertificate')));
+        }
+
+        wp_send_json_success();
     }
 }
