@@ -229,8 +229,8 @@ class AudienceAdminSettings {
     private function render_self_scheduling_tab(): void {
         // Get current settings
         $display_mode = get_option('ffc_ss_private_display_mode', 'show_message');
-        $visibility_message = get_option('ffc_ss_visibility_message', __('Para visualizar este calendário é necessário estar logado. <a href="%login_url%">Faça login</a> para continuar.', 'ffcertificate'));
-        $scheduling_message = get_option('ffc_ss_scheduling_message', __('Para agendar neste calendário é necessário estar logado. <a href="%login_url%">Faça login</a> para continuar.', 'ffcertificate'));
+        $visibility_message = get_option('ffc_ss_visibility_message', __('To view this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate'));
+        $scheduling_message = get_option('ffc_ss_scheduling_message', __('To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate'));
 
         ?>
         <div class="card">
@@ -332,8 +332,8 @@ class AudienceAdminSettings {
     private function render_audience_tab(): void {
         // Get current settings
         $display_mode = get_option('ffc_aud_private_display_mode', 'show_message');
-        $visibility_message = get_option('ffc_aud_visibility_message', __('Para visualizar este calendário é necessário estar logado. <a href="%login_url%">Faça login</a> para continuar.', 'ffcertificate'));
-        $scheduling_message = get_option('ffc_aud_scheduling_message', __('Para agendar neste calendário é necessário estar logado. <a href="%login_url%">Faça login</a> para continuar.', 'ffcertificate'));
+        $visibility_message = get_option('ffc_aud_visibility_message', __('To view this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate'));
+        $scheduling_message = get_option('ffc_aud_scheduling_message', __('To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate'));
 
         ?>
         <div class="card">

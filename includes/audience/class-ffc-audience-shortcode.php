@@ -85,7 +85,7 @@ class AudienceShortcode {
 
             $scheduling_message = get_option(
                 'ffc_aud_scheduling_message',
-                __('Para agendar neste calendário é necessário estar logado. <a href="%login_url%">Faça login</a> para continuar.', 'ffcertificate')
+                __('To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate')
             );
             $scheduling_message = str_replace('%login_url%', wp_login_url(get_permalink()), $scheduling_message);
 
@@ -401,7 +401,7 @@ class AudienceShortcode {
 
         $message = get_option(
             'ffc_aud_visibility_message',
-            __('Para visualizar este calendário é necessário estar logado. <a href="%login_url%">Faça login</a> para continuar.', 'ffcertificate')
+            __('To view this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate')
         );
         $message = str_replace('%login_url%', wp_login_url(get_permalink()), $message);
 
