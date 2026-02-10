@@ -461,10 +461,6 @@ class SelfSchedulingShortcode {
         ?>
         <div class="ffc-audience-calendar" data-calendar-id="<?php echo esc_attr($calendar['id']); ?>">
 
-            <div class="ffc-calendar-filters">
-                <span class="ffc-calendar-title"><?php echo esc_html($calendar['title']); ?></span>
-            </div>
-
             <?php if (!empty($calendar['description'])): ?>
                 <div class="ffc-calendar-description">
                     <p><?php echo esc_html($calendar['description']); ?></p>
@@ -656,11 +652,12 @@ class SelfSchedulingShortcode {
         }
 
         $calendar_config = array(
-            'calendarId'   => (int) $calendar['id'],
-            'workingDays'  => $working_days_js,
-            'minDateHours' => isset($calendar['advance_booking_min']) ? (int) $calendar['advance_booking_min'] : 0,
-            'maxDateDays'  => isset($calendar['advance_booking_max']) ? (int) $calendar['advance_booking_max'] : 30,
-            'canBook'      => $can_book,
+            'calendarId'    => (int) $calendar['id'],
+            'calendarTitle' => $calendar['title'] ?? '',
+            'workingDays'   => $working_days_js,
+            'minDateHours'  => isset($calendar['advance_booking_min']) ? (int) $calendar['advance_booking_min'] : 0,
+            'maxDateDays'   => isset($calendar['advance_booking_max']) ? (int) $calendar['advance_booking_max'] : 30,
+            'canBook'       => $can_book,
         );
         ?>
         <script type="application/json" id="ffc-calendar-config-<?php echo (int) $calendar['id']; ?>"><?php echo wp_json_encode($calendar_config); ?></script>

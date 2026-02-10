@@ -636,9 +636,11 @@
 
         // Initialize shared calendar component
         var $container = $('#ffc-calendar-container-' + calendarId);
+        var calendarTitle = config.calendarTitle || '';
         var calendar = new FFCCalendarCore($container, {
             showLegend: true,
             showTodayButton: true,
+            showFilters: !!calendarTitle,
             minDate: minDate,
             maxDate: maxDate,
             disabledDays: disabledDays,
@@ -693,6 +695,13 @@
                 self.loadTimeSlots(calendarId, dateStr);
             }
         });
+
+        // Populate filters area with calendar title
+        if (calendarTitle) {
+            $container.find('.ffc-calendar-filters').html(
+                '<span class="ffc-calendar-title">' + $('<span>').text(calendarTitle).html() + '</span>'
+            );
+        }
 
         // Store calendar instance for later access
         $container.data('calendar', calendar);
