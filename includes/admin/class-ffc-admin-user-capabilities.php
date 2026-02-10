@@ -162,6 +162,29 @@ class AdminUserCapabilities {
                     </td>
                 </tr>
 
+                <!-- Audience Capabilities -->
+                <tr>
+                    <th scope="row"><?php esc_html_e('Audience Permissions', 'ffcertificate'); ?></th>
+                    <td>
+                        <fieldset>
+                            <legend class="screen-reader-text">
+                                <span><?php esc_html_e('Audience Permissions', 'ffcertificate'); ?></span>
+                            </legend>
+
+                            <label>
+                                <input type="checkbox" name="ffc_cap_ffc_view_audience_bookings" value="1"
+                                    <?php checked($capabilities['ffc_view_audience_bookings'] ?? false); ?>>
+                                <?php esc_html_e('View audience bookings', 'ffcertificate'); ?>
+                            </label>
+                            <span class="description"><?php esc_html_e('Allows viewing group/audience bookings in the dashboard.', 'ffcertificate'); ?></span>
+
+                            <p class="description">
+                                <?php esc_html_e('Allow access to audience/group scheduling features.', 'ffcertificate'); ?>
+                            </p>
+                        </fieldset>
+                    </td>
+                </tr>
+
                 <!-- Future Capabilities -->
                 <tr>
                     <th scope="row"><?php esc_html_e('Advanced Permissions', 'ffcertificate'); ?></th>
@@ -242,6 +265,8 @@ class AdminUserCapabilities {
             'ffc_view_self_scheduling',
             'ffc_cancel_own_appointments',
             'ffc_scheduling_bypass',
+            // Audience capabilities
+            'ffc_view_audience_bookings',
             // Future capabilities
             'ffc_reregistration',
             'ffc_certificate_update',
