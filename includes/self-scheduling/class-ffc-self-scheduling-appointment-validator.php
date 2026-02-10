@@ -178,6 +178,23 @@ class AppointmentValidator {
             return new \WP_Error('login_required', __('You must be logged in to book this calendar.', 'ffcertificate'));
         }
 
+        // Business hours restriction for booking — bypass skips
+        if (!$has_bypass && !empty($calendar['restrict_booking_to_hours'])) {
+            $working_hours = $calendar['working_hours'] ?? array();
+            if (!empty($working_hours)) {
+                $now = current_time('mysql');
+                $current_date = gmdate('Y-m-d', strtotime($now));
+                $current_time = gmdate('H:i', strtotime($now));
+
+                $is_working_day = \FreeFormCertificate\Scheduling\WorkingHoursService::is_working_day($current_date, $working_hours);
+                $is_within_hours = \FreeFormCertificate\Scheduling\WorkingHoursService::is_within_working_hours($current_date, $current_time, $working_hours);
+
+                if (!$is_working_day || !$is_within_hours) {
+                    return new \WP_Error('outside_business_hours', __('Booking is available only during business hours.', 'ffcertificate'));
+                }
+            }
+        }
+
         // 13. Validate email (if not logged in)
         if (!is_user_logged_in() && empty($data['email'])) {
             return new \WP_Error('email_required', __('Email address is required.', 'ffcertificate'));

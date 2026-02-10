@@ -319,6 +319,8 @@ class SelfSchedulingEditor {
             'requires_approval' => 0,
             'visibility' => 'public',
             'scheduling_visibility' => 'public',
+            'restrict_viewing_to_hours' => 0,
+            'restrict_booking_to_hours' => 0,
         );
 
         $config = array_merge($defaults, $config);
@@ -397,6 +399,26 @@ class SelfSchedulingEditor {
                             <?php esc_html_e('Public: anyone can book. Private: only logged-in users can book.', 'ffcertificate'); ?>
                         <?php endif; ?>
                     </p>
+                </td>
+            </tr>
+            <tr>
+                <th><label for="restrict_viewing_to_hours"><?php esc_html_e('Restrict Viewing to Business Hours', 'ffcertificate'); ?></label></th>
+                <td>
+                    <label>
+                        <input type="checkbox" id="restrict_viewing_to_hours" name="ffc_self_scheduling_config[restrict_viewing_to_hours]" value="1" <?php checked($config['restrict_viewing_to_hours'], 1); ?> />
+                        <?php esc_html_e('Calendar can only be viewed during working hours', 'ffcertificate'); ?>
+                    </label>
+                    <p class="description"><?php esc_html_e('When enabled, the calendar will only be visible during the configured working hours. Outside those hours, a message will be displayed instead.', 'ffcertificate'); ?></p>
+                </td>
+            </tr>
+            <tr>
+                <th><label for="restrict_booking_to_hours"><?php esc_html_e('Restrict Booking to Business Hours', 'ffcertificate'); ?></label></th>
+                <td>
+                    <label>
+                        <input type="checkbox" id="restrict_booking_to_hours" name="ffc_self_scheduling_config[restrict_booking_to_hours]" value="1" <?php checked($config['restrict_booking_to_hours'], 1); ?> />
+                        <?php esc_html_e('Bookings can only be made during working hours', 'ffcertificate'); ?>
+                    </label>
+                    <p class="description"><?php esc_html_e('When enabled, users can view the calendar at any time but can only make bookings during the configured working hours.', 'ffcertificate'); ?></p>
                 </td>
             </tr>
         </table>
@@ -571,6 +593,10 @@ class SelfSchedulingEditor {
             if ($config['visibility'] === 'private') {
                 $config['scheduling_visibility'] = 'private';
             }
+
+            // Business hours restriction toggles
+            $config['restrict_viewing_to_hours'] = isset($config['restrict_viewing_to_hours']) ? 1 : 0;
+            $config['restrict_booking_to_hours'] = isset($config['restrict_booking_to_hours']) ? 1 : 0;
 
             update_post_meta($post_id, '_ffc_self_scheduling_config', $config);
         }

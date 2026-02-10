@@ -528,6 +528,8 @@ class SelfSchedulingActivator {
             self::migrate_calendars_table();
             // Run migration to add visibility columns (replacing require_login/allowed_roles)
             self::migrate_visibility_columns();
+            // Run migration to add business hours restriction columns
+            self::migrate_business_hours_restriction_columns();
         }
     }
 
@@ -632,6 +634,40 @@ class SelfSchedulingActivator {
                 "ALTER TABLE {$table_name}
                 DROP COLUMN require_login,
                 DROP COLUMN allowed_roles"
+            );
+        }
+    }
+
+    /**
+     * Migrate calendars table to add business hours restriction columns
+     *
+     * Adds restrict_viewing_to_hours and restrict_booking_to_hours toggles
+     * that allow restricting calendar access to configured working hours only.
+     *
+     * @since 4.7.0
+     * @return void
+     */
+    private static function migrate_business_hours_restriction_columns(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+
+        // Check if restrict_viewing_to_hours column already exists
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $column_exists = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'restrict_viewing_to_hours'",
+                DB_NAME,
+                $table_name
+            )
+        );
+
+        if (empty($column_exists)) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $wpdb->query(
+                "ALTER TABLE {$table_name}
+                ADD COLUMN restrict_viewing_to_hours tinyint(1) DEFAULT 0 COMMENT 'Restrict viewing to working hours only' AFTER scheduling_visibility,
+                ADD COLUMN restrict_booking_to_hours tinyint(1) DEFAULT 0 COMMENT 'Restrict booking to working hours only' AFTER restrict_viewing_to_hours"
             );
         }
     }

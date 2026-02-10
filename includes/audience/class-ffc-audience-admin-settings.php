@@ -231,6 +231,8 @@ class AudienceAdminSettings {
         $display_mode = get_option('ffc_ss_private_display_mode', 'show_message');
         $visibility_message = get_option('ffc_ss_visibility_message', __('To view this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate'));
         $scheduling_message = get_option('ffc_ss_scheduling_message', __('To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate'));
+        $bh_viewing_message = get_option('ffc_ss_business_hours_viewing_message', __('This calendar is available for viewing only during business hours (%hours%).', 'ffcertificate'));
+        $bh_booking_message = get_option('ffc_ss_business_hours_booking_message', __('Booking is available only during business hours (%hours%).', 'ffcertificate'));
 
         ?>
         <div class="card">
@@ -313,6 +315,46 @@ class AudienceAdminSettings {
                                 <textarea name="ffc_ss_scheduling_message" id="ffc_ss_scheduling_message" rows="3" class="large-text"><?php echo esc_textarea($scheduling_message); ?></textarea>
                                 <p class="description">
                                     <?php esc_html_e('Shown when the calendar is public but scheduling is private and user is not logged in. Use %login_url% for the login link.', 'ffcertificate'); ?>
+                                </p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <?php submit_button(__('Save Settings', 'ffcertificate')); ?>
+            </div>
+        </form>
+
+        <!-- Business Hours Restriction Messages -->
+        <form method="post" action="">
+            <?php wp_nonce_field('ffc_ss_business_hours_settings', 'ffc_ss_business_hours_nonce'); ?>
+            <input type="hidden" name="ffc_action" value="save_ss_business_hours_settings">
+
+            <div class="card">
+                <h2><?php esc_html_e('Business Hours Restriction Messages', 'ffcertificate'); ?></h2>
+                <p class="description">
+                    <?php esc_html_e('Messages shown when a calendar has business hours restrictions enabled (configured per calendar).', 'ffcertificate'); ?>
+                </p>
+                <table class="form-table" role="presentation">
+                    <tbody>
+                        <tr>
+                            <th scope="row">
+                                <label for="ffc_ss_business_hours_viewing_message"><?php esc_html_e('Viewing Restriction Message', 'ffcertificate'); ?></label>
+                            </th>
+                            <td>
+                                <textarea name="ffc_ss_business_hours_viewing_message" id="ffc_ss_business_hours_viewing_message" rows="3" class="large-text"><?php echo esc_textarea($bh_viewing_message); ?></textarea>
+                                <p class="description">
+                                    <?php esc_html_e('Shown when the calendar cannot be viewed outside business hours. Use %hours% for today\'s working hours.', 'ffcertificate'); ?>
+                                </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">
+                                <label for="ffc_ss_business_hours_booking_message"><?php esc_html_e('Booking Restriction Message', 'ffcertificate'); ?></label>
+                            </th>
+                            <td>
+                                <textarea name="ffc_ss_business_hours_booking_message" id="ffc_ss_business_hours_booking_message" rows="3" class="large-text"><?php echo esc_textarea($bh_booking_message); ?></textarea>
+                                <p class="description">
+                                    <?php esc_html_e('Shown when booking is not allowed outside business hours (calendar is still visible). Use %hours% for today\'s working hours.', 'ffcertificate'); ?>
                                 </p>
                             </td>
                         </tr>
@@ -451,6 +493,19 @@ class AudienceAdminSettings {
             update_option('ffc_ss_scheduling_message', wp_kses_post(wp_unslash($_POST['ffc_ss_scheduling_message'] ?? '')));
 
             add_settings_error('ffc_audience', 'ffc_message', __('Self-scheduling visibility settings saved.', 'ffcertificate'), 'success');
+        }
+
+        // Save Self-Scheduling business hours restriction messages
+        if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'save_ss_business_hours_settings') {
+            if (!isset($_POST['ffc_ss_business_hours_nonce']) ||
+                !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_ss_business_hours_nonce'])), 'ffc_ss_business_hours_settings')) {
+                return;
+            }
+
+            update_option('ffc_ss_business_hours_viewing_message', wp_kses_post(wp_unslash($_POST['ffc_ss_business_hours_viewing_message'] ?? '')));
+            update_option('ffc_ss_business_hours_booking_message', wp_kses_post(wp_unslash($_POST['ffc_ss_business_hours_booking_message'] ?? '')));
+
+            add_settings_error('ffc_audience', 'ffc_message', __('Business hours restriction messages saved.', 'ffcertificate'), 'success');
         }
 
         // Save Audience visibility settings

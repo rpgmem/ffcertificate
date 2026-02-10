@@ -208,6 +208,8 @@ class CalendarRepository extends AbstractRepository {
             'max_appointments_per_slot' => 1,
             'visibility' => 'public',
             'scheduling_visibility' => 'public',
+            'restrict_viewing_to_hours' => 0,
+            'restrict_booking_to_hours' => 0,
             'email_config' => json_encode([
                 'send_user_confirmation' => 0,
                 'send_admin_notification' => 0,

@@ -290,6 +290,8 @@ class SelfSchedulingCPT {
             'max_appointments_per_slot' => $config['max_appointments_per_slot'] ?? 1,
             'visibility' => $config['visibility'] ?? 'public',
             'scheduling_visibility' => $config['scheduling_visibility'] ?? 'public',
+            'restrict_viewing_to_hours' => $config['restrict_viewing_to_hours'] ?? 0,
+            'restrict_booking_to_hours' => $config['restrict_booking_to_hours'] ?? 0,
             'status' => $config['status'] ?? 'active'
         );
     }

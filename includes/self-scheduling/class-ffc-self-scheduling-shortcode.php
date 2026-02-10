@@ -260,6 +260,17 @@ class SelfSchedulingShortcode {
             return $this->render_private_visibility_message($calendar);
         }
 
+        // Business hours restriction: viewing
+        $restrict_viewing = !empty($calendar['restrict_viewing_to_hours']);
+        $restrict_booking = !empty($calendar['restrict_booking_to_hours']);
+
+        if ($restrict_viewing && !$has_bypass) {
+            $outside_hours = $this->is_outside_business_hours($calendar);
+            if ($outside_hours) {
+                return $this->render_business_hours_message($calendar, 'viewing');
+            }
+        }
+
         // Render calendar interface with scheduling restriction flag
         $can_book = true;
         $scheduling_message = '';
@@ -273,11 +284,25 @@ class SelfSchedulingShortcode {
             $scheduling_message = str_replace('%login_url%', wp_login_url(get_permalink()), $scheduling_message);
         }
 
+        // Business hours restriction: booking only
+        if ($can_book && $restrict_booking && !$has_bypass) {
+            $outside_hours = $this->is_outside_business_hours($calendar);
+            if ($outside_hours) {
+                $can_book = false;
+                $scheduling_message = $this->get_business_hours_message($calendar, 'booking');
+            }
+        }
+
         ob_start();
         // Admin bypass badge
-        if ($has_bypass && $visibility === 'private') {
+        if ($has_bypass && ($visibility === 'private' || $restrict_viewing || $restrict_booking)) {
             echo '<div class="ffc-admin-bypass-notice">';
-            echo '<span class="ffc-badge ffc-badge-private">' . esc_html__('Private', 'ffcertificate') . '</span> ';
+            if ($visibility === 'private') {
+                echo '<span class="ffc-badge ffc-badge-private">' . esc_html__('Private', 'ffcertificate') . '</span> ';
+            }
+            if ($restrict_viewing || $restrict_booking) {
+                echo '<span class="ffc-badge ffc-badge-private">' . esc_html__('Business Hours Restricted', 'ffcertificate') . '</span> ';
+            }
             echo esc_html__('You are viewing this calendar as an administrator (bypass active).', 'ffcertificate');
             echo '</div>';
         }
@@ -311,6 +336,104 @@ class SelfSchedulingShortcode {
             $output .= '<h3 class="ffc-calendar-title">' . esc_html($calendar['title']) . '</h3>';
         }
 
+        $output .= '<div class="ffc-restricted-message">' . wp_kses_post($message) . '</div>';
+        $output .= '</div>';
+
+        return $output;
+    }
+
+    /**
+     * Check if the current time is outside the calendar's working hours
+     *
+     * @since 4.7.0
+     * @param array $calendar Calendar data with working_hours
+     * @return bool True if currently outside business hours
+     */
+    private function is_outside_business_hours(array $calendar): bool {
+        $working_hours = $calendar['working_hours'] ?? array();
+        if (empty($working_hours)) {
+            return false;
+        }
+
+        $now = current_time('mysql');
+        $current_date = gmdate('Y-m-d', strtotime($now));
+        $current_time = gmdate('H:i', strtotime($now));
+
+        // Check if today is a working day
+        if (!\FreeFormCertificate\Scheduling\WorkingHoursService::is_working_day($current_date, $working_hours)) {
+            return true;
+        }
+
+        // Check if current time is within working hours
+        return !\FreeFormCertificate\Scheduling\WorkingHoursService::is_within_working_hours($current_date, $current_time, $working_hours);
+    }
+
+    /**
+     * Get today's working hours range formatted for display
+     *
+     * @since 4.7.0
+     * @param array $calendar Calendar data with working_hours
+     * @return string Formatted hours range (e.g. "09:00 - 17:00") or empty if closed
+     */
+    private function get_today_hours_display(array $calendar): string {
+        $working_hours = $calendar['working_hours'] ?? array();
+        if (empty($working_hours)) {
+            return '';
+        }
+
+        $now = current_time('mysql');
+        $current_date = gmdate('Y-m-d', strtotime($now));
+        $ranges = \FreeFormCertificate\Scheduling\WorkingHoursService::get_day_ranges($current_date, $working_hours);
+
+        if (empty($ranges)) {
+            return __('Closed today', 'ffcertificate');
+        }
+
+        $formatted = array();
+        foreach ($ranges as $range) {
+            $formatted[] = $range['start'] . ' - ' . $range['end'];
+        }
+
+        return implode(', ', $formatted);
+    }
+
+    /**
+     * Get the business hours restriction message
+     *
+     * @since 4.7.0
+     * @param array $calendar Calendar data
+     * @param string $type 'viewing' or 'booking'
+     * @return string Message HTML
+     */
+    private function get_business_hours_message(array $calendar, string $type): string {
+        $option_key = $type === 'viewing'
+            ? 'ffc_ss_business_hours_viewing_message'
+            : 'ffc_ss_business_hours_booking_message';
+
+        $default = $type === 'viewing'
+            ? __('This calendar is available for viewing only during business hours (%hours%).', 'ffcertificate')
+            : __('Booking is available only during business hours (%hours%).', 'ffcertificate');
+
+        $message = get_option($option_key, $default);
+        $hours_display = $this->get_today_hours_display($calendar);
+        $message = str_replace('%hours%', $hours_display, $message);
+
+        return $message;
+    }
+
+    /**
+     * Render message for business hours viewing restriction
+     *
+     * @since 4.7.0
+     * @param array $calendar Calendar data
+     * @param string $type 'viewing' or 'booking'
+     * @return string HTML output
+     */
+    private function render_business_hours_message(array $calendar, string $type): string {
+        $message = $this->get_business_hours_message($calendar, $type);
+
+        $output = '<div class="ffc-visibility-restricted">';
+        $output .= '<h3 class="ffc-calendar-title">' . esc_html($calendar['title']) . '</h3>';
         $output .= '<div class="ffc-restricted-message">' . wp_kses_post($message) . '</div>';
         $output .= '</div>';
 
