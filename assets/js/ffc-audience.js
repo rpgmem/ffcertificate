@@ -445,7 +445,7 @@
                     html += '<div class="ffc-day-content">';
 
                     if (isHoliday) {
-                        html += '<span class="ffc-day-badge ffc-badge-holiday">' + (typeof isHoliday === 'string' ? isHoliday : ffcAudience.strings.holiday) + '</span>';
+                        html += '<span class="ffc-day-badge ffc-badge-holiday">' + ffcAudience.strings.holiday + '</span>';
                     } else if (isClosed) {
                         html += '<span class="ffc-day-badge ffc-badge-closed">' + ffcAudience.strings.closed + '</span>';
                     } else if (bookingCount > 0) {
