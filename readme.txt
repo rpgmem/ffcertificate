@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.7.0
+Stable tag: 4.8.0
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -154,6 +154,22 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.8.0 (2026-02-11) =
+
+Calendar UX improvements, environment colors, and event list panel.
+
+* New: Environment **color picker** — assign distinct colors to each environment (admin + frontend)
+* New: **Event list panel** — optional side or below panel showing upcoming bookings for the current month
+* New: Event list admin settings — enable/disable and position (side or below calendar)
+* New: **All-day event** checkbox — marks bookings as all-day (stores 00:00–23:59), blocks entire environment for the day
+* New: All-day events display "All Day" label instead of time range in day modal and event list
+* Fix: FFC Users redirect — only block wp-admin access when ALL user roles are in the blocked list (was blocking when ANY role matched)
+* Fix: Environment label not reaching frontend — `get_schedule_environments()` now includes `name` field in config
+* Fix: Environment label fallback "Ambiente" was not wrapped in `__()` for translation
+* Changed: Calendar day cells now use `aspect-ratio: 1` for consistent square grid layout
+* Changed: Environment colors shown as left border on booking items in day modal and event list
+* Migration: Added `is_all_day`, `show_event_list`, `event_list_position`, and `color` columns with automatic migration
 
 = 4.7.0 (2026-02-09) =
 
@@ -718,6 +734,9 @@ Bug fixes for strict types introduction.
 * Verification shortcode `[ffc_verification]`
 
 == Upgrade Notice ==
+
+= 4.8.0 =
+Calendar UX improvements: environment color picker, event list panel, all-day events, square grid layout. Fixes FFC Users redirect and environment label bugs. New database columns added automatically via migration. No breaking changes.
 
 = 4.6.16 =
 Settings UX reorganization, dead code removal, and centralized version management. Fixes missing dashboard icons and phpqrcode cache warning. All JS console versions now dynamic. No data changes required.
