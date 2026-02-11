@@ -51,7 +51,8 @@
         booking: 'booking',
         bookings: 'bookings',
         createBooking: 'Create Booking',
-        newBooking: 'New Booking'
+        newBooking: 'New Booking',
+        multipleAudiences: 'Multiple audiences'
     };
     for (var key in defaultStrings) {
         if (!ffcAudience.strings[key]) {
@@ -1212,12 +1213,16 @@
                 }
                 html += '<span class="ffc-event-list-desc">' + escapeHtml(desc) + '</span>';
 
-                // Audiences
+                // Audiences (show summary badge when more than 2)
                 if (booking.audiences && booking.audiences.length > 0) {
                     html += '<span class="ffc-event-list-audiences">';
-                    booking.audiences.forEach(function(audience) {
-                        html += '<span class="ffc-audience-tag-sm" style="background-color: ' + audience.color + '">' + escapeHtml(audience.name) + '</span>';
-                    });
+                    if (booking.audiences.length > 2) {
+                        html += '<span class="ffc-audience-tag-sm" style="background-color: var(--ffc-gray-600)">' + escapeHtml(ffcAudience.strings.multipleAudiences) + ' (' + booking.audiences.length + ')</span>';
+                    } else {
+                        booking.audiences.forEach(function(audience) {
+                            html += '<span class="ffc-audience-tag-sm" style="background-color: ' + audience.color + '">' + escapeHtml(audience.name) + '</span>';
+                        });
+                    }
                     html += '</span>';
                 }
 

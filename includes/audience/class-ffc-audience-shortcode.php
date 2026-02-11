@@ -712,6 +712,7 @@ class AudienceShortcode {
                 'allDay' => __('All Day', 'ffcertificate'),
                 'events' => __('Events', 'ffcertificate'),
                 'noEvents' => __('No events this month.', 'ffcertificate'),
+                'multipleAudiences' => __('Multiple audiences', 'ffcertificate'),
             ),
         ));
     }
