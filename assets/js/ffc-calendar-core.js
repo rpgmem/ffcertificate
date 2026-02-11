@@ -283,7 +283,7 @@
                         html += this.options.getDayContent(dateStr, cellDate, isHoliday);
                     } else if (isHoliday) {
                         html += '<span class="ffc-day-badge ffc-badge-holiday">' +
-                            (typeof isHoliday === 'string' ? isHoliday : this.options.strings.holiday) +
+                            this.options.strings.holiday +
                             '</span>';
                     }
                     html += '</div>';

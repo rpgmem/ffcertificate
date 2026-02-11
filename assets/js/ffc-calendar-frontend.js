@@ -672,8 +672,7 @@
             },
             getDayContent: function(dateStr, date, isHoliday) {
                 if (isHoliday) {
-                    var holidayLabel = typeof isHoliday === 'string' ? isHoliday : (ffcCalendar.strings.holiday || 'Holiday');
-                    return '<span class="ffc-day-badge ffc-badge-holiday">' + holidayLabel + '</span>';
+                    return '<span class="ffc-day-badge ffc-badge-holiday">' + (ffcCalendar.strings.holiday || 'Holiday') + '</span>';
                 }
 
                 var count = bookingCounts[dateStr] ? bookingCounts[dateStr] : 0;
