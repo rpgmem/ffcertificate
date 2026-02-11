@@ -129,12 +129,12 @@
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 5px;
-    min-height: 400px;
 }
 
 /* Calendar Day */
 .ffc-day {
-    min-height: 80px;
+    aspect-ratio: 1;
+    min-height: 0;
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
     padding: 5px;
@@ -730,7 +730,7 @@
     }
 
     .ffc-day {
-        min-height: 60px;
+        aspect-ratio: 1;
     }
 
     .ffc-weekday {

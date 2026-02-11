@@ -88,7 +88,6 @@
         updateEnvironmentSelect();
         populateAudienceSelect();
         renderCalendar();
-        renderEnvironmentLegend();
         bindEvents();
     }
 
@@ -116,7 +115,6 @@
         $('#ffc-schedule-select').on('change', function() {
             state.selectedSchedule = parseInt($(this).val()) || 0;
             updateEnvironmentSelect();
-            renderEnvironmentLegend();
             renderCalendar();
         });
 
@@ -1116,48 +1114,6 @@
         }
 
         return data;
-    }
-
-    /**
-     * Render environment legend with colors
-     */
-    function renderEnvironmentLegend() {
-        var $legend = $('.ffc-calendar-legend');
-        if (!$legend.length) return;
-
-        // Remove any existing environment legend
-        $legend.find('.ffc-env-legend-item').remove();
-
-        var schedules = state.config.schedules || [];
-        var environments = [];
-
-        if (state.selectedSchedule > 0) {
-            for (var i = 0; i < schedules.length; i++) {
-                if (parseInt(schedules[i].id) === parseInt(state.selectedSchedule)) {
-                    environments = schedules[i].environments || [];
-                    break;
-                }
-            }
-        } else {
-            for (var j = 0; j < schedules.length; j++) {
-                var envs = schedules[j].environments || [];
-                for (var k = 0; k < envs.length; k++) {
-                    environments.push(envs[k]);
-                }
-            }
-        }
-
-        if (environments.length > 1) {
-            environments.forEach(function(env) {
-                var color = env.color || '#3788d8';
-                $legend.append(
-                    '<span class="ffc-legend-item ffc-env-legend-item">' +
-                    '<span class="ffc-legend-dot" style="background:' + color + '"></span> ' +
-                    escapeHtml(env.name) +
-                    '</span>'
-                );
-            });
-        }
     }
 
     /**
