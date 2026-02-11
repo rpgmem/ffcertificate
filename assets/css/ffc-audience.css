@@ -10,7 +10,7 @@
 /* Calendar Container */
 .ffc-audience-calendar {
     font-family: var(--ffc-font-family);
-    max-width: 1000px;
+    max-width: 500px;
     margin: 0 auto;
     background: #fff;
     border: 1px solid var(--ffc-gray-200);
@@ -786,7 +786,7 @@
 
 /* Wrapper for calendar + event list */
 .ffc-calendar-wrapper {
-    max-width: 1000px;
+    max-width: 500px;
     margin: 0 auto;
 }
 
@@ -806,7 +806,7 @@
 }
 
 .ffc-calendar-wrapper.ffc-event-list-below .ffc-audience-calendar {
-    max-width: 1000px;
+    max-width: 500px;
 }
 
 /* Event List Panel */
@@ -825,7 +825,7 @@
 }
 
 .ffc-event-list-below .ffc-event-list-panel {
-    max-width: 1000px;
+    max-width: 500px;
     margin-top: 20px;
 }
 
