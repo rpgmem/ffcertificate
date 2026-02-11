@@ -1125,37 +1125,52 @@
             return;
         }
 
-        // Collect all active bookings for the current month, sorted by date then time
-        var allBookings = [];
+        // Collect all events: active bookings + holidays
+        var allEvents = [];
         for (var dateStr in state.bookings) {
             var dayBookings = state.bookings[dateStr];
             for (var i = 0; i < dayBookings.length; i++) {
                 if (dayBookings[i].status === 'active') {
-                    allBookings.push(dayBookings[i]);
+                    allEvents.push({ type: 'booking', date: dayBookings[i].booking_date, data: dayBookings[i] });
                 }
             }
         }
 
-        if (allBookings.length === 0) {
+        // Add holidays
+        for (var holidayDate in state.holidays) {
+            var holidayName = state.holidays[holidayDate];
+            allEvents.push({
+                type: 'holiday',
+                date: holidayDate,
+                data: { description: typeof holidayName === 'string' ? holidayName : '' }
+            });
+        }
+
+        if (allEvents.length === 0) {
             $panel.html('<p class="ffc-no-events">' + ((ffcAudience.strings || {}).noEvents || 'No events this month.') + '</p>');
             return;
         }
 
-        // Sort by date, then start_time
-        allBookings.sort(function(a, b) {
-            if (a.booking_date < b.booking_date) return -1;
-            if (a.booking_date > b.booking_date) return 1;
-            return a.start_time.localeCompare(b.start_time);
+        // Sort by date, then holidays first, then start_time
+        allEvents.sort(function(a, b) {
+            if (a.date < b.date) return -1;
+            if (a.date > b.date) return 1;
+            if (a.type === 'holiday' && b.type !== 'holiday') return -1;
+            if (a.type !== 'holiday' && b.type === 'holiday') return 1;
+            if (a.type === 'booking' && b.type === 'booking') {
+                return a.data.start_time.localeCompare(b.data.start_time);
+            }
+            return 0;
         });
 
         var html = '';
         var lastDate = '';
 
-        allBookings.forEach(function(booking) {
+        allEvents.forEach(function(evt) {
             // Group header for each date
-            if (booking.booking_date !== lastDate) {
-                lastDate = booking.booking_date;
-                var dateObj = parseDate(booking.booking_date);
+            if (evt.date !== lastDate) {
+                lastDate = evt.date;
+                var dateObj = parseDate(evt.date);
                 var dateDisplay = dateObj.toLocaleDateString(ffcAudience.locale, {
                     weekday: 'short',
                     day: 'numeric',
@@ -1164,37 +1179,50 @@
                 html += '<div class="ffc-event-list-date">' + dateDisplay + '</div>';
             }
 
-            // Event item
-            var evtColor = getEnvironmentColor(booking.environment_id);
-            html += '<div class="ffc-event-list-item" data-date="' + booking.booking_date + '" style="border-left: 3px solid ' + evtColor + ';">';
-
-            // Time
-            if (parseInt(booking.is_all_day)) {
-                html += '<span class="ffc-event-list-time ffc-all-day">' + ((ffcAudience.strings || {}).allDay || 'All Day') + '</span>';
+            if (evt.type === 'holiday') {
+                // Holiday item
+                var holidayLabel = ffcAudience.strings.holiday || 'Holiday';
+                var holidayDesc = evt.data.description || '';
+                html += '<div class="ffc-event-list-item" data-date="' + evt.date + '" style="border-left: 3px solid var(--ffc-warning);">';
+                html += '<span class="ffc-event-list-time ffc-all-day">' + escapeHtml(holidayLabel) + '</span>';
+                if (holidayDesc) {
+                    html += '<span class="ffc-event-list-desc">' + escapeHtml(holidayDesc) + '</span>';
+                }
+                html += '</div>';
             } else {
-                html += '<span class="ffc-event-list-time">' + formatTime(booking.start_time) + ' - ' + formatTime(booking.end_time) + '</span>';
+                // Booking item
+                var booking = evt.data;
+                var evtColor = getEnvironmentColor(booking.environment_id);
+                html += '<div class="ffc-event-list-item" data-date="' + booking.booking_date + '" style="border-left: 3px solid ' + evtColor + ';">';
+
+                // Time
+                if (parseInt(booking.is_all_day)) {
+                    html += '<span class="ffc-event-list-time ffc-all-day">' + ((ffcAudience.strings || {}).allDay || 'All Day') + '</span>';
+                } else {
+                    html += '<span class="ffc-event-list-time">' + formatTime(booking.start_time) + ' - ' + formatTime(booking.end_time) + '</span>';
+                }
+
+                // Environment name
+                html += '<span class="ffc-event-list-env">' + escapeHtml(booking.environment_name) + '</span>';
+
+                // Description (truncated)
+                var desc = booking.description || '';
+                if (desc.length > 60) {
+                    desc = desc.substring(0, 57) + '...';
+                }
+                html += '<span class="ffc-event-list-desc">' + escapeHtml(desc) + '</span>';
+
+                // Audiences
+                if (booking.audiences && booking.audiences.length > 0) {
+                    html += '<span class="ffc-event-list-audiences">';
+                    booking.audiences.forEach(function(audience) {
+                        html += '<span class="ffc-audience-tag-sm" style="background-color: ' + audience.color + '">' + escapeHtml(audience.name) + '</span>';
+                    });
+                    html += '</span>';
+                }
+
+                html += '</div>';
             }
-
-            // Environment name
-            html += '<span class="ffc-event-list-env">' + escapeHtml(booking.environment_name) + '</span>';
-
-            // Description (truncated)
-            var desc = booking.description || '';
-            if (desc.length > 60) {
-                desc = desc.substring(0, 57) + '...';
-            }
-            html += '<span class="ffc-event-list-desc">' + escapeHtml(desc) + '</span>';
-
-            // Audiences
-            if (booking.audiences && booking.audiences.length > 0) {
-                html += '<span class="ffc-event-list-audiences">';
-                booking.audiences.forEach(function(audience) {
-                    html += '<span class="ffc-audience-tag-sm" style="background-color: ' + audience.color + '">' + escapeHtml(audience.name) + '</span>';
-                });
-                html += '</span>';
-            }
-
-            html += '</div>';
         });
 
         $panel.html(html);
