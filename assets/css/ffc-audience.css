@@ -791,7 +791,7 @@
 }
 
 .ffc-calendar-wrapper.ffc-has-event-list {
-    max-width: none;
+    max-width: 1000px;
 }
 
 .ffc-calendar-wrapper.ffc-has-event-list.ffc-event-list-side {
