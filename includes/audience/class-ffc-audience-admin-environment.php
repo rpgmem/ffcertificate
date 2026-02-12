@@ -66,12 +66,29 @@ class AudienceAdminEnvironment {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $filter_schedule = isset($_GET['schedule_id']) ? absint($_GET['schedule_id']) : 0;
 
-        $args = array('orderby' => 'name');
+        $args = array();
         if ($filter_schedule > 0) {
             $args['schedule_id'] = $filter_schedule;
         }
         $environments = AudienceEnvironmentRepository::get_all($args);
         $schedules = AudienceScheduleRepository::get_all();
+
+        // Build schedule name map for sorting
+        $schedule_name_map = array();
+        foreach ($schedules as $schedule) {
+            $schedule_name_map[(int) $schedule->id] = $schedule->name;
+        }
+
+        // Sort by calendar name first, then environment name
+        usort($environments, function ($a, $b) use ($schedule_name_map) {
+            $cal_a = $schedule_name_map[(int) $a->schedule_id] ?? '';
+            $cal_b = $schedule_name_map[(int) $b->schedule_id] ?? '';
+            $cmp = strnatcasecmp($cal_a, $cal_b);
+            if ($cmp !== 0) {
+                return $cmp;
+            }
+            return strnatcasecmp($a->name, $b->name);
+        });
         $add_url = admin_url('admin.php?page=' . $this->menu_slug . '-environments&action=new');
 
         // Dynamic label: use filtered schedule's label or default
@@ -123,7 +140,7 @@ class AudienceAdminEnvironment {
                 <?php else : ?>
                     <?php foreach ($environments as $env) : ?>
                         <?php
-                        $schedule = AudienceScheduleRepository::get_by_id((int) $env->schedule_id);
+                        $schedule_name = $schedule_name_map[(int) $env->schedule_id] ?? '—';
                         $edit_url = admin_url('admin.php?page=' . $this->menu_slug . '-environments&action=edit&id=' . $env->id);
                         $is_active = ($env->status === 'active');
                         $env_label_singular = mb_strtolower(AudienceScheduleRepository::get_environment_label(isset($env->schedule_id) ? (int) $env->schedule_id : null, true));
@@ -151,7 +168,7 @@ class AudienceAdminEnvironment {
                                 <?php endif; ?>
                             </td>
                             <td class="column-calendar">
-                                <?php echo $schedule ? esc_html($schedule->name) : '—'; ?>
+                                <?php echo esc_html($schedule_name); ?>
                             </td>
                             <td class="column-status">
                                 <span class="ffc-status-badge ffc-status-<?php echo esc_attr($env->status); ?>">
