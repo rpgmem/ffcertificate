@@ -101,8 +101,8 @@ class AudienceShortcode {
                         'environmentLabelPlural' => AudienceScheduleRepository::get_environment_label($s),
                         'environments' => self::get_schedule_environments((int) $s->id),
                         'futureDaysLimit' => isset($s->future_days_limit) ? (int) $s->future_days_limit : null,
-                    'bookingLabelSingular' => $s->booking_label_singular ?? null,
-                    'bookingLabelPlural' => $s->booking_label_plural ?? null,
+                        'bookingLabelSingular' => $s->booking_label_singular ?? null,
+                        'bookingLabelPlural' => $s->booking_label_plural ?? null,
                     );
                 }, $schedules),
                 'showEventList' => self::should_show_event_list($schedules),
@@ -154,6 +154,8 @@ class AudienceShortcode {
                     'environmentLabelPlural' => AudienceScheduleRepository::get_environment_label($s),
                     'environments' => self::get_schedule_environments((int) $s->id),
                     'futureDaysLimit' => isset($s->future_days_limit) ? (int) $s->future_days_limit : null,
+                    'bookingLabelSingular' => $s->booking_label_singular ?? null,
+                    'bookingLabelPlural' => $s->booking_label_plural ?? null,
                 );
             }, $schedules),
             'showEventList' => self::should_show_event_list($schedules),
@@ -645,21 +647,17 @@ class AudienceShortcode {
      */
     private static function enqueue_styles(): void {
         $s = \FreeFormCertificate\Core\Utils::asset_suffix();
-        $common_file = FFC_PLUGIN_DIR . "assets/css/ffc-common{$s}.css";
-        $common_ver  = FFC_VERSION . '.' . ( file_exists( $common_file ) ? filemtime( $common_file ) : '0' );
         wp_enqueue_style(
             'ffc-common',
             FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
             array(),
-            $common_ver
+            FFC_VERSION
         );
-        $aud_file = FFC_PLUGIN_DIR . "assets/css/ffc-audience{$s}.css";
-        $aud_ver  = FFC_VERSION . '.' . ( file_exists( $aud_file ) ? filemtime( $aud_file ) : '0' );
         wp_enqueue_style(
             'ffc-audience',
             FFC_PLUGIN_URL . "assets/css/ffc-audience{$s}.css",
             array('ffc-common'),
-            $aud_ver
+            FFC_VERSION
         );
     }
 
@@ -669,13 +667,11 @@ class AudienceShortcode {
 
         // JavaScript
         $s = \FreeFormCertificate\Core\Utils::asset_suffix();
-        $js_file = FFC_PLUGIN_DIR . "assets/js/ffc-audience{$s}.js";
-        $js_ver  = FFC_VERSION . '.' . ( file_exists( $js_file ) ? filemtime( $js_file ) : '0' );
         wp_enqueue_script(
             'ffc-audience',
             FFC_PLUGIN_URL . "assets/js/ffc-audience{$s}.js",
             array('jquery'),
-            $js_ver,
+            FFC_VERSION,
             true
         );
 
