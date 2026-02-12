@@ -662,6 +662,7 @@ class AudienceShortcode {
             'dateFormat' => get_option('date_format', 'Y-m-d'),
             'timeFormat' => get_option('time_format', 'H:i'),
             'firstDayOfWeek' => (int) get_option('start_of_week', 0),
+            'multipleAudiencesColor' => get_option('ffc_aud_multiple_audiences_color', ''),
             'strings' => array(
                 'loading' => __('Loading...', 'ffcertificate'),
                 'error' => __('An error occurred. Please try again.', 'ffcertificate'),

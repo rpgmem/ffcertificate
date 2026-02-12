@@ -1217,7 +1217,8 @@
                 if (booking.audiences && booking.audiences.length > 0) {
                     html += '<span class="ffc-event-list-audiences">';
                     if (booking.audiences.length > 2) {
-                        html += '<span class="ffc-audience-tag-sm" style="background-color: var(--ffc-gray-600)">' + escapeHtml(ffcAudience.strings.multipleAudiences) + ' (' + booking.audiences.length + ')</span>';
+                        var maColor = ffcAudience.multipleAudiencesColor || 'var(--ffc-gray-600)';
+                        html += '<span class="ffc-audience-tag-sm" style="background-color: ' + maColor + '">' + escapeHtml(ffcAudience.strings.multipleAudiences) + ' (' + booking.audiences.length + ')</span>';
                     } else {
                         booking.audiences.forEach(function(audience) {
                             html += '<span class="ffc-audience-tag-sm" style="background-color: ' + audience.color + '">' + escapeHtml(audience.name) + '</span>';

@@ -376,6 +376,7 @@ class AudienceAdminSettings {
         $display_mode = get_option('ffc_aud_private_display_mode', 'show_message');
         $visibility_message = get_option('ffc_aud_visibility_message', __('To view this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate'));
         $scheduling_message = get_option('ffc_aud_scheduling_message', __('To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate'));
+        $multiple_audiences_color = get_option('ffc_aud_multiple_audiences_color', '');
 
         ?>
         <div class="card">
@@ -456,6 +457,20 @@ class AudienceAdminSettings {
                                 </p>
                             </td>
                         </tr>
+                        <tr>
+                            <th scope="row">
+                                <label for="ffc_aud_multiple_audiences_color"><?php esc_html_e('"Multiple Audiences" Badge Color', 'ffcertificate'); ?></label>
+                            </th>
+                            <td>
+                                <input type="color" name="ffc_aud_multiple_audiences_color" id="ffc_aud_multiple_audiences_color"
+                                       value="<?php echo esc_attr($multiple_audiences_color ?: '#666666'); ?>"
+                                       style="width: 50px; height: 30px; padding: 0; border: 1px solid #ccc; cursor: pointer;">
+                                <span style="margin-left: 8px; color: #666;"><?php echo esc_html($multiple_audiences_color ?: '#666666'); ?></span>
+                                <p class="description">
+                                    <?php esc_html_e('Color for the "Multiple audiences" badge shown in the event list when an event has more than 2 audiences.', 'ffcertificate'); ?>
+                                </p>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
                 <?php submit_button(__('Save Settings', 'ffcertificate')); ?>
@@ -524,6 +539,10 @@ class AudienceAdminSettings {
             update_option('ffc_aud_private_display_mode', $display_mode);
             update_option('ffc_aud_visibility_message', wp_kses_post(wp_unslash($_POST['ffc_aud_visibility_message'] ?? '')));
             update_option('ffc_aud_scheduling_message', wp_kses_post(wp_unslash($_POST['ffc_aud_scheduling_message'] ?? '')));
+
+            $ma_color = isset($_POST['ffc_aud_multiple_audiences_color'])
+                ? sanitize_hex_color(wp_unslash($_POST['ffc_aud_multiple_audiences_color'])) : '';
+            update_option('ffc_aud_multiple_audiences_color', $ma_color ?: '');
 
             add_settings_error('ffc_audience', 'ffc_message', __('Audience visibility settings saved.', 'ffcertificate'), 'success');
         }
