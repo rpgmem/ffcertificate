@@ -585,6 +585,21 @@ class AudienceAdminCalendar {
             return;
         }
 
+        // Show feedback for redirect-based actions
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (isset($_GET['message'])) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $msg = sanitize_text_field(wp_unslash($_GET['message']));
+            $messages = array(
+                'created'         => __('Calendar created successfully.', 'ffcertificate'),
+                'deleted'         => __('Calendar deleted successfully.', 'ffcertificate'),
+                'holiday_deleted' => __('Holiday deleted successfully.', 'ffcertificate'),
+            );
+            if (isset($messages[$msg])) {
+                add_settings_error('ffc_audience', 'ffc_message', $messages[$msg], 'success');
+            }
+        }
+
         // Handle save
         if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'save_schedule') {
             if (!isset($_POST['ffc_schedule_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_schedule_nonce'])), 'save_schedule')) {

@@ -337,6 +337,21 @@ class AudienceAdminAudience {
             return;
         }
 
+        // Show feedback for redirect-based actions
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (isset($_GET['message']) && isset($_GET['page']) && $_GET['page'] === $this->menu_slug . '-audiences') {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $msg = sanitize_text_field(wp_unslash($_GET['message']));
+            $messages = array(
+                'created'        => __('Audience created successfully.', 'ffcertificate'),
+                'deleted'        => __('Audience deleted successfully.', 'ffcertificate'),
+                'member_removed' => __('Member removed successfully.', 'ffcertificate'),
+            );
+            if (isset($messages[$msg])) {
+                add_settings_error('ffc_audience', 'ffc_message', $messages[$msg], 'success');
+            }
+        }
+
         // Handle save
         if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'save_audience') {
             if (!isset($_POST['ffc_audience_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_audience_nonce'])), 'save_audience')) {

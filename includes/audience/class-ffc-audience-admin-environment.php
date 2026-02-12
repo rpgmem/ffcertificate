@@ -343,6 +343,23 @@ class AudienceAdminEnvironment {
             return;
         }
 
+        // Show feedback for redirect-based actions
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (isset($_GET['message']) && isset($_GET['page']) && $_GET['page'] === $this->menu_slug . '-environments') {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $msg = sanitize_text_field(wp_unslash($_GET['message']));
+            $label = AudienceScheduleRepository::get_environment_label(0, true);
+            $messages = array(
+                /* translators: %s: environment label (singular) */
+                'created' => sprintf(__('%s created successfully.', 'ffcertificate'), $label),
+                /* translators: %s: environment label (singular) */
+                'deleted' => sprintf(__('%s deleted successfully.', 'ffcertificate'), $label),
+            );
+            if (isset($messages[$msg])) {
+                add_settings_error('ffc_audience', 'ffc_message', $messages[$msg], 'success');
+            }
+        }
+
         // Handle save
         if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'save_environment') {
             if (!isset($_POST['ffc_environment_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_environment_nonce'])), 'save_environment')) {
