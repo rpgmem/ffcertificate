@@ -359,6 +359,8 @@ class FormEditorMetaboxRenderer {
         ?>
 
         <div class="ffc-geofence-container">
+            <!-- Sentinel: ensures ffc_geofence is always in POST even when all fields are disabled -->
+            <input type="hidden" name="ffc_geofence[_save]" value="1">
             <!-- Tab Navigation -->
             <div class="ffc-geofence-tabs">
                 <button type="button" class="ffc-geo-tab-btn active ffc-icon-calendar" data-tab="datetime">
