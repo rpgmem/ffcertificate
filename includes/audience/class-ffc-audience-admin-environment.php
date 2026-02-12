@@ -125,10 +125,20 @@ class AudienceAdminEnvironment {
                         <?php
                         $schedule = AudienceScheduleRepository::get_by_id((int) $env->schedule_id);
                         $edit_url = admin_url('admin.php?page=' . $this->menu_slug . '-environments&action=edit&id=' . $env->id);
-                        $delete_url = wp_nonce_url(
-                            admin_url('admin.php?page=' . $this->menu_slug . '-environments&action=delete&id=' . $env->id),
-                            'delete_environment_' . $env->id
-                        );
+                        $is_active = ($env->status === 'active');
+                        $env_label_singular = mb_strtolower(AudienceScheduleRepository::get_environment_label(isset($env->schedule_id) ? (int) $env->schedule_id : null, true));
+
+                        if ($is_active) {
+                            $deactivate_url = wp_nonce_url(
+                                admin_url('admin.php?page=' . $this->menu_slug . '-environments&action=deactivate&id=' . $env->id),
+                                'deactivate_environment_' . $env->id
+                            );
+                        } else {
+                            $delete_url = wp_nonce_url(
+                                admin_url('admin.php?page=' . $this->menu_slug . '-environments&action=delete&id=' . $env->id),
+                                'delete_environment_' . $env->id
+                            );
+                        }
                         ?>
                         <tr>
                             <td class="column-color" style="text-align: center;">
@@ -145,17 +155,26 @@ class AudienceAdminEnvironment {
                             </td>
                             <td class="column-status">
                                 <span class="ffc-status-badge ffc-status-<?php echo esc_attr($env->status); ?>">
-                                    <?php echo $env->status === 'active' ? esc_html__('Active', 'ffcertificate') : esc_html__('Inactive', 'ffcertificate'); ?>
+                                    <?php echo $is_active ? esc_html__('Active', 'ffcertificate') : esc_html__('Inactive', 'ffcertificate'); ?>
                                 </span>
                             </td>
                             <td class="column-actions">
                                 <a href="<?php echo esc_url($edit_url); ?>"><?php esc_html_e('Edit', 'ffcertificate'); ?></a> |
-                                <a href="<?php echo esc_url($delete_url); ?>" class="delete-link" onclick="return confirm('<?php
-                                    /* translators: %s: environment label (singular) */
-                                    printf(esc_attr__('Are you sure you want to delete this %s?', 'ffcertificate'), esc_attr(mb_strtolower(AudienceScheduleRepository::get_environment_label(isset($env->schedule_id) ? (int) $env->schedule_id : null, true))));
-                                    ?>');">
-                                    <?php esc_html_e('Delete', 'ffcertificate'); ?>
-                                </a>
+                                <?php if ($is_active) : ?>
+                                    <a href="<?php echo esc_url($deactivate_url); ?>" class="delete-link" onclick="return confirm('<?php
+                                        /* translators: %s: environment label (singular) */
+                                        printf(esc_attr__('Are you sure you want to deactivate this %s?', 'ffcertificate'), esc_attr($env_label_singular));
+                                        ?>');">
+                                        <?php esc_html_e('Deactivate', 'ffcertificate'); ?>
+                                    </a>
+                                <?php else : ?>
+                                    <a href="<?php echo esc_url($delete_url); ?>" class="delete-link" onclick="return confirm('<?php
+                                        /* translators: %s: environment label (singular) */
+                                        printf(esc_attr__('Are you sure you want to permanently delete this %s?', 'ffcertificate'), esc_attr($env_label_singular));
+                                        ?>');">
+                                        <?php esc_html_e('Delete', 'ffcertificate'); ?>
+                                    </a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -353,6 +372,8 @@ class AudienceAdminEnvironment {
                 /* translators: %s: environment label (singular) */
                 'created' => sprintf(__('%s created successfully.', 'ffcertificate'), $label),
                 /* translators: %s: environment label (singular) */
+                'deactivated' => sprintf(__('%s deactivated successfully.', 'ffcertificate'), $label),
+                /* translators: %s: environment label (singular) */
                 'deleted' => sprintf(__('%s deleted successfully.', 'ffcertificate'), $label),
             );
             if (isset($messages[$msg])) {
@@ -407,14 +428,28 @@ class AudienceAdminEnvironment {
             }
         }
 
-        // Handle delete
+        // Handle deactivate (active items get deactivated instead of deleted)
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (isset($_GET['action']) && $_GET['action'] === 'deactivate' && isset($_GET['id']) && isset($_GET['page']) && $_GET['page'] === $this->menu_slug . '-environments') {
+            $id = absint($_GET['id']);
+            if (wp_verify_nonce(isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '', 'deactivate_environment_' . $id)) {
+                AudienceEnvironmentRepository::update($id, array('status' => 'inactive'));
+                wp_safe_redirect(admin_url('admin.php?page=' . $this->menu_slug . '-environments&message=deactivated'));
+                exit;
+            }
+        }
+
+        // Handle delete (only inactive items can be permanently deleted)
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id']) && isset($_GET['page']) && $_GET['page'] === $this->menu_slug . '-environments') {
             $id = absint($_GET['id']);
             if (wp_verify_nonce(isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '', 'delete_environment_' . $id)) {
-                AudienceEnvironmentRepository::delete($id);
-                wp_safe_redirect(admin_url('admin.php?page=' . $this->menu_slug . '-environments&message=deleted'));
-                exit;
+                $env = AudienceEnvironmentRepository::get_by_id($id);
+                if ($env && $env->status !== 'active') {
+                    AudienceEnvironmentRepository::delete($id);
+                    wp_safe_redirect(admin_url('admin.php?page=' . $this->menu_slug . '-environments&message=deleted'));
+                    exit;
+                }
             }
         }
     }

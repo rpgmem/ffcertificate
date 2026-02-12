@@ -119,10 +119,19 @@ class AudienceAdminAudience {
         $member_count = AudienceRepository::get_member_count((int) $audience->id);
         $edit_url = admin_url('admin.php?page=' . $this->menu_slug . '-audiences&action=edit&id=' . $audience->id);
         $members_url = admin_url('admin.php?page=' . $this->menu_slug . '-audiences&action=members&id=' . $audience->id);
-        $delete_url = wp_nonce_url(
-            admin_url('admin.php?page=' . $this->menu_slug . '-audiences&action=delete&id=' . $audience->id),
-            'delete_audience_' . $audience->id
-        );
+        $is_active = ($audience->status === 'active');
+
+        if ($is_active) {
+            $deactivate_url = wp_nonce_url(
+                admin_url('admin.php?page=' . $this->menu_slug . '-audiences&action=deactivate&id=' . $audience->id),
+                'deactivate_audience_' . $audience->id
+            );
+        } else {
+            $delete_url = wp_nonce_url(
+                admin_url('admin.php?page=' . $this->menu_slug . '-audiences&action=delete&id=' . $audience->id),
+                'delete_audience_' . $audience->id
+            );
+        }
 
         ?>
         <tr>
@@ -137,15 +146,21 @@ class AudienceAdminAudience {
             </td>
             <td class="column-status">
                 <span class="ffc-status-badge ffc-status-<?php echo esc_attr($audience->status); ?>">
-                    <?php echo $audience->status === 'active' ? esc_html__('Active', 'ffcertificate') : esc_html__('Inactive', 'ffcertificate'); ?>
+                    <?php echo $is_active ? esc_html__('Active', 'ffcertificate') : esc_html__('Inactive', 'ffcertificate'); ?>
                 </span>
             </td>
             <td class="column-actions">
                 <a href="<?php echo esc_url($edit_url); ?>"><?php esc_html_e('Edit', 'ffcertificate'); ?></a> |
                 <a href="<?php echo esc_url($members_url); ?>"><?php esc_html_e('Members', 'ffcertificate'); ?></a> |
-                <a href="<?php echo esc_url($delete_url); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e('Are you sure you want to delete this audience?', 'ffcertificate'); ?>');">
-                    <?php esc_html_e('Delete', 'ffcertificate'); ?>
-                </a>
+                <?php if ($is_active) : ?>
+                    <a href="<?php echo esc_url($deactivate_url); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e('Are you sure you want to deactivate this audience?', 'ffcertificate'); ?>');">
+                        <?php esc_html_e('Deactivate', 'ffcertificate'); ?>
+                    </a>
+                <?php else : ?>
+                    <a href="<?php echo esc_url($delete_url); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e('Are you sure you want to permanently delete this audience?', 'ffcertificate'); ?>');">
+                        <?php esc_html_e('Delete', 'ffcertificate'); ?>
+                    </a>
+                <?php endif; ?>
             </td>
         </tr>
         <?php
@@ -344,6 +359,7 @@ class AudienceAdminAudience {
             $msg = sanitize_text_field(wp_unslash($_GET['message']));
             $messages = array(
                 'created'        => __('Audience created successfully.', 'ffcertificate'),
+                'deactivated'    => __('Audience deactivated successfully.', 'ffcertificate'),
                 'deleted'        => __('Audience deleted successfully.', 'ffcertificate'),
                 'member_removed' => __('Member removed successfully.', 'ffcertificate'),
             );
@@ -407,14 +423,28 @@ class AudienceAdminAudience {
             }
         }
 
-        // Handle delete
+        // Handle deactivate (active items get deactivated instead of deleted)
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (isset($_GET['action']) && $_GET['action'] === 'deactivate' && isset($_GET['id']) && isset($_GET['page']) && $_GET['page'] === $this->menu_slug . '-audiences') {
+            $id = absint($_GET['id']);
+            if (wp_verify_nonce(isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '', 'deactivate_audience_' . $id)) {
+                AudienceRepository::update($id, array('status' => 'inactive'));
+                wp_safe_redirect(admin_url('admin.php?page=' . $this->menu_slug . '-audiences&message=deactivated'));
+                exit;
+            }
+        }
+
+        // Handle delete (only inactive items can be permanently deleted)
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id']) && isset($_GET['page']) && $_GET['page'] === $this->menu_slug . '-audiences') {
             $id = absint($_GET['id']);
             if (wp_verify_nonce(isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '', 'delete_audience_' . $id)) {
-                AudienceRepository::delete($id);
-                wp_safe_redirect(admin_url('admin.php?page=' . $this->menu_slug . '-audiences&message=deleted'));
-                exit;
+                $aud = AudienceRepository::get_by_id($id);
+                if ($aud && $aud->status !== 'active') {
+                    AudienceRepository::delete($id);
+                    wp_safe_redirect(admin_url('admin.php?page=' . $this->menu_slug . '-audiences&message=deleted'));
+                    exit;
+                }
             }
         }
     }
