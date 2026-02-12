@@ -538,29 +538,31 @@ class FormEditorMetaboxRenderer {
      * @param array $field Field data
      */
     public function render_field_row( $index, array $field ): void {
-        $type  = isset( $field['type'] ) ? $field['type'] : 'text';
-        $label = isset( $field['label'] ) ? $field['label'] : '';
-        $name  = isset( $field['name'] ) ? $field['name'] : '';
-        $req   = isset( $field['required'] ) ? $field['required'] : '';
-        $opts  = isset( $field['options'] ) ? $field['options'] : '';
+        $type    = isset( $field['type'] ) ? $field['type'] : 'text';
+        $label   = isset( $field['label'] ) ? $field['label'] : '';
+        $name    = isset( $field['name'] ) ? $field['name'] : '';
+        $req     = isset( $field['required'] ) ? $field['required'] : '';
+        $opts    = isset( $field['options'] ) ? $field['options'] : '';
+        $content = isset( $field['content'] ) ? $field['content'] : '';
 
+        $is_info = $type === 'info';
         $options_visible_class = ( $type === 'select' || $type === 'radio' ) ? '' : 'ffc-hidden';
         ?>
         <div class="ffc-field-row" data-index="<?php echo esc_attr($index); ?>">
             <div class="ffc-field-row-header">
                 <span class="ffc-sort-handle">
                     <span class="dashicons dashicons-menu"></span>
-                    <span class="ffc-field-title"><strong><?php esc_html_e( 'Field', 'ffcertificate' ); ?></strong></span>
+                    <span class="ffc-field-title"><strong><?php echo $is_info ? esc_html__( 'Info Block', 'ffcertificate' ) : esc_html__( 'Field', 'ffcertificate' ); ?></strong></span>
                 </span>
                 <button type="button" class="button button-link-delete ffc-remove-field"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
             </div>
 
             <div class="ffc-field-row-grid">
                 <div class="ffc-grid-item">
-                    <label><?php esc_html_e('Label', 'ffcertificate'); ?></label>
+                    <label><?php echo $is_info ? esc_html__( 'Title (optional)', 'ffcertificate' ) : esc_html__( 'Label', 'ffcertificate' ); ?></label>
                     <input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][label]" value="<?php echo esc_attr( $label ); ?>" class="ffc-w100">
                 </div>
-                <div class="ffc-grid-item">
+                <div class="ffc-grid-item ffc-standard-row<?php echo $is_info ? ' ffc-hidden' : ''; ?>">
                     <label><?php esc_html_e('Variable Name (Tag)', 'ffcertificate'); ?></label>
                     <input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][name]" value="<?php echo esc_attr( $name ); ?>" placeholder="<?php esc_attr_e('ex: course_name', 'ffcertificate'); ?>" class="ffc-w100">
                 </div>
@@ -575,14 +577,22 @@ class FormEditorMetaboxRenderer {
                         <option value="select" <?php selected($type, 'select'); ?>><?php esc_html_e('Select (Combobox)', 'ffcertificate'); ?></option>
                         <option value="radio" <?php selected($type, 'radio'); ?>><?php esc_html_e('Radio Box', 'ffcertificate'); ?></option>
                         <option value="hidden" <?php selected($type, 'hidden'); ?>><?php esc_html_e('Hidden Field', 'ffcertificate'); ?></option>
+                        <option value="info" <?php selected($type, 'info'); ?>><?php esc_html_e('Info Block', 'ffcertificate'); ?></option>
                     </select>
                 </div>
-                <div class="ffc-grid-item ffc-flex-center">
+                <div class="ffc-grid-item ffc-flex-center ffc-standard-row<?php echo $is_info ? ' ffc-hidden' : ''; ?>">
                     <label class="ffc-req-label">
                         <input type="checkbox" name="ffc_fields[<?php echo esc_attr( $index ); ?>][required]" value="1" <?php checked($req, '1'); ?>>
                         <?php esc_html_e('Required?', 'ffcertificate'); ?>
                     </label>
                 </div>
+            </div>
+
+            <div class="ffc-content-field<?php echo $is_info ? '' : ' ffc-hidden'; ?>">
+                <p class="description ffc-options-desc">
+                    <?php esc_html_e('Content (supports <b>, <i>, <a>, <p>, <ul>, <ol>):', 'ffcertificate'); ?>
+                </p>
+                <textarea name="ffc_fields[<?php echo esc_attr( $index ); ?>][content]" rows="4" class="ffc-w100"><?php echo esc_textarea( $content ); ?></textarea>
             </div>
 
             <div class="ffc-options-field <?php echo esc_attr( $options_visible_class ); ?>">

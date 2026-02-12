@@ -392,6 +392,12 @@ class AdminAssetsManager {
                 'checkbox'                => __( 'Checkbox', 'ffcertificate' ),
                 'radioButtons'            => __( 'Radio Buttons', 'ffcertificate' ),
                 'date'                    => __( 'Date', 'ffcertificate' ),
+                'infoBlock'               => __( 'Info Block', 'ffcertificate' ),
+
+                // Info Block Field
+                'content'                 => __( 'Content:', 'ffcertificate' ),
+                'contentPlaceholder'      => __( 'Text to display. Supports <b>, <i>, <a>.', 'ffcertificate' ),
+                'titleOptional'           => __( 'Title (optional):', 'ffcertificate' ),
 
                 // Template Manager
                 'selectTemplate'          => __( 'Select a Template', 'ffcertificate' ),

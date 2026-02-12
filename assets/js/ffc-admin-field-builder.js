@@ -32,7 +32,8 @@
             { value: 'select', label: strings.dropdownSelect || 'Dropdown Select' },
             { value: 'checkbox', label: strings.checkbox || 'Checkbox' },
             { value: 'radio', label: strings.radioButtons || 'Radio Buttons' },
-            { value: 'date', label: strings.date || 'Date' }
+            { value: 'date', label: strings.date || 'Date' },
+            { value: 'info', label: strings.infoBlock || 'Info Block' }
         ];
     }
 
@@ -80,6 +81,26 @@
         // Update JSON when fields change
         $('#ffc-fields-container').on('change input', 'input, select, textarea', function() {
             updateFieldsJSON();
+        });
+
+        // Toggle info vs standard rows when field type changes (JS-built rows)
+        $('#ffc-fields-container').on('change', '.ffc-field-type', function() {
+            var $row = $(this).closest('.ffc-field-row');
+            var val = $(this).val();
+            var isInfo = val === 'info';
+            $row.find('.ffc-content-row').toggle(isInfo);
+            $row.find('.ffc-standard-row').toggle(!isInfo);
+            $row.find('.ffc-options-field').toggle(val === 'select' || val === 'radio' || val === 'checkbox');
+        });
+
+        // Toggle info vs standard rows when field type changes (PHP-rendered rows)
+        $('#ffc-fields-container').on('change', '.ffc-field-type-selector', function() {
+            var $row = $(this).closest('.ffc-field-row');
+            var val = $(this).val();
+            var isInfo = val === 'info';
+            $row.find('.ffc-content-field').toggleClass('ffc-hidden', !isInfo);
+            $row.find('.ffc-standard-row').toggleClass('ffc-hidden', isInfo);
+            $row.find('.ffc-options-field').toggleClass('ffc-hidden', !(val === 'select' || val === 'radio' || val === 'checkbox'));
         });
 
         // Make fields sortable
@@ -162,6 +183,11 @@
         var requiredText = strings.required || 'Required:';
         var optionsText = strings.options || 'Options:';
         var separateWithCommasPlaceholder = strings.separateWithCommas || 'Separate with commas';
+        var contentText = strings.content || 'Content:';
+        var contentPlaceholder = strings.contentPlaceholder || 'Text to display. Supports <b>, <i>, <a>.';
+        var titleOptionalText = strings.titleOptional || 'Title (optional):';
+
+        var isInfo = fieldType === 'info';
 
         var fieldHtml = '<div class="ffc-field-row" data-index="' + fieldCounter + '">';
         fieldHtml += '  <div class="ffc-field-row-header">';
@@ -184,15 +210,27 @@
 
         fieldHtml += '        </select></td>';
         fieldHtml += '      </tr>';
+
+        // Content row (info only)
+        fieldHtml += '      <tr class="ffc-content-row"' + (isInfo ? '' : ' style="display:none"') + '>';
+        fieldHtml += '        <th><label>' + contentText + '</label></th>';
+        fieldHtml += '        <td><textarea class="ffc-field-content large-text" name="ffc_fields[' + fieldCounter + '][content]" rows="4" placeholder="' + contentPlaceholder + '"></textarea></td>';
+        fieldHtml += '      </tr>';
+
+        // Label row (title for info, label for others)
         fieldHtml += '      <tr>';
-        fieldHtml += '        <th><label>' + labelText + '</label></th>';
+        fieldHtml += '        <th><label>' + (isInfo ? titleOptionalText : labelText) + '</label></th>';
         fieldHtml += '        <td><input type="text" class="ffc-field-label regular-text" name="ffc_fields[' + fieldCounter + '][label]" placeholder="' + fieldLabelPlaceholder + '"></td>';
         fieldHtml += '      </tr>';
-        fieldHtml += '      <tr>';
+
+        // Name row (standard fields only)
+        fieldHtml += '      <tr class="ffc-standard-row"' + (isInfo ? ' style="display:none"' : '') + '>';
         fieldHtml += '        <th><label>' + nameVariableText + '</label></th>';
         fieldHtml += '        <td><input type="text" class="ffc-field-name regular-text" name="ffc_fields[' + fieldCounter + '][name]" placeholder="' + fieldNamePlaceholder + '"></td>';
         fieldHtml += '      </tr>';
-        fieldHtml += '      <tr>';
+
+        // Required row (standard fields only)
+        fieldHtml += '      <tr class="ffc-standard-row"' + (isInfo ? ' style="display:none"' : '') + '>';
         fieldHtml += '        <th><label>' + requiredText + '</label></th>';
         fieldHtml += '        <td><input type="checkbox" class="ffc-field-required" name="ffc_fields[' + fieldCounter + '][required]" value="1"></td>';
         fieldHtml += '      </tr>';
@@ -226,7 +264,8 @@
                 label: $row.find('.ffc-field-label').val(),
                 name: $row.find('.ffc-field-name').val(),
                 required: $row.find('.ffc-field-required').is(':checked'),
-                options: $row.find('.ffc-field-options').val()
+                options: $row.find('.ffc-field-options').val(),
+                content: $row.find('.ffc-field-content').val() || ''
             };
             fields.push(field);
         });

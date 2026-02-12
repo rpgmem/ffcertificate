@@ -369,6 +369,11 @@ class FormProcessor {
         $name_fields = array( 'nome_completo', 'nome', 'name', 'full_name', 'ffc_nome', 'participante' );
 
         foreach ( $fields_config as $field ) {
+            // Skip display-only field types (no user input)
+            if ( isset( $field['type'] ) && $field['type'] === 'info' ) {
+                continue;
+            }
+
             $name = $field['name'];
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() check only; value unslashed and sanitized below.
             if ( isset( $_POST[ $name ] ) ) {

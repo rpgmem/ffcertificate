@@ -101,6 +101,55 @@
 }
 
 /* ============================================
+   INFO BLOCK - v4.9.0
+   ============================================ */
+.ffc-form-info-block {
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background: var(--ffc-bg-alt);
+    border-left: 4px solid var(--ffc-primary);
+    border-radius: var(--ffc-radius-sm);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ffc-info-title {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ffc-text);
+}
+
+.ffc-info-content {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ffc-text-secondary);
+}
+
+.ffc-info-content p {
+    margin: 0 0 8px 0;
+}
+
+.ffc-info-content p:last-child {
+    margin-bottom: 0;
+}
+
+.ffc-info-content a {
+    color: var(--ffc-link);
+    text-decoration: underline;
+}
+
+.ffc-info-content a:hover {
+    color: var(--ffc-link-hover);
+}
+
+.ffc-info-content ul,
+.ffc-info-content ol {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+/* ============================================
    LGPD CONSENT CHECKBOX - v2.10.0
    ============================================ */
 

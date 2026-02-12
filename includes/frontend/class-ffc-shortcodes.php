@@ -285,8 +285,26 @@ class Shortcodes {
         $required_attr = $is_req ? 'required aria-required="true"' : '';
         $options = ! empty( $field['options'] ) ? explode( ',', $field['options'] ) : array();
 
+        // Info block: display-only, no input
+        if ( $type === 'info' ) {
+            $content = isset( $field['content'] ) ? $field['content'] : '';
+            if ( empty( $content ) && empty( $label ) ) return '';
+            ob_start();
+            ?>
+            <div class="ffc-form-info-block">
+                <?php if ( ! empty( $label ) ) : ?>
+                    <h4 class="ffc-info-title"><?php echo esc_html( $label ); ?></h4>
+                <?php endif; ?>
+                <?php if ( ! empty( $content ) ) : ?>
+                    <div class="ffc-info-content"><?php echo wp_kses_post( $content ); ?></div>
+                <?php endif; ?>
+            </div>
+            <?php
+            return ob_get_clean();
+        }
+
         if ( empty( $name ) ) return '';
-        
+
         // Special treatment for CPF/RF
         if ( $name === 'cpf_rf' ) $type = 'tel'; 
 
