@@ -152,7 +152,8 @@
    STATUS BADGES
    ========================================================================== */
 
-.ffc-status-badge {
+.ffc-status-badge,
+.ffc-badge {
     display: inline-block;
     padding: 3px 8px;
     border-radius: 3px;
@@ -162,14 +163,31 @@
     letter-spacing: 0.3px;
 }
 
-.ffc-status-badge.publish {
+.ffc-status-badge.publish,
+.ffc-badge-success {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.ffc-status-badge.trash {
+.ffc-status-badge.trash,
+.ffc-badge-muted {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
+}
+
+.ffc-badge-warning {
+    background: #fcf0e0;
+    color: #8a6d3b;
+}
+
+.ffc-badge-danger {
+    background: #fce4e4;
+    color: #a94442;
+}
+
+.ffc-badge small {
+    font-weight: 400;
+    font-size: 10px;
 }
 
 /* ==========================================================================

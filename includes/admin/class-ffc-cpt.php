@@ -22,6 +22,7 @@ class CPT {
         add_action( 'init', array( $this, 'register_form_cpt' ) );
         add_filter( 'post_row_actions', array( $this, 'add_duplicate_link' ), 10, 2 );
         add_action( 'admin_action_ffc_duplicate_form', array( $this, 'handle_form_duplication' ) );
+        add_filter( 'views_edit-ffc_form', array( $this, 'translate_views' ) );
     }
 
     /**
@@ -172,5 +173,34 @@ class CPT {
         // Redirect to forms list
         wp_safe_redirect( admin_url( 'edit.php?post_type=ffc_form' ) );
         exit;
+    }
+
+    /**
+     * Translate view links that WordPress core may not translate
+     *
+     * @param array<string, string> $views View links
+     * @return array<string, string>
+     */
+    public function translate_views( array $views ): array {
+        $map = array(
+            'all'       => __( 'All', 'ffcertificate' ),
+            'publish'   => __( 'Published', 'ffcertificate' ),
+            'draft'     => __( 'Draft', 'ffcertificate' ),
+            'pending'   => __( 'Pending', 'ffcertificate' ),
+            'trash'     => __( 'Trash', 'ffcertificate' ),
+        );
+
+        foreach ( $views as $key => &$html ) {
+            if ( isset( $map[ $key ] ) ) {
+                // Replace the English label while keeping the HTML structure (<a>, <span class="count">)
+                $html = preg_replace(
+                    '/(<a[^>]*>)\s*[^<]+(<span)/',
+                    '$1' . esc_html( $map[ $key ] ) . ' $2',
+                    $html
+                );
+            }
+        }
+
+        return $views;
     }
 }

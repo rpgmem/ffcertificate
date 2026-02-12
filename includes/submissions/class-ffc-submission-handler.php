@@ -29,6 +29,15 @@ class SubmissionHandler {
     }
 
     /**
+     * Get the submission repository instance
+     *
+     * @return SubmissionRepository
+     */
+    public function get_repository(): SubmissionRepository {
+        return $this->repository;
+    }
+
+    /**
      * Generate unique magic token
      */
     private function generate_magic_token(): string {

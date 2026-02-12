@@ -532,35 +532,133 @@ class FormEditorMetaboxRenderer {
     }
 
     /**
+     * Section 6: Quiz / Evaluation Mode
+     *
+     * @param WP_Post $post The post object
+     */
+    public function render_box_quiz( object $post ): void {
+        $config = get_post_meta( $post->ID, '_ffc_form_config', true );
+        if ( ! is_array( $config ) ) $config = array();
+
+        $quiz_enabled      = ( $config['quiz_enabled'] ?? '0' ) === '1';
+        $quiz_passing_score = $config['quiz_passing_score'] ?? '70';
+        $quiz_max_attempts  = $config['quiz_max_attempts'] ?? '0';
+        $quiz_show_score    = ( $config['quiz_show_score'] ?? '1' ) === '1';
+        $quiz_show_correct  = ( $config['quiz_show_correct'] ?? '0' ) === '1';
+        ?>
+        <table class="form-table">
+            <tr>
+                <th><label><?php esc_html_e( 'Enable Quiz Mode', 'ffcertificate' ); ?></label></th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="ffc_config[quiz_enabled]" value="1" id="ffc_quiz_enabled" <?php checked( $quiz_enabled ); ?>>
+                        <?php esc_html_e( 'Turn this form into a quiz/evaluation', 'ffcertificate' ); ?>
+                    </label>
+                    <p class="description"><?php esc_html_e( 'When enabled, radio and select fields can have point values per option. The form is scored on submission.', 'ffcertificate' ); ?></p>
+                </td>
+            </tr>
+            <tr class="ffc-quiz-setting<?php echo $quiz_enabled ? '' : ' ffc-hidden'; ?>">
+                <th><label><?php esc_html_e( 'Passing Score (%)', 'ffcertificate' ); ?></label></th>
+                <td>
+                    <input type="number" name="ffc_config[quiz_passing_score]" value="<?php echo esc_attr( $quiz_passing_score ); ?>" min="0" max="100" step="1" class="small-text">
+                    <p class="description"><?php esc_html_e( 'Minimum percentage to pass. Set 0 for no minimum.', 'ffcertificate' ); ?></p>
+                </td>
+            </tr>
+            <tr class="ffc-quiz-setting<?php echo $quiz_enabled ? '' : ' ffc-hidden'; ?>">
+                <th><label><?php esc_html_e( 'Max Attempts', 'ffcertificate' ); ?></label></th>
+                <td>
+                    <input type="number" name="ffc_config[quiz_max_attempts]" value="<?php echo esc_attr( $quiz_max_attempts ); ?>" min="0" step="1" class="small-text">
+                    <p class="description"><?php esc_html_e( 'Max retries per CPF/RF. 0 = unlimited.', 'ffcertificate' ); ?></p>
+                </td>
+            </tr>
+            <tr class="ffc-quiz-setting<?php echo $quiz_enabled ? '' : ' ffc-hidden'; ?>">
+                <th><label><?php esc_html_e( 'Display Options', 'ffcertificate' ); ?></label></th>
+                <td>
+                    <label>
+                        <input type="checkbox" name="ffc_config[quiz_show_score]" value="1" <?php checked( $quiz_show_score ); ?>>
+                        <?php esc_html_e( 'Show score after submission', 'ffcertificate' ); ?>
+                    </label><br>
+                    <label>
+                        <input type="checkbox" name="ffc_config[quiz_show_correct]" value="1" <?php checked( $quiz_show_correct ); ?>>
+                        <?php esc_html_e( 'Show which answers were correct/incorrect', 'ffcertificate' ); ?>
+                    </label>
+                </td>
+            </tr>
+        </table>
+        <script>
+        jQuery(function($){
+            function toggleQuizUI(on) {
+                $('.ffc-quiz-setting').toggleClass('ffc-hidden', !on);
+                // Only show points on fields that have options visible
+                $('.ffc-options-field').each(function(){
+                    var $opts = $(this);
+                    if (!$opts.hasClass('ffc-hidden')) {
+                        $opts.find('.ffc-quiz-points').toggleClass('ffc-hidden', !on);
+                    }
+                });
+            }
+            $('#ffc_quiz_enabled').on('change', function(){
+                toggleQuizUI($(this).is(':checked'));
+            });
+            // Initial state
+            toggleQuizUI($('#ffc_quiz_enabled').is(':checked'));
+        });
+        </script>
+        <?php
+    }
+
+    /**
      * Helper: Renders a field row in the builder
      *
      * @param int|string $index Field index
      * @param array $field Field data
      */
     public function render_field_row( $index, array $field ): void {
-        $type  = isset( $field['type'] ) ? $field['type'] : 'text';
-        $label = isset( $field['label'] ) ? $field['label'] : '';
-        $name  = isset( $field['name'] ) ? $field['name'] : '';
-        $req   = isset( $field['required'] ) ? $field['required'] : '';
-        $opts  = isset( $field['options'] ) ? $field['options'] : '';
+        $type    = isset( $field['type'] ) ? $field['type'] : 'text';
+        $label   = isset( $field['label'] ) ? $field['label'] : '';
+        $name    = isset( $field['name'] ) ? $field['name'] : '';
+        $req     = isset( $field['required'] ) ? $field['required'] : '';
+        $opts    = isset( $field['options'] ) ? $field['options'] : '';
+        $content   = isset( $field['content'] ) ? $field['content'] : '';
+        $embed_url = isset( $field['embed_url'] ) ? $field['embed_url'] : '';
+        $points    = isset( $field['points'] ) ? $field['points'] : '';
 
+        $is_info = $type === 'info';
+        $is_embed = $type === 'embed';
+        $is_display_only = $is_info || $is_embed;
         $options_visible_class = ( $type === 'select' || $type === 'radio' ) ? '' : 'ffc-hidden';
         ?>
         <div class="ffc-field-row" data-index="<?php echo esc_attr($index); ?>">
             <div class="ffc-field-row-header">
                 <span class="ffc-sort-handle">
                     <span class="dashicons dashicons-menu"></span>
-                    <span class="ffc-field-title"><strong><?php esc_html_e( 'Field', 'ffcertificate' ); ?></strong></span>
+                    <span class="ffc-field-title"><strong><?php
+                        if ( $is_info ) {
+                            esc_html_e( 'Info Block', 'ffcertificate' );
+                        } elseif ( $is_embed ) {
+                            esc_html_e( 'Embed', 'ffcertificate' );
+                        } else {
+                            esc_html_e( 'Field', 'ffcertificate' );
+                        }
+                    ?></strong></span>
                 </span>
                 <button type="button" class="button button-link-delete ffc-remove-field"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button>
             </div>
 
             <div class="ffc-field-row-grid">
                 <div class="ffc-grid-item">
-                    <label><?php esc_html_e('Label', 'ffcertificate'); ?></label>
+                    <label><?php
+                        if ( $is_info ) {
+                            esc_html_e( 'Title (optional)', 'ffcertificate' );
+                        } elseif ( $is_embed ) {
+                            esc_html_e( 'Caption (optional)', 'ffcertificate' );
+                        } else {
+                            esc_html_e( 'Label', 'ffcertificate' );
+                        }
+                    ?></label>
                     <input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][label]" value="<?php echo esc_attr( $label ); ?>" class="ffc-w100">
                 </div>
-                <div class="ffc-grid-item">
+                <div class="ffc-grid-item ffc-standard-row<?php echo $is_display_only ? ' ffc-hidden' : ''; ?>">
                     <label><?php esc_html_e('Variable Name (Tag)', 'ffcertificate'); ?></label>
                     <input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][name]" value="<?php echo esc_attr( $name ); ?>" placeholder="<?php esc_attr_e('ex: course_name', 'ffcertificate'); ?>" class="ffc-w100">
                 </div>
@@ -575,9 +673,11 @@ class FormEditorMetaboxRenderer {
                         <option value="select" <?php selected($type, 'select'); ?>><?php esc_html_e('Select (Combobox)', 'ffcertificate'); ?></option>
                         <option value="radio" <?php selected($type, 'radio'); ?>><?php esc_html_e('Radio Box', 'ffcertificate'); ?></option>
                         <option value="hidden" <?php selected($type, 'hidden'); ?>><?php esc_html_e('Hidden Field', 'ffcertificate'); ?></option>
+                        <option value="info" <?php selected($type, 'info'); ?>><?php esc_html_e('Info Block', 'ffcertificate'); ?></option>
+                        <option value="embed" <?php selected($type, 'embed'); ?>><?php esc_html_e('Embed (Media)', 'ffcertificate'); ?></option>
                     </select>
                 </div>
-                <div class="ffc-grid-item ffc-flex-center">
+                <div class="ffc-grid-item ffc-flex-center ffc-standard-row<?php echo $is_display_only ? ' ffc-hidden' : ''; ?>">
                     <label class="ffc-req-label">
                         <input type="checkbox" name="ffc_fields[<?php echo esc_attr( $index ); ?>][required]" value="1" <?php checked($req, '1'); ?>>
                         <?php esc_html_e('Required?', 'ffcertificate'); ?>
@@ -585,11 +685,31 @@ class FormEditorMetaboxRenderer {
                 </div>
             </div>
 
+            <div class="ffc-content-field<?php echo $is_info ? '' : ' ffc-hidden'; ?>">
+                <p class="description ffc-options-desc">
+                    <?php esc_html_e('Content (supports <b>, <i>, <a>, <p>, <ul>, <ol>):', 'ffcertificate'); ?>
+                </p>
+                <textarea name="ffc_fields[<?php echo esc_attr( $index ); ?>][content]" rows="4" class="ffc-w100"><?php echo esc_textarea( $content ); ?></textarea>
+            </div>
+
+            <div class="ffc-embed-field<?php echo $is_embed ? '' : ' ffc-hidden'; ?>">
+                <p class="description ffc-options-desc">
+                    <?php esc_html_e('Media URL (YouTube, Vimeo, image, or audio):', 'ffcertificate'); ?>
+                </p>
+                <input type="url" name="ffc_fields[<?php echo esc_attr( $index ); ?>][embed_url]" value="<?php echo esc_url( $embed_url ); ?>" placeholder="https://www.youtube.com/watch?v=..." class="ffc-w100">
+            </div>
+
             <div class="ffc-options-field <?php echo esc_attr( $options_visible_class ); ?>">
                 <p class="description ffc-options-desc">
                     <?php esc_html_e('Options (separate with commas):', 'ffcertificate'); ?>
                 </p>
                 <input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][options]" value="<?php echo esc_attr( $opts ); ?>" placeholder="<?php esc_attr_e('Ex: Option 1, Option 2, Option 3', 'ffcertificate'); ?>" class="ffc-w100">
+                <div class="ffc-quiz-points ffc-hidden">
+                    <p class="description ffc-options-desc ffc-mt5">
+                        <?php esc_html_e('Points per option (same order, separate with commas):', 'ffcertificate'); ?>
+                    </p>
+                    <input type="text" name="ffc_fields[<?php echo esc_attr( $index ); ?>][points]" value="<?php echo esc_attr( $points ); ?>" placeholder="<?php esc_attr_e('Ex: 0, 10, 0', 'ffcertificate'); ?>" class="ffc-w100">
+                </div>
             </div>
         </div>
         <?php

@@ -123,6 +123,15 @@ class FormEditor {
             'high'
         );
 
+        add_meta_box(
+            'ffc_box_quiz',
+            __( '6. Quiz / Evaluation Mode', 'ffcertificate' ),
+            array( $this->metabox_renderer, 'render_box_quiz' ),
+            'ffc_form',
+            'normal',
+            'high'
+        );
+
         // Sidebar metabox (shortcode + instructions) - Delegated to Metabox Renderer
         add_meta_box(
             'ffc_form_shortcode',

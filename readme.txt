@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.8.0
+Stable tag: 4.9.0
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -16,7 +16,7 @@ Free Form Certificate is a complete WordPress solution for creating dynamic form
 
 = Core Features =
 
-* **Drag & Drop Form Builder** - Custom fields: Text, Email, Number, Date, Select, Radio, Textarea, Hidden.
+* **Drag & Drop Form Builder** - Custom fields: Text, Email, Number, Date, Select, Radio, Textarea, Hidden, Info Block, and Embed (Media).
 * **Client-Side PDF Generation** - A4 landscape certificates using html2canvas and jsPDF, with custom background images.
 * **Magic Links** - One-click certificate access via unique, cryptographically secure URLs sent by email.
 * **Verification System** - Certificate authenticity validation via unique code or magic token.
@@ -154,6 +154,22 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.9.0 (2026-02-12) =
+
+New field types, Quiz/Evaluation mode for scored forms, and certificate quiz tags.
+
+* New: **Info Block** field type — display-only rich text content in forms (supports HTML: bold, italic, links, lists)
+* New: **Embed (Media)** field type — embed YouTube, Vimeo, images, or audio via URL with optional caption
+* New: **Quiz / Evaluation Mode** — turn any form into a scored quiz with configurable passing score
+* New: Quiz **points per option** on Radio, Select, and Checkbox fields (comma-separated values matching option order)
+* New: Quiz **max attempts** per CPF/RF — configurable retry limit (0 = unlimited)
+* New: Quiz **score feedback** — show score and correct/incorrect answers after submission
+* New: Quiz **attempt tracking** — submissions tracked by CPF/RF with statuses: published, retry, failed
+* New: Quiz **status badges** in admin submissions list — color-coded badges with score percentage
+* New: Quiz **filter tabs** in admin — filter submissions by Published, Trash, Quiz: Retry, Quiz: Failed
+* New: Certificate tags **{{score}}**, **{{max_score}}**, **{{score_percent}}** for quiz results in PDF layout
+* New: pt_BR translations for all quiz, info block, and embed strings
 
 = 4.8.0 (2026-02-11) =
 

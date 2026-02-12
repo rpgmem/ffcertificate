@@ -369,6 +369,11 @@ class FormProcessor {
         $name_fields = array( 'nome_completo', 'nome', 'name', 'full_name', 'ffc_nome', 'participante' );
 
         foreach ( $fields_config as $field ) {
+            // Skip display-only field types (no user input)
+            if ( isset( $field['type'] ) && in_array( $field['type'], array( 'info', 'embed' ), true ) ) {
+                continue;
+            }
+
             $name = $field['name'];
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() check only; value unslashed and sanitized below.
             if ( isset( $_POST[ $name ] ) ) {
@@ -489,50 +494,182 @@ class FormProcessor {
             wp_send_json_error( array( 'message' => $restriction_result['message'] ) );
         }
 
-        // Detect reprint (OPTIMIZED v2.9.13)
-        $reprint_result = $this->detect_reprint( $form_id, $val_cpf, $val_ticket );
-        
+        // === Quiz Mode Processing (v4.9.0) ===
+        $is_quiz = ! empty( $form_config['quiz_enabled'] ) && $form_config['quiz_enabled'] === '1';
         $form_post = get_post( $form_id );
-        $is_reprint = $reprint_result['is_reprint'];
-        
-        if ( $is_reprint ) {
-            // Reprint - use existing submission ID (convert to int from wpdb string)
-            $submission_id = (int) $reprint_result['id'];
-            $real_submission_date = $reprint_result['date'];
-        } else {
-            // New submission - save to database
-            $submission_id = $this->submission_handler->process_submission(
-                $form_id,
-                $form_post->post_title,
-                $submission_data,
-                $user_email,
-                $fields_config,
-                $form_config
-            );
+        $is_reprint = false;
 
-            if ( is_wp_error( $submission_id ) ) {
-                wp_send_json_error( array(
-                    'code'    => $submission_id->get_error_code(),
-                    'message' => $submission_id->get_error_message(),
-                ) );
+        if ( $is_quiz ) {
+            // Calculate quiz score
+            $quiz_score = $this->calculate_quiz_score( $fields_config, $submission_data );
+            $passing_score = absint( $form_config['quiz_passing_score'] ?? 70 );
+            $max_attempts  = absint( $form_config['quiz_max_attempts'] ?? 0 );
+            $passed = $quiz_score['percent'] >= $passing_score;
+
+            // Store quiz data in submission
+            $submission_data['_quiz_score']     = $quiz_score['score'];
+            $submission_data['_quiz_max_score'] = $quiz_score['max_score'];
+            $submission_data['_quiz_percent']   = $quiz_score['percent'];
+            $submission_data['_quiz_passed']    = $passed ? '1' : '0';
+
+            // Find existing quiz submission for this CPF + form
+            $existing = $this->find_quiz_submission( $form_id, $val_cpf );
+
+            // If already passed (status=publish), treat as reprint
+            if ( $existing && $existing->status === 'publish' ) {
+                $submission_id = (int) $existing->id;
+                $real_submission_date = $existing->submission_date;
+                $is_reprint = true;
+            } else {
+                // Count attempts
+                $prev_attempt = 0;
+                if ( $existing ) {
+                    $prev_data = json_decode( $existing->data ?? '{}', true );
+                    if ( ! is_array( $prev_data ) ) $prev_data = array();
+                    $prev_attempt = absint( $prev_data['_quiz_attempt'] ?? 0 );
+                }
+                $attempt_number = $prev_attempt + 1;
+                $submission_data['_quiz_attempt'] = $attempt_number;
+
+                // Check attempt limit
+                if ( $max_attempts > 0 && $attempt_number > $max_attempts ) {
+                    wp_send_json_error( array(
+                        'message' => __( 'Maximum quiz attempts reached for this CPF/RF.', 'ffcertificate' ),
+                        'quiz'    => array( 'attempts_exhausted' => true ),
+                    ) );
+                }
+
+                // Determine status
+                if ( $passed ) {
+                    $quiz_status = 'publish';
+                } elseif ( $max_attempts > 0 && $attempt_number >= $max_attempts ) {
+                    $quiz_status = 'quiz_failed';
+                } else {
+                    $quiz_status = 'quiz_in_progress';
+                }
+
+                if ( $existing ) {
+                    // UPDATE existing submission
+                    $submission_id = (int) $existing->id;
+                    $repo = $this->submission_handler->get_repository();
+
+                    // Build updated data JSON
+                    $mandatory_keys = array( 'email', 'cpf_rf', 'auth_code', 'ffc_lgpd_consent' );
+                    $extra_data = array_diff_key( $submission_data, array_flip( $mandatory_keys ) );
+                    $data_json = wp_json_encode( $extra_data ) ?: '{}';
+
+                    $update_fields = array( 'status' => $quiz_status, 'submission_date' => current_time( 'mysql' ) );
+                    if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
+                        $update_fields['data_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data_json );
+                    } else {
+                        $update_fields['data'] = $data_json;
+                    }
+
+                    $repo->update( $submission_id, $update_fields );
+                    $real_submission_date = current_time( 'mysql' );
+                } else {
+                    // INSERT new submission via existing handler
+                    $submission_id = $this->submission_handler->process_submission(
+                        $form_id, $form_post->post_title, $submission_data, $user_email, $fields_config, $form_config
+                    );
+
+                    if ( is_wp_error( $submission_id ) ) {
+                        wp_send_json_error( array(
+                            'code'    => $submission_id->get_error_code(),
+                            'message' => $submission_id->get_error_message(),
+                        ) );
+                    }
+
+                    // Update status if not publish
+                    if ( $quiz_status !== 'publish' ) {
+                        $this->submission_handler->get_repository()->updateStatus( $submission_id, $quiz_status );
+                    }
+
+                    $real_submission_date = current_time( 'mysql' );
+                }
+
+                // If not passed, return quiz feedback (no certificate)
+                if ( ! $passed ) {
+                    $remaining = ( $max_attempts > 0 ) ? max( 0, $max_attempts - $attempt_number ) : -1;
+                    $show_score = ( $form_config['quiz_show_score'] ?? '1' ) === '1';
+
+                    if ( $quiz_status === 'quiz_failed' ) {
+                        $msg = $show_score
+                            ? sprintf( __( 'Quiz failed. Score: %d%%. Maximum attempts reached.', 'ffcertificate' ), $quiz_score['percent'] )
+                            : __( 'Quiz failed. Maximum attempts reached.', 'ffcertificate' );
+                    } else {
+                        $msg = $show_score
+                            /* translators: 1: score percentage, 2: remaining attempts */
+                            ? sprintf( __( 'Score: %1$d%%. You can try again (%2$d attempts remaining).', 'ffcertificate' ), $quiz_score['percent'], $remaining )
+                            : sprintf( __( 'Not passed. You can try again (%d attempts remaining).', 'ffcertificate' ), $remaining );
+
+                        if ( $remaining === -1 ) {
+                            $msg = $show_score
+                                ? sprintf( __( 'Score: %d%%. You can try again.', 'ffcertificate' ), $quiz_score['percent'] )
+                                : __( 'Not passed. You can try again.', 'ffcertificate' );
+                        }
+                    }
+
+                    wp_send_json_error( array(
+                        'message' => $msg,
+                        'quiz'    => array(
+                            'passed'    => false,
+                            'score'     => $show_score ? $quiz_score['score'] : null,
+                            'max_score' => $show_score ? $quiz_score['max_score'] : null,
+                            'percent'   => $show_score ? $quiz_score['percent'] : null,
+                            'attempt'   => $attempt_number,
+                            'remaining' => $remaining,
+                            'status'    => $quiz_status,
+                        ),
+                    ) );
+                }
             }
+        } else {
+            // === Normal (non-quiz) flow ===
 
-            // Get the submission date from the newly created submission
-            $real_submission_date = current_time( 'mysql' );
+            // Detect reprint (OPTIMIZED v2.9.13)
+            $reprint_result = $this->detect_reprint( $form_id, $val_cpf, $val_ticket );
+            $is_reprint = $reprint_result['is_reprint'];
 
-            // Remove used ticket if applicable
-            if ( $restriction_result['is_ticket'] && ! empty( $val_ticket ) ) {
-                $this->consume_ticket( $form_id, $val_ticket );
+            if ( $is_reprint ) {
+                // Reprint - use existing submission ID (convert to int from wpdb string)
+                $submission_id = (int) $reprint_result['id'];
+                $real_submission_date = $reprint_result['date'];
+            } else {
+                // New submission - save to database
+                $submission_id = $this->submission_handler->process_submission(
+                    $form_id,
+                    $form_post->post_title,
+                    $submission_data,
+                    $user_email,
+                    $fields_config,
+                    $form_config
+                );
+
+                if ( is_wp_error( $submission_id ) ) {
+                    wp_send_json_error( array(
+                        'code'    => $submission_id->get_error_code(),
+                        'message' => $submission_id->get_error_message(),
+                    ) );
+                }
+
+                // Get the submission date from the newly created submission
+                $real_submission_date = current_time( 'mysql' );
+
+                // Remove used ticket if applicable
+                if ( $restriction_result['is_ticket'] && ! empty( $val_ticket ) ) {
+                    $this->consume_ticket( $form_id, $val_ticket );
+                }
             }
         }
 
         // Generate PDF data
         $pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator( $this->submission_handler );
-        $pdf_data = $pdf_generator->generate_pdf_data( 
-            $submission_id, 
-            $this->submission_handler 
+        $pdf_data = $pdf_generator->generate_pdf_data(
+            $submission_id,
+            $this->submission_handler
         );
-        
+
         if ( is_wp_error( $pdf_data ) ) {
             wp_send_json_error( array(
                 'code'    => $pdf_data->get_error_code(),
@@ -542,21 +679,129 @@ class FormProcessor {
 
         // Success message with HTML response (v2.9.7+)
         $custom_message = isset( $form_config['success_message'] ) ? trim( $form_config['success_message'] ) : '';
-        $msg = $is_reprint 
-            ? __( 'Certificate previously issued (Reprint).', 'ffcertificate' ) 
+        $msg = $is_reprint
+            ? __( 'Certificate previously issued (Reprint).', 'ffcertificate' )
             : ( ! empty( $custom_message ) ? $custom_message : __( 'Success!', 'ffcertificate' ) );
+
+        // Quiz passed message
+        if ( $is_quiz && ! $is_reprint ) {
+            $show_score = ( $form_config['quiz_show_score'] ?? '1' ) === '1';
+            $msg = $show_score
+                ? sprintf( __( 'Congratulations! Score: %d%%. Certificate generated.', 'ffcertificate' ), $quiz_score['percent'] ?? 0 )
+                : __( 'Congratulations! Quiz passed. Certificate generated.', 'ffcertificate' );
+        }
 
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
-        wp_send_json_success( array(
-            'message' => $msg,
+        $response = array(
+            'message'  => $msg,
             'pdf_data' => $pdf_data,
-            'html' => \FreeFormCertificate\Core\Utils::generate_success_html(
+            'html'     => \FreeFormCertificate\Core\Utils::generate_success_html(
                 $submission_data,
                 $form_id,
                 $real_submission_date,
                 $msg
-            )
+            ),
+        );
+
+        // Add quiz data to success response
+        if ( $is_quiz && isset( $quiz_score ) ) {
+            $show_score = ( $form_config['quiz_show_score'] ?? '1' ) === '1';
+            $response['quiz'] = array(
+                'passed'    => true,
+                'score'     => $show_score ? $quiz_score['score'] : null,
+                'max_score' => $show_score ? $quiz_score['max_score'] : null,
+                'percent'   => $show_score ? $quiz_score['percent'] : null,
+            );
+        }
+
+        wp_send_json_success( $response );
+    }
+
+    /**
+     * Calculate quiz score based on field points
+     *
+     * @param array $fields_config Form fields configuration
+     * @param array $submission_data User's submitted data
+     * @return array{score: int, max_score: int, percent: int}
+     */
+    private function calculate_quiz_score( array $fields_config, array $submission_data ): array {
+        $score = 0;
+        $max_score = 0;
+
+        foreach ( $fields_config as $field ) {
+            $type = $field['type'] ?? '';
+            $points_str = $field['points'] ?? '';
+
+            // Only radio/select fields with points participate in scoring
+            if ( empty( $points_str ) || ! in_array( $type, array( 'radio', 'select' ), true ) ) {
+                continue;
+            }
+
+            $options = array_map( 'trim', explode( ',', $field['options'] ?? '' ) );
+            $points  = array_map( 'intval', array_map( 'trim', explode( ',', $points_str ) ) );
+
+            // Max score: highest point value for this field
+            $field_max = ! empty( $points ) ? max( $points ) : 0;
+            $max_score += $field_max;
+
+            // User's answer
+            $name = $field['name'] ?? '';
+            $user_value = isset( $submission_data[ $name ] ) ? trim( (string) $submission_data[ $name ] ) : '';
+
+            // Find matching option index and get its points
+            foreach ( $options as $i => $opt ) {
+                if ( trim( $opt ) === $user_value && isset( $points[ $i ] ) ) {
+                    $score += $points[ $i ];
+                    break;
+                }
+            }
+        }
+
+        $percent = $max_score > 0 ? (int) round( ( $score / $max_score ) * 100 ) : 0;
+
+        return array(
+            'score'     => $score,
+            'max_score' => $max_score,
+            'percent'   => $percent,
+        );
+    }
+
+    /**
+     * Find existing quiz submission for a CPF + form combination
+     *
+     * Returns the most recent submission (any quiz status: in_progress, failed, or publish).
+     *
+     * @param int    $form_id Form ID
+     * @param string $cpf     CPF/RF value
+     * @return object|null
+     */
+    private function find_quiz_submission( int $form_id, string $cpf ): ?object {
+        if ( empty( $cpf ) ) {
+            return null;
+        }
+
+        global $wpdb;
+        $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+        $clean_cpf = preg_replace( '/[^0-9]/', '', $cpf );
+
+        if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
+            $cpf_hash = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            return $wpdb->get_row( $wpdb->prepare(
+                'SELECT * FROM %i WHERE form_id = %d AND cpf_rf_hash = %s ORDER BY id DESC LIMIT 1',
+                $table,
+                $form_id,
+                $cpf_hash
+            ) );
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $wpdb->get_row( $wpdb->prepare(
+            'SELECT * FROM %i WHERE form_id = %d AND cpf_rf = %s ORDER BY id DESC LIMIT 1',
+            $table,
+            $form_id,
+            $clean_cpf
         ) );
     }
 }

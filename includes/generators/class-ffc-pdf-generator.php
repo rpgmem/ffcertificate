@@ -270,6 +270,17 @@ class PdfGenerator {
         if ( ! isset( $data['email'] ) && isset( $data['user_email'] ) ) {
             $data['email'] = $data['user_email'];
         }
+
+        // Quiz score aliases: map {{score}}, {{max_score}}, {{score_percent}} to internal keys
+        if ( isset( $data['_quiz_score'] ) ) {
+            $data['score'] = $data['_quiz_score'];
+        }
+        if ( isset( $data['_quiz_max_score'] ) ) {
+            $data['max_score'] = $data['_quiz_max_score'];
+        }
+        if ( isset( $data['_quiz_percent'] ) ) {
+            $data['score_percent'] = $data['_quiz_percent'];
+        }
         
         // Replace field placeholders with formatted values
         foreach ( $data as $key => $value ) {

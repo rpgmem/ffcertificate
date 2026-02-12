@@ -372,7 +372,9 @@ class SubmissionRepository extends AbstractRepository {
 
         return [
             'publish' => isset($results['publish']) ? (int) $results['publish']->count : 0,
-            'trash' => isset($results['trash']) ? (int) $results['trash']->count : 0
+            'trash' => isset($results['trash']) ? (int) $results['trash']->count : 0,
+            'quiz_in_progress' => isset($results['quiz_in_progress']) ? (int) $results['quiz_in_progress']->count : 0,
+            'quiz_failed' => isset($results['quiz_failed']) ? (int) $results['quiz_failed']->count : 0,
         ];
     }
 

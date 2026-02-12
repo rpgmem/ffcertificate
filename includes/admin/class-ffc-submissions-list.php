@@ -43,6 +43,7 @@ class SubmissionsList extends \WP_List_Table {
             'form' => __('Form', 'ffcertificate'),
             'email' => __('Email', 'ffcertificate'),
             'data' => __('Data', 'ffcertificate'),
+            'status' => __('Status', 'ffcertificate'),
             'submission_date' => __('Date', 'ffcertificate'),
             'actions' => __('Actions', 'ffcertificate')
         ];
@@ -72,7 +73,10 @@ class SubmissionsList extends \WP_List_Table {
                 
             case 'data':
                 return $this->format_data_preview($item['data']);
-                
+
+            case 'status':
+                return $this->render_status_badge($item);
+
             case 'submission_date':
                 return date_i18n(
                     get_option('date_format') . ' ' . get_option('time_format'),
@@ -136,6 +140,36 @@ class SubmissionsList extends \WP_List_Table {
             esc_attr__('Opens PDF in new tab', 'ffcertificate'),
             __('PDF', 'ffcertificate')
         );
+    }
+
+    private function render_status_badge( array $item ): string {
+        $status = $item['status'] ?? 'publish';
+
+        // Extract quiz score from data if available
+        $score_html = '';
+        $data_json = $item['data'] ?? '';
+        if ( ! empty( $data_json ) ) {
+            $data = json_decode( $data_json, true );
+            if ( ! is_array( $data ) ) {
+                $data = json_decode( stripslashes( $data_json ), true );
+            }
+            if ( is_array( $data ) && isset( $data['_quiz_percent'] ) ) {
+                $score_html = ' <small>(' . absint( $data['_quiz_percent'] ) . '%)</small>';
+            }
+        }
+
+        switch ( $status ) {
+            case 'publish':
+                return '<span class="ffc-badge ffc-badge-success">' . esc_html__( 'Published', 'ffcertificate' ) . $score_html . '</span>';
+            case 'trash':
+                return '<span class="ffc-badge ffc-badge-muted">' . esc_html__( 'Trash', 'ffcertificate' ) . '</span>';
+            case 'quiz_in_progress':
+                return '<span class="ffc-badge ffc-badge-warning">' . esc_html__( 'Quiz: Retry', 'ffcertificate' ) . $score_html . '</span>';
+            case 'quiz_failed':
+                return '<span class="ffc-badge ffc-badge-danger">' . esc_html__( 'Quiz: Failed', 'ffcertificate' ) . $score_html . '</span>';
+            default:
+                return '<span class="ffc-badge">' . esc_html( $status ) . '</span>';
+        }
     }
 
     private function format_data_preview( ?string $data_json ): string {
@@ -296,7 +330,21 @@ class SubmissionsList extends \WP_List_Table {
                 ($current == 'trash' ? 'current' : ''),
                 __('Trash', 'ffcertificate'),
                 $counts['trash']
-            )
+            ),
+            'quiz_in_progress' => sprintf(
+                '<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
+                add_query_arg('status', 'quiz_in_progress'),
+                ($current == 'quiz_in_progress' ? 'current' : ''),
+                __('Quiz: Retry', 'ffcertificate'),
+                $counts['quiz_in_progress']
+            ),
+            'quiz_failed' => sprintf(
+                '<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
+                add_query_arg('status', 'quiz_failed'),
+                ($current == 'quiz_failed' ? 'current' : ''),
+                __('Quiz: Failed', 'ffcertificate'),
+                $counts['quiz_failed']
+            ),
         ];
     }
 
