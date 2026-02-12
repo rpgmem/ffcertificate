@@ -405,6 +405,10 @@ class AdminAssetsManager {
                 'embedUrlPlaceholder'     => __( 'https://www.youtube.com/watch?v=... or image URL', 'ffcertificate' ),
                 'captionOptional'         => __( 'Caption (optional):', 'ffcertificate' ),
 
+                // Quiz Mode
+                'quizPoints'              => __( 'Points per option:', 'ffcertificate' ),
+                'quizPointsPlaceholder'   => __( 'Ex: 0, 10, 0', 'ffcertificate' ),
+
                 // Template Manager
                 'selectTemplate'          => __( 'Select a Template', 'ffcertificate' ),
                 'cancel'                  => __( 'Cancel', 'ffcertificate' ),

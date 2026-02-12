@@ -258,7 +258,16 @@
         if (fieldType === 'select' || fieldType === 'radio' || fieldType === 'checkbox') {
             fieldHtml += '      <tr>';
             fieldHtml += '        <th><label>' + optionsText + '</label></th>';
-            fieldHtml += '        <td><textarea class="ffc-field-options large-text" name="ffc_fields[' + fieldCounter + '][options]" rows="3" placeholder="' + separateWithCommasPlaceholder + '"></textarea></td>';
+            fieldHtml += '        <td><textarea class="ffc-field-options large-text" name="ffc_fields[' + fieldCounter + '][options]" rows="3" placeholder="' + separateWithCommasPlaceholder + '"></textarea>';
+            // Quiz points row (initially hidden, toggled by quiz checkbox)
+            var quizPointsText = strings.quizPoints || 'Points per option:';
+            var quizPointsPlaceholder = strings.quizPointsPlaceholder || 'Ex: 0, 10, 0';
+            var quizOn = typeof jQuery !== 'undefined' && jQuery('#ffc_quiz_enabled').is(':checked');
+            fieldHtml += '          <div class="ffc-quiz-points' + (quizOn ? '' : ' ffc-hidden') + '" style="margin-top:8px">';
+            fieldHtml += '            <label style="font-weight:500;font-size:13px">' + quizPointsText + '</label>';
+            fieldHtml += '            <input type="text" class="ffc-field-points regular-text" name="ffc_fields[' + fieldCounter + '][points]" placeholder="' + quizPointsPlaceholder + '" style="width:100%;margin-top:4px">';
+            fieldHtml += '          </div>';
+            fieldHtml += '        </td>';
             fieldHtml += '      </tr>';
         }
 
@@ -285,7 +294,8 @@
                 required: $row.find('.ffc-field-required').is(':checked'),
                 options: $row.find('.ffc-field-options').val(),
                 content: $row.find('.ffc-field-content').val() || '',
-                embed_url: $row.find('.ffc-field-embed-url').val() || ''
+                embed_url: $row.find('.ffc-field-embed-url').val() || '',
+                points: $row.find('.ffc-field-points').val() || ''
             };
             fields.push(field);
         });
