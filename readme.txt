@@ -35,7 +35,7 @@ Free Form Certificate is a complete WordPress solution for creating dynamic form
 * **Audience Management** - Create audiences (groups) with hierarchical structure and color coding.
 * **Environment Management** - Configure physical spaces with calendars, working hours, and capacity.
 * **Group Bookings** - Schedule activities for entire audiences or individual users.
-* **CSV Import** - Import audiences and members from CSV files with user creation.
+* **CSV Import & Export** - Import and export audiences and members from/to CSV files with user creation.
 * **Conflict Detection** - Real-time conflict checking before booking confirmation.
 * **Email Notifications** - Automatic notifications for new bookings and cancellations.
 
@@ -157,16 +157,31 @@ In the certificate layout editor, use these dynamic tags:
 
 = 4.8.0 (2026-02-11) =
 
-Calendar UX improvements, environment colors, and event list panel.
+Calendar UX improvements, environment colors, event list panel, admin enhancements, and export functionality.
 
 * New: Environment **color picker** — assign distinct colors to each environment (admin + frontend)
 * New: **Event list panel** — optional side or below panel showing upcoming bookings for the current month
 * New: Event list admin settings — enable/disable and position (side or below calendar)
 * New: **All-day event** checkbox — marks bookings as all-day (stores 00:00–23:59), blocks entire environment for the day
 * New: All-day events display "All Day" label instead of time range in day modal and event list
+* New: Holidays now displayed in event list panel alongside bookings (sorted by date)
+* New: **"Multiple audiences" badge** in event list when a booking has more than 2 audiences
+* New: Multiple audiences badge **color configurable** in Audience settings tab
+* New: **CSV export** for members (email, name, audience_name) with optional audience filter
+* New: **CSV export** for audiences (name, color, parent) in import-compatible format
+* New: Import page renamed to **"Import & Export"** with tabbed navigation (Import / Export)
+* New: Admin **feedback notices** for create, save, deactivate, and delete actions on calendars, environments, and audiences
+* New: **Soft-delete pattern** — active items are deactivated first; only inactive items can be permanently deleted (calendars, environments, audiences)
+* New: **Booking View** button in admin — opens AJAX modal with full booking details (audiences, users, creator, status)
+* New: **Booking Cancel** button in admin — AJAX cancel with confirmation prompt and mandatory reason
+* New: **Filter overlay** on submissions page — replaced multi-select with overlay modal, forms ordered by ID desc
 * Fix: FFC Users redirect — only block wp-admin access when ALL user roles are in the blocked list (was blocking when ANY role matched)
 * Fix: Environment label not reaching frontend — `get_schedule_environments()` now includes `name` field in config
 * Fix: Environment label fallback "Ambiente" was not wrapped in `__()` for translation
+* Fix: Holiday names no longer shown in calendar day cells — displays generic "Holiday" label only (full name in event list)
+* Fix: Holiday label fix applied to both audience and self-scheduling calendars
+* Fix: Badge overflow in day cells — badges now truncate with ellipsis instead of overflowing
+* Changed: Calendar max-width adjusted to 600px standalone, 1120px with event list (600px + 20px gap + 500px panel)
 * Changed: Calendar day cells now use `aspect-ratio: 1` for consistent square grid layout
 * Changed: Environment colors shown as left border on booking items in day modal and event list
 * Migration: Added `is_all_day`, `show_event_list`, `event_list_position`, and `color` columns with automatic migration
@@ -736,7 +751,7 @@ Bug fixes for strict types introduction.
 == Upgrade Notice ==
 
 = 4.8.0 =
-Calendar UX improvements: environment color picker, event list panel, all-day events, square grid layout. Fixes FFC Users redirect and environment label bugs. New database columns added automatically via migration. No breaking changes.
+Calendar UX improvements: environment color picker, event list panel, all-day events, calendar sizing. Admin enhancements: soft-delete pattern, booking view/cancel actions, feedback notices, filter overlay. New CSV export for members and audiences (Import & Export page). Fixes FFC Users redirect, environment labels, holiday display, and badge overflow. New database columns added automatically via migration. No breaking changes.
 
 = 4.6.16 =
 Settings UX reorganization, dead code removal, and centralized version management. Fixes missing dashboard icons and phpqrcode cache warning. All JS console versions now dynamic. No data changes required.
