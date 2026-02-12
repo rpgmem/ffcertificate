@@ -81,7 +81,7 @@ class AudienceShortcode {
             }
 
             // Enqueue assets for read-only view
-            self::enqueue_assets();
+            self::enqueue_assets($schedules);
 
             $scheduling_message = get_option(
                 'ffc_aud_scheduling_message',
@@ -127,7 +127,7 @@ class AudienceShortcode {
         }
 
         // Enqueue JS and localization (only for logged-in users who have access)
-        self::enqueue_assets();
+        self::enqueue_assets($schedules);
 
         // Admin bypass notice
         $bypass_notice = '';
@@ -686,7 +686,7 @@ class AudienceShortcode {
         );
     }
 
-    private static function enqueue_assets(): void {
+    private static function enqueue_assets(array $schedules = array()): void {
         // CSS (in case enqueue_styles wasn't called yet)
         self::enqueue_styles();
 
@@ -699,6 +699,21 @@ class AudienceShortcode {
             FFC_VERSION,
             true
         );
+
+        // Resolve custom booking labels from schedule config (first non-empty wins)
+        $booking_singular = __('booking', 'ffcertificate');
+        $booking_plural   = __('bookings', 'ffcertificate');
+        foreach ($schedules as $sch) {
+            if (!empty($sch->booking_label_singular)) {
+                $booking_singular = $sch->booking_label_singular;
+            }
+            if (!empty($sch->booking_label_plural)) {
+                $booking_plural = $sch->booking_label_plural;
+            }
+            if (!empty($sch->booking_label_singular) || !empty($sch->booking_label_plural)) {
+                break;
+            }
+        }
 
         // Localize script
         wp_localize_script('ffc-audience', 'ffcAudience', array(
@@ -751,8 +766,8 @@ class AudienceShortcode {
                 'cancelled' => __('Cancelled', 'ffcertificate'),
                 'timeout' => __('Request timed out. Please try again.', 'ffcertificate'),
                 'checkConflicts' => __('Check Conflicts', 'ffcertificate'),
-                'booking' => __('booking', 'ffcertificate'),
-                'bookings' => __('bookings', 'ffcertificate'),
+                'booking' => $booking_singular,
+                'bookings' => $booking_plural,
                 'createBooking' => __('Create Booking', 'ffcertificate'),
                 'newBooking' => __('New Booking', 'ffcertificate'),
                 'environmentLabel' => __('Environment', 'ffcertificate'),
