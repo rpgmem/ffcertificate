@@ -111,7 +111,7 @@ class AudienceShortcode {
                 'canBook' => false,
                 'readOnly' => true,
                 'schedulingMessage' => $scheduling_message,
-                'audiences' => array(),
+                'audiences' => self::get_public_audiences(),
             );
 
             return self::render_calendar_html($schedules, $config, $atts, false);
@@ -601,6 +601,31 @@ class AudienceShortcode {
      * @param int $user_id User ID
      * @return array
      */
+    private static function get_public_audiences(): array {
+        $audiences = AudienceRepository::get_hierarchical('active');
+        $result = array();
+        foreach ($audiences as $audience) {
+            $item = array(
+                'id' => $audience->id,
+                'name' => $audience->name,
+                'color' => $audience->color,
+                'parent_id' => $audience->parent_id ?? null,
+            );
+            if (isset($audience->children) && !empty($audience->children)) {
+                $item['children'] = array_map(function($c) {
+                    return array(
+                        'id' => $c->id,
+                        'name' => $c->name,
+                        'color' => $c->color,
+                        'parent_id' => $c->parent_id,
+                    );
+                }, $audience->children);
+            }
+            $result[] = $item;
+        }
+        return $result;
+    }
+
     private static function get_user_audiences(int $user_id): array {
         // Admin can book any audience
         if (user_can($user_id, 'manage_options')) {
