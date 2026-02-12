@@ -645,17 +645,21 @@ class AudienceShortcode {
      */
     private static function enqueue_styles(): void {
         $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+        $common_file = FFC_PLUGIN_DIR . "assets/css/ffc-common{$s}.css";
+        $common_ver  = FFC_VERSION . '.' . ( file_exists( $common_file ) ? filemtime( $common_file ) : '0' );
         wp_enqueue_style(
             'ffc-common',
             FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
             array(),
-            FFC_VERSION
+            $common_ver
         );
+        $aud_file = FFC_PLUGIN_DIR . "assets/css/ffc-audience{$s}.css";
+        $aud_ver  = FFC_VERSION . '.' . ( file_exists( $aud_file ) ? filemtime( $aud_file ) : '0' );
         wp_enqueue_style(
             'ffc-audience',
             FFC_PLUGIN_URL . "assets/css/ffc-audience{$s}.css",
             array('ffc-common'),
-            FFC_VERSION
+            $aud_ver
         );
     }
 
@@ -665,11 +669,13 @@ class AudienceShortcode {
 
         // JavaScript
         $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+        $js_file = FFC_PLUGIN_DIR . "assets/js/ffc-audience{$s}.js";
+        $js_ver  = FFC_VERSION . '.' . ( file_exists( $js_file ) ? filemtime( $js_file ) : '0' );
         wp_enqueue_script(
             'ffc-audience',
             FFC_PLUGIN_URL . "assets/js/ffc-audience{$s}.js",
             array('jquery'),
-            FFC_VERSION,
+            $js_ver,
             true
         );
 
