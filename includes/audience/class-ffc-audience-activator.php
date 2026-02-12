@@ -581,8 +581,8 @@ class AudienceActivator {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $wpdb->query(
             "ALTER TABLE {$table_name}
-            ADD COLUMN booking_label_singular varchar(50) DEFAULT NULL COMMENT 'Custom singular label for booking badge' AFTER audience_badge_format,
-            ADD COLUMN booking_label_plural varchar(50) DEFAULT NULL COMMENT 'Custom plural label for booking badge' AFTER booking_label_singular"
+            ADD COLUMN booking_label_singular varchar(50) DEFAULT NULL COMMENT 'Custom singular label for booking badge',
+            ADD COLUMN booking_label_plural varchar(50) DEFAULT NULL COMMENT 'Custom plural label for booking badge'"
         );
     }
 
@@ -617,7 +617,7 @@ class AudienceActivator {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $wpdb->query(
             "ALTER TABLE {$table_name}
-            ADD COLUMN audience_badge_format enum('name','parent_name') DEFAULT 'name' COMMENT 'How audience badges display: name only or parent: child' AFTER event_list_position"
+            ADD COLUMN audience_badge_format enum('name','parent_name') DEFAULT 'name' COMMENT 'How audience badges display: name only or parent: child'"
         );
     }
 
