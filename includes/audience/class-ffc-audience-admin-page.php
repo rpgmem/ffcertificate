@@ -27,7 +27,7 @@ declare(strict_types=1);
  * - Environments
  * - Audiences
  * - Audience Bookings
- * - Import
+ * - Import & Export
  * - Settings
  *
  * @since 4.5.0
@@ -165,11 +165,11 @@ class AudienceAdminPage {
 
         // --- Tools section ---
 
-        // Submenu: Import
+        // Submenu: Import & Export
         add_submenu_page(
             self::MENU_SLUG,
-            __('Import', 'ffcertificate'),
-            __('Import', 'ffcertificate'),
+            __('Import & Export', 'ffcertificate'),
+            __('Import & Export', 'ffcertificate'),
             'manage_options',
             self::MENU_SLUG . '-import',
             array($this->import, 'render_page')
@@ -224,7 +224,7 @@ class AudienceAdminPage {
             self::MENU_SLUG . '-bookings',                           // Audience Bookings
             // Tools section
             '#ffc-separator-tools',
-            self::MENU_SLUG . '-import',                             // Import
+            self::MENU_SLUG . '-import',                             // Import & Export
             self::MENU_SLUG . '-settings',                           // Settings
         );
 
