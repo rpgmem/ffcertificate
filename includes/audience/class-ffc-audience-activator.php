@@ -416,6 +416,7 @@ class AudienceActivator {
             self::migrate_booking_is_all_day_column();
             self::migrate_environment_color_column();
             self::migrate_schedule_event_list_columns();
+            self::migrate_schedule_audience_badge_format_column();
         }
     }
 
@@ -546,6 +547,41 @@ class AudienceActivator {
             "ALTER TABLE {$table_name}
             ADD COLUMN show_event_list tinyint(1) DEFAULT 0 COMMENT 'Show event list alongside calendar' AFTER include_ics,
             ADD COLUMN event_list_position enum('side','below') DEFAULT 'side' COMMENT 'Position of event list' AFTER show_event_list"
+        );
+    }
+
+    /**
+     * Migrate schedules table to add audience_badge_format column.
+     *
+     * Controls how audience badges are displayed on the frontend:
+     * 'name' (default) shows only the audience name,
+     * 'parent_name' shows "Parent: Child".
+     *
+     * @since 4.9.0
+     * @return void
+     */
+    private static function migrate_schedule_audience_badge_format_column(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_audience_schedules';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $column_exists = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'audience_badge_format'",
+                DB_NAME,
+                $table_name
+            )
+        );
+
+        if (!empty($column_exists)) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $wpdb->query(
+            "ALTER TABLE {$table_name}
+            ADD COLUMN audience_badge_format enum('name','parent_name') DEFAULT 'name' COMMENT 'How audience badges display: name only or parent: child' AFTER event_list_position"
         );
     }
 

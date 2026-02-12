@@ -105,6 +105,7 @@ class AudienceShortcode {
                 }, $schedules),
                 'showEventList' => self::should_show_event_list($schedules),
                 'eventListPosition' => self::get_event_list_position($schedules),
+                'audienceBadgeFormat' => self::get_audience_badge_format($schedules),
                 'canBook' => false,
                 'readOnly' => true,
                 'schedulingMessage' => $scheduling_message,
@@ -155,6 +156,7 @@ class AudienceShortcode {
             }, $schedules),
             'showEventList' => self::should_show_event_list($schedules),
             'eventListPosition' => self::get_event_list_position($schedules),
+            'audienceBadgeFormat' => self::get_audience_badge_format($schedules),
             'canBook' => self::can_user_book($user_id, $schedules),
             'audiences' => self::get_user_audiences($user_id),
         );
@@ -447,6 +449,22 @@ class AudienceShortcode {
             }
         }
         return 'side';
+    }
+
+    /**
+     * Get audience badge format from schedules (first one with a value)
+     *
+     * @since 4.9.0
+     * @param array $schedules Array of schedule objects
+     * @return string 'name' or 'parent_name'
+     */
+    private static function get_audience_badge_format(array $schedules): string {
+        foreach ($schedules as $s) {
+            if (!empty($s->audience_badge_format)) {
+                return $s->audience_badge_format;
+            }
+        }
+        return 'name';
     }
 
     /**

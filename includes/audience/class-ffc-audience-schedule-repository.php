@@ -215,6 +215,7 @@ class AudienceScheduleRepository {
             'include_ics' => '%d',
             'show_event_list' => '%d',
             'event_list_position' => '%s',
+            'audience_badge_format' => '%s',
             'status' => '%s',
         );
 

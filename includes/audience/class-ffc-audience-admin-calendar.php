@@ -309,6 +309,24 @@ class AudienceAdminCalendar {
                 </tr>
                 <tr>
                     <th scope="row">
+                        <label for="schedule_audience_badge_format"><?php esc_html_e('Audience Badge Format', 'ffcertificate'); ?></label>
+                    </th>
+                    <td>
+                        <select name="schedule_audience_badge_format" id="schedule_audience_badge_format">
+                            <option value="name" <?php selected($schedule->audience_badge_format ?? 'name', 'name'); ?>>
+                                <?php esc_html_e('Name only', 'ffcertificate'); ?>
+                            </option>
+                            <option value="parent_name" <?php selected($schedule->audience_badge_format ?? '', 'parent_name'); ?>>
+                                <?php esc_html_e('Parent: Name', 'ffcertificate'); ?>
+                            </option>
+                        </select>
+                        <p class="description">
+                            <?php esc_html_e('How audience badges are displayed. "Name only" shows just the audience name. "Parent: Name" prefixes with the parent category when available.', 'ffcertificate'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
                         <label for="schedule_status"><?php esc_html_e('Status', 'ffcertificate'); ?></label>
                     </th>
                     <td>
@@ -636,6 +654,9 @@ class AudienceAdminCalendar {
                 'event_list_position' => isset($_POST['schedule_event_list_position']) && in_array($_POST['schedule_event_list_position'], array('side', 'below'), true)
                     ? sanitize_text_field(wp_unslash($_POST['schedule_event_list_position']))
                     : 'side',
+                'audience_badge_format' => isset($_POST['schedule_audience_badge_format']) && in_array($_POST['schedule_audience_badge_format'], array('name', 'parent_name'), true)
+                    ? sanitize_text_field(wp_unslash($_POST['schedule_audience_badge_format']))
+                    : 'name',
                 'status' => isset($_POST['schedule_status']) ? sanitize_text_field(wp_unslash($_POST['schedule_status'])) : 'active',
             );
 

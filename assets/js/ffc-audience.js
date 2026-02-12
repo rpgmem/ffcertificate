@@ -648,9 +648,10 @@
 
             if (booking.audiences && booking.audiences.length > 0) {
                 var displayAudiences = collapseParentAudiences(booking.audiences);
+                var pMap = buildParentNameMap();
                 html += '<div class="ffc-booking-audiences">';
                 displayAudiences.forEach(function(audience) {
-                    html += '<span class="ffc-audience-tag" style="background-color: ' + audience.color + '">' + escapeHtml(audience.name) + '</span>';
+                    html += '<span class="ffc-audience-tag" style="background-color: ' + audience.color + '">' + escapeHtml(formatAudienceName(audience, pMap)) + '</span>';
                 });
                 html += '</div>';
             }
@@ -1217,13 +1218,14 @@
                 // Audiences (collapse parent groups, then show summary badge when more than 2)
                 if (booking.audiences && booking.audiences.length > 0) {
                     var displayAudiencesEL = collapseParentAudiences(booking.audiences);
+                    var pMapEL = buildParentNameMap();
                     html += '<span class="ffc-event-list-audiences">';
                     if (displayAudiencesEL.length > 2) {
                         var maColor = ffcAudience.multipleAudiencesColor || 'var(--ffc-gray-600)';
                         html += '<span class="ffc-audience-tag-sm" style="background-color: ' + maColor + '">' + escapeHtml(ffcAudience.strings.multipleAudiences) + ' (' + displayAudiencesEL.length + ')</span>';
                     } else {
                         displayAudiencesEL.forEach(function(audience) {
-                            html += '<span class="ffc-audience-tag-sm" style="background-color: ' + audience.color + '">' + escapeHtml(audience.name) + '</span>';
+                            html += '<span class="ffc-audience-tag-sm" style="background-color: ' + audience.color + '">' + escapeHtml(formatAudienceName(audience, pMapEL)) + '</span>';
                         });
                     }
                     html += '</span>';
@@ -1285,6 +1287,33 @@
     /**
      * Escape HTML
      */
+    /**
+     * Build a map of audienceId -> parentName from hierarchical config.
+     */
+    function buildParentNameMap() {
+        var map = {};
+        var configAudiences = state.config.audiences || [];
+        configAudiences.forEach(function(parent) {
+            if (!parent.children || parent.children.length === 0) return;
+            parent.children.forEach(function(child) {
+                map[parseInt(child.id)] = parent.name;
+            });
+        });
+        return map;
+    }
+
+    /**
+     * Format audience name based on badge format setting.
+     * 'parent_name' mode: "Parent: Child" for children, plain name for root.
+     */
+    function formatAudienceName(audience, parentNameMap) {
+        if (state.config.audienceBadgeFormat !== 'parent_name') {
+            return audience.name;
+        }
+        var parentName = parentNameMap[parseInt(audience.id)];
+        return parentName ? parentName + ': ' + audience.name : audience.name;
+    }
+
     /**
      * Collapse audiences for display: when a parent + ALL its children
      * are present, show only the parent (visual only).
