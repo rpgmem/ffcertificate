@@ -6331,9 +6331,17 @@ msgstr "Total: %d reservas"
 msgid "Track activities for audit trail"
 msgstr "Registre as atividades para fins de auditoria."
 
-#: includes/admin/class-ffc-submissions-list.php:102 includes/admin/class-ffc-submissions-list.php:297
+#: includes/admin/class-ffc-cpt.php includes/admin/class-ffc-submissions-list.php:102 includes/admin/class-ffc-submissions-list.php:297
 msgid "Trash"
-msgstr "Lixo"
+msgstr "Lixeira"
+
+#: includes/admin/class-ffc-cpt.php
+msgid "All"
+msgstr "Todos"
+
+#: includes/admin/class-ffc-cpt.php
+msgid "Draft"
+msgstr "Rascunho"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:175 includes/audience/class-ffc-audience-shortcode.php:135
 msgid "Tue"
