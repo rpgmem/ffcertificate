@@ -68,7 +68,8 @@
         config: {},
         bookings: {},
         holidays: {},
-        selectedUsers: {}
+        selectedUsers: {},
+        fetchId: 0
     };
 
     /**
@@ -469,6 +470,13 @@
      * Fetch bookings and holidays for a month
      */
     function fetchMonthData(year, month, callback) {
+        var thisId = ++state.fetchId;
+
+        // Clear stale data immediately so old badges/events disappear
+        state.bookings = {};
+        state.holidays = {};
+        state.closedWeekdays = [];
+
         var startDate = year + '-' + pad(month) + '-01';
         var lastDay = new Date(year, month, 0).getDate();
         var endDate = year + '-' + pad(month) + '-' + pad(lastDay);
@@ -494,9 +502,8 @@
                 xhr.setRequestHeader('X-WP-Nonce', ffcAudience.nonce);
             },
             success: function(response) {
-                state.bookings = {};
-                state.holidays = {};
-                state.closedWeekdays = [];
+                // Ignore stale responses — a newer fetch was already dispatched
+                if (thisId !== state.fetchId) return;
 
                 if (response.bookings) {
                     response.bookings.forEach(function(booking) {
@@ -520,6 +527,7 @@
                 if (callback) callback();
             },
             error: function() {
+                if (thisId !== state.fetchId) return;
                 if (callback) callback();
             }
         });
