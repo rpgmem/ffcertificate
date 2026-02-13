@@ -207,8 +207,8 @@ class AdminAssetsManager {
             true
         );
 
-        // 4. Localize main admin script
-        wp_localize_script( 'ffc-admin-js', 'ffc_ajax', $this->get_localization_data() );
+        // 4. Localize — attach to field-builder so strings are available to all dependent scripts
+        wp_localize_script( 'ffc-admin-field-builder', 'ffc_ajax', $this->get_localization_data() );
     }
 
     /**
