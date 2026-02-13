@@ -572,7 +572,7 @@ class UserDataRestController {
             if ( ! empty( $booking_ids ) ) {
                 $safe_ids = array_map( 'absint', $booking_ids );
                 $id_list  = implode( ',', $safe_ids );
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $all_audiences = $wpdb->get_results( $wpdb->prepare(
                     "SELECT ba.booking_id, a.name, a.color
                      FROM %i ba
