@@ -585,21 +585,14 @@
         // Store booking counts, holidays and tracking
         var bookingCounts = {};
         var calendarHolidays = {};
-        var lastFetchedMonth = null;
-        var isFetching = false;
+        var fetchId = 0;
 
         // Function to fetch booking counts and holidays for a month
         function fetchBookingCounts(year, month, callback) {
-            var monthKey = year + '-' + month;
+            var thisId = ++fetchId;
 
-            if (isFetching) {
-                return;
-            }
-            if (lastFetchedMonth === monthKey) {
-                return;
-            }
-
-            isFetching = true;
+            // Clear stale data immediately so old badges disappear
+            bookingCounts = {};
 
             $.ajax({
                 url: ffcCalendar.ajaxurl,
@@ -612,6 +605,9 @@
                     month: month
                 },
                 success: function(response) {
+                    // Ignore stale responses — a newer fetch was already dispatched
+                    if (thisId !== fetchId) return;
+
                     if (response.success) {
                         if (response.data.counts) {
                             bookingCounts = response.data.counts;
@@ -623,12 +619,10 @@
                             }
                         }
                     }
-                    lastFetchedMonth = monthKey;
-                    isFetching = false;
                     if (callback) callback();
                 },
                 error: function() {
-                    isFetching = false;
+                    if (thisId !== fetchId) return;
                     if (callback) callback();
                 }
             });
