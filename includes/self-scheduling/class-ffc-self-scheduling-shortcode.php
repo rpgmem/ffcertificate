@@ -411,7 +411,9 @@ class SelfSchedulingShortcode {
             : 'ffc_ss_business_hours_booking_message';
 
         $default = $type === 'viewing'
+            /* translators: %hours% is replaced with today's working hours range */
             ? __('This calendar is available for viewing only during business hours (%hours%).', 'ffcertificate')
+            /* translators: %hours% is replaced with today's working hours range */
             : __('Booking is available only during business hours (%hours%).', 'ffcertificate');
 
         $message = get_option($option_key, $default);

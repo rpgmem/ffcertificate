@@ -229,9 +229,13 @@ class AudienceAdminSettings {
     private function render_self_scheduling_tab(): void {
         // Get current settings
         $display_mode = get_option('ffc_ss_private_display_mode', 'show_message');
+        /* translators: %login_url% is replaced with the WordPress login page URL */
         $visibility_message = get_option('ffc_ss_visibility_message', __('To view this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate'));
+        /* translators: %login_url% is replaced with the WordPress login page URL */
         $scheduling_message = get_option('ffc_ss_scheduling_message', __('To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate'));
+        /* translators: %hours% is replaced with today's working hours range */
         $bh_viewing_message = get_option('ffc_ss_business_hours_viewing_message', __('This calendar is available for viewing only during business hours (%hours%).', 'ffcertificate'));
+        /* translators: %hours% is replaced with today's working hours range */
         $bh_booking_message = get_option('ffc_ss_business_hours_booking_message', __('Booking is available only during business hours (%hours%).', 'ffcertificate'));
 
         ?>
@@ -343,7 +347,9 @@ class AudienceAdminSettings {
                             <td>
                                 <textarea name="ffc_ss_business_hours_viewing_message" id="ffc_ss_business_hours_viewing_message" rows="3" class="large-text"><?php echo esc_textarea($bh_viewing_message); ?></textarea>
                                 <p class="description">
-                                    <?php esc_html_e('Shown when the calendar cannot be viewed outside business hours. Use %hours% for today\'s working hours.', 'ffcertificate'); ?>
+                                    <?php
+                                    /* translators: %hours% is a placeholder token the admin can use in the message */
+                                    esc_html_e('Shown when the calendar cannot be viewed outside business hours. Use %hours% for today\'s working hours.', 'ffcertificate'); ?>
                                 </p>
                             </td>
                         </tr>
@@ -354,7 +360,9 @@ class AudienceAdminSettings {
                             <td>
                                 <textarea name="ffc_ss_business_hours_booking_message" id="ffc_ss_business_hours_booking_message" rows="3" class="large-text"><?php echo esc_textarea($bh_booking_message); ?></textarea>
                                 <p class="description">
-                                    <?php esc_html_e('Shown when booking is not allowed outside business hours (calendar is still visible). Use %hours% for today\'s working hours.', 'ffcertificate'); ?>
+                                    <?php
+                                    /* translators: %hours% is a placeholder token the admin can use in the message */
+                                    esc_html_e('Shown when booking is not allowed outside business hours (calendar is still visible). Use %hours% for today\'s working hours.', 'ffcertificate'); ?>
                                 </p>
                             </td>
                         </tr>

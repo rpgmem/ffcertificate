@@ -391,7 +391,7 @@ class AudienceRepository {
         $table = self::get_table_name();
         $members_table = self::get_members_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $audiences = $wpdb->get_results(
             $wpdb->prepare(
                 'SELECT a.* FROM %i a
@@ -403,6 +403,7 @@ class AudienceRepository {
                 $user_id
             )
         );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
         // Include parent audiences if requested
         if ($include_parents && !empty($audiences)) {
@@ -417,12 +418,10 @@ class AudienceRepository {
                 $parent_ids = array_unique( array_map( 'absint', $parent_ids ) );
                 $id_list = implode( ',', $parent_ids );
 
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
                 $parents = $wpdb->get_results(
-                    $wpdb->prepare(
-                        "SELECT * FROM %i WHERE id IN ({$id_list}) AND status = 'active'",
-                        $table
-                    )
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $id_list is sanitized via absint().
+                    $wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$id_list}) AND status = 'active'", $table )
                 );
 
                 // Merge and remove duplicates
@@ -502,7 +501,7 @@ class AudienceRepository {
         $table = self::get_members_table_name();
 
         // Remove all existing members
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->delete($table, array('audience_id' => $audience_id), array('%d'));
 
         // Add new members
@@ -557,12 +556,10 @@ class AudienceRepository {
         // Build prepared query with %i for table name
         $prepare_args = array_merge( [ $table ], $values );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders.
         $result = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*) FROM %i {$where_clause}",
-                $prepare_args
-            )
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause contains only prepared placeholders.
+            $wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $prepare_args )
         );
         wp_cache_set( $cache_key, $result, 'ffcertificate' );
 
@@ -586,7 +583,7 @@ class AudienceRepository {
         global $wpdb;
         $table = self::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $results = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT * FROM %i
@@ -598,6 +595,7 @@ class AudienceRepository {
                 $limit
             )
         );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
         wp_cache_set( $cache_key, $results, 'ffcertificate' );
 

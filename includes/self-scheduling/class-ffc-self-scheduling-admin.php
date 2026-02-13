@@ -106,8 +106,8 @@ class SelfSchedulingAdmin {
             )
         ));
 
-        // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent -- jQuery UI CSS from official CDN, standard practice.
         $jquery_ui_v = FFC_JQUERY_UI_VERSION;
+        // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent -- jQuery UI CSS from official CDN, standard practice.
         wp_enqueue_style( 'jquery-ui-theme', "//code.jquery.com/ui/{$jquery_ui_v}/themes/smoothness/jquery-ui.css", array(), $jquery_ui_v );
     }
 }

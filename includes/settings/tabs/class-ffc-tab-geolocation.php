@@ -126,12 +126,13 @@ class TabGeolocation extends SettingsTab {
         update_option('ffc_geolocation_settings', $settings);
 
         // Save main_geo_areas to ffc_settings (v4.6.16 - moved from General tab)
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
         if (isset($_POST['main_geo_areas'])) {
             $ffc_settings = get_option('ffc_settings', array());
             $ffc_settings['main_geo_areas'] = sanitize_textarea_field(wp_unslash($_POST['main_geo_areas']));
             update_option('ffc_settings', $ffc_settings);
         }
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         // Log settings change
         if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {

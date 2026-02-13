@@ -20,7 +20,7 @@ global $wpdb;
 // 1. Drop all plugin database tables
 //    (order: child tables first to avoid FK issues)
 // ──────────────────────────────────────
-$tables = array(
+$ffc_tables = array(
     // Audience (children first)
     $wpdb->prefix . 'ffc_audience_booking_users',
     $wpdb->prefix . 'ffc_audience_booking_audiences',
@@ -43,15 +43,15 @@ $tables = array(
     $wpdb->prefix . 'ffc_submissions',
 );
 
-foreach ( $tables as $table ) {
+foreach ( $ffc_tables as $ffc_table ) {
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    $wpdb->query( "DROP TABLE IF EXISTS {$table}" );
+    $wpdb->query( "DROP TABLE IF EXISTS {$ffc_table}" );
 }
 
 // ──────────────────────────────────────
 // 2. Delete all plugin options
 // ──────────────────────────────────────
-$options = array(
+$ffc_options = array(
     'ffc_settings',
     'ffc_db_version',
     'ffc_verification_page_id',
@@ -74,8 +74,8 @@ $options = array(
     'ffc_columns_dropped_date',
 );
 
-foreach ( $options as $option ) {
-    delete_option( $option );
+foreach ( $ffc_options as $ffc_option ) {
+    delete_option( $ffc_option );
 }
 
 // ──────────────────────────────────────
@@ -100,16 +100,16 @@ wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
 // ──────────────────────────────────────
 // 5. Delete all ffc_form custom posts
 // ──────────────────────────────────────
-$forms = get_posts( array(
+$ffc_forms = get_posts( array(
     'post_type'      => 'ffc_form',
     'posts_per_page' => -1,
     'post_status'    => 'any',
     'fields'         => 'ids',
 ) );
 
-if ( ! empty( $forms ) ) {
-    foreach ( $forms as $form_id ) {
-        wp_delete_post( $form_id, true );
+if ( ! empty( $ffc_forms ) ) {
+    foreach ( $ffc_forms as $ffc_form_id ) {
+        wp_delete_post( $ffc_form_id, true );
     }
 }
 
@@ -121,11 +121,11 @@ remove_role( 'ffc_user' );
 // ──────────────────────────────────────
 // 7. Clean up user meta
 // ──────────────────────────────────────
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'ffc_registration_date' ) );
 
 // Remove FFC-specific capabilities from all users
-$ffc_caps = array(
+$ffc_caps_list = array(
     'view_own_certificates',
     'download_own_certificates',
     'view_certificate_history',
@@ -135,13 +135,13 @@ $ffc_caps = array(
 );
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$users_with_role = $wpdb->get_col(
+$ffc_users_with_role = $wpdb->get_col(
     "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = '{$wpdb->prefix}capabilities' AND meta_value LIKE '%ffc_%'"
 );
 
-foreach ( $users_with_role as $user_id ) {
-    $user = new WP_User( (int) $user_id );
-    foreach ( $ffc_caps as $cap ) {
-        $user->remove_cap( $cap );
+foreach ( $ffc_users_with_role as $ffc_uid ) {
+    $ffc_user = new WP_User( (int) $ffc_uid );
+    foreach ( $ffc_caps_list as $ffc_cap ) {
+        $ffc_user->remove_cap( $ffc_cap );
     }
 }

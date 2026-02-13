@@ -387,15 +387,8 @@ class AudienceEnvironmentRepository {
         global $wpdb;
         $table = self::get_holidays_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-        $count = $wpdb->get_var(
-            $wpdb->prepare(
-                'SELECT COUNT(*) FROM %i WHERE schedule_id = %d AND holiday_date = %s',
-                $table,
-                $env->schedule_id,
-                $date
-            )
-        );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE schedule_id = %d AND holiday_date = %s', $table, $env->schedule_id, $date ) );
 
         $result = (int) $count > 0;
         wp_cache_set( $cache_key, $result, 'ffcertificate' );
@@ -437,12 +430,10 @@ class AudienceEnvironmentRepository {
         // Build prepared query with %i for table name
         $prepare_args = array_merge( [ $table ], $values );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders.
         $result = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*) FROM %i {$where_clause}",
-                $prepare_args
-            )
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause contains only prepared placeholders.
+            $wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $prepare_args )
         );
         wp_cache_set( $cache_key, $result, 'ffcertificate' );
 

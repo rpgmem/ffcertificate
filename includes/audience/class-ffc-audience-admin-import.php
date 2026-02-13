@@ -383,6 +383,7 @@ class AudienceAdminImport {
      * @return void
      */
     private function export_members_csv(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in caller handle_actions().
         $audience_id = isset($_POST['export_audience_id']) ? absint($_POST['export_audience_id']) : 0;
 
         // Collect audience IDs to export

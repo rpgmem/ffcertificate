@@ -225,9 +225,10 @@ class AudienceAdminEnvironment {
         $env_label_singular = AudienceScheduleRepository::get_environment_label($schedule_id ?: null, true);
         $env_label_plural = AudienceScheduleRepository::get_environment_label($schedule_id ?: null);
 
-        /* translators: %s: environment label (singular, e.g. "Environment", "Room") */
         $page_title = $id > 0
+            /* translators: %s: environment label (singular, e.g. "Room") */
             ? sprintf(__('Edit %s', 'ffcertificate'), $env_label_singular)
+            /* translators: %s: environment label (singular, e.g. "Room") */
             : sprintf(__('Add New %s', 'ffcertificate'), $env_label_singular);
 
         $schedules = AudienceScheduleRepository::get_all(array('status' => 'active'));
@@ -356,9 +357,10 @@ class AudienceAdminEnvironment {
             </tbody></table>
 
             <?php
-            /* translators: %s: environment label (singular) */
             submit_button($id > 0
+                /* translators: %s: environment label (singular, e.g. "Room") */
                 ? sprintf(__('Update %s', 'ffcertificate'), $env_label_singular)
+                /* translators: %s: environment label (singular, e.g. "Room") */
                 : sprintf(__('Create %s', 'ffcertificate'), $env_label_singular)
             );
             ?>

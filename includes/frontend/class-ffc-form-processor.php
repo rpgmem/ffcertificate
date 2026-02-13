@@ -595,16 +595,19 @@ class FormProcessor {
 
                     if ( $quiz_status === 'quiz_failed' ) {
                         $msg = $show_score
+                            /* translators: %d: quiz score percentage */
                             ? sprintf( __( 'Quiz failed. Score: %d%%. Maximum attempts reached.', 'ffcertificate' ), $quiz_score['percent'] )
                             : __( 'Quiz failed. Maximum attempts reached.', 'ffcertificate' );
                     } else {
                         $msg = $show_score
                             /* translators: 1: score percentage, 2: remaining attempts */
                             ? sprintf( __( 'Score: %1$d%%. You can try again (%2$d attempts remaining).', 'ffcertificate' ), $quiz_score['percent'], $remaining )
+                            /* translators: %d: number of remaining quiz attempts */
                             : sprintf( __( 'Not passed. You can try again (%d attempts remaining).', 'ffcertificate' ), $remaining );
 
                         if ( $remaining === -1 ) {
                             $msg = $show_score
+                                /* translators: %d: quiz score percentage */
                                 ? sprintf( __( 'Score: %d%%. You can try again.', 'ffcertificate' ), $quiz_score['percent'] )
                                 : __( 'Not passed. You can try again.', 'ffcertificate' );
                         }
@@ -687,6 +690,7 @@ class FormProcessor {
         if ( $is_quiz && ! $is_reprint ) {
             $show_score = ( $form_config['quiz_show_score'] ?? '1' ) === '1';
             $msg = $show_score
+                /* translators: %d: quiz score percentage */
                 ? sprintf( __( 'Congratulations! Score: %d%%. Certificate generated.', 'ffcertificate' ), $quiz_score['percent'] ?? 0 )
                 : __( 'Congratulations! Quiz passed. Certificate generated.', 'ffcertificate' );
         }
