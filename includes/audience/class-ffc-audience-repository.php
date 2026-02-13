@@ -418,11 +418,11 @@ class AudienceRepository {
                 $parent_ids = array_unique( array_map( 'absint', $parent_ids ) );
                 $id_list = implode( ',', $parent_ids );
 
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+                // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $id_list is sanitized via absint(); cached below.
                 $parents = $wpdb->get_results(
-                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $id_list is sanitized via absint().
                     $wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$id_list}) AND status = 'active'", $table )
                 );
+                // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
                 // Merge and remove duplicates
                 $existing_ids = array_column($audiences, 'id');
@@ -500,8 +500,7 @@ class AudienceRepository {
         global $wpdb;
         $table = self::get_members_table_name();
 
-        // Remove all existing members
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Intentional delete-and-reinsert for member sync.
         $wpdb->delete($table, array('audience_id' => $audience_id), array('%d'));
 
         // Add new members
@@ -556,11 +555,11 @@ class AudienceRepository {
         // Build prepared query with %i for table name
         $prepare_args = array_merge( [ $table ], $values );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders; cached below.
         $result = (int) $wpdb->get_var(
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause contains only prepared placeholders.
             $wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $prepare_args )
         );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         wp_cache_set( $cache_key, $result, 'ffcertificate' );
 
         return $result;

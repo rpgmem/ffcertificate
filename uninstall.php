@@ -20,7 +20,7 @@ global $wpdb;
 // 1. Drop all plugin database tables
 //    (order: child tables first to avoid FK issues)
 // ──────────────────────────────────────
-$ffc_tables = array(
+$ffcertificate_tables = array(
     // Audience (children first)
     $wpdb->prefix . 'ffc_audience_booking_users',
     $wpdb->prefix . 'ffc_audience_booking_audiences',
@@ -43,15 +43,15 @@ $ffc_tables = array(
     $wpdb->prefix . 'ffc_submissions',
 );
 
-foreach ( $ffc_tables as $ffc_table ) {
+foreach ( $ffcertificate_tables as $ffcertificate_table ) {
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    $wpdb->query( "DROP TABLE IF EXISTS {$ffc_table}" );
+    $wpdb->query( "DROP TABLE IF EXISTS {$ffcertificate_table}" );
 }
 
 // ──────────────────────────────────────
 // 2. Delete all plugin options
 // ──────────────────────────────────────
-$ffc_options = array(
+$ffcertificate_options = array(
     'ffc_settings',
     'ffc_db_version',
     'ffc_verification_page_id',
@@ -74,8 +74,8 @@ $ffc_options = array(
     'ffc_columns_dropped_date',
 );
 
-foreach ( $ffc_options as $ffc_option ) {
-    delete_option( $ffc_option );
+foreach ( $ffcertificate_options as $ffcertificate_option ) {
+    delete_option( $ffcertificate_option );
 }
 
 // ──────────────────────────────────────
@@ -100,16 +100,16 @@ wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
 // ──────────────────────────────────────
 // 5. Delete all ffc_form custom posts
 // ──────────────────────────────────────
-$ffc_forms = get_posts( array(
+$ffcertificate_forms = get_posts( array(
     'post_type'      => 'ffc_form',
     'posts_per_page' => -1,
     'post_status'    => 'any',
     'fields'         => 'ids',
 ) );
 
-if ( ! empty( $ffc_forms ) ) {
-    foreach ( $ffc_forms as $ffc_form_id ) {
-        wp_delete_post( $ffc_form_id, true );
+if ( ! empty( $ffcertificate_forms ) ) {
+    foreach ( $ffcertificate_forms as $ffcertificate_form_id ) {
+        wp_delete_post( $ffcertificate_form_id, true );
     }
 }
 
@@ -125,7 +125,7 @@ remove_role( 'ffc_user' );
 $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'ffc_registration_date' ) );
 
 // Remove FFC-specific capabilities from all users
-$ffc_caps_list = array(
+$ffcertificate_caps = array(
     'view_own_certificates',
     'download_own_certificates',
     'view_certificate_history',
@@ -135,13 +135,13 @@ $ffc_caps_list = array(
 );
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$ffc_users_with_role = $wpdb->get_col(
+$ffcertificate_user_ids = $wpdb->get_col(
     "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = '{$wpdb->prefix}capabilities' AND meta_value LIKE '%ffc_%'"
 );
 
-foreach ( $ffc_users_with_role as $ffc_uid ) {
-    $ffc_user = new WP_User( (int) $ffc_uid );
-    foreach ( $ffc_caps_list as $ffc_cap ) {
-        $ffc_user->remove_cap( $ffc_cap );
+foreach ( $ffcertificate_user_ids as $ffcertificate_uid ) {
+    $ffcertificate_user = new WP_User( (int) $ffcertificate_uid );
+    foreach ( $ffcertificate_caps as $ffcertificate_cap ) {
+        $ffcertificate_user->remove_cap( $ffcertificate_cap );
     }
 }
