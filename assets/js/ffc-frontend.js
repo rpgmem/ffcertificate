@@ -487,6 +487,12 @@
         } else {
             console.warn('[FFC] Frontend helpers not loaded - masks disabled');
         }
+
+        // Auto-resize textareas on input
+        $(document).on('input', 'textarea.ffc-input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
     });
 
     // console.log('[FFC Frontend] Script loaded v3.1.0 (cleaned up defensive code)');
