@@ -354,7 +354,7 @@ class Shortcodes {
             </label>
             
             <?php if ( $type === 'textarea' ) : ?>
-                <textarea class="ffc-input ffc-textarea" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" <?php echo $required_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string: 'required aria-required="true"' ?> rows="1" style="height:auto!important;min-height:45px!important;max-height:300px!important;overflow-y:auto!important;resize:vertical!important"><?php echo esc_textarea($default); ?></textarea>
+                <textarea class="ffc-input ffc-textarea" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" <?php echo $required_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string: 'required aria-required="true"' ?> rows="1"><?php echo esc_textarea($default); ?></textarea>
 
             <?php elseif ( $type === 'select' ) : ?>
                 <select class="ffc-input" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" <?php echo $required_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string ?>>
