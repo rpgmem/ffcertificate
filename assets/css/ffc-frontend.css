@@ -32,7 +32,9 @@
     box-shadow: 0 0 0 3px var(--ffc-focus-ring);
 }
 
-textarea.ffc-input {
+textarea.ffc-input,
+.ffc-form-wrapper textarea.ffc-input,
+.ffc-form-field textarea.ffc-textarea {
     height: auto !important;
     min-height: 45px !important;
     max-height: 300px !important;
