@@ -490,8 +490,8 @@
 
         // Auto-resize textareas on input
         $(document).on('input', 'textarea.ffc-input', function() {
-            this.style.height = 'auto';
-            this.style.height = this.scrollHeight + 'px';
+            this.style.setProperty('height', 'auto', 'important');
+            this.style.setProperty('height', this.scrollHeight + 'px', 'important');
         });
     });
 
