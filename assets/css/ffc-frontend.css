@@ -86,6 +86,7 @@ textarea.ffc-input {
     font-weight: 500;
     color: var(--ffc-text-secondary);
     font-size: 18px;
+    text-transform: none !important;
 }
 
 .ffc-form-field label .required {
@@ -253,7 +254,7 @@ textarea.ffc-input {
 }
 
 .ffc-consent-description {
-    margin: 12px 0 0 32px;
+    margin: 12px 0 0 0;
     padding: 12px;
     background: var(--ffc-bg);
     border-left: 3px solid var(--ffc-primary);
@@ -261,6 +262,7 @@ textarea.ffc-input {
     font-size: 13px;
     line-height: 1.5;
     color: var(--ffc-text-muted);
+    box-sizing: border-box;
 }
 
 .ffc-consent-description a {
