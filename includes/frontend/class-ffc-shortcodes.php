@@ -354,10 +354,10 @@ class Shortcodes {
             </label>
             
             <?php if ( $type === 'textarea' ) : ?>
-                <textarea class="ffc-input" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" <?php echo esc_attr( $required_attr ); ?>><?php echo esc_textarea($default); ?></textarea>
+                <textarea class="ffc-input" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" <?php echo $required_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string: 'required aria-required="true"' ?>><?php echo esc_textarea($default); ?></textarea>
 
             <?php elseif ( $type === 'select' ) : ?>
-                <select class="ffc-input" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" <?php echo esc_attr( $required_attr ); ?>>
+                <select class="ffc-input" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" <?php echo $required_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string ?>>
                     <option value=""><?php esc_html_e( 'Select...', 'ffcertificate' ); ?></option>
                     <?php foreach ( $options as $opt ) : $opt_val = trim($opt); ?>
                         <option value="<?php echo esc_attr( $opt_val ); ?>" <?php selected($default, $opt_val); ?>><?php echo esc_html( $opt_val ); ?></option>
@@ -367,12 +367,12 @@ class Shortcodes {
             <?php elseif ( $type === 'radio' ) : ?>
                 <div class="ffc-radio-group" role="group" aria-label="<?php echo esc_attr( $label ); ?>">
                     <?php foreach ( $options as $opt ) : $opt_val = trim( $opt ); ?>
-                        <label><input type="radio" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $opt_val ); ?>" <?php echo esc_attr( $required_attr ); ?> <?php checked($default, $opt_val); ?>> <?php echo esc_html( $opt_val ); ?></label>
+                        <label><input type="radio" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $opt_val ); ?>" <?php echo $required_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string ?> <?php checked($default, $opt_val); ?>> <?php echo esc_html( $opt_val ); ?></label>
                     <?php endforeach; ?>
                 </div>
 
             <?php else : ?>
-                <input class="ffc-input" type="<?php echo esc_attr( $type ); ?>" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $default ); ?>" <?php echo esc_attr( $required_attr ); ?>>
+                <input class="ffc-input" type="<?php echo esc_attr( $type ); ?>" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $default ); ?>" <?php echo $required_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string ?>>
             <?php endif; ?>
         </div>
         <?php

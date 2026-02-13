@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.9.1
+Stable tag: 4.9.2
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -154,6 +154,17 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.9.2 (2026-02-13) =
+
+UX improvements, race condition fix, and PHPCS compliance.
+
+* New: **Textarea auto-resize** — textarea fields in certificate forms grow automatically as user types (up to 300px, then scrollbar), with manual resize support
+* Fix: **Calendar month navigation race condition** — rapid month clicks no longer show stale data; uses incremental fetch ID to discard superseded responses (both self-scheduling and audience calendars)
+* Fix: **Form field labels capitalization** — labels now respect original formatting regardless of theme CSS
+* Fix: **LGPD consent box overflow** — encryption warning no longer exceeds consent container bounds
+* Fix: **Form field attributes** — corrected esc_attr() misuse on HTML attributes (textarea, select, radio, input)
+* Fix: PHPCS compliance — nonce verification, SQL interpolation, global variable prefixes, unescaped DB parameters, offloaded resources, readme limits
 
 = 4.9.1 (2026-02-12) =
 
