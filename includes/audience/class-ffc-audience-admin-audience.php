@@ -251,6 +251,19 @@ class AudienceAdminAudience {
                         </select>
                     </td>
                 </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="audience_self_join"><?php esc_html_e('Allow Self-Join', 'ffcertificate'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="audience_self_join" id="audience_self_join" value="1"
+                                <?php checked(!empty($audience->allow_self_join)); ?>>
+                            <?php esc_html_e('Users can join/leave this group from their dashboard', 'ffcertificate'); ?>
+                        </label>
+                        <p class="description"><?php esc_html_e('When enabled, users can self-assign to this group (max 2 groups per user).', 'ffcertificate'); ?></p>
+                    </td>
+                </tr>
             </tbody></table>
 
             <?php submit_button($id > 0 ? __('Update Audience', 'ffcertificate') : __('Create Audience', 'ffcertificate')); ?>
@@ -380,6 +393,7 @@ class AudienceAdminAudience {
                 'color' => isset($_POST['audience_color']) ? sanitize_hex_color(wp_unslash($_POST['audience_color'])) : '#3788d8',
                 'parent_id' => isset($_POST['audience_parent']) && $_POST['audience_parent'] !== '' ? absint($_POST['audience_parent']) : null,
                 'status' => isset($_POST['audience_status']) ? sanitize_text_field(wp_unslash($_POST['audience_status'])) : 'active',
+                'allow_self_join' => !empty($_POST['audience_self_join']) ? 1 : 0,
             );
 
             if ($id > 0) {

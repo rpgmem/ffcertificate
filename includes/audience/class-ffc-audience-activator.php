@@ -419,6 +419,8 @@ class AudienceActivator {
             self::migrate_schedule_audience_badge_format_column();
             self::migrate_schedule_booking_label_columns();
         }
+
+        self::migrate_audience_self_join_column();
     }
 
     /**
@@ -618,6 +620,46 @@ class AudienceActivator {
         $wpdb->query(
             "ALTER TABLE {$table_name}
             ADD COLUMN audience_badge_format enum('name','parent_name') DEFAULT 'name' COMMENT 'How audience badges display: name only or parent: child'"
+        );
+    }
+
+    /**
+     * Migrate audiences table to add allow_self_join column
+     *
+     * When enabled, logged-in users can join/leave the audience group
+     * from their dashboard (max 2 groups per user).
+     *
+     * @since 4.9.9
+     * @return void
+     */
+    private static function migrate_audience_self_join_column(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_audiences';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
+        if ( $table_exists !== $table_name ) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $column_exists = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'allow_self_join'",
+                DB_NAME,
+                $table_name
+            )
+        );
+
+        if ( ! empty( $column_exists ) ) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $wpdb->query(
+            "ALTER TABLE {$table_name}
+            ADD COLUMN allow_self_join tinyint(1) DEFAULT 0 COMMENT 'Allow users to join/leave from dashboard'"
         );
     }
 

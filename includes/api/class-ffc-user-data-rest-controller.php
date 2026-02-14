@@ -89,6 +89,24 @@ class UserDataRestController {
             'callback' => array($this, 'get_user_summary'),
             'permission_callback' => 'is_user_logged_in',
         ));
+
+        register_rest_route($this->namespace, '/user/joinable-groups', array(
+            'methods' => \WP_REST_Server::READABLE,
+            'callback' => array($this, 'get_joinable_groups'),
+            'permission_callback' => 'is_user_logged_in',
+        ));
+
+        register_rest_route($this->namespace, '/user/audience-group/join', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'join_audience_group'),
+            'permission_callback' => 'is_user_logged_in',
+        ));
+
+        register_rest_route($this->namespace, '/user/audience-group/leave', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'leave_audience_group'),
+            'permission_callback' => 'is_user_logged_in',
+        ));
     }
 
     /**
@@ -1054,5 +1072,213 @@ class UserDataRestController {
                 'upcoming_group_events' => 0,
             ));
         }
+    }
+
+    /**
+     * Maximum number of self-join groups a user can belong to
+     */
+    private const MAX_SELF_JOIN_GROUPS = 2;
+
+    /**
+     * GET /user/joinable-groups
+     *
+     * Lists audience groups that allow self-join, with the user's current membership status.
+     *
+     * @since 4.9.9
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function get_joinable_groups($request) {
+        global $wpdb;
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
+        }
+
+        $audiences_table = $wpdb->prefix . 'ffc_audiences';
+        $members_table = $wpdb->prefix . 'ffc_audience_members';
+
+        // Check tables exist
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if (!$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $audiences_table))) {
+            return rest_ensure_response(array('groups' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
+        }
+
+        // Check if allow_self_join column exists
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $col_exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'allow_self_join'",
+            DB_NAME, $audiences_table
+        ));
+        if (!$col_exists) {
+            return rest_ensure_response(array('groups' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
+        }
+
+        // Get all self-joinable groups with membership status
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $groups = $wpdb->get_results($wpdb->prepare(
+            "SELECT a.id, a.name, a.color,
+                    CASE WHEN m.id IS NOT NULL THEN 1 ELSE 0 END AS is_member
+             FROM {$audiences_table} a
+             LEFT JOIN {$members_table} m ON m.audience_id = a.id AND m.user_id = %d
+             WHERE a.allow_self_join = 1 AND a.status = 'active'
+             ORDER BY a.name ASC",
+            $user_id
+        ), ARRAY_A);
+
+        // Count how many self-joinable groups the user is currently in
+        $joined_count = 0;
+        foreach ($groups as &$g) {
+            $g['id'] = (int) $g['id'];
+            $g['is_member'] = (bool) $g['is_member'];
+            if ($g['is_member']) {
+                $joined_count++;
+            }
+        }
+        unset($g);
+
+        return rest_ensure_response(array(
+            'groups' => $groups,
+            'joined_count' => $joined_count,
+            'max_groups' => self::MAX_SELF_JOIN_GROUPS,
+        ));
+    }
+
+    /**
+     * POST /user/audience-group/join
+     *
+     * Join a self-joinable audience group. Max 2 self-join groups per user.
+     *
+     * @since 4.9.9
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function join_audience_group($request) {
+        global $wpdb;
+        $user_id = get_current_user_id();
+        $group_id = absint($request->get_param('group_id'));
+
+        if (!$user_id) {
+            return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
+        }
+
+        if (!$group_id) {
+            return new \WP_Error('missing_group', __('Group ID is required', 'ffcertificate'), array('status' => 400));
+        }
+
+        $audiences_table = $wpdb->prefix . 'ffc_audiences';
+        $members_table = $wpdb->prefix . 'ffc_audience_members';
+
+        // Verify group exists, is active, and allows self-join
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $group = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, name FROM {$audiences_table} WHERE id = %d AND status = 'active' AND allow_self_join = 1",
+            $group_id
+        ));
+
+        if (!$group) {
+            return new \WP_Error('invalid_group', __('Group not found or does not allow self-join', 'ffcertificate'), array('status' => 404));
+        }
+
+        // Check already member
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $already = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$members_table} WHERE audience_id = %d AND user_id = %d",
+            $group_id, $user_id
+        ));
+
+        if ($already) {
+            return new \WP_Error('already_member', __('You are already a member of this group', 'ffcertificate'), array('status' => 409));
+        }
+
+        // Count current self-join memberships
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $current_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$members_table} m
+             INNER JOIN {$audiences_table} a ON a.id = m.audience_id
+             WHERE m.user_id = %d AND a.allow_self_join = 1",
+            $user_id
+        ));
+
+        if ($current_count >= self::MAX_SELF_JOIN_GROUPS) {
+            return new \WP_Error(
+                'max_groups_reached',
+                /* translators: %d: maximum number of groups */
+                sprintf(__('You can join a maximum of %d groups. Leave one first.', 'ffcertificate'), self::MAX_SELF_JOIN_GROUPS),
+                array('status' => 422)
+            );
+        }
+
+        // Join the group
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->insert($members_table, array(
+            'audience_id' => $group_id,
+            'user_id' => $user_id,
+        ), array('%d', '%d'));
+
+        // Grant audience capabilities if needed
+        if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
+            \FreeFormCertificate\UserDashboard\UserManager::grant_audience_capabilities($user_id);
+        }
+
+        return rest_ensure_response(array(
+            'success' => true,
+            /* translators: %s: group name */
+            'message' => sprintf(__('You joined "%s"!', 'ffcertificate'), $group->name),
+        ));
+    }
+
+    /**
+     * POST /user/audience-group/leave
+     *
+     * Leave a self-joinable audience group.
+     *
+     * @since 4.9.9
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function leave_audience_group($request) {
+        global $wpdb;
+        $user_id = get_current_user_id();
+        $group_id = absint($request->get_param('group_id'));
+
+        if (!$user_id) {
+            return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
+        }
+
+        if (!$group_id) {
+            return new \WP_Error('missing_group', __('Group ID is required', 'ffcertificate'), array('status' => 400));
+        }
+
+        $audiences_table = $wpdb->prefix . 'ffc_audiences';
+        $members_table = $wpdb->prefix . 'ffc_audience_members';
+
+        // Verify group allows self-join (can only leave self-joinable groups)
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $group = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, name FROM {$audiences_table} WHERE id = %d AND allow_self_join = 1",
+            $group_id
+        ));
+
+        if (!$group) {
+            return new \WP_Error('invalid_group', __('Group not found or cannot be left by user', 'ffcertificate'), array('status' => 404));
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $deleted = $wpdb->delete($members_table, array(
+            'audience_id' => $group_id,
+            'user_id' => $user_id,
+        ), array('%d', '%d'));
+
+        if (!$deleted) {
+            return new \WP_Error('not_member', __('You are not a member of this group', 'ffcertificate'), array('status' => 404));
+        }
+
+        return rest_ensure_response(array(
+            'success' => true,
+            /* translators: %s: group name */
+            'message' => sprintf(__('You left "%s".', 'ffcertificate'), $group->name),
+        ));
     }
 }

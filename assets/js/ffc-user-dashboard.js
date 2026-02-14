@@ -228,7 +228,7 @@
             $(document).on('click', '.ffc-password-save-btn', function(e) { e.preventDefault(); FFCDashboard.changePassword(); });
             $(document).on('click', '.ffc-password-toggle-btn', function(e) {
                 e.preventDefault();
-                $(this).closest('.ffc-profile-section').find('.ffc-password-form').toggle();
+                $('#tab-profile .ffc-password-form').slideToggle(200);
             });
 
             // LGPD buttons
@@ -238,6 +238,18 @@
                 if (confirm(ffcDashboard.strings.confirmDeletion || 'Are you sure?')) {
                     FFCDashboard.privacyRequest('remove_personal_data');
                 }
+            });
+
+            // Audience self-join
+            $(document).on('click', '.ffc-audience-join-btn', function(e) {
+                e.preventDefault();
+                var id = $(this).data('id');
+                FFCDashboard.joinAudienceGroup(id);
+            });
+            $(document).on('click', '.ffc-audience-leave-btn', function(e) {
+                e.preventDefault();
+                var id = $(this).data('id');
+                FFCDashboard.leaveAudienceGroup(id);
             });
 
             // Notification toggles
@@ -966,17 +978,17 @@
 
             html += '</div>'; // .ffc-profile-info
 
-            // Edit button
+            // Action buttons bar
             if (isOwn) {
-                html += '<button type="button" class="button ffc-profile-edit-btn" style="margin-top: 15px;">' + (s.editProfile || 'Edit Profile') + '</button>';
+                html += '<div class="ffc-profile-actions">';
+                html += '<button type="button" class="button button-primary ffc-profile-edit-btn">' + (s.editProfile || 'Edit Profile') + '</button>';
+                html += '<button type="button" class="button ffc-password-toggle-btn">' + (s.changePassword || 'Change Password') + '</button>';
+                html += '</div>';
             }
 
-            // ---- Security section (password change) ----
+            // ---- Password form (hidden until toggle) ----
             if (isOwn) {
-                html += '<div class="ffc-profile-section">';
-                html += '<h3>' + (s.securitySection || 'Security') + '</h3>';
-                html += '<button type="button" class="button ffc-password-toggle-btn">' + (s.changePassword || 'Change Password') + '</button>';
-                html += '<div class="ffc-password-form" style="display: none; margin-top: 15px;">';
+                html += '<div class="ffc-password-form" style="display: none;">';
                 html += '<div class="ffc-profile-field"><label for="ffc-current-password">' + (s.currentPassword || 'Current Password') + '</label>';
                 html += '<input type="password" id="ffc-current-password" autocomplete="current-password" /></div>';
                 html += '<div class="ffc-profile-field"><label for="ffc-new-password">' + (s.newPassword || 'New Password') + '</label>';
@@ -985,7 +997,13 @@
                 html += '<input type="password" id="ffc-confirm-password" autocomplete="new-password" /></div>';
                 html += '<button type="button" class="button button-primary ffc-password-save-btn">' + (s.save || 'Save') + '</button>';
                 html += '<span class="ffc-password-status" style="margin-left: 10px;"></span>';
-                html += '</div></div>';
+                html += '</div>';
+            }
+
+            // ---- Audience self-join (loaded async) ----
+            if (isOwn) {
+                html += '<div class="ffc-audience-join-section" id="ffc-audience-join-section"></div>';
+                setTimeout(function() { FFCDashboard.loadJoinableGroups(); }, 0);
             }
 
             // ---- Notification preferences ----
@@ -1086,6 +1104,111 @@
                     if (xhr.responseJSON && xhr.responseJSON.message) { msg = xhr.responseJSON.message; }
                     $status.text(msg).css('color', '#d63638');
                     $saveBtn.prop('disabled', false);
+                }
+            });
+        },
+
+        // ---- Audience self-join ----
+
+        loadJoinableGroups: function() {
+            var $section = $('#ffc-audience-join-section');
+            if ($section.length === 0) return;
+
+            $.ajax({
+                url: ffcDashboard.restUrl + 'user/joinable-groups',
+                method: 'GET',
+                beforeSend: function(xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
+                success: function(data) {
+                    FFCDashboard.renderJoinableGroups(data);
+                },
+                error: function() {
+                    $section.empty();
+                }
+            });
+        },
+
+        renderJoinableGroups: function(data) {
+            var $section = $('#ffc-audience-join-section');
+            var groups = data.groups || [];
+
+            if (groups.length === 0) {
+                $section.empty();
+                return;
+            }
+
+            var s = ffcDashboard.strings;
+            var html = '<h3>' + (s.joinGroups || 'Join Groups') + '</h3>';
+            html += '<p class="ffc-audience-limit-msg">' +
+                (s.joinGroupsDesc || 'Select up to {max} groups to participate in collective calendars.')
+                    .replace('{max}', data.max_groups) +
+                '</p>';
+            html += '<div class="ffc-audience-join-list">';
+
+            groups.forEach(function(g) {
+                html += '<div class="ffc-audience-join-item' + (g.is_member ? ' is-member' : '') + '" data-group-id="' + g.id + '">';
+                html += '<span class="ffc-audience-name">';
+                html += '<span class="ffc-audience-dot" style="background-color: ' + (g.color || '#2271b1') + ';"></span>';
+                html += esc(g.name);
+                html += '</span>';
+
+                if (g.is_member) {
+                    html += '<button type="button" class="button ffc-audience-leave-btn" data-id="' + g.id + '">' + (s.leaveGroup || 'Leave') + '</button>';
+                } else {
+                    var disabled = (data.joined_count >= data.max_groups) ? ' disabled' : '';
+                    html += '<button type="button" class="button button-primary ffc-audience-join-btn" data-id="' + g.id + '"' + disabled + '>' + (s.joinGroup || 'Join') + '</button>';
+                }
+                html += '</div>';
+            });
+
+            html += '</div>';
+            $section.html(html);
+        },
+
+        joinAudienceGroup: function(groupId) {
+            var $btn = $('.ffc-audience-join-btn[data-id="' + groupId + '"]');
+            $btn.prop('disabled', true).text(ffcDashboard.strings.saving || 'Saving...');
+
+            $.ajax({
+                url: ffcDashboard.restUrl + 'user/audience-group/join',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ group_id: groupId }),
+                beforeSend: function(xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
+                success: function() {
+                    // Reload profile to update audience groups display
+                    FFCDashboard._profileData = null;
+                    FFCDashboard._audienceData = null;
+                    FFCDashboard.loadProfile();
+                },
+                error: function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
+                    alert(msg);
+                    $btn.prop('disabled', false).text(ffcDashboard.strings.joinGroup || 'Join');
+                }
+            });
+        },
+
+        leaveAudienceGroup: function(groupId) {
+            if (!confirm(ffcDashboard.strings.confirmLeaveGroup || 'Leave this group?')) return;
+
+            var $btn = $('.ffc-audience-leave-btn[data-id="' + groupId + '"]');
+            $btn.prop('disabled', true).text(ffcDashboard.strings.saving || 'Saving...');
+
+            $.ajax({
+                url: ffcDashboard.restUrl + 'user/audience-group/leave',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ group_id: groupId }),
+                beforeSend: function(xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
+                success: function() {
+                    FFCDashboard._profileData = null;
+                    FFCDashboard._audienceData = null;
+                    FFCDashboard.loadProfile();
+                },
+                error: function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
+                    alert(msg);
+                    $btn.prop('disabled', false).text(ffcDashboard.strings.leaveGroup || 'Leave');
                 }
             });
         },

@@ -169,21 +169,27 @@ class AudienceRepository {
             'color' => '#3788d8',
             'parent_id' => null,
             'status' => 'active',
+            'allow_self_join' => 0,
             'created_by' => get_current_user_id(),
         );
         $data = wp_parse_args($data, $defaults);
 
-        $result = $wpdb->insert(
-            $table,
-            array(
-                'name' => $data['name'],
-                'color' => $data['color'],
-                'parent_id' => $data['parent_id'],
-                'status' => $data['status'],
-                'created_by' => $data['created_by'],
-            ),
-            array('%s', '%s', '%d', '%s', '%d')
+        $insert_data = array(
+            'name' => $data['name'],
+            'color' => $data['color'],
+            'parent_id' => $data['parent_id'],
+            'status' => $data['status'],
+            'created_by' => $data['created_by'],
         );
+        $insert_format = array('%s', '%s', '%d', '%s', '%d');
+
+        // Only include allow_self_join if column exists (migration may not have run)
+        if (isset($data['allow_self_join'])) {
+            $insert_data['allow_self_join'] = (int) $data['allow_self_join'];
+            $insert_format[] = '%d';
+        }
+
+        $result = $wpdb->insert($table, $insert_data, $insert_format);
 
         return $result ? $wpdb->insert_id : false;
     }
@@ -215,6 +221,7 @@ class AudienceRepository {
             'color' => '%s',
             'parent_id' => '%d',
             'status' => '%s',
+            'allow_self_join' => '%d',
         );
 
         foreach ($data as $key => $value) {

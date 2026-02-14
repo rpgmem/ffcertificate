@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.9.9
+Stable tag: 4.9.10
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -154,6 +154,17 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.9.10 (2026-02-14) =
+
+Profile UX improvements and audience group self-assignment.
+
+* Improved: **Edit Profile and Change Password buttons** are now in a prominent action bar below profile fields
+* Improved: Password form has a styled container with slide animation
+* New: **Audience group self-join** — users can join/leave groups marked as "Allow Self-Join" directly from their dashboard (max 2 per user)
+* New: `allow_self_join` column on audiences table with admin toggle in audience edit form
+* New: REST endpoints: `GET /user/joinable-groups`, `POST /user/audience-group/join`, `POST /user/audience-group/leave`
+* New: Audience capabilities are automatically granted when user joins a group
 
 = 4.9.9 (2026-02-14) =
 

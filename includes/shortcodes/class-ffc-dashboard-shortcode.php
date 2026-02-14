@@ -453,6 +453,12 @@ class DashboardShortcode {
                 'privacyRequestSent' => __('Request sent! The administrator will review it.', 'ffcertificate'),
                 'privacyRequestError' => __('Error sending request', 'ffcertificate'),
                 'confirmDeletion' => __('Are you sure you want to request deletion of your personal data? This will be reviewed by an administrator.', 'ffcertificate'),
+                // Audience self-join
+                'joinGroups' => __('Join Groups', 'ffcertificate'),
+                'joinGroupsDesc' => __('Select up to {max} groups to participate in collective calendars.', 'ffcertificate'),
+                'joinGroup' => __('Join', 'ffcertificate'),
+                'leaveGroup' => __('Leave', 'ffcertificate'),
+                'confirmLeaveGroup' => __('Are you sure you want to leave this group?', 'ffcertificate'),
                 // Summary
                 'summaryTitle' => __('Overview', 'ffcertificate'),
                 'totalCertificates' => __('Certificates', 'ffcertificate'),
