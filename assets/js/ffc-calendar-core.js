@@ -75,6 +75,8 @@
 
         this.currentDate = new Date();
         this.selectedDate = null;
+        this._lastRenderedYear = null;
+        this._lastRenderedMonth = null;
 
         this.init();
     };
@@ -294,9 +296,14 @@
 
             this.$days.html(html);
 
-            // Callback
+            // Fire onMonthChange only when year/month actually changed
+            // Prevents infinite loop: onMonthChange → fetch → refresh → renderDays → onMonthChange
             if (typeof this.options.onMonthChange === 'function') {
-                this.options.onMonthChange(year, month + 1);
+                if (this._lastRenderedYear !== year || this._lastRenderedMonth !== month) {
+                    this._lastRenderedYear = year;
+                    this._lastRenderedMonth = month;
+                    this.options.onMonthChange(year, month + 1);
+                }
             }
         },
 
