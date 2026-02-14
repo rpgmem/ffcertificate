@@ -528,7 +528,7 @@
                 html += '<td>' + cert.auth_code + '</td>';
                 html += '<td>';
                 if (cert.magic_link) {
-                    html += '<a href="' + cert.magic_link + '" class="button" target="_blank">' + ffcDashboard.strings.downloadPdf + '</a>';
+                    html += '<a href="' + cert.magic_link + '" class="button ffc-btn-pdf" target="_blank">' + ffcDashboard.strings.downloadPdf + '</a>';
                 }
                 html += '</td>';
                 html += '</tr>';
@@ -662,7 +662,7 @@
                 html += '<td>';
 
                 if (apt.receipt_url) {
-                    html += '<a href="' + apt.receipt_url + '" class="button" target="_blank" style="margin-right: 5px;">' + (ffcDashboard.strings.viewReceipt || 'View Receipt') + '</a>';
+                    html += '<a href="' + apt.receipt_url + '" class="button ffc-btn-receipt" target="_blank">' + (ffcDashboard.strings.viewReceipt || 'View Receipt') + '</a>';
                 }
 
                 if (apt.can_cancel) {

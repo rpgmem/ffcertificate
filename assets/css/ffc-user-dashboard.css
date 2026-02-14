@@ -426,12 +426,80 @@
     font-weight: 600;
 }
 
-.ffc-certificates-table .button {
-    padding: 5px 12px;
-    font-size: 12px;
-    text-decoration: none;
+/* ==========================================================================
+   ACTION BUTTONS (Ver PDF, Ver Comprovante)
+   ========================================================================== */
+
+.ffc-btn-pdf,
+.ffc-btn-receipt {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 14px !important;
+    font-size: 12px !important;
+    font-weight: 500;
+    text-decoration: none !important;
     white-space: nowrap;
+    border-radius: 4px !important;
+    transition: all 0.15s;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.ffc-btn-pdf {
+    background: #c0392b !important;
+    color: #fff !important;
+    border: 1px solid #c0392b !important;
+}
+
+.ffc-btn-pdf:hover {
+    background: #a93226 !important;
+    border-color: #a93226 !important;
+    color: #fff !important;
+}
+
+.ffc-btn-pdf::before {
+    content: '';
     display: inline-block;
+    width: 14px;
+    height: 14px;
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4zm5.5 1.5v3h3l-3-3zM5.5 8a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H6.75v1h.75a.5.5 0 0 1 0 1h-.75v1.5a.5.5 0 0 1-1 0V8zm3.5-.5a.5.5 0 0 0-.5.5v3.5a.5.5 0 0 0 .5.5h.5a1.5 1.5 0 0 0 0-3H9.5v-1a.5.5 0 0 0-.5-.5z'/%3E%3C/svg%3E") no-repeat center;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4zm5.5 1.5v3h3l-3-3zM5.5 8a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H6.75v1h.75a.5.5 0 0 1 0 1h-.75v1.5a.5.5 0 0 1-1 0V8zm3.5-.5a.5.5 0 0 0-.5.5v3.5a.5.5 0 0 0 .5.5h.5a1.5 1.5 0 0 0 0-3H9.5v-1a.5.5 0 0 0-.5-.5z'/%3E%3C/svg%3E") no-repeat center;
+    flex-shrink: 0;
+}
+
+.ffc-btn-receipt {
+    background: var(--ffc-primary) !important;
+    color: #fff !important;
+    border: 1px solid var(--ffc-primary) !important;
+}
+
+.ffc-btn-receipt:hover {
+    background: var(--ffc-primary-hover) !important;
+    border-color: var(--ffc-primary-hover) !important;
+    color: #fff !important;
+}
+
+.ffc-btn-receipt::before {
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 13 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zM4 5a.5.5 0 0 0 0 1h8a.5.5 0 0 0 0-1H4zm0 2.5a.5.5 0 0 0 0 1h8a.5.5 0 0 0 0-1H4zm0 2.5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1H4z'/%3E%3C/svg%3E") no-repeat center;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 13 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zM4 5a.5.5 0 0 0 0 1h8a.5.5 0 0 0 0-1H4zm0 2.5a.5.5 0 0 0 0 1h8a.5.5 0 0 0 0-1H4zm0 2.5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1H4z'/%3E%3C/svg%3E") no-repeat center;
+    flex-shrink: 0;
+}
+
+/* Action cell spacing */
+.ffc-certificates-table td:last-child,
+.ffc-appointments-table td:last-child {
+    white-space: nowrap;
+}
+
+.ffc-appointments-table td:last-child > * + * {
+    margin-left: 6px;
 }
 
 /* ==========================================================================
