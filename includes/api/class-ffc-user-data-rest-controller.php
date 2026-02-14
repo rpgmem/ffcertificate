@@ -1115,31 +1115,65 @@ class UserDataRestController {
             return rest_ensure_response(array('groups' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
         }
 
-        // Get all self-joinable groups with membership status
+        // Get parent audiences that have allow_self_join enabled
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $groups = $wpdb->get_results($wpdb->prepare(
-            "SELECT a.id, a.name, a.color,
+        $parents = $wpdb->get_results(
+            "SELECT id, name, color
+             FROM {$audiences_table}
+             WHERE allow_self_join = 1 AND parent_id IS NULL AND status = 'active'
+             ORDER BY name ASC",
+            ARRAY_A
+        );
+
+        if (empty($parents)) {
+            return rest_ensure_response(array('parents' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
+        }
+
+        $parent_ids = array_map('intval', array_column($parents, 'id'));
+        $placeholders = implode(',', array_fill(0, count($parent_ids), '%d'));
+
+        // Get children of those parents, with membership status
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $children = $wpdb->get_results($wpdb->prepare(
+            "SELECT a.id, a.name, a.color, a.parent_id,
                     CASE WHEN m.id IS NOT NULL THEN 1 ELSE 0 END AS is_member
              FROM {$audiences_table} a
              LEFT JOIN {$members_table} m ON m.audience_id = a.id AND m.user_id = %d
-             WHERE a.allow_self_join = 1 AND a.status = 'active'
+             WHERE a.parent_id IN ({$placeholders}) AND a.allow_self_join = 1 AND a.status = 'active'
              ORDER BY a.name ASC",
-            $user_id
+            array_merge(array($user_id), $parent_ids)
         ), ARRAY_A);
 
-        // Count how many self-joinable groups the user is currently in
+        // Group children by parent
+        $children_by_parent = array();
         $joined_count = 0;
-        foreach ($groups as &$g) {
-            $g['id'] = (int) $g['id'];
-            $g['is_member'] = (bool) $g['is_member'];
-            if ($g['is_member']) {
+        foreach ($children as $child) {
+            $pid = (int) $child['parent_id'];
+            $child['id'] = (int) $child['id'];
+            $child['is_member'] = (bool) $child['is_member'];
+            unset($child['parent_id']);
+            if ($child['is_member']) {
                 $joined_count++;
             }
+            $children_by_parent[$pid][] = $child;
         }
-        unset($g);
+
+        // Build hierarchical response (only include parents that have children)
+        $result = array();
+        foreach ($parents as $p) {
+            $pid = (int) $p['id'];
+            if (!empty($children_by_parent[$pid])) {
+                $result[] = array(
+                    'id' => $pid,
+                    'name' => $p['name'],
+                    'color' => $p['color'],
+                    'children' => $children_by_parent[$pid],
+                );
+            }
+        }
 
         return rest_ensure_response(array(
-            'groups' => $groups,
+            'parents' => $result,
             'joined_count' => $joined_count,
             'max_groups' => self::MAX_SELF_JOIN_GROUPS,
         ));
@@ -1170,10 +1204,10 @@ class UserDataRestController {
         $audiences_table = $wpdb->prefix . 'ffc_audiences';
         $members_table = $wpdb->prefix . 'ffc_audience_members';
 
-        // Verify group exists, is active, and allows self-join
+        // Verify group is a child, active, and allows self-join (only children can be joined)
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $group = $wpdb->get_row($wpdb->prepare(
-            "SELECT id, name FROM {$audiences_table} WHERE id = %d AND status = 'active' AND allow_self_join = 1",
+            "SELECT id, name FROM {$audiences_table} WHERE id = %d AND status = 'active' AND allow_self_join = 1 AND parent_id IS NOT NULL",
             $group_id
         ));
 
@@ -1192,12 +1226,12 @@ class UserDataRestController {
             return new \WP_Error('already_member', __('You are already a member of this group', 'ffcertificate'), array('status' => 409));
         }
 
-        // Count current self-join memberships
+        // Count current self-join memberships (only children count)
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $current_count = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$members_table} m
              INNER JOIN {$audiences_table} a ON a.id = m.audience_id
-             WHERE m.user_id = %d AND a.allow_self_join = 1",
+             WHERE m.user_id = %d AND a.allow_self_join = 1 AND a.parent_id IS NOT NULL",
             $user_id
         ));
 
@@ -1254,10 +1288,10 @@ class UserDataRestController {
         $audiences_table = $wpdb->prefix . 'ffc_audiences';
         $members_table = $wpdb->prefix . 'ffc_audience_members';
 
-        // Verify group allows self-join (can only leave self-joinable groups)
+        // Verify group is a self-joinable child (can only leave children)
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $group = $wpdb->get_row($wpdb->prepare(
-            "SELECT id, name FROM {$audiences_table} WHERE id = %d AND allow_self_join = 1",
+            "SELECT id, name FROM {$audiences_table} WHERE id = %d AND allow_self_join = 1 AND parent_id IS NOT NULL",
             $group_id
         ));
 

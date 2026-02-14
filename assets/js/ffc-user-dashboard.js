@@ -1129,9 +1129,9 @@
 
         renderJoinableGroups: function(data) {
             var $section = $('#ffc-audience-join-section');
-            var groups = data.groups || [];
+            var parents = data.parents || [];
 
-            if (groups.length === 0) {
+            if (parents.length === 0) {
                 $section.empty();
                 return;
             }
@@ -1142,25 +1142,34 @@
                 (s.joinGroupsDesc || 'Select up to {max} groups to participate in collective calendars.')
                     .replace('{max}', data.max_groups) +
                 '</p>';
-            html += '<div class="ffc-audience-join-list">';
 
-            groups.forEach(function(g) {
-                html += '<div class="ffc-audience-join-item' + (g.is_member ? ' is-member' : '') + '" data-group-id="' + g.id + '">';
-                html += '<span class="ffc-audience-name">';
-                html += '<span class="ffc-audience-dot" style="background-color: ' + (g.color || '#2271b1') + ';"></span>';
-                html += esc(g.name);
-                html += '</span>';
-
-                if (g.is_member) {
-                    html += '<button type="button" class="button ffc-audience-leave-btn" data-id="' + g.id + '">' + (s.leaveGroup || 'Leave') + '</button>';
-                } else {
-                    var disabled = (data.joined_count >= data.max_groups) ? ' disabled' : '';
-                    html += '<button type="button" class="button button-primary ffc-audience-join-btn" data-id="' + g.id + '"' + disabled + '>' + (s.joinGroup || 'Join') + '</button>';
-                }
+            parents.forEach(function(parent) {
+                html += '<div class="ffc-audience-parent-group">';
+                html += '<div class="ffc-audience-parent-header">';
+                html += '<span class="ffc-audience-dot" style="background-color: ' + (parent.color || '#2271b1') + ';"></span>';
+                html += '<span>' + esc(parent.name) + '</span>';
                 html += '</div>';
+                html += '<div class="ffc-audience-children-list">';
+
+                (parent.children || []).forEach(function(child) {
+                    html += '<div class="ffc-audience-join-item' + (child.is_member ? ' is-member' : '') + '" data-group-id="' + child.id + '">';
+                    html += '<span class="ffc-audience-name">';
+                    html += '<span class="ffc-audience-dot" style="background-color: ' + (child.color || parent.color || '#2271b1') + ';"></span>';
+                    html += esc(child.name);
+                    html += '</span>';
+
+                    if (child.is_member) {
+                        html += '<button type="button" class="button ffc-audience-leave-btn" data-id="' + child.id + '">' + (s.leaveGroup || 'Leave') + '</button>';
+                    } else {
+                        var disabled = (data.joined_count >= data.max_groups) ? ' disabled' : '';
+                        html += '<button type="button" class="button button-primary ffc-audience-join-btn" data-id="' + child.id + '"' + disabled + '>' + (s.joinGroup || 'Join') + '</button>';
+                    }
+                    html += '</div>';
+                });
+
+                html += '</div></div>';
             });
 
-            html += '</div>';
             $section.html(html);
         },
 

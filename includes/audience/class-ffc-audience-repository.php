@@ -244,6 +244,26 @@ class AudienceRepository {
     }
 
     /**
+     * Cascade allow_self_join flag from parent to all children
+     *
+     * @since 4.9.10
+     * @param int $parent_id Parent audience ID
+     * @param int $value     1 or 0
+     * @return void
+     */
+    public static function cascade_self_join(int $parent_id, int $value): void {
+        global $wpdb;
+        $table = self::get_table_name();
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $wpdb->query($wpdb->prepare(
+            "UPDATE {$table} SET allow_self_join = %d WHERE parent_id = %d",
+            $value,
+            $parent_id
+        ));
+    }
+
+    /**
      * Delete an audience
      *
      * Note: This also deletes all child audiences and member associations.

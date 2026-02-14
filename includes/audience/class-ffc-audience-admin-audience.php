@@ -251,17 +251,33 @@ class AudienceAdminAudience {
                         </select>
                     </td>
                 </tr>
+                <?php
+                $is_child = !empty($audience->parent_id);
+                $is_self_join = !empty($audience->allow_self_join);
+                ?>
                 <tr>
                     <th scope="row">
                         <label for="audience_self_join"><?php esc_html_e('Allow Self-Join', 'ffcertificate'); ?></label>
                     </th>
                     <td>
-                        <label>
-                            <input type="checkbox" name="audience_self_join" id="audience_self_join" value="1"
-                                <?php checked(!empty($audience->allow_self_join)); ?>>
-                            <?php esc_html_e('Users can join/leave this group from their dashboard', 'ffcertificate'); ?>
-                        </label>
-                        <p class="description"><?php esc_html_e('When enabled, users can self-assign to this group (max 2 groups per user).', 'ffcertificate'); ?></p>
+                        <?php if ($is_child) : ?>
+                            <p class="description">
+                                <?php if ($is_self_join) : ?>
+                                    <span style="color: #00a32a; font-weight: 600;">&check;</span>
+                                    <?php esc_html_e('Inherited from parent audience. Users can join this group from their dashboard.', 'ffcertificate'); ?>
+                                <?php else : ?>
+                                    <?php esc_html_e('This setting is controlled by the parent audience.', 'ffcertificate'); ?>
+                                <?php endif; ?>
+                            </p>
+                            <input type="hidden" name="audience_self_join" value="<?php echo esc_attr($is_self_join ? '1' : '0'); ?>">
+                        <?php else : ?>
+                            <label>
+                                <input type="checkbox" name="audience_self_join" id="audience_self_join" value="1"
+                                    <?php checked($is_self_join); ?>>
+                                <?php esc_html_e('Users can join/leave child groups from their dashboard', 'ffcertificate'); ?>
+                            </label>
+                            <p class="description"><?php esc_html_e('When enabled, all child audiences inherit this setting. Users can join up to 2 child groups.', 'ffcertificate'); ?></p>
+                        <?php endif; ?>
                     </td>
                 </tr>
             </tbody></table>
@@ -398,10 +414,20 @@ class AudienceAdminAudience {
 
             if ($id > 0) {
                 AudienceRepository::update($id, $data);
+
+                // Cascade allow_self_join to children if this is a parent
+                if (empty($data['parent_id'])) {
+                    AudienceRepository::cascade_self_join($id, (int) $data['allow_self_join']);
+                }
+
                 add_settings_error('ffc_audience', 'ffc_message', __('Audience updated successfully.', 'ffcertificate'), 'success');
             } else {
                 $new_id = AudienceRepository::create($data);
                 if ($new_id) {
+                    // Cascade to children (if creating a parent from template/import)
+                    if (empty($data['parent_id'])) {
+                        AudienceRepository::cascade_self_join($new_id, (int) $data['allow_self_join']);
+                    }
                     wp_safe_redirect(admin_url('admin.php?page=' . $this->menu_slug . '-audiences&action=edit&id=' . $new_id . '&message=created'));
                     exit;
                 }
