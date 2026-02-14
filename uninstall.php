@@ -38,6 +38,8 @@ $ffcertificate_tables = array(
     // Rate limiting
     $wpdb->prefix . 'ffc_rate_limit_logs',
     $wpdb->prefix . 'ffc_rate_limits',
+    // User profiles
+    $wpdb->prefix . 'ffc_user_profiles',
     // Core
     $wpdb->prefix . 'ffc_activity_log',
     $wpdb->prefix . 'ffc_submissions',
@@ -72,6 +74,8 @@ $ffcertificate_options = array(
     'ffc_migration_user_capabilities_changes',
     'ffc_migration_user_capabilities_last_run',
     'ffc_columns_dropped_date',
+    'ffc_migration_user_profiles_errors',
+    'ffc_migration_user_profiles_last_run',
 );
 
 foreach ( $ffcertificate_options as $ffcertificate_option ) {

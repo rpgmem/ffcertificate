@@ -250,6 +250,12 @@ class UserDataRestController {
                 );
             }
 
+            // Load profile from ffc_user_profiles (primary) with wp_users fallback
+            $profile = array();
+            if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
+                $profile = \FreeFormCertificate\UserDashboard\UserManager::get_profile($user_id);
+            }
+
             $cpfs_masked = array();
             if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
                 $cpfs_masked = \FreeFormCertificate\UserDashboard\UserManager::get_user_cpfs_masked($user_id);
@@ -297,12 +303,15 @@ class UserDataRestController {
 
             return rest_ensure_response(array(
                 'user_id' => $user_id,
-                'display_name' => $user->display_name,
+                'display_name' => !empty($profile['display_name']) ? $profile['display_name'] : $user->display_name,
                 'names' => $names,
                 'email' => $user->user_email,
                 'emails' => $emails,
                 'cpf_masked' => !empty($cpfs_masked) ? $cpfs_masked[0] : __('Not found', 'ffcertificate'),
                 'cpfs_masked' => $cpfs_masked,
+                'phone' => $profile['phone'] ?? '',
+                'department' => $profile['department'] ?? '',
+                'organization' => $profile['organization'] ?? '',
                 'member_since' => $member_since,
                 'roles' => $user->roles,
                 'audience_groups' => $audience_groups,

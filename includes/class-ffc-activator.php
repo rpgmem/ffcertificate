@@ -27,6 +27,7 @@ class Activator {
 
         self::register_user_role();
         self::create_dashboard_page();
+        self::create_user_profiles_table();
 
         if (class_exists('\FreeFormCertificate\Migrations\MigrationSelfSchedulingTables')) {
             \FreeFormCertificate\Migrations\MigrationSelfSchedulingTables::run();
@@ -265,6 +266,41 @@ class Activator {
         if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
             \FreeFormCertificate\UserDashboard\UserManager::register_role();
         }
+    }
+
+    /**
+     * Create user profiles table
+     *
+     * @since 4.9.4
+     */
+    private static function create_user_profiles_table(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_user_profiles';
+        $charset_collate = $wpdb->get_charset_collate();
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) == $table_name) {
+            return;
+        }
+
+        $sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            display_name varchar(250) DEFAULT '',
+            phone varchar(50) DEFAULT '',
+            department varchar(250) DEFAULT '',
+            organization varchar(250) DEFAULT '',
+            notes text DEFAULT NULL,
+            preferences json DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY idx_user_id (user_id)
+        ) {$charset_collate};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
+        dbDelta($sql);
     }
 
     /**

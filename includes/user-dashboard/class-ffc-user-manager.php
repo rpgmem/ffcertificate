@@ -167,6 +167,9 @@ class UserManager {
         // Sync user metadata from submission (only on creation)
         self::sync_user_metadata($user_id, $submission_data);
 
+        // Create user profile entry
+        self::create_user_profile($user_id);
+
         // Send welcome email via Email Handler (respects per-context settings)
         if (!class_exists('\FreeFormCertificate\Integrations\EmailHandler')) {
             $email_handler_file = FFC_PLUGIN_DIR . 'includes/integrations/class-ffc-email-handler.php';
@@ -243,6 +246,161 @@ class UserManager {
 
         // Store registration date
         update_user_meta($user_id, 'ffc_registration_date', current_time('mysql'));
+    }
+
+    /**
+     * Create user profile entry in ffc_user_profiles
+     *
+     * Called once during user creation. Silently skips if table doesn't exist
+     * or profile already exists (idempotent).
+     *
+     * @since 4.9.4
+     * @param int $user_id WordPress user ID
+     * @return void
+     */
+    private static function create_user_profile(int $user_id): void {
+        global $wpdb;
+        $table = $wpdb->prefix . 'ffc_user_profiles';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if (!$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table))) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE user_id = %d",
+            $user_id
+        ));
+
+        if ($exists) {
+            return;
+        }
+
+        $user = get_userdata($user_id);
+        $display_name = $user ? $user->display_name : '';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+        $wpdb->insert(
+            $table,
+            array(
+                'user_id' => $user_id,
+                'display_name' => $display_name,
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql'),
+            ),
+            array('%d', '%s', '%s', '%s')
+        );
+    }
+
+    /**
+     * Get user profile from ffc_user_profiles
+     *
+     * Falls back to wp_users data if profile doesn't exist.
+     *
+     * @since 4.9.4
+     * @param int $user_id WordPress user ID
+     * @return array Profile data
+     */
+    public static function get_profile(int $user_id): array {
+        global $wpdb;
+        $table = $wpdb->prefix . 'ffc_user_profiles';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
+
+        if ($table_exists) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $profile = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$table} WHERE user_id = %d",
+                $user_id
+            ), ARRAY_A);
+
+            if ($profile) {
+                return $profile;
+            }
+        }
+
+        // Fallback to wp_users
+        $user = get_userdata($user_id);
+        if (!$user) {
+            return array();
+        }
+
+        return array(
+            'user_id' => $user_id,
+            'display_name' => $user->display_name,
+            'phone' => '',
+            'department' => '',
+            'organization' => '',
+            'notes' => '',
+            'preferences' => null,
+            'created_at' => $user->user_registered,
+            'updated_at' => $user->user_registered,
+        );
+    }
+
+    /**
+     * Update user profile in ffc_user_profiles
+     *
+     * Creates profile if it doesn't exist (upsert). Keeps wp_users.display_name in sync.
+     *
+     * @since 4.9.4
+     * @param int $user_id WordPress user ID
+     * @param array $data Profile fields to update
+     * @return bool True on success
+     */
+    public static function update_profile(int $user_id, array $data): bool {
+        global $wpdb;
+        $table = $wpdb->prefix . 'ffc_user_profiles';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if (!$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table))) {
+            return false;
+        }
+
+        $allowed = array('display_name', 'phone', 'department', 'organization', 'notes');
+        $update_data = array();
+        $formats = array();
+
+        foreach ($allowed as $field) {
+            if (isset($data[$field])) {
+                $update_data[$field] = sanitize_text_field($data[$field]);
+                $formats[] = '%s';
+            }
+        }
+
+        if (empty($update_data)) {
+            return false;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$table} WHERE user_id = %d",
+            $user_id
+        ));
+
+        if ($exists) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $result = $wpdb->update($table, $update_data, array('user_id' => $user_id), $formats, array('%d'));
+        } else {
+            $update_data['user_id'] = $user_id;
+            $update_data['created_at'] = current_time('mysql');
+            $formats[] = '%d';
+            $formats[] = '%s';
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+            $result = $wpdb->insert($table, $update_data, $formats);
+        }
+
+        // Keep wp_users.display_name in sync
+        if (isset($data['display_name'])) {
+            wp_update_user(array(
+                'ID' => $user_id,
+                'display_name' => sanitize_text_field($data['display_name']),
+            ));
+        }
+
+        return $result !== false;
     }
 
     /**

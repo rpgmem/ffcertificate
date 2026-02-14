@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.9.3
+Stable tag: 4.9.4
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -154,6 +154,19 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.9.4 (2026-02-14) =
+
+User profiles table, user deletion handling, and email change tracking.
+
+* New: **`ffc_user_profiles` table** — centralized user profile storage (display_name, phone, department, organization, notes, preferences)
+* New: **User deletion hook** — `deleted_user` action anonymizes FFC data (SET NULL on submissions/appointments/activity, DELETE on audience/profiles)
+* New: **Email change handler** — `profile_update` action reindexes `email_hash` on submissions when user email changes
+* New: **Profile methods** in UserManager — `get_profile()`, `update_profile()`, `create_user_profile()` with upsert logic
+* New: **Profile migration** — `MigrationUserProfiles` populates profiles from existing ffc_users (display_name, registration date)
+* New: **REST API profile fields** — `GET /user/profile` now returns `phone`, `department`, `organization` from profiles table
+* New: **UserCleanup class** — handles `deleted_user` and `profile_update` hooks with activity logging
+* Fix: **uninstall.php** — added `ffc_user_profiles` to DROP TABLE list and migration options to cleanup
 
 = 4.9.3 (2026-02-14) =
 

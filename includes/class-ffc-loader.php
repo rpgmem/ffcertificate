@@ -24,6 +24,7 @@ use FreeFormCertificate\Admin\AdminAjax;
 use FreeFormCertificate\API\RestController;
 use FreeFormCertificate\Shortcodes\DashboardShortcode;
 use FreeFormCertificate\UserDashboard\AccessControl;
+use FreeFormCertificate\UserDashboard\UserCleanup;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingCPT;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingEditor;
@@ -93,6 +94,7 @@ class Loader {
 
         DashboardShortcode::init();
         AccessControl::init();
+        UserCleanup::init();
 
         $this->self_scheduling_cpt              = new SelfSchedulingCPT();
         $this->self_scheduling_appointment_handler = new AppointmentHandler();
