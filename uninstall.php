@@ -132,6 +132,10 @@ $ffcertificate_caps = array(
     'ffc_book_appointments',
     'ffc_view_self_scheduling',
     'ffc_cancel_own_appointments',
+    'ffc_view_audience_bookings',
+    'ffc_scheduling_bypass',
+    'ffc_reregistration',
+    'ffc_certificate_update',
 );
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

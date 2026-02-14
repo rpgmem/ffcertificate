@@ -254,23 +254,8 @@ class AdminUserCapabilities {
             return;
         }
 
-        // Define all FFC capabilities to check
-        $all_capabilities = array(
-            // Certificate capabilities
-            'view_own_certificates',
-            'download_own_certificates',
-            'view_certificate_history',
-            // Appointment capabilities
-            'ffc_book_appointments',
-            'ffc_view_self_scheduling',
-            'ffc_cancel_own_appointments',
-            'ffc_scheduling_bypass',
-            // Audience capabilities
-            'ffc_view_audience_bookings',
-            // Future capabilities
-            'ffc_reregistration',
-            'ffc_certificate_update',
-        );
+        // Use centralized capability list from UserManager
+        $all_capabilities = \FreeFormCertificate\UserDashboard\UserManager::get_all_capabilities();
 
         // Get user
         $user = get_userdata($user_id);

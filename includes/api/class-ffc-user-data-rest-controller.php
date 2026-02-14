@@ -120,6 +120,11 @@ class UserDataRestController {
                 $user_id
             ), ARRAY_A);
 
+            // Check per-capability permissions for the target user
+            $is_admin = current_user_can('manage_options');
+            $can_download = $is_admin || user_can($user_id, 'download_own_certificates');
+            $can_view_history = $is_admin || user_can($user_id, 'view_certificate_history');
+
             $certificates = array();
 
             foreach ($submissions as $submission) {
@@ -163,9 +168,22 @@ class UserDataRestController {
                     'consent_given' => !empty($submission['consent_given']),
                     'email' => $email_display,
                     'auth_code' => $auth_code_formatted,
-                    'magic_link' => $magic_link,
-                    'pdf_url' => $magic_link,
+                    'magic_link' => $can_download ? $magic_link : '',
+                    'pdf_url' => $can_download ? $magic_link : '',
                 );
+            }
+
+            // When view_certificate_history is disabled, keep only the most recent per form
+            if (!$can_view_history && !empty($certificates)) {
+                $seen_forms = array();
+                $filtered = array();
+                foreach ($certificates as $cert) {
+                    if (!isset($seen_forms[$cert['form_id']])) {
+                        $seen_forms[$cert['form_id']] = true;
+                        $filtered[] = $cert;
+                    }
+                }
+                $certificates = $filtered;
             }
 
             return rest_ensure_response(array(

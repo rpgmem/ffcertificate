@@ -377,13 +377,8 @@ class AudienceCsvImporter {
             return $user_id;
         }
 
-        // Grant default FFC capabilities
-        $user = get_user_by('id', $user_id);
-        if ($user) {
-            $user->add_cap('view_own_certificates', true);
-            $user->add_cap('download_own_certificates', true);
-            $user->add_cap('view_certificate_history', true);
-        }
+        // Grant certificate capabilities via centralized UserManager
+        \FreeFormCertificate\UserDashboard\UserManager::grant_certificate_capabilities($user_id);
 
         // Send welcome email (respects per-context settings, default: disabled for CSV)
         if (class_exists('\FreeFormCertificate\Integrations\EmailHandler')) {

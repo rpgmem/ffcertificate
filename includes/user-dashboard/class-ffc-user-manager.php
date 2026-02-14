@@ -34,6 +34,7 @@ class UserManager {
      */
     public const CONTEXT_CERTIFICATE = 'certificate';
     public const CONTEXT_APPOINTMENT = 'appointment';
+    public const CONTEXT_AUDIENCE = 'audience';
 
     /**
      * Get or create WordPress user based on CPF/RF and email
@@ -118,6 +119,9 @@ class UserManager {
             case self::CONTEXT_APPOINTMENT:
                 self::grant_appointment_capabilities($user_id);
                 break;
+            case self::CONTEXT_AUDIENCE:
+                self::grant_audience_capabilities($user_id);
+                break;
         }
     }
 
@@ -156,9 +160,8 @@ class UserManager {
         $user = new \WP_User($user_id);
         $user->set_role('ffc_user');
 
-        // Remove all FFC capabilities first (role grants all by default)
-        // Then grant only context-specific capabilities
-        self::reset_user_ffc_capabilities($user_id);
+        // Grant only context-specific capabilities
+        // (role has all caps as false, user_meta is the source of truth)
         self::grant_context_capabilities($user_id, $context);
 
         // Sync user metadata from submission (only on creation)
@@ -198,13 +201,8 @@ class UserManager {
             return;
         }
 
-        // Set all certificate capabilities to false
-        foreach (self::CERTIFICATE_CAPABILITIES as $cap) {
-            $user->add_cap($cap, false);
-        }
-
-        // Set all appointment capabilities to false
-        foreach (self::APPOINTMENT_CAPABILITIES as $cap) {
+        // Set all FFC capabilities to false
+        foreach (self::get_all_capabilities() as $cap) {
             $user->add_cap($cap, false);
         }
     }
@@ -266,6 +264,50 @@ class UserManager {
     );
 
     /**
+     * All audience-related capabilities
+     *
+     * @since 4.9.3
+     */
+    public const AUDIENCE_CAPABILITIES = array(
+        'ffc_view_audience_bookings',
+    );
+
+    /**
+     * Admin-level capabilities (not granted by default)
+     *
+     * @since 4.9.3
+     */
+    public const ADMIN_CAPABILITIES = array(
+        'ffc_scheduling_bypass',
+    );
+
+    /**
+     * Future capabilities (disabled by default)
+     *
+     * @since 4.9.3
+     */
+    public const FUTURE_CAPABILITIES = array(
+        'ffc_reregistration',
+        'ffc_certificate_update',
+    );
+
+    /**
+     * Get all FFC capabilities consolidated
+     *
+     * @since 4.9.3
+     * @return array All FFC capability names
+     */
+    public static function get_all_capabilities(): array {
+        return array_merge(
+            self::CERTIFICATE_CAPABILITIES,
+            self::APPOINTMENT_CAPABILITIES,
+            self::AUDIENCE_CAPABILITIES,
+            self::ADMIN_CAPABILITIES,
+            self::FUTURE_CAPABILITIES
+        );
+    }
+
+    /**
      * Register ffc_user role on plugin activation
      *
      * @return void
@@ -280,27 +322,17 @@ class UserManager {
             return;
         }
 
-        // Add ffc_user role with all capabilities
+        // Add ffc_user role — all FFC capabilities start as false.
+        // Capabilities are granted per-user via user_meta (source of truth).
+        $capabilities = array('read' => true);
+        foreach (self::get_all_capabilities() as $cap) {
+            $capabilities[$cap] = false;
+        }
+
         add_role(
             'ffc_user',
             __('FFC User', 'ffcertificate'),
-            array(
-                'read' => true,
-
-                // Certificate capabilities (enabled by default)
-                'view_own_certificates' => true,
-                'download_own_certificates' => true,
-                'view_certificate_history' => true,
-
-                // Appointment capabilities (enabled by default)
-                'ffc_book_appointments' => true,
-                'ffc_view_self_scheduling' => true,
-                'ffc_cancel_own_appointments' => true,
-
-                // Future capabilities (disabled by default)
-                'ffc_reregistration' => false,
-                'ffc_certificate_update' => false,
-            )
+            $capabilities
         );
     }
 
@@ -314,27 +346,10 @@ class UserManager {
      * @return void
      */
     private static function upgrade_role(\WP_Role $role): void {
-        // Define all capabilities that should exist in the role
-        $all_capabilities = array(
-            // Certificate capabilities
-            'view_own_certificates' => true,
-            'download_own_certificates' => true,
-            'view_certificate_history' => true,
-
-            // Appointment capabilities
-            'ffc_book_appointments' => true,
-            'ffc_view_self_scheduling' => true,
-            'ffc_cancel_own_appointments' => true,
-
-            // Future capabilities
-            'ffc_reregistration' => false,
-            'ffc_certificate_update' => false,
-        );
-
-        // Add any missing capabilities to the role
-        foreach ($all_capabilities as $cap => $grant) {
+        // Add any missing capabilities as false (per-user grants via user_meta)
+        foreach (self::get_all_capabilities() as $cap) {
             if (!isset($role->capabilities[$cap])) {
-                $role->add_cap($cap, $grant);
+                $role->add_cap($cap, false);
             }
         }
     }
@@ -628,6 +643,42 @@ class UserManager {
     }
 
     /**
+     * Grant audience capabilities to a user
+     *
+     * Adds audience-related capabilities without removing existing capabilities.
+     * Used when user is added to an audience group.
+     *
+     * @since 4.9.3
+     * @param int $user_id WordPress user ID
+     * @return void
+     */
+    public static function grant_audience_capabilities(int $user_id): void {
+        $user = get_userdata($user_id);
+
+        if (!$user) {
+            return;
+        }
+
+        // Grant each audience capability
+        foreach (self::AUDIENCE_CAPABILITIES as $cap) {
+            if (!$user->has_cap($cap)) {
+                $user->add_cap($cap, true);
+            }
+        }
+
+        // Log capability grant
+        if (class_exists('\FreeFormCertificate\Core\Debug')) {
+            \FreeFormCertificate\Core\Debug::log_user_manager(
+                'Granted audience capabilities',
+                array(
+                    'user_id' => $user_id,
+                    'capabilities' => self::AUDIENCE_CAPABILITIES,
+                )
+            );
+        }
+    }
+
+    /**
      * Check if user has any certificate capabilities
      *
      * @since 4.4.0
@@ -703,19 +754,9 @@ class UserManager {
 
         $capabilities = array();
 
-        // Certificate capabilities
-        foreach (self::CERTIFICATE_CAPABILITIES as $cap) {
+        foreach (self::get_all_capabilities() as $cap) {
             $capabilities[$cap] = $user->has_cap($cap);
         }
-
-        // Appointment capabilities
-        foreach (self::APPOINTMENT_CAPABILITIES as $cap) {
-            $capabilities[$cap] = $user->has_cap($cap);
-        }
-
-        // Future capabilities
-        $capabilities['ffc_reregistration'] = $user->has_cap('ffc_reregistration');
-        $capabilities['ffc_certificate_update'] = $user->has_cap('ffc_certificate_update');
 
         return $capabilities;
     }
@@ -737,11 +778,7 @@ class UserManager {
         }
 
         // Validate capability is an FFC capability
-        $all_ffc_caps = array_merge(
-            self::CERTIFICATE_CAPABILITIES,
-            self::APPOINTMENT_CAPABILITIES,
-            array('ffc_reregistration', 'ffc_certificate_update')
-        );
+        $all_ffc_caps = self::get_all_capabilities();
 
         if (!in_array($capability, $all_ffc_caps, true)) {
             return false;
