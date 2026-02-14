@@ -1184,10 +1184,7 @@
                 data: JSON.stringify({ group_id: groupId }),
                 beforeSend: function(xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
                 success: function() {
-                    // Reload profile to update audience groups display
-                    FFCDashboard._profileData = null;
-                    FFCDashboard._audienceData = null;
-                    FFCDashboard.loadProfile();
+                    FFCDashboard.reloadProfile();
                 },
                 error: function(xhr) {
                     var msg = (xhr.responseJSON && xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
@@ -1210,15 +1207,33 @@
                 data: JSON.stringify({ group_id: groupId }),
                 beforeSend: function(xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
                 success: function() {
-                    FFCDashboard._profileData = null;
-                    FFCDashboard._audienceData = null;
-                    FFCDashboard.loadProfile();
+                    FFCDashboard.reloadProfile();
                 },
                 error: function(xhr) {
                     var msg = (xhr.responseJSON && xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
                     alert(msg);
                     $btn.prop('disabled', false).text(ffcDashboard.strings.leaveGroup || 'Leave');
                 }
+            });
+        },
+
+        /**
+         * Force-reload profile (bypasses the cache guard in loadProfile)
+         */
+        reloadProfile: function() {
+            this._profileData = null;
+            var $container = $('#tab-profile');
+            $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+
+            var url = ffcDashboard.restUrl + 'user/profile';
+            if (ffcDashboard.viewAsUserId) { url += '?viewAsUserId=' + ffcDashboard.viewAsUserId; }
+
+            $.ajax({
+                url: url,
+                method: 'GET',
+                beforeSend: function(xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
+                success: function(response) { FFCDashboard.renderProfile(response); },
+                error: function() { $container.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>'); }
             });
         },
 
