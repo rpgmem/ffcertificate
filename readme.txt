@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.9.7
+Stable tag: 4.9.8
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -154,6 +154,21 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.9.8 (2026-02-14) =
+
+Dashboard UX improvements and user self-service features.
+
+* New: **Dashboard summary cards** — overview at the top showing certificate count, next appointment, and upcoming group events
+* New: **Search and date filters** — filter bar on certificates, appointments, and audience bookings tabs with date range and text search
+* New: **Password change** — users can change their password directly from the Profile tab (no wp-admin access needed)
+* New: **LGPD self-service** — "Export My Data" and "Request Data Deletion" buttons in Profile tab, using WordPress native privacy request system
+* New: **Notes field** — editable personal notes in profile (uses existing `ffc_user_profiles.notes` column)
+* New: **Notification preferences** — toggle switches for appointment confirmation, appointment reminder, and new certificate emails (all disabled by default)
+* New: **Configurable pagination** — choose 10, 25, or 50 items per page on all tabs (persisted in localStorage)
+* New: REST endpoints: `POST /user/change-password`, `POST /user/privacy-request`, `GET /user/summary`
+* Improved: Profile REST API now returns `notes` and `preferences` fields
+* Improved: `UserManager::update_profile()` now supports `preferences` JSON column
 
 = 4.9.7 (2026-02-14) =
 

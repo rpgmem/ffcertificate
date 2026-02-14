@@ -597,6 +597,220 @@
     flex-shrink: 0;
 }
 
+/* Summary Cards */
+.ffc-dashboard-summary {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.ffc-dashboard-summary:empty {
+    display: none;
+}
+
+.ffc-summary-card {
+    flex: 1;
+    background: #f5f7fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px 20px;
+    text-align: center;
+    min-width: 0;
+}
+
+.ffc-summary-number {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0073aa;
+    line-height: 1.2;
+}
+
+.ffc-summary-number.ffc-summary-date {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.ffc-summary-detail {
+    font-size: 13px;
+    color: #555;
+    margin-top: 2px;
+}
+
+.ffc-summary-label {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 6px;
+}
+
+/* Filter Bar */
+.ffc-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.ffc-filter-bar label {
+    font-size: 13px;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ffc-filter-bar input[type="date"],
+.ffc-filter-bar input[type="text"] {
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.ffc-filter-bar input[type="text"] {
+    min-width: 150px;
+}
+
+.ffc-filter-bar .button {
+    padding: 4px 12px;
+    font-size: 12px;
+}
+
+/* Page Size Selector */
+.ffc-page-size-select {
+    font-size: 12px;
+    color: #666;
+    margin-left: auto;
+}
+
+.ffc-page-size-select a {
+    color: #0073aa;
+    text-decoration: none;
+    margin: 0 2px;
+}
+
+.ffc-page-size-select a:hover {
+    text-decoration: underline;
+}
+
+.ffc-page-size-select strong {
+    color: #333;
+    margin: 0 2px;
+}
+
+/* Profile Sections (Security, Notifications, LGPD) */
+.ffc-profile-section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.ffc-profile-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 12px 0;
+}
+
+/* Password Form */
+.ffc-password-form input[type="password"] {
+    width: 100%;
+    max-width: 350px;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Notification Toggle Switches */
+.ffc-notif-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ffc-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+}
+
+.ffc-toggle-label input[type="checkbox"] {
+    display: none;
+}
+
+.ffc-toggle-switch {
+    position: relative;
+    width: 42px;
+    height: 22px;
+    background: #ccc;
+    border-radius: 11px;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+}
+
+.ffc-toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.ffc-toggle-label input:checked + .ffc-toggle-switch {
+    background: #0073aa;
+}
+
+.ffc-toggle-label input:checked + .ffc-toggle-switch::after {
+    transform: translateX(20px);
+}
+
+/* LGPD Section */
+.ffc-lgpd-section .ffc-lgpd-desc {
+    font-size: 13px;
+    color: #666;
+    margin: 0 0 8px 0;
+}
+
+.ffc-lgpd-delete-btn {
+    color: #d63638 !important;
+    border-color: #d63638 !important;
+}
+
+.ffc-lgpd-delete-btn:hover {
+    background: #d63638 !important;
+    color: #fff !important;
+}
+
+/* Profile Edit Form */
+.ffc-profile-edit-form input[type="text"],
+.ffc-profile-edit-form input[type="tel"],
+.ffc-profile-edit-form textarea {
+    width: 100%;
+    max-width: 450px;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.ffc-profile-edit-form textarea {
+    resize: vertical;
+    font-family: inherit;
+}
+
 /* Audience Groups in Profile */
 .ffc-audience-groups-list {
     display: flex;
@@ -618,6 +832,24 @@
 @media (max-width: 768px) {
     .ffc-user-dashboard {
         padding: 15px;
+    }
+
+    .ffc-dashboard-summary {
+        flex-direction: column;
+    }
+
+    .ffc-filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ffc-filter-bar label {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ffc-filter-bar input[type="text"] {
+        min-width: 0;
     }
 
     .ffc-dashboard-tabs {

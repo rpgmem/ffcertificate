@@ -486,6 +486,12 @@ class UserManager {
             }
         }
 
+        // Handle preferences as JSON
+        if (isset($data['preferences']) && is_array($data['preferences'])) {
+            $update_data['preferences'] = wp_json_encode($data['preferences']);
+            $formats[] = '%s';
+        }
+
         if (empty($update_data)) {
             return false;
         }

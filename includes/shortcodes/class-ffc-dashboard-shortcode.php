@@ -85,6 +85,8 @@ class DashboardShortcode {
             echo wp_kses_post( self::render_redirect_message() );
             ?>
 
+            <div class="ffc-dashboard-summary" id="ffc-dashboard-summary"></div>
+
             <nav class="ffc-dashboard-tabs" role="tablist" aria-label="<?php esc_attr_e('Dashboard', 'ffcertificate'); ?>">
                 <?php if ($can_view_certificates) : ?>
                     <button class="ffc-tab <?php echo esc_attr( $current_tab === 'certificates' ? 'active' : '' ); ?>"
@@ -422,10 +424,58 @@ class DashboardShortcode {
                 'cancelled' => __('Cancelled', 'ffcertificate'),
                 // Profile
                 'audienceGroups' => __('Groups:', 'ffcertificate'),
+                'notesLabel' => __('Notes:', 'ffcertificate'),
+                'notesPlaceholder' => __('Personal notes...', 'ffcertificate'),
+                'phone' => __('Phone:', 'ffcertificate'),
+                'department' => __('Department:', 'ffcertificate'),
+                'organization' => __('Organization:', 'ffcertificate'),
+                'editProfile' => __('Edit Profile', 'ffcertificate'),
+                'save' => __('Save', 'ffcertificate'),
+                'cancel' => __('Cancel', 'ffcertificate'),
+                'saving' => __('Saving...', 'ffcertificate'),
+                'saveError' => __('Error saving profile', 'ffcertificate'),
+                // Password change
+                'securitySection' => __('Security', 'ffcertificate'),
+                'changePassword' => __('Change Password', 'ffcertificate'),
+                'currentPassword' => __('Current Password', 'ffcertificate'),
+                'newPassword' => __('New Password', 'ffcertificate'),
+                'confirmPassword' => __('Confirm New Password', 'ffcertificate'),
+                'passwordChanged' => __('Password changed successfully!', 'ffcertificate'),
+                'passwordMismatch' => __('Passwords do not match', 'ffcertificate'),
+                'passwordTooShort' => __('Password must be at least 8 characters', 'ffcertificate'),
+                'passwordError' => __('Error changing password', 'ffcertificate'),
+                // LGPD
+                'privacySection' => __('Privacy & Data (LGPD)', 'ffcertificate'),
+                'exportData' => __('Export My Data', 'ffcertificate'),
+                'requestDeletion' => __('Request Data Deletion', 'ffcertificate'),
+                'exportDataDesc' => __('Request a copy of all your personal data stored in the system.', 'ffcertificate'),
+                'deletionDataDesc' => __('Request deletion of your personal data. An administrator will review your request.', 'ffcertificate'),
+                'privacyRequestSent' => __('Request sent! The administrator will review it.', 'ffcertificate'),
+                'privacyRequestError' => __('Error sending request', 'ffcertificate'),
+                'confirmDeletion' => __('Are you sure you want to request deletion of your personal data? This will be reviewed by an administrator.', 'ffcertificate'),
+                // Summary
+                'summaryTitle' => __('Overview', 'ffcertificate'),
+                'totalCertificates' => __('Certificates', 'ffcertificate'),
+                'nextAppointment' => __('Next Appointment', 'ffcertificate'),
+                'upcomingGroupEvents' => __('Group Events', 'ffcertificate'),
+                'noUpcoming' => __('None scheduled', 'ffcertificate'),
+                // Filters
+                'filterFrom' => __('From:', 'ffcertificate'),
+                'filterTo' => __('To:', 'ffcertificate'),
+                'filterSearch' => __('Search...', 'ffcertificate'),
+                'filterApply' => __('Filter', 'ffcertificate'),
+                'filterClear' => __('Clear', 'ffcertificate'),
+                // Notification preferences
+                'notificationSection' => __('Notification Preferences', 'ffcertificate'),
+                'notifAppointmentConfirm' => __('Appointment confirmation', 'ffcertificate'),
+                'notifAppointmentReminder' => __('Appointment reminder', 'ffcertificate'),
+                'notifNewCertificate' => __('New certificate issued', 'ffcertificate'),
+                'notifSaved' => __('Preferences saved', 'ffcertificate'),
                 // Pagination
                 'previous' => __('Previous', 'ffcertificate'),
                 'next' => __('Next', 'ffcertificate'),
                 'pageOf' => __('Page {current} of {total}', 'ffcertificate'),
+                'perPage' => __('Per page:', 'ffcertificate'),
             ),
         ));
     }

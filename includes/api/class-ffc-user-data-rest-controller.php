@@ -71,6 +71,24 @@ class UserDataRestController {
             'callback' => array($this, 'get_user_audience_bookings'),
             'permission_callback' => 'is_user_logged_in',
         ));
+
+        register_rest_route($this->namespace, '/user/change-password', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'change_password'),
+            'permission_callback' => 'is_user_logged_in',
+        ));
+
+        register_rest_route($this->namespace, '/user/privacy-request', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'create_privacy_request'),
+            'permission_callback' => 'is_user_logged_in',
+        ));
+
+        register_rest_route($this->namespace, '/user/summary', array(
+            'methods' => \WP_REST_Server::READABLE,
+            'callback' => array($this, 'get_user_summary'),
+            'permission_callback' => 'is_user_logged_in',
+        ));
     }
 
     /**
@@ -347,6 +365,15 @@ class UserDataRestController {
                 }
             }
 
+            // Decode preferences JSON
+            $preferences = array();
+            if (!empty($profile['preferences'])) {
+                $decoded = json_decode($profile['preferences'], true);
+                if (is_array($decoded)) {
+                    $preferences = $decoded;
+                }
+            }
+
             return rest_ensure_response(array(
                 'user_id' => $user_id,
                 'display_name' => !empty($profile['display_name']) ? $profile['display_name'] : $user->display_name,
@@ -358,6 +385,8 @@ class UserDataRestController {
                 'phone' => $profile['phone'] ?? '',
                 'department' => $profile['department'] ?? '',
                 'organization' => $profile['organization'] ?? '',
+                'notes' => $profile['notes'] ?? '',
+                'preferences' => $preferences,
                 'member_since' => $member_since,
                 'roles' => $user->roles,
                 'audience_groups' => $audience_groups,
@@ -410,6 +439,12 @@ class UserDataRestController {
                 if ($value !== null) {
                     $data[$field] = $value;
                 }
+            }
+
+            // Handle preferences (JSON object)
+            $preferences = $request->get_param('preferences');
+            if ($preferences !== null && is_array($preferences)) {
+                $data['preferences'] = $preferences;
             }
 
             if (empty($data)) {
@@ -800,6 +835,193 @@ class UserDataRestController {
                 sprintf(__('Error loading audience bookings: %s', 'ffcertificate'), $e->getMessage()),
                 array('status' => 500)
             );
+        }
+    }
+
+    /**
+     * POST /user/change-password
+     *
+     * @since 4.9.8
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function change_password($request) {
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
+        }
+
+        $current_password = $request->get_param('current_password');
+        $new_password = $request->get_param('new_password');
+
+        if (empty($current_password) || empty($new_password)) {
+            return new \WP_Error('missing_fields', __('All password fields are required', 'ffcertificate'), array('status' => 400));
+        }
+
+        if (strlen($new_password) < 8) {
+            return new \WP_Error('password_too_short', __('Password must be at least 8 characters', 'ffcertificate'), array('status' => 400));
+        }
+
+        $user = get_user_by('id', $user_id);
+
+        if (!wp_check_password($current_password, $user->user_pass, $user_id)) {
+            return new \WP_Error('wrong_password', __('Current password is incorrect', 'ffcertificate'), array('status' => 403));
+        }
+
+        wp_set_password($new_password, $user_id);
+
+        // Re-authenticate the user so their session isn't destroyed
+        wp_set_current_user($user_id);
+        wp_set_auth_cookie($user_id, true);
+
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => __('Password changed successfully!', 'ffcertificate'),
+        ));
+    }
+
+    /**
+     * POST /user/privacy-request
+     *
+     * Creates a WordPress privacy request (export or erasure).
+     * Erasure requests require admin approval.
+     *
+     * @since 4.9.8
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function create_privacy_request($request) {
+        $user_id = get_current_user_id();
+
+        if (!$user_id) {
+            return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
+        }
+
+        $type = $request->get_param('type');
+        if (!in_array($type, array('export_personal_data', 'remove_personal_data'), true)) {
+            return new \WP_Error('invalid_type', __('Invalid request type', 'ffcertificate'), array('status' => 400));
+        }
+
+        $user = get_user_by('id', $user_id);
+        $result = wp_create_user_request($user->user_email, $type);
+
+        if (is_wp_error($result)) {
+            return new \WP_Error(
+                'privacy_request_error',
+                $result->get_error_message(),
+                array('status' => 400)
+            );
+        }
+
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => __('Request sent! The administrator will review it.', 'ffcertificate'),
+        ));
+    }
+
+    /**
+     * GET /user/summary
+     *
+     * Returns dashboard summary: total certificates, next appointment, upcoming group events.
+     *
+     * @since 4.9.8
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function get_user_summary($request) {
+        try {
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
+
+            global $wpdb;
+
+            $summary = array(
+                'total_certificates' => 0,
+                'next_appointment' => null,
+                'upcoming_group_events' => 0,
+            );
+
+            // Count certificates
+            if ($this->user_has_capability('view_own_certificates', $user_id, $ctx['is_view_as'])) {
+                $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $summary['total_certificates'] = (int) $wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND status != 'trash'",
+                    $user_id
+                ));
+            }
+
+            // Next appointment
+            if ($this->user_has_capability('ffc_view_self_scheduling', $user_id, $ctx['is_view_as'])) {
+                $apt_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+                $calendars_table = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                $next = $wpdb->get_row($wpdb->prepare(
+                    "SELECT a.appointment_date, a.start_time, c.title as calendar_title
+                     FROM {$apt_table} a
+                     LEFT JOIN {$calendars_table} c ON a.calendar_id = c.id
+                     WHERE a.user_id = %d
+                       AND a.status IN ('pending', 'confirmed')
+                       AND a.appointment_date >= CURDATE()
+                     ORDER BY a.appointment_date ASC, a.start_time ASC
+                     LIMIT 1",
+                    $user_id
+                ), ARRAY_A);
+
+                if ($next) {
+                    $settings = get_option('ffc_settings', array());
+                    $date_format = $settings['date_format'] ?? 'F j, Y';
+                    $timestamp = strtotime($next['appointment_date']);
+                    $time_formatted = '';
+                    if (!empty($next['start_time'])) {
+                        $time_ts = strtotime($next['start_time']);
+                        $time_formatted = ($time_ts !== false) ? date_i18n('H:i', $time_ts) : '';
+                    }
+
+                    $summary['next_appointment'] = array(
+                        'date' => ($timestamp !== false) ? date_i18n($date_format, $timestamp) : $next['appointment_date'],
+                        'time' => $time_formatted,
+                        'title' => $next['calendar_title'] ?? '',
+                    );
+                }
+            }
+
+            // Upcoming group events
+            if ($this->user_has_capability('ffc_view_audience_bookings', $user_id, $ctx['is_view_as'])) {
+                $bookings_table = $wpdb->prefix . 'ffc_audience_bookings';
+                $users_table = $wpdb->prefix . 'ffc_audience_booking_users';
+                $booking_audiences_table = $wpdb->prefix . 'ffc_audience_booking_audiences';
+                $members_table = $wpdb->prefix . 'ffc_audience_members';
+
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $bookings_table));
+                if ($table_exists) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                    $summary['upcoming_group_events'] = (int) $wpdb->get_var($wpdb->prepare(
+                        "SELECT COUNT(DISTINCT b.id)
+                         FROM {$bookings_table} b
+                         LEFT JOIN {$users_table} bu ON b.id = bu.booking_id
+                         LEFT JOIN {$booking_audiences_table} ba ON b.id = ba.booking_id
+                         LEFT JOIN {$members_table} am ON ba.audience_id = am.audience_id
+                         WHERE (bu.user_id = %d OR am.user_id = %d)
+                           AND b.booking_date >= CURDATE()
+                           AND b.status != 'cancelled'",
+                        $user_id,
+                        $user_id
+                    ));
+                }
+            }
+
+            return rest_ensure_response($summary);
+
+        } catch (\Exception $e) {
+            return rest_ensure_response(array(
+                'total_certificates' => 0,
+                'next_appointment' => null,
+                'upcoming_group_events' => 0,
+            ));
         }
     }
 }
