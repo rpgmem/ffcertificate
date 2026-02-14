@@ -65,6 +65,10 @@ class PrivacyHandler {
             'exporter_friendly_name' => __('FFC Audience Bookings', 'ffcertificate'),
             'callback' => [__CLASS__, 'export_audience_bookings'],
         );
+        $exporters['ffcertificate-usermeta'] = array(
+            'exporter_friendly_name' => __('FFC User Settings', 'ffcertificate'),
+            'callback' => [__CLASS__, 'export_usermeta'],
+        );
         return $exporters;
     }
 
@@ -530,6 +534,22 @@ class PrivacyHandler {
             ));
         }
 
+        // 8. ffc_* user meta: DELETE
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $meta_deleted = $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key LIKE %s",
+            $user_id,
+            'ffc_%'
+        ));
+        if ($meta_deleted > 0) {
+            $items_removed += $meta_deleted;
+            $messages[] = sprintf(
+                /* translators: %d: number of settings */
+                __('%d user settings removed.', 'ffcertificate'),
+                $meta_deleted
+            );
+        }
+
         // Log the erasure
         if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
             \FreeFormCertificate\Core\ActivityLog::log(
@@ -549,6 +569,61 @@ class PrivacyHandler {
             'messages' => $messages,
             'done' => true,
         );
+    }
+
+    /**
+     * Export ffc_* user meta data
+     *
+     * @since 4.9.9
+     * @param string $email_address User email
+     * @param int    $page          Page number
+     * @return array Export data
+     */
+    public static function export_usermeta(string $email_address, int $page = 1): array {
+        $user = get_user_by('email', $email_address);
+        if (!$user || $page > 1) {
+            return array('data' => array(), 'done' => true);
+        }
+
+        global $wpdb;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $meta_rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT meta_key, meta_value FROM {$wpdb->usermeta}
+             WHERE user_id = %d AND meta_key LIKE %s",
+            $user->ID,
+            'ffc_%'
+        ), ARRAY_A);
+
+        if (empty($meta_rows)) {
+            return array('data' => array(), 'done' => true);
+        }
+
+        // Sensitive keys that should not be exported in plain text
+        $redact_keys = array('ffc_cpf_rf_hash');
+
+        $data = array();
+        foreach ($meta_rows as $row) {
+            $value = $row['meta_value'];
+            if (in_array($row['meta_key'], $redact_keys, true)) {
+                $value = '[hash]';
+            }
+            $data[] = array(
+                'name'  => $row['meta_key'],
+                'value' => $value,
+            );
+        }
+
+        $export_items = array(
+            array(
+                'group_id'    => 'ffc-usermeta',
+                'group_label' => __('FFC User Settings', 'ffcertificate'),
+                'item_id'     => 'ffc-usermeta-' . $user->ID,
+                'data'        => $data,
+            ),
+        );
+
+        return array('data' => $export_items, 'done' => true);
     }
 
     /**

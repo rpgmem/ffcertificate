@@ -451,6 +451,54 @@ class RateLimiter {
         return '0.0.0.0';
     }
     
+    /**
+     * Check rate limit for authenticated user actions (password change, privacy request)
+     *
+     * @since 4.9.9
+     * @param int    $user_id WordPress user ID
+     * @param string $action  Action identifier (e.g. 'password_change', 'privacy_request')
+     * @param int    $max_per_hour Max attempts per hour (default 5)
+     * @param int    $max_per_day  Max attempts per day (default 10)
+     * @return array{allowed: bool, message?: string, wait_seconds?: int}
+     */
+    public static function check_user_limit(int $user_id, string $action = 'default', int $max_per_hour = 5, int $max_per_day = 10): array {
+        if ($user_id <= 0) {
+            return array('allowed' => true);
+        }
+
+        $hour_key = 'ffc_rate_user_' . $user_id . '_' . $action . '_hour_' . gmdate('YmdH');
+        $hour_count = wp_cache_get($hour_key, self::CACHE_GROUP);
+        $hour_count = $hour_count !== false ? (int) $hour_count : 0;
+
+        if ($hour_count >= $max_per_hour) {
+            $wait = 3600 - (time() % 3600);
+            return array(
+                'allowed' => false,
+                /* translators: %s: formatted wait time */
+                'message' => sprintf(__('Too many attempts. Please wait %s.', 'ffcertificate'), self::format_wait_time($wait)),
+                'wait_seconds' => $wait,
+            );
+        }
+
+        $day_key = 'ffc_rate_user_' . $user_id . '_' . $action . '_day_' . gmdate('Ymd');
+        $day_count = wp_cache_get($day_key, self::CACHE_GROUP);
+        $day_count = $day_count !== false ? (int) $day_count : 0;
+
+        if ($day_count >= $max_per_day) {
+            return array(
+                'allowed' => false,
+                'message' => __('Daily limit reached. Please try again tomorrow.', 'ffcertificate'),
+                'wait_seconds' => 86400 - (time() % 86400),
+            );
+        }
+
+        // Increment counters
+        wp_cache_set($hour_key, $hour_count + 1, self::CACHE_GROUP, 3600);
+        wp_cache_set($day_key, $day_count + 1, self::CACHE_GROUP, 86400);
+
+        return array('allowed' => true);
+    }
+
     public static function cleanup_expired(): int {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter

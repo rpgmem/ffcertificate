@@ -465,6 +465,11 @@ class UserDataRestController {
                 );
             }
 
+            // Log profile update
+            if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
+                \FreeFormCertificate\Core\ActivityLog::log_profile_updated($user_id, array_keys($data));
+            }
+
             // Return updated profile
             return $this->get_user_profile($request);
 
@@ -852,6 +857,14 @@ class UserDataRestController {
             return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
         }
 
+        // Rate limit: 3/hour, 5/day for password changes
+        if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
+            $rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit($user_id, 'password_change', 3, 5);
+            if (!$rate_check['allowed']) {
+                return new \WP_Error('rate_limited', $rate_check['message'], array('status' => 429));
+            }
+        }
+
         $current_password = $request->get_param('current_password');
         $new_password = $request->get_param('new_password');
 
@@ -874,6 +887,11 @@ class UserDataRestController {
         // Re-authenticate the user so their session isn't destroyed
         wp_set_current_user($user_id);
         wp_set_auth_cookie($user_id, true);
+
+        // Log password change
+        if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
+            \FreeFormCertificate\Core\ActivityLog::log_password_changed($user_id);
+        }
 
         return rest_ensure_response(array(
             'success' => true,
@@ -898,6 +916,14 @@ class UserDataRestController {
             return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
         }
 
+        // Rate limit: 2/hour, 3/day for privacy requests
+        if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
+            $rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit($user_id, 'privacy_request', 2, 3);
+            if (!$rate_check['allowed']) {
+                return new \WP_Error('rate_limited', $rate_check['message'], array('status' => 429));
+            }
+        }
+
         $type = $request->get_param('type');
         if (!in_array($type, array('export_personal_data', 'remove_personal_data'), true)) {
             return new \WP_Error('invalid_type', __('Invalid request type', 'ffcertificate'), array('status' => 400));
@@ -912,6 +938,11 @@ class UserDataRestController {
                 $result->get_error_message(),
                 array('status' => 400)
             );
+        }
+
+        // Log privacy request
+        if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
+            \FreeFormCertificate\Core\ActivityLog::log_privacy_request($user_id, $type);
         }
 
         return rest_ensure_response(array(

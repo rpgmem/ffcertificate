@@ -650,6 +650,61 @@ class ActivityLog {
     }
 
     /**
+     * Log password changed
+     *
+     * @since 4.9.9
+     * @param int $user_id User who changed their password
+     * @return bool
+     */
+    public static function log_password_changed( int $user_id ): bool {
+        return self::log( 'password_changed', self::LEVEL_INFO, array(), $user_id );
+    }
+
+    /**
+     * Log user profile updated
+     *
+     * @since 4.9.9
+     * @param int   $user_id User whose profile was updated
+     * @param array $fields  Fields that were changed
+     * @return bool
+     */
+    public static function log_profile_updated( int $user_id, array $fields = array() ): bool {
+        return self::log( 'profile_updated', self::LEVEL_INFO, array(
+            'fields' => $fields
+        ), $user_id );
+    }
+
+    /**
+     * Log capabilities granted to a user
+     *
+     * @since 4.9.9
+     * @param int    $user_id      Target user
+     * @param string $context      Context: 'certificate', 'appointment', 'audience'
+     * @param array  $capabilities Capabilities granted
+     * @return bool
+     */
+    public static function log_capabilities_granted( int $user_id, string $context, array $capabilities = array() ): bool {
+        return self::log( 'capabilities_granted', self::LEVEL_INFO, array(
+            'context'      => $context,
+            'capabilities' => $capabilities,
+        ), get_current_user_id() > 0 ? get_current_user_id() : 0, 0 );
+    }
+
+    /**
+     * Log privacy request created
+     *
+     * @since 4.9.9
+     * @param int    $user_id User who requested
+     * @param string $type    Request type (export_personal_data | remove_personal_data)
+     * @return bool
+     */
+    public static function log_privacy_request( int $user_id, string $type ): bool {
+        return self::log( 'privacy_request_created', self::LEVEL_INFO, array(
+            'type' => $type,
+        ), $user_id );
+    }
+
+    /**
      * Get logs for specific submission (LGPD audit trail)
      *
      * @param int $submission_id Submission ID

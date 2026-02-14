@@ -867,10 +867,13 @@ class UserManager {
             return;
         }
 
+        $newly_granted = array();
+
         // Grant each certificate capability
         foreach (self::CERTIFICATE_CAPABILITIES as $cap) {
             if (!$user->has_cap($cap)) {
                 $user->add_cap($cap, true);
+                $newly_granted[] = $cap;
             }
         }
 
@@ -883,6 +886,10 @@ class UserManager {
                     'capabilities' => self::CERTIFICATE_CAPABILITIES,
                 )
             );
+        }
+
+        if (!empty($newly_granted)) {
+            self::log_and_notify_capability_grant($user, 'certificate', $newly_granted);
         }
     }
 
@@ -903,10 +910,13 @@ class UserManager {
             return;
         }
 
+        $newly_granted = array();
+
         // Grant each appointment capability
         foreach (self::APPOINTMENT_CAPABILITIES as $cap) {
             if (!$user->has_cap($cap)) {
                 $user->add_cap($cap, true);
+                $newly_granted[] = $cap;
             }
         }
 
@@ -919,6 +929,10 @@ class UserManager {
                     'capabilities' => self::APPOINTMENT_CAPABILITIES,
                 )
             );
+        }
+
+        if (!empty($newly_granted)) {
+            self::log_and_notify_capability_grant($user, 'appointment', $newly_granted);
         }
     }
 
@@ -939,10 +953,13 @@ class UserManager {
             return;
         }
 
+        $newly_granted = array();
+
         // Grant each audience capability
         foreach (self::AUDIENCE_CAPABILITIES as $cap) {
             if (!$user->has_cap($cap)) {
                 $user->add_cap($cap, true);
+                $newly_granted[] = $cap;
             }
         }
 
@@ -956,6 +973,64 @@ class UserManager {
                 )
             );
         }
+
+        if (!empty($newly_granted)) {
+            self::log_and_notify_capability_grant($user, 'audience', $newly_granted);
+        }
+    }
+
+    /**
+     * Log capability grant to activity log and send email notification
+     *
+     * @since 4.9.9
+     * @param \WP_User $user        User who received capabilities
+     * @param string   $context     Context: 'certificate', 'appointment', 'audience'
+     * @param array    $capabilities Newly granted capabilities
+     * @return void
+     */
+    private static function log_and_notify_capability_grant(\WP_User $user, string $context, array $capabilities): void {
+        // Activity log
+        if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
+            \FreeFormCertificate\Core\ActivityLog::log_capabilities_granted(
+                $user->ID,
+                $context,
+                $capabilities
+            );
+        }
+
+        // Email notification (check settings)
+        $settings = get_option('ffc_settings', array());
+        $notify_enabled = !empty($settings['notify_capability_grant']);
+
+        if (!$notify_enabled || empty($user->user_email)) {
+            return;
+        }
+
+        $site_name = wp_specialchars_decode(get_option('blogname'), ENT_QUOTES);
+        $dashboard_url = get_permalink(get_option('ffc_dashboard_page_id'));
+
+        $context_labels = array(
+            'certificate' => __('Certificates', 'ffcertificate'),
+            'appointment' => __('Appointments', 'ffcertificate'),
+            'audience'    => __('Audience Groups', 'ffcertificate'),
+        );
+        $context_label = $context_labels[$context] ?? $context;
+
+        /* translators: %1$s: site name, %2$s: feature name */
+        $subject = sprintf(__('[%1$s] Access granted: %2$s', 'ffcertificate'), $site_name, $context_label);
+
+        $message  = sprintf(__('Hello %s,', 'ffcertificate'), $user->display_name) . "\n\n";
+        /* translators: %1$s: feature name, %2$s: site name */
+        $message .= sprintf(__('You now have access to %1$s on %2$s.', 'ffcertificate'), $context_label, $site_name) . "\n\n";
+
+        if ($dashboard_url) {
+            /* translators: %s: dashboard URL */
+            $message .= sprintf(__('Access your dashboard: %s', 'ffcertificate'), $dashboard_url) . "\n\n";
+        }
+
+        $message .= __('This is an automated message.', 'ffcertificate') . "\n";
+
+        wp_mail($user->user_email, $subject, $message);
     }
 
     /**
