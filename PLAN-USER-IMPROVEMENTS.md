@@ -49,10 +49,25 @@
 - `save_capability_fields()` linhas 258-273: Substituir lista hardcoded por referência ao UserManager::ALL_FFC_CAPABILITIES
 - Garantir que novas capabilities futuras se propaguem automaticamente
 
+### 1.6 Simplificar modelo híbrido de capabilities (role vs user_meta)
+**Problema:** A role `ffc_user` define capabilities como `true` por padrão, mas `create_ffc_user()`
+faz `set_role('ffc_user')` → `reset_user_ffc_capabilities()` (zera tudo) → `grant_context_capabilities()`
+(readiciona por contexto). Se a role ganhar novas capabilities no futuro, usuários existentes não herdam.
+
+**Arquivo:** `includes/user-dashboard/class-ffc-user-manager.php`
+- Alterar `register_role()`: Role `ffc_user` passa a ter TODAS as capabilities como `false` por padrão (apenas `read` = true)
+- Capabilities são concedidas EXCLUSIVAMENTE via user_meta (per-user), não mais via role
+- Remover `reset_user_ffc_capabilities()` do fluxo de criação — não é mais necessário pois role não concede nada
+- Simplifica o fluxo para: `set_role('ffc_user')` → `grant_context_capabilities()`
+- `upgrade_role()`: Adicionar novas capabilities como `false` (role nunca concede por padrão)
+- Resultado: **user_meta é a única fonte de verdade**, role apenas agrupa/identifica
+
+**Impacto:** Elimina o conflito role vs user_meta. Migrações futuras de capabilities ficam mais previsíveis.
+
 ---
 
-## Sprint 2: Tabela ffc_user_profiles & Hook de Deleção
-> **Escopo:** Criar infraestrutura nova de perfil + tratamento de deleção de usuário
+## Sprint 2: Tabela ffc_user_profiles, Hook de Deleção & Email Change
+> **Escopo:** Criar infraestrutura nova de perfil + tratamento de deleção + email
 > **Risco:** Médio (nova tabela, migração de dados, novo hook)
 
 ### 2.1 Criar tabela `wp_ffc_user_profiles`
@@ -119,11 +134,24 @@ class UserCleanup {
 }
 ```
 
-### 2.6 Registrar no Loader
+### 2.6 Tratar mudança de email do WordPress
+**Problema:** Se o usuário (ou admin) troca o email no WordPress, novas submissions com o email antigo
+não vinculam ao mesmo user_id. O hash de email nas submissions fica desatualizado.
+
+**Arquivo:** `includes/user-dashboard/class-ffc-user-cleanup.php` (ou novo handler)
+- Registrar `add_action('profile_update', [__CLASS__, 'handle_email_change'], 10, 3)`
+- Detectar se `user_email` mudou (comparar old_user_data com novo)
+- Quando email muda:
+  - Atualizar `ffc_user_profiles` se necessário
+  - Reindexar `email_hash` nas submissions ligadas ao user_id (para que buscas por hash do novo email também encontrem)
+  - Logar a mudança no activity log
+- **NÃO** alterar `email_encrypted` das submissions (são registros históricos — o email na época da emissão)
+
+### 2.7 Registrar hooks no Loader
 **Arquivo:** `includes/class-ffc-loader.php`
 - Adicionar `UserCleanup::init()` no boot do plugin
 
-### 2.7 Atualizar uninstall.php
+### 2.8 Atualizar uninstall.php
 **Arquivo:** `uninstall.php`
 - Adicionar DROP TABLE `wp_ffc_user_profiles`
 
@@ -184,8 +212,8 @@ class PrivacyHandler {
 
 ---
 
-## Sprint 4: Dashboard Editável & UX
-> **Escopo:** Permitir que o usuário edite seu próprio perfil + melhorias visuais
+## Sprint 4: Dashboard Editável, Appointments Anônimos & Username
+> **Escopo:** Permitir edição de perfil + resolver appointments anônimos + username
 > **Risco:** Baixo-Médio (novos endpoints, formulário frontend)
 > **Depende de:** Sprint 2 (profiles table)
 
@@ -210,10 +238,45 @@ class PrivacyHandler {
 - Grupos de audiência com badges coloridos
 - Seção "Seus Acessos": listar capabilities ativas como ícones (certificados, agendamentos, etc.)
 
+### 4.4 Vincular appointments anônimos ao usuário após login
+**Problema:** Appointments criados sem login (user_id = NULL) nunca aparecem no dashboard,
+mesmo que o usuário depois faça login com o mesmo email/CPF.
+
+**Arquivo:** `includes/user-dashboard/class-ffc-user-manager.php`
+- No `get_or_create_user()`: Após identificar/criar o user_id, buscar appointments órfãos:
+  ```sql
+  UPDATE ffc_self_scheduling_appointments
+  SET user_id = %d
+  WHERE cpf_rf_hash = %s AND user_id IS NULL
+  ```
+- Isso vincula retroativamente appointments anônimos ao usuário
+- Executar apenas quando user_id é determinado pela primeira vez para aquele CPF/RF
+
+**Arquivo alternativo:** `includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php`
+- Em `create_or_link_user()`: Após vincular, fazer UPDATE nos appointments sem user_id
+
+### 4.5 Resolver username = email
+**Problema:** Username é literalmente o email. Se email muda, username fica desatualizado.
+WordPress não permite alterar usernames. Afeta futuras integrações SSO.
+
+**Arquivo:** `includes/user-dashboard/class-ffc-user-manager.php`
+- Alterar `create_ffc_user()`:
+  - Gerar username baseado em slug sanitizado do nome (ex: "joao-silva")
+  - Se nome não disponível, usar prefixo `ffc_` + 8 chars aleatórios (ex: "ffc_a3k9m2p1")
+  - Garantir unicidade via `username_exists()`
+  - Email continua sendo usado como campo `user_email` (não muda)
+- Resultado: Username é um identificador estável, email pode mudar livremente
+
+**Arquivo:** `includes/migrations/class-ffc-migration-user-link.php`
+- Linha 182: Mesmo ajuste para migração (gerar username a partir do nome em vez do email)
+
+**Nota:** Usuários existentes mantêm o username atual (email). A mudança afeta apenas novos usuários.
+Migrar usernames existentes é desnecessariamente arriscado e pode quebrar logins ativos.
+
 ---
 
-## Sprint 5: Robustez & Performance
-> **Escopo:** Otimizações e centralização de lógica
+## Sprint 5: Robustez, Performance & FK Constraints
+> **Escopo:** Otimizações, centralização e integridade referencial
 > **Risco:** Baixo (otimizações internas)
 > **Depende de:** Sprint 2-3
 
@@ -241,26 +304,96 @@ class UserService {
 - Usado por: REST controller, PrivacyHandler, UserCleanup
 - Single point of truth para toda lógica de usuário
 
+### 5.4 Adicionar FOREIGN KEY constraints
+**Problema:** `user_id` em todas as tabelas custom é BIGINT sem FK real.
+Não há integridade referencial a nível de banco. O hook `deleted_user` (Sprint 2.5)
+resolve o efeito prático, mas FKs adicionam uma camada de segurança.
+
+**Arquivo:** Nova migration ou método no activator
+- Adicionar FK constraints com `ON DELETE SET NULL` nas tabelas que anonimizam:
+  ```sql
+  ALTER TABLE wp_ffc_submissions
+    ADD CONSTRAINT fk_submissions_user
+    FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE SET NULL;
+
+  ALTER TABLE wp_ffc_self_scheduling_appointments
+    ADD CONSTRAINT fk_appointments_user
+    FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE SET NULL;
+
+  ALTER TABLE wp_ffc_activity_log
+    ADD CONSTRAINT fk_activity_log_user
+    FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE SET NULL;
+  ```
+- Adicionar FK com `ON DELETE CASCADE` nas tabelas que deletam:
+  ```sql
+  ALTER TABLE wp_ffc_audience_members
+    ADD CONSTRAINT fk_audience_members_user
+    FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE CASCADE;
+
+  ALTER TABLE wp_ffc_audience_booking_users
+    ADD CONSTRAINT fk_booking_users_user
+    FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE CASCADE;
+
+  ALTER TABLE wp_ffc_audience_schedule_permissions
+    ADD CONSTRAINT fk_schedule_permissions_user
+    FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE CASCADE;
+
+  ALTER TABLE wp_ffc_user_profiles
+    ADD CONSTRAINT fk_user_profiles_user
+    FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE CASCADE;
+  ```
+
+**Nota:** FKs funcionam como safety net redundante junto com o hook `deleted_user`.
+Se o hook falhar por qualquer motivo, o banco garante a integridade.
+
+**Cuidado:** Verificar se wp_users usa InnoDB (padrão desde WP 5.x). MyISAM não suporta FKs.
+Incluir check no migration: se engine != InnoDB, pular FKs e logar warning.
+
 ---
 
 ## Ordem de Dependências
 
 ```
-Sprint 1 (Capabilities)
+Sprint 1 (Capabilities + Modelo Simplificado)
     │
     ▼
-Sprint 2 (Profiles + Delete Hook)
+Sprint 2 (Profiles + Delete Hook + Email Change)
     │
     ├──────────────────┐
     ▼                  ▼
-Sprint 3 (LGPD)    Sprint 4 (Dashboard)
+Sprint 3 (LGPD)    Sprint 4 (Dashboard + Anônimos + Username)
     │                  │
     └──────┬───────────┘
            ▼
-    Sprint 5 (Robustez)
+    Sprint 5 (Robustez + FK)
 ```
 
 > Sprints 3 e 4 podem rodar em paralelo.
+
+---
+
+## Mapa Completo: Problema → Sprint
+
+| # | Problema | Sprint | Item |
+|---|---|---|---|
+| 1 | Nenhum hook `deleted_user` | 2 | 2.5 |
+| 2 | Sem Privacy Tools (LGPD export/erase) | 3 | 3.1-3.4 |
+| 3 | `download_own_certificates` nunca verificada | 1 | 1.2 |
+| 4 | `view_certificate_history` nunca verificada | 1 | 1.2 |
+| 5 | `ffc_scheduling_bypass` fora dos constants | 1 | 1.1 |
+| 6 | `ffc_view_audience_bookings` fora dos constants | 1 | 1.1 |
+| 7 | uninstall.php não remove 4 capabilities | 1 | 1.4 |
+| 8 | CSV importer hardcoda capabilities | 1 | 1.3 |
+| 9 | Admin UI hardcoda lista de capabilities | 1 | 1.5 |
+| 10 | N+1 queries na lista de usuários admin | 5 | 5.1 |
+| 11 | view-as verifica capability do admin, não do alvo | 5 | 5.2 |
+| 12 | Dados de perfil espalhados sem centralização | 2 | 2.1-2.4 |
+| 13 | Sem export centralizado de dados do usuário | 5 | 5.3 |
+| 14 | Username = Email (inflexibilidade) | 4 | 4.5 |
+| 15 | Sem FK real (integridade referencial) | 5 | 5.4 |
+| 16 | Email change não tratado | 2 | 2.6 |
+| 17 | Appointments anônimos invisíveis no dashboard | 4 | 4.4 |
+| 18 | Modelo híbrido de capabilities (role vs user_meta) | 1 | 1.6 |
 
 ---
 
@@ -269,7 +402,7 @@ Sprint 3 (LGPD)    Sprint 4 (Dashboard)
 | Sprint | Modificados | Novos | Complexidade |
 |--------|-------------|-------|-------------|
 | 1 | 5 arquivos | 0 | Baixa |
-| 2 | 4 arquivos | 2 novos | Média |
+| 2 | 5 arquivos | 2 novos | Média |
 | 3 | 1 arquivo | 1 novo | Média |
-| 4 | 2 arquivos | 0-1 | Média |
-| 5 | 3 arquivos | 1 novo | Baixa |
+| 4 | 3 arquivos | 0-1 | Média |
+| 5 | 3 arquivos | 2 novos | Baixa-Média |
