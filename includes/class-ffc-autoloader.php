@@ -250,6 +250,12 @@ class FFC_Autoloader {
 
             // Audience namespace (v4.5.0) - New audience booking system
             'Audience' => 'audience',
+
+            // Privacy namespace (v4.9.5) - LGPD/GDPR Privacy Tools integration
+            'Privacy' => 'privacy',
+
+            // Services namespace (v4.9.7) - Centralized service classes
+            'Services' => 'services',
         ];
     }
 

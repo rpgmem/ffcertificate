@@ -74,6 +74,48 @@ class UserDataRestController {
     }
 
     /**
+     * Resolve effective user_id and whether view-as is active
+     *
+     * When admin uses view-as, capability checks must use the TARGET
+     * user's capabilities so the admin sees exactly what the user would see.
+     *
+     * @since 4.9.7
+     * @param \WP_REST_Request $request
+     * @return array{user_id: int, is_view_as: bool}
+     */
+    private function resolve_user_context($request): array {
+        $user_id = get_current_user_id();
+        $is_view_as = false;
+
+        $view_as_user_id = $request->get_param('viewAsUserId');
+        if ($view_as_user_id && current_user_can('manage_options')) {
+            $user_id = absint($view_as_user_id);
+            $is_view_as = true;
+        }
+
+        return array('user_id' => $user_id, 'is_view_as' => $is_view_as);
+    }
+
+    /**
+     * Check if a capability is granted for the effective user
+     *
+     * In view-as mode, checks the TARGET user's capabilities.
+     * Otherwise, checks the current user's capabilities.
+     *
+     * @since 4.9.7
+     * @param string $capability Capability name
+     * @param int $user_id Target user ID
+     * @param bool $is_view_as Whether view-as mode is active
+     * @return bool
+     */
+    private function user_has_capability(string $capability, int $user_id, bool $is_view_as): bool {
+        if ($is_view_as) {
+            return user_can($user_id, $capability);
+        }
+        return current_user_can('manage_options') || current_user_can($capability);
+    }
+
+    /**
      * GET /user/certificates
      *
      * @since 3.1.0
@@ -92,13 +134,11 @@ class UserDataRestController {
                 );
             }
 
-            // Check for admin view-as mode
-            $view_as_user_id = $request->get_param('viewAsUserId');
-            if ($view_as_user_id && current_user_can('manage_options')) {
-                $user_id = absint($view_as_user_id);
-            }
+            // Resolve user context (view-as or self)
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
 
-            if (!current_user_can('manage_options') && !current_user_can('view_own_certificates')) {
+            if (!$this->user_has_capability('view_own_certificates', $user_id, $ctx['is_view_as'])) {
                 return new \WP_Error(
                     'capability_denied',
                     __('You do not have permission to view certificates', 'ffcertificate'),
@@ -129,9 +169,8 @@ class UserDataRestController {
             ), ARRAY_A);
 
             // Check per-capability permissions for the target user
-            $is_admin = current_user_can('manage_options');
-            $can_download = $is_admin || user_can($user_id, 'download_own_certificates');
-            $can_view_history = $is_admin || user_can($user_id, 'view_certificate_history');
+            $can_download = $this->user_has_capability('download_own_certificates', $user_id, $ctx['is_view_as']);
+            $can_view_history = $this->user_has_capability('view_certificate_history', $user_id, $ctx['is_view_as']);
 
             $certificates = array();
 
@@ -423,12 +462,11 @@ class UserDataRestController {
                 );
             }
 
-            $view_as_user_id = $request->get_param('viewAsUserId');
-            if ($view_as_user_id && current_user_can('manage_options')) {
-                $user_id = absint($view_as_user_id);
-            }
+            // Resolve user context (view-as or self)
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
 
-            if (!current_user_can('manage_options') && !current_user_can('ffc_view_self_scheduling')) {
+            if (!$this->user_has_capability('ffc_view_self_scheduling', $user_id, $ctx['is_view_as'])) {
                 return new \WP_Error(
                     'capability_denied',
                     __('You do not have permission to view appointments', 'ffcertificate'),
@@ -624,12 +662,11 @@ class UserDataRestController {
                 );
             }
 
-            $view_as_user_id = $request->get_param('viewAsUserId');
-            if ($view_as_user_id && current_user_can('manage_options')) {
-                $user_id = absint($view_as_user_id);
-            }
+            // Resolve user context (view-as or self)
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
 
-            if (!current_user_can('manage_options') && !current_user_can('ffc_view_audience_bookings')) {
+            if (!$this->user_has_capability('ffc_view_audience_bookings', $user_id, $ctx['is_view_as'])) {
                 return new \WP_Error(
                     'capability_denied',
                     __('You do not have permission to view audience bookings', 'ffcertificate'),

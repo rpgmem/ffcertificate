@@ -46,6 +46,7 @@ class Activator {
         }
 
         self::add_composite_indexes();
+        self::add_foreign_keys();
         self::run_migrations();
 
         // Clean up legacy cron hooks from pre-4.6.15 versions
@@ -170,6 +171,17 @@ class Activator {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
                 $wpdb->query( "ALTER TABLE {$table_name} ADD INDEX {$index_name} {$columns}" );
             }
+        }
+    }
+
+    /**
+     * Add FOREIGN KEY constraints for referential integrity
+     *
+     * @since 4.9.7
+     */
+    private static function add_foreign_keys(): void {
+        if (class_exists('\FreeFormCertificate\Migrations\MigrationForeignKeys')) {
+            \FreeFormCertificate\Migrations\MigrationForeignKeys::run();
         }
     }
 

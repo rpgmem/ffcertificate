@@ -40,6 +40,22 @@ class AdminUserColumns {
     private static ?string $dashboard_url_cache = null;
 
     /**
+     * Batch-cached certificate counts (user_id => count)
+     *
+     * @since 4.9.7
+     * @var array|null
+     */
+    private static ?array $certificate_counts_cache = null;
+
+    /**
+     * Batch-cached appointment counts (user_id => count)
+     *
+     * @since 4.9.7
+     * @var array|null
+     */
+    private static ?array $appointment_counts_cache = null;
+
+    /**
      * Initialize user columns
      */
     public static function init(): void {
@@ -169,51 +185,97 @@ class AdminUserColumns {
     }
 
     /**
-     * Get certificate count for user
+     * Get certificate count for user (batch-loaded)
      *
+     * First call loads counts for ALL users in a single query,
+     * subsequent calls return from cache. Eliminates N+1 queries.
+     *
+     * @since 4.9.7 - Batch query replaces per-user COUNT
      * @param int $user_id User ID
      * @return int Certificate count
      */
     private static function get_user_certificate_count( int $user_id ): int {
-        global $wpdb;
-        $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+        if ( self::$certificate_counts_cache === null ) {
+            self::load_certificate_counts();
+        }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $count = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND status != 'trash'",
-            $user_id
-        ));
-
-        return (int) $count;
+        return self::$certificate_counts_cache[$user_id] ?? 0;
     }
 
     /**
-     * Get appointment count for user
+     * Get appointment count for user (batch-loaded)
      *
+     * @since 4.9.7 - Batch query replaces per-user COUNT
      * @param int $user_id User ID
      * @return int Appointment count
      */
     private static function get_user_appointment_count( int $user_id ): int {
+        if ( self::$appointment_counts_cache === null ) {
+            self::load_appointment_counts();
+        }
+
+        return self::$appointment_counts_cache[$user_id] ?? 0;
+    }
+
+    /**
+     * Load certificate counts for all users in a single batch query
+     *
+     * @since 4.9.7
+     * @return void
+     */
+    private static function load_certificate_counts(): void {
+        global $wpdb;
+        $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $results = $wpdb->get_results(
+            "SELECT user_id, COUNT(*) AS cnt FROM {$table} WHERE user_id IS NOT NULL AND status != 'trash' GROUP BY user_id",
+            ARRAY_A
+        );
+
+        self::$certificate_counts_cache = array();
+        if ( $results ) {
+            foreach ( $results as $row ) {
+                self::$certificate_counts_cache[ (int) $row['user_id'] ] = (int) $row['cnt'];
+            }
+        }
+    }
+
+    /**
+     * Load appointment counts for all users in a single batch query
+     *
+     * @since 4.9.7
+     * @return void
+     */
+    private static function load_appointment_counts(): void {
         global $wpdb;
         $table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-        // Check if table exists (cached per request to avoid N+1 SHOW TABLES queries)
+        // Check if table exists (cached per request)
         if ( self::$appointments_table_exists === null ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             self::$appointments_table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) == $table;
         }
+
+        self::$appointment_counts_cache = array();
         if ( ! self::$appointments_table_exists ) {
-            return 0;
+            return;
         }
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $count = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'cancelled'",
-            $table,
-            $user_id
-        ));
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT user_id, COUNT(*) AS cnt FROM %i WHERE user_id IS NOT NULL AND status != 'cancelled' GROUP BY user_id",
+                $table
+            ),
+            ARRAY_A
+        );
 
-        return (int) $count;
+        if ( $results ) {
+            foreach ( $results as $row ) {
+                self::$appointment_counts_cache[ (int) $row['user_id'] ] = (int) $row['cnt'];
+            }
+        }
     }
 
     /**
