@@ -1308,12 +1308,14 @@ class ReregistrationFrontend {
         if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
             \FreeFormCertificate\Core\ActivityLog::log(
                 'reregistration_submitted',
-                $user_id,
+                \FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
                 array(
                     'reregistration_id' => $rereg->id,
                     'submission_id'     => $submission->id,
                     'status'            => $new_status,
-                )
+                ),
+                $user_id,
+                (int) $submission->id
             );
         }
     }

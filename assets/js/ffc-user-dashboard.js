@@ -974,7 +974,7 @@
                 html += '</td>';
                 html += '<td>';
                 if (item.can_submit) {
-                    html += '<button type="button" class="button button-primary ffc-rereg-open-form" data-reregistration-id="' + item.reregistration_id + '">' + (s.editReregistration || 'Edit') + '</button> ';
+                    html += '<button type="button" class="button ffc-btn-edit ffc-rereg-open-form" data-reregistration-id="' + item.reregistration_id + '">' + (s.editReregistration || 'Edit') + '</button> ';
                 }
                 if (item.can_download) {
                     html += '<button type="button" class="button ffc-btn-pdf ffc-download-ficha-btn" data-submission-id="' + item.submission_id + '">' + (s.downloadFicha || 'Download Ficha') + '</button>';
