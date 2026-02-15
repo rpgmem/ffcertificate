@@ -63,6 +63,13 @@ class AdminUserCapabilities {
             return;
         }
 
+        // Don't show for users with manage_options (administrators) — they already
+        // have full FFC access via role-level capabilities.  Showing checkboxes for
+        // admins is confusing and saving can accidentally deny role-level grants.
+        if (user_can($user->ID, 'manage_options')) {
+            return;
+        }
+
         // Only show for users with ffc_user role
         if (!in_array('ffc_user', $user->roles, true) && !self::has_any_ffc_capability($user->ID)) {
             return;
@@ -287,8 +294,14 @@ class AdminUserCapabilities {
             $field_name = 'ffc_cap_' . $cap;
             $grant = isset($_POST[$field_name]) && $_POST[$field_name] === '1';
 
-            // Set capability
-            $user->add_cap($cap, $grant);
+            if ($grant) {
+                $user->add_cap($cap, true);
+            } else {
+                // remove_cap() removes the user-level override, letting the role's
+                // value prevail.  Using add_cap($cap, false) would explicitly deny
+                // the capability and override role-level grants (e.g. admin role).
+                $user->remove_cap($cap);
+            }
         }
 
         // Log the change
