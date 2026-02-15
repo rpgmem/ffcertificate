@@ -702,7 +702,7 @@ class ReregistrationFrontend {
 
                 <!-- 5. SINDICATO -->
                 <fieldset class="ffc-rereg-fieldset">
-                    <legend><?php echo esc_html__('5. Sindicato', 'ffcertificate'); ?></legend>
+                    <legend><?php echo esc_html__('5. Sindicato ao qual sou filiado e que desejo participar de eventos (apenas um)', 'ffcertificate'); ?></legend>
 
                     <div class="ffc-rereg-field">
                         <label for="ffc_rereg_sindicato"><?php esc_html_e('Sindicato', 'ffcertificate'); ?></label>
@@ -720,15 +720,15 @@ class ReregistrationFrontend {
                     <legend><?php echo esc_html__('6. Termo de Ciência', 'ffcertificate'); ?></legend>
 
                     <div class="ffc-rereg-termo-text">
-                        <p><?php echo esc_html__('Declaro estar ciente das seguintes obrigações:', 'ffcertificate'); ?></p>
-                        <ul>
-                            <li><?php echo esc_html__('Declarar os bens e rendas em Declaração de Família, conforme legislação vigente.', 'ffcertificate'); ?></li>
-                            <li><?php echo esc_html__('Efetuar o recadastramento do vale-transporte conforme normativa vigente.', 'ffcertificate'); ?></li>
-                            <li><?php echo esc_html__('Realizar o recadastramento anual obrigatório.', 'ffcertificate'); ?></li>
-                            <li><?php echo esc_html__('Manter atualizada a declaração de bens e valores.', 'ffcertificate'); ?></li>
-                            <li><?php echo esc_html__('Comunicar antecipadamente sobre adiantamento de 13º salário.', 'ffcertificate'); ?></li>
-                            <li><?php echo esc_html__('Apresentar atestados médicos conforme normativa vigente.', 'ffcertificate'); ?></li>
-                        </ul>
+                        <p><?php echo esc_html__('Eu, em exercício na Diretoria Regional de Educação de São Miguel – DRE-MP, declaro estar ciente das orientações para o ano corrente:', 'ffcertificate'); ?></p>
+                        <ol>
+                            <li><strong><?php echo esc_html__('Declaração de Família WEB:', 'ffcertificate'); ?></strong> <?php echo esc_html__('a Declaração de Família Web deverá ser feita dentro do mês de aniversário do servidor, por meio do site:', 'ffcertificate'); ?> <a href="https://www.declaracaofamilia.iprem.prefeitura.sp.gov.br/Login" target="_blank" rel="noopener noreferrer">https://www.declaracaofamilia.iprem.prefeitura.sp.gov.br/Login</a>. <?php echo esc_html__('Após, deverá ser impressa e entregue no Setor de Vida Funcional, para arquivo em prontuário;', 'ffcertificate'); ?></li>
+                            <li><strong><?php echo esc_html__('Recadastramento Auxílio Transporte:', 'ffcertificate'); ?></strong> <?php echo esc_html__('Permanecem as mesmas orientações para aqueles que fazem jus ao recebimento do auxílio, lembrando que o recadastramento deverá ser efetuado no mês do aniversário, e o servidor deverá providenciar o recadastramento do Auxílio Transporte ANTES de efetuar o recadastramento anual (prova de vida);', 'ffcertificate'); ?></li>
+                            <li><strong><?php echo esc_html__('Recadastramento Anual (Prova de Vida):', 'ffcertificate'); ?></strong> <?php echo esc_html__('Permanecem as mesmas orientações, lembrando que o RG com data de expedição acima de 10 anos não será aceito, e o servidor deverá providenciar novo documento antes de efetuar o recadastramento;', 'ffcertificate'); ?></li>
+                            <li><strong><?php echo esc_html__('Declaração de Bens (SISPATRI):', 'ffcertificate'); ?></strong> <?php echo esc_html__('Permanecem as mesmas orientações, lembrando que deverá ser feita após o encerramento do prazo da Receita Federal, do dia 1 ao 30 do mês de Junho, por meio do site:', 'ffcertificate'); ?> <a href="https://controladoriageralbens.prefeitura.sp.gov.br/PaginasPublicas/login.aspx" target="_blank" rel="noopener noreferrer">https://controladoriageralbens.prefeitura.sp.gov.br/PaginasPublicas/login.aspx</a>;</li>
+                            <li><strong><?php echo esc_html__('Antecipação de 13º Salário:', 'ffcertificate'); ?></strong> <?php echo esc_html__('A solicitação poderá ser preenchida e entregue à Unidade de RH a partir do 1º dia útil do exercício a que se refere a antecipação, independente do mês de aniversário do servidor.', 'ffcertificate'); ?></li>
+                            <li><strong><?php echo esc_html__('Entrega de Atestados Médicos/Odontológicos com pedido de Afastamento a partir de 1 (um) dia:', 'ffcertificate'); ?></strong> <?php echo esc_html__('Reiteramos que, qualquer pedido de afastamento para tratamento de saúde (pessoal ou de familiar) deverá ser informado imediatamente à chefia, mediante apresentação do atestado médico/odontológico. Em seguida, a documentação deverá ser entregue ao Setor de Vida Funcional EM MÃOS ou digitalizada para o e-mail:', 'ffcertificate'); ?> <a href="mailto:rhvidafuncionaldremp@sme.prefeitura.sp.gov.br">rhvidafuncionaldremp@sme.prefeitura.sp.gov.br</a>. <?php echo esc_html__('Importante: O setor de Vida Funcional e a Chefia não se responsabilizam pelos atestados deixados no livro de ponto ou na pasta destinada exclusivamente às Declarações de Horário, bem como os que forem entregues fora do prazo legal para agendamento de perícia, se for o caso.', 'ffcertificate'); ?></li>
+                        </ol>
                     </div>
                 </fieldset>
 
