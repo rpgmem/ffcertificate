@@ -12,24 +12,18 @@
    ========================================================================== */
 .ffc-pdf-temp-wrapper {
     position: absolute;
-    left: -9999px;
     top: 0;
-    width: 1123px;  /* A4 Landscape width in pixels */
-    height: 794px;  /* A4 Landscape height in pixels */
-    z-index: -1;
     overflow: hidden;
+    /* Width, height, left, z-index set dynamically by JS for portrait/landscape */
 }
 
 /* Container temporário usado pelo ffc-frontend.js */
 .ffc-pdf-temp-container {
     position: fixed !important;
-    left: -9999px !important;
-    top: 0 !important;
-    width: 1123px !important;
-    height: 794px !important;
-    z-index: -1 !important;
     overflow: hidden !important;
     visibility: visible !important;
+    /* Width, height, left, top, z-index, opacity are set dynamically by JS
+       to support both portrait (794x1123) and landscape (1123x794) */
 }
 
 /* ==========================================================================
@@ -37,8 +31,6 @@
    ========================================================================== */
 .ffc-pdf-wrapper {
     position: relative !important;
-    width: 1123px !important;
-    height: 794px !important;
     background-color: #ffffff !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
@@ -46,6 +38,7 @@
     font-size: 14px !important;
     line-height: 1.4 !important;
     color: #000000 !important;
+    /* Width/height set dynamically by JS for portrait/landscape support */
 }
 
 /* ==========================================================================
@@ -55,8 +48,8 @@
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
-    width: 1123px !important;
-    height: 794px !important;
+    width: 100% !important;
+    height: 100% !important;
     object-fit: fill !important;
     z-index: 1 !important;
     display: block !important;
@@ -146,22 +139,18 @@
 /* ✅ v2.9.2: Preserve paragraphs */
 .ffc-pdf-wrapper p,
 .ffc-pdf-content p {
-    margin: 1em 0 !important;
+    display: block !important;
 }
 
 /* ✅ v2.9.2: Preserve lists */
 .ffc-pdf-wrapper ul,
 .ffc-pdf-content ul {
     list-style-type: disc !important;
-    padding-left: 40px !important;
-    margin: 1em 0 !important;
 }
 
 .ffc-pdf-wrapper ol,
 .ffc-pdf-content ol {
     list-style-type: decimal !important;
-    padding-left: 40px !important;
-    margin: 1em 0 !important;
 }
 
 .ffc-pdf-wrapper li,
@@ -180,7 +169,6 @@
 .ffc-pdf-wrapper th,
 .ffc-pdf-content td,
 .ffc-pdf-content th {
-    padding: 0 !important;
     vertical-align: inherit !important;
 }
 
@@ -252,9 +240,8 @@
 body.wp-admin .ffc-pdf-temp-container,
 body.wp-admin .ffc-pdf-temp-wrapper {
     position: fixed !important;
-    left: -9999px !important;
-    top: 0 !important;
     display: block !important;
+    /* Left, top set dynamically by JS */
 }
 
 /* ==========================================================================
