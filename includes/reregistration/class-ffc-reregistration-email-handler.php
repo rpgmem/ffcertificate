@@ -21,6 +21,8 @@ if (!defined('ABSPATH')) {
 
 class ReregistrationEmailHandler {
 
+    use \FreeFormCertificate\Core\EmailHelperTrait;
+
     /**
      * Send invitation emails to all pending members.
      *
@@ -245,12 +247,10 @@ class ReregistrationEmailHandler {
 
     /**
      * Check if all emails are globally disabled.
-     *
-     * @return bool
+     * Delegates to EmailHelperTrait::ffc_emails_disabled().
      */
     private static function emails_disabled(): bool {
-        $settings = get_option('ffc_settings', array());
-        return !empty($settings['disable_all_emails']);
+        return self::ffc_emails_disabled();
     }
 
     /**

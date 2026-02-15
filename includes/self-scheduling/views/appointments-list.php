@@ -170,15 +170,7 @@ class FFC_Appointments_List_Table extends WP_List_Table {
      * Email column (with decryption support)
      */
     public function column_email($item): string {
-        $email = $item['email'];
-
-        // Try to decrypt if encrypted
-        if (empty($email) && !empty($item['email_encrypted'])) {
-            if (class_exists('\FreeFormCertificate\Core\Encryption')) {
-                $email = \FreeFormCertificate\Core\Encryption::decrypt($item['email_encrypted']);
-            }
-        }
-
+        $email = \FreeFormCertificate\Core\Encryption::decrypt_field($item, 'email');
         return $email ? esc_html($email) : '-';
     }
 

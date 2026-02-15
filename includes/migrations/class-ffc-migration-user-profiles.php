@@ -21,6 +21,8 @@ if (!defined('ABSPATH')) exit;
 
 class MigrationUserProfiles {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     /**
      * Run the migration
      *
@@ -34,7 +36,7 @@ class MigrationUserProfiles {
         $profiles_table = $wpdb->prefix . 'ffc_user_profiles';
 
         // Check if table exists
-        if (!$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $profiles_table))) {
+        if (!self::table_exists($profiles_table)) {
             return array(
                 'success' => false,
                 'processed' => 0,

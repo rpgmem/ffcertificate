@@ -29,6 +29,8 @@ if (!defined('ABSPATH')) exit;
 
 class UserManager {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     /**
      * Context constants for capability granting
      */
@@ -153,11 +155,8 @@ class UserManager {
 
         // Link orphaned appointments
         $appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $appointments_table));
-
         $linked_appointments = 0;
-        if ($table_exists) {
+        if (self::table_exists($appointments_table)) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $linked_appointments = $wpdb->query($wpdb->prepare(
                 "UPDATE {$appointments_table} SET user_id = %d WHERE cpf_rf_hash = %s AND user_id IS NULL",
@@ -378,8 +377,7 @@ class UserManager {
         global $wpdb;
         $table = $wpdb->prefix . 'ffc_user_profiles';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if (!$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table))) {
+        if (!self::table_exists($table)) {
             return;
         }
 
@@ -422,10 +420,7 @@ class UserManager {
         global $wpdb;
         $table = $wpdb->prefix . 'ffc_user_profiles';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
-
-        if ($table_exists) {
+        if (self::table_exists($table)) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $profile = $wpdb->get_row($wpdb->prepare(
                 "SELECT * FROM {$table} WHERE user_id = %d",
@@ -470,8 +465,7 @@ class UserManager {
         global $wpdb;
         $table = $wpdb->prefix . 'ffc_user_profiles';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if (!$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table))) {
+        if (!self::table_exists($table)) {
             return false;
         }
 

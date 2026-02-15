@@ -23,6 +23,8 @@ if (!defined('ABSPATH')) exit;
 
 class MigrationForeignKeys {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     /**
      * Run the migration
      *
@@ -117,14 +119,11 @@ class MigrationForeignKeys {
     private static function add_foreign_key(string $table, string $constraint_name, string $on_delete): array {
         global $wpdb;
 
-        // Check if table exists
-        if (!$wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table))) {
+        // Check if table and column exist
+        if (!self::table_exists($table)) {
             return array('status' => 'skipped', 'message' => 'Table does not exist');
         }
-
-        // Check if user_id column exists
-        $column = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM {$table} LIKE %s", 'user_id'));
-        if (empty($column)) {
+        if (!self::column_exists($table, 'user_id')) {
             return array('status' => 'skipped', 'message' => 'No user_id column');
         }
 
@@ -150,7 +149,7 @@ class MigrationForeignKeys {
 
         // For SET NULL, ensure user_id allows NULL
         if ($on_delete === 'SET NULL') {
-            $col_info = $wpdb->get_row($wpdb->prepare("SHOW COLUMNS FROM {$table} LIKE %s", 'user_id'));
+            $col_info = $wpdb->get_row($wpdb->prepare("SHOW COLUMNS FROM {$table} LIKE %s", 'user_id')); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             if ($col_info && strtoupper($col_info->Null) !== 'YES') {
                 $wpdb->query("ALTER TABLE {$table} MODIFY user_id BIGINT(20) UNSIGNED DEFAULT NULL");
             }

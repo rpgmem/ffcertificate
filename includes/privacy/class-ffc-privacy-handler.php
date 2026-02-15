@@ -23,6 +23,8 @@ if (!defined('ABSPATH')) exit;
 
 class PrivacyHandler {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     /**
      * Items per page for batch processing
      */
@@ -626,14 +628,5 @@ class PrivacyHandler {
         return array('data' => $export_items, 'done' => true);
     }
 
-    /**
-     * Check if a database table exists
-     *
-     * @param string $table_name Full table name with prefix
-     * @return bool
-     */
-    private static function table_exists(string $table_name): bool {
-        global $wpdb;
-        return (bool) $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name));
-    }
+    // table_exists() provided by DatabaseHelperTrait
 }

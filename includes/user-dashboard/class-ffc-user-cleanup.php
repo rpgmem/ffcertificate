@@ -19,6 +19,8 @@ if (!defined('ABSPATH')) exit;
 
 class UserCleanup {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     /**
      * Initialize hooks
      *
@@ -196,14 +198,5 @@ class UserCleanup {
         }
     }
 
-    /**
-     * Check if a database table exists
-     *
-     * @param string $table_name Full table name with prefix
-     * @return bool
-     */
-    private static function table_exists(string $table_name): bool {
-        global $wpdb;
-        return (bool) $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name));
-    }
+    // table_exists() provided by DatabaseHelperTrait
 }

@@ -19,6 +19,8 @@ if (!defined('ABSPATH')) exit;
 
 class AppointmentHandler {
 
+    use \FreeFormCertificate\Core\EmailHelperTrait;
+
     /**
      * Repositories
      */
@@ -390,8 +392,7 @@ class AppointmentHandler {
             return;
         }
 
-        $global_settings = get_option('ffc_settings', array());
-        if (!empty($global_settings['disable_all_emails'])) {
+        if (self::ffc_emails_disabled()) {
             return;
         }
 
