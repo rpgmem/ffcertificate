@@ -63,7 +63,7 @@ class FichaGenerator {
 
         // Check if user has acúmulo de cargos
         $acumulo_value = $standard['acumulo_cargos'] ?? 'Não Possuo';
-        $has_acumulo   = !empty($acumulo_value) && $acumulo_value !== 'Não Possuo';
+        $has_acumulo   = $acumulo_value === 'Possuo';
 
         // Build template variables
         $variables = array(
