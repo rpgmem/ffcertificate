@@ -10,6 +10,7 @@
     $(function () {
         initSelectAll();
         initBulkConfirm();
+        initReturnToDraftConfirm();
         initFichaDownload();
     });
 
@@ -43,6 +44,29 @@
                 if (!confirm(msg)) {
                     e.preventDefault();
                 }
+            }
+
+            if (action === 'return_to_draft') {
+                var msg2 = (window.ffcReregistrationAdmin && window.ffcReregistrationAdmin.strings)
+                    ? window.ffcReregistrationAdmin.strings.confirmReturnToDraft
+                    : 'Return selected submissions to draft? Users will be able to edit and resubmit.';
+                if (!confirm(msg2)) {
+                    e.preventDefault();
+                }
+            }
+        });
+    }
+
+    /**
+     * Confirm before returning a single submission to draft
+     */
+    function initReturnToDraftConfirm() {
+        $(document).on('click', '.ffc-return-draft-btn', function (e) {
+            var S = (window.ffcReregistrationAdmin && window.ffcReregistrationAdmin.strings) || {};
+            var msg = S.confirmReturnToDraft
+                || 'Return this submission to draft? The user will be able to edit and resubmit.';
+            if (!confirm(msg)) {
+                e.preventDefault();
             }
         });
     }

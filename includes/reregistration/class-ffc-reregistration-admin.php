@@ -120,10 +120,11 @@ class ReregistrationAdmin {
             'adminNonce' => wp_create_nonce('ffc_reregistration_nonce'),
             'fichaNonce' => wp_create_nonce('ffc_generate_ficha'),
             'strings'    => array(
-                'confirmDelete'   => __('Are you sure you want to delete this reregistration? This will also delete all submissions.', 'ffcertificate'),
-                'confirmApprove'  => __('Approve selected submissions?', 'ffcertificate'),
-                'generatingPdf'   => __('Generating PDF...', 'ffcertificate'),
-                'errorGenerating' => __('Error generating ficha.', 'ffcertificate'),
+                'confirmDelete'        => __('Are you sure you want to delete this reregistration? This will also delete all submissions.', 'ffcertificate'),
+                'confirmApprove'       => __('Approve selected submissions?', 'ffcertificate'),
+                'confirmReturnToDraft' => __('Return this submission to draft? The user will be able to edit and resubmit.', 'ffcertificate'),
+                'generatingPdf'        => __('Generating PDF...', 'ffcertificate'),
+                'errorGenerating'      => __('Error generating ficha.', 'ffcertificate'),
             ),
         ));
 
@@ -528,6 +529,7 @@ class ReregistrationAdmin {
                 <select name="bulk_action">
                     <option value=""><?php esc_html_e('Bulk Actions', 'ffcertificate'); ?></option>
                     <option value="approve"><?php esc_html_e('Approve', 'ffcertificate'); ?></option>
+                    <option value="return_to_draft"><?php esc_html_e('Return to Draft', 'ffcertificate'); ?></option>
                     <option value="send_reminder"><?php esc_html_e('Send Reminder', 'ffcertificate'); ?></option>
                 </select>
                 <?php submit_button(__('Apply', 'ffcertificate'), 'action', '', false); ?>
@@ -575,9 +577,16 @@ class ReregistrationAdmin {
             admin_url('admin.php?page=' . self::MENU_SLUG . '&action=reject&sub_id=' . $sub->id . '&id=' . $rereg_id),
             'reject_submission_' . $sub->id
         );
+        $draft_url = wp_nonce_url(
+            admin_url('admin.php?page=' . self::MENU_SLUG . '&action=return_to_draft&sub_id=' . $sub->id . '&id=' . $rereg_id),
+            'return_to_draft_submission_' . $sub->id
+        );
 
         $submitted = $sub->submitted_at ? wp_date(get_option('date_format') . ' ' . get_option('time_format'), strtotime($sub->submitted_at)) : '—';
         $reviewed = $sub->reviewed_at ? wp_date(get_option('date_format') . ' ' . get_option('time_format'), strtotime($sub->reviewed_at)) : '—';
+
+        // Statuses that can be sent back to draft for user revision
+        $can_return_to_draft = in_array($sub->status, array('submitted', 'approved', 'rejected'), true);
 
         ?>
         <tr>
@@ -603,6 +612,12 @@ class ReregistrationAdmin {
                     <span class="description" title="<?php echo esc_attr($sub->notes); ?>"><?php esc_html_e('See notes', 'ffcertificate'); ?></span>
                 <?php else : ?>
                     —
+                <?php endif; ?>
+                <?php if ($can_return_to_draft) : ?>
+                    <a href="<?php echo esc_url($draft_url); ?>" class="button button-small ffc-return-draft-btn" title="<?php esc_attr_e('Return to user for revision', 'ffcertificate'); ?>">
+                        <span class="dashicons dashicons-edit" style="vertical-align:middle;font-size:14px"></span>
+                        <?php esc_html_e('Return to Draft', 'ffcertificate'); ?>
+                    </a>
                 <?php endif; ?>
                 <?php if (in_array($sub->status, array('submitted', 'approved'), true)) : ?>
                     <button type="button" class="button button-small ffc-ficha-btn" data-submission-id="<?php echo esc_attr($sub->id); ?>">
@@ -646,8 +661,10 @@ class ReregistrationAdmin {
                 'deleted'  => __('Reregistration deleted successfully.', 'ffcertificate'),
                 'approved' => __('Submission approved.', 'ffcertificate'),
                 'rejected' => __('Submission rejected.', 'ffcertificate'),
-                'bulk_approved'  => __('Selected submissions approved.', 'ffcertificate'),
-                'reminders_sent' => __('Reminder emails sent.', 'ffcertificate'),
+                'returned_to_draft'      => __('Submission returned to draft for revision.', 'ffcertificate'),
+                'bulk_approved'          => __('Selected submissions approved.', 'ffcertificate'),
+                'bulk_returned_to_draft' => __('Selected submissions returned to draft.', 'ffcertificate'),
+                'reminders_sent'         => __('Reminder emails sent.', 'ffcertificate'),
             );
             if (isset($messages[$msg])) {
                 add_settings_error('ffc_reregistration', 'ffc_message', $messages[$msg], 'success');
@@ -658,6 +675,7 @@ class ReregistrationAdmin {
         $this->handle_delete();
         $this->handle_approve();
         $this->handle_reject();
+        $this->handle_return_to_draft();
         $this->handle_bulk();
         $this->handle_export();
     }
@@ -790,6 +808,29 @@ class ReregistrationAdmin {
     }
 
     /**
+     * Handle return-to-draft single submission.
+     *
+     * @return void
+     */
+    private function handle_return_to_draft(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (!isset($_GET['action']) || $_GET['action'] !== 'return_to_draft' || !isset($_GET['sub_id'])) {
+            return;
+        }
+
+        $sub_id = absint($_GET['sub_id']);
+        $rereg_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
+
+        if (!wp_verify_nonce(isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '', 'return_to_draft_submission_' . $sub_id)) {
+            return;
+        }
+
+        ReregistrationSubmissionRepository::return_to_draft($sub_id, get_current_user_id());
+        wp_safe_redirect(admin_url('admin.php?page=' . self::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=returned_to_draft'));
+        exit;
+    }
+
+    /**
      * Handle bulk actions on submissions.
      *
      * @return void
@@ -814,6 +855,12 @@ class ReregistrationAdmin {
         if ($action === 'approve') {
             ReregistrationSubmissionRepository::bulk_approve($ids, get_current_user_id());
             wp_safe_redirect(admin_url('admin.php?page=' . self::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=bulk_approved'));
+            exit;
+        }
+
+        if ($action === 'return_to_draft') {
+            ReregistrationSubmissionRepository::bulk_return_to_draft($ids, get_current_user_id());
+            wp_safe_redirect(admin_url('admin.php?page=' . self::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=bulk_returned_to_draft'));
             exit;
         }
 
