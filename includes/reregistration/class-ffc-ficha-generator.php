@@ -327,7 +327,7 @@ class FichaGenerator {
         }
 
         // Fallback: minimal template
-        return '<div style="width:794px;min-height:1123px;padding:60px;box-sizing:border-box;font-family:Arial,sans-serif">'
+        return '<div style="width:794px;height:1123px;padding:60px;box-sizing:border-box;font-family:Arial,sans-serif">'
             . '<h1 style="text-align:center;color:#0073aa">' . esc_html__('Reregistration Record', 'ffcertificate') . '</h1>'
             . '<p><strong>' . esc_html__('Name:', 'ffcertificate') . '</strong> {{display_name}}</p>'
             . '<p><strong>' . esc_html__('Email:', 'ffcertificate') . '</strong> {{email}}</p>'
