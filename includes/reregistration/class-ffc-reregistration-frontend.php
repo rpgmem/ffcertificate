@@ -354,6 +354,64 @@ class ReregistrationFrontend {
                                     );
                                     break;
 
+                                case 'working_hours':
+                                    $wh_data = is_string($field_value) ? json_decode($field_value, true) : $field_value;
+                                    if (!is_array($wh_data) || empty($wh_data)) {
+                                        $wh_data = array(
+                                            array('day' => 1, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00'),
+                                            array('day' => 2, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00'),
+                                            array('day' => 3, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00'),
+                                            array('day' => 4, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00'),
+                                            array('day' => 5, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00'),
+                                        );
+                                    }
+                                    $days_labels = array(
+                                        0 => __('Sunday', 'ffcertificate'),
+                                        1 => __('Monday', 'ffcertificate'),
+                                        2 => __('Tuesday', 'ffcertificate'),
+                                        3 => __('Wednesday', 'ffcertificate'),
+                                        4 => __('Thursday', 'ffcertificate'),
+                                        5 => __('Friday', 'ffcertificate'),
+                                        6 => __('Saturday', 'ffcertificate'),
+                                    );
+                                    ?>
+                                    <input type="hidden" id="<?php echo esc_attr($field_id); ?>" name="<?php echo esc_attr($field_name); ?>" value="<?php echo esc_attr(wp_json_encode($wh_data)); ?>">
+                                    <div class="ffc-working-hours" data-target="<?php echo esc_attr($field_id); ?>">
+                                        <table class="ffc-wh-table">
+                                            <thead>
+                                                <tr>
+                                                    <th><?php esc_html_e('Day', 'ffcertificate'); ?></th>
+                                                    <th><?php esc_html_e('Entry 1', 'ffcertificate'); ?> <span class="required">*</span></th>
+                                                    <th><?php esc_html_e('Exit 1', 'ffcertificate'); ?></th>
+                                                    <th><?php esc_html_e('Entry 2', 'ffcertificate'); ?></th>
+                                                    <th><?php esc_html_e('Exit 2', 'ffcertificate'); ?> <span class="required">*</span></th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($wh_data as $wh_entry) : ?>
+                                                <tr>
+                                                    <td>
+                                                        <select class="ffc-wh-day">
+                                                            <?php foreach ($days_labels as $d_num => $d_name) : ?>
+                                                                <option value="<?php echo esc_attr($d_num); ?>" <?php selected($wh_entry['day'], $d_num); ?>><?php echo esc_html($d_name); ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </td>
+                                                    <td><input type="time" class="ffc-wh-entry1" value="<?php echo esc_attr($wh_entry['entry1'] ?? ''); ?>" required></td>
+                                                    <td><input type="time" class="ffc-wh-exit1" value="<?php echo esc_attr($wh_entry['exit1'] ?? ''); ?>"></td>
+                                                    <td><input type="time" class="ffc-wh-entry2" value="<?php echo esc_attr($wh_entry['entry2'] ?? ''); ?>"></td>
+                                                    <td><input type="time" class="ffc-wh-exit2" value="<?php echo esc_attr($wh_entry['exit2'] ?? ''); ?>" required></td>
+                                                    <td><button type="button" class="ffc-wh-remove">&times;</button></td>
+                                                </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                        <button type="button" class="button ffc-wh-add">+ <?php esc_html_e('Add Day', 'ffcertificate'); ?></button>
+                                    </div>
+                                    <?php
+                                    break;
+
                                 default: // text
                                     $mask = '';
                                     $format = $rules['format'] ?? '';
@@ -421,7 +479,27 @@ class ReregistrationFrontend {
         foreach ($fields as $cf) {
             $key = 'field_' . $cf->id;
             if (isset($raw_custom[$key])) {
-                if ($cf->field_type === 'textarea') {
+                if ($cf->field_type === 'working_hours') {
+                    // Sanitize JSON: decode, validate structure, re-encode
+                    $wh = json_decode($raw_custom[$key], true);
+                    if (is_array($wh)) {
+                        $sanitized = array();
+                        foreach ($wh as $entry) {
+                            if (is_array($entry) && isset($entry['day'], $entry['entry1'], $entry['exit2'])) {
+                                $sanitized[] = array(
+                                    'day'    => absint($entry['day']),
+                                    'entry1' => sanitize_text_field($entry['entry1']),
+                                    'exit1'  => sanitize_text_field($entry['exit1'] ?? ''),
+                                    'entry2' => sanitize_text_field($entry['entry2'] ?? ''),
+                                    'exit2'  => sanitize_text_field($entry['exit2']),
+                                );
+                            }
+                        }
+                        $custom[$key] = wp_json_encode($sanitized);
+                    } else {
+                        $custom[$key] = '[]';
+                    }
+                } elseif ($cf->field_type === 'textarea') {
                     $custom[$key] = sanitize_textarea_field($raw_custom[$key]);
                 } elseif ($cf->field_type === 'number') {
                     $custom[$key] = is_numeric($raw_custom[$key]) ? $raw_custom[$key] : '';

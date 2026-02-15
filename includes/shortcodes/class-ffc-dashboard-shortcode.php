@@ -476,9 +476,24 @@ class DashboardShortcode {
         // Enqueue JavaScript
         wp_enqueue_script( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard{$s}.js", array('jquery'), FFC_VERSION, true );
 
+        // Working hours field component (shared)
+        wp_enqueue_style('ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array(), FFC_VERSION);
+        wp_enqueue_script('ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array('jquery'), FFC_VERSION, true);
+        wp_localize_script('ffc-working-hours', 'ffcWorkingHours', array(
+            'days' => array(
+                array('value' => 0, 'label' => __('Sunday', 'ffcertificate')),
+                array('value' => 1, 'label' => __('Monday', 'ffcertificate')),
+                array('value' => 2, 'label' => __('Tuesday', 'ffcertificate')),
+                array('value' => 3, 'label' => __('Wednesday', 'ffcertificate')),
+                array('value' => 4, 'label' => __('Thursday', 'ffcertificate')),
+                array('value' => 5, 'label' => __('Friday', 'ffcertificate')),
+                array('value' => 6, 'label' => __('Saturday', 'ffcertificate')),
+            ),
+        ));
+
         // Reregistration frontend assets
         wp_enqueue_style('ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array('ffc-dashboard'), FFC_VERSION);
-        wp_enqueue_script('ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/js/ffc-reregistration-frontend{$s}.js", array('jquery', 'ffc-dashboard'), FFC_VERSION, true);
+        wp_enqueue_script('ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/js/ffc-reregistration-frontend{$s}.js", array('jquery', 'ffc-dashboard', 'ffc-working-hours'), FFC_VERSION, true);
         wp_localize_script('ffc-reregistration-frontend', 'ffcReregistration', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce'   => wp_create_nonce('ffc_reregistration_frontend'),

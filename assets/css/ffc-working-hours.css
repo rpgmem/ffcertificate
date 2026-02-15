@@ -1,0 +1,103 @@
+/**
+ * Working Hours Field Styles
+ *
+ * Shared CSS for the working_hours custom field type.
+ * Table: Day | Entry 1* | Exit 1 | Entry 2 | Exit 2* | Remove
+ *
+ * @since 4.12.0
+ * @package FreeFormCertificate
+ */
+
+.ffc-working-hours {
+    margin-top: 6px;
+}
+
+.ffc-wh-table {
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 780px;
+    font-size: 13px;
+}
+
+.ffc-wh-table th {
+    text-align: left;
+    padding: 6px 6px;
+    font-weight: 600;
+    font-size: 12px;
+    color: #50575e;
+    border-bottom: 1px solid #dcdcde;
+    white-space: nowrap;
+}
+
+.ffc-wh-table th .required {
+    color: #d63638;
+}
+
+.ffc-wh-table td {
+    padding: 4px 6px;
+    vertical-align: middle;
+}
+
+.ffc-wh-table select,
+.ffc-wh-table input[type="time"] {
+    padding: 4px 6px;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: inherit;
+}
+
+.ffc-wh-table select {
+    min-width: 120px;
+}
+
+.ffc-wh-table input[type="time"] {
+    width: 100px;
+}
+
+/* Required time inputs */
+.ffc-wh-table input[type="time"][required] {
+    border-left: 2px solid #2271b1;
+}
+
+/* Optional time inputs placeholder styling */
+.ffc-wh-table input[type="time"]:not([required]):placeholder-shown {
+    color: #a7aaad;
+}
+
+.ffc-wh-remove {
+    background: none;
+    border: 1px solid transparent;
+    color: #b32d2e;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.ffc-wh-remove:hover {
+    color: #dc3232;
+    border-color: #dc3232;
+    background: #fef0f0;
+}
+
+.ffc-wh-add {
+    margin-top: 8px;
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    .ffc-wh-table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .ffc-wh-table select {
+        min-width: 100px;
+    }
+
+    .ffc-wh-table input[type="time"] {
+        width: 85px;
+    }
+}
