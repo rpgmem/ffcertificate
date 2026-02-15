@@ -83,6 +83,7 @@ class DashboardShortcode {
                 echo wp_kses_post( self::render_admin_viewing_banner($view_as_user_id) );
             }
             echo wp_kses_post( self::render_redirect_message() );
+            echo wp_kses_post( self::render_reregistration_banners($user_id) );
             ?>
 
             <div class="ffc-dashboard-summary" id="ffc-dashboard-summary"></div>
@@ -325,6 +326,115 @@ class DashboardShortcode {
     }
 
     /**
+     * Render reregistration banners for active campaigns.
+     *
+     * @since 4.11.0
+     * @param int $user_id User ID.
+     * @return string HTML output.
+     */
+    private static function render_reregistration_banners(int $user_id): string {
+        if (!class_exists('\FreeFormCertificate\Reregistration\ReregistrationFrontend')) {
+            return '';
+        }
+
+        $reregistrations = \FreeFormCertificate\Reregistration\ReregistrationFrontend::get_user_reregistrations($user_id);
+
+        if (empty($reregistrations)) {
+            return '';
+        }
+
+        ob_start();
+        foreach ($reregistrations as $rereg) {
+            if (!$rereg['can_submit']) {
+                // Show completed status
+                if ($rereg['submission_status'] === 'approved') {
+                    ?>
+                    <div class="ffc-dashboard-notice ffc-notice-info ffc-rereg-banner ffc-rereg-completed">
+                        <div class="ffc-dashboard-header">
+                            <div>
+                                <strong><?php echo esc_html($rereg['title']); ?></strong>
+                                <p class="ffc-m-5-0"><?php esc_html_e('Your reregistration has been approved.', 'ffcertificate'); ?></p>
+                            </div>
+                            <?php if (!empty($rereg['submission_id'])) : ?>
+                            <div>
+                                <button type="button" class="button ffc-rereg-ficha-btn"
+                                        data-submission-id="<?php echo esc_attr($rereg['submission_id']); ?>">
+                                    <?php esc_html_e('Download Ficha', 'ffcertificate'); ?>
+                                </button>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php
+                } elseif ($rereg['submission_status'] === 'submitted') {
+                    ?>
+                    <div class="ffc-dashboard-notice ffc-notice-info ffc-rereg-banner ffc-rereg-pending-review">
+                        <div class="ffc-dashboard-header">
+                            <div>
+                                <strong><?php echo esc_html($rereg['title']); ?></strong>
+                                <p class="ffc-m-5-0"><?php esc_html_e('Your reregistration has been submitted and is pending review.', 'ffcertificate'); ?></p>
+                            </div>
+                            <?php if (!empty($rereg['submission_id'])) : ?>
+                            <div>
+                                <button type="button" class="button ffc-rereg-ficha-btn"
+                                        data-submission-id="<?php echo esc_attr($rereg['submission_id']); ?>">
+                                    <?php esc_html_e('Download Ficha', 'ffcertificate'); ?>
+                                </button>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php
+                }
+                continue;
+            }
+
+            $end_date = wp_date(get_option('date_format'), strtotime($rereg['end_date']));
+            $days_left = max(0, (int) ((strtotime($rereg['end_date']) - time()) / 86400));
+            $urgency = $days_left <= 3 ? 'ffc-rereg-urgent' : '';
+            ?>
+            <div class="ffc-dashboard-notice ffc-notice-warning ffc-rereg-banner <?php echo esc_attr($urgency); ?>"
+                 data-reregistration-id="<?php echo esc_attr($rereg['id']); ?>">
+                <div class="ffc-dashboard-header">
+                    <div>
+                        <strong><?php echo esc_html($rereg['title']); ?></strong>
+                        <p class="ffc-m-5-0">
+                            <?php
+                            /* translators: %s: deadline date */
+                            echo esc_html(sprintf(__('Deadline: %s', 'ffcertificate'), $end_date));
+                            if ($days_left <= 7) {
+                                echo ' — ';
+                                /* translators: %d: number of days remaining */
+                                echo '<strong>' . esc_html(sprintf(_n('%d day left', '%d days left', $days_left, 'ffcertificate'), $days_left)) . '</strong>';
+                            }
+                            ?>
+                        </p>
+                    </div>
+                    <div>
+                        <button type="button" class="button button-primary ffc-rereg-open-form"
+                                data-reregistration-id="<?php echo esc_attr($rereg['id']); ?>">
+                            <?php
+                            if ($rereg['submission_status'] === 'in_progress') {
+                                esc_html_e('Continue Reregistration', 'ffcertificate');
+                            } elseif ($rereg['submission_status'] === 'rejected') {
+                                esc_html_e('Resubmit Reregistration', 'ffcertificate');
+                            } else {
+                                esc_html_e('Complete Reregistration', 'ffcertificate');
+                            }
+                            ?>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <?php
+        }
+        ?>
+        <div id="ffc-rereg-form-panel" style="display:none;"></div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
      * Enqueue dashboard assets
      *
      * @param int|false $view_as_user_id User ID in view-as mode
@@ -365,6 +475,37 @@ class DashboardShortcode {
 
         // Enqueue JavaScript
         wp_enqueue_script( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard{$s}.js", array('jquery'), FFC_VERSION, true );
+
+        // Reregistration frontend assets
+        wp_enqueue_style('ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array('ffc-dashboard'), FFC_VERSION);
+        wp_enqueue_script('ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/js/ffc-reregistration-frontend{$s}.js", array('jquery', 'ffc-dashboard'), FFC_VERSION, true);
+        wp_localize_script('ffc-reregistration-frontend', 'ffcReregistration', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce'   => wp_create_nonce('ffc_reregistration_frontend'),
+            'strings' => array(
+                'loading'         => __('Loading form...', 'ffcertificate'),
+                'saving'          => __('Saving...', 'ffcertificate'),
+                'submitting'      => __('Submitting...', 'ffcertificate'),
+                'draftSaved'      => __('Draft saved.', 'ffcertificate'),
+                'submitted'       => __('Reregistration submitted successfully!', 'ffcertificate'),
+                'errorLoading'    => __('Error loading form.', 'ffcertificate'),
+                'errorSaving'     => __('Error saving draft.', 'ffcertificate'),
+                'errorSubmitting' => __('Error submitting.', 'ffcertificate'),
+                'fixErrors'       => __('Please fix the errors below.', 'ffcertificate'),
+                'required'        => __('This field is required.', 'ffcertificate'),
+                'invalidCpf'      => __('Invalid CPF.', 'ffcertificate'),
+                'invalidEmail'    => __('Invalid email.', 'ffcertificate'),
+                'invalidPhone'    => __('Invalid phone number.', 'ffcertificate'),
+                'generatingPdf'   => __('Generating PDF...', 'ffcertificate'),
+                'downloadFicha'   => __('Download Ficha', 'ffcertificate'),
+                'errorFicha'      => __('Error generating ficha.', 'ffcertificate'),
+            ),
+        ));
+
+        // PDF libraries for ficha download
+        wp_enqueue_script('html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true);
+        wp_enqueue_script('jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true);
+        wp_enqueue_script('ffc-pdf-generator', FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js", array('html2canvas', 'jspdf'), FFC_VERSION, true);
 
         // Localize script
         wp_localize_script('ffc-dashboard', 'ffcDashboard', array(

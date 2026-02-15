@@ -24,10 +24,13 @@ if (!defined('ABSPATH')) exit;
             <li><a href="#validation-url" class="ffc-icon-link"><?php esc_html_e('4. Validation URL', 'ffcertificate'); ?></a></li>
             <li><a href="#html-styling" class="ffc-icon-palette"><?php esc_html_e('5. HTML & Styling', 'ffcertificate'); ?></a></li>
             <li><a href="#custom-fields" class="ffc-icon-edit"><?php esc_html_e('6. Custom Fields', 'ffcertificate'); ?></a></li>
-            <li><a href="#features" class="ffc-icon-celebrate"><?php esc_html_e('7. Features', 'ffcertificate'); ?></a></li>
-            <li><a href="#security" class="ffc-icon-lock"><?php esc_html_e('8. Security Features', 'ffcertificate'); ?></a></li>
-            <li><a href="#examples" class="ffc-icon-note"><?php esc_html_e('9. Complete Examples', 'ffcertificate'); ?></a></li>
-            <li><a href="#troubleshooting" class="ffc-icon-wrench"><?php esc_html_e('10. Troubleshooting', 'ffcertificate'); ?></a></li>
+            <li><a href="#audience-custom-fields" class="ffc-icon-user"><?php esc_html_e('7. Audience Custom Fields', 'ffcertificate'); ?></a></li>
+            <li><a href="#reregistration" class="ffc-icon-note"><?php esc_html_e('8. Reregistration', 'ffcertificate'); ?></a></li>
+            <li><a href="#ficha-pdf" class="ffc-icon-doc"><?php esc_html_e('9. Ficha PDF', 'ffcertificate'); ?></a></li>
+            <li><a href="#features" class="ffc-icon-celebrate"><?php esc_html_e('10. Features', 'ffcertificate'); ?></a></li>
+            <li><a href="#security" class="ffc-icon-lock"><?php esc_html_e('11. Security Features', 'ffcertificate'); ?></a></li>
+            <li><a href="#examples" class="ffc-icon-note"><?php esc_html_e('12. Complete Examples', 'ffcertificate'); ?></a></li>
+            <li><a href="#troubleshooting" class="ffc-icon-wrench"><?php esc_html_e('13. Troubleshooting', 'ffcertificate'); ?></a></li>
         </ul>
     </div>
 </div>
@@ -408,9 +411,202 @@ if (!defined('ABSPATH')) exit;
     </div>
 </div>
 
-<!-- 7. Features Section -->
+<!-- 7. Audience Custom Fields Section -->
 <div class="card">
-    <h3 id="features" class="ffc-icon-celebrate"><?php esc_html_e('7. Features', 'ffcertificate'); ?></h3>
+    <h3 id="audience-custom-fields" class="ffc-icon-user"><?php esc_html_e('7. Audience Custom Fields', 'ffcertificate'); ?></h3>
+
+    <p><?php esc_html_e('Define custom data fields per audience group. These fields are shown during reregistration and on the WordPress user profile.', 'ffcertificate'); ?></p>
+
+    <div class="ffc-doc-example">
+        <h4><?php esc_html_e('Supported Field Types:', 'ffcertificate'); ?></h4>
+        <table class="widefat striped">
+            <thead>
+                <tr>
+                    <th scope="col"><?php esc_html_e('Type', 'ffcertificate'); ?></th>
+                    <th scope="col"><?php esc_html_e('Description', 'ffcertificate'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td><code>text</code></td><td><?php esc_html_e('Single-line text input', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>textarea</code></td><td><?php esc_html_e('Multi-line text input', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>number</code></td><td><?php esc_html_e('Numeric input', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>date</code></td><td><?php esc_html_e('Date picker (YYYY-MM-DD)', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>select</code></td><td><?php esc_html_e('Dropdown with predefined options', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>checkbox</code></td><td><?php esc_html_e('Boolean yes/no toggle', 'ffcertificate'); ?></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="ffc-doc-example">
+        <h4><?php esc_html_e('Validation Options:', 'ffcertificate'); ?></h4>
+        <ul>
+            <li><strong>CPF</strong> &mdash; <?php esc_html_e('Validates Brazilian CPF format', 'ffcertificate'); ?></li>
+            <li><strong>Email</strong> &mdash; <?php esc_html_e('Validates email format', 'ffcertificate'); ?></li>
+            <li><strong>Phone</strong> &mdash; <?php esc_html_e('Validates phone number format', 'ffcertificate'); ?></li>
+            <li><strong>Regex</strong> &mdash; <?php esc_html_e('Custom regular expression pattern', 'ffcertificate'); ?></li>
+        </ul>
+    </div>
+
+    <div class="ffc-doc-example">
+        <h4><?php esc_html_e('How It Works:', 'ffcertificate'); ?></h4>
+        <ul>
+            <li><strong><?php esc_html_e('Step 1:', 'ffcertificate'); ?></strong> <?php esc_html_e('Go to Audiences > Edit an audience > Custom Fields tab', 'ffcertificate'); ?></li>
+            <li><strong><?php esc_html_e('Step 2:', 'ffcertificate'); ?></strong> <?php esc_html_e('Add fields with labels, types, and validation rules', 'ffcertificate'); ?></li>
+            <li><strong><?php esc_html_e('Step 3:', 'ffcertificate'); ?></strong> <?php esc_html_e('Fields appear on user profiles and reregistration forms automatically', 'ffcertificate'); ?></li>
+            <li><strong><?php esc_html_e('Step 4:', 'ffcertificate'); ?></strong> <?php esc_html_e('Child audiences inherit fields from parent audiences', 'ffcertificate'); ?></li>
+        </ul>
+    </div>
+
+    <div class="ffc-doc-example">
+        <h4><?php esc_html_e('Data Storage:', 'ffcertificate'); ?></h4>
+        <p><?php esc_html_e('Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data.', 'ffcertificate'); ?></p>
+    </div>
+</div>
+
+<!-- 8. Reregistration Section -->
+<div class="card">
+    <h3 id="reregistration" class="ffc-icon-note"><?php esc_html_e('8. Reregistration', 'ffcertificate'); ?></h3>
+
+    <p><?php esc_html_e('Create reregistration campaigns to collect updated information from audience members. Campaigns run for a set period and can include email notifications.', 'ffcertificate'); ?></p>
+
+    <div class="ffc-doc-example">
+        <h4><?php esc_html_e('Workflow:', 'ffcertificate'); ?></h4>
+        <ol>
+            <li><?php esc_html_e('Create a reregistration campaign linked to an audience', 'ffcertificate'); ?></li>
+            <li><?php esc_html_e('Set the start and end dates for the campaign period', 'ffcertificate'); ?></li>
+            <li><?php esc_html_e('Configure email notifications (invitation, reminder, confirmation)', 'ffcertificate'); ?></li>
+            <li><?php esc_html_e('Activate the campaign — invitation emails are sent automatically', 'ffcertificate'); ?></li>
+            <li><?php esc_html_e('Users see a banner on their dashboard and complete the reregistration form', 'ffcertificate'); ?></li>
+            <li><?php esc_html_e('Admins review and approve/reject submissions', 'ffcertificate'); ?></li>
+        </ol>
+    </div>
+
+    <div class="ffc-doc-example">
+        <h4><?php esc_html_e('Campaign Settings:', 'ffcertificate'); ?></h4>
+        <table class="widefat striped">
+            <thead>
+                <tr>
+                    <th scope="col"><?php esc_html_e('Setting', 'ffcertificate'); ?></th>
+                    <th scope="col"><?php esc_html_e('Description', 'ffcertificate'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong><?php esc_html_e('Auto-approve', 'ffcertificate'); ?></strong></td>
+                    <td><?php esc_html_e('Automatically approve submissions without manual review', 'ffcertificate'); ?></td>
+                </tr>
+                <tr>
+                    <td><strong><?php esc_html_e('Invitation Email', 'ffcertificate'); ?></strong></td>
+                    <td><?php esc_html_e('Send email to all audience members when campaign is activated', 'ffcertificate'); ?></td>
+                </tr>
+                <tr>
+                    <td><strong><?php esc_html_e('Reminder Email', 'ffcertificate'); ?></strong></td>
+                    <td><?php esc_html_e('Send reminder email N days before the deadline (configurable)', 'ffcertificate'); ?></td>
+                </tr>
+                <tr>
+                    <td><strong><?php esc_html_e('Confirmation Email', 'ffcertificate'); ?></strong></td>
+                    <td><?php esc_html_e('Send confirmation email after user submits the form', 'ffcertificate'); ?></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="ffc-doc-example">
+        <h4><?php esc_html_e('Submission Statuses:', 'ffcertificate'); ?></h4>
+        <ul>
+            <li><strong>pending</strong> &mdash; <?php esc_html_e('User has not yet submitted', 'ffcertificate'); ?></li>
+            <li><strong>draft</strong> &mdash; <?php esc_html_e('User saved a draft but did not submit', 'ffcertificate'); ?></li>
+            <li><strong>submitted</strong> &mdash; <?php esc_html_e('Submitted and awaiting review', 'ffcertificate'); ?></li>
+            <li><strong>approved</strong> &mdash; <?php esc_html_e('Approved by admin', 'ffcertificate'); ?></li>
+            <li><strong>rejected</strong> &mdash; <?php esc_html_e('Rejected by admin (with notes)', 'ffcertificate'); ?></li>
+            <li><strong>expired</strong> &mdash; <?php esc_html_e('Campaign ended without submission', 'ffcertificate'); ?></li>
+        </ul>
+    </div>
+
+    <div class="ffc-doc-example">
+        <h4><?php esc_html_e('REST API Endpoints:', 'ffcertificate'); ?></h4>
+        <table class="widefat striped">
+            <thead>
+                <tr>
+                    <th scope="col"><?php esc_html_e('Method', 'ffcertificate'); ?></th>
+                    <th scope="col"><?php esc_html_e('Endpoint', 'ffcertificate'); ?></th>
+                    <th scope="col"><?php esc_html_e('Description', 'ffcertificate'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>GET</code></td>
+                    <td><code>/wp-json/ffc/v1/user/reregistrations</code></td>
+                    <td><?php esc_html_e('List active reregistrations for the current user', 'ffcertificate'); ?></td>
+                </tr>
+                <tr>
+                    <td><code>POST</code></td>
+                    <td><code>/wp-json/ffc/v1/user/reregistration/{id}/submit</code></td>
+                    <td><?php esc_html_e('Submit reregistration form data', 'ffcertificate'); ?></td>
+                </tr>
+                <tr>
+                    <td><code>POST</code></td>
+                    <td><code>/wp-json/ffc/v1/user/reregistration/{id}/draft</code></td>
+                    <td><?php esc_html_e('Save draft without submitting', 'ffcertificate'); ?></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 9. Ficha PDF Section -->
+<div class="card">
+    <h3 id="ficha-pdf" class="ffc-icon-doc"><?php esc_html_e('9. Ficha PDF', 'ffcertificate'); ?></h3>
+
+    <p><?php esc_html_e('Generate a PDF record (ficha) for reregistration submissions. Available for submitted and approved submissions.', 'ffcertificate'); ?></p>
+
+    <div class="ffc-doc-example">
+        <h4><?php esc_html_e('Where to Download:', 'ffcertificate'); ?></h4>
+        <ul>
+            <li><strong><?php esc_html_e('Admin:', 'ffcertificate'); ?></strong> <?php esc_html_e('Click the "Ficha" button next to any submission in the Reregistration > Submissions list', 'ffcertificate'); ?></li>
+            <li><strong><?php esc_html_e('User Dashboard:', 'ffcertificate'); ?></strong> <?php esc_html_e('Click "Download Ficha" on the reregistration banner after submitting', 'ffcertificate'); ?></li>
+        </ul>
+    </div>
+
+    <div class="ffc-doc-example">
+        <h4><?php esc_html_e('Template Variables:', 'ffcertificate'); ?></h4>
+        <p><?php esc_html_e('The ficha template (html/default_ficha_template.html) supports these variables:', 'ffcertificate'); ?></p>
+        <table class="widefat striped">
+            <thead>
+                <tr>
+                    <th scope="col"><?php esc_html_e('Variable', 'ffcertificate'); ?></th>
+                    <th scope="col"><?php esc_html_e('Description', 'ffcertificate'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td><code>{{display_name}}</code></td><td><?php esc_html_e('User full name', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>{{email}}</code></td><td><?php esc_html_e('User email', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>{{phone}}</code></td><td><?php esc_html_e('User phone number', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>{{department}}</code></td><td><?php esc_html_e('User department', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>{{organization}}</code></td><td><?php esc_html_e('User organization', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>{{reregistration_title}}</code></td><td><?php esc_html_e('Campaign name', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>{{audience_name}}</code></td><td><?php esc_html_e('Audience group name', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>{{submission_status}}</code></td><td><?php esc_html_e('Current status (Submitted, Approved, etc.)', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>{{submitted_at}}</code></td><td><?php esc_html_e('Submission date', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>{{custom_fields_section}}</code></td><td><?php esc_html_e('Auto-generated section with all custom field values', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>{{site_name}}</code></td><td><?php esc_html_e('WordPress site name', 'ffcertificate'); ?></td></tr>
+                <tr><td><code>{{generation_date}}</code></td><td><?php esc_html_e('Date when the PDF was generated', 'ffcertificate'); ?></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="ffc-doc-example">
+        <h4><?php esc_html_e('Customization:', 'ffcertificate'); ?></h4>
+        <p>
+            <?php esc_html_e('The ficha template can be customized using the filter:', 'ffcertificate'); ?>
+            <code>ffcertificate_ficha_template_file</code>
+        </p>
+    </div>
+</div>
+
+<!-- 10. Features Section -->
+<div class="card">
+    <h3 id="features" class="ffc-icon-celebrate"><?php esc_html_e('10. Features', 'ffcertificate'); ?></h3>
     
     <ul class="ffc-doc-list">
         <li>
@@ -458,15 +654,27 @@ if (!defined('ABSPATH')) exit;
             <?php esc_html_e('The cache stores form settings to improve performance.', 'ffcertificate'); ?>
         </li>
         <li>
-            <strong><?php esc_html_e('Multi-language Support:', 'ffcertificate'); ?></strong><br> 
+            <strong><?php esc_html_e('Multi-language Support:', 'ffcertificate'); ?></strong><br>
             <?php esc_html_e('Supports Portuguese and English languages', 'ffcertificate'); ?>
+        </li>
+        <li>
+            <strong><?php esc_html_e('Audience Custom Fields:', 'ffcertificate'); ?></strong><br>
+            <?php esc_html_e('Define custom data fields per audience group with validation (CPF, email, phone, regex)', 'ffcertificate'); ?>
+        </li>
+        <li>
+            <strong><?php esc_html_e('Reregistration Campaigns:', 'ffcertificate'); ?></strong><br>
+            <?php esc_html_e('Collect updated information from audience members with configurable email notifications and approval workflow', 'ffcertificate'); ?>
+        </li>
+        <li>
+            <strong><?php esc_html_e('Ficha PDF:', 'ffcertificate'); ?></strong><br>
+            <?php esc_html_e('Generate PDF records for reregistration submissions with custom template support', 'ffcertificate'); ?>
         </li>
     </ul>
 </div>
 
-<!-- 8. Security Features Section -->
+<!-- 11. Security Features Section -->
 <div class="card">
-    <h3 id="security" class="ffc-icon-lock"><?php esc_html_e('8. Security Features', 'ffcertificate'); ?></h3>
+    <h3 id="security" class="ffc-icon-lock"><?php esc_html_e('11. Security Features', 'ffcertificate'); ?></h3>
     
     <ul class="ffc-doc-list">
         <li>
@@ -500,9 +708,9 @@ if (!defined('ABSPATH')) exit;
     </ul>
 </div>
 
-<!-- 9. Complete Examples Section -->
+<!-- 12. Complete Examples Section -->
 <div class="card">
-    <h3 id="examples" class="ffc-icon-note"><?php esc_html_e('9. Complete Template Examples', 'ffcertificate'); ?></h3>
+    <h3 id="examples" class="ffc-icon-note"><?php esc_html_e('12. Complete Template Examples', 'ffcertificate'); ?></h3>
 
     <div class="ffc-doc-example">
         <h4><?php esc_html_e('Example 1: Simple Certificate', 'ffcertificate'); ?></h4>
@@ -589,9 +797,9 @@ if (!defined('ABSPATH')) exit;
     </div>
 </div>
 
-<!-- 10. Troubleshooting Section -->
+<!-- 13. Troubleshooting Section -->
 <div class="card">
-    <h3 id="troubleshooting" class="ffc-icon-wrench"><?php esc_html_e('10. Troubleshooting', 'ffcertificate'); ?></h3>
+    <h3 id="troubleshooting" class="ffc-icon-wrench"><?php esc_html_e('13. Troubleshooting', 'ffcertificate'); ?></h3>
 
     <table class="widefat striped">
         <thead>

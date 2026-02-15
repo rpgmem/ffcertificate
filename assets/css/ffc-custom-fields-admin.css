@@ -1,0 +1,180 @@
+/**
+ * Custom Fields Admin Styles
+ *
+ * @since 4.11.0
+ * @package FreeFormCertificate
+ */
+
+/* Container */
+#ffc-custom-fields-container {
+    margin-top: 15px;
+}
+
+/* Sortable list */
+.ffc-custom-fields-sortable {
+    margin-bottom: 15px;
+}
+
+/* Individual field row */
+.ffc-custom-field-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    border-radius: 3px;
+    transition: opacity 0.2s, border-color 0.2s;
+}
+
+.ffc-custom-field-row:hover {
+    border-color: #2271b1;
+}
+
+.ffc-custom-field-row.ffc-field-inactive {
+    opacity: 0.5;
+    background: #f6f7f7;
+}
+
+/* Drag handle */
+.ffc-field-handle {
+    cursor: move;
+    padding: 4px 2px;
+    color: #c3c4c7;
+    flex-shrink: 0;
+}
+
+.ffc-field-handle:hover {
+    color: #2271b1;
+}
+
+.ffc-field-handle .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+/* Field content */
+.ffc-field-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Main row (always visible) */
+.ffc-field-main-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ffc-field-main-row .ffc-field-label {
+    flex: 1;
+    min-width: 180px;
+    max-width: 300px;
+}
+
+.ffc-field-main-row .ffc-field-type {
+    width: 120px;
+}
+
+.ffc-field-required-label,
+.ffc-field-active-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* Details row (toggleable) */
+.ffc-field-details-row {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #dcdcde;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ffc-field-details-row .ffc-field-key {
+    max-width: 250px;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.ffc-field-details-row .ffc-field-choices {
+    max-width: 400px;
+    font-size: 12px;
+}
+
+.ffc-field-details-row .ffc-field-help {
+    max-width: 400px;
+}
+
+/* Validation container */
+.ffc-field-validation-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ffc-field-validation-container select {
+    width: auto;
+}
+
+.ffc-field-validation-container .ffc-field-regex {
+    max-width: 200px;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.ffc-field-validation-container .ffc-field-regex-msg {
+    max-width: 250px;
+}
+
+/* Actions */
+.ffc-field-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    padding-top: 2px;
+}
+
+.ffc-field-actions .button {
+    padding: 0 6px;
+    min-height: 28px;
+    line-height: 26px;
+}
+
+.ffc-field-actions .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    vertical-align: text-bottom;
+}
+
+/* Sortable placeholder */
+.ffc-sortable-placeholder {
+    border: 2px dashed #2271b1;
+    background: #f0f6fc;
+    margin-bottom: 4px;
+    min-height: 50px;
+    border-radius: 3px;
+}
+
+/* Save status */
+.ffc-save-status {
+    margin-left: 10px;
+    font-style: italic;
+}
+
+.ffc-save-status.ffc-status-success {
+    color: #00a32a;
+}
+
+.ffc-save-status.ffc-status-error {
+    color: #d63638;
+}

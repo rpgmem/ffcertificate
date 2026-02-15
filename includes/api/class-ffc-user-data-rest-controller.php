@@ -107,6 +107,12 @@ class UserDataRestController {
             'callback' => array($this, 'leave_audience_group'),
             'permission_callback' => 'is_user_logged_in',
         ));
+
+        register_rest_route($this->namespace, '/user/reregistrations', array(
+            'methods' => \WP_REST_Server::READABLE,
+            'callback' => array($this, 'get_user_reregistrations'),
+            'permission_callback' => 'is_user_logged_in',
+        ));
     }
 
     /**
@@ -989,6 +995,7 @@ class UserDataRestController {
                 'total_certificates' => 0,
                 'next_appointment' => null,
                 'upcoming_group_events' => 0,
+                'pending_reregistrations' => 0,
             );
 
             // Count certificates
@@ -1063,6 +1070,14 @@ class UserDataRestController {
                 }
             }
 
+            // Pending reregistrations
+            if (class_exists('\FreeFormCertificate\Reregistration\ReregistrationFrontend')) {
+                $rereg_items = \FreeFormCertificate\Reregistration\ReregistrationFrontend::get_user_reregistrations($user_id);
+                $summary['pending_reregistrations'] = count(array_filter($rereg_items, function ($r) {
+                    return $r['can_submit'];
+                }));
+            }
+
             return rest_ensure_response($summary);
 
         } catch (\Exception $e) {
@@ -1070,6 +1085,7 @@ class UserDataRestController {
                 'total_certificates' => 0,
                 'next_appointment' => null,
                 'upcoming_group_events' => 0,
+                'pending_reregistrations' => 0,
             ));
         }
     }
@@ -1260,6 +1276,42 @@ class UserDataRestController {
             'success' => true,
             /* translators: %s: group name */
             'message' => sprintf(__('You joined "%s"!', 'ffcertificate'), $group->name),
+        ));
+    }
+
+    /**
+     * GET /user/reregistrations
+     *
+     * Lists active reregistrations for the current user with submission status.
+     *
+     * @since 4.11.0
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function get_user_reregistrations($request) {
+        $ctx = $this->resolve_user_context($request);
+        $user_id = $ctx['user_id'];
+
+        if (!class_exists('\FreeFormCertificate\Reregistration\ReregistrationFrontend')) {
+            return rest_ensure_response(array('reregistrations' => array(), 'total' => 0));
+        }
+
+        $items = \FreeFormCertificate\Reregistration\ReregistrationFrontend::get_user_reregistrations($user_id);
+        $date_format = get_option('date_format', 'F j, Y');
+
+        $formatted = array();
+        foreach ($items as $item) {
+            $start_ts = strtotime($item['start_date']);
+            $end_ts = strtotime($item['end_date']);
+            $item['start_date_formatted'] = ($start_ts !== false) ? date_i18n($date_format, $start_ts) : $item['start_date'];
+            $item['end_date_formatted'] = ($end_ts !== false) ? date_i18n($date_format, $end_ts) : $item['end_date'];
+            $item['days_left'] = max(0, (int) (($end_ts - time()) / 86400));
+            $formatted[] = $item;
+        }
+
+        return rest_ensure_response(array(
+            'reregistrations' => $formatted,
+            'total'           => count($formatted),
         ));
     }
 

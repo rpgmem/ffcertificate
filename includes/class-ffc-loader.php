@@ -36,7 +36,12 @@ use FreeFormCertificate\SelfScheduling\AppointmentCsvExporter;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode;
 use FreeFormCertificate\Audience\AudienceLoader;
 use FreeFormCertificate\Privacy\PrivacyHandler;
+use FreeFormCertificate\Admin\AdminUserCustomFields;
 use FreeFormCertificate\Core\ActivityLogSubscriber;
+use FreeFormCertificate\Reregistration\ReregistrationAdmin;
+use FreeFormCertificate\Reregistration\ReregistrationFrontend;
+use FreeFormCertificate\Reregistration\ReregistrationRepository;
+use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
 
 if (!defined('ABSPATH')) exit;
 
@@ -85,6 +90,9 @@ class Loader {
             $this->admin_ajax     = new AdminAjax();
             AdminUserColumns::init();
             AdminUserCapabilities::init();
+            AdminUserCustomFields::init();
+            $reregistration_admin = new ReregistrationAdmin();
+            $reregistration_admin->init();
             $this->self_scheduling_admin    = new SelfSchedulingAdmin();
             $this->self_scheduling_editor   = new SelfSchedulingEditor();
             $this->self_scheduling_csv_exporter = new AppointmentCsvExporter();
@@ -94,6 +102,7 @@ class Loader {
         $this->frontend           = new Frontend($this->submission_handler, $this->email_handler);
 
         DashboardShortcode::init();
+        ReregistrationFrontend::init();
         AccessControl::init();
         UserCleanup::init();
         PrivacyHandler::init();
@@ -113,6 +122,11 @@ class Loader {
         // Ensure daily cleanup cron is scheduled
         if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
             wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
+        }
+
+        // Ensure reregistration expiry cron is scheduled
+        if ( ! wp_next_scheduled( 'ffcertificate_reregistration_expire_hook' ) ) {
+            wp_schedule_event( time(), 'daily', 'ffcertificate_reregistration_expire_hook' );
         }
 
         $this->define_admin_hooks();
@@ -138,6 +152,8 @@ class Loader {
 
     private function define_admin_hooks(): void {
         add_action('ffcertificate_daily_cleanup_hook', [$this->submission_handler, 'run_data_cleanup']);
+        add_action('ffcertificate_reregistration_expire_hook', array(ReregistrationRepository::class, 'expire_overdue'));
+        add_action('ffcertificate_reregistration_expire_hook', array(ReregistrationEmailHandler::class, 'run_automated_reminders'));
     }
     
     /**

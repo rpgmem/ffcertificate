@@ -1,0 +1,73 @@
+<div style="width: 794px;height: 1123px;position: relative;overflow: hidden;font-family: Arial, sans-serif;color: #333;background: #fff;box-sizing: border-box">
+
+    <!-- Accent bar top -->
+    <div style="position: absolute;top: 0;left: 0;width: 100%;height: 5px;background: #0073aa"></div>
+
+    <div style="padding: 30px 40px 25px;width: 100%;height: 100%;box-sizing: border-box">
+
+        <!-- Header -->
+        <div style="text-align: center;margin-bottom: 10px">
+            <div style="font-size: 20pt;font-weight: bold;color: #0073aa;letter-spacing: 2px;text-transform: uppercase">FICHA DE RECADASTRAMENTO</div>
+            <div style="margin-top: 8px">
+                <span style="display: inline-block;padding: 5px 20px;border-radius: 20px;font-weight: bold;font-size: 10pt;text-transform: uppercase;background: #d5e8d4;color: #2e7d32;letter-spacing: 1px">{{submission_status}}</span>
+            </div>
+        </div>
+
+        <div style="height: 2px;background: #0073aa;margin-bottom: 20px"></div>
+
+        <!-- Campaign Info -->
+        <div style="margin-bottom: 18px">
+            <div style="font-size: 11pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 6px;border-bottom: 2px solid #e8e8e8;margin-bottom: 10px">Campanha</div>
+            <table style="width: 100%;border-collapse: collapse;font-size: 10.5pt" role="presentation">
+                <tr>
+                    <td style="padding: 5px 0;font-weight: bold;color: #666;width: 150px;vertical-align: top">Campanha:</td>
+                    <td style="padding: 5px 0;color: #222">{{reregistration_title}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;font-weight: bold;color: #666;width: 150px;vertical-align: top">Grupo:</td>
+                    <td style="padding: 5px 0;color: #222">{{audience_name}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;font-weight: bold;color: #666;width: 150px;vertical-align: top">Submetido em:</td>
+                    <td style="padding: 5px 0;color: #222">{{submitted_at}}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Personal Information -->
+        <div style="margin-bottom: 18px">
+            <div style="font-size: 11pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 6px;border-bottom: 2px solid #e8e8e8;margin-bottom: 10px">Dados Pessoais</div>
+            <table style="width: 100%;border-collapse: collapse;font-size: 10.5pt" role="presentation">
+                <tr>
+                    <td style="padding: 5px 0;font-weight: bold;color: #666;width: 150px">Nome:</td>
+                    <td style="padding: 5px 0;color: #222">{{display_name}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;font-weight: bold;color: #666">E-mail:</td>
+                    <td style="padding: 5px 0;color: #222">{{email}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;font-weight: bold;color: #666">Telefone:</td>
+                    <td style="padding: 5px 0;color: #222">{{phone}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;font-weight: bold;color: #666">Departamento:</td>
+                    <td style="padding: 5px 0;color: #222">{{department}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;font-weight: bold;color: #666">Organização:</td>
+                    <td style="padding: 5px 0;color: #222">{{organization}}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Custom Fields -->
+        {{custom_fields_section}}
+
+        <!-- Footer -->
+        <div style="position: absolute;bottom: 25px;left: 40px;right: 40px;border-top: 2px solid #e8e8e8;padding-top: 8px;text-align: center">
+            <span style="font-size: 8.5pt;color: #999">{{site_name}} &mdash; Gerado em: {{generation_date}}</span>
+        </div>
+
+    </div>
+</div>

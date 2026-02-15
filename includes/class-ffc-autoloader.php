@@ -256,6 +256,9 @@ class FFC_Autoloader {
 
             // Services namespace (v4.9.7) - Centralized service classes
             'Services' => 'services',
+
+            // Reregistration namespace (v4.11.0) - Custom fields & reregistration
+            'Reregistration' => 'reregistration',
         ];
     }
 

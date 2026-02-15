@@ -148,9 +148,51 @@
     padding-left: 25px;
 }
 
+.ffc-hierarchy-child.ffc-hierarchy-level-2 {
+    padding-left: 50px;
+}
+
+.ffc-hierarchy-child.ffc-hierarchy-level-3 {
+    padding-left: 75px;
+}
+
 .ffc-hierarchy-child::before {
     content: "\2514 ";
     color: var(--ffc-text-light);
+}
+
+.ffc-hierarchy-parent > .column-name > strong > a {
+    font-size: 14px;
+}
+
+.ffc-member-total {
+    color: var(--ffc-text-light, #8c8f94);
+    font-size: 12px;
+    margin-left: 2px;
+}
+
+/* Breadcrumb */
+.ffc-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: #50575e;
+}
+
+.ffc-breadcrumb a {
+    text-decoration: none;
+    color: #2271b1;
+}
+
+.ffc-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.ffc-breadcrumb-sep {
+    color: #a7aaad;
+    font-size: 16px;
 }
 
 /* Working Hours */

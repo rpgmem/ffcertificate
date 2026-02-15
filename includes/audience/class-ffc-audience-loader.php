@@ -95,6 +95,10 @@ class AudienceLoader {
         add_action('wp_ajax_ffc_audience_add_user_permission', array($this, 'ajax_add_user_permission'));
         add_action('wp_ajax_ffc_audience_update_user_permission', array($this, 'ajax_update_user_permission'));
         add_action('wp_ajax_ffc_audience_remove_user_permission', array($this, 'ajax_remove_user_permission'));
+
+        // Custom fields AJAX
+        add_action('wp_ajax_ffc_save_custom_fields', array($this, 'ajax_save_custom_fields'));
+        add_action('wp_ajax_ffc_delete_custom_field', array($this, 'ajax_delete_custom_field'));
     }
 
     /**
@@ -201,6 +205,28 @@ class AudienceLoader {
             FFC_VERSION,
             true
         );
+
+        // Custom fields CSS + JS (on audiences page)
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $page = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
+        if ($page === 'ffc-scheduling-audiences') {
+            wp_enqueue_script('jquery-ui-sortable');
+
+            wp_enqueue_style(
+                'ffc-custom-fields-admin',
+                FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css",
+                array('ffc-audience-admin'),
+                FFC_VERSION
+            );
+
+            wp_enqueue_script(
+                'ffc-custom-fields-admin',
+                FFC_PLUGIN_URL . "assets/js/ffc-custom-fields-admin{$s}.js",
+                array('jquery', 'jquery-ui-sortable', 'wp-util', 'ffc-audience-admin'),
+                FFC_VERSION,
+                true
+            );
+        }
 
         // Localize script
         wp_localize_script('ffc-audience-admin', 'ffcAudienceAdmin', array(
@@ -651,6 +677,155 @@ class AudienceLoader {
         }
 
         wp_send_json_success();
+    }
+
+    /**
+     * AJAX: Save custom fields for an audience (create/update/reorder)
+     *
+     * @since 4.11.0
+     * @return void
+     */
+    public function ajax_save_custom_fields(): void {
+        check_ajax_referer('ffc_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
+        }
+
+        $audience_id = isset($_POST['audience_id']) ? absint($_POST['audience_id']) : 0;
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded and sanitized per-field below.
+        $fields_json = isset($_POST['fields']) ? wp_unslash($_POST['fields']) : '[]';
+        $fields = json_decode($fields_json, true);
+
+        if (!$audience_id || !is_array($fields)) {
+            wp_send_json_error(array('message' => __('Invalid data.', 'ffcertificate')));
+        }
+
+        $audience = AudienceRepository::get_by_id($audience_id);
+        if (!$audience) {
+            wp_send_json_error(array('message' => __('Audience not found.', 'ffcertificate')));
+        }
+
+        $saved_ids = array();
+        $errors = array();
+
+        foreach ($fields as $index => $field_data) {
+            $field_id = $field_data['id'] ?? null;
+            $is_new = !$field_id || strpos((string) $field_id, 'new_') === 0;
+
+            $label = sanitize_text_field($field_data['label'] ?? '');
+            if (empty($label)) {
+                $errors[] = sprintf(
+                    /* translators: %d: field position */
+                    __('Field #%d: label is required.', 'ffcertificate'),
+                    $index + 1
+                );
+                continue;
+            }
+
+            // Build field_options JSON
+            $options = array();
+            if (!empty($field_data['choices'])) {
+                $choices = array_map('sanitize_text_field', $field_data['choices']);
+                $choices = array_values(array_filter($choices, function($c) { return $c !== ''; }));
+                $options['choices'] = $choices;
+            }
+            if (!empty($field_data['help_text'])) {
+                $options['help_text'] = sanitize_text_field($field_data['help_text']);
+            }
+
+            // Build validation_rules JSON
+            $rules = array();
+            if (!empty($field_data['format'])) {
+                $format = sanitize_text_field($field_data['format']);
+                if (in_array($format, \FreeFormCertificate\Reregistration\CustomFieldRepository::VALIDATION_FORMATS, true)) {
+                    $rules['format'] = $format;
+                    if ($format === 'custom_regex') {
+                        $rules['custom_regex'] = $field_data['custom_regex'] ?? '';
+                        $rules['custom_regex_message'] = sanitize_text_field($field_data['custom_regex_message'] ?? '');
+                    }
+                }
+            }
+
+            $data = array(
+                'audience_id'      => $audience_id,
+                'field_label'      => $label,
+                'field_key'        => sanitize_key($field_data['key'] ?? ''),
+                'field_type'       => sanitize_text_field($field_data['type'] ?? 'text'),
+                'field_options'    => !empty($options) ? $options : null,
+                'validation_rules' => !empty($rules) ? $rules : null,
+                'sort_order'       => $index,
+                'is_required'      => !empty($field_data['is_required']) ? 1 : 0,
+                'is_active'        => isset($field_data['is_active']) ? (int) $field_data['is_active'] : 1,
+            );
+
+            if ($is_new) {
+                $new_id = \FreeFormCertificate\Reregistration\CustomFieldRepository::create($data);
+                if ($new_id) {
+                    $saved_ids[] = $new_id;
+                } else {
+                    $errors[] = sprintf(
+                        /* translators: %s: field label */
+                        __('Failed to create field "%s".', 'ffcertificate'),
+                        $label
+                    );
+                }
+            } else {
+                $result = \FreeFormCertificate\Reregistration\CustomFieldRepository::update((int) $field_id, $data);
+                if ($result !== false) {
+                    $saved_ids[] = (int) $field_id;
+                } else {
+                    $errors[] = sprintf(
+                        /* translators: %s: field label */
+                        __('Failed to update field "%s".', 'ffcertificate'),
+                        $label
+                    );
+                }
+            }
+        }
+
+        if (!empty($errors)) {
+            wp_send_json_error(array(
+                'message' => implode(' ', $errors),
+                'saved_ids' => $saved_ids,
+            ));
+        }
+
+        wp_send_json_success(array(
+            'message' => __('Custom fields saved successfully.', 'ffcertificate'),
+            'saved_ids' => $saved_ids,
+        ));
+    }
+
+    /**
+     * AJAX: Delete a custom field
+     *
+     * @since 4.11.0
+     * @return void
+     */
+    public function ajax_delete_custom_field(): void {
+        check_ajax_referer('ffc_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
+        }
+
+        $field_id = isset($_POST['field_id']) ? absint($_POST['field_id']) : 0;
+        if (!$field_id) {
+            wp_send_json_error(array('message' => __('Invalid field ID.', 'ffcertificate')));
+        }
+
+        $field = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_id($field_id);
+        if (!$field) {
+            wp_send_json_error(array('message' => __('Field not found.', 'ffcertificate')));
+        }
+
+        $result = \FreeFormCertificate\Reregistration\CustomFieldRepository::delete($field_id);
+        if (!$result) {
+            wp_send_json_error(array('message' => __('Failed to delete field.', 'ffcertificate')));
+        }
+
+        wp_send_json_success(array('message' => __('Field deleted successfully.', 'ffcertificate')));
     }
 
     /**
