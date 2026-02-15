@@ -20,7 +20,6 @@
 
     $(function () {
         initBannerButtons();
-        initFichaButtons();
     });
 
     /* ─── Banner: Open Form ────────────────────────────── */
@@ -451,41 +450,6 @@
         $container.on('click', '.ffc-rereg-cancel-btn', function () {
             $('#ffc-rereg-form-panel').slideUp(200, function () {
                 $(this).empty();
-            });
-        });
-    }
-
-    /* ─── Ficha Download ──────────────────────────────── */
-
-    function initFichaButtons() {
-        $(document).on('click', '.ffc-rereg-ficha-btn', function () {
-            var $btn = $(this);
-            var subId = $btn.data('submission-id');
-            var originalText = $btn.text();
-
-            if (!subId) return;
-
-            $btn.prop('disabled', true).text(S.generatingPdf || 'Gerando PDF...');
-
-            $.post(ffcReregistration.ajaxUrl, {
-                action: 'ffc_download_ficha',
-                nonce: ffcReregistration.nonce,
-                submission_id: subId
-            }, function (res) {
-                $btn.prop('disabled', false).text(S.downloadFicha || originalText);
-
-                if (res.success && res.data.pdf_data) {
-                    if (typeof window.ffcGeneratePDF === 'function') {
-                        window.ffcGeneratePDF(res.data.pdf_data, res.data.pdf_data.filename || 'ficha.pdf');
-                    } else {
-                        alert(S.errorFicha || 'Gerador de PDF não disponível.');
-                    }
-                } else {
-                    alert(res.data && res.data.message ? res.data.message : S.errorFicha || 'Erro ao gerar ficha.');
-                }
-            }).fail(function () {
-                $btn.prop('disabled', false).text(S.downloadFicha || originalText);
-                alert(S.errorFicha || 'Erro ao gerar ficha.');
             });
         });
     }
