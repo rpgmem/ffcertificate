@@ -197,19 +197,39 @@ class FichaGenerator {
             0 => 'Dom', 1 => 'Seg', 2 => 'Ter',
             3 => 'Qua', 4 => 'Qui', 5 => 'Sex', 6 => 'Sáb',
         );
-        $lines = array();
+
+        $cell  = 'style="padding:2px 6px;border:1px solid #ccc;text-align:center;font-size:8pt"';
+        $hcell = 'style="padding:2px 6px;border:1px solid #ccc;text-align:center;font-size:8pt;font-weight:bold;background:#f0f4f8;color:#0073aa"';
+
+        $html  = '<table style="width:100%;border-collapse:collapse;margin-top:4px" role="presentation">';
+        $html .= '<tr>';
+        $html .= '<th ' . $hcell . '>Dia</th>';
+        $html .= '<th ' . $hcell . '>Entrada</th>';
+        $html .= '<th ' . $hcell . '>Saída Almoço</th>';
+        $html .= '<th ' . $hcell . '>Retorno</th>';
+        $html .= '<th ' . $hcell . '>Saída</th>';
+        $html .= '</tr>';
+
         foreach ($wh as $entry) {
             $day = $days_map[$entry['day'] ?? 0] ?? '';
-            $e1 = $entry['entry1'] ?? '';
-            $x1 = $entry['exit1'] ?? '';
-            $e2 = $entry['entry2'] ?? '';
-            $x2 = $entry['exit2'] ?? '';
+            $e1  = $entry['entry1'] ?? '';
+            $x1  = $entry['exit1'] ?? '';
+            $e2  = $entry['entry2'] ?? '';
+            $x2  = $entry['exit2'] ?? '';
             if (empty($e1) && empty($x2)) {
                 continue;
             }
-            $lines[] = $day . ': ' . $e1 . '-' . $x1 . ' / ' . $e2 . '-' . $x2;
+            $html .= '<tr>';
+            $html .= '<td ' . $cell . '>' . esc_html($day) . '</td>';
+            $html .= '<td ' . $cell . '>' . esc_html($e1) . '</td>';
+            $html .= '<td ' . $cell . '>' . esc_html($x1) . '</td>';
+            $html .= '<td ' . $cell . '>' . esc_html($e2) . '</td>';
+            $html .= '<td ' . $cell . '>' . esc_html($x2) . '</td>';
+            $html .= '</tr>';
         }
-        return implode(' | ', $lines);
+
+        $html .= '</table>';
+        return $html;
     }
 
     /**
