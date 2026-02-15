@@ -61,6 +61,10 @@ class FichaGenerator {
             $submitted_at = date_i18n($date_format . ' ' . $time_format, strtotime($submission->submitted_at));
         }
 
+        // Check if user has acúmulo de cargos
+        $acumulo_value = $standard['acumulo_cargos'] ?? 'Não Possuo';
+        $has_acumulo   = !empty($acumulo_value) && $acumulo_value !== 'Não Possuo';
+
         // Build template variables
         $variables = array(
             'reregistration_title' => $rereg->title,
@@ -97,9 +101,9 @@ class FichaGenerator {
             'horario_trabalho'     => self::format_working_hours($standard['horario_trabalho'] ?? ''),
             'sindicato'            => $standard['sindicato'] ?? '',
             'acumulo_cargos'       => $standard['acumulo_cargos'] ?? 'Não Possuo',
-            'jornada_acumulo'      => $standard['jornada_acumulo'] ?? '',
-            'cargo_funcao_acumulo' => $standard['cargo_funcao_acumulo'] ?? '',
-            'horario_trabalho_acumulo' => self::format_working_hours($standard['horario_trabalho_acumulo'] ?? ''),
+            'jornada_acumulo'      => $has_acumulo ? ($standard['jornada_acumulo'] ?? '') : '',
+            'cargo_funcao_acumulo' => $has_acumulo ? ($standard['cargo_funcao_acumulo'] ?? '') : '',
+            'horario_trabalho_acumulo' => $has_acumulo ? self::format_working_hours($standard['horario_trabalho_acumulo'] ?? '') : '',
             'department'           => $standard['department'] ?? '',
             'organization'         => $standard['organization'] ?? '',
             'site_name'            => get_bloginfo('name'),
@@ -205,7 +209,7 @@ class FichaGenerator {
         $html .= '<tr>';
         $html .= '<th ' . $hcell . '>Dia</th>';
         $html .= '<th ' . $hcell . '>Entrada</th>';
-        $html .= '<th ' . $hcell . '>Saída Almoço</th>';
+        $html .= '<th ' . $hcell . '>Saída Alimentar</th>';
         $html .= '<th ' . $hcell . '>Retorno</th>';
         $html .= '<th ' . $hcell . '>Saída</th>';
         $html .= '</tr>';
