@@ -180,6 +180,106 @@ class ReregistrationFrontend {
     }
 
     /**
+     * Divisão → Setor mapping for DRE São Miguel MP.
+     *
+     * @return array<string, array<string>>
+     */
+    public static function get_divisao_setor_map(): array {
+        return array(
+            'DRE - Gabinete'   => array('Assessoria', 'Diretor Regional'),
+            'DRE - DIAF'       => array(
+                'Adiantamento', 'Alimentação', 'Almoxarifado', 'Apoio', 'Assessoria',
+                'Bens', 'Compras / Aquisições', 'Concessionárias', 'Contabilidade',
+                'Contratos', 'Demanda', 'Diretor(a)', 'Expediente', 'Gestão Documental',
+                'Jurídico', 'NTIC', 'Parcerias', 'Prédios', 'Protocolo', 'PTRF',
+                'TEG', 'Terceirizadas',
+            ),
+            'DRE - DIAFRH'     => array(
+                'Adicional', 'Aposentadoria', 'Atribuição', 'Averbação', 'CAAC',
+                'Cadastro', 'Certidão de Tempo', 'Diretor(a)', 'Evolução Funcional',
+                'Pagamento', 'Posse', 'Probatório', 'Readaptação', 'Rede Somos',
+                'Vida Funcional',
+            ),
+            'DRE - DICEU'      => array('Assessoria', 'DICEU', 'Diretor(a)'),
+            'DRE - DIPED'      => array('Assessoria', 'CEFAI', 'DIPED', 'Diretor(a)', 'Estágios', 'NAAPA'),
+            'DRE - Supervisão' => array('Assessoria', 'Diretor(a)', 'Supervisão'),
+            'ESCOLA - Gestão'      => array('Assistente de Direção', 'Direção'),
+            'ESCOLA - Pedagógico'  => array('Coordenação Pedagógica', 'Professor(a)'),
+            'ESCOLA - Quadro de Apoio' => array('ATE'),
+        );
+    }
+
+    /**
+     * Sexo options.
+     *
+     * @return array<string>
+     */
+    private static function get_sexo_options(): array {
+        return array(
+            'Masculino',
+            'Feminino',
+        );
+    }
+
+    /**
+     * Estado civil options.
+     *
+     * @return array<string>
+     */
+    private static function get_estado_civil_options(): array {
+        return array(
+            'Solteiro(a)',
+            'Casado(a)',
+            'Divorciado(a)',
+            'Viúvo(a)',
+            'União Estável',
+        );
+    }
+
+    /**
+     * Sindicato options.
+     *
+     * @return array<string>
+     */
+    private static function get_sindicato_options(): array {
+        return array(
+            'NENHUM SINDICATO',
+            'APROFEM',
+            'SINPEEM',
+            'SINESP',
+            'SINDISEP',
+            'OUTROS',
+        );
+    }
+
+    /**
+     * Jornada options.
+     *
+     * @return array<string>
+     */
+    private static function get_jornada_options(): array {
+        return array(
+            'JB.30',
+            'JBD.30',
+            'JEIF.40',
+            'JB.20',
+        );
+    }
+
+    /**
+     * UF (state) options.
+     *
+     * @return array<string>
+     */
+    private static function get_uf_options(): array {
+        return array(
+            'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
+            'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
+            'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+        );
+    }
+
+    /**
      * Render the reregistration form HTML.
      *
      * @param object $rereg      Reregistration object.
@@ -205,10 +305,37 @@ class ReregistrationFrontend {
         // Fallback to profile data if no draft
         if (empty($standard)) {
             $standard = array(
-                'display_name'  => $profile['display_name'] ?? $user->display_name,
-                'phone'         => $profile['phone'] ?? '',
-                'department'    => $profile['department'] ?? '',
-                'organization'  => $profile['organization'] ?? '',
+                'display_name'        => $profile['display_name'] ?? $user->display_name,
+                'sexo'                => $profile['sexo'] ?? '',
+                'estado_civil'        => $profile['estado_civil'] ?? '',
+                'rf'                  => $profile['rf'] ?? '',
+                'vinculo'             => $profile['vinculo'] ?? '',
+                'data_nascimento'     => $profile['data_nascimento'] ?? '',
+                'cpf'                 => $profile['cpf'] ?? '',
+                'rg'                  => $profile['rg'] ?? '',
+                'unidade_lotacao'     => $profile['unidade_lotacao'] ?? '',
+                'unidade_exercicio'   => $profile['unidade_exercicio'] ?? 'DRE MP',
+                'divisao'             => $profile['divisao'] ?? '',
+                'setor'               => $profile['setor'] ?? '',
+                'endereco'            => $profile['endereco'] ?? '',
+                'endereco_numero'     => $profile['endereco_numero'] ?? '',
+                'endereco_complemento' => $profile['endereco_complemento'] ?? '',
+                'bairro'              => $profile['bairro'] ?? '',
+                'cidade'              => $profile['cidade'] ?? 'SÃO PAULO',
+                'uf'                  => $profile['uf'] ?? 'SP',
+                'cep'                 => $profile['cep'] ?? '',
+                'phone'               => $profile['phone'] ?? '',
+                'celular'             => $profile['celular'] ?? '',
+                'contato_emergencia'  => $profile['contato_emergencia'] ?? '',
+                'tel_emergencia'      => $profile['tel_emergencia'] ?? '',
+                'email_institucional' => $profile['email_institucional'] ?? $user->user_email,
+                'email_particular'    => $profile['email_particular'] ?? '',
+                'sindicato'           => $profile['sindicato'] ?? '',
+                'acumulo_cargos'      => $profile['acumulo_cargos'] ?? 'Não',
+                'jornada_acumulo'     => $profile['jornada_acumulo'] ?? '',
+                'cargo_funcao_acumulo' => $profile['cargo_funcao_acumulo'] ?? '',
+                'department'          => $profile['department'] ?? '',
+                'organization'        => $profile['organization'] ?? '',
             );
         }
 
@@ -225,9 +352,17 @@ class ReregistrationFrontend {
 
         $end_date = wp_date(get_option('date_format'), strtotime($rereg->end_date));
 
+        // Data for JS
+        $divisao_setor_map = self::get_divisao_setor_map();
+
         ob_start();
         ?>
         <div class="ffc-rereg-form-container" data-reregistration-id="<?php echo esc_attr($rereg->id); ?>">
+            <div class="ffc-rereg-header-bar">
+                <div class="ffc-rereg-header-title"><?php echo esc_html__('PREFEITURA DE SÃO PAULO / SECRETARIA DE EDUCAÇÃO – SME', 'ffcertificate'); ?></div>
+                <div class="ffc-rereg-header-subtitle"><?php echo esc_html__('DIRETORIA REGIONAL DE EDUCAÇÃO SÃO MIGUEL – MP', 'ffcertificate'); ?></div>
+            </div>
+
             <h3><?php echo esc_html($rereg->title); ?></h3>
             <p class="ffc-rereg-deadline">
                 <?php
@@ -238,40 +373,263 @@ class ReregistrationFrontend {
 
             <form id="ffc-rereg-form" novalidate>
                 <input type="hidden" name="reregistration_id" value="<?php echo esc_attr($rereg->id); ?>">
+                <script type="application/json" id="ffc-divisao-setor-map"><?php echo wp_json_encode($divisao_setor_map); ?></script>
 
-                <!-- Standard Fields -->
+                <!-- 1. DADOS PESSOAIS -->
                 <fieldset class="ffc-rereg-fieldset">
-                    <legend><?php esc_html_e('Personal Information', 'ffcertificate'); ?></legend>
+                    <legend><?php echo esc_html__('1. Dados Pessoais', 'ffcertificate'); ?></legend>
 
                     <div class="ffc-rereg-field">
-                        <label for="ffc_rereg_name"><?php esc_html_e('Full Name', 'ffcertificate'); ?> <span class="required">*</span></label>
+                        <label for="ffc_rereg_name"><?php esc_html_e('Nome', 'ffcertificate'); ?> <span class="required">*</span></label>
                         <input type="text" id="ffc_rereg_name" name="standard_fields[display_name]"
                                value="<?php echo esc_attr($standard['display_name'] ?? ''); ?>" required>
                     </div>
 
-                    <div class="ffc-rereg-field">
-                        <label for="ffc_rereg_email"><?php esc_html_e('Email', 'ffcertificate'); ?></label>
-                        <input type="email" id="ffc_rereg_email" value="<?php echo esc_attr($user->user_email); ?>" readonly disabled>
-                        <p class="ffc-field-hint"><?php esc_html_e('Email cannot be changed here.', 'ffcertificate'); ?></p>
+                    <div class="ffc-rereg-row ffc-rereg-row-3">
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_sexo"><?php esc_html_e('Sexo', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <select id="ffc_rereg_sexo" name="standard_fields[sexo]" required>
+                                <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                                <?php foreach (self::get_sexo_options() as $opt) : ?>
+                                    <option value="<?php echo esc_attr($opt); ?>" <?php selected($standard['sexo'] ?? '', $opt); ?>><?php echo esc_html($opt); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_estado_civil"><?php esc_html_e('Estado Civil', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <select id="ffc_rereg_estado_civil" name="standard_fields[estado_civil]" required>
+                                <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                                <?php foreach (self::get_estado_civil_options() as $opt) : ?>
+                                    <option value="<?php echo esc_attr($opt); ?>" <?php selected($standard['estado_civil'] ?? '', $opt); ?>><?php echo esc_html($opt); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_rf"><?php esc_html_e('RF', 'ffcertificate'); ?></label>
+                            <input type="text" id="ffc_rereg_rf" name="standard_fields[rf]"
+                                   value="<?php echo esc_attr($standard['rf'] ?? ''); ?>">
+                        </div>
+                    </div>
+
+                    <div class="ffc-rereg-row ffc-rereg-row-2">
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_vinculo"><?php esc_html_e('Vínculo', 'ffcertificate'); ?></label>
+                            <input type="text" id="ffc_rereg_vinculo" name="standard_fields[vinculo]"
+                                   value="<?php echo esc_attr($standard['vinculo'] ?? ''); ?>">
+                        </div>
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_data_nascimento"><?php esc_html_e('Data de Nascimento', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <input type="date" id="ffc_rereg_data_nascimento" name="standard_fields[data_nascimento]"
+                                   value="<?php echo esc_attr($standard['data_nascimento'] ?? ''); ?>" required>
+                        </div>
+                    </div>
+
+                    <div class="ffc-rereg-row ffc-rereg-row-2">
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_cpf"><?php esc_html_e('CPF', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <input type="text" id="ffc_rereg_cpf" name="standard_fields[cpf]"
+                                   value="<?php echo esc_attr($standard['cpf'] ?? ''); ?>" data-mask="cpf" required
+                                   data-format="cpf">
+                        </div>
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_rg"><?php esc_html_e('RG', 'ffcertificate'); ?></label>
+                            <input type="text" id="ffc_rereg_rg" name="standard_fields[rg]"
+                                   value="<?php echo esc_attr($standard['rg'] ?? ''); ?>">
+                        </div>
                     </div>
 
                     <div class="ffc-rereg-field">
-                        <label for="ffc_rereg_phone"><?php esc_html_e('Phone', 'ffcertificate'); ?></label>
-                        <input type="tel" id="ffc_rereg_phone" name="standard_fields[phone]"
-                               value="<?php echo esc_attr($standard['phone'] ?? ''); ?>"
-                               data-mask="phone">
+                        <label for="ffc_rereg_unidade_lotacao"><?php esc_html_e('Unidade de Lotação', 'ffcertificate'); ?></label>
+                        <input type="text" id="ffc_rereg_unidade_lotacao" name="standard_fields[unidade_lotacao]"
+                               value="<?php echo esc_attr($standard['unidade_lotacao'] ?? ''); ?>">
+                    </div>
+
+                    <div class="ffc-rereg-row ffc-rereg-row-3">
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_unidade_exercicio"><?php esc_html_e('Unidade de Exercício', 'ffcertificate'); ?></label>
+                            <input type="text" id="ffc_rereg_unidade_exercicio" name="standard_fields[unidade_exercicio]"
+                                   value="<?php echo esc_attr($standard['unidade_exercicio'] ?? 'DRE MP'); ?>">
+                        </div>
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_divisao"><?php esc_html_e('Divisão', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <select id="ffc_rereg_divisao" name="standard_fields[divisao]" required>
+                                <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                                <?php foreach (array_keys($divisao_setor_map) as $div) : ?>
+                                    <option value="<?php echo esc_attr($div); ?>" <?php selected($standard['divisao'] ?? '', $div); ?>><?php echo esc_html($div); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_setor"><?php esc_html_e('Setor', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <select id="ffc_rereg_setor" name="standard_fields[setor]" required>
+                                <option value=""><?php esc_html_e('Selecione Divisão / Local', 'ffcertificate'); ?></option>
+                                <?php
+                                $selected_divisao = $standard['divisao'] ?? '';
+                                if (!empty($selected_divisao) && isset($divisao_setor_map[$selected_divisao])) {
+                                    foreach ($divisao_setor_map[$selected_divisao] as $setor) {
+                                        printf(
+                                            '<option value="%s" %s>%s</option>',
+                                            esc_attr($setor),
+                                            selected($standard['setor'] ?? '', $setor, false),
+                                            esc_html($setor)
+                                        );
+                                    }
+                                }
+                                ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Address -->
+                    <div class="ffc-rereg-row ffc-rereg-row-addr">
+                        <div class="ffc-rereg-field ffc-rereg-field-grow">
+                            <label for="ffc_rereg_endereco"><?php esc_html_e('Endereço', 'ffcertificate'); ?></label>
+                            <input type="text" id="ffc_rereg_endereco" name="standard_fields[endereco]"
+                                   value="<?php echo esc_attr($standard['endereco'] ?? ''); ?>">
+                        </div>
+                        <div class="ffc-rereg-field ffc-rereg-field-sm">
+                            <label for="ffc_rereg_endereco_numero"><?php esc_html_e('Nº', 'ffcertificate'); ?></label>
+                            <input type="text" id="ffc_rereg_endereco_numero" name="standard_fields[endereco_numero]"
+                                   value="<?php echo esc_attr($standard['endereco_numero'] ?? ''); ?>">
+                        </div>
+                        <div class="ffc-rereg-field ffc-rereg-field-sm">
+                            <label for="ffc_rereg_endereco_complemento"><?php esc_html_e('Compl.', 'ffcertificate'); ?></label>
+                            <input type="text" id="ffc_rereg_endereco_complemento" name="standard_fields[endereco_complemento]"
+                                   value="<?php echo esc_attr($standard['endereco_complemento'] ?? ''); ?>">
+                        </div>
+                    </div>
+
+                    <div class="ffc-rereg-row ffc-rereg-row-4">
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_bairro"><?php esc_html_e('Bairro', 'ffcertificate'); ?></label>
+                            <input type="text" id="ffc_rereg_bairro" name="standard_fields[bairro]"
+                                   value="<?php echo esc_attr($standard['bairro'] ?? ''); ?>">
+                        </div>
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_cidade"><?php esc_html_e('Cidade', 'ffcertificate'); ?></label>
+                            <input type="text" id="ffc_rereg_cidade" name="standard_fields[cidade]"
+                                   value="<?php echo esc_attr($standard['cidade'] ?? 'SÃO PAULO'); ?>">
+                        </div>
+                        <div class="ffc-rereg-field ffc-rereg-field-sm">
+                            <label for="ffc_rereg_uf"><?php esc_html_e('UF', 'ffcertificate'); ?></label>
+                            <select id="ffc_rereg_uf" name="standard_fields[uf]">
+                                <?php foreach (self::get_uf_options() as $uf) : ?>
+                                    <option value="<?php echo esc_attr($uf); ?>" <?php selected($standard['uf'] ?? 'SP', $uf); ?>><?php echo esc_html($uf); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_cep"><?php esc_html_e('CEP', 'ffcertificate'); ?></label>
+                            <input type="text" id="ffc_rereg_cep" name="standard_fields[cep]"
+                                   value="<?php echo esc_attr($standard['cep'] ?? ''); ?>" data-mask="cep">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- 2. CONTATOS -->
+                <fieldset class="ffc-rereg-fieldset">
+                    <legend><?php echo esc_html__('2. Contatos', 'ffcertificate'); ?></legend>
+
+                    <div class="ffc-rereg-row ffc-rereg-row-2">
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_phone"><?php esc_html_e('Telefone Residencial', 'ffcertificate'); ?></label>
+                            <input type="tel" id="ffc_rereg_phone" name="standard_fields[phone]"
+                                   value="<?php echo esc_attr($standard['phone'] ?? ''); ?>" data-mask="phone">
+                        </div>
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_celular"><?php esc_html_e('Tel. Celular', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <input type="tel" id="ffc_rereg_celular" name="standard_fields[celular]"
+                                   value="<?php echo esc_attr($standard['celular'] ?? ''); ?>" data-mask="phone" required>
+                        </div>
+                    </div>
+
+                    <div class="ffc-rereg-row ffc-rereg-row-2">
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_contato_emergencia"><?php esc_html_e('Contato Emergência', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <input type="text" id="ffc_rereg_contato_emergencia" name="standard_fields[contato_emergencia]"
+                                   value="<?php echo esc_attr($standard['contato_emergencia'] ?? ''); ?>" required>
+                        </div>
+                        <div class="ffc-rereg-field">
+                            <label for="ffc_rereg_tel_emergencia"><?php esc_html_e('Tel. Emergência', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <input type="tel" id="ffc_rereg_tel_emergencia" name="standard_fields[tel_emergencia]"
+                                   value="<?php echo esc_attr($standard['tel_emergencia'] ?? ''); ?>" data-mask="phone" required>
+                        </div>
                     </div>
 
                     <div class="ffc-rereg-field">
-                        <label for="ffc_rereg_dept"><?php esc_html_e('Department', 'ffcertificate'); ?></label>
-                        <input type="text" id="ffc_rereg_dept" name="standard_fields[department]"
-                               value="<?php echo esc_attr($standard['department'] ?? ''); ?>">
+                        <label for="ffc_rereg_email_inst"><?php esc_html_e('E-mail Institucional', 'ffcertificate'); ?></label>
+                        <input type="email" id="ffc_rereg_email_inst" name="standard_fields[email_institucional]"
+                               value="<?php echo esc_attr($standard['email_institucional'] ?? $user->user_email); ?>">
                     </div>
 
                     <div class="ffc-rereg-field">
-                        <label for="ffc_rereg_org"><?php esc_html_e('Organization', 'ffcertificate'); ?></label>
-                        <input type="text" id="ffc_rereg_org" name="standard_fields[organization]"
-                               value="<?php echo esc_attr($standard['organization'] ?? ''); ?>">
+                        <label for="ffc_rereg_email_part"><?php esc_html_e('E-mail Particular', 'ffcertificate'); ?></label>
+                        <input type="email" id="ffc_rereg_email_part" name="standard_fields[email_particular]"
+                               value="<?php echo esc_attr($standard['email_particular'] ?? ''); ?>">
+                    </div>
+                </fieldset>
+
+                <!-- 4. ACÚMULO DE CARGOS -->
+                <fieldset class="ffc-rereg-fieldset">
+                    <legend><?php echo esc_html__('4. Acúmulo de Cargos', 'ffcertificate'); ?></legend>
+
+                    <div class="ffc-rereg-field">
+                        <label for="ffc_rereg_acumulo"><?php esc_html_e('Possui acúmulo de cargos?', 'ffcertificate'); ?></label>
+                        <select id="ffc_rereg_acumulo" name="standard_fields[acumulo_cargos]">
+                            <option value="Não" <?php selected($standard['acumulo_cargos'] ?? 'Não', 'Não'); ?>><?php esc_html_e('Não', 'ffcertificate'); ?></option>
+                            <option value="Sim" <?php selected($standard['acumulo_cargos'] ?? '', 'Sim'); ?>><?php esc_html_e('Sim', 'ffcertificate'); ?></option>
+                        </select>
+                    </div>
+
+                    <div class="ffc-rereg-acumulo-fields" style="<?php echo ($standard['acumulo_cargos'] ?? 'Não') === 'Sim' ? '' : 'display:none'; ?>">
+                        <div class="ffc-rereg-row ffc-rereg-row-2">
+                            <div class="ffc-rereg-field">
+                                <label for="ffc_rereg_jornada_acumulo"><?php esc_html_e('Jornada', 'ffcertificate'); ?></label>
+                                <select id="ffc_rereg_jornada_acumulo" name="standard_fields[jornada_acumulo]">
+                                    <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                                    <?php foreach (self::get_jornada_options() as $j) : ?>
+                                        <option value="<?php echo esc_attr($j); ?>" <?php selected($standard['jornada_acumulo'] ?? '', $j); ?>><?php echo esc_html($j); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="ffc-rereg-field">
+                                <label for="ffc_rereg_cargo_funcao_acumulo"><?php esc_html_e('Cargo/Função exercido atualmente', 'ffcertificate'); ?></label>
+                                <input type="text" id="ffc_rereg_cargo_funcao_acumulo" name="standard_fields[cargo_funcao_acumulo]"
+                                       value="<?php echo esc_attr($standard['cargo_funcao_acumulo'] ?? ''); ?>">
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- 5. SINDICATO -->
+                <fieldset class="ffc-rereg-fieldset">
+                    <legend><?php echo esc_html__('5. Sindicato', 'ffcertificate'); ?></legend>
+
+                    <div class="ffc-rereg-field">
+                        <label for="ffc_rereg_sindicato"><?php esc_html_e('Sindicato', 'ffcertificate'); ?></label>
+                        <select id="ffc_rereg_sindicato" name="standard_fields[sindicato]">
+                            <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                            <?php foreach (self::get_sindicato_options() as $opt) : ?>
+                                <option value="<?php echo esc_attr($opt); ?>" <?php selected($standard['sindicato'] ?? '', $opt); ?>><?php echo esc_html($opt); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </fieldset>
+
+                <!-- 6. TERMO DE CIÊNCIA -->
+                <fieldset class="ffc-rereg-fieldset">
+                    <legend><?php echo esc_html__('6. Termo de Ciência', 'ffcertificate'); ?></legend>
+
+                    <div class="ffc-rereg-termo-text">
+                        <p><?php echo esc_html__('Declaro estar ciente das seguintes obrigações:', 'ffcertificate'); ?></p>
+                        <ul>
+                            <li><?php echo esc_html__('Declarar os bens e rendas em Declaração de Família, conforme legislação vigente.', 'ffcertificate'); ?></li>
+                            <li><?php echo esc_html__('Efetuar o recadastramento do vale-transporte conforme normativa vigente.', 'ffcertificate'); ?></li>
+                            <li><?php echo esc_html__('Realizar o recadastramento anual obrigatório.', 'ffcertificate'); ?></li>
+                            <li><?php echo esc_html__('Manter atualizada a declaração de bens e valores.', 'ffcertificate'); ?></li>
+                            <li><?php echo esc_html__('Comunicar antecipadamente sobre adiantamento de 13º salário.', 'ffcertificate'); ?></li>
+                            <li><?php echo esc_html__('Apresentar atestados médicos conforme normativa vigente.', 'ffcertificate'); ?></li>
+                        </ul>
                     </div>
                 </fieldset>
 
@@ -322,6 +680,55 @@ class ReregistrationFrontend {
                                         );
                                     }
                                     echo '</select>';
+                                    break;
+
+                                case 'dependent_select':
+                                    $dep_groups = CustomFieldRepository::get_dependent_choices($cf);
+                                    $dep_options = $cf->field_options;
+                                    if (is_string($dep_options)) {
+                                        $dep_options = json_decode($dep_options, true);
+                                    }
+                                    $parent_label = $dep_options['parent_label'] ?? __('Category', 'ffcertificate');
+                                    $child_label = $dep_options['child_label'] ?? __('Subcategory', 'ffcertificate');
+                                    $dep_val = is_string($field_value) ? json_decode($field_value, true) : $field_value;
+                                    $dep_parent = $dep_val['parent'] ?? '';
+                                    $dep_child = $dep_val['child'] ?? '';
+                                    ?>
+                                    <input type="hidden" id="<?php echo esc_attr($field_id); ?>" name="<?php echo esc_attr($field_name); ?>"
+                                           value="<?php echo esc_attr(wp_json_encode(array('parent' => $dep_parent, 'child' => $dep_child))); ?>">
+                                    <div class="ffc-dependent-select" data-target="<?php echo esc_attr($field_id); ?>">
+                                        <div class="ffc-rereg-row ffc-rereg-row-2">
+                                            <div class="ffc-rereg-field">
+                                                <label><?php echo esc_html($parent_label); ?></label>
+                                                <select class="ffc-dep-parent">
+                                                    <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                                                    <?php foreach (array_keys($dep_groups) as $group) : ?>
+                                                        <option value="<?php echo esc_attr($group); ?>" <?php selected($dep_parent, $group); ?>><?php echo esc_html($group); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="ffc-rereg-field">
+                                                <label><?php echo esc_html($child_label); ?></label>
+                                                <select class="ffc-dep-child">
+                                                    <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                                                    <?php
+                                                    if (!empty($dep_parent) && isset($dep_groups[$dep_parent])) {
+                                                        foreach ($dep_groups[$dep_parent] as $child) {
+                                                            printf(
+                                                                '<option value="%s" %s>%s</option>',
+                                                                esc_attr($child),
+                                                                selected($dep_child, $child, false),
+                                                                esc_html($child)
+                                                            );
+                                                        }
+                                                    }
+                                                    ?>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <script type="application/json" class="ffc-dep-groups"><?php echo wp_json_encode($dep_groups); ?></script>
+                                    </div>
+                                    <?php
                                     break;
 
                                 case 'checkbox':
@@ -466,7 +873,17 @@ class ReregistrationFrontend {
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         $raw_standard = isset($_POST['standard_fields']) ? (array) wp_unslash($_POST['standard_fields']) : array();
 
-        $allowed_standard = array('display_name', 'phone', 'department', 'organization');
+        $allowed_standard = array(
+            'display_name', 'sexo', 'estado_civil', 'rf', 'vinculo',
+            'data_nascimento', 'cpf', 'rg',
+            'unidade_lotacao', 'unidade_exercicio', 'divisao', 'setor',
+            'endereco', 'endereco_numero', 'endereco_complemento',
+            'bairro', 'cidade', 'uf', 'cep',
+            'phone', 'celular', 'contato_emergencia', 'tel_emergencia',
+            'email_institucional', 'email_particular',
+            'sindicato', 'acumulo_cargos', 'jornada_acumulo', 'cargo_funcao_acumulo',
+            'department', 'organization',
+        );
         foreach ($allowed_standard as $key) {
             $standard[$key] = isset($raw_standard[$key]) ? sanitize_text_field($raw_standard[$key]) : '';
         }
@@ -499,6 +916,17 @@ class ReregistrationFrontend {
                     } else {
                         $custom[$key] = '[]';
                     }
+                } elseif ($cf->field_type === 'dependent_select') {
+                    // Sanitize JSON: decode, validate structure, re-encode
+                    $dep = json_decode($raw_custom[$key], true);
+                    if (is_array($dep) && isset($dep['parent'], $dep['child'])) {
+                        $custom[$key] = wp_json_encode(array(
+                            'parent' => sanitize_text_field($dep['parent']),
+                            'child'  => sanitize_text_field($dep['child']),
+                        ));
+                    } else {
+                        $custom[$key] = wp_json_encode(array('parent' => '', 'child' => ''));
+                    }
                 } elseif ($cf->field_type === 'textarea') {
                     $custom[$key] = sanitize_textarea_field($raw_custom[$key]);
                 } elseif ($cf->field_type === 'number') {
@@ -528,15 +956,68 @@ class ReregistrationFrontend {
     private static function validate_submission(array $data, object $rereg, int $user_id): array {
         $errors = array();
 
-        // Standard: display_name required
-        if (empty($data['standard_fields']['display_name'])) {
-            $errors['standard_fields[display_name]'] = __('Full name is required.', 'ffcertificate');
+        $s = $data['standard_fields'];
+
+        // Required standard fields
+        if (empty($s['display_name'])) {
+            $errors['standard_fields[display_name]'] = __('Nome é obrigatório.', 'ffcertificate');
+        }
+        if (empty($s['sexo'])) {
+            $errors['standard_fields[sexo]'] = __('Sexo é obrigatório.', 'ffcertificate');
+        }
+        if (empty($s['estado_civil'])) {
+            $errors['standard_fields[estado_civil]'] = __('Estado Civil é obrigatório.', 'ffcertificate');
+        }
+        if (empty($s['data_nascimento'])) {
+            $errors['standard_fields[data_nascimento]'] = __('Data de Nascimento é obrigatória.', 'ffcertificate');
+        }
+        if (empty($s['divisao'])) {
+            $errors['standard_fields[divisao]'] = __('Divisão é obrigatória.', 'ffcertificate');
+        }
+        if (empty($s['setor'])) {
+            $errors['standard_fields[setor]'] = __('Setor é obrigatório.', 'ffcertificate');
+        }
+        if (empty($s['celular'])) {
+            $errors['standard_fields[celular]'] = __('Tel. Celular é obrigatório.', 'ffcertificate');
+        }
+        if (empty($s['contato_emergencia'])) {
+            $errors['standard_fields[contato_emergencia]'] = __('Contato de Emergência é obrigatório.', 'ffcertificate');
+        }
+        if (empty($s['tel_emergencia'])) {
+            $errors['standard_fields[tel_emergencia]'] = __('Tel. Emergência é obrigatório.', 'ffcertificate');
+        }
+
+        // CPF validation (required)
+        if (empty($s['cpf'])) {
+            $errors['standard_fields[cpf]'] = __('CPF é obrigatório.', 'ffcertificate');
+        } elseif (!\FreeFormCertificate\Core\Utils::validate_cpf($s['cpf'])) {
+            $errors['standard_fields[cpf]'] = __('CPF inválido.', 'ffcertificate');
         }
 
         // Phone format validation (if provided)
-        $phone = $data['standard_fields']['phone'] ?? '';
+        $phone = $s['phone'] ?? '';
         if (!empty($phone) && !\FreeFormCertificate\Core\Utils::validate_phone($phone)) {
-            $errors['standard_fields[phone]'] = __('Invalid phone format.', 'ffcertificate');
+            $errors['standard_fields[phone]'] = __('Telefone residencial inválido.', 'ffcertificate');
+        }
+
+        // Celular format validation
+        $celular = $s['celular'] ?? '';
+        if (!empty($celular) && !\FreeFormCertificate\Core\Utils::validate_phone($celular)) {
+            $errors['standard_fields[celular]'] = __('Tel. Celular inválido.', 'ffcertificate');
+        }
+
+        // Emergency phone validation
+        $tel_emerg = $s['tel_emergencia'] ?? '';
+        if (!empty($tel_emerg) && !\FreeFormCertificate\Core\Utils::validate_phone($tel_emerg)) {
+            $errors['standard_fields[tel_emergencia]'] = __('Tel. Emergência inválido.', 'ffcertificate');
+        }
+
+        // Divisão/Setor consistency validation
+        if (!empty($s['divisao']) && !empty($s['setor'])) {
+            $map = self::get_divisao_setor_map();
+            if (isset($map[$s['divisao']]) && !in_array($s['setor'], $map[$s['divisao']], true)) {
+                $errors['standard_fields[setor]'] = __('Setor inválido para a Divisão selecionada.', 'ffcertificate');
+            }
         }
 
         // Custom fields validation
@@ -627,8 +1108,13 @@ class ReregistrationFrontend {
             UserManager::update_profile($user_id, array(
                 'display_name'  => $standard['display_name'],
                 'phone'         => $standard['phone'],
+                'celular'       => $standard['celular'] ?? '',
                 'department'    => $standard['department'],
                 'organization'  => $standard['organization'],
+                'cpf'           => $standard['cpf'] ?? '',
+                'rg'            => $standard['rg'] ?? '',
+                'divisao'       => $standard['divisao'] ?? '',
+                'setor'         => $standard['setor'] ?? '',
             ));
         }
 

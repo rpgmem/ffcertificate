@@ -69,7 +69,34 @@ class FichaGenerator {
             'submitted_at'         => $submitted_at,
             'display_name'         => $standard['display_name'] ?? $user->display_name,
             'email'                => $user->user_email,
+            'sexo'                 => $standard['sexo'] ?? '',
+            'estado_civil'         => $standard['estado_civil'] ?? '',
+            'rf'                   => $standard['rf'] ?? '',
+            'vinculo'              => $standard['vinculo'] ?? '',
+            'data_nascimento'      => $standard['data_nascimento'] ?? '',
+            'cpf'                  => $standard['cpf'] ?? '',
+            'rg'                   => $standard['rg'] ?? '',
+            'unidade_lotacao'      => $standard['unidade_lotacao'] ?? '',
+            'unidade_exercicio'    => $standard['unidade_exercicio'] ?? '',
+            'divisao'              => $standard['divisao'] ?? '',
+            'setor'                => $standard['setor'] ?? '',
+            'endereco'             => $standard['endereco'] ?? '',
+            'endereco_numero'      => $standard['endereco_numero'] ?? '',
+            'endereco_complemento' => $standard['endereco_complemento'] ?? '',
+            'bairro'               => $standard['bairro'] ?? '',
+            'cidade'               => $standard['cidade'] ?? '',
+            'uf'                   => $standard['uf'] ?? '',
+            'cep'                  => $standard['cep'] ?? '',
             'phone'                => $standard['phone'] ?? '',
+            'celular'              => $standard['celular'] ?? '',
+            'contato_emergencia'   => $standard['contato_emergencia'] ?? '',
+            'tel_emergencia'       => $standard['tel_emergencia'] ?? '',
+            'email_institucional'  => $standard['email_institucional'] ?? $user->user_email,
+            'email_particular'     => $standard['email_particular'] ?? '',
+            'sindicato'            => $standard['sindicato'] ?? '',
+            'acumulo_cargos'       => $standard['acumulo_cargos'] ?? 'Não',
+            'jornada_acumulo'      => $standard['jornada_acumulo'] ?? '',
+            'cargo_funcao_acumulo' => $standard['cargo_funcao_acumulo'] ?? '',
             'department'           => $standard['department'] ?? '',
             'organization'         => $standard['organization'] ?? '',
             'site_name'            => get_bloginfo('name'),
@@ -173,6 +200,34 @@ class FichaGenerator {
             // Format checkbox values
             if ($cf->field_type === 'checkbox') {
                 $value = $value === '1' ? __('Yes', 'ffcertificate') : __('No', 'ffcertificate');
+            }
+
+            // Format dependent_select values
+            if ($cf->field_type === 'dependent_select') {
+                $dep = is_string($value) ? json_decode($value, true) : $value;
+                if (is_array($dep)) {
+                    $value = trim(($dep['parent'] ?? '') . ' - ' . ($dep['child'] ?? ''), ' -');
+                }
+            }
+
+            // Format working_hours values
+            if ($cf->field_type === 'working_hours') {
+                $wh = is_string($value) ? json_decode($value, true) : $value;
+                if (is_array($wh) && !empty($wh)) {
+                    $days_map = array(
+                        0 => __('Sun', 'ffcertificate'), 1 => __('Mon', 'ffcertificate'),
+                        2 => __('Tue', 'ffcertificate'), 3 => __('Wed', 'ffcertificate'),
+                        4 => __('Thu', 'ffcertificate'), 5 => __('Fri', 'ffcertificate'),
+                        6 => __('Sat', 'ffcertificate'),
+                    );
+                    $lines = array();
+                    foreach ($wh as $entry) {
+                        $day = $days_map[$entry['day'] ?? 0] ?? '';
+                        $times = ($entry['entry1'] ?? '') . '-' . ($entry['exit1'] ?? '') . ' / ' . ($entry['entry2'] ?? '') . '-' . ($entry['exit2'] ?? '');
+                        $lines[] = $day . ': ' . $times;
+                    }
+                    $value = implode('; ', $lines);
+                }
             }
 
             $html .= '<tr>';

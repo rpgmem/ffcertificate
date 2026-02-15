@@ -3,60 +3,141 @@
     <!-- Accent bar top -->
     <div style="position: absolute;top: 0;left: 0;width: 100%;height: 5px;background: #0073aa"></div>
 
-    <div style="padding: 30px 40px 25px;width: 100%;height: 100%;box-sizing: border-box">
+    <div style="padding: 25px 35px 20px;width: 100%;height: 100%;box-sizing: border-box">
 
         <!-- Header -->
-        <div style="text-align: center;margin-bottom: 10px">
-            <div style="font-size: 20pt;font-weight: bold;color: #0073aa;letter-spacing: 2px;text-transform: uppercase">FICHA DE RECADASTRAMENTO</div>
-            <div style="margin-top: 8px">
-                <span style="display: inline-block;padding: 5px 20px;border-radius: 20px;font-weight: bold;font-size: 10pt;text-transform: uppercase;background: #d5e8d4;color: #2e7d32;letter-spacing: 1px">{{submission_status}}</span>
+        <div style="text-align: center;margin-bottom: 8px">
+            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;letter-spacing: 1px;text-transform: uppercase">PREFEITURA DE SÃO PAULO / SECRETARIA DE EDUCAÇÃO – SME</div>
+            <div style="font-size: 9pt;color: #555;margin-top: 2px">DIRETORIA REGIONAL DE EDUCAÇÃO SÃO MIGUEL – MP</div>
+            <div style="font-size: 14pt;font-weight: bold;color: #0073aa;letter-spacing: 2px;text-transform: uppercase;margin-top: 8px">FICHA DE RECADASTRAMENTO</div>
+            <div style="margin-top: 6px">
+                <span style="display: inline-block;padding: 3px 16px;border-radius: 20px;font-weight: bold;font-size: 9pt;text-transform: uppercase;background: #d5e8d4;color: #2e7d32;letter-spacing: 1px">{{submission_status}}</span>
             </div>
         </div>
 
-        <div style="height: 2px;background: #0073aa;margin-bottom: 20px"></div>
+        <div style="height: 2px;background: #0073aa;margin-bottom: 12px"></div>
 
-        <!-- Campaign Info -->
-        <div style="margin-bottom: 18px">
-            <div style="font-size: 11pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 6px;border-bottom: 2px solid #e8e8e8;margin-bottom: 10px">Campanha</div>
-            <table style="width: 100%;border-collapse: collapse;font-size: 10.5pt" role="presentation">
+        <!-- 1. DADOS PESSOAIS -->
+        <div style="margin-bottom: 12px">
+            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">1. Dados Pessoais</div>
+            <table style="width: 100%;border-collapse: collapse;font-size: 9pt" role="presentation">
                 <tr>
-                    <td style="padding: 5px 0;font-weight: bold;color: #666;width: 150px;vertical-align: top">Campanha:</td>
-                    <td style="padding: 5px 0;color: #222">{{reregistration_title}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Nome:</td>
+                    <td style="padding: 3px 0;color: #222" colspan="5">{{display_name}}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 5px 0;font-weight: bold;color: #666;width: 150px;vertical-align: top">Grupo:</td>
-                    <td style="padding: 5px 0;color: #222">{{audience_name}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Sexo:</td>
+                    <td style="padding: 3px 0;color: #222;width: 130px">{{sexo}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666;width: 100px">Estado Civil:</td>
+                    <td style="padding: 3px 0;color: #222;width: 130px">{{estado_civil}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666;width: 30px">RF:</td>
+                    <td style="padding: 3px 0;color: #222">{{rf}}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 5px 0;font-weight: bold;color: #666;width: 150px;vertical-align: top">Submetido em:</td>
-                    <td style="padding: 5px 0;color: #222">{{submitted_at}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Vínculo:</td>
+                    <td style="padding: 3px 0;color: #222">{{vinculo}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Data Nasc.:</td>
+                    <td style="padding: 3px 0;color: #222">{{data_nascimento}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">CPF:</td>
+                    <td style="padding: 3px 0;color: #222">{{cpf}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">RG:</td>
+                    <td style="padding: 3px 0;color: #222" colspan="5">{{rg}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Un. Lotação:</td>
+                    <td style="padding: 3px 0;color: #222" colspan="5">{{unidade_lotacao}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Un. Exercício:</td>
+                    <td style="padding: 3px 0;color: #222">{{unidade_exercicio}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Divisão:</td>
+                    <td style="padding: 3px 0;color: #222">{{divisao}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Setor:</td>
+                    <td style="padding: 3px 0;color: #222">{{setor}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Endereço:</td>
+                    <td style="padding: 3px 0;color: #222" colspan="3">{{endereco}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Nº:</td>
+                    <td style="padding: 3px 0;color: #222">{{endereco_numero}} {{endereco_complemento}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Bairro:</td>
+                    <td style="padding: 3px 0;color: #222">{{bairro}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Cidade:</td>
+                    <td style="padding: 3px 0;color: #222">{{cidade}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">UF:</td>
+                    <td style="padding: 3px 0;color: #222">{{uf}} &nbsp; CEP: {{cep}}</td>
                 </tr>
             </table>
         </div>
 
-        <!-- Personal Information -->
-        <div style="margin-bottom: 18px">
-            <div style="font-size: 11pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 6px;border-bottom: 2px solid #e8e8e8;margin-bottom: 10px">Dados Pessoais</div>
-            <table style="width: 100%;border-collapse: collapse;font-size: 10.5pt" role="presentation">
+        <!-- 2. CONTATOS -->
+        <div style="margin-bottom: 12px">
+            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">2. Contatos</div>
+            <table style="width: 100%;border-collapse: collapse;font-size: 9pt" role="presentation">
                 <tr>
-                    <td style="padding: 5px 0;font-weight: bold;color: #666;width: 150px">Nome:</td>
-                    <td style="padding: 5px 0;color: #222">{{display_name}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Tel. Residencial:</td>
+                    <td style="padding: 3px 0;color: #222;width: 200px">{{phone}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666;width: 100px">Tel. Celular:</td>
+                    <td style="padding: 3px 0;color: #222">{{celular}}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 5px 0;font-weight: bold;color: #666">E-mail:</td>
-                    <td style="padding: 5px 0;color: #222">{{email}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Cont. Emergência:</td>
+                    <td style="padding: 3px 0;color: #222">{{contato_emergencia}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Tel. Emergência:</td>
+                    <td style="padding: 3px 0;color: #222">{{tel_emergencia}}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 5px 0;font-weight: bold;color: #666">Telefone:</td>
-                    <td style="padding: 5px 0;color: #222">{{phone}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">E-mail Inst.:</td>
+                    <td style="padding: 3px 0;color: #222" colspan="3">{{email_institucional}}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 5px 0;font-weight: bold;color: #666">Departamento:</td>
-                    <td style="padding: 5px 0;color: #222">{{department}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">E-mail Particular:</td>
+                    <td style="padding: 3px 0;color: #222" colspan="3">{{email_particular}}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 4. ACÚMULO DE CARGOS -->
+        <div style="margin-bottom: 12px">
+            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">4. Acúmulo de Cargos: {{acumulo_cargos}}</div>
+            <table style="width: 100%;border-collapse: collapse;font-size: 9pt" role="presentation">
+                <tr>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Jornada:</td>
+                    <td style="padding: 3px 0;color: #222;width: 200px">{{jornada_acumulo}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Cargo/Função:</td>
+                    <td style="padding: 3px 0;color: #222">{{cargo_funcao_acumulo}}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 5. SINDICATO -->
+        <div style="margin-bottom: 12px">
+            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">5. Sindicato</div>
+            <table style="width: 100%;border-collapse: collapse;font-size: 9pt" role="presentation">
+                <tr>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Sindicato:</td>
+                    <td style="padding: 3px 0;color: #222">{{sindicato}}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Campaign Info -->
+        <div style="margin-bottom: 12px">
+            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">Campanha</div>
+            <table style="width: 100%;border-collapse: collapse;font-size: 9pt" role="presentation">
+                <tr>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Campanha:</td>
+                    <td style="padding: 3px 0;color: #222;width: 200px">{{reregistration_title}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666;width: 100px">Grupo:</td>
+                    <td style="padding: 3px 0;color: #222">{{audience_name}}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 5px 0;font-weight: bold;color: #666">Organização:</td>
-                    <td style="padding: 5px 0;color: #222">{{organization}}</td>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Submetido em:</td>
+                    <td style="padding: 3px 0;color: #222" colspan="3">{{submitted_at}}</td>
                 </tr>
             </table>
         </div>
@@ -64,9 +145,25 @@
         <!-- Custom Fields -->
         {{custom_fields_section}}
 
+        <!-- Signature Lines -->
+        <div style="margin-top: 30px">
+            <table style="width: 100%;border-collapse: collapse;font-size: 9pt" role="presentation">
+                <tr>
+                    <td style="padding: 30px 20px 5px;text-align: center;border-bottom: 1px solid #333;width: 45%"></td>
+                    <td style="width: 10%"></td>
+                    <td style="padding: 30px 20px 5px;text-align: center;border-bottom: 1px solid #333;width: 45%"></td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0;text-align: center;font-size: 8pt;color: #666">Assinatura do Servidor</td>
+                    <td></td>
+                    <td style="padding: 5px 0;text-align: center;font-size: 8pt;color: #666">Assinatura do Chefe Imediato</td>
+                </tr>
+            </table>
+        </div>
+
         <!-- Footer -->
-        <div style="position: absolute;bottom: 25px;left: 40px;right: 40px;border-top: 2px solid #e8e8e8;padding-top: 8px;text-align: center">
-            <span style="font-size: 8.5pt;color: #999">{{site_name}} &mdash; Gerado em: {{generation_date}}</span>
+        <div style="position: absolute;bottom: 20px;left: 35px;right: 35px;border-top: 2px solid #e8e8e8;padding-top: 6px;text-align: center">
+            <span style="font-size: 8pt;color: #999">{{site_name}} &mdash; Gerado em: {{generation_date}}</span>
         </div>
 
     </div>

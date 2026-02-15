@@ -31,6 +31,7 @@ class CustomFieldRepository {
         'number',
         'date',
         'select',
+        'dependent_select',
         'checkbox',
         'textarea',
         'working_hours',
@@ -508,6 +509,13 @@ class CustomFieldRepository {
                 }
                 break;
 
+            case 'dependent_select':
+                $dep_result = self::validate_dependent_select($field, $value);
+                if (is_wp_error($dep_result)) {
+                    return $dep_result;
+                }
+                break;
+
             case 'working_hours':
                 $wh_result = self::validate_working_hours($field, $value);
                 if (is_wp_error($wh_result)) {
@@ -694,6 +702,72 @@ class CustomFieldRepository {
         }
 
         return true;
+    }
+
+    /**
+     * Validate a dependent_select field value.
+     *
+     * Value should be JSON: {"parent": "DRE - DIAF", "child": "Contabilidade"}.
+     * Validates that both selections are valid per field_options groups.
+     *
+     * @param object $field Field definition.
+     * @param mixed  $value Raw value (JSON string or array).
+     * @return true|\WP_Error
+     */
+    private static function validate_dependent_select(object $field, $value) {
+        $parsed = is_string($value) ? json_decode($value, true) : $value;
+
+        if (!is_array($parsed) || !isset($parsed['parent'], $parsed['child'])) {
+            return new \WP_Error(
+                'field_invalid_dependent_select',
+                /* translators: %s: field label */
+                sprintf(__('%s requires both selections.', 'ffcertificate'), $field->field_label)
+            );
+        }
+
+        $groups = self::get_dependent_choices($field);
+        if (empty($groups)) {
+            return true;
+        }
+
+        $parent_val = $parsed['parent'];
+        $child_val  = $parsed['child'];
+
+        if (!isset($groups[$parent_val])) {
+            return new \WP_Error(
+                'field_invalid_dependent_select',
+                /* translators: %s: field label */
+                sprintf(__('%s has an invalid primary selection.', 'ffcertificate'), $field->field_label)
+            );
+        }
+
+        if (!in_array($child_val, $groups[$parent_val], true)) {
+            return new \WP_Error(
+                'field_invalid_dependent_select',
+                /* translators: %s: field label */
+                sprintf(__('%s has an invalid secondary selection.', 'ffcertificate'), $field->field_label)
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * Get grouped choices for a dependent_select field.
+     *
+     * Expected field_options format:
+     *   {"groups": {"Parent Label": ["Child 1", "Child 2"], ...},
+     *    "parent_label": "Divisão", "child_label": "Setor"}
+     *
+     * @param object $field Field definition.
+     * @return array<string, array<string>> Parent => [children].
+     */
+    public static function get_dependent_choices(object $field): array {
+        $options = $field->field_options;
+        if (is_string($options)) {
+            $options = json_decode($options, true);
+        }
+        return $options['groups'] ?? array();
     }
 
     // ─────────────────────────────────────────────
