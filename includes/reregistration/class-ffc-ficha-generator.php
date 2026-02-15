@@ -61,6 +61,10 @@ class FichaGenerator {
             $submitted_at = date_i18n($date_format . ' ' . $time_format, strtotime($submission->submitted_at));
         }
 
+        // Check if user has acúmulo de cargos
+        $acumulo_value = $standard['acumulo_cargos'] ?? 'Não Possuo';
+        $has_acumulo   = $acumulo_value === 'Possuo';
+
         // Build template variables
         $variables = array(
             'reregistration_title' => $rereg->title,
@@ -97,9 +101,9 @@ class FichaGenerator {
             'horario_trabalho'     => self::format_working_hours($standard['horario_trabalho'] ?? ''),
             'sindicato'            => $standard['sindicato'] ?? '',
             'acumulo_cargos'       => $standard['acumulo_cargos'] ?? 'Não Possuo',
-            'jornada_acumulo'      => $standard['jornada_acumulo'] ?? '',
-            'cargo_funcao_acumulo' => $standard['cargo_funcao_acumulo'] ?? '',
-            'horario_trabalho_acumulo' => self::format_working_hours($standard['horario_trabalho_acumulo'] ?? ''),
+            'jornada_acumulo'      => $has_acumulo ? ($standard['jornada_acumulo'] ?? '') : '',
+            'cargo_funcao_acumulo' => $has_acumulo ? ($standard['cargo_funcao_acumulo'] ?? '') : '',
+            'horario_trabalho_acumulo' => $has_acumulo ? self::format_working_hours($standard['horario_trabalho_acumulo'] ?? '') : '',
             'department'           => $standard['department'] ?? '',
             'organization'         => $standard['organization'] ?? '',
             'site_name'            => get_bloginfo('name'),
@@ -197,19 +201,39 @@ class FichaGenerator {
             0 => 'Dom', 1 => 'Seg', 2 => 'Ter',
             3 => 'Qua', 4 => 'Qui', 5 => 'Sex', 6 => 'Sáb',
         );
-        $lines = array();
+
+        $cell  = 'style="padding:2px 6px;border:1px solid #ccc;text-align:center;font-size:8pt"';
+        $hcell = 'style="padding:2px 6px;border:1px solid #ccc;text-align:center;font-size:8pt;font-weight:bold;background:#f0f4f8;color:#0073aa"';
+
+        $html  = '<table style="width:100%;border-collapse:collapse;margin-top:4px" role="presentation">';
+        $html .= '<tr>';
+        $html .= '<th ' . $hcell . '>Dia</th>';
+        $html .= '<th ' . $hcell . '>Entrada</th>';
+        $html .= '<th ' . $hcell . '>Saída Alimentar</th>';
+        $html .= '<th ' . $hcell . '>Retorno</th>';
+        $html .= '<th ' . $hcell . '>Saída</th>';
+        $html .= '</tr>';
+
         foreach ($wh as $entry) {
             $day = $days_map[$entry['day'] ?? 0] ?? '';
-            $e1 = $entry['entry1'] ?? '';
-            $x1 = $entry['exit1'] ?? '';
-            $e2 = $entry['entry2'] ?? '';
-            $x2 = $entry['exit2'] ?? '';
+            $e1  = $entry['entry1'] ?? '';
+            $x1  = $entry['exit1'] ?? '';
+            $e2  = $entry['entry2'] ?? '';
+            $x2  = $entry['exit2'] ?? '';
             if (empty($e1) && empty($x2)) {
                 continue;
             }
-            $lines[] = $day . ': ' . $e1 . '-' . $x1 . ' / ' . $e2 . '-' . $x2;
+            $html .= '<tr>';
+            $html .= '<td ' . $cell . '>' . esc_html($day) . '</td>';
+            $html .= '<td ' . $cell . '>' . esc_html($e1) . '</td>';
+            $html .= '<td ' . $cell . '>' . esc_html($x1) . '</td>';
+            $html .= '<td ' . $cell . '>' . esc_html($e2) . '</td>';
+            $html .= '<td ' . $cell . '>' . esc_html($x2) . '</td>';
+            $html .= '</tr>';
         }
-        return implode(' | ', $lines);
+
+        $html .= '</table>';
+        return $html;
     }
 
     /**

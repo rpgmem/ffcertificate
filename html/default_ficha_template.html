@@ -5,15 +5,25 @@
 
     <div style="padding: 25px 35px 20px;width: 100%;height: 100%;box-sizing: border-box">
 
-        <!-- Header -->
-        <div style="text-align: center;margin-bottom: 8px">
-            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;letter-spacing: 1px;text-transform: uppercase">PREFEITURA DE SÃO PAULO / SECRETARIA DE EDUCAÇÃO – SME</div>
-            <div style="font-size: 9pt;color: #555;margin-top: 2px">DIRETORIA REGIONAL DE EDUCAÇÃO SÃO MIGUEL – MP</div>
-            <div style="font-size: 14pt;font-weight: bold;color: #0073aa;letter-spacing: 2px;text-transform: uppercase;margin-top: 8px">FICHA DE RECADASTRAMENTO</div>
-            <div style="margin-top: 6px">
-                <span style="display: inline-block;padding: 3px 16px;border-radius: 20px;font-weight: bold;font-size: 9pt;text-transform: uppercase;background: #d5e8d4;color: #2e7d32;letter-spacing: 1px">{{submission_status}}</span>
-            </div>
-        </div>
+        <!-- Header: Logo + Title + Logo -->
+        <table style="width: 100%;border-collapse: collapse;margin-bottom: 8px" role="presentation">
+            <tr>
+                <td style="vertical-align: middle;width: 100px">
+                    <img src="/wp-content/plugins/ffcertificate/html/Logo_Cidade_SP_SemFundo.png" alt="Prefeitura" style="width: 80px;height: auto">
+                </td>
+                <td style="vertical-align: middle;text-align: center">
+                    <div style="font-size: 10pt;font-weight: bold;color: #0073aa;letter-spacing: 1px;text-transform: uppercase">PREFEITURA DE SÃO PAULO / SECRETARIA DE EDUCAÇÃO – SME</div>
+                    <div style="font-size: 9pt;color: #555;margin-top: 2px">DIRETORIA REGIONAL DE EDUCAÇÃO SÃO MIGUEL – MP</div>
+                    <div style="font-size: 14pt;font-weight: bold;color: #0073aa;letter-spacing: 2px;text-transform: uppercase;margin-top: 8px">FICHA DE RECADASTRAMENTO</div>
+                    <div style="margin-top: 6px">
+                        <span style="display: inline-block;padding: 3px 16px;border-radius: 20px;font-weight: bold;font-size: 9pt;text-transform: uppercase;background: #d5e8d4;color: #2e7d32;letter-spacing: 1px">{{submission_status}}</span>
+                    </div>
+                </td>
+                <td style="vertical-align: middle;text-align: right;width: 140px">
+                    <img src="/wp-content/plugins/ffcertificate/html/Logo_DRE_v2-scaled.png" alt="DRE" style="width: 130px;height: auto">
+                </td>
+            </tr>
+        </table>
 
         <div style="height: 2px;background: #0073aa;margin-bottom: 12px"></div>
 
@@ -109,11 +119,8 @@
                     <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Jornada:</td>
                     <td style="padding: 3px 0;color: #222" colspan="3">{{jornada}}</td>
                 </tr>
-                <tr>
-                    <td style="padding: 3px 0;font-weight: bold;color: #666">Horário:</td>
-                    <td style="padding: 3px 0;color: #222;font-size: 8pt" colspan="3">{{horario_trabalho}}</td>
-                </tr>
             </table>
+            {{horario_trabalho}}
         </div>
 
         <!-- 4. ACÚMULO DE CARGOS -->
@@ -126,11 +133,8 @@
                     <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Cargo/Função:</td>
                     <td style="padding: 3px 0;color: #222">{{cargo_funcao_acumulo}}</td>
                 </tr>
-                <tr>
-                    <td style="padding: 3px 0;font-weight: bold;color: #666">Horário Acúmulo:</td>
-                    <td style="padding: 3px 0;color: #222;font-size: 8pt" colspan="3">{{horario_trabalho_acumulo}}</td>
-                </tr>
             </table>
+            {{horario_trabalho_acumulo}}
         </div>
 
         <!-- 5. SINDICATO -->

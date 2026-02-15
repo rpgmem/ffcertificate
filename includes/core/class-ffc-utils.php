@@ -127,12 +127,21 @@ class Utils {
                 'border'      => array(),
                 'cellpadding' => array(),
                 'cellspacing' => array(),
+                'role'        => array(),
             ),
             'tr'     => array(
                 'style' => array(),
                 'class' => array(),
             ),
             'td'     => array(
+                'style'   => array(),
+                'width'   => array(),
+                'colspan' => array(),
+                'rowspan' => array(),
+                'align'   => array(),
+                'valign'  => array(),
+            ),
+            'th'     => array(
                 'style'   => array(),
                 'width'   => array(),
                 'colspan' => array(),
