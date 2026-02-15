@@ -681,6 +681,7 @@ class DashboardShortcode {
                 'completed' => __('Completed', 'ffcertificate'),
                 'fichaGenerating' => __('Generating...', 'ffcertificate'),
                 'fichaError' => __('Error generating ficha', 'ffcertificate'),
+                'editReregistration' => __('Edit', 'ffcertificate'),
             ),
         ));
     }
