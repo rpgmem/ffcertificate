@@ -162,8 +162,8 @@
         <!-- Custom Fields -->
         {{custom_fields_section}}
 
-        <!-- Signature Lines -->
-        <div style="margin-top: 15px">
+        <!-- Signature Lines (anchored to bottom) -->
+        <div style="position: absolute;bottom: 40px;left: 30px;right: 30px">
             <table style="width: 100%;border-collapse: collapse;font-size: 8pt" role="presentation">
                 <tr>
                     <td style="padding: 20px 15px 4px;text-align: center;border-bottom: 1px solid #333;width: 45%"></td>
@@ -178,8 +178,8 @@
             </table>
         </div>
 
-        <!-- Footer -->
-        <div style="position: absolute;bottom: 15px;left: 30px;right: 30px;border-top: 1px solid #e8e8e8;padding-top: 4px;text-align: center">
+        <!-- Footer (anchored to very bottom) -->
+        <div style="position: absolute;bottom: 12px;left: 30px;right: 30px;border-top: 1px solid #e8e8e8;padding-top: 4px;text-align: center">
             <span style="font-size: 7pt;color: #999">{{site_name}} &mdash; Gerado em: {{generation_date}}</span>
         </div>
 
