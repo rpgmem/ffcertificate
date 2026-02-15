@@ -33,6 +33,7 @@ class Activator {
         self::create_custom_fields_table();
         self::create_reregistrations_table();
         self::create_reregistration_submissions_table();
+        self::add_reregistration_submissions_columns();
 
         if (class_exists('\FreeFormCertificate\Migrations\MigrationSelfSchedulingTables')) {
             \FreeFormCertificate\Migrations\MigrationSelfSchedulingTables::run();
@@ -421,6 +422,28 @@ class Activator {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
         dbDelta($sql);
+    }
+
+    /**
+     * Add auth_code column to reregistration submissions table for existing installs.
+     *
+     * @since 4.12.0
+     */
+    private static function add_reregistration_submissions_columns(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_reregistration_submissions';
+
+        if (!self::table_exists($table_name)) {
+            return;
+        }
+
+        self::add_columns_if_missing($table_name, array(
+            'auth_code' => array(
+                'type'  => 'VARCHAR(20) DEFAULT NULL',
+                'after' => 'status',
+                'index' => 'auth_code',
+            ),
+        ));
     }
 
     /**

@@ -98,6 +98,35 @@ class ReregistrationSubmissionRepository {
     }
 
     /**
+     * Get all submissions for a user across all reregistrations.
+     *
+     * Joins with reregistrations table to include title and dates.
+     *
+     * @since 4.12.0
+     * @param int $user_id User ID.
+     * @return array<object>
+     */
+    public static function get_all_by_user(int $user_id): array {
+        global $wpdb;
+        $table = self::get_table_name();
+        $rereg_table = ReregistrationRepository::get_table_name();
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT s.*, r.title AS reregistration_title, r.start_date, r.end_date, r.status AS reregistration_status
+                 FROM {$table} s
+                 INNER JOIN {$rereg_table} r ON s.reregistration_id = r.id
+                 WHERE s.user_id = %d
+                 ORDER BY r.start_date DESC, s.created_at DESC",
+                $user_id
+            )
+        );
+
+        return is_array($results) ? $results : array();
+    }
+
+    /**
      * Get submissions for a reregistration with optional filters.
      *
      * @param int   $reregistration_id Reregistration ID.
@@ -235,6 +264,7 @@ class ReregistrationSubmissionRepository {
             'reviewed_at'  => '%s',
             'reviewed_by'  => '%d',
             'notes'        => '%s',
+            'auth_code'    => '%s',
         );
 
         foreach ($data as $key => $value) {

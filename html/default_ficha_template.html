@@ -15,9 +15,6 @@
                     <div style="font-size: 10pt;font-weight: bold;color: #0073aa;letter-spacing: 1px;text-transform: uppercase">PREFEITURA DE SÃO PAULO / SECRETARIA DE EDUCAÇÃO – SME</div>
                     <div style="font-size: 9pt;color: #555;margin-top: 2px">DIRETORIA REGIONAL DE EDUCAÇÃO SÃO MIGUEL – MP</div>
                     <div style="font-size: 14pt;font-weight: bold;color: #0073aa;letter-spacing: 2px;text-transform: uppercase;margin-top: 8px">FICHA DE RECADASTRAMENTO</div>
-                    <div style="margin-top: 6px">
-                        <span style="display: inline-block;padding: 3px 16px;border-radius: 20px;font-weight: bold;font-size: 9pt;text-transform: uppercase;background: #d5e8d4;color: #2e7d32;letter-spacing: 1px">{{submission_status}}</span>
-                    </div>
                 </td>
                 <td style="vertical-align: middle;text-align: right;width: 140px">
                     <img src="/wp-content/plugins/ffcertificate/html/Logo_DRE_v2-scaled.png" alt="DRE" style="width: 130px;height: auto">
@@ -29,7 +26,7 @@
 
         <!-- 1. DADOS PESSOAIS -->
         <div style="margin-bottom: 12px">
-            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">1. Dados Pessoais</div>
+            <div style="font-size: 10pt;font-weight: bold;color: #000;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">1. Dados Pessoais</div>
             <table style="width: 100%;border-collapse: collapse;font-size: 9pt" role="presentation">
                 <tr>
                     <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Nome:</td>
@@ -86,7 +83,7 @@
 
         <!-- 2. CONTATOS -->
         <div style="margin-bottom: 12px">
-            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">2. Contatos</div>
+            <div style="font-size: 10pt;font-weight: bold;color: #000;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">2. Contatos</div>
             <table style="width: 100%;border-collapse: collapse;font-size: 9pt" role="presentation">
                 <tr>
                     <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Tel. Residencial:</td>
@@ -113,7 +110,7 @@
 
         <!-- 3. JORNADA / HORÁRIO DE TRABALHO -->
         <div style="margin-bottom: 12px">
-            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">3. Jornada / Horário de Trabalho</div>
+            <div style="font-size: 10pt;font-weight: bold;color: #000;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">3. Jornada / Horário de Trabalho</div>
             <table style="width: 100%;border-collapse: collapse;font-size: 9pt" role="presentation">
                 <tr>
                     <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Jornada:</td>
@@ -125,7 +122,7 @@
 
         <!-- 4. ACÚMULO DE CARGOS -->
         <div style="margin-bottom: 12px">
-            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">4. Acúmulo de Cargos: {{acumulo_cargos}}</div>
+            <div style="font-size: 10pt;font-weight: bold;color: #000;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">4. Acúmulo de Cargos: {{acumulo_cargos}}</div>
             <table style="width: 100%;border-collapse: collapse;font-size: 9pt" role="presentation">
                 <tr>
                     <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Jornada:</td>
@@ -139,28 +136,11 @@
 
         <!-- 5. SINDICATO -->
         <div style="margin-bottom: 12px">
-            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">5. Sindicato</div>
+            <div style="font-size: 10pt;font-weight: bold;color: #000;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">5. Marque apenas um sindicato, ao qual é filiado, e que deseja participar de eventos:</div>
             <table style="width: 100%;border-collapse: collapse;font-size: 9pt" role="presentation">
                 <tr>
                     <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Sindicato:</td>
                     <td style="padding: 3px 0;color: #222">{{sindicato}}</td>
-                </tr>
-            </table>
-        </div>
-
-        <!-- Campaign Info -->
-        <div style="margin-bottom: 12px">
-            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">Campanha</div>
-            <table style="width: 100%;border-collapse: collapse;font-size: 9pt" role="presentation">
-                <tr>
-                    <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Campanha:</td>
-                    <td style="padding: 3px 0;color: #222;width: 200px">{{reregistration_title}}</td>
-                    <td style="padding: 3px 0;font-weight: bold;color: #666;width: 100px">Grupo:</td>
-                    <td style="padding: 3px 0;color: #222">{{audience_name}}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 3px 0;font-weight: bold;color: #666">Submetido em:</td>
-                    <td style="padding: 3px 0;color: #222" colspan="3">{{submitted_at}}</td>
                 </tr>
             </table>
         </div>

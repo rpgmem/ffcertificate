@@ -1258,21 +1258,56 @@ class UserDataRestController {
         $ctx = $this->resolve_user_context($request);
         $user_id = $ctx['user_id'];
 
-        if (!class_exists('\FreeFormCertificate\Reregistration\ReregistrationFrontend')) {
+        if (!class_exists('\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository')) {
             return rest_ensure_response(array('reregistrations' => array(), 'total' => 0));
         }
 
-        $items = \FreeFormCertificate\Reregistration\ReregistrationFrontend::get_user_reregistrations($user_id);
+        $submissions = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user($user_id);
         $date_format = get_option('date_format', 'F j, Y');
 
+        $status_labels = array(
+            'pending'     => __('Pending', 'ffcertificate'),
+            'in_progress' => __('In Progress', 'ffcertificate'),
+            'submitted'   => __('Submitted — Pending Review', 'ffcertificate'),
+            'approved'    => __('Approved', 'ffcertificate'),
+            'rejected'    => __('Rejected', 'ffcertificate'),
+            'expired'     => __('Expired', 'ffcertificate'),
+        );
+
         $formatted = array();
-        foreach ($items as $item) {
-            $start_ts = strtotime($item['start_date']);
-            $end_ts = strtotime($item['end_date']);
-            $item['start_date_formatted'] = ($start_ts !== false) ? date_i18n($date_format, $start_ts) : $item['start_date'];
-            $item['end_date_formatted'] = ($end_ts !== false) ? date_i18n($date_format, $end_ts) : $item['end_date'];
-            $item['days_left'] = max(0, (int) (($end_ts - time()) / 86400));
-            $formatted[] = $item;
+        foreach ($submissions as $sub) {
+            $start_ts = strtotime($sub->start_date);
+            $end_ts   = strtotime($sub->end_date);
+            $submitted_at = '';
+            if (!empty($sub->submitted_at)) {
+                $sub_ts = strtotime($sub->submitted_at);
+                $submitted_at = ($sub_ts !== false) ? date_i18n($date_format . ' H:i', $sub_ts) : $sub->submitted_at;
+            }
+
+            $can_download = in_array($sub->status, array('submitted', 'approved'), true);
+            $is_active    = $sub->reregistration_status === 'active';
+            $can_submit   = $is_active && in_array($sub->status, array('pending', 'in_progress', 'rejected'), true);
+
+            $formatted[] = array(
+                'submission_id'        => (int) $sub->id,
+                'reregistration_id'    => (int) $sub->reregistration_id,
+                'title'                => $sub->reregistration_title ?? '',
+                'status'               => $sub->status,
+                'status_label'         => $status_labels[$sub->status] ?? $sub->status,
+                'reregistration_status' => $sub->reregistration_status,
+                'start_date'           => $sub->start_date,
+                'end_date'             => $sub->end_date,
+                'start_date_formatted' => ($start_ts !== false) ? date_i18n($date_format, $start_ts) : $sub->start_date,
+                'end_date_formatted'   => ($end_ts !== false) ? date_i18n($date_format, $end_ts) : $sub->end_date,
+                'submitted_at'         => $submitted_at,
+                'days_left'            => $is_active ? max(0, (int) (($end_ts - time()) / 86400)) : 0,
+                'can_download'         => $can_download,
+                'can_submit'           => $can_submit,
+                'is_active'            => $is_active,
+                'auth_code'            => !empty($sub->auth_code)
+                    ? \FreeFormCertificate\Core\Utils::format_auth_code($sub->auth_code)
+                    : '',
+            );
         }
 
         return rest_ensure_response(array(
