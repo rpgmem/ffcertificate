@@ -113,6 +113,11 @@
             this.value = v;
         });
 
+        // Number-only mask
+        $container.find('[data-mask="number"]').on('input', function () {
+            this.value = this.value.replace(/\D/g, '');
+        });
+
         // CIN mask: XX.XXX.XXX-X
         $container.find('[data-mask="cin"]').on('input', function () {
             var v = this.value.replace(/\D/g, '').substring(0, 9);
