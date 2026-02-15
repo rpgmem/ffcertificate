@@ -202,10 +202,10 @@ class FichaGenerator {
             3 => 'Qua', 4 => 'Qui', 5 => 'Sex', 6 => 'Sáb',
         );
 
-        $cell  = 'style="padding:2px 6px;border:1px solid #ccc;text-align:center;font-size:8pt"';
-        $hcell = 'style="padding:2px 6px;border:1px solid #ccc;text-align:center;font-size:8pt;font-weight:bold;background:#f0f4f8;color:#000"';
+        $cell  = 'style="padding:1px 4px;border:1px solid #ccc;text-align:center;font-size:7.5pt"';
+        $hcell = 'style="padding:1px 4px;border:1px solid #ccc;text-align:center;font-size:7.5pt;font-weight:bold;background:#f0f4f8;color:#000"';
 
-        $html  = '<table style="width:100%;border-collapse:collapse;margin-top:4px" role="presentation">';
+        $html  = '<table style="width:100%;border-collapse:collapse;margin-top:2px" role="presentation">';
         $html .= '<tr>';
         $html .= '<th ' . $hcell . '>Dia</th>';
         $html .= '<th ' . $hcell . '>Entrada</th>';
@@ -248,11 +248,11 @@ class FichaGenerator {
             return '';
         }
 
-        $html = '<div style="margin-bottom: 18px">';
-        $html .= '<div style="font-size: 11pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 6px;border-bottom: 2px solid #e8e8e8;margin-bottom: 10px">';
+        $html = '<div style="margin-bottom: 6px">';
+        $html .= '<div style="font-size: 9pt;font-weight: bold;color: #000;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 2px;border-bottom: 1px solid #e8e8e8;margin-bottom: 3px">';
         $html .= esc_html__('Additional Information', 'ffcertificate');
         $html .= '</div>';
-        $html .= '<table style="width: 100%;border-collapse: collapse;font-size: 10.5pt" role="presentation">';
+        $html .= '<table style="width: 100%;border-collapse: collapse;font-size: 8pt" role="presentation">';
 
         foreach ($custom_fields as $cf) {
             $key = 'field_' . $cf->id;
@@ -292,8 +292,8 @@ class FichaGenerator {
             }
 
             $html .= '<tr>';
-            $html .= '<td style="padding: 5px 0;font-weight: bold;color: #666;width: 150px;vertical-align: top">' . esc_html($cf->field_label) . ':</td>';
-            $html .= '<td style="padding: 5px 0;color: #222">' . esc_html($value) . '</td>';
+            $html .= '<td style="padding: 2px 0;font-weight: bold;color: #666;width: 120px;vertical-align: top">' . esc_html($cf->field_label) . ':</td>';
+            $html .= '<td style="padding: 2px 0;color: #222">' . esc_html($value) . '</td>';
             $html .= '</tr>';
         }
 
