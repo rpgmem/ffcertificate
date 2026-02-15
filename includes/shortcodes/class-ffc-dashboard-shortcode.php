@@ -68,8 +68,12 @@ class DashboardShortcode {
             $can_view_audience_bookings = self::user_has_audience_groups($user_id);
         }
 
+        // Check if user has any reregistration submissions
+        $can_view_reregistrations = class_exists('\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository')
+            && !empty(\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user($user_id));
+
         // Get current tab - default to first available tab
-        $default_tab = $can_view_certificates ? 'certificates' : ($can_view_appointments ? 'appointments' : ($can_view_audience_bookings ? 'audience' : 'profile'));
+        $default_tab = $can_view_certificates ? 'certificates' : ($can_view_appointments ? 'appointments' : ($can_view_audience_bookings ? 'audience' : ($can_view_reregistrations ? 'reregistrations' : 'profile')));
         $current_tab = isset($_GET['tab']) ? sanitize_text_field(wp_unslash($_GET['tab'])) : $default_tab; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for display only.
 
         // Start output buffering
@@ -125,6 +129,18 @@ class DashboardShortcode {
                     </button>
                 <?php endif; ?>
 
+                <?php if ($can_view_reregistrations) : ?>
+                    <button class="ffc-tab <?php echo esc_attr( $current_tab === 'reregistrations' ? 'active' : '' ); ?>"
+                            data-tab="reregistrations"
+                            role="tab"
+                            id="ffc-tab-reregistrations"
+                            aria-selected="<?php echo esc_attr( $current_tab === 'reregistrations' ? 'true' : 'false' ); ?>"
+                            aria-controls="tab-reregistrations"
+                            tabindex="<?php echo esc_attr( $current_tab === 'reregistrations' ? '0' : '-1' ); ?>">
+                        <span class="ffc-icon-file" aria-hidden="true"></span> <?php esc_html_e('Reregistration', 'ffcertificate'); ?>
+                    </button>
+                <?php endif; ?>
+
                 <button class="ffc-tab <?php echo esc_attr( $current_tab === 'profile' ? 'active' : '' ); ?>"
                         data-tab="profile"
                         role="tab"
@@ -165,6 +181,17 @@ class DashboardShortcode {
                      aria-labelledby="ffc-tab-audience">
                     <div class="ffc-loading" role="status">
                         <?php esc_html_e('Loading scheduled activities...', 'ffcertificate'); ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($can_view_reregistrations) : ?>
+                <div class="ffc-tab-content <?php echo esc_attr( $current_tab === 'reregistrations' ? 'active' : '' ); ?>"
+                     id="tab-reregistrations"
+                     role="tabpanel"
+                     aria-labelledby="ffc-tab-reregistrations">
+                    <div class="ffc-loading" role="status">
+                        <?php esc_html_e('Loading reregistrations...', 'ffcertificate'); ?>
                     </div>
                 </div>
             <?php endif; ?>
@@ -464,6 +491,9 @@ class DashboardShortcode {
             $can_view_audience_bookings = self::user_has_audience_groups($user_id);
         }
 
+        $can_view_reregistrations = class_exists('\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository')
+            && !empty(\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user($user_id));
+
         $s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
         // Enqueue CSS (ffc-common provides icon classes)
@@ -532,6 +562,8 @@ class DashboardShortcode {
             'canViewCertificates' => $can_view_certificates,
             'canViewAppointments' => $can_view_appointments,
             'canViewAudienceBookings' => $can_view_audience_bookings,
+            'canViewReregistrations' => $can_view_reregistrations,
+            'reregistrationNonce' => wp_create_nonce('ffc_reregistration_frontend'),
             'siteName' => get_bloginfo('name'),
             'wpTimezone' => wp_timezone_string(),
             'mainAddress' => (get_option('ffc_settings', array()))['main_address'] ?? '',
@@ -638,6 +670,17 @@ class DashboardShortcode {
                 'next' => __('Next', 'ffcertificate'),
                 'pageOf' => __('Page {current} of {total}', 'ffcertificate'),
                 'perPage' => __('Per page:', 'ffcertificate'),
+                // Reregistrations tab
+                'noReregistrations' => __('No reregistrations found.', 'ffcertificate'),
+                'reregistrationTitle' => __('Campaign', 'ffcertificate'),
+                'period' => __('Period', 'ffcertificate'),
+                'submittedAt' => __('Submitted', 'ffcertificate'),
+                'validationCode' => __('Validation Code', 'ffcertificate'),
+                'downloadFicha' => __('Download Ficha', 'ffcertificate'),
+                'active' => __('Active', 'ffcertificate'),
+                'completed' => __('Completed', 'ffcertificate'),
+                'fichaGenerating' => __('Generating...', 'ffcertificate'),
+                'fichaError' => __('Error generating ficha', 'ffcertificate'),
             ),
         ));
     }

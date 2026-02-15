@@ -1256,11 +1256,15 @@ class ReregistrationFrontend {
         // Determine final status
         $new_status = !empty($rereg->auto_approve) ? 'approved' : 'submitted';
 
+        // Generate auth code for this submission
+        $auth_code = \FreeFormCertificate\Core\Utils::generate_auth_code();
+
         // Build update data (single query)
         $update_data = array(
             'data'         => $data,
             'status'       => $new_status,
             'submitted_at' => current_time('mysql'),
+            'auth_code'    => \FreeFormCertificate\Core\Utils::clean_auth_code($auth_code),
         );
 
         // If auto-approved, include reviewed fields in the same update
