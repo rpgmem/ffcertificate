@@ -4,7 +4,10 @@
  * Handles the user-facing reregistration form:
  * - Load form via AJAX
  * - Real-time field validation on blur
- * - Input masks (CPF, phone)
+ * - Input masks (CPF, phone, CEP)
+ * - Divisão → Setor cascading dropdowns
+ * - Acúmulo de Cargos conditional section
+ * - Dependent select custom field type
  * - Save draft / Submit handlers
  *
  * @since 4.11.0
@@ -31,7 +34,7 @@
 
     function loadForm(reregistrationId) {
         var $panel = $('#ffc-rereg-form-panel');
-        $panel.html('<div class="ffc-loading">' + (S.loading || 'Loading form...') + '</div>').show();
+        $panel.html('<div class="ffc-loading">' + (S.loading || 'Carregando formulário...') + '</div>').show();
 
         // Scroll to panel
         $('html, body').animate({ scrollTop: $panel.offset().top - 40 }, 300);
@@ -45,10 +48,10 @@
                 $panel.html(res.data.html);
                 initForm($panel);
             } else {
-                $panel.html('<div class="ffc-error">' + (res.data && res.data.message ? res.data.message : S.errorLoading || 'Error loading form.') + '</div>');
+                $panel.html('<div class="ffc-error">' + (res.data && res.data.message ? res.data.message : S.errorLoading || 'Erro ao carregar formulário.') + '</div>');
             }
         }).fail(function () {
-            $panel.html('<div class="ffc-error">' + (S.errorLoading || 'Error loading form.') + '</div>');
+            $panel.html('<div class="ffc-error">' + (S.errorLoading || 'Erro ao carregar formulário.') + '</div>');
         });
     }
 
@@ -57,6 +60,9 @@
     function initForm($container) {
         initMasks($container);
         initBlurValidation($container);
+        initDivisaoSetor($container);
+        initAcumuloCargos($container);
+        initDependentSelects($container);
         initDraft($container);
         initSubmit($container);
         initCancel($container);
@@ -86,6 +92,104 @@
             }
             this.value = v;
         });
+
+        $container.find('[data-mask="cep"]').on('input', function () {
+            var v = this.value.replace(/\D/g, '').substring(0, 8);
+            if (v.length > 5) {
+                v = v.replace(/(\d{5})(\d{1,3})/, '$1-$2');
+            }
+            this.value = v;
+        });
+    }
+
+    /* ─── Divisão → Setor Cascading ───────────────────── */
+
+    function initDivisaoSetor($container) {
+        var $mapEl = $container.find('#ffc-divisao-setor-map');
+        if (!$mapEl.length) return;
+
+        var map;
+        try {
+            map = JSON.parse($mapEl.text());
+        } catch (e) {
+            return;
+        }
+
+        var $divisao = $container.find('#ffc_rereg_divisao');
+        var $setor = $container.find('#ffc_rereg_setor');
+
+        $divisao.on('change', function () {
+            var div = $(this).val();
+            var currentSetor = $setor.val();
+            $setor.empty();
+
+            if (!div || !map[div]) {
+                $setor.append('<option value="">' + (S.selectDivisao || 'Selecione Divisão / Local') + '</option>');
+                return;
+            }
+
+            $setor.append('<option value="">' + (S.selectSetor || 'Selecione') + '</option>');
+            $.each(map[div], function (_, setor) {
+                var selected = setor === currentSetor ? ' selected' : '';
+                $setor.append('<option value="' + setor + '"' + selected + '>' + setor + '</option>');
+            });
+        });
+    }
+
+    /* ─── Acúmulo de Cargos Toggle ────────────────────── */
+
+    function initAcumuloCargos($container) {
+        var $select = $container.find('#ffc_rereg_acumulo');
+        var $fields = $container.find('.ffc-rereg-acumulo-fields');
+
+        $select.on('change', function () {
+            if ($(this).val() === 'Sim') {
+                $fields.slideDown(200);
+            } else {
+                $fields.slideUp(200);
+            }
+        });
+    }
+
+    /* ─── Dependent Select Custom Fields ──────────────── */
+
+    function initDependentSelects($container) {
+        $container.find('.ffc-dependent-select').each(function () {
+            var $wrap = $(this);
+            var targetId = $wrap.data('target');
+            var $hidden = $container.find('#' + targetId);
+            var $parent = $wrap.find('.ffc-dep-parent');
+            var $child = $wrap.find('.ffc-dep-child');
+            var $groupsEl = $wrap.find('.ffc-dep-groups');
+
+            var groups;
+            try {
+                groups = JSON.parse($groupsEl.text());
+            } catch (e) {
+                return;
+            }
+
+            function updateHidden() {
+                $hidden.val(JSON.stringify({
+                    parent: $parent.val() || '',
+                    child: $child.val() || ''
+                }));
+            }
+
+            $parent.on('change', function () {
+                var parentVal = $(this).val();
+                $child.empty().append('<option value="">' + (S.select || 'Selecione') + '</option>');
+
+                if (parentVal && groups[parentVal]) {
+                    $.each(groups[parentVal], function (_, item) {
+                        $child.append('<option value="' + item + '">' + item + '</option>');
+                    });
+                }
+                updateHidden();
+            });
+
+            $child.on('change', updateHidden);
+        });
     }
 
     /* ─── Blur Validation ──────────────────────────────── */
@@ -104,30 +208,30 @@
 
         // Required check
         if ($field.prop('required') && !val) {
-            msg = S.required || 'This field is required.';
+            msg = S.required || 'Este campo é obrigatório.';
         }
 
         // Format validation
         if (!msg && val) {
-            var format = $wrap.data('format');
+            var format = $wrap.data('format') || $field.data('format');
             if (format === 'cpf') {
                 if (!validateCpf(val)) {
-                    msg = S.invalidCpf || 'Invalid CPF.';
+                    msg = S.invalidCpf || 'CPF inválido.';
                 }
             } else if (format === 'email') {
                 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
-                    msg = S.invalidEmail || 'Invalid email.';
+                    msg = S.invalidEmail || 'E-mail inválido.';
                 }
             } else if (format === 'phone') {
                 if (!/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/.test(val.replace(/\s+/g, ''))) {
-                    msg = S.invalidPhone || 'Invalid phone number.';
+                    msg = S.invalidPhone || 'Telefone inválido.';
                 }
             } else if (format === 'custom_regex') {
                 var regex = $wrap.data('regex');
                 if (regex) {
                     try {
                         if (!new RegExp(regex).test(val)) {
-                            msg = $wrap.data('regex-msg') || S.invalidFormat || 'Invalid format.';
+                            msg = $wrap.data('regex-msg') || S.invalidFormat || 'Formato inválido.';
                         }
                     } catch (e) { /* skip invalid regex */ }
                 }
@@ -165,7 +269,7 @@
             var $status = $container.find('.ffc-rereg-status');
             var id = $container.find('[name="reregistration_id"]').val();
 
-            $btn.prop('disabled', true).text(S.saving || 'Saving...');
+            $btn.prop('disabled', true).text(S.saving || 'Salvando...');
             $status.text('');
 
             $.post(ffcReregistration.ajaxUrl, {
@@ -175,16 +279,16 @@
                 standard_fields: getStandardFields($container),
                 custom_fields: getCustomFields($container)
             }, function (res) {
-                $btn.prop('disabled', false).text(S.saveDraft || 'Save Draft');
+                $btn.prop('disabled', false).text(S.saveDraft || 'Salvar Rascunho');
                 if (res.success) {
-                    $status.text(S.draftSaved || 'Draft saved.').addClass('ffc-status-ok');
+                    $status.text(S.draftSaved || 'Rascunho salvo.').addClass('ffc-status-ok');
                     setTimeout(function () { $status.text('').removeClass('ffc-status-ok'); }, 3000);
                 } else {
-                    $status.text(res.data && res.data.message ? res.data.message : S.errorSaving || 'Error saving draft.').addClass('ffc-status-err');
+                    $status.text(res.data && res.data.message ? res.data.message : S.errorSaving || 'Erro ao salvar rascunho.').addClass('ffc-status-err');
                 }
             }).fail(function () {
-                $btn.prop('disabled', false).text(S.saveDraft || 'Save Draft');
-                $status.text(S.errorSaving || 'Error saving draft.').addClass('ffc-status-err');
+                $btn.prop('disabled', false).text(S.saveDraft || 'Salvar Rascunho');
+                $status.text(S.errorSaving || 'Erro ao salvar rascunho.').addClass('ffc-status-err');
             });
         });
     }
@@ -195,21 +299,22 @@
         $container.on('submit', '#ffc-rereg-form', function (e) {
             e.preventDefault();
 
-            // Validate all fields
+            // Validate all visible required fields
             var valid = true;
-            $container.find('input[required], textarea[required], select[required]').each(function () {
+            $container.find('input[required]:visible, textarea[required]:visible, select[required]:visible').each(function () {
                 if (!validateField($(this))) valid = false;
             });
             // Also validate format fields even if not required
-            $container.find('[data-format]').each(function () {
+            $container.find('[data-format]:visible').each(function () {
                 var $f = $(this).find('input, textarea, select');
+                if (!$f.length) $f = $(this);
                 if ($f.val()) {
                     if (!validateField($f)) valid = false;
                 }
             });
 
             if (!valid) {
-                $container.find('.ffc-rereg-status').text(S.fixErrors || 'Please fix the errors below.').addClass('ffc-status-err');
+                $container.find('.ffc-rereg-status').text(S.fixErrors || 'Por favor, corrija os erros abaixo.').addClass('ffc-status-err');
                 // Scroll to first error
                 var $first = $container.find('.has-error:first');
                 if ($first.length) {
@@ -222,7 +327,7 @@
             var $status = $container.find('.ffc-rereg-status');
             var id = $container.find('[name="reregistration_id"]').val();
 
-            $btn.prop('disabled', true).text(S.submitting || 'Submitting...');
+            $btn.prop('disabled', true).text(S.submitting || 'Enviando...');
             $status.text('').removeClass('ffc-status-err ffc-status-ok');
 
             $.post(ffcReregistration.ajaxUrl, {
@@ -235,21 +340,21 @@
                 if (res.success) {
                     $container.find('#ffc-rereg-form').replaceWith(
                         '<div class="ffc-dashboard-notice ffc-notice-info"><p>' +
-                        (res.data.message || S.submitted || 'Reregistration submitted successfully!') +
+                        (res.data.message || S.submitted || 'Recadastramento enviado com sucesso!') +
                         '</p></div>'
                     );
                     // Hide the banner
                     $('.ffc-rereg-banner[data-reregistration-id="' + id + '"]').slideUp();
                 } else {
-                    $btn.prop('disabled', false).text(S.submit || 'Submit');
+                    $btn.prop('disabled', false).text(S.submit || 'Enviar');
                     if (res.data && res.data.errors) {
                         showServerErrors($container, res.data.errors);
                     }
-                    $status.text(res.data && res.data.message ? res.data.message : S.errorSubmitting || 'Error submitting.').addClass('ffc-status-err');
+                    $status.text(res.data && res.data.message ? res.data.message : S.errorSubmitting || 'Erro ao enviar.').addClass('ffc-status-err');
                 }
             }).fail(function () {
-                $btn.prop('disabled', false).text(S.submit || 'Submit');
-                $status.text(S.errorSubmitting || 'Error submitting.').addClass('ffc-status-err');
+                $btn.prop('disabled', false).text(S.submit || 'Enviar');
+                $status.text(S.errorSubmitting || 'Erro ao enviar.').addClass('ffc-status-err');
             });
         });
     }
@@ -274,7 +379,7 @@
 
             if (!subId) return;
 
-            $btn.prop('disabled', true).text(S.generatingPdf || 'Generating PDF...');
+            $btn.prop('disabled', true).text(S.generatingPdf || 'Gerando PDF...');
 
             $.post(ffcReregistration.ajaxUrl, {
                 action: 'ffc_download_ficha',
@@ -287,14 +392,14 @@
                     if (typeof window.ffcGeneratePDF === 'function') {
                         window.ffcGeneratePDF(res.data.pdf_data, res.data.pdf_data.filename || 'ficha.pdf');
                     } else {
-                        alert(S.errorFicha || 'PDF generator not available.');
+                        alert(S.errorFicha || 'Gerador de PDF não disponível.');
                     }
                 } else {
-                    alert(res.data && res.data.message ? res.data.message : S.errorFicha || 'Error generating ficha.');
+                    alert(res.data && res.data.message ? res.data.message : S.errorFicha || 'Erro ao gerar ficha.');
                 }
             }).fail(function () {
                 $btn.prop('disabled', false).text(S.downloadFicha || originalText);
-                alert(S.errorFicha || 'Error generating ficha.');
+                alert(S.errorFicha || 'Erro ao gerar ficha.');
             });
         });
     }
