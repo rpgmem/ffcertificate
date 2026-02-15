@@ -185,19 +185,38 @@ class AdminUserCapabilities {
                     </td>
                 </tr>
 
-                <!-- Future Capabilities -->
+                <!-- Admin-level Capabilities -->
                 <tr>
-                    <th scope="row"><?php esc_html_e('Advanced Permissions', 'ffcertificate'); ?></th>
+                    <th scope="row"><?php esc_html_e('Admin Permissions', 'ffcertificate'); ?></th>
                     <td>
                         <fieldset>
                             <legend class="screen-reader-text">
-                                <span><?php esc_html_e('Advanced Permissions', 'ffcertificate'); ?></span>
+                                <span><?php esc_html_e('Admin Permissions', 'ffcertificate'); ?></span>
+                            </legend>
+
+                            <label>
+                                <input type="checkbox" name="ffc_cap_ffc_manage_reregistration" value="1"
+                                    <?php checked($capabilities['ffc_manage_reregistration'] ?? false); ?>>
+                                <?php esc_html_e('Manage reregistration campaigns', 'ffcertificate'); ?>
+                            </label>
+                            <span class="description"><?php esc_html_e('Access the Reregistration admin page.', 'ffcertificate'); ?></span>
+                        </fieldset>
+                    </td>
+                </tr>
+
+                <!-- Future Capabilities -->
+                <tr>
+                    <th scope="row"><?php esc_html_e('Future Permissions', 'ffcertificate'); ?></th>
+                    <td>
+                        <fieldset>
+                            <legend class="screen-reader-text">
+                                <span><?php esc_html_e('Future Permissions', 'ffcertificate'); ?></span>
                             </legend>
 
                             <label>
                                 <input type="checkbox" name="ffc_cap_ffc_reregistration" value="1"
                                     <?php checked($capabilities['ffc_reregistration'] ?? false); ?>>
-                                <?php esc_html_e('Re-registration', 'ffcertificate'); ?>
+                                <?php esc_html_e('Submit reregistrations (user-level)', 'ffcertificate'); ?>
                             </label>
                             <span class="description"><?php esc_html_e('(Future feature)', 'ffcertificate'); ?></span>
                             <br>

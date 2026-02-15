@@ -222,6 +222,8 @@ class AudienceAdminPage {
             self::MENU_SLUG . '-environments',                       // Environments
             self::MENU_SLUG . '-audiences',                          // Audiences
             self::MENU_SLUG . '-bookings',                           // Audience Bookings
+            // Reregistration
+            'ffc-reregistration',                                    // Reregistration
             // Tools section
             '#ffc-separator-tools',
             self::MENU_SLUG . '-import',                             // Import & Export
