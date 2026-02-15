@@ -61,60 +61,67 @@ class AdminUserCustomFields {
             if (empty($fields)) {
                 continue;
             }
+            $section_id = 'ffc-cf-section-' . $audience->id;
             ?>
 
-            <h3 class="ffc-audience-section-heading">
-                <span class="ffc-color-dot" style="background-color: <?php echo esc_attr($audience->color); ?>;"></span>
-                <?php echo esc_html($audience->name); ?>
-            </h3>
+            <div class="ffc-cf-section">
+                <h3 class="ffc-audience-section-heading ffc-cf-toggle" data-target="<?php echo esc_attr($section_id); ?>" role="button" tabindex="0" aria-expanded="true">
+                    <span class="ffc-cf-toggle-icon dashicons dashicons-arrow-down-alt2"></span>
+                    <span class="ffc-color-dot" style="background-color: <?php echo esc_attr($audience->color); ?>;"></span>
+                    <?php echo esc_html($audience->name); ?>
+                    <span class="ffc-cf-field-count"><?php echo esc_html(count($fields)); ?></span>
+                </h3>
 
-            <table class="form-table" role="presentation">
-                <tbody>
-                    <?php foreach ($fields as $field) : ?>
-                        <?php
-                        // Avoid rendering same field twice (shared parent)
-                        if (isset($rendered_field_ids[(int) $field->id])) {
-                            continue;
-                        }
-                        $rendered_field_ids[(int) $field->id] = true;
-
-                        $field_key = 'field_' . $field->id;
-                        $value = $user_data[$field_key] ?? '';
-                        $input_name = 'ffc_cf_' . $field->id;
-                        ?>
-                        <tr>
-                            <th scope="row">
-                                <label for="<?php echo esc_attr($input_name); ?>">
-                                    <?php echo esc_html($field->field_label); ?>
-                                    <?php if (!empty($field->is_required)) : ?>
-                                        <span class="required">*</span>
-                                    <?php endif; ?>
-                                </label>
-                                <?php if ((int) $field->source_audience_id !== (int) $audience->id) : ?>
-                                    <br><small class="description">
-                                        <?php
-                                        /* translators: %s: parent audience name */
-                                        echo esc_html(sprintf(__('Inherited from %s', 'ffcertificate'), $field->source_audience_name));
-                                        ?>
-                                    </small>
-                                <?php endif; ?>
-                            </th>
-                            <td>
-                                <?php self::render_field_input($field, $input_name, $value); ?>
+                <div id="<?php echo esc_attr($section_id); ?>" class="ffc-cf-section-body">
+                    <table class="form-table" role="presentation">
+                        <tbody>
+                            <?php foreach ($fields as $field) : ?>
                                 <?php
-                                $options = $field->field_options;
-                                if (is_string($options)) {
-                                    $options = json_decode($options, true);
+                                // Avoid rendering same field twice (shared parent)
+                                if (isset($rendered_field_ids[(int) $field->id])) {
+                                    continue;
                                 }
-                                if (!empty($options['help_text'])) :
-                                    ?>
-                                    <p class="description"><?php echo esc_html($options['help_text']); ?></p>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                                $rendered_field_ids[(int) $field->id] = true;
+
+                                $field_key = 'field_' . $field->id;
+                                $value = $user_data[$field_key] ?? '';
+                                $input_name = 'ffc_cf_' . $field->id;
+                                ?>
+                                <tr>
+                                    <th scope="row">
+                                        <label for="<?php echo esc_attr($input_name); ?>">
+                                            <?php echo esc_html($field->field_label); ?>
+                                            <?php if (!empty($field->is_required)) : ?>
+                                                <span class="required">*</span>
+                                            <?php endif; ?>
+                                        </label>
+                                        <?php if ((int) $field->source_audience_id !== (int) $audience->id) : ?>
+                                            <br><small class="description">
+                                                <?php
+                                                /* translators: %s: parent audience name */
+                                                echo esc_html(sprintf(__('Inherited from %s', 'ffcertificate'), $field->source_audience_name));
+                                                ?>
+                                            </small>
+                                        <?php endif; ?>
+                                    </th>
+                                    <td>
+                                        <?php self::render_field_input($field, $input_name, $value); ?>
+                                        <?php
+                                        $options = $field->field_options;
+                                        if (is_string($options)) {
+                                            $options = json_decode($options, true);
+                                        }
+                                        if (!empty($options['help_text'])) :
+                                            ?>
+                                            <p class="description"><?php echo esc_html($options['help_text']); ?></p>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         <?php endforeach; ?>
 
         <style>
@@ -133,7 +140,60 @@ class AdminUserCustomFields {
                 border-radius: 50%;
                 flex-shrink: 0;
             }
+            .ffc-cf-toggle {
+                cursor: pointer;
+                user-select: none;
+            }
+            .ffc-cf-toggle:hover {
+                color: #2271b1;
+            }
+            .ffc-cf-toggle-icon {
+                font-size: 16px;
+                width: 16px;
+                height: 16px;
+                transition: transform 0.2s;
+            }
+            .ffc-cf-toggle.collapsed .ffc-cf-toggle-icon {
+                transform: rotate(-90deg);
+            }
+            .ffc-cf-field-count {
+                background: #dcdcde;
+                color: #50575e;
+                font-size: 11px;
+                font-weight: 400;
+                padding: 1px 7px;
+                border-radius: 10px;
+                margin-left: auto;
+            }
+            .ffc-cf-section-body {
+                transition: max-height 0.25s ease;
+                overflow: hidden;
+            }
+            .ffc-cf-section-body.collapsed {
+                display: none;
+            }
         </style>
+        <script>
+        (function() {
+            document.querySelectorAll('.ffc-cf-toggle').forEach(function(heading) {
+                heading.addEventListener('click', function() {
+                    var targetId = this.getAttribute('data-target');
+                    var body = document.getElementById(targetId);
+                    var isCollapsed = this.classList.toggle('collapsed');
+                    this.setAttribute('aria-expanded', !isCollapsed);
+                    if (body) {
+                        body.classList.toggle('collapsed', isCollapsed);
+                    }
+                });
+                heading.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                });
+            });
+        })();
+        </script>
         <?php
     }
 

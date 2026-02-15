@@ -93,12 +93,7 @@ class AudienceAdminAudience {
                     </tr>
                 <?php else : ?>
                     <?php foreach ($audiences as $audience) : ?>
-                        <?php $this->render_row($audience, 0); ?>
-                        <?php if (!empty($audience->children)) : ?>
-                            <?php foreach ($audience->children as $child) : ?>
-                                <?php $this->render_row($child, 1); ?>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                        <?php $this->render_row_recursive($audience, 0); ?>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </tbody>
@@ -109,14 +104,17 @@ class AudienceAdminAudience {
     }
 
     /**
-     * Render a single audience row
+     * Render an audience row and its children recursively.
      *
-     * @param object $audience Audience object
-     * @param int $level Hierarchy level (0 = parent, 1 = child)
+     * @param object $audience Audience object with optional children property.
+     * @param int    $level    Hierarchy depth (0 = root, 1 = child, 2+ = grandchild).
      * @return void
      */
-    private function render_row(object $audience, int $level): void {
-        $member_count = AudienceRepository::get_member_count((int) $audience->id);
+    private function render_row_recursive(object $audience, int $level): void {
+        $direct_count = AudienceRepository::get_member_count((int) $audience->id);
+        $has_children = !empty($audience->children);
+        $total_count = $has_children ? AudienceRepository::get_member_count((int) $audience->id, true) : $direct_count;
+
         $edit_url = admin_url('admin.php?page=' . $this->menu_slug . '-audiences&action=edit&id=' . $audience->id);
         $members_url = admin_url('admin.php?page=' . $this->menu_slug . '-audiences&action=members&id=' . $audience->id);
         $is_active = ($audience->status === 'active');
@@ -133,16 +131,23 @@ class AudienceAdminAudience {
             );
         }
 
+        $indent_class = $level > 0 ? 'ffc-hierarchy-child ffc-hierarchy-level-' . $level : '';
+
         ?>
-        <tr>
-            <td class="column-name <?php echo $level > 0 ? 'ffc-hierarchy-child' : ''; ?>">
+        <tr class="<?php echo $level === 0 ? 'ffc-hierarchy-parent' : ''; ?>">
+            <td class="column-name <?php echo esc_attr($indent_class); ?>">
                 <strong><a href="<?php echo esc_url($edit_url); ?>"><?php echo esc_html($audience->name); ?></a></strong>
             </td>
             <td class="column-color">
                 <span class="ffc-color-swatch" style="background-color: <?php echo esc_attr($audience->color); ?>;"></span>
             </td>
             <td class="column-members">
-                <a href="<?php echo esc_url($members_url); ?>"><?php echo esc_html($member_count); ?></a>
+                <a href="<?php echo esc_url($members_url); ?>">
+                    <?php echo esc_html($direct_count); ?>
+                    <?php if ($has_children && $total_count > $direct_count) : ?>
+                        <span class="ffc-member-total" title="<?php esc_attr_e('Including children', 'ffcertificate'); ?>">(<?php echo esc_html($total_count); ?>)</span>
+                    <?php endif; ?>
+                </a>
             </td>
             <td class="column-status">
                 <span class="ffc-status-badge ffc-status-<?php echo esc_attr($audience->status); ?>">
@@ -164,6 +169,13 @@ class AudienceAdminAudience {
             </td>
         </tr>
         <?php
+
+        // Recursively render children
+        if ($has_children) {
+            foreach ($audience->children as $child) {
+                $this->render_row_recursive($child, $level + 1);
+            }
+        }
     }
 
     /**
@@ -190,6 +202,22 @@ class AudienceAdminAudience {
         ?>
         <h1><?php echo esc_html($page_title); ?></h1>
         <a href="<?php echo esc_url($back_url); ?>">&larr; <?php esc_html_e('Back to Audiences', 'ffcertificate'); ?></a>
+
+        <?php if ($audience && !empty($audience->parent_id)) : ?>
+            <?php
+            $parent = AudienceRepository::get_by_id((int) $audience->parent_id);
+            if ($parent) :
+                $parent_edit_url = admin_url('admin.php?page=' . $this->menu_slug . '-audiences&action=edit&id=' . $parent->id);
+            ?>
+            <div class="ffc-breadcrumb">
+                <span class="ffc-color-swatch" style="background-color: <?php echo esc_attr($parent->color); ?>; width:12px; height:12px; display:inline-block; border-radius:50%; vertical-align:middle;"></span>
+                <a href="<?php echo esc_url($parent_edit_url); ?>"><?php echo esc_html($parent->name); ?></a>
+                <span class="ffc-breadcrumb-sep">&rsaquo;</span>
+                <span class="ffc-color-swatch" style="background-color: <?php echo esc_attr($audience->color); ?>; width:12px; height:12px; display:inline-block; border-radius:50%; vertical-align:middle;"></span>
+                <strong><?php echo esc_html($audience->name); ?></strong>
+            </div>
+            <?php endif; ?>
+        <?php endif; ?>
 
         <?php settings_errors('ffc_audience'); ?>
 
