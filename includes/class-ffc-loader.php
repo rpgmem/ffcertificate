@@ -161,7 +161,8 @@ class Loader {
      * @since 4.11.1
      */
     private function ensure_admin_capabilities(): void {
-        $version_key = 'ffc_admin_caps_version';
+        // v2: added cleanup of user-level false overrides for admin users.
+        $version_key = 'ffc_admin_caps_version_v2';
         $current     = get_option( $version_key, '' );
 
         if ( $current === FFC_VERSION ) {
@@ -170,9 +171,29 @@ class Loader {
 
         $admin_role = get_role( 'administrator' );
         if ( $admin_role && class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
+            $all_ffc_caps = \FreeFormCertificate\UserDashboard\UserManager::get_all_capabilities();
+
+            // 1. Grant admin-level capabilities to the administrator role.
             foreach ( \FreeFormCertificate\UserDashboard\UserManager::ADMIN_CAPABILITIES as $cap ) {
                 if ( ! $admin_role->has_cap( $cap ) ) {
                     $admin_role->add_cap( $cap, true );
+                }
+            }
+
+            // 2. Clean up user-level overrides for admin users.
+            //    A previous bug in save_capability_fields() used add_cap(false)
+            //    which stored explicit denials in user_meta, overriding the role.
+            $admins = get_users( array( 'role' => 'administrator', 'fields' => 'ID' ) );
+            foreach ( $admins as $admin_id ) {
+                $user = get_userdata( (int) $admin_id );
+                if ( ! $user ) {
+                    continue;
+                }
+                foreach ( $all_ffc_caps as $cap ) {
+                    // Remove only explicit false values (user-level denials).
+                    if ( isset( $user->caps[ $cap ] ) && ! $user->caps[ $cap ] ) {
+                        $user->remove_cap( $cap );
+                    }
                 }
             }
         }
