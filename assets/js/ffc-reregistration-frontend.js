@@ -62,6 +62,7 @@
         initBlurValidation($container);
         initDivisaoSetor($container);
         initAcumuloCargos($container);
+        initWorkingHours($container);
         initDependentSelects($container);
         initDraft($container);
         initSubmit($container);
@@ -97,6 +98,24 @@
             var v = this.value.replace(/\D/g, '').substring(0, 8);
             if (v.length > 5) {
                 v = v.replace(/(\d{5})(\d{1,3})/, '$1-$2');
+            }
+            this.value = v;
+        });
+
+        // Number-only mask (RF field)
+        $container.find('[data-mask="number"]').on('input', function () {
+            this.value = this.value.replace(/\D/g, '');
+        });
+
+        // CIN mask: XX.XXX.XXX-X
+        $container.find('[data-mask="cin"]').on('input', function () {
+            var v = this.value.replace(/\D/g, '').substring(0, 9);
+            if (v.length > 8) {
+                v = v.replace(/(\d{2})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
+            } else if (v.length > 5) {
+                v = v.replace(/(\d{2})(\d{3})(\d{1,3})/, '$1.$2.$3');
+            } else if (v.length > 2) {
+                v = v.replace(/(\d{2})(\d{1,3})/, '$1.$2');
             }
             this.value = v;
         });
@@ -143,11 +162,67 @@
         var $fields = $container.find('.ffc-rereg-acumulo-fields');
 
         $select.on('change', function () {
-            if ($(this).val() === 'Sim') {
+            if ($(this).val() === 'Possuo') {
                 $fields.slideDown(200);
             } else {
                 $fields.slideUp(200);
             }
+        });
+    }
+
+    /* ─── Working Hours (standard fields) ────────────── */
+
+    function initWorkingHours($container) {
+        $container.find('.ffc-working-hours').each(function () {
+            var $wrap = $(this);
+            var targetId = $wrap.data('target');
+            var $hidden = $container.find('#' + targetId);
+
+            function syncHidden() {
+                var rows = [];
+                $wrap.find('tbody tr').each(function () {
+                    rows.push({
+                        day: parseInt($(this).find('.ffc-wh-day').val(), 10) || 0,
+                        entry1: $(this).find('.ffc-wh-entry1').val() || '',
+                        exit1: $(this).find('.ffc-wh-exit1').val() || '',
+                        entry2: $(this).find('.ffc-wh-entry2').val() || '',
+                        exit2: $(this).find('.ffc-wh-exit2').val() || ''
+                    });
+                });
+                $hidden.val(JSON.stringify(rows));
+            }
+
+            // Sync on any input change
+            $wrap.on('change input', 'select, input', syncHidden);
+
+            // Remove row
+            $wrap.on('click', '.ffc-wh-remove', function () {
+                $(this).closest('tr').remove();
+                syncHidden();
+            });
+
+            // Add row
+            $wrap.on('click', '.ffc-wh-add', function () {
+                var $tbody = $wrap.find('tbody');
+                var $row = $('<tr>' +
+                    '<td><select class="ffc-wh-day">' +
+                    '<option value="0">' + (S.sunday || 'Domingo') + '</option>' +
+                    '<option value="1">' + (S.monday || 'Segunda') + '</option>' +
+                    '<option value="2">' + (S.tuesday || 'Terça') + '</option>' +
+                    '<option value="3">' + (S.wednesday || 'Quarta') + '</option>' +
+                    '<option value="4">' + (S.thursday || 'Quinta') + '</option>' +
+                    '<option value="5">' + (S.friday || 'Sexta') + '</option>' +
+                    '<option value="6">' + (S.saturday || 'Sábado') + '</option>' +
+                    '</select></td>' +
+                    '<td><input type="time" class="ffc-wh-entry1"></td>' +
+                    '<td><input type="time" class="ffc-wh-exit1"></td>' +
+                    '<td><input type="time" class="ffc-wh-entry2"></td>' +
+                    '<td><input type="time" class="ffc-wh-exit2"></td>' +
+                    '<td><button type="button" class="ffc-wh-remove">&times;</button></td>' +
+                    '</tr>');
+                $tbody.append($row);
+                syncHidden();
+            });
         });
     }
 

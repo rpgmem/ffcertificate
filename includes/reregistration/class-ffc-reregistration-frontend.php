@@ -216,8 +216,9 @@ class ReregistrationFrontend {
      */
     private static function get_sexo_options(): array {
         return array(
-            'Masculino',
             'Feminino',
+            'Masculino',
+            'Não desejo informar',
         );
     }
 
@@ -228,11 +229,12 @@ class ReregistrationFrontend {
      */
     private static function get_estado_civil_options(): array {
         return array(
-            'Solteiro(a)',
             'Casado(a)',
             'Divorciado(a)',
+            'Separado(a) judicialmente',
+            'Solteiro(a)',
+            'União estável',
             'Viúvo(a)',
-            'União Estável',
         );
     }
 
@@ -264,6 +266,93 @@ class ReregistrationFrontend {
             'JEIF.40',
             'JB.20',
         );
+    }
+
+    /**
+     * Acúmulo de cargos options.
+     *
+     * @return array<string>
+     */
+    private static function get_acumulo_options(): array {
+        return array(
+            'Não Possuo',
+            'Proventos (Holerite Anexo)',
+            'Possuo',
+        );
+    }
+
+    /**
+     * Default working hours data (Mon–Fri).
+     *
+     * @return array
+     */
+    private static function get_default_working_hours(): array {
+        return array(
+            array('day' => 1, 'entry1' => '', 'exit1' => '', 'entry2' => '', 'exit2' => ''),
+            array('day' => 2, 'entry1' => '', 'exit1' => '', 'entry2' => '', 'exit2' => ''),
+            array('day' => 3, 'entry1' => '', 'exit1' => '', 'entry2' => '', 'exit2' => ''),
+            array('day' => 4, 'entry1' => '', 'exit1' => '', 'entry2' => '', 'exit2' => ''),
+            array('day' => 5, 'entry1' => '', 'exit1' => '', 'entry2' => '', 'exit2' => ''),
+        );
+    }
+
+    /**
+     * Render a working hours table for a standard field.
+     *
+     * @param string $field_name  Hidden input name (e.g. standard_fields[horario_trabalho]).
+     * @param string $field_id    Hidden input id.
+     * @param array  $wh_data     Current working hours data.
+     * @return string HTML.
+     */
+    private static function render_working_hours_field(string $field_name, string $field_id, array $wh_data): string {
+        $days_labels = array(
+            0 => __('Sunday', 'ffcertificate'),
+            1 => __('Monday', 'ffcertificate'),
+            2 => __('Tuesday', 'ffcertificate'),
+            3 => __('Wednesday', 'ffcertificate'),
+            4 => __('Thursday', 'ffcertificate'),
+            5 => __('Friday', 'ffcertificate'),
+            6 => __('Saturday', 'ffcertificate'),
+        );
+
+        ob_start();
+        ?>
+        <input type="hidden" id="<?php echo esc_attr($field_id); ?>" name="<?php echo esc_attr($field_name); ?>" value="<?php echo esc_attr(wp_json_encode($wh_data)); ?>">
+        <div class="ffc-working-hours" data-target="<?php echo esc_attr($field_id); ?>">
+            <table class="ffc-wh-table">
+                <thead>
+                    <tr>
+                        <th><?php esc_html_e('Dia', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Entrada 1', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Saída 1', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Entrada 2', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Saída 2', 'ffcertificate'); ?></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($wh_data as $wh_entry) : ?>
+                    <tr>
+                        <td>
+                            <select class="ffc-wh-day">
+                                <?php foreach ($days_labels as $d_num => $d_name) : ?>
+                                    <option value="<?php echo esc_attr($d_num); ?>" <?php selected($wh_entry['day'] ?? 0, $d_num); ?>><?php echo esc_html($d_name); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                        <td><input type="time" class="ffc-wh-entry1" value="<?php echo esc_attr($wh_entry['entry1'] ?? ''); ?>"></td>
+                        <td><input type="time" class="ffc-wh-exit1" value="<?php echo esc_attr($wh_entry['exit1'] ?? ''); ?>"></td>
+                        <td><input type="time" class="ffc-wh-entry2" value="<?php echo esc_attr($wh_entry['entry2'] ?? ''); ?>"></td>
+                        <td><input type="time" class="ffc-wh-exit2" value="<?php echo esc_attr($wh_entry['exit2'] ?? ''); ?>"></td>
+                        <td><button type="button" class="ffc-wh-remove">&times;</button></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <button type="button" class="button ffc-wh-add">+ <?php esc_html_e('Adicionar Dia', 'ffcertificate'); ?></button>
+        </div>
+        <?php
+        return ob_get_clean();
     }
 
     /**
@@ -330,10 +419,13 @@ class ReregistrationFrontend {
                 'tel_emergencia'      => $profile['tel_emergencia'] ?? '',
                 'email_institucional' => $profile['email_institucional'] ?? $user->user_email,
                 'email_particular'    => $profile['email_particular'] ?? '',
+                'jornada'             => $profile['jornada'] ?? '',
+                'horario_trabalho'    => $profile['horario_trabalho'] ?? '',
                 'sindicato'           => $profile['sindicato'] ?? '',
-                'acumulo_cargos'      => $profile['acumulo_cargos'] ?? 'Não',
+                'acumulo_cargos'      => $profile['acumulo_cargos'] ?? 'Não Possuo',
                 'jornada_acumulo'     => $profile['jornada_acumulo'] ?? '',
                 'cargo_funcao_acumulo' => $profile['cargo_funcao_acumulo'] ?? '',
+                'horario_trabalho_acumulo' => $profile['horario_trabalho_acumulo'] ?? '',
                 'department'          => $profile['department'] ?? '',
                 'organization'        => $profile['organization'] ?? '',
             );
@@ -407,7 +499,7 @@ class ReregistrationFrontend {
                         <div class="ffc-rereg-field">
                             <label for="ffc_rereg_rf"><?php esc_html_e('RF', 'ffcertificate'); ?></label>
                             <input type="text" id="ffc_rereg_rf" name="standard_fields[rf]"
-                                   value="<?php echo esc_attr($standard['rf'] ?? ''); ?>">
+                                   value="<?php echo esc_attr($standard['rf'] ?? ''); ?>" data-mask="number">
                         </div>
                     </div>
 
@@ -432,9 +524,9 @@ class ReregistrationFrontend {
                                    data-format="cpf">
                         </div>
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_rg"><?php esc_html_e('RG', 'ffcertificate'); ?></label>
+                            <label for="ffc_rereg_rg"><?php esc_html_e('CIN', 'ffcertificate'); ?></label>
                             <input type="text" id="ffc_rereg_rg" name="standard_fields[rg]"
-                                   value="<?php echo esc_attr($standard['rg'] ?? ''); ?>">
+                                   value="<?php echo esc_attr($standard['rg'] ?? ''); ?>" data-mask="cin">
                         </div>
                     </div>
 
@@ -569,22 +661,58 @@ class ReregistrationFrontend {
                     </div>
                 </fieldset>
 
+                <?php
+                // Prepare working hours data
+                $wh_main_raw = $standard['horario_trabalho'] ?? '';
+                $wh_main = is_string($wh_main_raw) && !empty($wh_main_raw) ? json_decode($wh_main_raw, true) : null;
+                if (!is_array($wh_main) || empty($wh_main)) {
+                    $wh_main = self::get_default_working_hours();
+                }
+
+                $wh_acumulo_raw = $standard['horario_trabalho_acumulo'] ?? '';
+                $wh_acumulo = is_string($wh_acumulo_raw) && !empty($wh_acumulo_raw) ? json_decode($wh_acumulo_raw, true) : null;
+                if (!is_array($wh_acumulo) || empty($wh_acumulo)) {
+                    $wh_acumulo = self::get_default_working_hours();
+                }
+                ?>
+
+                <!-- 3. JORNADA / HORÁRIO DE TRABALHO -->
+                <fieldset class="ffc-rereg-fieldset">
+                    <legend><?php echo esc_html__('3. Jornada / Horário de Trabalho', 'ffcertificate'); ?></legend>
+
+                    <div class="ffc-rereg-field">
+                        <label for="ffc_rereg_jornada"><?php esc_html_e('Jornada', 'ffcertificate'); ?> <span class="required">*</span></label>
+                        <select id="ffc_rereg_jornada" name="standard_fields[jornada]" required>
+                            <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                            <?php foreach (self::get_jornada_options() as $j) : ?>
+                                <option value="<?php echo esc_attr($j); ?>" <?php selected($standard['jornada'] ?? '', $j); ?>><?php echo esc_html($j); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="ffc-rereg-field">
+                        <label><?php esc_html_e('Horário de Trabalho', 'ffcertificate'); ?></label>
+                        <?php echo self::render_working_hours_field('standard_fields[horario_trabalho]', 'ffc_rereg_horario_trabalho', $wh_main); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </div>
+                </fieldset>
+
                 <!-- 4. ACÚMULO DE CARGOS -->
                 <fieldset class="ffc-rereg-fieldset">
                     <legend><?php echo esc_html__('4. Acúmulo de Cargos', 'ffcertificate'); ?></legend>
 
                     <div class="ffc-rereg-field">
-                        <label for="ffc_rereg_acumulo"><?php esc_html_e('Possui acúmulo de cargos?', 'ffcertificate'); ?></label>
+                        <label for="ffc_rereg_acumulo"><?php esc_html_e('Acúmulo de Cargo', 'ffcertificate'); ?></label>
                         <select id="ffc_rereg_acumulo" name="standard_fields[acumulo_cargos]">
-                            <option value="Não" <?php selected($standard['acumulo_cargos'] ?? 'Não', 'Não'); ?>><?php esc_html_e('Não', 'ffcertificate'); ?></option>
-                            <option value="Sim" <?php selected($standard['acumulo_cargos'] ?? '', 'Sim'); ?>><?php esc_html_e('Sim', 'ffcertificate'); ?></option>
+                            <?php foreach (self::get_acumulo_options() as $opt) : ?>
+                                <option value="<?php echo esc_attr($opt); ?>" <?php selected($standard['acumulo_cargos'] ?? 'Não Possuo', $opt); ?>><?php echo esc_html($opt); ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
 
-                    <div class="ffc-rereg-acumulo-fields" style="<?php echo ($standard['acumulo_cargos'] ?? 'Não') === 'Sim' ? '' : 'display:none'; ?>">
+                    <div class="ffc-rereg-acumulo-fields" style="<?php echo ($standard['acumulo_cargos'] ?? 'Não Possuo') === 'Possuo' ? '' : 'display:none'; ?>">
                         <div class="ffc-rereg-row ffc-rereg-row-2">
                             <div class="ffc-rereg-field">
-                                <label for="ffc_rereg_jornada_acumulo"><?php esc_html_e('Jornada', 'ffcertificate'); ?></label>
+                                <label for="ffc_rereg_jornada_acumulo"><?php esc_html_e('Jornada do Acúmulo', 'ffcertificate'); ?></label>
                                 <select id="ffc_rereg_jornada_acumulo" name="standard_fields[jornada_acumulo]">
                                     <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
                                     <?php foreach (self::get_jornada_options() as $j) : ?>
@@ -597,6 +725,11 @@ class ReregistrationFrontend {
                                 <input type="text" id="ffc_rereg_cargo_funcao_acumulo" name="standard_fields[cargo_funcao_acumulo]"
                                        value="<?php echo esc_attr($standard['cargo_funcao_acumulo'] ?? ''); ?>">
                             </div>
+                        </div>
+
+                        <div class="ffc-rereg-field" style="margin-top: 16px;">
+                            <label><?php esc_html_e('Horário de Trabalho do Acúmulo', 'ffcertificate'); ?></label>
+                            <?php echo self::render_working_hours_field('standard_fields[horario_trabalho_acumulo]', 'ffc_rereg_horario_trabalho_acumulo', $wh_acumulo); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                         </div>
                     </div>
                 </fieldset>
@@ -862,6 +995,32 @@ class ReregistrationFrontend {
     }
 
     /**
+     * Sanitize a working hours JSON string.
+     *
+     * @param string $raw Raw JSON input.
+     * @return string Sanitized JSON.
+     */
+    private static function sanitize_working_hours(string $raw): string {
+        $wh = json_decode($raw, true);
+        if (!is_array($wh)) {
+            return '[]';
+        }
+        $sanitized = array();
+        foreach ($wh as $entry) {
+            if (is_array($entry) && isset($entry['day'])) {
+                $sanitized[] = array(
+                    'day'    => absint($entry['day']),
+                    'entry1' => sanitize_text_field($entry['entry1'] ?? ''),
+                    'exit1'  => sanitize_text_field($entry['exit1'] ?? ''),
+                    'entry2' => sanitize_text_field($entry['entry2'] ?? ''),
+                    'exit2'  => sanitize_text_field($entry['exit2'] ?? ''),
+                );
+            }
+        }
+        return wp_json_encode($sanitized);
+    }
+
+    /**
      * Collect form data from POST.
      *
      * @param object $rereg   Reregistration object.
@@ -881,11 +1040,19 @@ class ReregistrationFrontend {
             'bairro', 'cidade', 'uf', 'cep',
             'phone', 'celular', 'contato_emergencia', 'tel_emergencia',
             'email_institucional', 'email_particular',
+            'jornada', 'horario_trabalho',
             'sindicato', 'acumulo_cargos', 'jornada_acumulo', 'cargo_funcao_acumulo',
+            'horario_trabalho_acumulo',
             'department', 'organization',
         );
+        // Working hours fields need JSON sanitization
+        $wh_fields = array('horario_trabalho', 'horario_trabalho_acumulo');
         foreach ($allowed_standard as $key) {
-            $standard[$key] = isset($raw_standard[$key]) ? sanitize_text_field($raw_standard[$key]) : '';
+            if (in_array($key, $wh_fields, true)) {
+                $standard[$key] = self::sanitize_working_hours($raw_standard[$key] ?? '');
+            } else {
+                $standard[$key] = isset($raw_standard[$key]) ? sanitize_text_field($raw_standard[$key]) : '';
+            }
         }
 
         $custom = array();
@@ -976,6 +1143,9 @@ class ReregistrationFrontend {
         }
         if (empty($s['setor'])) {
             $errors['standard_fields[setor]'] = __('Setor é obrigatório.', 'ffcertificate');
+        }
+        if (empty($s['jornada'])) {
+            $errors['standard_fields[jornada]'] = __('Jornada é obrigatória.', 'ffcertificate');
         }
         if (empty($s['celular'])) {
             $errors['standard_fields[celular]'] = __('Tel. Celular é obrigatório.', 'ffcertificate');
@@ -1115,6 +1285,7 @@ class ReregistrationFrontend {
                 'rg'            => $standard['rg'] ?? '',
                 'divisao'       => $standard['divisao'] ?? '',
                 'setor'         => $standard['setor'] ?? '',
+                'jornada'       => $standard['jornada'] ?? '',
             ));
         }
 
