@@ -499,7 +499,7 @@ class ReregistrationFrontend {
                         <div class="ffc-rereg-field">
                             <label for="ffc_rereg_rf"><?php esc_html_e('RF', 'ffcertificate'); ?></label>
                             <input type="text" id="ffc_rereg_rf" name="standard_fields[rf]"
-                                   value="<?php echo esc_attr($standard['rf'] ?? ''); ?>" data-mask="number">
+                                   value="<?php echo esc_attr($standard['rf'] ?? ''); ?>" data-mask="rf">
                         </div>
                     </div>
 

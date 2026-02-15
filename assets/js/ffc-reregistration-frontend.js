@@ -102,9 +102,15 @@
             this.value = v;
         });
 
-        // Number-only mask (RF field)
-        $container.find('[data-mask="number"]').on('input', function () {
-            this.value = this.value.replace(/\D/g, '');
+        // RF mask: XXX.XXX-X (7 digits)
+        $container.find('[data-mask="rf"]').on('input', function () {
+            var v = this.value.replace(/\D/g, '').substring(0, 7);
+            if (v.length > 6) {
+                v = v.replace(/(\d{3})(\d{3})(\d{1})/, '$1.$2-$3');
+            } else if (v.length > 3) {
+                v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+            }
+            this.value = v;
         });
 
         // CIN mask: XX.XXX.XXX-X
