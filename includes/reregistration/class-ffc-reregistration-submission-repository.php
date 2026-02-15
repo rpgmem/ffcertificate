@@ -78,6 +78,26 @@ class ReregistrationSubmissionRepository {
     }
 
     /**
+     * Get a submission by its auth_code.
+     *
+     * @since 4.12.0
+     * @param string $auth_code Cleaned auth code (uppercase, no hyphens).
+     * @return object|null
+     */
+    public static function get_by_auth_code(string $auth_code): ?object {
+        if (empty($auth_code)) {
+            return null;
+        }
+
+        global $wpdb;
+        $table = self::get_table_name();
+
+        return $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$table} WHERE auth_code = %s AND status IN ('submitted', 'approved')", $auth_code)
+        );
+    }
+
+    /**
      * Get submission for a specific reregistration and user.
      *
      * @param int $reregistration_id Reregistration ID.
