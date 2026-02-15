@@ -33,6 +33,7 @@ class CustomFieldRepository {
         'select',
         'checkbox',
         'textarea',
+        'working_hours',
     );
 
     /**
@@ -506,6 +507,13 @@ class CustomFieldRepository {
                     );
                 }
                 break;
+
+            case 'working_hours':
+                $wh_result = self::validate_working_hours($field, $value);
+                if (is_wp_error($wh_result)) {
+                    return $wh_result;
+                }
+                break;
         }
 
         // Format validation from validation_rules
@@ -593,6 +601,48 @@ class CustomFieldRepository {
                         }
                     }
                     break;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate working_hours JSON value.
+     *
+     * Expects a JSON string encoding an array of {day, start, end} objects.
+     *
+     * @param object $field Field definition.
+     * @param mixed  $value Raw value (JSON string or array).
+     * @return true|\WP_Error
+     */
+    private static function validate_working_hours(object $field, $value) {
+        $entries = is_string($value) ? json_decode($value, true) : $value;
+
+        if (!is_array($entries)) {
+            return new \WP_Error(
+                'field_invalid_working_hours',
+                /* translators: %s: field label */
+                sprintf(__('%s must be a valid working hours schedule.', 'ffcertificate'), $field->field_label)
+            );
+        }
+
+        foreach ($entries as $entry) {
+            if (!is_array($entry)) {
+                return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains invalid entries.', 'ffcertificate'), $field->field_label));
+            }
+            $day = $entry['day'] ?? null;
+            $start = $entry['start'] ?? null;
+            $end = $entry['end'] ?? null;
+
+            if ($day === null || !is_numeric($day) || (int) $day < 0 || (int) $day > 6) {
+                return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains an invalid day.', 'ffcertificate'), $field->field_label));
+            }
+            if (!$start || !preg_match('/^\d{2}:\d{2}$/', $start)) {
+                return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains an invalid start time.', 'ffcertificate'), $field->field_label));
+            }
+            if (!$end || !preg_match('/^\d{2}:\d{2}$/', $end)) {
+                return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains an invalid end time.', 'ffcertificate'), $field->field_label));
             }
         }
 
@@ -724,7 +774,7 @@ class CustomFieldRepository {
         if ($value === null || $value === '' || $value === array()) {
             return true;
         }
-        if (is_string($value) && trim($value) === '') {
+        if (is_string($value) && (trim($value) === '' || $value === '[]')) {
             return true;
         }
         return false;

@@ -32,6 +32,35 @@ class AdminUserCustomFields {
         add_action('edit_user_profile', array(__CLASS__, 'render_section'), 30);
         add_action('personal_options_update', array(__CLASS__, 'save_section'));
         add_action('edit_user_profile_update', array(__CLASS__, 'save_section'));
+        add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue_assets'));
+    }
+
+    /**
+     * Enqueue working hours component on user profile pages.
+     *
+     * @param string $hook Current admin page hook.
+     * @return void
+     */
+    public static function enqueue_assets(string $hook): void {
+        if ($hook !== 'user-edit.php' && $hook !== 'profile.php') {
+            return;
+        }
+
+        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
+        wp_enqueue_style('ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array(), FFC_VERSION);
+        wp_enqueue_script('ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array('jquery'), FFC_VERSION, true);
+        wp_localize_script('ffc-working-hours', 'ffcWorkingHours', array(
+            'days' => array(
+                array('value' => 0, 'label' => __('Sunday', 'ffcertificate')),
+                array('value' => 1, 'label' => __('Monday', 'ffcertificate')),
+                array('value' => 2, 'label' => __('Tuesday', 'ffcertificate')),
+                array('value' => 3, 'label' => __('Wednesday', 'ffcertificate')),
+                array('value' => 4, 'label' => __('Thursday', 'ffcertificate')),
+                array('value' => 5, 'label' => __('Friday', 'ffcertificate')),
+                array('value' => 6, 'label' => __('Saturday', 'ffcertificate')),
+            ),
+        ));
     }
 
     /**
@@ -248,6 +277,54 @@ class AdminUserCustomFields {
                 <?php
                 break;
 
+            case 'working_hours':
+                $wh_data = is_string($value) ? json_decode($value, true) : $value;
+                if (!is_array($wh_data) || empty($wh_data)) {
+                    $wh_data = array();
+                }
+                $days_labels = array(
+                    0 => __('Sunday', 'ffcertificate'),
+                    1 => __('Monday', 'ffcertificate'),
+                    2 => __('Tuesday', 'ffcertificate'),
+                    3 => __('Wednesday', 'ffcertificate'),
+                    4 => __('Thursday', 'ffcertificate'),
+                    5 => __('Friday', 'ffcertificate'),
+                    6 => __('Saturday', 'ffcertificate'),
+                );
+                ?>
+                <input type="hidden" name="<?php echo esc_attr($input_name); ?>" id="<?php echo esc_attr($input_name); ?>" value="<?php echo esc_attr(wp_json_encode($wh_data)); ?>">
+                <div class="ffc-working-hours" data-target="<?php echo esc_attr($input_name); ?>">
+                    <table class="widefat ffc-wh-table" style="max-width:600px">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e('Day', 'ffcertificate'); ?></th>
+                                <th><?php esc_html_e('Start', 'ffcertificate'); ?></th>
+                                <th><?php esc_html_e('End', 'ffcertificate'); ?></th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($wh_data as $wh_entry) : ?>
+                            <tr>
+                                <td>
+                                    <select class="ffc-wh-day">
+                                        <?php foreach ($days_labels as $d_num => $d_name) : ?>
+                                            <option value="<?php echo esc_attr($d_num); ?>" <?php selected($wh_entry['day'] ?? 0, $d_num); ?>><?php echo esc_html($d_name); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </td>
+                                <td><input type="time" class="ffc-wh-start" value="<?php echo esc_attr($wh_entry['start'] ?? '09:00'); ?>"></td>
+                                <td><input type="time" class="ffc-wh-end" value="<?php echo esc_attr($wh_entry['end'] ?? '17:00'); ?>"></td>
+                                <td><button type="button" class="button button-small ffc-wh-remove">&times;</button></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <p><button type="button" class="button ffc-wh-add">+ <?php esc_html_e('Add Hours', 'ffcertificate'); ?></button></p>
+                </div>
+                <?php
+                break;
+
             case 'text':
             default:
                 ?>
@@ -296,6 +373,25 @@ class AdminUserCustomFields {
 
             if ($field->field_type === 'checkbox') {
                 $data[$field_key] = isset($_POST[$input_name]) ? 1 : 0;
+            } elseif ($field->field_type === 'working_hours') {
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated
+                $raw_value = isset($_POST[$input_name]) ? wp_unslash($_POST[$input_name]) : '[]';
+                $wh = json_decode($raw_value, true);
+                if (is_array($wh)) {
+                    $sanitized = array();
+                    foreach ($wh as $entry) {
+                        if (is_array($entry) && isset($entry['day'], $entry['start'], $entry['end'])) {
+                            $sanitized[] = array(
+                                'day'   => absint($entry['day']),
+                                'start' => sanitize_text_field($entry['start']),
+                                'end'   => sanitize_text_field($entry['end']),
+                            );
+                        }
+                    }
+                    $data[$field_key] = wp_json_encode($sanitized);
+                } else {
+                    $data[$field_key] = '[]';
+                }
             } else {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- Checked via isset in ternary.
                 $raw_value = isset($_POST[$input_name]) ? wp_unslash($_POST[$input_name]) : '';

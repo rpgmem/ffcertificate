@@ -185,7 +185,11 @@
     function onFieldTypeChange() {
         var $row = $(this).closest('.ffc-custom-field-row');
         var type = $(this).val();
-        $row.find('.ffc-field-options-container').toggle(type === 'select');
+        var isSelect = (type === 'select');
+        var isWorkingHours = (type === 'working_hours');
+        $row.find('.ffc-field-options-container').toggle(isSelect);
+        // Hide format validation for types that don't support it
+        $row.find('.ffc-field-format').closest('.ffc-field-detail-row').toggle(!isWorkingHours);
     }
 
     /**
