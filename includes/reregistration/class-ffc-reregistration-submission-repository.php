@@ -302,6 +302,54 @@ class ReregistrationSubmissionRepository {
     }
 
     /**
+     * Return a submission to draft (in_progress) so the user can revise it.
+     *
+     * Clears the review metadata and resets submitted_at so the user
+     * sees it as an editable draft again.
+     *
+     * @param int $id          Submission ID.
+     * @param int $reviewer_id Admin user ID performing the action.
+     * @return bool
+     */
+    public static function return_to_draft(int $id, int $reviewer_id): bool {
+        global $wpdb;
+        $table = self::get_table_name();
+
+        $result = $wpdb->update(
+            $table,
+            array(
+                'status'       => 'in_progress',
+                'submitted_at' => null,
+                'reviewed_at'  => null,
+                'reviewed_by'  => null,
+                'notes'        => null,
+            ),
+            array('id' => $id),
+            array('%s', null, null, null, null),
+            array('%d')
+        );
+
+        return $result !== false;
+    }
+
+    /**
+     * Bulk return multiple submissions to draft.
+     *
+     * @param array<int> $ids         Submission IDs.
+     * @param int        $reviewer_id Admin user ID performing the action.
+     * @return int Number of submissions returned to draft.
+     */
+    public static function bulk_return_to_draft(array $ids, int $reviewer_id): int {
+        $count = 0;
+        foreach ($ids as $id) {
+            if (self::return_to_draft((int) $id, $reviewer_id)) {
+                $count++;
+            }
+        }
+        return $count;
+    }
+
+    /**
      * Bulk approve multiple submissions.
      *
      * @param array<int> $ids         Submission IDs.
