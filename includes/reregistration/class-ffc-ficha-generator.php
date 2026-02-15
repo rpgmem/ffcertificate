@@ -93,10 +93,13 @@ class FichaGenerator {
             'tel_emergencia'       => $standard['tel_emergencia'] ?? '',
             'email_institucional'  => $standard['email_institucional'] ?? $user->user_email,
             'email_particular'     => $standard['email_particular'] ?? '',
+            'jornada'              => $standard['jornada'] ?? '',
+            'horario_trabalho'     => self::format_working_hours($standard['horario_trabalho'] ?? ''),
             'sindicato'            => $standard['sindicato'] ?? '',
-            'acumulo_cargos'       => $standard['acumulo_cargos'] ?? 'Não',
+            'acumulo_cargos'       => $standard['acumulo_cargos'] ?? 'Não Possuo',
             'jornada_acumulo'      => $standard['jornada_acumulo'] ?? '',
             'cargo_funcao_acumulo' => $standard['cargo_funcao_acumulo'] ?? '',
+            'horario_trabalho_acumulo' => self::format_working_hours($standard['horario_trabalho_acumulo'] ?? ''),
             'department'           => $standard['department'] ?? '',
             'organization'         => $standard['organization'] ?? '',
             'site_name'            => get_bloginfo('name'),
@@ -174,6 +177,39 @@ class FichaGenerator {
             ),
             'type'        => 'ficha',
         );
+    }
+
+    /**
+     * Format working hours JSON into a readable HTML table for ficha.
+     *
+     * @param string $json_or_empty Working hours JSON or empty string.
+     * @return string Formatted HTML table or empty.
+     */
+    private static function format_working_hours(string $json_or_empty): string {
+        if (empty($json_or_empty) || $json_or_empty === '[]') {
+            return '';
+        }
+        $wh = json_decode($json_or_empty, true);
+        if (!is_array($wh) || empty($wh)) {
+            return '';
+        }
+        $days_map = array(
+            0 => 'Dom', 1 => 'Seg', 2 => 'Ter',
+            3 => 'Qua', 4 => 'Qui', 5 => 'Sex', 6 => 'Sáb',
+        );
+        $lines = array();
+        foreach ($wh as $entry) {
+            $day = $days_map[$entry['day'] ?? 0] ?? '';
+            $e1 = $entry['entry1'] ?? '';
+            $x1 = $entry['exit1'] ?? '';
+            $e2 = $entry['entry2'] ?? '';
+            $x2 = $entry['exit2'] ?? '';
+            if (empty($e1) && empty($x2)) {
+                continue;
+            }
+            $lines[] = $day . ': ' . $e1 . '-' . $x1 . ' / ' . $e2 . '-' . $x2;
+        }
+        return implode(' | ', $lines);
     }
 
     /**

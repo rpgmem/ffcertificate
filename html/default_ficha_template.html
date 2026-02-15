@@ -43,7 +43,7 @@
                 </tr>
                 <tr>
                     <td style="padding: 3px 0;font-weight: bold;color: #666">CIN:</td>
-                    <td style="padding: 3px 0;color: #222" colspan="5">{{cin}}</td>
+                    <td style="padding: 3px 0;color: #222" colspan="5">{{rg}}</td>
                 </tr>
                 <tr>
                     <td style="padding: 3px 0;font-weight: bold;color: #666">Un. Lotação:</td>
@@ -101,6 +101,21 @@
             </table>
         </div>
 
+        <!-- 3. JORNADA / HORÁRIO DE TRABALHO -->
+        <div style="margin-bottom: 12px">
+            <div style="font-size: 10pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">3. Jornada / Horário de Trabalho</div>
+            <table style="width: 100%;border-collapse: collapse;font-size: 9pt" role="presentation">
+                <tr>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Jornada:</td>
+                    <td style="padding: 3px 0;color: #222" colspan="3">{{jornada}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Horário:</td>
+                    <td style="padding: 3px 0;color: #222;font-size: 8pt" colspan="3">{{horario_trabalho}}</td>
+                </tr>
+            </table>
+        </div>
+
         <!-- 4. ACÚMULO DE CARGOS -->
         <div style="margin-bottom: 12px">
             <div style="font-size: 10pt;font-weight: bold;color: #0073aa;text-transform: uppercase;letter-spacing: 1px;padding-bottom: 4px;border-bottom: 1px solid #e8e8e8;margin-bottom: 6px">4. Acúmulo de Cargos: {{acumulo_cargos}}</div>
@@ -110,6 +125,10 @@
                     <td style="padding: 3px 0;color: #222;width: 200px">{{jornada_acumulo}}</td>
                     <td style="padding: 3px 0;font-weight: bold;color: #666;width: 130px">Cargo/Função:</td>
                     <td style="padding: 3px 0;color: #222">{{cargo_funcao_acumulo}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 3px 0;font-weight: bold;color: #666">Horário Acúmulo:</td>
+                    <td style="padding: 3px 0;color: #222;font-size: 8pt" colspan="3">{{horario_trabalho_acumulo}}</td>
                 </tr>
             </table>
         </div>
