@@ -98,6 +98,26 @@ class ReregistrationSubmissionRepository {
     }
 
     /**
+     * Get a submission by its magic_token.
+     *
+     * @since 4.12.0
+     * @param string $token Magic token (64 hex chars).
+     * @return object|null
+     */
+    public static function get_by_magic_token(string $token): ?object {
+        if (empty($token)) {
+            return null;
+        }
+
+        global $wpdb;
+        $table = self::get_table_name();
+
+        return $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM {$table} WHERE magic_token = %s AND status IN ('submitted', 'approved')", $token)
+        );
+    }
+
+    /**
      * Get submission for a specific reregistration and user.
      *
      * @param int $reregistration_id Reregistration ID.
@@ -285,6 +305,7 @@ class ReregistrationSubmissionRepository {
             'reviewed_by'  => '%d',
             'notes'        => '%s',
             'auth_code'    => '%s',
+            'magic_token'  => '%s',
         );
 
         foreach ($data as $key => $value) {
