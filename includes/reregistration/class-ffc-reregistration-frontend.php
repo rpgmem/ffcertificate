@@ -358,11 +358,11 @@ class ReregistrationFrontend {
                                     $wh_data = is_string($field_value) ? json_decode($field_value, true) : $field_value;
                                     if (!is_array($wh_data) || empty($wh_data)) {
                                         $wh_data = array(
-                                            array('day' => 1, 'start' => '09:00', 'end' => '17:00'),
-                                            array('day' => 2, 'start' => '09:00', 'end' => '17:00'),
-                                            array('day' => 3, 'start' => '09:00', 'end' => '17:00'),
-                                            array('day' => 4, 'start' => '09:00', 'end' => '17:00'),
-                                            array('day' => 5, 'start' => '09:00', 'end' => '17:00'),
+                                            array('day' => 1, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00'),
+                                            array('day' => 2, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00'),
+                                            array('day' => 3, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00'),
+                                            array('day' => 4, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00'),
+                                            array('day' => 5, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00'),
                                         );
                                     }
                                     $days_labels = array(
@@ -381,8 +381,10 @@ class ReregistrationFrontend {
                                             <thead>
                                                 <tr>
                                                     <th><?php esc_html_e('Day', 'ffcertificate'); ?></th>
-                                                    <th><?php esc_html_e('Start', 'ffcertificate'); ?></th>
-                                                    <th><?php esc_html_e('End', 'ffcertificate'); ?></th>
+                                                    <th><?php esc_html_e('Entry 1', 'ffcertificate'); ?> <span class="required">*</span></th>
+                                                    <th><?php esc_html_e('Exit 1', 'ffcertificate'); ?></th>
+                                                    <th><?php esc_html_e('Entry 2', 'ffcertificate'); ?></th>
+                                                    <th><?php esc_html_e('Exit 2', 'ffcertificate'); ?> <span class="required">*</span></th>
                                                     <th></th>
                                                 </tr>
                                             </thead>
@@ -396,14 +398,16 @@ class ReregistrationFrontend {
                                                             <?php endforeach; ?>
                                                         </select>
                                                     </td>
-                                                    <td><input type="time" class="ffc-wh-start" value="<?php echo esc_attr($wh_entry['start']); ?>"></td>
-                                                    <td><input type="time" class="ffc-wh-end" value="<?php echo esc_attr($wh_entry['end']); ?>"></td>
+                                                    <td><input type="time" class="ffc-wh-entry1" value="<?php echo esc_attr($wh_entry['entry1'] ?? ''); ?>" required></td>
+                                                    <td><input type="time" class="ffc-wh-exit1" value="<?php echo esc_attr($wh_entry['exit1'] ?? ''); ?>"></td>
+                                                    <td><input type="time" class="ffc-wh-entry2" value="<?php echo esc_attr($wh_entry['entry2'] ?? ''); ?>"></td>
+                                                    <td><input type="time" class="ffc-wh-exit2" value="<?php echo esc_attr($wh_entry['exit2'] ?? ''); ?>" required></td>
                                                     <td><button type="button" class="ffc-wh-remove">&times;</button></td>
                                                 </tr>
                                                 <?php endforeach; ?>
                                             </tbody>
                                         </table>
-                                        <button type="button" class="button ffc-wh-add">+ <?php esc_html_e('Add Hours', 'ffcertificate'); ?></button>
+                                        <button type="button" class="button ffc-wh-add">+ <?php esc_html_e('Add Day', 'ffcertificate'); ?></button>
                                     </div>
                                     <?php
                                     break;
@@ -481,11 +485,13 @@ class ReregistrationFrontend {
                     if (is_array($wh)) {
                         $sanitized = array();
                         foreach ($wh as $entry) {
-                            if (is_array($entry) && isset($entry['day'], $entry['start'], $entry['end'])) {
+                            if (is_array($entry) && isset($entry['day'], $entry['entry1'], $entry['exit2'])) {
                                 $sanitized[] = array(
-                                    'day'   => absint($entry['day']),
-                                    'start' => sanitize_text_field($entry['start']),
-                                    'end'   => sanitize_text_field($entry['end']),
+                                    'day'    => absint($entry['day']),
+                                    'entry1' => sanitize_text_field($entry['entry1']),
+                                    'exit1'  => sanitize_text_field($entry['exit1'] ?? ''),
+                                    'entry2' => sanitize_text_field($entry['entry2'] ?? ''),
+                                    'exit2'  => sanitize_text_field($entry['exit2']),
                                 );
                             }
                         }

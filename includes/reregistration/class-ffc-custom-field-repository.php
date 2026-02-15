@@ -610,13 +610,15 @@ class CustomFieldRepository {
     /**
      * Validate working_hours JSON value.
      *
-     * Expects a JSON string encoding an array of {day, start, end} objects.
+     * Each entry: {day, entry1 (required), exit1, entry2, exit2 (required)}.
+     * exit1 and entry2 are optional (lunch break).
      *
      * @param object $field Field definition.
      * @param mixed  $value Raw value (JSON string or array).
      * @return true|\WP_Error
      */
     private static function validate_working_hours(object $field, $value) {
+        $time_re = '/^\d{2}:\d{2}$/';
         $entries = is_string($value) ? json_decode($value, true) : $value;
 
         if (!is_array($entries)) {
@@ -631,18 +633,32 @@ class CustomFieldRepository {
             if (!is_array($entry)) {
                 return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains invalid entries.', 'ffcertificate'), $field->field_label));
             }
-            $day = $entry['day'] ?? null;
-            $start = $entry['start'] ?? null;
-            $end = $entry['end'] ?? null;
 
+            $day = $entry['day'] ?? null;
             if ($day === null || !is_numeric($day) || (int) $day < 0 || (int) $day > 6) {
                 return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains an invalid day.', 'ffcertificate'), $field->field_label));
             }
-            if (!$start || !preg_match('/^\d{2}:\d{2}$/', $start)) {
-                return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains an invalid start time.', 'ffcertificate'), $field->field_label));
+
+            // entry1 is required
+            $entry1 = $entry['entry1'] ?? null;
+            if (!$entry1 || !preg_match($time_re, $entry1)) {
+                return new \WP_Error('field_invalid_working_hours', sprintf(__('%s: Entry 1 is required for each day.', 'ffcertificate'), $field->field_label));
             }
-            if (!$end || !preg_match('/^\d{2}:\d{2}$/', $end)) {
-                return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains an invalid end time.', 'ffcertificate'), $field->field_label));
+
+            // exit2 is required
+            $exit2 = $entry['exit2'] ?? null;
+            if (!$exit2 || !preg_match($time_re, $exit2)) {
+                return new \WP_Error('field_invalid_working_hours', sprintf(__('%s: Exit 2 is required for each day.', 'ffcertificate'), $field->field_label));
+            }
+
+            // exit1 and entry2 are optional but must be valid if provided
+            $exit1 = $entry['exit1'] ?? '';
+            if ($exit1 !== '' && !preg_match($time_re, $exit1)) {
+                return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains an invalid time.', 'ffcertificate'), $field->field_label));
+            }
+            $entry2 = $entry['entry2'] ?? '';
+            if ($entry2 !== '' && !preg_match($time_re, $entry2)) {
+                return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains an invalid time.', 'ffcertificate'), $field->field_label));
             }
         }
 

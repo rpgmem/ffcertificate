@@ -294,12 +294,14 @@ class AdminUserCustomFields {
                 ?>
                 <input type="hidden" name="<?php echo esc_attr($input_name); ?>" id="<?php echo esc_attr($input_name); ?>" value="<?php echo esc_attr(wp_json_encode($wh_data)); ?>">
                 <div class="ffc-working-hours" data-target="<?php echo esc_attr($input_name); ?>">
-                    <table class="widefat ffc-wh-table" style="max-width:600px">
+                    <table class="widefat ffc-wh-table" style="max-width:800px">
                         <thead>
                             <tr>
                                 <th><?php esc_html_e('Day', 'ffcertificate'); ?></th>
-                                <th><?php esc_html_e('Start', 'ffcertificate'); ?></th>
-                                <th><?php esc_html_e('End', 'ffcertificate'); ?></th>
+                                <th><?php esc_html_e('Entry 1', 'ffcertificate'); ?> <span style="color:#d63638">*</span></th>
+                                <th><?php esc_html_e('Exit 1', 'ffcertificate'); ?></th>
+                                <th><?php esc_html_e('Entry 2', 'ffcertificate'); ?></th>
+                                <th><?php esc_html_e('Exit 2', 'ffcertificate'); ?> <span style="color:#d63638">*</span></th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -313,14 +315,16 @@ class AdminUserCustomFields {
                                         <?php endforeach; ?>
                                     </select>
                                 </td>
-                                <td><input type="time" class="ffc-wh-start" value="<?php echo esc_attr($wh_entry['start'] ?? '09:00'); ?>"></td>
-                                <td><input type="time" class="ffc-wh-end" value="<?php echo esc_attr($wh_entry['end'] ?? '17:00'); ?>"></td>
+                                <td><input type="time" class="ffc-wh-entry1" value="<?php echo esc_attr($wh_entry['entry1'] ?? ''); ?>" required></td>
+                                <td><input type="time" class="ffc-wh-exit1" value="<?php echo esc_attr($wh_entry['exit1'] ?? ''); ?>"></td>
+                                <td><input type="time" class="ffc-wh-entry2" value="<?php echo esc_attr($wh_entry['entry2'] ?? ''); ?>"></td>
+                                <td><input type="time" class="ffc-wh-exit2" value="<?php echo esc_attr($wh_entry['exit2'] ?? ''); ?>" required></td>
                                 <td><button type="button" class="button button-small ffc-wh-remove">&times;</button></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                    <p><button type="button" class="button ffc-wh-add">+ <?php esc_html_e('Add Hours', 'ffcertificate'); ?></button></p>
+                    <p><button type="button" class="button ffc-wh-add">+ <?php esc_html_e('Add Day', 'ffcertificate'); ?></button></p>
                 </div>
                 <?php
                 break;
@@ -380,11 +384,13 @@ class AdminUserCustomFields {
                 if (is_array($wh)) {
                     $sanitized = array();
                     foreach ($wh as $entry) {
-                        if (is_array($entry) && isset($entry['day'], $entry['start'], $entry['end'])) {
+                        if (is_array($entry) && isset($entry['day'], $entry['entry1'], $entry['exit2'])) {
                             $sanitized[] = array(
-                                'day'   => absint($entry['day']),
-                                'start' => sanitize_text_field($entry['start']),
-                                'end'   => sanitize_text_field($entry['end']),
+                                'day'    => absint($entry['day']),
+                                'entry1' => sanitize_text_field($entry['entry1']),
+                                'exit1'  => sanitize_text_field($entry['exit1'] ?? ''),
+                                'entry2' => sanitize_text_field($entry['entry2'] ?? ''),
+                                'exit2'  => sanitize_text_field($entry['exit2']),
                             );
                         }
                     }
