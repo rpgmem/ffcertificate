@@ -146,8 +146,24 @@ class ReregistrationEmailHandler {
 
         $status_label = ReregistrationSubmissionRepository::get_status_label($submission->status);
 
+        // Build magic link URL for direct verification
+        $magic_link_url = '';
+        if (!empty($submission->magic_token)) {
+            $magic_link_url = untrailingslashit(site_url('valid')) . '#token=' . $submission->magic_token;
+        }
+
+        // Format auth code (XXXX-XXXX-XXXX)
+        $auth_code_formatted = '';
+        if (!empty($submission->auth_code) && strlen($submission->auth_code) === 12) {
+            $auth_code_formatted = substr($submission->auth_code, 0, 4) . '-'
+                . substr($submission->auth_code, 4, 4) . '-'
+                . substr($submission->auth_code, 8, 4);
+        }
+
         return self::send_to_user((int) $submission->user_id, $rereg, $template, array(
-            'submission_status' => $status_label,
+            'submission_status'    => $status_label,
+            'magic_link_url'       => $magic_link_url,
+            'auth_code'            => $auth_code_formatted,
         ));
     }
 
@@ -263,7 +279,12 @@ class ReregistrationEmailHandler {
      */
     private static function log(string $type, int $user_id, array $data): void {
         if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-            \FreeFormCertificate\Core\ActivityLog::log($type, $user_id, $data);
+            \FreeFormCertificate\Core\ActivityLog::log(
+                $type,
+                \FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+                $data,
+                $user_id
+            );
         }
     }
 }

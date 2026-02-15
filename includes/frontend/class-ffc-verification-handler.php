@@ -252,6 +252,52 @@ class VerificationHandler {
     }
 
     /**
+     * Search for reregistration submission by magic_token.
+     *
+     * @since 4.12.0
+     * @param string $token Magic token (64 hex chars).
+     * @return array Result array with 'found', 'submission', 'data', 'type'.
+     */
+    private function search_reregistration_by_magic_token( string $token ): array {
+        if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionRepository' ) ) {
+            return array( 'found' => false, 'submission' => null, 'data' => array() );
+        }
+
+        $submission = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_by_magic_token( $token );
+        if ( ! $submission ) {
+            return array( 'found' => false, 'submission' => null, 'data' => array() );
+        }
+
+        // Reuse the same result builder as auth_code verification
+        $rereg = \FreeFormCertificate\Reregistration\ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
+        $user = get_userdata( (int) $submission->user_id );
+
+        $sub_data = $submission->data ? json_decode( $submission->data, true ) : array();
+        $standard = $sub_data['standard_fields'] ?? array();
+
+        $status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_status_labels();
+
+        return array(
+            'found'       => true,
+            'submission'  => $submission,
+            'data'        => $standard,
+            'type'        => 'reregistration',
+            'magic_token' => $submission->magic_token,
+            'reregistration' => array(
+                'title'           => $rereg ? $rereg->title : '',
+                'display_name'    => $standard['display_name'] ?? ( $user ? $user->display_name : '' ),
+                'cpf'             => $standard['cpf'] ?? '',
+                'email'           => $user ? $user->user_email : '',
+                'status'          => $submission->status,
+                'status_label'    => $status_labels[ $submission->status ] ?? $submission->status,
+                'auth_code'       => $submission->auth_code,
+                'submitted_at'    => $submission->submitted_at ?? '',
+                'submission_id'   => (int) $submission->id,
+            ),
+        );
+    }
+
+    /**
      * Verify certificate by magic token
      *
      * This method bypasses captcha/honeypot validation and is used
@@ -306,6 +352,12 @@ class VerificationHandler {
             $appointment_result = $this->search_appointment_by_token( $token );
             if ( $appointment_result['found'] ) {
                 return $appointment_result;
+            }
+
+            // Fallback: search reregistration submissions by magic_token
+            $rereg_result = $this->search_reregistration_by_magic_token( $token );
+            if ( $rereg_result['found'] ) {
+                return $rereg_result;
             }
 
             return array(

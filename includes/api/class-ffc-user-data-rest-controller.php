@@ -1288,6 +1288,13 @@ class UserDataRestController {
             $is_active    = $sub->reregistration_status === 'active';
             $can_submit   = $is_active && in_array($sub->status, array('pending', 'in_progress', 'rejected'), true);
 
+            // Build magic link for direct verification
+            $magic_link = '';
+            if ($can_download && !empty($sub->magic_token)) {
+                $verification_url = untrailingslashit(site_url('valid'));
+                $magic_link = $verification_url . '#token=' . $sub->magic_token;
+            }
+
             $formatted[] = array(
                 'submission_id'        => (int) $sub->id,
                 'reregistration_id'    => (int) $sub->reregistration_id,
@@ -1307,6 +1314,7 @@ class UserDataRestController {
                 'auth_code'            => !empty($sub->auth_code)
                     ? \FreeFormCertificate\Core\Utils::format_auth_code($sub->auth_code)
                     : '',
+                'magic_link'           => $magic_link,
             );
         }
 

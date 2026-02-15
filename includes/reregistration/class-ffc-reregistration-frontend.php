@@ -1256,8 +1256,9 @@ class ReregistrationFrontend {
         // Determine final status
         $new_status = !empty($rereg->auto_approve) ? 'approved' : 'submitted';
 
-        // Generate globally unique auth code
-        $auth_code = \FreeFormCertificate\Core\Utils::generate_globally_unique_auth_code();
+        // Generate globally unique auth code and magic token
+        $auth_code   = \FreeFormCertificate\Core\Utils::generate_globally_unique_auth_code();
+        $magic_token = bin2hex(random_bytes(32));
 
         // Build update data (single query)
         $update_data = array(
@@ -1265,6 +1266,7 @@ class ReregistrationFrontend {
             'status'       => $new_status,
             'submitted_at' => current_time('mysql'),
             'auth_code'    => $auth_code,
+            'magic_token'  => $magic_token,
         );
 
         // If auto-approved, include reviewed fields in the same update

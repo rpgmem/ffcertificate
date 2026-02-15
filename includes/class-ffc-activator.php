@@ -444,6 +444,11 @@ class Activator {
                 'after' => 'status',
                 'index' => 'auth_code',
             ),
+            'magic_token' => array(
+                'type'  => 'VARCHAR(64) DEFAULT NULL',
+                'after' => 'auth_code',
+                'index' => 'magic_token',
+            ),
         ));
     }
 
