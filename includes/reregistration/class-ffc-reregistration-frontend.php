@@ -518,13 +518,13 @@ class ReregistrationFrontend {
 
                     <div class="ffc-rereg-row ffc-rereg-row-2">
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_cpf"><?php esc_html_e('CPF', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <label for="ffc_rereg_cpf"><?php esc_html_e('CPF/CIN', 'ffcertificate'); ?> <span class="required">*</span></label>
                             <input type="text" id="ffc_rereg_cpf" name="standard_fields[cpf]"
                                    value="<?php echo esc_attr($standard['cpf'] ?? ''); ?>" data-mask="cpf" required
                                    data-format="cpf">
                         </div>
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_rg"><?php esc_html_e('CIN', 'ffcertificate'); ?></label>
+                            <label for="ffc_rereg_rg"><?php esc_html_e('RG', 'ffcertificate'); ?></label>
                             <input type="text" id="ffc_rereg_rg" name="standard_fields[rg]"
                                    value="<?php echo esc_attr($standard['rg'] ?? ''); ?>" data-mask="cin">
                         </div>
