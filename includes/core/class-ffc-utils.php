@@ -529,6 +529,64 @@ class Utils {
 
     
     /**
+     * Generate a globally unique auth code across all plugin tables.
+     *
+     * Checks certificates (ffc_submissions), reregistrations
+     * (ffc_reregistration_submissions), and appointments
+     * (ffc_self_scheduling_appointments) to ensure no cross-table collisions.
+     *
+     * @since 4.12.0
+     * @return string Clean auth code (12 uppercase alphanumeric characters, no hyphens).
+     */
+    public static function generate_globally_unique_auth_code(): string {
+        global $wpdb;
+
+        $max_attempts = 10;
+
+        for ( $i = 0; $i < $max_attempts; $i++ ) {
+            $code = self::clean_auth_code( self::generate_auth_code() );
+
+            // Check ffc_submissions
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $exists = $wpdb->get_var( $wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}ffc_submissions WHERE auth_code = %s LIMIT 1",
+                $code
+            ) );
+
+            if ( $exists ) {
+                continue;
+            }
+
+            // Check ffc_reregistration_submissions
+            $table_rereg = $wpdb->prefix . 'ffc_reregistration_submissions';
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $exists = $wpdb->get_var( $wpdb->prepare(
+                "SELECT id FROM {$table_rereg} WHERE auth_code = %s LIMIT 1",
+                $code
+            ) );
+
+            if ( $exists ) {
+                continue;
+            }
+
+            // Check ffc_self_scheduling_appointments
+            $table_apt = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $exists = $wpdb->get_var( $wpdb->prepare(
+                "SELECT id FROM {$table_apt} WHERE validation_code = %s LIMIT 1",
+                $code
+            ) );
+
+            if ( ! $exists ) {
+                return $code;
+            }
+        }
+
+        // Fallback: extremely unlikely to reach here
+        return self::clean_auth_code( self::generate_auth_code() );
+    }
+
+    /**
      * Check if email is valid and not disposable
      *
      * @param string $email Email to validate

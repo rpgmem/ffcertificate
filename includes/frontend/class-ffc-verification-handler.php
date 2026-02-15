@@ -65,7 +65,13 @@ class VerificationHandler {
 
         // Fallback: search appointments by validation_code
         if (!$submission) {
-            return $this->search_appointment_by_code( $clean_code );
+            $appointment_result = $this->search_appointment_by_code( $clean_code );
+            if ( $appointment_result['found'] ) {
+                return $appointment_result;
+            }
+
+            // Fallback: search reregistration submissions by auth_code
+            return $this->search_reregistration_by_code( $clean_code );
         }
 
         // Decrypt
@@ -198,6 +204,50 @@ class VerificationHandler {
             'type'       => 'appointment',
             'appointment' => $appointment,
             'magic_token' => $appointment['confirmation_token'] ?? '',
+        );
+    }
+
+    /**
+     * Search for reregistration submission by auth_code.
+     *
+     * @since 4.12.0
+     * @param string $code Cleaned auth code (no hyphens, uppercase).
+     * @return array Result array with 'found', 'submission', 'data', 'type'.
+     */
+    private function search_reregistration_by_code( string $code ): array {
+        if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionRepository' ) ) {
+            return array( 'found' => false, 'submission' => null, 'data' => array() );
+        }
+
+        $submission = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_by_auth_code( $code );
+        if ( ! $submission ) {
+            return array( 'found' => false, 'submission' => null, 'data' => array() );
+        }
+
+        $rereg = \FreeFormCertificate\Reregistration\ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
+        $user = get_userdata( (int) $submission->user_id );
+
+        $sub_data = $submission->data ? json_decode( $submission->data, true ) : array();
+        $standard = $sub_data['standard_fields'] ?? array();
+
+        $status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_status_labels();
+
+        return array(
+            'found'       => true,
+            'submission'  => $submission,
+            'data'        => $standard,
+            'type'        => 'reregistration',
+            'reregistration' => array(
+                'title'           => $rereg ? $rereg->title : '',
+                'display_name'    => $standard['display_name'] ?? ( $user ? $user->display_name : '' ),
+                'cpf'             => $standard['cpf'] ?? '',
+                'email'           => $user ? $user->user_email : '',
+                'status'          => $submission->status,
+                'status_label'    => $status_labels[ $submission->status ] ?? $submission->status,
+                'auth_code'       => $submission->auth_code,
+                'submitted_at'    => $submission->submitted_at ?? '',
+                'submission_id'   => (int) $submission->id,
+            ),
         );
     }
 
@@ -355,6 +405,8 @@ class VerificationHandler {
 
         if ( ! empty( $result['type'] ) && $result['type'] === 'appointment' ) {
             $html = $this->renderer->format_appointment_verification_response( $result );
+        } elseif ( ! empty( $result['type'] ) && $result['type'] === 'reregistration' ) {
+            $html = $this->renderer->format_reregistration_verification_response( $result );
         } else {
             $html = $this->renderer->format_verification_response( $result['submission'], $result['data'], true );
         }
@@ -413,6 +465,8 @@ class VerificationHandler {
         // Check if this is an appointment result
         if ( ! empty( $result['type'] ) && $result['type'] === 'appointment' && ! empty( $result['appointment'] ) ) {
             $pdf_data = $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator );
+        } elseif ( ! empty( $result['type'] ) && $result['type'] === 'reregistration' ) {
+            $pdf_data = \FreeFormCertificate\Reregistration\FichaGenerator::generate_ficha_data( (int) $result['reregistration']['submission_id'] );
         } else {
             // Certificate: use standard PDF generator
             $pdf_data = $pdf_generator->generate_pdf_data(
@@ -428,6 +482,8 @@ class VerificationHandler {
         // Format response HTML with download button
         if ( ! empty( $result['type'] ) && $result['type'] === 'appointment' ) {
             $html = $this->renderer->format_appointment_verification_response( $result );
+        } elseif ( ! empty( $result['type'] ) && $result['type'] === 'reregistration' ) {
+            $html = $this->renderer->format_reregistration_verification_response( $result );
         } else {
             $html = $this->renderer->format_verification_response(
                 $result['submission'],
@@ -496,6 +552,8 @@ class VerificationHandler {
         // Check if this is an appointment result
         if ( ! empty( $result['type'] ) && $result['type'] === 'appointment' && ! empty( $result['appointment'] ) ) {
             $pdf_data = $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator );
+        } elseif ( ! empty( $result['type'] ) && $result['type'] === 'reregistration' ) {
+            $pdf_data = \FreeFormCertificate\Reregistration\FichaGenerator::generate_ficha_data( (int) $result['reregistration']['submission_id'] );
         } else {
             // Certificate: use standard PDF generator
             $pdf_data = $pdf_generator->generate_pdf_data(
@@ -510,6 +568,8 @@ class VerificationHandler {
 
         if ( ! empty( $result['type'] ) && $result['type'] === 'appointment' ) {
             $html = $this->renderer->format_appointment_verification_response( $result );
+        } elseif ( ! empty( $result['type'] ) && $result['type'] === 'reregistration' ) {
+            $html = $this->renderer->format_reregistration_verification_response( $result );
         } else {
             $html = $this->renderer->format_verification_response(
                 $result['submission'],

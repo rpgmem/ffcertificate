@@ -222,6 +222,101 @@ class VerificationResponseRenderer {
     }
 
     /**
+     * Format reregistration verification response HTML.
+     *
+     * @since 4.12.0
+     * @param array $result Reregistration search result.
+     * @return string HTML output.
+     */
+    public function format_reregistration_verification_response( array $result ): string {
+        $rereg = $result['reregistration'];
+
+        $date_format = get_option( 'date_format' );
+        $time_format = get_option( 'time_format' );
+
+        $submitted_at = __( 'N/A', 'ffcertificate' );
+        if ( ! empty( $rereg['submitted_at'] ) ) {
+            $ts = strtotime( $rereg['submitted_at'] );
+            if ( $ts !== false ) {
+                $submitted_at = date_i18n( $date_format . ' ' . $time_format, $ts );
+            }
+        }
+
+        // Format auth code (XXXX-XXXX-XXXX)
+        $display_code = $rereg['auth_code'] ?? '';
+        if ( strlen( $display_code ) === 12 ) {
+            $display_code = substr( $display_code, 0, 4 ) . '-' . substr( $display_code, 4, 4 ) . '-' . substr( $display_code, 8, 4 );
+        }
+
+        // Format CPF
+        $cpf_display = '';
+        if ( ! empty( $rereg['cpf'] ) && class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
+            $cpf_display = \FreeFormCertificate\Core\Utils::format_document( $rereg['cpf'] );
+        }
+
+        // Status badge class
+        $status_class = 'info';
+        if ( $rereg['status'] === 'approved' ) {
+            $status_class = 'success';
+        } elseif ( $rereg['status'] === 'rejected' ) {
+            $status_class = 'error';
+        }
+
+        $html = '<div class="ffc-certificate-preview ffc-reregistration-verification">';
+
+        $html .= '<div class="ffc-preview-header">';
+        $html .= '<span class="ffc-status-badge ' . esc_attr( $status_class ) . ' ffc-icon-success">' . esc_html__( 'Reregistration Record Valid', 'ffcertificate' ) . '</span>';
+        $html .= '<br><span class="ffc-appointment-status ffc-status-' . esc_attr( $rereg['status'] ) . '">' . esc_html( $rereg['status_label'] ) . '</span>';
+        $html .= '</div>';
+
+        $html .= '<div class="ffc-preview-body">';
+        $html .= '<h3>' . esc_html( $rereg['title'] ) . '</h3>';
+
+        if ( ! empty( $display_code ) ) {
+            $html .= '<div class="ffc-detail-row">';
+            $html .= '<span class="label">' . esc_html__( 'Validation Code:', 'ffcertificate' ) . '</span>';
+            $html .= '<span class="value code">' . esc_html( $display_code ) . '</span>';
+            $html .= '</div>';
+        }
+
+        if ( ! empty( $rereg['display_name'] ) ) {
+            $html .= '<div class="ffc-detail-row">';
+            $html .= '<span class="label">' . esc_html__( 'Name:', 'ffcertificate' ) . '</span>';
+            $html .= '<span class="value">' . esc_html( $rereg['display_name'] ) . '</span>';
+            $html .= '</div>';
+        }
+
+        if ( ! empty( $cpf_display ) ) {
+            $html .= '<div class="ffc-detail-row">';
+            $html .= '<span class="label">' . esc_html__( 'CPF:', 'ffcertificate' ) . '</span>';
+            $html .= '<span class="value">' . esc_html( $cpf_display ) . '</span>';
+            $html .= '</div>';
+        }
+
+        if ( ! empty( $rereg['email'] ) ) {
+            $html .= '<div class="ffc-detail-row">';
+            $html .= '<span class="label">' . esc_html__( 'Email:', 'ffcertificate' ) . '</span>';
+            $html .= '<span class="value">' . esc_html( $rereg['email'] ) . '</span>';
+            $html .= '</div>';
+        }
+
+        $html .= '<div class="ffc-detail-row">';
+        $html .= '<span class="label">' . esc_html__( 'Submitted:', 'ffcertificate' ) . '</span>';
+        $html .= '<span class="value">' . esc_html( $submitted_at ) . '</span>';
+        $html .= '</div>';
+
+        $html .= '</div>'; // .ffc-preview-body
+
+        $html .= '<div class="ffc-preview-actions">';
+        $html .= '<button class="ffc-download-btn ffc-download-pdf-btn ffc-icon-download">' . esc_html__( 'Download Ficha (PDF)', 'ffcertificate' ) . '</button>';
+        $html .= '</div>';
+
+        $html .= '</div>'; // .ffc-certificate-preview
+
+        return $html;
+    }
+
+    /**
      * Get human-readable field label
      *
      * @param string $field_key Field key

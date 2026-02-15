@@ -48,13 +48,7 @@ class SubmissionHandler {
      * Generate unique auth code
      */
     private function generate_unique_auth_code(): string {
-        do {
-            $code = \FreeFormCertificate\Core\Utils::generate_auth_code();
-            $clean_code = \FreeFormCertificate\Core\Utils::clean_auth_code($code);
-            $existing = $this->repository->findByAuthCode($clean_code);
-        } while ($existing);
-
-        return $code;
+        return \FreeFormCertificate\Core\Utils::generate_globally_unique_auth_code();
     }
 
     /**
