@@ -340,7 +340,8 @@
 
 .ffc-certificates-table,
 .ffc-appointments-table,
-.ffc-audience-bookings-table {
+.ffc-audience-bookings-table,
+.ffc-reregistrations-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
@@ -352,7 +353,8 @@
 
 .ffc-certificates-table th,
 .ffc-appointments-table th,
-.ffc-audience-bookings-table th {
+.ffc-audience-bookings-table th,
+.ffc-reregistrations-table th {
     background: var(--ffc-bg-subtle);
     padding: 10px 12px;
     text-align: left;
@@ -366,7 +368,8 @@
 
 .ffc-certificates-table td,
 .ffc-appointments-table td,
-.ffc-audience-bookings-table td {
+.ffc-audience-bookings-table td,
+.ffc-reregistrations-table td {
     padding: 10px 12px;
     border-bottom: 1px solid var(--ffc-border-light);
     vertical-align: middle;
@@ -376,13 +379,15 @@
 
 .ffc-certificates-table tr:last-child td,
 .ffc-appointments-table tr:last-child td,
-.ffc-audience-bookings-table tr:last-child td {
+.ffc-audience-bookings-table tr:last-child td,
+.ffc-reregistrations-table tr:last-child td {
     border-bottom: none;
 }
 
 .ffc-certificates-table tbody tr:hover,
 .ffc-appointments-table tbody tr:hover,
-.ffc-audience-bookings-table tbody tr:hover {
+.ffc-audience-bookings-table tbody tr:hover,
+.ffc-reregistrations-table tbody tr:hover {
     background: var(--ffc-primary-light);
 }
 
@@ -494,7 +499,8 @@
 
 /* Action cell spacing */
 .ffc-certificates-table td:last-child,
-.ffc-appointments-table td:last-child {
+.ffc-appointments-table td:last-child,
+.ffc-reregistrations-table td:last-child {
     white-space: nowrap;
 }
 
@@ -567,7 +573,8 @@
 .ffc-appointments-table .cancelled-row { background: #fde2e4; opacity: 0.7; }
 
 #tab-appointments h3,
-#tab-audience h3 {
+#tab-audience h3,
+#tab-reregistrations h3 {
     margin-top: 0;
     margin-bottom: 12px;
     color: var(--ffc-text);
@@ -606,6 +613,59 @@
 
 .ffc-audience-bookings-table .ffc-audience-tag:last-child {
     margin-bottom: 0;
+}
+
+/* ==========================================================================
+   REREGISTRATIONS TABLE
+   ========================================================================== */
+
+.ffc-reregistrations-table.past-reregistrations { opacity: 0.75; }
+.ffc-reregistrations-table.past-reregistrations td { color: var(--ffc-text-muted); }
+.ffc-reregistrations-table .past-row { background: var(--ffc-bg-subtle); }
+
+.ffc-reregistrations-table .ffc-auth-code {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    background: var(--ffc-bg-subtle);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--ffc-border-light);
+    white-space: nowrap;
+}
+
+.ffc-reregistrations-table .ffc-download-ficha-btn {
+    display: inline-block;
+    padding: 4px 12px;
+    font-size: 12px;
+    line-height: 1.4;
+    min-height: 0;
+}
+
+.appointment-status.status-submitted {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.appointment-status.status-approved {
+    background: #d1f2d9;
+    color: #0d5e1e;
+}
+
+.appointment-status.status-rejected {
+    background: #fde2e4;
+    color: #8b1a1e;
+}
+
+.appointment-status.status-expired {
+    background: var(--ffc-bg-muted);
+    color: var(--ffc-text-secondary);
+}
+
+.appointment-status.status-in_progress {
+    background: #fff3cd;
+    color: #664d03;
 }
 
 /* ==========================================================================
@@ -1337,7 +1397,8 @@
 
     .ffc-certificates-table,
     .ffc-appointments-table,
-    .ffc-audience-bookings-table {
+    .ffc-audience-bookings-table,
+    .ffc-reregistrations-table {
         display: block;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;

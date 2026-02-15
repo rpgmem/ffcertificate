@@ -364,6 +364,7 @@
 .ffc-icon-broom::before { content: "\1F9F9 "; }
 .ffc-icon-user::before { content: "\1F464 "; }
 .ffc-icon-key::before { content: "\1F511 "; }
+.ffc-icon-file::before { content: "\1F4CB "; }
 
 /* ==========================================================================
    VISIBILITY & ACCESS CONTROL (v4.7.0)
