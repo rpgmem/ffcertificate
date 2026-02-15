@@ -255,13 +255,6 @@
             // Notification toggles
             $(document).on('change', '.ffc-notif-toggle', function() { FFCDashboard.saveNotificationPreferences(); });
 
-            // Ficha download from reregistrations tab
-            $(document).on('click', '.ffc-download-ficha-btn', function(e) {
-                e.preventDefault();
-                var submissionId = $(this).data('submission-id');
-                FFCDashboard.downloadFicha(submissionId, $(this));
-            });
-
             // Filter apply/clear
             $(document).on('click', '.ffc-filter-apply', function(e) {
                 e.preventDefault();
@@ -976,8 +969,8 @@
                 if (item.can_submit) {
                     html += '<button type="button" class="button ffc-btn-edit ffc-rereg-open-form" data-reregistration-id="' + item.reregistration_id + '">' + (s.editReregistration || 'Edit') + '</button> ';
                 }
-                if (item.can_download) {
-                    html += '<button type="button" class="button ffc-btn-pdf ffc-download-ficha-btn" data-submission-id="' + item.submission_id + '">' + (s.downloadFicha || 'Download Ficha') + '</button>';
+                if (item.can_download && item.magic_link) {
+                    html += '<a href="' + esc(item.magic_link) + '" class="button ffc-btn-pdf" target="_blank" rel="noopener">' + (s.downloadFicha || 'Download Ficha') + '</a>';
                 }
                 html += '</td>';
                 html += '</tr>';
@@ -992,38 +985,6 @@
             $container.find('.ffc-filter-from').val(fromVal);
             $container.find('.ffc-filter-to').val(toVal);
             $container.find('.ffc-filter-search').val(searchVal);
-        },
-
-        downloadFicha: function(submissionId, $btn) {
-            var s = ffcDashboard.strings;
-            var originalText = $btn.text();
-            $btn.prop('disabled', true).text(s.fichaGenerating || 'Generating...');
-
-            $.ajax({
-                url: ffcDashboard.ajaxUrl,
-                method: 'POST',
-                data: {
-                    action: 'ffc_download_ficha',
-                    submission_id: submissionId,
-                    nonce: ffcDashboard.reregistrationNonce
-                },
-                success: function(response) {
-                    if (response.success && response.data && response.data.pdf_data) {
-                        if (typeof window.ffcGeneratePDF === 'function') {
-                            window.ffcGeneratePDF(response.data.pdf_data, response.data.pdf_data.filename || 'ficha.pdf');
-                        } else {
-                            alert(s.fichaError || 'Error generating ficha');
-                        }
-                    } else {
-                        alert((response.data && response.data.message) || s.fichaError || 'Error generating ficha');
-                    }
-                    $btn.prop('disabled', false).text(originalText);
-                },
-                error: function() {
-                    alert(s.fichaError || 'Error generating ficha');
-                    $btn.prop('disabled', false).text(originalText);
-                }
-            });
         },
 
         // ---- Cancel Appointment ----

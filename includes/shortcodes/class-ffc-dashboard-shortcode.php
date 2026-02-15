@@ -382,12 +382,11 @@ class DashboardShortcode {
                                 <strong><?php echo esc_html($rereg['title']); ?></strong>
                                 <p class="ffc-m-5-0"><?php esc_html_e('Your reregistration has been approved.', 'ffcertificate'); ?></p>
                             </div>
-                            <?php if (!empty($rereg['submission_id'])) : ?>
+                            <?php if (!empty($rereg['magic_link'])) : ?>
                             <div>
-                                <button type="button" class="button ffc-rereg-ficha-btn"
-                                        data-submission-id="<?php echo esc_attr($rereg['submission_id']); ?>">
+                                <a href="<?php echo esc_url($rereg['magic_link']); ?>" class="button ffc-btn-pdf" target="_blank" rel="noopener">
                                     <?php esc_html_e('Download Ficha', 'ffcertificate'); ?>
-                                </button>
+                                </a>
                             </div>
                             <?php endif; ?>
                         </div>
@@ -401,12 +400,11 @@ class DashboardShortcode {
                                 <strong><?php echo esc_html($rereg['title']); ?></strong>
                                 <p class="ffc-m-5-0"><?php esc_html_e('Your reregistration has been submitted and is pending review.', 'ffcertificate'); ?></p>
                             </div>
-                            <?php if (!empty($rereg['submission_id'])) : ?>
+                            <?php if (!empty($rereg['magic_link'])) : ?>
                             <div>
-                                <button type="button" class="button ffc-rereg-ficha-btn"
-                                        data-submission-id="<?php echo esc_attr($rereg['submission_id']); ?>">
+                                <a href="<?php echo esc_url($rereg['magic_link']); ?>" class="button ffc-btn-pdf" target="_blank" rel="noopener">
                                     <?php esc_html_e('Download Ficha', 'ffcertificate'); ?>
-                                </button>
+                                </a>
                             </div>
                             <?php endif; ?>
                         </div>
@@ -541,16 +539,8 @@ class DashboardShortcode {
                 'invalidCpf'      => __('Invalid CPF.', 'ffcertificate'),
                 'invalidEmail'    => __('Invalid email.', 'ffcertificate'),
                 'invalidPhone'    => __('Invalid phone number.', 'ffcertificate'),
-                'generatingPdf'   => __('Generating PDF...', 'ffcertificate'),
-                'downloadFicha'   => __('Download Ficha', 'ffcertificate'),
-                'errorFicha'      => __('Error generating ficha.', 'ffcertificate'),
             ),
         ));
-
-        // PDF libraries for ficha download
-        wp_enqueue_script('html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true);
-        wp_enqueue_script('jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true);
-        wp_enqueue_script('ffc-pdf-generator', FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js", array('html2canvas', 'jspdf'), FFC_VERSION, true);
 
         // Localize script
         wp_localize_script('ffc-dashboard', 'ffcDashboard', array(
@@ -563,7 +553,6 @@ class DashboardShortcode {
             'canViewAppointments' => $can_view_appointments,
             'canViewAudienceBookings' => $can_view_audience_bookings,
             'canViewReregistrations' => $can_view_reregistrations,
-            'reregistrationNonce' => wp_create_nonce('ffc_reregistration_frontend'),
             'siteName' => get_bloginfo('name'),
             'wpTimezone' => wp_timezone_string(),
             'mainAddress' => (get_option('ffc_settings', array()))['main_address'] ?? '',
@@ -679,8 +668,6 @@ class DashboardShortcode {
                 'downloadFicha' => __('Download Ficha', 'ffcertificate'),
                 'active' => __('Active', 'ffcertificate'),
                 'completed' => __('Completed', 'ffcertificate'),
-                'fichaGenerating' => __('Generating...', 'ffcertificate'),
-                'fichaError' => __('Error generating ficha', 'ffcertificate'),
                 'editReregistration' => __('Edit', 'ffcertificate'),
             ),
         ));
