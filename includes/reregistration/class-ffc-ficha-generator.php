@@ -164,14 +164,15 @@ class FichaGenerator {
         $filename = apply_filters('ffcertificate_ficha_filename', $filename, $submission_id, $submission);
 
         return array(
-            'html'     => $html,
-            'filename' => $filename,
-            'user'     => array(
+            'html'        => $html,
+            'filename'    => $filename,
+            'orientation' => 'portrait',
+            'user'        => array(
                 'id'    => (int) $submission->user_id,
                 'name'  => $variables['display_name'],
                 'email' => $variables['email'],
             ),
-            'type'     => 'ficha',
+            'type'        => 'ficha',
         );
     }
 
