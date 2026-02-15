@@ -38,6 +38,8 @@ use FreeFormCertificate\Audience\AudienceLoader;
 use FreeFormCertificate\Privacy\PrivacyHandler;
 use FreeFormCertificate\Admin\AdminUserCustomFields;
 use FreeFormCertificate\Core\ActivityLogSubscriber;
+use FreeFormCertificate\Reregistration\ReregistrationAdmin;
+use FreeFormCertificate\Reregistration\ReregistrationRepository;
 
 if (!defined('ABSPATH')) exit;
 
@@ -87,6 +89,8 @@ class Loader {
             AdminUserColumns::init();
             AdminUserCapabilities::init();
             AdminUserCustomFields::init();
+            $reregistration_admin = new ReregistrationAdmin();
+            $reregistration_admin->init();
             $this->self_scheduling_admin    = new SelfSchedulingAdmin();
             $this->self_scheduling_editor   = new SelfSchedulingEditor();
             $this->self_scheduling_csv_exporter = new AppointmentCsvExporter();
@@ -117,6 +121,11 @@ class Loader {
             wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
         }
 
+        // Ensure reregistration expiry cron is scheduled
+        if ( ! wp_next_scheduled( 'ffcertificate_reregistration_expire_hook' ) ) {
+            wp_schedule_event( time(), 'daily', 'ffcertificate_reregistration_expire_hook' );
+        }
+
         $this->define_admin_hooks();
         $this->init_rest_api();
     }
@@ -140,6 +149,7 @@ class Loader {
 
     private function define_admin_hooks(): void {
         add_action('ffcertificate_daily_cleanup_hook', [$this->submission_handler, 'run_data_cleanup']);
+        add_action('ffcertificate_reregistration_expire_hook', array(ReregistrationRepository::class, 'expire_overdue'));
     }
     
     /**

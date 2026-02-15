@@ -29,6 +29,8 @@ class Activator {
         self::create_dashboard_page();
         self::create_user_profiles_table();
         self::create_custom_fields_table();
+        self::create_reregistrations_table();
+        self::create_reregistration_submissions_table();
 
         if (class_exists('\FreeFormCertificate\Migrations\MigrationSelfSchedulingTables')) {
             \FreeFormCertificate\Migrations\MigrationSelfSchedulingTables::run();
@@ -278,6 +280,14 @@ class Activator {
 
         if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
             \FreeFormCertificate\UserDashboard\UserManager::register_role();
+
+            // Grant admin-level FFC capabilities to the administrator role
+            $admin_role = get_role('administrator');
+            if ($admin_role) {
+                foreach (\FreeFormCertificate\UserDashboard\UserManager::ADMIN_CAPABILITIES as $cap) {
+                    $admin_role->add_cap($cap, true);
+                }
+            }
         }
     }
 
@@ -351,6 +361,89 @@ class Activator {
             KEY idx_audience_id (audience_id),
             KEY idx_field_key (field_key),
             KEY idx_sort_order (audience_id, sort_order)
+        ) {$charset_collate};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
+        dbDelta($sql);
+    }
+
+    /**
+     * Create reregistrations table
+     *
+     * Stores reregistration campaigns linked to audiences.
+     *
+     * @since 4.11.0
+     */
+    private static function create_reregistrations_table(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_reregistrations';
+        $charset_collate = $wpdb->get_charset_collate();
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) == $table_name) {
+            return;
+        }
+
+        $sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            title varchar(250) NOT NULL,
+            audience_id bigint(20) unsigned NOT NULL,
+            start_date datetime NOT NULL,
+            end_date datetime NOT NULL,
+            auto_approve tinyint(1) NOT NULL DEFAULT 0,
+            email_invitation_enabled tinyint(1) NOT NULL DEFAULT 0,
+            email_reminder_enabled tinyint(1) NOT NULL DEFAULT 0,
+            email_confirmation_enabled tinyint(1) NOT NULL DEFAULT 0,
+            reminder_days int(11) NOT NULL DEFAULT 7,
+            status varchar(20) NOT NULL DEFAULT 'draft',
+            created_by bigint(20) unsigned NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_audience_id (audience_id),
+            KEY idx_status (status),
+            KEY idx_dates (start_date, end_date)
+        ) {$charset_collate};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
+        dbDelta($sql);
+    }
+
+    /**
+     * Create reregistration submissions table
+     *
+     * Stores individual user responses to reregistration campaigns.
+     *
+     * @since 4.11.0
+     */
+    private static function create_reregistration_submissions_table(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_reregistration_submissions';
+        $charset_collate = $wpdb->get_charset_collate();
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) == $table_name) {
+            return;
+        }
+
+        $sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            reregistration_id bigint(20) unsigned NOT NULL,
+            user_id bigint(20) unsigned NOT NULL,
+            data json DEFAULT NULL,
+            status varchar(20) NOT NULL DEFAULT 'pending',
+            submitted_at datetime DEFAULT NULL,
+            reviewed_at datetime DEFAULT NULL,
+            reviewed_by bigint(20) unsigned DEFAULT NULL,
+            notes text DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY idx_reregistration_user (reregistration_id, user_id),
+            KEY idx_user_id (user_id),
+            KEY idx_status (status)
         ) {$charset_collate};";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';

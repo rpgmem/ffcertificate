@@ -21,6 +21,9 @@ global $wpdb;
 //    (order: child tables first to avoid FK issues)
 // ──────────────────────────────────────
 $ffcertificate_tables = array(
+    // Reregistration (children first)
+    $wpdb->prefix . 'ffc_reregistration_submissions',
+    $wpdb->prefix . 'ffc_reregistrations',
     // Custom fields (depends on audiences)
     $wpdb->prefix . 'ffc_custom_fields',
     // Audience (children first)
@@ -97,6 +100,7 @@ delete_transient( 'ffc_activity_stats_90' );
 wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
+wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 
 // Clear legacy cron hooks from pre-4.6.15 versions
 wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
@@ -142,6 +146,7 @@ $ffcertificate_caps = array(
     'ffc_cancel_own_appointments',
     'ffc_view_audience_bookings',
     'ffc_scheduling_bypass',
+    'ffc_manage_reregistration',
     'ffc_reregistration',
     'ffc_certificate_update',
 );

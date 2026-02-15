@@ -559,6 +559,7 @@ class UserManager {
      */
     public const ADMIN_CAPABILITIES = array(
         'ffc_scheduling_bypass',
+        'ffc_manage_reregistration',
     );
 
     /**
