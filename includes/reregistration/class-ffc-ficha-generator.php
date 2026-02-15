@@ -203,7 +203,7 @@ class FichaGenerator {
         );
 
         $cell  = 'style="padding:2px 6px;border:1px solid #ccc;text-align:center;font-size:8pt"';
-        $hcell = 'style="padding:2px 6px;border:1px solid #ccc;text-align:center;font-size:8pt;font-weight:bold;background:#f0f4f8;color:#0073aa"';
+        $hcell = 'style="padding:2px 6px;border:1px solid #ccc;text-align:center;font-size:8pt;font-weight:bold;background:#f0f4f8;color:#000"';
 
         $html  = '<table style="width:100%;border-collapse:collapse;margin-top:4px" role="presentation">';
         $html .= '<tr>';
