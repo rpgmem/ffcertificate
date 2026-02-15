@@ -1304,8 +1304,9 @@ class ReregistrationFrontend {
 
             // Build magic link for submitted/approved submissions
             $magic_link = '';
-            if ($submission && in_array($sub_status, array('submitted', 'approved'), true) && !empty($submission->magic_token)) {
-                $magic_link = untrailingslashit(site_url('valid')) . '#token=' . $submission->magic_token;
+            if ($submission && in_array($sub_status, array('submitted', 'approved'), true)) {
+                $token = ReregistrationSubmissionRepository::ensure_magic_token($submission);
+                $magic_link = untrailingslashit(site_url('valid')) . '#token=' . $token;
             }
 
             $result[] = array(
