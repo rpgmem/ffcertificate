@@ -118,6 +118,23 @@ class ReregistrationSubmissionRepository {
     }
 
     /**
+     * Ensure a submission has a magic_token, generating one if missing.
+     *
+     * @param object $submission Submission row object.
+     * @return string The magic_token (existing or newly generated).
+     */
+    public static function ensure_magic_token(object $submission): string {
+        if (!empty($submission->magic_token)) {
+            return $submission->magic_token;
+        }
+
+        $token = bin2hex(random_bytes(32));
+        self::update((int) $submission->id, array('magic_token' => $token));
+
+        return $token;
+    }
+
+    /**
      * Get submission for a specific reregistration and user.
      *
      * @param int $reregistration_id Reregistration ID.

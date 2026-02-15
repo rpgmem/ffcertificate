@@ -1290,9 +1290,9 @@ class UserDataRestController {
 
             // Build magic link for direct verification
             $magic_link = '';
-            if ($can_download && !empty($sub->magic_token)) {
-                $verification_url = untrailingslashit(site_url('valid'));
-                $magic_link = $verification_url . '#token=' . $sub->magic_token;
+            if ($can_download) {
+                $token = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::ensure_magic_token($sub);
+                $magic_link = untrailingslashit(site_url('valid')) . '#token=' . $token;
             }
 
             $formatted[] = array(
