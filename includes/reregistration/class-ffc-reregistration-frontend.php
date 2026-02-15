@@ -507,7 +507,7 @@ class ReregistrationFrontend {
                         <div class="ffc-rereg-field">
                             <label for="ffc_rereg_vinculo"><?php esc_html_e('Vínculo', 'ffcertificate'); ?></label>
                             <input type="text" id="ffc_rereg_vinculo" name="standard_fields[vinculo]"
-                                   value="<?php echo esc_attr($standard['vinculo'] ?? ''); ?>">
+                                   value="<?php echo esc_attr($standard['vinculo'] ?? ''); ?>" maxlength="2" data-mask="number">
                         </div>
                         <div class="ffc-rereg-field">
                             <label for="ffc_rereg_data_nascimento"><?php esc_html_e('Data de Nascimento', 'ffcertificate'); ?> <span class="required">*</span></label>
