@@ -34,6 +34,7 @@ class Activator {
         self::create_reregistrations_table();
         self::create_reregistration_submissions_table();
         self::add_reregistration_submissions_columns();
+        self::upgrade_auth_code_unique_constraints();
 
         if (class_exists('\FreeFormCertificate\Migrations\MigrationSelfSchedulingTables')) {
             \FreeFormCertificate\Migrations\MigrationSelfSchedulingTables::run();
@@ -444,6 +445,71 @@ class Activator {
                 'index' => 'auth_code',
             ),
         ));
+    }
+
+    /**
+     * Upgrade auth_code indexes to UNIQUE constraints across all tables.
+     *
+     * Prevents cross-table code collisions by ensuring each auth_code
+     * is unique within its own table. Combined with the centralized
+     * generate_globally_unique_auth_code() this guarantees global uniqueness.
+     *
+     * Safe to run multiple times (idempotent).
+     *
+     * @since 4.12.0
+     */
+    private static function upgrade_auth_code_unique_constraints(): void {
+        global $wpdb;
+
+        $tables = array(
+            $wpdb->prefix . 'ffc_submissions'                    => 'auth_code',
+            $wpdb->prefix . 'ffc_reregistration_submissions'     => 'auth_code',
+        );
+
+        foreach ( $tables as $table => $column ) {
+            if ( ! self::table_exists( $table ) ) {
+                continue;
+            }
+
+            // Check if a UNIQUE index already exists on this column
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $indexes = $wpdb->get_results( "SHOW INDEX FROM {$table} WHERE Column_name = '{$column}'" );
+            $has_unique = false;
+            $old_index_names = array();
+
+            foreach ( $indexes as $idx ) {
+                if ( (int) $idx->Non_unique === 0 ) {
+                    $has_unique = true;
+                } else {
+                    $old_index_names[] = $idx->Key_name;
+                }
+            }
+
+            if ( $has_unique ) {
+                continue;
+            }
+
+            // Remove duplicate auth_codes (keep the most recent) before adding constraint
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $wpdb->query(
+                "DELETE t1 FROM {$table} t1
+                 INNER JOIN {$table} t2
+                 WHERE t1.{$column} = t2.{$column}
+                   AND t1.{$column} IS NOT NULL
+                   AND t1.{$column} != ''
+                   AND t1.id < t2.id"
+            );
+
+            // Drop old non-unique indexes
+            foreach ( array_unique( $old_index_names ) as $name ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                $wpdb->query( "ALTER TABLE {$table} DROP INDEX {$name}" );
+            }
+
+            // Add UNIQUE constraint
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $wpdb->query( "ALTER TABLE {$table} ADD UNIQUE INDEX uq_{$column} ({$column})" );
+        }
     }
 
     /**

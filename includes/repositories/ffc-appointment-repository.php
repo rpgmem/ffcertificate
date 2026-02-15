@@ -492,15 +492,7 @@ class AppointmentRepository extends AbstractRepository {
      * @return string 12-character code without hyphens
      */
     private function generate_unique_validation_code(): string {
-        do {
-            // Generate 12 alphanumeric characters (stored clean, without hyphens)
-            $code = \FreeFormCertificate\Core\Utils::generate_random_string(12);
-
-            // Check if code already exists
-            $existing = $this->findAll(['validation_code' => $code], 'id', 'ASC', 1);
-        } while (!empty($existing));
-
-        return $code;
+        return \FreeFormCertificate\Core\Utils::generate_globally_unique_auth_code();
     }
 
     /**
