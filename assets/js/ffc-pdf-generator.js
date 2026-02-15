@@ -3,7 +3,7 @@
  * 
  * Shared PDF generation logic for both frontend and admin
  * 
- * @version 2.9.3 - FIXED: Container visible during capture
+ * @version 2.10.0 - Support portrait/landscape orientation via pdfData.orientation
  */
 
 (function($, window) {
@@ -98,7 +98,7 @@
     function generateAndDownloadPDF(pdfData, filename) {
         console.log('[FFC PDF] Starting PDF generation...');
         console.log('[FFC PDF] Template length:', pdfData.html ? pdfData.html.length : 0);
-        
+
         if (!checkPDFLibraries()) {
             var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfLibrariesFailed)
                 ? ffc_ajax.strings.pdfLibrariesFailed
@@ -113,13 +113,20 @@
         var minDisplayTime = 800;
         var startTime = Date.now();
 
+        // Orientation: portrait or landscape (default)
+        var isPortrait = pdfData.orientation === 'portrait';
+        var containerW = isPortrait ? '794px' : '1123px';
+        var containerH = isPortrait ? '1123px' : '794px';
+
+        console.log('[FFC PDF] Orientation:', isPortrait ? 'portrait' : 'landscape');
+
         // ✅ FIX: Create container IN VIEWPORT but hidden behind overlay
         var $tempContainer = $('<div class="ffc-pdf-temp-container"></div>').css({
             'position': 'fixed',
             'top': '0',           // ← Na viewport!
             'left': '0',          // ← Na viewport!
-            'width': '1123px',
-            'height': '794px',
+            'width': containerW,
+            'height': containerH,
             'overflow': 'hidden',
             'background': 'white',
             'z-index': '999998',  // ← Atrás do overlay (999999)
@@ -222,9 +229,9 @@
                     return;
                 }
                 
-                var a4WidthPx = 1123;
-                var a4HeightPx = 794;
-                
+                var a4WidthPx = isPortrait ? 794 : 1123;
+                var a4HeightPx = isPortrait ? 1123 : 794;
+
                 console.log('[FFC PDF] === PDF Generation Started ===');
                 console.log('[FFC PDF] Target:', a4WidthPx + 'x' + a4HeightPx + 'px');
                 
@@ -276,10 +283,13 @@
                                 console.warn('[FFC PDF] Canvas is blank! Check HTML/CSS.');
                             }
                             
-                            var pdf = new jsPDF('landscape', 'mm', 'a4');
+                            var pdfOrientation = isPortrait ? 'portrait' : 'landscape';
+                            var pdf = new jsPDF(pdfOrientation, 'mm', 'a4');
                             var pdfImgData = canvas.toDataURL('image/png', 1.0);
-                            
-                            pdf.addImage(pdfImgData, 'PNG', 0, 0, 297, 210);
+                            var pdfW = isPortrait ? 210 : 297;
+                            var pdfH = isPortrait ? 297 : 210;
+
+                            pdf.addImage(pdfImgData, 'PNG', 0, 0, pdfW, pdfH);
                             pdf.save(filename || 'certificate.pdf');
                             
                             console.log('[FFC PDF] PDF saved:', filename);
