@@ -225,6 +225,66 @@ class Encryption {
     }
     
     /**
+     * Decrypt a single field with encrypted-first + plain fallback.
+     *
+     * Eliminates the repeated pattern across CSV exporters, REST controllers
+     * and email handlers:
+     *   if (!empty($row['field_encrypted'])) { decrypt(...) }
+     *   elseif (!empty($row['field'])) { $row['field']; }
+     *
+     * @since 4.11.2
+     * @param array  $row            Row data.
+     * @param string $field          Plain-text field name (e.g. 'email').
+     * @param string $encrypted_key  Encrypted field name. Defaults to "{$field}_encrypted".
+     * @return string Decrypted value, plain fallback, or empty string.
+     */
+    public static function decrypt_field( array $row, string $field, string $encrypted_key = '' ): string {
+        if ( $encrypted_key === '' ) {
+            $encrypted_key = $field . '_encrypted';
+        }
+
+        if ( ! empty( $row[ $encrypted_key ] ) ) {
+            $decrypted = self::decrypt( $row[ $encrypted_key ] );
+            if ( $decrypted !== null ) {
+                return $decrypted;
+            }
+        }
+
+        return (string) ( $row[ $field ] ?? '' );
+    }
+
+    /**
+     * Decrypt appointment data (batch helper for appointments).
+     *
+     * Similar to decrypt_submission() but for the appointment table schema.
+     *
+     * @since 4.11.2
+     * @param array $appointment Appointment row data with encrypted fields.
+     * @return array Row with plain-text fields populated.
+     */
+    public static function decrypt_appointment( array $appointment ): array {
+        $decrypted = $appointment;
+
+        if ( ! empty( $appointment['email_encrypted'] ) ) {
+            $decrypted['email'] = self::decrypt( $appointment['email_encrypted'] ) ?? ( $appointment['email'] ?? '' );
+        }
+        if ( ! empty( $appointment['cpf_rf_encrypted'] ) ) {
+            $decrypted['cpf_rf'] = self::decrypt( $appointment['cpf_rf_encrypted'] ) ?? ( $appointment['cpf_rf'] ?? '' );
+        }
+        if ( ! empty( $appointment['phone_encrypted'] ) ) {
+            $decrypted['phone'] = self::decrypt( $appointment['phone_encrypted'] ) ?? ( $appointment['phone'] ?? '' );
+        }
+        if ( ! empty( $appointment['user_ip_encrypted'] ) ) {
+            $decrypted['user_ip'] = self::decrypt( $appointment['user_ip_encrypted'] ) ?? ( $appointment['user_ip'] ?? '' );
+        }
+        if ( ! empty( $appointment['custom_data_encrypted'] ) ) {
+            $decrypted['custom_data'] = self::decrypt( $appointment['custom_data_encrypted'] ) ?? ( $appointment['custom_data'] ?? '' );
+        }
+
+        return $decrypted;
+    }
+
+    /**
      * Get encryption key
      *
      * Derives key from WordPress constants (SECURE_AUTH_KEY, etc)

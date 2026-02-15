@@ -30,6 +30,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class EmailHandler {
 
+    use \FreeFormCertificate\Core\EmailHelperTrait;
+
     public function __construct() {
         add_action( 'ffcertificate_process_submission_hook', array( $this, 'async_process_submission' ), 10, 8 );
         add_action( 'phpmailer_init', array( $this, 'configure_custom_smtp' ) );
@@ -112,10 +114,8 @@ class EmailHandler {
      * @param string $magic_token Magic token
      */
     private function send_user_email( string $to, string $form_title, array $form_config, array $submission_data, string $magic_token = '' ): void {
-        // Check if all emails are globally disabled
-        $settings = get_option( 'ffc_settings', array() );
-        if ( ! empty( $settings['disable_all_emails'] ) ) {
-            return; // Emails are globally disabled
+        if ( self::ffc_emails_disabled() ) {
+            return;
         }
 
         // Email subject
@@ -213,14 +213,7 @@ class EmailHandler {
         $body = apply_filters( 'ffcertificate_user_email_body', $body, $to, $form_title, $submission_data );
 
         // Send email
-        $sent = wp_mail( $to, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
-
-        if ( ! $sent && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-            \FreeFormCertificate\Core\Utils::debug_log( 'User email send failed', array(
-                'to' => $to,
-                'subject' => $subject,
-            ) );
-        }
+        self::ffc_send_mail( $to, $subject, $body );
     }
 
     /**
@@ -233,16 +226,12 @@ class EmailHandler {
      * @param array $form_config Form configuration
      */
     private function send_admin_notification( string $form_title, array $data, array $form_config ): void {
-        // Check if all emails are globally disabled
-        $settings = get_option( 'ffc_settings', array() );
-        if ( ! empty( $settings['disable_all_emails'] ) ) {
-            return; // Emails are globally disabled
+        if ( self::ffc_emails_disabled() ) {
+            return;
         }
 
         // Get admin emails (comma-separated list or default admin_email)
-        $admins = isset( $form_config['email_admin'] )
-            ? array_filter(array_map('trim', explode( ',', $form_config['email_admin'] )))
-            : array( get_option( 'admin_email' ) );
+        $admins = self::ffc_parse_admin_emails( $form_config['email_admin'] ?? '' );
 
         /**
          * Filters the admin notification email recipients.
@@ -284,18 +273,9 @@ class EmailHandler {
         }
         $body .= '</table></div>';
 
-        // Send to all admin emails
+        // Send to all admin emails (already validated by ffc_parse_admin_emails)
         foreach ( $admins as $email ) {
-            if ( is_email( $email ) ) {
-                $sent = wp_mail( $email, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
-
-                if ( ! $sent && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-                    \FreeFormCertificate\Core\Utils::debug_log( 'Admin notification email send failed', array(
-                        'to' => $email,
-                        'subject' => $subject,
-                    ) );
-                }
-            }
+            self::ffc_send_mail( $email, $subject, $body );
         }
     }
 
@@ -326,7 +306,7 @@ class EmailHandler {
         }
 
         // Check global disable
-        if ( ! empty( $settings['disable_all_emails'] ) ) {
+        if ( self::ffc_emails_disabled() ) {
             return false;
         }
 

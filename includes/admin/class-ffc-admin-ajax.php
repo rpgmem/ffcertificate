@@ -17,6 +17,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class AdminAjax {
 
+    use \FreeFormCertificate\Core\AjaxTrait;
+
     public function __construct() {
         // Register AJAX handlers
         add_action( 'wp_ajax_ffc_load_template', array( $this, 'load_template' ) );
@@ -28,32 +30,10 @@ class AdminAjax {
      * Load template HTML
      */
     public function load_template(): void {
-        // Verify nonce - try different nonce names
-        $nonce_verified = false;
+        $this->verify_ajax_nonce( array( 'ffc_form_nonce', 'ffc_admin_nonce' ) );
+        $this->check_ajax_permission( 'edit_posts' );
 
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only; nonce verified immediately inside.
-        if ( isset( $_POST['nonce'] ) ) {
-            $nonce_value = sanitize_text_field( wp_unslash( $_POST['nonce'] ) );
-            // Try ffc_form_nonce first
-            if ( wp_verify_nonce( $nonce_value, 'ffc_form_nonce' ) ) {
-                $nonce_verified = true;
-            }
-            // Try ffc_admin_nonce
-            elseif ( wp_verify_nonce( $nonce_value, 'ffc_admin_nonce' ) ) {
-                $nonce_verified = true;
-            }
-        }
-
-        if ( ! $nonce_verified ) {
-            wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'ffcertificate' ) ) );
-        }
-
-        // Check permissions
-        if ( ! current_user_can( 'edit_posts' ) ) {
-            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
-        }
-
-        $template_id = isset( $_POST['template_id'] ) ? absint( wp_unslash( $_POST['template_id'] ) ) : 0;
+        $template_id = $this->get_post_int( 'template_id' );
 
         if ( ! $template_id ) {
             wp_send_json_error( array( 'message' => __( 'Invalid template ID.', 'ffcertificate' ) ) );
@@ -84,33 +64,11 @@ class AdminAjax {
      * Generate tickets/codes
      */
     public function generate_tickets(): void {
-        // Verify nonce - try different nonce names
-        $nonce_verified = false;
+        $this->verify_ajax_nonce( array( 'ffc_form_nonce', 'ffc_admin_nonce' ) );
+        $this->check_ajax_permission( 'edit_posts' );
 
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only; nonce verified immediately inside.
-        if ( isset( $_POST['nonce'] ) ) {
-            $nonce_value = sanitize_text_field( wp_unslash( $_POST['nonce'] ) );
-            // Try ffc_form_nonce first
-            if ( wp_verify_nonce( $nonce_value, 'ffc_form_nonce' ) ) {
-                $nonce_verified = true;
-            }
-            // Try ffc_admin_nonce
-            elseif ( wp_verify_nonce( $nonce_value, 'ffc_admin_nonce' ) ) {
-                $nonce_verified = true;
-            }
-        }
-
-        if ( ! $nonce_verified ) {
-            wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'ffcertificate' ) ) );
-        }
-
-        // Check permissions
-        if ( ! current_user_can( 'edit_posts' ) ) {
-            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
-        }
-
-        $quantity = isset( $_POST['quantity'] ) ? absint( wp_unslash( $_POST['quantity'] ) ) : 0;
-        $form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+        $quantity = $this->get_post_int( 'quantity' );
+        $form_id = $this->get_post_int( 'form_id' );
 
         if ( $quantity < 1 || $quantity > 1000 ) {
             wp_send_json_error( array( 'message' => __( 'Quantity must be between 1 and 1000.', 'ffcertificate' ) ) );
@@ -208,18 +166,10 @@ class AdminAjax {
      * @since 4.3.0
      */
     public function search_user(): void {
-        // Verify nonce
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only; nonce verified immediately inside.
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'ffc_user_search_nonce' ) ) {
-            wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'ffcertificate' ) ) );
-        }
+        $this->verify_ajax_nonce( 'ffc_user_search_nonce' );
+        $this->check_ajax_permission();
 
-        // Check permissions
-        if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
-            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
-        }
-
-        $search_term = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
+        $search_term = $this->get_post_param( 'search' );
 
         if ( strlen( $search_term ) < 2 ) {
             wp_send_json_error( array( 'message' => __( 'Please enter at least 2 characters.', 'ffcertificate' ) ) );

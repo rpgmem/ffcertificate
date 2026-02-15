@@ -270,22 +270,7 @@ class AudienceNotificationHandler {
         );
     }
 
-    /**
-     * Escape text for ICS format
-     *
-     * @param string $text Text to escape
-     * @return string Escaped text
-     */
-    private static function escape_ics_text(string $text): string {
-        // Replace special characters
-        $text = str_replace('\\', '\\\\', $text);
-        $text = str_replace("\n", '\\n', $text);
-        $text = str_replace("\r", '', $text);
-        $text = str_replace(',', '\\,', $text);
-        $text = str_replace(';', '\\;', $text);
-
-        return $text;
-    }
+    // escape_ics_text() removed — already available in EmailTemplateService (v4.11.2)
 
     /**
      * Render email template with variables
@@ -318,45 +303,11 @@ class AudienceNotificationHandler {
     }
 
     /**
-     * Wrap email body in HTML structure
-     *
-     * @param string $body Email body content
-     * @return string Complete HTML email
+     * Wrap email body in HTML structure.
+     * Delegates to EmailTemplateService::wrap_html().
      */
     private static function wrap_email_html(string $body): string {
-        $site_name = get_bloginfo('name');
-
-        return "<!DOCTYPE html>
-<html>
-<head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #2271b1; color: #fff; padding: 20px; text-align: center; border-radius: 4px 4px 0 0; }
-        .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; }
-        .footer { background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 4px 4px; }
-        .info-box { background: #f0f6fc; padding: 15px; border-radius: 4px; margin: 20px 0; }
-        .info-row { margin: 8px 0; }
-        .info-label { font-weight: 600; }
-        .cancelled { background: #fef2f2; border-left: 4px solid #dc3545; }
-    </style>
-</head>
-<body>
-    <div class='container'>
-        <div class='header'>
-            <h2>{$site_name}</h2>
-        </div>
-        <div class='content'>
-            {$body}
-        </div>
-        <div class='footer'>
-            <p>" . __('This is an automated notification from', 'ffcertificate') . " {$site_name}</p>
-        </div>
-    </div>
-</body>
-</html>";
+        return \FreeFormCertificate\Scheduling\EmailTemplateService::wrap_html($body);
     }
 
     /**
@@ -446,27 +397,18 @@ class AudienceNotificationHandler {
     }
 
     /**
-     * Format date for display
-     *
-     * @param string $date Date in Y-m-d format
-     * @return string Formatted date
+     * Format date for display.
+     * Delegates to EmailTemplateService::format_date().
      */
     private static function format_date(string $date): string {
-        $settings = get_option('ffc_settings', array());
-        $date_format = $settings['date_format'] ?? 'F j, Y';
-
-        $timestamp = strtotime($date);
-        return ($timestamp !== false) ? date_i18n($date_format, $timestamp) : $date;
+        return \FreeFormCertificate\Scheduling\EmailTemplateService::format_date($date);
     }
 
     /**
-     * Format time for display
-     *
-     * @param string $time Time in H:i:s format
-     * @return string Formatted time
+     * Format time for display.
+     * Delegates to EmailTemplateService::format_time().
      */
     private static function format_time(string $time): string {
-        $timestamp = strtotime($time);
-        return ($timestamp !== false) ? date_i18n('H:i', $timestamp) : $time;
+        return \FreeFormCertificate\Scheduling\EmailTemplateService::format_time($time);
     }
 }

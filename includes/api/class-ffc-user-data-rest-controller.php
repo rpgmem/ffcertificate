@@ -217,17 +217,8 @@ class UserDataRestController {
             $certificates = array();
 
             foreach ($submissions as $submission) {
-                $email_display = '';
-                if (!empty($submission['email_encrypted'])) {
-                    try {
-                        $email_plain = \FreeFormCertificate\Core\Encryption::decrypt($submission['email_encrypted']);
-                        $email_display = ($email_plain && is_string($email_plain)) ? \FreeFormCertificate\Core\Utils::mask_email($email_plain) : '';
-                    } catch (\Exception $e) {
-                        $email_display = __('Error decrypting', 'ffcertificate');
-                    }
-                } elseif (!empty($submission['email'])) {
-                    $email_display = \FreeFormCertificate\Core\Utils::mask_email($submission['email']);
-                }
+                $email_plain = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'email');
+                $email_display = ($email_plain !== '') ? \FreeFormCertificate\Core\Utils::mask_email($email_plain) : '';
 
                 $verification_page_id = get_option('ffc_verification_page_id');
                 $verification_url = $verification_page_id ? get_permalink((int) $verification_page_id) : home_url('/valid');
@@ -598,19 +589,7 @@ class UserDataRestController {
                     $time_formatted = ($time_timestamp !== false) ? date_i18n('H:i', $time_timestamp) : $appointment['start_time'];
                 }
 
-                $email_display = '';
-                if (!empty($appointment['email_encrypted'])) {
-                    try {
-                        if (class_exists('\FreeFormCertificate\Core\Encryption')) {
-                            $email_plain = \FreeFormCertificate\Core\Encryption::decrypt($appointment['email_encrypted']);
-                            $email_display = ($email_plain && is_string($email_plain)) ? $email_plain : '';
-                        }
-                    } catch (\Exception $e) {
-                        $email_display = '';
-                    }
-                } elseif (!empty($appointment['email'])) {
-                    $email_display = $appointment['email'];
-                }
+                $email_display = \FreeFormCertificate\Core\Encryption::decrypt_field($appointment, 'email');
 
                 $end_time_formatted = '';
                 if (!empty($appointment['end_time'])) {

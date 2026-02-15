@@ -26,6 +26,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CsvExporter {
 
+    use \FreeFormCertificate\Core\CsvExportTrait;
+
     /**
      * @var SubmissionRepository Repository instance
      */
@@ -39,52 +41,19 @@ class CsvExporter {
     }
 
     /**
-     * Get all unique dynamic field keys from submissions
+     * Get all unique dynamic field keys from submissions.
+     * Delegates to CsvExportTrait::extract_dynamic_keys().
      */
     private function get_dynamic_columns( array $rows ): array {
-        $all_keys = array();
-
-        foreach( $rows as $r ) {
-            $d = $this->get_submission_data( $r );
-            if ( is_array( $d ) ) {
-                $all_keys = array_merge( $all_keys, array_keys( $d ) );
-            }
-        }
-
-        return array_unique( $all_keys );
+        return $this->extract_dynamic_keys( $rows, 'data', 'data_encrypted' );
     }
 
     /**
-     * Get submission data from a row, handling encryption
-     *
-     * @param array $row
-     * @return array
+     * Get submission data from a row, handling encryption.
+     * Delegates to CsvExportTrait::decode_json_field().
      */
     private function get_submission_data( array $row ): array {
-        $json = null;
-
-        // Try encrypted first
-        if ( !empty( $row['data_encrypted'] ) ) {
-            try {
-                if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
-                    $json = \FreeFormCertificate\Core\Encryption::decrypt( $row['data_encrypted'] );
-                }
-            } catch ( \Exception $e ) {
-                $json = null;
-            }
-        }
-
-        // Fallback to plain text
-        if ( $json === null && !empty( $row['data'] ) ) {
-            $json = $row['data'];
-        }
-
-        if ( empty( $json ) ) {
-            return array();
-        }
-
-        $decoded = json_decode( $json, true );
-        return is_array( $decoded ) ? $decoded : array();
+        return $this->decode_json_field( $row, 'data', 'data_encrypted' );
     }
 
     /**
@@ -120,17 +89,11 @@ class CsvExporter {
     }
 
     /**
-     * Generate translatable headers for dynamic columns
+     * Generate translatable headers for dynamic columns.
+     * Delegates to CsvExportTrait::build_dynamic_headers().
      */
     private function get_dynamic_headers( array $dynamic_keys ): array {
-        $dynamic_headers = array();
-        
-        foreach ( $dynamic_keys as $key ) {
-            $label = ucwords( str_replace( array('_', '-'), ' ', $key ) );
-            $dynamic_headers[] = $label;
-        }
-        
-        return $dynamic_headers;
+        return $this->build_dynamic_headers( $dynamic_keys );
     }
 
     /**
@@ -145,29 +108,10 @@ class CsvExporter {
         $form_title = get_the_title( (int) $row['form_id'] );
         $form_display = $form_title ? $form_title : __( '(Deleted)', 'ffcertificate' );
         
-        // Decrypt email
-        $email = '';
-        if ( !empty( $row['email_encrypted'] ) ) {
-            $email = \FreeFormCertificate\Core\Encryption::decrypt( $row['email_encrypted'] );
-        } elseif ( !empty( $row['email'] ) ) {
-            $email = $row['email']; // Fallback for non-encrypted data
-        }
-        
-        // Decrypt IP
-        $user_ip = '';
-        if ( !empty( $row['user_ip_encrypted'] ) ) {
-            $user_ip = \FreeFormCertificate\Core\Encryption::decrypt( $row['user_ip_encrypted'] );
-        } elseif ( !empty( $row['user_ip'] ) ) {
-            $user_ip = $row['user_ip']; // Fallback for non-encrypted data
-        }
-
-        // Decrypt CPF/RF
-        $cpf_rf = '';
-        if ( !empty( $row['cpf_rf_encrypted'] ) ) {
-            $cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_rf_encrypted'] );
-        } elseif ( !empty( $row['cpf_rf'] ) ) {
-            $cpf_rf = $row['cpf_rf']; // Fallback for non-encrypted data
-        }
+        // Decrypt sensitive fields (encrypted → plain fallback)
+        $email   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' );
+        $user_ip = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'user_ip' );
+        $cpf_rf  = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf_rf' );
 
         // User ID
         $user_id = !empty( $row['user_id'] ) ? $row['user_id'] : '';

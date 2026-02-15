@@ -244,17 +244,7 @@ class AppointmentRestController {
             $calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
             $calendar = $calendar_repository->findById($appointment['calendar_id']);
 
-            $email_display = '';
-            if (!empty($appointment['email_encrypted'])) {
-                try {
-                    $email_plain = \FreeFormCertificate\Core\Encryption::decrypt($appointment['email_encrypted']);
-                    $email_display = ($email_plain && is_string($email_plain)) ? $email_plain : '';
-                } catch (\Exception $e) {
-                    $email_display = '';
-                }
-            } elseif (!empty($appointment['email'])) {
-                $email_display = $appointment['email'];
-            }
+            $email_display = \FreeFormCertificate\Core\Encryption::decrypt_field($appointment, 'email');
 
             return rest_ensure_response(array(
                 'id' => (int) $appointment['id'],
