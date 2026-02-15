@@ -2084,8 +2084,7 @@ msgstr "Portas comuns: 587 (TLS), 465 (SSL), 25 (não criptografada)"
 msgid ""
 "Common variables include {{auth_code}}, {{submission_date}}, and {{ticket}}."
 msgstr ""
-"As variáveis ​​comuns incluem {{auth_code}}, {{submission_date}} e {{ticket}}"
-"."
+"As variáveis ​​comuns incluem {{auth_code}}, {{submission_date}} e {{ticket}}."
 
 #: includes/admin/class-ffc-admin-assets-manager.php:243
 #: includes/settings/views/ffc-tab-migrations.php:149
@@ -3903,11 +3902,11 @@ msgstr "Formato: latitude, longitude, raio (metros) — um por linha."
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:481
 msgid ""
-"Format: latitude, longitude, radius(meters) - One per line. Example: -23."
-"5505, -46.6333, 5000"
+"Format: latitude, longitude, radius(meters) - One per line. Example: "
+"-23.5505, -46.6333, 5000"
 msgstr ""
-"Formato: latitude, longitude, raio (metros) - Um por linha. Exemplo: -23,"
-"5505, -46,6333, 5000"
+"Formato: latitude, longitude, raio (metros) - Um por linha. Exemplo: "
+"-23,5505, -46,6333, 5000"
 
 #: includes/settings/views/ffc-tab-documentation.php:628
 msgid "Formatting not showing (bold, italic)"
@@ -5303,8 +5302,8 @@ msgstr "Mensagem"
 
 #: includes/settings/views/ffc-tab-user-access.php:159
 msgid ""
-"Message shown to users after being redirected (appears on the dashboard page)"
-"."
+"Message shown to users after being redirected (appears on the dashboard "
+"page)."
 msgstr ""
 "Mensagem exibida aos usuários após o redirecionamento (aparece na página do "
 "painel de controle)."
@@ -5682,8 +5681,8 @@ msgstr "Nenhum agendamento para limpar."
 
 #: includes/audience/class-ffc-audience-csv-importer.php:94
 msgid ""
-"No audience specified. Provide audience_id parameter or include "
-"audience_id/audience_name column in CSV."
+"No audience specified. Provide audience_id parameter or include audience_id/"
+"audience_name column in CSV."
 msgstr ""
 "Nenhum público-alvo especificado. Forneça o parâmetro audience_id ou inclua "
 "a coluna audience_id/audience_name no CSV."
@@ -6700,8 +6699,8 @@ msgstr ""
 msgid ""
 "Required only if using ipinfo.io service. Free tier: 50,000 requests/month."
 msgstr ""
-"Necessário apenas se estiver usando o serviço ipinfo.io. Plano gratuito: 50."
-"000 solicitações/mês."
+"Necessário apenas se estiver usando o serviço ipinfo.io. Plano gratuito: "
+"50.000 solicitações/mês."
 
 #: includes/admin/class-ffc-admin-assets-manager.php:382
 msgid "Required:"
@@ -7029,8 +7028,8 @@ msgid ""
 "Select a specific audience or leave empty to use audience_id/audience_name "
 "from CSV."
 msgstr ""
-"Selecione um público-alvo específico ou deixe vazio para usar "
-"audience_id/audience_name do CSV."
+"Selecione um público-alvo específico ou deixe vazio para usar audience_id/"
+"audience_name do CSV."
 
 #: includes/audience/class-ffc-audience-admin-import.php:203
 msgid ""
@@ -7217,8 +7216,8 @@ msgstr "Serviço não disponível."
 #: includes/migrations/class-ffc-migration-registry.php:160
 msgid "Set user capabilities based on submission/appointment history"
 msgstr ""
-"Definir permissões de usuário com base no histórico de "
-"submissões/agendamentos"
+"Definir permissões de usuário com base no histórico de submissões/"
+"agendamentos"
 
 #: includes/admin/class-ffc-settings.php:91
 #: includes/admin/class-ffc-settings.php:92
@@ -7250,8 +7249,8 @@ msgstr "Configurações salvas."
 #: includes/audience/class-ffc-audience-admin-settings.php:385
 msgid "Settings specific to the audience/group booking system."
 msgstr ""
-"Configurações específicas para o sistema de agendamento de público-"
-"alvo/grupo."
+"Configurações específicas para o sistema de agendamento de público-alvo/"
+"grupo."
 
 #: includes/audience/class-ffc-audience-admin-settings.php:241
 msgid ""
@@ -7907,8 +7906,8 @@ msgid ""
 "This option has a significant impact on website speed and stability, so use "
 "it wisely."
 msgstr ""
-"Essa opção tem um impacto significativo na velocidade e estabilidade do site,"
-" portanto, use-a com sabedoria."
+"Essa opção tem um impacto significativo na velocidade e estabilidade do "
+"site, portanto, use-a com sabedoria."
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:241
 msgid "This password will be required from all users."
@@ -8079,8 +8078,8 @@ msgstr "até"
 #: includes/audience/class-ffc-audience-admin-settings.php:378
 #: includes/audience/class-ffc-audience-shortcode.php:88
 msgid ""
-"To book on this calendar you need to be logged in. <a href=\"%login_url%\">"
-"Log in</a> to continue."
+"To book on this calendar you need to be logged in. <a href=\"%login_url%"
+"\">Log in</a> to continue."
 msgstr ""
 "Para reservar neste calendário, você precisa estar conectado. <a "
 "href=\"%login_url%\">Faça login</a> para continuar."
@@ -8212,8 +8211,8 @@ msgid ""
 "is enabled in Settings > Privacy & Security > Location Services."
 msgstr ""
 "Não foi possível determinar sua localização. No Safari/iOS, verifique se os "
-"Serviços de Localização estão ativados em Ajustes > Privacidade e Segurança >"
-" Serviços de Localização."
+"Serviços de Localização estão ativados em Ajustes > Privacidade e Segurança "
+"> Serviços de Localização."
 
 #: includes/admin/class-ffc-form-editor-metabox-renderer.php:358
 msgid "Unable to determine your location. Please enable location services."
@@ -8580,8 +8579,8 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:358
 msgid ""
-"Uses HTML5 Geolocation API. Requires HTTPS and user permission. Accuracy: 10-"
-"50 meters."
+"Uses HTML5 Geolocation API. Requires HTTPS and user permission. Accuracy: "
+"10-50 meters."
 msgstr ""
 "Utiliza a API de geolocalização HTML5. Requer HTTPS e permissão do usuário. "
 "Precisão: 10-50 metros."
@@ -9270,3 +9269,902 @@ msgstr "✅ Cache limpo com sucesso!"
 #: includes/admin/class-ffc-settings.php:227
 msgid "✅ Cache warmed! %d form(s) pre-loaded."
 msgstr "✅ Cache aquecido! %d formulário(s) pré-carregados."
+
+# ============================================================
+# Sprint 6-11: Custom Fields, Reregistration, Ficha PDF
+# ============================================================
+#: includes/reregistration/class-ffc-custom-field-repository.php
+#, php-format
+msgid "%s is required."
+msgstr "%s é obrigatório."
+
+#: includes/reregistration/class-ffc-custom-field-repository.php
+#, php-format
+msgid "%s must be a number."
+msgstr "%s deve ser um número."
+
+#: includes/reregistration/class-ffc-custom-field-repository.php
+#, php-format
+msgid "%s must be a valid date (YYYY-MM-DD)."
+msgstr "%s deve ser uma data válida (AAAA-MM-DD)."
+
+#: includes/reregistration/class-ffc-custom-field-repository.php
+#, php-format
+msgid "%s has an invalid selection."
+msgstr "%s possui uma seleção inválida."
+
+#: includes/reregistration/class-ffc-custom-field-repository.php
+#, php-format
+msgid "%1$s must be at least %2$d characters."
+msgstr "%1$s deve ter pelo menos %2$d caracteres."
+
+#: includes/reregistration/class-ffc-custom-field-repository.php
+#, php-format
+msgid "%1$s must be at most %2$d characters."
+msgstr "%1$s deve ter no máximo %2$d caracteres."
+
+#: includes/reregistration/class-ffc-custom-field-repository.php
+#, php-format
+msgid "%s must be a valid CPF."
+msgstr "%s deve ser um CPF válido."
+
+#: includes/reregistration/class-ffc-custom-field-repository.php
+#, php-format
+msgid "%s must be a valid email address."
+msgstr "%s deve ser um endereço de e-mail válido."
+
+#: includes/reregistration/class-ffc-custom-field-repository.php
+#, php-format
+msgid "%s must be a valid phone number."
+msgstr "%s deve ser um número de telefone válido."
+
+#: includes/reregistration/class-ffc-custom-field-repository.php
+#, php-format
+msgid "%s has an invalid format."
+msgstr "%s possui um formato inválido."
+
+# --- Admin User Custom Fields ---
+#: includes/admin/class-ffc-admin-user-custom-fields.php
+msgid "FFC Custom Data"
+msgstr "Dados Personalizados FFC"
+
+#: includes/admin/class-ffc-admin-user-custom-fields.php
+msgid ""
+"Custom fields from audience memberships. Fields are grouped by audience."
+msgstr ""
+"Campos personalizados das audiências do usuário. Os campos são agrupados por "
+"audiência."
+
+#: includes/admin/class-ffc-admin-user-custom-fields.php
+#, php-format
+msgid "Inherited from %s"
+msgstr "Herdado de %s"
+
+#: includes/admin/class-ffc-admin-user-custom-fields.php
+msgid "&mdash; Select &mdash;"
+msgstr "&mdash; Selecione &mdash;"
+
+# --- Reregistration Admin ---
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Reregistration"
+msgstr "Recadastramento"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid ""
+"Are you sure you want to delete this reregistration? This will also delete "
+"all submissions."
+msgstr ""
+"Tem certeza de que deseja excluir este recadastramento? Isso também excluirá "
+"todas as submissões."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Approve selected submissions?"
+msgstr "Aprovar as submissões selecionadas?"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Error generating ficha."
+msgstr "Erro ao gerar a ficha."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Title"
+msgstr "Título"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Period"
+msgstr "Período"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Auto-approve"
+msgstr "Aprovação automática"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "No reregistrations found."
+msgstr "Nenhum recadastramento encontrado."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+#, php-format
+msgid "%1$d / %2$d"
+msgstr "%1$d / %2$d"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "New Reregistration"
+msgstr "Novo Recadastramento"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Reregistration not found."
+msgstr "Recadastramento não encontrado."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Edit Reregistration"
+msgstr "Editar Recadastramento"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Back to Reregistrations"
+msgstr "Voltar para Recadastramentos"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Select audience..."
+msgstr "Selecionar audiência..."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "The reregistration will apply to this audience and all its children."
+msgstr ""
+"O recadastramento será aplicado a esta audiência e todos os seus filhos."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Start Date"
+msgstr "Data de Início"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "End Date"
+msgstr "Data de Término"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Approval"
+msgstr "Aprovação"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Auto-approve submissions (no manual review needed)"
+msgstr "Aprovar submissões automaticamente (sem revisão manual)"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Email Notifications"
+msgstr "Notificações por E-mail"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Send invitation email when activated"
+msgstr "Enviar e-mail de convite ao ativar"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Send reminder email before deadline"
+msgstr "Enviar e-mail de lembrete antes do prazo"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Send confirmation email after submission"
+msgstr "Enviar e-mail de confirmação após submissão"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "All email notifications are disabled by default."
+msgstr "Todas as notificações por e-mail estão desativadas por padrão."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Reminder Days"
+msgstr "Dias para Lembrete"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Send reminder this many days before the end date."
+msgstr "Enviar lembrete esta quantidade de dias antes da data de término."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Affected users:"
+msgstr "Usuários afetados:"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Update Reregistration"
+msgstr "Atualizar Recadastramento"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Create Reregistration"
+msgstr "Criar Recadastramento"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+#, php-format
+msgid "Submissions: %s"
+msgstr "Submissões: %s"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Bulk Actions"
+msgstr "Ações em Massa"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Approve"
+msgstr "Aprovar"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Send Reminder"
+msgstr "Enviar Lembrete"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Apply"
+msgstr "Aplicar"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Submitted"
+msgstr "Submetido"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Reviewed"
+msgstr "Revisado"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Awaiting user"
+msgstr "Aguardando usuário"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "See notes"
+msgstr "Ver notas"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Ficha"
+msgstr "Ficha"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Reregistration created successfully."
+msgstr "Recadastramento criado com sucesso."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Reregistration updated successfully."
+msgstr "Recadastramento atualizado com sucesso."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Reregistration deleted successfully."
+msgstr "Recadastramento excluído com sucesso."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Submission approved."
+msgstr "Submissão aprovada."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Submission rejected."
+msgstr "Submissão rejeitada."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Selected submissions approved."
+msgstr "Submissões selecionadas aprovadas."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Reminder emails sent."
+msgstr "E-mails de lembrete enviados."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Department"
+msgstr "Departamento"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Organization"
+msgstr "Organização"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "Could not generate ficha."
+msgstr "Não foi possível gerar a ficha."
+
+# --- Reregistration Frontend ---
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Invalid request."
+msgstr "Requisição inválida."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Reregistration not found or not active."
+msgstr "Recadastramento não encontrado ou não ativo."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "No submission found for this user."
+msgstr "Nenhuma submissão encontrada para este usuário."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "This reregistration has already been completed or expired."
+msgstr "Este recadastramento já foi concluído ou expirou."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Please fix the errors below."
+msgstr "Por favor, corrija os erros abaixo."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Reregistration submitted successfully!"
+msgstr "Recadastramento enviado com sucesso!"
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Reregistration not active."
+msgstr "Recadastramento não ativo."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Cannot save draft."
+msgstr "Não é possível salvar rascunho."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Draft saved."
+msgstr "Rascunho salvo."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Ficha not available for this submission."
+msgstr "Ficha não disponível para esta submissão."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+#, php-format
+msgid "Deadline: %s"
+msgstr "Prazo: %s"
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Email cannot be changed here."
+msgstr "O e-mail não pode ser alterado aqui."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Additional Information"
+msgstr "Informações Adicionais"
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Save Draft"
+msgstr "Salvar Rascunho"
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Full name is required."
+msgstr "O nome completo é obrigatório."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Invalid phone format."
+msgstr "Formato de telefone inválido."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+#, php-format
+msgid "%s is not a valid CPF."
+msgstr "%s não é um CPF válido."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+#, php-format
+msgid "%s is not a valid email."
+msgstr "%s não é um e-mail válido."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+#, php-format
+msgid "%s is not a valid phone number."
+msgstr "%s não é um número de telefone válido."
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php
+msgid "Auto-approved"
+msgstr "Aprovado automaticamente"
+
+# --- Email Handler ---
+#: includes/reregistration/class-ffc-reregistration-email-handler.php
+msgid "Submitted — Pending Review"
+msgstr "Submetido — Aguardando Revisão"
+
+#: includes/reregistration/class-ffc-reregistration-email-handler.php
+msgid "Approved"
+msgstr "Aprovado"
+
+#: includes/reregistration/class-ffc-ficha-generator.php
+msgid "In Progress"
+msgstr "Em Andamento"
+
+#: includes/reregistration/class-ffc-ficha-generator.php
+msgid "Rejected"
+msgstr "Rejeitado"
+
+#: includes/reregistration/class-ffc-ficha-generator.php
+msgid "Expired"
+msgstr "Expirado"
+
+#: includes/reregistration/class-ffc-ficha-generator.php
+msgid "Reregistration Record"
+msgstr "Ficha de Recadastramento"
+
+#: includes/reregistration/class-ffc-ficha-generator.php
+msgid "Campaign:"
+msgstr "Campanha:"
+
+# --- Email Templates ---
+#: templates/emails/reregistration-invitation.php
+msgid "Reregistration Open: {reregistration_title}"
+msgstr "Recadastramento Aberto: {reregistration_title}"
+
+#: templates/emails/reregistration-invitation.php
+msgid "Hello, {user_name}!"
+msgstr "Olá, {user_name}!"
+
+#: templates/emails/reregistration-invitation.php
+msgid "A new reregistration campaign has been opened for your group:"
+msgstr "Uma nova campanha de recadastramento foi aberta para o seu grupo:"
+
+#: templates/emails/reregistration-invitation.php
+msgid "Period:"
+msgstr "Período:"
+
+#: templates/emails/reregistration-invitation.php
+msgid "Please complete your reregistration before the deadline."
+msgstr "Por favor, complete seu recadastramento antes do prazo."
+
+#: templates/emails/reregistration-invitation.php
+msgid "Complete Reregistration"
+msgstr "Completar Recadastramento"
+
+#: templates/emails/reregistration-reminder.php
+msgid "Reminder: {reregistration_title} — {days_left} days left"
+msgstr "Lembrete: {reregistration_title} — {days_left} dias restantes"
+
+#: templates/emails/reregistration-reminder.php
+msgid ""
+"This is a friendly reminder that the following reregistration campaign is "
+"still pending:"
+msgstr ""
+"Este é um lembrete amigável de que a seguinte campanha de recadastramento "
+"ainda está pendente:"
+
+#: templates/emails/reregistration-reminder.php
+msgid "Deadline:"
+msgstr "Prazo:"
+
+#: templates/emails/reregistration-reminder.php
+msgid "Days remaining:"
+msgstr "Dias restantes:"
+
+#: templates/emails/reregistration-reminder.php
+msgid ""
+"Please complete your reregistration before the deadline to avoid any issues."
+msgstr ""
+"Por favor, complete seu recadastramento antes do prazo para evitar problemas."
+
+#: templates/emails/reregistration-reminder.php
+msgid "Complete Now"
+msgstr "Completar Agora"
+
+#: templates/emails/reregistration-confirmation.php
+msgid "Reregistration Confirmed: {reregistration_title}"
+msgstr "Recadastramento Confirmado: {reregistration_title}"
+
+#: templates/emails/reregistration-confirmation.php
+msgid "Your reregistration has been received successfully."
+msgstr "Seu recadastramento foi recebido com sucesso."
+
+#: templates/emails/reregistration-confirmation.php
+msgid "You can review your submission details in your dashboard at any time."
+msgstr ""
+"Você pode revisar os detalhes da sua submissão no painel a qualquer momento."
+
+#: templates/emails/reregistration-confirmation.php
+msgid "View Dashboard"
+msgstr "Ver Painel"
+
+# --- Audience Admin (Sprint 11 additions) ---
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid "Including children"
+msgstr "Incluindo filhos"
+
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid "Custom Fields"
+msgstr "Campos Personalizados"
+
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid ""
+"Define custom fields for members of this audience. Fields are shown during "
+"reregistration and on the user profile."
+msgstr ""
+"Defina campos personalizados para membros desta audiência. Os campos são "
+"exibidos durante o recadastramento e no perfil do usuário."
+
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid "+ Add Field"
+msgstr "+ Adicionar Campo"
+
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid "Save Fields"
+msgstr "Salvar Campos"
+
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid "Required"
+msgstr "Obrigatório"
+
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid "field_key (auto)"
+msgstr "campo_chave (auto)"
+
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid "Options (one per line)"
+msgstr "Opções (uma por linha)"
+
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid "No format validation"
+msgstr "Sem validação de formato"
+
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid "Custom Regex"
+msgstr "Regex Personalizado"
+
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid "Regex pattern"
+msgstr "Padrão regex"
+
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid "Error message for regex"
+msgstr "Mensagem de erro para regex"
+
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid "Help text (optional)"
+msgstr "Texto de ajuda (opcional)"
+
+#: includes/audience/class-ffc-audience-admin-audience.php
+msgid "Toggle details"
+msgstr "Alternar detalhes"
+
+# --- Migration ---
+#: includes/migrations/class-ffc-migration-custom-fields-tables.php
+msgid "All tables created successfully."
+msgstr "Todas as tabelas foram criadas com sucesso."
+
+#: includes/migrations/class-ffc-migration-custom-fields-tables.php
+msgid "Some tables could not be created. Check details."
+msgstr "Algumas tabelas não puderam ser criadas. Verifique os detalhes."
+
+#: includes/migrations/class-ffc-migration-custom-fields-tables.php
+#, php-format
+msgid "Table %s created successfully."
+msgstr "Tabela %s criada com sucesso."
+
+#: includes/migrations/class-ffc-migration-custom-fields-tables.php
+#, php-format
+msgid "Failed to create table %s."
+msgstr "Falha ao criar tabela %s."
+
+# --- Documentation Tab (new sections) ---
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "7. Audience Custom Fields"
+msgstr "7. Campos Personalizados de Audiência"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "8. Reregistration"
+msgstr "8. Recadastramento"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "9. Ficha PDF"
+msgstr "9. Ficha PDF"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid ""
+"Define custom data fields per audience group. These fields are shown during "
+"reregistration and on the WordPress user profile."
+msgstr ""
+"Defina campos de dados personalizados por grupo de audiência. Esses campos "
+"são exibidos durante o recadastramento e no perfil de usuário do WordPress."
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Supported Field Types:"
+msgstr "Tipos de Campo Suportados:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Single-line text input"
+msgstr "Campo de texto de linha única"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Multi-line text input"
+msgstr "Campo de texto multilinha"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Numeric input"
+msgstr "Entrada numérica"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Date picker (YYYY-MM-DD)"
+msgstr "Seletor de data (AAAA-MM-DD)"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Dropdown with predefined options"
+msgstr "Lista suspensa com opções predefinidas"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Boolean yes/no toggle"
+msgstr "Alternância sim/não"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Validation Options:"
+msgstr "Opções de Validação:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Validates Brazilian CPF format"
+msgstr "Valida o formato de CPF brasileiro"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Validates email format"
+msgstr "Valida o formato de e-mail"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Validates phone number format"
+msgstr "Valida o formato de número de telefone"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Custom regular expression pattern"
+msgstr "Padrão de expressão regular personalizado"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Go to Audiences > Edit an audience > Custom Fields tab"
+msgstr "Vá em Audiências > Edite uma audiência > Aba Campos Personalizados"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Add fields with labels, types, and validation rules"
+msgstr "Adicione campos com rótulos, tipos e regras de validação"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Fields appear on user profiles and reregistration forms automatically"
+msgstr ""
+"Os campos aparecem nos perfis de usuário e formulários de recadastramento "
+"automaticamente"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Child audiences inherit fields from parent audiences"
+msgstr "Audiências filhas herdam campos das audiências pai"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Data Storage:"
+msgstr "Armazenamento de Dados:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid ""
+"Field definitions are stored in the ffc_custom_fields table. User data is "
+"stored as JSON in wp_usermeta under the key ffc_custom_fields_data."
+msgstr ""
+"As definições de campos são armazenadas na tabela ffc_custom_fields. Os "
+"dados dos usuários são armazenados como JSON no wp_usermeta sob a chave "
+"ffc_custom_fields_data."
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid ""
+"Create reregistration campaigns to collect updated information from audience "
+"members. Campaigns run for a set period and can include email notifications."
+msgstr ""
+"Crie campanhas de recadastramento para coletar informações atualizadas dos "
+"membros da audiência. As campanhas funcionam por um período definido e podem "
+"incluir notificações por e-mail."
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Workflow:"
+msgstr "Fluxo de Trabalho:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Create a reregistration campaign linked to an audience"
+msgstr "Crie uma campanha de recadastramento vinculada a uma audiência"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Set the start and end dates for the campaign period"
+msgstr "Defina as datas de início e término do período da campanha"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Configure email notifications (invitation, reminder, confirmation)"
+msgstr "Configure as notificações por e-mail (convite, lembrete, confirmação)"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Activate the campaign — invitation emails are sent automatically"
+msgstr "Ative a campanha — os e-mails de convite são enviados automaticamente"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid ""
+"Users see a banner on their dashboard and complete the reregistration form"
+msgstr ""
+"Os usuários veem um banner no painel e completam o formulário de "
+"recadastramento"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Admins review and approve/reject submissions"
+msgstr "Administradores revisam e aprovam/rejeitam submissões"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Campaign Settings:"
+msgstr "Configurações da Campanha:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Automatically approve submissions without manual review"
+msgstr "Aprovar submissões automaticamente sem revisão manual"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Invitation Email"
+msgstr "E-mail de Convite"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Send email to all audience members when campaign is activated"
+msgstr ""
+"Enviar e-mail para todos os membros da audiência quando a campanha for "
+"ativada"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Reminder Email"
+msgstr "E-mail de Lembrete"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Send reminder email N days before the deadline (configurable)"
+msgstr "Enviar e-mail de lembrete N dias antes do prazo (configurável)"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Confirmation Email"
+msgstr "E-mail de Confirmação"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Send confirmation email after user submits the form"
+msgstr "Enviar e-mail de confirmação após o usuário enviar o formulário"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Submission Statuses:"
+msgstr "Status das Submissões:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "User has not yet submitted"
+msgstr "Usuário ainda não enviou"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "User saved a draft but did not submit"
+msgstr "Usuário salvou um rascunho mas não enviou"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Submitted and awaiting review"
+msgstr "Submetido e aguardando revisão"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Approved by admin"
+msgstr "Aprovado pelo administrador"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Rejected by admin (with notes)"
+msgstr "Rejeitado pelo administrador (com notas)"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Campaign ended without submission"
+msgstr "Campanha encerrada sem submissão"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "REST API Endpoints:"
+msgstr "Endpoints da API REST:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Method"
+msgstr "Método"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Endpoint"
+msgstr "Endpoint"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "List active reregistrations for the current user"
+msgstr "Listar recadastramentos ativos para o usuário atual"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Submit reregistration form data"
+msgstr "Enviar dados do formulário de recadastramento"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Save draft without submitting"
+msgstr "Salvar rascunho sem enviar"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid ""
+"Generate a PDF record (ficha) for reregistration submissions. Available for "
+"submitted and approved submissions."
+msgstr ""
+"Gera um registro PDF (ficha) para submissões de recadastramento. Disponível "
+"para submissões enviadas e aprovadas."
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Where to Download:"
+msgstr "Onde Baixar:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Admin:"
+msgstr "Admin:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid ""
+"Click the \"Ficha\" button next to any submission in the Reregistration > "
+"Submissions list"
+msgstr ""
+"Clique no botão \"Ficha\" ao lado de qualquer submissão na lista "
+"Recadastramento > Submissões"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "User Dashboard:"
+msgstr "Painel do Usuário:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Click \"Download Ficha\" on the reregistration banner after submitting"
+msgstr "Clique em \"Download Ficha\" no banner de recadastramento após enviar"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid ""
+"The ficha template (html/default_ficha_template.html) supports these "
+"variables:"
+msgstr ""
+"O template da ficha (html/default_ficha_template.html) suporta estas "
+"variáveis:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "User full name"
+msgstr "Nome completo do usuário"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "User email"
+msgstr "E-mail do usuário"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "User phone number"
+msgstr "Número de telefone do usuário"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "User department"
+msgstr "Departamento do usuário"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "User organization"
+msgstr "Organização do usuário"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Campaign name"
+msgstr "Nome da campanha"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Audience group name"
+msgstr "Nome do grupo de audiência"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Current status (Submitted, Approved, etc.)"
+msgstr "Status atual (Submetido, Aprovado, etc.)"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Submission date"
+msgstr "Data de submissão"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Auto-generated section with all custom field values"
+msgstr ""
+"Seção gerada automaticamente com todos os valores de campos personalizados"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Date when the PDF was generated"
+msgstr "Data em que o PDF foi gerado"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Customization:"
+msgstr "Personalização:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "The ficha template can be customized using the filter:"
+msgstr "O template da ficha pode ser personalizado usando o filtro:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Audience Custom Fields:"
+msgstr "Campos Personalizados de Audiência:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid ""
+"Define custom data fields per audience group with validation (CPF, email, "
+"phone, regex)"
+msgstr ""
+"Defina campos de dados personalizados por grupo de audiência com validação "
+"(CPF, e-mail, telefone, regex)"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Reregistration Campaigns:"
+msgstr "Campanhas de Recadastramento:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid ""
+"Collect updated information from audience members with configurable email "
+"notifications and approval workflow"
+msgstr ""
+"Colete informações atualizadas dos membros da audiência com notificações por "
+"e-mail configuráveis e fluxo de aprovação"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid "Ficha PDF:"
+msgstr "Ficha PDF:"
+
+#: includes/settings/views/ffc-tab-documentation.php
+msgid ""
+"Generate PDF records for reregistration submissions with custom template "
+"support"
+msgstr ""
+"Gere registros PDF para submissões de recadastramento com suporte a "
+"templates personalizados"

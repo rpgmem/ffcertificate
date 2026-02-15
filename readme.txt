@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.9.10
+Stable tag: 4.11.0
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -38,6 +38,15 @@ Free Form Certificate is a complete WordPress solution for creating dynamic form
 * **CSV Import & Export** - Import and export audiences and members from/to CSV files with user creation.
 * **Conflict Detection** - Real-time conflict checking before booking confirmation.
 * **Email Notifications** - Automatic notifications for new bookings and cancellations.
+
+= Reregistration =
+
+* **Campaign Management** - Create reregistration campaigns linked to audiences with configurable periods.
+* **Custom Fields** - Define per-audience custom fields (text, textarea, number, date, select, checkbox) with validation.
+* **Email Notifications** - Invitation, reminder, and confirmation emails with configurable templates.
+* **Approval Workflow** - Manual or auto-approve submissions with admin review interface.
+* **Ficha PDF** - Generate PDF records for submissions with customizable templates.
+* **Dashboard Integration** - Users see reregistration banners and can submit/download ficha from their dashboard.
 
 = Security & Restrictions =
 
@@ -154,6 +163,28 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.11.0 (2026-02-15) =
+
+Audience custom fields, reregistration campaigns, ficha PDF, email notifications, and audience hierarchy enhancements.
+
+* New: **Audience Custom Fields** — define per-audience custom fields (text, textarea, number, date, select, checkbox) with validation rules (CPF, email, phone, regex)
+* New: **Custom Fields on User Profile** — "FFC Custom Data" section on WordPress user edit screen showing fields grouped by audience with collapsible sections
+* New: **Custom field inheritance** — child audiences inherit fields from parent audiences
+* New: **Reregistration campaigns** — create campaigns linked to audiences with configurable start/end dates, auto-approve, and email settings
+* New: **Reregistration frontend form** — dashboard banner with submission form, draft saving, and field validation
+* New: **Reregistration admin UI** — manage campaigns, review/approve/reject submissions, bulk actions, filters
+* New: **Reregistration email notifications** — invitation (on activation), reminder (N days before deadline via cron), and confirmation (on submission) emails
+* New: **Ficha PDF** — generate PDF records for reregistration submissions with custom template support
+* New: **Ficha download** — available in admin submissions list and user dashboard for submitted/approved submissions
+* New: **Audience hierarchy tree** — recursive rendering with unlimited depth, member counts including children, breadcrumb navigation
+* New: **REST API endpoints** — `GET /user/reregistrations`, `POST /user/reregistration/{id}/submit`, `POST /user/reregistration/{id}/draft`
+* New: **Migration** — `MigrationCustomFieldsTables` ensures tables exist on upgrade from pre-4.11.0 versions
+* New: **Documentation** — 3 new sections: Audience Custom Fields, Reregistration, Ficha PDF
+* New: **pt_BR translations** — all new strings from Sprints 6-11 translated to Portuguese
+* New: 3 database tables: `ffc_custom_fields`, `ffc_reregistrations`, `ffc_reregistration_submissions`
+* New: Email templates: `reregistration-invitation.php`, `reregistration-reminder.php`, `reregistration-confirmation.php`
+* New: Ficha HTML template: `html/default_ficha_template.html`
 
 = 4.9.10 (2026-02-14) =
 
@@ -416,6 +447,9 @@ Repository pattern, REST API, strict types, PSR-4 autoloader, user dashboard.
 Initial release through rate limiting. Core form builder, PDF generation, magic links, QR codes.
 
 == Upgrade Notice ==
+
+= 4.11.0 =
+Audience custom fields, reregistration campaigns, ficha PDF, and email notifications. 3 new database tables created automatically. Migration ensures safe upgrade from older versions. Backup recommended.
 
 = 4.8.0 =
 Environment colors, event list panel, all-day events, booking view/cancel in admin, CSV export for members/audiences, soft-delete pattern. Fixes redirect, labels, and badge overflow. New columns via migration. No breaking changes.
