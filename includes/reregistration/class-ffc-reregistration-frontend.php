@@ -457,7 +457,7 @@ class ReregistrationFrontend {
 
         // Phone format validation (if provided)
         $phone = $data['standard_fields']['phone'] ?? '';
-        if (!empty($phone) && !preg_match('/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/', preg_replace('/\s+/', '', $phone))) {
+        if (!empty($phone) && !\FreeFormCertificate\Core\Utils::validate_phone($phone)) {
             $errors['standard_fields[phone]'] = __('Invalid phone format.', 'ffcertificate');
         }
 
@@ -484,7 +484,7 @@ class ReregistrationFrontend {
             $format = $rules['format'] ?? '';
 
             if ($format === 'cpf') {
-                if (!self::validate_cpf($value)) {
+                if (!\FreeFormCertificate\Core\Utils::validate_cpf($value)) {
                     /* translators: %s: field label */
                     $errors[$name] = sprintf(__('%s is not a valid CPF.', 'ffcertificate'), $cf->field_label);
                 }
@@ -494,7 +494,7 @@ class ReregistrationFrontend {
                     $errors[$name] = sprintf(__('%s is not a valid email.', 'ffcertificate'), $cf->field_label);
                 }
             } elseif ($format === 'phone') {
-                if (!preg_match('/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/', preg_replace('/\s+/', '', $value))) {
+                if (!\FreeFormCertificate\Core\Utils::validate_phone($value)) {
                     /* translators: %s: field label */
                     $errors[$name] = sprintf(__('%s is not a valid phone number.', 'ffcertificate'), $cf->field_label);
                 }
@@ -515,39 +515,6 @@ class ReregistrationFrontend {
     }
 
     /**
-     * Validate CPF (Brazilian tax ID).
-     *
-     * @param string $cpf CPF string.
-     * @return bool
-     */
-    private static function validate_cpf(string $cpf): bool {
-        $cpf = preg_replace('/[^0-9]/', '', $cpf);
-
-        if (strlen($cpf) !== 11) {
-            return false;
-        }
-
-        // Reject known invalid patterns
-        if (preg_match('/^(\d)\1{10}$/', $cpf)) {
-            return false;
-        }
-
-        // Validate check digits
-        for ($t = 9; $t < 11; $t++) {
-            $d = 0;
-            for ($c = 0; $c < $t; $c++) {
-                $d += (int) $cpf[$c] * (($t + 1) - $c);
-            }
-            $d = ((10 * $d) % 11) % 10;
-            if ((int) $cpf[$t] !== $d) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * Process a validated submission.
      *
      * @param object $submission Submission record.
@@ -560,21 +527,21 @@ class ReregistrationFrontend {
         // Determine final status
         $new_status = !empty($rereg->auto_approve) ? 'approved' : 'submitted';
 
-        // Update submission record
-        ReregistrationSubmissionRepository::update((int) $submission->id, array(
+        // Build update data (single query)
+        $update_data = array(
             'data'         => $data,
             'status'       => $new_status,
             'submitted_at' => current_time('mysql'),
-        ));
+        );
 
-        // If auto-approved, set reviewed fields
+        // If auto-approved, include reviewed fields in the same update
         if ($new_status === 'approved') {
-            ReregistrationSubmissionRepository::update((int) $submission->id, array(
-                'reviewed_at' => current_time('mysql'),
-                'reviewed_by' => 0,
-                'notes'       => __('Auto-approved', 'ffcertificate'),
-            ));
+            $update_data['reviewed_at'] = current_time('mysql');
+            $update_data['reviewed_by'] = 0;
+            $update_data['notes']       = __('Auto-approved', 'ffcertificate');
         }
+
+        ReregistrationSubmissionRepository::update((int) $submission->id, $update_data);
 
         // Update user profile with standard fields
         $standard = $data['standard_fields'];

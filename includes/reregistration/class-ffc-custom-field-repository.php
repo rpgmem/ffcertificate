@@ -572,7 +572,7 @@ class CustomFieldRepository {
                     break;
 
                 case 'phone':
-                    if (!preg_match('/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/', $str_value)) {
+                    if (!\FreeFormCertificate\Core\Utils::validate_phone($str_value)) {
                         return new \WP_Error(
                             'field_invalid_phone',
                             /* translators: %s: field label */

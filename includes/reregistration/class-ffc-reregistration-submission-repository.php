@@ -26,6 +26,33 @@ class ReregistrationSubmissionRepository {
     public const STATUSES = array('pending', 'in_progress', 'submitted', 'approved', 'rejected', 'expired');
 
     /**
+     * Get human-readable status labels.
+     *
+     * @return array<string, string> Status key => translated label.
+     */
+    public static function get_status_labels(): array {
+        return array(
+            'pending'     => __('Pending', 'ffcertificate'),
+            'in_progress' => __('In Progress', 'ffcertificate'),
+            'submitted'   => __('Submitted — Pending Review', 'ffcertificate'),
+            'approved'    => __('Approved', 'ffcertificate'),
+            'rejected'    => __('Rejected', 'ffcertificate'),
+            'expired'     => __('Expired', 'ffcertificate'),
+        );
+    }
+
+    /**
+     * Get a single status label.
+     *
+     * @param string $status Status key.
+     * @return string Translated label (falls back to the key).
+     */
+    public static function get_status_label(string $status): string {
+        $labels = self::get_status_labels();
+        return $labels[$status] ?? $status;
+    }
+
+    /**
      * Get table name.
      *
      * @return string

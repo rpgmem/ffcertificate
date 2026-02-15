@@ -49,15 +49,8 @@ class FichaGenerator {
         // Get custom field definitions
         $custom_fields = CustomFieldRepository::get_by_audience_with_parents((int) $rereg->audience_id, true);
 
-        // Status labels
-        $status_labels = array(
-            'pending'     => __('Pending', 'ffcertificate'),
-            'in_progress' => __('In Progress', 'ffcertificate'),
-            'submitted'   => __('Submitted — Pending Review', 'ffcertificate'),
-            'approved'    => __('Approved', 'ffcertificate'),
-            'rejected'    => __('Rejected', 'ffcertificate'),
-            'expired'     => __('Expired', 'ffcertificate'),
-        );
+        // Status labels (centralized in SubmissionRepository)
+        $status_labels = ReregistrationSubmissionRepository::get_status_labels();
 
         // Date formatting
         $date_format = get_option('date_format');

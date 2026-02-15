@@ -197,6 +197,26 @@ class Utils {
     }
     
     /**
+     * Validate Brazilian phone number.
+     *
+     * Accepts: (XX) XXXXX-XXXX or (XX) XXXX-XXXX, with or without
+     * parentheses, spaces, and hyphens.
+     *
+     * @since 4.11.0
+     * @param string $phone Phone string.
+     * @return bool True if valid, false otherwise.
+     */
+    public static function validate_phone( string $phone ): bool {
+        $phone = preg_replace( '/\s+/', '', $phone );
+        return (bool) preg_match( '/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/', $phone );
+    }
+
+    /**
+     * Phone validation regex pattern (without delimiters).
+     */
+    public const PHONE_REGEX = '^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$';
+
+    /**
      * Format CPF with mask
      *
      * @param string $cpf CPF to format

@@ -142,11 +142,7 @@ class ReregistrationEmailHandler {
             return false;
         }
 
-        $status_labels = array(
-            'submitted' => __('Submitted — Pending Review', 'ffcertificate'),
-            'approved'  => __('Approved', 'ffcertificate'),
-        );
-        $status_label = $status_labels[$submission->status] ?? $submission->status;
+        $status_label = ReregistrationSubmissionRepository::get_status_label($submission->status);
 
         return self::send_to_user((int) $submission->user_id, $rereg, $template, array(
             'submission_status' => $status_label,

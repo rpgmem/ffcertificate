@@ -192,18 +192,7 @@ class ReregistrationAdmin {
                 </select>
                 <select name="audience_id">
                     <option value=""><?php esc_html_e('All Audiences', 'ffcertificate'); ?></option>
-                    <?php foreach ($audiences as $parent) : ?>
-                        <option value="<?php echo esc_attr($parent->id); ?>" <?php selected($audience_filter, (int) $parent->id); ?>>
-                            <?php echo esc_html($parent->name); ?>
-                        </option>
-                        <?php if (!empty($parent->children)) : ?>
-                            <?php foreach ($parent->children as $child) : ?>
-                                <option value="<?php echo esc_attr($child->id); ?>" <?php selected($audience_filter, (int) $child->id); ?>>
-                                    &mdash; <?php echo esc_html($child->name); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
+                    <?php $this->render_audience_options($audiences, $audience_filter); ?>
                 </select>
                 <?php submit_button(__('Filter', 'ffcertificate'), '', '', false); ?>
             </form>
@@ -342,18 +331,7 @@ class ReregistrationAdmin {
                     <td>
                         <select name="rereg_audience_id" id="rereg_audience" required>
                             <option value=""><?php esc_html_e('Select audience...', 'ffcertificate'); ?></option>
-                            <?php foreach ($audiences as $parent) : ?>
-                                <option value="<?php echo esc_attr($parent->id); ?>" <?php selected($item->audience_id ?? '', $parent->id); ?>>
-                                    <?php echo esc_html($parent->name); ?>
-                                </option>
-                                <?php if (!empty($parent->children)) : ?>
-                                    <?php foreach ($parent->children as $child) : ?>
-                                        <option value="<?php echo esc_attr($child->id); ?>" <?php selected($item->audience_id ?? '', $child->id); ?>>
-                                            &mdash; <?php echo esc_html($child->name); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            <?php endforeach; ?>
+                            <?php $this->render_audience_options($audiences, $item->audience_id ?? ''); ?>
                         </select>
                         <p class="description"><?php esc_html_e('The reregistration will apply to this audience and all its children.', 'ffcertificate'); ?></p>
                     </td>
@@ -943,5 +921,33 @@ class ReregistrationAdmin {
         }
 
         wp_send_json_success(array('pdf_data' => $ficha_data));
+    }
+
+    /**
+     * Render audience <option> elements with hierarchy (parent → &mdash; child).
+     *
+     * @param array    $audiences Audience tree (objects with optional ->children).
+     * @param int|string $selected  Currently selected audience ID.
+     * @return void
+     */
+    private function render_audience_options(array $audiences, $selected = ''): void {
+        foreach ($audiences as $parent) {
+            printf(
+                '<option value="%s" %s>%s</option>',
+                esc_attr($parent->id),
+                selected($selected, $parent->id, false),
+                esc_html($parent->name)
+            );
+            if (!empty($parent->children)) {
+                foreach ($parent->children as $child) {
+                    printf(
+                        '<option value="%s" %s>&mdash; %s</option>',
+                        esc_attr($child->id),
+                        selected($selected, $child->id, false),
+                        esc_html($child->name)
+                    );
+                }
+            }
+        }
     }
 }
