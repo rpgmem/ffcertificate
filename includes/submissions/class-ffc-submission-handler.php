@@ -343,40 +343,18 @@ class SubmissionHandler {
     }
 
     /**
-     * Decrypt submission data
+     * Decrypt submission data.
+     * Uses Encryption::decrypt_field() for each sensitive field.
      */
     public function decrypt_submission_data($submission): array {
         if (!$submission || !class_exists('\FreeFormCertificate\Core\Encryption')) {
             return $submission;
         }
 
-        if (!empty($submission['email_encrypted'])) {
-            $decrypted = \FreeFormCertificate\Core\Encryption::decrypt($submission['email_encrypted']);
-            if ($decrypted !== false) {
-                $submission['email'] = $decrypted;
-            }
-        }
-
-        if (!empty($submission['cpf_rf_encrypted'])) {
-            $decrypted = \FreeFormCertificate\Core\Encryption::decrypt($submission['cpf_rf_encrypted']);
-            if ($decrypted !== false) {
-                $submission['cpf_rf'] = $decrypted;
-            }
-        }
-
-        if (!empty($submission['user_ip_encrypted'])) {
-            $decrypted = \FreeFormCertificate\Core\Encryption::decrypt($submission['user_ip_encrypted']);
-            if ($decrypted !== false) {
-                $submission['user_ip'] = $decrypted;
-            }
-        }
-
-        if (!empty($submission['data_encrypted'])) {
-            $decrypted = \FreeFormCertificate\Core\Encryption::decrypt($submission['data_encrypted']);
-            if ($decrypted !== false) {
-                $submission['data'] = $decrypted;
-            }
-        }
+        $submission['email']   = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'email');
+        $submission['cpf_rf']  = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'cpf_rf');
+        $submission['user_ip'] = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'user_ip');
+        $submission['data']    = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'data');
 
         return $submission;
     }

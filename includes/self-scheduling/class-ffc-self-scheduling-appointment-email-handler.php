@@ -17,6 +17,8 @@ if (!defined('ABSPATH')) exit;
 
 class AppointmentEmailHandler {
 
+    use \FreeFormCertificate\Core\EmailHelperTrait;
+
     /**
      * Constructor
      */
@@ -35,8 +37,7 @@ class AppointmentEmailHandler {
      * @return bool
      */
     private function are_emails_disabled(): bool {
-        $settings = get_option('ffc_settings', array());
-        return !empty($settings['disable_all_emails']);
+        return self::ffc_emails_disabled();
     }
 
     /**
@@ -46,24 +47,7 @@ class AppointmentEmailHandler {
      * @return string
      */
     private function get_appointment_email(array $appointment): string {
-        if (!empty($appointment['email_encrypted'])) {
-            try {
-                if (class_exists('\FreeFormCertificate\Core\Encryption')) {
-                    $decrypted = \FreeFormCertificate\Core\Encryption::decrypt($appointment['email_encrypted']);
-                    if ($decrypted && is_string($decrypted)) {
-                        return $decrypted;
-                    }
-                }
-            } catch (\Exception $e) {
-                if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-                    \FreeFormCertificate\Core\Utils::debug_log( 'Appointment email decryption failed', array(
-                        'error' => $e->getMessage(),
-                    ) );
-                }
-            }
-        }
-
-        return $appointment['email'] ?? '';
+        return \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
     }
 
     /**
@@ -169,9 +153,7 @@ class AppointmentEmailHandler {
 
         // Get admin emails from calendar config or default
         $email_config = json_decode($calendar['email_config'], true);
-        $admin_emails = !empty($email_config['admin_email'])
-            ? array_filter(array_map('trim', explode(',', $email_config['admin_email'])))
-            : array(get_option('admin_email'));
+        $admin_emails = self::ffc_parse_admin_emails($email_config['admin_email'] ?? '');
 
         // Email subject
         $subject = sprintf(
@@ -187,28 +169,17 @@ class AppointmentEmailHandler {
         // Build email HTML
         $body = '<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">';
         $body .= '<h3 style="color: #0073aa;">' . __('New Appointment Booking', 'ffcertificate') . '</h3>';
-        $body .= '<table border="1" cellpadding="10" style="border-collapse:collapse; width:100%; font-family: sans-serif; border: 1px solid #ddd;">';
 
-        // Appointment details
-        $details = array(
-            'Calendar' => $calendar['title'],
-            'Date' => $date_formatted,
-            'Time' => $time_formatted,
-            'Status' => $this->get_status_label($appointment['status']),
-            'Name' => $appointment['name'] ?? '-',
-            'Email' => $this->get_appointment_email($appointment),
-            'Phone' => $appointment['phone'] ?? '-',
-            'Notes' => $appointment['user_notes'] ?? '-',
-        );
-
-        foreach ($details as $label => $value) {
-            $body .= '<tr>';
-            $body .= '<td style="background:#f9f9f9; width:30%; font-weight: bold; border: 1px solid #ddd;">' . esc_html($label) . '</td>';
-            $body .= '<td style="border: 1px solid #ddd;">' . esc_html($value) . '</td>';
-            $body .= '</tr>';
-        }
-
-        $body .= '</table>';
+        $body .= self::ffc_admin_notification_table(array(
+            __('Calendar', 'ffcertificate') => $calendar['title'],
+            __('Date', 'ffcertificate')     => $date_formatted,
+            __('Time', 'ffcertificate')     => $time_formatted,
+            __('Status', 'ffcertificate')   => $this->get_status_label($appointment['status']),
+            __('Name', 'ffcertificate')     => $appointment['name'] ?? '-',
+            __('Email', 'ffcertificate')    => $this->get_appointment_email($appointment),
+            __('Phone', 'ffcertificate')    => $appointment['phone'] ?? '-',
+            __('Notes', 'ffcertificate')    => $appointment['user_notes'] ?? '-',
+        ));
 
         // Link to manage appointment
         $manage_url = admin_url('edit.php?post_type=ffc_self_scheduling');
@@ -421,16 +392,7 @@ class AppointmentEmailHandler {
      * @return bool Whether the email was sent.
      */
     private function send_mail( string $to, string $subject, string $body ): bool {
-        $sent = wp_mail( $to, $subject, $body, array( 'Content-Type: text/html; charset=UTF-8' ) );
-
-        if ( ! $sent && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-            \FreeFormCertificate\Core\Utils::debug_log( 'Appointment email send failed', array(
-                'to'      => $to,
-                'subject' => $subject,
-            ) );
-        }
-
-        return $sent;
+        return self::ffc_send_mail( $to, $subject, $body );
     }
 
     /**
@@ -439,7 +401,7 @@ class AppointmentEmailHandler {
      * @return string
      */
     private function get_email_template_header(): string {
-        return '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 20px;">';
+        return self::ffc_email_header();
     }
 
     /**
@@ -448,12 +410,7 @@ class AppointmentEmailHandler {
      * @return string
      */
     private function get_email_template_footer(): string {
-        $body = '<div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-        $body .= '<p style="margin: 0; font-size: 12px; color: #999; text-align: center;">';
-        $body .= esc_html(get_bloginfo('name'));
-        $body .= '</p></div>';
-        $body .= '</div>';
-        return $body;
+        return self::ffc_email_footer();
     }
 
     /**

@@ -22,6 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class UserLinkMigrationStrategy implements MigrationStrategyInterface {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     /**
      * @var string Database table name
      */
@@ -45,16 +47,7 @@ class UserLinkMigrationStrategy implements MigrationStrategyInterface {
     public function calculate_status( string $migration_key, array $migration_config ): array {
         global $wpdb;
 
-        // Check if user_id column exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SHOW COLUMNS FROM {$this->table_name} LIKE %s",
-                'user_id'
-            )
-        );
-
-        if ( empty( $column_exists ) ) {
+        if ( !self::column_exists( $this->table_name, 'user_id' ) ) {
             // Column doesn't exist yet - all records pending
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $total = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table_name}" );

@@ -24,6 +24,8 @@ if (!defined('ABSPATH')) exit;
 
 class SelfSchedulingActivator {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     /**
      * Create all self-scheduling-related tables
      *
@@ -52,8 +54,7 @@ class SelfSchedulingActivator {
         $charset_collate = $wpdb->get_charset_collate();
 
         // Check if table already exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
+        if (self::table_exists($table_name)) {
             return;
         }
 
@@ -128,10 +129,7 @@ class SelfSchedulingActivator {
         $charset_collate = $wpdb->get_charset_collate();
 
         // Check if table already exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name;
-
-        if ($table_exists) {
+        if (self::table_exists($table_name)) {
             // Run migration to add cpf_rf columns if they don't exist
             self::migrate_appointments_table();
             return;
@@ -230,66 +228,18 @@ class SelfSchedulingActivator {
         $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
         // Check if cpf_rf column exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'cpf_rf'",
-                DB_NAME,
-                $table_name
-            )
-        );
-
-        if (empty($column_exists)) {
+        if (!self::column_exists($table_name, 'cpf_rf')) {
             // Check if email_hash column exists to determine where to add new columns
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $email_hash_exists = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                    WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'email_hash'",
-                    DB_NAME,
-                    $table_name
-                )
-            );
-
-            if (!empty($email_hash_exists)) {
+            if (self::column_exists($table_name, 'email_hash')) {
                 // Add cpf_rf columns after email_hash
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $wpdb->query(
-                    "ALTER TABLE {$table_name}
-                    ADD COLUMN cpf_rf varchar(20) DEFAULT NULL AFTER email_hash,
-                    ADD COLUMN cpf_rf_encrypted text DEFAULT NULL AFTER cpf_rf,
-                    ADD COLUMN cpf_rf_hash varchar(64) DEFAULT NULL AFTER cpf_rf_encrypted"
-                );
-
-                // Add index separately to avoid errors if it already exists
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $index_exists = $wpdb->get_results(
-                    "SHOW INDEX FROM {$table_name} WHERE Key_name = 'cpf_rf_hash'"
-                );
-                if (empty($index_exists)) {
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                    $wpdb->query("ALTER TABLE {$table_name} ADD INDEX cpf_rf_hash (cpf_rf_hash)");
-                }
+                self::add_column_if_missing($table_name, 'cpf_rf', "varchar(20) DEFAULT NULL", 'email_hash');
+                self::add_column_if_missing($table_name, 'cpf_rf_encrypted', "text DEFAULT NULL", 'cpf_rf');
+                self::add_column_if_missing($table_name, 'cpf_rf_hash', "varchar(64) DEFAULT NULL", 'cpf_rf_encrypted', 'cpf_rf_hash');
             } else {
                 // Fallback: add after email column
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $wpdb->query(
-                    "ALTER TABLE {$table_name}
-                    ADD COLUMN cpf_rf varchar(20) DEFAULT NULL AFTER email,
-                    ADD COLUMN cpf_rf_encrypted text DEFAULT NULL AFTER cpf_rf,
-                    ADD COLUMN cpf_rf_hash varchar(64) DEFAULT NULL AFTER cpf_rf_encrypted"
-                );
-
-                // Add index
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $index_exists = $wpdb->get_results(
-                    "SHOW INDEX FROM {$table_name} WHERE Key_name = 'cpf_rf_hash'"
-                );
-                if (empty($index_exists)) {
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                    $wpdb->query("ALTER TABLE {$table_name} ADD INDEX cpf_rf_hash (cpf_rf_hash)");
-                }
+                self::add_column_if_missing($table_name, 'cpf_rf', "varchar(20) DEFAULT NULL", 'email');
+                self::add_column_if_missing($table_name, 'cpf_rf_encrypted', "text DEFAULT NULL", 'cpf_rf');
+                self::add_column_if_missing($table_name, 'cpf_rf_hash', "varchar(64) DEFAULT NULL", 'cpf_rf_encrypted', 'cpf_rf_hash');
             }
         }
     }
@@ -304,33 +254,9 @@ class SelfSchedulingActivator {
         $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
         // Check if validation_code column exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'validation_code'",
-                DB_NAME,
-                $table_name
-            )
-        );
-
-        if (empty($column_exists)) {
+        if (!self::column_exists($table_name, 'validation_code')) {
             // Add validation_code column after confirmation_token
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $wpdb->query(
-                "ALTER TABLE {$table_name}
-                ADD COLUMN validation_code varchar(20) DEFAULT NULL AFTER confirmation_token"
-            );
-
-            // Add index
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $index_exists = $wpdb->get_results(
-                "SHOW INDEX FROM {$table_name} WHERE Key_name = 'validation_code'"
-            );
-            if (empty($index_exists)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $wpdb->query("ALTER TABLE {$table_name} ADD INDEX validation_code (validation_code)");
-            }
+            self::add_column_if_missing($table_name, 'validation_code', "varchar(20) DEFAULT NULL", 'confirmation_token', 'validation_code');
 
             // Generate validation codes for existing appointments
             self::generate_validation_codes_for_existing_appointments();
@@ -506,10 +432,8 @@ class SelfSchedulingActivator {
 
         // Migrate appointments table
         $appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $appointments_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $appointments_table ) ) == $appointments_table;
 
-        if ($appointments_exists) {
+        if (self::table_exists($appointments_table)) {
             // Run migration to ensure cpf_rf columns exist
             self::migrate_appointments_table();
             // Run migration to ensure validation_code column exists
@@ -520,10 +444,8 @@ class SelfSchedulingActivator {
 
         // Migrate calendars table
         $calendars_table = $wpdb->prefix . 'ffc_self_scheduling_calendars';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $calendars_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $calendars_table ) ) == $calendars_table;
 
-        if ($calendars_exists) {
+        if (self::table_exists($calendars_table)) {
             // Run migration to ensure minimum_interval_between_bookings column exists
             self::migrate_calendars_table();
             // Run migration to add visibility columns (replacing require_login/allowed_roles)
@@ -542,25 +464,13 @@ class SelfSchedulingActivator {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
 
-        // Check if minimum_interval_between_bookings column exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'minimum_interval_between_bookings'",
-                DB_NAME,
-                $table_name
-            )
+        // Add minimum_interval_between_bookings column after cancellation_min_hours
+        self::add_column_if_missing(
+            $table_name,
+            'minimum_interval_between_bookings',
+            "int unsigned DEFAULT 24 COMMENT 'Minimum hours between user bookings (0 = disabled)'",
+            'cancellation_min_hours'
         );
-
-        if (empty($column_exists)) {
-            // Add minimum_interval_between_bookings column after cancellation_min_hours
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $wpdb->query(
-                "ALTER TABLE {$table_name}
-                ADD COLUMN minimum_interval_between_bookings int unsigned DEFAULT 24 COMMENT 'Minimum hours between user bookings (0 = disabled)' AFTER cancellation_min_hours"
-            );
-        }
     }
 
     /**
@@ -577,41 +487,29 @@ class SelfSchedulingActivator {
         $table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
 
         // Check if visibility column already exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'visibility'",
-                DB_NAME,
-                $table_name
-            )
-        );
-
-        if (!empty($column_exists)) {
+        if (self::column_exists($table_name, 'visibility')) {
             return;
         }
 
         // Check if require_login column exists (old schema)
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $require_login_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'require_login'",
-                DB_NAME,
-                $table_name
-            )
-        );
+        $require_login_exists = self::column_exists($table_name, 'require_login');
 
         // Add new columns
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query(
-            "ALTER TABLE {$table_name}
-            ADD COLUMN visibility enum('public','private') DEFAULT 'public' COMMENT 'Calendar visibility: public or private' AFTER max_appointments_per_slot,
-            ADD COLUMN scheduling_visibility enum('public','private') DEFAULT 'public' COMMENT 'Booking access: public or private' AFTER visibility"
+        self::add_column_if_missing(
+            $table_name,
+            'visibility',
+            "enum('public','private') DEFAULT 'public' COMMENT 'Calendar visibility: public or private'",
+            'max_appointments_per_slot'
+        );
+        self::add_column_if_missing(
+            $table_name,
+            'scheduling_visibility',
+            "enum('public','private') DEFAULT 'public' COMMENT 'Booking access: public or private'",
+            'visibility'
         );
 
         // Migrate data from require_login if the old column exists
-        if (!empty($require_login_exists)) {
+        if ($require_login_exists) {
             // require_login=1 → private/private
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $wpdb->query(
@@ -651,25 +549,19 @@ class SelfSchedulingActivator {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
 
-        // Check if restrict_viewing_to_hours column already exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'restrict_viewing_to_hours'",
-                DB_NAME,
-                $table_name
-            )
+        // Add business hours restriction columns after scheduling_visibility
+        self::add_column_if_missing(
+            $table_name,
+            'restrict_viewing_to_hours',
+            "tinyint(1) DEFAULT 0 COMMENT 'Restrict viewing to working hours only'",
+            'scheduling_visibility'
         );
-
-        if (empty($column_exists)) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $wpdb->query(
-                "ALTER TABLE {$table_name}
-                ADD COLUMN restrict_viewing_to_hours tinyint(1) DEFAULT 0 COMMENT 'Restrict viewing to working hours only' AFTER scheduling_visibility,
-                ADD COLUMN restrict_booking_to_hours tinyint(1) DEFAULT 0 COMMENT 'Restrict booking to working hours only' AFTER restrict_viewing_to_hours"
-            );
-        }
+        self::add_column_if_missing(
+            $table_name,
+            'restrict_booking_to_hours',
+            "tinyint(1) DEFAULT 0 COMMENT 'Restrict booking to working hours only'",
+            'restrict_viewing_to_hours'
+        );
     }
 
     /**
@@ -685,8 +577,7 @@ class SelfSchedulingActivator {
         $charset_collate = $wpdb->get_charset_collate();
 
         // Check if table already exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
+        if (self::table_exists($table_name)) {
             return;
         }
 
@@ -756,19 +647,10 @@ class SelfSchedulingActivator {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-        $indexes = [
+        self::add_indexes_if_missing($table_name, [
             'idx_calendar_status_date' => '(calendar_id, status, appointment_date)',
             'idx_user_status'          => '(user_id, status)',
-        ];
-
-        foreach ( $indexes as $index_name => $columns ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $exists = $wpdb->get_results( "SHOW INDEX FROM {$table_name} WHERE Key_name = '{$index_name}'" );
-            if ( empty( $exists ) ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $wpdb->query( "ALTER TABLE {$table_name} ADD INDEX {$index_name} {$columns}" );
-            }
-        }
+        ]);
     }
 
     /**
@@ -783,10 +665,10 @@ class SelfSchedulingActivator {
         $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
         // Check if validation_code index exists and whether it's already unique
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $indexes = $wpdb->get_results( "SHOW INDEX FROM {$table_name} WHERE Key_name = 'validation_code'" );
+        if (self::index_exists($table_name, 'validation_code')) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $indexes = $wpdb->get_results( "SHOW INDEX FROM {$table_name} WHERE Key_name = 'validation_code'" );
 
-        if ( ! empty( $indexes ) ) {
             // Check if Non_unique = 0 (already unique)
             if ( (int) $indexes[0]->Non_unique === 0 ) {
                 return; // Already unique

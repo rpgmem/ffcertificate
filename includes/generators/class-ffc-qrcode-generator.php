@@ -26,6 +26,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
 
 class QRCodeGenerator {
+
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
     
     /**
      * Default settings
@@ -361,16 +363,8 @@ class QRCodeGenerator {
      * @return bool
      */
     private function cache_column_exists(): bool {
-        global $wpdb;
         $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
-        
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $column = $wpdb->get_results( $wpdb->prepare(
-            "SHOW COLUMNS FROM {$table_name} LIKE %s",
-            'qr_code_cache'
-        ) );
-        
-        return ! empty( $column );
+        return self::column_exists( $table_name, 'qr_code_cache' );
     }
     
     /**
@@ -379,27 +373,8 @@ class QRCodeGenerator {
      * @return bool Success
      */
     private function create_cache_column(): bool {
-        global $wpdb;
         $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
-        
-        \FreeFormCertificate\Core\Utils::debug_log( 'Creating qr_code_cache column', array(
-            'table' => $table_name
-        ) );
-        
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $result = $wpdb->query(
-            "ALTER TABLE {$table_name} ADD COLUMN qr_code_cache LONGTEXT NULL AFTER magic_token"
-        );
-        
-        if ( $result !== false ) {
-            \FreeFormCertificate\Core\Utils::debug_log( 'qr_code_cache column created successfully' );
-        } else {
-            \FreeFormCertificate\Core\Utils::debug_log( 'Failed to create qr_code_cache column', array(
-                'error' => $wpdb->last_error
-            ) );
-        }
-        
-        return $result !== false;
+        return self::add_column_if_missing( $table_name, 'qr_code_cache', 'LONGTEXT NULL', 'magic_token' );
     }
     
     /**

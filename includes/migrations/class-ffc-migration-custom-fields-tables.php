@@ -25,6 +25,8 @@ if (!defined('ABSPATH')) {
 
 class MigrationCustomFieldsTables {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     /**
      * Option key to track migration status
      */
@@ -102,8 +104,7 @@ class MigrationCustomFieldsTables {
         $table_name = $wpdb->prefix . 'ffc_custom_fields';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) === $table_name) {
+        if (self::table_exists($table_name)) {
             return [
                 'success' => true,
                 'message' => sprintf(
@@ -136,8 +137,7 @@ class MigrationCustomFieldsTables {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
         dbDelta($sql);
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) === $table_name;
+        $exists = self::table_exists($table_name);
 
         return [
             'success' => $exists,
@@ -165,8 +165,7 @@ class MigrationCustomFieldsTables {
         $table_name = $wpdb->prefix . 'ffc_reregistrations';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) === $table_name) {
+        if (self::table_exists($table_name)) {
             return [
                 'success' => true,
                 'message' => sprintf(
@@ -201,8 +200,7 @@ class MigrationCustomFieldsTables {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
         dbDelta($sql);
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) === $table_name;
+        $exists = self::table_exists($table_name);
 
         return [
             'success' => $exists,
@@ -230,8 +228,7 @@ class MigrationCustomFieldsTables {
         $table_name = $wpdb->prefix . 'ffc_reregistration_submissions';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) === $table_name) {
+        if (self::table_exists($table_name)) {
             return [
                 'success' => true,
                 'message' => sprintf(
@@ -263,8 +260,7 @@ class MigrationCustomFieldsTables {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
         dbDelta($sql);
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) === $table_name;
+        $exists = self::table_exists($table_name);
 
         return [
             'success' => $exists,
@@ -295,10 +291,7 @@ class MigrationCustomFieldsTables {
         foreach (self::$tables as $table_suffix) {
             $table_name = $wpdb->prefix . $table_suffix;
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $exists = $wpdb->get_var(
-                $wpdb->prepare('SHOW TABLES LIKE %s', $table_name)
-            ) === $table_name;
+            $exists = self::table_exists($table_name);
 
             $tables_info[$table_suffix] = [
                 'table' => $table_name,

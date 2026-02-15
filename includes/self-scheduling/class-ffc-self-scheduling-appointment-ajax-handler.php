@@ -22,6 +22,8 @@ if (!defined('ABSPATH')) exit;
 
 class AppointmentAjaxHandler {
 
+    use \FreeFormCertificate\Core\AjaxTrait;
+
     private AppointmentHandler $handler;
 
     /**
@@ -68,9 +70,9 @@ class AppointmentAjaxHandler {
                 return;
             }
 
-            $calendar_id = isset($_POST['calendar_id']) ? absint(wp_unslash($_POST['calendar_id'])) : 0;
-            $date = isset($_POST['date']) ? sanitize_text_field(wp_unslash($_POST['date'])) : '';
-            $time = isset($_POST['time']) ? sanitize_text_field(wp_unslash($_POST['time'])) : '';
+            $calendar_id = $this->get_post_int('calendar_id');
+            $date = $this->get_post_param('date');
+            $time = $this->get_post_param('time');
 
             if (!$calendar_id || !$date || !$time) {
                 wp_send_json_error(array(
@@ -83,11 +85,11 @@ class AppointmentAjaxHandler {
                 'calendar_id' => $calendar_id,
                 'appointment_date' => $date,
                 'start_time' => $time,
-                'name' => isset($_POST['name']) ? sanitize_text_field(wp_unslash($_POST['name'])) : '',
+                'name' => $this->get_post_param('name'),
                 'email' => isset($_POST['email']) ? sanitize_email(wp_unslash($_POST['email'])) : '',
-                'cpf_rf' => isset($_POST['cpf_rf']) ? sanitize_text_field(wp_unslash($_POST['cpf_rf'])) : '',
+                'cpf_rf' => $this->get_post_param('cpf_rf'),
                 'user_notes' => isset($_POST['notes']) ? sanitize_textarea_field(wp_unslash($_POST['notes'])) : '',
-                'custom_data' => isset($_POST['custom_data']) ? array_map('sanitize_text_field', wp_unslash($_POST['custom_data'])) : array(),
+                'custom_data' => $this->get_post_array('custom_data'),
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() used as boolean only.
                 'consent_given' => isset($_POST['consent']) ? 1 : 0,
                 'consent_text' => isset($_POST['consent_text']) ? sanitize_textarea_field(wp_unslash($_POST['consent_text'])) : '',
@@ -162,8 +164,8 @@ class AppointmentAjaxHandler {
     public function ajax_get_available_slots(): void {
         check_ajax_referer('ffc_self_scheduling_nonce', 'nonce');
 
-        $calendar_id = isset($_POST['calendar_id']) ? absint(wp_unslash($_POST['calendar_id'])) : 0;
-        $date = isset($_POST['date']) ? sanitize_text_field(wp_unslash($_POST['date'])) : '';
+        $calendar_id = $this->get_post_int('calendar_id');
+        $date = $this->get_post_param('date');
 
         if (!$calendar_id || !$date) {
             wp_send_json_error(array(
@@ -192,24 +194,10 @@ class AppointmentAjaxHandler {
      */
     public function ajax_cancel_appointment(): void {
         try {
-            $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+            $this->verify_ajax_nonce(array('ffc_self_scheduling_nonce', 'wp_rest'));
 
-            $nonce_valid = false;
-            if (wp_verify_nonce($nonce, 'ffc_self_scheduling_nonce')) {
-                $nonce_valid = true;
-            } elseif (wp_verify_nonce($nonce, 'wp_rest')) {
-                $nonce_valid = true;
-            }
-
-            if (!$nonce_valid) {
-                wp_send_json_error(array(
-                    'message' => __('Security check failed. Please refresh the page and try again.', 'ffcertificate')
-                ));
-                return;
-            }
-
-            $appointment_id = isset($_POST['appointment_id']) ? absint(wp_unslash($_POST['appointment_id'])) : 0;
-            $token = isset($_POST['token']) ? sanitize_text_field(wp_unslash($_POST['token'])) : '';
+            $appointment_id = $this->get_post_int('appointment_id');
+            $token = $this->get_post_param('token');
             $reason = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])) : '';
 
             if (!$appointment_id) {
@@ -253,9 +241,9 @@ class AppointmentAjaxHandler {
         try {
             check_ajax_referer('ffc_self_scheduling_nonce', 'nonce');
 
-            $calendar_id = isset($_POST['calendar_id']) ? absint(wp_unslash($_POST['calendar_id'])) : 0;
-            $year = isset($_POST['year']) ? absint(wp_unslash($_POST['year'])) : (int) gmdate('Y');
-            $month = isset($_POST['month']) ? absint(wp_unslash($_POST['month'])) : (int) gmdate('n');
+            $calendar_id = $this->get_post_int('calendar_id');
+            $year = $this->get_post_int('year') ?: (int) gmdate('Y');
+            $month = $this->get_post_int('month') ?: (int) gmdate('n');
 
             if (!$calendar_id) {
                 wp_send_json_error(array('message' => __('Invalid calendar.', 'ffcertificate')));

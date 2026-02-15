@@ -23,6 +23,8 @@ if (!defined('ABSPATH')) exit;
 
 class UserDataRestController {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     /**
      * API namespace
      */
@@ -217,17 +219,8 @@ class UserDataRestController {
             $certificates = array();
 
             foreach ($submissions as $submission) {
-                $email_display = '';
-                if (!empty($submission['email_encrypted'])) {
-                    try {
-                        $email_plain = \FreeFormCertificate\Core\Encryption::decrypt($submission['email_encrypted']);
-                        $email_display = ($email_plain && is_string($email_plain)) ? \FreeFormCertificate\Core\Utils::mask_email($email_plain) : '';
-                    } catch (\Exception $e) {
-                        $email_display = __('Error decrypting', 'ffcertificate');
-                    }
-                } elseif (!empty($submission['email'])) {
-                    $email_display = \FreeFormCertificate\Core\Utils::mask_email($submission['email']);
-                }
+                $email_plain = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'email');
+                $email_display = ($email_plain !== '') ? \FreeFormCertificate\Core\Utils::mask_email($email_plain) : '';
 
                 $verification_page_id = get_option('ffc_verification_page_id');
                 $verification_url = $verification_page_id ? get_permalink((int) $verification_page_id) : home_url('/valid');
@@ -371,9 +364,7 @@ class UserDataRestController {
             $audiences_table = $wpdb->prefix . 'ffc_audiences';
             $members_table = $wpdb->prefix . 'ffc_audience_members';
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table));
-            if ($table_exists) {
+            if (self::table_exists($members_table)) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $audience_groups = $wpdb->get_results($wpdb->prepare(
                     "SELECT a.name, a.color
@@ -598,19 +589,7 @@ class UserDataRestController {
                     $time_formatted = ($time_timestamp !== false) ? date_i18n('H:i', $time_timestamp) : $appointment['start_time'];
                 }
 
-                $email_display = '';
-                if (!empty($appointment['email_encrypted'])) {
-                    try {
-                        if (class_exists('\FreeFormCertificate\Core\Encryption')) {
-                            $email_plain = \FreeFormCertificate\Core\Encryption::decrypt($appointment['email_encrypted']);
-                            $email_display = ($email_plain && is_string($email_plain)) ? $email_plain : '';
-                        }
-                    } catch (\Exception $e) {
-                        $email_display = '';
-                    }
-                } elseif (!empty($appointment['email'])) {
-                    $email_display = $appointment['email'];
-                }
+                $email_display = \FreeFormCertificate\Core\Encryption::decrypt_field($appointment, 'email');
 
                 $end_time_formatted = '';
                 if (!empty($appointment['end_time'])) {
@@ -1051,9 +1030,7 @@ class UserDataRestController {
                 $booking_audiences_table = $wpdb->prefix . 'ffc_audience_booking_audiences';
                 $members_table = $wpdb->prefix . 'ffc_audience_members';
 
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $bookings_table));
-                if ($table_exists) {
+                if (self::table_exists($bookings_table)) {
                     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
                     $summary['upcoming_group_events'] = (int) $wpdb->get_var($wpdb->prepare(
                         "SELECT COUNT(DISTINCT b.id)
@@ -1115,19 +1092,8 @@ class UserDataRestController {
         $audiences_table = $wpdb->prefix . 'ffc_audiences';
         $members_table = $wpdb->prefix . 'ffc_audience_members';
 
-        // Check tables exist
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if (!$wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $audiences_table))) {
-            return rest_ensure_response(array('groups' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
-        }
-
-        // Check if allow_self_join column exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $col_exists = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'allow_self_join'",
-            DB_NAME, $audiences_table
-        ));
-        if (!$col_exists) {
+        // Check tables and columns exist
+        if (!self::table_exists($audiences_table) || !self::column_exists($audiences_table, 'allow_self_join')) {
             return rest_ensure_response(array('groups' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
         }
 

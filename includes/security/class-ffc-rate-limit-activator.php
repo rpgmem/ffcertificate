@@ -14,7 +14,9 @@ namespace FreeFormCertificate\Security;
 if (!defined('ABSPATH')) exit;
 
 class RateLimitActivator {
-    
+
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     public static function create_tables(): bool {
         global $wpdb;
         
@@ -24,14 +26,8 @@ class RateLimitActivator {
         $table_limits = $wpdb->prefix . 'ffc_rate_limits';
         $table_logs = $wpdb->prefix . 'ffc_rate_limit_logs';
         
-        // Check if tables exist
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $limits_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_limits'") === $table_limits;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $logs_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_logs'") === $table_logs;
-        
-        // TABLE 1: Rate Limits
-        if (!$limits_exists) {
+        // Check if tables exist (using prepared statements via trait)
+        if (!self::table_exists($table_limits)) {
             $sql_limits = "CREATE TABLE $table_limits (
                 id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
                 type varchar(20) NOT NULL,
@@ -61,7 +57,7 @@ class RateLimitActivator {
         }
         
         // TABLE 2: Logs
-        if (!$logs_exists) {
+        if (!self::table_exists($table_logs)) {
             $sql_logs = "CREATE TABLE $table_logs (
                 id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
                 type varchar(20) NOT NULL,
@@ -93,16 +89,9 @@ class RateLimitActivator {
     
     public static function tables_exist(): bool {
         global $wpdb;
-        
-        $table_limits = $wpdb->prefix . 'ffc_rate_limits';
-        $table_logs = $wpdb->prefix . 'ffc_rate_limit_logs';
-        
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $limits_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_limits'") === $table_limits;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $logs_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_logs'") === $table_logs;
-        
-        return $limits_exists && $logs_exists;
+
+        return self::table_exists($wpdb->prefix . 'ffc_rate_limits')
+            && self::table_exists($wpdb->prefix . 'ffc_rate_limit_logs');
     }
     
     public static function drop_tables(): bool {

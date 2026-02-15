@@ -22,6 +22,8 @@ if (!defined('ABSPATH')) exit;
 
 class AppointmentCsvExporter {
 
+    use \FreeFormCertificate\Core\CsvExportTrait;
+
     /**
      * @var AppointmentRepository
      */
@@ -81,72 +83,27 @@ class AppointmentCsvExporter {
     }
 
     /**
-     * Get all unique custom data keys from appointments
-     *
-     * @param array $rows
-     * @return array
+     * Get all unique custom data keys from appointments.
+     * Delegates to CsvExportTrait::extract_dynamic_keys().
      */
     private function get_dynamic_columns(array $rows): array {
-        $all_keys = array();
-
-        foreach ($rows as $r) {
-            $d = $this->get_custom_data($r);
-            if (is_array($d)) {
-                $all_keys = array_merge($all_keys, array_keys($d));
-            }
-        }
-
-        return array_unique($all_keys);
+        return $this->extract_dynamic_keys($rows, 'custom_data', 'custom_data_encrypted');
     }
 
     /**
-     * Get custom data from a row, handling encryption
-     *
-     * @param array $row
-     * @return array
+     * Get custom data from a row, handling encryption.
+     * Delegates to CsvExportTrait::decode_json_field().
      */
     private function get_custom_data(array $row): array {
-        $json = null;
-
-        // Try encrypted first
-        if (!empty($row['custom_data_encrypted'])) {
-            try {
-                if (class_exists('\FreeFormCertificate\Core\Encryption')) {
-                    $json = \FreeFormCertificate\Core\Encryption::decrypt($row['custom_data_encrypted']);
-                }
-            } catch (\Exception $e) {
-                $json = null;
-            }
-        }
-
-        // Fallback to plain text
-        if ($json === null && !empty($row['custom_data'])) {
-            $json = $row['custom_data'];
-        }
-
-        if (empty($json)) {
-            return array();
-        }
-
-        $decoded = json_decode($json, true);
-        return is_array($decoded) ? $decoded : array();
+        return $this->decode_json_field($row, 'custom_data', 'custom_data_encrypted');
     }
 
     /**
-     * Generate translatable headers for dynamic columns
-     *
-     * @param array $dynamic_keys
-     * @return array
+     * Generate translatable headers for dynamic columns.
+     * Delegates to CsvExportTrait::build_dynamic_headers().
      */
     private function get_dynamic_headers(array $dynamic_keys): array {
-        $dynamic_headers = array();
-
-        foreach ($dynamic_keys as $key) {
-            $label = ucwords(str_replace(array('_', '-'), ' ', $key));
-            $dynamic_headers[] = $label;
-        }
-
-        return $dynamic_headers;
+        return $this->build_dynamic_headers($dynamic_keys);
     }
 
     /**
@@ -164,41 +121,10 @@ class AppointmentCsvExporter {
             $calendar_title = $calendar['title'] ?? __('(Deleted)', 'ffcertificate');
         }
 
-        // Decrypt email
-        $email = '';
-        if (!empty($row['email_encrypted'])) {
-            try {
-                $email = \FreeFormCertificate\Core\Encryption::decrypt($row['email_encrypted']);
-            } catch (\Exception $e) {
-                $email = '';
-            }
-        } elseif (!empty($row['email'])) {
-            $email = $row['email'];
-        }
-
-        // Decrypt phone
-        $phone = '';
-        if (!empty($row['phone_encrypted'])) {
-            try {
-                $phone = \FreeFormCertificate\Core\Encryption::decrypt($row['phone_encrypted']);
-            } catch (\Exception $e) {
-                $phone = '';
-            }
-        } elseif (!empty($row['phone'])) {
-            $phone = $row['phone'];
-        }
-
-        // Decrypt user IP
-        $user_ip = '';
-        if (!empty($row['user_ip_encrypted'])) {
-            try {
-                $user_ip = \FreeFormCertificate\Core\Encryption::decrypt($row['user_ip_encrypted']);
-            } catch (\Exception $e) {
-                $user_ip = '';
-            }
-        } elseif (!empty($row['user_ip'])) {
-            $user_ip = $row['user_ip'];
-        }
+        // Decrypt sensitive fields (encrypted → plain fallback)
+        $email   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' );
+        $phone   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'phone' );
+        $user_ip = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'user_ip' );
 
         // Consent given (Yes/No)
         $consent_given = '';

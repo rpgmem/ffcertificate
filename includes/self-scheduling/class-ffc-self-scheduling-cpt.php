@@ -414,15 +414,8 @@ class SelfSchedulingCPT {
             return;
         }
 
-        // Get recipient email
-        $email = '';
-        if (!empty($appointment['email'])) {
-            $email = $appointment['email'];
-        } elseif (!empty($appointment['email_encrypted'])) {
-            if (class_exists('\FreeFormCertificate\Core\Encryption')) {
-                $email = \FreeFormCertificate\Core\Encryption::decrypt($appointment['email_encrypted']);
-            }
-        }
+        // Get recipient email (encrypted → plain fallback)
+        $email = \FreeFormCertificate\Core\Encryption::decrypt_field($appointment, 'email');
 
         if (empty($email) || !is_email($email)) {
             return;

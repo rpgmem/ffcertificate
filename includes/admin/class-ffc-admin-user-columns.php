@@ -23,6 +23,8 @@ if (!defined('ABSPATH')) exit;
 
 class AdminUserColumns {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     /**
      * Cached flag for appointments table existence
      *
@@ -253,8 +255,7 @@ class AdminUserColumns {
 
         // Check if table exists (cached per request)
         if ( self::$appointments_table_exists === null ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            self::$appointments_table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) == $table;
+            self::$appointments_table_exists = self::table_exists( $table );
         }
 
         self::$appointment_counts_cache = array();

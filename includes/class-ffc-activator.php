@@ -15,6 +15,8 @@ if (!defined('ABSPATH')) exit;
 
 class Activator {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     public static function activate(): void {
         self::create_submissions_table();
         self::create_activity_log_table();
@@ -74,8 +76,7 @@ class Activator {
         $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
         $charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
+        if (self::table_exists($table_name)) {
             return;
         }
 
@@ -129,31 +130,8 @@ class Activator {
             'edited_by' => array('type' => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL', 'after' => 'edited_at')
         );
 
-        foreach ($columns as $column_name => $config) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $exists = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM {$table_name} LIKE %s", $column_name));
-            if (!empty($exists)) continue;
-
-            $after = isset($config['after']) ? "AFTER {$config['after']}" : '';
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $wpdb->query("ALTER TABLE {$table_name} ADD COLUMN {$column_name} {$config['type']} {$after}");
-
-            if (isset($config['index'])) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $index_exists = $wpdb->get_results("SHOW INDEX FROM {$table_name} WHERE Key_name = 'idx_{$config['index']}'");
-                if (empty($index_exists)) {
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                    $wpdb->query("ALTER TABLE {$table_name} ADD INDEX idx_{$config['index']} ({$column_name})");
-                }
-            }
-        }
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $composite_index = $wpdb->get_results("SHOW INDEX FROM {$table_name} WHERE Key_name = 'idx_form_cpf'");
-        if (empty($composite_index)) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $wpdb->query("ALTER TABLE {$table_name} ADD INDEX idx_form_cpf (form_id, cpf_rf)");
-        }
+        self::add_columns_if_missing($table_name, $columns);
+        self::add_index_if_missing($table_name, 'idx_form_cpf', '(form_id, cpf_rf)');
     }
 
     /**
@@ -162,23 +140,13 @@ class Activator {
      * @since 4.6.2
      */
     private static function add_composite_indexes(): void {
-        global $wpdb;
         $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        $indexes = [
+        self::add_indexes_if_missing($table_name, [
             'idx_form_status'           => '(form_id, status)',
             'idx_status_submission_date' => '(status, submission_date)',
             'idx_email_hash_form_id'    => '(email_hash, form_id)',
-        ];
-
-        foreach ( $indexes as $index_name => $columns ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $exists = $wpdb->get_results( "SHOW INDEX FROM {$table_name} WHERE Key_name = '{$index_name}'" );
-            if ( empty( $exists ) ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $wpdb->query( "ALTER TABLE {$table_name} ADD INDEX {$index_name} {$columns}" );
-            }
-        }
+        ]);
     }
 
     /**

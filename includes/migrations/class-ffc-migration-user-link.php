@@ -27,6 +27,8 @@ if (!defined('ABSPATH')) exit;
 
 class MigrationUserLink {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     /**
      * Run the migration
      *
@@ -343,38 +345,8 @@ class MigrationUserLink {
     private static function add_user_id_column(string $table): bool {
         global $wpdb;
 
-        // Check if column already exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SHOW COLUMNS FROM {$table} LIKE %s",
-                'user_id'
-            )
-        );
-
-        if (!empty($column_exists)) {
-            return true; // Column already exists
-        }
-
-        // Add column after form_id
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query(
-            "ALTER TABLE {$table}
-             ADD COLUMN user_id BIGINT UNSIGNED DEFAULT NULL AFTER form_id"
-        );
-
-        // Add index for faster queries
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $index_exists = $wpdb->get_results(
-            "SHOW INDEX FROM {$table} WHERE Key_name = 'idx_user_id'"
-        );
-
-        if (empty($index_exists)) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $wpdb->query(
-                "ALTER TABLE {$table} ADD INDEX idx_user_id (user_id)"
-            );
-        }
+        // Add user_id column + index if missing (trait handles existence checks)
+        self::add_column_if_missing($table, 'user_id', 'BIGINT UNSIGNED DEFAULT NULL', 'form_id', 'user_id');
 
         return true;
     }

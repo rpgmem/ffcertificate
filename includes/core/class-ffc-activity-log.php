@@ -38,6 +38,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class ActivityLog {
 
+    use DatabaseHelperTrait;
+
     /**
      * Log levels
      */
@@ -236,9 +238,8 @@ class ActivityLog {
         $charset_collate = $wpdb->get_charset_collate();
 
         // Check if table already exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
-            return true; // Table exists
+        if ( self::table_exists( $table_name ) ) {
+            return true;
         }
 
         $sql = "CREATE TABLE {$table_name} (

@@ -19,6 +19,8 @@ if (!defined('ABSPATH')) exit;
 
 class UserService {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     /**
      * Get full user profile (WP data + FFC profile + capabilities)
      *
@@ -101,8 +103,7 @@ class UserService {
 
         // Appointment count
         $appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-        $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $appointments_table));
-        if ($table_exists) {
+        if (self::table_exists($appointments_table)) {
             $stats['appointments'] = (int) $wpdb->get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'cancelled'",
                 $appointments_table,
@@ -112,8 +113,7 @@ class UserService {
 
         // Audience group count
         $members_table = $wpdb->prefix . 'ffc_audience_members';
-        $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $members_table));
-        if ($table_exists) {
+        if (self::table_exists($members_table)) {
             $stats['audience_groups'] = (int) $wpdb->get_var($wpdb->prepare(
                 "SELECT COUNT(*) FROM %i WHERE user_id = %d",
                 $members_table,

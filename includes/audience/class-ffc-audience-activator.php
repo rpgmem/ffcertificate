@@ -32,6 +32,8 @@ if (!defined('ABSPATH')) {
 
 class AudienceActivator {
 
+    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+
     /**
      * Create all audience-related tables
      *
@@ -88,8 +90,7 @@ class AudienceActivator {
         $table_name = $wpdb->prefix . 'ffc_audience_schedules';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
+        if (self::table_exists($table_name)) {
             return;
         }
 
@@ -130,8 +131,7 @@ class AudienceActivator {
         $table_name = $wpdb->prefix . 'ffc_audience_schedule_permissions';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
+        if (self::table_exists($table_name)) {
             return;
         }
 
@@ -165,8 +165,7 @@ class AudienceActivator {
         $table_name = $wpdb->prefix . 'ffc_audience_environments';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
+        if (self::table_exists($table_name)) {
             return;
         }
 
@@ -201,8 +200,7 @@ class AudienceActivator {
         $table_name = $wpdb->prefix . 'ffc_audience_holidays';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
+        if (self::table_exists($table_name)) {
             return;
         }
 
@@ -235,8 +233,7 @@ class AudienceActivator {
         $table_name = $wpdb->prefix . 'ffc_audiences';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
+        if (self::table_exists($table_name)) {
             return;
         }
 
@@ -271,8 +268,7 @@ class AudienceActivator {
         $table_name = $wpdb->prefix . 'ffc_audience_members';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
+        if (self::table_exists($table_name)) {
             return;
         }
 
@@ -303,8 +299,7 @@ class AudienceActivator {
         $table_name = $wpdb->prefix . 'ffc_audience_bookings';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
+        if (self::table_exists($table_name)) {
             return;
         }
 
@@ -347,8 +342,7 @@ class AudienceActivator {
         $table_name = $wpdb->prefix . 'ffc_audience_booking_audiences';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
+        if (self::table_exists($table_name)) {
             return;
         }
 
@@ -378,8 +372,7 @@ class AudienceActivator {
         $table_name = $wpdb->prefix . 'ffc_audience_booking_users';
         $charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name) {
+        if (self::table_exists($table_name)) {
             return;
         }
 
@@ -408,10 +401,8 @@ class AudienceActivator {
         global $wpdb;
 
         $schedules_table = $wpdb->prefix . 'ffc_audience_schedules';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $schedules_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $schedules_table ) ) == $schedules_table;
 
-        if ($schedules_exists) {
+        if (self::table_exists($schedules_table)) {
             self::migrate_environment_label_column();
             self::migrate_booking_is_all_day_column();
             self::migrate_environment_color_column();
@@ -436,26 +427,12 @@ class AudienceActivator {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_audience_schedules';
 
-        // Check if environment_label column already exists
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'environment_label'",
-                DB_NAME,
-                $table_name
-            )
-        );
-
-        if (!empty($column_exists)) {
-            return;
-        }
-
         // Add environment_label column after description
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query(
-            "ALTER TABLE {$table_name}
-            ADD COLUMN environment_label varchar(100) DEFAULT NULL COMMENT 'Custom label for environments (default: Environments)' AFTER description"
+        self::add_column_if_missing(
+            $table_name,
+            'environment_label',
+            "varchar(100) DEFAULT NULL COMMENT 'Custom label for environments (default: Environments)'",
+            'description'
         );
     }
 
@@ -469,24 +446,11 @@ class AudienceActivator {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_audience_bookings';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'is_all_day'",
-                DB_NAME,
-                $table_name
-            )
-        );
-
-        if (!empty($column_exists)) {
-            return;
-        }
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query(
-            "ALTER TABLE {$table_name}
-            ADD COLUMN is_all_day tinyint(1) DEFAULT 0 COMMENT 'All-day event flag' AFTER end_time"
+        self::add_column_if_missing(
+            $table_name,
+            'is_all_day',
+            "tinyint(1) DEFAULT 0 COMMENT 'All-day event flag'",
+            'end_time'
         );
     }
 
@@ -500,24 +464,11 @@ class AudienceActivator {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_audience_environments';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'color'",
-                DB_NAME,
-                $table_name
-            )
-        );
-
-        if (!empty($column_exists)) {
-            return;
-        }
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query(
-            "ALTER TABLE {$table_name}
-            ADD COLUMN color varchar(7) DEFAULT '#3788d8' COMMENT 'Hex color for visual identification' AFTER name"
+        self::add_column_if_missing(
+            $table_name,
+            'color',
+            "varchar(7) DEFAULT '#3788d8' COMMENT 'Hex color for visual identification'",
+            'name'
         );
     }
 
@@ -531,25 +482,17 @@ class AudienceActivator {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_audience_schedules';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'show_event_list'",
-                DB_NAME,
-                $table_name
-            )
+        self::add_column_if_missing(
+            $table_name,
+            'show_event_list',
+            "tinyint(1) DEFAULT 0 COMMENT 'Show event list alongside calendar'",
+            'include_ics'
         );
-
-        if (!empty($column_exists)) {
-            return;
-        }
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query(
-            "ALTER TABLE {$table_name}
-            ADD COLUMN show_event_list tinyint(1) DEFAULT 0 COMMENT 'Show event list alongside calendar' AFTER include_ics,
-            ADD COLUMN event_list_position enum('side','below') DEFAULT 'side' COMMENT 'Position of event list' AFTER show_event_list"
+        self::add_column_if_missing(
+            $table_name,
+            'event_list_position',
+            "enum('side','below') DEFAULT 'side' COMMENT 'Position of event list'",
+            'show_event_list'
         );
     }
 
@@ -566,25 +509,15 @@ class AudienceActivator {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_audience_schedules';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'booking_label_singular'",
-                DB_NAME,
-                $table_name
-            )
+        self::add_column_if_missing(
+            $table_name,
+            'booking_label_singular',
+            "varchar(50) DEFAULT NULL COMMENT 'Custom singular label for booking badge'"
         );
-
-        if (!empty($column_exists)) {
-            return;
-        }
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query(
-            "ALTER TABLE {$table_name}
-            ADD COLUMN booking_label_singular varchar(50) DEFAULT NULL COMMENT 'Custom singular label for booking badge',
-            ADD COLUMN booking_label_plural varchar(50) DEFAULT NULL COMMENT 'Custom plural label for booking badge'"
+        self::add_column_if_missing(
+            $table_name,
+            'booking_label_plural',
+            "varchar(50) DEFAULT NULL COMMENT 'Custom plural label for booking badge'"
         );
     }
 
@@ -602,24 +535,10 @@ class AudienceActivator {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_audience_schedules';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'audience_badge_format'",
-                DB_NAME,
-                $table_name
-            )
-        );
-
-        if (!empty($column_exists)) {
-            return;
-        }
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query(
-            "ALTER TABLE {$table_name}
-            ADD COLUMN audience_badge_format enum('name','parent_name') DEFAULT 'name' COMMENT 'How audience badges display: name only or parent: child'"
+        self::add_column_if_missing(
+            $table_name,
+            'audience_badge_format',
+            "enum('name','parent_name') DEFAULT 'name' COMMENT 'How audience badges display: name only or parent: child'"
         );
     }
 
@@ -636,30 +555,14 @@ class AudienceActivator {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_audiences';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
-        if ( $table_exists !== $table_name ) {
+        if ( ! self::table_exists($table_name) ) {
             return;
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $column_exists = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = 'allow_self_join'",
-                DB_NAME,
-                $table_name
-            )
-        );
-
-        if ( ! empty( $column_exists ) ) {
-            return;
-        }
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query(
-            "ALTER TABLE {$table_name}
-            ADD COLUMN allow_self_join tinyint(1) DEFAULT 0 COMMENT 'Allow users to join/leave from dashboard'"
+        self::add_column_if_missing(
+            $table_name,
+            'allow_self_join',
+            "tinyint(1) DEFAULT 0 COMMENT 'Allow users to join/leave from dashboard'"
         );
     }
 
@@ -715,8 +618,7 @@ class AudienceActivator {
         foreach ($tables as $key => $suffix) {
             $table_name = $wpdb->prefix . $suffix;
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name;
+            $exists = self::table_exists($table_name);
 
             $count = 0;
             if ($exists) {
@@ -743,18 +645,9 @@ class AudienceActivator {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_audience_bookings';
 
-        $indexes = [
+        self::add_indexes_if_missing($table_name, [
             'idx_date_status'       => '(booking_date, status)',
             'idx_created_by_date'   => '(created_by, booking_date)',
-        ];
-
-        foreach ( $indexes as $index_name => $columns ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $exists = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $table_name, $index_name ) );
-            if ( empty( $exists ) ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD INDEX {$index_name} {$columns}", $table_name ) );
-            }
-        }
+        ]);
     }
 }

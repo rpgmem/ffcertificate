@@ -129,6 +129,7 @@ class Loader {
             wp_schedule_event( time(), 'daily', 'ffcertificate_reregistration_expire_hook' );
         }
 
+        $this->ensure_admin_capabilities();
         $this->define_admin_hooks();
         $this->init_rest_api();
     }
@@ -148,6 +149,35 @@ class Loader {
         // Autoloader handles class loading
         register_activation_hook(FFC_PLUGIN_DIR . 'ffcertificate.php', ['\\FreeFormCertificate\Activator', 'activate']);
         register_deactivation_hook(FFC_PLUGIN_DIR . 'ffcertificate.php', ['\\FreeFormCertificate\Deactivator', 'deactivate']);
+    }
+
+    /**
+     * Ensure admin-level FFC capabilities are granted to the administrator role.
+     *
+     * Capabilities added in updates (e.g. ffc_manage_reregistration) are only
+     * granted during plugin activation.  For sites that update without
+     * reactivating, this one-time check fills the gap.
+     *
+     * @since 4.11.1
+     */
+    private function ensure_admin_capabilities(): void {
+        $version_key = 'ffc_admin_caps_version';
+        $current     = get_option( $version_key, '' );
+
+        if ( $current === FFC_VERSION ) {
+            return;
+        }
+
+        $admin_role = get_role( 'administrator' );
+        if ( $admin_role && class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
+            foreach ( \FreeFormCertificate\UserDashboard\UserManager::ADMIN_CAPABILITIES as $cap ) {
+                if ( ! $admin_role->has_cap( $cap ) ) {
+                    $admin_role->add_cap( $cap, true );
+                }
+            }
+        }
+
+        update_option( $version_key, FFC_VERSION );
     }
 
     private function define_admin_hooks(): void {

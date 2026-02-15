@@ -714,27 +714,8 @@ class PdfGenerator {
         }
 
         // Decrypt sensitive data if needed
-        $email = $appointment['email'] ?? '';
-        if ( empty( $email ) && ! empty( $appointment['email_encrypted'] ) ) {
-            if ( class_exists( '\\FreeFormCertificate\\Core\\Encryption' ) ) {
-                try {
-                    $email = \FreeFormCertificate\Core\Encryption::decrypt( $appointment['email_encrypted'] );
-                } catch ( \Exception $e ) {
-                    $email = '';
-                }
-            }
-        }
-
-        $cpf_rf = $appointment['cpf_rf'] ?? '';
-        if ( empty( $cpf_rf ) && ! empty( $appointment['cpf_rf_encrypted'] ) ) {
-            if ( class_exists( '\\FreeFormCertificate\\Core\\Encryption' ) ) {
-                try {
-                    $cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt( $appointment['cpf_rf_encrypted'] );
-                } catch ( \Exception $e ) {
-                    $cpf_rf = '';
-                }
-            }
-        }
+        $email = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
+        $cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'cpf_rf' );
 
         // Status labels
         $status_labels = array(
