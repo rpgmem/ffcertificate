@@ -1118,56 +1118,48 @@
             html += '</div>'; // .ffc-profile-info
 
             // Action buttons bar
-            if (isOwn) {
-                html += '<div class="ffc-profile-actions">';
-                html += '<button type="button" class="button button-primary ffc-profile-edit-btn">' + (s.editProfile || 'Edit Profile') + '</button>';
-                html += '<button type="button" class="button ffc-password-toggle-btn">' + (s.changePassword || 'Change Password') + '</button>';
-                html += '</div>';
-            }
+            html += '<div class="ffc-profile-actions">';
+            html += '<button type="button" class="button button-primary ffc-profile-edit-btn">' + (s.editProfile || 'Edit Profile') + '</button>';
+            html += '<button type="button" class="button ffc-password-toggle-btn">' + (s.changePassword || 'Change Password') + '</button>';
+            html += '</div>';
 
             // ---- Password form (hidden until toggle) ----
-            if (isOwn) {
-                html += '<div class="ffc-password-form" style="display: none;">';
-                html += '<div class="ffc-profile-field"><label for="ffc-current-password">' + (s.currentPassword || 'Current Password') + '</label>';
-                html += '<input type="password" id="ffc-current-password" autocomplete="current-password" /></div>';
-                html += '<div class="ffc-profile-field"><label for="ffc-new-password">' + (s.newPassword || 'New Password') + '</label>';
-                html += '<input type="password" id="ffc-new-password" autocomplete="new-password" minlength="8" /></div>';
-                html += '<div class="ffc-profile-field"><label for="ffc-confirm-password">' + (s.confirmPassword || 'Confirm New Password') + '</label>';
-                html += '<input type="password" id="ffc-confirm-password" autocomplete="new-password" /></div>';
-                html += '<button type="button" class="button button-primary ffc-password-save-btn">' + (s.save || 'Save') + '</button>';
-                html += '<span class="ffc-password-status" style="margin-left: 10px;"></span>';
-                html += '</div>';
-            }
+            html += '<div class="ffc-password-form" style="display: none;">';
+            html += '<div class="ffc-profile-field"><label for="ffc-current-password">' + (s.currentPassword || 'Current Password') + '</label>';
+            html += '<input type="password" id="ffc-current-password" autocomplete="current-password" /></div>';
+            html += '<div class="ffc-profile-field"><label for="ffc-new-password">' + (s.newPassword || 'New Password') + '</label>';
+            html += '<input type="password" id="ffc-new-password" autocomplete="new-password" minlength="8" /></div>';
+            html += '<div class="ffc-profile-field"><label for="ffc-confirm-password">' + (s.confirmPassword || 'Confirm New Password') + '</label>';
+            html += '<input type="password" id="ffc-confirm-password" autocomplete="new-password" /></div>';
+            html += '<button type="button" class="button button-primary ffc-password-save-btn">' + (s.save || 'Save') + '</button>';
+            html += '<span class="ffc-password-status" style="margin-left: 10px;"></span>';
+            html += '</div>';
 
             // ---- Audience self-join (loaded async) ----
             html += '<div class="ffc-audience-join-section" id="ffc-audience-join-section"></div>';
             setTimeout(function() { FFCDashboard.loadJoinableGroups(); }, 0);
 
             // ---- Notification preferences ----
-            if (isOwn) {
-                var prefs = profile.preferences || {};
-                html += '<div class="ffc-profile-section">';
-                html += '<h3>' + (s.notificationSection || 'Notification Preferences') + '</h3>';
-                html += '<div class="ffc-notif-list">';
-                html += this._buildToggle('notify_appointment_confirm', s.notifAppointmentConfirm || 'Appointment confirmation', prefs);
-                html += this._buildToggle('notify_appointment_reminder', s.notifAppointmentReminder || 'Appointment reminder', prefs);
-                html += this._buildToggle('notify_new_certificate', s.notifNewCertificate || 'New certificate issued', prefs);
-                html += '</div>';
-                html += '<span class="ffc-notif-status" style="margin-left: 10px; color: #28a745; display: none;"></span>';
-                html += '</div>';
-            }
+            var prefs = profile.preferences || {};
+            html += '<div class="ffc-profile-section">';
+            html += '<h3>' + (s.notificationSection || 'Notification Preferences') + '</h3>';
+            html += '<div class="ffc-notif-list">';
+            html += this._buildToggle('notify_appointment_confirm', s.notifAppointmentConfirm || 'Appointment confirmation', prefs);
+            html += this._buildToggle('notify_appointment_reminder', s.notifAppointmentReminder || 'Appointment reminder', prefs);
+            html += this._buildToggle('notify_new_certificate', s.notifNewCertificate || 'New certificate issued', prefs);
+            html += '</div>';
+            html += '<span class="ffc-notif-status" style="margin-left: 10px; color: #28a745; display: none;"></span>';
+            html += '</div>';
 
             // ---- LGPD section ----
-            if (isOwn) {
-                html += '<div class="ffc-profile-section ffc-lgpd-section">';
-                html += '<h3>' + (s.privacySection || 'Privacy & Data (LGPD)') + '</h3>';
-                html += '<p class="ffc-lgpd-desc">' + (s.exportDataDesc || 'Request a copy of all your personal data stored in the system.') + '</p>';
-                html += '<button type="button" class="button ffc-lgpd-export-btn">' + (s.exportData || 'Export My Data') + '</button>';
-                html += '<p class="ffc-lgpd-desc" style="margin-top: 20px;">' + (s.deletionDataDesc || 'Request deletion of your personal data. An administrator will review your request.') + '</p>';
-                html += '<button type="button" class="button ffc-lgpd-delete-btn">' + (s.requestDeletion || 'Request Data Deletion') + '</button>';
-                html += '<span class="ffc-lgpd-status" style="margin-left: 10px; display: none;"></span>';
-                html += '</div>';
-            }
+            html += '<div class="ffc-profile-section ffc-lgpd-section">';
+            html += '<h3>' + (s.privacySection || 'Privacy & Data (LGPD)') + '</h3>';
+            html += '<p class="ffc-lgpd-desc">' + (s.exportDataDesc || 'Request a copy of all your personal data stored in the system.') + '</p>';
+            html += '<button type="button" class="button ffc-lgpd-export-btn">' + (s.exportData || 'Export My Data') + '</button>';
+            html += '<p class="ffc-lgpd-desc" style="margin-top: 20px;">' + (s.deletionDataDesc || 'Request deletion of your personal data. An administrator will review your request.') + '</p>';
+            html += '<button type="button" class="button ffc-lgpd-delete-btn">' + (s.requestDeletion || 'Request Data Deletion') + '</button>';
+            html += '<span class="ffc-lgpd-status" style="margin-left: 10px; display: none;"></span>';
+            html += '</div>';
 
             $container.html(html);
         },
@@ -1226,8 +1218,11 @@
             $saveBtn.prop('disabled', true);
             $status.text(ffcDashboard.strings.saving || 'Saving...').show().css('color', '#666');
 
+            var url = ffcDashboard.restUrl + 'user/profile';
+            if (ffcDashboard.viewAsUserId) { url += '?viewAsUserId=' + ffcDashboard.viewAsUserId; }
+
             $.ajax({
-                url: ffcDashboard.restUrl + 'user/profile',
+                url: url,
                 method: 'PUT',
                 contentType: 'application/json',
                 data: JSON.stringify(data),
@@ -1411,8 +1406,11 @@
             $btn.prop('disabled', true);
             $status.text(ffcDashboard.strings.saving || 'Saving...').css('color', '#666');
 
+            var url = ffcDashboard.restUrl + 'user/change-password';
+            if (ffcDashboard.viewAsUserId) { url += '?viewAsUserId=' + ffcDashboard.viewAsUserId; }
+
             $.ajax({
-                url: ffcDashboard.restUrl + 'user/change-password',
+                url: url,
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ current_password: current, new_password: newPwd }),
@@ -1437,8 +1435,11 @@
             var $status = $('.ffc-lgpd-status');
             $status.text(ffcDashboard.strings.loading || 'Loading...').css('color', '#666').show();
 
+            var url = ffcDashboard.restUrl + 'user/privacy-request';
+            if (ffcDashboard.viewAsUserId) { url += '?viewAsUserId=' + ffcDashboard.viewAsUserId; }
+
             $.ajax({
-                url: ffcDashboard.restUrl + 'user/privacy-request',
+                url: url,
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ type: type }),
@@ -1464,8 +1465,11 @@
 
             var $status = $('.ffc-notif-status');
 
+            var url = ffcDashboard.restUrl + 'user/profile';
+            if (ffcDashboard.viewAsUserId) { url += '?viewAsUserId=' + ffcDashboard.viewAsUserId; }
+
             $.ajax({
-                url: ffcDashboard.restUrl + 'user/profile',
+                url: url,
                 method: 'PUT',
                 contentType: 'application/json',
                 data: JSON.stringify({ preferences: prefs }),
