@@ -45,7 +45,7 @@
 
             var selectedUsers = {};
             var searchTimeout;
-            var nonce = typeof ffcAudienceAdmin !== 'undefined' ? ffcAudienceAdmin.nonce : '';
+            var nonce = typeof ffcAudienceAdmin !== 'undefined' ? ffcAudienceAdmin.searchUsersNonce : '';
 
             $searchInput.on('input', function() {
                 clearTimeout(searchTimeout);
