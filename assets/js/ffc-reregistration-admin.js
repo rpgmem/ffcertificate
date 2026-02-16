@@ -90,7 +90,7 @@
                 submission_id: subId
             }, function (res) {
                 $btn.prop('disabled', false).html(
-                    '<span class="dashicons dashicons-media-document" style="vertical-align:middle;font-size:14px"></span> Ficha'
+                    '<span class="dashicons dashicons-media-document" style="vertical-align:middle;font-size:14px"></span> ' + (S.ficha || 'Record')
                 );
 
                 if (res.success && res.data.pdf_data) {
@@ -104,7 +104,7 @@
                 }
             }).fail(function () {
                 $btn.prop('disabled', false).html(
-                    '<span class="dashicons dashicons-media-document" style="vertical-align:middle;font-size:14px"></span> Ficha'
+                    '<span class="dashicons dashicons-media-document" style="vertical-align:middle;font-size:14px"></span> ' + (S.ficha || 'Record')
                 );
                 alert(S.errorGenerating || 'Error generating ficha.');
             });

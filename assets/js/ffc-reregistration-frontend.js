@@ -172,7 +172,7 @@
         var $fields = $container.find('.ffc-rereg-acumulo-fields');
 
         $select.on('change', function () {
-            if ($(this).val() === 'Possuo') {
+            if ($(this).val() === (S.acumuloShowValue || 'I hold')) {
                 $fields.slideDown(200);
             } else {
                 $fields.slideUp(200);

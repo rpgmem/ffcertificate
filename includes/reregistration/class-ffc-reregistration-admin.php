@@ -125,6 +125,7 @@ class ReregistrationAdmin {
                 'confirmReturnToDraft' => __('Return this submission to draft? The user will be able to edit and resubmit.', 'ffcertificate'),
                 'generatingPdf'        => __('Generating PDF...', 'ffcertificate'),
                 'errorGenerating'      => __('Error generating ficha.', 'ffcertificate'),
+                'ficha'                => __('Record', 'ffcertificate'),
             ),
         ));
 
