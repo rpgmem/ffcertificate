@@ -854,7 +854,8 @@ class UserDataRestController {
      * @return \WP_REST_Response|\WP_Error
      */
     public function change_password($request) {
-        $user_id = get_current_user_id();
+        $ctx = $this->resolve_user_context($request);
+        $user_id = $ctx['user_id'];
 
         if (!$user_id) {
             return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
@@ -871,7 +872,7 @@ class UserDataRestController {
         $current_password = $request->get_param('current_password');
         $new_password = $request->get_param('new_password');
 
-        if (empty($current_password) || empty($new_password)) {
+        if (empty($new_password)) {
             return new \WP_Error('missing_fields', __('All password fields are required', 'ffcertificate'), array('status' => 400));
         }
 
@@ -881,15 +882,23 @@ class UserDataRestController {
 
         $user = get_user_by('id', $user_id);
 
-        if (!wp_check_password($current_password, $user->user_pass, $user_id)) {
-            return new \WP_Error('wrong_password', __('Current password is incorrect', 'ffcertificate'), array('status' => 403));
+        // Admin in view-as mode can skip current password verification
+        if (!$ctx['is_view_as']) {
+            if (empty($current_password)) {
+                return new \WP_Error('missing_fields', __('All password fields are required', 'ffcertificate'), array('status' => 400));
+            }
+            if (!wp_check_password($current_password, $user->user_pass, $user_id)) {
+                return new \WP_Error('wrong_password', __('Current password is incorrect', 'ffcertificate'), array('status' => 403));
+            }
         }
 
         wp_set_password($new_password, $user_id);
 
-        // Re-authenticate the user so their session isn't destroyed
-        wp_set_current_user($user_id);
-        wp_set_auth_cookie($user_id, true);
+        // Re-authenticate: in view-as mode keep the admin session, otherwise re-auth the user
+        if (!$ctx['is_view_as']) {
+            wp_set_current_user($user_id);
+            wp_set_auth_cookie($user_id, true);
+        }
 
         // Log password change
         if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
@@ -913,7 +922,8 @@ class UserDataRestController {
      * @return \WP_REST_Response|\WP_Error
      */
     public function create_privacy_request($request) {
-        $user_id = get_current_user_id();
+        $ctx = $this->resolve_user_context($request);
+        $user_id = $ctx['user_id'];
 
         if (!$user_id) {
             return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
