@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.11.0
+Stable tag: 4.12.0
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,18 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.12.0 (2026-02-16) =
+
+Full-page cache compatibility: forms now work correctly behind LiteSpeed, Varnish, and other page caches.
+
+* New: **Dynamic Fragments endpoint** — lightweight AJAX endpoint (`ffc_get_dynamic_fragments`) returns fresh captcha and nonces on every page load, ensuring forms work on cached pages
+* New: **Client-side captcha refresh** — JavaScript module (`ffc-dynamic-fragments.js`) patches captcha label, hash, and nonces in the DOM immediately after DOMContentLoaded
+* New: **Nonce refresh** — `ffc_frontend_nonce` and `ffc_self_scheduling_nonce` are refreshed via AJAX, preventing expired-nonce errors on cached pages
+* New: **Booking form AJAX pre-fill** — logged-in user name and email are populated via AJAX instead of server-side rendering, preventing cached pages from showing another user's data
+* New: **Dashboard cache exclusion** — pages containing `[user_dashboard_personal]` automatically send `nocache_headers()`, `X-LiteSpeed-Cache-Control: no-cache`, and `litespeed_control_set_nocache` action
+* New: **Page Cache Compatibility card** — new status card in Cache settings tab showing the state of all cache-compatibility features (Dynamic Fragments, Dashboard Exclusion, Object Cache, AJAX Endpoints)
+* New: **Redis detection notice** — Cache settings tab warns when Redis/Memcached is not installed, explaining impact on rate limiter counter persistence
 
 = 4.11.0 (2026-02-15) =
 
@@ -447,6 +459,9 @@ Repository pattern, REST API, strict types, PSR-4 autoloader, user dashboard.
 Initial release through rate limiting. Core form builder, PDF generation, magic links, QR codes.
 
 == Upgrade Notice ==
+
+= 4.12.0 =
+Full-page cache compatibility. Forms, captchas, and nonces now work correctly behind LiteSpeed, Varnish, and other page caches via automatic AJAX refresh. Dashboard pages excluded from cache. Booking form pre-fill moved to AJAX. No database changes. No breaking changes.
 
 = 4.11.0 =
 Audience custom fields, reregistration campaigns, ficha PDF, and email notifications. 3 new database tables created automatically. Migration ensures safe upgrade from older versions. Backup recommended.
