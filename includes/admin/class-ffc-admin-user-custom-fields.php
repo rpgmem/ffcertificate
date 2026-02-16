@@ -378,7 +378,7 @@ class AdminUserCustomFields {
             if ($field->field_type === 'checkbox') {
                 $data[$field_key] = isset($_POST[$input_name]) ? 1 : 0;
             } elseif ($field->field_type === 'working_hours') {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized via json_decode + sanitize_text_field below.
                 $raw_value = isset($_POST[$input_name]) ? wp_unslash($_POST[$input_name]) : '[]';
                 $wh = json_decode($raw_value, true);
                 if (is_array($wh)) {
@@ -399,7 +399,7 @@ class AdminUserCustomFields {
                     $data[$field_key] = '[]';
                 }
             } else {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- Checked via isset in ternary.
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Checked via isset; sanitized via sanitize_text_field/sanitize_textarea_field below.
                 $raw_value = isset($_POST[$input_name]) ? wp_unslash($_POST[$input_name]) : '';
                 $data[$field_key] = $field->field_type === 'textarea'
                     ? sanitize_textarea_field($raw_value)
