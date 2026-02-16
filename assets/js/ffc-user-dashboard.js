@@ -145,25 +145,6 @@
         return html;
     }
 
-    /**
-     * Filter items by date range and search text
-     */
-    function applyFilters(items, dateField, searchFields, $bar) {
-        var from = $bar.find('.ffc-filter-from').val();
-        var to = $bar.find('.ffc-filter-to').val();
-        var query = ($bar.find('.ffc-filter-search').val() || '').toLowerCase().trim();
-
-        return items.filter(function(item) {
-            if (from && item[dateField] < from) return false;
-            if (to && item[dateField] > to) return false;
-            if (query) {
-                var haystack = searchFields.map(function(f) { return (item[f] || '').toLowerCase(); }).join(' ');
-                if (haystack.indexOf(query) === -1) return false;
-            }
-            return true;
-        });
-    }
-
     // ---- Page size selector ----
 
     function buildPageSizeSelector() {
@@ -238,6 +219,12 @@
                 if (confirm(ffcDashboard.strings.confirmDeletion || 'Are you sure?')) {
                     FFCDashboard.privacyRequest('remove_personal_data');
                 }
+            });
+
+            // Cancel appointment
+            $(document).on('click', '.ffc-cancel-appointment', function(e) {
+                e.preventDefault();
+                FFCDashboard.cancelAppointment($(this).data('id'));
             });
 
             // Audience self-join
@@ -700,11 +687,6 @@
             $container.find('.ffc-filter-to').val(toVal);
             $container.find('.ffc-filter-search').val(searchVal);
 
-            // Bind cancel event
-            $container.on('click', '.ffc-cancel-appointment', function(e) {
-                e.preventDefault();
-                FFCDashboard.cancelAppointment($(this).data('id'));
-            });
         },
 
         // ---- Audience Bookings ----
@@ -992,10 +974,13 @@
         cancelAppointment: function(appointmentId) {
             if (!confirm(ffcDashboard.strings.confirmCancel)) return;
 
+            var data = { action: 'ffc_cancel_appointment', appointment_id: appointmentId, nonce: ffcDashboard.nonce };
+            if (ffcDashboard.viewAsUserId) { data.viewAsUserId = ffcDashboard.viewAsUserId; }
+
             $.ajax({
                 url: ffcDashboard.ajaxUrl,
                 method: 'POST',
-                data: { action: 'ffc_cancel_appointment', appointment_id: appointmentId, nonce: ffcDashboard.nonce },
+                data: data,
                 success: function(response) {
                     if (response.success) {
                         alert(ffcDashboard.strings.cancelSuccess);
@@ -1036,7 +1021,6 @@
             var $container = $('#tab-profile');
             this._profileData = profile;
             var s = ffcDashboard.strings;
-            var isOwn = !ffcDashboard.viewAsUserId;
 
             var html = '<div class="ffc-profile-info">';
 
@@ -1384,15 +1368,15 @@
             var s = ffcDashboard.strings;
             var current = $('#ffc-current-password').val();
             var newPwd = $('#ffc-new-password').val();
-            var confirm = $('#ffc-confirm-password').val();
+            var confirmPwd = $('#ffc-confirm-password').val();
             var $status = $('.ffc-password-status');
 
-            if (!current || !newPwd || !confirm) {
+            if (!current || !newPwd || !confirmPwd) {
                 $status.text(s.passwordError || 'All fields required').css('color', '#d63638');
                 return;
             }
 
-            if (newPwd !== confirm) {
+            if (newPwd !== confirmPwd) {
                 $status.text(s.passwordMismatch || 'Passwords do not match').css('color', '#d63638');
                 return;
             }

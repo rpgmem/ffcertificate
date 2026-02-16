@@ -35,9 +35,7 @@ class FormProcessor {
         $this->submission_handler = $submission_handler;
         $this->email_handler = $email_handler;
 
-        // Register AJAX hooks
-        add_action('wp_ajax_ffc_submit_form', [$this, 'handle_submission_ajax']);
-        add_action('wp_ajax_nopriv_ffc_submit_form', [$this, 'handle_submission_ajax']);
+        // AJAX hooks registered in Frontend::register_hooks() to avoid duplicate registration.
     }
 
     /**

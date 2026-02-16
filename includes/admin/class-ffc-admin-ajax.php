@@ -254,8 +254,8 @@ class AdminAjax {
             return array();
         }
 
-        // Generate hash to search
-        $cpf_rf_hash = hash( 'sha256', $cpf_rf_clean );
+        // Generate hash to search (must match Encryption::hash which uses a salt)
+        $cpf_rf_hash = \FreeFormCertificate\Core\Encryption::hash( $cpf_rf_clean );
 
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
@@ -278,6 +278,3 @@ class AdminAjax {
         return array( $this->format_user_result( $user ) );
     }
 }
-
-// Initialize
-new AdminAjax();

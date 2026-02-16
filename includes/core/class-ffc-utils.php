@@ -70,9 +70,9 @@ class Utils {
      * @return string Full table name with WordPress prefix
      */
     public static function get_submissions_table(): string {
-    global $wpdb;
-    // Returns the real table name, WITHOUT calling this function again
-    return $wpdb->prefix . 'ffc_submissions';
+        global $wpdb;
+        // Returns the real table name, WITHOUT calling this function again
+        return $wpdb->prefix . 'ffc_submissions';
     }
     
     /**

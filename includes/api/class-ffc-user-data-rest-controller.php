@@ -168,7 +168,8 @@ class UserDataRestController {
      */
     public function get_user_certificates($request) {
         try {
-            $user_id = get_current_user_id();
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
 
             if (!$user_id) {
                 return new \WP_Error(
@@ -177,10 +178,6 @@ class UserDataRestController {
                     array('status' => 401)
                 );
             }
-
-            // Resolve user context (view-as or self)
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
 
             if (!$this->user_has_capability('view_own_certificates', $user_id, $ctx['is_view_as'])) {
                 return new \WP_Error(
@@ -300,7 +297,8 @@ class UserDataRestController {
     public function get_user_profile($request) {
         try {
             global $wpdb;
-            $user_id = get_current_user_id();
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
 
             if (!$user_id) {
                 return new \WP_Error(
@@ -309,10 +307,6 @@ class UserDataRestController {
                     array('status' => 401)
                 );
             }
-
-            // Resolve user context (view-as or self)
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
 
             if (!class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
                 $user_manager_file = FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-user-manager.php';
@@ -428,7 +422,8 @@ class UserDataRestController {
      */
     public function update_user_profile($request) {
         try {
-            $user_id = get_current_user_id();
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
 
             if (!$user_id) {
                 return new \WP_Error(
@@ -506,7 +501,8 @@ class UserDataRestController {
      */
     public function get_user_appointments($request) {
         try {
-            $user_id = get_current_user_id();
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
 
             if (!$user_id) {
                 return new \WP_Error(
@@ -515,10 +511,6 @@ class UserDataRestController {
                     array('status' => 401)
                 );
             }
-
-            // Resolve user context (view-as or self)
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
 
             if (!$this->user_has_capability('ffc_view_self_scheduling', $user_id, $ctx['is_view_as'])) {
                 return new \WP_Error(
@@ -694,7 +686,8 @@ class UserDataRestController {
      */
     public function get_user_audience_bookings($request) {
         try {
-            $user_id = get_current_user_id();
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
 
             if (!$user_id) {
                 return new \WP_Error(
@@ -703,10 +696,6 @@ class UserDataRestController {
                     array('status' => 401)
                 );
             }
-
-            // Resolve user context (view-as or self)
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
 
             if (!$this->user_has_capability('ffc_view_audience_bookings', $user_id, $ctx['is_view_as'])) {
                 return new \WP_Error(
