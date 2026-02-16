@@ -1253,8 +1253,11 @@
             var $section = $('#ffc-audience-join-section');
             if ($section.length === 0) return;
 
+            var url = ffcDashboard.restUrl + 'user/joinable-groups';
+            if (ffcDashboard.viewAsUserId) { url += '?viewAsUserId=' + ffcDashboard.viewAsUserId; }
+
             $.ajax({
-                url: ffcDashboard.restUrl + 'user/joinable-groups',
+                url: url,
                 method: 'GET',
                 beforeSend: function(xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
                 success: function(data) {
@@ -1316,8 +1319,11 @@
             var $btn = $('.ffc-audience-join-btn[data-id="' + groupId + '"]');
             $btn.prop('disabled', true).text(ffcDashboard.strings.saving || 'Saving...');
 
+            var url = ffcDashboard.restUrl + 'user/audience-group/join';
+            if (ffcDashboard.viewAsUserId) { url += '?viewAsUserId=' + ffcDashboard.viewAsUserId; }
+
             $.ajax({
-                url: ffcDashboard.restUrl + 'user/audience-group/join',
+                url: url,
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ group_id: groupId }),
@@ -1339,8 +1345,11 @@
             var $btn = $('.ffc-audience-leave-btn[data-id="' + groupId + '"]');
             $btn.prop('disabled', true).text(ffcDashboard.strings.saving || 'Saving...');
 
+            var url = ffcDashboard.restUrl + 'user/audience-group/leave';
+            if (ffcDashboard.viewAsUserId) { url += '?viewAsUserId=' + ffcDashboard.viewAsUserId; }
+
             $.ajax({
-                url: ffcDashboard.restUrl + 'user/audience-group/leave',
+                url: url,
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ group_id: groupId }),

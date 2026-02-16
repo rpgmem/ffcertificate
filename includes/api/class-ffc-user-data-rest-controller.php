@@ -1083,7 +1083,8 @@ class UserDataRestController {
      */
     public function get_joinable_groups($request) {
         global $wpdb;
-        $user_id = get_current_user_id();
+        $ctx = $this->resolve_user_context($request);
+        $user_id = $ctx['user_id'];
 
         if (!$user_id) {
             return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
@@ -1172,7 +1173,8 @@ class UserDataRestController {
      */
     public function join_audience_group($request) {
         global $wpdb;
-        $user_id = get_current_user_id();
+        $ctx = $this->resolve_user_context($request);
+        $user_id = $ctx['user_id'];
         $group_id = absint($request->get_param('group_id'));
 
         if (!$user_id) {
@@ -1335,7 +1337,8 @@ class UserDataRestController {
      */
     public function leave_audience_group($request) {
         global $wpdb;
-        $user_id = get_current_user_id();
+        $ctx = $this->resolve_user_context($request);
+        $user_id = $ctx['user_id'];
         $group_id = absint($request->get_param('group_id'));
 
         if (!$user_id) {
