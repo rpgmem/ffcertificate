@@ -1140,10 +1140,8 @@
             }
 
             // ---- Audience self-join (loaded async) ----
-            if (isOwn) {
-                html += '<div class="ffc-audience-join-section" id="ffc-audience-join-section"></div>';
-                setTimeout(function() { FFCDashboard.loadJoinableGroups(); }, 0);
-            }
+            html += '<div class="ffc-audience-join-section" id="ffc-audience-join-section"></div>';
+            setTimeout(function() { FFCDashboard.loadJoinableGroups(); }, 0);
 
             // ---- Notification preferences ----
             if (isOwn) {
