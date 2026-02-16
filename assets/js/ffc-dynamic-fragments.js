@@ -58,7 +58,7 @@
 	}
 
 	/**
-	 * Patch the DOM with fresh captcha and nonce values.
+	 * Patch the DOM with fresh captcha, nonce, and user values.
 	 */
 	function applyFragments(data) {
 		var i;
@@ -100,6 +100,21 @@
 				for (i = 0; i < nonceFields.length; i++) {
 					nonceFields[i].value = data.nonces.ffc_self_scheduling_nonce;
 				}
+			}
+		}
+
+		// --- User pre-fill (booking form) ---
+		if (data.user) {
+			var nameField  = document.getElementById('ffc-booking-name');
+			var emailField = document.getElementById('ffc-booking-email');
+
+			if (nameField && data.user.name) {
+				nameField.value = data.user.name;
+				nameField.setAttribute('readonly', 'readonly');
+			}
+			if (emailField && data.user.email) {
+				emailField.value = data.user.email;
+				emailField.setAttribute('readonly', 'readonly');
 			}
 		}
 	}

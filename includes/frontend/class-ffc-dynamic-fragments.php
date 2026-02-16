@@ -47,6 +47,15 @@ class DynamicFragments {
 			),
 		);
 
+		// Include logged-in user data for booking form pre-fill
+		if ( is_user_logged_in() ) {
+			$user = wp_get_current_user();
+			$fragments['user'] = array(
+				'name'  => $user->display_name,
+				'email' => $user->user_email,
+			);
+		}
+
 		wp_send_json_success( $fragments );
 	}
 }

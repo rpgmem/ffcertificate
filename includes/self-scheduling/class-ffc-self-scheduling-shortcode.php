@@ -519,10 +519,9 @@ class SelfSchedulingShortcode {
                                         type="text"
                                         id="ffc-booking-name"
                                         name="name"
-                                        value="<?php echo $is_logged_in ? esc_attr($user->display_name) : ''; ?>"
+                                        value=""
                                         required
                                         aria-required="true"
-                                        <?php echo esc_attr( $is_logged_in ? 'readonly' : '' ); ?>
                                     >
                                 </div>
 
@@ -534,10 +533,9 @@ class SelfSchedulingShortcode {
                                         type="email"
                                         id="ffc-booking-email"
                                         name="email"
-                                        value="<?php echo $is_logged_in ? esc_attr($user->user_email) : ''; ?>"
+                                        value=""
                                         required
                                         aria-required="true"
-                                        <?php echo esc_attr( $is_logged_in ? 'readonly' : '' ); ?>
                                     >
                                 </div>
 
