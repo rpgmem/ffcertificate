@@ -1014,6 +1014,7 @@ class UserManager {
         /* translators: %1$s: site name, %2$s: feature name */
         $subject = sprintf(__('[%1$s] Access granted: %2$s', 'ffcertificate'), $site_name, $context_label);
 
+        /* translators: %s: user display name */
         $message  = sprintf(__('Hello %s,', 'ffcertificate'), $user->display_name) . "\n\n";
         /* translators: %1$s: feature name, %2$s: site name */
         $message .= sprintf(__('You now have access to %1$s on %2$s.', 'ffcertificate'), $context_label, $site_name) . "\n\n";

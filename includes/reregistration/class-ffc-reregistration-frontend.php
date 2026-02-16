@@ -1200,6 +1200,7 @@ class ReregistrationFrontend {
                     $regex = '/' . $regex . '/';
                 }
                 if (!@preg_match($regex, $value)) {
+                    /* translators: %s: field label */
                     $msg = !empty($rules['custom_regex_message']) ? $rules['custom_regex_message'] : sprintf(__('%s has an invalid format.', 'ffcertificate'), $cf->field_label);
                     $errors[$name] = $msg;
                 }

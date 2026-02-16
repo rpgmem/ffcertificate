@@ -291,8 +291,8 @@ class ReregistrationAdmin {
                     printf(
                         /* translators: 1: approved count 2: total count */
                         esc_html__('%1$d / %2$d', 'ffcertificate'),
-                        $stats['approved'],
-                        $stats['total']
+                        absint($stats['approved']),
+                        absint($stats['total'])
                     );
                     ?>
                 </a>
@@ -365,11 +365,11 @@ class ReregistrationAdmin {
                 </tr>
                 <tr>
                     <th scope="row"><label for="rereg_start"><?php esc_html_e('Start Date', 'ffcertificate'); ?> <span class="required">*</span></label></th>
-                    <td><input type="datetime-local" name="rereg_start_date" id="rereg_start" value="<?php echo esc_attr($item ? date('Y-m-d\TH:i', strtotime($item->start_date)) : ''); ?>" required></td>
+                    <td><input type="datetime-local" name="rereg_start_date" id="rereg_start" value="<?php echo esc_attr($item ? gmdate('Y-m-d\TH:i', strtotime($item->start_date)) : ''); ?>" required></td>
                 </tr>
                 <tr>
                     <th scope="row"><label for="rereg_end"><?php esc_html_e('End Date', 'ffcertificate'); ?> <span class="required">*</span></label></th>
-                    <td><input type="datetime-local" name="rereg_end_date" id="rereg_end" value="<?php echo esc_attr($item ? date('Y-m-d\TH:i', strtotime($item->end_date)) : ''); ?>" required></td>
+                    <td><input type="datetime-local" name="rereg_end_date" id="rereg_end" value="<?php echo esc_attr($item ? gmdate('Y-m-d\TH:i', strtotime($item->end_date)) : ''); ?>" required></td>
                 </tr>
                 <tr>
                     <th scope="row"><label for="rereg_status"><?php esc_html_e('Status', 'ffcertificate'); ?></label></th>
@@ -905,7 +905,7 @@ class ReregistrationAdmin {
         $custom_fields = CustomFieldRepository::get_by_audience_with_parents((int) $rereg->audience_id, true);
 
         // Build CSV
-        $filename = 'reregistration-' . sanitize_file_name($rereg->title) . '-' . date('Y-m-d') . '.csv';
+        $filename = 'reregistration-' . sanitize_file_name($rereg->title) . '-' . gmdate('Y-m-d') . '.csv';
 
         // Headers
         header('Content-Type: text/csv; charset=UTF-8');
@@ -1078,8 +1078,8 @@ class ReregistrationAdmin {
                     printf(
                         /* translators: 1: active count 2: total count */
                         esc_html__('%1$d active / %2$d total', 'ffcertificate'),
-                        $active,
-                        $count
+                        absint($active),
+                        absint($count)
                     );
                     ?>
                 <?php else : ?>

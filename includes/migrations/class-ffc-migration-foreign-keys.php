@@ -165,7 +165,7 @@ class MigrationForeignKeys {
                 ADD CONSTRAINT {$constraint_name}
                 FOREIGN KEY (user_id) REFERENCES {$wpdb->users}(ID) ON DELETE {$on_delete}";
 
-        $result = $wpdb->query($sql);
+        $result = $wpdb->query($sql); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- DDL with internal table/constraint names
 
         if ($result === false) {
             return array('status' => 'error', 'message' => $wpdb->last_error ?: 'Unknown error adding FK');
