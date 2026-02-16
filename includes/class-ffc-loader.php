@@ -214,5 +214,11 @@ class Loader {
     public function register_frontend_assets(): void {
         $s = \FreeFormCertificate\Core\Utils::asset_suffix();
         wp_register_script('ffc-rate-limit', FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js", ['jquery'], FFC_VERSION, true);
+
+        // Dynamic fragments: refresh captcha + nonces on cached pages (v4.12.0)
+        wp_register_script( 'ffc-dynamic-fragments', FFC_PLUGIN_URL . "assets/js/ffc-dynamic-fragments{$s}.js", array(), FFC_VERSION, true );
+        wp_localize_script( 'ffc-dynamic-fragments', 'ffcDynamic', array(
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+        ) );
     }
 }

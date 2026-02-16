@@ -139,6 +139,9 @@ class SelfSchedulingShortcode {
             true
         );
 
+        // Dynamic fragments: refresh captcha + nonces on cached pages
+        wp_enqueue_script( 'ffc-dynamic-fragments' );
+
         // Localize script
         wp_localize_script('ffc-calendar-frontend', 'ffcCalendar', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
