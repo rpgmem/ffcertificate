@@ -69,7 +69,7 @@ class AccessControl {
      * @param bool $show_admin_bar Whether to show admin bar
      * @return bool
      */
-    public static function hide_admin_bar(bool $show_admin_bar): bool {
+    public static function hide_admin_bar($show_admin_bar): bool {
         $settings = get_option('ffc_user_access_settings', array());
 
         // Check if hiding admin bar is enabled

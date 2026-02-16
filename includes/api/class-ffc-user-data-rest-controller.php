@@ -190,7 +190,7 @@ class UserDataRestController {
             global $wpdb;
 
             if (!class_exists('\FreeFormCertificate\Core\Utils')) {
-                return new \WP_Error('missing_class', 'FFC_Utils class not found', array('status' => 500));
+                return new \WP_Error('missing_class', __('FFC_Utils class not found', 'ffcertificate'), array('status' => 500));
             }
 
             $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
@@ -843,61 +843,66 @@ class UserDataRestController {
      * @return \WP_REST_Response|\WP_Error
      */
     public function change_password($request) {
-        $ctx = $this->resolve_user_context($request);
-        $user_id = $ctx['user_id'];
+        try {
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
 
-        if (!$user_id) {
-            return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
-        }
-
-        // Rate limit: 3/hour, 5/day for password changes
-        if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
-            $rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit($user_id, 'password_change', 3, 5);
-            if (!$rate_check['allowed']) {
-                return new \WP_Error('rate_limited', $rate_check['message'], array('status' => 429));
+            if (!$user_id) {
+                return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
             }
-        }
 
-        $current_password = $request->get_param('current_password');
-        $new_password = $request->get_param('new_password');
+            // Rate limit: 3/hour, 5/day for password changes
+            if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
+                $rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit($user_id, 'password_change', 3, 5);
+                if (!$rate_check['allowed']) {
+                    return new \WP_Error('rate_limited', $rate_check['message'], array('status' => 429));
+                }
+            }
 
-        if (empty($new_password)) {
-            return new \WP_Error('missing_fields', __('All password fields are required', 'ffcertificate'), array('status' => 400));
-        }
+            $current_password = $request->get_param('current_password');
+            $new_password = $request->get_param('new_password');
 
-        if (strlen($new_password) < 8) {
-            return new \WP_Error('password_too_short', __('Password must be at least 8 characters', 'ffcertificate'), array('status' => 400));
-        }
-
-        $user = get_user_by('id', $user_id);
-
-        // Admin in view-as mode can skip current password verification
-        if (!$ctx['is_view_as']) {
-            if (empty($current_password)) {
+            if (empty($new_password)) {
                 return new \WP_Error('missing_fields', __('All password fields are required', 'ffcertificate'), array('status' => 400));
             }
-            if (!wp_check_password($current_password, $user->user_pass, $user_id)) {
-                return new \WP_Error('wrong_password', __('Current password is incorrect', 'ffcertificate'), array('status' => 403));
+
+            if (strlen($new_password) < 8) {
+                return new \WP_Error('password_too_short', __('Password must be at least 8 characters', 'ffcertificate'), array('status' => 400));
             }
+
+            $user = get_user_by('id', $user_id);
+
+            // Admin in view-as mode can skip current password verification
+            if (!$ctx['is_view_as']) {
+                if (empty($current_password)) {
+                    return new \WP_Error('missing_fields', __('All password fields are required', 'ffcertificate'), array('status' => 400));
+                }
+                if (!wp_check_password($current_password, $user->user_pass, $user_id)) {
+                    return new \WP_Error('wrong_password', __('Current password is incorrect', 'ffcertificate'), array('status' => 403));
+                }
+            }
+
+            wp_set_password($new_password, $user_id);
+
+            // Re-authenticate: in view-as mode keep the admin session, otherwise re-auth the user
+            if (!$ctx['is_view_as']) {
+                wp_set_current_user($user_id);
+                wp_set_auth_cookie($user_id, true);
+            }
+
+            // Log password change
+            if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
+                \FreeFormCertificate\Core\ActivityLog::log_password_changed($user_id);
+            }
+
+            return rest_ensure_response(array(
+                'success' => true,
+                'message' => __('Password changed successfully!', 'ffcertificate'),
+            ));
+
+        } catch (\Exception $e) {
+            return new \WP_Error('password_error', __('Error changing password', 'ffcertificate'), array('status' => 500));
         }
-
-        wp_set_password($new_password, $user_id);
-
-        // Re-authenticate: in view-as mode keep the admin session, otherwise re-auth the user
-        if (!$ctx['is_view_as']) {
-            wp_set_current_user($user_id);
-            wp_set_auth_cookie($user_id, true);
-        }
-
-        // Log password change
-        if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-            \FreeFormCertificate\Core\ActivityLog::log_password_changed($user_id);
-        }
-
-        return rest_ensure_response(array(
-            'success' => true,
-            'message' => __('Password changed successfully!', 'ffcertificate'),
-        ));
     }
 
     /**
@@ -911,46 +916,51 @@ class UserDataRestController {
      * @return \WP_REST_Response|\WP_Error
      */
     public function create_privacy_request($request) {
-        $ctx = $this->resolve_user_context($request);
-        $user_id = $ctx['user_id'];
+        try {
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
 
-        if (!$user_id) {
-            return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
-        }
-
-        // Rate limit: 2/hour, 3/day for privacy requests
-        if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
-            $rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit($user_id, 'privacy_request', 2, 3);
-            if (!$rate_check['allowed']) {
-                return new \WP_Error('rate_limited', $rate_check['message'], array('status' => 429));
+            if (!$user_id) {
+                return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
             }
+
+            // Rate limit: 2/hour, 3/day for privacy requests
+            if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
+                $rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit($user_id, 'privacy_request', 2, 3);
+                if (!$rate_check['allowed']) {
+                    return new \WP_Error('rate_limited', $rate_check['message'], array('status' => 429));
+                }
+            }
+
+            $type = $request->get_param('type');
+            if (!in_array($type, array('export_personal_data', 'remove_personal_data'), true)) {
+                return new \WP_Error('invalid_type', __('Invalid request type', 'ffcertificate'), array('status' => 400));
+            }
+
+            $user = get_user_by('id', $user_id);
+            $result = wp_create_user_request($user->user_email, $type);
+
+            if (is_wp_error($result)) {
+                return new \WP_Error(
+                    'privacy_request_error',
+                    $result->get_error_message(),
+                    array('status' => 400)
+                );
+            }
+
+            // Log privacy request
+            if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
+                \FreeFormCertificate\Core\ActivityLog::log_privacy_request($user_id, $type);
+            }
+
+            return rest_ensure_response(array(
+                'success' => true,
+                'message' => __('Request sent! The administrator will review it.', 'ffcertificate'),
+            ));
+
+        } catch (\Exception $e) {
+            return new \WP_Error('privacy_error', __('Error processing privacy request', 'ffcertificate'), array('status' => 500));
         }
-
-        $type = $request->get_param('type');
-        if (!in_array($type, array('export_personal_data', 'remove_personal_data'), true)) {
-            return new \WP_Error('invalid_type', __('Invalid request type', 'ffcertificate'), array('status' => 400));
-        }
-
-        $user = get_user_by('id', $user_id);
-        $result = wp_create_user_request($user->user_email, $type);
-
-        if (is_wp_error($result)) {
-            return new \WP_Error(
-                'privacy_request_error',
-                $result->get_error_message(),
-                array('status' => 400)
-            );
-        }
-
-        // Log privacy request
-        if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-            \FreeFormCertificate\Core\ActivityLog::log_privacy_request($user_id, $type);
-        }
-
-        return rest_ensure_response(array(
-            'success' => true,
-            'message' => __('Request sent! The administrator will review it.', 'ffcertificate'),
-        ));
     }
 
     /**
@@ -1081,84 +1091,89 @@ class UserDataRestController {
      * @return \WP_REST_Response|\WP_Error
      */
     public function get_joinable_groups($request) {
-        global $wpdb;
-        $ctx = $this->resolve_user_context($request);
-        $user_id = $ctx['user_id'];
+        try {
+            global $wpdb;
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
 
-        if (!$user_id) {
-            return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
-        }
-
-        $audiences_table = $wpdb->prefix . 'ffc_audiences';
-        $members_table = $wpdb->prefix . 'ffc_audience_members';
-
-        // Check tables and columns exist
-        if (!self::table_exists($audiences_table) || !self::column_exists($audiences_table, 'allow_self_join')) {
-            return rest_ensure_response(array('groups' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
-        }
-
-        // Get parent audiences that have allow_self_join enabled
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $parents = $wpdb->get_results(
-            "SELECT id, name, color
-             FROM {$audiences_table}
-             WHERE allow_self_join = 1 AND parent_id IS NULL AND status = 'active'
-             ORDER BY name ASC",
-            ARRAY_A
-        );
-
-        if (empty($parents)) {
-            return rest_ensure_response(array('parents' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
-        }
-
-        $parent_ids = array_map('intval', array_column($parents, 'id'));
-        $placeholders = implode(',', array_fill(0, count($parent_ids), '%d'));
-
-        // Get children of those parents, with membership status
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $children = $wpdb->get_results($wpdb->prepare(
-            "SELECT a.id, a.name, a.color, a.parent_id,
-                    CASE WHEN m.id IS NOT NULL THEN 1 ELSE 0 END AS is_member
-             FROM {$audiences_table} a
-             LEFT JOIN {$members_table} m ON m.audience_id = a.id AND m.user_id = %d
-             WHERE a.parent_id IN ({$placeholders}) AND a.allow_self_join = 1 AND a.status = 'active'
-             ORDER BY a.name ASC",
-            array_merge(array($user_id), $parent_ids)
-        ), ARRAY_A);
-
-        // Group children by parent
-        $children_by_parent = array();
-        $joined_count = 0;
-        foreach ($children as $child) {
-            $pid = (int) $child['parent_id'];
-            $child['id'] = (int) $child['id'];
-            $child['is_member'] = (bool) $child['is_member'];
-            unset($child['parent_id']);
-            if ($child['is_member']) {
-                $joined_count++;
+            if (!$user_id) {
+                return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
             }
-            $children_by_parent[$pid][] = $child;
-        }
 
-        // Build hierarchical response (only include parents that have children)
-        $result = array();
-        foreach ($parents as $p) {
-            $pid = (int) $p['id'];
-            if (!empty($children_by_parent[$pid])) {
-                $result[] = array(
-                    'id' => $pid,
-                    'name' => $p['name'],
-                    'color' => $p['color'],
-                    'children' => $children_by_parent[$pid],
-                );
+            $audiences_table = $wpdb->prefix . 'ffc_audiences';
+            $members_table = $wpdb->prefix . 'ffc_audience_members';
+
+            // Check tables and columns exist
+            if (!self::table_exists($audiences_table) || !self::column_exists($audiences_table, 'allow_self_join')) {
+                return rest_ensure_response(array('groups' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
             }
-        }
 
-        return rest_ensure_response(array(
-            'parents' => $result,
-            'joined_count' => $joined_count,
-            'max_groups' => self::MAX_SELF_JOIN_GROUPS,
-        ));
+            // Get parent audiences that have allow_self_join enabled
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $parents = $wpdb->get_results(
+                "SELECT id, name, color
+                 FROM {$audiences_table}
+                 WHERE allow_self_join = 1 AND parent_id IS NULL AND status = 'active'
+                 ORDER BY name ASC",
+                ARRAY_A
+            );
+
+            if (empty($parents)) {
+                return rest_ensure_response(array('parents' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
+            }
+
+            $parent_ids = array_map('intval', array_column($parents, 'id'));
+            $placeholders = implode(',', array_fill(0, count($parent_ids), '%d'));
+
+            // Get children of those parents, with membership status
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $children = $wpdb->get_results($wpdb->prepare(
+                "SELECT a.id, a.name, a.color, a.parent_id,
+                        CASE WHEN m.id IS NOT NULL THEN 1 ELSE 0 END AS is_member
+                 FROM {$audiences_table} a
+                 LEFT JOIN {$members_table} m ON m.audience_id = a.id AND m.user_id = %d
+                 WHERE a.parent_id IN ({$placeholders}) AND a.allow_self_join = 1 AND a.status = 'active'
+                 ORDER BY a.name ASC",
+                array_merge(array($user_id), $parent_ids)
+            ), ARRAY_A);
+
+            // Group children by parent
+            $children_by_parent = array();
+            $joined_count = 0;
+            foreach ($children as $child) {
+                $pid = (int) $child['parent_id'];
+                $child['id'] = (int) $child['id'];
+                $child['is_member'] = (bool) $child['is_member'];
+                unset($child['parent_id']);
+                if ($child['is_member']) {
+                    $joined_count++;
+                }
+                $children_by_parent[$pid][] = $child;
+            }
+
+            // Build hierarchical response (only include parents that have children)
+            $result = array();
+            foreach ($parents as $p) {
+                $pid = (int) $p['id'];
+                if (!empty($children_by_parent[$pid])) {
+                    $result[] = array(
+                        'id' => $pid,
+                        'name' => $p['name'],
+                        'color' => $p['color'],
+                        'children' => $children_by_parent[$pid],
+                    );
+                }
+            }
+
+            return rest_ensure_response(array(
+                'parents' => $result,
+                'joined_count' => $joined_count,
+                'max_groups' => self::MAX_SELF_JOIN_GROUPS,
+            ));
+
+        } catch (\Exception $e) {
+            return new \WP_Error('joinable_groups_error', __('Error loading joinable groups', 'ffcertificate'), array('status' => 500));
+        }
     }
 
     /**
@@ -1171,79 +1186,84 @@ class UserDataRestController {
      * @return \WP_REST_Response|\WP_Error
      */
     public function join_audience_group($request) {
-        global $wpdb;
-        $ctx = $this->resolve_user_context($request);
-        $user_id = $ctx['user_id'];
-        $group_id = absint($request->get_param('group_id'));
+        try {
+            global $wpdb;
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
+            $group_id = absint($request->get_param('group_id'));
 
-        if (!$user_id) {
-            return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
+            if (!$user_id) {
+                return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
+            }
+
+            if (!$group_id) {
+                return new \WP_Error('missing_group', __('Group ID is required', 'ffcertificate'), array('status' => 400));
+            }
+
+            $audiences_table = $wpdb->prefix . 'ffc_audiences';
+            $members_table = $wpdb->prefix . 'ffc_audience_members';
+
+            // Verify group is a child, active, and allows self-join (only children can be joined)
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $group = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, name FROM {$audiences_table} WHERE id = %d AND status = 'active' AND allow_self_join = 1 AND parent_id IS NOT NULL",
+                $group_id
+            ));
+
+            if (!$group) {
+                return new \WP_Error('invalid_group', __('Group not found or does not allow self-join', 'ffcertificate'), array('status' => 404));
+            }
+
+            // Check already member
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $already = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$members_table} WHERE audience_id = %d AND user_id = %d",
+                $group_id, $user_id
+            ));
+
+            if ($already) {
+                return new \WP_Error('already_member', __('You are already a member of this group', 'ffcertificate'), array('status' => 409));
+            }
+
+            // Count current self-join memberships (only children count)
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $current_count = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$members_table} m
+                 INNER JOIN {$audiences_table} a ON a.id = m.audience_id
+                 WHERE m.user_id = %d AND a.allow_self_join = 1 AND a.parent_id IS NOT NULL",
+                $user_id
+            ));
+
+            if ($current_count >= self::MAX_SELF_JOIN_GROUPS) {
+                return new \WP_Error(
+                    'max_groups_reached',
+                    /* translators: %d: maximum number of groups */
+                    sprintf(__('You can join a maximum of %d groups. Leave one first.', 'ffcertificate'), self::MAX_SELF_JOIN_GROUPS),
+                    array('status' => 422)
+                );
+            }
+
+            // Join the group
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->insert($members_table, array(
+                'audience_id' => $group_id,
+                'user_id' => $user_id,
+            ), array('%d', '%d'));
+
+            // Grant audience capabilities if needed
+            if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
+                \FreeFormCertificate\UserDashboard\UserManager::grant_audience_capabilities($user_id);
+            }
+
+            return rest_ensure_response(array(
+                'success' => true,
+                /* translators: %s: group name */
+                'message' => sprintf(__('You joined "%s"!', 'ffcertificate'), $group->name),
+            ));
+
+        } catch (\Exception $e) {
+            return new \WP_Error('join_group_error', __('Error joining group', 'ffcertificate'), array('status' => 500));
         }
-
-        if (!$group_id) {
-            return new \WP_Error('missing_group', __('Group ID is required', 'ffcertificate'), array('status' => 400));
-        }
-
-        $audiences_table = $wpdb->prefix . 'ffc_audiences';
-        $members_table = $wpdb->prefix . 'ffc_audience_members';
-
-        // Verify group is a child, active, and allows self-join (only children can be joined)
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $group = $wpdb->get_row($wpdb->prepare(
-            "SELECT id, name FROM {$audiences_table} WHERE id = %d AND status = 'active' AND allow_self_join = 1 AND parent_id IS NOT NULL",
-            $group_id
-        ));
-
-        if (!$group) {
-            return new \WP_Error('invalid_group', __('Group not found or does not allow self-join', 'ffcertificate'), array('status' => 404));
-        }
-
-        // Check already member
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $already = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$members_table} WHERE audience_id = %d AND user_id = %d",
-            $group_id, $user_id
-        ));
-
-        if ($already) {
-            return new \WP_Error('already_member', __('You are already a member of this group', 'ffcertificate'), array('status' => 409));
-        }
-
-        // Count current self-join memberships (only children count)
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $current_count = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$members_table} m
-             INNER JOIN {$audiences_table} a ON a.id = m.audience_id
-             WHERE m.user_id = %d AND a.allow_self_join = 1 AND a.parent_id IS NOT NULL",
-            $user_id
-        ));
-
-        if ($current_count >= self::MAX_SELF_JOIN_GROUPS) {
-            return new \WP_Error(
-                'max_groups_reached',
-                /* translators: %d: maximum number of groups */
-                sprintf(__('You can join a maximum of %d groups. Leave one first.', 'ffcertificate'), self::MAX_SELF_JOIN_GROUPS),
-                array('status' => 422)
-            );
-        }
-
-        // Join the group
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->insert($members_table, array(
-            'audience_id' => $group_id,
-            'user_id' => $user_id,
-        ), array('%d', '%d'));
-
-        // Grant audience capabilities if needed
-        if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
-            \FreeFormCertificate\UserDashboard\UserManager::grant_audience_capabilities($user_id);
-        }
-
-        return rest_ensure_response(array(
-            'success' => true,
-            /* translators: %s: group name */
-            'message' => sprintf(__('You joined "%s"!', 'ffcertificate'), $group->name),
-        ));
     }
 
     /**
@@ -1256,73 +1276,82 @@ class UserDataRestController {
      * @return \WP_REST_Response|\WP_Error
      */
     public function get_user_reregistrations($request) {
-        $ctx = $this->resolve_user_context($request);
-        $user_id = $ctx['user_id'];
+        try {
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
 
-        if (!class_exists('\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository')) {
-            return rest_ensure_response(array('reregistrations' => array(), 'total' => 0));
-        }
-
-        $submissions = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user($user_id);
-        $date_format = get_option('date_format', 'F j, Y');
-
-        $status_labels = array(
-            'pending'     => __('Pending', 'ffcertificate'),
-            'in_progress' => __('In Progress', 'ffcertificate'),
-            'submitted'   => __('Submitted — Pending Review', 'ffcertificate'),
-            'approved'    => __('Approved', 'ffcertificate'),
-            'rejected'    => __('Rejected', 'ffcertificate'),
-            'expired'     => __('Expired', 'ffcertificate'),
-        );
-
-        $formatted = array();
-        foreach ($submissions as $sub) {
-            $start_ts = strtotime($sub->start_date);
-            $end_ts   = strtotime($sub->end_date);
-            $submitted_at = '';
-            if (!empty($sub->submitted_at)) {
-                $sub_ts = strtotime($sub->submitted_at);
-                $submitted_at = ($sub_ts !== false) ? date_i18n($date_format . ' H:i', $sub_ts) : $sub->submitted_at;
+            if (!$user_id) {
+                return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
             }
 
-            $can_download = in_array($sub->status, array('submitted', 'approved'), true);
-            $is_active    = $sub->reregistration_status === 'active';
-            $can_submit   = $is_active && in_array($sub->status, array('pending', 'in_progress', 'rejected'), true);
-
-            // Build magic link for direct verification
-            $magic_link = '';
-            if ($can_download) {
-                $token = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::ensure_magic_token($sub);
-                $magic_link = untrailingslashit(site_url('valid')) . '#token=' . $token;
+            if (!class_exists('\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository')) {
+                return rest_ensure_response(array('reregistrations' => array(), 'total' => 0));
             }
 
-            $formatted[] = array(
-                'submission_id'        => (int) $sub->id,
-                'reregistration_id'    => (int) $sub->reregistration_id,
-                'title'                => $sub->reregistration_title ?? '',
-                'status'               => $sub->status,
-                'status_label'         => $status_labels[$sub->status] ?? $sub->status,
-                'reregistration_status' => $sub->reregistration_status,
-                'start_date'           => $sub->start_date,
-                'end_date'             => $sub->end_date,
-                'start_date_formatted' => ($start_ts !== false) ? date_i18n($date_format, $start_ts) : $sub->start_date,
-                'end_date_formatted'   => ($end_ts !== false) ? date_i18n($date_format, $end_ts) : $sub->end_date,
-                'submitted_at'         => $submitted_at,
-                'days_left'            => $is_active ? max(0, (int) (($end_ts - time()) / 86400)) : 0,
-                'can_download'         => $can_download,
-                'can_submit'           => $can_submit,
-                'is_active'            => $is_active,
-                'auth_code'            => !empty($sub->auth_code)
-                    ? \FreeFormCertificate\Core\Utils::format_auth_code($sub->auth_code)
-                    : '',
-                'magic_link'           => $magic_link,
+            $submissions = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user($user_id);
+            $date_format = get_option('date_format', 'F j, Y');
+
+            $status_labels = array(
+                'pending'     => __('Pending', 'ffcertificate'),
+                'in_progress' => __('In Progress', 'ffcertificate'),
+                'submitted'   => __('Submitted — Pending Review', 'ffcertificate'),
+                'approved'    => __('Approved', 'ffcertificate'),
+                'rejected'    => __('Rejected', 'ffcertificate'),
+                'expired'     => __('Expired', 'ffcertificate'),
             );
-        }
 
-        return rest_ensure_response(array(
-            'reregistrations' => $formatted,
-            'total'           => count($formatted),
-        ));
+            $formatted = array();
+            foreach ($submissions as $sub) {
+                $start_ts = strtotime($sub->start_date);
+                $end_ts   = strtotime($sub->end_date);
+                $submitted_at = '';
+                if (!empty($sub->submitted_at)) {
+                    $sub_ts = strtotime($sub->submitted_at);
+                    $submitted_at = ($sub_ts !== false) ? date_i18n($date_format . ' H:i', $sub_ts) : $sub->submitted_at;
+                }
+
+                $can_download = in_array($sub->status, array('submitted', 'approved'), true);
+                $is_active    = $sub->reregistration_status === 'active';
+                $can_submit   = $is_active && in_array($sub->status, array('pending', 'in_progress', 'rejected'), true);
+
+                // Build magic link for direct verification
+                $magic_link = '';
+                if ($can_download) {
+                    $token = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::ensure_magic_token($sub);
+                    $magic_link = untrailingslashit(site_url('valid')) . '#token=' . $token;
+                }
+
+                $formatted[] = array(
+                    'submission_id'        => (int) $sub->id,
+                    'reregistration_id'    => (int) $sub->reregistration_id,
+                    'title'                => $sub->reregistration_title ?? '',
+                    'status'               => $sub->status,
+                    'status_label'         => $status_labels[$sub->status] ?? $sub->status,
+                    'reregistration_status' => $sub->reregistration_status,
+                    'start_date'           => $sub->start_date,
+                    'end_date'             => $sub->end_date,
+                    'start_date_formatted' => ($start_ts !== false) ? date_i18n($date_format, $start_ts) : $sub->start_date,
+                    'end_date_formatted'   => ($end_ts !== false) ? date_i18n($date_format, $end_ts) : $sub->end_date,
+                    'submitted_at'         => $submitted_at,
+                    'days_left'            => $is_active ? max(0, (int) (($end_ts - time()) / 86400)) : 0,
+                    'can_download'         => $can_download,
+                    'can_submit'           => $can_submit,
+                    'is_active'            => $is_active,
+                    'auth_code'            => !empty($sub->auth_code)
+                        ? \FreeFormCertificate\Core\Utils::format_auth_code($sub->auth_code)
+                        : '',
+                    'magic_link'           => $magic_link,
+                );
+            }
+
+            return rest_ensure_response(array(
+                'reregistrations' => $formatted,
+                'total'           => count($formatted),
+            ));
+
+        } catch (\Exception $e) {
+            return new \WP_Error('reregistrations_error', __('Error loading reregistrations', 'ffcertificate'), array('status' => 500));
+        }
     }
 
     /**
@@ -1335,47 +1364,52 @@ class UserDataRestController {
      * @return \WP_REST_Response|\WP_Error
      */
     public function leave_audience_group($request) {
-        global $wpdb;
-        $ctx = $this->resolve_user_context($request);
-        $user_id = $ctx['user_id'];
-        $group_id = absint($request->get_param('group_id'));
+        try {
+            global $wpdb;
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
+            $group_id = absint($request->get_param('group_id'));
 
-        if (!$user_id) {
-            return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
+            if (!$user_id) {
+                return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
+            }
+
+            if (!$group_id) {
+                return new \WP_Error('missing_group', __('Group ID is required', 'ffcertificate'), array('status' => 400));
+            }
+
+            $audiences_table = $wpdb->prefix . 'ffc_audiences';
+            $members_table = $wpdb->prefix . 'ffc_audience_members';
+
+            // Verify group is a self-joinable child (can only leave children)
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            $group = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, name FROM {$audiences_table} WHERE id = %d AND allow_self_join = 1 AND parent_id IS NOT NULL",
+                $group_id
+            ));
+
+            if (!$group) {
+                return new \WP_Error('invalid_group', __('Group not found or cannot be left by user', 'ffcertificate'), array('status' => 404));
+            }
+
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $deleted = $wpdb->delete($members_table, array(
+                'audience_id' => $group_id,
+                'user_id' => $user_id,
+            ), array('%d', '%d'));
+
+            if (!$deleted) {
+                return new \WP_Error('not_member', __('You are not a member of this group', 'ffcertificate'), array('status' => 404));
+            }
+
+            return rest_ensure_response(array(
+                'success' => true,
+                /* translators: %s: group name */
+                'message' => sprintf(__('You left "%s".', 'ffcertificate'), $group->name),
+            ));
+
+        } catch (\Exception $e) {
+            return new \WP_Error('leave_group_error', __('Error leaving group', 'ffcertificate'), array('status' => 500));
         }
-
-        if (!$group_id) {
-            return new \WP_Error('missing_group', __('Group ID is required', 'ffcertificate'), array('status' => 400));
-        }
-
-        $audiences_table = $wpdb->prefix . 'ffc_audiences';
-        $members_table = $wpdb->prefix . 'ffc_audience_members';
-
-        // Verify group is a self-joinable child (can only leave children)
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $group = $wpdb->get_row($wpdb->prepare(
-            "SELECT id, name FROM {$audiences_table} WHERE id = %d AND allow_self_join = 1 AND parent_id IS NOT NULL",
-            $group_id
-        ));
-
-        if (!$group) {
-            return new \WP_Error('invalid_group', __('Group not found or cannot be left by user', 'ffcertificate'), array('status' => 404));
-        }
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $deleted = $wpdb->delete($members_table, array(
-            'audience_id' => $group_id,
-            'user_id' => $user_id,
-        ), array('%d', '%d'));
-
-        if (!$deleted) {
-            return new \WP_Error('not_member', __('You are not a member of this group', 'ffcertificate'), array('status' => 404));
-        }
-
-        return rest_ensure_response(array(
-            'success' => true,
-            /* translators: %s: group name */
-            'message' => sprintf(__('You left "%s".', 'ffcertificate'), $group->name),
-        ));
     }
 }

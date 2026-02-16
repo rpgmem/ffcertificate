@@ -20,44 +20,9 @@ class AdminAjax {
     use \FreeFormCertificate\Core\AjaxTrait;
 
     public function __construct() {
-        // Register AJAX handlers
-        add_action( 'wp_ajax_ffc_load_template', array( $this, 'load_template' ) );
+        // Register AJAX handlers (ffc_load_template is handled by FormEditor)
         add_action( 'wp_ajax_ffc_generate_tickets', array( $this, 'generate_tickets' ) );
         add_action( 'wp_ajax_ffc_search_user', array( $this, 'search_user' ) );
-    }
-
-    /**
-     * Load template HTML
-     */
-    public function load_template(): void {
-        $this->verify_ajax_nonce( array( 'ffc_form_nonce', 'ffc_admin_nonce' ) );
-        $this->check_ajax_permission( 'edit_posts' );
-
-        $template_id = $this->get_post_int( 'template_id' );
-
-        if ( ! $template_id ) {
-            wp_send_json_error( array( 'message' => __( 'Invalid template ID.', 'ffcertificate' ) ) );
-        }
-
-        // Get template post
-        $template = get_post( $template_id );
-
-        if ( ! $template || $template->post_type !== 'ffc_template' ) {
-            wp_send_json_error( array( 'message' => __( 'Template not found.', 'ffcertificate' ) ) );
-        }
-
-        // Get template HTML from post meta
-        $template_html = get_post_meta( $template_id, '_ffc_template_html', true );
-
-        if ( empty( $template_html ) ) {
-            // Try getting from post content as fallback
-            $template_html = $template->post_content;
-        }
-
-        wp_send_json_success( array(
-            'html' => $template_html,
-            'template_name' => $template->post_title
-        ) );
     }
 
     /**
