@@ -233,6 +233,7 @@ class AudienceLoader {
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'restUrl' => rest_url('ffc/v1/audience/'),
             'nonce' => wp_create_nonce('wp_rest'),
+            'searchUsersNonce' => wp_create_nonce('ffc_search_users'),
             'adminNonce' => wp_create_nonce('ffc_admin_nonce'),
             'strings' => $this->get_admin_strings(),
         ));

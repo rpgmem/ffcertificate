@@ -182,9 +182,9 @@ class ReregistrationFrontend {
      */
     private static function get_sexo_options(): array {
         return array(
-            'Feminino',
-            'Masculino',
-            'Não desejo informar',
+            __('Female', 'ffcertificate'),
+            __('Male', 'ffcertificate'),
+            __('Prefer not to say', 'ffcertificate'),
         );
     }
 
@@ -195,12 +195,12 @@ class ReregistrationFrontend {
      */
     private static function get_estado_civil_options(): array {
         return array(
-            'Casado(a)',
-            'Divorciado(a)',
-            'Separado(a) judicialmente',
-            'Solteiro(a)',
-            'União estável',
-            'Viúvo(a)',
+            __('Married', 'ffcertificate'),
+            __('Divorced', 'ffcertificate'),
+            __('Legally separated', 'ffcertificate'),
+            __('Single', 'ffcertificate'),
+            __('Domestic partnership', 'ffcertificate'),
+            __('Widowed', 'ffcertificate'),
         );
     }
 
@@ -211,12 +211,12 @@ class ReregistrationFrontend {
      */
     private static function get_sindicato_options(): array {
         return array(
-            'NENHUM SINDICATO',
+            __('NO UNION', 'ffcertificate'),
             'APROFEM',
             'SINPEEM',
             'SINESP',
             'SINDISEP',
-            'OUTROS',
+            __('OTHER', 'ffcertificate'),
         );
     }
 
@@ -241,9 +241,9 @@ class ReregistrationFrontend {
      */
     private static function get_acumulo_options(): array {
         return array(
-            'Não Possuo',
-            'Proventos (Holerite Anexo)',
-            'Possuo',
+            __('I do not hold', 'ffcertificate'),
+            __('Pension (Payslip Attached)', 'ffcertificate'),
+            __('I hold', 'ffcertificate'),
         );
     }
 
@@ -288,11 +288,11 @@ class ReregistrationFrontend {
             <table class="ffc-wh-table">
                 <thead>
                     <tr>
-                        <th><?php esc_html_e('Dia', 'ffcertificate'); ?></th>
-                        <th><?php esc_html_e('Entrada 1', 'ffcertificate'); ?></th>
-                        <th><?php esc_html_e('Saída 1', 'ffcertificate'); ?></th>
-                        <th><?php esc_html_e('Entrada 2', 'ffcertificate'); ?></th>
-                        <th><?php esc_html_e('Saída 2', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Day', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Entry 1', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Exit 1', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Entry 2', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Exit 2', 'ffcertificate'); ?></th>
                         <th></th>
                     </tr>
                 </thead>
@@ -315,7 +315,7 @@ class ReregistrationFrontend {
                     <?php endforeach; ?>
                 </tbody>
             </table>
-            <button type="button" class="button ffc-wh-add">+ <?php esc_html_e('Adicionar Dia', 'ffcertificate'); ?></button>
+            <button type="button" class="button ffc-wh-add">+ <?php esc_html_e('Add Day', 'ffcertificate'); ?></button>
         </div>
         <?php
         return ob_get_clean();
@@ -388,7 +388,7 @@ class ReregistrationFrontend {
                 'jornada'             => $profile['jornada'] ?? '',
                 'horario_trabalho'    => $profile['horario_trabalho'] ?? '',
                 'sindicato'           => $profile['sindicato'] ?? '',
-                'acumulo_cargos'      => $profile['acumulo_cargos'] ?? 'Não Possuo',
+                'acumulo_cargos'      => $profile['acumulo_cargos'] ?? __('I do not hold', 'ffcertificate'),
                 'jornada_acumulo'     => $profile['jornada_acumulo'] ?? '',
                 'cargo_funcao_acumulo' => $profile['cargo_funcao_acumulo'] ?? '',
                 'horario_trabalho_acumulo' => $profile['horario_trabalho_acumulo'] ?? '',
@@ -417,8 +417,8 @@ class ReregistrationFrontend {
         ?>
         <div class="ffc-rereg-form-container" data-reregistration-id="<?php echo esc_attr($rereg->id); ?>">
             <div class="ffc-rereg-header-bar">
-                <div class="ffc-rereg-header-title"><?php echo esc_html__('PREFEITURA DE SÃO PAULO / SECRETARIA DE EDUCAÇÃO – SME', 'ffcertificate'); ?></div>
-                <div class="ffc-rereg-header-subtitle"><?php echo esc_html__('DIRETORIA REGIONAL DE EDUCAÇÃO SÃO MIGUEL – MP', 'ffcertificate'); ?></div>
+                <div class="ffc-rereg-header-title"><?php echo esc_html__('CITY HALL OF SÃO PAULO / DEPARTMENT OF EDUCATION – SME', 'ffcertificate'); ?></div>
+                <div class="ffc-rereg-header-subtitle"><?php echo esc_html__('REGIONAL EDUCATION BOARD SÃO MIGUEL – MP', 'ffcertificate'); ?></div>
             </div>
 
             <h3><?php echo esc_html($rereg->title); ?></h3>
@@ -435,28 +435,28 @@ class ReregistrationFrontend {
 
                 <!-- 1. DADOS PESSOAIS -->
                 <fieldset class="ffc-rereg-fieldset">
-                    <legend><?php echo esc_html__('1. Dados Pessoais', 'ffcertificate'); ?></legend>
+                    <legend><?php echo esc_html__('1. Personal Data', 'ffcertificate'); ?></legend>
 
                     <div class="ffc-rereg-field">
-                        <label for="ffc_rereg_name"><?php esc_html_e('Nome', 'ffcertificate'); ?> <span class="required">*</span></label>
+                        <label for="ffc_rereg_name"><?php esc_html_e('Name', 'ffcertificate'); ?> <span class="required">*</span></label>
                         <input type="text" id="ffc_rereg_name" name="standard_fields[display_name]"
                                value="<?php echo esc_attr($standard['display_name'] ?? ''); ?>" required>
                     </div>
 
                     <div class="ffc-rereg-row ffc-rereg-row-3">
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_sexo"><?php esc_html_e('Sexo', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <label for="ffc_rereg_sexo"><?php esc_html_e('Sex', 'ffcertificate'); ?> <span class="required">*</span></label>
                             <select id="ffc_rereg_sexo" name="standard_fields[sexo]" required>
-                                <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                                <option value=""><?php esc_html_e('Select', 'ffcertificate'); ?></option>
                                 <?php foreach (self::get_sexo_options() as $opt) : ?>
                                     <option value="<?php echo esc_attr($opt); ?>" <?php selected($standard['sexo'] ?? '', $opt); ?>><?php echo esc_html($opt); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_estado_civil"><?php esc_html_e('Estado Civil', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <label for="ffc_rereg_estado_civil"><?php esc_html_e('Marital Status', 'ffcertificate'); ?> <span class="required">*</span></label>
                             <select id="ffc_rereg_estado_civil" name="standard_fields[estado_civil]" required>
-                                <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                                <option value=""><?php esc_html_e('Select', 'ffcertificate'); ?></option>
                                 <?php foreach (self::get_estado_civil_options() as $opt) : ?>
                                     <option value="<?php echo esc_attr($opt); ?>" <?php selected($standard['estado_civil'] ?? '', $opt); ?>><?php echo esc_html($opt); ?></option>
                                 <?php endforeach; ?>
@@ -471,12 +471,12 @@ class ReregistrationFrontend {
 
                     <div class="ffc-rereg-row ffc-rereg-row-2">
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_vinculo"><?php esc_html_e('Vínculo', 'ffcertificate'); ?></label>
+                            <label for="ffc_rereg_vinculo"><?php esc_html_e('Employment Bond', 'ffcertificate'); ?></label>
                             <input type="text" id="ffc_rereg_vinculo" name="standard_fields[vinculo]"
                                    value="<?php echo esc_attr($standard['vinculo'] ?? ''); ?>" maxlength="2" data-mask="number">
                         </div>
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_data_nascimento"><?php esc_html_e('Data de Nascimento', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <label for="ffc_rereg_data_nascimento"><?php esc_html_e('Date of Birth', 'ffcertificate'); ?> <span class="required">*</span></label>
                             <input type="date" id="ffc_rereg_data_nascimento" name="standard_fields[data_nascimento]"
                                    value="<?php echo esc_attr($standard['data_nascimento'] ?? ''); ?>" required>
                         </div>
@@ -497,30 +497,30 @@ class ReregistrationFrontend {
                     </div>
 
                     <div class="ffc-rereg-field">
-                        <label for="ffc_rereg_unidade_lotacao"><?php esc_html_e('Unidade de Lotação', 'ffcertificate'); ?></label>
+                        <label for="ffc_rereg_unidade_lotacao"><?php esc_html_e('Assignment Unit', 'ffcertificate'); ?></label>
                         <input type="text" id="ffc_rereg_unidade_lotacao" name="standard_fields[unidade_lotacao]"
                                value="<?php echo esc_attr($standard['unidade_lotacao'] ?? ''); ?>">
                     </div>
 
                     <div class="ffc-rereg-row ffc-rereg-row-3">
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_unidade_exercicio"><?php esc_html_e('Unidade de Exercício', 'ffcertificate'); ?></label>
+                            <label for="ffc_rereg_unidade_exercicio"><?php esc_html_e('Working Unit', 'ffcertificate'); ?></label>
                             <input type="text" id="ffc_rereg_unidade_exercicio" name="standard_fields[unidade_exercicio]"
                                    value="<?php echo esc_attr($standard['unidade_exercicio'] ?? 'DRE MP'); ?>">
                         </div>
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_divisao"><?php esc_html_e('Divisão', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <label for="ffc_rereg_divisao"><?php esc_html_e('Division', 'ffcertificate'); ?> <span class="required">*</span></label>
                             <select id="ffc_rereg_divisao" name="standard_fields[divisao]" required>
-                                <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                                <option value=""><?php esc_html_e('Select', 'ffcertificate'); ?></option>
                                 <?php foreach (array_keys($divisao_setor_map) as $div) : ?>
                                     <option value="<?php echo esc_attr($div); ?>" <?php selected($standard['divisao'] ?? '', $div); ?>><?php echo esc_html($div); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_setor"><?php esc_html_e('Setor', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <label for="ffc_rereg_setor"><?php esc_html_e('Department', 'ffcertificate'); ?> <span class="required">*</span></label>
                             <select id="ffc_rereg_setor" name="standard_fields[setor]" required>
-                                <option value=""><?php esc_html_e('Selecione Divisão / Local', 'ffcertificate'); ?></option>
+                                <option value=""><?php esc_html_e('Select Division / Location', 'ffcertificate'); ?></option>
                                 <?php
                                 $selected_divisao = $standard['divisao'] ?? '';
                                 if (!empty($selected_divisao) && isset($divisao_setor_map[$selected_divisao])) {
@@ -541,17 +541,17 @@ class ReregistrationFrontend {
                     <!-- Address -->
                     <div class="ffc-rereg-row ffc-rereg-row-addr">
                         <div class="ffc-rereg-field ffc-rereg-field-grow">
-                            <label for="ffc_rereg_endereco"><?php esc_html_e('Endereço', 'ffcertificate'); ?></label>
+                            <label for="ffc_rereg_endereco"><?php esc_html_e('Address', 'ffcertificate'); ?></label>
                             <input type="text" id="ffc_rereg_endereco" name="standard_fields[endereco]"
                                    value="<?php echo esc_attr($standard['endereco'] ?? ''); ?>">
                         </div>
                         <div class="ffc-rereg-field ffc-rereg-field-sm">
-                            <label for="ffc_rereg_endereco_numero"><?php esc_html_e('Nº', 'ffcertificate'); ?></label>
+                            <label for="ffc_rereg_endereco_numero"><?php esc_html_e('No.', 'ffcertificate'); ?></label>
                             <input type="text" id="ffc_rereg_endereco_numero" name="standard_fields[endereco_numero]"
                                    value="<?php echo esc_attr($standard['endereco_numero'] ?? ''); ?>">
                         </div>
                         <div class="ffc-rereg-field ffc-rereg-field-sm">
-                            <label for="ffc_rereg_endereco_complemento"><?php esc_html_e('Compl.', 'ffcertificate'); ?></label>
+                            <label for="ffc_rereg_endereco_complemento"><?php esc_html_e('Apt/Suite', 'ffcertificate'); ?></label>
                             <input type="text" id="ffc_rereg_endereco_complemento" name="standard_fields[endereco_complemento]"
                                    value="<?php echo esc_attr($standard['endereco_complemento'] ?? ''); ?>">
                         </div>
@@ -559,12 +559,12 @@ class ReregistrationFrontend {
 
                     <div class="ffc-rereg-row ffc-rereg-row-4">
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_bairro"><?php esc_html_e('Bairro', 'ffcertificate'); ?></label>
+                            <label for="ffc_rereg_bairro"><?php esc_html_e('Neighborhood', 'ffcertificate'); ?></label>
                             <input type="text" id="ffc_rereg_bairro" name="standard_fields[bairro]"
                                    value="<?php echo esc_attr($standard['bairro'] ?? ''); ?>">
                         </div>
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_cidade"><?php esc_html_e('Cidade', 'ffcertificate'); ?></label>
+                            <label for="ffc_rereg_cidade"><?php esc_html_e('City', 'ffcertificate'); ?></label>
                             <input type="text" id="ffc_rereg_cidade" name="standard_fields[cidade]"
                                    value="<?php echo esc_attr($standard['cidade'] ?? 'SÃO PAULO'); ?>">
                         </div>
@@ -577,7 +577,7 @@ class ReregistrationFrontend {
                             </select>
                         </div>
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_cep"><?php esc_html_e('CEP', 'ffcertificate'); ?></label>
+                            <label for="ffc_rereg_cep"><?php esc_html_e('Zip Code', 'ffcertificate'); ?></label>
                             <input type="text" id="ffc_rereg_cep" name="standard_fields[cep]"
                                    value="<?php echo esc_attr($standard['cep'] ?? ''); ?>" data-mask="cep">
                         </div>
@@ -586,16 +586,16 @@ class ReregistrationFrontend {
 
                 <!-- 2. CONTATOS -->
                 <fieldset class="ffc-rereg-fieldset">
-                    <legend><?php echo esc_html__('2. Contatos', 'ffcertificate'); ?></legend>
+                    <legend><?php echo esc_html__('2. Contact Information', 'ffcertificate'); ?></legend>
 
                     <div class="ffc-rereg-row ffc-rereg-row-2">
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_phone"><?php esc_html_e('Telefone Residencial', 'ffcertificate'); ?></label>
+                            <label for="ffc_rereg_phone"><?php esc_html_e('Home Phone', 'ffcertificate'); ?></label>
                             <input type="tel" id="ffc_rereg_phone" name="standard_fields[phone]"
                                    value="<?php echo esc_attr($standard['phone'] ?? ''); ?>" data-mask="phone">
                         </div>
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_celular"><?php esc_html_e('Tel. Celular', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <label for="ffc_rereg_celular"><?php esc_html_e('Cell Phone', 'ffcertificate'); ?> <span class="required">*</span></label>
                             <input type="tel" id="ffc_rereg_celular" name="standard_fields[celular]"
                                    value="<?php echo esc_attr($standard['celular'] ?? ''); ?>" data-mask="phone" required>
                         </div>
@@ -603,25 +603,25 @@ class ReregistrationFrontend {
 
                     <div class="ffc-rereg-row ffc-rereg-row-2">
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_contato_emergencia"><?php esc_html_e('Contato Emergência', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <label for="ffc_rereg_contato_emergencia"><?php esc_html_e('Emergency Contact', 'ffcertificate'); ?> <span class="required">*</span></label>
                             <input type="text" id="ffc_rereg_contato_emergencia" name="standard_fields[contato_emergencia]"
                                    value="<?php echo esc_attr($standard['contato_emergencia'] ?? ''); ?>" required>
                         </div>
                         <div class="ffc-rereg-field">
-                            <label for="ffc_rereg_tel_emergencia"><?php esc_html_e('Tel. Emergência', 'ffcertificate'); ?> <span class="required">*</span></label>
+                            <label for="ffc_rereg_tel_emergencia"><?php esc_html_e('Emergency Phone', 'ffcertificate'); ?> <span class="required">*</span></label>
                             <input type="tel" id="ffc_rereg_tel_emergencia" name="standard_fields[tel_emergencia]"
                                    value="<?php echo esc_attr($standard['tel_emergencia'] ?? ''); ?>" data-mask="phone" required>
                         </div>
                     </div>
 
                     <div class="ffc-rereg-field">
-                        <label for="ffc_rereg_email_inst"><?php esc_html_e('E-mail Institucional', 'ffcertificate'); ?></label>
+                        <label for="ffc_rereg_email_inst"><?php esc_html_e('Institutional Email', 'ffcertificate'); ?></label>
                         <input type="email" id="ffc_rereg_email_inst" name="standard_fields[email_institucional]"
                                value="<?php echo esc_attr($standard['email_institucional'] ?? $user->user_email); ?>">
                     </div>
 
                     <div class="ffc-rereg-field">
-                        <label for="ffc_rereg_email_part"><?php esc_html_e('E-mail Particular', 'ffcertificate'); ?></label>
+                        <label for="ffc_rereg_email_part"><?php esc_html_e('Personal Email', 'ffcertificate'); ?></label>
                         <input type="email" id="ffc_rereg_email_part" name="standard_fields[email_particular]"
                                value="<?php echo esc_attr($standard['email_particular'] ?? ''); ?>">
                     </div>
@@ -644,12 +644,12 @@ class ReregistrationFrontend {
 
                 <!-- 3. JORNADA / HORÁRIO DE TRABALHO -->
                 <fieldset class="ffc-rereg-fieldset">
-                    <legend><?php echo esc_html__('3. Jornada / Horário de Trabalho', 'ffcertificate'); ?></legend>
+                    <legend><?php echo esc_html__('3. Work Schedule / Working Hours', 'ffcertificate'); ?></legend>
 
                     <div class="ffc-rereg-field">
-                        <label for="ffc_rereg_jornada"><?php esc_html_e('Jornada', 'ffcertificate'); ?> <span class="required">*</span></label>
+                        <label for="ffc_rereg_jornada"><?php esc_html_e('Work Schedule', 'ffcertificate'); ?> <span class="required">*</span></label>
                         <select id="ffc_rereg_jornada" name="standard_fields[jornada]" required>
-                            <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                            <option value=""><?php esc_html_e('Select', 'ffcertificate'); ?></option>
                             <?php foreach (self::get_jornada_options() as $j) : ?>
                                 <option value="<?php echo esc_attr($j); ?>" <?php selected($standard['jornada'] ?? '', $j); ?>><?php echo esc_html($j); ?></option>
                             <?php endforeach; ?>
@@ -657,44 +657,44 @@ class ReregistrationFrontend {
                     </div>
 
                     <div class="ffc-rereg-field">
-                        <label><?php esc_html_e('Horário de Trabalho', 'ffcertificate'); ?></label>
+                        <label><?php esc_html_e('Working Hours', 'ffcertificate'); ?></label>
                         <?php echo self::render_working_hours_field('standard_fields[horario_trabalho]', 'ffc_rereg_horario_trabalho', $wh_main); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                     </div>
                 </fieldset>
 
                 <!-- 4. ACÚMULO DE CARGOS -->
                 <fieldset class="ffc-rereg-fieldset">
-                    <legend><?php echo esc_html__('4. Acúmulo de Cargos', 'ffcertificate'); ?></legend>
+                    <legend><?php echo esc_html__('4. Position Accumulation', 'ffcertificate'); ?></legend>
 
                     <div class="ffc-rereg-field">
-                        <label for="ffc_rereg_acumulo"><?php esc_html_e('Acúmulo de Cargo', 'ffcertificate'); ?></label>
+                        <label for="ffc_rereg_acumulo"><?php esc_html_e('Position Accumulation', 'ffcertificate'); ?></label>
                         <select id="ffc_rereg_acumulo" name="standard_fields[acumulo_cargos]">
                             <?php foreach (self::get_acumulo_options() as $opt) : ?>
-                                <option value="<?php echo esc_attr($opt); ?>" <?php selected($standard['acumulo_cargos'] ?? 'Não Possuo', $opt); ?>><?php echo esc_html($opt); ?></option>
+                                <option value="<?php echo esc_attr($opt); ?>" <?php selected($standard['acumulo_cargos'] ?? __('I do not hold', 'ffcertificate'), $opt); ?>><?php echo esc_html($opt); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
-                    <div class="ffc-rereg-acumulo-fields" style="<?php echo ($standard['acumulo_cargos'] ?? 'Não Possuo') === 'Possuo' ? '' : 'display:none'; ?>">
+                    <div class="ffc-rereg-acumulo-fields" style="<?php echo ($standard['acumulo_cargos'] ?? __('I do not hold', 'ffcertificate')) === __('I hold', 'ffcertificate') ? '' : 'display:none'; ?>">
                         <div class="ffc-rereg-row ffc-rereg-row-2">
                             <div class="ffc-rereg-field">
-                                <label for="ffc_rereg_jornada_acumulo"><?php esc_html_e('Jornada do Acúmulo', 'ffcertificate'); ?></label>
+                                <label for="ffc_rereg_jornada_acumulo"><?php esc_html_e('Accumulation Schedule', 'ffcertificate'); ?></label>
                                 <select id="ffc_rereg_jornada_acumulo" name="standard_fields[jornada_acumulo]">
-                                    <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                                    <option value=""><?php esc_html_e('Select', 'ffcertificate'); ?></option>
                                     <?php foreach (self::get_jornada_options() as $j) : ?>
                                         <option value="<?php echo esc_attr($j); ?>" <?php selected($standard['jornada_acumulo'] ?? '', $j); ?>><?php echo esc_html($j); ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
                             <div class="ffc-rereg-field">
-                                <label for="ffc_rereg_cargo_funcao_acumulo"><?php esc_html_e('Cargo/Função exercido atualmente', 'ffcertificate'); ?></label>
+                                <label for="ffc_rereg_cargo_funcao_acumulo"><?php esc_html_e('Current Position/Role', 'ffcertificate'); ?></label>
                                 <input type="text" id="ffc_rereg_cargo_funcao_acumulo" name="standard_fields[cargo_funcao_acumulo]"
                                        value="<?php echo esc_attr($standard['cargo_funcao_acumulo'] ?? ''); ?>">
                             </div>
                         </div>
 
                         <div class="ffc-rereg-field" style="margin-top: 16px;">
-                            <label><?php esc_html_e('Horário de Trabalho do Acúmulo', 'ffcertificate'); ?></label>
+                            <label><?php esc_html_e('Accumulation Working Hours', 'ffcertificate'); ?></label>
                             <?php echo self::render_working_hours_field('standard_fields[horario_trabalho_acumulo]', 'ffc_rereg_horario_trabalho_acumulo', $wh_acumulo); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                         </div>
                     </div>
@@ -702,12 +702,12 @@ class ReregistrationFrontend {
 
                 <!-- 5. SINDICATO -->
                 <fieldset class="ffc-rereg-fieldset">
-                    <legend><?php echo esc_html__('5. Sindicato ao qual sou filiado e que desejo participar de eventos (apenas um)', 'ffcertificate'); ?></legend>
+                    <legend><?php echo esc_html__('5. Union to which I am affiliated and wish to participate in events (only one)', 'ffcertificate'); ?></legend>
 
                     <div class="ffc-rereg-field">
-                        <label for="ffc_rereg_sindicato"><?php esc_html_e('Sindicato', 'ffcertificate'); ?></label>
+                        <label for="ffc_rereg_sindicato"><?php esc_html_e('Union', 'ffcertificate'); ?></label>
                         <select id="ffc_rereg_sindicato" name="standard_fields[sindicato]">
-                            <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                            <option value=""><?php esc_html_e('Select', 'ffcertificate'); ?></option>
                             <?php foreach (self::get_sindicato_options() as $opt) : ?>
                                 <option value="<?php echo esc_attr($opt); ?>" <?php selected($standard['sindicato'] ?? '', $opt); ?>><?php echo esc_html($opt); ?></option>
                             <?php endforeach; ?>
@@ -717,17 +717,17 @@ class ReregistrationFrontend {
 
                 <!-- 6. TERMO DE CIÊNCIA -->
                 <fieldset class="ffc-rereg-fieldset">
-                    <legend><?php echo esc_html__('6. Termo de Ciência', 'ffcertificate'); ?></legend>
+                    <legend><?php echo esc_html__('6. Acknowledgment', 'ffcertificate'); ?></legend>
 
                     <div class="ffc-rereg-termo-text">
-                        <p><?php echo esc_html__('Eu, em exercício na Diretoria Regional de Educação de São Miguel – DRE-MP, declaro estar ciente das orientações para o ano corrente:', 'ffcertificate'); ?></p>
+                        <p><?php echo esc_html__('I, working at the Regional Education Board of São Miguel – DRE-MP, declare that I am aware of the guidelines for the current year:', 'ffcertificate'); ?></p>
                         <ol>
-                            <li><strong><?php echo esc_html__('Declaração de Família WEB:', 'ffcertificate'); ?></strong> <?php echo esc_html__('a Declaração de Família Web deverá ser feita dentro do mês de aniversário do servidor, por meio do site:', 'ffcertificate'); ?> <a href="https://www.declaracaofamilia.iprem.prefeitura.sp.gov.br/Login" target="_blank" rel="noopener noreferrer">https://www.declaracaofamilia.iprem.prefeitura.sp.gov.br/Login</a>. <?php echo esc_html__('Após, deverá ser impressa e entregue no Setor de Vida Funcional, para arquivo em prontuário;', 'ffcertificate'); ?></li>
-                            <li><strong><?php echo esc_html__('Recadastramento Auxílio Transporte:', 'ffcertificate'); ?></strong> <?php echo esc_html__('Permanecem as mesmas orientações para aqueles que fazem jus ao recebimento do auxílio, lembrando que o recadastramento deverá ser efetuado no mês do aniversário, e o servidor deverá providenciar o recadastramento do Auxílio Transporte ANTES de efetuar o recadastramento anual (prova de vida);', 'ffcertificate'); ?></li>
-                            <li><strong><?php echo esc_html__('Recadastramento Anual (Prova de Vida):', 'ffcertificate'); ?></strong> <?php echo esc_html__('Permanecem as mesmas orientações, lembrando que o RG com data de expedição acima de 10 anos não será aceito, e o servidor deverá providenciar novo documento antes de efetuar o recadastramento;', 'ffcertificate'); ?></li>
-                            <li><strong><?php echo esc_html__('Declaração de Bens (SISPATRI):', 'ffcertificate'); ?></strong> <?php echo esc_html__('Permanecem as mesmas orientações, lembrando que deverá ser feita após o encerramento do prazo da Receita Federal, do dia 1 ao 30 do mês de Junho, por meio do site:', 'ffcertificate'); ?> <a href="https://controladoriageralbens.prefeitura.sp.gov.br/PaginasPublicas/login.aspx" target="_blank" rel="noopener noreferrer">https://controladoriageralbens.prefeitura.sp.gov.br/PaginasPublicas/login.aspx</a>;</li>
-                            <li><strong><?php echo esc_html__('Antecipação de 13º Salário:', 'ffcertificate'); ?></strong> <?php echo esc_html__('A solicitação poderá ser preenchida e entregue à Unidade de RH a partir do 1º dia útil do exercício a que se refere a antecipação, independente do mês de aniversário do servidor.', 'ffcertificate'); ?></li>
-                            <li><strong><?php echo esc_html__('Entrega de Atestados Médicos/Odontológicos com pedido de Afastamento a partir de 1 (um) dia:', 'ffcertificate'); ?></strong> <?php echo esc_html__('Reiteramos que, qualquer pedido de afastamento para tratamento de saúde (pessoal ou de familiar) deverá ser informado imediatamente à chefia, mediante apresentação do atestado médico/odontológico. Em seguida, a documentação deverá ser entregue ao Setor de Vida Funcional EM MÃOS ou digitalizada para o e-mail:', 'ffcertificate'); ?> <a href="mailto:rhvidafuncionaldremp@sme.prefeitura.sp.gov.br">rhvidafuncionaldremp@sme.prefeitura.sp.gov.br</a>. <?php echo esc_html__('Importante: O setor de Vida Funcional e a Chefia não se responsabilizam pelos atestados deixados no livro de ponto ou na pasta destinada exclusivamente às Declarações de Horário, bem como os que forem entregues fora do prazo legal para agendamento de perícia, se for o caso.', 'ffcertificate'); ?></li>
+                            <li><strong><?php echo esc_html__('Family Declaration (WEB):', 'ffcertificate'); ?></strong> <?php echo esc_html__('The Family Declaration must be completed during the employee\'s birthday month, through the website:', 'ffcertificate'); ?> <a href="https://www.declaracaofamilia.iprem.prefeitura.sp.gov.br/Login" target="_blank" rel="noopener noreferrer">https://www.declaracaofamilia.iprem.prefeitura.sp.gov.br/Login</a>. <?php echo esc_html__('Afterward, it must be printed and delivered to the Personnel Records Department for filing;', 'ffcertificate'); ?></li>
+                            <li><strong><?php echo esc_html__('Transportation Benefit Re-registration:', 'ffcertificate'); ?></strong> <?php echo esc_html__('The same guidelines apply to those entitled to the benefit. The re-registration must be completed during the birthday month, and the employee must complete the Transportation Benefit re-registration BEFORE the annual re-registration (proof of life);', 'ffcertificate'); ?></li>
+                            <li><strong><?php echo esc_html__('Annual Re-registration (Proof of Life):', 'ffcertificate'); ?></strong> <?php echo esc_html__('The same guidelines apply. Note that an ID card issued more than 10 years ago will not be accepted, and the employee must obtain a new document before completing the re-registration;', 'ffcertificate'); ?></li>
+                            <li><strong><?php echo esc_html__('Asset Declaration (SISPATRI):', 'ffcertificate'); ?></strong> <?php echo esc_html__('The same guidelines apply. It must be completed after the Federal Revenue deadline, from the 1st to the 30th of June, through the website:', 'ffcertificate'); ?> <a href="https://controladoriageralbens.prefeitura.sp.gov.br/PaginasPublicas/login.aspx" target="_blank" rel="noopener noreferrer">https://controladoriageralbens.prefeitura.sp.gov.br/PaginasPublicas/login.aspx</a>;</li>
+                            <li><strong><?php echo esc_html__('13th Salary Advance:', 'ffcertificate'); ?></strong> <?php echo esc_html__('The request may be filled out and delivered to the HR Unit from the 1st business day of the year to which the advance refers, regardless of the employee\'s birthday month.', 'ffcertificate'); ?></li>
+                            <li><strong><?php echo esc_html__('Submission of Medical/Dental Certificates with Leave Request from 1 (one) day:', 'ffcertificate'); ?></strong> <?php echo esc_html__('We reiterate that any leave request for health treatment (personal or family member) must be immediately reported to the supervisor, with presentation of the medical/dental certificate. Then, the documentation must be delivered to the Personnel Records Department IN PERSON or digitized to the email:', 'ffcertificate'); ?> <a href="mailto:rhvidafuncionaldremp@sme.prefeitura.sp.gov.br">rhvidafuncionaldremp@sme.prefeitura.sp.gov.br</a>. <?php echo esc_html__('Important: The Personnel Records Department and the Supervisor are not responsible for certificates left in the attendance book or in the folder designated exclusively for Schedule Declarations, as well as those delivered outside the legal deadline for scheduling a medical examination, if applicable.', 'ffcertificate'); ?></li>
                         </ol>
                     </div>
                 </fieldset>
@@ -800,7 +800,7 @@ class ReregistrationFrontend {
                                             <div class="ffc-rereg-field">
                                                 <label><?php echo esc_html($parent_label); ?></label>
                                                 <select class="ffc-dep-parent">
-                                                    <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                                                    <option value=""><?php esc_html_e('Select', 'ffcertificate'); ?></option>
                                                     <?php foreach (array_keys($dep_groups) as $group) : ?>
                                                         <option value="<?php echo esc_attr($group); ?>" <?php selected($dep_parent, $group); ?>><?php echo esc_html($group); ?></option>
                                                     <?php endforeach; ?>
@@ -809,7 +809,7 @@ class ReregistrationFrontend {
                                             <div class="ffc-rereg-field">
                                                 <label><?php echo esc_html($child_label); ?></label>
                                                 <select class="ffc-dep-child">
-                                                    <option value=""><?php esc_html_e('Selecione', 'ffcertificate'); ?></option>
+                                                    <option value=""><?php esc_html_e('Select', 'ffcertificate'); ?></option>
                                                     <?php
                                                     if (!empty($dep_parent) && isset($dep_groups[$dep_parent])) {
                                                         foreach ($dep_groups[$dep_parent] as $child) {
@@ -1093,66 +1093,66 @@ class ReregistrationFrontend {
 
         // Required standard fields
         if (empty($s['display_name'])) {
-            $errors['standard_fields[display_name]'] = __('Nome é obrigatório.', 'ffcertificate');
+            $errors['standard_fields[display_name]'] = __('Name is required.', 'ffcertificate');
         }
         if (empty($s['sexo'])) {
-            $errors['standard_fields[sexo]'] = __('Sexo é obrigatório.', 'ffcertificate');
+            $errors['standard_fields[sexo]'] = __('Sex is required.', 'ffcertificate');
         }
         if (empty($s['estado_civil'])) {
-            $errors['standard_fields[estado_civil]'] = __('Estado Civil é obrigatório.', 'ffcertificate');
+            $errors['standard_fields[estado_civil]'] = __('Marital status is required.', 'ffcertificate');
         }
         if (empty($s['data_nascimento'])) {
-            $errors['standard_fields[data_nascimento]'] = __('Data de Nascimento é obrigatória.', 'ffcertificate');
+            $errors['standard_fields[data_nascimento]'] = __('Date of birth is required.', 'ffcertificate');
         }
         if (empty($s['divisao'])) {
-            $errors['standard_fields[divisao]'] = __('Divisão é obrigatória.', 'ffcertificate');
+            $errors['standard_fields[divisao]'] = __('Division is required.', 'ffcertificate');
         }
         if (empty($s['setor'])) {
-            $errors['standard_fields[setor]'] = __('Setor é obrigatório.', 'ffcertificate');
+            $errors['standard_fields[setor]'] = __('Department is required.', 'ffcertificate');
         }
         if (empty($s['jornada'])) {
-            $errors['standard_fields[jornada]'] = __('Jornada é obrigatória.', 'ffcertificate');
+            $errors['standard_fields[jornada]'] = __('Work schedule is required.', 'ffcertificate');
         }
         if (empty($s['celular'])) {
-            $errors['standard_fields[celular]'] = __('Tel. Celular é obrigatório.', 'ffcertificate');
+            $errors['standard_fields[celular]'] = __('Cell phone is required.', 'ffcertificate');
         }
         if (empty($s['contato_emergencia'])) {
-            $errors['standard_fields[contato_emergencia]'] = __('Contato de Emergência é obrigatório.', 'ffcertificate');
+            $errors['standard_fields[contato_emergencia]'] = __('Emergency contact is required.', 'ffcertificate');
         }
         if (empty($s['tel_emergencia'])) {
-            $errors['standard_fields[tel_emergencia]'] = __('Tel. Emergência é obrigatório.', 'ffcertificate');
+            $errors['standard_fields[tel_emergencia]'] = __('Emergency phone is required.', 'ffcertificate');
         }
 
         // CPF validation (required)
         if (empty($s['cpf'])) {
-            $errors['standard_fields[cpf]'] = __('CPF é obrigatório.', 'ffcertificate');
+            $errors['standard_fields[cpf]'] = __('CPF is required.', 'ffcertificate');
         } elseif (!\FreeFormCertificate\Core\Utils::validate_cpf($s['cpf'])) {
-            $errors['standard_fields[cpf]'] = __('CPF inválido.', 'ffcertificate');
+            $errors['standard_fields[cpf]'] = __('Invalid CPF.', 'ffcertificate');
         }
 
         // Phone format validation (if provided)
         $phone = $s['phone'] ?? '';
         if (!empty($phone) && !\FreeFormCertificate\Core\Utils::validate_phone($phone)) {
-            $errors['standard_fields[phone]'] = __('Telefone residencial inválido.', 'ffcertificate');
+            $errors['standard_fields[phone]'] = __('Invalid home phone.', 'ffcertificate');
         }
 
         // Celular format validation
         $celular = $s['celular'] ?? '';
         if (!empty($celular) && !\FreeFormCertificate\Core\Utils::validate_phone($celular)) {
-            $errors['standard_fields[celular]'] = __('Tel. Celular inválido.', 'ffcertificate');
+            $errors['standard_fields[celular]'] = __('Invalid cell phone.', 'ffcertificate');
         }
 
         // Emergency phone validation
         $tel_emerg = $s['tel_emergencia'] ?? '';
         if (!empty($tel_emerg) && !\FreeFormCertificate\Core\Utils::validate_phone($tel_emerg)) {
-            $errors['standard_fields[tel_emergencia]'] = __('Tel. Emergência inválido.', 'ffcertificate');
+            $errors['standard_fields[tel_emergencia]'] = __('Invalid emergency phone.', 'ffcertificate');
         }
 
-        // Divisão/Setor consistency validation
+        // Division/Department consistency validation
         if (!empty($s['divisao']) && !empty($s['setor'])) {
             $map = self::get_divisao_setor_map();
             if (isset($map[$s['divisao']]) && !in_array($s['setor'], $map[$s['divisao']], true)) {
-                $errors['standard_fields[setor]'] = __('Setor inválido para a Divisão selecionada.', 'ffcertificate');
+                $errors['standard_fields[setor]'] = __('Invalid department for the selected division.', 'ffcertificate');
             }
         }
 
@@ -1200,6 +1200,7 @@ class ReregistrationFrontend {
                     $regex = '/' . $regex . '/';
                 }
                 if (!@preg_match($regex, $value)) {
+                    /* translators: %s: field label */
                     $msg = !empty($rules['custom_regex_message']) ? $rules['custom_regex_message'] : sprintf(__('%s has an invalid format.', 'ffcertificate'), $cf->field_label);
                     $errors[$name] = $msg;
                 }

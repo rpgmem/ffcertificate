@@ -62,8 +62,8 @@ class FichaGenerator {
         }
 
         // Check if user has acúmulo de cargos
-        $acumulo_value = $standard['acumulo_cargos'] ?? 'Não Possuo';
-        $has_acumulo   = $acumulo_value === 'Possuo';
+        $acumulo_value = $standard['acumulo_cargos'] ?? __('I do not hold', 'ffcertificate');
+        $has_acumulo   = $acumulo_value === __('I hold', 'ffcertificate');
 
         // Build template variables
         $variables = array(
@@ -100,7 +100,7 @@ class FichaGenerator {
             'jornada'              => $standard['jornada'] ?? '',
             'horario_trabalho'     => self::format_working_hours($standard['horario_trabalho'] ?? ''),
             'sindicato'            => $standard['sindicato'] ?? '',
-            'acumulo_cargos'       => $standard['acumulo_cargos'] ?? 'Não Possuo',
+            'acumulo_cargos'       => $standard['acumulo_cargos'] ?? __('I do not hold', 'ffcertificate'),
             'jornada_acumulo'      => $has_acumulo ? ($standard['jornada_acumulo'] ?? '') : '',
             'cargo_funcao_acumulo' => $has_acumulo ? ($standard['cargo_funcao_acumulo'] ?? '') : '',
             'horario_trabalho_acumulo' => $has_acumulo ? self::format_working_hours($standard['horario_trabalho_acumulo'] ?? '') : '',
@@ -155,7 +155,7 @@ class FichaGenerator {
         // Generate filename
         $safe_title = sanitize_file_name($rereg->title);
         if (empty($safe_title)) {
-            $safe_title = 'Ficha';
+            $safe_title = __('Record', 'ffcertificate');
         }
         $safe_name = sanitize_file_name($user->display_name);
         $filename = 'Ficha_' . $safe_title . '_' . $safe_name . '.pdf';
@@ -198,8 +198,8 @@ class FichaGenerator {
             return '';
         }
         $days_map = array(
-            0 => 'Dom', 1 => 'Seg', 2 => 'Ter',
-            3 => 'Qua', 4 => 'Qui', 5 => 'Sex', 6 => 'Sáb',
+            0 => __('Sun', 'ffcertificate'), 1 => __('Mon', 'ffcertificate'), 2 => __('Tue', 'ffcertificate'),
+            3 => __('Wed', 'ffcertificate'), 4 => __('Thu', 'ffcertificate'), 5 => __('Fri', 'ffcertificate'), 6 => __('Sat', 'ffcertificate'),
         );
 
         $cell  = 'style="padding:1px 4px;border:1px solid #ccc;text-align:center;font-size:7.5pt"';
@@ -207,11 +207,11 @@ class FichaGenerator {
 
         $html  = '<table style="width:100%;border-collapse:collapse;margin-top:2px" role="presentation">';
         $html .= '<tr>';
-        $html .= '<th ' . $hcell . '>Dia</th>';
-        $html .= '<th ' . $hcell . '>Entrada</th>';
-        $html .= '<th ' . $hcell . '>Saída Alimentar</th>';
-        $html .= '<th ' . $hcell . '>Retorno</th>';
-        $html .= '<th ' . $hcell . '>Saída</th>';
+        $html .= '<th ' . $hcell . '>' . esc_html__('Day', 'ffcertificate') . '</th>';
+        $html .= '<th ' . $hcell . '>' . esc_html__('Entry', 'ffcertificate') . '</th>';
+        $html .= '<th ' . $hcell . '>' . esc_html__('Lunch Out', 'ffcertificate') . '</th>';
+        $html .= '<th ' . $hcell . '>' . esc_html__('Lunch In', 'ffcertificate') . '</th>';
+        $html .= '<th ' . $hcell . '>' . esc_html__('Exit', 'ffcertificate') . '</th>';
         $html .= '</tr>';
 
         foreach ($wh as $entry) {

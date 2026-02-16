@@ -639,33 +639,39 @@ class CustomFieldRepository {
 
         foreach ($entries as $entry) {
             if (!is_array($entry)) {
+                /* translators: %s: field label */
                 return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains invalid entries.', 'ffcertificate'), $field->field_label));
             }
 
             $day = $entry['day'] ?? null;
             if ($day === null || !is_numeric($day) || (int) $day < 0 || (int) $day > 6) {
+                /* translators: %s: field label */
                 return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains an invalid day.', 'ffcertificate'), $field->field_label));
             }
 
             // entry1 is required
             $entry1 = $entry['entry1'] ?? null;
             if (!$entry1 || !preg_match($time_re, $entry1)) {
+                /* translators: %s: field label */
                 return new \WP_Error('field_invalid_working_hours', sprintf(__('%s: Entry 1 is required for each day.', 'ffcertificate'), $field->field_label));
             }
 
             // exit2 is required
             $exit2 = $entry['exit2'] ?? null;
             if (!$exit2 || !preg_match($time_re, $exit2)) {
+                /* translators: %s: field label */
                 return new \WP_Error('field_invalid_working_hours', sprintf(__('%s: Exit 2 is required for each day.', 'ffcertificate'), $field->field_label));
             }
 
             // exit1 and entry2 are optional but must be valid if provided
             $exit1 = $entry['exit1'] ?? '';
             if ($exit1 !== '' && !preg_match($time_re, $exit1)) {
+                /* translators: %s: field label */
                 return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains an invalid time.', 'ffcertificate'), $field->field_label));
             }
             $entry2 = $entry['entry2'] ?? '';
             if ($entry2 !== '' && !preg_match($time_re, $entry2)) {
+                /* translators: %s: field label */
                 return new \WP_Error('field_invalid_working_hours', sprintf(__('%s contains an invalid time.', 'ffcertificate'), $field->field_label));
             }
         }
