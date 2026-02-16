@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.12.0
+Stable tag: 4.12.1
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,19 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.12.1 (2026-02-16) =
+
+Test coverage expansion: from 3 to 9 test files, covering critical security and business logic paths.
+
+* New: **EncryptionTest** — 19 tests covering AES-256-CBC round-trip, unique IV per encryption, hash determinism, batch encrypt/decrypt, decrypt_field fallback, appointment decryption, Unicode handling, and is_configured()
+* New: **RateLimiterTest** — 14 tests covering IP limit allow/block/cooldown, verification limits (hour/day), user rate limits, check_all blacklist/whitelist integration, email limit bypass, domain and CPF blacklisting
+* New: **FormProcessorRestrictionsTest** — 15 tests covering password validation (required/incorrect/correct), denylist blocking, allowlist enforcement, ticket validation with case-insensitive matching and consumption, denylist-over-allowlist priority, quiz score calculation (correct/wrong/empty/unanswered)
+* New: **SubmissionRestControllerTest** — 8 tests verifying route registration count, admin permission on list/single endpoints, public verify endpoint, auth_code validation (rejects <12 chars), pagination args
+* New: **UserDataRestControllerTest** — 12 tests verifying all 11 user routes require `is_user_logged_in`, profile supports GET+PUT, all route paths registered correctly
+* New: **SubmissionRepositoryTest** — 12 tests covering table name, cache group, ORDER BY sanitization (rejects SQL injection), bulk operations on empty arrays, countByStatus aggregation, cache behavior, insert/update/delete via mock wpdb
+* Improved: **Bootstrap** — added WP_REST_Server stub, OBJECT_K/ARRAY_A/DB_NAME constants, updated FFC_VERSION to match plugin
+* Total: **108 tests, 210 assertions** (previously 14 tests, 23 assertions)
 
 = 4.12.0 (2026-02-16) =
 
@@ -459,6 +472,9 @@ Repository pattern, REST API, strict types, PSR-4 autoloader, user dashboard.
 Initial release through rate limiting. Core form builder, PDF generation, magic links, QR codes.
 
 == Upgrade Notice ==
+
+= 4.12.1 =
+Test coverage expansion: 6 new test files covering Encryption, RateLimiter, FormProcessor restrictions, REST controllers, and SubmissionRepository. 108 tests with 210 assertions. No code changes, no database changes, no breaking changes.
 
 = 4.12.0 =
 Full-page cache compatibility. Forms, captchas, and nonces now work correctly behind LiteSpeed, Varnish, and other page caches via automatic AJAX refresh. Dashboard pages excluded from cache. Booking form pre-fill moved to AJAX. No database changes. No breaking changes.

@@ -30,7 +30,24 @@ if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
     define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
 }
 if ( ! defined( 'FFC_VERSION' ) ) {
-    define( 'FFC_VERSION', '4.6.16' );
+    define( 'FFC_VERSION', '4.12.1' );
+}
+if ( ! defined( 'DB_NAME' ) ) {
+    define( 'DB_NAME', 'test_db' );
+}
+if ( ! defined( 'ARRAY_A' ) ) {
+    define( 'ARRAY_A', 'ARRAY_A' );
+}
+if ( ! defined( 'OBJECT_K' ) ) {
+    define( 'OBJECT_K', 'OBJECT_K' );
+}
+
+// Stub WP_REST_Server class for REST controller tests.
+if ( ! class_exists( 'WP_REST_Server' ) ) {
+    class WP_REST_Server {
+        const READABLE  = 'GET';
+        const CREATABLE = 'POST';
+    }
 }
 
 // Register the plugin's own PSR-4 autoloader (WordPress file naming conventions).
