@@ -43,7 +43,7 @@ class Encryption {
      * @return string|null Encrypted value (base64) or null on failure
      */
     public static function encrypt( string $value ): ?string {
-        if ( empty( $value ) || $value === null ) {
+        if ( empty( $value ) ) {
             return null;
         }
         
@@ -88,7 +88,7 @@ class Encryption {
      * @return string|null Decrypted value or null on failure
      */
     public static function decrypt( string $encrypted ): ?string {
-        if ( empty( $encrypted ) || $encrypted === null ) {
+        if ( empty( $encrypted ) ) {
             return null;
         }
         
@@ -143,7 +143,7 @@ class Encryption {
      * @return string|null SHA-256 hash or null if empty
      */
     public static function hash( string $value ): ?string {
-        if ( empty( $value ) || $value === null ) {
+        if ( empty( $value ) ) {
             return null;
         }
         
@@ -344,18 +344,18 @@ class Encryption {
      */
     public static function test(): array {
         $test_value = 'Test Value 123!@#';
-        
+
         $encrypted = self::encrypt( $test_value );
-        $decrypted = self::decrypt( $encrypted );
+        $decrypted = ( $encrypted !== null ) ? self::decrypt( $encrypted ) : null;
         $hash = self::hash( $test_value );
-        
+
         return array(
             'original' => $test_value,
             'encrypted' => $encrypted,
-            'encrypted_length' => strlen( $encrypted ),
+            'encrypted_length' => ( $encrypted !== null ) ? strlen( $encrypted ) : 0,
             'decrypted' => $decrypted,
             'hash' => $hash,
-            'hash_length' => strlen( $hash ),
+            'hash_length' => ( $hash !== null ) ? strlen( $hash ) : 0,
             'match' => $decrypted === $test_value,
             'key_source' => defined( 'FFC_ENCRYPTION_KEY' ) ? 'Custom' : 'WordPress Keys'
         );
