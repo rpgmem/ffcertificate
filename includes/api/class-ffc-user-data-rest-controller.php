@@ -980,7 +980,7 @@ class UserDataRestController {
             // Count certificates
             if ($this->user_has_capability('view_own_certificates', $user_id, $ctx['is_view_as'])) {
                 $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
                 $summary['total_certificates'] = (int) $wpdb->get_var($wpdb->prepare(
                     "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND status != 'trash'",
                     $user_id

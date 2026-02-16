@@ -198,7 +198,7 @@ class AppointmentAjaxHandler {
 
             $appointment_id = $this->get_post_int('appointment_id');
             $token = $this->get_post_param('token');
-            $reason = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])) : '';
+            $reason = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via verify_ajax_nonce() above.
 
             if (!$appointment_id) {
                 wp_send_json_error(array(

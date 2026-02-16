@@ -995,7 +995,7 @@ class ReregistrationFrontend {
      */
     private static function collect_form_data(object $rereg, int $user_id): array {
         $standard = array();
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Nonce verified in AJAX handler; sanitized per-field below.
         $raw_standard = isset($_POST['standard_fields']) ? (array) wp_unslash($_POST['standard_fields']) : array();
 
         $allowed_standard = array(
@@ -1022,7 +1022,7 @@ class ReregistrationFrontend {
         }
 
         $custom = array();
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Nonce verified in AJAX handler; sanitized per-field below.
         $raw_custom = isset($_POST['custom_fields']) ? (array) wp_unslash($_POST['custom_fields']) : array();
 
         $fields = CustomFieldRepository::get_by_audience_with_parents((int) $rereg->audience_id, true);

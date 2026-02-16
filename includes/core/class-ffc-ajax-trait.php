@@ -82,6 +82,7 @@ trait AjaxTrait {
      * @return string Sanitized value.
      */
     protected function get_post_param(string $key, string $default = ''): string {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by the calling method.
         return isset($_POST[$key]) ? sanitize_text_field(wp_unslash($_POST[$key])) : $default;
     }
 
@@ -93,6 +94,7 @@ trait AjaxTrait {
      * @return int Sanitized integer value.
      */
     protected function get_post_int(string $key, int $default = 0): int {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by the calling method.
         return isset($_POST[$key]) ? absint(wp_unslash($_POST[$key])) : $default;
     }
 
@@ -103,11 +105,11 @@ trait AjaxTrait {
      * @return array<string> Sanitized string values, or empty array.
      */
     protected function get_post_array(string $key): array {
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- is_array() is a type check; sanitize_text_field() applied to each element.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing -- is_array() is a type check; sanitize_text_field() applied to each element. Nonce verified by the calling method.
         if (!isset($_POST[$key]) || !is_array($_POST[$key])) {
             return array();
         }
-
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by the calling method.
         return array_map('sanitize_text_field', wp_unslash($_POST[$key]));
     }
 }

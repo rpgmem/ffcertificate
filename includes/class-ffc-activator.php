@@ -495,7 +495,7 @@ class Activator {
             }
 
             // Remove duplicate auth_codes (keep the most recent) before adding constraint
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             $wpdb->query(
                 "DELETE t1 FROM {$table} t1
                  INNER JOIN {$table} t2
@@ -504,6 +504,7 @@ class Activator {
                    AND t1.{$column} != ''
                    AND t1.id < t2.id"
             );
+            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
             // Drop old non-unique indexes
             foreach ( array_unique( $old_index_names ) as $name ) {
