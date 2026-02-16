@@ -219,4 +219,60 @@ $ffcertificate_get_option = \Closure::fromCallable( [ $settings, 'get_option' ] 
     </form>
 </div>
 
+<!-- Page Cache Compatibility Card -->
+<div class="card">
+    <h2 class="ffc-icon-shield"><?php esc_html_e('Page Cache Compatibility', 'ffcertificate'); ?></h2>
+    <p class="description">
+        <?php esc_html_e('Status of cache-compatibility features that ensure forms work correctly with full-page caching (LiteSpeed, Varnish, etc.).', 'ffcertificate'); ?>
+    </p>
+
+    <table class="form-table" role="presentation">
+        <tbody>
+            <tr>
+                <th scope="row"><?php esc_html_e('Dynamic Fragments', 'ffcertificate'); ?></th>
+                <td>
+                    <span class="ffc-text-success ffc-icon-checkmark"><?php esc_html_e('Active', 'ffcertificate'); ?></span>
+                    <p class="description">
+                        <?php esc_html_e('Captcha and nonces are automatically refreshed via AJAX on page load. Forms work correctly even when served from a page cache.', 'ffcertificate'); ?>
+                    </p>
+                </td>
+            </tr>
+            <tr class="alternate">
+                <th scope="row"><?php esc_html_e('Dashboard Exclusion', 'ffcertificate'); ?></th>
+                <td>
+                    <span class="ffc-text-success ffc-icon-checkmark"><?php esc_html_e('Active', 'ffcertificate'); ?></span>
+                    <p class="description">
+                        <?php esc_html_e('Pages with [user_dashboard_personal] are automatically excluded from page cache (no-cache headers sent).', 'ffcertificate'); ?>
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php esc_html_e('Object Cache (Redis)', 'ffcertificate'); ?></th>
+                <td>
+                    <?php if (wp_using_ext_object_cache()): ?>
+                        <span class="ffc-text-success ffc-icon-checkmark"><?php esc_html_e('Active', 'ffcertificate'); ?></span>
+                        <p class="description">
+                            <?php esc_html_e('Rate limiter counters persist between requests. Form cache is shared across all processes.', 'ffcertificate'); ?>
+                        </p>
+                    <?php else: ?>
+                        <span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e('Not detected', 'ffcertificate'); ?></span>
+                        <p class="description">
+                            <?php esc_html_e('Without Redis/Memcached, rate limiter hourly counters reset on each request and form cache is not shared. Install an object cache plugin (e.g. LiteSpeed Cache with Redis) for full rate limiting functionality.', 'ffcertificate'); ?>
+                        </p>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <tr class="alternate">
+                <th scope="row"><?php esc_html_e('AJAX Endpoints', 'ffcertificate'); ?></th>
+                <td>
+                    <span class="ffc-text-success ffc-icon-checkmark"><?php esc_html_e('Compatible', 'ffcertificate'); ?></span>
+                    <p class="description">
+                        <?php esc_html_e('All AJAX endpoints use admin-ajax.php which is excluded from page cache by default.', 'ffcertificate'); ?>
+                    </p>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
 </div><!-- .ffc-settings-wrap -->

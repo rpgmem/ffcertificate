@@ -21,6 +21,7 @@ class Frontend {
     private $shortcodes;
     private $form_processor;
     private $verification_handler;
+    private $dynamic_fragments;
 
     public function __construct( SubmissionHandler $submission_handler, $email_handler ) {
         $this->verification_handler = new VerificationHandler( $submission_handler, $email_handler );
@@ -30,7 +31,8 @@ class Frontend {
             $this->verification_handler,
             $submission_handler
         );
-        
+        $this->dynamic_fragments = new DynamicFragments();
+
         $this->register_hooks();
     }
 
@@ -76,6 +78,9 @@ class Frontend {
             wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js", array( 'jquery', 'html2canvas', 'jspdf' ), FFC_VERSION, true );
 
             wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-pdf-generator', 'ffc-rate-limit' ), FFC_VERSION, true );
+
+            // Dynamic fragments: refresh captcha + nonces on cached pages
+            wp_enqueue_script( 'ffc-dynamic-fragments' );
 
             wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . "assets/js/ffc-geofence-frontend{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 

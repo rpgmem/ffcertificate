@@ -139,6 +139,9 @@ class SelfSchedulingShortcode {
             true
         );
 
+        // Dynamic fragments: refresh captcha + nonces on cached pages
+        wp_enqueue_script( 'ffc-dynamic-fragments' );
+
         // Localize script
         wp_localize_script('ffc-calendar-frontend', 'ffcCalendar', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
@@ -516,10 +519,9 @@ class SelfSchedulingShortcode {
                                         type="text"
                                         id="ffc-booking-name"
                                         name="name"
-                                        value="<?php echo $is_logged_in ? esc_attr($user->display_name) : ''; ?>"
+                                        value=""
                                         required
                                         aria-required="true"
-                                        <?php echo esc_attr( $is_logged_in ? 'readonly' : '' ); ?>
                                     >
                                 </div>
 
@@ -531,10 +533,9 @@ class SelfSchedulingShortcode {
                                         type="email"
                                         id="ffc-booking-email"
                                         name="email"
-                                        value="<?php echo $is_logged_in ? esc_attr($user->user_email) : ''; ?>"
+                                        value=""
                                         required
                                         aria-required="true"
-                                        <?php echo esc_attr( $is_logged_in ? 'readonly' : '' ); ?>
                                     >
                                 </div>
 
