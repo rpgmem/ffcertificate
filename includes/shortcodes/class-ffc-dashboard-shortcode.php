@@ -18,10 +18,40 @@ if (!defined('ABSPATH')) exit;
 class DashboardShortcode {
 
     /**
-     * Register shortcode
+     * Register shortcode and cache exclusion hook
      */
     public static function init(): void {
         add_shortcode('user_dashboard_personal', array(__CLASS__, 'render'));
+        add_action('template_redirect', array(__CLASS__, 'send_nocache_headers'));
+    }
+
+    /**
+     * Prevent page caching on dashboard pages.
+     *
+     * Dashboard pages contain user-specific data (certificates, appointments,
+     * profile) that must never be served from a full-page cache.
+     *
+     * @since 4.12.0
+     */
+    public static function send_nocache_headers(): void {
+        global $post;
+
+        if ( ! is_a( $post, 'WP_Post' ) ) {
+            return;
+        }
+
+        if ( ! has_shortcode( $post->post_content, 'user_dashboard_personal' ) ) {
+            return;
+        }
+
+        // Standard WordPress no-cache headers
+        nocache_headers();
+
+        // LiteSpeed Cache: programmatic exclusion
+        do_action( 'litespeed_control_set_nocache', 'FFC dashboard page requires user-specific content' );
+
+        // Generic header recognised by LiteSpeed and other reverse proxies
+        header( 'X-LiteSpeed-Cache-Control: no-cache' );
     }
 
     /**
