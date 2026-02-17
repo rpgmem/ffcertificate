@@ -1027,6 +1027,12 @@ parameters:
 			path: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php
 
 		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php
+
+		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
