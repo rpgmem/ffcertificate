@@ -142,6 +142,13 @@
             closeModals();
         });
 
+        // Close modals on Escape key
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape' && ($('#ffc-booking-modal').is(':visible') || $('#ffc-day-modal').is(':visible'))) {
+                closeModals();
+            }
+        });
+
         // Show cancelled checkbox
         $('#ffc-show-cancelled').on('change', function() {
             var date = $('#ffc-day-modal').data('date');
@@ -595,9 +602,12 @@
             day: 'numeric'
         });
 
+        state._triggerElement = document.activeElement;
         $modal.find('.ffc-day-modal-title').text(dateDisplay);
         $modal.data('date', date);
         $modal.show();
+        $modal.find('.ffc-modal-close').focus();
+        trapFocus($modal);
 
         // Load bookings
         loadDayBookings(date);
@@ -769,7 +779,10 @@
         // Show audience select by default
         $('#booking-type').val('audience').trigger('change');
 
+        state._triggerElement = document.activeElement;
         $modal.show();
+        $modal.find('.ffc-modal-close').focus();
+        trapFocus($modal);
     }
 
     /**
@@ -912,8 +925,8 @@
                             if (conflicts.type === 'environment') {
                                 // Environment double-booking
                                 var errorMsg = ffcAudience.strings.hardConflict || 'This time slot is already booked for this environment.';
-                                var times = conflicts.bookings.map(function(b) { return b.start_time + '–' + b.end_time; }).join(', ');
-                                errorHtml = '<p><strong>' + errorMsg + '</strong></p><p>' + times + '</p>';
+                                var times = conflicts.bookings.map(function(b) { return escapeHtml(b.start_time) + '–' + escapeHtml(b.end_time); }).join(', ');
+                                errorHtml = '<p><strong>' + escapeHtml(errorMsg) + '</strong></p><p>' + times + '</p>';
                             } else if (conflicts.type === 'audience_same_day') {
                                 // Same audience group already booked on this day
                                 var grouped = {};
@@ -925,7 +938,7 @@
                                 });
                                 var lines = [];
                                 for (var name in grouped) {
-                                    lines.push('<strong>' + name + '</strong>: ' + grouped[name].join(', '));
+                                    lines.push('<strong>' + escapeHtml(name) + '</strong>: ' + grouped[name].join(', '));
                                 }
                                 var sameDayMsg = ffcAudience.strings.audienceSameDayHard || 'This audience group already has a booking on this day.';
                                 errorHtml = '<p><strong>' + sameDayMsg + '</strong></p><p>' + lines.join('<br>') + '</p>';
@@ -1256,10 +1269,33 @@
     }
 
     /**
+     * Trap focus within a modal for accessibility
+     */
+    function trapFocus($modal) {
+        $modal.off('keydown.focustrap').on('keydown.focustrap', function(e) {
+            if (e.key !== 'Tab') return;
+            var focusable = $modal.find('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])').filter(':visible');
+            var first = focusable.first()[0];
+            var last = focusable.last()[0];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        });
+    }
+
+    /**
      * Close all modals
      */
     function closeModals() {
-        $('#ffc-booking-modal, #ffc-day-modal').hide();
+        $('#ffc-booking-modal, #ffc-day-modal').off('keydown.focustrap').hide();
+        if (state._triggerElement) {
+            state._triggerElement.focus();
+            state._triggerElement = null;
+        }
     }
 
     /**

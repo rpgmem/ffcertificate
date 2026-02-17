@@ -39,9 +39,9 @@
         var cancelText = strings.cancel || 'Cancel';
 
         // Criar modal de seleção
-        var modalHtml = '<div id="ffc-template-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;">';
+        var modalHtml = '<div id="ffc-template-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-template-modal-title" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;">';
         modalHtml += '<div style="background:#fff;padding:30px;border-radius:8px;max-width:500px;width:90%;box-shadow:0 4px 20px rgba(0,0,0,0.3);">';
-        modalHtml += '<h2 style="margin:0 0 20px 0;font-size:20px;">' + selectTemplateText + '</h2>';
+        modalHtml += '<h2 id="ffc-template-modal-title" style="margin:0 0 20px 0;font-size:20px;">' + selectTemplateText + '</h2>';
         modalHtml += '<div style="max-height:400px;overflow-y:auto;">';
 
         templates.forEach(function(template) {
@@ -74,6 +74,14 @@
         $('#ffc-template-modal').on('click', function(e) {
             if (e.target.id === 'ffc-template-modal') {
                 $(this).fadeOut(200, function() { $(this).remove(); });
+            }
+        });
+
+        // Escape key to close
+        $(document).on('keydown.ffcTemplateModal', function(e) {
+            if (e.key === 'Escape' && $('#ffc-template-modal').length) {
+                $('#ffc-template-modal').fadeOut(200, function() { $(this).remove(); });
+                $(document).off('keydown.ffcTemplateModal');
             }
         });
 

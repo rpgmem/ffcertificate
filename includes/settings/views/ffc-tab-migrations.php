@@ -165,9 +165,9 @@ $ffcertificate_migrations = $ffcertificate_migration_manager->get_migrations();
                 <?php else : ?>
                     <a href="<?php echo esc_url( $ffcertificate_migrate_url ); ?>"
                        class="button button-primary"
-                       onclick="return confirm('<?php echo esc_js( sprintf(
+                       data-confirm="<?php echo esc_attr( sprintf(
                            /* translators: %s: migration name */
-                           __( 'Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete.', 'ffcertificate' ), $ffcertificate_migration['name'] ) ); ?>')">
+                           __( 'Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete.', 'ffcertificate' ), $ffcertificate_migration['name'] ) ); ?>">
                         <span class="dashicons dashicons-update"></span>
                         <?php esc_html_e( 'Run Migration', 'ffcertificate' ); ?>
                     </a>

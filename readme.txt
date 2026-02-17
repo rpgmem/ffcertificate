@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.12.2
+Stable tag: 4.12.3
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,20 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.12.3 (2026-02-17) =
+
+Security hardening: SQL injection prevention, XSS mitigation, and modal accessibility improvements.
+
+* Security: **RateLimiter SQL** — all 11 queries now use `$wpdb->prepare()` with `%i` identifier placeholder for table names; removed blanket `phpcs:disable` for `PreparedSQL.NotPrepared`
+* Security: **IpGeolocation SQL** — `clear_cache()` now uses `$wpdb->prepare()` with `%i` for table name and `%s` for LIKE patterns; removed blanket `phpcs:disable`
+* Security: **XSS prevention** — added `escapeHtml()` utility to `ffc-frontend-helpers.js` and `ffc-audience-admin.js`; escaped user-controlled data in error messages, search results, selected user display, and conflict audience names
+* Security: **Migration onclick removal** — replaced inline `onclick="return confirm(...)"` with `data-confirm` attribute on migration buttons; JS now reads from data attribute instead of parsing onclick regex
+* Accessibility: **Modal ARIA attributes** — added `role="dialog"`, `aria-modal="true"`, `aria-labelledby` to audience booking modal, day detail modal, and admin booking modal
+* Accessibility: **Focus trapping** — implemented keyboard focus trap (Tab/Shift+Tab) for audience booking and day modals, matching existing calendar-frontend pattern
+* Accessibility: **Focus management** — modals now move focus to close button on open and return focus to trigger element on close
+* Accessibility: **Escape key** — audience modals, admin booking modal, and template modal now close on Escape key press
+* Accessibility: **Close button labels** — added `aria-label="Close"` to all modal close buttons
 
 = 4.12.2 (2026-02-17) =
 
@@ -483,6 +497,9 @@ Repository pattern, REST API, strict types, PSR-4 autoloader, user dashboard.
 Initial release through rate limiting. Core form builder, PDF generation, magic links, QR codes.
 
 == Upgrade Notice ==
+
+= 4.12.3 =
+Security hardening: all RateLimiter and IpGeolocation SQL queries now use $wpdb->prepare() with %i identifier placeholder. XSS prevention via escapeHtml() in JavaScript. Modal accessibility with ARIA attributes, focus trapping, and Escape key support. No database changes. No breaking changes.
 
 = 4.12.2 =
 God class refactoring: UserManager split into CapabilityManager + UserCreator, ActivityLog split into ActivityLogQuery. All existing calls remain backward-compatible via delegation. No database changes. No breaking changes.

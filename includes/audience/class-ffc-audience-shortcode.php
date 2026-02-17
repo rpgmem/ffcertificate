@@ -282,12 +282,12 @@ class AudienceShortcode {
 
         <?php if ($show_booking_modal) : ?>
         <!-- Booking Modal -->
-        <div class="ffc-modal" id="ffc-booking-modal" style="display: none;">
+        <div class="ffc-modal" id="ffc-booking-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-booking-modal-title" style="display: none;">
             <div class="ffc-modal-backdrop"></div>
             <div class="ffc-modal-content">
                 <div class="ffc-modal-header">
-                    <h3><?php esc_html_e('New Booking', 'ffcertificate'); ?></h3>
-                    <button type="button" class="ffc-modal-close">&times;</button>
+                    <h3 id="ffc-booking-modal-title"><?php esc_html_e('New Booking', 'ffcertificate'); ?></h3>
+                    <button type="button" class="ffc-modal-close" aria-label="<?php esc_attr_e('Close', 'ffcertificate'); ?>">&times;</button>
                 </div>
                 <div class="ffc-modal-body">
                     <form id="ffc-booking-form">
@@ -388,12 +388,12 @@ class AudienceShortcode {
         <?php endif; ?>
 
         <!-- Day Detail Modal -->
-        <div class="ffc-modal" id="ffc-day-modal" style="display: none;">
+        <div class="ffc-modal" id="ffc-day-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-day-modal-title" style="display: none;">
             <div class="ffc-modal-backdrop"></div>
             <div class="ffc-modal-content ffc-modal-lg">
                 <div class="ffc-modal-header">
-                    <h3 class="ffc-day-modal-title"></h3>
-                    <button type="button" class="ffc-modal-close">&times;</button>
+                    <h3 class="ffc-day-modal-title" id="ffc-day-modal-title"></h3>
+                    <button type="button" class="ffc-modal-close" aria-label="<?php esc_attr_e('Close', 'ffcertificate'); ?>">&times;</button>
                 </div>
                 <div class="ffc-modal-body">
                     <div class="ffc-day-filter">

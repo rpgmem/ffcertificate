@@ -17,8 +17,6 @@ namespace FreeFormCertificate\Security;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
-
 class RateLimiter {
 
     /**
@@ -271,7 +269,7 @@ class RateLimiter {
         $ws = self::get_window_start($window);
         $form_clause = $form_id ? $wpdb->prepare( 'AND form_id = %d', $form_id ) : 'AND form_id IS NULL';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $c = $wpdb->get_var( $wpdb->prepare( "SELECT count FROM $t WHERE type=%s AND identifier=%s AND window_type=%s $form_clause AND window_start>=%s ORDER BY id DESC LIMIT 1", $type, $identifier, $window, $ws ) );
+        $c = $wpdb->get_var( $wpdb->prepare( "SELECT count FROM %i WHERE type=%s AND identifier=%s AND window_type=%s $form_clause AND window_start>=%s ORDER BY id DESC LIMIT 1", $t, $type, $identifier, $window, $ws ) );
         return $c ? intval($c) : 0;
     }
     
@@ -283,7 +281,7 @@ class RateLimiter {
         
         $form_clause = $form_id ? $wpdb->prepare( 'AND form_id = %d', $form_id ) : 'AND form_id IS NULL';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $e = $wpdb->get_row( $wpdb->prepare( "SELECT id,count FROM $t WHERE type=%s AND identifier=%s AND window_type=%s $form_clause AND window_start=%s", $type, $identifier, $window, $ws ) );
+        $e = $wpdb->get_row( $wpdb->prepare( "SELECT id,count FROM %i WHERE type=%s AND identifier=%s AND window_type=%s $form_clause AND window_start=%s", $t, $type, $identifier, $window, $ws ) );
         
         if ($e) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
@@ -303,18 +301,18 @@ class RateLimiter {
         if ($field === 'email') {
             if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t WHERE email_hash=%s $dw $fw", \FreeFormCertificate\Core\Encryption::hash($value))));
+                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE email_hash=%s $dw $fw", $t, \FreeFormCertificate\Core\Encryption::hash($value))));
             } else {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t WHERE email=%s $dw $fw", $value)));
+                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE email=%s $dw $fw", $t, $value)));
             }
         } elseif ($field === 'cpf') {
             if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t WHERE cpf_rf_hash=%s $dw $fw", \FreeFormCertificate\Core\Encryption::hash($value))));
+                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE cpf_rf_hash=%s $dw $fw", $t, \FreeFormCertificate\Core\Encryption::hash($value))));
             } else {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t WHERE cpf_rf=%s $dw $fw", $value)));
+                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE cpf_rf=%s $dw $fw", $t, $value)));
             }
         }
         
@@ -360,7 +358,7 @@ class RateLimiter {
         $t = $wpdb->prefix . 'ffc_rate_limits';
         $form_clause = $form_id ? $wpdb->prepare( 'AND form_id = %d', $form_id ) : 'AND form_id IS NULL';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        return ! empty( $wpdb->get_var( $wpdb->prepare( "SELECT blocked_until FROM $t WHERE type=%s AND identifier=%s $form_clause AND is_blocked=1 AND blocked_until>NOW() ORDER BY id DESC LIMIT 1", $type, $identifier ) ) );
+        return ! empty( $wpdb->get_var( $wpdb->prepare( "SELECT blocked_until FROM %i WHERE type=%s AND identifier=%s $form_clause AND is_blocked=1 AND blocked_until>NOW() ORDER BY id DESC LIMIT 1", $t, $type, $identifier ) ) );
     }
     
     private static function block_temporarily(string $type, string $identifier, ?int $form_id, int $hours): void {
@@ -384,26 +382,26 @@ class RateLimiter {
         global $wpdb;
         $s = self::get_settings();
         $t = $wpdb->prefix . 'ffc_rate_limit_logs';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query($wpdb->prepare("DELETE FROM $t WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)", $s['logging']['retention_days']));
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $c = $wpdb->get_var("SELECT COUNT(*) FROM $t");
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        if ($c > $s['logging']['max_logs']) $wpdb->query($wpdb->prepare("DELETE FROM $t WHERE id NOT IN (SELECT id FROM (SELECT id FROM $t ORDER BY id DESC LIMIT %d) tmp)", $s['logging']['max_logs']));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->query($wpdb->prepare("DELETE FROM %i WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)", $t, $s['logging']['retention_days']));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $c = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i", $t));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ($c > $s['logging']['max_logs']) $wpdb->query($wpdb->prepare("DELETE FROM %i WHERE id NOT IN (SELECT id FROM (SELECT id FROM %i ORDER BY id DESC LIMIT %d) tmp)", $t, $t, $s['logging']['max_logs']));
     }
     
     public static function get_stats(): array {
         global $wpdb;
         $lt = $wpdb->prefix . 'ffc_rate_limit_logs';
         return array(
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            'today' => $wpdb->get_var("SELECT COUNT(*) FROM $lt WHERE action='blocked' AND DATE(created_at)=CURDATE()"),
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            'month' => $wpdb->get_var("SELECT COUNT(*) FROM $lt WHERE action='blocked' AND created_at>=DATE_SUB(NOW(), INTERVAL 30 DAY)"),
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            'by_type' => $wpdb->get_results("SELECT type,COUNT(*) as count FROM $lt WHERE action='blocked' AND created_at>=DATE_SUB(NOW(), INTERVAL 7 DAY) GROUP BY type", ARRAY_A),
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            'top_ips' => $wpdb->get_results("SELECT identifier,COUNT(*) as count FROM $lt WHERE type='ip' AND action='blocked' AND created_at>=DATE_SUB(NOW(), INTERVAL 7 DAY) GROUP BY identifier ORDER BY count DESC LIMIT 10", ARRAY_A)
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            'today' => $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE action='blocked' AND DATE(created_at)=CURDATE()", $lt)),
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            'month' => $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE action='blocked' AND created_at>=DATE_SUB(NOW(), INTERVAL 30 DAY)", $lt)),
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            'by_type' => $wpdb->get_results($wpdb->prepare("SELECT type,COUNT(*) as count FROM %i WHERE action='blocked' AND created_at>=DATE_SUB(NOW(), INTERVAL 7 DAY) GROUP BY type", $lt), ARRAY_A),
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            'top_ips' => $wpdb->get_results($wpdb->prepare("SELECT identifier,COUNT(*) as count FROM %i WHERE type='ip' AND action='blocked' AND created_at>=DATE_SUB(NOW(), INTERVAL 7 DAY) GROUP BY identifier ORDER BY count DESC LIMIT 10", $lt), ARRAY_A)
         );
     }
     
@@ -501,7 +499,7 @@ class RateLimiter {
 
     public static function cleanup_expired(): int {
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        return $wpdb->query("DELETE FROM " . $wpdb->prefix . "ffc_rate_limits WHERE window_end < NOW()");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $wpdb->query($wpdb->prepare("DELETE FROM %i WHERE window_end < NOW()", $wpdb->prefix . 'ffc_rate_limits'));
     }
 }
