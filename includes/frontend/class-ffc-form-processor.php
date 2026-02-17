@@ -11,6 +11,7 @@ declare(strict_types=1);
  * v2.10.0: LGPD - Validates consent checkbox (mandatory)
  * v3.3.0: Added strict types and type hints
  * v3.2.0: Migrated to namespace (Phase 2)
+ * v4.12.17: Extracted AccessRestrictionChecker and ReprintDetector for SRP compliance.
  */
 
 namespace FreeFormCertificate\Frontend;
@@ -36,280 +37,6 @@ class FormProcessor {
         $this->email_handler = $email_handler;
 
         // AJAX hooks registered in Frontend::register_hooks() to avoid duplicate registration.
-    }
-
-    /**
-     * ✅ v2.10.0: Check if submission passes restriction rules
-     *
-     * NEW: Modular checkbox-based restrictions (password, allowlist, denylist, ticket)
-     * Validation order: Password → Denylist (priority) → Allowlist → Ticket (consumed)
-     *
-     * @param array $form_config Form configuration
-     * @param string $val_cpf CPF/RF from form (already cleaned)
-     * @param string $val_ticket Ticket from form
-     * @param int $form_id Form ID (needed for ticket consumption)
-     * @return array ['allowed' => bool, 'message' => string, 'is_ticket' => bool]
-     */
-    private function check_restrictions( array $form_config, string $val_cpf, string $val_ticket, int $form_id ): array {
-        $restrictions = isset($form_config['restrictions']) ? $form_config['restrictions'] : array();
-        
-        // Clean CPF/RF (remove any mask)
-        $clean_cpf = preg_replace('/\D/', '', $val_cpf);
-        
-        // ========================================
-        // 1. PASSWORD CHECK (if active)
-        // ========================================
-        if (!empty($restrictions['password']) && $restrictions['password'] == '1') {
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_submission_ajax() caller.
-            $password = isset($_POST['ffc_password']) ? trim(sanitize_text_field(wp_unslash($_POST['ffc_password']))) : '';
-            $valid_password = isset($form_config['validation_code']) ? $form_config['validation_code'] : '';
-            
-            if (empty($password)) {
-                return array(
-                    'allowed' => false, 
-                    'message' => __('Password is required.', 'ffcertificate'), 
-                    'is_ticket' => false
-                );
-            }
-            
-            if ($password !== $valid_password) {
-                return array(
-                    'allowed' => false, 
-                    'message' => __('Incorrect password.', 'ffcertificate'), 
-                    'is_ticket' => false
-                );
-            }
-        }
-        
-        // ========================================
-        // 2. DENYLIST CHECK (if active - HAS PRIORITY)
-        // ========================================
-        if (!empty($restrictions['denylist']) && $restrictions['denylist'] == '1') {
-            $denied_raw = isset($form_config['denied_users_list']) ? $form_config['denied_users_list'] : '';
-            $denied_list = array_filter(array_map('trim', explode("\n", $denied_raw)));
-            
-            // Clean masks from denylist before comparing
-            $denied_clean = array_map(function($d) { 
-                return preg_replace('/\D/', '', $d); 
-            }, $denied_list);
-            
-            if (in_array($clean_cpf, $denied_clean)) {
-                return array(
-                    'allowed' => false, 
-                    'message' => __('Your CPF/RF is blocked.', 'ffcertificate'), 
-                    'is_ticket' => false
-                );
-            }
-        }
-        
-        // ========================================
-        // 3. ALLOWLIST CHECK (if active)
-        // ========================================
-        if (!empty($restrictions['allowlist']) && $restrictions['allowlist'] == '1') {
-            $allowed_raw = isset($form_config['allowed_users_list']) ? $form_config['allowed_users_list'] : '';
-            $allowed_list = array_filter(array_map('trim', explode("\n", $allowed_raw)));
-            
-            // Clean masks from allowlist before comparing
-            $allowed_clean = array_map(function($a) { 
-                return preg_replace('/\D/', '', $a); 
-            }, $allowed_list);
-            
-            if (!in_array($clean_cpf, $allowed_clean)) {
-                return array(
-                    'allowed' => false, 
-                    'message' => __('Your CPF/RF is not authorized.', 'ffcertificate'), 
-                    'is_ticket' => false
-                );
-            }
-        }
-        
-        // ========================================
-        // 4. TICKET CHECK (if active - CONSUMED)
-        // ========================================
-        if (!empty($restrictions['ticket']) && $restrictions['ticket'] == '1') {
-            $ticket = strtoupper(trim($val_ticket));
-            
-            if (empty($ticket)) {
-                return array(
-                    'allowed' => false, 
-                    'message' => __('Ticket code is required.', 'ffcertificate'), 
-                    'is_ticket' => false
-                );
-            }
-            
-            $tickets_raw = isset($form_config['generated_codes_list']) ? $form_config['generated_codes_list'] : '';
-            $tickets = array_filter(array_map(function($t) { 
-                return strtoupper(trim($t)); 
-            }, explode("\n", $tickets_raw)));
-            
-            if (!in_array($ticket, $tickets)) {
-                return array(
-                    'allowed' => false, 
-                    'message' => __('Invalid or already used ticket.', 'ffcertificate'), 
-                    'is_ticket' => false
-                );
-            }
-            
-            // Consume ticket (remove from list)
-            $tickets = array_diff($tickets, array($ticket));
-            $form_config['generated_codes_list'] = implode("\n", $tickets);
-            update_post_meta($form_id, '_ffc_form_config', $form_config);
-            
-            return array(
-                'allowed' => true, 
-                'message' => '', 
-                'is_ticket' => true
-            );
-        }
-        
-        // ========================================
-        // NO RESTRICTIONS ACTIVE - ALLOW
-        // ========================================
-        return array(
-            'allowed' => true, 
-            'message' => '', 
-            'is_ticket' => false
-        );
-    }
-
-    /**
-     * Check for existing submission (reprint detection)
-     *
-     * v2.9.13: OPTIMIZED - Uses dedicated cpf_rf column with fallback to JSON
-     *
-     * Returns array with 'is_reprint' (bool), 'data' (array), 'id' (int), 'email' (string), 'date' (string)
-     */
-    private function detect_reprint( int $form_id, string $val_cpf, string $val_ticket ): array {
-        global $wpdb;
-        $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
-        $existing_submission = null;
-
-        // Check by ticket first (if provided)
-        if ( ! empty( $val_ticket ) ) {
-            // Hash-based lookup (works with encrypted data)
-            if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-                $ticket_hash = \FreeFormCertificate\Core\Encryption::hash( strtoupper( trim( $val_ticket ) ) );
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                $existing_submission = $wpdb->get_row( $wpdb->prepare(
-                    'SELECT * FROM %i WHERE form_id = %d AND ticket_hash = %s ORDER BY id DESC LIMIT 1',
-                    $table_name,
-                    $form_id,
-                    $ticket_hash
-                ) );
-            }
-
-            // Fallback: LIKE on plaintext data (legacy / non-encrypted)
-            if ( ! $existing_submission ) {
-                $like_query = '%' . $wpdb->esc_like( '"ticket":"' . $val_ticket . '"' ) . '%';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                $existing_submission = $wpdb->get_row( $wpdb->prepare(
-                    'SELECT * FROM %i WHERE form_id = %d AND data LIKE %s ORDER BY id DESC LIMIT 1',
-                    $table_name,
-                    $form_id,
-                    $like_query
-                ) );
-            }
-        }
-        
-        // Check by CPF/RF (if ticket not provided)
-        elseif ( ! empty( $val_cpf ) ) {
-            // Remove formatting for comparison
-            $clean_cpf = preg_replace( '/[^0-9]/', '', $val_cpf );
-            
-            // Check if encryption is enabled
-            if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
-                // Use HASH for encrypted data
-                $cpf_hash = \FreeFormCertificate\Core\Encryption::hash($clean_cpf);
-                
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                $existing_submission = $wpdb->get_row( $wpdb->prepare(
-                    'SELECT * FROM %i WHERE form_id = %d AND cpf_rf_hash = %s ORDER BY id DESC LIMIT 1',
-                    $table_name,
-                    $form_id,
-                    $cpf_hash
-                ) );
-            } else {
-                // Use plain CPF for non-encrypted data
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                $existing_submission = $wpdb->get_row( $wpdb->prepare(
-                    'SELECT * FROM %i WHERE form_id = %d AND cpf_rf = %s ORDER BY id DESC LIMIT 1',
-                    $table_name,
-                    $form_id,
-                    $clean_cpf
-                ) );
-            }
-            
-            // ⚠️ Fallback: If column doesn't exist or is NULL, search in JSON
-            if ( ! $existing_submission ) {
-                $like_query = '%' . $wpdb->esc_like( '"cpf_rf":"' . $val_cpf . '"' ) . '%';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                $existing_submission = $wpdb->get_row( $wpdb->prepare(
-                    'SELECT * FROM %i WHERE form_id = %d AND data LIKE %s ORDER BY id DESC LIMIT 1',
-                    $table_name,
-                    $form_id,
-                    $like_query
-                ) );
-            }
-        }
-
-        if ( $existing_submission ) {
-            // Ensure data is not null before json_decode (strict types requirement)
-            $data_json = $existing_submission->data ?? '';
-
-            // Only decode if we have actual data (not null, not empty string)
-            if (!empty($data_json) && is_string($data_json)) {
-                $decoded_data = json_decode( $data_json, true );
-                if( !is_array($decoded_data) ) {
-                    $decoded_data = json_decode( stripslashes( $data_json ), true );
-                }
-            } else {
-                $decoded_data = null;
-            }
-
-            // If still not an array, initialize empty
-            if ( !is_array($decoded_data) ) {
-                $decoded_data = array();
-            }
-
-            // Ensure required column fields are included
-            if ( ! isset( $decoded_data['email'] ) && ! empty( $existing_submission->email ) ) {
-                $decoded_data['email'] = $existing_submission->email;
-            }
-            if ( ! isset( $decoded_data['cpf_rf'] ) && ! empty( $existing_submission->cpf_rf ) ) {
-                $decoded_data['cpf_rf'] = $existing_submission->cpf_rf;
-            }
-            if ( ! isset( $decoded_data['auth_code'] ) && ! empty( $existing_submission->auth_code ) ) {
-                $decoded_data['auth_code'] = $existing_submission->auth_code;
-            }
-            
-            return array(
-                'is_reprint' => true,
-                'data' => $decoded_data,
-                'id' => $existing_submission->id,
-                'email' => $existing_submission->email,
-                'date' => $existing_submission->submission_date
-            );
-        }
-
-        return array(
-            'is_reprint' => false,
-            'data' => array(),
-            'id' => 0,
-            'email' => '',
-            'date' => ''
-        );
-    }
-
-    /**
-     * Remove used ticket from form configuration
-     */
-    private function consume_ticket( int $form_id, string $ticket ): void {
-        $current_config = get_post_meta( $form_id, '_ffc_form_config', true );
-        $current_raw_codes = isset( $current_config['generated_codes_list'] ) ? $current_config['generated_codes_list'] : '';
-        $current_list = array_filter( array_map( 'trim', explode( "\n", $current_raw_codes ) ) );
-        $updated_list = array_diff( $current_list, array( $ticket ) );
-        $current_config['generated_codes_list'] = implode( "\n", $updated_list );
-        update_post_meta( $form_id, '_ffc_form_config', $current_config );
     }
 
     /**
@@ -498,8 +225,8 @@ class FormProcessor {
             }
         }
 
-        // Check restrictions (whitelist/denylist/tickets)
-        $restriction_result = $this->check_restrictions( $form_config, $val_cpf, $val_ticket, $form_id );
+        // Check restrictions (whitelist/denylist/tickets) — delegated to AccessRestrictionChecker
+        $restriction_result = AccessRestrictionChecker::check( $form_config, $val_cpf, $val_ticket, $form_id );
         
         if ( ! $restriction_result['allowed'] ) {
             wp_send_json_error( array( 'message' => $restriction_result['message'] ) );
@@ -641,8 +368,8 @@ class FormProcessor {
         } else {
             // === Normal (non-quiz) flow ===
 
-            // Detect reprint (OPTIMIZED v2.9.13)
-            $reprint_result = $this->detect_reprint( $form_id, $val_cpf, $val_ticket );
+            // Detect reprint — delegated to ReprintDetector
+            $reprint_result = ReprintDetector::detect( $form_id, $val_cpf, $val_ticket );
             $is_reprint = $reprint_result['is_reprint'];
 
             if ( $is_reprint ) {
@@ -670,9 +397,9 @@ class FormProcessor {
                 // Get the submission date from the newly created submission
                 $real_submission_date = current_time( 'mysql' );
 
-                // Remove used ticket if applicable
+                // Remove used ticket if applicable — delegated to AccessRestrictionChecker
                 if ( $restriction_result['is_ticket'] && ! empty( $val_ticket ) ) {
-                    $this->consume_ticket( $form_id, $val_ticket );
+                    AccessRestrictionChecker::consume_ticket( $form_id, $val_ticket );
                 }
             }
         }

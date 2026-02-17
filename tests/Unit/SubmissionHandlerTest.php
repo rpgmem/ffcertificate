@@ -400,4 +400,308 @@ class SubmissionHandlerTest extends TestCase {
         $this->assertSame( 32, strlen( $token ) );
         $this->assertMatchesRegularExpression( '/^[0-9a-f]{32}$/', $token );
     }
+
+    public function test_ensure_magic_token_returns_empty_when_not_found(): void {
+        $this->mockRepo->shouldReceive( 'findById' )
+            ->with( 999 )
+            ->once()
+            ->andReturn( null );
+
+        $token = $this->handler->ensure_magic_token( 999 );
+        $this->assertSame( '', $token );
+    }
+
+    // ------------------------------------------------------------------
+    // update_submission()
+    // ------------------------------------------------------------------
+
+    public function test_update_submission_encrypts_email(): void {
+        $this->mockRepo->shouldReceive( 'updateWithEditTracking' )
+            ->once()
+            ->withArgs( function( $id, $data ) {
+                return $id === 1
+                    && $data['email'] === null
+                    && ! empty( $data['email_encrypted'] )
+                    && ! empty( $data['email_hash'] )
+                    && strlen( $data['email_hash'] ) === 64;
+            } )
+            ->andReturn( 1 );
+
+        $result = $this->handler->update_submission( 1, 'new@example.com', array( 'name' => 'Updated' ) );
+        $this->assertTrue( $result );
+    }
+
+    public function test_update_submission_encrypts_data(): void {
+        $captured = null;
+        $this->mockRepo->shouldReceive( 'updateWithEditTracking' )
+            ->once()
+            ->withArgs( function( $id, $data ) use ( &$captured ) {
+                $captured = $data;
+                return true;
+            } )
+            ->andReturn( 1 );
+
+        $this->handler->update_submission( 1, 'u@test.com', array( 'field1' => 'value1' ) );
+
+        $this->assertNull( $captured['data'] );
+        $this->assertNotNull( $captured['data_encrypted'] );
+    }
+
+    public function test_update_submission_strips_edit_tracking_from_data(): void {
+        $captured = null;
+        $this->mockRepo->shouldReceive( 'updateWithEditTracking' )
+            ->once()
+            ->withArgs( function( $id, $data ) use ( &$captured ) {
+                $captured = $data;
+                return true;
+            } )
+            ->andReturn( 1 );
+
+        $clean_data = array(
+            'name'      => 'Test',
+            'is_edited' => true,
+            'edited_at' => '2025-01-01',
+        );
+        $this->handler->update_submission( 1, 'u@test.com', $clean_data );
+
+        // The encrypted data should NOT contain is_edited or edited_at
+        $decrypted_json = \FreeFormCertificate\Core\Encryption::decrypt( $captured['data_encrypted'] );
+        $decoded = json_decode( $decrypted_json, true );
+        $this->assertArrayNotHasKey( 'is_edited', $decoded );
+        $this->assertArrayNotHasKey( 'edited_at', $decoded );
+        $this->assertSame( 'Test', $decoded['name'] );
+    }
+
+    public function test_update_submission_returns_false_on_repo_failure(): void {
+        $this->mockRepo->shouldReceive( 'updateWithEditTracking' )
+            ->once()
+            ->andReturn( false );
+
+        $result = $this->handler->update_submission( 1, 'fail@test.com', array() );
+        $this->assertFalse( $result );
+    }
+
+    // ------------------------------------------------------------------
+    // update_user_link()
+    // ------------------------------------------------------------------
+
+    public function test_update_user_link_sets_user_id(): void {
+        $captured = null;
+        $this->mockRepo->shouldReceive( 'update' )
+            ->once()
+            ->withArgs( function( $id, $data ) use ( &$captured ) {
+                $captured = $data;
+                return $id === 10;
+            } )
+            ->andReturn( 1 );
+
+        $result = $this->handler->update_user_link( 10, 42 );
+        $this->assertTrue( $result );
+        $this->assertSame( 42, $captured['user_id'] );
+    }
+
+    public function test_update_user_link_unlinks_with_null(): void {
+        $captured = null;
+        $this->mockRepo->shouldReceive( 'update' )
+            ->once()
+            ->withArgs( function( $id, $data ) use ( &$captured ) {
+                $captured = $data;
+                return true;
+            } )
+            ->andReturn( 1 );
+
+        $result = $this->handler->update_user_link( 10, null );
+        $this->assertTrue( $result );
+        $this->assertNull( $captured['user_id'] );
+    }
+
+    public function test_update_user_link_returns_false_on_failure(): void {
+        $this->mockRepo->shouldReceive( 'update' )
+            ->once()
+            ->andReturn( false );
+
+        $result = $this->handler->update_user_link( 10, 42 );
+        $this->assertFalse( $result );
+    }
+
+    // ------------------------------------------------------------------
+    // decrypt_submission_data()
+    // ------------------------------------------------------------------
+
+    public function test_decrypt_submission_data_plaintext_passthrough(): void {
+        $submission = array(
+            'email'            => 'plain@test.com',
+            'email_encrypted'  => null,
+            'cpf_rf'           => '12345678901',
+            'cpf_rf_encrypted' => null,
+            'user_ip'          => '127.0.0.1',
+            'user_ip_encrypted'=> null,
+            'data'             => '{"name":"Alice"}',
+            'data_encrypted'   => null,
+        );
+
+        $result = $this->handler->decrypt_submission_data( $submission );
+
+        $this->assertSame( 'plain@test.com', $result['email'] );
+        $this->assertSame( '12345678901', $result['cpf_rf'] );
+        $this->assertSame( '127.0.0.1', $result['user_ip'] );
+        $this->assertSame( '{"name":"Alice"}', $result['data'] );
+    }
+
+    public function test_decrypt_submission_data_with_encrypted_fields(): void {
+        $enc_email = \FreeFormCertificate\Core\Encryption::encrypt( 'enc@test.com' );
+        $enc_cpf   = \FreeFormCertificate\Core\Encryption::encrypt( '99988877766' );
+        $enc_ip    = \FreeFormCertificate\Core\Encryption::encrypt( '10.0.0.1' );
+        $enc_data  = \FreeFormCertificate\Core\Encryption::encrypt( '{"score":100}' );
+
+        $submission = array(
+            'email'            => null,
+            'email_encrypted'  => $enc_email,
+            'cpf_rf'           => null,
+            'cpf_rf_encrypted' => $enc_cpf,
+            'user_ip'          => null,
+            'user_ip_encrypted'=> $enc_ip,
+            'data'             => null,
+            'data_encrypted'   => $enc_data,
+        );
+
+        $result = $this->handler->decrypt_submission_data( $submission );
+
+        $this->assertSame( 'enc@test.com', $result['email'] );
+        $this->assertSame( '99988877766', $result['cpf_rf'] );
+        $this->assertSame( '10.0.0.1', $result['user_ip'] );
+        $this->assertSame( '{"score":100}', $result['data'] );
+    }
+
+    // ------------------------------------------------------------------
+    // trash / restore / delete — failure paths
+    // ------------------------------------------------------------------
+
+    public function test_trash_submission_returns_false_on_failure(): void {
+        $this->mockRepo->shouldReceive( 'updateStatus' )
+            ->with( 99, 'trash' )
+            ->once()
+            ->andReturn( false );
+
+        $result = $this->handler->trash_submission( 99 );
+        $this->assertFalse( $result );
+    }
+
+    public function test_restore_submission_returns_false_on_failure(): void {
+        $this->mockRepo->shouldReceive( 'updateStatus' )
+            ->with( 99, 'publish' )
+            ->once()
+            ->andReturn( false );
+
+        $result = $this->handler->restore_submission( 99 );
+        $this->assertFalse( $result );
+    }
+
+    public function test_delete_submission_returns_false_on_failure(): void {
+        $this->mockRepo->shouldReceive( 'delete' )
+            ->with( 99 )
+            ->once()
+            ->andReturn( false );
+
+        $result = $this->handler->delete_submission( 99 );
+        $this->assertFalse( $result );
+    }
+
+    // ------------------------------------------------------------------
+    // Bulk operations — empty array guards
+    // ------------------------------------------------------------------
+
+    public function test_bulk_trash_empty_array_returns_zero(): void {
+        $result = $this->handler->bulk_trash_submissions( array() );
+        $this->assertSame( 0, $result );
+    }
+
+    public function test_bulk_restore_empty_array_returns_zero(): void {
+        $result = $this->handler->bulk_restore_submissions( array() );
+        $this->assertSame( 0, $result );
+    }
+
+    public function test_bulk_delete_empty_array_returns_zero(): void {
+        $result = $this->handler->bulk_delete_submissions( array() );
+        $this->assertSame( 0, $result );
+    }
+
+    // ------------------------------------------------------------------
+    // get_submission_by_token() — edge cases
+    // ------------------------------------------------------------------
+
+    public function test_get_submission_by_token_non_hex_returns_null(): void {
+        // Contains non-hex chars — after cleaning, length != 32
+        $result = $this->handler->get_submission_by_token( 'ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ' );
+        $this->assertNull( $result );
+    }
+
+    public function test_get_submission_by_token_not_found_returns_null(): void {
+        $token = str_repeat( 'ab', 16 ); // 32-char hex
+        $this->mockRepo->shouldReceive( 'findByToken' )
+            ->with( $token )
+            ->once()
+            ->andReturn( null );
+
+        $result = $this->handler->get_submission_by_token( $token );
+        $this->assertNull( $result );
+    }
+
+    // ------------------------------------------------------------------
+    // process_submission() — additional branches
+    // ------------------------------------------------------------------
+
+    public function test_process_submission_consent_absent_sets_zero(): void {
+        $captured = null;
+        $this->mockRepo->shouldReceive( 'insert' )
+            ->once()
+            ->withArgs( function( $data ) use ( &$captured ) {
+                $captured = $data;
+                return true;
+            } )
+            ->andReturn( 20 );
+
+        $data = array( 'name' => 'No Consent' );
+        $this->handler->process_submission( 1, 'Form', $data, 'nc@test.com', array(), array() );
+
+        $this->assertSame( 0, $captured['consent_given'] );
+        $this->assertNull( $captured['consent_date'] );
+    }
+
+    public function test_process_submission_cleans_cpf_rf(): void {
+        $captured = null;
+        $this->mockRepo->shouldReceive( 'insert' )
+            ->once()
+            ->withArgs( function( $data ) use ( &$captured ) {
+                $captured = $data;
+                return true;
+            } )
+            ->andReturn( 30 );
+
+        $data = array( 'name' => 'CPF User', 'cpf_rf' => '123.456.789-01' );
+        $this->handler->process_submission( 1, 'Form', $data, 'cpf@test.com', array(), array() );
+
+        // With encryption on, cpf_rf plain is null but hash/encrypted are set
+        $this->assertNull( $captured['cpf_rf'] );
+        $this->assertNotNull( $captured['cpf_rf_encrypted'] );
+        $this->assertNotNull( $captured['cpf_rf_hash'] );
+        $this->assertSame( 64, strlen( $captured['cpf_rf_hash'] ) );
+    }
+
+    public function test_process_submission_pre_populated_auth_code(): void {
+        $captured = null;
+        $this->mockRepo->shouldReceive( 'insert' )
+            ->once()
+            ->withArgs( function( $data ) use ( &$captured ) {
+                $captured = $data;
+                return true;
+            } )
+            ->andReturn( 40 );
+
+        $data = array( 'name' => 'Auth User', 'auth_code' => 'MY-CUSTOM-CODE' );
+        $this->handler->process_submission( 1, 'Form', $data, 'a@test.com', array(), array() );
+
+        // Should use the provided auth code (cleaned) instead of generating a new one
+        $this->assertSame( 'MYCUSTOMCODE', $captured['auth_code'] );
+    }
 }
