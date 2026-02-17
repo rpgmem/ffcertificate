@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## 4.12.16 (2026-02-17)
+
+Refactoring: extract focused classes from SelfSchedulingEditor (924 → 559 lines, 39% reduction).
+
+- Refactor: **SelfSchedulingCleanupHandler** (303 lines) — extracted AJAX appointment cleanup handler (`handle_cleanup_appointments`) and cleanup metabox rendering (`render_cleanup_metabox`) into a dedicated class with its own constructor hook
+- Refactor: **SelfSchedulingSaveHandler** (141 lines) — extracted `save_calendar_data` into a dedicated class with private helpers for config, working hours, and email config persistence
+- SelfSchedulingEditor now delegates save and cleanup responsibilities via constructor composition, retaining only metabox registration, rendering, and asset loading
+
 ## 4.12.15 (2026-02-17)
 
 Unit tests for Utils: comprehensive coverage of document validation, formatting, sanitization, captcha, and helper functions.
