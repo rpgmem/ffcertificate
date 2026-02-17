@@ -232,7 +232,7 @@ class SubmissionHandler {
         $submission_id = $this->repository->insert($insert_data);
 
         if (!$submission_id) {
-            return new WP_Error('db_error', __('Error saving submission to the database.', 'ffcertificate'));
+            return new \WP_Error('db_error', __('Error saving submission to the database.', 'ffcertificate'));
         }
 
         /**
@@ -417,7 +417,7 @@ class SubmissionHandler {
      * @param array $ids Array of submission IDs
      * @return int|false Number of rows affected or false on error
      */
-    public function bulk_trash_submissions(array $ids): array {
+    public function bulk_trash_submissions(array $ids) {
         if (empty($ids)) {
             return 0;
         }
@@ -449,7 +449,7 @@ class SubmissionHandler {
      * @param array $ids Array of submission IDs
      * @return int|false Number of rows affected or false on error
      */
-    public function bulk_restore_submissions(array $ids): array {
+    public function bulk_restore_submissions(array $ids) {
         if (empty($ids)) {
             return 0;
         }
@@ -481,7 +481,7 @@ class SubmissionHandler {
      * @param array $ids Array of submission IDs
      * @return int|false Number of rows deleted or false on error
      */
-    public function bulk_delete_submissions(array $ids): array {
+    public function bulk_delete_submissions(array $ids) {
         if (empty($ids)) {
             return 0;
         }

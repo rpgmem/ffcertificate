@@ -5,12 +5,14 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\API\UserDataRestController;
 
 /**
- * Tests for UserDataRestController: route registration and permission callbacks.
+ * Tests for UserDataRestController: route registration, permission callbacks,
+ * and endpoint callback error paths.
  */
 class UserDataRestControllerTest extends TestCase {
 
@@ -32,11 +34,25 @@ class UserDataRestControllerTest extends TestCase {
                 'args'      => $args,
             );
         });
+
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
     }
 
     protected function tearDown(): void {
         Monkey\tearDown();
         parent::tearDown();
+    }
+
+    /**
+     * Helper: create a mock WP_REST_Request with given params.
+     */
+    private function make_request( array $params = array() ): object {
+        $request = Mockery::mock( 'WP_REST_Request' );
+        $request->shouldReceive( 'get_param' )->andReturnUsing( function( $key ) use ( $params ) {
+            return $params[ $key ] ?? null;
+        } );
+        return $request;
     }
 
     // ------------------------------------------------------------------
@@ -176,5 +192,128 @@ class UserDataRestControllerTest extends TestCase {
         $this->assertIsArray( $profile['args'] );
         $this->assertArrayHasKey( 0, $profile['args'] );
         $this->assertArrayHasKey( 1, $profile['args'] );
+    }
+
+    // ------------------------------------------------------------------
+    // Endpoint callbacks — error paths
+    // ------------------------------------------------------------------
+
+    public function test_get_user_certificates_returns_error_when_not_logged_in(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 0 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $ctrl    = new UserDataRestController( 'ffc/v1' );
+        $request = $this->make_request();
+        $result  = $ctrl->get_user_certificates( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+    }
+
+    public function test_get_user_certificates_returns_error_when_no_capability(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+        Functions\when( 'user_can' )->justReturn( false );
+
+        $ctrl    = new UserDataRestController( 'ffc/v1' );
+        $request = $this->make_request();
+        $result  = $ctrl->get_user_certificates( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+    }
+
+    public function test_get_user_appointments_returns_error_when_not_logged_in(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 0 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $ctrl    = new UserDataRestController( 'ffc/v1' );
+        $request = $this->make_request();
+        $result  = $ctrl->get_user_appointments( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+    }
+
+    public function test_get_user_appointments_returns_error_when_no_capability(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+        Functions\when( 'user_can' )->justReturn( false );
+
+        $ctrl    = new UserDataRestController( 'ffc/v1' );
+        $request = $this->make_request();
+        $result  = $ctrl->get_user_appointments( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+    }
+
+    public function test_get_user_profile_returns_error_when_not_logged_in(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 0 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $ctrl    = new UserDataRestController( 'ffc/v1' );
+        $request = $this->make_request();
+        $result  = $ctrl->get_user_profile( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+    }
+
+    public function test_change_password_returns_error_when_not_logged_in(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 0 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+        $ctrl    = new UserDataRestController( 'ffc/v1' );
+        $request = $this->make_request();
+        $result  = $ctrl->change_password( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+    }
+
+    public function test_change_password_returns_error_when_new_password_empty(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+        $ctrl    = new UserDataRestController( 'ffc/v1' );
+        $request = $this->make_request( array( 'new_password' => '' ) );
+        $result  = $ctrl->change_password( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+    }
+
+    public function test_change_password_returns_error_when_password_too_short(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+        $ctrl    = new UserDataRestController( 'ffc/v1' );
+        $request = $this->make_request( array( 'new_password' => 'short' ) );
+        $result  = $ctrl->change_password( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+    }
+
+    public function test_create_privacy_request_returns_error_when_not_logged_in(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 0 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+        $ctrl    = new UserDataRestController( 'ffc/v1' );
+        $request = $this->make_request();
+        $result  = $ctrl->create_privacy_request( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+    }
+
+    public function test_create_privacy_request_returns_error_for_invalid_type(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $ctrl    = new UserDataRestController( 'ffc/v1' );
+        $request = $this->make_request( array( 'type' => 'invalid_type' ) );
+        $result  = $ctrl->create_privacy_request( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+    }
+
+    public function test_update_user_profile_returns_error_when_not_logged_in(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 0 );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $ctrl    = new UserDataRestController( 'ffc/v1' );
+        $request = $this->make_request();
+        $result  = $ctrl->update_user_profile( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
     }
 }

@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.12.4
+Stable tag: 4.12.5
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -164,6 +164,17 @@ In the certificate layout editor, use these dynamic tags:
 
 == Changelog ==
 
+= 4.12.5 (2026-02-17) =
+
+Tests for critical classes: SubmissionHandler, UserCreator, CapabilityManager, and UserDataRestController endpoint callbacks.
+
+* New: **SubmissionHandlerTest** — 21 tests covering process_submission (encryption, ticket_hash, consent fields), get/trash/restore/delete, bulk operations, and ensure_magic_token
+* New: **UserCreatorTest** — 12 tests covering generate_username and get_or_create_user flows
+* New: **CapabilityManagerTest** — 27 tests covering constants, grant/revoke, access checks, role management
+* Enhanced: **UserDataRestControllerTest** — added 11 endpoint callback error-path tests
+* Fix: **SubmissionHandler bulk methods** — removed incorrect `: array` return type (methods return `int`)
+* Fix: **SubmissionHandler WP_Error namespace** — fixed missing backslash prefix
+
 = 4.12.4 (2026-02-17) =
 
 Performance and reliability: changelog extraction, ticket hash column, LIKE-on-JSON elimination.
@@ -248,6 +259,9 @@ Audience custom fields, reregistration campaigns, ficha PDF, email notifications
 For the complete changelog history, see [CHANGELOG.md](CHANGELOG.md).
 
 == Upgrade Notice ==
+
+= 4.12.5 =
+Tests for critical classes (182 total). Fixed bulk method return types and WP_Error namespace in SubmissionHandler. No database changes. No breaking changes.
 
 = 4.12.4 =
 Changelog extracted to CHANGELOG.md. New ticket_hash column on submissions table for indexed ticket lookups (added automatically on activation). Fixes ticket reprint detection when data encryption is enabled. No breaking changes.
