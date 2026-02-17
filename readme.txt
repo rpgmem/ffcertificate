@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.12.11
+Stable tag: 4.12.12
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,15 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.12.12 (2026-02-17) =
+
+Unit tests for Reregistration module: field options and data processor.
+
+* New: **ReregistrationFieldOptionsTest** — 15 tests covering field option providers and divisao-setor mapping
+* New: **ReregistrationDataProcessorTest** — 19 tests covering working hours sanitization and submission validation
+* Fix: **AudienceCsvImporterTest** — alias mock tests run in separate processes to prevent cross-class contamination
+* Test suite: 218 → 253 tests, 453 → 710 assertions
 
 = 4.12.11 (2026-02-17) =
 

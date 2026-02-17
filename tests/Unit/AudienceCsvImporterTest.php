@@ -244,6 +244,10 @@ class AudienceCsvImporterTest extends TestCase {
         $this->assertStringContainsString( 'not found', $result['errors'][0] );
     }
 
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function test_import_members_successful_with_existing_user(): void {
         $path = $this->create_csv( "email,name\ntest@example.com,Test User\n" );
 
@@ -267,6 +271,10 @@ class AudienceCsvImporterTest extends TestCase {
         $this->assertSame( 0, $result['skipped'] );
     }
 
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function test_import_members_already_member_counted_as_skipped(): void {
         $path = $this->create_csv( "email,name\ntest@example.com,Test\n" );
 
@@ -319,6 +327,10 @@ class AudienceCsvImporterTest extends TestCase {
         $this->assertSame( 1, $result['skipped'] );
     }
 
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function test_import_audiences_creates_parents_first(): void {
         $path = $this->create_csv( "name,color,parent\nChild A1,#ff0000,Parent A\nParent A,#3788d8,\n" );
 
@@ -345,6 +357,10 @@ class AudienceCsvImporterTest extends TestCase {
         $this->assertSame( 1, $result['imported'] ); // Only Parent A created
     }
 
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function test_import_audiences_skips_existing(): void {
         $path = $this->create_csv( "name,color\nExisting Group,#ff0000\n" );
 
@@ -363,6 +379,10 @@ class AudienceCsvImporterTest extends TestCase {
         $this->assertSame( 1, $result['skipped'] );
     }
 
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function test_import_audiences_default_color_when_invalid(): void {
         $path = $this->create_csv( "name,color\nTest Group,not-a-color\n" );
 
