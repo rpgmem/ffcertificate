@@ -479,7 +479,7 @@
                 return;
             }
 
-            $('.ffc-captcha-row label').html(newLabel);
+            $('.ffc-captcha-row .ffc-captcha-label-text').text(newLabel);
             $('#ffc_captcha_hash').val(newHash);
             $('#ffc_captcha_ans').val('').focus();
         },

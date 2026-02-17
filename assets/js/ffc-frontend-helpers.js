@@ -481,21 +481,20 @@ $inputs.each(function() {
         
         /**
          * Refresh captcha question and hash
-         * 
+         *
          * @param {jQuery} $form - Form element
-         * @param {string} newLabel - New captcha question HTML
+         * @param {string} newLabel - New captcha question text (plain text, no HTML)
          * @param {string} newHash - New captcha hash
          */
         refreshCaptcha: function($form, newLabel, newHash) {
             // Find captcha elements
-            var $captchaLabel = $form.find('label[for*="captcha"], .ffc-captcha-row label').first();
+            var $captchaLabelText = $form.find('.ffc-captcha-label-text').first();
             var $captchaInput = $form.find('input[name="ffc_captcha_ans"]');
             var $captchaHash = $form.find('input[name="ffc_captcha_hash"]');
-            
-            // Update label
-            if ($captchaLabel.length && newLabel) {
-                $captchaLabel.html(newLabel);
-                // console.log('[FFC UI] Captcha label updated');
+
+            // Update label text only (required span stays intact)
+            if ($captchaLabelText.length && newLabel) {
+                $captchaLabelText.text(newLabel);
             }
 
             // Update hash
