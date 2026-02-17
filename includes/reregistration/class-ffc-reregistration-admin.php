@@ -8,9 +8,14 @@ declare(strict_types=1);
  * - List of campaigns with filters
  * - Create/edit campaign form
  * - View submissions per campaign (approve/reject/remind)
- * - CSV export
+ *
+ * Action handlers are delegated to focused classes:
+ * - ReregistrationSubmissionActions (approve, reject, return, bulk)
+ * - ReregistrationCsvExporter (CSV export)
+ * - ReregistrationCustomFieldsPage (custom fields submenu)
  *
  * @since 4.11.0
+ * @since 4.12.13  Extracted action handlers and custom fields page
  * @package FreeFormCertificate\Reregistration
  */
 
@@ -83,7 +88,7 @@ class ReregistrationAdmin {
             __('Custom Fields', 'ffcertificate'),
             'manage_options',
             'ffc-custom-fields',
-            array($this, 'render_custom_fields_page')
+            array(ReregistrationCustomFieldsPage::class, 'render')
         );
     }
 
@@ -638,6 +643,9 @@ class ReregistrationAdmin {
     /**
      * Handle admin actions (save, delete, approve, reject, bulk, export).
      *
+     * Delegates submission workflow actions to ReregistrationSubmissionActions
+     * and CSV export to ReregistrationCsvExporter.
+     *
      * @return void
      */
     public function handle_actions(): void {
@@ -672,13 +680,18 @@ class ReregistrationAdmin {
             }
         }
 
+        // Campaign CRUD
         $this->handle_save();
         $this->handle_delete();
-        $this->handle_approve();
-        $this->handle_reject();
-        $this->handle_return_to_draft();
-        $this->handle_bulk();
-        $this->handle_export();
+
+        // Submission workflow (delegated)
+        ReregistrationSubmissionActions::handle_approve();
+        ReregistrationSubmissionActions::handle_reject();
+        ReregistrationSubmissionActions::handle_return_to_draft();
+        ReregistrationSubmissionActions::handle_bulk();
+
+        // CSV export (delegated)
+        ReregistrationCsvExporter::handle_export();
     }
 
     /**
@@ -763,215 +776,6 @@ class ReregistrationAdmin {
     }
 
     /**
-     * Handle approve single submission.
-     *
-     * @return void
-     */
-    private function handle_approve(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        if (!isset($_GET['action']) || $_GET['action'] !== 'approve' || !isset($_GET['sub_id'])) {
-            return;
-        }
-
-        $sub_id = absint($_GET['sub_id']);
-        $rereg_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
-
-        if (!wp_verify_nonce(isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '', 'approve_submission_' . $sub_id)) {
-            return;
-        }
-
-        ReregistrationSubmissionRepository::approve($sub_id, get_current_user_id());
-        wp_safe_redirect(admin_url('admin.php?page=' . self::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=approved'));
-        exit;
-    }
-
-    /**
-     * Handle reject single submission.
-     *
-     * @return void
-     */
-    private function handle_reject(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        if (!isset($_GET['action']) || $_GET['action'] !== 'reject' || !isset($_GET['sub_id'])) {
-            return;
-        }
-
-        $sub_id = absint($_GET['sub_id']);
-        $rereg_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
-
-        if (!wp_verify_nonce(isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '', 'reject_submission_' . $sub_id)) {
-            return;
-        }
-
-        ReregistrationSubmissionRepository::reject($sub_id, get_current_user_id());
-        wp_safe_redirect(admin_url('admin.php?page=' . self::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=rejected'));
-        exit;
-    }
-
-    /**
-     * Handle return-to-draft single submission.
-     *
-     * @return void
-     */
-    private function handle_return_to_draft(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        if (!isset($_GET['action']) || $_GET['action'] !== 'return_to_draft' || !isset($_GET['sub_id'])) {
-            return;
-        }
-
-        $sub_id = absint($_GET['sub_id']);
-        $rereg_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
-
-        if (!wp_verify_nonce(isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '', 'return_to_draft_submission_' . $sub_id)) {
-            return;
-        }
-
-        ReregistrationSubmissionRepository::return_to_draft($sub_id, get_current_user_id());
-        wp_safe_redirect(admin_url('admin.php?page=' . self::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=returned_to_draft'));
-        exit;
-    }
-
-    /**
-     * Handle bulk actions on submissions.
-     *
-     * @return void
-     */
-    private function handle_bulk(): void {
-        if (!isset($_POST['ffc_action']) || $_POST['ffc_action'] !== 'bulk_submissions') {
-            return;
-        }
-
-        $rereg_id = isset($_POST['reregistration_id']) ? absint($_POST['reregistration_id']) : 0;
-        if (!wp_verify_nonce(isset($_POST['ffc_bulk_nonce']) ? sanitize_text_field(wp_unslash($_POST['ffc_bulk_nonce'])) : '', 'bulk_submissions_' . $rereg_id)) {
-            return;
-        }
-
-        $action = isset($_POST['bulk_action']) ? sanitize_text_field(wp_unslash($_POST['bulk_action'])) : '';
-        $ids = isset($_POST['submission_ids']) ? array_map('absint', (array) $_POST['submission_ids']) : array();
-
-        if (empty($ids) || empty($action)) {
-            return;
-        }
-
-        if ($action === 'approve') {
-            ReregistrationSubmissionRepository::bulk_approve($ids, get_current_user_id());
-            wp_safe_redirect(admin_url('admin.php?page=' . self::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=bulk_approved'));
-            exit;
-        }
-
-        if ($action === 'return_to_draft') {
-            ReregistrationSubmissionRepository::bulk_return_to_draft($ids, get_current_user_id());
-            wp_safe_redirect(admin_url('admin.php?page=' . self::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=bulk_returned_to_draft'));
-            exit;
-        }
-
-        if ($action === 'send_reminder') {
-            // Collect user IDs from submission IDs
-            $user_ids = array();
-            foreach ($ids as $sub_id) {
-                $sub = ReregistrationSubmissionRepository::get_by_id($sub_id);
-                if ($sub) {
-                    $user_ids[] = (int) $sub->user_id;
-                }
-            }
-            $sent = ReregistrationEmailHandler::send_reminders($rereg_id, $user_ids);
-            wp_safe_redirect(admin_url('admin.php?page=' . self::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=reminders_sent&count=' . $sent));
-            exit;
-        }
-    }
-
-    /**
-     * Handle CSV export.
-     *
-     * @return void
-     */
-    private function handle_export(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        if (!isset($_GET['action']) || $_GET['action'] !== 'export_csv' || !isset($_GET['id'])) {
-            return;
-        }
-
-        $id = absint($_GET['id']);
-        if (!wp_verify_nonce(isset($_GET['_wpnonce']) ? sanitize_text_field(wp_unslash($_GET['_wpnonce'])) : '', 'export_reregistration_' . $id)) {
-            return;
-        }
-
-        $rereg = ReregistrationRepository::get_by_id($id);
-        if (!$rereg) {
-            return;
-        }
-
-        $submissions = ReregistrationSubmissionRepository::get_for_export($id);
-        $custom_fields = CustomFieldRepository::get_by_audience_with_parents((int) $rereg->audience_id, true);
-
-        // Build CSV
-        $filename = 'reregistration-' . sanitize_file_name($rereg->title) . '-' . gmdate('Y-m-d') . '.csv';
-
-        // Headers
-        header('Content-Type: text/csv; charset=UTF-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Pragma: no-cache');
-        header('Expires: 0');
-
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-        $output = fopen('php://output', 'w');
-        // BOM for Excel UTF-8
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
-        fwrite($output, "\xEF\xBB\xBF");
-
-        // Header row
-        $headers = array(
-            __('User ID', 'ffcertificate'),
-            __('Name', 'ffcertificate'),
-            __('Email', 'ffcertificate'),
-            __('Status', 'ffcertificate'),
-            __('Submitted At', 'ffcertificate'),
-            __('Reviewed At', 'ffcertificate'),
-            __('Phone', 'ffcertificate'),
-            __('Department', 'ffcertificate'),
-            __('Organization', 'ffcertificate'),
-        );
-
-        // Add custom field headers
-        foreach ($custom_fields as $cf) {
-            $headers[] = $cf->field_label;
-        }
-
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv
-        fputcsv($output, $headers);
-
-        // Data rows
-        foreach ($submissions as $sub) {
-            $sub_data = $sub->data ? json_decode($sub->data, true) : array();
-            $standard = $sub_data['standard_fields'] ?? array();
-            $custom = $sub_data['custom_fields'] ?? array();
-
-            $row = array(
-                $sub->user_id,
-                $sub->user_name ?? '',
-                $sub->user_email ?? '',
-                $sub->status,
-                $sub->submitted_at ?? '',
-                $sub->reviewed_at ?? '',
-                $standard['phone'] ?? '',
-                $standard['department'] ?? '',
-                $standard['organization'] ?? '',
-            );
-
-            foreach ($custom_fields as $cf) {
-                $row[] = $custom['field_' . $cf->id] ?? '';
-            }
-
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv
-            fputcsv($output, $row);
-        }
-
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-        fclose($output);
-        exit;
-    }
-
-    /**
      * AJAX: Generate ficha PDF data for a submission.
      *
      * @return void
@@ -994,105 +798,6 @@ class ReregistrationAdmin {
         }
 
         wp_send_json_success(array('pdf_data' => $ficha_data));
-    }
-
-    // ─────────────────────────────────────────────
-    // CUSTOM FIELDS PAGE
-    // ─────────────────────────────────────────────
-
-    /**
-     * Render the Custom Fields overview page.
-     *
-     * Shows all audiences with their custom field counts and
-     * provides direct links to edit each audience's fields.
-     *
-     * @return void
-     */
-    public function render_custom_fields_page(): void {
-        if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('Permission denied.', 'ffcertificate'));
-        }
-
-        $audiences = AudienceRepository::get_hierarchical('active');
-        $edit_base = admin_url('admin.php?page=ffc-scheduling-audiences&action=edit&id=');
-
-        ?>
-        <div class="wrap">
-            <h1><?php esc_html_e('Custom Fields', 'ffcertificate'); ?></h1>
-            <p class="description">
-                <?php esc_html_e('Custom fields are defined per audience. Select an audience to manage its fields.', 'ffcertificate'); ?>
-            </p>
-
-            <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th class="column-audience"><?php esc_html_e('Audience', 'ffcertificate'); ?></th>
-                        <th class="column-fields" style="width:120px"><?php esc_html_e('Fields', 'ffcertificate'); ?></th>
-                        <th class="column-actions" style="width:180px"><?php esc_html_e('Actions', 'ffcertificate'); ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($audiences)) : ?>
-                        <tr><td colspan="3"><?php esc_html_e('No audiences found.', 'ffcertificate'); ?></td></tr>
-                    <?php else : ?>
-                        <?php foreach ($audiences as $parent) : ?>
-                            <?php $this->render_custom_fields_row($parent, $edit_base); ?>
-                            <?php if (!empty($parent->children)) : ?>
-                                <?php foreach ($parent->children as $child) : ?>
-                                    <?php $this->render_custom_fields_row($child, $edit_base, true); ?>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-        <?php
-    }
-
-    /**
-     * Render a single row in the custom fields overview table.
-     *
-     * @param object $audience  Audience object.
-     * @param string $edit_base Base URL for edit links.
-     * @param bool   $is_child  Whether this is a child audience.
-     * @return void
-     */
-    private function render_custom_fields_row(object $audience, string $edit_base, bool $is_child = false): void {
-        $count = CustomFieldRepository::count_by_audience((int) $audience->id, false);
-        $active = CustomFieldRepository::count_by_audience((int) $audience->id, true);
-        $edit_url = $edit_base . $audience->id . '#ffc-custom-fields';
-
-        ?>
-        <tr>
-            <td>
-                <?php if (!empty($audience->color)) : ?>
-                    <span class="ffc-color-dot" style="background:<?php echo esc_attr($audience->color); ?>"></span>
-                <?php endif; ?>
-                <?php echo $is_child ? '&mdash; ' : ''; ?>
-                <?php echo esc_html($audience->name); ?>
-            </td>
-            <td>
-                <?php if ($count > 0) : ?>
-                    <?php
-                    printf(
-                        /* translators: 1: active count 2: total count */
-                        esc_html__('%1$d active / %2$d total', 'ffcertificate'),
-                        absint($active),
-                        absint($count)
-                    );
-                    ?>
-                <?php else : ?>
-                    <span class="description"><?php esc_html_e('None', 'ffcertificate'); ?></span>
-                <?php endif; ?>
-            </td>
-            <td>
-                <a href="<?php echo esc_url($edit_url); ?>" class="button button-small">
-                    <?php $count > 0 ? esc_html_e('Edit Fields', 'ffcertificate') : esc_html_e('Add Fields', 'ffcertificate'); ?>
-                </a>
-            </td>
-        </tr>
-        <?php
     }
 
     /**

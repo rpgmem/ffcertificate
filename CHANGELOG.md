@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## 4.12.13 (2026-02-17)
+
+Refactoring: extract focused classes from ReregistrationAdmin (1,125 → 830 lines).
+
+- Refactor: **ReregistrationCsvExporter** — extracted CSV export logic (`handle_export`) into a standalone class with a single static entry point
+- Refactor: **ReregistrationSubmissionActions** — extracted submission workflow handlers (`handle_approve`, `handle_reject`, `handle_return_to_draft`, `handle_bulk`) into a dedicated class
+- Refactor: **ReregistrationCustomFieldsPage** — extracted custom fields admin submenu page rendering into its own class
+- ReregistrationAdmin now delegates to the extracted classes via `handle_actions()`, reducing the main class by 26% (1,125 → 830 lines)
+
 ## 4.12.12 (2026-02-17)
 
 Unit tests for Reregistration module: field options and data processor.

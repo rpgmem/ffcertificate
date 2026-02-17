@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.12.12
+Stable tag: 4.12.13
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,15 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.12.13 (2026-02-17) =
+
+Refactoring: extract focused classes from ReregistrationAdmin (1,125 → 830 lines).
+
+* Refactor: **ReregistrationCsvExporter** — CSV export logic extracted into standalone class
+* Refactor: **ReregistrationSubmissionActions** — submission workflow handlers (approve/reject/return/bulk) extracted
+* Refactor: **ReregistrationCustomFieldsPage** — custom fields admin page extracted
+* ReregistrationAdmin reduced by 26% via delegation to extracted classes
 
 = 4.12.12 (2026-02-17) =
 
