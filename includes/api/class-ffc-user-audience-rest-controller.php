@@ -18,7 +18,6 @@ namespace FreeFormCertificate\API;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class UserAudienceRestController {
 

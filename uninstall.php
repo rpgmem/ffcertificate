@@ -51,8 +51,8 @@ $ffcertificate_tables = array(
 );
 
 foreach ( $ffcertificate_tables as $ffcertificate_table ) {
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    $wpdb->query( "DROP TABLE IF EXISTS {$ffcertificate_table}" );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $ffcertificate_table ) );
 }
 
 // ──────────────────────────────────────
@@ -152,9 +152,12 @@ $ffcertificate_caps = array(
 );
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$ffcertificate_user_ids = $wpdb->get_col(
-    "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = '{$wpdb->prefix}capabilities' AND meta_value LIKE '%ffc_%'"
-);
+$ffcertificate_user_ids = $wpdb->get_col( $wpdb->prepare(
+    "SELECT user_id FROM %i WHERE meta_key = %s AND meta_value LIKE %s",
+    $wpdb->usermeta,
+    $wpdb->prefix . 'capabilities',
+    '%ffc_%'
+) );
 
 foreach ( $ffcertificate_user_ids as $ffcertificate_uid ) {
     $ffcertificate_user = new WP_User( (int) $ffcertificate_uid );

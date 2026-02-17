@@ -18,7 +18,6 @@ use FreeFormCertificate\Repositories\CalendarRepository;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
 
 class AppointmentCsvExporter {
 
@@ -342,7 +341,7 @@ class AppointmentCsvExporter {
             $sql = $wpdb->prepare($sql, $table);
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_sql is built from validated placeholders above.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $where_sql is built from validated placeholders above; $sql is pre-prepared.
         return $wpdb->get_results($sql, ARRAY_A);
     }
 

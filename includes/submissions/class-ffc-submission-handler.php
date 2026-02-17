@@ -18,7 +18,6 @@ use FreeFormCertificate\Repositories\SubmissionRepository;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class SubmissionHandler {
 

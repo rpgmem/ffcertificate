@@ -18,7 +18,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnsupportedIdentifierPlaceholder
 
 class FieldMigrationStrategy implements MigrationStrategyInterface {
 
