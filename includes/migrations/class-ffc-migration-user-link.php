@@ -23,7 +23,7 @@ namespace FreeFormCertificate\Migrations;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.SchemaChange
 
 class MigrationUserLink {
 
@@ -32,7 +32,7 @@ class MigrationUserLink {
     /**
      * Run the migration
      *
-     * @return array Result with success status, processed count, and errors
+     * @return array<string, mixed> Result with success status, processed count, and errors
      */
     public static function run(): array {
         global $wpdb;
@@ -42,14 +42,17 @@ class MigrationUserLink {
         self::add_user_id_column($table);
 
         // 2. Get all submissions without user_id, ordered by date (oldest first)
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $submissions = $wpdb->get_results(
-            "SELECT id, cpf_rf_hash, email_encrypted, data_encrypted
-             FROM {$table}
-             WHERE cpf_rf_hash IS NOT NULL
-             AND cpf_rf_hash != ''
-             AND user_id IS NULL
-             ORDER BY submission_date ASC",
+            $wpdb->prepare(
+                "SELECT id, cpf_rf_hash, email_encrypted, data_encrypted
+                 FROM %i
+                 WHERE cpf_rf_hash IS NOT NULL
+                 AND cpf_rf_hash != ''
+                 AND user_id IS NULL
+                 ORDER BY submission_date ASC",
+                $table
+            ),
             ARRAY_A
         );
 
@@ -90,12 +93,13 @@ class MigrationUserLink {
             }
 
             // STEP 2: Check if CPF/RF exists in OTHER submissions with user_id
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $existing_user_id = $wpdb->get_var($wpdb->prepare(
-                "SELECT user_id FROM {$table}
+                "SELECT user_id FROM %i
                  WHERE cpf_rf_hash = %s
                  AND user_id IS NOT NULL
                  LIMIT 1",
+                $table,
                 $cpf_rf_hash
             ));
 
@@ -233,12 +237,13 @@ class MigrationUserLink {
 
         // STEP 7: Bulk update all submissions with same CPF/RF
         foreach ($processed_cpfs as $cpf_hash => $user_id) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->query($wpdb->prepare(
-                "UPDATE {$table}
+                "UPDATE %i
                  SET user_id = %d
                  WHERE cpf_rf_hash = %s
                  AND user_id IS NULL",
+                $table,
                 $user_id,
                 $cpf_hash
             ));
@@ -269,8 +274,8 @@ class MigrationUserLink {
      * Extract name data from encrypted submission for username generation
      *
      * @since 4.9.6
-     * @param array $submission Submission data row (includes data_encrypted)
-     * @return array Submission data array with name fields
+     * @param array<string, mixed> $submission Submission data row (includes data_encrypted)
+     * @return array<string, mixed> Submission data array with name fields
      */
     private static function extract_name_data(array $submission): array {
         if (empty($submission['data_encrypted'])) {
@@ -290,7 +295,7 @@ class MigrationUserLink {
      * Extract name from submission data and set user display name
      *
      * @param int $user_id WordPress user ID
-     * @param array $submission Submission data row (includes data_encrypted)
+     * @param array<string, mixed> $submission Submission data row (includes data_encrypted)
      * @return void
      */
     private static function set_user_display_name(int $user_id, array $submission): void {

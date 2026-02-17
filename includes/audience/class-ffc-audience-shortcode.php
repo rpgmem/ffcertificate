@@ -36,7 +36,7 @@ class AudienceShortcode {
     /**
      * Render the shortcode
      *
-     * @param array|string $atts Shortcode attributes
+     * @param array<string, mixed>|string $atts Shortcode attributes
      * @return string HTML output
      */
     public static function render($atts = array()): string {
@@ -172,9 +172,9 @@ class AudienceShortcode {
      * Render the calendar HTML (shared between logged-in and public views)
      *
      * @since 4.7.0
-     * @param array $schedules Array of schedule objects
-     * @param array $config JS configuration
-     * @param array $atts Shortcode attributes
+     * @param array<int, object> $schedules Array of schedule objects
+     * @param array<string, mixed> $config JS configuration
+     * @param array<string, mixed> $atts Shortcode attributes
      * @param bool $show_booking_modal Whether to show the booking modal
      * @return string HTML output
      */
@@ -427,7 +427,7 @@ class AudienceShortcode {
      * Determine if event list should be shown based on schedules
      *
      * @since 4.8.0
-     * @param array $schedules Array of schedule objects
+     * @param array<int, object> $schedules Array of schedule objects
      * @return bool
      */
     private static function should_show_event_list(array $schedules): bool {
@@ -443,7 +443,7 @@ class AudienceShortcode {
      * Get event list position from schedules (first one that has it enabled)
      *
      * @since 4.8.0
-     * @param array $schedules Array of schedule objects
+     * @param array<int, object> $schedules Array of schedule objects
      * @return string 'side' or 'below'
      */
     private static function get_event_list_position(array $schedules): string {
@@ -459,7 +459,7 @@ class AudienceShortcode {
      * Get audience badge format from schedules (first one with a value)
      *
      * @since 4.9.0
-     * @param array $schedules Array of schedule objects
+     * @param array<int, object> $schedules Array of schedule objects
      * @return string 'name' or 'parent_name'
      */
     private static function get_audience_badge_format(array $schedules): string {
@@ -532,7 +532,7 @@ class AudienceShortcode {
      *
      * @param int $user_id User ID
      * @param int $specific_id Specific schedule ID (0 for all)
-     * @return array<object>
+     * @return array<int, object>
      */
     private static function get_user_schedules(int $user_id, int $specific_id = 0): array {
         // Admin can access all
@@ -578,7 +578,7 @@ class AudienceShortcode {
      * Check if user can book on any of the schedules
      *
      * @param int $user_id User ID
-     * @param array<object> $schedules Schedules
+     * @param array<int, object> $schedules Schedules
      * @return bool
      */
     private static function can_user_book(int $user_id, array $schedules): bool {
@@ -599,7 +599,7 @@ class AudienceShortcode {
      * Get audiences user can book for
      *
      * @param int $user_id User ID
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     private static function get_public_audiences(): array {
         $audiences = AudienceRepository::get_hierarchical('active');
@@ -626,6 +626,12 @@ class AudienceShortcode {
         return $result;
     }
 
+    /**
+     * Get audiences the user belongs to or all audiences for admins
+     *
+     * @param int $user_id User ID
+     * @return array<int, array<string, mixed>>
+     */
     private static function get_user_audiences(int $user_id): array {
         // Admin can book any audience
         if (user_can($user_id, 'manage_options')) {
@@ -686,6 +692,12 @@ class AudienceShortcode {
         );
     }
 
+    /**
+     * Enqueue JavaScript assets and localize script
+     *
+     * @param array<int, object> $schedules Array of schedule objects
+     * @return void
+     */
     private static function enqueue_assets(array $schedules = array()): void {
         // CSS (in case enqueue_styles wasn't called yet)
         self::enqueue_styles();

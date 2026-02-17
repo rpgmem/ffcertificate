@@ -17,7 +17,7 @@ namespace FreeFormCertificate\Migrations;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 class MigrationUserProfiles {
 
@@ -28,7 +28,7 @@ class MigrationUserProfiles {
      *
      * @param int $batch_size Number of users per batch
      * @param bool $dry_run If true, only shows what would change
-     * @return array Result with success status, processed count, and changes
+     * @return array<string, mixed> Result with success status, processed count, and changes
      */
     public static function run(int $batch_size = 50, bool $dry_run = false): array {
         global $wpdb;
@@ -77,7 +77,8 @@ class MigrationUserProfiles {
             try {
                 // Skip if profile already exists
                 $exists = $wpdb->get_var($wpdb->prepare(
-                    "SELECT id FROM {$profiles_table} WHERE user_id = %d",
+                    "SELECT id FROM %i WHERE user_id = %d",
+                    $profiles_table,
                     $user_id
                 ));
 
@@ -154,7 +155,7 @@ class MigrationUserProfiles {
     /**
      * Get migration status
      *
-     * @return array Status information
+     * @return array<string, mixed> Status information
      */
     public static function get_status(): array {
         global $wpdb;
@@ -172,7 +173,7 @@ class MigrationUserProfiles {
 
         $total_users = count(get_users(array('role' => 'ffc_user', 'fields' => 'ID')));
 
-        $profiles_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$profiles_table}");
+        $profiles_count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i", $profiles_table));
 
         $last_run = get_option('ffc_migration_user_profiles_last_run', '');
 
@@ -198,7 +199,7 @@ class MigrationUserProfiles {
      * Preview changes (dry run)
      *
      * @param int $limit Maximum users to preview
-     * @return array Preview results
+     * @return array<string, mixed> Preview results
      */
     public static function preview(int $limit = 50): array {
         return self::run($limit, true);

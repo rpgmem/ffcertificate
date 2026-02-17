@@ -23,7 +23,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class PdfGenerator {
     
@@ -39,7 +38,7 @@ class PdfGenerator {
      *
      * @param int $submission_id Submission ID
      * @param object $submission_handler Submission handler instance
-     * @return array|WP_Error PDF data array or error
+     * @return array{html: string, filename: string, form_title: string, auth_code: string, submission_id: int, submission: array<string, mixed>, bg_image: mixed}|\WP_Error PDF data array or error
      */
     public function generate_pdf_data( int $submission_id, object $submission_handler ) {
         // Get submission
@@ -126,17 +125,15 @@ class PdfGenerator {
         $filename = apply_filters( 'ffcertificate_certificate_filename', $filename, $form_title, $auth_code, $submission_id );
 
         // Log generation
-        if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) && method_exists( '\\FreeFormCertificate\\Core\\Utils', 'debug_log' ) ) {
-            \FreeFormCertificate\Core\Utils::debug_log( 'PDF data generated', array(
-                'submission_id' => $submission_id,
-                'form_id' => $form_id,
-                'form_title' => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
-                'auth_code' => $auth_code,
-                'filename' => $filename,
-                'html_length' => strlen( $html ),
-                'has_bg_image' => ! empty( $bg_image_url )
-            ) );
-        }
+        \FreeFormCertificate\Core\Utils::debug_log( 'PDF data generated', array(
+            'submission_id' => $submission_id,
+            'form_id' => $form_id,
+            'form_title' => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
+            'auth_code' => $auth_code,
+            'filename' => $filename,
+            'html_length' => strlen( $html ),
+            'has_bg_image' => ! empty( $bg_image_url )
+        ) );
         
         $pdf_data = array(
             'html'          => $html,
@@ -162,10 +159,10 @@ class PdfGenerator {
     
     /**
      * Enrich submission data with metadata
-     * 
-     * @param array $data Original submission data
-     * @param array $submission Submission database row
-     * @return array Enriched data
+     *
+     * @param array<string, mixed> $data Original submission data
+     * @param array<string, mixed> $submission Submission database row
+     * @return array<string, mixed> Enriched data
      */
     private function enrich_submission_data( array $data, array $submission ): array {
         // Add email if missing
@@ -225,9 +222,9 @@ class PdfGenerator {
      * - {{validation_url}} - Validation link with magic token
      * - {{validation_url link:m>v}} - Custom link format
      *
-     * @param array $data Submission data
+     * @param array<string, mixed> $data Submission data
      * @param string $form_title Form title
-     * @param array $form_config Form configuration
+     * @param array<string, mixed> $form_config Form configuration
      * @param string $submission_date Submission creation date from database
      * @return string Generated HTML
      */
@@ -334,8 +331,8 @@ class PdfGenerator {
      * - {{qr_code:size=250:margin=3:error=H}} - All params
      * 
      * @param string $layout Template HTML
-     * @param array $data Submission data
-     * @param array $form_config Form configuration
+     * @param array<string, mixed> $data Submission data
+     * @param array<string, mixed> $form_config Form configuration
      * @return string Processed HTML
      */
     private function process_qrcode_placeholders( string $layout, array $data, array $form_config ): string {
@@ -373,9 +370,9 @@ class PdfGenerator {
     
     // Get submission
     $table = $wpdb->prefix . 'ffc_submissions';
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $submission = $wpdb->get_row(
-        $wpdb->prepare( "SELECT magic_token FROM $table WHERE id = %d", $submission_id ),
+        $wpdb->prepare( "SELECT magic_token FROM %i WHERE id = %d", $table, $submission_id ),
         ARRAY_A
     );
     
@@ -405,7 +402,7 @@ class PdfGenerator {
      * 
      * Format: /valid#token=xxx (hash prevents WordPress redirects)
      * 
-     * @param array $data Submission data
+     * @param array<string, mixed> $data Submission data
      * @return string URL
      */
     private function get_qr_code_target_url( array $data ): string {
@@ -433,7 +430,7 @@ class PdfGenerator {
      * - {{validation_url link:m>v color:blue}} → With color
      * 
      * @param string $layout Template HTML
-     * @param array $data Submission data
+     * @param array<string, mixed> $data Submission data
      * @return string Processed HTML
      */
     private function process_validation_url_placeholders( string $layout, array $data ): string {
@@ -501,7 +498,7 @@ class PdfGenerator {
      * ✅ MOVED FROM FFC_Email_Handler (v2.9.14)
      * 
      * @param string $params_string Parameter string (e.g., "link:m>v target:_blank color:blue")
-     * @return array Parsed parameters
+     * @return array{to: string, text: string, target: string, color: string} Parsed parameters
      */
     private function parse_validation_url_params( string $params_string ): array {
         $defaults = array(
@@ -553,7 +550,7 @@ class PdfGenerator {
     /**
      * Generate default HTML template when none configured
      * 
-     * @param array $data Submission data
+     * @param array<string, mixed> $data Submission data
      * @param string $form_title Form title
      * @return string Default HTML
      */
@@ -586,11 +583,7 @@ class PdfGenerator {
      */
     private function generate_filename( string $form_title, string $auth_code = '' ): string {
         // Sanitize form title
-        if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) && method_exists( '\\FreeFormCertificate\\Core\\Utils', 'sanitize_filename' ) ) {
-            $safe_name = \FreeFormCertificate\Core\Utils::sanitize_filename( $form_title );
-        } else {
-            $safe_name = sanitize_file_name( $form_title );
-        }
+        $safe_name = \FreeFormCertificate\Core\Utils::sanitize_filename( $form_title );
         
         if ( empty( $safe_name ) ) {
             $safe_name = 'certificate';
@@ -611,10 +604,10 @@ class PdfGenerator {
     /**
      * Generate PDF data from form submission (for frontend)
      * 
-     * @param array $submission_data Posted form data
+     * @param array<string, mixed> $submission_data Posted form data
      * @param int $form_id Form ID
      * @param string $submission_date Submission date
-     * @return array PDF data array
+     * @return array{html: string, filename: string, form_title: string, submission: array<string, mixed>, bg_image: mixed}|\WP_Error PDF data array
      */
     public function generate_pdf_data_from_form( array $submission_data, int $form_id, ?string $submission_date = null ) {
         // Get form data
@@ -646,14 +639,12 @@ class PdfGenerator {
         $filename = $this->generate_filename( $form_title, $auth_code );
         
         // Log generation
-        if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) && method_exists( '\\FreeFormCertificate\\Core\\Utils', 'debug_log' ) ) {
-            \FreeFormCertificate\Core\Utils::debug_log( 'PDF data generated from form', array(
-                'form_id' => $form_id,
-                'form_title' => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
-                'html_length' => strlen( $html ),
-                'has_bg_image' => ! empty( $bg_image_url )
-            ) );
-        }
+        \FreeFormCertificate\Core\Utils::debug_log( 'PDF data generated from form', array(
+            'form_id' => $form_id,
+            'form_title' => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
+            'html_length' => strlen( $html ),
+            'has_bg_image' => ! empty( $bg_image_url )
+        ) );
         
         return array(
             'html'       => $html,
@@ -671,9 +662,9 @@ class PdfGenerator {
      * Template loaded from plugin default or overridden via filter.
      *
      * @since 4.2.0
-     * @param array $appointment Appointment data array from database
-     * @param array $calendar Calendar data array from database
-     * @return array PDF data array (html, template, filename, bg_image)
+     * @param array<string, mixed> $appointment Appointment data array from database
+     * @param array<string, mixed> $calendar Calendar data array from database
+     * @return array{html: string, filename: string, form_title: string, bg_image: mixed, type: string} PDF data array (html, template, filename, bg_image)
      */
     public function generate_appointment_pdf_data( array $appointment, array $calendar ): array {
         // Get date/time format settings

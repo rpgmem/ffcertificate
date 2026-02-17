@@ -19,7 +19,7 @@ namespace FreeFormCertificate\Privacy;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 class PrivacyHandler {
 
@@ -43,8 +43,8 @@ class PrivacyHandler {
     /**
      * Register personal data exporters
      *
-     * @param array $exporters Existing exporters
-     * @return array Modified exporters
+     * @param array<string, array<string, mixed>> $exporters Existing exporters
+     * @return array<string, array<string, mixed>> Modified exporters
      */
     public static function register_exporters(array $exporters): array {
         $exporters['ffcertificate-profile'] = array(
@@ -77,8 +77,8 @@ class PrivacyHandler {
     /**
      * Register personal data erasers
      *
-     * @param array $erasers Existing erasers
-     * @return array Modified erasers
+     * @param array<string, array<string, mixed>> $erasers Existing erasers
+     * @return array<string, array<string, mixed>> Modified erasers
      */
     public static function register_erasers(array $erasers): array {
         $erasers['ffcertificate'] = array(
@@ -97,7 +97,7 @@ class PrivacyHandler {
      *
      * @param string $email_address User email
      * @param int $page Page number
-     * @return array Export data
+     * @return array<string, mixed>
      */
     public static function export_profile(string $email_address, int $page = 1): array {
         $user = get_user_by('email', $email_address);
@@ -152,7 +152,7 @@ class PrivacyHandler {
      *
      * @param string $email_address User email
      * @param int $page Page number
-     * @return array Export data
+     * @return array<string, mixed>
      */
     public static function export_certificates(string $email_address, int $page = 1): array {
         global $wpdb;
@@ -167,11 +167,13 @@ class PrivacyHandler {
         $submissions = $wpdb->get_results($wpdb->prepare(
             "SELECT s.id, s.form_id, s.submission_date, s.auth_code, s.consent_given,
                     s.email_encrypted, p.post_title AS form_title
-             FROM {$table} s
-             LEFT JOIN {$wpdb->posts} p ON s.form_id = p.ID
+             FROM %i s
+             LEFT JOIN %i p ON s.form_id = p.ID
              WHERE s.user_id = %d AND s.status != 'trash'
              ORDER BY s.submission_date DESC
              LIMIT %d OFFSET %d",
+            $table,
+            $wpdb->posts,
             $user->ID,
             self::ITEMS_PER_PAGE,
             $offset
@@ -217,7 +219,7 @@ class PrivacyHandler {
      *
      * @param string $email_address User email
      * @param int $page Page number
-     * @return array Export data
+     * @return array<string, mixed>
      */
     public static function export_appointments(string $email_address, int $page = 1): array {
         global $wpdb;
@@ -237,11 +239,13 @@ class PrivacyHandler {
             "SELECT a.id, a.appointment_date, a.start_time, a.end_time, a.status,
                     a.name, a.email_encrypted, a.phone_encrypted, a.user_notes,
                     p.post_title AS calendar_title
-             FROM {$table} a
-             LEFT JOIN {$wpdb->posts} p ON a.calendar_id = p.ID
+             FROM %i a
+             LEFT JOIN %i p ON a.calendar_id = p.ID
              WHERE a.user_id = %d
              ORDER BY a.appointment_date DESC
              LIMIT %d OFFSET %d",
+            $table,
+            $wpdb->posts,
             $user->ID,
             self::ITEMS_PER_PAGE,
             $offset
@@ -291,7 +295,7 @@ class PrivacyHandler {
      *
      * @param string $email_address User email
      * @param int $page Page number
-     * @return array Export data
+     * @return array<string, mixed>
      */
     public static function export_audience_groups(string $email_address, int $page = 1): array {
         global $wpdb;
@@ -314,10 +318,12 @@ class PrivacyHandler {
 
         $groups = $wpdb->get_results($wpdb->prepare(
             "SELECT a.name AS audience_name, a.color, m.created_at AS joined_date
-             FROM {$members_table} m
-             INNER JOIN {$audiences_table} a ON a.id = m.audience_id
+             FROM %i m
+             INNER JOIN %i a ON a.id = m.audience_id
              WHERE m.user_id = %d
              ORDER BY a.name ASC",
+            $members_table,
+            $audiences_table,
             $user->ID
         ), ARRAY_A);
 
@@ -345,7 +351,7 @@ class PrivacyHandler {
      *
      * @param string $email_address User email
      * @param int $page Page number
-     * @return array Export data
+     * @return array<string, mixed>
      */
     public static function export_audience_bookings(string $email_address, int $page = 1): array {
         global $wpdb;
@@ -367,12 +373,15 @@ class PrivacyHandler {
         $bookings = $wpdb->get_results($wpdb->prepare(
             "SELECT b.id, b.booking_date, b.start_time, b.end_time, b.description,
                     b.status, b.is_all_day, e.name AS environment_name
-             FROM {$booking_users_table} bu
-             INNER JOIN {$bookings_table} b ON b.id = bu.booking_id
-             LEFT JOIN {$environments_table} e ON e.id = b.environment_id
+             FROM %i bu
+             INNER JOIN %i b ON b.id = bu.booking_id
+             LEFT JOIN %i e ON e.id = b.environment_id
              WHERE bu.user_id = %d
              ORDER BY b.booking_date DESC
              LIMIT %d OFFSET %d",
+            $booking_users_table,
+            $bookings_table,
+            $environments_table,
             $user->ID,
             self::ITEMS_PER_PAGE,
             $offset
@@ -423,7 +432,7 @@ class PrivacyHandler {
      *
      * @param string $email_address User email
      * @param int $page Page number
-     * @return array Erasure result
+     * @return array<string, mixed>
      */
     public static function erase_personal_data(string $email_address, int $page = 1): array {
         global $wpdb;
@@ -446,9 +455,10 @@ class PrivacyHandler {
         // 1. Submissions: anonymize (preserve certificate verification)
         $submissions_table = $wpdb->prefix . 'ffc_submissions';
         $rows = $wpdb->query($wpdb->prepare(
-            "UPDATE {$submissions_table}
+            "UPDATE %i
              SET user_id = NULL, email_encrypted = NULL, cpf_rf_encrypted = NULL
              WHERE user_id = %d",
+            $submissions_table,
             $user_id
         ));
         if ($rows > 0) {
@@ -465,7 +475,7 @@ class PrivacyHandler {
         $appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
         if (self::table_exists($appointments_table)) {
             $rows = $wpdb->query($wpdb->prepare(
-                "UPDATE {$appointments_table}
+                "UPDATE %i
                  SET user_id = NULL, name = NULL, email = NULL, email_encrypted = NULL,
                      email_hash = NULL, phone = NULL, phone_encrypted = NULL,
                      cpf_rf = NULL, cpf_rf_encrypted = NULL,
@@ -473,6 +483,7 @@ class PrivacyHandler {
                      user_notes = NULL, user_ip = NULL, user_ip_encrypted = NULL,
                      user_agent = NULL, consent_ip = NULL
                  WHERE user_id = %d",
+                $appointments_table,
                 $user_id
             ));
             if ($rows > 0) {
@@ -531,7 +542,8 @@ class PrivacyHandler {
         $activity_table = $wpdb->prefix . 'ffc_activity_log';
         if (self::table_exists($activity_table)) {
             $wpdb->query($wpdb->prepare(
-                "UPDATE {$activity_table} SET user_id = NULL WHERE user_id = %d",
+                "UPDATE %i SET user_id = NULL WHERE user_id = %d",
+                $activity_table,
                 $user_id
             ));
         }
@@ -539,7 +551,8 @@ class PrivacyHandler {
         // 8. ffc_* user meta: DELETE
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $meta_deleted = $wpdb->query($wpdb->prepare(
-            "DELETE FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key LIKE %s",
+            "DELETE FROM %i WHERE user_id = %d AND meta_key LIKE %s",
+            $wpdb->usermeta,
             $user_id,
             'ffc_%'
         ));
@@ -579,7 +592,7 @@ class PrivacyHandler {
      * @since 4.9.9
      * @param string $email_address User email
      * @param int    $page          Page number
-     * @return array Export data
+     * @return array<string, mixed>
      */
     public static function export_usermeta(string $email_address, int $page = 1): array {
         $user = get_user_by('email', $email_address);
@@ -591,8 +604,9 @@ class PrivacyHandler {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $meta_rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT meta_key, meta_value FROM {$wpdb->usermeta}
+            "SELECT meta_key, meta_value FROM %i
              WHERE user_id = %d AND meta_key LIKE %s",
+            $wpdb->usermeta,
             $user->ID,
             'ffc_%'
         ), ARRAY_A);

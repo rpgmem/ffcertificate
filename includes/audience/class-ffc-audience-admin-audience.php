@@ -409,7 +409,7 @@ class AudienceAdminAudience {
      * Render a single custom field row in the editor.
      *
      * @param object $field      Field object from database.
-     * @param array  $field_types Available field types.
+     * @param array<int, string> $field_types Available field types.
      * @return void
      */
     private function render_custom_field_row(object $field, array $field_types): void {

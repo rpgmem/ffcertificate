@@ -17,8 +17,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
 class UserCreator {
 
     use \FreeFormCertificate\Core\DatabaseHelperTrait;
@@ -35,7 +33,7 @@ class UserCreator {
      *
      * @param string $cpf_rf_hash   Hash of CPF or RF
      * @param string $email         Plain email address
-     * @param array  $submission_data Optional submission data for user creation
+     * @param array<string, mixed>  $submission_data Optional submission data for user creation
      * @param string $context       Context for capability granting
      * @return int|\WP_Error User ID or error
      */
@@ -44,12 +42,13 @@ class UserCreator {
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
         // STEP 1: Check if CPF/RF already has user_id in submissions
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $existing_user_id = $wpdb->get_var( $wpdb->prepare(
-            "SELECT user_id FROM {$table}
+            "SELECT user_id FROM %i
              WHERE cpf_rf_hash = %s
              AND user_id IS NOT NULL
              LIMIT 1",
+            $table,
             $cpf_rf_hash
         ) );
 
@@ -90,7 +89,7 @@ class UserCreator {
      * Create new WordPress user for FFC
      *
      * @param string $email           Email address
-     * @param array  $submission_data Submission data for user metadata
+     * @param array<string, mixed>  $submission_data Submission data for user metadata
      * @param string $context         Context for capability granting
      * @return int|\WP_Error User ID or error
      */
@@ -146,9 +145,10 @@ class UserCreator {
         global $wpdb;
 
         $submissions_table = \FreeFormCertificate\Core\Utils::get_submissions_table();
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $linked_submissions = $wpdb->query( $wpdb->prepare(
-            "UPDATE {$submissions_table} SET user_id = %d WHERE cpf_rf_hash = %s AND user_id IS NULL",
+            "UPDATE %i SET user_id = %d WHERE cpf_rf_hash = %s AND user_id IS NULL",
+            $submissions_table,
             $user_id,
             $cpf_rf_hash
         ) );
@@ -156,9 +156,10 @@ class UserCreator {
         $appointments_table  = $wpdb->prefix . 'ffc_self_scheduling_appointments';
         $linked_appointments = 0;
         if ( self::table_exists( $appointments_table ) ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $linked_appointments = $wpdb->query( $wpdb->prepare(
-                "UPDATE {$appointments_table} SET user_id = %d WHERE cpf_rf_hash = %s AND user_id IS NULL",
+                "UPDATE %i SET user_id = %d WHERE cpf_rf_hash = %s AND user_id IS NULL",
+                $appointments_table,
                 $user_id,
                 $cpf_rf_hash
             ) );
@@ -185,7 +186,7 @@ class UserCreator {
      *
      * @since 4.9.6
      * @param string $email           Email (used only as last-resort fallback)
-     * @param array  $submission_data Submission data containing name fields
+     * @param array<string, mixed>  $submission_data Submission data containing name fields
      * @return string Unique username
      */
     public static function generate_username( string $email, array $submission_data = array() ): string {
@@ -230,7 +231,7 @@ class UserCreator {
      * Sync user metadata from submission data
      *
      * @param int   $user_id         WordPress user ID
-     * @param array $submission_data Submission data
+     * @param array<string, mixed> $submission_data Submission data
      * @return void
      */
     private static function sync_user_metadata( int $user_id, array $submission_data ): void {
@@ -274,9 +275,10 @@ class UserCreator {
             return;
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $exists = $wpdb->get_var( $wpdb->prepare(
-            "SELECT id FROM {$table} WHERE user_id = %d",
+            "SELECT id FROM %i WHERE user_id = %d",
+            $table,
             $user_id
         ) );
 

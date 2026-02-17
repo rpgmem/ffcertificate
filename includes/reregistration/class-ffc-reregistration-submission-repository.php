@@ -16,9 +16,19 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 class ReregistrationSubmissionRepository {
+    use \FreeFormCertificate\Core\StaticRepositoryTrait;
+
+    /**
+     * Cache group for reregistration submission queries.
+     *
+     * @return string
+     */
+    protected static function cache_group(): string {
+        return 'ffc_rereg_submissions';
+    }
 
     /**
      * Valid submission statuses.
@@ -58,8 +68,7 @@ class ReregistrationSubmissionRepository {
      * @return string
      */
     public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_reregistration_submissions';
+        return self::db()->prefix . 'ffc_reregistration_submissions';
     }
 
     /**
@@ -69,12 +78,23 @@ class ReregistrationSubmissionRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
-        global $wpdb;
+        $cached = static::cache_get("id_{$id}");
+        if ($cached !== false) {
+            return $cached;
+        }
+
+        $wpdb = self::db();
         $table = self::get_table_name();
 
-        return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id)
+        $result = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM %i WHERE id = %d", $table, $id)
         );
+
+        if ($result) {
+            static::cache_set("id_{$id}", $result);
+        }
+
+        return $result;
     }
 
     /**
@@ -89,11 +109,11 @@ class ReregistrationSubmissionRepository {
             return null;
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE auth_code = %s AND status IN ('submitted', 'approved')", $auth_code)
+            $wpdb->prepare("SELECT * FROM %i WHERE auth_code = %s AND status IN ('submitted', 'approved')", $table, $auth_code)
         );
     }
 
@@ -109,11 +129,11 @@ class ReregistrationSubmissionRepository {
             return null;
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE magic_token = %s AND status IN ('submitted', 'approved')", $token)
+            $wpdb->prepare("SELECT * FROM %i WHERE magic_token = %s AND status IN ('submitted', 'approved')", $table, $token)
         );
     }
 
@@ -142,12 +162,13 @@ class ReregistrationSubmissionRepository {
      * @return object|null
      */
     public static function get_by_reregistration_and_user(int $reregistration_id, int $user_id): ?object {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         return $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE reregistration_id = %d AND user_id = %d",
+                "SELECT * FROM %i WHERE reregistration_id = %d AND user_id = %d",
+                $table,
                 $reregistration_id,
                 $user_id
             )
@@ -164,7 +185,7 @@ class ReregistrationSubmissionRepository {
      * @return array<object>
      */
     public static function get_all_by_user(int $user_id): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $rereg_table = ReregistrationRepository::get_table_name();
 
@@ -172,10 +193,12 @@ class ReregistrationSubmissionRepository {
         $results = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT s.*, r.title AS reregistration_title, r.start_date, r.end_date, r.status AS reregistration_status
-                 FROM {$table} s
-                 INNER JOIN {$rereg_table} r ON s.reregistration_id = r.id
+                 FROM %i s
+                 INNER JOIN %i r ON s.reregistration_id = r.id
                  WHERE s.user_id = %d
                  ORDER BY r.start_date DESC, s.created_at DESC",
+                $table,
+                $rereg_table,
                 $user_id
             )
         );
@@ -196,10 +219,11 @@ class ReregistrationSubmissionRepository {
      *     @type int    $limit   Max results. Default 0.
      *     @type int    $offset  Offset. Default 0.
      * }
+     * @param array<string, mixed> $filters
      * @return array<object>
      */
     public static function get_by_reregistration(int $reregistration_id, array $filters = array()): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -235,24 +259,26 @@ class ReregistrationSubmissionRepository {
         $limit_clause = $filters['limit'] > 0 ? sprintf('LIMIT %d OFFSET %d', $filters['limit'], $filters['offset']) : '';
 
         $sql = "SELECT s.*, u.display_name AS user_name, u.user_email AS user_email
-                FROM {$table} s
-                LEFT JOIN {$wpdb->users} u ON s.user_id = u.ID
+                FROM %i s
+                LEFT JOIN %i u ON s.user_id = u.ID
                 {$where_clause}
                 ORDER BY {$orderby} {$order}
                 {$limit_clause}";
 
+        $prepare_values = array_merge(array($table, $wpdb->users), $values);
+
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-        return $wpdb->get_results($wpdb->prepare($sql, $values));
+        return $wpdb->get_results($wpdb->prepare($sql, $prepare_values));
     }
 
     /**
      * Create a submission record.
      *
-     * @param array $data Submission data.
+     * @param array<string, mixed> $data Submission data.
      * @return int|false Submission ID or false.
      */
     public static function create(array $data) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -298,11 +324,11 @@ class ReregistrationSubmissionRepository {
      * Update a submission.
      *
      * @param int   $id   Submission ID.
-     * @param array $data Update data.
+     * @param array<string, mixed> $data Update data.
      * @return bool
      */
     public static function update(int $id, array $data): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         unset($data['id'], $data['reregistration_id'], $data['user_id'], $data['created_at']);
@@ -354,6 +380,8 @@ class ReregistrationSubmissionRepository {
             array('%d')
         );
 
+        static::cache_delete("id_{$id}");
+
         return $result !== false;
     }
 
@@ -365,11 +393,15 @@ class ReregistrationSubmissionRepository {
      * @return bool
      */
     public static function approve(int $id, int $reviewer_id): bool {
-        return self::update($id, array(
+        $result = self::update($id, array(
             'status'      => 'approved',
             'reviewed_at' => current_time('mysql'),
             'reviewed_by' => $reviewer_id,
         ));
+
+        static::cache_delete("id_{$id}");
+
+        return $result;
     }
 
     /**
@@ -381,12 +413,16 @@ class ReregistrationSubmissionRepository {
      * @return bool
      */
     public static function reject(int $id, int $reviewer_id, string $notes = ''): bool {
-        return self::update($id, array(
+        $result = self::update($id, array(
             'status'      => 'rejected',
             'reviewed_at' => current_time('mysql'),
             'reviewed_by' => $reviewer_id,
             'notes'       => $notes,
         ));
+
+        static::cache_delete("id_{$id}");
+
+        return $result;
     }
 
     /**
@@ -400,7 +436,7 @@ class ReregistrationSubmissionRepository {
      * @return bool
      */
     public static function return_to_draft(int $id, int $reviewer_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $result = $wpdb->update(
@@ -416,6 +452,8 @@ class ReregistrationSubmissionRepository {
             array('%s', null, null, null, null),
             array('%d')
         );
+
+        static::cache_delete("id_{$id}");
 
         return $result !== false;
     }
@@ -461,13 +499,14 @@ class ReregistrationSubmissionRepository {
      * @return array<string, int> Counts keyed by status.
      */
     public static function get_statistics(int $reregistration_id): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $results = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT status, COUNT(*) as count FROM {$table}
+                "SELECT status, COUNT(*) as count FROM %i
                 WHERE reregistration_id = %d GROUP BY status",
+                $table,
                 $reregistration_id
             )
         );
@@ -494,7 +533,7 @@ class ReregistrationSubmissionRepository {
      * Get submissions for CSV export.
      *
      * @param int   $reregistration_id Reregistration ID.
-     * @param array $filters           Optional filters (status, search).
+     * @param array<string, mixed> $filters           Optional filters (status, search).
      * @return array<object>
      */
     public static function get_for_export(int $reregistration_id, array $filters = array()): array {
@@ -545,7 +584,7 @@ class ReregistrationSubmissionRepository {
      * @return int
      */
     public static function count_by_reregistration(int $reregistration_id, ?string $status = null): int {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = 'WHERE reregistration_id = %d';
@@ -557,7 +596,7 @@ class ReregistrationSubmissionRepository {
         }
 
         return (int) $wpdb->get_var(
-            $wpdb->prepare("SELECT COUNT(*) FROM {$table} {$where}", $values)
+            $wpdb->prepare("SELECT COUNT(*) FROM %i {$where}", array_merge(array($table), $values))
         );
     }
 }

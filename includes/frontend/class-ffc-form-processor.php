@@ -22,15 +22,24 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class FormProcessor {
 
+    /**
+     * @var SubmissionHandler
+     */
     private $submission_handler;
+
+    /**
+     * @var \FreeFormCertificate\Integrations\EmailHandler
+     */
     private $email_handler;
 
     /**
      * Constructor
+     *
+     * @param SubmissionHandler                               $submission_handler
+     * @param \FreeFormCertificate\Integrations\EmailHandler $email_handler
      */
     public function __construct( SubmissionHandler $submission_handler, $email_handler ) {
         $this->submission_handler = $submission_handler;
@@ -463,8 +472,8 @@ class FormProcessor {
     /**
      * Calculate quiz score based on field points
      *
-     * @param array $fields_config Form fields configuration
-     * @param array $submission_data User's submitted data
+     * @param array<int, array<string, mixed>> $fields_config Form fields configuration
+     * @param array<string, mixed>             $submission_data User's submitted data
      * @return array{score: int, max_score: int, percent: int}
      */
     private function calculate_quiz_score( array $fields_config, array $submission_data ): array {

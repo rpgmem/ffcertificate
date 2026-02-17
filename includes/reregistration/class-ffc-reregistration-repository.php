@@ -18,9 +18,19 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 class ReregistrationRepository {
+    use \FreeFormCertificate\Core\StaticRepositoryTrait;
+
+    /**
+     * Cache group for reregistration queries.
+     *
+     * @return string
+     */
+    protected static function cache_group(): string {
+        return 'ffc_reregistrations';
+    }
 
     /**
      * Valid statuses for a reregistration campaign.
@@ -33,8 +43,7 @@ class ReregistrationRepository {
      * @return string
      */
     public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_reregistrations';
+        return self::db()->prefix . 'ffc_reregistrations';
     }
 
     /**
@@ -44,12 +53,23 @@ class ReregistrationRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
-        global $wpdb;
+        $cached = static::cache_get("id_{$id}");
+        if ($cached !== false) {
+            return $cached;
+        }
+
+        $wpdb = self::db();
         $table = self::get_table_name();
 
-        return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id)
+        $result = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM %i WHERE id = %d", $table, $id)
         );
+
+        if ($result) {
+            static::cache_set("id_{$id}", $result);
+        }
+
+        return $result;
     }
 
     /**
@@ -65,10 +85,11 @@ class ReregistrationRepository {
      *     @type int    $limit       Max results. Default 0 (no limit).
      *     @type int    $offset      Offset. Default 0.
      * }
+     * @param array<string, mixed> $filters
      * @return array<object>
      */
     public static function get_all(array $filters = array()): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $audiences_table = AudienceRepository::get_table_name();
 
@@ -109,16 +130,16 @@ class ReregistrationRepository {
         $limit_clause = $filters['limit'] > 0 ? sprintf('LIMIT %d OFFSET %d', $filters['limit'], $filters['offset']) : '';
 
         $sql = "SELECT r.*, a.name AS audience_name, a.color AS audience_color
-                FROM {$table} r
-                LEFT JOIN {$audiences_table} a ON r.audience_id = a.id
+                FROM %i r
+                LEFT JOIN %i a ON r.audience_id = a.id
                 {$where_clause}
                 ORDER BY r.{$orderby} {$order}
                 {$limit_clause}";
 
-        if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-            $sql = $wpdb->prepare($sql, $values);
-        }
+        $prepare_values = array_merge(array($table, $audiences_table), $values);
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $sql = $wpdb->prepare($sql, $prepare_values);
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         return $wpdb->get_results($sql);
@@ -127,11 +148,11 @@ class ReregistrationRepository {
     /**
      * Count reregistrations with filters.
      *
-     * @param array $filters Same filters as get_all.
+     * @param array<string, mixed> $filters Same filters as get_all.
      * @return int
      */
     public static function count(array $filters = array()): int {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = array();
@@ -149,12 +170,12 @@ class ReregistrationRepository {
 
         $where_clause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
-        $sql = "SELECT COUNT(*) FROM {$table} {$where_clause}";
+        $sql = "SELECT COUNT(*) FROM %i {$where_clause}";
 
-        if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-            $sql = $wpdb->prepare($sql, $values);
-        }
+        $prepare_values = array_merge(array($table), $values);
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $sql = $wpdb->prepare($sql, $prepare_values);
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         return (int) $wpdb->get_var($sql);
@@ -163,11 +184,11 @@ class ReregistrationRepository {
     /**
      * Create a reregistration campaign.
      *
-     * @param array $data Campaign data.
+     * @param array<string, mixed> $data Campaign data.
      * @return int|false Reregistration ID or false on failure.
      */
     public static function create(array $data) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -210,11 +231,11 @@ class ReregistrationRepository {
      * Update a reregistration campaign.
      *
      * @param int   $id   Reregistration ID.
-     * @param array $data Update data.
+     * @param array<string, mixed> $data Update data.
      * @return bool
      */
     public static function update(int $id, array $data): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         unset($data['id'], $data['created_by'], $data['created_at']);
@@ -262,6 +283,8 @@ class ReregistrationRepository {
             array('%d')
         );
 
+        static::cache_delete("id_{$id}");
+
         return $result !== false;
     }
 
@@ -272,7 +295,7 @@ class ReregistrationRepository {
      * @return bool
      */
     public static function delete(int $id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $subs_table = ReregistrationSubmissionRepository::get_table_name();
 
@@ -281,6 +304,8 @@ class ReregistrationRepository {
 
         // Delete the campaign
         $result = $wpdb->delete($table, array('id' => $id), array('%d'));
+
+        static::cache_delete("id_{$id}");
 
         return $result !== false;
     }
@@ -308,7 +333,7 @@ class ReregistrationRepository {
             }
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $placeholders = implode(',', array_fill(0, count($audience_ids), '%d'));
@@ -316,11 +341,11 @@ class ReregistrationRepository {
         // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$table}
+                "SELECT * FROM %i
                 WHERE audience_id IN ({$placeholders})
                 AND status = 'active'
                 ORDER BY start_date ASC",
-                $audience_ids
+                array_merge(array($table), $audience_ids)
             )
         );
     }
@@ -359,26 +384,26 @@ class ReregistrationRepository {
      * Changes status from 'active' to 'expired' for campaigns past end_date.
      * Also updates pending/in_progress submissions to 'expired'.
      *
-     * @return int Number of campaigns expired.
+     * @return void
      */
-    public static function expire_overdue(): int {
-        global $wpdb;
+    public static function expire_overdue(): void {
+        $wpdb = self::db();
         $table = self::get_table_name();
         $subs_table = ReregistrationSubmissionRepository::get_table_name();
 
         // Find active reregistrations past end date
         $overdue = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id FROM {$table} WHERE status = 'active' AND end_date < %s",
+                "SELECT id FROM %i WHERE status = 'active' AND end_date < %s",
+                $table,
                 current_time('mysql')
             )
         );
 
         if (empty($overdue)) {
-            return 0;
+            return;
         }
 
-        $count = 0;
         foreach ($overdue as $row) {
             // Expire the campaign
             $wpdb->update(
@@ -392,17 +417,14 @@ class ReregistrationRepository {
             // Expire pending/in_progress submissions
             $wpdb->query(
                 $wpdb->prepare(
-                    "UPDATE {$subs_table} SET status = 'expired', updated_at = %s
+                    "UPDATE %i SET status = 'expired', updated_at = %s
                     WHERE reregistration_id = %d AND status IN ('pending', 'in_progress')",
+                    $subs_table,
                     current_time('mysql'),
                     (int) $row->id
                 )
             );
-
-            $count++;
         }
-
-        return $count;
     }
 
     /**

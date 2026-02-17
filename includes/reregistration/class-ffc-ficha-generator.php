@@ -23,7 +23,7 @@ class FichaGenerator {
      * Generate ficha data for a submission.
      *
      * @param int $submission_id Submission ID.
-     * @return array{html: string, filename: string, user: array}|null Null on failure.
+     * @return array<string, mixed>|null Null on failure.
      */
     public static function generate_ficha_data(int $submission_id): ?array {
         $submission = ReregistrationSubmissionRepository::get_by_id($submission_id);
@@ -239,8 +239,8 @@ class FichaGenerator {
     /**
      * Build custom fields section HTML for the template.
      *
-     * @param array $custom_fields  Custom field definitions.
-     * @param array $custom_values  Custom field values keyed by field_X.
+     * @param array<int, mixed> $custom_fields  Custom field definitions.
+     * @param array<string, mixed> $custom_values  Custom field values keyed by field_X.
      * @return string HTML section.
      */
     private static function build_custom_fields_section(array $custom_fields, array $custom_values): string {

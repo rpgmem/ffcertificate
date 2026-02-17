@@ -68,6 +68,15 @@ class SubmissionHandlerTest extends TestCase {
         Functions\when( 'update_user_meta' )->justReturn( true );
         Functions\when( 'wp_new_user_notification' )->justReturn( null );
 
+        // Namespaced stubs: prevent "is not defined" errors when Sprint 27 tests run first.
+        // Core namespace (Debug, ActivityLog use get_option/get_current_user_id).
+        Functions\when( 'FreeFormCertificate\Core\get_option' )->alias( function ( $key, $default = false ) {
+            return \get_option( $key, $default );
+        } );
+        Functions\when( 'FreeFormCertificate\Core\get_current_user_id' )->alias( function () {
+            return \get_current_user_id();
+        } );
+
         $this->handler = new SubmissionHandler();
 
         // Replace the private repository with a mock via reflection

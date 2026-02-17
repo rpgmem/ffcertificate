@@ -18,8 +18,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
 class MagicTokenMigrationStrategy implements MigrationStrategyInterface {
 
     /**
@@ -39,16 +37,16 @@ class MagicTokenMigrationStrategy implements MigrationStrategyInterface {
      * Calculate migration status
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
-     * @return array Status information
+     * @param array<string, mixed> $migration_config Migration configuration
+     * @return array<string, mixed> Status information
      */
     public function calculate_status( string $migration_key, array $migration_config ): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $total = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table_name}" );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $with_token = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table_name} WHERE magic_token IS NOT NULL AND magic_token != ''" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $total = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $this->table_name ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $with_token = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE magic_token IS NOT NULL AND magic_token != ''", $this->table_name ) );
 
         $pending = $total - $with_token;
         $percent = ( $total > 0 ) ? ( $with_token / $total ) * 100 : 100;
@@ -66,9 +64,9 @@ class MagicTokenMigrationStrategy implements MigrationStrategyInterface {
      * Execute magic token generation for a batch
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
+     * @param array<string, mixed> $migration_config Migration configuration
      * @param int $batch_number Batch number
-     * @return array Execution result
+     * @return array<string, mixed> Execution result
      */
     public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
         global $wpdb;
@@ -77,12 +75,13 @@ class MagicTokenMigrationStrategy implements MigrationStrategyInterface {
 
         // Get submissions without magic tokens
         // Always use OFFSET 0 because processed records won't appear in next query
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $submissions = $wpdb->get_results( $wpdb->prepare(
-            "SELECT id FROM {$this->table_name}
+            "SELECT id FROM %i
             WHERE (magic_token IS NULL OR magic_token = '')
             ORDER BY id ASC
             LIMIT %d",
+            $this->table_name,
             $batch_size
         ), ARRAY_A );
 
@@ -100,7 +99,7 @@ class MagicTokenMigrationStrategy implements MigrationStrategyInterface {
             $magic_token = bin2hex( random_bytes( 16 ) ); // 32 character hex string
 
             // Update submission
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $updated = $wpdb->update(
                 $this->table_name,
                 array( 'magic_token' => $magic_token ),
@@ -129,7 +128,7 @@ class MagicTokenMigrationStrategy implements MigrationStrategyInterface {
      * Check if migration can run
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
+     * @param array<string, mixed> $migration_config Migration configuration
      * @return bool|WP_Error
      */
     public function can_run( string $migration_key, array $migration_config ) {

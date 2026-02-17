@@ -17,9 +17,19 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 class AudienceRepository {
+    use \FreeFormCertificate\Core\StaticRepositoryTrait;
+
+    /**
+     * Cache group for this repository.
+     *
+     * @return string
+     */
+    protected static function cache_group(): string {
+        return 'ffc_audiences';
+    }
 
     /**
      * Get audiences table name
@@ -27,8 +37,7 @@ class AudienceRepository {
      * @return string
      */
     public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audiences';
+        return self::db()->prefix . 'ffc_audiences';
     }
 
     /**
@@ -37,18 +46,17 @@ class AudienceRepository {
      * @return string
      */
     public static function get_members_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_members';
+        return self::db()->prefix . 'ffc_audience_members';
     }
 
     /**
      * Get all audiences
      *
-     * @param array $args Query arguments
+     * @param array<string, mixed> $args Query arguments
      * @return array<object>
      */
     public static function get_all(array $args = array()): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -84,12 +92,11 @@ class AudienceRepository {
         $limit_clause = $args['limit'] > 0 ? sprintf('LIMIT %d OFFSET %d', $args['limit'], $args['offset']) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $sql = "SELECT * FROM {$table} {$where_clause} ORDER BY {$orderby} {$limit_clause}";
+        $sql = "SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$limit_clause}";
 
-        if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-            $sql = $wpdb->prepare($sql, $values);
-        }
+        $prepare_args = array_merge( array( $table ), $values );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $sql = $wpdb->prepare($sql, $prepare_args);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         return $wpdb->get_results($sql);
@@ -102,13 +109,24 @@ class AudienceRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
-        global $wpdb;
+        $cached = static::cache_get("id_{$id}");
+        if ($cached !== false) {
+            return $cached;
+        }
+
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id)
+        $result = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM %i WHERE id = %d", $table, $id)
         );
+
+        if ($result) {
+            static::cache_set("id_{$id}", $result);
+        }
+
+        return $result;
     }
 
     /**
@@ -157,11 +175,11 @@ class AudienceRepository {
     /**
      * Create an audience
      *
-     * @param array $data Audience data
+     * @param array<string, mixed> $data Audience data
      * @return int|false Audience ID or false on failure
      */
     public static function create(array $data) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -198,11 +216,11 @@ class AudienceRepository {
      * Update an audience
      *
      * @param int $id Audience ID
-     * @param array $data Update data
+     * @param array<string, mixed> $data Update data
      * @return bool
      */
     public static function update(int $id, array $data): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // Remove fields that shouldn't be updated
@@ -240,6 +258,8 @@ class AudienceRepository {
             array('%d')
         );
 
+        static::cache_delete("id_{$id}");
+
         return $result !== false;
     }
 
@@ -252,12 +272,13 @@ class AudienceRepository {
      * @return void
      */
     public static function cascade_self_join(int $parent_id, int $value): void {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->query($wpdb->prepare(
-            "UPDATE {$table} SET allow_self_join = %d WHERE parent_id = %d",
+            "UPDATE %i SET allow_self_join = %d WHERE parent_id = %d",
+            $table,
             $value,
             $parent_id
         ));
@@ -272,7 +293,7 @@ class AudienceRepository {
      * @return bool
      */
     public static function delete(int $id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $members_table = self::get_members_table_name();
 
@@ -290,6 +311,8 @@ class AudienceRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $result = $wpdb->delete($table, array('id' => $id), array('%d'));
 
+        static::cache_delete("id_{$id}");
+
         return $result !== false;
     }
 
@@ -301,7 +324,7 @@ class AudienceRepository {
      * @return int|false Member ID or false on failure
      */
     public static function add_member(int $audience_id, int $user_id) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_members_table_name();
 
         // Check if already a member
@@ -329,7 +352,7 @@ class AudienceRepository {
      * @return bool
      */
     public static function remove_member(int $audience_id, int $user_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_members_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -350,13 +373,14 @@ class AudienceRepository {
      * @return bool
      */
     public static function is_member(int $audience_id, int $user_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_members_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $count = $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table} WHERE audience_id = %d AND user_id = %d",
+                "SELECT COUNT(*) FROM %i WHERE audience_id = %d AND user_id = %d",
+                $table,
                 $audience_id,
                 $user_id
             )
@@ -373,7 +397,7 @@ class AudienceRepository {
      * @return array<int> User IDs
      */
     public static function get_members(int $audience_id, bool $include_children = false): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_members_table_name();
 
         $audience_ids = array($audience_id);
@@ -391,8 +415,8 @@ class AudienceRepository {
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Dynamic IN() placeholders built from array_fill above.
         $results = $wpdb->get_col(
             $wpdb->prepare(
-                "SELECT DISTINCT user_id FROM {$table} WHERE audience_id IN ({$placeholders})",
-                $audience_ids
+                "SELECT DISTINCT user_id FROM %i WHERE audience_id IN ({$placeholders})",
+                array_merge( array( $table ), $audience_ids )
             )
         );
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
@@ -414,7 +438,7 @@ class AudienceRepository {
             return $cached;
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $members_table = self::get_members_table_name();
 
@@ -524,7 +548,7 @@ class AudienceRepository {
      * @return bool
      */
     public static function set_members(int $audience_id, array $user_ids): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_members_table_name();
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Intentional delete-and-reinsert for member sync.
@@ -548,7 +572,7 @@ class AudienceRepository {
     /**
      * Count audiences
      *
-     * @param array $args Query arguments (parent_id, status)
+     * @param array<string, mixed> $args Query arguments (parent_id, status)
      * @return int
      */
     public static function count(array $args = array()): int {
@@ -558,7 +582,7 @@ class AudienceRepository {
             return (int) $cached;
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = array();
@@ -607,7 +631,7 @@ class AudienceRepository {
             return $cached;
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

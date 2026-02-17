@@ -18,7 +18,6 @@ namespace FreeFormCertificate\API;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class UserProfileRestController {
 
@@ -136,13 +135,15 @@ class UserProfileRestController {
             $members_table = $wpdb->prefix . 'ffc_audience_members';
 
             if (self::table_exists($members_table)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $audience_groups = $wpdb->get_results($wpdb->prepare(
                     "SELECT a.name, a.color
-                     FROM {$members_table} m
-                     INNER JOIN {$audiences_table} a ON a.id = m.audience_id
+                     FROM %i m
+                     INNER JOIN %i a ON a.id = m.audience_id
                      WHERE m.user_id = %d AND a.status = 'active'
                      ORDER BY a.name ASC",
+                    $members_table,
+                    $audiences_table,
                     $user_id
                 ), ARRAY_A);
 

@@ -15,7 +15,6 @@ namespace FreeFormCertificate\API;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class UserSummaryRestController {
 
@@ -68,9 +67,10 @@ class UserSummaryRestController {
             // Count certificates
             if ($this->user_has_capability('view_own_certificates', $user_id, $ctx['is_view_as'])) {
                 $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $summary['total_certificates'] = (int) $wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND status != 'trash'",
+                    "SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'trash'",
+                    $table,
                     $user_id
                 ));
             }
@@ -80,16 +80,18 @@ class UserSummaryRestController {
                 $apt_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
                 $calendars_table = $wpdb->prefix . 'ffc_self_scheduling_calendars';
 
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $next = $wpdb->get_row($wpdb->prepare(
                     "SELECT a.appointment_date, a.start_time, c.title as calendar_title
-                     FROM {$apt_table} a
-                     LEFT JOIN {$calendars_table} c ON a.calendar_id = c.id
+                     FROM %i a
+                     LEFT JOIN %i c ON a.calendar_id = c.id
                      WHERE a.user_id = %d
                        AND a.status IN ('pending', 'confirmed')
                        AND a.appointment_date >= CURDATE()
                      ORDER BY a.appointment_date ASC, a.start_time ASC
                      LIMIT 1",
+                    $apt_table,
+                    $calendars_table,
                     $user_id
                 ), ARRAY_A);
 
@@ -119,16 +121,20 @@ class UserSummaryRestController {
                 $members_table = $wpdb->prefix . 'ffc_audience_members';
 
                 if (self::table_exists($bookings_table)) {
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                     $summary['upcoming_group_events'] = (int) $wpdb->get_var($wpdb->prepare(
                         "SELECT COUNT(DISTINCT b.id)
-                         FROM {$bookings_table} b
-                         LEFT JOIN {$users_table} bu ON b.id = bu.booking_id
-                         LEFT JOIN {$booking_audiences_table} ba ON b.id = ba.booking_id
-                         LEFT JOIN {$members_table} am ON ba.audience_id = am.audience_id
+                         FROM %i b
+                         LEFT JOIN %i bu ON b.id = bu.booking_id
+                         LEFT JOIN %i ba ON b.id = ba.booking_id
+                         LEFT JOIN %i am ON ba.audience_id = am.audience_id
                          WHERE (bu.user_id = %d OR am.user_id = %d)
                            AND b.booking_date >= CURDATE()
                            AND b.status != 'cancelled'",
+                        $bookings_table,
+                        $users_table,
+                        $booking_audiences_table,
+                        $members_table,
                         $user_id,
                         $user_id
                     ));

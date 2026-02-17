@@ -22,8 +22,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Shortcodes {
 
+    /**
+     * @var FormProcessor
+     */
     private $form_processor;
+
+    /**
+     * @var VerificationHandler
+     */
     private $verification_handler;
+
+    /**
+     * @var SubmissionHandler|null
+     */
     private $submission_handler;
 
     /**
@@ -41,6 +52,8 @@ class Shortcodes {
 
     /**
      * Generate new captcha data (math question + hash)
+     *
+     * @return array<string, mixed>
      */
     public function get_new_captcha_data(): array {
         $n1 = wp_rand( 1, 9 );
@@ -109,6 +122,8 @@ class Shortcodes {
      *
      * v2.8.0: Detects ?token= parameter and renders preview instead of form
      * v2.9.0: Also supports #token= (hash format) via JavaScript detection
+     *
+     * @param array<string, mixed> $atts Shortcode attributes
      */
     public function render_verification_page( array $atts ): string {
         // Check for magic token in URL query string (?token=)
@@ -136,6 +151,8 @@ class Shortcodes {
     /**
      * Shortcode: [ffc_form id="123"]
      * Displays certificate issuance form
+     *
+     * @param array<string, mixed> $atts Shortcode attributes
      */
     public function render_form( array $atts ): string {
         $atts = shortcode_atts( array( 'id' => 0 ), $atts, 'ffc_form' );
@@ -275,6 +292,8 @@ class Shortcodes {
 
     /**
      * Render individual form field
+     *
+     * @param array<string, mixed> $field Field configuration
      */
     private function render_field( array $field ): string {
         $type = isset($field['type']) ? $field['type'] : 'text';

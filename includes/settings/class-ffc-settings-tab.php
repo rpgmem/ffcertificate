@@ -58,14 +58,18 @@ abstract class SettingsTab {
     /**
      * Initialize tab properties
      * Override this in child classes
+     *
+     * @return void
      */
     protected function init() {
         // Override in child class
     }
-    
+
     /**
      * Render tab content
      * Must be implemented by child classes
+     *
+     * @return void
      */
     abstract public function render();
     
@@ -103,9 +107,10 @@ abstract class SettingsTab {
     
     /**
      * Render admin notice
-     * 
+     *
      * @param string $message Notice message
      * @param string $type Notice type (success, error, warning, info)
+     * @return void
      */
     protected function render_notice( $message, $type = 'success' ) {
         ?>
@@ -117,9 +122,10 @@ abstract class SettingsTab {
     
     /**
      * Render settings section header
-     * 
+     *
      * @param string $title Section title
      * @param string $description Section description (optional)
+     * @return void
      */
     protected function render_section_header( $title, $description = '' ) {
         ?>
@@ -134,10 +140,11 @@ abstract class SettingsTab {
     
     /**
      * Render settings table row
-     * 
+     *
      * @param string $label Field label
      * @param string $content Field HTML content
      * @param string $description Field description (optional)
+     * @return void
      */
     protected function render_field_row( $label, $content, $description = '' ) {
         ?>

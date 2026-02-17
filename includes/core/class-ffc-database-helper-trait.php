@@ -49,8 +49,8 @@ trait DatabaseHelperTrait {
      */
     protected static function column_exists(string $table_name, string $column_name): bool {
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $result = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM {$table_name} LIKE %s", $column_name));
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $result = $wpdb->get_results($wpdb->prepare("SHOW COLUMNS FROM %i LIKE %s", $table_name, $column_name));
         return !empty($result);
     }
 
@@ -76,9 +76,9 @@ trait DatabaseHelperTrait {
         }
 
         global $wpdb;
-        $after_sql = $after ? "AFTER {$after}" : '';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query("ALTER TABLE {$table_name} ADD COLUMN {$column_name} {$type} {$after_sql}");
+        $after_sql = $after ? $wpdb->prepare( 'AFTER %i', $after ) : '';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $type is a SQL type definition from trusted internal config.
+        $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD COLUMN %i {$type} {$after_sql}", $table_name, $column_name ) );
 
         if ($index_name) {
             self::add_index_if_missing($table_name, $index_name, "({$column_name})");
@@ -115,8 +115,8 @@ trait DatabaseHelperTrait {
         }
 
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query("ALTER TABLE {$table_name} ADD INDEX {$index_name} {$columns}");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $columns is a column specification from trusted internal config.
+        $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD INDEX %i {$columns}", $table_name, $index_name ) );
         return true;
     }
 

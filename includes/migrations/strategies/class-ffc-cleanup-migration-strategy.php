@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class CleanupMigrationStrategy implements MigrationStrategyInterface {
 
@@ -41,19 +41,20 @@ class CleanupMigrationStrategy implements MigrationStrategyInterface {
      * Calculate cleanup migration status
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
-     * @return array Status information
+     * @param array<string, mixed> $migration_config Migration configuration
+     * @return array<string, mixed> Status information
      */
     public function calculate_status( string $migration_key, array $migration_config ): array {
         global $wpdb;
 
         // Count submissions eligible for cleanup (15+ days old with encrypted data)
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $total_eligible = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->table_name}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $total_eligible = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM %i
             WHERE submission_date <= DATE_SUB(NOW(), INTERVAL 15 DAY)
-            AND (email_encrypted IS NOT NULL OR data_encrypted IS NOT NULL)"
-        );
+            AND (email_encrypted IS NOT NULL OR data_encrypted IS NOT NULL)",
+            $this->table_name
+        ) );
 
         if ( $total_eligible == 0 ) {
             return array(
@@ -67,16 +68,17 @@ class CleanupMigrationStrategy implements MigrationStrategyInterface {
         }
 
         // Count how many already have NULL in old columns
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $cleaned = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->table_name}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $cleaned = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM %i
             WHERE submission_date <= DATE_SUB(NOW(), INTERVAL 15 DAY)
             AND (email_encrypted IS NOT NULL OR data_encrypted IS NOT NULL)
             AND email IS NULL
             AND data IS NULL
             AND user_ip IS NULL
-            AND cpf_rf IS NULL"
-        );
+            AND cpf_rf IS NULL",
+            $this->table_name
+        ) );
 
         $pending = $total_eligible - $cleaned;
         $percent = ( $total_eligible > 0 ) ? ( $cleaned / $total_eligible ) * 100 : 100;
@@ -100,9 +102,9 @@ class CleanupMigrationStrategy implements MigrationStrategyInterface {
      * Execute cleanup for a batch
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
+     * @param array<string, mixed> $migration_config Migration configuration
      * @param int $batch_number Batch number
-     * @return array Execution result
+     * @return array<string, mixed> Execution result
      */
     public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
         global $wpdb;
@@ -117,14 +119,15 @@ class CleanupMigrationStrategy implements MigrationStrategyInterface {
 
         // STEP 1: Get submissions eligible for cleanup (15+ days old, encrypted, still have plain data)
         // Always use OFFSET 0 because cleaned records won't appear in next query
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $submissions = $wpdb->get_results( $wpdb->prepare(
-            "SELECT id FROM {$this->table_name}
+            "SELECT id FROM %i
             WHERE submission_date <= DATE_SUB(NOW(), INTERVAL 15 DAY)
             AND (email_encrypted IS NOT NULL OR data_encrypted IS NOT NULL)
             AND (email IS NOT NULL OR data IS NOT NULL OR user_ip IS NOT NULL OR cpf_rf IS NOT NULL)
             ORDER BY id ASC
             LIMIT %d",
+            $this->table_name,
             $batch_size
         ) );
 
@@ -141,28 +144,29 @@ class CleanupMigrationStrategy implements MigrationStrategyInterface {
         $ids = array_map( function( $s ) { return intval( $s->id ); }, $submissions );
         $ids_placeholder = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $ids_placeholder is a dynamically-generated list of %d placeholders, not user data.
         $result = $wpdb->query( $wpdb->prepare(
-            "UPDATE {$this->table_name}
+            "UPDATE %i
             SET
                 email = NULL,
                 cpf_rf = NULL,
                 user_ip = NULL,
                 data = NULL
             WHERE id IN ($ids_placeholder)",
-            $ids
+            array_merge( array( $this->table_name ), $ids )
         ) );
 
         $cleaned = ( $result !== false ) ? count( $ids ) : 0;
 
         // Count remaining
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $remaining = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->table_name}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $remaining = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM %i
             WHERE submission_date <= DATE_SUB(NOW(), INTERVAL 15 DAY)
             AND (email_encrypted IS NOT NULL OR data_encrypted IS NOT NULL)
-            AND (email IS NOT NULL OR data IS NOT NULL OR user_ip IS NOT NULL OR cpf_rf IS NOT NULL)"
-        );
+            AND (email IS NOT NULL OR data IS NOT NULL OR user_ip IS NOT NULL OR cpf_rf IS NOT NULL)",
+            $this->table_name
+        ) );
 
         $has_more = $remaining > 0;
 
@@ -190,8 +194,8 @@ class CleanupMigrationStrategy implements MigrationStrategyInterface {
         // This ensures all empty values across ALL columns are truly NULL, not empty strings
         // Using NULLIF is more concise and performant than CASE WHEN
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        return $wpdb->query(
-            "UPDATE {$this->table_name}
+        return $wpdb->query( $wpdb->prepare(
+            "UPDATE %i
             SET
                 data = NULLIF(data, ''),
                 user_ip = NULLIF(user_ip, ''),
@@ -212,15 +216,16 @@ class CleanupMigrationStrategy implements MigrationStrategyInterface {
                 data = '' OR user_ip = '' OR email = '' OR magic_token = '' OR
                 cpf_rf = '' OR auth_code = '' OR email_encrypted = '' OR email_hash = '' OR
                 cpf_rf_encrypted = '' OR cpf_rf_hash = '' OR user_ip_encrypted = '' OR
-                data_encrypted = '' OR consent_ip = '' OR consent_text = '' OR qr_code_cache = ''"
-        );
+                data_encrypted = '' OR consent_ip = '' OR consent_text = '' OR qr_code_cache = ''",
+            $this->table_name
+        ) );
     }
 
     /**
      * Check if cleanup migration can run
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
+     * @param array<string, mixed> $migration_config Migration configuration
      * @return bool|WP_Error
      */
     public function can_run( string $migration_key, array $migration_config ) {

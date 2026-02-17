@@ -54,7 +54,7 @@ class ReregistrationDataProcessor {
      *
      * @param object $rereg   Reregistration object.
      * @param int    $user_id User ID.
-     * @return array Structured data.
+     * @return array<string, mixed> Structured data.
      */
     public static function collect_form_data(object $rereg, int $user_id): array {
         $standard = array();
@@ -144,10 +144,10 @@ class ReregistrationDataProcessor {
     /**
      * Validate submission data.
      *
-     * @param array  $data    Collected data.
+     * @param array<string, mixed>  $data    Collected data.
      * @param object $rereg   Reregistration.
      * @param int    $user_id User ID.
-     * @return array Errors keyed by field name.
+     * @return array<string, string> Errors keyed by field name.
      */
     public static function validate_submission(array $data, object $rereg, int $user_id): array {
         $errors = array();
@@ -282,7 +282,7 @@ class ReregistrationDataProcessor {
      *
      * @param object $submission Submission record.
      * @param object $rereg      Reregistration.
-     * @param array  $data       Validated data.
+     * @param array<string, mixed>  $data       Validated data.
      * @param int    $user_id    User ID.
      * @return void
      */

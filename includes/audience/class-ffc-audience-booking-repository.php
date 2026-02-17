@@ -17,9 +17,19 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 class AudienceBookingRepository {
+    use \FreeFormCertificate\Core\StaticRepositoryTrait;
+
+    /**
+     * Cache group for this repository.
+     *
+     * @return string
+     */
+    protected static function cache_group(): string {
+        return 'ffc_audience_bookings';
+    }
 
     /**
      * Get bookings table name
@@ -27,8 +37,7 @@ class AudienceBookingRepository {
      * @return string
      */
     public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_bookings';
+        return self::db()->prefix . 'ffc_audience_bookings';
     }
 
     /**
@@ -37,8 +46,7 @@ class AudienceBookingRepository {
      * @return string
      */
     public static function get_booking_audiences_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_booking_audiences';
+        return self::db()->prefix . 'ffc_audience_booking_audiences';
     }
 
     /**
@@ -47,18 +55,17 @@ class AudienceBookingRepository {
      * @return string
      */
     public static function get_booking_users_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_booking_users';
+        return self::db()->prefix . 'ffc_audience_booking_users';
     }
 
     /**
      * Get all bookings
      *
-     * @param array $args Query arguments
-     * @return array<object>
+     * @param array<string, mixed> $args Query arguments
+     * @return array<int, object>
      */
     public static function get_all(array $args = array()): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $env_table = AudienceEnvironmentRepository::get_table_name();
 
@@ -128,16 +135,15 @@ class AudienceBookingRepository {
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $sql = "SELECT b.*, e.name as environment_name, e.schedule_id
-                FROM {$table} b
-                INNER JOIN {$env_table} e ON b.environment_id = e.id
+                FROM %i b
+                INNER JOIN %i e ON b.environment_id = e.id
                 {$where_clause}
                 ORDER BY {$orderby}, b.start_time ASC
                 {$limit_clause}";
 
-        if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-            $sql = $wpdb->prepare($sql, $values);
-        }
+        $prepare_args = array_merge( array( $table, $env_table ), $values );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $sql = $wpdb->prepare($sql, $prepare_args);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         return $wpdb->get_results($sql);
@@ -150,7 +156,12 @@ class AudienceBookingRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
-        global $wpdb;
+        $cached = static::cache_get("id_{$id}");
+        if ($cached !== false) {
+            return $cached;
+        }
+
+        $wpdb = self::db();
         $table = self::get_table_name();
         $env_table = AudienceEnvironmentRepository::get_table_name();
 
@@ -158,9 +169,11 @@ class AudienceBookingRepository {
         $booking = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT b.*, e.name as environment_name, e.schedule_id
-                FROM {$table} b
-                INNER JOIN {$env_table} e ON b.environment_id = e.id
+                FROM %i b
+                INNER JOIN %i e ON b.environment_id = e.id
                 WHERE b.id = %d",
+                $table,
+                $env_table,
                 $id
             )
         );
@@ -169,6 +182,7 @@ class AudienceBookingRepository {
             // Load related audiences and users
             $booking->audiences = self::get_booking_audiences($id);
             $booking->users = self::get_booking_users($id);
+            static::cache_set("id_{$id}", $booking);
         }
 
         return $booking;
@@ -180,7 +194,7 @@ class AudienceBookingRepository {
      * @param int $environment_id Environment ID
      * @param string $date Date (Y-m-d)
      * @param string|null $status Optional status filter
-     * @return array<object>
+     * @return array<int, object>
      */
     public static function get_by_date(int $environment_id, string $date, ?string $status = null): array {
         return self::get_all(array(
@@ -197,7 +211,7 @@ class AudienceBookingRepository {
      * @param string $start_date Start date (Y-m-d)
      * @param string $end_date End date (Y-m-d)
      * @param string|null $status Optional status filter
-     * @return array<object>
+     * @return array<int, object>
      */
     public static function get_by_date_range(int $environment_id, string $start_date, string $end_date, ?string $status = null): array {
         return self::get_all(array(
@@ -211,9 +225,9 @@ class AudienceBookingRepository {
     /**
      * Get bookings created by a user
      *
-     * @param int $user_id User ID
-     * @param array $args Additional query arguments
-     * @return array<object>
+     * @param int                  $user_id User ID
+     * @param array<string, mixed> $args Additional query arguments
+     * @return array<int, object>
      */
     public static function get_by_creator(int $user_id, array $args = array()): array {
         $args['created_by'] = $user_id;
@@ -223,12 +237,12 @@ class AudienceBookingRepository {
     /**
      * Get bookings for a user (as participant, not creator)
      *
-     * @param int $user_id User ID
-     * @param array $args Additional query arguments
-     * @return array<object>
+     * @param int                  $user_id User ID
+     * @param array<string, mixed> $args Additional query arguments
+     * @return array<int, object>
      */
     public static function get_by_participant(int $user_id, array $args = array()): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $users_table = self::get_booking_users_table_name();
         $audiences_table = self::get_booking_audiences_table_name();
@@ -266,15 +280,15 @@ class AudienceBookingRepository {
         return $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT DISTINCT b.*, e.name as environment_name, e.schedule_id
-                FROM {$table} b
-                INNER JOIN {$env_table} e ON b.environment_id = e.id
-                LEFT JOIN {$users_table} bu ON b.id = bu.booking_id
-                LEFT JOIN {$audiences_table} ba ON b.id = ba.booking_id
-                LEFT JOIN {$members_table} am ON ba.audience_id = am.audience_id
+                FROM %i b
+                INNER JOIN %i e ON b.environment_id = e.id
+                LEFT JOIN %i bu ON b.id = bu.booking_id
+                LEFT JOIN %i ba ON b.id = ba.booking_id
+                LEFT JOIN %i am ON ba.audience_id = am.audience_id
                 WHERE (bu.user_id = %d OR am.user_id = %d)
                 {$where_clause}
                 ORDER BY b.booking_date ASC, b.start_time ASC",
-                $values
+                array_merge( array( $table, $env_table, $users_table, $audiences_table, $members_table ), $values )
             )
         );
     }
@@ -282,11 +296,11 @@ class AudienceBookingRepository {
     /**
      * Create a booking
      *
-     * @param array $data Booking data
+     * @param array<string, mixed> $data Booking data
      * @return int|false Booking ID or false on failure
      */
     public static function create(array $data) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -349,12 +363,12 @@ class AudienceBookingRepository {
     /**
      * Update a booking
      *
-     * @param int $id Booking ID
-     * @param array $data Update data
+     * @param int                  $id Booking ID
+     * @param array<string, mixed> $data Update data
      * @return bool
      */
     public static function update(int $id, array $data): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // Remove fields that shouldn't be updated
@@ -421,6 +435,8 @@ class AudienceBookingRepository {
             self::set_booking_users($id, $user_ids);
         }
 
+        static::cache_delete("id_{$id}");
+
         return true;
     }
 
@@ -436,12 +452,16 @@ class AudienceBookingRepository {
             return false;
         }
 
-        return self::update($id, array(
+        $result = self::update($id, array(
             'status' => 'cancelled',
             'cancelled_by' => get_current_user_id(),
             'cancelled_at' => current_time('mysql'),
             'cancellation_reason' => $reason,
         ));
+
+        static::cache_delete("id_{$id}");
+
+        return $result;
     }
 
     /**
@@ -451,7 +471,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function delete(int $id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $audiences_table = self::get_booking_audiences_table_name();
         $users_table = self::get_booking_users_table_name();
@@ -466,6 +486,8 @@ class AudienceBookingRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $result = $wpdb->delete($table, array('id' => $id), array('%d'));
 
+        static::cache_delete("id_{$id}");
+
         return $result !== false;
     }
 
@@ -477,7 +499,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function add_booking_audience(int $booking_id, int $audience_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_audiences_table_name();
 
         $result = $wpdb->insert(
@@ -497,7 +519,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function remove_booking_audience(int $booking_id, int $audience_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_audiences_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -517,17 +539,19 @@ class AudienceBookingRepository {
      * @return array<object>
      */
     public static function get_booking_audiences(int $booking_id): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_audiences_table_name();
         $audiences_table = AudienceRepository::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT a.* FROM {$audiences_table} a
-                INNER JOIN {$table} ba ON a.id = ba.audience_id
+                "SELECT a.* FROM %i a
+                INNER JOIN %i ba ON a.id = ba.audience_id
                 WHERE ba.booking_id = %d
                 ORDER BY a.name ASC",
+                $audiences_table,
+                $table,
                 $booking_id
             )
         );
@@ -541,7 +565,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function set_booking_audiences(int $booking_id, array $audience_ids): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_audiences_table_name();
 
         // Remove all existing
@@ -564,7 +588,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function add_booking_user(int $booking_id, int $user_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_users_table_name();
 
         $result = $wpdb->insert(
@@ -584,7 +608,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function remove_booking_user(int $booking_id, int $user_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_users_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -604,13 +628,14 @@ class AudienceBookingRepository {
      * @return array<int> User IDs
      */
     public static function get_booking_users(int $booking_id): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_users_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $results = $wpdb->get_col(
             $wpdb->prepare(
-                "SELECT user_id FROM {$table} WHERE booking_id = %d",
+                "SELECT user_id FROM %i WHERE booking_id = %d",
+                $table,
                 $booking_id
             )
         );
@@ -626,7 +651,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function set_booking_users(int $booking_id, array $user_ids): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_users_table_name();
 
         // Remove all existing
@@ -676,7 +701,7 @@ class AudienceBookingRepository {
      * @return array<object> Conflicting bookings
      */
     public static function get_conflicts(int $environment_id, string $date, string $start_time, string $end_time, ?int $exclude_booking_id = null): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $exclude_clause = $exclude_booking_id ? $wpdb->prepare("AND id != %d", $exclude_booking_id) : '';
@@ -684,7 +709,7 @@ class AudienceBookingRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$table}
+                "SELECT * FROM %i
                 WHERE environment_id = %d
                 AND booking_date = %s
                 AND status = 'active'
@@ -695,6 +720,7 @@ class AudienceBookingRepository {
                 )
                 {$exclude_clause}
                 ORDER BY start_time ASC",
+                $table,
                 $environment_id,
                 $date,
                 $end_time, $start_time,
@@ -725,7 +751,7 @@ class AudienceBookingRepository {
         array $user_ids,
         ?int $exclude_booking_id = null
     ): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $ba_table = self::get_booking_audiences_table_name();
         $bu_table = self::get_booking_users_table_name();
@@ -752,10 +778,10 @@ class AudienceBookingRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $conflicting_bookings = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT DISTINCT b.* FROM {$table} b
-                LEFT JOIN {$ba_table} ba ON b.id = ba.booking_id
-                LEFT JOIN {$members_table} am ON ba.audience_id = am.audience_id
-                LEFT JOIN {$bu_table} bu ON b.id = bu.booking_id
+                "SELECT DISTINCT b.* FROM %i b
+                LEFT JOIN %i ba ON b.id = ba.booking_id
+                LEFT JOIN %i am ON ba.audience_id = am.audience_id
+                LEFT JOIN %i bu ON b.id = bu.booking_id
                 WHERE b.booking_date = %s
                 AND b.status = 'active'
                 AND (
@@ -766,7 +792,7 @@ class AudienceBookingRepository {
                 AND (am.user_id IN ({$placeholders}) OR bu.user_id IN ({$placeholders}))
                 {$exclude_clause}
                 ORDER BY b.start_time ASC",
-                $values
+                array_merge( array( $table, $ba_table, $members_table, $bu_table ), $values )
             )
         );
 
@@ -801,7 +827,7 @@ class AudienceBookingRepository {
         array $audience_ids,
         ?int $exclude_booking_id = null
     ): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $ba_table = self::get_booking_audiences_table_name();
         $audiences_table = AudienceRepository::get_table_name();
@@ -820,15 +846,15 @@ class AudienceBookingRepository {
         return $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT b.id, b.start_time, b.end_time, b.description, a.name AS audience_name, ba.audience_id
-                FROM {$table} b
-                INNER JOIN {$ba_table} ba ON b.id = ba.booking_id
-                INNER JOIN {$audiences_table} a ON ba.audience_id = a.id
+                FROM %i b
+                INNER JOIN %i ba ON b.id = ba.booking_id
+                INNER JOIN %i a ON ba.audience_id = a.id
                 WHERE b.booking_date = %s
                 AND b.status = 'active'
                 AND ba.audience_id IN ({$placeholders})
                 {$exclude_clause}
                 ORDER BY a.name ASC, b.start_time ASC",
-                $values
+                array_merge( array( $table, $ba_table, $audiences_table ), $values )
             )
         );
     }
@@ -836,11 +862,11 @@ class AudienceBookingRepository {
     /**
      * Count bookings
      *
-     * @param array $args Query arguments
+     * @param array<string, mixed> $args Query arguments
      * @return int
      */
     public static function count(array $args = array()): int {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = array();
@@ -869,12 +895,11 @@ class AudienceBookingRepository {
         $where_clause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $sql = "SELECT COUNT(*) FROM {$table} {$where_clause}";
+        $sql = "SELECT COUNT(*) FROM %i {$where_clause}";
 
-        if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-            $sql = $wpdb->prepare($sql, $values);
-        }
+        $prepare_args = array_merge( array( $table ), $values );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $sql = $wpdb->prepare($sql, $prepare_args);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         return (int) $wpdb->get_var($sql);

@@ -19,7 +19,6 @@ namespace FreeFormCertificate\SelfScheduling;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class SelfSchedulingCPT {
 
@@ -99,9 +98,9 @@ class SelfSchedulingCPT {
     /**
      * Add duplicate link to calendar row actions
      *
-     * @param array $actions
+     * @param array<string, string> $actions
      * @param object $post
-     * @return array
+     * @return array<string, string>
      */
     public function add_duplicate_link(array $actions, object $post): array {
         if ($post->post_type !== 'ffc_self_scheduling') {
@@ -264,8 +263,8 @@ class SelfSchedulingCPT {
     /**
      * Parse calendar config into database fields
      *
-     * @param array|string $config
-     * @return array
+     * @param array<string, mixed>|string $config
+     * @return array<string, mixed>
      */
     private function parse_calendar_config($config): array {
         if (is_string($config)) {
@@ -360,13 +359,14 @@ class SelfSchedulingCPT {
         $today = current_time('Y-m-d');
 
         // Get all future appointments (pending or confirmed)
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $future_appointments = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$table}
+            "SELECT * FROM %i
              WHERE calendar_id = %d
              AND appointment_date >= %s
              AND status IN ('pending', 'confirmed')
              ORDER BY appointment_date ASC",
+            $table,
             $calendar_id,
             $today
         ), ARRAY_A);
@@ -401,7 +401,7 @@ class SelfSchedulingCPT {
     /**
      * Send email notification about appointment cancellation due to calendar deletion
      *
-     * @param array $appointment Appointment data
+     * @param array<string, mixed> $appointment Appointment data
      * @param string $calendar_title Calendar title
      * @return void
      */

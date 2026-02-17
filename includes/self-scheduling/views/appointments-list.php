@@ -23,7 +23,10 @@ if (!class_exists('WP_List_Table')) {
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Internal class, not part of public API.
 class FFC_Appointments_List_Table extends WP_List_Table {
 
+    /** @var \FreeFormCertificate\Repositories\AppointmentRepository */
     private $appointment_repository;
+
+    /** @var \FreeFormCertificate\Repositories\CalendarRepository */
     private $calendar_repository;
 
     public function __construct() {
@@ -39,6 +42,8 @@ class FFC_Appointments_List_Table extends WP_List_Table {
 
     /**
      * Get columns
+     *
+     * @return array<string, string>
      */
     public function get_columns(): array {
         return array(
@@ -56,6 +61,8 @@ class FFC_Appointments_List_Table extends WP_List_Table {
 
     /**
      * Get sortable columns
+     *
+     * @return array<string, array{0: string, 1: bool}>
      */
     public function get_sortable_columns(): array {
         return array(
@@ -69,6 +76,10 @@ class FFC_Appointments_List_Table extends WP_List_Table {
 
     /**
      * Column default
+     *
+     * @param array<string, mixed> $item        Row data.
+     * @param string               $column_name Column slug.
+     * @return string
      */
     public function column_default($item, $column_name) {
         return esc_html($item[$column_name] ?? '-');
@@ -76,6 +87,8 @@ class FFC_Appointments_List_Table extends WP_List_Table {
 
     /**
      * Checkbox column
+     *
+     * @param array<string, mixed> $item Row data.
      */
     public function column_cb($item): string {
         return sprintf('<input type="checkbox" name="appointment[]" value="%d" />', $item['id']);
@@ -83,6 +96,8 @@ class FFC_Appointments_List_Table extends WP_List_Table {
 
     /**
      * ID column
+     *
+     * @param array<string, mixed> $item Row data.
      */
     public function column_id($item): string {
         $actions = array();
@@ -143,6 +158,8 @@ class FFC_Appointments_List_Table extends WP_List_Table {
 
     /**
      * Calendar column
+     *
+     * @param array<string, mixed> $item Row data.
      */
     public function column_calendar($item): string {
         $calendar = $this->calendar_repository->findById((int)$item['calendar_id']);
@@ -155,6 +172,8 @@ class FFC_Appointments_List_Table extends WP_List_Table {
 
     /**
      * Name column
+     *
+     * @param array<string, mixed> $item Row data.
      */
     public function column_name($item): string {
         if (!empty($item['user_id'])) {
@@ -168,6 +187,8 @@ class FFC_Appointments_List_Table extends WP_List_Table {
 
     /**
      * Email column (with decryption support)
+     *
+     * @param array<string, mixed> $item Row data.
      */
     public function column_email($item): string {
         $email = \FreeFormCertificate\Core\Encryption::decrypt_field($item, 'email');
@@ -176,6 +197,8 @@ class FFC_Appointments_List_Table extends WP_List_Table {
 
     /**
      * Time column
+     *
+     * @param array<string, mixed> $item Row data.
      */
     public function column_time($item): string {
         $start = gmdate('H:i', strtotime($item['start_time']));
@@ -185,6 +208,8 @@ class FFC_Appointments_List_Table extends WP_List_Table {
 
     /**
      * Status column
+     *
+     * @param array<string, mixed> $item Row data.
      */
     public function column_status($item): string {
         $status_labels = array(

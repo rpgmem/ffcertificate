@@ -331,9 +331,9 @@ class SubmissionRestController {
      * Decrypt submission data if encrypted
      *
      * @since 3.2.0
-     * @param array $submission Submission data array
-     * @param array $data Existing data array to merge into
-     * @return array Merged data array with decrypted values
+     * @param array<string, mixed> $submission Submission data array
+     * @param array<string, mixed> $data Existing data array to merge into
+     * @return array<string, mixed> Merged data array with decrypted values
      */
     private function decrypt_submission_data(array $submission, array $data = array()): array {
         if (empty($submission['data_encrypted'])) {

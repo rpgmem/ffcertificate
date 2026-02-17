@@ -150,8 +150,8 @@ class FormEditorSaveHandler {
     /**
      * Validates geofence configuration
      *
-     * @param array $config Geofence configuration
-     * @return array Array of validation errors (empty if valid)
+     * @param array<string, mixed> $config Geofence configuration
+     * @return array<int, string> Array of validation errors (empty if valid)
      */
     private function validate_geofence_config( array $config ): array {
         $errors = array();
@@ -186,7 +186,7 @@ class FormEditorSaveHandler {
      *
      * @param string $areas_text Areas text (one per line)
      * @param string $type Type of area (GPS or IP) for error messages
-     * @return array Array of validation errors
+     * @return array<int, string> Array of validation errors
      */
     private function validate_areas_format( string $areas_text, string $type ): array {
         $errors = array();

@@ -27,7 +27,7 @@ class IpGeolocation {
      *
      * @param string|null $ip IP address (optional, defaults to current user IP)
      * @param bool $use_cache Whether to use cached results
-     * @return array|WP_Error Array with location data or WP_Error on failure
+     * @return array<string, mixed>|\WP_Error|null Array with location data, WP_Error on failure, or null
      */
     public static function get_location( ?string $ip = null, bool $use_cache = true ) {
         // Get settings
@@ -84,8 +84,8 @@ class IpGeolocation {
      *
      * @param string $ip IP address
      * @param string $service Service name ('ip-api' or 'ipinfo')
-     * @param array $settings Plugin settings
-     * @return array|WP_Error Location data or error
+     * @param array<string, mixed> $settings Plugin settings
+     * @return array<string, mixed>|\WP_Error Location data or WP_Error on failure
      */
     private static function fetch_from_service( string $ip, string $service, array $settings ) {
         self::debug_log('Fetching from service', array('service' => $service, 'ip' => $ip));
@@ -104,7 +104,7 @@ class IpGeolocation {
      * Fetch location from ip-api.com
      *
      * @param string $ip IP address
-     * @return array|WP_Error
+     * @return array<string, mixed>|\WP_Error
      */
     private static function fetch_from_ipapi( string $ip ) {
         $url = sprintf('http://ip-api.com/json/%s?fields=status,message,country,countryCode,region,regionName,city,lat,lon', $ip);
@@ -153,7 +153,7 @@ class IpGeolocation {
      *
      * @param string $ip IP address
      * @param string $api_key API key (optional for free tier)
-     * @return array|WP_Error
+     * @return array<string, mixed>|\WP_Error
      */
     private static function fetch_from_ipinfo( string $ip, string $api_key = '' ) {
         $url = sprintf('https://ipinfo.io/%s/json', $ip);
@@ -211,7 +211,7 @@ class IpGeolocation {
      * Get cached location for IP
      *
      * @param string $ip IP address
-     * @return array|false Location data or false if not cached
+     * @return array<string, mixed>|null Location data or null if not cached
      */
     private static function get_cached_location( string $ip ) {
         $cache_key = 'ffc_ip_geo_' . md5($ip);
@@ -222,7 +222,7 @@ class IpGeolocation {
      * Cache location for IP
      *
      * @param string $ip IP address
-     * @param array $location Location data
+     * @param array<string, mixed> $location Location data
      * @param int $ttl Cache duration in seconds
      * @return bool Success
      */
@@ -264,8 +264,8 @@ class IpGeolocation {
     /**
      * Check if location is within allowed areas
      *
-     * @param array $location Location data (must have 'latitude' and 'longitude')
-     * @param array $areas Array of areas (each with 'lat', 'lng', 'radius')
+     * @param array<string, mixed> $location Location data (must have 'latitude' and 'longitude')
+     * @param array<int, array<string, float>> $areas Array of areas (each with 'lat', 'lng', 'radius')
      * @param string $logic 'or' or 'and' (default: 'or')
      * @return bool True if location is within allowed areas
      */
@@ -312,7 +312,7 @@ class IpGeolocation {
      * Debug logging
      *
      * @param string $message Log message
-     * @param array $context Additional context
+     * @param array<string, mixed> $context Additional context
      */
     private static function debug_log( string $message, array $context = array() ): void {
         $settings = get_option('ffc_geolocation_settings', array());

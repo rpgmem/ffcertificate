@@ -79,7 +79,7 @@ class Utils {
      * Returns the list of allowed HTML tags and attributes.
      * Centralized here so Frontend, Email, and PDF Generator use the same validation rules.
      *
-     * @return array Allowed HTML tags with their attributes
+     * @return array<string, array<string, array<never, never>>> Allowed HTML tags with their attributes
      */
     public static function get_allowed_html_tags(): array {
         $allowed = array(
@@ -169,221 +169,54 @@ class Utils {
         return apply_filters( 'ffcertificate_allowed_html_tags', $allowed );
     }
     
-    /**
-     * Validate CPF (Brazilian tax ID)
-     *
-     * Uses the official CPF validation algorithm
-     *
-     * @param string $cpf CPF to validate (with or without formatting)
-     * @return bool True if valid, false otherwise
-     */
+    // ── Document methods delegated to DocumentFormatter (Sprint 30) ──
+
+    /** @deprecated Use DocumentFormatter::validate_cpf() */
     public static function validate_cpf( string $cpf ): bool {
-        // Remove non-numeric characters
-        $cpf = preg_replace( '/\D/', '', $cpf );
-        
-        // Check length
-        if ( strlen( $cpf ) != 11 ) {
-            return false;
-        }
-        
-        // Check for known invalid CPFs (all same digit)
-        if ( preg_match( '/(\d)\1{10}/', $cpf ) ) {
-            return false;
-        }
-        
-        // Validate check digits
-        for ( $t = 9; $t < 11; $t++ ) {
-            for ( $d = 0, $c = 0; $c < $t; $c++ ) {
-                $d += $cpf[$c] * ( ( $t + 1 ) - $c );
-            }
-            $d = ( ( 10 * $d ) % 11 ) % 10;
-            if ( $cpf[$c] != $d ) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Validate Brazilian phone number.
-     *
-     * Accepts: (XX) XXXXX-XXXX or (XX) XXXX-XXXX, with or without
-     * parentheses, spaces, and hyphens.
-     *
-     * @since 4.11.0
-     * @param string $phone Phone string.
-     * @return bool True if valid, false otherwise.
-     */
-    public static function validate_phone( string $phone ): bool {
-        $phone = preg_replace( '/\s+/', '', $phone );
-        return (bool) preg_match( '/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/', $phone );
+        return DocumentFormatter::validate_cpf( $cpf );
     }
 
-    /**
-     * Phone validation regex pattern (without delimiters).
-     */
+    /** @deprecated Use DocumentFormatter::validate_phone() */
+    public static function validate_phone( string $phone ): bool {
+        return DocumentFormatter::validate_phone( $phone );
+    }
+
+    /** @deprecated Use DocumentFormatter::PHONE_REGEX */
     public const PHONE_REGEX = '^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$';
 
-    /**
-     * Format CPF with mask
-     *
-     * @param string $cpf CPF to format
-     * @return string Formatted CPF (XXX.XXX.XXX-XX)
-     */
+    /** @deprecated Use DocumentFormatter::format_cpf() */
     public static function format_cpf( string $cpf ): string {
-        $cpf = preg_replace( '/\D/', '', $cpf );
-        
-        if ( strlen( $cpf ) === 11 ) {
-            return preg_replace( '/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cpf );
-        }
-        
-        return $cpf;
+        return DocumentFormatter::format_cpf( $cpf );
     }
-    
-    /**
-     * Validate RF (7-digit registration)
-     *
-     * @param string $rf RF to validate
-     * @return bool True if valid, false otherwise
-     */
+
+    /** @deprecated Use DocumentFormatter::validate_rf() */
     public static function validate_rf( string $rf ): bool {
-        $rf = preg_replace( '/\D/', '', $rf );
-        return strlen( $rf ) === 7 && is_numeric( $rf );
+        return DocumentFormatter::validate_rf( $rf );
     }
-    
-    /**
-     * Format RF with mask
-     *
-     * @param string $rf RF to format
-     * @return string Formatted RF (XXX.XXX-X)
-     */
+
+    /** @deprecated Use DocumentFormatter::format_rf() */
     public static function format_rf( string $rf ): string {
-        $rf = preg_replace( '/\D/', '', $rf );
-        
-        if ( strlen( $rf ) === 7 ) {
-            return preg_replace( '/(\d{3})(\d{3})(\d{1})/', '$1.$2-$3', $rf );
-        }
-        
-        return $rf;
+        return DocumentFormatter::format_rf( $rf );
     }
-    
-    /**
-     * Mask CPF/RF for privacy
-     *
-     * Masks document while keeping first and last digits visible.
-     * Useful for displaying in admin lists, emails, or public pages
-     * where privacy is required but some identification is needed.
-     *
-     * Examples:
-     * - CPF (11 digits): 12345678909 → 123.***.***-09
-     * - RF (7 digits): 1234567 → 123.***-7
-     *
-     * @since 2.9.17
-     * @param string $value CPF or RF to mask
-     * @return string Masked document or original if invalid length
-     */
+
+    /** @deprecated Use DocumentFormatter::mask_cpf() */
     public static function mask_cpf( string $value ): string {
-        if ( empty( $value ) ) {
-            return '';
-        }
-        
-        // Clean document (remove non-numeric)
-        $clean = preg_replace( '/[^0-9]/', '', $value );
-        
-        // Mask based on length
-        if ( strlen( $clean ) === 11 ) {
-            // CPF: 123.***.***-09
-            return substr( $clean, 0, 3 ) . '.***.***-' . substr( $clean, -2 );
-        } elseif ( strlen( $clean ) === 7 ) {
-            // RF: 123.***-7
-            return substr( $clean, 0, 3 ) . '.***-' . substr( $clean, -1 );
-        }
-        
-        // Return original if not CPF or RF
-        return $value;
+        return DocumentFormatter::mask_cpf( $value );
     }
 
-    /**
-     * Mask email address for privacy
-     *
-     * Shows first character of local part + *** + @domain
-     * Example: joao@gmail.com → j***@gmail.com
-     *
-     * @since 3.2.0
-     * @param string $email Email address to mask
-     * @return string Masked email or original if invalid
-     */
+    /** @deprecated Use DocumentFormatter::mask_email() */
     public static function mask_email( string $email ): string {
-        if ( empty( $email ) || ! is_email( $email ) ) {
-            return $email;
-        }
-
-        $parts = explode( '@', $email );
-        if ( count( $parts ) !== 2 ) {
-            return $email;
-        }
-
-        $local = $parts[0];
-        $domain = $parts[1];
-
-        // Show first character + *** + @domain
-        $masked_local = substr( $local, 0, 1 ) . '***';
-
-        return $masked_local . '@' . $domain;
+        return DocumentFormatter::mask_email( $email );
     }
 
-    /**
-     * Format authentication code
-     *
-     * @param string $code Auth code to format
-     * @return string Formatted code (XXXX-XXXX-XXXX)
-     */
+    /** @deprecated Use DocumentFormatter::format_auth_code() */
     public static function format_auth_code( string $code ): string {
-        $code = strtoupper( preg_replace( '/[^A-Z0-9]/i', '', $code ) );
-        
-        if ( strlen( $code ) === 12 ) {
-            return substr( $code, 0, 4 ) . '-' . substr( $code, 4, 4 ) . '-' . substr( $code, 8, 4 );
-        }
-        
-        return $code;
+        return DocumentFormatter::format_auth_code( $code );
     }
-    
-    /**
-     * Format any document based on type
-     *
-     * Auto-detects document type based on length
-     *
-     * @param string $value Document value
-     * @param string $type Document type (cpf, rf, auth_code, or 'auto')
-     * @return string Formatted document
-     */
+
+    /** @deprecated Use DocumentFormatter::format_document() */
     public static function format_document( string $value, string $type = 'auto' ): string {
-        $clean = preg_replace( '/\D/', '', $value );
-        $len = strlen( $clean );
-        
-        // Auto-detect type based on length
-        if ( $type === 'auto' ) {
-            if ( $len === 11 ) {
-                $type = 'cpf';
-            } elseif ( $len === 7 ) {
-                $type = 'rf';
-            } elseif ( $len === 12 ) {
-                $type = 'auth_code';
-            }
-        }
-        
-        // Format based on type
-        switch ( $type ) {
-            case 'cpf':
-                return self::format_cpf( $value );
-            case 'rf':
-                return self::format_rf( $value );
-            case 'auth_code':
-                return self::format_auth_code( $value );
-            default:
-                return $value;
-        }
+        return DocumentFormatter::format_document( $value, $type );
     }
     
     /**
@@ -470,97 +303,21 @@ class Utils {
         return round( $bytes, $precision ) . ' ' . $units[$pow];
     }
     
-    /**
-     * Generate random string
-     *
-     * @param int $length Length of random string
-     * @param string $chars Characters to use (default: alphanumeric)
-     * @return string Random string
-     */
+    // ── Auth code methods delegated to AuthCodeService (Sprint 31) ──
+
+    /** @deprecated Use AuthCodeService::generate_random_string() */
     public static function generate_random_string( int $length = 12, string $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' ): string {
-        $string = '';
-        $chars_length = strlen( $chars );
-        
-        for ( $i = 0; $i < $length; $i++ ) {
-            $string .= $chars[ wp_rand( 0, $chars_length - 1 ) ];
-        }
-        
-        return $string;
+        return AuthCodeService::generate_random_string( $length, $chars );
     }
 
-    /**
-     * Generate authentication code in format XXXX-XXXX-XXXX
-     *
-     * @since 3.0.0
-     * @return string Auth code (e.g., "A1B2-C3D4-E5F6")
-     */
+    /** @deprecated Use AuthCodeService::generate_auth_code() */
     public static function generate_auth_code(): string {
-        return strtoupper(
-            self::generate_random_string(4) . '-' . 
-            self::generate_random_string(4) . '-' . 
-            self::generate_random_string(4)
-        );
+        return AuthCodeService::generate_auth_code();
     }
 
-    
-    /**
-     * Generate a globally unique auth code across all plugin tables.
-     *
-     * Checks certificates (ffc_submissions), reregistrations
-     * (ffc_reregistration_submissions), and appointments
-     * (ffc_self_scheduling_appointments) to ensure no cross-table collisions.
-     *
-     * @since 4.12.0
-     * @return string Clean auth code (12 uppercase alphanumeric characters, no hyphens).
-     */
+    /** @deprecated Use AuthCodeService::generate_globally_unique_auth_code() */
     public static function generate_globally_unique_auth_code(): string {
-        global $wpdb;
-
-        $max_attempts = 10;
-
-        for ( $i = 0; $i < $max_attempts; $i++ ) {
-            $code = self::clean_auth_code( self::generate_auth_code() );
-
-            // Check ffc_submissions
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $exists = $wpdb->get_var( $wpdb->prepare(
-                "SELECT id FROM {$wpdb->prefix}ffc_submissions WHERE auth_code = %s LIMIT 1",
-                $code
-            ) );
-
-            if ( $exists ) {
-                continue;
-            }
-
-            // Check ffc_reregistration_submissions
-            $table_rereg = $wpdb->prefix . 'ffc_reregistration_submissions';
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $exists = $wpdb->get_var( $wpdb->prepare(
-                "SELECT id FROM {$table_rereg} WHERE auth_code = %s LIMIT 1",
-                $code
-            ) );
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-
-            if ( $exists ) {
-                continue;
-            }
-
-            // Check ffc_self_scheduling_appointments
-            $table_apt = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $exists = $wpdb->get_var( $wpdb->prepare(
-                "SELECT id FROM {$table_apt} WHERE validation_code = %s LIMIT 1",
-                $code
-            ) );
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-
-            if ( ! $exists ) {
-                return $code;
-            }
-        }
-
-        // Fallback: extremely unlikely to reach here
-        return self::clean_auth_code( self::generate_auth_code() );
+        return AuthCodeService::generate_globally_unique_auth_code();
     }
 
     /**
@@ -588,28 +345,14 @@ class Utils {
         return current_user_can( 'manage_options' );
     }
     
-    /**
-     * Clean authentication code (remove special chars, uppercase)
-     *
-     * Used throughout the plugin for consistent auth code cleaning
-     *
-     * @param string $code Auth code to clean
-     * @return string Cleaned code (uppercase alphanumeric only)
-     */
+    /** @deprecated Use DocumentFormatter::clean_auth_code() */
     public static function clean_auth_code( string $code ): string {
-        return strtoupper( preg_replace( '/[^a-zA-Z0-9]/', '', $code ) );
+        return DocumentFormatter::clean_auth_code( $code );
     }
-    
-    /**
-     * Clean identifier (CPF, RF, ticket) - uppercase alphanumeric only
-     *
-     * Used for consistent cleaning of all identifier types
-     *
-     * @param string $value Identifier to clean
-     * @return string Cleaned identifier (uppercase alphanumeric only)
-     */
+
+    /** @deprecated Use DocumentFormatter::clean_identifier() */
     public static function clean_identifier( string $value ): string {
-        return strtoupper( preg_replace( '/[^a-zA-Z0-9]/', '', $value ) );
+        return DocumentFormatter::clean_identifier( $value );
     }
     
     /**
@@ -635,157 +378,54 @@ class Utils {
         error_log( $log_message );
     }
     
+    // ── Security methods delegated to SecurityService (Sprint 31) ──
+
     /**
-     * Generate simple math captcha
-     *
-     * @return array Array with 'label' and 'hash'
+     * @deprecated Use SecurityService::generate_simple_captcha()
+     * @return array<string, mixed>
      */
     public static function generate_simple_captcha(): array {
-        $n1 = wp_rand( 1, 9 );
-        $n2 = wp_rand( 1, 9 );
-        $answer = $n1 + $n2;
-        
-        return array(
-            /* translators: 1: first number, 2: second number */
-            'label' => sprintf( esc_html__( 'Security: How much is %1$d + %2$d?', 'ffcertificate' ), $n1, $n2 ),
-            'hash'  => wp_hash( $answer . 'ffc_math_salt' ),
-            'answer' => $answer  // For internal use only
-        );
+        return SecurityService::generate_simple_captcha();
     }
-    
-    /**
-     * Verify simple captcha answer
-     *
-     * @param string $answer User's answer
-     * @param string $hash Expected hash
-     * @return bool True if correct, false otherwise
-     */
+
+    /** @deprecated Use SecurityService::verify_simple_captcha() */
     public static function verify_simple_captcha( string $answer, string $hash ): bool {
-        if ( empty( $answer ) || empty( $hash ) ) {
-            return false;
-        }
-        
-        $check_hash = wp_hash( trim( $answer ) . 'ffc_math_salt' );
-        return $check_hash === $hash;
+        return SecurityService::verify_simple_captcha( $answer, $hash );
     }
 
     /**
-     * Validate security fields (honeypot + captcha)
-     *
-     * Moved from class-ffc-form-processor.php for centralization
-     *
-     * @since 2.9.11 - Consolidated validation
-     * @param array $data Form data containing security fields
-     * @return bool|string True if valid, error message string if invalid
+     * @deprecated Use SecurityService::validate_security_fields()
+     * @param array<string, mixed> $data POST data to validate
+     * @return true|string True on success, error message string on failure
      */
     public static function validate_security_fields( array $data ) {
-        // Check honeypot
-        if ( ! empty( $data['ffc_honeypot_trap'] ) ) {
-            return __( 'Security Error: Request blocked (Honeypot).', 'ffcertificate' );
-        }
-        
-        // Check captcha presence
-        if ( ! isset( $data['ffc_captcha_ans'] ) || ! isset( $data['ffc_captcha_hash'] ) ) {
-            return __( 'Error: Please answer the security question.', 'ffcertificate' );
-        }
-        
-        // Validate captcha answer using verify_simple_captcha()
-        if ( ! self::verify_simple_captcha( $data['ffc_captcha_ans'], $data['ffc_captcha_hash'] ) ) {
-            return __( 'Error: The math answer is incorrect.', 'ffcertificate' );
-        }
-        
-        return true; 
+        return SecurityService::validate_security_fields( $data );
     }
 
+    // ── Data sanitization methods delegated to DataSanitizer (Sprint 31) ──
+
     /**
-     * Recursively sanitize data (arrays or strings)
-     *
-     * Moved from class-ffc-form-processor.php for centralization
-     *
-     * @since 2.9.11 - Consolidated sanitization
-     * @param mixed $data Data to sanitize (array or string)
+     * @deprecated Use DataSanitizer::recursive_sanitize()
+     * @param mixed $data Data to sanitize
      * @return mixed Sanitized data
      */
     public static function recursive_sanitize( $data ) {
-        if ( is_array( $data ) ) {
-            $sanitized = array();
-            foreach ( $data as $key => $value ) {
-                $sanitized[ sanitize_key( $key ) ] = self::recursive_sanitize( $value );
-            }
-            return $sanitized;
-        }
-        return wp_kses( $data, self::get_allowed_html_tags() );
+        return DataSanitizer::recursive_sanitize( $data );
     }
 
-    /**
-     * Normalize Brazilian name with proper capitalization
-     *
-     * Capitalizes the first letter of each word, except for common
-     * Portuguese connectives (prepositions) which remain lowercase.
-     *
-     * Examples:
-     * - "ALEX PEREIRA DA SILVA" → "Alex Pereira da Silva"
-     * - "maria dos santos e oliveira" → "Maria dos Santos e Oliveira"
-     * - "JOÃO DE SOUZA FILHO" → "João de Souza Filho"
-     *
-     * @since 4.3.0
-     * @param string $name Name to normalize
-     * @return string Normalized name
-     */
+    /** @deprecated Use DataSanitizer::normalize_brazilian_name() */
     public static function normalize_brazilian_name( string $name ): string {
-        if ( empty( $name ) ) {
-            return '';
-        }
-
-        // Brazilian Portuguese connectives that should remain lowercase
-        $connectives = array(
-            'da', 'das', 'de', 'do', 'dos',  // Most common
-            'e',                              // "and" between names
-            'di', 'du',                       // Italian/French origin
-        );
-
-        // Convert entire string to lowercase first, then apply mb_convert_case
-        // Use mb functions for proper UTF-8 handling (accented chars like ã, é, ç)
-        $name = mb_strtolower( trim( $name ), 'UTF-8' );
-
-        // Split into words
-        $words = preg_split( '/\s+/', $name );
-
-        $normalized_words = array();
-        foreach ( $words as $word ) {
-            if ( empty( $word ) ) {
-                continue;
-            }
-
-            // Check if word is a connective (case-insensitive comparison)
-            if ( in_array( mb_strtolower( $word, 'UTF-8' ), $connectives, true ) ) {
-                // Keep connective lowercase
-                $normalized_words[] = mb_strtolower( $word, 'UTF-8' );
-            } else {
-                // Capitalize first letter
-                $normalized_words[] = mb_strtoupper( mb_substr( $word, 0, 1, 'UTF-8' ), 'UTF-8' )
-                    . mb_substr( $word, 1, null, 'UTF-8' );
-            }
-        }
-
-        // Handle edge case: if first word is a connective, capitalize it anyway
-        // (Names shouldn't start with lowercase connective)
-        if ( ! empty( $normalized_words ) && in_array( $normalized_words[0], $connectives, true ) ) {
-            $normalized_words[0] = mb_strtoupper( mb_substr( $normalized_words[0], 0, 1, 'UTF-8' ), 'UTF-8' )
-                . mb_substr( $normalized_words[0], 1, null, 'UTF-8' );
-        }
-
-        return implode( ' ', $normalized_words );
+        return DataSanitizer::normalize_brazilian_name( $name );
     }
 
     /**
      * Generate success HTML response for frontend form submission
      *
      * @since 2.9.16
-     * @param array  $submission_data Submission data
-     * @param int    $form_id Form ID
-     * @param string $submission_date Submission date
-     * @param string $success_message Success message
+     * @param array<string, mixed> $submission_data Submission data
+     * @param int                  $form_id Form ID
+     * @param string               $submission_date Submission date
+     * @param string               $success_message Success message
      * @return string HTML content
      */
     public static function generate_success_html( array $submission_data, int $form_id, string $submission_date, string $success_message = '' ): string {

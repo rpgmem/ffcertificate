@@ -16,9 +16,19 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 class AudienceScheduleRepository {
+    use \FreeFormCertificate\Core\StaticRepositoryTrait;
+
+    /**
+     * Cache group for this repository.
+     *
+     * @return string
+     */
+    protected static function cache_group(): string {
+        return 'ffc_audience_schedules';
+    }
 
     /**
      * Get table name
@@ -26,8 +36,7 @@ class AudienceScheduleRepository {
      * @return string
      */
     public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_schedules';
+        return self::db()->prefix . 'ffc_audience_schedules';
     }
 
     /**
@@ -36,18 +45,17 @@ class AudienceScheduleRepository {
      * @return string
      */
     public static function get_permissions_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_schedule_permissions';
+        return self::db()->prefix . 'ffc_audience_schedule_permissions';
     }
 
     /**
      * Get all schedules
      *
-     * @param array $args Query arguments
-     * @return array<object>
+     * @param array<string, mixed> $args Query arguments
+     * @return array<int, object>
      */
     public static function get_all(array $args = array()): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -79,12 +87,11 @@ class AudienceScheduleRepository {
         $limit_clause = $args['limit'] > 0 ? sprintf('LIMIT %d OFFSET %d', $args['limit'], $args['offset']) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $sql = "SELECT * FROM {$table} {$where_clause} ORDER BY {$orderby} {$limit_clause}";
+        $sql = "SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$limit_clause}";
 
-        if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-            $sql = $wpdb->prepare($sql, $values);
-        }
+        $prepare_args = array_merge( array( $table ), $values );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $sql = $wpdb->prepare($sql, $prepare_args);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         return $wpdb->get_results($sql);
@@ -97,13 +104,24 @@ class AudienceScheduleRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
-        global $wpdb;
+        $cached = static::cache_get("id_{$id}");
+        if ($cached !== false) {
+            return $cached;
+        }
+
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id)
+        $result = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM %i WHERE id = %d", $table, $id)
         );
+
+        if ($result) {
+            static::cache_set("id_{$id}", $result);
+        }
+
+        return $result;
     }
 
     /**
@@ -115,18 +133,20 @@ class AudienceScheduleRepository {
      * @return array<object>
      */
     public static function get_by_user_access(int $user_id): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $perms_table = self::get_permissions_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT DISTINCT s.* FROM {$table} s
-                LEFT JOIN {$perms_table} p ON s.id = p.schedule_id AND p.user_id = %d
+                "SELECT DISTINCT s.* FROM %i s
+                LEFT JOIN %i p ON s.id = p.schedule_id AND p.user_id = %d
                 WHERE s.status = 'active'
                 AND (s.visibility = 'public' OR p.user_id IS NOT NULL)
                 ORDER BY s.name ASC",
+                $table,
+                $perms_table,
                 $user_id
             )
         );
@@ -135,11 +155,11 @@ class AudienceScheduleRepository {
     /**
      * Create a schedule
      *
-     * @param array $data Schedule data
+     * @param array<string, mixed> $data Schedule data
      * @return int|false Schedule ID or false on failure
      */
     public static function create(array $data) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -183,12 +203,12 @@ class AudienceScheduleRepository {
     /**
      * Update a schedule
      *
-     * @param int $id Schedule ID
-     * @param array $data Update data
+     * @param int                  $id Schedule ID
+     * @param array<string, mixed> $data Update data
      * @return bool
      */
     public static function update(int $id, array $data): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // Remove fields that shouldn't be updated
@@ -237,6 +257,8 @@ class AudienceScheduleRepository {
             array('%d')
         );
 
+        static::cache_delete("id_{$id}");
+
         return $result !== false;
     }
 
@@ -247,11 +269,13 @@ class AudienceScheduleRepository {
      * @return bool
      */
     public static function delete(int $id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $result = $wpdb->delete($table, array('id' => $id), array('%d'));
+
+        static::cache_delete("id_{$id}");
 
         return $result !== false;
     }
@@ -264,13 +288,14 @@ class AudienceScheduleRepository {
      * @return object|null
      */
     public static function get_user_permissions(int $schedule_id, int $user_id): ?object {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_permissions_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE schedule_id = %d AND user_id = %d",
+                "SELECT * FROM %i WHERE schedule_id = %d AND user_id = %d",
+                $table,
                 $schedule_id,
                 $user_id
             )
@@ -284,25 +309,25 @@ class AudienceScheduleRepository {
      * @return array<object>
      */
     public static function get_all_permissions(int $schedule_id): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_permissions_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $wpdb->get_results(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE schedule_id = %d", $schedule_id)
+            $wpdb->prepare("SELECT * FROM %i WHERE schedule_id = %d", $table, $schedule_id)
         );
     }
 
     /**
      * Set user permissions for a schedule
      *
-     * @param int $schedule_id Schedule ID
-     * @param int $user_id User ID
-     * @param array $permissions Permission flags
+     * @param int                  $schedule_id Schedule ID
+     * @param int                  $user_id User ID
+     * @param array<string, mixed> $permissions Permission flags
      * @return bool
      */
     public static function set_user_permissions(int $schedule_id, int $user_id, array $permissions): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_permissions_table_name();
 
         $defaults = array(
@@ -354,7 +379,7 @@ class AudienceScheduleRepository {
      * @return bool
      */
     public static function remove_user_permissions(int $schedule_id, int $user_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_permissions_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -456,11 +481,11 @@ class AudienceScheduleRepository {
     /**
      * Count schedules
      *
-     * @param array $args Query arguments (status, visibility)
+     * @param array<string, mixed> $args Query arguments (status, visibility)
      * @return int
      */
     public static function count(array $args = array()): int {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = array();
@@ -479,12 +504,11 @@ class AudienceScheduleRepository {
         $where_clause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $sql = "SELECT COUNT(*) FROM {$table} {$where_clause}";
+        $sql = "SELECT COUNT(*) FROM %i {$where_clause}";
 
-        if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-            $sql = $wpdb->prepare($sql, $values);
-        }
+        $prepare_args = array_merge( array( $table ), $values );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $sql = $wpdb->prepare($sql, $prepare_args);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         return (int) $wpdb->get_var($sql);

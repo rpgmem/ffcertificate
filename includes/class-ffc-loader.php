@@ -47,21 +47,37 @@ if (!defined('ABSPATH')) exit;
 
 class Loader {
 
+    /** @var \FreeFormCertificate\Submissions\SubmissionHandler */
     protected $submission_handler;
+    /** @var \FreeFormCertificate\Integrations\EmailHandler */
     protected $email_handler;
+    /** @var \FreeFormCertificate\Admin\CsvExporter|null */
     protected $csv_exporter;
+    /** @var \FreeFormCertificate\Admin\CPT */
     protected $cpt;
+    /** @var \FreeFormCertificate\Admin\Admin|null */
     protected $admin;
+    /** @var \FreeFormCertificate\Frontend\Frontend */
     protected $frontend;
+    /** @var \FreeFormCertificate\Admin\AdminAjax|null */
     protected $admin_ajax;
+    /** @var \FreeFormCertificate\SelfScheduling\SelfSchedulingCPT */
     protected $self_scheduling_cpt;
+    /** @var \FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin|null */
     protected $self_scheduling_admin;
+    /** @var \FreeFormCertificate\SelfScheduling\SelfSchedulingEditor|null */
     protected $self_scheduling_editor;
+    /** @var \FreeFormCertificate\SelfScheduling\AppointmentHandler */
     protected $self_scheduling_appointment_handler;
+    /** @var \FreeFormCertificate\SelfScheduling\AppointmentEmailHandler */
     protected $self_scheduling_email_handler;
+    /** @var \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler */
     protected $self_scheduling_receipt_handler;
+    /** @var \FreeFormCertificate\SelfScheduling\AppointmentCsvExporter|null */
     protected $self_scheduling_csv_exporter;
+    /** @var \FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode */
     protected $self_scheduling_shortcode;
+    /** @var \FreeFormCertificate\Audience\AudienceLoader */
     protected $audience_loader;
 
     public function __construct() {

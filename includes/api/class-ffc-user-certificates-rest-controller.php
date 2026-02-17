@@ -15,7 +15,6 @@ namespace FreeFormCertificate\API;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class UserCertificatesRestController {
 
@@ -80,14 +79,16 @@ class UserCertificatesRestController {
             $settings = get_option('ffc_settings', array());
             $date_format = $settings['date_format'] ?? 'F j, Y';
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $submissions = $wpdb->get_results($wpdb->prepare(
                 "SELECT s.*, p.post_title as form_title
-                 FROM {$table} s
-                 LEFT JOIN {$wpdb->posts} p ON s.form_id = p.ID
+                 FROM %i s
+                 LEFT JOIN %i p ON s.form_id = p.ID
                  WHERE s.user_id = %d
                  AND s.status != 'trash'
                  ORDER BY s.submission_date DESC",
+                $table,
+                $wpdb->posts,
                 $user_id
             ), ARRAY_A);
 

@@ -19,9 +19,19 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 class CustomFieldRepository {
+    use \FreeFormCertificate\Core\StaticRepositoryTrait;
+
+    /**
+     * Cache group for custom field queries.
+     *
+     * @return string
+     */
+    protected static function cache_group(): string {
+        return 'ffc_custom_fields';
+    }
 
     /**
      * Supported field types.
@@ -58,8 +68,7 @@ class CustomFieldRepository {
      * @return string
      */
     public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_custom_fields';
+        return self::db()->prefix . 'ffc_custom_fields';
     }
 
     /**
@@ -69,12 +78,23 @@ class CustomFieldRepository {
      * @return object|null
      */
     public static function get_by_id(int $field_id): ?object {
-        global $wpdb;
+        $cached = static::cache_get("id_{$field_id}");
+        if ($cached !== false) {
+            return $cached;
+        }
+
+        $wpdb = self::db();
         $table = self::get_table_name();
 
-        return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $field_id)
+        $result = $wpdb->get_row(
+            $wpdb->prepare("SELECT * FROM %i WHERE id = %d", $table, $field_id)
         );
+
+        if ($result) {
+            static::cache_set("id_{$field_id}", $result);
+        }
+
+        return $result;
     }
 
     /**
@@ -85,7 +105,7 @@ class CustomFieldRepository {
      * @return array<object>
      */
     public static function get_by_audience(int $audience_id, bool $active_only = true): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = 'WHERE audience_id = %d';
@@ -97,8 +117,8 @@ class CustomFieldRepository {
 
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$table} {$where} ORDER BY sort_order ASC, id ASC",
-                $values
+                "SELECT * FROM %i {$where} ORDER BY sort_order ASC, id ASC",
+                array_merge(array($table), $values)
             )
         );
     }
@@ -180,11 +200,11 @@ class CustomFieldRepository {
     /**
      * Create a custom field.
      *
-     * @param array $data Field data.
+     * @param array<string, mixed> $data Field data.
      * @return int|false Field ID or false on failure.
      */
     public static function create(array $data) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -238,11 +258,11 @@ class CustomFieldRepository {
      * Update a custom field.
      *
      * @param int   $field_id Field ID.
-     * @param array $data     Update data.
+     * @param array<string, mixed> $data     Update data.
      * @return bool
      */
     public static function update(int $field_id, array $data): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // Remove non-updatable fields
@@ -303,6 +323,8 @@ class CustomFieldRepository {
             array('%d')
         );
 
+        static::cache_delete("id_{$field_id}");
+
         return $result !== false;
     }
 
@@ -317,10 +339,12 @@ class CustomFieldRepository {
      * @return bool
      */
     public static function delete(int $field_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $result = $wpdb->delete($table, array('id' => $field_id), array('%d'));
+
+        static::cache_delete("id_{$field_id}");
 
         return $result !== false;
     }
@@ -332,7 +356,11 @@ class CustomFieldRepository {
      * @return bool
      */
     public static function deactivate(int $field_id): bool {
-        return self::update($field_id, array('is_active' => 0));
+        $result = self::update($field_id, array('is_active' => 0));
+
+        static::cache_delete("id_{$field_id}");
+
+        return $result;
     }
 
     /**
@@ -342,7 +370,11 @@ class CustomFieldRepository {
      * @return bool
      */
     public static function reactivate(int $field_id): bool {
-        return self::update($field_id, array('is_active' => 1));
+        $result = self::update($field_id, array('is_active' => 1));
+
+        static::cache_delete("id_{$field_id}");
+
+        return $result;
     }
 
     /**
@@ -352,7 +384,7 @@ class CustomFieldRepository {
      * @return bool
      */
     public static function reorder(array $field_ids): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         foreach ($field_ids as $index => $field_id) {
@@ -376,7 +408,7 @@ class CustomFieldRepository {
      * @return int
      */
     public static function count_by_audience(int $audience_id, bool $active_only = true): int {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = 'WHERE audience_id = %d';
@@ -387,7 +419,7 @@ class CustomFieldRepository {
         }
 
         return (int) $wpdb->get_var(
-            $wpdb->prepare("SELECT COUNT(*) FROM {$table} {$where}", $values)
+            $wpdb->prepare("SELECT COUNT(*) FROM %i {$where}", array_merge(array($table), $values))
         );
     }
 
@@ -415,7 +447,7 @@ class CustomFieldRepository {
      * Merges with existing data (does not overwrite unrelated fields).
      *
      * @param int   $user_id User ID.
-     * @param array $data    Associative array of field_{id} => value.
+     * @param array<string, mixed> $data    Associative array of field_{id} => value.
      * @return bool
      */
     public static function save_user_data(int $user_id, array $data): bool {
@@ -541,7 +573,7 @@ class CustomFieldRepository {
      *
      * @param object $field Field definition.
      * @param mixed  $value Value to validate.
-     * @param array  $rules Validation rules.
+     * @param array<string, mixed>  $rules Validation rules.
      * @return true|\WP_Error
      */
     private static function validate_format(object $field, $value, array $rules) {
@@ -686,28 +718,7 @@ class CustomFieldRepository {
      * @return bool
      */
     private static function validate_cpf(string $cpf): bool {
-        // Use existing utility if available
-        if (class_exists('\FreeFormCertificate\Core\Utils') && method_exists('\FreeFormCertificate\Core\Utils', 'validate_cpf')) {
-            return \FreeFormCertificate\Core\Utils::validate_cpf($cpf);
-        }
-
-        $cpf = preg_replace('/\D/', '', $cpf);
-        if (strlen($cpf) !== 11 || preg_match('/^(\d)\1{10}$/', $cpf)) {
-            return false;
-        }
-
-        for ($t = 9; $t < 11; $t++) {
-            $d = 0;
-            for ($c = 0; $c < $t; $c++) {
-                $d += (int) $cpf[$c] * (($t + 1) - $c);
-            }
-            $d = ((10 * $d) % 11) % 10;
-            if ((int) $cpf[$c] !== $d) {
-                return false;
-            }
-        }
-
-        return true;
+        return \FreeFormCertificate\Core\Utils::validate_cpf($cpf);
     }
 
     /**
@@ -802,7 +813,7 @@ class CustomFieldRepository {
      * @return string Unique key.
      */
     private static function ensure_unique_key(string $key, int $audience_id, int $exclude_id = 0): string {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $original_key = $key;
@@ -818,7 +829,7 @@ class CustomFieldRepository {
             }
 
             $exists = (int) $wpdb->get_var(
-                $wpdb->prepare("SELECT COUNT(*) FROM {$table} {$where}", $values)
+                $wpdb->prepare("SELECT COUNT(*) FROM %i {$where}", array_merge(array($table), $values))
             );
 
             if ($exists === 0) {
@@ -850,7 +861,7 @@ class CustomFieldRepository {
      * Get validation rules for a field.
      *
      * @param object $field Field definition.
-     * @return array
+     * @return array<string, mixed>
      */
     public static function get_validation_rules(object $field): array {
         $rules = $field->validation_rules;

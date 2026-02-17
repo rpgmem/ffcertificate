@@ -19,7 +19,6 @@ namespace FreeFormCertificate\Admin;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class AdminUserColumns {
 
@@ -45,7 +44,7 @@ class AdminUserColumns {
      * Batch-cached certificate counts (user_id => count)
      *
      * @since 4.9.7
-     * @var array|null
+     * @var array<int, int>|null
      */
     private static ?array $certificate_counts_cache = null;
 
@@ -53,7 +52,7 @@ class AdminUserColumns {
      * Batch-cached appointment counts (user_id => count)
      *
      * @since 4.9.7
-     * @var array|null
+     * @var array<int, int>|null
      */
     private static ?array $appointment_counts_cache = null;
 
@@ -72,8 +71,8 @@ class AdminUserColumns {
     /**
      * Add custom columns to users table
      *
-     * @param array $columns Existing columns
-     * @return array Modified columns
+     * @param array<string, string> $columns Existing columns
+     * @return array<string, string> Modified columns
      */
     public static function add_custom_columns( array $columns ): array {
         // Add after "Posts" column
@@ -229,9 +228,12 @@ class AdminUserColumns {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $results = $wpdb->get_results(
-            "SELECT user_id, COUNT(*) AS cnt FROM {$table} WHERE user_id IS NOT NULL AND status != 'trash' GROUP BY user_id",
+            $wpdb->prepare(
+                "SELECT user_id, COUNT(*) AS cnt FROM %i WHERE user_id IS NOT NULL AND status != 'trash' GROUP BY user_id",
+                $table
+            ),
             ARRAY_A
         );
 

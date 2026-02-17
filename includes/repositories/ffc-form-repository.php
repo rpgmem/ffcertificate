@@ -28,7 +28,7 @@ class FormRepository extends AbstractRepository {
      * Find published forms
      *
      * @param int $limit
-     * @return array
+     * @return array<int, mixed>
      */
     public function findPublished( int $limit = -1 ): array {
         $args = [

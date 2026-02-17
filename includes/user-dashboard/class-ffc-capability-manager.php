@@ -77,7 +77,7 @@ class CapabilityManager {
      * Get all FFC capabilities consolidated
      *
      * @since 4.9.3
-     * @return array All FFC capability names
+     * @return array<int, string> All FFC capability names
      */
     public static function get_all_capabilities(): array {
         return array_merge(
@@ -231,7 +231,7 @@ class CapabilityManager {
      * @since 4.9.9
      * @param \WP_User $user         User who received capabilities
      * @param string   $context      Context: 'certificate', 'appointment', 'audience'
-     * @param array    $capabilities Newly granted capabilities
+     * @param array<int, string> $capabilities Newly granted capabilities
      * @return void
      */
     private static function log_and_notify_capability_grant( \WP_User $user, string $context, array $capabilities ): void {
@@ -337,7 +337,7 @@ class CapabilityManager {
      *
      * @since 4.4.0
      * @param int $user_id WordPress user ID
-     * @return array Associative array of capability => boolean
+     * @return array<string, bool> Associative array of capability => boolean
      */
     public static function get_user_ffc_capabilities( int $user_id ): array {
         $user = get_userdata( $user_id );

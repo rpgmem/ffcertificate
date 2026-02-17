@@ -57,6 +57,42 @@ class AppointmentValidatorTest extends TestCase {
             return gmdate( 'Y-m-d H:i', $ts ?: time() );
         } );
 
+        // Namespaced stubs: prevent "is not defined" errors when Sprint 27 tests run first.
+        // Repositories namespace (CalendarRepository::userHasSchedulingBypass).
+        Functions\when( 'FreeFormCertificate\Repositories\current_user_can' )->alias( function ( $cap ) {
+            return \current_user_can( $cap );
+        } );
+        Functions\when( 'FreeFormCertificate\Repositories\user_can' )->alias( function ( $user_id, $cap ) {
+            return \user_can( $user_id, $cap );
+        } );
+        // SelfScheduling namespace (AppointmentValidator itself).
+        Functions\when( 'FreeFormCertificate\SelfScheduling\__' )->returnArg();
+        Functions\when( 'FreeFormCertificate\SelfScheduling\wp_timezone' )->alias( function() {
+            return new \DateTimeZone( 'UTC' );
+        } );
+        Functions\when( 'FreeFormCertificate\SelfScheduling\is_wp_error' )->alias( function ( $thing ) {
+            return $thing instanceof \WP_Error;
+        } );
+        Functions\when( 'FreeFormCertificate\SelfScheduling\is_user_logged_in' )->alias( function () {
+            return \is_user_logged_in();
+        } );
+        Functions\when( 'FreeFormCertificate\SelfScheduling\current_user_can' )->alias( function ( $cap ) {
+            return \current_user_can( $cap );
+        } );
+        Functions\when( 'FreeFormCertificate\SelfScheduling\current_time' )->alias( function ( $type ) {
+            return \current_time( $type );
+        } );
+        Functions\when( 'FreeFormCertificate\SelfScheduling\get_option' )->alias( function ( $key, $default = false ) {
+            return \get_option( $key, $default );
+        } );
+        Functions\when( 'FreeFormCertificate\SelfScheduling\date_i18n' )->alias( function ( $format, $ts = false ) {
+            return \date_i18n( $format, $ts );
+        } );
+        // Scheduling namespace (DateBlockingService).
+        Functions\when( 'FreeFormCertificate\Scheduling\get_option' )->alias( function ( $key, $default = false ) {
+            return \get_option( $key, $default );
+        } );
+
         $this->appointmentRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );
         $this->blockedDateRepo = Mockery::mock( 'FreeFormCertificate\Repositories\BlockedDateRepository' );
 

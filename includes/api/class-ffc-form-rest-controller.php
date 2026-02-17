@@ -386,9 +386,9 @@ class FormRestController {
     /**
      * Validate required fields
      *
-     * @param array $data Submission data
-     * @param array $fields Form fields configuration
-     * @return array Array of validation errors
+     * @param array<string, mixed> $data Submission data
+     * @param array<int, array<string, mixed>> $fields Form fields configuration
+     * @return array<int, string> Array of validation errors
      */
     private function validate_required_fields(array $data, array $fields): array {
         $errors = array();

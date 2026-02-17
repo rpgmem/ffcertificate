@@ -30,10 +30,13 @@ class RateLimiter {
      * Cached settings for the current request
      *
      * @since 4.6.13
-     * @var array|null
+     * @var array<string, mixed>|null
      */
     private static ?array $settings_cache = null;
 
+    /**
+     * @return array<string, mixed>
+     */
     private static function get_settings(): array {
         if ( self::$settings_cache !== null ) {
             return self::$settings_cache;
@@ -52,6 +55,9 @@ class RateLimiter {
         return self::$settings_cache;
     }
     
+    /**
+     * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+     */
     public static function check_all(string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null): array {
         $s = self::get_settings();
         
@@ -85,6 +91,9 @@ class RateLimiter {
         return array('allowed' => true);
     }
     
+    /**
+     * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+     */
     public static function check_ip_limit(string $ip, ?int $form_id = null): array {
         $s = self::get_settings()['ip'];
         $hk = 'ffc_rate_ip_' . md5($ip . $form_id) . '_hour';
@@ -106,6 +115,9 @@ class RateLimiter {
         return array('allowed' => true);
     }
     
+    /**
+     * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+     */
     public static function check_email_limit(string $email, ?int $form_id = null): array {
         $s = self::get_settings()['email'];
         if (!$s['check_database']) return array('allowed' => true);
@@ -122,6 +134,9 @@ class RateLimiter {
         return array('allowed' => true);
     }
     
+    /**
+     * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+     */
     public static function check_cpf_limit(string $cpf, ?int $form_id = null): array {
         $s = self::get_settings()['cpf'];
         $cc = preg_replace('/[^0-9]/', '', $cpf);
@@ -145,6 +160,9 @@ class RateLimiter {
         return array('allowed' => true);
     }
     
+    /**
+     * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+     */
     public static function check_global_limit(): array {
         $s = self::get_settings()['global'];
         $mk = 'ffc_rate_global_minute_' . floor(time() / 60);
@@ -162,6 +180,8 @@ class RateLimiter {
     
     /**
      * Check rate limit for verification requests (magic links)
+     *
+     * @return array{allowed: bool, message?: string, wait_seconds?: int}
      */
     public static function check_verification(string $ip, ?string $token = null): array {
         $settings = self::get_settings();
@@ -268,7 +288,7 @@ class RateLimiter {
         $t = $wpdb->prefix . 'ffc_rate_limits';
         $ws = self::get_window_start($window);
         $form_clause = $form_id ? $wpdb->prepare( 'AND form_id = %d', $form_id ) : 'AND form_id IS NULL';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $form_clause is pre-prepared via $wpdb->prepare().
         $c = $wpdb->get_var( $wpdb->prepare( "SELECT count FROM %i WHERE type=%s AND identifier=%s AND window_type=%s $form_clause AND window_start>=%s ORDER BY id DESC LIMIT 1", $t, $type, $identifier, $window, $ws ) );
         return $c ? intval($c) : 0;
     }
@@ -280,14 +300,14 @@ class RateLimiter {
         $we = self::get_window_end($window);
         
         $form_clause = $form_id ? $wpdb->prepare( 'AND form_id = %d', $form_id ) : 'AND form_id IS NULL';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $form_clause is pre-prepared via $wpdb->prepare().
         $e = $wpdb->get_row( $wpdb->prepare( "SELECT id,count FROM %i WHERE type=%s AND identifier=%s AND window_type=%s $form_clause AND window_start=%s", $t, $type, $identifier, $window, $ws ) );
         
         if ($e) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->update($t, array('count' => $e->count + 1, 'last_attempt' => current_time('mysql')), array('id' => $e->id), array('%d', '%s'), array('%d'));
         } else {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->insert($t, array('type' => $type, 'identifier' => $identifier, 'form_id' => $form_id, 'count' => 1, 'window_type' => $window, 'window_start' => $ws, 'window_end' => $we, 'last_attempt' => current_time('mysql')), array('%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s'));
         }
     }
@@ -300,18 +320,18 @@ class RateLimiter {
         
         if ($field === 'email') {
             if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $dw and $fw are pre-validated date window and form clauses.
                 return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE email_hash=%s $dw $fw", $t, \FreeFormCertificate\Core\Encryption::hash($value))));
             } else {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
                 return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE email=%s $dw $fw", $t, $value)));
             }
         } elseif ($field === 'cpf') {
             if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
                 return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE cpf_rf_hash=%s $dw $fw", $t, \FreeFormCertificate\Core\Encryption::hash($value))));
             } else {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
                 return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE cpf_rf=%s $dw $fw", $t, $value)));
             }
         }
@@ -319,6 +339,9 @@ class RateLimiter {
         return 0;
     }
     
+    /**
+     * @return array{allowed: bool, message?: string, reason?: string}
+     */
     private static function check_blacklist(string $ip, ?string $email, ?string $cpf): array {
         $s = self::get_settings();
         $bl = $s['blacklist'];
@@ -357,13 +380,13 @@ class RateLimiter {
         global $wpdb;
         $t = $wpdb->prefix . 'ffc_rate_limits';
         $form_clause = $form_id ? $wpdb->prepare( 'AND form_id = %d', $form_id ) : 'AND form_id IS NULL';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
         return ! empty( $wpdb->get_var( $wpdb->prepare( "SELECT blocked_until FROM %i WHERE type=%s AND identifier=%s $form_clause AND is_blocked=1 AND blocked_until>NOW() ORDER BY id DESC LIMIT 1", $t, $type, $identifier ) ) );
     }
     
     private static function block_temporarily(string $type, string $identifier, ?int $form_id, int $hours): void {
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
         $wpdb->insert($wpdb->prefix . 'ffc_rate_limits', array('type' => $type, 'identifier' => $identifier, 'form_id' => $form_id, 'count' => 999, 'window_type' => 'hour', 'window_start' => current_time('mysql'), 'window_end' => gmdate('Y-m-d H:i:s', strtotime("+$hours hours")), 'last_attempt' => current_time('mysql'), 'is_blocked' => 1, 'blocked_until' => gmdate('Y-m-d H:i:s', strtotime("+$hours hours")), 'blocked_reason' => 'abuse'), array('%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s'));
     }
     
@@ -372,7 +395,7 @@ class RateLimiter {
         if (!$s['logging']['enabled'] || (!$s['logging']['log_allowed'] && $action === 'allowed')) return;
         
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
         $wpdb->insert($wpdb->prefix . 'ffc_rate_limit_logs', array('type' => $type, 'identifier' => $identifier, 'form_id' => $form_id, 'action' => $action, 'reason' => $reason, 'ip_address' => self::get_user_ip(), 'user_agent' => substr(isset($_SERVER['HTTP_USER_AGENT']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_USER_AGENT'])) : '', 0, 255), 'current_count' => 0, 'max_allowed' => 0), array('%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%d'));
         
         self::cleanup_old_logs();
@@ -390,6 +413,9 @@ class RateLimiter {
         if ($c > $s['logging']['max_logs']) $wpdb->query($wpdb->prepare("DELETE FROM %i WHERE id NOT IN (SELECT id FROM (SELECT id FROM %i ORDER BY id DESC LIMIT %d) tmp)", $t, $t, $s['logging']['max_logs']));
     }
     
+    /**
+     * @return array<string, mixed>
+     */
     public static function get_stats(): array {
         global $wpdb;
         $lt = $wpdb->prefix . 'ffc_rate_limit_logs';
@@ -405,10 +431,16 @@ class RateLimiter {
         );
     }
     
+    /**
+     * @param array<string, mixed> $data
+     */
     private static function format_message(string $template, array $data): string {
         return str_replace(array('{time}', '{count}', '{max}', '{remaining}'), array($data['time'] ?? '', $data['count'] ?? 0, $data['max'] ?? 0, ($data['max'] ?? 0) - ($data['count'] ?? 0)), $template);
     }
     
+    /**
+     * @param mixed $apply_to
+     */
     private static function applies_to_form($apply_to, ?int $form_id): bool {
         return $apply_to === 'all' || (is_array($apply_to) && in_array($form_id, $apply_to));
     }

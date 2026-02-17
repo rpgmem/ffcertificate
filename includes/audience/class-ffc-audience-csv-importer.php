@@ -333,11 +333,10 @@ class AudienceCsvImporter {
         global $wpdb;
         $table = AudienceRepository::get_table_name();
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name from trusted static method.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $id = $wpdb->get_var(
-            $wpdb->prepare("SELECT id FROM {$table} WHERE name = %s LIMIT 1", $name)
+            $wpdb->prepare("SELECT id FROM %i WHERE name = %s LIMIT 1", $table, $name)
         );
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         return $id ? (int) $id : 0;
     }

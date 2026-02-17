@@ -1,0 +1,1231 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Path in include\(\) "/path/to/plugin/includes/admin/views/ffc\-admin\-activity\-log\.php" is not a file or it does not exist\.$#'
+			identifier: include.fileNotFound
+			count: 1
+			path: includes/admin/class-ffc-admin-activity-log-page.php
+
+		-
+			message: '#^Array has 2 duplicate keys with value ''selectTemplate'' \(''selectTemplate'', ''selectTemplate''\)\.$#'
+			identifier: array.duplicateKey
+			count: 1
+			path: includes/admin/class-ffc-admin-assets-manager.php
+
+		-
+			message: '#^Property FreeFormCertificate\\Admin\\AdminAssetsManager\:\:\$hook is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: includes/admin/class-ffc-admin-assets-manager.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-ffc-admin-submission-edit-page.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-ffc-admin-user-custom-fields.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, int\<1, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-ffc-admin-user-custom-fields.php
+
+		-
+			message: '#^Call to method get_error_message\(\) on an unknown class FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-ffc-admin.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-ffc-admin.php
+
+		-
+			message: '#^Property FreeFormCertificate\\Admin\\Admin\:\:\$email_handler is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: includes/admin/class-ffc-admin.php
+
+		-
+			message: '#^Property FreeFormCertificate\\Admin\\Admin\:\:\$form_editor is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: includes/admin/class-ffc-admin.php
+
+		-
+			message: '#^Property FreeFormCertificate\\Admin\\Admin\:\:\$settings_page is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: includes/admin/class-ffc-admin.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/admin/class-ffc-csv-exporter.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/admin/class-ffc-csv-exporter.php
+
+		-
+			message: '#^Access to property \$ID on an unknown class FreeFormCertificate\\Admin\\WP_Post\.$#'
+			identifier: class.notFound
+			count: 7
+			path: includes/admin/class-ffc-form-editor-metabox-renderer.php
+
+		-
+			message: '#^Access to property \$post_status on an unknown class FreeFormCertificate\\Admin\\WP_Post\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/admin/class-ffc-form-editor-metabox-renderer.php
+
+		-
+			message: '#^Parameter \$post of method FreeFormCertificate\\Admin\\FormEditorMetaboxRenderer\:\:render_box_builder\(\) has invalid type FreeFormCertificate\\Admin\\WP_Post\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-ffc-form-editor-metabox-renderer.php
+
+		-
+			message: '#^Parameter \$post of method FreeFormCertificate\\Admin\\FormEditorMetaboxRenderer\:\:render_box_email\(\) has invalid type FreeFormCertificate\\Admin\\WP_Post\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-ffc-form-editor-metabox-renderer.php
+
+		-
+			message: '#^Parameter \$post of method FreeFormCertificate\\Admin\\FormEditorMetaboxRenderer\:\:render_box_geofence\(\) has invalid type FreeFormCertificate\\Admin\\WP_Post\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-ffc-form-editor-metabox-renderer.php
+
+		-
+			message: '#^Parameter \$post of method FreeFormCertificate\\Admin\\FormEditorMetaboxRenderer\:\:render_box_layout\(\) has invalid type FreeFormCertificate\\Admin\\WP_Post\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-ffc-form-editor-metabox-renderer.php
+
+		-
+			message: '#^Parameter \$post of method FreeFormCertificate\\Admin\\FormEditorMetaboxRenderer\:\:render_box_quiz\(\) has invalid type FreeFormCertificate\\Admin\\WP_Post\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-ffc-form-editor-metabox-renderer.php
+
+		-
+			message: '#^Parameter \$post of method FreeFormCertificate\\Admin\\FormEditorMetaboxRenderer\:\:render_box_restriction\(\) has invalid type FreeFormCertificate\\Admin\\WP_Post\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-ffc-form-editor-metabox-renderer.php
+
+		-
+			message: '#^Parameter \$post of method FreeFormCertificate\\Admin\\FormEditorMetaboxRenderer\:\:render_shortcode_metabox\(\) has invalid type FreeFormCertificate\\Admin\\WP_Post\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-ffc-form-editor-metabox-renderer.php
+
+		-
+			message: '#^Call to function method_exists\(\) with ''FFC_Utils'' and ''get_allowed_html…'' will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: includes/admin/class-ffc-form-editor-save-handler.php
+
+		-
+			message: '#^Call to method get_error_message\(\) on an unknown class FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-ffc-settings.php
+
+		-
+			message: '#^Caught class FreeFormCertificate\\Admin\\Exception not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-ffc-settings.php
+
+		-
+			message: '#^Property FreeFormCertificate\\Admin\\Settings\:\:\$submission_handler is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: includes/admin/class-ffc-settings.php
+
+		-
+			message: '#^Call to an undefined method FreeFormCertificate\\Admin\\SubmissionsList\:\:process_bulk_action\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/admin/class-ffc-submissions-list.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-ffc-submissions-list.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-ffc-submissions-list.php
+
+		-
+			message: '#^Variable \$action might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: includes/admin/views/ffc-admin-activity-log.php
+
+		-
+			message: '#^Variable \$current_page might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/admin/views/ffc-admin-activity-log.php
+
+		-
+			message: '#^Variable \$level might not be defined\.$#'
+			identifier: variable.undefined
+			count: 6
+			path: includes/admin/views/ffc-admin-activity-log.php
+
+		-
+			message: '#^Variable \$search might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: includes/admin/views/ffc-admin-activity-log.php
+
+		-
+			message: '#^Variable \$total_logs might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: includes/admin/views/ffc-admin-activity-log.php
+
+		-
+			message: '#^Variable \$total_pages might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/admin/views/ffc-admin-activity-log.php
+
+		-
+			message: '#^Call to an undefined method FreeFormCertificate\\Security\\RateLimiter\:\:check_limit\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/api/class-ffc-appointment-rest-controller.php
+
+		-
+			message: '#^Call to an undefined method FreeFormCertificate\\Security\\RateLimiter\:\:check_limit\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: includes/api/class-ffc-form-rest-controller.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/api/class-ffc-form-rest-controller.php
+
+		-
+			message: '#^Cannot access offset ''auth_code'' on int\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: includes/api/class-ffc-form-rest-controller.php
+
+		-
+			message: '#^Cannot access offset ''submission_id'' on int\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: includes/api/class-ffc-form-rest-controller.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Submissions\\SubmissionHandler\:\:process_submission\(\) invoked with 2 parameters, 6 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: includes/api/class-ffc-form-rest-controller.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/api/class-ffc-user-appointments-rest-controller.php
+
+		-
+			message: '#^Path in require_once\(\) "/path/to/plugin/includes/user\-dashboard/class\-ffc\-user\-manager\.php" is not a file or it does not exist\.$#'
+			identifier: requireOnce.fileNotFound
+			count: 1
+			path: includes/api/class-ffc-user-profile-rest-controller.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: includes/audience/class-ffc-audience-admin-audience.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, int given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/audience/class-ffc-audience-admin-audience.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int\<1, max\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, int\<1, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Variable \$deactivate_url might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Variable \$delete_url might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, int given\.$#'
+			identifier: argument.type
+			count: 6
+			path: includes/audience/class-ffc-audience-admin-dashboard.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-environment.php
+
+		-
+			message: '#^Variable \$deactivate_url might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-environment.php
+
+		-
+			message: '#^Variable \$delete_url might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-environment.php
+
+		-
+			message: '#^Constant FreeFormCertificate\\Audience\\AudienceCsvImporter\:\:BATCH_SIZE is unused\.$#'
+			identifier: classConstant.unused
+			count: 1
+			path: includes/audience/class-ffc-audience-csv-importer.php
+
+		-
+			message: '#^Array has 2 duplicate keys with value ''cancelReason'' \(''cancelReason'', ''cancelReason''\)\.$#'
+			identifier: array.duplicateKey
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int\<min, \-1\>\|int\<1, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Static method FreeFormCertificate\\Audience\\AudienceNotificationHandler\:\:wrap_email_html\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: includes/audience/class-ffc-audience-repository.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$user_id$#'
+			identifier: parameter.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-shortcode.php
+
+		-
+			message: '#^Static method FreeFormCertificate\\Audience\\AudienceShortcode\:\:render_login_required\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: includes/audience/class-ffc-audience-shortcode.php
+
+		-
+			message: '#^Variable \$bypass_notice on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: includes/audience/class-ffc-audience-shortcode.php
+
+		-
+			message: '#^Variable \$first_env_label_singular on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: includes/audience/class-ffc-audience-shortcode.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/class-ffc-activator.php
+
+		-
+			message: '#^Path in require_once\(\) "/path/to/plugin/includes/user\-dashboard/class\-ffc\-user\-manager\.php" is not a file or it does not exist\.$#'
+			identifier: requireOnce.fileNotFound
+			count: 1
+			path: includes/class-ffc-activator.php
+
+		-
+			message: '#^Variable \$kebab on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: includes/class-ffc-autoloader.php
+
+		-
+			message: '#^Action callback returns array\<string, int\> but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: includes/class-ffc-loader.php
+
+		-
+			message: '#^Path in include\(\) "/path/to/plugin/templates/submission\-success\.php" is not a file or it does not exist\.$#'
+			identifier: include.fileNotFound
+			count: 1
+			path: includes/core/class-ffc-utils.php
+
+		-
+			message: '#^Class FreeFormCertificate\\Generators\\PdfGenerator constructor invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: includes/frontend/class-ffc-form-processor.php
+
+		-
+			message: '#^If condition is always true\.$#'
+			identifier: if.alwaysTrue
+			count: 1
+			path: includes/frontend/class-ffc-form-processor.php
+
+		-
+			message: '#^Property FreeFormCertificate\\Frontend\\FormProcessor\:\:\$email_handler is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: includes/frontend/class-ffc-form-processor.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: includes/frontend/class-ffc-form-processor.php
+
+		-
+			message: '#^Variable \$quiz_score in isset\(\) always exists and is not nullable\.$#'
+			identifier: isset.variable
+			count: 1
+			path: includes/frontend/class-ffc-form-processor.php
+
+		-
+			message: '#^Property FreeFormCertificate\\Frontend\\Frontend\:\:\$dynamic_fragments is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: includes/frontend/class-ffc-frontend.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int\<min, \-1\>\|int\<1, max\> given\.$#'
+			identifier: argument.type
+			count: 3
+			path: includes/frontend/class-ffc-shortcodes.php
+
+		-
+			message: '#^Path in include\(\) "/path/to/plugin/templates/verification\-page\.php" is not a file or it does not exist\.$#'
+			identifier: include.fileNotFound
+			count: 1
+			path: includes/frontend/class-ffc-shortcodes.php
+
+		-
+			message: '#^Property FreeFormCertificate\\Frontend\\Shortcodes\:\:\$form_processor is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: includes/frontend/class-ffc-shortcodes.php
+
+		-
+			message: '#^Property FreeFormCertificate\\Frontend\\Shortcodes\:\:\$submission_handler is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: includes/frontend/class-ffc-shortcodes.php
+
+		-
+			message: '#^Property FreeFormCertificate\\Frontend\\Shortcodes\:\:\$verification_handler is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: includes/frontend/class-ffc-shortcodes.php
+
+		-
+			message: '#^Variable \$magic_token in empty\(\) always exists and is always falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: includes/frontend/class-ffc-shortcodes.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/frontend/class-ffc-verification-handler.php
+
+		-
+			message: '#^Property FreeFormCertificate\\Frontend\\VerificationHandler\:\:\$email_handler is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: includes/frontend/class-ffc-verification-handler.php
+
+		-
+			message: '#^Path in include\(\) "/path/to/plugin/templates/certificate\-preview\.php" is not a file or it does not exist\.$#'
+			identifier: include.fileNotFound
+			count: 1
+			path: includes/frontend/class-ffc-verification-response-renderer.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 1
+			path: includes/generators/class-ffc-magic-link-helper.php
+
+		-
+			message: '#^Call to an undefined static method FreeFormCertificate\\Generators\\PdfGenerator\:\:generate_qr_code\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 1
+			path: includes/generators/class-ffc-pdf-generator.php
+
+		-
+			message: '#^Instantiated class FreeFormCertificate\\Generators\\WP_Error not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/generators/class-ffc-pdf-generator.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Generators\\PdfGenerator\:\:generate_pdf_data\(\) should return array\{html\: string, filename\: string, form_title\: string, auth_code\: string, submission_id\: int, submission\: array\<string, mixed\>, bg_image\: mixed\}\|WP_Error but returns FreeFormCertificate\\Generators\\WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/generators/class-ffc-pdf-generator.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Generators\\PdfGenerator\:\:generate_pdf_data_from_form\(\) should return array\{html\: string, filename\: string, form_title\: string, submission\: array\<string, mixed\>, bg_image\: mixed\}\|WP_Error but returns FreeFormCertificate\\Generators\\WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/generators/class-ffc-pdf-generator.php
+
+		-
+			message: '#^Call to method getMessage\(\) on an unknown class FreeFormCertificate\\Generators\\Exception\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/generators/class-ffc-qrcode-generator.php
+
+		-
+			message: '#^Call to static method png\(\) on an unknown class QRcode\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/generators/class-ffc-qrcode-generator.php
+
+		-
+			message: '#^Caught class FreeFormCertificate\\Generators\\Exception not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/generators/class-ffc-qrcode-generator.php
+
+		-
+			message: '#^Constant QR_ECLEVEL_H not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: includes/generators/class-ffc-qrcode-generator.php
+
+		-
+			message: '#^Constant QR_ECLEVEL_L not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: includes/generators/class-ffc-qrcode-generator.php
+
+		-
+			message: '#^Constant QR_ECLEVEL_M not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: includes/generators/class-ffc-qrcode-generator.php
+
+		-
+			message: '#^Constant QR_ECLEVEL_Q not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: includes/generators/class-ffc-qrcode-generator.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Generators\\QRCodeGenerator\:\:clear_cache\(\) should return bool but returns int\.$#'
+			identifier: return.type
+			count: 2
+			path: includes/generators/class-ffc-qrcode-generator.php
+
+		-
+			message: '#^PHPDoc tag @return with type int is incompatible with native type bool\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: includes/generators/class-ffc-qrcode-generator.php
+
+		-
+			message: '#^Path in require_once\(\) "/path/to/plugin/libs/phpqrcode/qrlib\.php" is not a file or it does not exist\.$#'
+			identifier: requireOnce.fileNotFound
+			count: 1
+			path: includes/generators/class-ffc-qrcode-generator.php
+
+		-
+			message: '#^Access to property \$From on an unknown class FreeFormCertificate\\Integrations\\PHPMailer\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/integrations/class-ffc-email-handler.php
+
+		-
+			message: '#^Access to property \$FromName on an unknown class FreeFormCertificate\\Integrations\\PHPMailer\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/integrations/class-ffc-email-handler.php
+
+		-
+			message: '#^Access to property \$Host on an unknown class FreeFormCertificate\\Integrations\\PHPMailer\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/integrations/class-ffc-email-handler.php
+
+		-
+			message: '#^Access to property \$Password on an unknown class FreeFormCertificate\\Integrations\\PHPMailer\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/integrations/class-ffc-email-handler.php
+
+		-
+			message: '#^Access to property \$Port on an unknown class FreeFormCertificate\\Integrations\\PHPMailer\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/integrations/class-ffc-email-handler.php
+
+		-
+			message: '#^Access to property \$SMTPAuth on an unknown class FreeFormCertificate\\Integrations\\PHPMailer\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/integrations/class-ffc-email-handler.php
+
+		-
+			message: '#^Access to property \$SMTPSecure on an unknown class FreeFormCertificate\\Integrations\\PHPMailer\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/integrations/class-ffc-email-handler.php
+
+		-
+			message: '#^Access to property \$Username on an unknown class FreeFormCertificate\\Integrations\\PHPMailer\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/integrations/class-ffc-email-handler.php
+
+		-
+			message: '#^Call to method isSMTP\(\) on an unknown class FreeFormCertificate\\Integrations\\PHPMailer\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/integrations/class-ffc-email-handler.php
+
+		-
+			message: '#^Parameter \$phpmailer of method FreeFormCertificate\\Integrations\\EmailHandler\:\:configure_custom_smtp\(\) has invalid type FreeFormCertificate\\Integrations\\PHPMailer\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/integrations/class-ffc-email-handler.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/integrations/class-ffc-ip-geolocation.php
+
+		-
+			message: '#^Instantiated class FreeFormCertificate\\Integrations\\WP_Error not found\.$#'
+			identifier: class.notFound
+			count: 7
+			path: includes/integrations/class-ffc-ip-geolocation.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:fetch_from_ipapi\(\) should return array\<string, mixed\>\|WP_Error but returns FreeFormCertificate\\Integrations\\WP_Error\.$#'
+			identifier: return.type
+			count: 2
+			path: includes/integrations/class-ffc-ip-geolocation.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:fetch_from_ipinfo\(\) should return array\<string, mixed\>\|WP_Error but returns FreeFormCertificate\\Integrations\\WP_Error\.$#'
+			identifier: return.type
+			count: 2
+			path: includes/integrations/class-ffc-ip-geolocation.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:fetch_from_service\(\) should return array\<string, mixed\>\|WP_Error but returns FreeFormCertificate\\Integrations\\WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/integrations/class-ffc-ip-geolocation.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:get_location\(\) should return array\<string, mixed\>\|WP_Error\|null but returns FreeFormCertificate\\Integrations\\WP_Error\.$#'
+			identifier: return.type
+			count: 2
+			path: includes/integrations/class-ffc-ip-geolocation.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: includes/migrations/class-ffc-data-sanitizer.php
+
+		-
+			message: '#^Ternary operator condition is always false\.$#'
+			identifier: ternary.alwaysFalse
+			count: 3
+			path: includes/migrations/class-ffc-migration-custom-fields-tables.php
+
+		-
+			message: '#^Constant DB_NAME not found\.$#'
+			identifier: constant.notFound
+			count: 3
+			path: includes/migrations/class-ffc-migration-foreign-keys.php
+
+		-
+			message: '#^Call to function is_wp_error\(\) with array will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: includes/migrations/class-ffc-migration-manager.php
+
+		-
+			message: '#^Instantiated class FreeFormCertificate\\Migrations\\WP_Error not found\.$#'
+			identifier: class.notFound
+			count: 8
+			path: includes/migrations/class-ffc-migration-manager.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\MigrationManager\:\:can_drop_columns\(\) has invalid return type FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-manager.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\MigrationManager\:\:can_run_migration\(\) has invalid return type FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-manager.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\MigrationManager\:\:cleanup_old_data\(\) has invalid return type FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-manager.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\MigrationManager\:\:drop_old_columns\(\) has invalid return type FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-manager.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\MigrationManager\:\:get_migration_status\(\) has invalid return type FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-manager.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\MigrationManager\:\:migrate_encryption\(\) has invalid return type FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-manager.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\MigrationManager\:\:run_migration\(\) has invalid return type FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-manager.php
+
+		-
+			message: '#^Call to function is_string\(\) with non\-falsy\-string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/migrations/class-ffc-migration-name-normalization.php
+
+		-
+			message: '#^Constant DB_NAME not found\.$#'
+			identifier: constant.notFound
+			count: 4
+			path: includes/migrations/class-ffc-migration-self-scheduling-tables.php
+
+		-
+			message: '#^Call to method calculate_status\(\) on an unknown class FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-status-calculator.php
+
+		-
+			message: '#^Call to method can_run\(\) on an unknown class FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-status-calculator.php
+
+		-
+			message: '#^Call to method execute\(\) on an unknown class FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-status-calculator.php
+
+		-
+			message: '#^Instantiated class FreeFormCertificate\\Migrations\\WP_Error not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/migrations/class-ffc-migration-status-calculator.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\MigrationStatusCalculator\:\:calculate\(\) has invalid return type FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-status-calculator.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\MigrationStatusCalculator\:\:can_run\(\) has invalid return type FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-status-calculator.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\MigrationStatusCalculator\:\:execute\(\) has invalid return type FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-status-calculator.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\MigrationStatusCalculator\:\:get_strategy_for_migration\(\) has invalid return type FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-status-calculator.php
+
+		-
+			message: '#^Call to method set_role\(\) on an unknown class FreeFormCertificate\\Migrations\\WP_User\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-user-link.php
+
+		-
+			message: '#^Instantiated class FreeFormCertificate\\Migrations\\WP_User not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/class-ffc-migration-user-link.php
+
+		-
+			message: '#^Instantiated class FreeFormCertificate\\Migrations\\Strategies\\WP_Error not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/migrations/strategies/class-ffc-cleanup-migration-strategy.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\Strategies\\CleanupMigrationStrategy\:\:can_run\(\) has invalid return type FreeFormCertificate\\Migrations\\Strategies\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/strategies/class-ffc-cleanup-migration-strategy.php
+
+		-
+			message: '#^Call to method getMessage\(\) on an unknown class FreeFormCertificate\\Migrations\\Strategies\\Exception\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/strategies/class-ffc-encryption-migration-strategy.php
+
+		-
+			message: '#^Caught class FreeFormCertificate\\Migrations\\Strategies\\Exception not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/strategies/class-ffc-encryption-migration-strategy.php
+
+		-
+			message: '#^Instantiated class FreeFormCertificate\\Migrations\\Strategies\\WP_Error not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/migrations/strategies/class-ffc-encryption-migration-strategy.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\Strategies\\EncryptionMigrationStrategy\:\:can_run\(\) has invalid return type FreeFormCertificate\\Migrations\\Strategies\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/strategies/class-ffc-encryption-migration-strategy.php
+
+		-
+			message: '#^Undefined variable\: \$offset$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/migrations/strategies/class-ffc-encryption-migration-strategy.php
+
+		-
+			message: '#^Constant DB_NAME not found\.$#'
+			identifier: constant.notFound
+			count: 2
+			path: includes/migrations/strategies/class-ffc-field-migration-strategy.php
+
+		-
+			message: '#^Instantiated class FreeFormCertificate\\Migrations\\Strategies\\WP_Error not found\.$#'
+			identifier: class.notFound
+			count: 4
+			path: includes/migrations/strategies/class-ffc-field-migration-strategy.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\Strategies\\FieldMigrationStrategy\:\:calculate_status\(\) should return array\<string, mixed\> but returns FreeFormCertificate\\Migrations\\Strategies\\WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/migrations/strategies/class-ffc-field-migration-strategy.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\Strategies\\FieldMigrationStrategy\:\:can_run\(\) has invalid return type FreeFormCertificate\\Migrations\\Strategies\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/strategies/class-ffc-field-migration-strategy.php
+
+		-
+			message: '#^Constant DB_NAME not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: includes/migrations/strategies/class-ffc-magic-token-migration-strategy.php
+
+		-
+			message: '#^Instantiated class FreeFormCertificate\\Migrations\\Strategies\\WP_Error not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/strategies/class-ffc-magic-token-migration-strategy.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\Strategies\\MagicTokenMigrationStrategy\:\:can_run\(\) has invalid return type FreeFormCertificate\\Migrations\\Strategies\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/strategies/class-ffc-magic-token-migration-strategy.php
+
+		-
+			message: '#^Constant FreeFormCertificate\\Migrations\\Strategies\\NameNormalizationMigrationStrategy\:\:NAME_FIELDS is unused\.$#'
+			identifier: classConstant.unused
+			count: 1
+			path: includes/migrations/strategies/class-ffc-name-normalization-migration-strategy.php
+
+		-
+			message: '#^Instantiated class FreeFormCertificate\\Migrations\\Strategies\\WP_Error not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/migrations/strategies/class-ffc-user-link-migration-strategy.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\Strategies\\UserLinkMigrationStrategy\:\:can_run\(\) has invalid return type FreeFormCertificate\\Migrations\\Strategies\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/strategies/class-ffc-user-link-migration-strategy.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface\:\:can_run\(\) has invalid return type FreeFormCertificate\\Migrations\\Strategies\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/migrations/strategies/interface-ffc-migration-strategy-interface.php
+
+		-
+			message: '#^Variable \$data in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: includes/privacy/class-ffc-privacy-handler.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/repositories/ffc-blocked-date-repository.php
+
+		-
+			message: '#^Constant DB_NAME not found\.$#'
+			identifier: constant.notFound
+			count: 1
+			path: includes/repositories/ffc-submission-repository.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int given\.$#'
+			identifier: argument.type
+			count: 3
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, int given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, int\<0, max\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 2
+			path: includes/reregistration/class-ffc-reregistration-data-processor.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/reregistration/class-ffc-reregistration-form-renderer.php
+
+		-
+			message: '#^Parameter \#4 \$format of method wpdb\:\:update\(\) expects array\<string\>\|string\|null, array\<int, string\|null\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-submission-repository.php
+
+		-
+			message: '#^Parameter \#2 \$replace of function str_replace expects array\<string\>\|string, array\<int, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/security/class-ffc-rate-limiter.php
+
+		-
+			message: '#^Parameter \#3 \$number of function _n expects int, float given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/security/class-ffc-rate-limiter.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php
+
+		-
+			message: '#^Call to function is_wp_error\(\) with non\-empty\-array will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 9
+			path: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php
+
+		-
+			message: '#^Variable \$cpf_rf_clean in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int given\.$#'
+			identifier: argument.type
+			count: 4
+			path: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, int given\.$#'
+			identifier: argument.type
+			count: 4
+			path: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 5
+			path: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+
+		-
+			message: '#^Property FreeFormCertificate\\SelfScheduling\\SelfSchedulingShortcode\:\:\$appointment_handler is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+
+		-
+			message: '#^Parameter \#1 \$args of method WP_List_Table\:\:set_pagination_args\(\) expects array\{total_items\?\: int, total_pages\?\: int, per_page\?\: int\}, array\{total_items\: int, per_page\: 20, total_pages\: float\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/self-scheduling/views/appointments-list.php
+
+		-
+			message: '#^Path in include\(\) "/path/to/plugin/includes/settings/views/ffc\-tab\-advanced\.php" is not a file or it does not exist\.$#'
+			identifier: include.fileNotFound
+			count: 1
+			path: includes/settings/tabs/class-ffc-tab-advanced.php
+
+		-
+			message: '#^Path in include\(\) "/path/to/plugin/includes/settings/views/ffc\-tab\-cache\.php" is not a file or it does not exist\.$#'
+			identifier: include.fileNotFound
+			count: 1
+			path: includes/settings/tabs/class-ffc-tab-cache.php
+
+		-
+			message: '#^Path in include\(\) "/path/to/plugin/includes/settings/views/ffc\-tab\-documentation\.php" is not a file or it does not exist\.$#'
+			identifier: include.fileNotFound
+			count: 1
+			path: includes/settings/tabs/class-ffc-tab-documentation.php
+
+		-
+			message: '#^Path in include\(\) "/path/to/plugin/includes/settings/views/ffc\-tab\-general\.php" is not a file or it does not exist\.$#'
+			identifier: include.fileNotFound
+			count: 1
+			path: includes/settings/tabs/class-ffc-tab-general.php
+
+		-
+			message: '#^Path in include\(\) "/path/to/plugin/includes/settings/views/ffc\-tab\-geolocation\.php" is not a file or it does not exist\.$#'
+			identifier: include.fileNotFound
+			count: 1
+			path: includes/settings/tabs/class-ffc-tab-geolocation.php
+
+		-
+			message: '#^Path in include\(\) "/path/to/plugin/includes/settings/views/ffc\-tab\-migrations\.php" is not a file or it does not exist\.$#'
+			identifier: include.fileNotFound
+			count: 1
+			path: includes/settings/tabs/class-ffc-tab-migrations.php
+
+		-
+			message: '#^Path in include\(\) "/path/to/plugin/includes/settings/views/ffc\-tab\-rate\-limit\.php" is not a file or it does not exist\.$#'
+			identifier: include.fileNotFound
+			count: 1
+			path: includes/settings/tabs/class-ffc-tab-rate-limit.php
+
+		-
+			message: '#^Path in include\(\) "/path/to/plugin/includes/settings/views/ffc\-tab\-smtp\.php" is not a file or it does not exist\.$#'
+			identifier: include.fileNotFound
+			count: 1
+			path: includes/settings/tabs/class-ffc-tab-smtp.php
+
+		-
+			message: '#^Path in include\(\) "/path/to/plugin/includes/settings/views/ffc\-tab\-user\-access\.php" is not a file or it does not exist\.$#'
+			identifier: include.fileNotFound
+			count: 1
+			path: includes/settings/tabs/class-ffc-tab-user-access.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_attr expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/settings/views/ffc-tab-advanced.php
+
+		-
+			message: '#^Variable \$settings might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/settings/views/ffc-tab-advanced.php
+
+		-
+			message: '#^Variable \$settings might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/settings/views/ffc-tab-cache.php
+
+		-
+			message: '#^Variable \$settings might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/settings/views/ffc-tab-general.php
+
+		-
+			message: '#^Variable \$settings might not be defined\.$#'
+			identifier: variable.undefined
+			count: 18
+			path: includes/settings/views/ffc-tab-geolocation.php
+
+		-
+			message: '#^Variable \$settings might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/settings/views/ffc-tab-rate-limit.php
+
+		-
+			message: '#^Variable \$settings might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/settings/views/ffc-tab-smtp.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: includes/submissions/class-ffc-form-cache.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between array and false will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: includes/submissions/class-ffc-form-cache.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/submissions/class-ffc-submission-handler.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Submissions\\SubmissionHandler\:\:run_data_cleanup\(\) should return array\<string, int\> but returns int\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/submissions/class-ffc-submission-handler.php
+
+		-
+			message: '#^Path in require_once\(\) "/path/to/plugin/includes/user\-dashboard/class\-ffc\-user\-manager\.php" is not a file or it does not exist\.$#'
+			identifier: requireOnce.fileNotFound
+			count: 1
+			path: includes/submissions/class-ffc-submission-handler.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between array and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: includes/submissions/class-ffc-submission-handler.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: includes/submissions/class-ffc-submission-handler.php
+
+		-
+			message: '#^Variable \$data_json in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: includes/submissions/class-ffc-submission-handler.php
+
+		-
+			message: '#^Path in require_once\(\) "/path/to/plugin/includes/integrations/class\-ffc\-email\-handler\.php" is not a file or it does not exist\.$#'
+			identifier: requireOnce.fileNotFound
+			count: 1
+			path: includes/user-dashboard/class-ffc-user-creator.php

@@ -25,7 +25,7 @@ class DataSanitizer {
      * Sanitize a field value based on its configuration
      *
      * @param mixed $value Field value to sanitize
-     * @param array $field_config Field configuration with sanitize_callback
+     * @param array<string, mixed> $field_config Field configuration with sanitize_callback
      * @return mixed Sanitized value
      */
     public static function sanitize_field_value( $value, array $field_config ) {
@@ -49,8 +49,8 @@ class DataSanitizer {
      * Clean JSON data for migration
      * Removes empty values and normalizes structure
      *
-     * @param string|array $data JSON data or array
-     * @return array Cleaned data array
+     * @param string|array<string, mixed> $data JSON data or array
+     * @return array<string, mixed> Cleaned data array
      */
     public static function clean_json_data( $data ): array {
         if ( is_string( $data ) ) {
@@ -72,8 +72,8 @@ class DataSanitizer {
     /**
      * Extract field value from JSON data using multiple possible keys
      *
-     * @param array $data JSON data array
-     * @param array $possible_keys Array of possible field names
+     * @param array<string, mixed> $data JSON data array
+     * @param array<int, string> $possible_keys Array of possible field names
      * @return mixed Field value or empty string if not found
      */
     public static function extract_field_from_json( array $data, array $possible_keys ) {

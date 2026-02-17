@@ -28,6 +28,9 @@ class FormCache {
     
     /**
      * Get form configuration with caching
+     *
+     * @param int $form_id Form ID
+     * @return array<string, mixed>|false Form config array or false if not found
      */
     public static function get_form_config( int $form_id ) {
         $cache_key = 'config_' . $form_id;
@@ -56,6 +59,9 @@ class FormCache {
     
     /**
      * Get form fields with caching
+     *
+     * @param int $form_id Form ID
+     * @return array<int, array<string, mixed>>|false Form fields array or false if not found
      */
     public static function get_form_fields( int $form_id ) {
         $cache_key = 'fields_' . $form_id;
@@ -94,6 +100,9 @@ class FormCache {
     
     /**
      * Get complete form data
+     *
+     * @param int $form_id Form ID
+     * @return array<string, mixed> Complete form data
      */
     public static function get_form_complete( int $form_id ): array {
         $cache_key = 'complete_' . $form_id;
@@ -114,6 +123,9 @@ class FormCache {
     
     /**
      * Get form post object with caching
+     *
+     * @param int $form_id Form ID
+     * @return \WP_Post|false Post object or false if not found
      */
     public static function get_form_post( int $form_id ) {
         $cache_key = 'post_' . $form_id;
@@ -198,6 +210,8 @@ class FormCache {
     
     /**
      * Get cache statistics
+     *
+     * @return array<string, mixed> Cache statistics
      */
     public static function get_stats(): array {
         return array(
@@ -211,6 +225,9 @@ class FormCache {
     
     /**
      * Check if form cache exists
+     *
+     * @param int $form_id Form ID
+     * @return array<string, bool> Cache status per key
      */
     public static function check_form_cache_status( int $form_id ): array {
         $keys = array(
@@ -253,13 +270,17 @@ class FormCache {
     public static function register_hooks(): void {
         add_action( 'save_post_ffc_form', array( __CLASS__, 'on_form_saved' ), 10, 3 );
         add_action( 'before_delete_post', array( __CLASS__, 'on_form_deleted' ), 10, 2 );
-        add_action( 'ffcertificate_warm_cache_hook', array( __CLASS__, 'warm_all_forms' ) );
+        add_action( 'ffcertificate_warm_cache_hook', static function (): void { self::warm_all_forms(); } );
     }
     
     /**
      * Hook callback: Form saved
+     *
+     * @param int      $post_id Post ID.
+     * @param \WP_Post $post    Post object.
+     * @param bool     $update  Whether this is an update.
      */
-    public static function on_form_saved( int $post_id, $post, bool $update ): void {
+    public static function on_form_saved( int $post_id, \WP_Post $post, bool $update ): void {
         if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
             return;
         }
@@ -273,8 +294,11 @@ class FormCache {
     
     /**
      * Hook callback: Form deleted
+     *
+     * @param int      $post_id Post ID.
+     * @param \WP_Post $post    Post object.
      */
-    public static function on_form_deleted( int $post_id, $post ): void {
+    public static function on_form_deleted( int $post_id, \WP_Post $post ): void {
         if ( $post && $post->post_type === 'ffc_form' ) {
             self::clear_form_cache( $post_id );
         }

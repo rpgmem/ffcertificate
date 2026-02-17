@@ -497,26 +497,28 @@ class Activator {
             }
 
             // Remove duplicate auth_codes (keep the most recent) before adding constraint
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->query(
-                "DELETE t1 FROM {$table} t1
-                 INNER JOIN {$table} t2
-                 WHERE t1.{$column} = t2.{$column}
-                   AND t1.{$column} IS NOT NULL
-                   AND t1.{$column} != ''
-                   AND t1.id < t2.id"
+                $wpdb->prepare(
+                    "DELETE t1 FROM %i t1
+                     INNER JOIN %i t2
+                     WHERE t1.%i = t2.%i
+                       AND t1.%i IS NOT NULL
+                       AND t1.%i != ''
+                       AND t1.id < t2.id",
+                    $table, $table, $column, $column, $column, $column
+                )
             );
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
             // Drop old non-unique indexes
             foreach ( array_unique( $old_index_names ) as $name ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $wpdb->query( "ALTER TABLE {$table} DROP INDEX {$name}" );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+                $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table, $name ) );
             }
 
             // Add UNIQUE constraint
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $wpdb->query( "ALTER TABLE {$table} ADD UNIQUE INDEX uq_{$column} ({$column})" );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic index name uq_{$column} from trusted internal config.
+            $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD UNIQUE INDEX uq_{$column} (%i)", $table, $column ) );
         }
     }
 

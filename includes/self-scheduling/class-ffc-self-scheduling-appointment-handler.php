@@ -23,9 +23,19 @@ class AppointmentHandler {
 
     /**
      * Repositories
+     *
+     * @var \FreeFormCertificate\Repositories\CalendarRepository
      */
     private $calendar_repository;
+
+    /**
+     * @var \FreeFormCertificate\Repositories\AppointmentRepository
+     */
     private $appointment_repository;
+
+    /**
+     * @var \FreeFormCertificate\Repositories\BlockedDateRepository
+     */
     private $blocked_date_repository;
 
     /**
@@ -65,8 +75,8 @@ class AppointmentHandler {
     /**
      * Process appointment booking
      *
-     * @param array $data Appointment data
-     * @return array|\WP_Error
+     * @param array<string, mixed> $data Appointment data
+     * @return array<string, mixed>|\WP_Error
      */
     public function process_appointment(array $data) {
         // Get calendar (outside transaction — immutable config)
@@ -182,7 +192,7 @@ class AppointmentHandler {
      *
      * @param int $calendar_id
      * @param string $date
-     * @return array|\WP_Error
+     * @return array<int, array<string, mixed>>|\WP_Error
      */
     public function get_available_slots(int $calendar_id, string $date) {
         // Get calendar
@@ -381,8 +391,8 @@ class AppointmentHandler {
     /**
      * Schedule email notifications
      *
-     * @param array $appointment
-     * @param array $calendar
+     * @param array<string, mixed> $appointment
+     * @param array<string, mixed> $calendar
      * @param string $event (created, confirmed, cancelled, reminder)
      */
     private function schedule_email_notifications(array $appointment, array $calendar, string $event): void {
@@ -423,7 +433,7 @@ class AppointmentHandler {
     /**
      * Create or link WordPress user based on CPF/RF and email
      *
-     * @param array &$data Appointment data (passed by reference)
+     * @param array<string, mixed> &$data Appointment data (passed by reference)
      */
     private function create_or_link_user(array &$data): void {
         if (empty($data['cpf_rf']) || empty($data['email'])) {

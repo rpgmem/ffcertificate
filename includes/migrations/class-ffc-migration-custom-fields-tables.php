@@ -55,7 +55,7 @@ class MigrationCustomFieldsTables {
     /**
      * Run the migration
      *
-     * @return array{success: bool, message: string, details: array}
+     * @return array<string, mixed>
      */
     public static function run(): array {
         if (self::is_completed()) {
@@ -281,7 +281,7 @@ class MigrationCustomFieldsTables {
     /**
      * Get migration status information
      *
-     * @return array{completed: bool, tables: array}
+     * @return array<string, mixed>
      */
     public static function get_status(): array {
         global $wpdb;

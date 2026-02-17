@@ -15,7 +15,7 @@ namespace FreeFormCertificate\UserDashboard;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 class UserCleanup {
 
@@ -48,9 +48,9 @@ class UserCleanup {
 
         // 1. Submissions: SET user_id = NULL (preserve certificate records)
         $submissions_table = $wpdb->prefix . 'ffc_submissions';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
         $rows = $wpdb->query($wpdb->prepare(
-            "UPDATE {$submissions_table} SET user_id = NULL WHERE user_id = %d",
+            "UPDATE %i SET user_id = NULL WHERE user_id = %d",
+            $submissions_table,
             $user_id
         ));
         if ($rows > 0) {
@@ -61,7 +61,8 @@ class UserCleanup {
         $appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
         if (self::table_exists($appointments_table)) {
             $rows = $wpdb->query($wpdb->prepare(
-                "UPDATE {$appointments_table} SET user_id = NULL WHERE user_id = %d",
+                "UPDATE %i SET user_id = NULL WHERE user_id = %d",
+                $appointments_table,
                 $user_id
             ));
             if ($rows > 0) {
@@ -73,7 +74,8 @@ class UserCleanup {
         $activity_table = $wpdb->prefix . 'ffc_activity_log';
         if (self::table_exists($activity_table)) {
             $rows = $wpdb->query($wpdb->prepare(
-                "UPDATE {$activity_table} SET user_id = NULL WHERE user_id = %d",
+                "UPDATE %i SET user_id = NULL WHERE user_id = %d",
+                $activity_table,
                 $user_id
             ));
             if ($rows > 0) {
@@ -160,7 +162,8 @@ class UserCleanup {
         $new_email_hash = hash('sha256', strtolower(trim($new_email)));
 
         $wpdb->query($wpdb->prepare(
-            "UPDATE {$submissions_table} SET email_hash = %s WHERE user_id = %d",
+            "UPDATE %i SET email_hash = %s WHERE user_id = %d",
+            $submissions_table,
             $new_email_hash,
             $user_id
         ));

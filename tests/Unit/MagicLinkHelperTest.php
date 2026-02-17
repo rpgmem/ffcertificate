@@ -36,6 +36,24 @@ class MagicLinkHelperTest extends TestCase {
         Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
             return parse_url( $url, $component );
         } );
+
+        // Namespaced stubs: prevent "is not defined" errors when Sprint 27 tests run first.
+        // MagicLinkHelper is in Generators namespace.
+        Functions\when( 'FreeFormCertificate\Generators\get_option' )->alias( function ( $key, $default = false ) {
+            return \get_option( $key, $default );
+        } );
+        Functions\when( 'FreeFormCertificate\Generators\wp_parse_url' )->alias( function ( $url, $component = -1 ) {
+            return parse_url( $url, $component );
+        } );
+        Functions\when( 'FreeFormCertificate\Generators\home_url' )->alias( function ( $path = '' ) {
+            return \home_url( $path );
+        } );
+        Functions\when( 'FreeFormCertificate\Generators\trailingslashit' )->alias( function ( $url ) {
+            return rtrim( $url, '/' ) . '/';
+        } );
+        Functions\when( 'FreeFormCertificate\Generators\esc_url' )->returnArg();
+        Functions\when( 'FreeFormCertificate\Generators\esc_html' )->returnArg();
+        Functions\when( 'FreeFormCertificate\Generators\esc_attr' )->returnArg();
     }
 
     protected function tearDown(): void {

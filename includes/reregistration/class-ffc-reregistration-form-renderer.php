@@ -125,11 +125,11 @@ class ReregistrationFormRenderer {
     /**
      * Build default standard field values from profile/user data.
      *
-     * @param array     $profile User profile data.
-     * @param \WP_User  $user    WordPress user.
-     * @return array
+     * @param array<string, mixed> $profile User profile data.
+     * @param \WP_User             $user    WordPress user.
+     * @return array<string, string>
      */
-    private static function build_standard_defaults(array $profile, $user): array {
+    private static function build_standard_defaults(array $profile, \WP_User $user): array {
         return array(
             'display_name'        => $profile['display_name'] ?? $user->display_name,
             'sexo'                => $profile['sexo'] ?? '',
@@ -170,6 +170,9 @@ class ReregistrationFormRenderer {
 
     /**
      * Render fieldset 1: Personal Data.
+     *
+     * @param array<string, string>          $standard          Default form field values.
+     * @param array<string, array<string, string>> $divisao_setor_map Map of divisions to their sectors.
      */
     private static function render_personal_data_fieldset(array $standard, array $divisao_setor_map): void {
         ?>
@@ -328,8 +331,11 @@ class ReregistrationFormRenderer {
 
     /**
      * Render fieldset 2: Contact Information.
+     *
+     * @param array<string, string> $standard Default form field values.
+     * @param \WP_User              $user     WordPress user.
      */
-    private static function render_contacts_fieldset(array $standard, $user): void {
+    private static function render_contacts_fieldset(array $standard, \WP_User $user): void {
         ?>
         <!-- 2. CONTATOS -->
         <fieldset class="ffc-rereg-fieldset">
@@ -378,6 +384,9 @@ class ReregistrationFormRenderer {
 
     /**
      * Render fieldset 3: Work Schedule / Working Hours.
+     *
+     * @param array<string, string> $standard Default form field values.
+     * @param array<string, mixed>  $wh_main  Working hours data for the primary schedule.
      */
     private static function render_schedule_fieldset(array $standard, array $wh_main): void {
         ?>
@@ -405,6 +414,9 @@ class ReregistrationFormRenderer {
 
     /**
      * Render fieldset 4: Position Accumulation.
+     *
+     * @param array<string, string> $standard   Default form field values.
+     * @param array<string, mixed>  $wh_acumulo Working hours data for the accumulation schedule.
      */
     private static function render_accumulation_fieldset(array $standard, array $wh_acumulo): void {
         ?>
@@ -450,6 +462,8 @@ class ReregistrationFormRenderer {
 
     /**
      * Render fieldset 5: Union.
+     *
+     * @param array<string, string> $standard Default form field values.
      */
     private static function render_union_fieldset(array $standard): void {
         ?>
@@ -496,6 +510,9 @@ class ReregistrationFormRenderer {
 
     /**
      * Render custom fields fieldset (if any).
+     *
+     * @param array<int, object> $custom_fields List of custom field definitions.
+     * @param array<string, mixed> $custom_values Saved values keyed by field key.
      */
     private static function render_custom_fields_fieldset(array $custom_fields, array $custom_values): void {
         if (empty($custom_fields)) {
@@ -538,8 +555,14 @@ class ReregistrationFormRenderer {
 
     /**
      * Render a single custom field based on type.
+     *
+     * @param object      $cf           Custom field definition object.
+     * @param string      $field_id     HTML element ID.
+     * @param string      $field_name   HTML input name attribute.
+     * @param string|null $field_value  Current field value.
+     * @param bool        $is_required  Whether the field is required.
      */
-    private static function render_custom_field(object $cf, string $field_id, string $field_name, $field_value, bool $is_required): void {
+    private static function render_custom_field(object $cf, string $field_id, string $field_name, ?string $field_value, bool $is_required): void {
         $rules = $cf->validation_rules ? json_decode($cf->validation_rules, true) : array();
 
         switch ($cf->field_type) {
@@ -628,8 +651,13 @@ class ReregistrationFormRenderer {
 
     /**
      * Render a dependent select custom field.
+     *
+     * @param object      $cf          Custom field definition object.
+     * @param string      $field_id    HTML element ID.
+     * @param string      $field_name  HTML input name attribute.
+     * @param string|null $field_value Current field value (JSON-encoded parent/child pair or null).
      */
-    private static function render_dependent_select_field(object $cf, string $field_id, string $field_name, $field_value): void {
+    private static function render_dependent_select_field(object $cf, string $field_id, string $field_name, ?string $field_value): void {
         $dep_groups = CustomFieldRepository::get_dependent_choices($cf);
         $dep_options = $cf->field_options;
         if (is_string($dep_options)) {
@@ -680,8 +708,12 @@ class ReregistrationFormRenderer {
 
     /**
      * Render a custom working hours field (for custom field type).
+     *
+     * @param string      $field_id    HTML element ID.
+     * @param string      $field_name  HTML input name attribute.
+     * @param string|null $field_value Current field value (JSON-encoded working hours array or null).
      */
-    private static function render_custom_working_hours_field(string $field_id, string $field_name, $field_value): void {
+    private static function render_custom_working_hours_field(string $field_id, string $field_name, ?string $field_value): void {
         $wh_data = is_string($field_value) ? json_decode($field_value, true) : $field_value;
         if (!is_array($wh_data) || empty($wh_data)) {
             $wh_data = array(
@@ -742,9 +774,9 @@ class ReregistrationFormRenderer {
     /**
      * Render a working hours table for a standard field.
      *
-     * @param string $field_name  Hidden input name.
-     * @param string $field_id    Hidden input id.
-     * @param array  $wh_data     Current working hours data.
+     * @param string               $field_name Hidden input name.
+     * @param string               $field_id   Hidden input id.
+     * @param array<string, mixed> $wh_data    Current working hours data.
      * @return string HTML.
      */
     private static function render_working_hours_field(string $field_name, string $field_id, array $wh_data): string {

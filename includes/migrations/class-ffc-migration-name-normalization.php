@@ -24,7 +24,6 @@ namespace FreeFormCertificate\Migrations;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class MigrationNameNormalization {
 
@@ -45,7 +44,7 @@ class MigrationNameNormalization {
      *
      * @param int $batch_size Number of records per batch (default: 100)
      * @param bool $dry_run If true, only shows what would change without saving
-     * @return array Result with success status, processed count, and changes
+     * @return array<string, mixed> Result with success status, processed count, and changes
      */
     public static function run(int $batch_size = 100, bool $dry_run = false): array {
         global $wpdb;
@@ -63,11 +62,14 @@ class MigrationNameNormalization {
         }
 
         // Get total count for progress tracking
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $total = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$table}
-             WHERE (data_encrypted IS NOT NULL AND data_encrypted != '')
-             OR (email_encrypted IS NOT NULL AND email_encrypted != '')"
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM %i
+                 WHERE (data_encrypted IS NOT NULL AND data_encrypted != '')
+                 OR (email_encrypted IS NOT NULL AND email_encrypted != '')",
+                $table
+            )
         );
 
         if ($total == 0) {
@@ -91,13 +93,14 @@ class MigrationNameNormalization {
         // Process in batches
         while ($offset < $total) {
             // Get batch of submissions (include email_encrypted)
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $submissions = $wpdb->get_results($wpdb->prepare(
-                "SELECT id, data_encrypted, email_encrypted FROM {$table}
+                "SELECT id, data_encrypted, email_encrypted FROM %i
                  WHERE (data_encrypted IS NOT NULL AND data_encrypted != '')
                  OR (email_encrypted IS NOT NULL AND email_encrypted != '')
                  ORDER BY id ASC
                  LIMIT %d OFFSET %d",
+                $table,
                 $batch_size,
                 $offset
             ), ARRAY_A);
@@ -249,7 +252,7 @@ class MigrationNameNormalization {
     /**
      * Get migration status
      *
-     * @return array Status information
+     * @return array<string, mixed> Status information
      */
     public static function get_status(): array {
         global $wpdb;
@@ -264,11 +267,14 @@ class MigrationNameNormalization {
         }
 
         // Get total count
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $total = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$table}
-             WHERE (data_encrypted IS NOT NULL AND data_encrypted != '')
-             OR (email_encrypted IS NOT NULL AND email_encrypted != '')"
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM %i
+                 WHERE (data_encrypted IS NOT NULL AND data_encrypted != '')
+                 OR (email_encrypted IS NOT NULL AND email_encrypted != '')",
+                $table
+            )
         );
 
         // Get last run results
@@ -292,7 +298,7 @@ class MigrationNameNormalization {
      * Preview changes (dry run)
      *
      * @param int $limit Maximum submissions to preview
-     * @return array Preview results
+     * @return array<string, mixed> Preview results
      */
     public static function preview(int $limit = 50): array {
         return self::run($limit, true);

@@ -15,7 +15,6 @@ namespace FreeFormCertificate\SelfScheduling;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class SelfSchedulingCleanupHandler {
 
@@ -80,7 +79,7 @@ class SelfSchedulingCleanupHandler {
         switch ($cleanup_action) {
             case 'all':
                 // Delete all appointments for this calendar
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $deleted = $wpdb->delete($table, ['calendar_id' => $calendar_id], ['%d']);
                 $message = sprintf(
                     /* translators: %d: number of deleted appointments */
@@ -91,9 +90,10 @@ class SelfSchedulingCleanupHandler {
 
             case 'old':
                 // Delete appointments before today
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $deleted = $wpdb->query($wpdb->prepare(
-                    "DELETE FROM {$table} WHERE calendar_id = %d AND appointment_date < %s",
+                    "DELETE FROM %i WHERE calendar_id = %d AND appointment_date < %s",
+                    $table,
                     $calendar_id,
                     $today
                 ));
@@ -106,9 +106,10 @@ class SelfSchedulingCleanupHandler {
 
             case 'future':
                 // Delete appointments today and after
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $deleted = $wpdb->query($wpdb->prepare(
-                    "DELETE FROM {$table} WHERE calendar_id = %d AND appointment_date >= %s",
+                    "DELETE FROM %i WHERE calendar_id = %d AND appointment_date >= %s",
+                    $table,
                     $calendar_id,
                     $today
                 ));
@@ -188,17 +189,19 @@ class SelfSchedulingCleanupHandler {
         // Count old appointments (before today)
         global $wpdb;
         $table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $count_old = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$table} WHERE calendar_id = %d AND appointment_date < %s",
+            "SELECT COUNT(*) FROM %i WHERE calendar_id = %d AND appointment_date < %s",
+            $table,
             $calendar_id,
             $today
         ));
 
         // Count future appointments (today and after)
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $count_future = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$table} WHERE calendar_id = %d AND appointment_date >= %s",
+            "SELECT COUNT(*) FROM %i WHERE calendar_id = %d AND appointment_date >= %s",
+            $table,
             $calendar_id,
             $today
         ));

@@ -69,11 +69,11 @@ class EmailHandler {
      * @param int $submission_id Submission ID
      * @param int $form_id Form ID
      * @param string $form_title Form title
-     * @param array $submission_data Submission data
-     * @param string $user_email User email
-     * @param array $fields_config Field configuration
-     * @param array $form_config Form configuration
-     * @param string $magic_token Magic token for verification
+     * @param array<string, mixed> $submission_data Submission data
+     * @param string               $user_email User email
+     * @param array<string, mixed> $fields_config Field configuration
+     * @param array<string, mixed> $form_config Form configuration
+     * @param string               $magic_token Magic token for verification
      */
     public function async_process_submission( int $submission_id, int $form_id, string $form_title, array $submission_data, string $user_email, array $fields_config, array $form_config, string $magic_token = '' ): void {
         /**
@@ -107,11 +107,11 @@ class EmailHandler {
      *
      * NO LONGER INCLUDES: Certificate preview/HTML (use magic link instead)
      *
-     * @param string $to Recipient email
-     * @param string $form_title Form title
-     * @param array $form_config Form configuration
-     * @param array $submission_data Submission data
-     * @param string $magic_token Magic token
+     * @param string               $to Recipient email
+     * @param string               $form_title Form title
+     * @param array<string, mixed> $form_config Form configuration
+     * @param array<string, mixed> $submission_data Submission data
+     * @param string               $magic_token Magic token
      */
     private function send_user_email( string $to, string $form_title, array $form_config, array $submission_data, string $magic_token = '' ): void {
         if ( self::ffc_emails_disabled() ) {
@@ -221,9 +221,9 @@ class EmailHandler {
      *
      * Contains submission data in table format
      *
-     * @param string $form_title Form title
-     * @param array $data Submission data
-     * @param array $form_config Form configuration
+     * @param string               $form_title Form title
+     * @param array<string, mixed> $data Submission data
+     * @param array<string, mixed> $form_config Form configuration
      */
     private function send_admin_notification( string $form_title, array $data, array $form_config ): void {
         if ( self::ffc_emails_disabled() ) {

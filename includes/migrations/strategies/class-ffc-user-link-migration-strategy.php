@@ -18,8 +18,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
 class UserLinkMigrationStrategy implements MigrationStrategyInterface {
 
     use \FreeFormCertificate\Core\DatabaseHelperTrait;
@@ -41,16 +39,16 @@ class UserLinkMigrationStrategy implements MigrationStrategyInterface {
      * Calculate user link migration status
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
-     * @return array Status information
+     * @param array<string, mixed> $migration_config Migration configuration
+     * @return array<string, mixed> Status information
      */
     public function calculate_status( string $migration_key, array $migration_config ): array {
         global $wpdb;
 
         if ( !self::column_exists( $this->table_name, 'user_id' ) ) {
             // Column doesn't exist yet - all records pending
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $total = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table_name}" );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $total = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $this->table_name ) );
             return array(
                 'total' => $total,
                 'migrated' => 0,
@@ -61,12 +59,13 @@ class UserLinkMigrationStrategy implements MigrationStrategyInterface {
         }
 
         // Count total submissions with CPF/RF
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $total = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->table_name}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $total = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM %i
              WHERE cpf_rf_hash IS NOT NULL
-             AND cpf_rf_hash != ''"
-        );
+             AND cpf_rf_hash != ''",
+            $this->table_name
+        ) );
 
         if ( $total == 0 ) {
             return array(
@@ -79,13 +78,14 @@ class UserLinkMigrationStrategy implements MigrationStrategyInterface {
         }
 
         // Count submissions already linked to users
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $migrated = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->table_name}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $migrated = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM %i
              WHERE cpf_rf_hash IS NOT NULL
              AND cpf_rf_hash != ''
-             AND user_id IS NOT NULL"
-        );
+             AND user_id IS NOT NULL",
+            $this->table_name
+        ) );
 
         $pending = $total - $migrated;
         $percent = ( $total > 0 ) ? ( $migrated / $total ) * 100 : 100;
@@ -103,9 +103,9 @@ class UserLinkMigrationStrategy implements MigrationStrategyInterface {
      * Execute user linking migration
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
+     * @param array<string, mixed> $migration_config Migration configuration
      * @param int $batch_number Batch number (unused for this migration)
-     * @return array Result array
+     * @return array<string, mixed> Result array
      */
     public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
         // Autoloader handles class loading
@@ -122,7 +122,7 @@ class UserLinkMigrationStrategy implements MigrationStrategyInterface {
      * Check if migration can be executed
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
+     * @param array<string, mixed> $migration_config Migration configuration
      * @return bool|WP_Error True if can run, WP_Error if cannot
      */
     public function can_run( string $migration_key, array $migration_config ) {

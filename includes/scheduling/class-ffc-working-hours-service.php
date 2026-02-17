@@ -35,7 +35,7 @@ class WorkingHoursService {
      *
      * @param string $date  Date string (Y-m-d)
      * @param string $time  Time string (H:i or H:i:s)
-     * @param string|array $working_hours JSON string or decoded array
+     * @param string|array<mixed> $working_hours JSON string or decoded array
      * @return bool True if within working hours (or no restrictions defined)
      */
     public static function is_within_working_hours(string $date, string $time, $working_hours): bool {
@@ -84,7 +84,7 @@ class WorkingHoursService {
      * Check if a day is a working day (not closed).
      *
      * @param string $date  Date string (Y-m-d)
-     * @param string|array $working_hours JSON string or decoded array
+     * @param string|array<mixed> $working_hours JSON string or decoded array
      * @return bool
      */
     public static function is_working_day(string $date, $working_hours): bool {
@@ -118,8 +118,8 @@ class WorkingHoursService {
      * Get working hours range for a specific date.
      *
      * @param string $date  Date string (Y-m-d)
-     * @param string|array $working_hours JSON string or decoded array
-     * @return array{start: string, end: string}[] Array of time ranges for the day
+     * @param string|array<mixed> $working_hours JSON string or decoded array
+     * @return array<int, array<string, string>> Array of time ranges for the day
      */
     public static function get_day_ranges(string $date, $working_hours): array {
         $hours = self::normalize($working_hours);
@@ -155,8 +155,8 @@ class WorkingHoursService {
     /**
      * Normalize working hours input to a decoded array.
      *
-     * @param string|array|null $working_hours
-     * @return array
+     * @param string|array<mixed>|null $working_hours
+     * @return array<mixed>
      */
     private static function normalize($working_hours): array {
         if (is_string($working_hours)) {

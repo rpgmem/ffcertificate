@@ -17,7 +17,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class ReprintDetector {
 
@@ -29,7 +28,7 @@ class ReprintDetector {
      * @param int $form_id Form ID
      * @param string $val_cpf CPF/RF value
      * @param string $val_ticket Ticket value
-     * @return array{is_reprint: bool, data: array, id: int, email: string, date: string}
+     * @return array<string, mixed>
      */
     public static function detect( int $form_id, string $val_cpf, string $val_ticket ): array {
         global $wpdb;
@@ -121,7 +120,7 @@ class ReprintDetector {
      * Build reprint result from a database row
      *
      * @param object $existing_submission Database row
-     * @return array Reprint result array
+     * @return array<string, mixed> Reprint result array
      */
     private static function build_reprint_result( object $existing_submission ): array {
         // Ensure data is not null before json_decode (strict types requirement)

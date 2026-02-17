@@ -30,21 +30,21 @@ class AdminSubmissionEditPage {
     /**
      * Submission data (array format)
      *
-     * @var array
+     * @var array<string, mixed>
      */
     private $sub_array;
 
     /**
      * Decoded JSON data
      *
-     * @var array
+     * @var array<string, mixed>
      */
     private $data;
 
     /**
      * Form fields configuration
      *
-     * @var array
+     * @var array<int, array<string, mixed>>
      */
     private $fields;
 

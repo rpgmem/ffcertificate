@@ -16,8 +16,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
 class NameNormalizationMigrationStrategy implements MigrationStrategyInterface {
 
     /**
@@ -51,8 +49,8 @@ class NameNormalizationMigrationStrategy implements MigrationStrategyInterface {
      * decrypting all data, we track migration via an option flag.
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
-     * @return array Status information
+     * @param array<string, mixed> $migration_config Migration configuration
+     * @return array<string, mixed> Status information
      */
     public function calculate_status( string $migration_key, array $migration_config ): array {
         global $wpdb;
@@ -62,12 +60,13 @@ class NameNormalizationMigrationStrategy implements MigrationStrategyInterface {
         $last_changes = get_option( 'ffc_migration_name_normalization_changes', array() );
 
         // Get total submissions with encrypted data
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $total = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->table_name}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $total = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM %i
              WHERE data_encrypted IS NOT NULL
-             AND data_encrypted != ''"
-        );
+             AND data_encrypted != ''",
+            $this->table_name
+        ) );
 
         // If migration was run, show as complete
         if ( ! empty( $last_run ) ) {
@@ -95,9 +94,9 @@ class NameNormalizationMigrationStrategy implements MigrationStrategyInterface {
      * Execute name normalization migration
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
+     * @param array<string, mixed> $migration_config Migration configuration
      * @param int $batch_number Batch number (unused - processes all at once)
-     * @return array Result array
+     * @return array<string, mixed> Result array
      */
     public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
         $result = \FreeFormCertificate\Migrations\MigrationNameNormalization::run(
@@ -121,7 +120,7 @@ class NameNormalizationMigrationStrategy implements MigrationStrategyInterface {
      * Check if migration can be executed
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
+     * @param array<string, mixed> $migration_config Migration configuration
      * @return bool|\WP_Error True if can run, WP_Error if cannot
      */
     public function can_run( string $migration_key, array $migration_config ) {

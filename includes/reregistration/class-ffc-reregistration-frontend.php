@@ -162,7 +162,7 @@ class ReregistrationFrontend {
      * Get active reregistrations for a user with submission status.
      *
      * @param int $user_id User ID.
-     * @return array Array of reregistration data with submission info.
+     * @return array<int, array<string, mixed>> Array of reregistration data with submission info.
      */
     public static function get_user_reregistrations(int $user_id): array {
         $active = ReregistrationRepository::get_active_for_user($user_id);

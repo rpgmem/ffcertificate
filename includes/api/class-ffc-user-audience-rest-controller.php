@@ -18,7 +18,6 @@ namespace FreeFormCertificate\API;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class UserAudienceRestController {
 
@@ -108,17 +107,23 @@ class UserAudienceRestController {
             $environments_table = $wpdb->prefix . 'ffc_audience_environments';
             $schedules_table = $wpdb->prefix . 'ffc_audience_schedules';
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $bookings = $wpdb->get_results($wpdb->prepare(
                 "SELECT DISTINCT b.*, e.name as environment_name, s.name as schedule_name
-                 FROM {$bookings_table} b
-                 LEFT JOIN {$users_table} bu ON b.id = bu.booking_id
-                 LEFT JOIN {$booking_audiences_table} ba ON b.id = ba.booking_id
-                 LEFT JOIN {$members_table} am ON ba.audience_id = am.audience_id
-                 LEFT JOIN {$environments_table} e ON b.environment_id = e.id
-                 LEFT JOIN {$schedules_table} s ON e.schedule_id = s.id
+                 FROM %i b
+                 LEFT JOIN %i bu ON b.id = bu.booking_id
+                 LEFT JOIN %i ba ON b.id = ba.booking_id
+                 LEFT JOIN %i am ON ba.audience_id = am.audience_id
+                 LEFT JOIN %i e ON b.environment_id = e.id
+                 LEFT JOIN %i s ON e.schedule_id = s.id
                  WHERE (bu.user_id = %d OR am.user_id = %d)
                  ORDER BY b.booking_date DESC, b.start_time DESC",
+                $bookings_table,
+                $users_table,
+                $booking_audiences_table,
+                $members_table,
+                $environments_table,
+                $schedules_table,
                 $user_id,
                 $user_id
             ), ARRAY_A);
@@ -254,12 +259,15 @@ class UserAudienceRestController {
             }
 
             // Get parent audiences that have allow_self_join enabled
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $parents = $wpdb->get_results(
-                "SELECT id, name, color
-                 FROM {$audiences_table}
-                 WHERE allow_self_join = 1 AND parent_id IS NULL AND status = 'active'
-                 ORDER BY name ASC",
+                $wpdb->prepare(
+                    "SELECT id, name, color
+                     FROM %i
+                     WHERE allow_self_join = 1 AND parent_id IS NULL AND status = 'active'
+                     ORDER BY name ASC",
+                    $audiences_table
+                ),
                 ARRAY_A
             );
 
@@ -271,15 +279,15 @@ class UserAudienceRestController {
             $placeholders = implode(',', array_fill(0, count($parent_ids), '%d'));
 
             // Get children of those parents, with membership status
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is a dynamically-generated list of %d placeholders.
             $children = $wpdb->get_results($wpdb->prepare(
                 "SELECT a.id, a.name, a.color, a.parent_id,
                         CASE WHEN m.id IS NOT NULL THEN 1 ELSE 0 END AS is_member
-                 FROM {$audiences_table} a
-                 LEFT JOIN {$members_table} m ON m.audience_id = a.id AND m.user_id = %d
+                 FROM %i a
+                 LEFT JOIN %i m ON m.audience_id = a.id AND m.user_id = %d
                  WHERE a.parent_id IN ({$placeholders}) AND a.allow_self_join = 1 AND a.status = 'active'
                  ORDER BY a.name ASC",
-                array_merge(array($user_id), $parent_ids)
+                array_merge(array($audiences_table, $members_table, $user_id), $parent_ids)
             ), ARRAY_A);
 
             // Group children by parent
@@ -349,9 +357,10 @@ class UserAudienceRestController {
             $members_table = $wpdb->prefix . 'ffc_audience_members';
 
             // Verify group is a child, active, and allows self-join (only children can be joined)
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $group = $wpdb->get_row($wpdb->prepare(
-                "SELECT id, name FROM {$audiences_table} WHERE id = %d AND status = 'active' AND allow_self_join = 1 AND parent_id IS NOT NULL",
+                "SELECT id, name FROM %i WHERE id = %d AND status = 'active' AND allow_self_join = 1 AND parent_id IS NOT NULL",
+                $audiences_table,
                 $group_id
             ));
 
@@ -360,9 +369,10 @@ class UserAudienceRestController {
             }
 
             // Check already member
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $already = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$members_table} WHERE audience_id = %d AND user_id = %d",
+                "SELECT COUNT(*) FROM %i WHERE audience_id = %d AND user_id = %d",
+                $members_table,
                 $group_id, $user_id
             ));
 
@@ -371,11 +381,13 @@ class UserAudienceRestController {
             }
 
             // Count current self-join memberships (only children count)
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $current_count = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$members_table} m
-                 INNER JOIN {$audiences_table} a ON a.id = m.audience_id
+                "SELECT COUNT(*) FROM %i m
+                 INNER JOIN %i a ON a.id = m.audience_id
                  WHERE m.user_id = %d AND a.allow_self_join = 1 AND a.parent_id IS NOT NULL",
+                $members_table,
+                $audiences_table,
                 $user_id
             ));
 
@@ -439,9 +451,10 @@ class UserAudienceRestController {
             $members_table = $wpdb->prefix . 'ffc_audience_members';
 
             // Verify group is a self-joinable child (can only leave children)
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $group = $wpdb->get_row($wpdb->prepare(
-                "SELECT id, name FROM {$audiences_table} WHERE id = %d AND allow_self_join = 1 AND parent_id IS NOT NULL",
+                "SELECT id, name FROM %i WHERE id = %d AND allow_self_join = 1 AND parent_id IS NOT NULL",
+                $audiences_table,
                 $group_id
             ));
 

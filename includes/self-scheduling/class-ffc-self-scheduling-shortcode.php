@@ -19,8 +19,14 @@ class SelfSchedulingShortcode {
 
     /**
      * Repositories
+     *
+     * @var \FreeFormCertificate\Repositories\CalendarRepository
      */
     private $calendar_repository;
+
+    /**
+     * @var AppointmentHandler
+     */
     private $appointment_handler;
 
     /**
@@ -211,7 +217,7 @@ class SelfSchedulingShortcode {
     /**
      * Render calendar shortcode
      *
-     * @param array $atts Shortcode attributes
+     * @param array<string, mixed> $atts Shortcode attributes
      * @return string HTML output
      */
     public function render_calendar(array $atts): string {
@@ -317,7 +323,7 @@ class SelfSchedulingShortcode {
      * Render message for private visibility restriction
      *
      * @since 4.7.0
-     * @param array $calendar Calendar data
+     * @param array<string, mixed> $calendar Calendar data
      * @return string HTML output
      */
     private function render_private_visibility_message(array $calendar): string {
@@ -349,7 +355,7 @@ class SelfSchedulingShortcode {
      * Check if the current time is outside the calendar's working hours
      *
      * @since 4.7.0
-     * @param array $calendar Calendar data with working_hours
+     * @param array<string, mixed> $calendar Calendar data with working_hours
      * @return bool True if currently outside business hours
      */
     private function is_outside_business_hours(array $calendar): bool {
@@ -375,7 +381,7 @@ class SelfSchedulingShortcode {
      * Get today's working hours range formatted for display
      *
      * @since 4.7.0
-     * @param array $calendar Calendar data with working_hours
+     * @param array<string, mixed> $calendar Calendar data with working_hours
      * @return string Formatted hours range (e.g. "09:00 - 17:00") or empty if closed
      */
     private function get_today_hours_display(array $calendar): string {
@@ -404,7 +410,7 @@ class SelfSchedulingShortcode {
      * Get the business hours restriction message
      *
      * @since 4.7.0
-     * @param array $calendar Calendar data
+     * @param array<string, mixed> $calendar Calendar data
      * @param string $type 'viewing' or 'booking'
      * @return string Message HTML
      */
@@ -430,7 +436,7 @@ class SelfSchedulingShortcode {
      * Render message for business hours viewing restriction
      *
      * @since 4.7.0
-     * @param array $calendar Calendar data
+     * @param array<string, mixed> $calendar Calendar data
      * @param string $type 'viewing' or 'booking'
      * @return string HTML output
      */
@@ -448,7 +454,7 @@ class SelfSchedulingShortcode {
     /**
      * Render calendar booking interface
      *
-     * @param array $calendar
+     * @param array<string, mixed> $calendar
      * @param bool $can_book Whether the user can book (false when scheduling is restricted)
      * @param string $scheduling_message Message to show when booking is restricted
      * @return void

@@ -18,7 +18,6 @@ use FreeFormCertificate\Repositories\CalendarRepository;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 
 class AppointmentCsvExporter {
 
@@ -48,7 +47,7 @@ class AppointmentCsvExporter {
     /**
      * Get fixed column headers
      *
-     * @return array
+     * @return array<int, string>
      */
     private function get_fixed_headers(): array {
         return array(
@@ -85,6 +84,9 @@ class AppointmentCsvExporter {
     /**
      * Get all unique custom data keys from appointments.
      * Delegates to CsvExportTrait::extract_dynamic_keys().
+     *
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, string>
      */
     private function get_dynamic_columns(array $rows): array {
         return $this->extract_dynamic_keys($rows, 'custom_data', 'custom_data_encrypted');
@@ -93,6 +95,9 @@ class AppointmentCsvExporter {
     /**
      * Get custom data from a row, handling encryption.
      * Delegates to CsvExportTrait::decode_json_field().
+     *
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
      */
     private function get_custom_data(array $row): array {
         return $this->decode_json_field($row, 'custom_data', 'custom_data_encrypted');
@@ -101,6 +106,9 @@ class AppointmentCsvExporter {
     /**
      * Generate translatable headers for dynamic columns.
      * Delegates to CsvExportTrait::build_dynamic_headers().
+     *
+     * @param array<int, string> $dynamic_keys
+     * @return array<string, string>
      */
     private function get_dynamic_headers(array $dynamic_keys): array {
         return $this->build_dynamic_headers($dynamic_keys);
@@ -109,9 +117,9 @@ class AppointmentCsvExporter {
     /**
      * Format a single CSV row
      *
-     * @param array $row
-     * @param array $dynamic_keys
-     * @return array
+     * @param array<string, mixed> $row
+     * @param array<int, string> $dynamic_keys
+     * @return array<int, string>
      */
     private function format_csv_row(array $row, array $dynamic_keys): array {
         // Get calendar title
@@ -204,8 +212,8 @@ class AppointmentCsvExporter {
     /**
      * Export appointments to CSV file
      *
-     * @param int|array|null $calendar_ids Calendar ID(s) to filter, null for all
-     * @param array $statuses Status filter
+     * @param array<int, int>|null $calendar_ids Calendar ID(s) to filter, null for all
+     * @param array<int, string> $statuses Status filter
      * @param string|null $start_date Start date filter (Y-m-d)
      * @param string|null $end_date End date filter (Y-m-d)
      * @return void
@@ -292,11 +300,11 @@ class AppointmentCsvExporter {
     /**
      * Get appointments for export with filters
      *
-     * @param int|array|null $calendar_ids
-     * @param array $statuses
+     * @param array<int, int>|null $calendar_ids
+     * @param array<int, string> $statuses
      * @param string|null $start_date
      * @param string|null $end_date
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     private function get_appointments_for_export($calendar_ids, array $statuses, ?string $start_date, ?string $end_date): array {
         global $wpdb;
@@ -334,13 +342,15 @@ class AppointmentCsvExporter {
 
         $where_sql = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
 
-        $sql = "SELECT * FROM {$table} {$where_sql} ORDER BY appointment_date DESC, start_time DESC";
+        $sql = "SELECT * FROM %i {$where_sql} ORDER BY appointment_date DESC, start_time DESC";
 
         if (!empty($where_values)) {
-            $sql = $wpdb->prepare($sql, $where_values);
+            $sql = $wpdb->prepare($sql, array_merge( array( $table ), $where_values ));
+        } else {
+            $sql = $wpdb->prepare($sql, $table);
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $where_sql is built from validated placeholders above; $sql is pre-prepared.
         return $wpdb->get_results($sql, ARRAY_A);
     }
 

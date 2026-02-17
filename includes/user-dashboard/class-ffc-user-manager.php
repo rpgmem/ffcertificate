@@ -22,8 +22,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
 class UserManager {
 
     use \FreeFormCertificate\Core\DatabaseHelperTrait;
@@ -46,12 +44,23 @@ class UserManager {
     // Backward-compatible delegation → UserCreator
     // =====================================================================
 
-    /** @see UserCreator::get_or_create_user() */
+    /**
+     * Get or create a WordPress user for the given credentials.
+     *
+     * @see UserCreator::get_or_create_user()
+     * @param array<string, mixed> $submission_data Submission data
+     * @return int|\WP_Error User ID on success, WP_Error on failure
+     */
     public static function get_or_create_user( string $cpf_rf_hash, string $email, array $submission_data = array(), string $context = self::CONTEXT_CERTIFICATE ) {
         return UserCreator::get_or_create_user( $cpf_rf_hash, $email, $submission_data, $context );
     }
 
-    /** @see UserCreator::generate_username() */
+    /**
+     * Generate a username from email and submission data.
+     *
+     * @see UserCreator::generate_username()
+     * @param array<string, mixed> $submission_data Submission data
+     */
     public static function generate_username( string $email, array $submission_data = array() ): string {
         return UserCreator::generate_username( $email, $submission_data );
     }
@@ -60,7 +69,12 @@ class UserManager {
     // Backward-compatible delegation → CapabilityManager
     // =====================================================================
 
-    /** @see CapabilityManager::get_all_capabilities() */
+    /**
+     * Get all FFC capabilities.
+     *
+     * @see CapabilityManager::get_all_capabilities()
+     * @return array<int, string>
+     */
     public static function get_all_capabilities(): array {
         return CapabilityManager::get_all_capabilities();
     }
@@ -100,7 +114,12 @@ class UserManager {
         return CapabilityManager::has_appointment_access( $user_id );
     }
 
-    /** @see CapabilityManager::get_user_ffc_capabilities() */
+    /**
+     * Get FFC capabilities assigned to a specific user.
+     *
+     * @see CapabilityManager::get_user_ffc_capabilities()
+     * @return array<string, bool>
+     */
     public static function get_user_ffc_capabilities( int $user_id ): array {
         return CapabilityManager::get_user_ffc_capabilities( $user_id );
     }
@@ -119,16 +138,17 @@ class UserManager {
      *
      * @since 4.9.4
      * @param int $user_id WordPress user ID
-     * @return array Profile data
+     * @return array<string, mixed> Profile data
      */
     public static function get_profile( int $user_id ): array {
         global $wpdb;
         $table = $wpdb->prefix . 'ffc_user_profiles';
 
         if ( self::table_exists( $table ) ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $profile = $wpdb->get_row( $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE user_id = %d",
+                "SELECT * FROM %i WHERE user_id = %d",
+                $table,
                 $user_id
             ), ARRAY_A );
 
@@ -160,7 +180,7 @@ class UserManager {
      *
      * @since 4.9.4
      * @param int   $user_id WordPress user ID
-     * @param array $data    Profile fields to update
+     * @param array<string, mixed> $data    Profile fields to update
      * @return bool True on success
      */
     public static function update_profile( int $user_id, array $data ): bool {
@@ -191,9 +211,10 @@ class UserManager {
             return false;
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $exists = $wpdb->get_var( $wpdb->prepare(
-            "SELECT id FROM {$table} WHERE user_id = %d",
+            "SELECT id FROM %i WHERE user_id = %d",
+            $table,
             $user_id
         ) );
 
@@ -235,18 +256,19 @@ class UserManager {
      *
      * @since 4.3.0
      * @param int $user_id WordPress user ID
-     * @return array Array of masked CPF/RF values
+     * @return array<int, string> Array of masked CPF/RF values
      */
     public static function get_user_cpfs_masked( int $user_id ): array {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $encrypted_cpfs = $wpdb->get_col( $wpdb->prepare(
-            "SELECT DISTINCT cpf_rf_encrypted FROM {$table}
+            "SELECT DISTINCT cpf_rf_encrypted FROM %i
              WHERE user_id = %d
              AND cpf_rf_encrypted IS NOT NULL
              AND cpf_rf_encrypted != ''",
+            $table,
             $user_id
         ) );
 
@@ -304,18 +326,19 @@ class UserManager {
      * Get all emails used by a user in submissions
      *
      * @param int $user_id WordPress user ID
-     * @return array Array of emails
+     * @return array<int, string> Array of emails
      */
     public static function get_user_emails( int $user_id ): array {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $encrypted_emails = $wpdb->get_col( $wpdb->prepare(
-            "SELECT DISTINCT email_encrypted FROM {$table}
+            "SELECT DISTINCT email_encrypted FROM %i
              WHERE user_id = %d
              AND email_encrypted IS NOT NULL
              AND email_encrypted != ''",
+            $table,
             $user_id
         ) );
 
@@ -350,18 +373,19 @@ class UserManager {
      *
      * @since 4.3.0
      * @param int $user_id WordPress user ID
-     * @return array Array of names
+     * @return array<int, string> Array of names
      */
     public static function get_user_names( int $user_id ): array {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $submissions = $wpdb->get_col( $wpdb->prepare(
-            "SELECT data FROM {$table}
+            "SELECT data FROM %i
              WHERE user_id = %d
              AND data IS NOT NULL
              AND data != ''",
+            $table,
             $user_id
         ) );
 

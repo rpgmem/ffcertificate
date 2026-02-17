@@ -275,7 +275,7 @@ class FFC_Autoloader {
      * Debug: Get mapping for a class
      *
      * @param string $class Class name with namespace
-     * @return array Debug information
+     * @return array<string, mixed> Debug information
      */
     public function debug_class_mapping(string $class): array {
         if (strpos($class, self::NAMESPACE_PREFIX) !== 0) {

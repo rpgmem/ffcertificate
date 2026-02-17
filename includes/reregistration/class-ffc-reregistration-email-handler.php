@@ -175,37 +175,36 @@ class ReregistrationEmailHandler {
      * - email_reminder_enabled = 1
      * - Days until end_date <= reminder_days
      *
-     * @return int Total emails sent across all campaigns.
+     * @return void
      */
-    public static function run_automated_reminders(): int {
+    public static function run_automated_reminders(): void {
         if (self::emails_disabled()) {
-            return 0;
+            return;
         }
 
         global $wpdb;
         $table = ReregistrationRepository::get_table_name();
 
         // Get active campaigns where reminder is due
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $campaigns = $wpdb->get_results(
-            "SELECT * FROM {$table}
-             WHERE status = 'active'
-               AND email_reminder_enabled = 1
-               AND DATEDIFF(end_date, CURDATE()) <= reminder_days
-               AND DATEDIFF(end_date, CURDATE()) >= 0"
+            $wpdb->prepare(
+                "SELECT * FROM %i
+                 WHERE status = 'active'
+                   AND email_reminder_enabled = 1
+                   AND DATEDIFF(end_date, CURDATE()) <= reminder_days
+                   AND DATEDIFF(end_date, CURDATE()) >= 0",
+                $table
+            )
         );
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         if (empty($campaigns)) {
-            return 0;
+            return;
         }
 
-        $total = 0;
         foreach ($campaigns as $campaign) {
-            $total += self::send_reminders((int) $campaign->id);
+            self::send_reminders((int) $campaign->id);
         }
-
-        return $total;
     }
 
     /**
@@ -213,8 +212,8 @@ class ReregistrationEmailHandler {
      *
      * @param int    $user_id     User ID.
      * @param object $rereg       Reregistration object.
-     * @param array  $template    Template with 'subject' and 'body' keys.
-     * @param array  $extra_vars  Additional template variables.
+     * @param array<string, string>  $template    Template with 'subject' and 'body' keys.
+     * @param array<string, string>  $extra_vars  Additional template variables.
      * @return bool
      */
     private static function send_to_user(int $user_id, object $rereg, array $template, array $extra_vars = array()): bool {
@@ -246,7 +245,7 @@ class ReregistrationEmailHandler {
      * Load an email template file.
      *
      * @param string $template_name Template name (without path/extension).
-     * @return array|null Array with 'subject' and 'body', or null.
+     * @return array<string, string>|null Array with 'subject' and 'body', or null.
      */
     private static function load_template(string $template_name): ?array {
         $file = FFC_PLUGIN_DIR . "templates/emails/{$template_name}.php";
@@ -275,7 +274,7 @@ class ReregistrationEmailHandler {
      *
      * @param string $type    Event type.
      * @param int    $user_id User ID (0 for system events).
-     * @param array  $data    Extra data.
+     * @param array<string, mixed>  $data    Extra data.
      * @return void
      */
     private static function log(string $type, int $user_id, array $data): void {

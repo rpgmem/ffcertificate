@@ -22,7 +22,6 @@ namespace FreeFormCertificate\Migrations;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class MigrationUserCapabilities {
 
@@ -31,7 +30,7 @@ class MigrationUserCapabilities {
      *
      * @param int $batch_size Number of users per batch (default: 50)
      * @param bool $dry_run If true, only shows what would change without saving
-     * @return array Result with success status, processed count, and changes
+     * @return array<string, mixed> Result with success status, processed count, and changes
      */
     public static function run(int $batch_size = 50, bool $dry_run = false): array {
         global $wpdb;
@@ -70,16 +69,18 @@ class MigrationUserCapabilities {
                 $user_changes = array();
 
                 // Check if user has submissions (certificates)
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $has_submissions = $wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$submissions_table} WHERE user_id = %d LIMIT 1",
+                    "SELECT COUNT(*) FROM %i WHERE user_id = %d LIMIT 1",
+                    $submissions_table,
                     $user_id
                 ));
 
                 // Check if user has appointments
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $has_appointments = $wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$appointments_table} WHERE user_id = %d LIMIT 1",
+                    "SELECT COUNT(*) FROM %i WHERE user_id = %d LIMIT 1",
+                    $appointments_table,
                     $user_id
                 ));
 
@@ -183,7 +184,7 @@ class MigrationUserCapabilities {
     /**
      * Get migration status
      *
-     * @return array Status information
+     * @return array<string, mixed> Status information
      */
     public static function get_status(): array {
         // Get total ffc_user count
@@ -232,7 +233,7 @@ class MigrationUserCapabilities {
      * Preview changes (dry run)
      *
      * @param int $limit Maximum users to preview
-     * @return array Preview results
+     * @return array<string, mixed> Preview results
      */
     public static function preview(int $limit = 50): array {
         return self::run($limit, true);

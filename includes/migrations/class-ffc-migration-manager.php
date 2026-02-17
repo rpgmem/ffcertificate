@@ -79,7 +79,7 @@ class MigrationManager {
      *
      * Delegates to Registry.
      *
-     * @return array Array of migration definitions
+     * @return array<string, mixed> Array of migration definitions
      */
     public function get_migrations(): array {
         return $this->registry->get_all_migrations();
@@ -106,7 +106,7 @@ class MigrationManager {
      * This is the BIGGEST WIN of the refactoring!
      *
      * @param string $migration_key Migration identifier
-     * @return array|WP_Error Status array or error
+     * @return array<string, mixed>|WP_Error Status array or error
      */
     public function get_migration_status( string $migration_key ) {
         return $this->status_calculator->calculate( $migration_key );
@@ -118,7 +118,7 @@ class MigrationManager {
      * Delegates to Registry.
      *
      * @param string $migration_key Migration identifier
-     * @return array|null Migration definition or null
+     * @return array<string, mixed>|null Migration definition or null
      */
     public function get_migration( string $migration_key ): ?array {
         return $this->registry->get_migration( $migration_key );
@@ -143,7 +143,7 @@ class MigrationManager {
      *
      * @param string $migration_key Migration identifier
      * @param int $batch_number Batch number to process (0-indexed)
-     * @return array|WP_Error Execution result
+     * @return array<string, mixed>|WP_Error Execution result
      */
     public function run_migration( string $migration_key, int $batch_number = 0 ) {
         return $this->status_calculator->execute( $migration_key, $batch_number );
@@ -156,11 +156,11 @@ class MigrationManager {
      *
      * @param int $offset Record offset
      * @param int $limit Batch size
-     * @return array|WP_Error Execution result
+     * @return array<string, mixed>|WP_Error Execution result
      */
     public function migrate_encryption( int $offset = 0, int $limit = 50 ) {
         // Calculate batch number from offset and limit
-        $batch_number = ( $limit > 0 ) ? floor( $offset / $limit ) + 1 : 1;
+        $batch_number = ( $limit > 0 ) ? (int) floor( $offset / $limit ) + 1 : 1;
 
         // Update migration config with custom limit
         add_filter( 'ffcertificate_migrations_registry', function( $migrations ) use ( $limit ) {
@@ -181,11 +181,11 @@ class MigrationManager {
      *
      * @param int $offset Record offset
      * @param int $limit Batch size
-     * @return array Execution result
+     * @return array<string, mixed> Execution result
      */
     public function cleanup_unencrypted_data( int $offset = 0, int $limit = 100 ): array {
         // Calculate batch number from offset and limit
-        $batch_number = ( $limit > 0 ) ? floor( $offset / $limit ) + 1 : 1;
+        $batch_number = ( $limit > 0 ) ? (int) floor( $offset / $limit ) + 1 : 1;
 
         // Update migration config with custom limit
         add_filter( 'ffcertificate_migrations_registry', function( $migrations ) use ( $limit ) {
@@ -205,7 +205,7 @@ class MigrationManager {
      * Sets old columns to NULL after successful encryption migration.
      * This is REVERSIBLE - columns remain, just data is removed.
      *
-     * @return array|WP_Error Result with cleaned count
+     * @return array<string, mixed>|WP_Error Result with cleaned count
      */
     public function cleanup_old_data() {
         global $wpdb;
@@ -234,7 +234,7 @@ class MigrationManager {
             );
         }
 
-        $days_since_completion = floor( ( time() - strtotime( $encryption_completed_date ) ) / DAY_IN_SECONDS );
+        $days_since_completion = (int) floor( ( time() - strtotime( $encryption_completed_date ) ) / DAY_IN_SECONDS );
 
         if ( $days_since_completion < 15 ) {
             return new WP_Error(
@@ -282,7 +282,7 @@ class MigrationManager {
      * Permanently removes old unencrypted columns from database.
      * Requires 30 days after encryption completion.
      *
-     * @return array|WP_Error Result
+     * @return array<string, mixed>|WP_Error Result
      */
     public function drop_old_columns() {
         global $wpdb;
@@ -309,8 +309,8 @@ class MigrationManager {
         $errors = array();
 
         foreach ( $columns_to_drop as $column ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $result = $wpdb->query( "ALTER TABLE {$this->table_name} DROP COLUMN {$column}" );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $result = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $this->table_name, $column ) );
 
             if ( $result !== false ) {
                 $dropped[] = $column;
@@ -380,7 +380,7 @@ class MigrationManager {
             );
         }
 
-        $days_since_completion = floor( ( time() - strtotime( $encryption_completed_date ) ) / DAY_IN_SECONDS );
+        $days_since_completion = (int) floor( ( time() - strtotime( $encryption_completed_date ) ) / DAY_IN_SECONDS );
 
         if ( $days_since_completion < 30 ) {
             return new WP_Error(
@@ -408,7 +408,7 @@ class MigrationManager {
             return 30; // Max wait time
         }
 
-        $days_since_completion = floor( ( time() - strtotime( $encryption_completed_date ) ) / DAY_IN_SECONDS );
+        $days_since_completion = (int) floor( ( time() - strtotime( $encryption_completed_date ) ) / DAY_IN_SECONDS );
         $days_remaining = max( 0, 30 - $days_since_completion );
 
         return $days_remaining;
