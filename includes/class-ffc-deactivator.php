@@ -54,8 +54,8 @@ class Deactivator {
         $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
         // 1. Drop the submissions table
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_name ) );
         
         // 2. Delete plugin options
         delete_option( 'ffc_db_version' );

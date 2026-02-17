@@ -534,12 +534,12 @@ class Utils {
 
             // Check ffc_reregistration_submissions
             $table_rereg = $wpdb->prefix . 'ffc_reregistration_submissions';
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $exists = $wpdb->get_var( $wpdb->prepare(
-                "SELECT id FROM {$table_rereg} WHERE auth_code = %s LIMIT 1",
+                "SELECT id FROM %i WHERE auth_code = %s LIMIT 1",
+                $table_rereg,
                 $code
             ) );
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
             if ( $exists ) {
                 continue;
@@ -547,12 +547,12 @@ class Utils {
 
             // Check ffc_self_scheduling_appointments
             $table_apt = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $exists = $wpdb->get_var( $wpdb->prepare(
-                "SELECT id FROM {$table_apt} WHERE validation_code = %s LIMIT 1",
+                "SELECT id FROM %i WHERE validation_code = %s LIMIT 1",
+                $table_apt,
                 $code
             ) );
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
             if ( ! $exists ) {
                 return $code;

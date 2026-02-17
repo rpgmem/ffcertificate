@@ -19,7 +19,6 @@ namespace FreeFormCertificate\SelfScheduling;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class SelfSchedulingCPT {
 
@@ -360,13 +359,14 @@ class SelfSchedulingCPT {
         $today = current_time('Y-m-d');
 
         // Get all future appointments (pending or confirmed)
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $future_appointments = $wpdb->get_results($wpdb->prepare(
-            "SELECT * FROM {$table}
+            "SELECT * FROM %i
              WHERE calendar_id = %d
              AND appointment_date >= %s
              AND status IN ('pending', 'confirmed')
              ORDER BY appointment_date ASC",
+            $table,
             $calendar_id,
             $today
         ), ARRAY_A);

@@ -229,9 +229,12 @@ class AdminUserColumns {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $results = $wpdb->get_results(
-            "SELECT user_id, COUNT(*) AS cnt FROM {$table} WHERE user_id IS NOT NULL AND status != 'trash' GROUP BY user_id",
+            $wpdb->prepare(
+                "SELECT user_id, COUNT(*) AS cnt FROM %i WHERE user_id IS NOT NULL AND status != 'trash' GROUP BY user_id",
+                $table
+            ),
             ARRAY_A
         );
 

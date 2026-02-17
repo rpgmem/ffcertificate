@@ -149,8 +149,8 @@ class MigrationSelfSchedulingTables {
         }
 
         // Rename the table
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $result = $wpdb->query("RENAME TABLE `{$old_table}` TO `{$new_table}`");
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $result = $wpdb->query( $wpdb->prepare( 'RENAME TABLE %i TO %i', $old_table, $new_table ) );
 
         if ($result === false) {
             return [

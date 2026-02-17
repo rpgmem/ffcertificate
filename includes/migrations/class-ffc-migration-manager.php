@@ -309,8 +309,8 @@ class MigrationManager {
         $errors = array();
 
         foreach ( $columns_to_drop as $column ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $result = $wpdb->query( "ALTER TABLE {$this->table_name} DROP COLUMN {$column}" );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $result = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $this->table_name, $column ) );
 
             if ( $result !== false ) {
                 $dropped[] = $column;

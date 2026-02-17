@@ -373,9 +373,9 @@ class PdfGenerator {
     
     // Get submission
     $table = $wpdb->prefix . 'ffc_submissions';
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $submission = $wpdb->get_row(
-        $wpdb->prepare( "SELECT magic_token FROM $table WHERE id = %d", $submission_id ),
+        $wpdb->prepare( "SELECT magic_token FROM %i WHERE id = %d", $table, $submission_id ),
         ARRAY_A
     );
     

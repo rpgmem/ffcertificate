@@ -22,7 +22,6 @@ namespace FreeFormCertificate\Migrations;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class MigrationUserCapabilities {
 
@@ -70,16 +69,18 @@ class MigrationUserCapabilities {
                 $user_changes = array();
 
                 // Check if user has submissions (certificates)
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $has_submissions = $wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$submissions_table} WHERE user_id = %d LIMIT 1",
+                    "SELECT COUNT(*) FROM %i WHERE user_id = %d LIMIT 1",
+                    $submissions_table,
                     $user_id
                 ));
 
                 // Check if user has appointments
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $has_appointments = $wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$appointments_table} WHERE user_id = %d LIMIT 1",
+                    "SELECT COUNT(*) FROM %i WHERE user_id = %d LIMIT 1",
+                    $appointments_table,
                     $user_id
                 ));
 

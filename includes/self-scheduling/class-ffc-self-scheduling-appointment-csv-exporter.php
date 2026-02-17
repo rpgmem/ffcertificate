@@ -18,7 +18,7 @@ use FreeFormCertificate\Repositories\CalendarRepository;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
 
 class AppointmentCsvExporter {
 
@@ -334,13 +334,15 @@ class AppointmentCsvExporter {
 
         $where_sql = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
 
-        $sql = "SELECT * FROM {$table} {$where_sql} ORDER BY appointment_date DESC, start_time DESC";
+        $sql = "SELECT * FROM %i {$where_sql} ORDER BY appointment_date DESC, start_time DESC";
 
         if (!empty($where_values)) {
-            $sql = $wpdb->prepare($sql, $where_values);
+            $sql = $wpdb->prepare($sql, array_merge( array( $table ), $where_values ));
+        } else {
+            $sql = $wpdb->prepare($sql, $table);
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_sql is built from validated placeholders above.
         return $wpdb->get_results($sql, ARRAY_A);
     }
 

@@ -273,9 +273,9 @@ class SelfSchedulingActivator {
         $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
         // Get appointments without validation codes
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $appointments = $wpdb->get_results(
-            "SELECT id FROM {$table_name} WHERE validation_code IS NULL OR validation_code = ''"
+            $wpdb->prepare( "SELECT id FROM %i WHERE validation_code IS NULL OR validation_code = ''", $table_name )
         );
 
         foreach ($appointments as $appointment) {
@@ -311,10 +311,11 @@ class SelfSchedulingActivator {
             $code = \FreeFormCertificate\Core\Utils::generate_random_string(12);
 
             // Check if code already exists
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $existing = $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT id FROM {$table_name} WHERE validation_code = %s",
+                    "SELECT id FROM %i WHERE validation_code = %s",
+                    $table_name,
                     $code
                 )
             );
@@ -340,14 +341,17 @@ class SelfSchedulingActivator {
         $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
         // Get appointments with unencrypted data
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $appointments = $wpdb->get_results(
-            "SELECT id, email, cpf_rf, phone, user_ip
-             FROM {$table_name}
-             WHERE (email IS NOT NULL AND email != '' AND (email_encrypted IS NULL OR email_encrypted = ''))
-                OR (cpf_rf IS NOT NULL AND cpf_rf != '' AND (cpf_rf_encrypted IS NULL OR cpf_rf_encrypted = ''))
-                OR (phone IS NOT NULL AND phone != '' AND (phone_encrypted IS NULL OR phone_encrypted = ''))
-                OR (user_ip IS NOT NULL AND user_ip != '' AND (user_ip_encrypted IS NULL OR user_ip_encrypted = ''))",
+            $wpdb->prepare(
+                "SELECT id, email, cpf_rf, phone, user_ip
+                 FROM %i
+                 WHERE (email IS NOT NULL AND email != '' AND (email_encrypted IS NULL OR email_encrypted = ''))
+                    OR (cpf_rf IS NOT NULL AND cpf_rf != '' AND (cpf_rf_encrypted IS NULL OR cpf_rf_encrypted = ''))
+                    OR (phone IS NOT NULL AND phone != '' AND (phone_encrypted IS NULL OR phone_encrypted = ''))
+                    OR (user_ip IS NOT NULL AND user_ip != '' AND (user_ip_encrypted IS NULL OR user_ip_encrypted = ''))",
+                $table_name
+            ),
             ARRAY_A
         );
 
@@ -409,7 +413,7 @@ class SelfSchedulingActivator {
 
             // Update appointment if we have data to encrypt
             if (!empty($update_data)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $wpdb->update(
                     $table_name,
                     $update_data,
@@ -511,27 +515,30 @@ class SelfSchedulingActivator {
         // Migrate data from require_login if the old column exists
         if ($require_login_exists) {
             // require_login=1 → private/private
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->query(
-                "UPDATE {$table_name}
-                SET visibility = 'private', scheduling_visibility = 'private'
-                WHERE require_login = 1"
+                $wpdb->prepare(
+                    "UPDATE %i SET visibility = 'private', scheduling_visibility = 'private' WHERE require_login = 1",
+                    $table_name
+                )
             );
 
             // require_login=0 → public/public (already default, but be explicit)
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->query(
-                "UPDATE {$table_name}
-                SET visibility = 'public', scheduling_visibility = 'public'
-                WHERE require_login = 0"
+                $wpdb->prepare(
+                    "UPDATE %i SET visibility = 'public', scheduling_visibility = 'public' WHERE require_login = 0",
+                    $table_name
+                )
             );
 
             // Drop old columns
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $wpdb->query(
-                "ALTER TABLE {$table_name}
-                DROP COLUMN require_login,
-                DROP COLUMN allowed_roles"
+                $wpdb->prepare(
+                    "ALTER TABLE %i DROP COLUMN require_login, DROP COLUMN allowed_roles",
+                    $table_name
+                )
             );
         }
     }
@@ -633,8 +640,8 @@ class SelfSchedulingActivator {
         );
 
         foreach ($tables as $table) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $wpdb->query("DROP TABLE IF EXISTS {$table}");
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );
         }
     }
 
@@ -675,12 +682,12 @@ class SelfSchedulingActivator {
             }
 
             // Drop the non-unique index first
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $wpdb->query( "ALTER TABLE {$table_name} DROP INDEX validation_code" );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table_name, 'validation_code' ) );
         }
 
         // Add UNIQUE index
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $wpdb->query( "ALTER TABLE {$table_name} ADD UNIQUE KEY validation_code (validation_code)" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD UNIQUE KEY validation_code (validation_code)', $table_name ) );
     }
 }
