@@ -31,6 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SettingsSaveHandler {
 
+    /** @var SubmissionHandler */
     private $submission_handler;
 
     /**
@@ -112,9 +113,9 @@ class SettingsSaveHandler {
     /**
      * Save General tab settings
      *
-     * @param array $clean Current settings
-     * @param array $new New settings from POST
-     * @return array Updated settings
+     * @param array<string, mixed> $clean Current settings
+     * @param array<string, mixed> $new New settings from POST
+     * @return array<string, mixed> Updated settings
      */
     private function save_general_settings( array $clean, array $new ): array {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
@@ -180,9 +181,9 @@ class SettingsSaveHandler {
     /**
      * Save SMTP tab settings
      *
-     * @param array $clean Current settings
-     * @param array $new New settings from POST
-     * @return array Updated settings
+     * @param array<string, mixed> $clean Current settings
+     * @param array<string, mixed> $new New settings from POST
+     * @return array<string, mixed> Updated settings
      */
     private function save_smtp_settings( array $clean, array $new ): array {
         // Email Status checkbox (only when on SMTP tab to prevent unchecking from other tabs)
@@ -246,9 +247,9 @@ class SettingsSaveHandler {
     /**
      * Save QR Code tab settings
      *
-     * @param array $clean Current settings
-     * @param array $new New settings from POST
-     * @return array Updated settings
+     * @param array<string, mixed> $clean Current settings
+     * @param array<string, mixed> $new New settings from POST
+     * @return array<string, mixed> Updated settings
      */
     private function save_qrcode_settings( array $clean, array $new ): array {
         // QR Cache checkbox - v4.6.16: now on Cache tab (was qr_code tab)
@@ -275,9 +276,9 @@ class SettingsSaveHandler {
     /**
      * Save Date Format settings (v2.10.0)
      *
-     * @param array $clean Current settings
-     * @param array $new New settings from POST
-     * @return array Updated settings
+     * @param array<string, mixed> $clean Current settings
+     * @param array<string, mixed> $new New settings from POST
+     * @return array<string, mixed> Updated settings
      */
     private function save_date_format_settings( array $clean, array $new ): array {
         if ( isset( $new['date_format'] ) ) {

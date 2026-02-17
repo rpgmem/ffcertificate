@@ -92,7 +92,7 @@ class AccessControl {
     /**
      * Get default settings
      *
-     * @return array Default settings
+     * @return array<string, mixed> Default settings
      */
     public static function get_default_settings(): array {
         return array(

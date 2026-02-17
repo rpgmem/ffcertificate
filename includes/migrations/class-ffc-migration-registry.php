@@ -23,14 +23,14 @@ class MigrationRegistry {
     /**
      * Field definitions for migrations
      *
-     * @var array
+     * @var array<string, array<string, mixed>>
      */
     private $field_definitions = array();
 
     /**
      * Registry of all available migrations
      *
-     * @var array
+     * @var array<string, array<string, mixed>>
      */
     private $migrations = array();
 
@@ -182,7 +182,7 @@ class MigrationRegistry {
     /**
      * Get all registered migrations
      *
-     * @return array
+     * @return array<string, array<string, mixed>>
      */
     public function get_all_migrations(): array {
         return $this->migrations;
@@ -192,7 +192,7 @@ class MigrationRegistry {
      * Get a specific migration definition
      *
      * @param string $migration_key Migration identifier
-     * @return array|null Migration definition or null if not found
+     * @return array<string, mixed>|null Migration definition or null if not found
      */
     public function get_migration( string $migration_key ) {
         return isset( $this->migrations[ $migration_key ] ) ? $this->migrations[ $migration_key ] : null;
@@ -202,7 +202,7 @@ class MigrationRegistry {
      * Get field definition for a specific field
      *
      * @param string $field_key Field identifier
-     * @return array|null Field definition or null if not found
+     * @return array<string, mixed>|null Field definition or null if not found
      */
     public function get_field_definition( string $field_key ) {
         return isset( $this->field_definitions[ $field_key ] ) ? $this->field_definitions[ $field_key ] : null;
@@ -211,7 +211,7 @@ class MigrationRegistry {
     /**
      * Get all field definitions
      *
-     * @return array
+     * @return array<string, array<string, mixed>>
      */
     public function get_all_field_definitions(): array {
         return $this->field_definitions;

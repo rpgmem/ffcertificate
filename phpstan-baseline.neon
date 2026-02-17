@@ -37,6 +37,12 @@ parameters:
 			path: includes/admin/class-ffc-admin-user-custom-fields.php
 
 		-
+			message: '#^Call to method get_error_message\(\) on an unknown class FreeFormCertificate\\Migrations\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-ffc-admin.php
+
+		-
 			message: '#^Parameter \#1 \$text of function esc_attr expects string, int given\.$#'
 			identifier: argument.type
 			count: 1
@@ -62,6 +68,12 @@ parameters:
 
 		-
 			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/admin/class-ffc-csv-exporter.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: includes/admin/class-ffc-csv-exporter.php
@@ -213,6 +225,18 @@ parameters:
 		-
 			message: '#^Call to function is_array\(\) with non\-empty\-array will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
+			count: 1
+			path: includes/api/class-ffc-form-rest-controller.php
+
+		-
+			message: '#^Cannot access offset ''auth_code'' on int\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: includes/api/class-ffc-form-rest-controller.php
+
+		-
+			message: '#^Cannot access offset ''submission_id'' on int\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
 			path: includes/api/class-ffc-form-rest-controller.php
 
@@ -379,22 +403,16 @@ parameters:
 			path: includes/class-ffc-autoloader.php
 
 		-
+			message: '#^Action callback returns array\<string, int\> but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: includes/class-ffc-loader.php
+
+		-
 			message: '#^Path in include\(\) "/path/to/plugin/templates/submission\-success\.php" is not a file or it does not exist\.$#'
 			identifier: include.fileNotFound
 			count: 1
 			path: includes/core/class-ffc-utils.php
-
-		-
-			message: '#^Call to method get_error_code\(\) on an unknown class FreeFormCertificate\\Generators\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/frontend/class-ffc-form-processor.php
-
-		-
-			message: '#^Call to method get_error_message\(\) on an unknown class FreeFormCertificate\\Generators\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/frontend/class-ffc-form-processor.php
 
 		-
 			message: '#^Class FreeFormCertificate\\Generators\\PdfGenerator constructor invoked with 1 parameter, 0 required\.$#'
@@ -469,15 +487,9 @@ parameters:
 			path: includes/frontend/class-ffc-shortcodes.php
 
 		-
-			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			message: '#^Call to function is_array\(\) with array\<mixed\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: includes/frontend/class-ffc-verification-handler.php
-
-		-
-			message: '#^Call to method get_error_message\(\) on an unknown class FreeFormCertificate\\Generators\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 2
 			path: includes/frontend/class-ffc-verification-handler.php
 
 		-
@@ -511,13 +523,13 @@ parameters:
 			path: includes/generators/class-ffc-pdf-generator.php
 
 		-
-			message: '#^Method FreeFormCertificate\\Generators\\PdfGenerator\:\:generate_pdf_data\(\) has invalid return type FreeFormCertificate\\Generators\\WP_Error\.$#'
-			identifier: class.notFound
+			message: '#^Method FreeFormCertificate\\Generators\\PdfGenerator\:\:generate_pdf_data\(\) should return array\{html\: string, filename\: string, form_title\: string, auth_code\: string, submission_id\: int, submission\: array\<string, mixed\>, bg_image\: mixed\}\|WP_Error but returns FreeFormCertificate\\Generators\\WP_Error\.$#'
+			identifier: return.type
 			count: 1
 			path: includes/generators/class-ffc-pdf-generator.php
 
 		-
-			message: '#^Method FreeFormCertificate\\Generators\\PdfGenerator\:\:generate_pdf_data_from_form\(\) should return array but returns FreeFormCertificate\\Generators\\WP_Error\.$#'
+			message: '#^Method FreeFormCertificate\\Generators\\PdfGenerator\:\:generate_pdf_data_from_form\(\) should return array\{html\: string, filename\: string, form_title\: string, submission\: array\<string, mixed\>, bg_image\: mixed\}\|WP_Error but returns FreeFormCertificate\\Generators\\WP_Error\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/generators/class-ffc-pdf-generator.php
@@ -649,51 +661,33 @@ parameters:
 			path: includes/integrations/class-ffc-ip-geolocation.php
 
 		-
-			message: '#^Call to method get_error_message\(\) on an unknown class FreeFormCertificate\\Integrations\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/integrations/class-ffc-ip-geolocation.php
-
-		-
 			message: '#^Instantiated class FreeFormCertificate\\Integrations\\WP_Error not found\.$#'
 			identifier: class.notFound
 			count: 7
 			path: includes/integrations/class-ffc-ip-geolocation.php
 
 		-
-			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:fetch_from_ipapi\(\) has invalid return type FreeFormCertificate\\Integrations\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 1
+			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:fetch_from_ipapi\(\) should return array\<string, mixed\>\|WP_Error but returns FreeFormCertificate\\Integrations\\WP_Error\.$#'
+			identifier: return.type
+			count: 2
 			path: includes/integrations/class-ffc-ip-geolocation.php
 
 		-
-			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:fetch_from_ipapi\(\) should return array\|FreeFormCertificate\\Integrations\\WP_Error but returns WP_Error\.$#'
+			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:fetch_from_ipinfo\(\) should return array\<string, mixed\>\|WP_Error but returns FreeFormCertificate\\Integrations\\WP_Error\.$#'
+			identifier: return.type
+			count: 2
+			path: includes/integrations/class-ffc-ip-geolocation.php
+
+		-
+			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:fetch_from_service\(\) should return array\<string, mixed\>\|WP_Error but returns FreeFormCertificate\\Integrations\\WP_Error\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/integrations/class-ffc-ip-geolocation.php
 
 		-
-			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:fetch_from_ipinfo\(\) has invalid return type FreeFormCertificate\\Integrations\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/integrations/class-ffc-ip-geolocation.php
-
-		-
-			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:fetch_from_ipinfo\(\) should return array\|FreeFormCertificate\\Integrations\\WP_Error but returns WP_Error\.$#'
+			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:get_location\(\) should return array\<string, mixed\>\|WP_Error\|null but returns FreeFormCertificate\\Integrations\\WP_Error\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/integrations/class-ffc-ip-geolocation.php
-
-		-
-			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:fetch_from_service\(\) has invalid return type FreeFormCertificate\\Integrations\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/integrations/class-ffc-ip-geolocation.php
-
-		-
-			message: '#^Method FreeFormCertificate\\Integrations\\IpGeolocation\:\:get_location\(\) has invalid return type FreeFormCertificate\\Integrations\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 1
+			count: 2
 			path: includes/integrations/class-ffc-ip-geolocation.php
 
 		-
@@ -895,7 +889,7 @@ parameters:
 			path: includes/migrations/strategies/class-ffc-field-migration-strategy.php
 
 		-
-			message: '#^Method FreeFormCertificate\\Migrations\\Strategies\\FieldMigrationStrategy\:\:calculate_status\(\) should return array but returns FreeFormCertificate\\Migrations\\Strategies\\WP_Error\.$#'
+			message: '#^Method FreeFormCertificate\\Migrations\\Strategies\\FieldMigrationStrategy\:\:calculate_status\(\) should return array\<string, mixed\> but returns FreeFormCertificate\\Migrations\\Strategies\\WP_Error\.$#'
 			identifier: return.type
 			count: 1
 			path: includes/migrations/strategies/class-ffc-field-migration-strategy.php
@@ -929,24 +923,6 @@ parameters:
 			identifier: classConstant.unused
 			count: 1
 			path: includes/migrations/strategies/class-ffc-name-normalization-migration-strategy.php
-
-		-
-			message: '#^Method FreeFormCertificate\\Migrations\\Strategies\\UserCapabilitiesMigrationStrategy\:\:can_run\(\) has invalid return type FreeFormCertificate\\Migrations\\Strategies\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/migrations/strategies/class-ffc-user-capabilities-migration-strategy.php
-
-		-
-			message: '#^Method FreeFormCertificate\\Migrations\\Strategies\\UserCapabilitiesMigrationStrategy\:\:can_run\(\) should return bool\|FreeFormCertificate\\Migrations\\Strategies\\WP_Error but returns WP_Error\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/migrations/strategies/class-ffc-user-capabilities-migration-strategy.php
-
-		-
-			message: '#^PHPDoc tag @return has invalid value \(bool\|\\\\WP_Error True if can run, WP_Error if cannot\)\: Unexpected token "\\\\\\\\WP_Error", expected type at offset 192 on line 6$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: includes/migrations/strategies/class-ffc-user-capabilities-migration-strategy.php
 
 		-
 			message: '#^Instantiated class FreeFormCertificate\\Migrations\\Strategies\\WP_Error not found\.$#'
@@ -1021,24 +997,6 @@ parameters:
 			path: includes/reregistration/class-ffc-reregistration-submission-repository.php
 
 		-
-			message: '#^Call to method get_error_message\(\) on an unknown class FreeFormCertificate\\Security\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 3
-			path: includes/security/class-ffc-geofence.php
-
-		-
-			message: '#^Parameter \#2 \$error of static method FreeFormCertificate\\Security\\Geofence\:\:handle_ip_fallback\(\) expects FreeFormCertificate\\Security\\WP_Error, FreeFormCertificate\\Integrations\\WP_Error&WP_Error given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/security/class-ffc-geofence.php
-
-		-
-			message: '#^Parameter \$error of method FreeFormCertificate\\Security\\Geofence\:\:handle_ip_fallback\(\) has invalid type FreeFormCertificate\\Security\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 1
-			path: includes/security/class-ffc-geofence.php
-
-		-
 			message: '#^Parameter \#2 \$replace of function str_replace expects array\<string\>\|string, array\<int, mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -1069,7 +1027,7 @@ parameters:
 			path: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php
 
 		-
-			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php
@@ -1111,7 +1069,7 @@ parameters:
 			path: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
 
 		-
-			message: '#^Parameter \#1 \$args of method WP_List_Table\:\:set_pagination_args\(\) expects array\{total_items\?\: int, total_pages\?\: int, per_page\?\: int\}, array\{total_items\: mixed, per_page\: 20, total_pages\: float\} given\.$#'
+			message: '#^Parameter \#1 \$args of method WP_List_Table\:\:set_pagination_args\(\) expects array\{total_items\?\: int, total_pages\?\: int, per_page\?\: int\}, array\{total_items\: int, per_page\: 20, total_pages\: float\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/self-scheduling/views/appointments-list.php
@@ -1213,6 +1171,12 @@ parameters:
 			path: includes/settings/views/ffc-tab-smtp.php
 
 		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: includes/submissions/class-ffc-form-cache.php
+
+		-
 			message: '#^Strict comparison using \!\=\= between array and false will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 1
@@ -1225,20 +1189,8 @@ parameters:
 			path: includes/submissions/class-ffc-submission-handler.php
 
 		-
-			message: '#^Method FreeFormCertificate\\Submissions\\SubmissionHandler\:\:run_data_cleanup\(\) should return array but returns int\.$#'
+			message: '#^Method FreeFormCertificate\\Submissions\\SubmissionHandler\:\:run_data_cleanup\(\) should return array\<string, int\> but returns int\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/submissions/class-ffc-submission-handler.php
-
-		-
-			message: '#^PHPDoc tag @return with type int\|false is not subtype of native type bool\.$#'
-			identifier: return.phpDocType
-			count: 1
-			path: includes/submissions/class-ffc-submission-handler.php
-
-		-
-			message: '#^PHPDoc tag @return with type int\|false is not subtype of native type int\.$#'
-			identifier: return.phpDocType
 			count: 1
 			path: includes/submissions/class-ffc-submission-handler.php
 

@@ -30,6 +30,8 @@ class TabGeolocation extends SettingsTab {
 
     /**
      * Get default settings
+     *
+     * @return array<string, mixed>
      */
     private function get_default_settings(): array {
         return array(
@@ -60,6 +62,8 @@ class TabGeolocation extends SettingsTab {
 
     /**
      * Get current settings
+     *
+     * @return array<string, mixed>
      */
     private function get_settings(): array {
         return wp_parse_args(

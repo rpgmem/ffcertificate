@@ -29,9 +29,9 @@ trait CsvExportTrait {
      *
      * Works with both 'data' (submissions) and 'custom_data' (appointments).
      *
-     * @param array  $rows           Array of database rows.
-     * @param string $plain_key      Plain-text column name (e.g. 'data', 'custom_data').
-     * @param string $encrypted_key  Encrypted column name (e.g. 'data_encrypted', 'custom_data_encrypted').
+     * @param array<int, array<string, mixed>> $rows           Array of database rows.
+     * @param string                           $plain_key      Plain-text column name (e.g. 'data', 'custom_data').
+     * @param string                           $encrypted_key  Encrypted column name (e.g. 'data_encrypted', 'custom_data_encrypted').
      * @return array<string> Unique keys from the JSON data.
      */
     protected function extract_dynamic_keys(array $rows, string $plain_key = 'data', string $encrypted_key = 'data_encrypted'): array {
@@ -50,10 +50,10 @@ trait CsvExportTrait {
     /**
      * Decrypt and decode a JSON field with encrypted-first fallback.
      *
-     * @param array  $row            Database row.
-     * @param string $plain_key      Plain-text column name.
-     * @param string $encrypted_key  Encrypted column name.
-     * @return array Decoded JSON data, or empty array.
+     * @param array<string, mixed> $row            Database row.
+     * @param string               $plain_key      Plain-text column name.
+     * @param string               $encrypted_key  Encrypted column name.
+     * @return array<string, mixed> Decoded JSON data, or empty array.
      */
     protected function decode_json_field(array $row, string $plain_key = 'data', string $encrypted_key = 'data_encrypted'): array {
         $json = null;
@@ -93,10 +93,10 @@ trait CsvExportTrait {
     /**
      * Extract dynamic column values from a row's JSON data.
      *
-     * @param array         $row            Database row.
-     * @param array<string> $dynamic_keys   Ordered keys to extract.
-     * @param string        $plain_key      Plain-text column name.
-     * @param string        $encrypted_key  Encrypted column name.
+     * @param array<string, mixed> $row            Database row.
+     * @param array<string>        $dynamic_keys   Ordered keys to extract.
+     * @param string               $plain_key      Plain-text column name.
+     * @param string               $encrypted_key  Encrypted column name.
      * @return array<string> Values in the same order as $dynamic_keys.
      */
     protected function extract_dynamic_values(array $row, array $dynamic_keys, string $plain_key = 'data', string $encrypted_key = 'data_encrypted'): array {
@@ -119,9 +119,9 @@ trait CsvExportTrait {
      *
      * Handles BOM, UTF-8 encoding, HTTP headers, and row writing.
      *
-     * @param string         $filename  Download filename (e.g. 'export-2024-01-01.csv').
-     * @param array<string>  $headers   Column headers.
-     * @param array<array>   $rows      Data rows (each is an array of values).
+     * @param string                           $filename  Download filename (e.g. 'export-2024-01-01.csv').
+     * @param array<int, string>               $headers   Column headers.
+     * @param array<int, array<string, mixed>> $rows      Data rows (each is an array of values).
      * @return void Exits after output.
      */
     protected function output_csv(string $filename, array $headers, array $rows): void {

@@ -64,6 +64,10 @@ class CPT {
 
     /**
      * Adds a "Duplicate" link to the post row actions
+     *
+     * @param array<string, string> $actions Row action links
+     * @param object $post Post object
+     * @return array<string, string>
      */
     public function add_duplicate_link( array $actions, object $post ): array {
         if ( $post->post_type !== 'ffc_form' ) {

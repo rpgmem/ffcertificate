@@ -119,6 +119,8 @@ class AdminActivityLogPage {
 
     /**
      * Get unique actions from database
+     *
+     * @return array<int, string>
      */
     private function get_unique_actions(): array {
         global $wpdb;

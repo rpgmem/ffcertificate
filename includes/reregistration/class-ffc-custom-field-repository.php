@@ -200,7 +200,7 @@ class CustomFieldRepository {
     /**
      * Create a custom field.
      *
-     * @param array $data Field data.
+     * @param array<string, mixed> $data Field data.
      * @return int|false Field ID or false on failure.
      */
     public static function create(array $data) {
@@ -258,7 +258,7 @@ class CustomFieldRepository {
      * Update a custom field.
      *
      * @param int   $field_id Field ID.
-     * @param array $data     Update data.
+     * @param array<string, mixed> $data     Update data.
      * @return bool
      */
     public static function update(int $field_id, array $data): bool {
@@ -447,7 +447,7 @@ class CustomFieldRepository {
      * Merges with existing data (does not overwrite unrelated fields).
      *
      * @param int   $user_id User ID.
-     * @param array $data    Associative array of field_{id} => value.
+     * @param array<string, mixed> $data    Associative array of field_{id} => value.
      * @return bool
      */
     public static function save_user_data(int $user_id, array $data): bool {
@@ -573,7 +573,7 @@ class CustomFieldRepository {
      *
      * @param object $field Field definition.
      * @param mixed  $value Value to validate.
-     * @param array  $rules Validation rules.
+     * @param array<string, mixed>  $rules Validation rules.
      * @return true|\WP_Error
      */
     private static function validate_format(object $field, $value, array $rules) {
@@ -861,7 +861,7 @@ class CustomFieldRepository {
      * Get validation rules for a field.
      *
      * @param object $field Field definition.
-     * @return array
+     * @return array<string, mixed>
      */
     public static function get_validation_rules(object $field): array {
         $rules = $field->validation_rules;

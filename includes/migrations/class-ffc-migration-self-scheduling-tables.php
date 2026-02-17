@@ -51,7 +51,7 @@ class MigrationSelfSchedulingTables {
     /**
      * Run the migration
      *
-     * @return array{success: bool, message: string, details: array}
+     * @return array<string, mixed>
      */
     public static function run(): array {
         global $wpdb;
@@ -179,7 +179,7 @@ class MigrationSelfSchedulingTables {
     /**
      * Rollback the migration (for emergencies)
      *
-     * @return array{success: bool, message: string, details: array}
+     * @return array<string, mixed>
      */
     public static function rollback(): array {
         global $wpdb;
@@ -217,7 +217,7 @@ class MigrationSelfSchedulingTables {
     /**
      * Get migration status information
      *
-     * @return array{completed: bool, tables: array}
+     * @return array<string, mixed>
      */
     public static function get_status(): array {
         global $wpdb;

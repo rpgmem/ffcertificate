@@ -70,6 +70,8 @@ class AdminAjax {
 
     /**
      * Get existing codes for a form
+     *
+     * @return array<int, string>
      */
     private function get_existing_codes( int $form_id ): array {
         $form_config = get_post_meta( $form_id, '_ffc_form_config', true );
@@ -192,7 +194,7 @@ class AdminAjax {
      * Format user data for AJAX response
      *
      * @param \WP_User $user WordPress user object
-     * @return array Formatted user data
+     * @return array<string, mixed> Formatted user data
      */
     private function format_user_result( \WP_User $user ): array {
         return array(
@@ -207,7 +209,7 @@ class AdminAjax {
      * Search for user by CPF/RF in submissions
      *
      * @param string $cpf_rf CPF/RF to search for
-     * @return array Array of user results
+     * @return array<int, array<string, mixed>> Array of user results
      */
     private function search_user_by_cpf( string $cpf_rf ): array {
         global $wpdb;

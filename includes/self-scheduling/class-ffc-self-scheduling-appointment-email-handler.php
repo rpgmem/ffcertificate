@@ -43,7 +43,7 @@ class AppointmentEmailHandler {
     /**
      * Get decrypted email
      *
-     * @param array $appointment
+     * @param array<string, mixed> $appointment
      * @return string
      */
     private function get_appointment_email(array $appointment): string {
@@ -53,8 +53,8 @@ class AppointmentEmailHandler {
     /**
      * Send booking confirmation to user
      *
-     * @param array $appointment Appointment data
-     * @param array $calendar Calendar data
+     * @param array<string, mixed> $appointment Appointment data
+     * @param array<string, mixed> $calendar Calendar data
      * @return void
      */
     public function send_booking_confirmation(array $appointment, array $calendar): void {
@@ -142,8 +142,8 @@ class AppointmentEmailHandler {
     /**
      * Send admin notification
      *
-     * @param array $appointment Appointment data
-     * @param array $calendar Calendar data
+     * @param array<string, mixed> $appointment Appointment data
+     * @param array<string, mixed> $calendar Calendar data
      * @return void
      */
     public function send_admin_notification(array $appointment, array $calendar): void {
@@ -200,8 +200,8 @@ class AppointmentEmailHandler {
     /**
      * Send approval notification to user
      *
-     * @param array $appointment Appointment data
-     * @param array $calendar Calendar data
+     * @param array<string, mixed> $appointment Appointment data
+     * @param array<string, mixed> $calendar Calendar data
      * @return void
      */
     public function send_approval_notification(array $appointment, array $calendar): void {
@@ -264,8 +264,8 @@ class AppointmentEmailHandler {
     /**
      * Send cancellation notification to user
      *
-     * @param array $appointment Appointment data
-     * @param array $calendar Calendar data
+     * @param array<string, mixed> $appointment Appointment data
+     * @param array<string, mixed> $calendar Calendar data
      * @return void
      */
     public function send_cancellation_notification(array $appointment, array $calendar): void {
@@ -323,8 +323,8 @@ class AppointmentEmailHandler {
     /**
      * Send appointment reminder
      *
-     * @param array $appointment Appointment data
-     * @param array $calendar Calendar data
+     * @param array<string, mixed> $appointment Appointment data
+     * @param array<string, mixed> $calendar Calendar data
      * @return void
      */
     public function send_reminder(array $appointment, array $calendar): void {
@@ -434,7 +434,7 @@ class AppointmentEmailHandler {
     /**
      * Get cancellation URL
      *
-     * @param array $appointment
+     * @param array<string, mixed> $appointment
      * @return string
      */
     private function get_cancellation_url(array $appointment): string {

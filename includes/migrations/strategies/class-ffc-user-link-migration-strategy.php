@@ -39,8 +39,8 @@ class UserLinkMigrationStrategy implements MigrationStrategyInterface {
      * Calculate user link migration status
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
-     * @return array Status information
+     * @param array<string, mixed> $migration_config Migration configuration
+     * @return array<string, mixed> Status information
      */
     public function calculate_status( string $migration_key, array $migration_config ): array {
         global $wpdb;
@@ -103,9 +103,9 @@ class UserLinkMigrationStrategy implements MigrationStrategyInterface {
      * Execute user linking migration
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
+     * @param array<string, mixed> $migration_config Migration configuration
      * @param int $batch_number Batch number (unused for this migration)
-     * @return array Result array
+     * @return array<string, mixed> Result array
      */
     public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
         // Autoloader handles class loading
@@ -122,7 +122,7 @@ class UserLinkMigrationStrategy implements MigrationStrategyInterface {
      * Check if migration can be executed
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
+     * @param array<string, mixed> $migration_config Migration configuration
      * @return bool|WP_Error True if can run, WP_Error if cannot
      */
     public function can_run( string $migration_key, array $migration_config ) {

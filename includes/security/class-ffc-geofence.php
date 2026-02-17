@@ -23,8 +23,8 @@ class Geofence {
      * Check if user can access form (complete validation)
      *
      * @param int $form_id Form ID
-     * @param array $options Validation options
-     * @return array ['allowed' => bool, 'reason' => string, 'message' => string]
+     * @param array<string, mixed> $options Validation options
+     * @return array{allowed: bool, reason?: string, message?: string}
      */
     public static function can_access_form(int $form_id, array $options = array()): array {
         $defaults = array(
@@ -92,8 +92,8 @@ class Geofence {
     /**
      * Validate date/time restrictions
      *
-     * @param array $config Form geofence configuration
-     * @return array ['valid' => bool, 'message' => string, 'details' => array]
+     * @param array<string, mixed> $config Form geofence configuration
+     * @return array<string, mixed>
      */
     public static function validate_datetime(array $config): array {
         $now = time();
@@ -199,9 +199,9 @@ class Geofence {
     /**
      * Validate geolocation restrictions (IP-based backend validation)
      *
-     * @param array $config Form geofence configuration
-     * @param array|null $user_location Manual location override
-     * @return array ['valid' => bool, 'message' => string, 'details' => array]
+     * @param array<string, mixed> $config Form geofence configuration
+     * @param array<string, mixed>|null $user_location Manual location override
+     * @return array<string, mixed>
      */
     public static function validate_geolocation(array $config, ?array $user_location = null): array {
         // Parse areas
@@ -269,9 +269,9 @@ class Geofence {
     /**
      * Handle IP geolocation fallback when API fails
      *
-     * @param array $config Form configuration
-     * @param WP_Error $error Error from IP API
-     * @return array Validation result
+     * @param array<string, mixed> $config Form configuration
+     * @param \WP_Error $error Error from IP API
+     * @return array<string, mixed>
      */
     private static function handle_ip_fallback(array $config, $error): array {
         $global_settings = get_option('ffc_geolocation_settings', array());
@@ -315,7 +315,7 @@ class Geofence {
      * Get form geofence configuration
      *
      * @param int $form_id Form ID
-     * @return array|null Configuration array or null if none
+     * @return array<string, mixed>|null Configuration array or null if none
      */
     public static function get_form_config(int $form_id) {
         $config = get_post_meta($form_id, '_ffc_geofence_config', true);
@@ -340,7 +340,7 @@ class Geofence {
      * Format: "lat, lng, radius" (one per line)
      *
      * @param string $areas_text Raw textarea content
-     * @return array Array of areas with 'lat', 'lng', 'radius'
+     * @return array<int, array<string, float>> Array of areas with 'lat', 'lng', 'radius'
      */
     public static function parse_areas(string $areas_text): array {
         if (empty($areas_text)) {
@@ -413,7 +413,7 @@ class Geofence {
      * Get frontend configuration for form (JavaScript)
      *
      * @param int $form_id Form ID
-     * @return array|null Configuration for frontend or null if no restrictions
+     * @return array<string, mixed>|null Configuration for frontend or null if no restrictions
      */
     public static function get_frontend_config(int $form_id) {
         $config = self::get_form_config($form_id);
@@ -495,7 +495,7 @@ class Geofence {
      *
      * @param int $form_id Form ID
      * @param string $reason Denial reason
-     * @param array $details Additional details
+     * @param array<string, mixed> $details Additional details
      */
     private static function log_access_denied(int $form_id, string $reason, array $details = array()): void {
         if (!class_exists('\FreeFormCertificate\Core\ActivityLog')) {

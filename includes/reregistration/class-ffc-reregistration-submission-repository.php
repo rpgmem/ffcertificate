@@ -219,6 +219,7 @@ class ReregistrationSubmissionRepository {
      *     @type int    $limit   Max results. Default 0.
      *     @type int    $offset  Offset. Default 0.
      * }
+     * @param array<string, mixed> $filters
      * @return array<object>
      */
     public static function get_by_reregistration(int $reregistration_id, array $filters = array()): array {
@@ -273,7 +274,7 @@ class ReregistrationSubmissionRepository {
     /**
      * Create a submission record.
      *
-     * @param array $data Submission data.
+     * @param array<string, mixed> $data Submission data.
      * @return int|false Submission ID or false.
      */
     public static function create(array $data) {
@@ -323,7 +324,7 @@ class ReregistrationSubmissionRepository {
      * Update a submission.
      *
      * @param int   $id   Submission ID.
-     * @param array $data Update data.
+     * @param array<string, mixed> $data Update data.
      * @return bool
      */
     public static function update(int $id, array $data): bool {
@@ -532,7 +533,7 @@ class ReregistrationSubmissionRepository {
      * Get submissions for CSV export.
      *
      * @param int   $reregistration_id Reregistration ID.
-     * @param array $filters           Optional filters (status, search).
+     * @param array<string, mixed> $filters           Optional filters (status, search).
      * @return array<object>
      */
     public static function get_for_export(int $reregistration_id, array $filters = array()): array {

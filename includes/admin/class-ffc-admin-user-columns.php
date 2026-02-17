@@ -44,7 +44,7 @@ class AdminUserColumns {
      * Batch-cached certificate counts (user_id => count)
      *
      * @since 4.9.7
-     * @var array|null
+     * @var array<int, int>|null
      */
     private static ?array $certificate_counts_cache = null;
 
@@ -52,7 +52,7 @@ class AdminUserColumns {
      * Batch-cached appointment counts (user_id => count)
      *
      * @since 4.9.7
-     * @var array|null
+     * @var array<int, int>|null
      */
     private static ?array $appointment_counts_cache = null;
 
@@ -71,8 +71,8 @@ class AdminUserColumns {
     /**
      * Add custom columns to users table
      *
-     * @param array $columns Existing columns
-     * @return array Modified columns
+     * @param array<string, string> $columns Existing columns
+     * @return array<string, string> Modified columns
      */
     public static function add_custom_columns( array $columns ): array {
         // Add after "Posts" column

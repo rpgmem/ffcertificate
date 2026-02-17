@@ -42,7 +42,7 @@ class BlockedDateRepository extends AbstractRepository {
      * @param int $calendar_id
      * @param int|null $limit
      * @param int $offset
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function findByCalendar(int $calendar_id, ?int $limit = null, int $offset = 0): array {
         return $this->findAll(
@@ -57,7 +57,7 @@ class BlockedDateRepository extends AbstractRepository {
     /**
      * Get all global blocks (applies to all calendars)
      *
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function getGlobalBlocks(): array {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -119,7 +119,7 @@ class BlockedDateRepository extends AbstractRepository {
      * @param int $calendar_id
      * @param string $start_date
      * @param string $end_date
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function getBlockedDatesInRange(int $calendar_id, string $start_date, string $end_date): array {
         $sql = $this->wpdb->prepare(
@@ -194,10 +194,10 @@ class BlockedDateRepository extends AbstractRepository {
      *
      * Example pattern: {type: 'weekly', days: [0,6]} = weekends
      *
-     * @param int|null $calendar_id
-     * @param string $start_date
-     * @param array $pattern
-     * @param string|null $reason
+     * @param int|null             $calendar_id
+     * @param string               $start_date
+     * @param array<string, mixed> $pattern
+     * @param string|null          $reason
      * @return int|false
      */
     public function createRecurringBlock(?int $calendar_id, string $start_date, array $pattern, ?string $reason = null) {
@@ -239,9 +239,9 @@ class BlockedDateRepository extends AbstractRepository {
     /**
      * Check if date/time matches recurring pattern
      *
-     * @param string $date
-     * @param string|null $time
-     * @param array $pattern
+     * @param string               $date
+     * @param string|null          $time
+     * @param array<string, mixed> $pattern
      * @return bool
      */
     private function matchesRecurringPattern(string $date, ?string $time, array $pattern): bool {
@@ -285,7 +285,7 @@ class BlockedDateRepository extends AbstractRepository {
      *
      * @param int $calendar_id
      * @param int $days Number of days to look ahead
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function getUpcomingBlocks(int $calendar_id, int $days = 30): array {
         $start_date = gmdate('Y-m-d');

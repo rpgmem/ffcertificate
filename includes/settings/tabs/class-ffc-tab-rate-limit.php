@@ -23,6 +23,9 @@ class TabRateLimit extends SettingsTab {
         $this->tab_order = 40;
     }
     
+    /**
+     * @return array<string, mixed>
+     */
     private function get_settings(): array {
         $defaults = array(
             'ip' => array('enabled' => true, 'max_per_hour' => 5, 'max_per_day' => 20, 'cooldown_seconds' => 60, 'apply_to' => 'all', 'message' => __( 'Limit reached. Please wait {time}.', 'ffcertificate' )),

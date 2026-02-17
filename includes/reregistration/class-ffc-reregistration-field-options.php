@@ -140,7 +140,7 @@ class ReregistrationFieldOptions {
     /**
      * Default working hours data (Mon–Fri).
      *
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public static function get_default_working_hours(): array {
         return array(

@@ -51,8 +51,8 @@ class AudienceScheduleRepository {
     /**
      * Get all schedules
      *
-     * @param array $args Query arguments
-     * @return array<object>
+     * @param array<string, mixed> $args Query arguments
+     * @return array<int, object>
      */
     public static function get_all(array $args = array()): array {
         $wpdb = self::db();
@@ -155,7 +155,7 @@ class AudienceScheduleRepository {
     /**
      * Create a schedule
      *
-     * @param array $data Schedule data
+     * @param array<string, mixed> $data Schedule data
      * @return int|false Schedule ID or false on failure
      */
     public static function create(array $data) {
@@ -203,8 +203,8 @@ class AudienceScheduleRepository {
     /**
      * Update a schedule
      *
-     * @param int $id Schedule ID
-     * @param array $data Update data
+     * @param int                  $id Schedule ID
+     * @param array<string, mixed> $data Update data
      * @return bool
      */
     public static function update(int $id, array $data): bool {
@@ -321,9 +321,9 @@ class AudienceScheduleRepository {
     /**
      * Set user permissions for a schedule
      *
-     * @param int $schedule_id Schedule ID
-     * @param int $user_id User ID
-     * @param array $permissions Permission flags
+     * @param int                  $schedule_id Schedule ID
+     * @param int                  $user_id User ID
+     * @param array<string, mixed> $permissions Permission flags
      * @return bool
      */
     public static function set_user_permissions(int $schedule_id, int $user_id, array $permissions): bool {
@@ -481,7 +481,7 @@ class AudienceScheduleRepository {
     /**
      * Count schedules
      *
-     * @param array $args Query arguments (status, visibility)
+     * @param array<string, mixed> $args Query arguments (status, visibility)
      * @return int
      */
     public static function count(array $args = array()): int {

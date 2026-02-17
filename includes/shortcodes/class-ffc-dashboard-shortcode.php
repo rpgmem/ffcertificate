@@ -59,7 +59,7 @@ class DashboardShortcode {
     /**
      * Render dashboard
      *
-     * @param array $atts Shortcode attributes
+     * @param array<string, mixed> $atts Shortcode attributes
      * @return string HTML output
      */
     public static function render(array $atts = array()): string {

@@ -106,10 +106,10 @@ class MagicLinkHelper {
     
     /**
      * Get magic link from submission array
-     * 
+     *
      * Useful when you already have the submission data
-     * 
-     * @param array $submission Submission array with 'magic_token' key
+     *
+     * @param array<string, mixed> $submission Submission array with 'magic_token' key
      * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler (optional, for generating if missing)
      * @return string Complete magic link URL
      */
@@ -223,9 +223,9 @@ class MagicLinkHelper {
     
     /**
      * Debug: Get info about a magic link
-     * 
+     *
      * @param string $token Magic token
-     * @return array Debug information
+     * @return array<string, mixed> Debug information
      */
     public static function debug_info( string $token ): array {
         return array(

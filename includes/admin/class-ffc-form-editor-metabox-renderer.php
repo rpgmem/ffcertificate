@@ -613,7 +613,7 @@ class FormEditorMetaboxRenderer {
      * Helper: Renders a field row in the builder
      *
      * @param int|string $index Field index
-     * @param array $field Field data
+     * @param array<string, mixed> $field Field data
      */
     public function render_field_row( $index, array $field ): void {
         $type    = isset( $field['type'] ) ? $field['type'] : 'text';

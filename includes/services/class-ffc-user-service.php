@@ -25,7 +25,7 @@ class UserService {
      * Get full user profile (WP data + FFC profile + capabilities)
      *
      * @param int $user_id WordPress user ID
-     * @return array|null Profile data or null if user not found
+     * @return array<string, mixed>|null Profile data or null if user not found
      */
     public static function get_full_profile(int $user_id): ?array {
         $user = get_userdata($user_id);
@@ -60,7 +60,7 @@ class UserService {
      * Get user's FFC capabilities with their grant status
      *
      * @param int $user_id WordPress user ID
-     * @return array Associative array of capability => bool
+     * @return array<string, bool> Associative array of capability => bool
      */
     public static function get_user_capabilities(int $user_id): array {
         if (!class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
@@ -81,7 +81,7 @@ class UserService {
      * Get user statistics (certificate count, appointment count, etc.)
      *
      * @param int $user_id WordPress user ID
-     * @return array Statistics
+     * @return array<string, int> Statistics
      */
     public static function get_user_statistics(int $user_id): array {
         global $wpdb;
@@ -131,7 +131,7 @@ class UserService {
      * Returns structured data suitable for WordPress Export Personal Data tool.
      *
      * @param int $user_id WordPress user ID
-     * @return array Grouped personal data
+     * @return array<string, mixed> Grouped personal data
      */
     public static function export_personal_data(int $user_id): array {
         $data = array();

@@ -17,7 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class FormEditor {
 
+    /** @var \FreeFormCertificate\Admin\FormEditorMetaboxRenderer */
     private $metabox_renderer;
+    /** @var \FreeFormCertificate\Admin\FormEditorSaveHandler */
     private $save_handler;
 
     public function __construct() {

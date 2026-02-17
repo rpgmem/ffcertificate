@@ -33,7 +33,7 @@ class UserCreator {
      *
      * @param string $cpf_rf_hash   Hash of CPF or RF
      * @param string $email         Plain email address
-     * @param array  $submission_data Optional submission data for user creation
+     * @param array<string, mixed>  $submission_data Optional submission data for user creation
      * @param string $context       Context for capability granting
      * @return int|\WP_Error User ID or error
      */
@@ -89,7 +89,7 @@ class UserCreator {
      * Create new WordPress user for FFC
      *
      * @param string $email           Email address
-     * @param array  $submission_data Submission data for user metadata
+     * @param array<string, mixed>  $submission_data Submission data for user metadata
      * @param string $context         Context for capability granting
      * @return int|\WP_Error User ID or error
      */
@@ -186,7 +186,7 @@ class UserCreator {
      *
      * @since 4.9.6
      * @param string $email           Email (used only as last-resort fallback)
-     * @param array  $submission_data Submission data containing name fields
+     * @param array<string, mixed>  $submission_data Submission data containing name fields
      * @return string Unique username
      */
     public static function generate_username( string $email, array $submission_data = array() ): string {
@@ -231,7 +231,7 @@ class UserCreator {
      * Sync user metadata from submission data
      *
      * @param int   $user_id         WordPress user ID
-     * @param array $submission_data Submission data
+     * @param array<string, mixed> $submission_data Submission data
      * @return void
      */
     private static function sync_user_metadata( int $user_id, array $submission_data ): void {

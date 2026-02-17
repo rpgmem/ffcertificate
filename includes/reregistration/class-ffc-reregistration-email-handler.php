@@ -212,8 +212,8 @@ class ReregistrationEmailHandler {
      *
      * @param int    $user_id     User ID.
      * @param object $rereg       Reregistration object.
-     * @param array  $template    Template with 'subject' and 'body' keys.
-     * @param array  $extra_vars  Additional template variables.
+     * @param array<string, string>  $template    Template with 'subject' and 'body' keys.
+     * @param array<string, string>  $extra_vars  Additional template variables.
      * @return bool
      */
     private static function send_to_user(int $user_id, object $rereg, array $template, array $extra_vars = array()): bool {
@@ -245,7 +245,7 @@ class ReregistrationEmailHandler {
      * Load an email template file.
      *
      * @param string $template_name Template name (without path/extension).
-     * @return array|null Array with 'subject' and 'body', or null.
+     * @return array<string, string>|null Array with 'subject' and 'body', or null.
      */
     private static function load_template(string $template_name): ?array {
         $file = FFC_PLUGIN_DIR . "templates/emails/{$template_name}.php";
@@ -274,7 +274,7 @@ class ReregistrationEmailHandler {
      *
      * @param string $type    Event type.
      * @param int    $user_id User ID (0 for system events).
-     * @param array  $data    Extra data.
+     * @param array<string, mixed>  $data    Extra data.
      * @return void
      */
     private static function log(string $type, int $user_id, array $data): void {

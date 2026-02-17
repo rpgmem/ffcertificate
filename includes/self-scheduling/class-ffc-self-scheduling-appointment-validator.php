@@ -21,7 +21,9 @@ if (!defined('ABSPATH')) exit;
 
 class AppointmentValidator {
 
+    /** @var \FreeFormCertificate\Repositories\AppointmentRepository */
     private $appointment_repository;
+    /** @var \FreeFormCertificate\Repositories\BlockedDateRepository */
     private $blocked_date_repository;
 
     /**
@@ -41,8 +43,8 @@ class AppointmentValidator {
     /**
      * Validate appointment booking
      *
-     * @param array $data Appointment data
-     * @param array $calendar Calendar configuration
+     * @param array<string, mixed> $data Appointment data
+     * @param array<string, mixed> $calendar Calendar configuration
      * @param bool $use_lock Use FOR UPDATE locks on capacity queries (requires active transaction)
      * @return true|\WP_Error
      */
@@ -282,7 +284,7 @@ class AppointmentValidator {
      *
      * @param string $date
      * @param string $time
-     * @param array $calendar
+     * @param array<string, mixed> $calendar
      * @return bool
      */
     public function is_within_working_hours(string $date, string $time, array $calendar): bool {

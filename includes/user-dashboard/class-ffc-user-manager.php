@@ -44,12 +44,23 @@ class UserManager {
     // Backward-compatible delegation → UserCreator
     // =====================================================================
 
-    /** @see UserCreator::get_or_create_user() */
+    /**
+     * Get or create a WordPress user for the given credentials.
+     *
+     * @see UserCreator::get_or_create_user()
+     * @param array<string, mixed> $submission_data Submission data
+     * @return int|\WP_Error User ID on success, WP_Error on failure
+     */
     public static function get_or_create_user( string $cpf_rf_hash, string $email, array $submission_data = array(), string $context = self::CONTEXT_CERTIFICATE ) {
         return UserCreator::get_or_create_user( $cpf_rf_hash, $email, $submission_data, $context );
     }
 
-    /** @see UserCreator::generate_username() */
+    /**
+     * Generate a username from email and submission data.
+     *
+     * @see UserCreator::generate_username()
+     * @param array<string, mixed> $submission_data Submission data
+     */
     public static function generate_username( string $email, array $submission_data = array() ): string {
         return UserCreator::generate_username( $email, $submission_data );
     }
@@ -58,7 +69,12 @@ class UserManager {
     // Backward-compatible delegation → CapabilityManager
     // =====================================================================
 
-    /** @see CapabilityManager::get_all_capabilities() */
+    /**
+     * Get all FFC capabilities.
+     *
+     * @see CapabilityManager::get_all_capabilities()
+     * @return array<int, string>
+     */
     public static function get_all_capabilities(): array {
         return CapabilityManager::get_all_capabilities();
     }
@@ -98,7 +114,12 @@ class UserManager {
         return CapabilityManager::has_appointment_access( $user_id );
     }
 
-    /** @see CapabilityManager::get_user_ffc_capabilities() */
+    /**
+     * Get FFC capabilities assigned to a specific user.
+     *
+     * @see CapabilityManager::get_user_ffc_capabilities()
+     * @return array<string, bool>
+     */
     public static function get_user_ffc_capabilities( int $user_id ): array {
         return CapabilityManager::get_user_ffc_capabilities( $user_id );
     }
@@ -117,7 +138,7 @@ class UserManager {
      *
      * @since 4.9.4
      * @param int $user_id WordPress user ID
-     * @return array Profile data
+     * @return array<string, mixed> Profile data
      */
     public static function get_profile( int $user_id ): array {
         global $wpdb;
@@ -159,7 +180,7 @@ class UserManager {
      *
      * @since 4.9.4
      * @param int   $user_id WordPress user ID
-     * @param array $data    Profile fields to update
+     * @param array<string, mixed> $data    Profile fields to update
      * @return bool True on success
      */
     public static function update_profile( int $user_id, array $data ): bool {
@@ -235,7 +256,7 @@ class UserManager {
      *
      * @since 4.3.0
      * @param int $user_id WordPress user ID
-     * @return array Array of masked CPF/RF values
+     * @return array<int, string> Array of masked CPF/RF values
      */
     public static function get_user_cpfs_masked( int $user_id ): array {
         global $wpdb;
@@ -305,7 +326,7 @@ class UserManager {
      * Get all emails used by a user in submissions
      *
      * @param int $user_id WordPress user ID
-     * @return array Array of emails
+     * @return array<int, string> Array of emails
      */
     public static function get_user_emails( int $user_id ): array {
         global $wpdb;
@@ -352,7 +373,7 @@ class UserManager {
      *
      * @since 4.3.0
      * @param int $user_id WordPress user ID
-     * @return array Array of names
+     * @return array<int, string> Array of names
      */
     public static function get_user_names( int $user_id ): array {
         global $wpdb;

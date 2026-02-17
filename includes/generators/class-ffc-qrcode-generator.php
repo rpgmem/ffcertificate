@@ -31,6 +31,8 @@ class QRCodeGenerator {
     
     /**
      * Default settings
+     *
+     * @var array<string, mixed>
      */
     private $defaults = array(
         'size'        => 200,
@@ -156,7 +158,7 @@ class QRCodeGenerator {
      * - "{{qr_code:size=200:margin=0:error=H}}" → all custom
      * 
      * @param string $placeholder
-     * @return array Parameters with keys: size, margin, error_level
+     * @return array<string, mixed> Parameters with keys: size, margin, error_level
      */
     private function parse_placeholder_params( string $placeholder ): array {
         $params = $this->defaults;
@@ -208,7 +210,7 @@ class QRCodeGenerator {
      * Generate QR Code as base64 PNG
      * 
      * @param string $url Target URL
-     * @param array $params Generation parameters
+     * @param array<string, mixed> $params Generation parameters
      * @return string Base64 encoded PNG
      */
     public function generate( string $url, array $params = array() ): string {
@@ -477,8 +479,8 @@ class QRCodeGenerator {
 
     /**
      * Get cache statistics
-     * 
-     * @return array Statistics
+     *
+     * @return array<string, mixed> Statistics
      */
     public function get_cache_stats(): array {
         global $wpdb;

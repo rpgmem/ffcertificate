@@ -44,7 +44,7 @@ class MigrationNameNormalization {
      *
      * @param int $batch_size Number of records per batch (default: 100)
      * @param bool $dry_run If true, only shows what would change without saving
-     * @return array Result with success status, processed count, and changes
+     * @return array<string, mixed> Result with success status, processed count, and changes
      */
     public static function run(int $batch_size = 100, bool $dry_run = false): array {
         global $wpdb;
@@ -252,7 +252,7 @@ class MigrationNameNormalization {
     /**
      * Get migration status
      *
-     * @return array Status information
+     * @return array<string, mixed> Status information
      */
     public static function get_status(): array {
         global $wpdb;
@@ -298,7 +298,7 @@ class MigrationNameNormalization {
      * Preview changes (dry run)
      *
      * @param int $limit Maximum submissions to preview
-     * @return array Preview results
+     * @return array<string, mixed> Preview results
      */
     public static function preview(int $limit = 50): array {
         return self::run($limit, true);

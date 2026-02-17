@@ -30,10 +30,13 @@ class RateLimiter {
      * Cached settings for the current request
      *
      * @since 4.6.13
-     * @var array|null
+     * @var array<string, mixed>|null
      */
     private static ?array $settings_cache = null;
 
+    /**
+     * @return array<string, mixed>
+     */
     private static function get_settings(): array {
         if ( self::$settings_cache !== null ) {
             return self::$settings_cache;
@@ -52,6 +55,9 @@ class RateLimiter {
         return self::$settings_cache;
     }
     
+    /**
+     * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+     */
     public static function check_all(string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null): array {
         $s = self::get_settings();
         
@@ -85,6 +91,9 @@ class RateLimiter {
         return array('allowed' => true);
     }
     
+    /**
+     * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+     */
     public static function check_ip_limit(string $ip, ?int $form_id = null): array {
         $s = self::get_settings()['ip'];
         $hk = 'ffc_rate_ip_' . md5($ip . $form_id) . '_hour';
@@ -106,6 +115,9 @@ class RateLimiter {
         return array('allowed' => true);
     }
     
+    /**
+     * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+     */
     public static function check_email_limit(string $email, ?int $form_id = null): array {
         $s = self::get_settings()['email'];
         if (!$s['check_database']) return array('allowed' => true);
@@ -122,6 +134,9 @@ class RateLimiter {
         return array('allowed' => true);
     }
     
+    /**
+     * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+     */
     public static function check_cpf_limit(string $cpf, ?int $form_id = null): array {
         $s = self::get_settings()['cpf'];
         $cc = preg_replace('/[^0-9]/', '', $cpf);
@@ -145,6 +160,9 @@ class RateLimiter {
         return array('allowed' => true);
     }
     
+    /**
+     * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+     */
     public static function check_global_limit(): array {
         $s = self::get_settings()['global'];
         $mk = 'ffc_rate_global_minute_' . floor(time() / 60);
@@ -162,6 +180,8 @@ class RateLimiter {
     
     /**
      * Check rate limit for verification requests (magic links)
+     *
+     * @return array{allowed: bool, message?: string, wait_seconds?: int}
      */
     public static function check_verification(string $ip, ?string $token = null): array {
         $settings = self::get_settings();
@@ -319,6 +339,9 @@ class RateLimiter {
         return 0;
     }
     
+    /**
+     * @return array{allowed: bool, message?: string, reason?: string}
+     */
     private static function check_blacklist(string $ip, ?string $email, ?string $cpf): array {
         $s = self::get_settings();
         $bl = $s['blacklist'];
@@ -390,6 +413,9 @@ class RateLimiter {
         if ($c > $s['logging']['max_logs']) $wpdb->query($wpdb->prepare("DELETE FROM %i WHERE id NOT IN (SELECT id FROM (SELECT id FROM %i ORDER BY id DESC LIMIT %d) tmp)", $t, $t, $s['logging']['max_logs']));
     }
     
+    /**
+     * @return array<string, mixed>
+     */
     public static function get_stats(): array {
         global $wpdb;
         $lt = $wpdb->prefix . 'ffc_rate_limit_logs';
@@ -405,10 +431,16 @@ class RateLimiter {
         );
     }
     
+    /**
+     * @param array<string, mixed> $data
+     */
     private static function format_message(string $template, array $data): string {
         return str_replace(array('{time}', '{count}', '{max}', '{remaining}'), array($data['time'] ?? '', $data['count'] ?? 0, $data['max'] ?? 0, ($data['max'] ?? 0) - ($data['count'] ?? 0)), $template);
     }
     
+    /**
+     * @param mixed $apply_to
+     */
     private static function applies_to_form($apply_to, ?int $form_id): bool {
         return $apply_to === 'all' || (is_array($apply_to) && in_array($form_id, $apply_to));
     }

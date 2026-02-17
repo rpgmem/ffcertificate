@@ -51,8 +51,8 @@ class AudienceEnvironmentRepository {
     /**
      * Get all environments
      *
-     * @param array $args Query arguments
-     * @return array<object>
+     * @param array<string, mixed> $args Query arguments
+     * @return array<int, object>
      */
     public static function get_all(array $args = array()): array {
         $wpdb = self::db();
@@ -129,7 +129,7 @@ class AudienceEnvironmentRepository {
      *
      * @param int $schedule_id Schedule ID
      * @param string|null $status Optional status filter
-     * @return array<object>
+     * @return array<int, object>
      */
     public static function get_by_schedule(int $schedule_id, ?string $status = null): array {
         return self::get_all(array(
@@ -141,7 +141,7 @@ class AudienceEnvironmentRepository {
     /**
      * Create an environment
      *
-     * @param array $data Environment data
+     * @param array<string, mixed> $data Environment data
      * @return int|false Environment ID or false on failure
      */
     public static function create(array $data) {
@@ -183,8 +183,8 @@ class AudienceEnvironmentRepository {
     /**
      * Update an environment
      *
-     * @param int $id Environment ID
-     * @param array $data Update data
+     * @param int                  $id Environment ID
+     * @param array<string, mixed> $data Update data
      * @return bool
      */
     public static function update(int $id, array $data): bool {
@@ -259,7 +259,7 @@ class AudienceEnvironmentRepository {
      * Get working hours for an environment
      *
      * @param int $id Environment ID
-     * @return array|null Decoded working hours or null
+     * @return array<int, array<string, mixed>>|null Decoded working hours or null
      */
     public static function get_working_hours(int $id): ?array {
         $env = self::get_by_id($id);
@@ -422,7 +422,7 @@ class AudienceEnvironmentRepository {
     /**
      * Count environments
      *
-     * @param array $args Query arguments (schedule_id, status)
+     * @param array<string, mixed> $args Query arguments (schedule_id, status)
      * @return int
      */
     public static function count(array $args = array()): int {

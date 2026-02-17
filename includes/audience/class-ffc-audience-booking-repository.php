@@ -61,8 +61,8 @@ class AudienceBookingRepository {
     /**
      * Get all bookings
      *
-     * @param array $args Query arguments
-     * @return array<object>
+     * @param array<string, mixed> $args Query arguments
+     * @return array<int, object>
      */
     public static function get_all(array $args = array()): array {
         $wpdb = self::db();
@@ -194,7 +194,7 @@ class AudienceBookingRepository {
      * @param int $environment_id Environment ID
      * @param string $date Date (Y-m-d)
      * @param string|null $status Optional status filter
-     * @return array<object>
+     * @return array<int, object>
      */
     public static function get_by_date(int $environment_id, string $date, ?string $status = null): array {
         return self::get_all(array(
@@ -211,7 +211,7 @@ class AudienceBookingRepository {
      * @param string $start_date Start date (Y-m-d)
      * @param string $end_date End date (Y-m-d)
      * @param string|null $status Optional status filter
-     * @return array<object>
+     * @return array<int, object>
      */
     public static function get_by_date_range(int $environment_id, string $start_date, string $end_date, ?string $status = null): array {
         return self::get_all(array(
@@ -225,9 +225,9 @@ class AudienceBookingRepository {
     /**
      * Get bookings created by a user
      *
-     * @param int $user_id User ID
-     * @param array $args Additional query arguments
-     * @return array<object>
+     * @param int                  $user_id User ID
+     * @param array<string, mixed> $args Additional query arguments
+     * @return array<int, object>
      */
     public static function get_by_creator(int $user_id, array $args = array()): array {
         $args['created_by'] = $user_id;
@@ -237,9 +237,9 @@ class AudienceBookingRepository {
     /**
      * Get bookings for a user (as participant, not creator)
      *
-     * @param int $user_id User ID
-     * @param array $args Additional query arguments
-     * @return array<object>
+     * @param int                  $user_id User ID
+     * @param array<string, mixed> $args Additional query arguments
+     * @return array<int, object>
      */
     public static function get_by_participant(int $user_id, array $args = array()): array {
         $wpdb = self::db();
@@ -296,7 +296,7 @@ class AudienceBookingRepository {
     /**
      * Create a booking
      *
-     * @param array $data Booking data
+     * @param array<string, mixed> $data Booking data
      * @return int|false Booking ID or false on failure
      */
     public static function create(array $data) {
@@ -363,8 +363,8 @@ class AudienceBookingRepository {
     /**
      * Update a booking
      *
-     * @param int $id Booking ID
-     * @param array $data Update data
+     * @param int                  $id Booking ID
+     * @param array<string, mixed> $data Update data
      * @return bool
      */
     public static function update(int $id, array $data): bool {
@@ -862,7 +862,7 @@ class AudienceBookingRepository {
     /**
      * Count bookings
      *
-     * @param array $args Query arguments
+     * @param array<string, mixed> $args Query arguments
      * @return int
      */
     public static function count(array $args = array()): int {

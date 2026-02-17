@@ -803,7 +803,7 @@ class ReregistrationAdmin {
     /**
      * Render audience <option> elements with hierarchy (parent → &mdash; child).
      *
-     * @param array    $audiences Audience tree (objects with optional ->children).
+     * @param array<int, mixed> $audiences Audience tree (objects with optional ->children).
      * @param int|string $selected  Currently selected audience ID.
      * @return void
      */

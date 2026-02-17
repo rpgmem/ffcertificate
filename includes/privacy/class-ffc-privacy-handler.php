@@ -43,8 +43,8 @@ class PrivacyHandler {
     /**
      * Register personal data exporters
      *
-     * @param array $exporters Existing exporters
-     * @return array Modified exporters
+     * @param array<string, array<string, mixed>> $exporters Existing exporters
+     * @return array<string, array<string, mixed>> Modified exporters
      */
     public static function register_exporters(array $exporters): array {
         $exporters['ffcertificate-profile'] = array(
@@ -77,8 +77,8 @@ class PrivacyHandler {
     /**
      * Register personal data erasers
      *
-     * @param array $erasers Existing erasers
-     * @return array Modified erasers
+     * @param array<string, array<string, mixed>> $erasers Existing erasers
+     * @return array<string, array<string, mixed>> Modified erasers
      */
     public static function register_erasers(array $erasers): array {
         $erasers['ffcertificate'] = array(
@@ -97,7 +97,7 @@ class PrivacyHandler {
      *
      * @param string $email_address User email
      * @param int $page Page number
-     * @return array Export data
+     * @return array<string, mixed>
      */
     public static function export_profile(string $email_address, int $page = 1): array {
         $user = get_user_by('email', $email_address);
@@ -152,7 +152,7 @@ class PrivacyHandler {
      *
      * @param string $email_address User email
      * @param int $page Page number
-     * @return array Export data
+     * @return array<string, mixed>
      */
     public static function export_certificates(string $email_address, int $page = 1): array {
         global $wpdb;
@@ -219,7 +219,7 @@ class PrivacyHandler {
      *
      * @param string $email_address User email
      * @param int $page Page number
-     * @return array Export data
+     * @return array<string, mixed>
      */
     public static function export_appointments(string $email_address, int $page = 1): array {
         global $wpdb;
@@ -295,7 +295,7 @@ class PrivacyHandler {
      *
      * @param string $email_address User email
      * @param int $page Page number
-     * @return array Export data
+     * @return array<string, mixed>
      */
     public static function export_audience_groups(string $email_address, int $page = 1): array {
         global $wpdb;
@@ -351,7 +351,7 @@ class PrivacyHandler {
      *
      * @param string $email_address User email
      * @param int $page Page number
-     * @return array Export data
+     * @return array<string, mixed>
      */
     public static function export_audience_bookings(string $email_address, int $page = 1): array {
         global $wpdb;
@@ -432,7 +432,7 @@ class PrivacyHandler {
      *
      * @param string $email_address User email
      * @param int $page Page number
-     * @return array Erasure result
+     * @return array<string, mixed>
      */
     public static function erase_personal_data(string $email_address, int $page = 1): array {
         global $wpdb;
@@ -592,7 +592,7 @@ class PrivacyHandler {
      * @since 4.9.9
      * @param string $email_address User email
      * @param int    $page          Page number
-     * @return array Export data
+     * @return array<string, mixed>
      */
     public static function export_usermeta(string $email_address, int $page = 1): array {
         $user = get_user_by('email', $email_address);

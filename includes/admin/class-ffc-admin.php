@@ -25,14 +25,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Admin {
 
+    /** @var object */
     private $submission_handler;
+    /** @var object */
     private $csv_exporter;
+    /** @var object|null */
     private $email_handler;
+    /** @var FormEditor */
     private $form_editor;
+    /** @var Settings */
     private $settings_page;
+    /** @var MigrationManager|null */
     private $migration_manager;
+    /** @var AdminAssetsManager */
     private $assets_manager;
+    /** @var AdminSubmissionEditPage */
     private $edit_page;
+    /** @var AdminActivityLogPage */
     private $activity_log_page;
 
     public function __construct( object $handler, object $exporter, ?object $email_handler = null ) {
@@ -325,8 +334,8 @@ class Admin {
      * instead of being converted to {{validation_url link:m&gt;v}}
      *
      * @since 2.9.3
-     * @param array $init TinyMCE initialization settings
-     * @return array Modified settings
+     * @param array<string, mixed> $init TinyMCE initialization settings
+     * @return array<string, mixed> Modified settings
      */
     public function configure_tinymce_placeholders( array $init ): array {
         // Protect all content between {{ and }} from entity encoding

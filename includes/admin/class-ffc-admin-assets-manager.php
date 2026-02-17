@@ -325,7 +325,7 @@ class AdminAssetsManager {
     /**
      * Get localization data for JavaScript
      *
-     * @return array Localization data
+     * @return array<string, mixed> Localization data
      */
     private function get_localization_data(): array {
         return array(

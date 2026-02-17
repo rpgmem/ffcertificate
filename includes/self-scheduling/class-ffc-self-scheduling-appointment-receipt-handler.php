@@ -30,8 +30,8 @@ class AppointmentReceiptHandler {
     /**
      * Add custom query vars
      *
-     * @param array $vars
-     * @return array
+     * @param array<int, string> $vars
+     * @return array<int, string>
      */
     public function add_query_vars(array $vars): array {
         $vars[] = 'ffc_appointment_receipt';
@@ -145,8 +145,8 @@ class AppointmentReceiptHandler {
     /**
      * Display receipt HTML
      *
-     * @param array $appointment
-     * @param array $calendar
+     * @param array<string, mixed> $appointment
+     * @param array<string, mixed> $calendar
      * @return void
      */
     private function display_receipt(array $appointment, array $calendar): void {

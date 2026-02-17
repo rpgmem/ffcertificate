@@ -24,8 +24,8 @@ class ActivityLogQuery {
     /**
      * Get recent activities with filters
      *
-     * @param array $args Query arguments
-     * @return array Activities
+     * @param array<string, mixed> $args Query arguments
+     * @return array<int, array<string, mixed>> Activities
      */
     public static function get_activities( array $args = array() ): array {
         global $wpdb;
@@ -104,7 +104,7 @@ class ActivityLogQuery {
     /**
      * Get activity count with filters
      *
-     * @param array $args Same as get_activities()
+     * @param array<string, mixed> $args Same as get_activities()
      * @return int Count
      */
     public static function count_activities( array $args = array() ): int {
@@ -163,7 +163,7 @@ class ActivityLogQuery {
      * Get statistics
      *
      * @param int $days Number of days to analyze (default: 30)
-     * @return array Statistics
+     * @return array<string, mixed> Statistics
      */
     public static function get_stats( int $days = 30 ): array {
         $cache_key = 'ffc_activity_stats_' . $days;
@@ -222,7 +222,7 @@ class ActivityLogQuery {
      *
      * @param int $submission_id Submission ID
      * @param int $limit         Maximum number of logs
-     * @return array Logs
+     * @return array<int, array<string, mixed>> Logs
      */
     public static function get_submission_logs( int $submission_id, int $limit = 100 ): array {
         global $wpdb;

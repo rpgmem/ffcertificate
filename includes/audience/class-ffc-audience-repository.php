@@ -52,7 +52,7 @@ class AudienceRepository {
     /**
      * Get all audiences
      *
-     * @param array $args Query arguments
+     * @param array<string, mixed> $args Query arguments
      * @return array<object>
      */
     public static function get_all(array $args = array()): array {
@@ -175,7 +175,7 @@ class AudienceRepository {
     /**
      * Create an audience
      *
-     * @param array $data Audience data
+     * @param array<string, mixed> $data Audience data
      * @return int|false Audience ID or false on failure
      */
     public static function create(array $data) {
@@ -216,7 +216,7 @@ class AudienceRepository {
      * Update an audience
      *
      * @param int $id Audience ID
-     * @param array $data Update data
+     * @param array<string, mixed> $data Update data
      * @return bool
      */
     public static function update(int $id, array $data): bool {
@@ -572,7 +572,7 @@ class AudienceRepository {
     /**
      * Count audiences
      *
-     * @param array $args Query arguments (parent_id, status)
+     * @param array<string, mixed> $args Query arguments (parent_id, status)
      * @return int
      */
     public static function count(array $args = array()): int {

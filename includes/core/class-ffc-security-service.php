@@ -22,7 +22,7 @@ class SecurityService {
     /**
      * Generate simple math captcha
      *
-     * @return array Array with 'label', 'hash', and 'answer'
+     * @return array<string, mixed> Array with 'label', 'hash', and 'answer'
      */
     public static function generate_simple_captcha(): array {
         $n1 = wp_rand( 1, 9 );
@@ -57,7 +57,7 @@ class SecurityService {
      * Validate security fields (honeypot + captcha)
      *
      * @since 2.9.11
-     * @param array $data Form data containing security fields
+     * @param array<string, mixed> $data Form data containing security fields
      * @return bool|string True if valid, error message string if invalid
      */
     public static function validate_security_fields( array $data ) {

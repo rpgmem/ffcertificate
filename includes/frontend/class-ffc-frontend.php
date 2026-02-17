@@ -18,11 +18,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Frontend {
 
+    /** @var Shortcodes */
     private $shortcodes;
+    /** @var FormProcessor */
     private $form_processor;
+    /** @var VerificationHandler */
     private $verification_handler;
+    /** @var DynamicFragments */
     private $dynamic_fragments;
 
+    /**
+     * @param SubmissionHandler $submission_handler
+     * @param \FreeFormCertificate\Integrations\EmailHandler $email_handler
+     */
     public function __construct( SubmissionHandler $submission_handler, $email_handler ) {
         $this->verification_handler = new VerificationHandler( $submission_handler, $email_handler );
         $this->form_processor = new FormProcessor( $submission_handler, $email_handler );

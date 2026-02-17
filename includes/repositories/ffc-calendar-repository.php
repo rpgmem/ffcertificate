@@ -40,7 +40,7 @@ class CalendarRepository extends AbstractRepository {
      * Find calendar by post ID
      *
      * @param int $post_id WordPress post ID
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     public function findByPostId(int $post_id): ?array {
         $cache_key = "post_{$post_id}";
@@ -68,7 +68,7 @@ class CalendarRepository extends AbstractRepository {
      *
      * @param int|null $limit
      * @param int $offset
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function getActiveCalendars(?int $limit = null, int $offset = 0): array {
         return $this->findAll(
@@ -84,7 +84,7 @@ class CalendarRepository extends AbstractRepository {
      * Get calendar with working hours decoded
      *
      * @param int $id
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     public function getWithWorkingHours(int $id): ?array {
         $calendar = $this->findById($id);
@@ -103,8 +103,8 @@ class CalendarRepository extends AbstractRepository {
     /**
      * Update working hours
      *
-     * @param int $id
-     * @param array $working_hours
+     * @param int                  $id
+     * @param array<string, mixed> $working_hours
      * @return int|false
      */
     public function updateWorkingHours(int $id, array $working_hours) {
@@ -118,8 +118,8 @@ class CalendarRepository extends AbstractRepository {
     /**
      * Update email configuration
      *
-     * @param int $id
-     * @param array $email_config
+     * @param int                  $id
+     * @param array<string, mixed> $email_config
      * @return int|false
      */
     public function updateEmailConfig(int $id, array $email_config) {
@@ -154,7 +154,7 @@ class CalendarRepository extends AbstractRepository {
      * @since 4.7.0
      * @param int|null $limit
      * @param int $offset
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function getPublicActiveCalendars(?int $limit = null, int $offset = 0): array {
         return $this->findAll(
@@ -185,8 +185,8 @@ class CalendarRepository extends AbstractRepository {
      *
      * Called when a calendar post is created.
      *
-     * @param int $post_id
-     * @param array $data
+     * @param int                  $post_id
+     * @param array<string, mixed> $data
      * @return int|false
      */
     public function createFromPost(int $post_id, array $data = []) {

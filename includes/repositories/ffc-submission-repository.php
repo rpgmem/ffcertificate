@@ -66,6 +66,9 @@ class SubmissionRepository extends AbstractRepository {
         return 'ffc_submissions';
     }
 
+    /**
+     * @return array<int, string>
+     */
     protected function get_allowed_order_columns(): array {
         return [ 'id', 'form_id', 'email', 'cpf_rf', 'auth_code', 'status', 'submission_date', 'created_at', 'updated_at' ];
     }
@@ -74,7 +77,7 @@ class SubmissionRepository extends AbstractRepository {
      * Find by auth code
      *
      * @param string $auth_code
-     * @return array|null|false
+     * @return array<string, mixed>|null
      */
     public function findByAuthCode( string $auth_code ) {
         $cache_key = "auth_{$auth_code}";
@@ -101,7 +104,7 @@ class SubmissionRepository extends AbstractRepository {
      * Find by magic token
      *
      * @param string $token
-     * @return array|null|false
+     * @return array<string, mixed>|null
      */
     public function findByToken( string $token ) {
         $cache_key = "token_{$token}";
@@ -129,7 +132,7 @@ class SubmissionRepository extends AbstractRepository {
      *
      * @param string $email
      * @param int $limit
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function findByEmail( string $email, int $limit = 10 ): array {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -150,7 +153,7 @@ class SubmissionRepository extends AbstractRepository {
      *
      * @param string $cpf
      * @param int $limit
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function findByCpfRf( string $cpf, int $limit = 10 ): array {
         $clean_cpf = preg_replace('/[^0-9]/', '', $cpf);
@@ -174,7 +177,7 @@ class SubmissionRepository extends AbstractRepository {
      * @param int $form_id
      * @param int $limit
      * @param int $offset
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function findByFormId( int $form_id, int $limit = 100, int $offset = 0 ): array {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -193,9 +196,9 @@ class SubmissionRepository extends AbstractRepository {
     /**
      * ✅ NEW v4.0.0: Get all submissions by form_id(s) and status for export
      *
-     * @param int|array|null $form_ids Single form ID, array of IDs, or null for all forms
+     * @param int|array<int, int>|null $form_ids Single form ID, array of IDs, or null for all forms
      * @param string|null $status Status filter (publish, trash, null = all)
-     * @return array Array of submissions
+     * @return array<int, array<string, mixed>> Array of submissions
      */
     public function getForExport( $form_ids = null, ?string $status = 'publish' ): array {
         // Handle multiple form IDs with custom query
@@ -267,8 +270,8 @@ class SubmissionRepository extends AbstractRepository {
      * Find with pagination and filters
      * Optimized search for encrypted data (v3.0.2)
      *
-     * @param array $args
-     * @return array
+     * @param array<string, mixed> $args
+     * @return array<string, mixed>
      */
     public function findPaginated( array $args = [] ): array {
         $defaults = [
@@ -361,7 +364,7 @@ class SubmissionRepository extends AbstractRepository {
     /**
      * Count by status
      *
-     * @return array
+     * @return array<string, int>
      */
     public function countByStatus(): array {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -392,7 +395,7 @@ class SubmissionRepository extends AbstractRepository {
     /**
      * Bulk update status
      *
-     * @param array $ids
+     * @param array<int, int> $ids
      * @param string $status
      * @return int|false
      */
@@ -423,7 +426,7 @@ class SubmissionRepository extends AbstractRepository {
     /**
      * Bulk delete
      *
-     * @param array $ids
+     * @param array<int, int> $ids
      * @return int|false
      */
     public function bulkDelete( array $ids ) {
@@ -470,7 +473,7 @@ class SubmissionRepository extends AbstractRepository {
      * ✅ NEW v3.0.1: Update submission with edit tracking
      *
      * @param int $id Submission ID
-     * @param array $data Data to update
+     * @param array<string, mixed> $data Data to update
      * @return int|false Number of rows updated or false on error
      */
     public function updateWithEditTracking( int $id, array $data ) {

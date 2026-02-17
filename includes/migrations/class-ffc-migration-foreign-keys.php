@@ -28,7 +28,7 @@ class MigrationForeignKeys {
     /**
      * Run the migration
      *
-     * @return array Result with success status and details
+     * @return array<string, mixed> Result with success status and details
      */
     public static function run(): array {
         global $wpdb;
@@ -201,10 +201,10 @@ class MigrationForeignKeys {
     /**
      * Record a result into the results array
      *
-     * @param array &$results Results accumulator
+     * @param array<string, array<int, array<string, string>>> &$results Results accumulator
      * @param string $table Table name
      * @param string $constraint Constraint name
-     * @param array $result Result from add_foreign_key
+     * @param array<string, string> $result Result from add_foreign_key
      */
     private static function record_result(array &$results, string $table, string $constraint, array $result): void {
         $entry = array(
@@ -229,7 +229,7 @@ class MigrationForeignKeys {
     /**
      * Get migration status
      *
-     * @return array Status information
+     * @return array<string, mixed> Status information
      */
     public static function get_status(): array {
         global $wpdb;

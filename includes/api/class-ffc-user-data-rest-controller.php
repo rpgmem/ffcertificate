@@ -70,62 +70,98 @@ class UserDataRestController {
     // delegates to the appropriate sub-controller.
     // ------------------------------------------------------------------
 
-    /** @param \WP_REST_Request $request */
+    /**
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
     public function get_user_certificates($request) {
         return $this->get_sub('certificates')->get_user_certificates($request);
     }
 
-    /** @param \WP_REST_Request $request */
+    /**
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
     public function get_user_profile($request) {
         return $this->get_sub('profile')->get_user_profile($request);
     }
 
-    /** @param \WP_REST_Request $request */
+    /**
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
     public function update_user_profile($request) {
         return $this->get_sub('profile')->update_user_profile($request);
     }
 
-    /** @param \WP_REST_Request $request */
+    /**
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
     public function get_user_appointments($request) {
         return $this->get_sub('appointments')->get_user_appointments($request);
     }
 
-    /** @param \WP_REST_Request $request */
+    /**
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
     public function get_user_audience_bookings($request) {
         return $this->get_sub('audience')->get_user_audience_bookings($request);
     }
 
-    /** @param \WP_REST_Request $request */
+    /**
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
     public function change_password($request) {
         return $this->get_sub('profile')->change_password($request);
     }
 
-    /** @param \WP_REST_Request $request */
+    /**
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
     public function create_privacy_request($request) {
         return $this->get_sub('profile')->create_privacy_request($request);
     }
 
-    /** @param \WP_REST_Request $request */
+    /**
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
     public function get_user_summary($request) {
         return $this->get_sub('summary')->get_user_summary($request);
     }
 
-    /** @param \WP_REST_Request $request */
+    /**
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
     public function get_joinable_groups($request) {
         return $this->get_sub('audience')->get_joinable_groups($request);
     }
 
-    /** @param \WP_REST_Request $request */
+    /**
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
     public function join_audience_group($request) {
         return $this->get_sub('audience')->join_audience_group($request);
     }
 
-    /** @param \WP_REST_Request $request */
+    /**
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
     public function leave_audience_group($request) {
         return $this->get_sub('audience')->leave_audience_group($request);
     }
 
-    /** @param \WP_REST_Request $request */
+    /**
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
     public function get_user_reregistrations($request) {
         return $this->get_sub('reregistrations')->get_user_reregistrations($request);
     }

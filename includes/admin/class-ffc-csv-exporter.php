@@ -43,6 +43,9 @@ class CsvExporter {
     /**
      * Get all unique dynamic field keys from submissions.
      * Delegates to CsvExportTrait::extract_dynamic_keys().
+     *
+     * @param array<int, array<string, mixed>> $rows Submission rows
+     * @return array<int, string>
      */
     private function get_dynamic_columns( array $rows ): array {
         return $this->extract_dynamic_keys( $rows, 'data', 'data_encrypted' );
@@ -51,6 +54,9 @@ class CsvExporter {
     /**
      * Get submission data from a row, handling encryption.
      * Delegates to CsvExportTrait::decode_json_field().
+     *
+     * @param array<string, mixed> $row Submission row
+     * @return array<string, mixed>
      */
     private function get_submission_data( array $row ): array {
         return $this->decode_json_field( $row, 'data', 'data_encrypted' );
@@ -59,6 +65,8 @@ class CsvExporter {
     /**
      * Generate translatable headers for fixed columns
      * v3.0.2: Made edit columns conditional
+     *
+     * @return array<int, string>
      */
     private function get_fixed_headers( bool $include_edit_columns = false ): array {
         $headers = array(
@@ -91,6 +99,9 @@ class CsvExporter {
     /**
      * Generate translatable headers for dynamic columns.
      * Delegates to CsvExportTrait::build_dynamic_headers().
+     *
+     * @param array<int, string> $dynamic_keys List of dynamic field keys
+     * @return array<string, string>
      */
     private function get_dynamic_headers( array $dynamic_keys ): array {
         return $this->build_dynamic_headers( $dynamic_keys );
@@ -98,11 +109,15 @@ class CsvExporter {
 
     /**
      * Format a single CSV row
-     * 
+     *
      * v3.0.3: Added edited_by column
      * v3.0.2: Use magic_token column, conditional edit columns
      * v3.0.1: Added all requested columns with conditional display
      * v3.0.0: FIXED - Added return statement and dynamic columns processing
+     *
+     * @param array<string, mixed> $row Submission row
+     * @param array<int, string> $dynamic_keys List of dynamic field keys
+     * @return array<int, string>
      */
     private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {
         $form_title = get_the_title( (int) $row['form_id'] );
@@ -200,7 +215,7 @@ class CsvExporter {
      * v4.0.0: ENHANCED - Support multiple form IDs
      * v3.0.3: REFACTORED - Uses Repository instead of direct SQL
      *
-     * @param int|array|null $form_ids Single form ID, array of IDs, or null for all
+     * @param array<int, int>|int|null $form_ids Single form ID, array of IDs, or null for all
      * @param string $status Status filter
      */
     public function export_csv( $form_ids = null, string $status = 'publish' ): void {

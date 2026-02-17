@@ -32,7 +32,7 @@ class MigrationUserLink {
     /**
      * Run the migration
      *
-     * @return array Result with success status, processed count, and errors
+     * @return array<string, mixed> Result with success status, processed count, and errors
      */
     public static function run(): array {
         global $wpdb;
@@ -274,8 +274,8 @@ class MigrationUserLink {
      * Extract name data from encrypted submission for username generation
      *
      * @since 4.9.6
-     * @param array $submission Submission data row (includes data_encrypted)
-     * @return array Submission data array with name fields
+     * @param array<string, mixed> $submission Submission data row (includes data_encrypted)
+     * @return array<string, mixed> Submission data array with name fields
      */
     private static function extract_name_data(array $submission): array {
         if (empty($submission['data_encrypted'])) {
@@ -295,7 +295,7 @@ class MigrationUserLink {
      * Extract name from submission data and set user display name
      *
      * @param int $user_id WordPress user ID
-     * @param array $submission Submission data row (includes data_encrypted)
+     * @param array<string, mixed> $submission Submission data row (includes data_encrypted)
      * @return void
      */
     private static function set_user_display_name(int $user_id, array $submission): void {

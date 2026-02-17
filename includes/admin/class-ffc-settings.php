@@ -29,8 +29,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Settings {
 
+    /**
+     * @var object
+     */
     private $submission_handler;
+    /**
+     * @var array<string, object>
+     */
     private $tabs = array();
+    /**
+     * @var \FreeFormCertificate\Admin\SettingsSaveHandler
+     */
     private $save_handler;
 
     public function __construct( object $handler ) {
@@ -98,8 +107,10 @@ class Settings {
     
     /**
      * Get default settings
+     *
+     * @return array<string, mixed>
      */
-    public function get_default_settings(): array { 
+    public function get_default_settings(): array {
         return array(
             'cleanup_days'           => 365,
             'smtp_mode'              => 'wp',

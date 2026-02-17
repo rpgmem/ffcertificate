@@ -159,8 +159,8 @@ class Encryption {
      *
      * Encrypts all sensitive fields in a submission array
      *
-     * @param array $submission Submission data
-     * @return array Encrypted data with hash fields
+     * @param array<string, mixed> $submission Submission data
+     * @return array<string, mixed> Encrypted data with hash fields
      */
     public static function encrypt_submission( array $submission ): array {
         $encrypted = array();
@@ -195,8 +195,8 @@ class Encryption {
      *
      * Decrypts all encrypted fields in a submission array
      *
-     * @param array $submission Submission data with encrypted fields
-     * @return array Decrypted data
+     * @param array<string, mixed> $submission Submission data with encrypted fields
+     * @return array<string, mixed> Decrypted data
      */
     public static function decrypt_submission( array $submission ): array {
         $decrypted = $submission; // Keep all fields
@@ -233,9 +233,9 @@ class Encryption {
      *   elseif (!empty($row['field'])) { $row['field']; }
      *
      * @since 4.11.2
-     * @param array  $row            Row data.
-     * @param string $field          Plain-text field name (e.g. 'email').
-     * @param string $encrypted_key  Encrypted field name. Defaults to "{$field}_encrypted".
+     * @param array<string, mixed> $row            Row data.
+     * @param string               $field          Plain-text field name (e.g. 'email').
+     * @param string               $encrypted_key  Encrypted field name. Defaults to "{$field}_encrypted".
      * @return string Decrypted value, plain fallback, or empty string.
      */
     public static function decrypt_field( array $row, string $field, string $encrypted_key = '' ): string {
@@ -259,8 +259,8 @@ class Encryption {
      * Similar to decrypt_submission() but for the appointment table schema.
      *
      * @since 4.11.2
-     * @param array $appointment Appointment row data with encrypted fields.
-     * @return array Row with plain-text fields populated.
+     * @param array<string, mixed> $appointment Appointment row data with encrypted fields.
+     * @return array<string, mixed> Row with plain-text fields populated.
      */
     public static function decrypt_appointment( array $appointment ): array {
         $decrypted = $appointment;
@@ -340,7 +340,7 @@ class Encryption {
      *
      * Utility method for testing encryption setup
      *
-     * @return array Test results
+     * @return array<string, mixed> Test results
      */
     public static function test(): array {
         $test_value = 'Test Value 123!@#';
@@ -382,7 +382,7 @@ class Encryption {
     /**
      * Get encryption info (for admin display)
      *
-     * @return array Encryption configuration info
+     * @return array<string, mixed> Encryption configuration info
      */
     public static function get_info(): array {
         return array(

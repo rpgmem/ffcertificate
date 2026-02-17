@@ -110,7 +110,7 @@ class MigrationRenameCapabilities {
     /**
      * Get migration status
      *
-     * @return array{completed: bool, mappings: array}
+     * @return array<string, mixed>
      */
     public static function get_status(): array {
         return [

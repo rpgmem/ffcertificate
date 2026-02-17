@@ -85,6 +85,7 @@ class ReregistrationRepository {
      *     @type int    $limit       Max results. Default 0 (no limit).
      *     @type int    $offset      Offset. Default 0.
      * }
+     * @param array<string, mixed> $filters
      * @return array<object>
      */
     public static function get_all(array $filters = array()): array {
@@ -147,7 +148,7 @@ class ReregistrationRepository {
     /**
      * Count reregistrations with filters.
      *
-     * @param array $filters Same filters as get_all.
+     * @param array<string, mixed> $filters Same filters as get_all.
      * @return int
      */
     public static function count(array $filters = array()): int {
@@ -183,7 +184,7 @@ class ReregistrationRepository {
     /**
      * Create a reregistration campaign.
      *
-     * @param array $data Campaign data.
+     * @param array<string, mixed> $data Campaign data.
      * @return int|false Reregistration ID or false on failure.
      */
     public static function create(array $data) {
@@ -230,7 +231,7 @@ class ReregistrationRepository {
      * Update a reregistration campaign.
      *
      * @param int   $id   Reregistration ID.
-     * @param array $data Update data.
+     * @param array<string, mixed> $data Update data.
      * @return bool
      */
     public static function update(int $id, array $data): bool {

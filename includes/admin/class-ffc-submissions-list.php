@@ -21,9 +21,20 @@ if (!class_exists('WP_List_Table')) {
 }
 
 class SubmissionsList extends \WP_List_Table {
-    
+
+    /**
+     * @var \FreeFormCertificate\Submissions\SubmissionHandler
+     */
     private $submission_handler;
+
+    /**
+     * @var \FreeFormCertificate\Repositories\SubmissionRepository
+     */
     private $repository;
+
+    /**
+     * @var array<int, string>
+     */
     private array $form_titles_cache = [];
 
     public function __construct( object $handler ) {
@@ -36,6 +47,9 @@ class SubmissionsList extends \WP_List_Table {
         $this->repository = new SubmissionRepository();
     }
 
+    /**
+     * @return array<string, string>
+     */
     public function get_columns() {
         return [
             'cb' => '<input type="checkbox" />',
@@ -49,6 +63,9 @@ class SubmissionsList extends \WP_List_Table {
         ];
     }
 
+    /**
+     * @return array<string, array<int, bool|string>>
+     */
     protected function get_sortable_columns() {
         return [
             'id' => ['id', true],
@@ -58,6 +75,11 @@ class SubmissionsList extends \WP_List_Table {
         ];
     }
 
+    /**
+     * @param array<string, mixed> $item
+     * @param string $column_name
+     * @return string
+     */
     protected function column_default($item, $column_name) {
         switch ($column_name) {
             case 'id':
@@ -91,6 +113,10 @@ class SubmissionsList extends \WP_List_Table {
         }
     }
     
+    /**
+     * @param array<string, mixed> $item
+     * @return string
+     */
     private function render_actions( array $item ): string {
         $base_url = admin_url('edit.php?post_type=ffc_form&page=ffc-submissions');
         $edit_url = add_query_arg(['action' => 'edit', 'submission_id' => $item['id']], $base_url);
@@ -121,6 +147,10 @@ class SubmissionsList extends \WP_List_Table {
         return $actions;
     }
 
+    /**
+     * @param array<string, mixed> $item
+     * @return string
+     */
     private function render_pdf_button( array $item ): string {
         // Use token directly from item (more efficient, avoids extra DB query)
         if (!empty($item['magic_token'])) {
@@ -142,6 +172,10 @@ class SubmissionsList extends \WP_List_Table {
         );
     }
 
+    /**
+     * @param array<string, mixed> $item
+     * @return string
+     */
     private function render_status_badge( array $item ): string {
         $status = $item['status'] ?? 'publish';
 
@@ -212,10 +246,17 @@ class SubmissionsList extends \WP_List_Table {
         return '<div class="ffc-data-preview">' . implode('<br>', $preview_items) . '</div>';
     }
 
+    /**
+     * @param array<string, mixed> $item
+     * @return string
+     */
     protected function column_cb($item) {
         return sprintf('<input type="checkbox" name="submission[]" value="%s" />', $item['id']);
     }
 
+    /**
+     * @return array<string, string>
+     */
     protected function get_bulk_actions() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Status is a display filter parameter.
         $status = isset($_GET['status']) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
@@ -228,6 +269,9 @@ class SubmissionsList extends \WP_List_Table {
         return ['bulk_trash' => __('Move to Trash', 'ffcertificate')];
     }
 
+    /**
+     * @return void
+     */
     public function prepare_items() {
         $this->process_bulk_action();
 
@@ -311,6 +355,9 @@ class SubmissionsList extends \WP_List_Table {
         }
     }
 
+    /**
+     * @return array<string, string>
+     */
     protected function get_views() {
         $counts = $this->repository->countByStatus();
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display parameter for tab highlighting.
@@ -348,6 +395,9 @@ class SubmissionsList extends \WP_List_Table {
         ];
     }
 
+    /**
+     * @return void
+     */
     public function no_items() {
         esc_html_e('No submissions found.', 'ffcertificate');
     }
@@ -356,6 +406,7 @@ class SubmissionsList extends \WP_List_Table {
      * Display filters above the table
      *
      * @param string $which Position (top or bottom)
+     * @return void
      */
     protected function extra_tablenav( $which ) {
         if ( $which !== 'top' ) {

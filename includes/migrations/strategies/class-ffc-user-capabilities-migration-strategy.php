@@ -23,8 +23,8 @@ class UserCapabilitiesMigrationStrategy implements MigrationStrategyInterface {
      * Calculate migration status
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
-     * @return array Status information
+     * @param array<string, mixed> $migration_config Migration configuration
+     * @return array<string, mixed> Status information
      */
     public function calculate_status( string $migration_key, array $migration_config ): array {
         // Check if migration has been run
@@ -64,9 +64,9 @@ class UserCapabilitiesMigrationStrategy implements MigrationStrategyInterface {
      * Execute user capabilities migration
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
+     * @param array<string, mixed> $migration_config Migration configuration
      * @param int $batch_number Batch number (unused - processes all at once)
-     * @return array Result array
+     * @return array<string, mixed> Result array
      */
     public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
         $result = \FreeFormCertificate\Migrations\MigrationUserCapabilities::run(
@@ -85,8 +85,8 @@ class UserCapabilitiesMigrationStrategy implements MigrationStrategyInterface {
      * Check if migration can be executed
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
-     * @return bool|\\WP_Error True if can run, WP_Error if cannot
+     * @param array<string, mixed> $migration_config Migration configuration
+     * @return bool|\WP_Error
      */
     public function can_run( string $migration_key, array $migration_config ) {
         // Check if UserManager class is available

@@ -31,7 +31,7 @@ class MigrationStatusCalculator {
     private $registry;
 
     /**
-     * @var array Strategy instances mapped by migration key
+     * @var array<string, \FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface> Strategy instances mapped by migration key
      */
     private $strategies = array();
 
@@ -91,7 +91,7 @@ class MigrationStatusCalculator {
      * AFTER: ~10 lines of delegation
      *
      * @param string $migration_key Migration identifier
-     * @return array|WP_Error Status array or error
+     * @return array<string, mixed>|WP_Error Status array or error
      */
     public function calculate( string $migration_key ) {
         // Validate migration exists
@@ -141,7 +141,7 @@ class MigrationStatusCalculator {
      *
      * This migration doesn't follow the standard pattern, so we handle it separately.
      *
-     * @return array Status information
+     * @return array<string, mixed> Status information
      */
     private function calculate_data_cleanup_status(): array {
         $completed = get_option( 'ffc_migration_data_cleanup_completed', false );
@@ -190,7 +190,7 @@ class MigrationStatusCalculator {
      *
      * @param string $migration_key Migration identifier
      * @param int $batch_number Batch number to process
-     * @return array|WP_Error Execution result
+     * @return array<string, mixed>|WP_Error Execution result
      */
     public function execute( string $migration_key, int $batch_number = 0 ) {
         // Check if can run
@@ -222,7 +222,7 @@ class MigrationStatusCalculator {
     /**
      * Execute data_cleanup migration (special case)
      *
-     * @return array Execution result
+     * @return array<string, mixed> Execution result
      */
     private function execute_data_cleanup(): array {
         // Mark as complete
@@ -241,7 +241,7 @@ class MigrationStatusCalculator {
      *
      * Useful for debugging and testing.
      *
-     * @return array Strategy instances
+     * @return array<string, \FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface> Strategy instances
      */
     public function get_strategies(): array {
         return $this->strategies;

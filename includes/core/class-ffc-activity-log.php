@@ -53,7 +53,7 @@ class ActivityLog {
     /**
      * Cache for table columns (performance optimization)
      * Prevents repeated DESCRIBE queries on each log
-     * @var array|null
+     * @var array<int, string>|null
      */
     private static $table_columns_cache = null;
 
@@ -65,7 +65,7 @@ class ActivityLog {
 
     /**
      * Write buffer for batch inserts
-     * @var array
+     * @var array<int, array<string, mixed>>
      */
     private static array $write_buffer = [];
 
@@ -85,7 +85,7 @@ class ActivityLog {
      *
      * @param string $action Action performed (e.g., 'submission_created', 'pdf_generated')
      * @param string $level Log level (info, warning, error, debug)
-     * @param array $context Additional context data
+     * @param array<string, mixed> $context Additional context data
      * @param int $user_id User ID (0 for anonymous/system)
      * @param int $submission_id Submission ID (0 if not related to submission) - v2.10.0
      * @return bool Success
@@ -271,12 +271,19 @@ class ActivityLog {
     // Backward-compatible delegation → ActivityLogQuery (v4.12.2)
     // =====================================================================
 
-    /** @see ActivityLogQuery::get_activities() */
+    /**
+     * @see ActivityLogQuery::get_activities()
+     * @param array<string, mixed> $args
+     * @return array<int, array<string, mixed>>
+     */
     public static function get_activities( array $args = array() ): array {
         return ActivityLogQuery::get_activities( $args );
     }
 
-    /** @see ActivityLogQuery::count_activities() */
+    /**
+     * @see ActivityLogQuery::count_activities()
+     * @param array<string, mixed> $args
+     */
     public static function count_activities( array $args = array() ): int {
         return ActivityLogQuery::count_activities( $args );
     }
@@ -291,7 +298,10 @@ class ActivityLog {
         return ActivityLogQuery::run_cleanup();
     }
 
-    /** @see ActivityLogQuery::get_stats() */
+    /**
+     * @see ActivityLogQuery::get_stats()
+     * @return array<string, mixed>
+     */
     public static function get_stats( int $days = 30 ): array {
         return ActivityLogQuery::get_stats( $days );
     }
@@ -300,7 +310,7 @@ class ActivityLog {
      * Log submission created
      *
      * @param int $submission_id Submission ID
-     * @param array $data Additional data (form_id, encrypted status, etc)
+     * @param array<string, mixed> $data Additional data (form_id, encrypted status, etc)
      * @return bool Success
      */
     public static function log_submission_created( int $submission_id, array $data = array() ): bool {
@@ -367,7 +377,7 @@ class ActivityLog {
      * Log data access (LGPD audit trail)
      *
      * @param int $submission_id Submission ID
-     * @param array $context Access context (method, IP, etc)
+     * @param array<string, mixed> $context Access context (method, IP, etc)
      * @return bool Success
      */
     public static function log_data_accessed( int $submission_id, array $context = array() ): bool {
@@ -415,7 +425,7 @@ class ActivityLog {
      *
      * @since 4.9.9
      * @param int   $user_id User whose profile was updated
-     * @param array $fields  Fields that were changed
+     * @param array<int, string> $fields  Fields that were changed
      * @return bool
      */
     public static function log_profile_updated( int $user_id, array $fields = array() ): bool {
@@ -430,7 +440,7 @@ class ActivityLog {
      * @since 4.9.9
      * @param int    $user_id      Target user
      * @param string $context      Context: 'certificate', 'appointment', 'audience'
-     * @param array  $capabilities Capabilities granted
+     * @param array<int, string>  $capabilities Capabilities granted
      * @return bool
      */
     public static function log_capabilities_granted( int $user_id, string $context, array $capabilities = array() ): bool {
@@ -454,7 +464,10 @@ class ActivityLog {
         ), $user_id );
     }
 
-    /** @see ActivityLogQuery::get_submission_logs() */
+    /**
+     * @see ActivityLogQuery::get_submission_logs()
+     * @return array<int, array<string, mixed>>
+     */
     public static function get_submission_logs( int $submission_id, int $limit = 100 ): array {
         return ActivityLogQuery::get_submission_logs( $submission_id, $limit );
     }
@@ -463,7 +476,7 @@ class ActivityLog {
      * Get table columns with caching (public since v4.12.2 for ActivityLogQuery)
      *
      * @param string $table_name Table name
-     * @return array Column names
+     * @return array<int, string> Column names
      */
     public static function get_table_columns_cached( string $table_name ): array {
         global $wpdb;

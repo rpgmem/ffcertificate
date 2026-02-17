@@ -41,8 +41,8 @@ class CleanupMigrationStrategy implements MigrationStrategyInterface {
      * Calculate cleanup migration status
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
-     * @return array Status information
+     * @param array<string, mixed> $migration_config Migration configuration
+     * @return array<string, mixed> Status information
      */
     public function calculate_status( string $migration_key, array $migration_config ): array {
         global $wpdb;
@@ -102,9 +102,9 @@ class CleanupMigrationStrategy implements MigrationStrategyInterface {
      * Execute cleanup for a batch
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
+     * @param array<string, mixed> $migration_config Migration configuration
      * @param int $batch_number Batch number
-     * @return array Execution result
+     * @return array<string, mixed> Execution result
      */
     public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
         global $wpdb;
@@ -225,7 +225,7 @@ class CleanupMigrationStrategy implements MigrationStrategyInterface {
      * Check if cleanup migration can run
      *
      * @param string $migration_key Migration identifier
-     * @param array $migration_config Migration configuration
+     * @param array<string, mixed> $migration_config Migration configuration
      * @return bool|WP_Error
      */
     public function can_run( string $migration_key, array $migration_config ) {

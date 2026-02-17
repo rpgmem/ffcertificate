@@ -23,11 +23,11 @@ class AccessRestrictionChecker {
      *
      * Validation order: Password → Denylist (priority) → Allowlist → Ticket (consumed)
      *
-     * @param array $form_config Form configuration
+     * @param array<string, mixed> $form_config Form configuration
      * @param string $val_cpf CPF/RF from form (already cleaned)
      * @param string $val_ticket Ticket from form
      * @param int $form_id Form ID (needed for ticket consumption)
-     * @return array ['allowed' => bool, 'message' => string, 'is_ticket' => bool]
+     * @return array<string, mixed> ['allowed' => bool, 'message' => string, 'is_ticket' => bool]
      */
     public static function check( array $form_config, string $val_cpf, string $val_ticket, int $form_id ): array {
         $restrictions = isset($form_config['restrictions']) ? $form_config['restrictions'] : array();

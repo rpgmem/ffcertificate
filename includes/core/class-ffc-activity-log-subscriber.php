@@ -46,10 +46,10 @@ class ActivityLogSubscriber {
 	/**
 	 * Log submission created.
 	 *
-	 * @param int    $submission_id Submission ID.
-	 * @param int    $form_id       Form ID.
-	 * @param array  $submission_data Submission data.
-	 * @param string $user_email    User email.
+	 * @param int                  $submission_id Submission ID.
+	 * @param int                  $form_id       Form ID.
+	 * @param array<string, mixed> $submission_data Submission data.
+	 * @param string               $user_email    User email.
 	 */
 	public function on_submission_created( int $submission_id, int $form_id, array $submission_data, string $user_email ): void {
 		if ( ! class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
@@ -65,8 +65,8 @@ class ActivityLogSubscriber {
 	/**
 	 * Log submission updated.
 	 *
-	 * @param int   $id          Submission ID.
-	 * @param array $update_data Updated data.
+	 * @param int                  $id          Submission ID.
+	 * @param array<string, mixed> $update_data Updated data.
 	 */
 	public function on_submission_updated( int $id, array $update_data ): void {
 		if ( ! class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
@@ -118,9 +118,9 @@ class ActivityLogSubscriber {
 	/**
 	 * Log appointment created.
 	 *
-	 * @param int   $appointment_id Appointment ID.
-	 * @param array $data           Appointment data.
-	 * @param array $calendar       Calendar configuration.
+	 * @param int                  $appointment_id Appointment ID.
+	 * @param array<string, mixed> $data           Appointment data.
+	 * @param array<string, mixed> $calendar       Calendar configuration.
 	 */
 	public function on_appointment_created( int $appointment_id, array $data, array $calendar ): void {
 		if ( ! class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
@@ -146,10 +146,10 @@ class ActivityLogSubscriber {
 	/**
 	 * Log appointment cancelled.
 	 *
-	 * @param int      $appointment_id Appointment ID.
-	 * @param array    $appointment    Original appointment data.
-	 * @param string   $reason         Cancellation reason.
-	 * @param int|null $cancelled_by   User ID who cancelled.
+	 * @param int                  $appointment_id Appointment ID.
+	 * @param array<string, mixed> $appointment    Original appointment data.
+	 * @param string               $reason         Cancellation reason.
+	 * @param int|null             $cancelled_by   User ID who cancelled.
 	 */
 	public function on_appointment_cancelled( int $appointment_id, array $appointment, string $reason, ?int $cancelled_by ): void {
 		if ( ! class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
@@ -175,7 +175,7 @@ class ActivityLogSubscriber {
 	 * Ensures settings-dependent components pick up new values
 	 * without stale cached data.
 	 *
-	 * @param array $settings Saved settings.
+	 * @param array<string, mixed> $settings Saved settings.
 	 */
 	public function on_settings_saved( array $settings ): void {
 		// Clear WordPress options cache for ffc_settings

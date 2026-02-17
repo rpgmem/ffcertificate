@@ -25,7 +25,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class VerificationHandler {
 
+    /** @var SubmissionHandler|null */
     private $submission_handler;
+    /** @var mixed */
     private $email_handler;
     private VerificationResponseRenderer $renderer;
 
@@ -48,6 +50,8 @@ class VerificationHandler {
      */
     /**
      * Search for certificate - uses Repository
+     *
+     * @return array<string, mixed>
      */
     private function search_certificate( string $auth_code ): array {
         $repository = new SubmissionRepository();
@@ -111,7 +115,7 @@ class VerificationHandler {
      *
      * @since 4.2.0
      * @param string $code Cleaned validation code (no hyphens)
-     * @return array Result array with 'found', 'submission', 'data', 'type'
+     * @return array<string, mixed> Result array with 'found', 'submission', 'data', 'type'
      */
     private function search_appointment_by_code( string $code ): array {
         if ( ! class_exists( '\\FreeFormCertificate\\Repositories\\AppointmentRepository' ) ) {
@@ -133,7 +137,7 @@ class VerificationHandler {
      *
      * @since 4.2.0
      * @param string $token Confirmation token (64 hex chars)
-     * @return array Result array with 'found', 'submission', 'data', 'type'
+     * @return array<string, mixed> Result array with 'found', 'submission', 'data', 'type'
      */
     private function search_appointment_by_token( string $token ): array {
         if ( ! class_exists( '\\FreeFormCertificate\\Repositories\\AppointmentRepository' ) ) {
@@ -154,8 +158,8 @@ class VerificationHandler {
      * Build result array from appointment data
      *
      * @since 4.2.0
-     * @param array $appointment Appointment data from database
-     * @return array Standardized result array
+     * @param array<string, mixed> $appointment Appointment data from database
+     * @return array<string, mixed> Standardized result array
      */
     private function build_appointment_result( array $appointment ): array {
         // Decrypt sensitive fields
@@ -212,7 +216,7 @@ class VerificationHandler {
      *
      * @since 4.12.0
      * @param string $code Cleaned auth code (no hyphens, uppercase).
-     * @return array Result array with 'found', 'submission', 'data', 'type'.
+     * @return array<string, mixed> Result array with 'found', 'submission', 'data', 'type'.
      */
     private function search_reregistration_by_code( string $code ): array {
         if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionRepository' ) ) {
@@ -256,7 +260,7 @@ class VerificationHandler {
      *
      * @since 4.12.0
      * @param string $token Magic token (64 hex chars).
-     * @return array Result array with 'found', 'submission', 'data', 'type'.
+     * @return array<string, mixed> Result array with 'found', 'submission', 'data', 'type'.
      */
     private function search_reregistration_by_magic_token( string $token ): array {
         if ( ! class_exists( '\\FreeFormCertificate\\Reregistration\\ReregistrationSubmissionRepository' ) ) {
@@ -305,7 +309,7 @@ class VerificationHandler {
      *
      * @since 2.8.0 Magic Links feature
      * @param string $token Magic token (32 hex characters)
-     * @return array Result array with 'found', 'submission', 'data', 'magic_token'
+     * @return array<string, mixed> Result array with 'found', 'submission', 'data', 'magic_token'
      */
     public function verify_by_magic_token( string $token ): array {
         // Debug logging
@@ -430,6 +434,8 @@ class VerificationHandler {
     /**
      * Verify certificate (used by shortcode fallback - non-AJAX)
      * Returns array with 'success' (bool), 'html' (string), 'message' (string)
+     *
+     * @return array<string, mixed>
      */
     public function verify_certificate( string $auth_code ): array {
         $result = $this->search_certificate( $auth_code );

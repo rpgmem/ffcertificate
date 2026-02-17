@@ -19,9 +19,13 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 abstract class AbstractRepository {
 
+    /** @var \wpdb */
     protected $wpdb;
+    /** @var string */
     protected $table;
+    /** @var string */
     protected $cache_group;
+    /** @var int */
     protected $cache_expiration = 3600;
 
     public function __construct() {
@@ -38,7 +42,7 @@ abstract class AbstractRepository {
      * Find by ID
      *
      * @param int $id
-     * @return array|null|false
+     * @return array<string, mixed>|null|false
      */
     public function findById( int $id ) {
         $cache_key = "id_{$id}";
@@ -64,8 +68,8 @@ abstract class AbstractRepository {
     /**
      * Find multiple records by IDs in a single query.
      *
-     * @param array $ids Array of integer IDs
-     * @return array Associative array keyed by ID => row data
+     * @param array<int, int> $ids Array of integer IDs
+     * @return array<int, array<string, mixed>> Associative array keyed by ID => row data
      */
     public function findByIds( array $ids ): array {
         $ids = array_unique( array_filter( array_map( 'intval', $ids ) ) );
@@ -111,12 +115,12 @@ abstract class AbstractRepository {
     /**
      * Find all with conditions
      *
-     * @param array $conditions
+     * @param array<string, mixed> $conditions
      * @param string $order_by
      * @param string $order
      * @param int|null $limit
      * @param int $offset
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function findAll( array $conditions = [], string $order_by = 'id', string $order = 'DESC', ?int $limit = null, int $offset = 0 ): array {
         $where = $this->build_where_clause($conditions);
@@ -140,7 +144,7 @@ abstract class AbstractRepository {
     /**
      * Count rows
      *
-     * @param array $conditions
+     * @param array<string, mixed> $conditions
      * @return int
      */
     public function count( array $conditions = [] ): int {
@@ -152,7 +156,7 @@ abstract class AbstractRepository {
     /**
      * Insert
      *
-     * @param array $data
+     * @param array<string, mixed> $data
      * @return int|false Insert ID on success, false on failure
      */
     public function insert( array $data ) {
@@ -172,7 +176,7 @@ abstract class AbstractRepository {
      * Update
      *
      * @param int $id
-     * @param array $data
+     * @param array<string, mixed> $data
      * @return int|false Number of rows updated, or false on error
      */
     public function update( int $id, array $data ) {
@@ -225,7 +229,7 @@ abstract class AbstractRepository {
     /**
      * Get allowed ORDER BY columns. Override in child classes to extend.
      *
-     * @return array
+     * @return array<int, string>
      */
     protected function get_allowed_order_columns(): array {
         return [ 'id', 'created_at', 'updated_at', 'status' ];
@@ -234,7 +238,7 @@ abstract class AbstractRepository {
     /**
      * Build WHERE clause
      *
-     * @param array $conditions
+     * @param array<string, mixed> $conditions
      * @return string
      */
     protected function build_where_clause( array $conditions ): string {

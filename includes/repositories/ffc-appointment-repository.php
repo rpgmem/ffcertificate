@@ -43,7 +43,7 @@ class AppointmentRepository extends AbstractRepository {
      * @param int $calendar_id
      * @param int|null $limit
      * @param int $offset
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function findByCalendar(int $calendar_id, ?int $limit = null, int $offset = 0): array {
         return $this->findAll(
@@ -59,10 +59,10 @@ class AppointmentRepository extends AbstractRepository {
      * Find appointments by user ID
      *
      * @param int $user_id
-     * @param array $statuses Optional status filter
+     * @param array<int, string> $statuses Optional status filter
      * @param int|null $limit
      * @param int $offset
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function findByUserId(int $user_id, array $statuses = [], ?int $limit = null, int $offset = 0): array {
         $conditions = ['user_id' => $user_id];
@@ -97,7 +97,7 @@ class AppointmentRepository extends AbstractRepository {
      * @param string $email
      * @param int|null $limit
      * @param int $offset
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function findByEmail(string $email, ?int $limit = null, int $offset = 0): array {
         // Search both plain and hashed email
@@ -125,7 +125,7 @@ class AppointmentRepository extends AbstractRepository {
      * @param string $cpf_rf
      * @param int|null $limit
      * @param int $offset
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function findByCpfRf(string $cpf_rf, ?int $limit = null, int $offset = 0): array {
         // Search both plain and hashed CPF/RF
@@ -152,7 +152,7 @@ class AppointmentRepository extends AbstractRepository {
      * Find appointment by confirmation token
      *
      * @param string $token
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     public function findByConfirmationToken(string $token): ?array {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -172,7 +172,7 @@ class AppointmentRepository extends AbstractRepository {
      * Find appointment by validation code
      *
      * @param string $validation_code
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     public function findByValidationCode(string $validation_code): ?array {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -193,9 +193,9 @@ class AppointmentRepository extends AbstractRepository {
      *
      * @param int $calendar_id
      * @param string $date Date in Y-m-d format
-     * @param array $statuses Optional status filter (default: confirmed appointments)
+     * @param array<int, string> $statuses Optional status filter (default: confirmed appointments)
      * @param bool $use_lock Use FOR UPDATE lock (requires active transaction)
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function getAppointmentsByDate(int $calendar_id, string $date, array $statuses = ['confirmed', 'pending'], bool $use_lock = false): array {
         $status_placeholders = implode(',', array_fill(0, count($statuses), '%s'));
@@ -221,8 +221,8 @@ class AppointmentRepository extends AbstractRepository {
      * @param int $calendar_id
      * @param string $start_date
      * @param string $end_date
-     * @param array $statuses
-     * @return array
+     * @param array<int, string> $statuses
+     * @return array<int, array<string, mixed>>
      */
     public function getAppointmentsByDateRange(int $calendar_id, string $start_date, string $end_date, array $statuses = ['confirmed', 'pending']): array {
         $status_placeholders = implode(',', array_fill(0, count($statuses), '%s'));
@@ -336,7 +336,7 @@ class AppointmentRepository extends AbstractRepository {
      * Get upcoming appointments for reminders
      *
      * @param int $hours_before Hours before appointment
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function getUpcomingForReminders(int $hours_before = 24): array {
         $target_datetime = gmdate('Y-m-d H:i:s', strtotime("+{$hours_before} hours"));
@@ -383,7 +383,7 @@ class AppointmentRepository extends AbstractRepository {
      * @param int $calendar_id
      * @param string|null $start_date
      * @param string|null $end_date
-     * @return array
+     * @return array<string, mixed>
      */
     public function getStatistics(int $calendar_id, ?string $start_date = null, ?string $end_date = null): array {
         $where = $this->wpdb->prepare("WHERE calendar_id = %d", $calendar_id);
@@ -422,7 +422,7 @@ class AppointmentRepository extends AbstractRepository {
     /**
      * Create appointment with encryption support
      *
-     * @param array $data
+     * @param array<string, mixed> $data
      * @return int|false
      */
     public function createAppointment(array $data) {
@@ -500,7 +500,7 @@ class AppointmentRepository extends AbstractRepository {
      * @param int $calendar_id
      * @param string $start_date YYYY-MM-DD
      * @param string $end_date YYYY-MM-DD
-     * @return array Array with date => count
+     * @return array<string, int> Array with date => count
      */
     public function getBookingCountsByDateRange(int $calendar_id, string $start_date, string $end_date): array {
         $table = $this->get_table_name();

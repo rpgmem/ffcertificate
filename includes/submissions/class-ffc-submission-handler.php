@@ -21,6 +21,9 @@ if (!defined('ABSPATH')) exit;
 
 class SubmissionHandler {
 
+    /**
+     * @var SubmissionRepository
+     */
     private $repository;
 
     public function __construct() {
@@ -53,6 +56,8 @@ class SubmissionHandler {
     /**
      * Get submission by ID
      * @uses Repository::findById()
+     *
+     * @return array<string, mixed>|null
      */
     public function get_submission(int $id) {
         $submission = $this->repository->findById($id);
@@ -67,6 +72,8 @@ class SubmissionHandler {
     /**
      * Get submission by magic token
      * @uses Repository::findByToken()
+     *
+     * @return array<string, mixed>|null
      */
     public function get_submission_by_token(string $token) {
         $clean_token = preg_replace('/[^a-f0-9]/i', '', $token);
@@ -87,6 +94,14 @@ class SubmissionHandler {
     /**
      * Process submission (main method)
      * @uses Repository::insert()
+     *
+     * @param int    $form_id
+     * @param string $form_title
+     * @param array<string, mixed> $submission_data
+     * @param string $user_email
+     * @param array<string, mixed> $fields_config
+     * @param array<string, mixed> $form_config
+     * @return int|\WP_Error
      */
     public function process_submission(int $form_id, string $form_title, array &$submission_data, string $user_email, array $fields_config, array $form_config) {
         /**
@@ -251,6 +266,8 @@ class SubmissionHandler {
     /**
      * Update submission - FIXED v3.0.1
      * @uses Repository::updateWithEditTracking()
+     *
+     * @param array<string, mixed> $clean_data
      */
     public function update_submission(int $id, string $new_email, array $clean_data): bool {
         /**
@@ -347,6 +364,9 @@ class SubmissionHandler {
     /**
      * Decrypt submission data.
      * Uses Encryption::decrypt_field() for each sensitive field.
+     *
+     * @param array<string, mixed> $submission
+     * @return array<string, mixed>
      */
     public function decrypt_submission_data($submission): array {
         if (!$submission || !class_exists('\FreeFormCertificate\Core\Encryption')) {
@@ -413,7 +433,7 @@ class SubmissionHandler {
      * Bulk trash submissions (optimized)
      * @uses Repository::bulkUpdateStatus()
      *
-     * @param array $ids Array of submission IDs
+     * @param array<int, int> $ids Array of submission IDs
      * @return int|false Number of rows affected or false on error
      */
     public function bulk_trash_submissions(array $ids) {
@@ -445,7 +465,7 @@ class SubmissionHandler {
      * Bulk restore submissions (optimized)
      * @uses Repository::bulkUpdateStatus()
      *
-     * @param array $ids Array of submission IDs
+     * @param array<int, int> $ids Array of submission IDs
      * @return int|false Number of rows affected or false on error
      */
     public function bulk_restore_submissions(array $ids) {
@@ -477,7 +497,7 @@ class SubmissionHandler {
      * Bulk delete submissions permanently (optimized)
      * @uses Repository::bulkDelete()
      *
-     * @param array $ids Array of submission IDs
+     * @param array<int, int> $ids Array of submission IDs
      * @return int|false Number of rows deleted or false on error
      */
     public function bulk_delete_submissions(array $ids) {
@@ -514,7 +534,7 @@ class SubmissionHandler {
      *
      * @param int|null $form_id Form ID to delete from, or null for all forms
      * @param bool $reset_auto_increment Reset ID counter to 1
-     * @return int|false Number of rows deleted or false on error
+     * @return int Number of rows deleted
      */
     public function delete_all_submissions(?int $form_id = null, bool $reset_auto_increment = false): int {
         global $wpdb;
@@ -585,7 +605,7 @@ class SubmissionHandler {
     /**
      * Reset AUTO_INCREMENT counter
      *
-     * @return int|false Query result
+     * @return bool Query result
      */
     public function reset_submission_counter(): bool {
         global $wpdb;
@@ -609,6 +629,8 @@ class SubmissionHandler {
 
     /**
      * Run data cleanup (old submissions)
+     *
+     * @return array<string, int>
      */
     public function run_data_cleanup(): array {
         global $wpdb;
@@ -668,6 +690,8 @@ class SubmissionHandler {
 
     /**
      * Migration: Move emails to encrypted column
+     *
+     * @return array<string, mixed>
      */
     public function migrate_emails_to_column() {
         if (!class_exists('\FreeFormCertificate\Core\Encryption') || !\FreeFormCertificate\Core\Encryption::is_configured()) {

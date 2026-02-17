@@ -79,7 +79,7 @@ class Utils {
      * Returns the list of allowed HTML tags and attributes.
      * Centralized here so Frontend, Email, and PDF Generator use the same validation rules.
      *
-     * @return array Allowed HTML tags with their attributes
+     * @return array<string, array<string, array<never, never>>> Allowed HTML tags with their attributes
      */
     public static function get_allowed_html_tags(): array {
         $allowed = array(
@@ -380,7 +380,10 @@ class Utils {
     
     // ── Security methods delegated to SecurityService (Sprint 31) ──
 
-    /** @deprecated Use SecurityService::generate_simple_captcha() */
+    /**
+     * @deprecated Use SecurityService::generate_simple_captcha()
+     * @return array<string, mixed>
+     */
     public static function generate_simple_captcha(): array {
         return SecurityService::generate_simple_captcha();
     }
@@ -390,14 +393,22 @@ class Utils {
         return SecurityService::verify_simple_captcha( $answer, $hash );
     }
 
-    /** @deprecated Use SecurityService::validate_security_fields() */
+    /**
+     * @deprecated Use SecurityService::validate_security_fields()
+     * @param array<string, mixed> $data POST data to validate
+     * @return true|string True on success, error message string on failure
+     */
     public static function validate_security_fields( array $data ) {
         return SecurityService::validate_security_fields( $data );
     }
 
     // ── Data sanitization methods delegated to DataSanitizer (Sprint 31) ──
 
-    /** @deprecated Use DataSanitizer::recursive_sanitize() */
+    /**
+     * @deprecated Use DataSanitizer::recursive_sanitize()
+     * @param mixed $data Data to sanitize
+     * @return mixed Sanitized data
+     */
     public static function recursive_sanitize( $data ) {
         return DataSanitizer::recursive_sanitize( $data );
     }
@@ -411,10 +422,10 @@ class Utils {
      * Generate success HTML response for frontend form submission
      *
      * @since 2.9.16
-     * @param array  $submission_data Submission data
-     * @param int    $form_id Form ID
-     * @param string $submission_date Submission date
-     * @param string $success_message Success message
+     * @param array<string, mixed> $submission_data Submission data
+     * @param int                  $form_id Form ID
+     * @param string               $submission_date Submission date
+     * @param string               $success_message Success message
      * @return string HTML content
      */
     public static function generate_success_html( array $submission_data, int $form_id, string $submission_date, string $success_message = '' ): string {

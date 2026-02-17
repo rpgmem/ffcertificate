@@ -50,7 +50,7 @@ class DateBlockingService {
      *
      * @param string|null $start_date Optional start date filter (Y-m-d)
      * @param string|null $end_date Optional end date filter (Y-m-d)
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public static function get_global_holidays(?string $start_date = null, ?string $end_date = null): array {
         $holidays = get_option('ffc_global_holidays', array());
@@ -120,7 +120,7 @@ class DateBlockingService {
      *
      * @param string $date Date (Y-m-d)
      * @param string|null $time Optional time (H:i or H:i:s)
-     * @param string|array $working_hours Working hours config
+     * @param string|array<string, mixed> $working_hours Working hours config
      * @param int|null $calendar_id Self-scheduling calendar ID (null to skip check)
      * @param int|null $environment_id Audience environment ID (null to skip check)
      * @return bool

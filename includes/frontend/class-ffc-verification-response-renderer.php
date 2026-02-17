@@ -25,7 +25,7 @@ class VerificationResponseRenderer {
      * Format certificate verification response HTML
      *
      * @param object $submission Submission object
-     * @param array $data Submission data fields
+     * @param array<string, mixed> $data Submission data fields
      * @param bool $show_download_button Whether to show PDF download button
      * @return string HTML output
      */
@@ -65,7 +65,7 @@ class VerificationResponseRenderer {
     /**
      * Format appointment verification response HTML
      *
-     * @param array $result Appointment search result
+     * @param array<string, mixed> $result Appointment search result
      * @return string HTML output
      */
     public function format_appointment_verification_response( array $result ): string {
@@ -202,9 +202,9 @@ class VerificationResponseRenderer {
     /**
      * Generate appointment PDF data for verification context
      *
-     * @param array $result Search result array
+     * @param array<string, mixed> $result Search result array
      * @param \FreeFormCertificate\Generators\PdfGenerator $pdf_generator PDF generator instance
-     * @return array PDF data array
+     * @return array<string, mixed> PDF data array
      */
     public function generate_appointment_verification_pdf( array $result, \FreeFormCertificate\Generators\PdfGenerator $pdf_generator ): array {
         $appointment = $result['appointment'];
@@ -225,7 +225,7 @@ class VerificationResponseRenderer {
      * Format reregistration verification response HTML.
      *
      * @since 4.12.0
-     * @param array $result Reregistration search result.
+     * @param array<string, mixed> $result Reregistration search result.
      * @return string HTML output.
      */
     public function format_reregistration_verification_response( array $result ): string {
