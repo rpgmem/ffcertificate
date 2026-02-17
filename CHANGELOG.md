@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## 4.12.19 (2026-02-17)
+
+Refactoring: extract focused classes from DashboardShortcode (720 → 395 lines, 45% reduction).
+
+- Refactor: **DashboardAssetManager** (269 lines) — extracted `enqueue_assets()` with full CSS/JS enqueuing, `wp_localize_script` for dashboard, reregistration, and working-hours components, plus `user_has_audience_groups()` audience membership check
+- Refactor: **DashboardViewMode** (98 lines) — extracted `get_view_as_user_id()` admin view-as validation (nonce, capability, user existence) and `render_admin_viewing_banner()` HTML rendering
+- DashboardShortcode retains shortcode registration, cache headers, main render orchestration, login/redirect messages, and reregistration banners
+
 ## 4.12.18 (2026-02-17)
 
 Unit tests for SubmissionHandler: comprehensive coverage of update, decrypt, failure paths, and edge cases.
