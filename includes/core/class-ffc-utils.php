@@ -169,221 +169,54 @@ class Utils {
         return apply_filters( 'ffcertificate_allowed_html_tags', $allowed );
     }
     
-    /**
-     * Validate CPF (Brazilian tax ID)
-     *
-     * Uses the official CPF validation algorithm
-     *
-     * @param string $cpf CPF to validate (with or without formatting)
-     * @return bool True if valid, false otherwise
-     */
+    // ── Document methods delegated to DocumentFormatter (Sprint 30) ──
+
+    /** @deprecated Use DocumentFormatter::validate_cpf() */
     public static function validate_cpf( string $cpf ): bool {
-        // Remove non-numeric characters
-        $cpf = preg_replace( '/\D/', '', $cpf );
-        
-        // Check length
-        if ( strlen( $cpf ) != 11 ) {
-            return false;
-        }
-        
-        // Check for known invalid CPFs (all same digit)
-        if ( preg_match( '/(\d)\1{10}/', $cpf ) ) {
-            return false;
-        }
-        
-        // Validate check digits
-        for ( $t = 9; $t < 11; $t++ ) {
-            for ( $d = 0, $c = 0; $c < $t; $c++ ) {
-                $d += $cpf[$c] * ( ( $t + 1 ) - $c );
-            }
-            $d = ( ( 10 * $d ) % 11 ) % 10;
-            if ( $cpf[$c] != $d ) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Validate Brazilian phone number.
-     *
-     * Accepts: (XX) XXXXX-XXXX or (XX) XXXX-XXXX, with or without
-     * parentheses, spaces, and hyphens.
-     *
-     * @since 4.11.0
-     * @param string $phone Phone string.
-     * @return bool True if valid, false otherwise.
-     */
-    public static function validate_phone( string $phone ): bool {
-        $phone = preg_replace( '/\s+/', '', $phone );
-        return (bool) preg_match( '/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/', $phone );
+        return DocumentFormatter::validate_cpf( $cpf );
     }
 
-    /**
-     * Phone validation regex pattern (without delimiters).
-     */
+    /** @deprecated Use DocumentFormatter::validate_phone() */
+    public static function validate_phone( string $phone ): bool {
+        return DocumentFormatter::validate_phone( $phone );
+    }
+
+    /** @deprecated Use DocumentFormatter::PHONE_REGEX */
     public const PHONE_REGEX = '^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$';
 
-    /**
-     * Format CPF with mask
-     *
-     * @param string $cpf CPF to format
-     * @return string Formatted CPF (XXX.XXX.XXX-XX)
-     */
+    /** @deprecated Use DocumentFormatter::format_cpf() */
     public static function format_cpf( string $cpf ): string {
-        $cpf = preg_replace( '/\D/', '', $cpf );
-        
-        if ( strlen( $cpf ) === 11 ) {
-            return preg_replace( '/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cpf );
-        }
-        
-        return $cpf;
+        return DocumentFormatter::format_cpf( $cpf );
     }
-    
-    /**
-     * Validate RF (7-digit registration)
-     *
-     * @param string $rf RF to validate
-     * @return bool True if valid, false otherwise
-     */
+
+    /** @deprecated Use DocumentFormatter::validate_rf() */
     public static function validate_rf( string $rf ): bool {
-        $rf = preg_replace( '/\D/', '', $rf );
-        return strlen( $rf ) === 7 && is_numeric( $rf );
+        return DocumentFormatter::validate_rf( $rf );
     }
-    
-    /**
-     * Format RF with mask
-     *
-     * @param string $rf RF to format
-     * @return string Formatted RF (XXX.XXX-X)
-     */
+
+    /** @deprecated Use DocumentFormatter::format_rf() */
     public static function format_rf( string $rf ): string {
-        $rf = preg_replace( '/\D/', '', $rf );
-        
-        if ( strlen( $rf ) === 7 ) {
-            return preg_replace( '/(\d{3})(\d{3})(\d{1})/', '$1.$2-$3', $rf );
-        }
-        
-        return $rf;
+        return DocumentFormatter::format_rf( $rf );
     }
-    
-    /**
-     * Mask CPF/RF for privacy
-     *
-     * Masks document while keeping first and last digits visible.
-     * Useful for displaying in admin lists, emails, or public pages
-     * where privacy is required but some identification is needed.
-     *
-     * Examples:
-     * - CPF (11 digits): 12345678909 → 123.***.***-09
-     * - RF (7 digits): 1234567 → 123.***-7
-     *
-     * @since 2.9.17
-     * @param string $value CPF or RF to mask
-     * @return string Masked document or original if invalid length
-     */
+
+    /** @deprecated Use DocumentFormatter::mask_cpf() */
     public static function mask_cpf( string $value ): string {
-        if ( empty( $value ) ) {
-            return '';
-        }
-        
-        // Clean document (remove non-numeric)
-        $clean = preg_replace( '/[^0-9]/', '', $value );
-        
-        // Mask based on length
-        if ( strlen( $clean ) === 11 ) {
-            // CPF: 123.***.***-09
-            return substr( $clean, 0, 3 ) . '.***.***-' . substr( $clean, -2 );
-        } elseif ( strlen( $clean ) === 7 ) {
-            // RF: 123.***-7
-            return substr( $clean, 0, 3 ) . '.***-' . substr( $clean, -1 );
-        }
-        
-        // Return original if not CPF or RF
-        return $value;
+        return DocumentFormatter::mask_cpf( $value );
     }
 
-    /**
-     * Mask email address for privacy
-     *
-     * Shows first character of local part + *** + @domain
-     * Example: joao@gmail.com → j***@gmail.com
-     *
-     * @since 3.2.0
-     * @param string $email Email address to mask
-     * @return string Masked email or original if invalid
-     */
+    /** @deprecated Use DocumentFormatter::mask_email() */
     public static function mask_email( string $email ): string {
-        if ( empty( $email ) || ! is_email( $email ) ) {
-            return $email;
-        }
-
-        $parts = explode( '@', $email );
-        if ( count( $parts ) !== 2 ) {
-            return $email;
-        }
-
-        $local = $parts[0];
-        $domain = $parts[1];
-
-        // Show first character + *** + @domain
-        $masked_local = substr( $local, 0, 1 ) . '***';
-
-        return $masked_local . '@' . $domain;
+        return DocumentFormatter::mask_email( $email );
     }
 
-    /**
-     * Format authentication code
-     *
-     * @param string $code Auth code to format
-     * @return string Formatted code (XXXX-XXXX-XXXX)
-     */
+    /** @deprecated Use DocumentFormatter::format_auth_code() */
     public static function format_auth_code( string $code ): string {
-        $code = strtoupper( preg_replace( '/[^A-Z0-9]/i', '', $code ) );
-        
-        if ( strlen( $code ) === 12 ) {
-            return substr( $code, 0, 4 ) . '-' . substr( $code, 4, 4 ) . '-' . substr( $code, 8, 4 );
-        }
-        
-        return $code;
+        return DocumentFormatter::format_auth_code( $code );
     }
-    
-    /**
-     * Format any document based on type
-     *
-     * Auto-detects document type based on length
-     *
-     * @param string $value Document value
-     * @param string $type Document type (cpf, rf, auth_code, or 'auto')
-     * @return string Formatted document
-     */
+
+    /** @deprecated Use DocumentFormatter::format_document() */
     public static function format_document( string $value, string $type = 'auto' ): string {
-        $clean = preg_replace( '/\D/', '', $value );
-        $len = strlen( $clean );
-        
-        // Auto-detect type based on length
-        if ( $type === 'auto' ) {
-            if ( $len === 11 ) {
-                $type = 'cpf';
-            } elseif ( $len === 7 ) {
-                $type = 'rf';
-            } elseif ( $len === 12 ) {
-                $type = 'auth_code';
-            }
-        }
-        
-        // Format based on type
-        switch ( $type ) {
-            case 'cpf':
-                return self::format_cpf( $value );
-            case 'rf':
-                return self::format_rf( $value );
-            case 'auth_code':
-                return self::format_auth_code( $value );
-            default:
-                return $value;
-        }
+        return DocumentFormatter::format_document( $value, $type );
     }
     
     /**
@@ -588,28 +421,14 @@ class Utils {
         return current_user_can( 'manage_options' );
     }
     
-    /**
-     * Clean authentication code (remove special chars, uppercase)
-     *
-     * Used throughout the plugin for consistent auth code cleaning
-     *
-     * @param string $code Auth code to clean
-     * @return string Cleaned code (uppercase alphanumeric only)
-     */
+    /** @deprecated Use DocumentFormatter::clean_auth_code() */
     public static function clean_auth_code( string $code ): string {
-        return strtoupper( preg_replace( '/[^a-zA-Z0-9]/', '', $code ) );
+        return DocumentFormatter::clean_auth_code( $code );
     }
-    
-    /**
-     * Clean identifier (CPF, RF, ticket) - uppercase alphanumeric only
-     *
-     * Used for consistent cleaning of all identifier types
-     *
-     * @param string $value Identifier to clean
-     * @return string Cleaned identifier (uppercase alphanumeric only)
-     */
+
+    /** @deprecated Use DocumentFormatter::clean_identifier() */
     public static function clean_identifier( string $value ): string {
-        return strtoupper( preg_replace( '/[^a-zA-Z0-9]/', '', $value ) );
+        return DocumentFormatter::clean_identifier( $value );
     }
     
     /**
