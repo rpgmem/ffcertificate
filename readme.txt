@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.12.1
+Stable tag: 4.12.2
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,17 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.12.2 (2026-02-17) =
+
+God class refactoring: UserManager and ActivityLog split into single-responsibility classes with full backward compatibility.
+
+* Refactor: **CapabilityManager** — extracted from UserManager; handles all FFC capability constants, role registration, context-based granting, access checks, and per-user capability management
+* Refactor: **UserCreator** — extracted from UserManager; handles get_or_create_user flow, WordPress user creation, orphaned record linking, username generation, metadata sync, and profile creation
+* Refactor: **ActivityLogQuery** — extracted from ActivityLog; handles get_activities, count_activities, get_stats, get_submission_logs, cleanup, and run_cleanup
+* Refactor: **UserManager** — reduced from ~1,150 to ~400 lines; retains profile CRUD and data retrieval methods; delegates capabilities to CapabilityManager and user creation to UserCreator via backward-compatible constant aliases and method wrappers
+* Refactor: **ActivityLog** — reduced from ~800 to ~520 lines; retains core logging, buffer management, and convenience methods; delegates query/stats/cleanup to ActivityLogQuery
+* No breaking changes: all existing method calls and constant references continue to work via delegation
 
 = 4.12.1 (2026-02-16) =
 
@@ -472,6 +483,9 @@ Repository pattern, REST API, strict types, PSR-4 autoloader, user dashboard.
 Initial release through rate limiting. Core form builder, PDF generation, magic links, QR codes.
 
 == Upgrade Notice ==
+
+= 4.12.2 =
+God class refactoring: UserManager split into CapabilityManager + UserCreator, ActivityLog split into ActivityLogQuery. All existing calls remain backward-compatible via delegation. No database changes. No breaking changes.
 
 = 4.12.1 =
 Test coverage expansion: 6 new test files covering Encryption, RateLimiter, FormProcessor restrictions, REST controllers, and SubmissionRepository. 108 tests with 210 assertions. No code changes, no database changes, no breaking changes.
