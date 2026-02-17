@@ -152,8 +152,8 @@
    STATUS BADGES
    ========================================================================== */
 
-.ffc-status-badge,
-.ffc-badge {
+/* .ffc-badge base is in ffc-common.css — only admin-specific overrides here */
+.ffc-status-badge {
     display: inline-block;
     padding: 3px 8px;
     border-radius: 3px;

@@ -1,8 +1,8 @@
 /**
  * FFC PDF Generator - Standalone Module
- * 
+ *
  * Shared PDF generation logic for both frontend and admin
- * 
+ *
  * @version 2.10.0 - Support portrait/landscape orientation via pdfData.orientation
  */
 
@@ -96,9 +96,6 @@
     }
 
     function generateAndDownloadPDF(pdfData, filename) {
-        console.log('[FFC PDF] Starting PDF generation...');
-        console.log('[FFC PDF] Template length:', pdfData.html ? pdfData.html.length : 0);
-
         if (!checkPDFLibraries()) {
             var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfLibrariesFailed)
                 ? ffc_ajax.strings.pdfLibrariesFailed
@@ -118,85 +115,69 @@
         var containerW = isPortrait ? '794px' : '1123px';
         var containerH = isPortrait ? '1123px' : '794px';
 
-        console.log('[FFC PDF] Orientation:', isPortrait ? 'portrait' : 'landscape');
-
-        // ✅ FIX: Create container IN VIEWPORT but hidden behind overlay
         var $tempContainer = $('<div class="ffc-pdf-temp-container"></div>').css({
             'position': 'fixed',
-            'top': '0',           // ← Na viewport!
-            'left': '0',          // ← Na viewport!
+            'top': '0',
+            'left': '0',
             'width': containerW,
             'height': containerH,
             'overflow': 'hidden',
             'background': 'white',
-            'z-index': '999998',  // ← Atrás do overlay (999999)
-            'opacity': '0'        // ← Invisível mas renderizado
+            'z-index': '999998',
+            'opacity': '0'
         }).appendTo('body');
 
         var processedHTML = pdfData.html || '';
-        
-        console.log('[FFC PDF] HTML preview:', processedHTML.substring(0, 200));
 
         var finalHTML = '<div class="ffc-pdf-wrapper" style="width:100%;height:100%;position:relative;">';
-        
+
         if (pdfData.bg_image) {
             finalHTML += '<img src="' + pdfData.bg_image + '" class="ffc-pdf-bg" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" crossorigin="anonymous">';
         }
-        
+
         finalHTML += '<div class="ffc-pdf-content" style="position:relative;z-index:1;">' + processedHTML + '</div>';
         finalHTML += '</div>';
 
         $tempContainer.html(finalHTML);
-        
-        console.log('[FFC PDF] Container created and visible');
 
         var images = $tempContainer.find('img');
         var totalImages = images.length;
         var loadedImages = 0;
         var imageLoadTimeout;
 
-        console.log('[FFC PDF] Waiting for ' + totalImages + ' images to load...');
-
         function checkAllImagesLoaded() {
             loadedImages++;
-            console.log('[FFC PDF] Image loaded: ' + loadedImages + '/' + totalImages);
-            
+
             if (loadedImages >= totalImages) {
                 clearTimeout(imageLoadTimeout);
-                console.log('[FFC PDF] All images loaded! Generating PDF...');
                 generatePDF();
             }
         }
 
         function forceGeneratePDF() {
-            console.log('[FFC PDF] Timeout. Generating with ' + loadedImages + '/' + totalImages + ' images.');
             generatePDF();
         }
 
         if (totalImages > 0) {
             imageLoadTimeout = setTimeout(forceGeneratePDF, 10000);
-            
-            images.each(function(index) {
+
+            images.each(function() {
                 var img = this;
                 var $img = $(img);
                 var src = $img.attr('src');
-                
-                console.log('[FFC PDF] Image ' + (index + 1) + ':', src ? src.substring(0, 80) : 'no src');
-                
+
                 if (img.complete && img.naturalHeight > 0) {
-                    console.log('[FFC PDF] Image ' + (index + 1) + ' already loaded');
                     checkAllImagesLoaded();
                 } else {
                     $img.one('load', function() {
-                        console.log('[FFC PDF] Image ' + (index + 1) + ' loaded');
                         checkAllImagesLoaded();
                     });
-                    
+
                     $img.one('error', function() {
-                        console.warn('[FFC PDF] Image ' + (index + 1) + ' failed:', src);
+                        console.warn('[FFC PDF] Image failed to load:', src);
                         checkAllImagesLoaded();
                     });
-                    
+
                     if (src && !src.startsWith('data:')) {
                         var tempSrc = img.src;
                         img.src = '';
@@ -205,21 +186,18 @@
                 }
             });
         } else {
-            console.log('[FFC PDF] No images, generating immediately');
             generatePDF();
         }
 
         function generatePDF() {
             var elapsedTime = Date.now() - startTime;
             var remainingTime = Math.max(0, minDisplayTime - elapsedTime);
-            
-            console.log('[FFC PDF] Elapsed:', elapsedTime + 'ms', 'Remaining:', remainingTime + 'ms');
-            
+
             setTimeout(function() {
                 var element = $tempContainer.find('.ffc-pdf-wrapper')[0];
-                
+
                 if (!element) {
-                    console.error('[FFC PDF] Wrapper not found!');
+                    console.error('[FFC PDF] Wrapper not found');
                     var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfContainerNotFound)
                         ? ffc_ajax.strings.pdfContainerNotFound
                         : 'Error: PDF container not found';
@@ -228,13 +206,10 @@
                     hideOverlay();
                     return;
                 }
-                
+
                 var a4WidthPx = isPortrait ? 794 : 1123;
                 var a4HeightPx = isPortrait ? 1123 : 794;
 
-                console.log('[FFC PDF] === PDF Generation Started ===');
-                console.log('[FFC PDF] Target:', a4WidthPx + 'x' + a4HeightPx + 'px');
-                
                 $(element).css({
                     'width': a4WidthPx + 'px',
                     'height': a4HeightPx + 'px',
@@ -244,45 +219,37 @@
                     'overflow': 'hidden',
                     'box-sizing': 'border-box'
                 });
-                
-                // ✅ Extra delay para garantir renderização
+
                 setTimeout(function() {
-                    console.log('[FFC PDF] Capturing with html2canvas...');
-                    
                     html2canvas(element, {
                         scale: 2,
                         width: a4WidthPx,
                         height: a4HeightPx,
                         useCORS: true,
                         allowTaint: false,
-                        logging: true,  // ← Debug ativado
+                        logging: false,
                         backgroundColor: '#ffffff'
                     }).then(function(canvas) {
                         try {
-                            console.log('[FFC PDF] Canvas:', canvas.width + 'x' + canvas.height + 'px');
-                            
-                            // ✅ Verificar se canvas tem conteúdo
                             var ctx = canvas.getContext('2d');
                             var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                             var hasContent = false;
-                            
+
                             for (var i = 0; i < imgData.data.length; i += 4) {
                                 var r = imgData.data[i];
                                 var g = imgData.data[i + 1];
                                 var b = imgData.data[i + 2];
-                                
+
                                 if (r !== 255 || g !== 255 || b !== 255) {
                                     hasContent = true;
                                     break;
                                 }
                             }
-                            
-                            console.log('[FFC PDF] Canvas has content?', hasContent);
-                            
+
                             if (!hasContent) {
-                                console.warn('[FFC PDF] Canvas is blank! Check HTML/CSS.');
+                                console.warn('[FFC PDF] Canvas is blank — check HTML/CSS.');
                             }
-                            
+
                             var pdfOrientation = isPortrait ? 'portrait' : 'landscape';
                             var pdf = new jsPDF(pdfOrientation, 'mm', 'a4');
                             var pdfImgData = canvas.toDataURL('image/png', 1.0);
@@ -291,9 +258,6 @@
 
                             pdf.addImage(pdfImgData, 'PNG', 0, 0, pdfW, pdfH);
                             pdf.save(filename || 'certificate.pdf');
-                            
-                            console.log('[FFC PDF] PDF saved:', filename);
-                            console.log('[FFC PDF] === Complete ===');
 
                             $tempContainer.remove();
                             hideOverlay();
@@ -315,20 +279,16 @@
                         $tempContainer.remove();
                         hideOverlay();
                     });
-                }, 300); // ← 300ms para garantir renderização
+                }, 300);
             }, remainingTime);
         }
     }
 
-    // ✅ Export as function (legacy compatibility)
     window.ffcGeneratePDF = generateAndDownloadPDF;
-    
-    // ✅ Export as object (modern compatibility)
+
     window.ffcPdfGenerator = {
         generatePDF: generateAndDownloadPDF,
         checkLibraries: checkPDFLibraries
     };
-    
-    console.log('[FFC PDF] PDF Generator module loaded (FIXED)');
 
 })(jQuery, window);

@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.12.5
+Stable tag: 4.12.6
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -164,6 +164,16 @@ In the certificate layout editor, use these dynamic tags:
 
 == Changelog ==
 
+= 4.12.6 (2026-02-17) =
+
+Frontend cleanup: console.log removal, XSS hardening, CSS consolidation.
+
+* Removed: **58 console.log calls** from production JS — kept error/warn for legitimate reporting
+* Security: **XSS hardening** — replaced unsafe `.html()` and `.innerHTML` with safe DOM methods in 7 files
+* Fix: **CSS `.ffc-badge` overlap** — unified base class in ffc-common.css
+* Fix: **CSS `.ffc-notice-*` overlap** — namespaced audience variants to prevent cascade conflicts
+* Rebuilt all minified JS and CSS assets
+
 = 4.12.5 (2026-02-17) =
 
 Tests for critical classes: SubmissionHandler, UserCreator, CapabilityManager, and UserDataRestController endpoint callbacks.
@@ -259,6 +269,9 @@ Audience custom fields, reregistration campaigns, ficha PDF, email notifications
 For the complete changelog history, see [CHANGELOG.md](CHANGELOG.md).
 
 == Upgrade Notice ==
+
+= 4.12.6 =
+Frontend cleanup: removed 58 console.log calls, hardened XSS in 7 JS files, fixed CSS selector overlaps. No database changes. No breaking changes.
 
 = 4.12.5 =
 Tests for critical classes (182 total). Fixed bulk method return types and WP_Error namespace in SubmissionHandler. No database changes. No breaking changes.

@@ -315,12 +315,12 @@
     text-align: center;
 }
 
-.ffc-notice-warning {
+.ffc-audience-notice.ffc-notice-warning {
     background: #fff8e5;
     border: 1px solid var(--ffc-warning);
 }
 
-.ffc-notice-info {
+.ffc-audience-notice.ffc-notice-info {
     background: #e5f5fa;
     border: 1px solid var(--ffc-primary);
 }

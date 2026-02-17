@@ -244,15 +244,13 @@
          */
         enableDebug: function() {
             this.config.debug = true;
-            console.log('[FFC] Debug mode enabled');
         },
-        
+
         /**
          * Disable debug mode
          */
         disableDebug: function() {
             this.config.debug = false;
-            console.log('[FFC] Debug mode disabled');
         }
     };
     
@@ -273,7 +271,6 @@
             version: version,
             loadedAt: new Date()
         });
-        console.log('[FFC] Module registered:', name, 'v' + version);
     };
     
     /**
@@ -288,21 +285,7 @@
     /**
      * Initialize on DOM ready
      */
-    if (typeof jQuery !== 'undefined') {
-        jQuery(document).ready(function() {
-            console.log('[FFC Core] Initialized v' + window.FFC.version);
-            
-            // Log loaded modules after a short delay (to let other modules load)
-            setTimeout(function() {
-                var modules = window.FFC.getModules();
-                if (modules.length > 0) {
-                    console.log('[FFC] Loaded modules:', modules.map(function(m) { 
-                        return m.name + ' v' + m.version; 
-                    }).join(', '));
-                }
-            }, 500);
-        });
-    } else {
+    if (typeof jQuery === 'undefined') {
         console.warn('[FFC Core] jQuery not found. Some features may not work.');
     }
     

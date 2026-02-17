@@ -28,7 +28,7 @@
         // Remove any previous transient alerts
         $('.ffc-accessible-alert').remove();
 
-        var $alert = $('<div class="ffc-accessible-alert ffc-message ffc-message-error" role="alert">' + message + '</div>');
+        var $alert = $('<div class="ffc-accessible-alert ffc-message ffc-message-error" role="alert">').text(message);
 
         if ($context && $context.length) {
             $context.before($alert);
@@ -236,7 +236,7 @@
                         $form.find('.ffc-form-field').first().before('<div class="ffc-verify-error"></div>');
                         $errorDiv = $form.find('.ffc-verify-error');
                     }
-                    $errorDiv.html('<p class="ffc-message ffc-message-error">' + errorMsg + '</p>');
+                    $errorDiv.html('').append($('<p class="ffc-message ffc-message-error">').text(errorMsg));
                 }
             },
             error: function() {

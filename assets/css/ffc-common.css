@@ -420,15 +420,15 @@
     color: var(--ffc-info, #006ba1);
 }
 
-/* Badge for private/bypass indicators */
+/* Badge — canonical base class (shared across admin + frontend) */
 .ffc-badge {
     display: inline-block;
-    padding: 2px 8px;
+    padding: 3px 8px;
     border-radius: 3px;
-    font-size: 0.8em;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .ffc-badge-private {
