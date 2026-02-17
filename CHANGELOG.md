@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## 4.12.18 (2026-02-17)
+
+Unit tests for SubmissionHandler: comprehensive coverage of update, decrypt, failure paths, and edge cases.
+
+- New: **21 additional SubmissionHandler tests** covering gaps identified in Sprint 17 analysis:
+  - `update_submission()` (4 tests): encrypts email with hash, encrypts data JSON, strips edit tracking (`is_edited`/`edited_at`) from data before encryption, returns false on repo failure
+  - `update_user_link()` (3 tests): sets user_id on link, passes null to unlink, returns false on failure
+  - `decrypt_submission_data()` (2 tests): plaintext passthrough preserves all fields, encrypted fields correctly decrypted
+  - Failure paths (3 tests): trash/restore/delete return false when repository returns false
+  - Bulk empty guards (3 tests): bulk_trash/restore/delete return 0 for empty arrays without hitting repository
+  - `get_submission_by_token` edge cases (2 tests): non-hex input returns null, valid hex not found returns null
+  - `process_submission` branches (3 tests): consent absent sets 0, CPF mask cleaned before encryption, pre-populated auth_code preserved
+  - `ensure_magic_token` (1 test): returns empty string when submission not found
+- Test suite: 401 → 422 tests, 923 → 974 assertions
+
 ## 4.12.17 (2026-02-17)
 
 Refactoring: extract focused classes from FormProcessor (822 → 548 lines, 33% reduction).
