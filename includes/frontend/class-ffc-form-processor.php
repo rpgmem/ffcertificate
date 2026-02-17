@@ -186,14 +186,29 @@ class FormProcessor {
 
         // Check by ticket first (if provided)
         if ( ! empty( $val_ticket ) ) {
-            $like_query = '%' . $wpdb->esc_like( '"ticket":"' . $val_ticket . '"' ) . '%';
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $existing_submission = $wpdb->get_row( $wpdb->prepare(
-                'SELECT * FROM %i WHERE form_id = %d AND data LIKE %s ORDER BY id DESC LIMIT 1',
-                $table_name,
-                $form_id,
-                $like_query
-            ) );
+            // Hash-based lookup (works with encrypted data)
+            if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
+                $ticket_hash = \FreeFormCertificate\Core\Encryption::hash( strtoupper( trim( $val_ticket ) ) );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                $existing_submission = $wpdb->get_row( $wpdb->prepare(
+                    'SELECT * FROM %i WHERE form_id = %d AND ticket_hash = %s ORDER BY id DESC LIMIT 1',
+                    $table_name,
+                    $form_id,
+                    $ticket_hash
+                ) );
+            }
+
+            // Fallback: LIKE on plaintext data (legacy / non-encrypted)
+            if ( ! $existing_submission ) {
+                $like_query = '%' . $wpdb->esc_like( '"ticket":"' . $val_ticket . '"' ) . '%';
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                $existing_submission = $wpdb->get_row( $wpdb->prepare(
+                    'SELECT * FROM %i WHERE form_id = %d AND data LIKE %s ORDER BY id DESC LIMIT 1',
+                    $table_name,
+                    $form_id,
+                    $like_query
+                ) );
+            }
         }
         
         // Check by CPF/RF (if ticket not provided)
