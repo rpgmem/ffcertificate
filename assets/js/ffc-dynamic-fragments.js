@@ -65,12 +65,12 @@
 
 		// --- Captcha ---
 		if (data.captcha) {
-			var labels  = document.querySelectorAll('.ffc-captcha-row label');
-			var hashes  = document.querySelectorAll('input[name="ffc_captcha_hash"]');
-			var answers = document.querySelectorAll('input[name="ffc_captcha_ans"]');
+			var labelTexts = document.querySelectorAll('.ffc-captcha-row .ffc-captcha-label-text');
+			var hashes     = document.querySelectorAll('input[name="ffc_captcha_hash"]');
+			var answers    = document.querySelectorAll('input[name="ffc_captcha_ans"]');
 
-			for (i = 0; i < labels.length; i++) {
-				labels[i].textContent = data.captcha.label;
+			for (i = 0; i < labelTexts.length; i++) {
+				labelTexts[i].textContent = data.captcha.label;
 			}
 			for (i = 0; i < hashes.length; i++) {
 				hashes[i].value = data.captcha.hash;

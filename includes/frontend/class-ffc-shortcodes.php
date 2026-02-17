@@ -47,7 +47,7 @@ class Shortcodes {
         $n2 = wp_rand( 1, 9 );
         return array(
             /* translators: 1: first number, 2: second number */
-            'label' => sprintf( esc_html__( 'Security: How much is %1$d + %2$d?', 'ffcertificate' ), $n1, $n2 ) . ' <span class="required">*</span>',
+            'label' => sprintf( esc_html__( 'Security: How much is %1$d + %2$d?', 'ffcertificate' ), $n1, $n2 ),
             'hash'  => wp_hash( ($n1 + $n2) . 'ffc_math_salt' )
         );
     }
@@ -67,7 +67,7 @@ class Shortcodes {
 
             <div class="ffc-captcha-row">
                 <label for="ffc_captcha_ans">
-                    <?php echo wp_kses_post( $captcha['label'] ); ?>
+                    <span class="ffc-captcha-label-text"><?php echo esc_html( $captcha['label'] ); ?></span> <span class="required">*</span>
                 </label>
                 <input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans" class="ffc-input" required aria-required="true">
                 <input type="hidden" name="ffc_captcha_hash" value="<?php echo esc_attr( $captcha['hash'] ); ?>">

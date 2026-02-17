@@ -647,7 +647,7 @@ class Utils {
         
         return array(
             /* translators: 1: first number, 2: second number */
-            'label' => sprintf( esc_html__( 'Security: How much is %1$d + %2$d?', 'ffcertificate' ), $n1, $n2 ) . ' <span class="required">*</span>',
+            'label' => sprintf( esc_html__( 'Security: How much is %1$d + %2$d?', 'ffcertificate' ), $n1, $n2 ),
             'hash'  => wp_hash( $answer . 'ffc_math_salt' ),
             'answer' => $answer  // For internal use only
         );

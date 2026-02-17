@@ -574,7 +574,7 @@ class SelfSchedulingShortcode {
                                     <!-- Math Captcha -->
                                     <div class="ffc-captcha-row">
                                         <label for="ffc_captcha_ans">
-                                            <?php echo wp_kses_post( $captcha['label'] ); ?>
+                                            <span class="ffc-captcha-label-text"><?php echo esc_html( $captcha['label'] ); ?></span> <span class="required">*</span>
                                         </label>
                                         <input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans" class="ffc-input" required aria-required="true">
                                         <input type="hidden" name="ffc_captcha_hash" id="ffc_captcha_hash" value="<?php echo esc_attr($captcha['hash']); ?>">

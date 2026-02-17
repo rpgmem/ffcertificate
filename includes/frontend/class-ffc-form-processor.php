@@ -350,14 +350,12 @@ class FormProcessor {
         $security_check = \FreeFormCertificate\Core\Utils::validate_security_fields($_POST);
         if ( $security_check !== true ) {
             // Generate new captcha for retry
-            $n1 = wp_rand( 1, 9 );
-            $n2 = wp_rand( 1, 9 );
-            wp_send_json_error( array( 
-                'message' => $security_check, 
-                'refresh_captcha' => true, 
-                /* translators: 1: first number, 2: second number */
-                'new_label' => sprintf( esc_html__( 'Security: How much is %1$d + %2$d?', 'ffcertificate' ), $n1, $n2 ) . ' <span class="required">*</span>',
-                'new_hash' => wp_hash( ($n1 + $n2) . 'ffc_math_salt' )
+            $new_captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
+            wp_send_json_error( array(
+                'message' => $security_check,
+                'refresh_captcha' => true,
+                'new_label' => $new_captcha['label'],
+                'new_hash' => $new_captcha['hash'],
             ) );
         }
 
