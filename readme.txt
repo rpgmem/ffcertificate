@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.12.6
+Stable tag: 4.12.7
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,14 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.12.7 (2026-02-17) =
+
+Refactor UserDataRestController (1,415 lines → coordinator + 6 sub-controllers).
+
+* Refactor: **UserDataRestController** split into 6 focused sub-controllers with backward-compatible delegate methods
+* New: **UserContextTrait** — shared user-context resolution extracted into reusable trait
+* Fix: **UserDataRestControllerTest** — fixed 3 pre-existing RateLimiter test errors
 
 = 4.12.6 (2026-02-17) =
 

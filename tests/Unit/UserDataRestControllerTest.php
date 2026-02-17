@@ -37,6 +37,10 @@ class UserDataRestControllerTest extends TestCase {
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
+
+        // Stubs for RateLimiter (uses object cache)
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
     }
 
     protected function tearDown(): void {
