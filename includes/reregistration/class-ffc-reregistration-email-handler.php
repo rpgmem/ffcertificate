@@ -175,11 +175,11 @@ class ReregistrationEmailHandler {
      * - email_reminder_enabled = 1
      * - Days until end_date <= reminder_days
      *
-     * @return int Total emails sent across all campaigns.
+     * @return void
      */
-    public static function run_automated_reminders(): int {
+    public static function run_automated_reminders(): void {
         if (self::emails_disabled()) {
-            return 0;
+            return;
         }
 
         global $wpdb;
@@ -199,15 +199,12 @@ class ReregistrationEmailHandler {
         );
 
         if (empty($campaigns)) {
-            return 0;
+            return;
         }
 
-        $total = 0;
         foreach ($campaigns as $campaign) {
-            $total += self::send_reminders((int) $campaign->id);
+            self::send_reminders((int) $campaign->id);
         }
-
-        return $total;
     }
 
     /**

@@ -379,18 +379,6 @@ parameters:
 			path: includes/class-ffc-autoloader.php
 
 		-
-			message: '#^Action callback returns int but should not return anything\.$#'
-			identifier: return.void
-			count: 2
-			path: includes/class-ffc-loader.php
-
-		-
-			message: '#^Action callback returns int but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: includes/core/class-ffc-activity-log.php
-
-		-
 			message: '#^Path in include\(\) "/path/to/plugin/templates/submission\-success\.php" is not a file or it does not exist\.$#'
 			identifier: include.fileNotFound
 			count: 1
@@ -499,12 +487,6 @@ parameters:
 			path: includes/frontend/class-ffc-verification-handler.php
 
 		-
-			message: '#^Call to function method_exists\(\) with ''\\\\FreeFormCertificat…'' and ''format_document'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: includes/frontend/class-ffc-verification-response-renderer.php
-
-		-
 			message: '#^Path in include\(\) "/path/to/plugin/templates/certificate\-preview\.php" is not a file or it does not exist\.$#'
 			identifier: include.fileNotFound
 			count: 1
@@ -519,18 +501,6 @@ parameters:
 		-
 			message: '#^Call to an undefined static method FreeFormCertificate\\Generators\\PdfGenerator\:\:generate_qr_code\(\)\.$#'
 			identifier: staticMethod.notFound
-			count: 1
-			path: includes/generators/class-ffc-pdf-generator.php
-
-		-
-			message: '#^Call to function method_exists\(\) with ''\\\\FreeFormCertificat…'' and ''debug_log'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 2
-			path: includes/generators/class-ffc-pdf-generator.php
-
-		-
-			message: '#^Call to function method_exists\(\) with ''\\\\FreeFormCertificat…'' and ''sanitize_filename'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
 			count: 1
 			path: includes/generators/class-ffc-pdf-generator.php
 
@@ -859,12 +829,6 @@ parameters:
 			path: includes/migrations/class-ffc-migration-status-calculator.php
 
 		-
-			message: '#^Property FreeFormCertificate\\Migrations\\MigrationStatusCalculator\:\:\$table_name is never read, only written\.$#'
-			identifier: property.onlyWritten
-			count: 1
-			path: includes/migrations/class-ffc-migration-status-calculator.php
-
-		-
 			message: '#^Call to method set_role\(\) on an unknown class FreeFormCertificate\\Migrations\\WP_User\.$#'
 			identifier: class.notFound
 			count: 1
@@ -1019,12 +983,6 @@ parameters:
 			identifier: constant.notFound
 			count: 1
 			path: includes/repositories/ffc-submission-repository.php
-
-		-
-			message: '#^Call to function method_exists\(\) with ''\\\\FreeFormCertificat…'' and ''validate_cpf'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: includes/reregistration/class-ffc-custom-field-repository.php
 
 		-
 			message: '#^Parameter \#1 \$text of function esc_attr expects string, int given\.$#'
@@ -1253,12 +1211,6 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: includes/settings/views/ffc-tab-smtp.php
-
-		-
-			message: '#^Action callback returns int but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: includes/submissions/class-ffc-form-cache.php
 
 		-
 			message: '#^Strict comparison using \!\=\= between array and false will always evaluate to true\.$#'

@@ -363,9 +363,7 @@ class VerificationResponseRenderer {
         }
 
         if ( in_array( $field_key, array( 'cpf', 'cpf_rf', 'rg' ) ) && ! empty( $value ) ) {
-            if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) && method_exists( '\\FreeFormCertificate\\Core\\Utils', 'format_document' ) ) {
-                return \FreeFormCertificate\Core\Utils::format_document( $value, 'auto' );
-            }
+            return \FreeFormCertificate\Core\Utils::format_document( $value, 'auto' );
         }
 
         return $value;

@@ -253,7 +253,7 @@ class FormCache {
     public static function register_hooks(): void {
         add_action( 'save_post_ffc_form', array( __CLASS__, 'on_form_saved' ), 10, 3 );
         add_action( 'before_delete_post', array( __CLASS__, 'on_form_deleted' ), 10, 2 );
-        add_action( 'ffcertificate_warm_cache_hook', array( __CLASS__, 'warm_all_forms' ) );
+        add_action( 'ffcertificate_warm_cache_hook', static function (): void { self::warm_all_forms(); } );
     }
     
     /**

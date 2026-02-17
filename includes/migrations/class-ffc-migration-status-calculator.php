@@ -36,19 +36,12 @@ class MigrationStatusCalculator {
     private $strategies = array();
 
     /**
-     * @var string Database table name
-     */
-    private $table_name;
-
-    /**
      * Constructor
      *
      * @param MigrationRegistry $registry Migration registry instance
      */
     public function __construct( MigrationRegistry $registry ) {
-        global $wpdb;
         $this->registry = $registry;
-        $this->table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
         // Initialize strategies
         $this->initialize_strategies();

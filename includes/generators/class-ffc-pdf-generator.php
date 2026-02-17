@@ -125,17 +125,15 @@ class PdfGenerator {
         $filename = apply_filters( 'ffcertificate_certificate_filename', $filename, $form_title, $auth_code, $submission_id );
 
         // Log generation
-        if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) && method_exists( '\\FreeFormCertificate\\Core\\Utils', 'debug_log' ) ) {
-            \FreeFormCertificate\Core\Utils::debug_log( 'PDF data generated', array(
-                'submission_id' => $submission_id,
-                'form_id' => $form_id,
-                'form_title' => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
-                'auth_code' => $auth_code,
-                'filename' => $filename,
-                'html_length' => strlen( $html ),
-                'has_bg_image' => ! empty( $bg_image_url )
-            ) );
-        }
+        \FreeFormCertificate\Core\Utils::debug_log( 'PDF data generated', array(
+            'submission_id' => $submission_id,
+            'form_id' => $form_id,
+            'form_title' => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
+            'auth_code' => $auth_code,
+            'filename' => $filename,
+            'html_length' => strlen( $html ),
+            'has_bg_image' => ! empty( $bg_image_url )
+        ) );
         
         $pdf_data = array(
             'html'          => $html,
@@ -585,11 +583,7 @@ class PdfGenerator {
      */
     private function generate_filename( string $form_title, string $auth_code = '' ): string {
         // Sanitize form title
-        if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) && method_exists( '\\FreeFormCertificate\\Core\\Utils', 'sanitize_filename' ) ) {
-            $safe_name = \FreeFormCertificate\Core\Utils::sanitize_filename( $form_title );
-        } else {
-            $safe_name = sanitize_file_name( $form_title );
-        }
+        $safe_name = \FreeFormCertificate\Core\Utils::sanitize_filename( $form_title );
         
         if ( empty( $safe_name ) ) {
             $safe_name = 'certificate';
@@ -645,14 +639,12 @@ class PdfGenerator {
         $filename = $this->generate_filename( $form_title, $auth_code );
         
         // Log generation
-        if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) && method_exists( '\\FreeFormCertificate\\Core\\Utils', 'debug_log' ) ) {
-            \FreeFormCertificate\Core\Utils::debug_log( 'PDF data generated from form', array(
-                'form_id' => $form_id,
-                'form_title' => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
-                'html_length' => strlen( $html ),
-                'has_bg_image' => ! empty( $bg_image_url )
-            ) );
-        }
+        \FreeFormCertificate\Core\Utils::debug_log( 'PDF data generated from form', array(
+            'form_id' => $form_id,
+            'form_title' => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
+            'html_length' => strlen( $html ),
+            'has_bg_image' => ! empty( $bg_image_url )
+        ) );
         
         return array(
             'html'       => $html,

@@ -718,28 +718,7 @@ class CustomFieldRepository {
      * @return bool
      */
     private static function validate_cpf(string $cpf): bool {
-        // Use existing utility if available
-        if (class_exists('\FreeFormCertificate\Core\Utils') && method_exists('\FreeFormCertificate\Core\Utils', 'validate_cpf')) {
-            return \FreeFormCertificate\Core\Utils::validate_cpf($cpf);
-        }
-
-        $cpf = preg_replace('/\D/', '', $cpf);
-        if (strlen($cpf) !== 11 || preg_match('/^(\d)\1{10}$/', $cpf)) {
-            return false;
-        }
-
-        for ($t = 9; $t < 11; $t++) {
-            $d = 0;
-            for ($c = 0; $c < $t; $c++) {
-                $d += (int) $cpf[$c] * (($t + 1) - $c);
-            }
-            $d = ((10 * $d) % 11) % 10;
-            if ((int) $cpf[$c] !== $d) {
-                return false;
-            }
-        }
-
-        return true;
+        return \FreeFormCertificate\Core\Utils::validate_cpf($cpf);
     }
 
     /**

@@ -383,9 +383,9 @@ class ReregistrationRepository {
      * Changes status from 'active' to 'expired' for campaigns past end_date.
      * Also updates pending/in_progress submissions to 'expired'.
      *
-     * @return int Number of campaigns expired.
+     * @return void
      */
-    public static function expire_overdue(): int {
+    public static function expire_overdue(): void {
         $wpdb = self::db();
         $table = self::get_table_name();
         $subs_table = ReregistrationSubmissionRepository::get_table_name();
@@ -400,10 +400,9 @@ class ReregistrationRepository {
         );
 
         if (empty($overdue)) {
-            return 0;
+            return;
         }
 
-        $count = 0;
         foreach ($overdue as $row) {
             // Expire the campaign
             $wpdb->update(
@@ -424,11 +423,7 @@ class ReregistrationRepository {
                     (int) $row->id
                 )
             );
-
-            $count++;
         }
-
-        return $count;
     }
 
     /**

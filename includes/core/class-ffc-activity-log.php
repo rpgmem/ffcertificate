@@ -145,7 +145,7 @@ class ActivityLog {
 
         // Register shutdown hook on first buffered entry
         if ( ! self::$shutdown_registered ) {
-            add_action( 'shutdown', [ self::class, 'flush_buffer' ] );
+            add_action( 'shutdown', static function (): void { self::flush_buffer(); } );
             self::$shutdown_registered = true;
         }
 
