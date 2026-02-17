@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## 4.12.17 (2026-02-17)
+
+Refactoring: extract focused classes from FormProcessor (822 → 548 lines, 33% reduction).
+
+- Refactor: **AccessRestrictionChecker** (168 lines) — extracted `check_restrictions` and `consume_ticket` as public static methods for password, denylist, allowlist, and ticket validation
+- Refactor: **ReprintDetector** (164 lines) — extracted `detect_reprint` as a public static method with `build_reprint_result` helper for JSON decoding and field enrichment
+- Updated FormProcessorTest and FormProcessorRestrictionsTest to call AccessRestrictionChecker::check() directly (no more Reflection for restriction tests)
+- FormProcessor retains AJAX orchestration, quiz scoring, and submission processing as its core responsibility
+
 ## 4.12.16 (2026-02-17)
 
 Refactoring: extract focused classes from SelfSchedulingEditor (924 → 559 lines, 39% reduction).

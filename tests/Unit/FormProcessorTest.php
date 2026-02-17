@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\FormProcessor;
+use FreeFormCertificate\Frontend\AccessRestrictionChecker;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 /**
@@ -173,13 +174,13 @@ class FormProcessorTest extends TestCase {
     }
 
     // ==================================================================
-    // check_restrictions()
+    // check_restrictions() — now delegated to AccessRestrictionChecker
     // ==================================================================
 
     public function test_restrictions_none_active_allows(): void {
         $config = array( 'restrictions' => array() );
 
-        $result = $this->invoke( 'check_restrictions', array( $config, '12345678900', '', 1 ) );
+        $result = AccessRestrictionChecker::check( $config, '12345678900', '', 1 );
 
         $this->assertTrue( $result['allowed'] );
         $this->assertSame( '', $result['message'] );
@@ -193,7 +194,7 @@ class FormProcessorTest extends TestCase {
             'validation_code' => 'secret123',
         );
 
-        $result = $this->invoke( 'check_restrictions', array( $config, '', '', 1 ) );
+        $result = AccessRestrictionChecker::check( $config, '', '', 1 );
 
         $this->assertTrue( $result['allowed'] );
         unset( $_POST['ffc_password'] );
@@ -206,7 +207,7 @@ class FormProcessorTest extends TestCase {
             'validation_code' => 'secret123',
         );
 
-        $result = $this->invoke( 'check_restrictions', array( $config, '', '', 1 ) );
+        $result = AccessRestrictionChecker::check( $config, '', '', 1 );
 
         $this->assertFalse( $result['allowed'] );
         $this->assertStringContainsString( 'Incorrect password', $result['message'] );
@@ -220,7 +221,7 @@ class FormProcessorTest extends TestCase {
         );
         // No $_POST['ffc_password']
 
-        $result = $this->invoke( 'check_restrictions', array( $config, '', '', 1 ) );
+        $result = AccessRestrictionChecker::check( $config, '', '', 1 );
 
         $this->assertFalse( $result['allowed'] );
         $this->assertStringContainsString( 'required', $result['message'] );
@@ -232,7 +233,7 @@ class FormProcessorTest extends TestCase {
             'denied_users_list' => "123.456.789-00\n987.654.321-00",
         );
 
-        $result = $this->invoke( 'check_restrictions', array( $config, '12345678900', '', 1 ) );
+        $result = AccessRestrictionChecker::check( $config, '12345678900', '', 1 );
 
         $this->assertFalse( $result['allowed'] );
         $this->assertStringContainsString( 'blocked', $result['message'] );
@@ -244,7 +245,7 @@ class FormProcessorTest extends TestCase {
             'denied_users_list' => "111.222.333-44\n555.666.777-88",
         );
 
-        $result = $this->invoke( 'check_restrictions', array( $config, '12345678900', '', 1 ) );
+        $result = AccessRestrictionChecker::check( $config, '12345678900', '', 1 );
 
         $this->assertTrue( $result['allowed'] );
     }
@@ -255,7 +256,7 @@ class FormProcessorTest extends TestCase {
             'allowed_users_list' => "123.456.789-00\n987.654.321-00",
         );
 
-        $result = $this->invoke( 'check_restrictions', array( $config, '12345678900', '', 1 ) );
+        $result = AccessRestrictionChecker::check( $config, '12345678900', '', 1 );
 
         $this->assertTrue( $result['allowed'] );
     }
@@ -266,7 +267,7 @@ class FormProcessorTest extends TestCase {
             'allowed_users_list' => "111.222.333-44\n555.666.777-88",
         );
 
-        $result = $this->invoke( 'check_restrictions', array( $config, '12345678900', '', 1 ) );
+        $result = AccessRestrictionChecker::check( $config, '12345678900', '', 1 );
 
         $this->assertFalse( $result['allowed'] );
         $this->assertStringContainsString( 'not authorized', $result['message'] );
@@ -280,7 +281,7 @@ class FormProcessorTest extends TestCase {
             'generated_codes_list' => "ABC123\nDEF456\nGHI789",
         );
 
-        $result = $this->invoke( 'check_restrictions', array( $config, '', 'abc123', 42 ) );
+        $result = AccessRestrictionChecker::check( $config, '', 'abc123', 42 );
 
         $this->assertTrue( $result['allowed'] );
         $this->assertTrue( $result['is_ticket'] );
@@ -292,7 +293,7 @@ class FormProcessorTest extends TestCase {
             'generated_codes_list' => "ABC123\nDEF456",
         );
 
-        $result = $this->invoke( 'check_restrictions', array( $config, '', 'ZZZZZ', 42 ) );
+        $result = AccessRestrictionChecker::check( $config, '', 'ZZZZZ', 42 );
 
         $this->assertFalse( $result['allowed'] );
         $this->assertStringContainsString( 'Invalid', $result['message'] );
@@ -304,7 +305,7 @@ class FormProcessorTest extends TestCase {
             'generated_codes_list' => "ABC123",
         );
 
-        $result = $this->invoke( 'check_restrictions', array( $config, '', '', 42 ) );
+        $result = AccessRestrictionChecker::check( $config, '', '', 42 );
 
         $this->assertFalse( $result['allowed'] );
         $this->assertStringContainsString( 'required', $result['message'] );
@@ -317,7 +318,7 @@ class FormProcessorTest extends TestCase {
             'allowed_users_list' => "12345678900",
         );
 
-        $result = $this->invoke( 'check_restrictions', array( $config, '12345678900', '', 1 ) );
+        $result = AccessRestrictionChecker::check( $config, '12345678900', '', 1 );
 
         // Even though CPF is in allowlist, denylist takes priority
         $this->assertFalse( $result['allowed'] );
