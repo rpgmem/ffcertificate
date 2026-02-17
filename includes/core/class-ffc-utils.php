@@ -303,97 +303,21 @@ class Utils {
         return round( $bytes, $precision ) . ' ' . $units[$pow];
     }
     
-    /**
-     * Generate random string
-     *
-     * @param int $length Length of random string
-     * @param string $chars Characters to use (default: alphanumeric)
-     * @return string Random string
-     */
+    // ── Auth code methods delegated to AuthCodeService (Sprint 31) ──
+
+    /** @deprecated Use AuthCodeService::generate_random_string() */
     public static function generate_random_string( int $length = 12, string $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' ): string {
-        $string = '';
-        $chars_length = strlen( $chars );
-        
-        for ( $i = 0; $i < $length; $i++ ) {
-            $string .= $chars[ wp_rand( 0, $chars_length - 1 ) ];
-        }
-        
-        return $string;
+        return AuthCodeService::generate_random_string( $length, $chars );
     }
 
-    /**
-     * Generate authentication code in format XXXX-XXXX-XXXX
-     *
-     * @since 3.0.0
-     * @return string Auth code (e.g., "A1B2-C3D4-E5F6")
-     */
+    /** @deprecated Use AuthCodeService::generate_auth_code() */
     public static function generate_auth_code(): string {
-        return strtoupper(
-            self::generate_random_string(4) . '-' . 
-            self::generate_random_string(4) . '-' . 
-            self::generate_random_string(4)
-        );
+        return AuthCodeService::generate_auth_code();
     }
 
-    
-    /**
-     * Generate a globally unique auth code across all plugin tables.
-     *
-     * Checks certificates (ffc_submissions), reregistrations
-     * (ffc_reregistration_submissions), and appointments
-     * (ffc_self_scheduling_appointments) to ensure no cross-table collisions.
-     *
-     * @since 4.12.0
-     * @return string Clean auth code (12 uppercase alphanumeric characters, no hyphens).
-     */
+    /** @deprecated Use AuthCodeService::generate_globally_unique_auth_code() */
     public static function generate_globally_unique_auth_code(): string {
-        global $wpdb;
-
-        $max_attempts = 10;
-
-        for ( $i = 0; $i < $max_attempts; $i++ ) {
-            $code = self::clean_auth_code( self::generate_auth_code() );
-
-            // Check ffc_submissions
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $exists = $wpdb->get_var( $wpdb->prepare(
-                "SELECT id FROM {$wpdb->prefix}ffc_submissions WHERE auth_code = %s LIMIT 1",
-                $code
-            ) );
-
-            if ( $exists ) {
-                continue;
-            }
-
-            // Check ffc_reregistration_submissions
-            $table_rereg = $wpdb->prefix . 'ffc_reregistration_submissions';
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $exists = $wpdb->get_var( $wpdb->prepare(
-                "SELECT id FROM %i WHERE auth_code = %s LIMIT 1",
-                $table_rereg,
-                $code
-            ) );
-
-            if ( $exists ) {
-                continue;
-            }
-
-            // Check ffc_self_scheduling_appointments
-            $table_apt = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $exists = $wpdb->get_var( $wpdb->prepare(
-                "SELECT id FROM %i WHERE validation_code = %s LIMIT 1",
-                $table_apt,
-                $code
-            ) );
-
-            if ( ! $exists ) {
-                return $code;
-            }
-        }
-
-        // Fallback: extremely unlikely to reach here
-        return self::clean_auth_code( self::generate_auth_code() );
+        return AuthCodeService::generate_globally_unique_auth_code();
     }
 
     /**
@@ -454,147 +378,33 @@ class Utils {
         error_log( $log_message );
     }
     
-    /**
-     * Generate simple math captcha
-     *
-     * @return array Array with 'label' and 'hash'
-     */
+    // ── Security methods delegated to SecurityService (Sprint 31) ──
+
+    /** @deprecated Use SecurityService::generate_simple_captcha() */
     public static function generate_simple_captcha(): array {
-        $n1 = wp_rand( 1, 9 );
-        $n2 = wp_rand( 1, 9 );
-        $answer = $n1 + $n2;
-        
-        return array(
-            /* translators: 1: first number, 2: second number */
-            'label' => sprintf( esc_html__( 'Security: How much is %1$d + %2$d?', 'ffcertificate' ), $n1, $n2 ),
-            'hash'  => wp_hash( $answer . 'ffc_math_salt' ),
-            'answer' => $answer  // For internal use only
-        );
+        return SecurityService::generate_simple_captcha();
     }
-    
-    /**
-     * Verify simple captcha answer
-     *
-     * @param string $answer User's answer
-     * @param string $hash Expected hash
-     * @return bool True if correct, false otherwise
-     */
+
+    /** @deprecated Use SecurityService::verify_simple_captcha() */
     public static function verify_simple_captcha( string $answer, string $hash ): bool {
-        if ( empty( $answer ) || empty( $hash ) ) {
-            return false;
-        }
-        
-        $check_hash = wp_hash( trim( $answer ) . 'ffc_math_salt' );
-        return $check_hash === $hash;
+        return SecurityService::verify_simple_captcha( $answer, $hash );
     }
 
-    /**
-     * Validate security fields (honeypot + captcha)
-     *
-     * Moved from class-ffc-form-processor.php for centralization
-     *
-     * @since 2.9.11 - Consolidated validation
-     * @param array $data Form data containing security fields
-     * @return bool|string True if valid, error message string if invalid
-     */
+    /** @deprecated Use SecurityService::validate_security_fields() */
     public static function validate_security_fields( array $data ) {
-        // Check honeypot
-        if ( ! empty( $data['ffc_honeypot_trap'] ) ) {
-            return __( 'Security Error: Request blocked (Honeypot).', 'ffcertificate' );
-        }
-        
-        // Check captcha presence
-        if ( ! isset( $data['ffc_captcha_ans'] ) || ! isset( $data['ffc_captcha_hash'] ) ) {
-            return __( 'Error: Please answer the security question.', 'ffcertificate' );
-        }
-        
-        // Validate captcha answer using verify_simple_captcha()
-        if ( ! self::verify_simple_captcha( $data['ffc_captcha_ans'], $data['ffc_captcha_hash'] ) ) {
-            return __( 'Error: The math answer is incorrect.', 'ffcertificate' );
-        }
-        
-        return true; 
+        return SecurityService::validate_security_fields( $data );
     }
 
-    /**
-     * Recursively sanitize data (arrays or strings)
-     *
-     * Moved from class-ffc-form-processor.php for centralization
-     *
-     * @since 2.9.11 - Consolidated sanitization
-     * @param mixed $data Data to sanitize (array or string)
-     * @return mixed Sanitized data
-     */
+    // ── Data sanitization methods delegated to DataSanitizer (Sprint 31) ──
+
+    /** @deprecated Use DataSanitizer::recursive_sanitize() */
     public static function recursive_sanitize( $data ) {
-        if ( is_array( $data ) ) {
-            $sanitized = array();
-            foreach ( $data as $key => $value ) {
-                $sanitized[ sanitize_key( $key ) ] = self::recursive_sanitize( $value );
-            }
-            return $sanitized;
-        }
-        return wp_kses( $data, self::get_allowed_html_tags() );
+        return DataSanitizer::recursive_sanitize( $data );
     }
 
-    /**
-     * Normalize Brazilian name with proper capitalization
-     *
-     * Capitalizes the first letter of each word, except for common
-     * Portuguese connectives (prepositions) which remain lowercase.
-     *
-     * Examples:
-     * - "ALEX PEREIRA DA SILVA" → "Alex Pereira da Silva"
-     * - "maria dos santos e oliveira" → "Maria dos Santos e Oliveira"
-     * - "JOÃO DE SOUZA FILHO" → "João de Souza Filho"
-     *
-     * @since 4.3.0
-     * @param string $name Name to normalize
-     * @return string Normalized name
-     */
+    /** @deprecated Use DataSanitizer::normalize_brazilian_name() */
     public static function normalize_brazilian_name( string $name ): string {
-        if ( empty( $name ) ) {
-            return '';
-        }
-
-        // Brazilian Portuguese connectives that should remain lowercase
-        $connectives = array(
-            'da', 'das', 'de', 'do', 'dos',  // Most common
-            'e',                              // "and" between names
-            'di', 'du',                       // Italian/French origin
-        );
-
-        // Convert entire string to lowercase first, then apply mb_convert_case
-        // Use mb functions for proper UTF-8 handling (accented chars like ã, é, ç)
-        $name = mb_strtolower( trim( $name ), 'UTF-8' );
-
-        // Split into words
-        $words = preg_split( '/\s+/', $name );
-
-        $normalized_words = array();
-        foreach ( $words as $word ) {
-            if ( empty( $word ) ) {
-                continue;
-            }
-
-            // Check if word is a connective (case-insensitive comparison)
-            if ( in_array( mb_strtolower( $word, 'UTF-8' ), $connectives, true ) ) {
-                // Keep connective lowercase
-                $normalized_words[] = mb_strtolower( $word, 'UTF-8' );
-            } else {
-                // Capitalize first letter
-                $normalized_words[] = mb_strtoupper( mb_substr( $word, 0, 1, 'UTF-8' ), 'UTF-8' )
-                    . mb_substr( $word, 1, null, 'UTF-8' );
-            }
-        }
-
-        // Handle edge case: if first word is a connective, capitalize it anyway
-        // (Names shouldn't start with lowercase connective)
-        if ( ! empty( $normalized_words ) && in_array( $normalized_words[0], $connectives, true ) ) {
-            $normalized_words[0] = mb_strtoupper( mb_substr( $normalized_words[0], 0, 1, 'UTF-8' ), 'UTF-8' )
-                . mb_substr( $normalized_words[0], 1, null, 'UTF-8' );
-        }
-
-        return implode( ' ', $normalized_words );
+        return DataSanitizer::normalize_brazilian_name( $name );
     }
 
     /**
