@@ -20,6 +20,7 @@ if (!defined('ABSPATH')) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 class AudienceRepository {
+    use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
     /**
      * Get audiences table name
@@ -27,8 +28,7 @@ class AudienceRepository {
      * @return string
      */
     public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audiences';
+        return self::db()->prefix . 'ffc_audiences';
     }
 
     /**
@@ -37,8 +37,7 @@ class AudienceRepository {
      * @return string
      */
     public static function get_members_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_members';
+        return self::db()->prefix . 'ffc_audience_members';
     }
 
     /**
@@ -48,7 +47,7 @@ class AudienceRepository {
      * @return array<object>
      */
     public static function get_all(array $args = array()): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -101,7 +100,7 @@ class AudienceRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -160,7 +159,7 @@ class AudienceRepository {
      * @return int|false Audience ID or false on failure
      */
     public static function create(array $data) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -201,7 +200,7 @@ class AudienceRepository {
      * @return bool
      */
     public static function update(int $id, array $data): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // Remove fields that shouldn't be updated
@@ -251,7 +250,7 @@ class AudienceRepository {
      * @return void
      */
     public static function cascade_self_join(int $parent_id, int $value): void {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -272,7 +271,7 @@ class AudienceRepository {
      * @return bool
      */
     public static function delete(int $id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $members_table = self::get_members_table_name();
 
@@ -301,7 +300,7 @@ class AudienceRepository {
      * @return int|false Member ID or false on failure
      */
     public static function add_member(int $audience_id, int $user_id) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_members_table_name();
 
         // Check if already a member
@@ -329,7 +328,7 @@ class AudienceRepository {
      * @return bool
      */
     public static function remove_member(int $audience_id, int $user_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_members_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -350,7 +349,7 @@ class AudienceRepository {
      * @return bool
      */
     public static function is_member(int $audience_id, int $user_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_members_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -374,7 +373,7 @@ class AudienceRepository {
      * @return array<int> User IDs
      */
     public static function get_members(int $audience_id, bool $include_children = false): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_members_table_name();
 
         $audience_ids = array($audience_id);
@@ -415,7 +414,7 @@ class AudienceRepository {
             return $cached;
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $members_table = self::get_members_table_name();
 
@@ -525,7 +524,7 @@ class AudienceRepository {
      * @return bool
      */
     public static function set_members(int $audience_id, array $user_ids): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_members_table_name();
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Intentional delete-and-reinsert for member sync.
@@ -559,7 +558,7 @@ class AudienceRepository {
             return (int) $cached;
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = array();
@@ -608,7 +607,7 @@ class AudienceRepository {
             return $cached;
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

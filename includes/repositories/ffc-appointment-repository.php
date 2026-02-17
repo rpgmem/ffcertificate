@@ -25,8 +25,7 @@ class AppointmentRepository extends AbstractRepository {
      * @return string
      */
     protected function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_self_scheduling_appointments';
+        return $this->wpdb->prefix . 'ffc_self_scheduling_appointments';
     }
 
     /**
@@ -504,13 +503,11 @@ class AppointmentRepository extends AbstractRepository {
      * @return array Array with date => count
      */
     public function getBookingCountsByDateRange(int $calendar_id, string $start_date, string $end_date): array {
-        global $wpdb;
-
         $table = $this->get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $results = $wpdb->get_results(
-            $wpdb->prepare(
+        $results = $this->wpdb->get_results(
+            $this->wpdb->prepare(
                 "SELECT appointment_date, COUNT(*) as count
                 FROM %i
                 WHERE calendar_id = %d

@@ -19,6 +19,7 @@ if (!defined('ABSPATH')) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 class AudienceScheduleRepository {
+    use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
     /**
      * Get table name
@@ -26,8 +27,7 @@ class AudienceScheduleRepository {
      * @return string
      */
     public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_schedules';
+        return self::db()->prefix . 'ffc_audience_schedules';
     }
 
     /**
@@ -36,8 +36,7 @@ class AudienceScheduleRepository {
      * @return string
      */
     public static function get_permissions_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_schedule_permissions';
+        return self::db()->prefix . 'ffc_audience_schedule_permissions';
     }
 
     /**
@@ -47,7 +46,7 @@ class AudienceScheduleRepository {
      * @return array<object>
      */
     public static function get_all(array $args = array()): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -96,7 +95,7 @@ class AudienceScheduleRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -114,7 +113,7 @@ class AudienceScheduleRepository {
      * @return array<object>
      */
     public static function get_by_user_access(int $user_id): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $perms_table = self::get_permissions_table_name();
 
@@ -140,7 +139,7 @@ class AudienceScheduleRepository {
      * @return int|false Schedule ID or false on failure
      */
     public static function create(array $data) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -189,7 +188,7 @@ class AudienceScheduleRepository {
      * @return bool
      */
     public static function update(int $id, array $data): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // Remove fields that shouldn't be updated
@@ -248,7 +247,7 @@ class AudienceScheduleRepository {
      * @return bool
      */
     public static function delete(int $id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -265,7 +264,7 @@ class AudienceScheduleRepository {
      * @return object|null
      */
     public static function get_user_permissions(int $schedule_id, int $user_id): ?object {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_permissions_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -286,7 +285,7 @@ class AudienceScheduleRepository {
      * @return array<object>
      */
     public static function get_all_permissions(int $schedule_id): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_permissions_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -304,7 +303,7 @@ class AudienceScheduleRepository {
      * @return bool
      */
     public static function set_user_permissions(int $schedule_id, int $user_id, array $permissions): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_permissions_table_name();
 
         $defaults = array(
@@ -356,7 +355,7 @@ class AudienceScheduleRepository {
      * @return bool
      */
     public static function remove_user_permissions(int $schedule_id, int $user_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_permissions_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -462,7 +461,7 @@ class AudienceScheduleRepository {
      * @return int
      */
     public static function count(array $args = array()): int {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = array();

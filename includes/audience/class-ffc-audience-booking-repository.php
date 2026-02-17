@@ -20,6 +20,7 @@ if (!defined('ABSPATH')) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 class AudienceBookingRepository {
+    use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
     /**
      * Get bookings table name
@@ -27,8 +28,7 @@ class AudienceBookingRepository {
      * @return string
      */
     public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_bookings';
+        return self::db()->prefix . 'ffc_audience_bookings';
     }
 
     /**
@@ -37,8 +37,7 @@ class AudienceBookingRepository {
      * @return string
      */
     public static function get_booking_audiences_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_booking_audiences';
+        return self::db()->prefix . 'ffc_audience_booking_audiences';
     }
 
     /**
@@ -47,8 +46,7 @@ class AudienceBookingRepository {
      * @return string
      */
     public static function get_booking_users_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_booking_users';
+        return self::db()->prefix . 'ffc_audience_booking_users';
     }
 
     /**
@@ -58,7 +56,7 @@ class AudienceBookingRepository {
      * @return array<object>
      */
     public static function get_all(array $args = array()): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $env_table = AudienceEnvironmentRepository::get_table_name();
 
@@ -149,7 +147,7 @@ class AudienceBookingRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $env_table = AudienceEnvironmentRepository::get_table_name();
 
@@ -229,7 +227,7 @@ class AudienceBookingRepository {
      * @return array<object>
      */
     public static function get_by_participant(int $user_id, array $args = array()): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $users_table = self::get_booking_users_table_name();
         $audiences_table = self::get_booking_audiences_table_name();
@@ -287,7 +285,7 @@ class AudienceBookingRepository {
      * @return int|false Booking ID or false on failure
      */
     public static function create(array $data) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -355,7 +353,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function update(int $id, array $data): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // Remove fields that shouldn't be updated
@@ -452,7 +450,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function delete(int $id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $audiences_table = self::get_booking_audiences_table_name();
         $users_table = self::get_booking_users_table_name();
@@ -478,7 +476,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function add_booking_audience(int $booking_id, int $audience_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_audiences_table_name();
 
         $result = $wpdb->insert(
@@ -498,7 +496,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function remove_booking_audience(int $booking_id, int $audience_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_audiences_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -518,7 +516,7 @@ class AudienceBookingRepository {
      * @return array<object>
      */
     public static function get_booking_audiences(int $booking_id): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_audiences_table_name();
         $audiences_table = AudienceRepository::get_table_name();
 
@@ -544,7 +542,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function set_booking_audiences(int $booking_id, array $audience_ids): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_audiences_table_name();
 
         // Remove all existing
@@ -567,7 +565,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function add_booking_user(int $booking_id, int $user_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_users_table_name();
 
         $result = $wpdb->insert(
@@ -587,7 +585,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function remove_booking_user(int $booking_id, int $user_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_users_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -607,7 +605,7 @@ class AudienceBookingRepository {
      * @return array<int> User IDs
      */
     public static function get_booking_users(int $booking_id): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_users_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -630,7 +628,7 @@ class AudienceBookingRepository {
      * @return bool
      */
     public static function set_booking_users(int $booking_id, array $user_ids): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_booking_users_table_name();
 
         // Remove all existing
@@ -680,7 +678,7 @@ class AudienceBookingRepository {
      * @return array<object> Conflicting bookings
      */
     public static function get_conflicts(int $environment_id, string $date, string $start_time, string $end_time, ?int $exclude_booking_id = null): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $exclude_clause = $exclude_booking_id ? $wpdb->prepare("AND id != %d", $exclude_booking_id) : '';
@@ -730,7 +728,7 @@ class AudienceBookingRepository {
         array $user_ids,
         ?int $exclude_booking_id = null
     ): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $ba_table = self::get_booking_audiences_table_name();
         $bu_table = self::get_booking_users_table_name();
@@ -806,7 +804,7 @@ class AudienceBookingRepository {
         array $audience_ids,
         ?int $exclude_booking_id = null
     ): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $ba_table = self::get_booking_audiences_table_name();
         $audiences_table = AudienceRepository::get_table_name();
@@ -845,7 +843,7 @@ class AudienceBookingRepository {
      * @return int
      */
     public static function count(array $args = array()): int {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = array();

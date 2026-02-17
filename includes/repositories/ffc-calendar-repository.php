@@ -24,8 +24,7 @@ class CalendarRepository extends AbstractRepository {
      * @return string
      */
     protected function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_self_scheduling_calendars';
+        return $this->wpdb->prefix . 'ffc_self_scheduling_calendars';
     }
 
     /**

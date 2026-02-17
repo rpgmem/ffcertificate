@@ -22,6 +22,7 @@ if (!defined('ABSPATH')) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 class CustomFieldRepository {
+    use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
     /**
      * Supported field types.
@@ -58,8 +59,7 @@ class CustomFieldRepository {
      * @return string
      */
     public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_custom_fields';
+        return self::db()->prefix . 'ffc_custom_fields';
     }
 
     /**
@@ -69,7 +69,7 @@ class CustomFieldRepository {
      * @return object|null
      */
     public static function get_by_id(int $field_id): ?object {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         return $wpdb->get_row(
@@ -85,7 +85,7 @@ class CustomFieldRepository {
      * @return array<object>
      */
     public static function get_by_audience(int $audience_id, bool $active_only = true): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = 'WHERE audience_id = %d';
@@ -184,7 +184,7 @@ class CustomFieldRepository {
      * @return int|false Field ID or false on failure.
      */
     public static function create(array $data) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -242,7 +242,7 @@ class CustomFieldRepository {
      * @return bool
      */
     public static function update(int $field_id, array $data): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // Remove non-updatable fields
@@ -317,7 +317,7 @@ class CustomFieldRepository {
      * @return bool
      */
     public static function delete(int $field_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $result = $wpdb->delete($table, array('id' => $field_id), array('%d'));
@@ -352,7 +352,7 @@ class CustomFieldRepository {
      * @return bool
      */
     public static function reorder(array $field_ids): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         foreach ($field_ids as $index => $field_id) {
@@ -376,7 +376,7 @@ class CustomFieldRepository {
      * @return int
      */
     public static function count_by_audience(int $audience_id, bool $active_only = true): int {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = 'WHERE audience_id = %d';
@@ -802,7 +802,7 @@ class CustomFieldRepository {
      * @return string Unique key.
      */
     private static function ensure_unique_key(string $key, int $audience_id, int $exclude_id = 0): string {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $original_key = $key;

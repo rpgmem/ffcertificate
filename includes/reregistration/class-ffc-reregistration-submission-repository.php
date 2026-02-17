@@ -19,6 +19,7 @@ if (!defined('ABSPATH')) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 class ReregistrationSubmissionRepository {
+    use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
     /**
      * Valid submission statuses.
@@ -58,8 +59,7 @@ class ReregistrationSubmissionRepository {
      * @return string
      */
     public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_reregistration_submissions';
+        return self::db()->prefix . 'ffc_reregistration_submissions';
     }
 
     /**
@@ -69,7 +69,7 @@ class ReregistrationSubmissionRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         return $wpdb->get_row(
@@ -89,7 +89,7 @@ class ReregistrationSubmissionRepository {
             return null;
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         return $wpdb->get_row(
@@ -109,7 +109,7 @@ class ReregistrationSubmissionRepository {
             return null;
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         return $wpdb->get_row(
@@ -142,7 +142,7 @@ class ReregistrationSubmissionRepository {
      * @return object|null
      */
     public static function get_by_reregistration_and_user(int $reregistration_id, int $user_id): ?object {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         return $wpdb->get_row(
@@ -165,7 +165,7 @@ class ReregistrationSubmissionRepository {
      * @return array<object>
      */
     public static function get_all_by_user(int $user_id): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $rereg_table = ReregistrationRepository::get_table_name();
 
@@ -202,7 +202,7 @@ class ReregistrationSubmissionRepository {
      * @return array<object>
      */
     public static function get_by_reregistration(int $reregistration_id, array $filters = array()): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -257,7 +257,7 @@ class ReregistrationSubmissionRepository {
      * @return int|false Submission ID or false.
      */
     public static function create(array $data) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -307,7 +307,7 @@ class ReregistrationSubmissionRepository {
      * @return bool
      */
     public static function update(int $id, array $data): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         unset($data['id'], $data['reregistration_id'], $data['user_id'], $data['created_at']);
@@ -405,7 +405,7 @@ class ReregistrationSubmissionRepository {
      * @return bool
      */
     public static function return_to_draft(int $id, int $reviewer_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $result = $wpdb->update(
@@ -466,7 +466,7 @@ class ReregistrationSubmissionRepository {
      * @return array<string, int> Counts keyed by status.
      */
     public static function get_statistics(int $reregistration_id): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $results = $wpdb->get_results(
@@ -551,7 +551,7 @@ class ReregistrationSubmissionRepository {
      * @return int
      */
     public static function count_by_reregistration(int $reregistration_id, ?string $status = null): int {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = 'WHERE reregistration_id = %d';

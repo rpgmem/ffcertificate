@@ -21,6 +21,7 @@ if (!defined('ABSPATH')) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 class ReregistrationRepository {
+    use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
     /**
      * Valid statuses for a reregistration campaign.
@@ -33,8 +34,7 @@ class ReregistrationRepository {
      * @return string
      */
     public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_reregistrations';
+        return self::db()->prefix . 'ffc_reregistrations';
     }
 
     /**
@@ -44,7 +44,7 @@ class ReregistrationRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         return $wpdb->get_row(
@@ -68,7 +68,7 @@ class ReregistrationRepository {
      * @return array<object>
      */
     public static function get_all(array $filters = array()): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $audiences_table = AudienceRepository::get_table_name();
 
@@ -131,7 +131,7 @@ class ReregistrationRepository {
      * @return int
      */
     public static function count(array $filters = array()): int {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = array();
@@ -167,7 +167,7 @@ class ReregistrationRepository {
      * @return int|false Reregistration ID or false on failure.
      */
     public static function create(array $data) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -214,7 +214,7 @@ class ReregistrationRepository {
      * @return bool
      */
     public static function update(int $id, array $data): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         unset($data['id'], $data['created_by'], $data['created_at']);
@@ -272,7 +272,7 @@ class ReregistrationRepository {
      * @return bool
      */
     public static function delete(int $id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $subs_table = ReregistrationSubmissionRepository::get_table_name();
 
@@ -308,7 +308,7 @@ class ReregistrationRepository {
             }
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $placeholders = implode(',', array_fill(0, count($audience_ids), '%d'));
@@ -362,7 +362,7 @@ class ReregistrationRepository {
      * @return int Number of campaigns expired.
      */
     public static function expire_overdue(): int {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
         $subs_table = ReregistrationSubmissionRepository::get_table_name();
 

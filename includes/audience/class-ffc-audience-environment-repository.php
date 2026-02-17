@@ -19,6 +19,7 @@ if (!defined('ABSPATH')) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 class AudienceEnvironmentRepository {
+    use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
     /**
      * Get table name
@@ -26,8 +27,7 @@ class AudienceEnvironmentRepository {
      * @return string
      */
     public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_environments';
+        return self::db()->prefix . 'ffc_audience_environments';
     }
 
     /**
@@ -36,8 +36,7 @@ class AudienceEnvironmentRepository {
      * @return string
      */
     public static function get_holidays_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_audience_holidays';
+        return self::db()->prefix . 'ffc_audience_holidays';
     }
 
     /**
@@ -47,7 +46,7 @@ class AudienceEnvironmentRepository {
      * @return array<object>
      */
     public static function get_all(array $args = array()): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -96,7 +95,7 @@ class AudienceEnvironmentRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -126,7 +125,7 @@ class AudienceEnvironmentRepository {
      * @return int|false Environment ID or false on failure
      */
     public static function create(array $data) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $defaults = array(
@@ -169,7 +168,7 @@ class AudienceEnvironmentRepository {
      * @return bool
      */
     public static function update(int $id, array $data): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // Remove fields that shouldn't be updated
@@ -223,7 +222,7 @@ class AudienceEnvironmentRepository {
      * @return bool
      */
     public static function delete(int $id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -294,7 +293,7 @@ class AudienceEnvironmentRepository {
      * @return int|false Holiday ID or false on failure
      */
     public static function add_holiday(int $schedule_id, string $date, ?string $description = null) {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_holidays_table_name();
 
         $result = $wpdb->insert(
@@ -318,7 +317,7 @@ class AudienceEnvironmentRepository {
      * @return bool
      */
     public static function remove_holiday(int $holiday_id): bool {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_holidays_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -336,7 +335,7 @@ class AudienceEnvironmentRepository {
      * @return array<object>
      */
     public static function get_holidays(int $schedule_id, ?string $start_date = null, ?string $end_date = null): array {
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_holidays_table_name();
 
         $where = array('schedule_id = %d');
@@ -383,7 +382,7 @@ class AudienceEnvironmentRepository {
             return (bool) $cached;
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_holidays_table_name();
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cached above via wp_cache_get.
@@ -409,7 +408,7 @@ class AudienceEnvironmentRepository {
             return (int) $cached;
         }
 
-        global $wpdb;
+        $wpdb = self::db();
         $table = self::get_table_name();
 
         $where = array();

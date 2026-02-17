@@ -1057,6 +1057,12 @@ parameters:
 			path: includes/reregistration/class-ffc-reregistration-form-renderer.php
 
 		-
+			message: '#^Parameter \#4 \$format of method wpdb\:\:update\(\) expects array\<string\>\|string\|null, array\<int, string\|null\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-submission-repository.php
+
+		-
 			message: '#^Call to method get_error_message\(\) on an unknown class FreeFormCertificate\\Security\\WP_Error\.$#'
 			identifier: class.notFound
 			count: 3
