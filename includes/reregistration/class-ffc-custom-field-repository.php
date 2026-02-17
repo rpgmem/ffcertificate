@@ -25,6 +25,15 @@ class CustomFieldRepository {
     use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
     /**
+     * Cache group for custom field queries.
+     *
+     * @return string
+     */
+    protected static function cache_group(): string {
+        return 'ffc_custom_fields';
+    }
+
+    /**
      * Supported field types.
      */
     public const FIELD_TYPES = array(
@@ -69,12 +78,23 @@ class CustomFieldRepository {
      * @return object|null
      */
     public static function get_by_id(int $field_id): ?object {
+        $cached = static::cache_get("id_{$field_id}");
+        if ($cached !== false) {
+            return $cached;
+        }
+
         $wpdb = self::db();
         $table = self::get_table_name();
 
-        return $wpdb->get_row(
+        $result = $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM %i WHERE id = %d", $table, $field_id)
         );
+
+        if ($result) {
+            static::cache_set("id_{$field_id}", $result);
+        }
+
+        return $result;
     }
 
     /**
@@ -303,6 +323,8 @@ class CustomFieldRepository {
             array('%d')
         );
 
+        static::cache_delete("id_{$field_id}");
+
         return $result !== false;
     }
 
@@ -322,6 +344,8 @@ class CustomFieldRepository {
 
         $result = $wpdb->delete($table, array('id' => $field_id), array('%d'));
 
+        static::cache_delete("id_{$field_id}");
+
         return $result !== false;
     }
 
@@ -332,7 +356,11 @@ class CustomFieldRepository {
      * @return bool
      */
     public static function deactivate(int $field_id): bool {
-        return self::update($field_id, array('is_active' => 0));
+        $result = self::update($field_id, array('is_active' => 0));
+
+        static::cache_delete("id_{$field_id}");
+
+        return $result;
     }
 
     /**
@@ -342,7 +370,11 @@ class CustomFieldRepository {
      * @return bool
      */
     public static function reactivate(int $field_id): bool {
-        return self::update($field_id, array('is_active' => 1));
+        $result = self::update($field_id, array('is_active' => 1));
+
+        static::cache_delete("id_{$field_id}");
+
+        return $result;
     }
 
     /**

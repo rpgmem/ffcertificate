@@ -22,6 +22,15 @@ class ReregistrationSubmissionRepository {
     use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
     /**
+     * Cache group for reregistration submission queries.
+     *
+     * @return string
+     */
+    protected static function cache_group(): string {
+        return 'ffc_rereg_submissions';
+    }
+
+    /**
      * Valid submission statuses.
      */
     public const STATUSES = array('pending', 'in_progress', 'submitted', 'approved', 'rejected', 'expired');
@@ -69,12 +78,23 @@ class ReregistrationSubmissionRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
+        $cached = static::cache_get("id_{$id}");
+        if ($cached !== false) {
+            return $cached;
+        }
+
         $wpdb = self::db();
         $table = self::get_table_name();
 
-        return $wpdb->get_row(
+        $result = $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM %i WHERE id = %d", $table, $id)
         );
+
+        if ($result) {
+            static::cache_set("id_{$id}", $result);
+        }
+
+        return $result;
     }
 
     /**
@@ -359,6 +379,8 @@ class ReregistrationSubmissionRepository {
             array('%d')
         );
 
+        static::cache_delete("id_{$id}");
+
         return $result !== false;
     }
 
@@ -370,11 +392,15 @@ class ReregistrationSubmissionRepository {
      * @return bool
      */
     public static function approve(int $id, int $reviewer_id): bool {
-        return self::update($id, array(
+        $result = self::update($id, array(
             'status'      => 'approved',
             'reviewed_at' => current_time('mysql'),
             'reviewed_by' => $reviewer_id,
         ));
+
+        static::cache_delete("id_{$id}");
+
+        return $result;
     }
 
     /**
@@ -386,12 +412,16 @@ class ReregistrationSubmissionRepository {
      * @return bool
      */
     public static function reject(int $id, int $reviewer_id, string $notes = ''): bool {
-        return self::update($id, array(
+        $result = self::update($id, array(
             'status'      => 'rejected',
             'reviewed_at' => current_time('mysql'),
             'reviewed_by' => $reviewer_id,
             'notes'       => $notes,
         ));
+
+        static::cache_delete("id_{$id}");
+
+        return $result;
     }
 
     /**
@@ -421,6 +451,8 @@ class ReregistrationSubmissionRepository {
             array('%s', null, null, null, null),
             array('%d')
         );
+
+        static::cache_delete("id_{$id}");
 
         return $result !== false;
     }

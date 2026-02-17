@@ -23,6 +23,15 @@ class AudienceBookingRepository {
     use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
     /**
+     * Cache group for this repository.
+     *
+     * @return string
+     */
+    protected static function cache_group(): string {
+        return 'ffc_audience_bookings';
+    }
+
+    /**
      * Get bookings table name
      *
      * @return string
@@ -147,6 +156,11 @@ class AudienceBookingRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
+        $cached = static::cache_get("id_{$id}");
+        if ($cached !== false) {
+            return $cached;
+        }
+
         $wpdb = self::db();
         $table = self::get_table_name();
         $env_table = AudienceEnvironmentRepository::get_table_name();
@@ -168,6 +182,7 @@ class AudienceBookingRepository {
             // Load related audiences and users
             $booking->audiences = self::get_booking_audiences($id);
             $booking->users = self::get_booking_users($id);
+            static::cache_set("id_{$id}", $booking);
         }
 
         return $booking;
@@ -420,6 +435,8 @@ class AudienceBookingRepository {
             self::set_booking_users($id, $user_ids);
         }
 
+        static::cache_delete("id_{$id}");
+
         return true;
     }
 
@@ -435,12 +452,16 @@ class AudienceBookingRepository {
             return false;
         }
 
-        return self::update($id, array(
+        $result = self::update($id, array(
             'status' => 'cancelled',
             'cancelled_by' => get_current_user_id(),
             'cancelled_at' => current_time('mysql'),
             'cancellation_reason' => $reason,
         ));
+
+        static::cache_delete("id_{$id}");
+
+        return $result;
     }
 
     /**
@@ -464,6 +485,8 @@ class AudienceBookingRepository {
         // Delete the booking
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $result = $wpdb->delete($table, array('id' => $id), array('%d'));
+
+        static::cache_delete("id_{$id}");
 
         return $result !== false;
     }

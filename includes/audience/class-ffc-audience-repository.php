@@ -23,6 +23,15 @@ class AudienceRepository {
     use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
     /**
+     * Cache group for this repository.
+     *
+     * @return string
+     */
+    protected static function cache_group(): string {
+        return 'ffc_audiences';
+    }
+
+    /**
      * Get audiences table name
      *
      * @return string
@@ -100,13 +109,24 @@ class AudienceRepository {
      * @return object|null
      */
     public static function get_by_id(int $id): ?object {
+        $cached = static::cache_get("id_{$id}");
+        if ($cached !== false) {
+            return $cached;
+        }
+
         $wpdb = self::db();
         $table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        return $wpdb->get_row(
+        $result = $wpdb->get_row(
             $wpdb->prepare("SELECT * FROM %i WHERE id = %d", $table, $id)
         );
+
+        if ($result) {
+            static::cache_set("id_{$id}", $result);
+        }
+
+        return $result;
     }
 
     /**
@@ -238,6 +258,8 @@ class AudienceRepository {
             array('%d')
         );
 
+        static::cache_delete("id_{$id}");
+
         return $result !== false;
     }
 
@@ -288,6 +310,8 @@ class AudienceRepository {
         // Delete the audience
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $result = $wpdb->delete($table, array('id' => $id), array('%d'));
+
+        static::cache_delete("id_{$id}");
 
         return $result !== false;
     }
