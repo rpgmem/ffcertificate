@@ -16,8 +16,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
 class NameNormalizationMigrationStrategy implements MigrationStrategyInterface {
 
     /**
@@ -62,12 +60,13 @@ class NameNormalizationMigrationStrategy implements MigrationStrategyInterface {
         $last_changes = get_option( 'ffc_migration_name_normalization_changes', array() );
 
         // Get total submissions with encrypted data
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $total = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->table_name}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $total = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM %i
              WHERE data_encrypted IS NOT NULL
-             AND data_encrypted != ''"
-        );
+             AND data_encrypted != ''",
+            $this->table_name
+        ) );
 
         // If migration was run, show as complete
         if ( ! empty( $last_run ) ) {

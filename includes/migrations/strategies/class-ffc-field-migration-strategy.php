@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnsupportedIdentifierPlaceholder
+// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnsupportedIdentifierPlaceholder
 
 class FieldMigrationStrategy implements MigrationStrategyInterface {
 
@@ -60,8 +60,8 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
         }
 
         // Count total records
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $total = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table_name}" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $total = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $this->table_name ) );
 
         if ( $total == 0 ) {
             return array(
@@ -91,20 +91,22 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
             // If encrypted column exists, count records that have EITHER:
             // 1. Data in encrypted column (migrated with encryption)
             // 2. NULL in both columns (already cleaned up)
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.UnsupportedIdentifierPlaceholder
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $migrated = $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$this->table_name}
+                "SELECT COUNT(*) FROM %i
                 WHERE (%i IS NOT NULL AND %i != '')
                 OR (%i IS NULL AND %i IS NULL)",
+                $this->table_name,
                 $encrypted_column, $encrypted_column,
                 $column, $encrypted_column
             ));
         } else {
             // No encrypted column, use old logic
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.UnsupportedIdentifierPlaceholder
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $migrated = $wpdb->get_var( $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$this->table_name}
+                "SELECT COUNT(*) FROM %i
                 WHERE %i IS NOT NULL AND %i != ''",
+                $this->table_name,
                 $column, $column
             ));
         }
@@ -149,13 +151,14 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
 
         // Get submissions without migrated field value
         // Always use OFFSET 0 because migrated records won't appear in next query
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.UnsupportedIdentifierPlaceholder
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $submissions = $wpdb->get_results( $wpdb->prepare(
-            "SELECT id, data FROM {$this->table_name}
+            "SELECT id, data FROM %i
             WHERE (%i IS NULL OR %i = '')
             AND (data IS NOT NULL AND data != '' AND data != '[]' AND data != '{}')
             ORDER BY id ASC
             LIMIT %d",
+            $this->table_name,
             $column, $column,
             $batch_size
         ), ARRAY_A );
@@ -188,7 +191,7 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
             $sanitized_value = \FreeFormCertificate\Migrations\DataSanitizer::sanitize_field_value( $field_value, $field_def );
 
             // Update submission
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $updated = $wpdb->update(
                 $this->table_name,
                 array( $column => $sanitized_value ),

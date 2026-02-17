@@ -22,8 +22,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
 class UserManager {
 
     use \FreeFormCertificate\Core\DatabaseHelperTrait;
@@ -126,9 +124,10 @@ class UserManager {
         $table = $wpdb->prefix . 'ffc_user_profiles';
 
         if ( self::table_exists( $table ) ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $profile = $wpdb->get_row( $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE user_id = %d",
+                "SELECT * FROM %i WHERE user_id = %d",
+                $table,
                 $user_id
             ), ARRAY_A );
 
@@ -191,9 +190,10 @@ class UserManager {
             return false;
         }
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $exists = $wpdb->get_var( $wpdb->prepare(
-            "SELECT id FROM {$table} WHERE user_id = %d",
+            "SELECT id FROM %i WHERE user_id = %d",
+            $table,
             $user_id
         ) );
 
@@ -241,12 +241,13 @@ class UserManager {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $encrypted_cpfs = $wpdb->get_col( $wpdb->prepare(
-            "SELECT DISTINCT cpf_rf_encrypted FROM {$table}
+            "SELECT DISTINCT cpf_rf_encrypted FROM %i
              WHERE user_id = %d
              AND cpf_rf_encrypted IS NOT NULL
              AND cpf_rf_encrypted != ''",
+            $table,
             $user_id
         ) );
 
@@ -310,12 +311,13 @@ class UserManager {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $encrypted_emails = $wpdb->get_col( $wpdb->prepare(
-            "SELECT DISTINCT email_encrypted FROM {$table}
+            "SELECT DISTINCT email_encrypted FROM %i
              WHERE user_id = %d
              AND email_encrypted IS NOT NULL
              AND email_encrypted != ''",
+            $table,
             $user_id
         ) );
 
@@ -356,12 +358,13 @@ class UserManager {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $submissions = $wpdb->get_col( $wpdb->prepare(
-            "SELECT data FROM {$table}
+            "SELECT data FROM %i
              WHERE user_id = %d
              AND data IS NOT NULL
              AND data != ''",
+            $table,
             $user_id
         ) );
 

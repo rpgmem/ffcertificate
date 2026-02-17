@@ -18,8 +18,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
 class EncryptionMigrationStrategy implements MigrationStrategyInterface {
 
     /**
@@ -45,8 +43,8 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
     public function calculate_status( string $migration_key, array $migration_config ): array {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $total = $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table_name}" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $total = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $this->table_name ) );
 
         if ( $total == 0 ) {
             return array(
@@ -61,15 +59,16 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
         // Count as migrated if:
         // 1. Has encrypted data (email_encrypted OR data_encrypted has data)
         // 2. OR all sensitive columns are NULL (already cleaned)
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        $migrated = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->table_name}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $migrated = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM %i
             WHERE (
                 (email_encrypted IS NOT NULL AND email_encrypted != '')
                 OR (data_encrypted IS NOT NULL AND data_encrypted != '')
                 OR (email IS NULL AND data IS NULL AND user_ip IS NULL)
-            )"
-        );
+            )",
+            $this->table_name
+        ) );
 
         $pending = $total - $migrated;
         $percent = ( $total > 0 ) ? ( $migrated / $total ) * 100 : 100;
@@ -98,13 +97,14 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
 
         // Get submissions that need encryption
         // Always use OFFSET 0 because encrypted records won't appear in next query
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $submissions = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$this->table_name}
+                "SELECT * FROM %i
                 WHERE (email_encrypted IS NULL OR email_encrypted = '')
                 AND email IS NOT NULL
                 LIMIT %d",
+                $this->table_name,
                 $batch_size
             ),
             ARRAY_A
@@ -255,12 +255,13 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
     private function count_pending_encryption(): int {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        return (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$this->table_name}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        return (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM %i
             WHERE (email_encrypted IS NULL OR email_encrypted = '')
-            AND email IS NOT NULL"
-        );
+            AND email IS NOT NULL",
+            $this->table_name
+        ) );
     }
 
     /**
