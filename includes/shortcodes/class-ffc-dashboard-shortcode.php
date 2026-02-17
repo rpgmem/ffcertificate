@@ -47,7 +47,8 @@ class DashboardShortcode {
         // Standard WordPress no-cache headers
         nocache_headers();
 
-        // LiteSpeed Cache: programmatic exclusion
+        // LiteSpeed Cache: programmatic exclusion — hook name is defined by LiteSpeed Cache plugin
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
         do_action( 'litespeed_control_set_nocache', 'FFC dashboard page requires user-specific content' );
 
         // Generic header recognised by LiteSpeed and other reverse proxies

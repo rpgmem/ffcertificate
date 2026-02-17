@@ -479,8 +479,8 @@ class Activator {
             }
 
             // Check if a UNIQUE index already exists on this column
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $indexes = $wpdb->get_results( "SHOW INDEX FROM {$table} WHERE Column_name = '{$column}'" );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $indexes = $wpdb->get_results( $wpdb->prepare( "SHOW INDEX FROM %i WHERE Column_name = %s", $table, $column ) );
             $has_unique = false;
             $old_index_names = array();
 

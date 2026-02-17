@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.12.9
+Stable tag: 4.12.14
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,51 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.12.14 (2026-02-17) =
+
+Unit tests for FormProcessor and PdfGenerator: quiz scoring, restriction checks, URL parsing, and data enrichment.
+
+* New: **FormProcessorTest** — 21 tests for quiz scoring and restriction validation
+* New: **PdfGeneratorTest** — 32 tests for URL param parsing, filename generation, default HTML, and data enrichment
+* Test suite: 253 → 306 tests, 710 → 812 assertions
+
+= 4.12.13 (2026-02-17) =
+
+Refactoring: extract focused classes from ReregistrationAdmin (1,125 → 830 lines).
+
+* Refactor: **ReregistrationCsvExporter** — CSV export logic extracted into standalone class
+* Refactor: **ReregistrationSubmissionActions** — submission workflow handlers (approve/reject/return/bulk) extracted
+* Refactor: **ReregistrationCustomFieldsPage** — custom fields admin page extracted
+* ReregistrationAdmin reduced by 26% via delegation to extracted classes
+
+= 4.12.12 (2026-02-17) =
+
+Unit tests for Reregistration module: field options and data processor.
+
+* New: **ReregistrationFieldOptionsTest** — 15 tests covering field option providers and divisao-setor mapping
+* New: **ReregistrationDataProcessorTest** — 19 tests covering working hours sanitization and submission validation
+* Fix: **AudienceCsvImporterTest** — alias mock tests run in separate processes to prevent cross-class contamination
+* Test suite: 218 → 253 tests, 453 → 710 assertions
+
+= 4.12.11 (2026-02-17) =
+
+Unit tests for Audience module: CSV importer and notification handler.
+
+* New: **AudienceCsvImporterTest** — 26 tests covering CSV validation, sample generation, member import, and audience import logic
+* New: **AudienceNotificationHandlerTest** — 10 tests covering template rendering, subject generation, and default templates
+* Test suite: 182 → 218 tests, 352 → 453 assertions
+
+= 4.12.10 (2026-02-17) =
+
+Security hardening sprint: regex validation, AJAX method enforcement, modern CSPRNG, prepared SQL statements.
+
+* Security: **Regex validation** — custom regex patterns in `ReregistrationDataProcessor` now use `~` delimiter and validate the pattern before applying; invalid patterns are safely skipped
+* Security: **AJAX method enforcement** — `AudienceLoader` search and environment handlers switched from `$_GET` to `$_POST`; updated JS to use POST
+* Security: **Modern CSPRNG** — replaced deprecated `openssl_random_pseudo_bytes()` with `random_bytes()` in Encryption
+* Security: **Prepared SQL statements** — 3 `SHOW INDEX` queries now use `$wpdb->prepare()` with `%i` placeholder
+* Fix: **LiteSpeed hook prefix warning** — added `phpcs:ignore` for third-party `litespeed_control_set_nocache` hook
+* Rebuilt all minified JS assets
 
 = 4.12.9 (2026-02-17) =
 

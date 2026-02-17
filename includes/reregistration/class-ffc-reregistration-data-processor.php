@@ -258,11 +258,15 @@ class ReregistrationDataProcessor {
                 }
             } elseif ($format === 'custom_regex' && !empty($rules['custom_regex'])) {
                 $regex = $rules['custom_regex'];
-                // Ensure regex has delimiters
-                if ($regex[0] !== '/') {
-                    $regex = '/' . $regex . '/';
+                // Ensure regex has delimiters — use ~ to avoid conflicts with / in patterns
+                if ($regex[0] !== '/' && $regex[0] !== '~' && $regex[0] !== '#') {
+                    $regex = '~' . $regex . '~';
                 }
-                if (!@preg_match($regex, $value)) {
+                // Validate pattern before using it
+                if (@preg_match($regex, '') === false) {
+                    continue; // Invalid regex — skip validation
+                }
+                if (!preg_match($regex, $value)) {
                     /* translators: %s: field label */
                     $msg = !empty($rules['custom_regex_message']) ? $rules['custom_regex_message'] : sprintf(__('%s has an invalid format.', 'ffcertificate'), $cf->field_label);
                     $errors[$name] = $msg;
