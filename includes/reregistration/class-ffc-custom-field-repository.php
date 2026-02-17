@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 class CustomFieldRepository {
 
@@ -73,7 +73,7 @@ class CustomFieldRepository {
         $table = self::get_table_name();
 
         return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $field_id)
+            $wpdb->prepare("SELECT * FROM %i WHERE id = %d", $table, $field_id)
         );
     }
 
@@ -97,8 +97,8 @@ class CustomFieldRepository {
 
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$table} {$where} ORDER BY sort_order ASC, id ASC",
-                $values
+                "SELECT * FROM %i {$where} ORDER BY sort_order ASC, id ASC",
+                array_merge(array($table), $values)
             )
         );
     }
@@ -387,7 +387,7 @@ class CustomFieldRepository {
         }
 
         return (int) $wpdb->get_var(
-            $wpdb->prepare("SELECT COUNT(*) FROM {$table} {$where}", $values)
+            $wpdb->prepare("SELECT COUNT(*) FROM %i {$where}", array_merge(array($table), $values))
         );
     }
 
@@ -818,7 +818,7 @@ class CustomFieldRepository {
             }
 
             $exists = (int) $wpdb->get_var(
-                $wpdb->prepare("SELECT COUNT(*) FROM {$table} {$where}", $values)
+                $wpdb->prepare("SELECT COUNT(*) FROM %i {$where}", array_merge(array($table), $values))
             );
 
             if ($exists === 0) {

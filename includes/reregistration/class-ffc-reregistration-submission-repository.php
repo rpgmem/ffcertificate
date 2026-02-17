@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 class ReregistrationSubmissionRepository {
 
@@ -73,7 +73,7 @@ class ReregistrationSubmissionRepository {
         $table = self::get_table_name();
 
         return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id)
+            $wpdb->prepare("SELECT * FROM %i WHERE id = %d", $table, $id)
         );
     }
 
@@ -93,7 +93,7 @@ class ReregistrationSubmissionRepository {
         $table = self::get_table_name();
 
         return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE auth_code = %s AND status IN ('submitted', 'approved')", $auth_code)
+            $wpdb->prepare("SELECT * FROM %i WHERE auth_code = %s AND status IN ('submitted', 'approved')", $table, $auth_code)
         );
     }
 
@@ -113,7 +113,7 @@ class ReregistrationSubmissionRepository {
         $table = self::get_table_name();
 
         return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE magic_token = %s AND status IN ('submitted', 'approved')", $token)
+            $wpdb->prepare("SELECT * FROM %i WHERE magic_token = %s AND status IN ('submitted', 'approved')", $table, $token)
         );
     }
 
@@ -147,7 +147,8 @@ class ReregistrationSubmissionRepository {
 
         return $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE reregistration_id = %d AND user_id = %d",
+                "SELECT * FROM %i WHERE reregistration_id = %d AND user_id = %d",
+                $table,
                 $reregistration_id,
                 $user_id
             )
@@ -172,10 +173,12 @@ class ReregistrationSubmissionRepository {
         $results = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT s.*, r.title AS reregistration_title, r.start_date, r.end_date, r.status AS reregistration_status
-                 FROM {$table} s
-                 INNER JOIN {$rereg_table} r ON s.reregistration_id = r.id
+                 FROM %i s
+                 INNER JOIN %i r ON s.reregistration_id = r.id
                  WHERE s.user_id = %d
                  ORDER BY r.start_date DESC, s.created_at DESC",
+                $table,
+                $rereg_table,
                 $user_id
             )
         );
@@ -235,14 +238,16 @@ class ReregistrationSubmissionRepository {
         $limit_clause = $filters['limit'] > 0 ? sprintf('LIMIT %d OFFSET %d', $filters['limit'], $filters['offset']) : '';
 
         $sql = "SELECT s.*, u.display_name AS user_name, u.user_email AS user_email
-                FROM {$table} s
-                LEFT JOIN {$wpdb->users} u ON s.user_id = u.ID
+                FROM %i s
+                LEFT JOIN %i u ON s.user_id = u.ID
                 {$where_clause}
                 ORDER BY {$orderby} {$order}
                 {$limit_clause}";
 
+        $prepare_values = array_merge(array($table, $wpdb->users), $values);
+
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-        return $wpdb->get_results($wpdb->prepare($sql, $values));
+        return $wpdb->get_results($wpdb->prepare($sql, $prepare_values));
     }
 
     /**
@@ -466,8 +471,9 @@ class ReregistrationSubmissionRepository {
 
         $results = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT status, COUNT(*) as count FROM {$table}
+                "SELECT status, COUNT(*) as count FROM %i
                 WHERE reregistration_id = %d GROUP BY status",
+                $table,
                 $reregistration_id
             )
         );
@@ -557,7 +563,7 @@ class ReregistrationSubmissionRepository {
         }
 
         return (int) $wpdb->get_var(
-            $wpdb->prepare("SELECT COUNT(*) FROM {$table} {$where}", $values)
+            $wpdb->prepare("SELECT COUNT(*) FROM %i {$where}", array_merge(array($table), $values))
         );
     }
 }

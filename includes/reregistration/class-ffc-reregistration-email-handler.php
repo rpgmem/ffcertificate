@@ -186,15 +186,17 @@ class ReregistrationEmailHandler {
         $table = ReregistrationRepository::get_table_name();
 
         // Get active campaigns where reminder is due
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $campaigns = $wpdb->get_results(
-            "SELECT * FROM {$table}
-             WHERE status = 'active'
-               AND email_reminder_enabled = 1
-               AND DATEDIFF(end_date, CURDATE()) <= reminder_days
-               AND DATEDIFF(end_date, CURDATE()) >= 0"
+            $wpdb->prepare(
+                "SELECT * FROM %i
+                 WHERE status = 'active'
+                   AND email_reminder_enabled = 1
+                   AND DATEDIFF(end_date, CURDATE()) <= reminder_days
+                   AND DATEDIFF(end_date, CURDATE()) >= 0",
+                $table
+            )
         );
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
         if (empty($campaigns)) {
             return 0;

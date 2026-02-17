@@ -17,7 +17,7 @@ namespace FreeFormCertificate\Migrations;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 class MigrationUserProfiles {
 
@@ -77,7 +77,8 @@ class MigrationUserProfiles {
             try {
                 // Skip if profile already exists
                 $exists = $wpdb->get_var($wpdb->prepare(
-                    "SELECT id FROM {$profiles_table} WHERE user_id = %d",
+                    "SELECT id FROM %i WHERE user_id = %d",
+                    $profiles_table,
                     $user_id
                 ));
 
@@ -172,7 +173,7 @@ class MigrationUserProfiles {
 
         $total_users = count(get_users(array('role' => 'ffc_user', 'fields' => 'ID')));
 
-        $profiles_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$profiles_table}");
+        $profiles_count = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i", $profiles_table));
 
         $last_run = get_option('ffc_migration_user_profiles_last_run', '');
 

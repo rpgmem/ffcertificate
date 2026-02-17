@@ -15,7 +15,7 @@ namespace FreeFormCertificate\Services;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 class UserService {
 
@@ -96,7 +96,8 @@ class UserService {
         if (class_exists('\FreeFormCertificate\Core\Utils')) {
             $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
             $stats['certificates'] = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND status != 'trash'",
+                "SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'trash'",
+                $table,
                 $user_id
             ));
         }

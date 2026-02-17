@@ -19,7 +19,7 @@ namespace FreeFormCertificate\Migrations;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, PluginCheck.Security.DirectDB.UnescapedDBParameter
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 
 class MigrationForeignKeys {
 
@@ -149,23 +149,29 @@ class MigrationForeignKeys {
 
         // For SET NULL, ensure user_id allows NULL
         if ($on_delete === 'SET NULL') {
-            $col_info = $wpdb->get_row($wpdb->prepare("SHOW COLUMNS FROM {$table} LIKE %s", 'user_id')); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $col_info = $wpdb->get_row($wpdb->prepare("SHOW COLUMNS FROM %i LIKE %s", $table, 'user_id'));
             if ($col_info && strtoupper($col_info->Null) !== 'YES') {
-                $wpdb->query("ALTER TABLE {$table} MODIFY user_id BIGINT(20) UNSIGNED DEFAULT NULL");
+                $wpdb->query($wpdb->prepare("ALTER TABLE %i MODIFY user_id BIGINT(20) UNSIGNED DEFAULT NULL", $table));
             }
         }
 
         // Clean up orphaned references (user_id values that don't exist in wp_users)
-        $wpdb->query(
-            "UPDATE {$table} SET user_id = NULL WHERE user_id IS NOT NULL AND user_id NOT IN (SELECT ID FROM {$wpdb->users})"
-        );
+        $wpdb->query($wpdb->prepare(
+            "UPDATE %i SET user_id = NULL WHERE user_id IS NOT NULL AND user_id NOT IN (SELECT ID FROM %i)",
+            $table,
+            $wpdb->users
+        ));
 
         // Add the FK constraint
-        $sql = "ALTER TABLE {$table}
-                ADD CONSTRAINT {$constraint_name}
-                FOREIGN KEY (user_id) REFERENCES {$wpdb->users}(ID) ON DELETE {$on_delete}";
+        // $on_delete is a validated SQL keyword ('SET NULL' or 'CASCADE') from hardcoded arrays in run()
+        $sql = $wpdb->prepare(
+            "ALTER TABLE %i ADD CONSTRAINT %i FOREIGN KEY (user_id) REFERENCES %i(ID) ON DELETE {$on_delete}",
+            $table,
+            $constraint_name,
+            $wpdb->users
+        );
 
-        $result = $wpdb->query($sql); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- DDL with internal table/constraint names
+        $result = $wpdb->query($sql); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $on_delete is validated SQL keyword
 
         if ($result === false) {
             return array('status' => 'error', 'message' => $wpdb->last_error ?: 'Unknown error adding FK');

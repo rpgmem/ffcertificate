@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 class AudienceScheduleRepository {
 
@@ -79,12 +79,11 @@ class AudienceScheduleRepository {
         $limit_clause = $args['limit'] > 0 ? sprintf('LIMIT %d OFFSET %d', $args['limit'], $args['offset']) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $sql = "SELECT * FROM {$table} {$where_clause} ORDER BY {$orderby} {$limit_clause}";
+        $sql = "SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$limit_clause}";
 
-        if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-            $sql = $wpdb->prepare($sql, $values);
-        }
+        $prepare_args = array_merge( array( $table ), $values );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $sql = $wpdb->prepare($sql, $prepare_args);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         return $wpdb->get_results($sql);
@@ -102,7 +101,7 @@ class AudienceScheduleRepository {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id)
+            $wpdb->prepare("SELECT * FROM %i WHERE id = %d", $table, $id)
         );
     }
 
@@ -122,11 +121,13 @@ class AudienceScheduleRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT DISTINCT s.* FROM {$table} s
-                LEFT JOIN {$perms_table} p ON s.id = p.schedule_id AND p.user_id = %d
+                "SELECT DISTINCT s.* FROM %i s
+                LEFT JOIN %i p ON s.id = p.schedule_id AND p.user_id = %d
                 WHERE s.status = 'active'
                 AND (s.visibility = 'public' OR p.user_id IS NOT NULL)
                 ORDER BY s.name ASC",
+                $table,
+                $perms_table,
                 $user_id
             )
         );
@@ -270,7 +271,8 @@ class AudienceScheduleRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE schedule_id = %d AND user_id = %d",
+                "SELECT * FROM %i WHERE schedule_id = %d AND user_id = %d",
+                $table,
                 $schedule_id,
                 $user_id
             )
@@ -289,7 +291,7 @@ class AudienceScheduleRepository {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $wpdb->get_results(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE schedule_id = %d", $schedule_id)
+            $wpdb->prepare("SELECT * FROM %i WHERE schedule_id = %d", $table, $schedule_id)
         );
     }
 
@@ -479,12 +481,11 @@ class AudienceScheduleRepository {
         $where_clause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $sql = "SELECT COUNT(*) FROM {$table} {$where_clause}";
+        $sql = "SELECT COUNT(*) FROM %i {$where_clause}";
 
-        if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-            $sql = $wpdb->prepare($sql, $values);
-        }
+        $prepare_args = array_merge( array( $table ), $values );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $sql = $wpdb->prepare($sql, $prepare_args);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         return (int) $wpdb->get_var($sql);

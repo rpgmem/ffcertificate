@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 class ReregistrationRepository {
 
@@ -48,7 +48,7 @@ class ReregistrationRepository {
         $table = self::get_table_name();
 
         return $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id)
+            $wpdb->prepare("SELECT * FROM %i WHERE id = %d", $table, $id)
         );
     }
 
@@ -109,16 +109,16 @@ class ReregistrationRepository {
         $limit_clause = $filters['limit'] > 0 ? sprintf('LIMIT %d OFFSET %d', $filters['limit'], $filters['offset']) : '';
 
         $sql = "SELECT r.*, a.name AS audience_name, a.color AS audience_color
-                FROM {$table} r
-                LEFT JOIN {$audiences_table} a ON r.audience_id = a.id
+                FROM %i r
+                LEFT JOIN %i a ON r.audience_id = a.id
                 {$where_clause}
                 ORDER BY r.{$orderby} {$order}
                 {$limit_clause}";
 
-        if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-            $sql = $wpdb->prepare($sql, $values);
-        }
+        $prepare_values = array_merge(array($table, $audiences_table), $values);
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $sql = $wpdb->prepare($sql, $prepare_values);
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         return $wpdb->get_results($sql);
@@ -149,12 +149,12 @@ class ReregistrationRepository {
 
         $where_clause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
-        $sql = "SELECT COUNT(*) FROM {$table} {$where_clause}";
+        $sql = "SELECT COUNT(*) FROM %i {$where_clause}";
 
-        if (!empty($values)) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-            $sql = $wpdb->prepare($sql, $values);
-        }
+        $prepare_values = array_merge(array($table), $values);
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $sql = $wpdb->prepare($sql, $prepare_values);
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         return (int) $wpdb->get_var($sql);
@@ -316,11 +316,11 @@ class ReregistrationRepository {
         // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$table}
+                "SELECT * FROM %i
                 WHERE audience_id IN ({$placeholders})
                 AND status = 'active'
                 ORDER BY start_date ASC",
-                $audience_ids
+                array_merge(array($table), $audience_ids)
             )
         );
     }
@@ -369,7 +369,8 @@ class ReregistrationRepository {
         // Find active reregistrations past end date
         $overdue = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id FROM {$table} WHERE status = 'active' AND end_date < %s",
+                "SELECT id FROM %i WHERE status = 'active' AND end_date < %s",
+                $table,
                 current_time('mysql')
             )
         );
@@ -392,8 +393,9 @@ class ReregistrationRepository {
             // Expire pending/in_progress submissions
             $wpdb->query(
                 $wpdb->prepare(
-                    "UPDATE {$subs_table} SET status = 'expired', updated_at = %s
+                    "UPDATE %i SET status = 'expired', updated_at = %s
                     WHERE reregistration_id = %d AND status IN ('pending', 'in_progress')",
+                    $subs_table,
                     current_time('mysql'),
                     (int) $row->id
                 )
