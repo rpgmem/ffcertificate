@@ -23,8 +23,6 @@
     // Load Template button - Opens modal to select template
     $(document).on('click', '#ffc_load_template_btn', function(e) {
         e.preventDefault();
-        console.log('[FFC] Load Template button clicked');
-
         // Lista de templates disponíveis (hardcoded por enquanto, pode vir de PHP depois)
         var templates = [
             { value: 'atestado_estagios.html', label: 'Atestado de Estágios' },
@@ -39,9 +37,9 @@
         var cancelText = strings.cancel || 'Cancel';
 
         // Criar modal de seleção
-        var modalHtml = '<div id="ffc-template-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;">';
+        var modalHtml = '<div id="ffc-template-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-template-modal-title" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999999;display:flex;align-items:center;justify-content:center;">';
         modalHtml += '<div style="background:#fff;padding:30px;border-radius:8px;max-width:500px;width:90%;box-shadow:0 4px 20px rgba(0,0,0,0.3);">';
-        modalHtml += '<h2 style="margin:0 0 20px 0;font-size:20px;">' + selectTemplateText + '</h2>';
+        modalHtml += '<h2 id="ffc-template-modal-title" style="margin:0 0 20px 0;font-size:20px;">' + selectTemplateText + '</h2>';
         modalHtml += '<div style="max-height:400px;overflow-y:auto;">';
 
         templates.forEach(function(template) {
@@ -77,6 +75,14 @@
             }
         });
 
+        // Escape key to close
+        $(document).on('keydown.ffcTemplateModal', function(e) {
+            if (e.key === 'Escape' && $('#ffc-template-modal').length) {
+                $('#ffc-template-modal').fadeOut(200, function() { $(this).remove(); });
+                $(document).off('keydown.ffcTemplateModal');
+            }
+        });
+
         // Template selection
         $('.ffc-template-option').on('click', function() {
             var templateFile = $(this).data('file');
@@ -99,8 +105,6 @@
 
     // Function to load template file via fetch
     function loadTemplateFile(filename, displayName) {
-        console.log('[FFC] Loading template:', filename);
-
         var templateUrl = '/wp-content/plugins/ffcertificate/html/' + filename;
         var showNotification = window.FFC.Admin.showNotification || function() {};
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
@@ -111,8 +115,6 @@
 
         fetch(templateUrl)
             .then(function(response) {
-                console.log('[FFC] Fetch response status:', response.status);
-
                 if (!response.ok) {
                     throw new Error('HTTP error! status: ' + response.status);
                 }
@@ -120,8 +122,6 @@
                 return response.text();
             })
             .then(function(htmlContent) {
-                console.log('[FFC] Template loaded, length:', htmlContent.length);
-
                 var $htmlField = $('#ffc_pdf_layout');
 
                 if ($htmlField.length) {
@@ -130,16 +130,12 @@
                     var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
                     var successMsg = successTemplate.replace('%s', displayName || filename);
                     showNotification('✓ ' + successMsg, 'success', 3000);
-                    console.log('[FFC] ✓ Template loaded into #ffc_pdf_layout');
                 } else {
                     var errorMsg = strings.htmlFieldNotFound || 'HTML field not found.';
                     showNotification('✗ ' + errorMsg, 'error');
-                    console.error('[FFC] ✗ HTML field #ffc_pdf_layout not found');
                 }
             })
             .catch(function(error) {
-                console.error('[FFC] ✗ Fetch error:', error);
-
                 var errorMsg = '';
                 if (error.message.includes('404')) {
                     errorMsg = strings.templateFileNotFound || 'Template file not found. Check if file exists in html/ folder.';
@@ -163,7 +159,6 @@
     // Import HTML file button
     $(document).on('click', '#ffc_btn_import_html', function(e) {
         e.preventDefault();
-        console.log('[FFC] Import HTML clicked');
         var showNotification = window.FFC.Admin.showNotification || function() {};
 
         // Try to find file input
@@ -173,11 +168,8 @@
         }
 
         if ($fileInput.length) {
-            console.log('[FFC] File input found, clicking...');
             $fileInput.click();
         } else {
-            // Create file input on the fly
-            console.log('[FFC] File input not found, creating temporary input');
             var $tempInput = $('<input type="file" accept=".html" style="display:none">');
             $('body').append($tempInput);
 
@@ -201,11 +193,9 @@
                         $htmlField.val(e.target.result);
                         var successMsg = strings.htmlImportedSuccess || 'HTML imported successfully!';
                         showNotification(successMsg, 'success');
-                        console.log('[FFC] HTML file imported to #ffc_pdf_layout');
                     } else {
                         var errorMsg = strings.htmlFieldNotFound || 'HTML field not found.';
                         showNotification('Error: ' + errorMsg, 'error');
-                        console.error('[FFC] HTML field not found');
                     }
 
                     $tempInput.remove();
@@ -223,7 +213,6 @@
 
         if (!file) return;
 
-        console.log('[FFC] File selected via change handler:', file.name);
         var showNotification = window.FFC.Admin.showNotification || function() {};
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
@@ -233,17 +222,14 @@
 
             if ($htmlField.length) {
                 $htmlField.val(evt.target.result);
-                console.log('[FFC] ✓ HTML imported to #ffc_pdf_layout');
                 var successMsg = strings.htmlImportedSuccess || 'HTML imported successfully!';
                 showNotification(successMsg, 'success');
             } else {
-                console.error('[FFC] ✗ Field #ffc_pdf_layout not found');
                 var errorMsg = strings.htmlTextareaNotFound || 'HTML textarea not found';
                 showNotification('Error: ' + errorMsg, 'error');
             }
         };
         reader.onerror = function() {
-            console.error('[FFC] Error reading file');
             var errorMsg = strings.errorReadingFile || 'Error reading file';
             showNotification(errorMsg, 'error');
         };
@@ -404,7 +390,6 @@
 
     $(document).on('click', '#ffc_btn_media_lib', function(e) {
         e.preventDefault();
-        console.log('[FFC] Background Image clicked');
         var showNotification = window.FFC.Admin.showNotification || function() {};
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
@@ -412,7 +397,6 @@
         if (typeof wp === 'undefined' || typeof wp.media === 'undefined') {
             var errorMsg = strings.wpMediaNotAvailable || 'WordPress Media Library is not available. Please reload the page.';
             showNotification(errorMsg, 'error');
-            console.error('[FFC] wp.media is not defined');
             return;
         }
 
@@ -451,12 +435,11 @@
             // Try to find preview element
             var $preview = $('#ffc_bg_image_preview');
             if ($preview.length) {
-                $preview.html('<img src="' + attachment.url + '" style="max-width: 200px; height: auto;">');
+                $preview.html('').append($('<img>').attr('src', attachment.url).css({'max-width': '200px', 'height': 'auto'}));
             }
 
             var successMsg = strings.backgroundImageSelected || 'Background image selected!';
             showNotification(successMsg, 'success');
-            console.log('[FFC] Background image selected:', attachment.url);
         });
 
         mediaUploader.open();

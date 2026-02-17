@@ -10,6 +10,16 @@
 (function($) {
     'use strict';
 
+    // Escape HTML entities to prevent XSS
+    function escHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;')
+                          .replace(/</g, '&lt;')
+                          .replace(/>/g, '&gt;')
+                          .replace(/"/g, '&quot;')
+                          .replace(/'/g, '&#39;');
+    }
+
     const FFCAudienceAdmin = {
 
         init: function() {
@@ -68,7 +78,7 @@
                                 var html = '';
                                 response.data.forEach(function(user) {
                                     if (!selectedUsers[user.id]) {
-                                        html += '<div class="ffc-user-result" data-id="' + user.id + '" data-name="' + user.name + '">' + user.name + ' (' + user.email + ')</div>';
+                                        html += '<div class="ffc-user-result" data-id="' + user.id + '" data-name="' + escHtml(user.name) + '">' + escHtml(user.name) + ' (' + escHtml(user.email) + ')</div>';
                                     }
                                 });
                                 $('#user_results').html(html).addClass('active');
@@ -99,7 +109,7 @@
                 var html = '';
                 var ids = [];
                 for (var id in selectedUsers) {
-                    html += '<span class="ffc-selected-user">' + selectedUsers[id] + '<span class="remove" data-id="' + id + '">&times;</span></span>';
+                    html += '<span class="ffc-selected-user">' + escHtml(selectedUsers[id]) + '<span class="remove" data-id="' + id + '">&times;</span></span>';
                     ids.push(id);
                 }
                 $('#selected_users').html(html);
@@ -185,13 +195,14 @@
                 $('#ffc-booking-modal').remove();
 
                 // Show loading modal
-                var $modal = $('<div id="ffc-booking-modal" class="ffc-admin-modal-overlay">' +
+                var $modal = $('<div id="ffc-booking-modal" class="ffc-admin-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="ffc-admin-modal-title">' +
                     '<div class="ffc-admin-modal">' +
-                    '<div class="ffc-admin-modal-header"><h3>' + esc(strings.bookingDetails || 'Booking Details') + '</h3><button type="button" class="ffc-admin-modal-close">&times;</button></div>' +
+                    '<div class="ffc-admin-modal-header"><h3 id="ffc-admin-modal-title">' + esc(strings.bookingDetails || 'Booking Details') + '</h3><button type="button" class="ffc-admin-modal-close" aria-label="Close">&times;</button></div>' +
                     '<div class="ffc-admin-modal-body"><p>' + esc(strings.loading || 'Loading...') + '</p></div>' +
                     '</div></div>');
                 $('body').append($modal);
                 $modal.show();
+                $modal.find('.ffc-admin-modal-close').focus();
 
                 $.ajax({
                     url: ajaxurl,
@@ -247,6 +258,13 @@
             // Close modal
             $(document).on('click', '.ffc-admin-modal-close, .ffc-admin-modal-overlay', function(e) {
                 if (e.target === this) {
+                    $('#ffc-booking-modal').remove();
+                }
+            });
+
+            // Close modal on Escape key
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' && $('#ffc-booking-modal').length) {
                     $('#ffc-booking-modal').remove();
                 }
             });

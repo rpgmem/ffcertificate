@@ -2,16 +2,19 @@
 declare(strict_types=1);
 
 /**
- * User Data REST Controller
+ * User Data REST Controller (Coordinator)
  *
- * Handles user-facing REST API endpoints:
- *   GET  /user/certificates      – Current user's certificates
- *   GET  /user/profile           – Current user's profile
- *   PUT  /user/profile           – Update current user's profile
- *   GET  /user/appointments      – Current user's self-scheduling appointments
- *   GET  /user/audience-bookings – Current user's audience bookings
+ * Thin coordinator that initialises all user-facing REST sub-controllers:
+ *
+ *   UserCertificatesRestController     – GET  /user/certificates
+ *   UserProfileRestController          – GET|PUT /user/profile, POST /user/change-password, POST /user/privacy-request
+ *   UserAppointmentsRestController     – GET  /user/appointments
+ *   UserAudienceRestController         – GET  /user/audience-bookings, GET /user/joinable-groups, POST /user/audience-group/join|leave
+ *   UserSummaryRestController          – GET  /user/summary
+ *   UserReregistrationsRestController  – GET  /user/reregistrations
  *
  * @since 4.6.1
+ * @version 4.12.7 - Refactored into coordinator + 6 sub-controllers
  * @package FreeFormCertificate\API
  */
 
@@ -19,16 +22,19 @@ namespace FreeFormCertificate\API;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
 class UserDataRestController {
-
-    use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
     /**
      * API namespace
      */
     private string $namespace;
+
+    /**
+     * Sub-controller instances (lazy-loaded on register_routes)
+     *
+     * @var array<object>
+     */
+    private array $sub_controllers = array();
 
     /**
      * Constructor
@@ -40,1376 +46,110 @@ class UserDataRestController {
     }
 
     /**
-     * Register routes
+     * Register routes via sub-controllers
      */
     public function register_routes(): void {
-        register_rest_route($this->namespace, '/user/certificates', array(
-            'methods' => \WP_REST_Server::READABLE,
-            'callback' => array($this, 'get_user_certificates'),
-            'permission_callback' => 'is_user_logged_in',
-        ));
+        $this->sub_controllers = array(
+            'certificates'    => new UserCertificatesRestController($this->namespace),
+            'profile'         => new UserProfileRestController($this->namespace),
+            'appointments'    => new UserAppointmentsRestController($this->namespace),
+            'audience'        => new UserAudienceRestController($this->namespace),
+            'summary'         => new UserSummaryRestController($this->namespace),
+            'reregistrations' => new UserReregistrationsRestController($this->namespace),
+        );
 
-        register_rest_route($this->namespace, '/user/profile', array(
-            array(
-                'methods' => \WP_REST_Server::READABLE,
-                'callback' => array($this, 'get_user_profile'),
-                'permission_callback' => 'is_user_logged_in',
-            ),
-            array(
-                'methods' => 'PUT',
-                'callback' => array($this, 'update_user_profile'),
-                'permission_callback' => 'is_user_logged_in',
-            ),
-        ));
-
-        register_rest_route($this->namespace, '/user/appointments', array(
-            'methods' => \WP_REST_Server::READABLE,
-            'callback' => array($this, 'get_user_appointments'),
-            'permission_callback' => 'is_user_logged_in',
-        ));
-
-        register_rest_route($this->namespace, '/user/audience-bookings', array(
-            'methods' => \WP_REST_Server::READABLE,
-            'callback' => array($this, 'get_user_audience_bookings'),
-            'permission_callback' => 'is_user_logged_in',
-        ));
-
-        register_rest_route($this->namespace, '/user/change-password', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'change_password'),
-            'permission_callback' => 'is_user_logged_in',
-        ));
-
-        register_rest_route($this->namespace, '/user/privacy-request', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'create_privacy_request'),
-            'permission_callback' => 'is_user_logged_in',
-        ));
-
-        register_rest_route($this->namespace, '/user/summary', array(
-            'methods' => \WP_REST_Server::READABLE,
-            'callback' => array($this, 'get_user_summary'),
-            'permission_callback' => 'is_user_logged_in',
-        ));
-
-        register_rest_route($this->namespace, '/user/joinable-groups', array(
-            'methods' => \WP_REST_Server::READABLE,
-            'callback' => array($this, 'get_joinable_groups'),
-            'permission_callback' => 'is_user_logged_in',
-        ));
-
-        register_rest_route($this->namespace, '/user/audience-group/join', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'join_audience_group'),
-            'permission_callback' => 'is_user_logged_in',
-        ));
-
-        register_rest_route($this->namespace, '/user/audience-group/leave', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'leave_audience_group'),
-            'permission_callback' => 'is_user_logged_in',
-        ));
-
-        register_rest_route($this->namespace, '/user/reregistrations', array(
-            'methods' => \WP_REST_Server::READABLE,
-            'callback' => array($this, 'get_user_reregistrations'),
-            'permission_callback' => 'is_user_logged_in',
-        ));
-    }
-
-    /**
-     * Resolve effective user_id and whether view-as is active
-     *
-     * When admin uses view-as, capability checks must use the TARGET
-     * user's capabilities so the admin sees exactly what the user would see.
-     *
-     * @since 4.9.7
-     * @param \WP_REST_Request $request
-     * @return array{user_id: int, is_view_as: bool}
-     */
-    private function resolve_user_context($request): array {
-        $user_id = get_current_user_id();
-        $is_view_as = false;
-
-        $view_as_user_id = $request->get_param('viewAsUserId');
-        if ($view_as_user_id && current_user_can('manage_options')) {
-            $user_id = absint($view_as_user_id);
-            $is_view_as = true;
+        foreach ($this->sub_controllers as $controller) {
+            $controller->register_routes();
         }
-
-        return array('user_id' => $user_id, 'is_view_as' => $is_view_as);
     }
 
-    /**
-     * Check if a capability is granted for the effective user
-     *
-     * In view-as mode, checks the TARGET user's capabilities.
-     * Otherwise, checks the current user's capabilities.
-     *
-     * @since 4.9.7
-     * @param string $capability Capability name
-     * @param int $user_id Target user ID
-     * @param bool $is_view_as Whether view-as mode is active
-     * @return bool
-     */
-    private function user_has_capability(string $capability, int $user_id, bool $is_view_as): bool {
-        if ($is_view_as) {
-            return user_can($user_id, $capability);
-        }
-        return current_user_can('manage_options') || current_user_can($capability);
-    }
+    // ------------------------------------------------------------------
+    // Backward-compatible delegate methods
+    //
+    // External code (or tests) may call these directly. Each method
+    // delegates to the appropriate sub-controller.
+    // ------------------------------------------------------------------
 
-    /**
-     * GET /user/certificates
-     *
-     * @since 3.1.0
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response|\WP_Error
-     */
+    /** @param \WP_REST_Request $request */
     public function get_user_certificates($request) {
-        try {
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
-
-            if (!$user_id) {
-                return new \WP_Error(
-                    'not_logged_in',
-                    __('You must be logged in to view certificates', 'ffcertificate'),
-                    array('status' => 401)
-                );
-            }
-
-            if (!$this->user_has_capability('view_own_certificates', $user_id, $ctx['is_view_as'])) {
-                return new \WP_Error(
-                    'capability_denied',
-                    __('You do not have permission to view certificates', 'ffcertificate'),
-                    array('status' => 403)
-                );
-            }
-
-            global $wpdb;
-
-            if (!class_exists('\FreeFormCertificate\Core\Utils')) {
-                return new \WP_Error('missing_class', __('FFC_Utils class not found', 'ffcertificate'), array('status' => 500));
-            }
-
-            $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
-
-            $settings = get_option('ffc_settings', array());
-            $date_format = $settings['date_format'] ?? 'F j, Y';
-
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $submissions = $wpdb->get_results($wpdb->prepare(
-                "SELECT s.*, p.post_title as form_title
-                 FROM {$table} s
-                 LEFT JOIN {$wpdb->posts} p ON s.form_id = p.ID
-                 WHERE s.user_id = %d
-                 AND s.status != 'trash'
-                 ORDER BY s.submission_date DESC",
-                $user_id
-            ), ARRAY_A);
-
-            // Check per-capability permissions for the target user
-            $can_download = $this->user_has_capability('download_own_certificates', $user_id, $ctx['is_view_as']);
-            $can_view_history = $this->user_has_capability('view_certificate_history', $user_id, $ctx['is_view_as']);
-
-            $certificates = array();
-
-            foreach ($submissions as $submission) {
-                $email_plain = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'email');
-                $email_display = ($email_plain !== '') ? \FreeFormCertificate\Core\Utils::mask_email($email_plain) : '';
-
-                $verification_page_id = get_option('ffc_verification_page_id');
-                $verification_url = $verification_page_id ? get_permalink((int) $verification_page_id) : home_url('/valid');
-
-                $magic_link = '';
-                if (!empty($submission['magic_token'])) {
-                    $magic_link = add_query_arg('token', $submission['magic_token'], $verification_url);
-                }
-
-                $auth_code_formatted = '';
-                if (!empty($submission['auth_code'])) {
-                    $auth_code_formatted = \FreeFormCertificate\Core\Utils::format_auth_code($submission['auth_code']);
-                }
-
-                $date_formatted = '';
-                if (!empty($submission['submission_date'])) {
-                    $timestamp = strtotime($submission['submission_date']);
-                    $date_formatted = ($timestamp !== false) ? date_i18n($date_format, $timestamp) : $submission['submission_date'];
-                }
-
-                $certificates[] = array(
-                    'id' => (int) ($submission['id'] ?? 0),
-                    'form_id' => (int) ($submission['form_id'] ?? 0),
-                    'form_title' => $submission['form_title'] ?? __('Unknown Form', 'ffcertificate'),
-                    'submission_date' => $date_formatted ?: '',
-                    'submission_date_raw' => $submission['submission_date'] ?? '',
-                    'consent_given' => !empty($submission['consent_given']),
-                    'email' => $email_display,
-                    'auth_code' => $auth_code_formatted,
-                    'magic_link' => $can_download ? $magic_link : '',
-                    'pdf_url' => $can_download ? $magic_link : '',
-                );
-            }
-
-            // When view_certificate_history is disabled, keep only the most recent per form
-            if (!$can_view_history && !empty($certificates)) {
-                $seen_forms = array();
-                $filtered = array();
-                foreach ($certificates as $cert) {
-                    if (!isset($seen_forms[$cert['form_id']])) {
-                        $seen_forms[$cert['form_id']] = true;
-                        $filtered[] = $cert;
-                    }
-                }
-                $certificates = $filtered;
-            }
-
-            return rest_ensure_response(array(
-                'certificates' => $certificates,
-                'total' => count($certificates),
-            ));
-
-        } catch (\Exception $e) {
-            if (class_exists('\FreeFormCertificate\Core\Utils')) {
-                \FreeFormCertificate\Core\Utils::debug_log('get_user_certificates error', array(
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'trace' => $e->getTraceAsString()
-                ));
-            }
-            return new \WP_Error(
-                'get_certificates_error',
-                $e->getMessage(),
-                array('status' => 500)
-            );
-        }
+        return $this->get_sub('certificates')->get_user_certificates($request);
     }
 
-    /**
-     * GET /user/profile
-     *
-     * @since 3.1.0
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response|\WP_Error
-     */
+    /** @param \WP_REST_Request $request */
     public function get_user_profile($request) {
-        try {
-            global $wpdb;
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
-
-            if (!$user_id) {
-                return new \WP_Error(
-                    'not_logged_in',
-                    __('You must be logged in to view profile', 'ffcertificate'),
-                    array('status' => 401)
-                );
-            }
-
-            if (!class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
-                $user_manager_file = FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-user-manager.php';
-                if (file_exists($user_manager_file)) {
-                    require_once $user_manager_file;
-                }
-            }
-
-            $user = get_user_by('id', $user_id);
-
-            if (!$user) {
-                return new \WP_Error(
-                    'user_not_found',
-                    __('User not found', 'ffcertificate'),
-                    array('status' => 404)
-                );
-            }
-
-            // Load profile from ffc_user_profiles (primary) with wp_users fallback
-            $profile = array();
-            if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
-                $profile = \FreeFormCertificate\UserDashboard\UserManager::get_profile($user_id);
-            }
-
-            $cpfs_masked = array();
-            if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
-                $cpfs_masked = \FreeFormCertificate\UserDashboard\UserManager::get_user_cpfs_masked($user_id);
-            }
-
-            $emails = array();
-            if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
-                $emails = \FreeFormCertificate\UserDashboard\UserManager::get_user_emails($user_id);
-            }
-
-            $names = array();
-            if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
-                $names = \FreeFormCertificate\UserDashboard\UserManager::get_user_names($user_id);
-            }
-
-            $member_since = '';
-            if (!empty($user->user_registered)) {
-                $settings = get_option('ffc_settings', array());
-                $date_format = $settings['date_format'] ?? 'F j, Y';
-                $timestamp = strtotime($user->user_registered);
-                $member_since = ($timestamp !== false) ? date_i18n($date_format, $timestamp) : '';
-            }
-
-            $audience_groups = array();
-            $audiences_table = $wpdb->prefix . 'ffc_audiences';
-            $members_table = $wpdb->prefix . 'ffc_audience_members';
-
-            if (self::table_exists($members_table)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                $audience_groups = $wpdb->get_results($wpdb->prepare(
-                    "SELECT a.name, a.color
-                     FROM {$members_table} m
-                     INNER JOIN {$audiences_table} a ON a.id = m.audience_id
-                     WHERE m.user_id = %d AND a.status = 'active'
-                     ORDER BY a.name ASC",
-                    $user_id
-                ), ARRAY_A);
-
-                if (!is_array($audience_groups)) {
-                    $audience_groups = array();
-                }
-            }
-
-            // Decode preferences JSON
-            $preferences = array();
-            if (!empty($profile['preferences'])) {
-                $decoded = json_decode($profile['preferences'], true);
-                if (is_array($decoded)) {
-                    $preferences = $decoded;
-                }
-            }
-
-            return rest_ensure_response(array(
-                'user_id' => $user_id,
-                'display_name' => !empty($profile['display_name']) ? $profile['display_name'] : $user->display_name,
-                'names' => $names,
-                'email' => $user->user_email,
-                'emails' => $emails,
-                'cpf_masked' => !empty($cpfs_masked) ? $cpfs_masked[0] : __('Not found', 'ffcertificate'),
-                'cpfs_masked' => $cpfs_masked,
-                'phone' => $profile['phone'] ?? '',
-                'department' => $profile['department'] ?? '',
-                'organization' => $profile['organization'] ?? '',
-                'notes' => $profile['notes'] ?? '',
-                'preferences' => $preferences,
-                'member_since' => $member_since,
-                'roles' => $user->roles,
-                'audience_groups' => $audience_groups,
-            ));
-
-        } catch (\Exception $e) {
-            return new \WP_Error(
-                'get_profile_error',
-                $e->getMessage(),
-                array('status' => 500)
-            );
-        }
+        return $this->get_sub('profile')->get_user_profile($request);
     }
 
-    /**
-     * PUT /user/profile
-     *
-     * Allows the logged-in user to update their own profile fields:
-     * display_name, phone, department, organization, notes.
-     *
-     * @since 4.9.6
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response|\WP_Error
-     */
+    /** @param \WP_REST_Request $request */
     public function update_user_profile($request) {
-        try {
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
-
-            if (!$user_id) {
-                return new \WP_Error(
-                    'not_logged_in',
-                    __('You must be logged in to update profile', 'ffcertificate'),
-                    array('status' => 401)
-                );
-            }
-
-            if (!class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
-                return new \WP_Error(
-                    'missing_class',
-                    __('UserManager class not found', 'ffcertificate'),
-                    array('status' => 500)
-                );
-            }
-
-            $data = array();
-            $allowed_fields = array('display_name', 'phone', 'department', 'organization', 'notes');
-
-            foreach ($allowed_fields as $field) {
-                $value = $request->get_param($field);
-                if ($value !== null) {
-                    $data[$field] = $value;
-                }
-            }
-
-            // Handle preferences (JSON object)
-            $preferences = $request->get_param('preferences');
-            if ($preferences !== null && is_array($preferences)) {
-                $data['preferences'] = $preferences;
-            }
-
-            if (empty($data)) {
-                return new \WP_Error(
-                    'no_data',
-                    __('No profile data provided', 'ffcertificate'),
-                    array('status' => 400)
-                );
-            }
-
-            $result = \FreeFormCertificate\UserDashboard\UserManager::update_profile($user_id, $data);
-
-            if (!$result) {
-                return new \WP_Error(
-                    'update_failed',
-                    __('Failed to update profile', 'ffcertificate'),
-                    array('status' => 500)
-                );
-            }
-
-            // Log profile update
-            if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-                \FreeFormCertificate\Core\ActivityLog::log_profile_updated($user_id, array_keys($data));
-            }
-
-            // Return updated profile
-            return $this->get_user_profile($request);
-
-        } catch (\Exception $e) {
-            return new \WP_Error(
-                'update_profile_error',
-                $e->getMessage(),
-                array('status' => 500)
-            );
-        }
+        return $this->get_sub('profile')->update_user_profile($request);
     }
 
-    /**
-     * GET /user/appointments
-     *
-     * @since 4.1.0
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response|\WP_Error
-     */
+    /** @param \WP_REST_Request $request */
     public function get_user_appointments($request) {
-        try {
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
-
-            if (!$user_id) {
-                return new \WP_Error(
-                    'not_logged_in',
-                    __('You must be logged in to view appointments', 'ffcertificate'),
-                    array('status' => 401)
-                );
-            }
-
-            if (!$this->user_has_capability('ffc_view_self_scheduling', $user_id, $ctx['is_view_as'])) {
-                return new \WP_Error(
-                    'capability_denied',
-                    __('You do not have permission to view appointments', 'ffcertificate'),
-                    array('status' => 403)
-                );
-            }
-
-            if (!class_exists('\FreeFormCertificate\Repositories\AppointmentRepository')) {
-                return new \WP_Error(
-                    'repository_not_found',
-                    __('Appointment repository not available', 'ffcertificate'),
-                    array('status' => 500)
-                );
-            }
-
-            if (!class_exists('\FreeFormCertificate\Repositories\CalendarRepository')) {
-                return new \WP_Error(
-                    'calendar_repository_not_found',
-                    __('Calendar repository not available', 'ffcertificate'),
-                    array('status' => 500)
-                );
-            }
-
-            $appointment_repository = new \FreeFormCertificate\Repositories\AppointmentRepository();
-            $calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
-
-            $appointments = $appointment_repository->findByUserId($user_id);
-
-            if (!is_array($appointments)) {
-                $appointments = array();
-            }
-
-            $date_format = get_option('date_format', 'F j, Y');
-
-            // Batch load all calendars to avoid N+1 queries
-            $calendar_ids = array_unique( array_filter( array_map( function ( $apt ) {
-                return (int) ( $apt['calendar_id'] ?? 0 );
-            }, $appointments ) ) );
-            $calendars_map = ! empty( $calendar_ids ) ? $calendar_repository->findByIds( $calendar_ids ) : [];
-
-            $appointments_formatted = array();
-
-            foreach ($appointments as $appointment) {
-                if (!is_array($appointment) || empty($appointment['id'])) {
-                    continue;
-                }
-
-                $calendar_title = __('Unknown Calendar', 'ffcertificate');
-                $calendar = null;
-                if (!empty($appointment['calendar_id'])) {
-                    $calendar = $calendars_map[ (int) $appointment['calendar_id'] ] ?? null;
-                    if ($calendar && isset($calendar['title'])) {
-                        $calendar_title = $calendar['title'];
-                    }
-                }
-
-                $date_formatted = '';
-                if (!empty($appointment['appointment_date'])) {
-                    $timestamp = strtotime($appointment['appointment_date']);
-                    $date_formatted = ($timestamp !== false) ? date_i18n($date_format, $timestamp) : $appointment['appointment_date'];
-                }
-
-                $time_formatted = '';
-                if (!empty($appointment['start_time'])) {
-                    $time_timestamp = strtotime($appointment['start_time']);
-                    $time_formatted = ($time_timestamp !== false) ? date_i18n('H:i', $time_timestamp) : $appointment['start_time'];
-                }
-
-                $email_display = \FreeFormCertificate\Core\Encryption::decrypt_field($appointment, 'email');
-
-                $end_time_formatted = '';
-                if (!empty($appointment['end_time'])) {
-                    $end_timestamp = strtotime($appointment['end_time']);
-                    $end_time_formatted = ($end_timestamp !== false) ? date_i18n('H:i', $end_timestamp) : '';
-                }
-
-                $status_labels = array(
-                    'pending' => __('Pending', 'ffcertificate'),
-                    'confirmed' => __('Confirmed', 'ffcertificate'),
-                    'cancelled' => __('Cancelled', 'ffcertificate'),
-                    'completed' => __('Completed', 'ffcertificate'),
-                    'no_show' => __('No Show', 'ffcertificate'),
-                );
-
-                $status = $appointment['status'] ?? 'pending';
-
-                $receipt_url = '';
-                if ( $status !== 'cancelled' ) {
-                    $confirmation_token = $appointment['confirmation_token'] ?? '';
-                    if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
-                        $receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
-                    } elseif (class_exists('\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler')) {
-                        $receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
-                            (int) $appointment['id'],
-                            $confirmation_token
-                        );
-                    }
-                }
-
-                $can_cancel = false;
-                if (in_array($status, ['pending', 'confirmed'])) {
-                    $appointment_time = ( new \DateTimeImmutable( $appointment['appointment_date'] . ' ' . ( $appointment['start_time'] ?? '23:59:59' ), wp_timezone() ) )->getTimestamp();
-                    $now = time();
-
-                    if ($appointment_time > $now) {
-                        if (current_user_can('manage_options')) {
-                            $can_cancel = true;
-                        } elseif ($calendar && is_array($calendar) && !empty($calendar['allow_cancellation'])) {
-                            $can_cancel = true;
-                            if (!empty($calendar['cancellation_min_hours']) && $calendar['cancellation_min_hours'] > 0) {
-                                $deadline = $appointment_time - ($calendar['cancellation_min_hours'] * 3600);
-                                if ($now > $deadline) {
-                                    $can_cancel = false;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                $appointments_formatted[] = array(
-                    'id' => (int) $appointment['id'],
-                    'calendar_id' => (int) ($appointment['calendar_id'] ?? 0),
-                    'calendar_title' => $calendar_title,
-                    'appointment_date' => $date_formatted,
-                    'appointment_date_raw' => $appointment['appointment_date'] ?? '',
-                    'start_time' => $time_formatted,
-                    'start_time_raw' => $appointment['start_time'] ?? '',
-                    'end_time' => $end_time_formatted,
-                    'status' => $status,
-                    'status_label' => $status_labels[$status] ?? $status,
-                    'name' => $appointment['name'] ?? '',
-                    'email' => $email_display,
-                    'phone' => $appointment['phone'] ?? '',
-                    'user_notes' => $appointment['user_notes'] ?? '',
-                    'created_at' => $appointment['created_at'] ?? '',
-                    'can_cancel' => $can_cancel,
-                    'receipt_url' => $receipt_url,
-                );
-            }
-
-            return rest_ensure_response(array(
-                'appointments' => $appointments_formatted,
-                'total' => count($appointments_formatted),
-            ));
-
-        } catch (\Exception $e) {
-            if (class_exists('\FreeFormCertificate\Core\Utils')) {
-                \FreeFormCertificate\Core\Utils::debug_log('get_user_appointments error', array(
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'trace' => $e->getTraceAsString()
-                ));
-            }
-
-            return new \WP_Error(
-                'get_appointments_error',
-                /* translators: %s: error message */
-                sprintf(__('Error loading appointments: %s', 'ffcertificate'), $e->getMessage()),
-                array('status' => 500)
-            );
-        }
+        return $this->get_sub('appointments')->get_user_appointments($request);
     }
 
-    /**
-     * GET /user/audience-bookings
-     *
-     * @since 4.5.0
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response|\WP_Error
-     */
+    /** @param \WP_REST_Request $request */
     public function get_user_audience_bookings($request) {
-        try {
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
-
-            if (!$user_id) {
-                return new \WP_Error(
-                    'not_logged_in',
-                    __('You must be logged in to view bookings', 'ffcertificate'),
-                    array('status' => 401)
-                );
-            }
-
-            if (!$this->user_has_capability('ffc_view_audience_bookings', $user_id, $ctx['is_view_as'])) {
-                return new \WP_Error(
-                    'capability_denied',
-                    __('You do not have permission to view audience bookings', 'ffcertificate'),
-                    array('status' => 403)
-                );
-            }
-
-            global $wpdb;
-
-            $date_format = get_option('date_format', 'F j, Y');
-
-            $bookings_table = $wpdb->prefix . 'ffc_audience_bookings';
-            $users_table = $wpdb->prefix . 'ffc_audience_booking_users';
-            $booking_audiences_table = $wpdb->prefix . 'ffc_audience_booking_audiences';
-            $members_table = $wpdb->prefix . 'ffc_audience_members';
-            $audience_names_table = $wpdb->prefix . 'ffc_audiences';
-            $environments_table = $wpdb->prefix . 'ffc_audience_environments';
-            $schedules_table = $wpdb->prefix . 'ffc_audience_schedules';
-
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            $bookings = $wpdb->get_results($wpdb->prepare(
-                "SELECT DISTINCT b.*, e.name as environment_name, s.name as schedule_name
-                 FROM {$bookings_table} b
-                 LEFT JOIN {$users_table} bu ON b.id = bu.booking_id
-                 LEFT JOIN {$booking_audiences_table} ba ON b.id = ba.booking_id
-                 LEFT JOIN {$members_table} am ON ba.audience_id = am.audience_id
-                 LEFT JOIN {$environments_table} e ON b.environment_id = e.id
-                 LEFT JOIN {$schedules_table} s ON e.schedule_id = s.id
-                 WHERE (bu.user_id = %d OR am.user_id = %d)
-                 ORDER BY b.booking_date DESC, b.start_time DESC",
-                $user_id,
-                $user_id
-            ), ARRAY_A);
-
-            if (!is_array($bookings)) {
-                $bookings = array();
-            }
-
-            // Batch load audiences for all bookings to avoid N+1 queries
-            $audiences_map = [];
-            $booking_ids = array_filter( array_map( function ( $b ) {
-                return (int) ( $b['id'] ?? 0 );
-            }, $bookings ) );
-
-            if ( ! empty( $booking_ids ) ) {
-                $safe_ids = array_map( 'absint', $booking_ids );
-                $id_list  = implode( ',', $safe_ids );
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                $all_audiences = $wpdb->get_results( $wpdb->prepare(
-                    "SELECT ba.booking_id, a.name, a.color
-                     FROM %i ba
-                     INNER JOIN %i a ON ba.audience_id = a.id
-                     WHERE ba.booking_id IN ({$id_list})",
-                    $booking_audiences_table,
-                    $audience_names_table
-                ), ARRAY_A );
-
-                if ( is_array( $all_audiences ) ) {
-                    foreach ( $all_audiences as $aud ) {
-                        $audiences_map[ (int) $aud['booking_id'] ][] = [
-                            'name'  => $aud['name'],
-                            'color' => $aud['color'] ?? '#2271b1',
-                        ];
-                    }
-                }
-            }
-
-            $bookings_formatted = array();
-
-            foreach ($bookings as $booking) {
-                $date_formatted = '';
-                if (!empty($booking['booking_date'])) {
-                    $timestamp = strtotime($booking['booking_date']);
-                    $date_formatted = ($timestamp !== false) ? date_i18n($date_format, $timestamp) : $booking['booking_date'];
-                }
-
-                $time_formatted = '';
-                if (!empty($booking['start_time'])) {
-                    $time_timestamp = strtotime($booking['start_time']);
-                    $time_formatted = ($time_timestamp !== false) ? date_i18n('H:i', $time_timestamp) : $booking['start_time'];
-                }
-
-                $end_time_formatted = '';
-                if (!empty($booking['end_time'])) {
-                    $end_timestamp = strtotime($booking['end_time']);
-                    $end_time_formatted = ($end_timestamp !== false) ? date_i18n('H:i', $end_timestamp) : '';
-                }
-
-                $status_labels = array(
-                    'active' => __('Confirmed', 'ffcertificate'),
-                    'cancelled' => __('Cancelled', 'ffcertificate'),
-                );
-
-                $status = $booking['status'] ?? 'active';
-                $is_past = strtotime($booking['booking_date']) < strtotime('today');
-
-                $bookings_formatted[] = array(
-                    'id' => (int) $booking['id'],
-                    'environment_id' => (int) ($booking['environment_id'] ?? 0),
-                    'environment_name' => $booking['environment_name'] ?? __('Unknown', 'ffcertificate'),
-                    'schedule_name' => $booking['schedule_name'] ?? '',
-                    'booking_date' => $date_formatted,
-                    'booking_date_raw' => $booking['booking_date'] ?? '',
-                    'start_time' => $time_formatted,
-                    'end_time' => $end_time_formatted,
-                    'description' => $booking['description'] ?? '',
-                    'status' => $status,
-                    'status_label' => $status_labels[$status] ?? $status,
-                    'is_past' => $is_past,
-                    'audiences' => $audiences_map[ (int) $booking['id'] ] ?? [],
-                );
-            }
-
-            return rest_ensure_response(array(
-                'bookings' => $bookings_formatted,
-                'total' => count($bookings_formatted),
-            ));
-
-        } catch (\Exception $e) {
-            if (class_exists('\FreeFormCertificate\Core\Utils')) {
-                \FreeFormCertificate\Core\Utils::debug_log('get_user_audience_bookings error', array(
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'trace' => $e->getTraceAsString()
-                ));
-            }
-
-            return new \WP_Error(
-                'get_audience_bookings_error',
-                /* translators: %s: error message */
-                sprintf(__('Error loading audience bookings: %s', 'ffcertificate'), $e->getMessage()),
-                array('status' => 500)
-            );
-        }
+        return $this->get_sub('audience')->get_user_audience_bookings($request);
     }
 
-    /**
-     * POST /user/change-password
-     *
-     * @since 4.9.8
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response|\WP_Error
-     */
+    /** @param \WP_REST_Request $request */
     public function change_password($request) {
-        try {
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
-
-            if (!$user_id) {
-                return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
-            }
-
-            // Rate limit: 3/hour, 5/day for password changes
-            if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
-                $rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit($user_id, 'password_change', 3, 5);
-                if (!$rate_check['allowed']) {
-                    return new \WP_Error('rate_limited', $rate_check['message'], array('status' => 429));
-                }
-            }
-
-            $current_password = $request->get_param('current_password');
-            $new_password = $request->get_param('new_password');
-
-            if (empty($new_password)) {
-                return new \WP_Error('missing_fields', __('All password fields are required', 'ffcertificate'), array('status' => 400));
-            }
-
-            if (strlen($new_password) < 8) {
-                return new \WP_Error('password_too_short', __('Password must be at least 8 characters', 'ffcertificate'), array('status' => 400));
-            }
-
-            $user = get_user_by('id', $user_id);
-
-            // Admin in view-as mode can skip current password verification
-            if (!$ctx['is_view_as']) {
-                if (empty($current_password)) {
-                    return new \WP_Error('missing_fields', __('All password fields are required', 'ffcertificate'), array('status' => 400));
-                }
-                if (!wp_check_password($current_password, $user->user_pass, $user_id)) {
-                    return new \WP_Error('wrong_password', __('Current password is incorrect', 'ffcertificate'), array('status' => 403));
-                }
-            }
-
-            wp_set_password($new_password, $user_id);
-
-            // Re-authenticate: in view-as mode keep the admin session, otherwise re-auth the user
-            if (!$ctx['is_view_as']) {
-                wp_set_current_user($user_id);
-                wp_set_auth_cookie($user_id, true);
-            }
-
-            // Log password change
-            if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-                \FreeFormCertificate\Core\ActivityLog::log_password_changed($user_id);
-            }
-
-            return rest_ensure_response(array(
-                'success' => true,
-                'message' => __('Password changed successfully!', 'ffcertificate'),
-            ));
-
-        } catch (\Exception $e) {
-            return new \WP_Error('password_error', __('Error changing password', 'ffcertificate'), array('status' => 500));
-        }
+        return $this->get_sub('profile')->change_password($request);
     }
 
-    /**
-     * POST /user/privacy-request
-     *
-     * Creates a WordPress privacy request (export or erasure).
-     * Erasure requests require admin approval.
-     *
-     * @since 4.9.8
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response|\WP_Error
-     */
+    /** @param \WP_REST_Request $request */
     public function create_privacy_request($request) {
-        try {
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
-
-            if (!$user_id) {
-                return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
-            }
-
-            // Rate limit: 2/hour, 3/day for privacy requests
-            if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
-                $rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit($user_id, 'privacy_request', 2, 3);
-                if (!$rate_check['allowed']) {
-                    return new \WP_Error('rate_limited', $rate_check['message'], array('status' => 429));
-                }
-            }
-
-            $type = $request->get_param('type');
-            if (!in_array($type, array('export_personal_data', 'remove_personal_data'), true)) {
-                return new \WP_Error('invalid_type', __('Invalid request type', 'ffcertificate'), array('status' => 400));
-            }
-
-            $user = get_user_by('id', $user_id);
-            $result = wp_create_user_request($user->user_email, $type);
-
-            if (is_wp_error($result)) {
-                return new \WP_Error(
-                    'privacy_request_error',
-                    $result->get_error_message(),
-                    array('status' => 400)
-                );
-            }
-
-            // Log privacy request
-            if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-                \FreeFormCertificate\Core\ActivityLog::log_privacy_request($user_id, $type);
-            }
-
-            return rest_ensure_response(array(
-                'success' => true,
-                'message' => __('Request sent! The administrator will review it.', 'ffcertificate'),
-            ));
-
-        } catch (\Exception $e) {
-            return new \WP_Error('privacy_error', __('Error processing privacy request', 'ffcertificate'), array('status' => 500));
-        }
+        return $this->get_sub('profile')->create_privacy_request($request);
     }
 
-    /**
-     * GET /user/summary
-     *
-     * Returns dashboard summary: total certificates, next appointment, upcoming group events.
-     *
-     * @since 4.9.8
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response|\WP_Error
-     */
+    /** @param \WP_REST_Request $request */
     public function get_user_summary($request) {
-        try {
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
-
-            global $wpdb;
-
-            $summary = array(
-                'total_certificates' => 0,
-                'next_appointment' => null,
-                'upcoming_group_events' => 0,
-                'pending_reregistrations' => 0,
-            );
-
-            // Count certificates
-            if ($this->user_has_capability('view_own_certificates', $user_id, $ctx['is_view_as'])) {
-                $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $summary['total_certificates'] = (int) $wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND status != 'trash'",
-                    $user_id
-                ));
-            }
-
-            // Next appointment
-            if ($this->user_has_capability('ffc_view_self_scheduling', $user_id, $ctx['is_view_as'])) {
-                $apt_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-                $calendars_table = $wpdb->prefix . 'ffc_self_scheduling_calendars';
-
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                $next = $wpdb->get_row($wpdb->prepare(
-                    "SELECT a.appointment_date, a.start_time, c.title as calendar_title
-                     FROM {$apt_table} a
-                     LEFT JOIN {$calendars_table} c ON a.calendar_id = c.id
-                     WHERE a.user_id = %d
-                       AND a.status IN ('pending', 'confirmed')
-                       AND a.appointment_date >= CURDATE()
-                     ORDER BY a.appointment_date ASC, a.start_time ASC
-                     LIMIT 1",
-                    $user_id
-                ), ARRAY_A);
-
-                if ($next) {
-                    $settings = get_option('ffc_settings', array());
-                    $date_format = $settings['date_format'] ?? 'F j, Y';
-                    $timestamp = strtotime($next['appointment_date']);
-                    $time_formatted = '';
-                    if (!empty($next['start_time'])) {
-                        $time_ts = strtotime($next['start_time']);
-                        $time_formatted = ($time_ts !== false) ? date_i18n('H:i', $time_ts) : '';
-                    }
-
-                    $summary['next_appointment'] = array(
-                        'date' => ($timestamp !== false) ? date_i18n($date_format, $timestamp) : $next['appointment_date'],
-                        'time' => $time_formatted,
-                        'title' => $next['calendar_title'] ?? '',
-                    );
-                }
-            }
-
-            // Upcoming group events
-            if ($this->user_has_capability('ffc_view_audience_bookings', $user_id, $ctx['is_view_as'])) {
-                $bookings_table = $wpdb->prefix . 'ffc_audience_bookings';
-                $users_table = $wpdb->prefix . 'ffc_audience_booking_users';
-                $booking_audiences_table = $wpdb->prefix . 'ffc_audience_booking_audiences';
-                $members_table = $wpdb->prefix . 'ffc_audience_members';
-
-                if (self::table_exists($bookings_table)) {
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-                    $summary['upcoming_group_events'] = (int) $wpdb->get_var($wpdb->prepare(
-                        "SELECT COUNT(DISTINCT b.id)
-                         FROM {$bookings_table} b
-                         LEFT JOIN {$users_table} bu ON b.id = bu.booking_id
-                         LEFT JOIN {$booking_audiences_table} ba ON b.id = ba.booking_id
-                         LEFT JOIN {$members_table} am ON ba.audience_id = am.audience_id
-                         WHERE (bu.user_id = %d OR am.user_id = %d)
-                           AND b.booking_date >= CURDATE()
-                           AND b.status != 'cancelled'",
-                        $user_id,
-                        $user_id
-                    ));
-                }
-            }
-
-            // Pending reregistrations
-            if (class_exists('\FreeFormCertificate\Reregistration\ReregistrationFrontend')) {
-                $rereg_items = \FreeFormCertificate\Reregistration\ReregistrationFrontend::get_user_reregistrations($user_id);
-                $summary['pending_reregistrations'] = count(array_filter($rereg_items, function ($r) {
-                    return $r['can_submit'];
-                }));
-            }
-
-            return rest_ensure_response($summary);
-
-        } catch (\Exception $e) {
-            return rest_ensure_response(array(
-                'total_certificates' => 0,
-                'next_appointment' => null,
-                'upcoming_group_events' => 0,
-                'pending_reregistrations' => 0,
-            ));
-        }
+        return $this->get_sub('summary')->get_user_summary($request);
     }
 
-    /**
-     * Maximum number of self-join groups a user can belong to
-     */
-    private const MAX_SELF_JOIN_GROUPS = 2;
-
-    /**
-     * GET /user/joinable-groups
-     *
-     * Lists audience groups that allow self-join, with the user's current membership status.
-     *
-     * @since 4.9.9
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response|\WP_Error
-     */
+    /** @param \WP_REST_Request $request */
     public function get_joinable_groups($request) {
-        try {
-            global $wpdb;
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
-
-            if (!$user_id) {
-                return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
-            }
-
-            $audiences_table = $wpdb->prefix . 'ffc_audiences';
-            $members_table = $wpdb->prefix . 'ffc_audience_members';
-
-            // Check tables and columns exist
-            if (!self::table_exists($audiences_table) || !self::column_exists($audiences_table, 'allow_self_join')) {
-                return rest_ensure_response(array('groups' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
-            }
-
-            // Get parent audiences that have allow_self_join enabled
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $parents = $wpdb->get_results(
-                "SELECT id, name, color
-                 FROM {$audiences_table}
-                 WHERE allow_self_join = 1 AND parent_id IS NULL AND status = 'active'
-                 ORDER BY name ASC",
-                ARRAY_A
-            );
-
-            if (empty($parents)) {
-                return rest_ensure_response(array('parents' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
-            }
-
-            $parent_ids = array_map('intval', array_column($parents, 'id'));
-            $placeholders = implode(',', array_fill(0, count($parent_ids), '%d'));
-
-            // Get children of those parents, with membership status
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $children = $wpdb->get_results($wpdb->prepare(
-                "SELECT a.id, a.name, a.color, a.parent_id,
-                        CASE WHEN m.id IS NOT NULL THEN 1 ELSE 0 END AS is_member
-                 FROM {$audiences_table} a
-                 LEFT JOIN {$members_table} m ON m.audience_id = a.id AND m.user_id = %d
-                 WHERE a.parent_id IN ({$placeholders}) AND a.allow_self_join = 1 AND a.status = 'active'
-                 ORDER BY a.name ASC",
-                array_merge(array($user_id), $parent_ids)
-            ), ARRAY_A);
-
-            // Group children by parent
-            $children_by_parent = array();
-            $joined_count = 0;
-            foreach ($children as $child) {
-                $pid = (int) $child['parent_id'];
-                $child['id'] = (int) $child['id'];
-                $child['is_member'] = (bool) $child['is_member'];
-                unset($child['parent_id']);
-                if ($child['is_member']) {
-                    $joined_count++;
-                }
-                $children_by_parent[$pid][] = $child;
-            }
-
-            // Build hierarchical response (only include parents that have children)
-            $result = array();
-            foreach ($parents as $p) {
-                $pid = (int) $p['id'];
-                if (!empty($children_by_parent[$pid])) {
-                    $result[] = array(
-                        'id' => $pid,
-                        'name' => $p['name'],
-                        'color' => $p['color'],
-                        'children' => $children_by_parent[$pid],
-                    );
-                }
-            }
-
-            return rest_ensure_response(array(
-                'parents' => $result,
-                'joined_count' => $joined_count,
-                'max_groups' => self::MAX_SELF_JOIN_GROUPS,
-            ));
-
-        } catch (\Exception $e) {
-            return new \WP_Error('joinable_groups_error', __('Error loading joinable groups', 'ffcertificate'), array('status' => 500));
-        }
+        return $this->get_sub('audience')->get_joinable_groups($request);
     }
 
-    /**
-     * POST /user/audience-group/join
-     *
-     * Join a self-joinable audience group. Max 2 self-join groups per user.
-     *
-     * @since 4.9.9
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response|\WP_Error
-     */
+    /** @param \WP_REST_Request $request */
     public function join_audience_group($request) {
-        try {
-            global $wpdb;
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
-            $group_id = absint($request->get_param('group_id'));
-
-            if (!$user_id) {
-                return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
-            }
-
-            if (!$group_id) {
-                return new \WP_Error('missing_group', __('Group ID is required', 'ffcertificate'), array('status' => 400));
-            }
-
-            $audiences_table = $wpdb->prefix . 'ffc_audiences';
-            $members_table = $wpdb->prefix . 'ffc_audience_members';
-
-            // Verify group is a child, active, and allows self-join (only children can be joined)
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $group = $wpdb->get_row($wpdb->prepare(
-                "SELECT id, name FROM {$audiences_table} WHERE id = %d AND status = 'active' AND allow_self_join = 1 AND parent_id IS NOT NULL",
-                $group_id
-            ));
-
-            if (!$group) {
-                return new \WP_Error('invalid_group', __('Group not found or does not allow self-join', 'ffcertificate'), array('status' => 404));
-            }
-
-            // Check already member
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $already = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$members_table} WHERE audience_id = %d AND user_id = %d",
-                $group_id, $user_id
-            ));
-
-            if ($already) {
-                return new \WP_Error('already_member', __('You are already a member of this group', 'ffcertificate'), array('status' => 409));
-            }
-
-            // Count current self-join memberships (only children count)
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $current_count = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$members_table} m
-                 INNER JOIN {$audiences_table} a ON a.id = m.audience_id
-                 WHERE m.user_id = %d AND a.allow_self_join = 1 AND a.parent_id IS NOT NULL",
-                $user_id
-            ));
-
-            if ($current_count >= self::MAX_SELF_JOIN_GROUPS) {
-                return new \WP_Error(
-                    'max_groups_reached',
-                    /* translators: %d: maximum number of groups */
-                    sprintf(__('You can join a maximum of %d groups. Leave one first.', 'ffcertificate'), self::MAX_SELF_JOIN_GROUPS),
-                    array('status' => 422)
-                );
-            }
-
-            // Join the group
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->insert($members_table, array(
-                'audience_id' => $group_id,
-                'user_id' => $user_id,
-            ), array('%d', '%d'));
-
-            // Grant audience capabilities if needed
-            if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
-                \FreeFormCertificate\UserDashboard\UserManager::grant_audience_capabilities($user_id);
-            }
-
-            return rest_ensure_response(array(
-                'success' => true,
-                /* translators: %s: group name */
-                'message' => sprintf(__('You joined "%s"!', 'ffcertificate'), $group->name),
-            ));
-
-        } catch (\Exception $e) {
-            return new \WP_Error('join_group_error', __('Error joining group', 'ffcertificate'), array('status' => 500));
-        }
+        return $this->get_sub('audience')->join_audience_group($request);
     }
 
-    /**
-     * GET /user/reregistrations
-     *
-     * Lists active reregistrations for the current user with submission status.
-     *
-     * @since 4.11.0
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response|\WP_Error
-     */
-    public function get_user_reregistrations($request) {
-        try {
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
-
-            if (!$user_id) {
-                return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
-            }
-
-            if (!class_exists('\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository')) {
-                return rest_ensure_response(array('reregistrations' => array(), 'total' => 0));
-            }
-
-            $submissions = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user($user_id);
-            $date_format = get_option('date_format', 'F j, Y');
-
-            $status_labels = array(
-                'pending'     => __('Pending', 'ffcertificate'),
-                'in_progress' => __('In Progress', 'ffcertificate'),
-                'submitted'   => __('Submitted — Pending Review', 'ffcertificate'),
-                'approved'    => __('Approved', 'ffcertificate'),
-                'rejected'    => __('Rejected', 'ffcertificate'),
-                'expired'     => __('Expired', 'ffcertificate'),
-            );
-
-            $formatted = array();
-            foreach ($submissions as $sub) {
-                $start_ts = strtotime($sub->start_date);
-                $end_ts   = strtotime($sub->end_date);
-                $submitted_at = '';
-                if (!empty($sub->submitted_at)) {
-                    $sub_ts = strtotime($sub->submitted_at);
-                    $submitted_at = ($sub_ts !== false) ? date_i18n($date_format . ' H:i', $sub_ts) : $sub->submitted_at;
-                }
-
-                $can_download = in_array($sub->status, array('submitted', 'approved'), true);
-                $is_active    = $sub->reregistration_status === 'active';
-                $can_submit   = $is_active && in_array($sub->status, array('pending', 'in_progress', 'rejected'), true);
-
-                // Build magic link for direct verification
-                $magic_link = '';
-                if ($can_download) {
-                    $token = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::ensure_magic_token($sub);
-                    $magic_link = untrailingslashit(site_url('valid')) . '#token=' . $token;
-                }
-
-                $formatted[] = array(
-                    'submission_id'        => (int) $sub->id,
-                    'reregistration_id'    => (int) $sub->reregistration_id,
-                    'title'                => $sub->reregistration_title ?? '',
-                    'status'               => $sub->status,
-                    'status_label'         => $status_labels[$sub->status] ?? $sub->status,
-                    'reregistration_status' => $sub->reregistration_status,
-                    'start_date'           => $sub->start_date,
-                    'end_date'             => $sub->end_date,
-                    'start_date_formatted' => ($start_ts !== false) ? date_i18n($date_format, $start_ts) : $sub->start_date,
-                    'end_date_formatted'   => ($end_ts !== false) ? date_i18n($date_format, $end_ts) : $sub->end_date,
-                    'submitted_at'         => $submitted_at,
-                    'days_left'            => $is_active ? max(0, (int) (($end_ts - time()) / 86400)) : 0,
-                    'can_download'         => $can_download,
-                    'can_submit'           => $can_submit,
-                    'is_active'            => $is_active,
-                    'auth_code'            => !empty($sub->auth_code)
-                        ? \FreeFormCertificate\Core\Utils::format_auth_code($sub->auth_code)
-                        : '',
-                    'magic_link'           => $magic_link,
-                );
-            }
-
-            return rest_ensure_response(array(
-                'reregistrations' => $formatted,
-                'total'           => count($formatted),
-            ));
-
-        } catch (\Exception $e) {
-            return new \WP_Error('reregistrations_error', __('Error loading reregistrations', 'ffcertificate'), array('status' => 500));
-        }
-    }
-
-    /**
-     * POST /user/audience-group/leave
-     *
-     * Leave a self-joinable audience group.
-     *
-     * @since 4.9.9
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response|\WP_Error
-     */
+    /** @param \WP_REST_Request $request */
     public function leave_audience_group($request) {
-        try {
-            global $wpdb;
-            $ctx = $this->resolve_user_context($request);
-            $user_id = $ctx['user_id'];
-            $group_id = absint($request->get_param('group_id'));
+        return $this->get_sub('audience')->leave_audience_group($request);
+    }
 
-            if (!$user_id) {
-                return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
-            }
+    /** @param \WP_REST_Request $request */
+    public function get_user_reregistrations($request) {
+        return $this->get_sub('reregistrations')->get_user_reregistrations($request);
+    }
 
-            if (!$group_id) {
-                return new \WP_Error('missing_group', __('Group ID is required', 'ffcertificate'), array('status' => 400));
-            }
-
-            $audiences_table = $wpdb->prefix . 'ffc_audiences';
-            $members_table = $wpdb->prefix . 'ffc_audience_members';
-
-            // Verify group is a self-joinable child (can only leave children)
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $group = $wpdb->get_row($wpdb->prepare(
-                "SELECT id, name FROM {$audiences_table} WHERE id = %d AND allow_self_join = 1 AND parent_id IS NOT NULL",
-                $group_id
-            ));
-
-            if (!$group) {
-                return new \WP_Error('invalid_group', __('Group not found or cannot be left by user', 'ffcertificate'), array('status' => 404));
-            }
-
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $deleted = $wpdb->delete($members_table, array(
-                'audience_id' => $group_id,
-                'user_id' => $user_id,
-            ), array('%d', '%d'));
-
-            if (!$deleted) {
-                return new \WP_Error('not_member', __('You are not a member of this group', 'ffcertificate'), array('status' => 404));
-            }
-
-            return rest_ensure_response(array(
-                'success' => true,
-                /* translators: %s: group name */
-                'message' => sprintf(__('You left "%s".', 'ffcertificate'), $group->name),
-            ));
-
-        } catch (\Exception $e) {
-            return new \WP_Error('leave_group_error', __('Error leaving group', 'ffcertificate'), array('status' => 500));
+    /**
+     * Get (or lazy-create) a sub-controller by key.
+     *
+     * @param string $key Sub-controller key.
+     * @return object
+     */
+    private function get_sub(string $key): object {
+        if (empty($this->sub_controllers[$key])) {
+            // Lazy-init if register_routes() hasn't been called yet
+            $map = array(
+                'certificates'    => UserCertificatesRestController::class,
+                'profile'         => UserProfileRestController::class,
+                'appointments'    => UserAppointmentsRestController::class,
+                'audience'        => UserAudienceRestController::class,
+                'summary'         => UserSummaryRestController::class,
+                'reregistrations' => UserReregistrationsRestController::class,
+            );
+            $class = $map[$key];
+            $this->sub_controllers[$key] = new $class($this->namespace);
         }
+        return $this->sub_controllers[$key];
     }
 }

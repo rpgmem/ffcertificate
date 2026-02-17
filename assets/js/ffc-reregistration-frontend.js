@@ -47,10 +47,10 @@
                 $panel.html(res.data.html);
                 initForm($panel);
             } else {
-                $panel.html('<div class="ffc-error">' + (res.data && res.data.message ? res.data.message : S.errorLoading || 'Erro ao carregar formulário.') + '</div>');
+                $panel.html('').append($('<div class="ffc-error">').text(res.data && res.data.message ? res.data.message : S.errorLoading || 'Erro ao carregar formulário.'));
             }
         }).fail(function () {
-            $panel.html('<div class="ffc-error">' + (S.errorLoading || 'Erro ao carregar formulário.') + '</div>');
+            $panel.html('').append($('<div class="ffc-error">').text(S.errorLoading || 'Erro ao carregar formulário.'));
         });
     }
 
@@ -159,8 +159,9 @@
 
             $setor.append('<option value="">' + (S.selectSetor || 'Selecione') + '</option>');
             $.each(map[div], function (_, setor) {
-                var selected = setor === currentSetor ? ' selected' : '';
-                $setor.append('<option value="' + setor + '"' + selected + '>' + setor + '</option>');
+                var $opt = $('<option>').val(setor).text(setor);
+                if (setor === currentSetor) $opt.prop('selected', true);
+                $setor.append($opt);
             });
         });
     }
@@ -267,7 +268,7 @@
 
                 if (parentVal && groups[parentVal]) {
                     $.each(groups[parentVal], function (_, item) {
-                        $child.append('<option value="' + item + '">' + item + '</option>');
+                        $child.append($('<option>').val(item).text(item));
                     });
                 }
                 updateHidden();
@@ -423,11 +424,10 @@
                 custom_fields: getCustomFields($container)
             }, function (res) {
                 if (res.success) {
-                    $container.find('#ffc-rereg-form').replaceWith(
-                        '<div class="ffc-dashboard-notice ffc-notice-info"><p>' +
-                        (res.data.message || S.submitted || 'Recadastramento enviado com sucesso!') +
-                        '</p></div>'
+                    var $notice = $('<div class="ffc-dashboard-notice ffc-notice-info">').append(
+                        $('<p>').text(res.data.message || S.submitted || 'Recadastramento enviado com sucesso!')
                     );
+                    $container.find('#ffc-rereg-form').replaceWith($notice);
                     // Hide the banner
                     $('.ffc-rereg-banner[data-reregistration-id="' + id + '"]').slideUp();
                 } else {

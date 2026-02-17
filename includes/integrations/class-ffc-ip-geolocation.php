@@ -20,8 +20,6 @@ namespace FreeFormCertificate\Integrations;
 
 if (!defined('ABSPATH')) exit;
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
-
 class IpGeolocation {
 
     /**
@@ -354,9 +352,13 @@ class IpGeolocation {
             return 1;
         } else {
             // Clear all IP geolocation transients
-            $sql = "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_ffc_ip_geo_%' OR option_name LIKE '_transient_timeout_ffc_ip_geo_%'";
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            return $wpdb->query($sql);
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            return $wpdb->query($wpdb->prepare(
+                "DELETE FROM %i WHERE option_name LIKE %s OR option_name LIKE %s",
+                $wpdb->options,
+                '_transient_ffc_ip_geo_%',
+                '_transient_timeout_ffc_ip_geo_%'
+            ));
         }
     }
 }

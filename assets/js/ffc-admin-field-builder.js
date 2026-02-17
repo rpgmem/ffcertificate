@@ -42,22 +42,16 @@
 
     // Initialize Form Builder
     function initFormBuilder() {
-        console.log('[FFC] Initializing Form Builder...');
-
         if ($('#ffc-fields-container').length === 0) {
-            console.log('[FFC] Fields container not found');
             return;
         }
 
         // Count existing fields
         fieldCounter = $('#ffc-fields-container .ffc-field-row').length;
-        console.log('[FFC] Found', fieldCounter, 'existing fields');
 
         // Add Field button - Show dropdown menu
         $(document).on('click', '.ffc-add-field', function(e) {
             e.preventDefault();
-            console.log('[FFC] Add Field clicked');
-
             showFieldTypeMenu($(this));
         });
 
@@ -74,7 +68,6 @@
                 $(this).closest('.ffc-field-row').fadeOut(300, function() {
                     $(this).remove();
                     updateFieldsJSON();
-                    console.log('[FFC] Field removed');
                 });
             }
         });
@@ -117,7 +110,6 @@
                 placeholder: 'ffc-field-placeholder',
                 update: function() {
                     updateFieldsJSON();
-                    console.log('[FFC] Fields reordered');
                 }
             });
         }
@@ -172,7 +164,6 @@
             });
         }, 100);
 
-        console.log('[FFC] Field type menu shown');
     }
 
     // Add field to builder
@@ -277,8 +268,6 @@
 
         $('#ffc-fields-container').append(fieldHtml);
         updateFieldsJSON();
-
-        console.log('[FFC] Field added:', fieldType);
     }
 
     // Update hidden JSON field with current fields
@@ -308,7 +297,6 @@
 
         if ($jsonField.length) {
             $jsonField.val(JSON.stringify(fields));
-            console.log('[FFC] Fields JSON updated:', fields.length, 'fields');
         } else {
             console.warn('[FFC] JSON field not found');
         }

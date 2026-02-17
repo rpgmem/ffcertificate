@@ -129,11 +129,15 @@ class SubmissionHandler {
         // 5. Get user IP
         $user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
 
+        // 5b. Extract ticket value (for hash-based lookup)
+        $ticket_value = isset($extra_data['ticket']) ? strtoupper(trim((string) $extra_data['ticket'])) : null;
+
         // 6. Encryption
         $email_encrypted = null;
         $email_hash = null;
         $cpf_encrypted = null;
         $cpf_hash = null;
+        $ticket_hash = null;
         $ip_encrypted = null;
         $data_encrypted = null;
 
@@ -150,6 +154,10 @@ class SubmissionHandler {
 
             if (!empty($user_ip)) {
                 $ip_encrypted = \FreeFormCertificate\Core\Encryption::encrypt($user_ip);
+            }
+
+            if (!empty($ticket_value)) {
+                $ticket_hash = \FreeFormCertificate\Core\Encryption::hash($ticket_value);
             }
 
             if (!empty($data_json) && $data_json !== '{}') {
@@ -199,6 +207,7 @@ class SubmissionHandler {
             'email_hash' => $email_hash,
             'cpf_rf_encrypted' => $cpf_encrypted,
             'cpf_rf_hash' => $cpf_hash,
+            'ticket_hash' => $ticket_hash,
             'user_ip_encrypted' => $ip_encrypted,
             'data_encrypted' => $data_encrypted,
             'consent_given' => $consent_given,
@@ -223,7 +232,7 @@ class SubmissionHandler {
         $submission_id = $this->repository->insert($insert_data);
 
         if (!$submission_id) {
-            return new WP_Error('db_error', __('Error saving submission to the database.', 'ffcertificate'));
+            return new \WP_Error('db_error', __('Error saving submission to the database.', 'ffcertificate'));
         }
 
         /**
@@ -408,7 +417,7 @@ class SubmissionHandler {
      * @param array $ids Array of submission IDs
      * @return int|false Number of rows affected or false on error
      */
-    public function bulk_trash_submissions(array $ids): array {
+    public function bulk_trash_submissions(array $ids) {
         if (empty($ids)) {
             return 0;
         }
@@ -440,7 +449,7 @@ class SubmissionHandler {
      * @param array $ids Array of submission IDs
      * @return int|false Number of rows affected or false on error
      */
-    public function bulk_restore_submissions(array $ids): array {
+    public function bulk_restore_submissions(array $ids) {
         if (empty($ids)) {
             return 0;
         }
@@ -472,7 +481,7 @@ class SubmissionHandler {
      * @param array $ids Array of submission IDs
      * @return int|false Number of rows deleted or false on error
      */
-    public function bulk_delete_submissions(array $ids): array {
+    public function bulk_delete_submissions(array $ids) {
         if (empty($ids)) {
             return 0;
         }

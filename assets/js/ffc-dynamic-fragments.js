@@ -70,7 +70,7 @@
 			var answers = document.querySelectorAll('input[name="ffc_captcha_ans"]');
 
 			for (i = 0; i < labels.length; i++) {
-				labels[i].innerHTML = data.captcha.label;
+				labels[i].textContent = data.captcha.label;
 			}
 			for (i = 0; i < hashes.length; i++) {
 				hashes[i].value = data.captcha.hash;

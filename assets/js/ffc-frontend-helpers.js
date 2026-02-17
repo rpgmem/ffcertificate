@@ -383,11 +383,25 @@ $inputs.each(function() {
      * UI MODULE
      * ==========================================================================
      */
+    /**
+     * Escape HTML entities to prevent XSS
+     * @param {string} str - String to escape
+     * @returns {string} Escaped string
+     */
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;')
+                          .replace(/</g, '&lt;')
+                          .replace(/>/g, '&gt;')
+                          .replace(/"/g, '&quot;')
+                          .replace(/'/g, '&#39;');
+    }
+
     var UI = {
-        
+
         /**
          * Show error message in form
-         * 
+         *
          * @param {jQuery} $form - Form element
          * @param {string} message - Error message to display
          */
@@ -408,7 +422,7 @@ $inputs.each(function() {
                     'line-height': '1.5',
                     'animation': 'ffcSlideDown 0.3s ease'
                 })
-                .html('<strong>⚠️ ' + (message.indexOf('Error') === 0 ? '' : 'Error: ') + '</strong>' + message);
+                .html('<strong>' + (escapeHtml(message).indexOf('Error') === 0 ? '' : 'Error: ') + '</strong>' + escapeHtml(message));
             
             // Add slide down animation if not exists
             if (!$('#ffc-slide-animation').length) {

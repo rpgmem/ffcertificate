@@ -8,7 +8,7 @@ declare(strict_types=1);
  *
  *   FormRestController       – /forms, /forms/{id}, /forms/{id}/submit
  *   SubmissionRestController – /submissions, /submissions/{id}, /verify
- *   UserDataRestController   – /user/certificates, /user/profile, /user/appointments, /user/audience-bookings
+ *   UserDataRestController   – /user/* (coordinator → 6 sub-controllers)
  *   CalendarRestController   – /calendars, /calendars/{id}, /calendars/{id}/slots
  *   AppointmentRestController – /calendars/{id}/appointments, /appointments/{id}
  *

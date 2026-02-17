@@ -24,7 +24,8 @@
             var originalBtnHtml = $btn.html();
             var totalProcessed = 0;
 
-            if (!confirm($btn.attr('onclick').match(/confirm\('([^']+)'/)[1])) {
+            var confirmMsg = $btn.data('confirm') || strings.confirmMigration || 'Are you sure you want to run this migration?';
+            if (!confirm(confirmMsg)) {
                 return false;
             }
 

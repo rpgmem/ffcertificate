@@ -121,7 +121,8 @@ class Activator {
             'email_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'email_encrypted', 'index' => 'email_hash'),
             'cpf_rf_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'email_hash'),
             'cpf_rf_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'cpf_rf_encrypted', 'index' => 'cpf_rf_hash'),
-            'user_ip_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'cpf_rf_hash'),
+            'ticket_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'cpf_rf_hash', 'index' => 'ticket_hash'),
+            'user_ip_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'ticket_hash'),
             'data_encrypted' => array('type' => 'LONGTEXT NULL DEFAULT NULL', 'after' => 'user_ip_encrypted'),
             'consent_given' => array('type' => 'TINYINT(1) DEFAULT 0', 'after' => 'data_encrypted'),
             'consent_date' => array('type' => 'DATETIME DEFAULT NULL', 'after' => 'consent_given'),
@@ -148,6 +149,7 @@ class Activator {
             'idx_form_status'           => '(form_id, status)',
             'idx_status_submission_date' => '(status, submission_date)',
             'idx_email_hash_form_id'    => '(email_hash, form_id)',
+            'idx_form_ticket_hash'      => '(form_id, ticket_hash)',
         ]);
     }
 

@@ -11,6 +11,11 @@
 (function($) {
     'use strict';
 
+    function esc(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
     window.ffcCalendarFrontend = {
 
         selectedDate: null,
@@ -211,12 +216,12 @@
                     if (response.success && response.data.slots) {
                         self.renderTimeSlots(response.data.slots);
                     } else {
-                        $container.html('<p class="ffc-no-slots">' + ffcCalendar.strings.noSlots + '</p>');
+                        $container.html('').append($('<p class="ffc-no-slots">').text(ffcCalendar.strings.noSlots));
                     }
                 },
                 error: function() {
                     $loading.hide();
-                    $container.html('<p class="ffc-message ffc-message-error">' + ffcCalendar.strings.error + '</p>');
+                    $container.html('').append($('<p class="ffc-message ffc-message-error">').text(ffcCalendar.strings.error));
                 }
             });
         },
@@ -246,7 +251,7 @@
             var html = '';
 
             if (slots.length === 0) {
-                $container.html('<p class="ffc-no-slots">' + ffcCalendar.strings.noSlots + '</p>');
+                $container.html('').append($('<p class="ffc-no-slots">').text(ffcCalendar.strings.noSlots));
                 return;
             }
 
@@ -385,7 +390,7 @@
          */
         showError: function(message) {
             var $messages = $('.ffc-form-messages');
-            $messages.html('<div class="ffc-message ffc-message-error">' + message + '</div>');
+            $messages.html('').append($('<div class="ffc-message ffc-message-error">').text(message));
 
             // Scroll modal body to bottom to show the message
             var $modalContent = $('#ffc-self-scheduling-modal .ffc-modal-content');
@@ -406,8 +411,8 @@
             var detailsHtml = '<div class="ffc-appointment-info">';
             detailsHtml += '<p><strong>' + ffcCalendar.strings.date + ':</strong> ' + self.formatDate(self.selectedDate) + '</p>';
             detailsHtml += '<p><strong>' + ffcCalendar.strings.time + ':</strong> ' + (self.selectedTime || '') + '</p>';
-            detailsHtml += '<p><strong>' + ffcCalendar.strings.name + ':</strong> ' + $('#ffc-booking-name').val() + '</p>';
-            detailsHtml += '<p><strong>' + ffcCalendar.strings.email + ':</strong> ' + $('#ffc-booking-email').val() + '</p>';
+            detailsHtml += '<p><strong>' + esc(ffcCalendar.strings.name) + ':</strong> ' + esc($('#ffc-booking-name').val()) + '</p>';
+            detailsHtml += '<p><strong>' + esc(ffcCalendar.strings.email) + ':</strong> ' + esc($('#ffc-booking-email').val()) + '</p>';
 
             if (data.requires_approval) {
                 detailsHtml += '<p><strong>' + ffcCalendar.strings.status + ':</strong> ' + ffcCalendar.strings.pendingApproval + '</p>';
@@ -420,7 +425,7 @@
             if (data.validation_code) {
                 detailsHtml += '<div class="ffc-confirmation-code">';
                 detailsHtml += '<p><strong>' + (ffcCalendar.strings.validationCode || 'Validation Code') + ':</strong></p>';
-                detailsHtml += '<p class="ffc-code-value">' + data.validation_code + '</p>';
+                detailsHtml += '<p class="ffc-code-value">' + esc(data.validation_code) + '</p>';
                 detailsHtml += '<p class="ffc-code-help">' + ffcCalendar.strings.confirmationCodeHelp + '</p>';
                 detailsHtml += '</div>';
             }
@@ -433,7 +438,7 @@
                 detailsHtml += '</button>';
             }
             if (data.receipt_url) {
-                detailsHtml += ' <a href="' + data.receipt_url + '" class="ffc-btn ffc-btn-secondary" target="_blank">';
+                detailsHtml += ' <a href="' + esc(data.receipt_url) + '" class="ffc-btn ffc-btn-secondary" target="_blank">';
                 detailsHtml += ffcCalendar.strings.downloadReceipt;
                 detailsHtml += '</a>';
             }
