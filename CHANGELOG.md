@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## 4.12.11 (2026-02-17)
+
+Unit tests for Audience module: CSV importer and notification handler.
+
+- New: **AudienceCsvImporterTest** — 26 tests covering `validate_csv()`, `get_sample_csv()`, `import_members()`, and `import_audiences()` (header normalization, missing columns, empty rows, invalid emails, existing users, duplicate members, parent-before-child creation order, default color fallback)
+- New: **AudienceNotificationHandlerTest** — 10 tests covering `render_template()` variable substitution (user, booking, cancellation, site, and optional keys), subject generation, and default template placeholder completeness
+- Test suite: 182 → 218 tests, 352 → 453 assertions
+
 ## 4.12.10 (2026-02-17)
 
 Security hardening sprint: regex validation, AJAX method enforcement, modern CSPRNG, prepared SQL statements.

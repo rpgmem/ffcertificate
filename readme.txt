@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.12.10
+Stable tag: 4.12.11
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,14 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.12.11 (2026-02-17) =
+
+Unit tests for Audience module: CSV importer and notification handler.
+
+* New: **AudienceCsvImporterTest** — 26 tests covering CSV validation, sample generation, member import, and audience import logic
+* New: **AudienceNotificationHandlerTest** — 10 tests covering template rendering, subject generation, and default templates
+* Test suite: 182 → 218 tests, 352 → 453 assertions
 
 = 4.12.10 (2026-02-17) =
 
