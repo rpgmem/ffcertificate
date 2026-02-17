@@ -421,31 +421,6 @@ class Utils {
     }
     
     /**
-     * Check if running in local development environment
-     *
-     * @return bool True if local, false otherwise
-     */
-    public static function is_local_environment(): bool {
-        $server_name = isset( $_SERVER['SERVER_NAME'] ) ? sanitize_text_field( wp_unslash( $_SERVER['SERVER_NAME'] ) ) : '';
-        
-        // Common localhost addresses
-        $local_hosts = array( 'localhost', '127.0.0.1', '::1' );
-        
-        if ( in_array( $server_name, $local_hosts ) ) {
-            return true;
-        }
-        
-        // Common local domain extensions
-        if ( strpos( $server_name, '.local' ) !== false || 
-             strpos( $server_name, '.test' ) !== false ||
-             strpos( $server_name, '.dev' ) !== false ) {
-            return true;
-        }
-        
-        return false;
-    }
-    
-    /**
      * Sanitize filename for safe download
      *
      * @param string $filename Original filename
@@ -589,52 +564,6 @@ class Utils {
     }
 
     /**
-     * Check if email is valid and not disposable
-     *
-     * @param string $email Email to validate
-     * @param bool $check_disposable Check against disposable email list
-     * @return bool True if valid, false otherwise
-     */
-    public static function validate_email( string $email, bool $check_disposable = false ): bool {
-        if ( ! is_email( $email ) ) {
-            return false;
-        }
-        
-        if ( $check_disposable ) {
-            $domain = substr( strrchr( $email, '@' ), 1 );
-            $disposable_domains = self::get_disposable_email_domains();
-            
-            if ( in_array( strtolower( $domain ), $disposable_domains ) ) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Get list of common disposable email domains
-     *
-     * @return array List of domains
-     */
-    private static function get_disposable_email_domains(): array {
-        return array(
-            'tempmail.com',
-            '10minutemail.com',
-            'guerrillamail.com',
-            'mailinator.com',
-            'throwaway.email',
-            'temp-mail.org',
-            'fakeinbox.com',
-            'test.com',
-            'teste.com.br',
-            'trashmail.com',
-            'yopmail.com',
-            'getnada.com'
-        );
-    }
-    
-    /**
      * Truncate string to specific length
      *
      * @param string $text Text to truncate
@@ -681,16 +610,6 @@ class Utils {
      */
     public static function clean_identifier( string $value ): string {
         return strtoupper( preg_replace( '/[^a-zA-Z0-9]/', '', $value ) );
-    }
-    
-    /**
-     * Validate IP address
-     *
-     * @param string $ip IP to validate
-     * @return bool True if valid, false otherwise
-     */
-    public static function is_valid_ip( string $ip ): bool {
-        return filter_var( $ip, FILTER_VALIDATE_IP ) !== false;
     }
     
     /**

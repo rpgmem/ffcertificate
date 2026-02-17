@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.12.7
+Stable tag: 4.12.8
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,14 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.12.8 (2026-02-17) =
+
+Refactor Utils (dead code removal) and ReregistrationFrontend (1,330 lines → coordinator + 3 sub-classes).
+
+* Removed: **3 unused public methods** from Utils (`is_local_environment`, `is_valid_ip`, `validate_email`)
+* Refactor: **ReregistrationFrontend** split into `ReregistrationFieldOptions`, `ReregistrationFormRenderer`, `ReregistrationDataProcessor`
+* Enhanced: **ReregistrationFormRenderer** — 616-line `render_form()` broken into 8 focused per-fieldset methods
 
 = 4.12.7 (2026-02-17) =
 
