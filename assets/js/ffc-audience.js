@@ -841,7 +841,7 @@
     function searchUsers(query) {
         $.ajax({
             url: ffcAudience.ajaxUrl,
-            method: 'GET',
+            method: 'POST',
             data: {
                 action: 'ffc_search_users',
                 query: query,

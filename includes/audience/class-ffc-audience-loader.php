@@ -507,7 +507,7 @@ class AudienceLoader {
             wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
         }
 
-        $query = isset($_GET['query']) ? sanitize_text_field(wp_unslash($_GET['query'])) : '';
+        $query = isset($_POST['query']) ? sanitize_text_field(wp_unslash($_POST['query'])) : '';
 
         if (strlen($query) < 2) {
             wp_send_json_success(array());
@@ -544,7 +544,7 @@ class AudienceLoader {
             wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
         }
 
-        $schedule_id = isset($_GET['schedule_id']) ? absint($_GET['schedule_id']) : 0;
+        $schedule_id = isset($_POST['schedule_id']) ? absint($_POST['schedule_id']) : 0;
 
         if ($schedule_id <= 0) {
             wp_send_json_success(array());

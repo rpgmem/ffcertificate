@@ -666,8 +666,8 @@ class SelfSchedulingActivator {
 
         // Check if validation_code index exists and whether it's already unique
         if (self::index_exists($table_name, 'validation_code')) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-            $indexes = $wpdb->get_results( "SHOW INDEX FROM {$table_name} WHERE Key_name = 'validation_code'" );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $indexes = $wpdb->get_results( $wpdb->prepare( "SHOW INDEX FROM %i WHERE Key_name = %s", $table_name, 'validation_code' ) );
 
             // Check if Non_unique = 0 (already unique)
             if ( (int) $indexes[0]->Non_unique === 0 ) {

@@ -68,6 +68,7 @@
                 searchTimeout = setTimeout(function() {
                     $.ajax({
                         url: ajaxurl,
+                        type: 'POST',
                         data: {
                             action: 'ffc_search_users',
                             query: query,
@@ -144,7 +145,7 @@
 
                 $.ajax({
                     url: ajaxurl,
-                    type: 'GET',
+                    type: 'POST',
                     data: {
                         action: 'ffc_audience_get_environments',
                         schedule_id: scheduleId,

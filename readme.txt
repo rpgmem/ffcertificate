@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.12.9
+Stable tag: 4.12.10
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,17 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.12.10 (2026-02-17) =
+
+Security hardening sprint: regex validation, AJAX method enforcement, modern CSPRNG, prepared SQL statements.
+
+* Security: **Regex validation** — custom regex patterns in `ReregistrationDataProcessor` now use `~` delimiter and validate the pattern before applying; invalid patterns are safely skipped
+* Security: **AJAX method enforcement** — `AudienceLoader` search and environment handlers switched from `$_GET` to `$_POST`; updated JS to use POST
+* Security: **Modern CSPRNG** — replaced deprecated `openssl_random_pseudo_bytes()` with `random_bytes()` in Encryption
+* Security: **Prepared SQL statements** — 3 `SHOW INDEX` queries now use `$wpdb->prepare()` with `%i` placeholder
+* Fix: **LiteSpeed hook prefix warning** — added `phpcs:ignore` for third-party `litespeed_control_set_nocache` hook
+* Rebuilt all minified JS assets
 
 = 4.12.9 (2026-02-17) =
 

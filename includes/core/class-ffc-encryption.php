@@ -52,7 +52,7 @@ class Encryption {
             $key = self::get_encryption_key();
             
             // Generate unique IV
-            $iv = openssl_random_pseudo_bytes( self::IV_LENGTH );
+            $iv = random_bytes( self::IV_LENGTH );
             
             // Encrypt
             $encrypted = openssl_encrypt(
