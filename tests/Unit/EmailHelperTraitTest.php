@@ -63,6 +63,12 @@ class EmailHelperTraitTest extends TestCase {
         Functions\when( 'is_email' )->alias( function ( $email ) {
             return filter_var( $email, FILTER_VALIDATE_EMAIL ) ? $email : false;
         } );
+
+        // Namespaced stub: prevent "is not defined" error when Sprint 27 tests run first.
+        // EmailHelperTrait is in Core namespace; its function calls resolve there.
+        Functions\when( 'FreeFormCertificate\Core\get_option' )->alias( function ( $key, $default = false ) {
+            return \get_option( $key, $default );
+        } );
     }
 
     protected function tearDown(): void {

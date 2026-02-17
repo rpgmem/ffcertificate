@@ -32,6 +32,12 @@ class DateBlockingServiceTest extends TestCase {
             }
             return $default;
         } );
+
+        // Namespaced stub: prevent "is not defined" error when Sprint 27 tests run first.
+        // Delegates to the global get_option stub so per-test overrides work correctly.
+        Functions\when( 'FreeFormCertificate\Scheduling\get_option' )->alias( function ( $key, $default = false ) {
+            return \get_option( $key, $default );
+        } );
     }
 
     protected function tearDown(): void {

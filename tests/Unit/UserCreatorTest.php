@@ -37,6 +37,15 @@ class UserCreatorTest extends TestCase {
         Functions\when( 'do_action' )->justReturn( null );
         Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
         Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
+
+        // Namespaced stubs: prevent "is not defined" errors when Sprint 27 tests run first.
+        // Core namespace (Debug calls get_option/get_current_user_id).
+        Functions\when( 'FreeFormCertificate\Core\get_option' )->alias( function ( $key, $default = false ) {
+            return \get_option( $key, $default );
+        } );
+        Functions\when( 'FreeFormCertificate\Core\get_current_user_id' )->alias( function () {
+            return \get_current_user_id();
+        } );
     }
 
     protected function tearDown(): void {

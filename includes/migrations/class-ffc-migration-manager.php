@@ -160,7 +160,7 @@ class MigrationManager {
      */
     public function migrate_encryption( int $offset = 0, int $limit = 50 ) {
         // Calculate batch number from offset and limit
-        $batch_number = ( $limit > 0 ) ? floor( $offset / $limit ) + 1 : 1;
+        $batch_number = ( $limit > 0 ) ? (int) floor( $offset / $limit ) + 1 : 1;
 
         // Update migration config with custom limit
         add_filter( 'ffcertificate_migrations_registry', function( $migrations ) use ( $limit ) {
@@ -185,7 +185,7 @@ class MigrationManager {
      */
     public function cleanup_unencrypted_data( int $offset = 0, int $limit = 100 ): array {
         // Calculate batch number from offset and limit
-        $batch_number = ( $limit > 0 ) ? floor( $offset / $limit ) + 1 : 1;
+        $batch_number = ( $limit > 0 ) ? (int) floor( $offset / $limit ) + 1 : 1;
 
         // Update migration config with custom limit
         add_filter( 'ffcertificate_migrations_registry', function( $migrations ) use ( $limit ) {
@@ -234,7 +234,7 @@ class MigrationManager {
             );
         }
 
-        $days_since_completion = floor( ( time() - strtotime( $encryption_completed_date ) ) / DAY_IN_SECONDS );
+        $days_since_completion = (int) floor( ( time() - strtotime( $encryption_completed_date ) ) / DAY_IN_SECONDS );
 
         if ( $days_since_completion < 15 ) {
             return new WP_Error(
@@ -380,7 +380,7 @@ class MigrationManager {
             );
         }
 
-        $days_since_completion = floor( ( time() - strtotime( $encryption_completed_date ) ) / DAY_IN_SECONDS );
+        $days_since_completion = (int) floor( ( time() - strtotime( $encryption_completed_date ) ) / DAY_IN_SECONDS );
 
         if ( $days_since_completion < 30 ) {
             return new WP_Error(
@@ -408,7 +408,7 @@ class MigrationManager {
             return 30; // Max wait time
         }
 
-        $days_since_completion = floor( ( time() - strtotime( $encryption_completed_date ) ) / DAY_IN_SECONDS );
+        $days_since_completion = (int) floor( ( time() - strtotime( $encryption_completed_date ) ) / DAY_IN_SECONDS );
         $days_remaining = max( 0, 30 - $days_since_completion );
 
         return $days_remaining;
