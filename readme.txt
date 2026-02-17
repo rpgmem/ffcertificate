@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 4.12.13
+Stable tag: 4.12.14
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,14 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 4.12.14 (2026-02-17) =
+
+Unit tests for FormProcessor and PdfGenerator: quiz scoring, restriction checks, URL parsing, and data enrichment.
+
+* New: **FormProcessorTest** — 21 tests for quiz scoring and restriction validation
+* New: **PdfGeneratorTest** — 32 tests for URL param parsing, filename generation, default HTML, and data enrichment
+* Test suite: 253 → 306 tests, 710 → 812 assertions
 
 = 4.12.13 (2026-02-17) =
 

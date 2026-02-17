@@ -30,7 +30,7 @@ if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
     define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
 }
 if ( ! defined( 'FFC_VERSION' ) ) {
-    define( 'FFC_VERSION', '4.12.13' );
+    define( 'FFC_VERSION', '4.12.14' );
 }
 if ( ! defined( 'DB_NAME' ) ) {
     define( 'DB_NAME', 'test_db' );
