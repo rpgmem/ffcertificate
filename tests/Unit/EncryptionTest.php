@@ -191,6 +191,47 @@ class EncryptionTest extends TestCase {
         $this->assertSame( 'plain@example.com', $result['email'] );
     }
 
+    public function test_decrypt_submission_decrypts_split_cpf_column(): void {
+        $enc_cpf = Encryption::encrypt( '12345678901' );
+
+        $submission = array(
+            'cpf_encrypted' => $enc_cpf,
+        );
+
+        $result = Encryption::decrypt_submission( $submission );
+
+        $this->assertSame( '12345678901', $result['cpf'] );
+        $this->assertSame( '12345678901', $result['cpf_rf'] );
+    }
+
+    public function test_decrypt_submission_decrypts_split_rf_column(): void {
+        $enc_rf = Encryption::encrypt( '1234567' );
+
+        $submission = array(
+            'rf_encrypted' => $enc_rf,
+        );
+
+        $result = Encryption::decrypt_submission( $submission );
+
+        $this->assertSame( '1234567', $result['rf'] );
+        $this->assertSame( '1234567', $result['cpf_rf'] );
+    }
+
+    public function test_decrypt_submission_split_takes_priority_over_legacy(): void {
+        $enc_cpf    = Encryption::encrypt( '11111111111' );
+        $enc_legacy = Encryption::encrypt( '99999999999' );
+
+        $submission = array(
+            'cpf_encrypted'    => $enc_cpf,
+            'cpf_rf_encrypted' => $enc_legacy,
+        );
+
+        $result = Encryption::decrypt_submission( $submission );
+
+        // Split column wins over legacy
+        $this->assertSame( '11111111111', $result['cpf_rf'] );
+    }
+
     // ------------------------------------------------------------------
     // decrypt_field()
     // ------------------------------------------------------------------

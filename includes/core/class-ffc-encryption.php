@@ -197,28 +197,37 @@ class Encryption {
      */
     public static function decrypt_submission( array $submission ): array {
         $decrypted = $submission; // Keep all fields
-        
+
         // Email (try encrypted first, fallback to plain)
         if ( ! empty( $submission['email_encrypted'] ) ) {
             $decrypted['email'] = self::decrypt( $submission['email_encrypted'] );
         }
-        
-        // @deprecated legacy cpf_rf fallback — remove in next major version.
-        // New records use cpf_encrypted/rf_encrypted; this handles pre-migration data.
-        if ( ! empty( $submission['cpf_rf_encrypted'] ) ) {
+
+        // CPF/RF — decrypt split columns, then legacy fallback
+        $cpf_val = ! empty( $submission['cpf_encrypted'] ) ? self::decrypt( $submission['cpf_encrypted'] ) : null;
+        $rf_val  = ! empty( $submission['rf_encrypted'] )  ? self::decrypt( $submission['rf_encrypted'] )  : null;
+
+        if ( ! empty( $cpf_val ) ) {
+            $decrypted['cpf']    = $cpf_val;
+            $decrypted['cpf_rf'] = $cpf_val;
+        } elseif ( ! empty( $rf_val ) ) {
+            $decrypted['rf']     = $rf_val;
+            $decrypted['cpf_rf'] = $rf_val;
+        } elseif ( ! empty( $submission['cpf_rf_encrypted'] ) ) {
+            // @deprecated legacy cpf_rf fallback — remove in next major version.
             $decrypted['cpf_rf'] = self::decrypt( $submission['cpf_rf_encrypted'] );
         }
-        
+
         // IP Address (try encrypted first, fallback to plain)
         if ( ! empty( $submission['user_ip_encrypted'] ) ) {
             $decrypted['user_ip'] = self::decrypt( $submission['user_ip_encrypted'] );
         }
-        
+
         // JSON Data (try encrypted first, fallback to plain)
         if ( ! empty( $submission['data_encrypted'] ) ) {
             $decrypted['data'] = self::decrypt( $submission['data_encrypted'] );
         }
-        
+
         return $decrypted;
     }
     
@@ -266,9 +275,22 @@ class Encryption {
         if ( ! empty( $appointment['email_encrypted'] ) ) {
             $decrypted['email'] = self::decrypt( $appointment['email_encrypted'] ) ?? ( $appointment['email'] ?? '' );
         }
-        if ( ! empty( $appointment['cpf_rf_encrypted'] ) ) {
+
+        // CPF/RF — decrypt split columns, then legacy fallback
+        $cpf_val = ! empty( $appointment['cpf_encrypted'] ) ? self::decrypt( $appointment['cpf_encrypted'] ) : null;
+        $rf_val  = ! empty( $appointment['rf_encrypted'] )  ? self::decrypt( $appointment['rf_encrypted'] )  : null;
+
+        if ( ! empty( $cpf_val ) ) {
+            $decrypted['cpf']    = $cpf_val;
+            $decrypted['cpf_rf'] = $cpf_val;
+        } elseif ( ! empty( $rf_val ) ) {
+            $decrypted['rf']     = $rf_val;
+            $decrypted['cpf_rf'] = $rf_val;
+        } elseif ( ! empty( $appointment['cpf_rf_encrypted'] ) ) {
+            // @deprecated legacy cpf_rf fallback — remove in next major version.
             $decrypted['cpf_rf'] = self::decrypt( $appointment['cpf_rf_encrypted'] ) ?? ( $appointment['cpf_rf'] ?? '' );
         }
+
         if ( ! empty( $appointment['phone_encrypted'] ) ) {
             $decrypted['phone'] = self::decrypt( $appointment['phone_encrypted'] ) ?? ( $appointment['phone'] ?? '' );
         }
