@@ -17,6 +17,9 @@
             <directory suffix=".php">./includes</directory>
         </include>
         <exclude>
+            <directory suffix=".php">./includes/libraries</directory>
+            <directory suffix=".php">./includes/views</directory>
+            <directory suffix=".php">./includes/admin/views</directory>
             <directory suffix=".php">./includes/settings/views</directory>
         </exclude>
     </coverage>
