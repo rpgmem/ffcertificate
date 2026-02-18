@@ -71,6 +71,7 @@ class MigrationStatusCalculator {
         $this->strategies['cleanup_unencrypted']   = new \FreeFormCertificate\Migrations\Strategies\CleanupMigrationStrategy();
 
         $this->strategies['user_link'] = new \FreeFormCertificate\Migrations\Strategies\UserLinkMigrationStrategy();
+        $this->strategies['split_cpf_rf'] = new \FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy();
         $this->strategies['name_normalization'] = new \FreeFormCertificate\Migrations\Strategies\NameNormalizationMigrationStrategy();
         $this->strategies['user_capabilities'] = new \FreeFormCertificate\Migrations\Strategies\UserCapabilitiesMigrationStrategy();
 

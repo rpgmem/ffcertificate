@@ -144,6 +144,16 @@ class MigrationRegistry {
             'requires_column' => true
         );
 
+        // v4.13.0: CPF/RF split migration
+        $this->migrations['split_cpf_rf'] = array(
+            'name'            => __( 'Split CPF/RF', 'ffcertificate' ),
+            'description'     => __( 'Separate combined CPF/RF column into individual CPF and RF columns', 'ffcertificate' ),
+            'icon'            => 'ffc-icon-id',
+            'batch_size'      => 50,
+            'order'           => $order++,
+            'requires_column' => true
+        );
+
         // v4.3.0: Name and email normalization migration
         $this->migrations['name_normalization'] = array(
             'name'            => __( 'Normalize Names & Emails', 'ffcertificate' ),
@@ -240,7 +250,7 @@ class MigrationRegistry {
         }
 
         // Special migrations that are always available
-        $special_migrations = array( 'magic_tokens', 'data_cleanup', 'user_link', 'encrypt_sensitive_data', 'cleanup_unencrypted', 'name_normalization', 'user_capabilities' );
+        $special_migrations = array( 'magic_tokens', 'data_cleanup', 'user_link', 'encrypt_sensitive_data', 'cleanup_unencrypted', 'name_normalization', 'user_capabilities', 'split_cpf_rf' );
 
         if ( in_array( $migration_key, $special_migrations ) ) {
             return true;

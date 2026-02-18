@@ -153,6 +153,12 @@ class SelfSchedulingActivator {
             cpf_rf varchar(20) DEFAULT NULL,
             cpf_rf_encrypted text DEFAULT NULL,
             cpf_rf_hash varchar(64) DEFAULT NULL,
+            cpf varchar(20) DEFAULT NULL,
+            cpf_encrypted text DEFAULT NULL,
+            cpf_hash varchar(64) DEFAULT NULL,
+            rf varchar(20) DEFAULT NULL,
+            rf_encrypted text DEFAULT NULL,
+            rf_hash varchar(64) DEFAULT NULL,
             phone varchar(50) DEFAULT NULL,
             phone_encrypted text DEFAULT NULL,
 
@@ -207,6 +213,8 @@ class SelfSchedulingActivator {
             KEY email (email),
             KEY email_hash (email_hash),
             KEY cpf_rf_hash (cpf_rf_hash),
+            KEY cpf_hash (cpf_hash),
+            KEY rf_hash (rf_hash),
             KEY confirmation_token (confirmation_token),
             KEY validation_code (validation_code),
             KEY idx_calendar_date (calendar_id, appointment_date),
@@ -242,6 +250,34 @@ class SelfSchedulingActivator {
                 self::add_column_if_missing($table_name, 'cpf_rf_hash', "varchar(64) DEFAULT NULL", 'cpf_rf_encrypted', 'cpf_rf_hash');
             }
         }
+
+        // Add separate cpf/rf columns for split identifier storage
+        self::migrate_appointments_cpf_rf_split_columns();
+    }
+
+    /**
+     * Migrate appointments table to add separate cpf and rf columns
+     *
+     * Part of the CPF/RF split migration: separates the combined cpf_rf
+     * column into individual cpf and rf columns with their own encrypted/hash pairs.
+     *
+     * @since 4.13.0
+     * @return void
+     */
+    private static function migrate_appointments_cpf_rf_split_columns(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+
+        // Add cpf columns after cpf_rf_hash
+        $after_column = self::column_exists($table_name, 'cpf_rf_hash') ? 'cpf_rf_hash' : 'cpf_rf_encrypted';
+        self::add_column_if_missing($table_name, 'cpf', "varchar(20) DEFAULT NULL", $after_column);
+        self::add_column_if_missing($table_name, 'cpf_encrypted', "text DEFAULT NULL", 'cpf');
+        self::add_column_if_missing($table_name, 'cpf_hash', "varchar(64) DEFAULT NULL", 'cpf_encrypted', 'cpf_hash');
+
+        // Add rf columns after cpf_hash
+        self::add_column_if_missing($table_name, 'rf', "varchar(20) DEFAULT NULL", 'cpf_hash');
+        self::add_column_if_missing($table_name, 'rf_encrypted', "text DEFAULT NULL", 'rf');
+        self::add_column_if_missing($table_name, 'rf_hash', "varchar(64) DEFAULT NULL", 'rf_encrypted', 'rf_hash');
     }
 
     /**

@@ -141,7 +141,13 @@ class Activator {
             'email_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'email_encrypted', 'index' => 'email_hash'),
             'cpf_rf_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'email_hash'),
             'cpf_rf_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'cpf_rf_encrypted', 'index' => 'cpf_rf_hash'),
-            'ticket_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'cpf_rf_hash', 'index' => 'ticket_hash'),
+            'cpf' => array('type' => 'VARCHAR(20) NULL DEFAULT NULL', 'after' => 'cpf_rf_hash'),
+            'cpf_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'cpf'),
+            'cpf_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'cpf_encrypted', 'index' => 'cpf_hash'),
+            'rf' => array('type' => 'VARCHAR(20) NULL DEFAULT NULL', 'after' => 'cpf_hash'),
+            'rf_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'rf'),
+            'rf_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'rf_encrypted', 'index' => 'rf_hash'),
+            'ticket_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'rf_hash', 'index' => 'ticket_hash'),
             'user_ip_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'ticket_hash'),
             'data_encrypted' => array('type' => 'LONGTEXT NULL DEFAULT NULL', 'after' => 'user_ip_encrypted'),
             'consent_given' => array('type' => 'TINYINT(1) DEFAULT 0', 'after' => 'data_encrypted'),
@@ -155,6 +161,8 @@ class Activator {
 
         self::add_columns_if_missing($table_name, $columns);
         self::add_index_if_missing($table_name, 'idx_form_cpf', '(form_id, cpf_rf)');
+        self::add_index_if_missing($table_name, 'idx_form_cpf_new', '(form_id, cpf_hash)');
+        self::add_index_if_missing($table_name, 'idx_form_rf', '(form_id, rf_hash)');
     }
 
     /**
@@ -237,7 +245,7 @@ class Activator {
 
         // Migrations that should NOT run automatically during activation
         // (they require existing data or should be run manually by admin)
-        $skip_on_activation = array('user_link', 'cleanup_unencrypted', 'data_cleanup');
+        $skip_on_activation = array('user_link', 'cleanup_unencrypted', 'data_cleanup', 'split_cpf_rf');
 
         foreach ($migrations as $key => $migration) {
             // Skip migrations that should be run manually
