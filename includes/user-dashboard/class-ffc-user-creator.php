@@ -41,14 +41,17 @@ class UserCreator {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // STEP 1: Check if CPF/RF already has user_id in submissions
+        // STEP 1: Check if CPF/RF hash already has user_id in submissions
+        // Search split columns (cpf_hash, rf_hash) with fallback to legacy cpf_rf_hash
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $existing_user_id = $wpdb->get_var( $wpdb->prepare(
             "SELECT user_id FROM %i
-             WHERE cpf_rf_hash = %s
+             WHERE (cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s)
              AND user_id IS NOT NULL
              LIMIT 1",
             $table,
+            $cpf_rf_hash,
+            $cpf_rf_hash,
             $cpf_rf_hash
         ) );
 
@@ -145,11 +148,14 @@ class UserCreator {
         global $wpdb;
 
         $submissions_table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+        // Link by split columns (cpf_hash, rf_hash) with fallback to legacy cpf_rf_hash
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $linked_submissions = $wpdb->query( $wpdb->prepare(
-            "UPDATE %i SET user_id = %d WHERE cpf_rf_hash = %s AND user_id IS NULL",
+            "UPDATE %i SET user_id = %d WHERE (cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s) AND user_id IS NULL",
             $submissions_table,
             $user_id,
+            $cpf_rf_hash,
+            $cpf_rf_hash,
             $cpf_rf_hash
         ) );
 
@@ -158,9 +164,11 @@ class UserCreator {
         if ( self::table_exists( $appointments_table ) ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $linked_appointments = $wpdb->query( $wpdb->prepare(
-                "UPDATE %i SET user_id = %d WHERE cpf_rf_hash = %s AND user_id IS NULL",
+                "UPDATE %i SET user_id = %d WHERE (cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s) AND user_id IS NULL",
                 $appointments_table,
                 $user_id,
+                $cpf_rf_hash,
+                $cpf_rf_hash,
                 $cpf_rf_hash
             ) );
 

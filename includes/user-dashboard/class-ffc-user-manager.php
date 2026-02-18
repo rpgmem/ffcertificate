@@ -314,6 +314,76 @@ class UserManager {
     }
 
     /**
+     * Get user's identifiers (CPFs and RFs) masked and typed
+     *
+     * @since 4.13.0
+     * @param int $user_id WordPress user ID
+     * @return array{cpfs: string[], rfs: string[}}
+     */
+    public static function get_user_identifiers_masked( int $user_id ): array {
+        global $wpdb;
+        $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT DISTINCT cpf_encrypted, rf_encrypted, cpf_rf_encrypted FROM %i
+             WHERE user_id = %d
+             AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL OR cpf_rf_encrypted IS NOT NULL)",
+            $table,
+            $user_id
+        ), ARRAY_A );
+
+        $cpfs = array();
+        $rfs  = array();
+
+        if ( empty( $rows ) ) {
+            return array( 'cpfs' => $cpfs, 'rfs' => $rfs );
+        }
+
+        foreach ( $rows as $row ) {
+            try {
+                if ( ! empty( $row['cpf_encrypted'] ) ) {
+                    $plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_encrypted'] );
+                    if ( ! empty( $plain ) ) {
+                        $masked = self::mask_cpf_rf( $plain );
+                        if ( ! in_array( $masked, $cpfs, true ) ) {
+                            $cpfs[] = $masked;
+                        }
+                    }
+                } elseif ( ! empty( $row['rf_encrypted'] ) ) {
+                    $plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['rf_encrypted'] );
+                    if ( ! empty( $plain ) ) {
+                        $masked = self::mask_cpf_rf( $plain );
+                        if ( ! in_array( $masked, $rfs, true ) ) {
+                            $rfs[] = $masked;
+                        }
+                    }
+                } elseif ( ! empty( $row['cpf_rf_encrypted'] ) ) {
+                    // Legacy fallback — classify by digit length
+                    $plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_rf_encrypted'] );
+                    if ( ! empty( $plain ) ) {
+                        $digits = preg_replace( '/[^0-9]/', '', $plain );
+                        $masked = self::mask_cpf_rf( $plain );
+                        if ( strlen( $digits ) === 7 ) {
+                            if ( ! in_array( $masked, $rfs, true ) ) {
+                                $rfs[] = $masked;
+                            }
+                        } else {
+                            if ( ! in_array( $masked, $cpfs, true ) ) {
+                                $cpfs[] = $masked;
+                            }
+                        }
+                    }
+                }
+            } catch ( \Exception $e ) {
+                continue;
+            }
+        }
+
+        return array( 'cpfs' => $cpfs, 'rfs' => $rfs );
+    }
+
+    /**
      * Mask CPF/RF for display
      *
      * @param string $cpf_rf CPF or RF (plain)

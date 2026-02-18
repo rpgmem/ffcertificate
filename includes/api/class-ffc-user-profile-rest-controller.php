@@ -108,8 +108,10 @@ class UserProfileRestController {
             }
 
             $cpfs_masked = array();
+            $identifiers = array( 'cpfs' => array(), 'rfs' => array() );
             if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
                 $cpfs_masked = \FreeFormCertificate\UserDashboard\UserManager::get_user_cpfs_masked($user_id);
+                $identifiers = \FreeFormCertificate\UserDashboard\UserManager::get_user_identifiers_masked($user_id);
             }
 
             $emails = array();
@@ -169,6 +171,7 @@ class UserProfileRestController {
                 'emails' => $emails,
                 'cpf_masked' => !empty($cpfs_masked) ? $cpfs_masked[0] : __('Not found', 'ffcertificate'),
                 'cpfs_masked' => $cpfs_masked,
+                'identifiers' => $identifiers,
                 'phone' => $profile['phone'] ?? '',
                 'department' => $profile['department'] ?? '',
                 'organization' => $profile['organization'] ?? '',
