@@ -153,6 +153,16 @@ class AppointmentReceiptHandler {
         // Enqueue PDF scripts
         $this->enqueue_pdf_scripts();
 
+        // Generate server-side PDF data (uses template with QR code)
+        $pdf_data = null;
+        try {
+            $pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator();
+            $pdf_data = $pdf_generator->generate_appointment_pdf_data( $appointment, $calendar );
+        } catch ( \Exception $e ) {
+            // Fallback: PDF download will capture receipt HTML (without QR code)
+            $pdf_data = null;
+        }
+
         // Decrypt sensitive data with safety checks
         $email = $appointment['email'] ?? '';
         if (empty($email) && !empty($appointment['email_encrypted'])) {
@@ -473,32 +483,32 @@ class AppointmentReceiptHandler {
 
             <script>
             jQuery(document).ready(function($) {
+                <?php if ( $pdf_data ) : ?>
+                var ffcReceiptPdfData = <?php echo wp_json_encode( $pdf_data ); ?>;
+                <?php endif; ?>
+
                 $('#ffc-download-pdf-btn').on('click', function() {
-                    var $receiptContent = $('#ffc-receipt-content');
+                    if (typeof window.ffcGeneratePDF !== 'function') {
+                        console.error('FFC PDF Generator not loaded');
+                        alert('<?php echo esc_js(__('Error: PDF generator not loaded. Please refresh the page.', 'ffcertificate')); ?>');
+                        return;
+                    }
 
-                    // Clone the receipt content
-                    var htmlContent = $receiptContent.html();
+                    // Use server-rendered PDF template (with QR code) if available
+                    if (typeof ffcReceiptPdfData !== 'undefined' && ffcReceiptPdfData.html) {
+                        window.ffcGeneratePDF(ffcReceiptPdfData, ffcReceiptPdfData.filename || 'appointment_receipt.pdf');
+                        return;
+                    }
 
-                    // Generate filename
+                    // Fallback: capture visible receipt HTML
+                    var htmlContent = $('#ffc-receipt-content').html();
                     var appointmentId = '<?php echo esc_js($appointment['id'] ?? '0'); ?>';
                     var validationCode = '<?php echo esc_js(!empty($appointment['validation_code']) ? \FreeFormCertificate\Core\Utils::format_auth_code($appointment['validation_code']) : ''); ?>';
                     var filename = validationCode ?
                         'Appointment_Receipt_' + validationCode + '.pdf' :
                         'Appointment_Receipt_' + appointmentId + '.pdf';
 
-                    // Prepare PDF data
-                    var pdfData = {
-                        template: htmlContent,
-                        bg_image: null
-                    };
-
-                    // Call PDF generator
-                    if (typeof window.ffcGeneratePDF === 'function') {
-                        window.ffcGeneratePDF(pdfData, filename);
-                    } else {
-                        console.error('FFC PDF Generator not loaded');
-                        alert('<?php echo esc_js(__('Error: PDF generator not loaded. Please refresh the page.', 'ffcertificate')); ?>');
-                    }
+                    window.ffcGeneratePDF({ html: htmlContent, bg_image: null }, filename);
                 });
             });
             </script>
