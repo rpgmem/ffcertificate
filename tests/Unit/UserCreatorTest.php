@@ -316,7 +316,7 @@ class UserCreatorTest extends TestCase {
         $method->setAccessible( true );
 
         $clause = $method->invoke( null, UserCreator::TYPE_CPF );
-        $this->assertSame( 'cpf_hash = %s OR cpf_rf_hash = %s', $clause );
+        $this->assertSame( 'cpf_hash = %s', $clause );
     }
 
     public function test_build_hash_where_clause_rf(): void {
@@ -324,7 +324,7 @@ class UserCreatorTest extends TestCase {
         $method->setAccessible( true );
 
         $clause = $method->invoke( null, UserCreator::TYPE_RF );
-        $this->assertSame( 'rf_hash = %s OR cpf_rf_hash = %s', $clause );
+        $this->assertSame( 'rf_hash = %s', $clause );
     }
 
     public function test_build_hash_where_clause_auto(): void {
@@ -332,24 +332,24 @@ class UserCreatorTest extends TestCase {
         $method->setAccessible( true );
 
         $clause = $method->invoke( null, UserCreator::TYPE_AUTO );
-        $this->assertSame( 'cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s', $clause );
+        $this->assertSame( 'cpf_hash = %s OR rf_hash = %s', $clause );
     }
 
-    public function test_build_hash_params_cpf_returns_two(): void {
+    public function test_build_hash_params_cpf_returns_one(): void {
         $method = new \ReflectionMethod( UserCreator::class, 'build_hash_params' );
         $method->setAccessible( true );
 
         $params = $method->invoke( null, 'myhash', UserCreator::TYPE_CPF );
-        $this->assertCount( 2, $params );
-        $this->assertSame( array( 'myhash', 'myhash' ), $params );
+        $this->assertCount( 1, $params );
+        $this->assertSame( array( 'myhash' ), $params );
     }
 
-    public function test_build_hash_params_auto_returns_three(): void {
+    public function test_build_hash_params_auto_returns_two(): void {
         $method = new \ReflectionMethod( UserCreator::class, 'build_hash_params' );
         $method->setAccessible( true );
 
         $params = $method->invoke( null, 'myhash', UserCreator::TYPE_AUTO );
-        $this->assertCount( 3, $params );
-        $this->assertSame( array( 'myhash', 'myhash', 'myhash' ), $params );
+        $this->assertCount( 2, $params );
+        $this->assertSame( array( 'myhash', 'myhash' ), $params );
     }
 }

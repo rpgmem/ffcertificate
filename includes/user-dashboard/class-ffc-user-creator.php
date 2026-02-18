@@ -148,20 +148,20 @@ class UserCreator {
     /**
      * Build WHERE clause for hash column lookup
      *
-     * When the identifier type is known, targets the specific column + legacy fallback.
-     * When 'auto', searches all three columns.
+     * Targets the specific split column based on identifier type.
+     * When 'auto', searches both cpf_hash and rf_hash.
      *
      * @param string $identifier_type 'cpf', 'rf', or 'auto'
-     * @return string SQL WHERE fragment (without surrounding parentheses from caller)
+     * @return string SQL WHERE fragment
      */
     private static function build_hash_where_clause( string $identifier_type ): string {
         switch ( $identifier_type ) {
             case self::TYPE_CPF:
-                return 'cpf_hash = %s OR cpf_rf_hash = %s';
+                return 'cpf_hash = %s';
             case self::TYPE_RF:
-                return 'rf_hash = %s OR cpf_rf_hash = %s';
+                return 'rf_hash = %s';
             default:
-                return 'cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s';
+                return 'cpf_hash = %s OR rf_hash = %s';
         }
     }
 
@@ -176,9 +176,9 @@ class UserCreator {
         switch ( $identifier_type ) {
             case self::TYPE_CPF:
             case self::TYPE_RF:
-                return array( $hash, $hash );
+                return array( $hash );
             default:
-                return array( $hash, $hash, $hash );
+                return array( $hash, $hash );
         }
     }
 
