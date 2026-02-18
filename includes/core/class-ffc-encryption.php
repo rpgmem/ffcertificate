@@ -171,11 +171,8 @@ class Encryption {
             $encrypted['email_hash'] = self::hash( $submission['email'] );
         }
         
-        // CPF/RF
-        if ( ! empty( $submission['cpf_rf'] ) ) {
-            $encrypted['cpf_rf_encrypted'] = self::encrypt( $submission['cpf_rf'] );
-            $encrypted['cpf_rf_hash'] = self::hash( $submission['cpf_rf'] );
-        }
+        // CPF/RF — split columns only; legacy cpf_rf_encrypted/cpf_rf_hash no longer written.
+        // Callers should encrypt into cpf_encrypted/cpf_hash or rf_encrypted/rf_hash directly.
         
         // IP Address
         if ( ! empty( $submission['user_ip'] ) ) {
@@ -206,7 +203,8 @@ class Encryption {
             $decrypted['email'] = self::decrypt( $submission['email_encrypted'] );
         }
         
-        // CPF/RF (try encrypted first, fallback to plain)
+        // @deprecated legacy cpf_rf fallback — remove in next major version.
+        // New records use cpf_encrypted/rf_encrypted; this handles pre-migration data.
         if ( ! empty( $submission['cpf_rf_encrypted'] ) ) {
             $decrypted['cpf_rf'] = self::decrypt( $submission['cpf_rf_encrypted'] );
         }

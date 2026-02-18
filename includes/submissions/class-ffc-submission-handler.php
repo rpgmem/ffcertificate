@@ -257,17 +257,16 @@ class SubmissionHandler {
             'consent_text' => $consent_text
         ];
 
-        // Old columns - only if encryption NOT configured
+        // Legacy plain-text columns — only if encryption NOT configured.
+        // cpf_rf no longer written; split cpf_hash/rf_hash used instead.
         if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
             $insert_data['data'] = null;
             $insert_data['user_ip'] = null;
             $insert_data['email'] = null;
-            $insert_data['cpf_rf'] = null;
         } else {
             $insert_data['data'] = $data_json;
             $insert_data['user_ip'] = $user_ip;
             $insert_data['email'] = $user_email;
-            $insert_data['cpf_rf'] = $clean_cpf_rf;
         }
 
         // 9. Insert using repository
