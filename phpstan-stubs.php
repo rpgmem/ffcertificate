@@ -4,7 +4,7 @@
  * These are defined in ffcertificate.php at runtime.
  */
 
-define( 'FFC_VERSION', '4.12.25' );
+define( 'FFC_VERSION', '4.12.26' );
 define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );
 define( 'FFC_JSPDF_VERSION', '2.5.1' );
 define( 'FFC_JQUERY_UI_VERSION', '1.12.1' );

@@ -6,6 +6,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## 4.12.26 (2026-02-18)
+
+PHPStan level 6 — zero-baseline compliance. Resolved all 317 static analysis errors across 80+ files without any baseline suppressions.
+
+- Fix: Added missing `use` import statements for 94 class.notFound errors across admin, API, frontend, and migration files
+- Fix: Cast `int` to `string` for `esc_html()`, `esc_attr()`, `sprintf()`, `_n()` calls (50 argument.type errors)
+- Fix: Removed 15 unreachable code blocks after `wp_die()`, `exit`, `wp_send_json_*()` calls
+- Fix: Corrected PHPDoc `@return` types to match native return types (13 return.type errors)
+- Fix: Removed unused properties (`$form_editor`, `$settings_page`, `$dynamic_fragments`, etc.) flagged as write-only
+- Fix: Removed redundant `is_array()`/`is_string()` type checks on already-typed variables (15 errors)
+- Fix: Removed unused constructor parameters (`$email_handler`, `$form_processor`, `$submission_handler`, `$verification_handler`) and updated all callers + tests
+- Fix: Renamed undefined method calls (`check_limit` → `check_ip_limit`, added `process_bulk_action()`, fixed `generate_qr_code()` static call)
+- Fix: Resolved include/require path resolution by using `__DIR__` in PHPStan stubs for `FFC_PLUGIN_DIR`
+- Fix: Added PHPStan stubs for `DB_NAME`, `QR_ECLEVEL_*`, and `QRcode` class constants
+- Fix: Simplified always-true/false conditions, redundant `empty()` checks, and `!== null` comparisons
+- Fix: Fixed duplicate array keys, `WP_Error` namespace references, and covariant return types
+- Config: Added `phpstan-stubs.php` bootstrap file with plugin constants and phpqrcode stubs
+- Config: Excluded view directories from `variable.undefined` scanning in `phpstan.neon.dist`
+- Baseline: Reduced from 317 errors to **0** (empty `ignoreErrors` array)
+
 ## 4.12.25 (2026-02-17)
 
 Unit tests for EmailHelperTrait, AjaxTrait, and Debug: email sending/parsing helpers, AJAX parameter sanitization with nonce/permission checks, and per-area debug logging.
