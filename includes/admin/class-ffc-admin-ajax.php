@@ -221,17 +221,17 @@ class AdminAjax {
             return array();
         }
 
-        // Generate hash to search (must match Encryption::hash which uses a salt)
+        // Generate hash and classify by digit count
         $cpf_rf_hash = \FreeFormCertificate\Core\Encryption::hash( $cpf_rf_clean );
+        $hash_column = strlen( $cpf_rf_clean ) === 7 ? 'rf_hash' : 'cpf_hash';
 
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // Search split columns
+        // Search the specific split column
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $user_id = $wpdb->get_var( $wpdb->prepare(
-            "SELECT user_id FROM %i WHERE (cpf_hash = %s OR rf_hash = %s) AND user_id IS NOT NULL LIMIT 1",
+            "SELECT user_id FROM %i WHERE {$hash_column} = %s AND user_id IS NOT NULL LIMIT 1",
             $table,
-            $cpf_rf_hash,
             $cpf_rf_hash
         ) );
 

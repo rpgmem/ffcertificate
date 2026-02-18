@@ -158,14 +158,14 @@ class SubmissionRepository extends AbstractRepository {
     public function findByCpfRf( string $cpf, int $limit = 10 ): array {
         $clean_cpf = preg_replace('/[^0-9]/', '', $cpf);
         $id_hash = $this->hash($clean_cpf);
+        $hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
 
-        // Search split columns (cpf_hash, rf_hash)
+        // Search the specific split column based on digit count
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $results = $this->wpdb->get_results(
             $this->wpdb->prepare(
-                'SELECT * FROM %i WHERE cpf_hash = %s OR rf_hash = %s ORDER BY id DESC LIMIT %d',
+                "SELECT * FROM %i WHERE {$hash_column} = %s ORDER BY id DESC LIMIT %d",
                 $this->table,
-                $id_hash,
                 $id_hash,
                 $limit
             ),

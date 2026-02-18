@@ -530,14 +530,14 @@ class FormProcessor {
 
         if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
             $id_hash = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
+            $hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
 
-            // Search split columns (cpf_hash, rf_hash)
+            // Search the specific split column based on digit count
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $result = $wpdb->get_row( $wpdb->prepare(
-                'SELECT * FROM %i WHERE form_id = %d AND (cpf_hash = %s OR rf_hash = %s) ORDER BY id DESC LIMIT 1',
+                "SELECT * FROM %i WHERE form_id = %d AND {$hash_column} = %s ORDER BY id DESC LIMIT 1",
                 $table,
                 $form_id,
-                $id_hash,
                 $id_hash
             ) );
 

@@ -329,9 +329,10 @@ class RateLimiter {
         } elseif ($field === 'cpf') {
             if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
                 $h = \FreeFormCertificate\Core\Encryption::hash($value);
-                // Search split columns
+                $hc = strlen(preg_replace('/[^0-9]/', '', $value)) === 7 ? 'rf_hash' : 'cpf_hash';
+                // Search the specific split column based on digit count
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
-                $count = intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE (cpf_hash=%s OR rf_hash=%s) $dw $fw", $t, $h, $h)));
+                $count = intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE {$hc}=%s $dw $fw", $t, $h)));
                 if ($count > 0) {
                     return $count;
                 }
