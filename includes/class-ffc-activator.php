@@ -108,6 +108,26 @@ class Activator {
         dbDelta($sql);
     }
 
+    /**
+     * Ensure submissions table schema is up-to-date on every load.
+     *
+     * Compares stored DB version with plugin version and runs add_columns()
+     * when they differ.  This prevents "column not found" errors after a
+     * plugin update that adds new columns without a full deactivate/activate.
+     *
+     * @since 4.12.26
+     */
+    public static function maybe_add_columns(): void {
+        $stored = get_option( 'ffc_submissions_db_version', '' );
+
+        if ( $stored === FFC_VERSION ) {
+            return;
+        }
+
+        self::add_columns();
+        update_option( 'ffc_submissions_db_version', FFC_VERSION, true );
+    }
+
     private static function add_columns(): void {
         global $wpdb;
         $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
