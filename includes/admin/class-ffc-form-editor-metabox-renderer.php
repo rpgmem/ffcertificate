@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use WP_Post;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -30,7 +32,7 @@ class FormEditorMetaboxRenderer {
         <div class="ffc-shortcode-box">
             <p><strong><?php esc_html_e( 'Copy this Shortcode:', 'ffcertificate' ); ?></strong></p>
             <code class="ffc-shortcode-display">
-                [ffc_form id="<?php echo esc_attr( $post->ID ); ?>"]
+                [ffc_form id="<?php echo esc_attr( (string) $post->ID ); ?>"]
             </code>
             <p class="description">
                 <?php esc_html_e( 'Paste this code into any Page or Post to display the form.', 'ffcertificate' ); ?>

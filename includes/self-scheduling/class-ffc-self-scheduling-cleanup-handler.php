@@ -36,7 +36,6 @@ class SelfSchedulingCleanupHandler {
             wp_send_json_error(array(
                 'message' => __('Security check failed', 'ffcertificate')
             ));
-            return;
         }
 
         // Verify permissions
@@ -44,7 +43,6 @@ class SelfSchedulingCleanupHandler {
             wp_send_json_error(array(
                 'message' => __('You do not have permission to perform this action', 'ffcertificate')
             ));
-            return;
         }
 
         // Get parameters
@@ -55,7 +53,6 @@ class SelfSchedulingCleanupHandler {
             wp_send_json_error(array(
                 'message' => __('Invalid parameters', 'ffcertificate')
             ));
-            return;
         }
 
         // Verify calendar exists
@@ -66,7 +63,6 @@ class SelfSchedulingCleanupHandler {
             wp_send_json_error(array(
                 'message' => __('Calendar not found', 'ffcertificate')
             ));
-            return;
         }
 
         global $wpdb;
@@ -138,7 +134,6 @@ class SelfSchedulingCleanupHandler {
                 wp_send_json_error(array(
                     'message' => __('Invalid cleanup action', 'ffcertificate')
                 ));
-                return;
         }
 
         // Log the action
@@ -223,19 +218,19 @@ class SelfSchedulingCleanupHandler {
                 <table class="widefat" style="border: none;">
                     <tr>
                         <td><strong><?php esc_html_e('Total:', 'ffcertificate'); ?></strong></td>
-                        <td><?php echo esc_html($count_all); ?></td>
+                        <td><?php echo esc_html((string) $count_all); ?></td>
                     </tr>
                     <tr>
                         <td><strong><?php esc_html_e('Past:', 'ffcertificate'); ?></strong></td>
-                        <td><?php echo esc_html($count_old); ?></td>
+                        <td><?php echo esc_html((string) $count_old); ?></td>
                     </tr>
                     <tr>
                         <td><strong><?php esc_html_e('Future:', 'ffcertificate'); ?></strong></td>
-                        <td><?php echo esc_html($count_future); ?></td>
+                        <td><?php echo esc_html((string) $count_future); ?></td>
                     </tr>
                     <tr>
                         <td><strong><?php esc_html_e('Cancelled:', 'ffcertificate'); ?></strong></td>
-                        <td><?php echo esc_html($count_cancelled); ?></td>
+                        <td><?php echo esc_html((string) $count_cancelled); ?></td>
                     </tr>
                 </table>
             </div>
@@ -248,7 +243,7 @@ class SelfSchedulingCleanupHandler {
                         <button type="button"
                                 class="button ffc-cleanup-btn"
                                 data-action="cancelled"
-                                data-calendar-id="<?php echo esc_attr($calendar_id); ?>"
+                                data-calendar-id="<?php echo esc_attr((string) $calendar_id); ?>"
                                 style="width: 100%; margin-bottom: 5px;">
                             <span class="ffc-icon-delete"></span><?php
                             /* translators: %d: number of cancelled appointments */
@@ -260,7 +255,7 @@ class SelfSchedulingCleanupHandler {
                         <button type="button"
                                 class="button ffc-cleanup-btn"
                                 data-action="old"
-                                data-calendar-id="<?php echo esc_attr($calendar_id); ?>"
+                                data-calendar-id="<?php echo esc_attr((string) $calendar_id); ?>"
                                 style="width: 100%; margin-bottom: 5px;">
                             <span class="dashicons dashicons-calendar"></span> <?php
                             /* translators: %d: number of past appointments */
@@ -272,7 +267,7 @@ class SelfSchedulingCleanupHandler {
                         <button type="button"
                                 class="button ffc-cleanup-btn"
                                 data-action="future"
-                                data-calendar-id="<?php echo esc_attr($calendar_id); ?>"
+                                data-calendar-id="<?php echo esc_attr((string) $calendar_id); ?>"
                                 style="width: 100%; margin-bottom: 5px;">
                             <span class="ffc-icon-skip"></span><?php
                             /* translators: %d: number of future appointments */
@@ -283,7 +278,7 @@ class SelfSchedulingCleanupHandler {
                     <button type="button"
                             class="button button-link-delete ffc-cleanup-btn"
                             data-action="all"
-                            data-calendar-id="<?php echo esc_attr($calendar_id); ?>"
+                            data-calendar-id="<?php echo esc_attr((string) $calendar_id); ?>"
                             style="width: 100%; margin-top: 10px;">
                         <?php
                         /* translators: %d: total number of appointments */

@@ -21,13 +21,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AdminAssetsManager {
 
     /**
-     * Hook suffix for current page
-     *
-     * @var string
-     */
-    private $hook;
-
-    /**
      * Current post type
      *
      * @var string
@@ -50,7 +43,6 @@ class AdminAssetsManager {
     public function enqueue_admin_assets( string $hook ): void {
         global $post_type;
 
-        $this->hook = $hook;
         $this->post_type = $post_type;
 
         // Only load on FFC pages
@@ -338,7 +330,7 @@ class AdminAssetsManager {
                 'connectionError'         => __( 'Connection error.', 'ffcertificate' ),
                 'fileImported'            => __( 'File imported successfully!', 'ffcertificate' ),
                 'errorReadingFile'        => __( 'Error reading file.', 'ffcertificate' ),
-                'selectTemplate'          => __( 'Please select a template.', 'ffcertificate' ),
+                'pleaseSelectTemplate'    => __( 'Please select a template.', 'ffcertificate' ),
                 'confirmReplaceContent'   => __( 'This will replace current content. Continue?', 'ffcertificate' ),
                 'loading'                 => __( 'Loading...', 'ffcertificate' ),
                 'templateLoaded'          => __( 'Template loaded successfully!', 'ffcertificate' ),

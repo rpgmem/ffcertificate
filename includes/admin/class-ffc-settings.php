@@ -23,16 +23,14 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use Exception;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
 class Settings {
 
-    /**
-     * @var object
-     */
-    private $submission_handler;
     /**
      * @var array<string, object>
      */
@@ -43,7 +41,6 @@ class Settings {
     private $save_handler;
 
     public function __construct( object $handler ) {
-        $this->submission_handler = $handler;
         $this->save_handler = new \FreeFormCertificate\Admin\SettingsSaveHandler( $handler );
 
         // Hooks

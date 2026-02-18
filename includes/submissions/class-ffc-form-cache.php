@@ -181,8 +181,8 @@ class FormCache {
      * Warm up cache for a form
      */
     public static function warm_cache( int $form_id ): bool {
-        $data = self::get_form_complete( $form_id );
-        return $data !== false;
+        self::get_form_complete( $form_id );
+        return true;
     }
     
     /**
@@ -299,7 +299,7 @@ class FormCache {
      * @param \WP_Post $post    Post object.
      */
     public static function on_form_deleted( int $post_id, \WP_Post $post ): void {
-        if ( $post && $post->post_type === 'ffc_form' ) {
+        if ( $post->post_type === 'ffc_form' ) {
             self::clear_form_cache( $post_id );
         }
     }

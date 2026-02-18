@@ -32,6 +32,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations;
 
+use WP_Error;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -259,7 +261,7 @@ class MigrationManager {
         // Execute cleanup via Cleanup Strategy
         $result = $this->cleanup_unencrypted_data( 0, 1000 ); // Large batch
 
-        if ( ! is_wp_error( $result ) && $result['success'] ) {
+        if ( $result['success'] ) {
             // Log cleanup action
             if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
                 \FreeFormCertificate\Core\ActivityLog::log(

@@ -95,6 +95,8 @@ class AudienceAdminCalendar {
                         $edit_url = admin_url('admin.php?page=' . $this->menu_slug . '-calendars&action=edit&id=' . $schedule->id);
                         $is_active = ($schedule->status === 'active');
 
+                        $deactivate_url = '';
+                        $delete_url = '';
                         if ($is_active) {
                             $deactivate_url = wp_nonce_url(
                                 admin_url('admin.php?page=' . $this->menu_slug . '-calendars&action=deactivate&id=' . $schedule->id),
@@ -117,7 +119,7 @@ class AudienceAdminCalendar {
                             <td class="column-visibility">
                                 <?php echo $schedule->visibility === 'public' ? esc_html__('Public', 'ffcertificate') : esc_html__('Private', 'ffcertificate'); ?>
                             </td>
-                            <td class="column-environments"><?php echo esc_html($env_count); ?></td>
+                            <td class="column-environments"><?php echo esc_html((string) $env_count); ?></td>
                             <td class="column-status">
                                 <span class="ffc-status-badge ffc-status-<?php echo esc_attr($schedule->status); ?>">
                                     <?php echo $is_active ? esc_html__('Active', 'ffcertificate') : esc_html__('Inactive', 'ffcertificate'); ?>
@@ -173,7 +175,7 @@ class AudienceAdminCalendar {
 
         <form method="post" action="" class="ffc-form">
             <?php wp_nonce_field('save_schedule', 'ffc_schedule_nonce'); ?>
-            <input type="hidden" name="schedule_id" value="<?php echo esc_attr($id); ?>">
+            <input type="hidden" name="schedule_id" value="<?php echo esc_attr((string) $id); ?>">
             <input type="hidden" name="ffc_action" value="save_schedule">
 
             <table class="form-table" role="presentation"><tbody>
@@ -183,7 +185,7 @@ class AudienceAdminCalendar {
                         <label><?php esc_html_e('Calendar ID', 'ffcertificate'); ?></label>
                     </th>
                     <td>
-                        <code><?php echo esc_html($id); ?></code>
+                        <code><?php echo esc_html((string) $id); ?></code>
                     </td>
                 </tr>
                 <tr>
@@ -191,7 +193,7 @@ class AudienceAdminCalendar {
                         <label><?php esc_html_e('Shortcode', 'ffcertificate'); ?></label>
                     </th>
                     <td>
-                        <code>[ffc_audience schedule_id="<?php echo esc_attr($id); ?>"]</code>
+                        <code>[ffc_audience schedule_id="<?php echo esc_attr((string) $id); ?>"]</code>
                         <p class="description">
                             <?php esc_html_e('Use this shortcode to display the calendar on any page or post.', 'ffcertificate'); ?>
                         </p>
@@ -568,7 +570,7 @@ class AudienceAdminCalendar {
 
             <form method="post" action="" class="ffc-holiday-form" style="margin-bottom: 20px; padding: 15px; background: #f6f7f7; border: 1px solid #ddd;">
                 <?php wp_nonce_field('add_holiday', 'ffc_holiday_nonce'); ?>
-                <input type="hidden" name="schedule_id" value="<?php echo esc_attr($id); ?>">
+                <input type="hidden" name="schedule_id" value="<?php echo esc_attr((string) $id); ?>">
                 <input type="hidden" name="ffc_action" value="add_holiday">
 
                 <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">

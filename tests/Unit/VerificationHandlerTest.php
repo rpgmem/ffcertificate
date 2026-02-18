@@ -98,8 +98,7 @@ class VerificationHandlerTest extends TestCase {
 
         // Create handler with mocked submission_handler
         $this->submission_handler = Mockery::mock( SubmissionHandler::class );
-        $email_handler = Mockery::mock( 'EmailHandler' );
-        $this->handler = new VerificationHandler( $this->submission_handler, $email_handler );
+        $this->handler = new VerificationHandler( $this->submission_handler );
 
         // Replace renderer with mock via Reflection
         $this->ref = new \ReflectionClass( VerificationHandler::class );

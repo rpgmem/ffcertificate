@@ -25,20 +25,15 @@ class Frontend {
     /** @var VerificationHandler */
     private $verification_handler;
     /** @var DynamicFragments */
-    private $dynamic_fragments;
+    private $dynamic_fragments; // @phpstan-ignore property.onlyWritten
 
     /**
      * @param SubmissionHandler $submission_handler
-     * @param \FreeFormCertificate\Integrations\EmailHandler $email_handler
      */
-    public function __construct( SubmissionHandler $submission_handler, $email_handler ) {
-        $this->verification_handler = new VerificationHandler( $submission_handler, $email_handler );
-        $this->form_processor = new FormProcessor( $submission_handler, $email_handler );
-        $this->shortcodes = new Shortcodes(
-            $this->form_processor,
-            $this->verification_handler,
-            $submission_handler
-        );
+    public function __construct( SubmissionHandler $submission_handler ) {
+        $this->verification_handler = new VerificationHandler( $submission_handler );
+        $this->form_processor = new FormProcessor( $submission_handler );
+        $this->shortcodes = new Shortcodes();
         $this->dynamic_fragments = new DynamicFragments();
 
         $this->register_hooks();

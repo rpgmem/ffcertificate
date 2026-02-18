@@ -88,10 +88,6 @@ class UserAppointmentsRestController {
 
             $appointments = $appointment_repository->findByUserId($user_id);
 
-            if (!is_array($appointments)) {
-                $appointments = array();
-            }
-
             $date_format = get_option('date_format', 'F j, Y');
 
             // Batch load all calendars to avoid N+1 queries

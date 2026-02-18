@@ -275,9 +275,9 @@ class SelfSchedulingEditor {
                     <?php foreach ($working_hours as $index => $hours): ?>
                         <tr>
                             <td>
-                                <select name="ffc_self_scheduling_working_hours[<?php echo esc_attr( $index ); ?>][day]" required>
+                                <select name="ffc_self_scheduling_working_hours[<?php echo esc_attr( (string) $index ); ?>][day]" required>
                                     <?php foreach ($days_of_week as $day_num => $day_name): ?>
-                                        <option value="<?php echo esc_attr( $day_num ); ?>" <?php selected($hours['day'], $day_num); ?>><?php echo esc_html($day_name); ?></option>
+                                        <option value="<?php echo esc_attr( (string) $day_num ); ?>" <?php selected($hours['day'], $day_num); ?>><?php echo esc_html($day_name); ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </td>
@@ -536,7 +536,7 @@ class SelfSchedulingEditor {
             <p><strong><?php esc_html_e('Use this shortcode to display the calendar:', 'ffcertificate'); ?></strong></p>
 
             <?php if ($post->post_status === 'publish'): ?>
-                <input type="text" readonly value='[ffc_self_scheduling id="<?php echo esc_attr( $post->ID ); ?>"]' onclick="this.select();" style="width: 100%; padding: 6px; font-family: monospace; background: #f0f0f1;" />
+                <input type="text" readonly value='[ffc_self_scheduling id="<?php echo esc_attr( (string) $post->ID ); ?>"]' onclick="this.select();" style="width: 100%; padding: 6px; font-family: monospace; background: #f0f0f1;" />
 
                 <p style="margin-top: 15px;"><strong><?php esc_html_e('Preview:', 'ffcertificate'); ?></strong></p>
                 <p><a href="<?php echo esc_url( add_query_arg('calendar_preview', $post->ID, home_url('/')) ); ?>" target="_blank" class="button button-secondary"><?php esc_html_e('Preview Calendar', 'ffcertificate'); ?></a></p>

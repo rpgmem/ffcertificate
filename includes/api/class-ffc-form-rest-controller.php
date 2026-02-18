@@ -310,19 +310,19 @@ class FormRestController {
 
             // Rate limiting check
             if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
-                $rate_limiter = new \FreeFormCertificate\Security\RateLimiter();
-                
                 $ip = \FreeFormCertificate\Core\Utils::get_user_ip();
-                if (!$rate_limiter->check_limit('ip', $ip)) {
+                $ip_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit($ip);
+                if (!$ip_check['allowed']) {
                     return new \WP_Error(
                         'rate_limit_exceeded',
                         'Too many requests. Please try again later.',
                         array('status' => 429)
                     );
                 }
-                
+
                 if (!empty($submission_data['email'])) {
-                    if (!$rate_limiter->check_limit('email', $submission_data['email'])) {
+                    $email_check = \FreeFormCertificate\Security\RateLimiter::check_email_limit($submission_data['email']);
+                    if (!$email_check['allowed']) {
                         return new \WP_Error(
                             'rate_limit_exceeded',
                             'Too many submissions from this email. Please try again later.',
@@ -330,9 +330,10 @@ class FormRestController {
                         );
                     }
                 }
-                
+
                 if (!empty($submission_data['cpf_rf'])) {
-                    if (!$rate_limiter->check_limit('cpf', $submission_data['cpf_rf'])) {
+                    $cpf_check = \FreeFormCertificate\Security\RateLimiter::check_cpf_limit($submission_data['cpf_rf']);
+                    if (!$cpf_check['allowed']) {
                         return new \WP_Error(
                             'rate_limit_exceeded',
                             'Too many submissions with this CPF/RF. Please try again later.',
@@ -352,23 +353,23 @@ class FormRestController {
             }
             
             $handler = new \FreeFormCertificate\Submissions\SubmissionHandler();
-            $result = $handler->process_submission($form_id, $submission_data);
+            $user_email = isset($submission_data['email']) ? sanitize_email($submission_data['email']) : '';
+            $result = $handler->process_submission($form_id, $form->post_title, $submission_data, $user_email, $form_fields, $form_config);
             
             if (is_wp_error($result)) {
                 return $result;
             }
-            
+
+            $submission_id = (int) $result;
+            $auth_code = isset($submission_data['auth_code']) ? $submission_data['auth_code'] : '';
+
             $response = array(
                 'success' => true,
-                'submission_id' => $result['submission_id'],
-                'auth_code' => \FreeFormCertificate\Core\Utils::format_auth_code($result['auth_code']),
+                'submission_id' => $submission_id,
+                'auth_code' => \FreeFormCertificate\Core\Utils::format_auth_code($auth_code),
                 'message' => __( 'Form submitted successfully', 'ffcertificate' ),
             );
-            
-            if (!empty($result['pdf_url'])) {
-                $response['pdf_url'] = $result['pdf_url'];
-            }
-            
+
             $response['validation_url'] = home_url('/validate-certificate/');
             
             return rest_ensure_response($response);
@@ -393,7 +394,7 @@ class FormRestController {
     private function validate_required_fields(array $data, array $fields): array {
         $errors = array();
         
-        if (empty($fields) || !is_array($fields)) {
+        if (empty($fields)) {
             return $errors;
         }
         

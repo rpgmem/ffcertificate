@@ -165,7 +165,7 @@ class AudienceShortcode {
             'audiences' => self::get_user_audiences($user_id),
         );
 
-        return ($bypass_notice ?? '') . self::render_calendar_html($schedules, $config, $atts, true);
+        return $bypass_notice . self::render_calendar_html($schedules, $config, $atts, true);
     }
 
     /**
@@ -300,7 +300,7 @@ class AudienceShortcode {
 
                         <div class="ffc-form-group">
                             <label for="booking-environment-id">
-                                <?php echo esc_html($first_env_label_singular ?? AudienceScheduleRepository::get_environment_label(null, true)); ?> *
+                                <?php echo esc_html($first_env_label_singular); ?> *
                             </label>
                             <select name="environment_id" id="booking-environment-id" required>
                                 <!-- Populated by JavaScript -->
@@ -504,15 +504,6 @@ class AudienceShortcode {
     }
 
     /**
-     * Render login required message (legacy, kept for compatibility)
-     *
-     * @return string HTML output
-     */
-    private static function render_login_required(): string {
-        return self::render_private_visibility_message();
-    }
-
-    /**
      * Render no access message
      *
      * @return string HTML output
@@ -598,7 +589,6 @@ class AudienceShortcode {
     /**
      * Get audiences user can book for
      *
-     * @param int $user_id User ID
      * @return array<int, array<string, mixed>>
      */
     private static function get_public_audiences(): array {

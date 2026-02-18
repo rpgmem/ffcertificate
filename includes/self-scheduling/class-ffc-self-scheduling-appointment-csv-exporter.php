@@ -281,11 +281,8 @@ class AppointmentCsvExporter {
             $csv_row = $this->format_csv_row($row, $dynamic_keys);
 
             // Convert all row data to UTF-8
-            $csv_row = array_map(function($value) {
-                if (is_string($value)) {
-                    return mb_convert_encoding($value, 'UTF-8', 'UTF-8');
-                }
-                return $value;
+            $csv_row = array_map(function(string $value): string {
+                return mb_convert_encoding($value, 'UTF-8', 'UTF-8');
             }, $csv_row);
 
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV file output, not HTML context

@@ -589,7 +589,7 @@ class AudienceRepository {
         $values = array();
 
         if (isset($args['parent_id'])) {
-            if ($args['parent_id'] === 0 || $args['parent_id'] === null) {
+            if ($args['parent_id'] === 0) {
                 $where[] = 'parent_id IS NULL';
             } else {
                 $where[] = 'parent_id = %d';

@@ -24,18 +24,6 @@ class NameNormalizationMigrationStrategy implements MigrationStrategyInterface {
     private string $table_name;
 
     /**
-     * Name fields to normalize
-     */
-    private const NAME_FIELDS = array(
-        'nome_completo',
-        'nome',
-        'name',
-        'full_name',
-        'ffc_nome',
-        'participante',
-    );
-
-    /**
      * Constructor
      */
     public function __construct() {

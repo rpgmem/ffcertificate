@@ -14,6 +14,9 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations\Strategies;
 
+use Exception;
+use WP_Error;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -121,6 +124,7 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
 
         $migrated = 0;
         $errors = array();
+        $offset = 0;
 
         foreach ( $submissions as $submission ) {
             try {

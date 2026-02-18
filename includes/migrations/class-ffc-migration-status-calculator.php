@@ -19,6 +19,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations;
 
+use WP_Error;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }

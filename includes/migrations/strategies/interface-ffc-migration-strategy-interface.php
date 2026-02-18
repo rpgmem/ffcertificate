@@ -47,7 +47,7 @@ interface MigrationStrategyInterface {
      *
      * @param string $migration_key Migration identifier
      * @param array<string, mixed> $migration_config Migration configuration from registry
-     * @return bool|WP_Error True if can run, WP_Error with reason if cannot
+     * @return bool|\WP_Error True if can run, WP_Error with reason if cannot
      */
     public function can_run( string $migration_key, array $migration_config );
 

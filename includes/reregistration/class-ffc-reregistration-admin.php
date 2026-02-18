@@ -350,7 +350,7 @@ class ReregistrationAdmin {
 
         <form method="post" action="" class="ffc-form">
             <?php wp_nonce_field('save_reregistration', 'ffc_reregistration_nonce'); ?>
-            <input type="hidden" name="reregistration_id" value="<?php echo esc_attr($id); ?>">
+            <input type="hidden" name="reregistration_id" value="<?php echo esc_attr((string) $id); ?>">
             <input type="hidden" name="ffc_action" value="save_reregistration">
 
             <table class="form-table" role="presentation"><tbody>
@@ -432,7 +432,7 @@ class ReregistrationAdmin {
                 printf(
                     '<p class="description"><strong>%s</strong> %s</p>',
                     esc_html__('Affected users:', 'ffcertificate'),
-                    esc_html(count($affected))
+                    esc_html((string) count($affected))
                 );
             }
             ?>
@@ -496,12 +496,12 @@ class ReregistrationAdmin {
                 <?php if ($status !== 'total') : ?>
                     <span class="ffc-stat-item">
                         <span class="ffc-status-badge ffc-status-<?php echo esc_attr($status); ?>"><?php echo esc_html(ucfirst($status)); ?></span>
-                        <strong><?php echo esc_html($count); ?></strong>
+                        <strong><?php echo esc_html((string) $count); ?></strong>
                     </span>
                 <?php endif; ?>
             <?php endforeach; ?>
             <span class="ffc-stat-item">
-                <?php esc_html_e('Total:', 'ffcertificate'); ?> <strong><?php echo esc_html($stats['total']); ?></strong>
+                <?php esc_html_e('Total:', 'ffcertificate'); ?> <strong><?php echo esc_html((string) $stats['total']); ?></strong>
             </span>
         </div>
 
@@ -510,7 +510,7 @@ class ReregistrationAdmin {
             <form method="get" class="ffc-rereg-filters" style="display:inline;">
                 <input type="hidden" name="page" value="<?php echo esc_attr(self::MENU_SLUG); ?>">
                 <input type="hidden" name="view" value="submissions">
-                <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>">
+                <input type="hidden" name="id" value="<?php echo esc_attr((string) $id); ?>">
                 <select name="sub_status">
                     <option value=""><?php esc_html_e('All Statuses', 'ffcertificate'); ?></option>
                     <?php foreach (ReregistrationSubmissionRepository::STATUSES as $s) : ?>
@@ -529,7 +529,7 @@ class ReregistrationAdmin {
         <form method="post" id="ffc-submissions-form">
             <?php wp_nonce_field('bulk_submissions_' . $id, 'ffc_bulk_nonce'); ?>
             <input type="hidden" name="ffc_action" value="bulk_submissions">
-            <input type="hidden" name="reregistration_id" value="<?php echo esc_attr($id); ?>">
+            <input type="hidden" name="reregistration_id" value="<?php echo esc_attr((string) $id); ?>">
 
             <div class="tablenav top">
                 <select name="bulk_action">

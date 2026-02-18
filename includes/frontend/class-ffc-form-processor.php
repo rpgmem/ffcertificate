@@ -31,19 +31,12 @@ class FormProcessor {
     private $submission_handler;
 
     /**
-     * @var \FreeFormCertificate\Integrations\EmailHandler
-     */
-    private $email_handler;
-
-    /**
      * Constructor
      *
-     * @param SubmissionHandler                               $submission_handler
-     * @param \FreeFormCertificate\Integrations\EmailHandler $email_handler
+     * @param SubmissionHandler $submission_handler
      */
-    public function __construct( SubmissionHandler $submission_handler, $email_handler ) {
+    public function __construct( SubmissionHandler $submission_handler ) {
         $this->submission_handler = $submission_handler;
-        $this->email_handler = $email_handler;
 
         // AJAX hooks registered in Frontend::register_hooks() to avoid duplicate registration.
     }
@@ -55,7 +48,6 @@ class FormProcessor {
         // Verify nonce
         if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'ffc_frontend_nonce')) {
             wp_send_json_error(['message' => __('Security check failed. Please refresh the page.', 'ffcertificate')]);
-            return;
         }
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above via wp_verify_nonce.
@@ -201,7 +193,7 @@ class FormProcessor {
             
             // Record attempt
             \FreeFormCertificate\Security\RateLimiter::record_attempt('ip', $ip, $form_id);
-            if ($email) \FreeFormCertificate\Security\RateLimiter::record_attempt('email', $email, $form_id);
+            \FreeFormCertificate\Security\RateLimiter::record_attempt('email', $email, $form_id);
             if ($cpf) \FreeFormCertificate\Security\RateLimiter::record_attempt('cpf', preg_replace('/[^0-9]/', '', $cpf), $form_id);
         }
 
@@ -414,7 +406,7 @@ class FormProcessor {
         }
 
         // Generate PDF data
-        $pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator( $this->submission_handler );
+        $pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator();
         $pdf_data = $pdf_generator->generate_pdf_data(
             $submission_id,
             $this->submission_handler
@@ -456,7 +448,7 @@ class FormProcessor {
         );
 
         // Add quiz data to success response
-        if ( $is_quiz && isset( $quiz_score ) ) {
+        if ( $is_quiz ) {
             $show_score = ( $form_config['quiz_show_score'] ?? '1' ) === '1';
             $response['quiz'] = array(
                 'passed'    => true,

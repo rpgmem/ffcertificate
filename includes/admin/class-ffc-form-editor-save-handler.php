@@ -59,7 +59,7 @@ class FormEditorSaveHandler {
         if ( isset( $_POST['ffc_config'] ) ) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
             $config = wp_unslash( $_POST['ffc_config'] );
-            $allowed_html = method_exists('FFC_Utils', 'get_allowed_html_tags') ? \FreeFormCertificate\Core\Utils::get_allowed_html_tags() : wp_kses_allowed_html('post');
+            $allowed_html = \FreeFormCertificate\Core\Utils::get_allowed_html_tags();
 
             $clean_config = array();
             $clean_config['pdf_layout'] = wp_kses( $config['pdf_layout'], $allowed_html );

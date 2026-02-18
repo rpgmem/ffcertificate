@@ -227,13 +227,13 @@ class ReregistrationDataProcessor {
             $name = 'custom_fields[' . $key . ']';
 
             // Required check
-            if (!empty($cf->is_required) && ($value === '' || $value === null)) {
+            if (!empty($cf->is_required) && $value === '') {
                 /* translators: %s: field label */
                 $errors[$name] = sprintf(__('%s is required.', 'ffcertificate'), $cf->field_label);
                 continue;
             }
 
-            if ($value === '' || $value === null) {
+            if ($value === '') {
                 continue;
             }
 

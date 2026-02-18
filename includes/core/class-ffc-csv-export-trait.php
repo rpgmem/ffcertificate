@@ -39,9 +39,7 @@ trait CsvExportTrait {
 
         foreach ($rows as $row) {
             $decoded = $this->decode_json_field($row, $plain_key, $encrypted_key);
-            if (is_array($decoded)) {
-                $all_keys = array_merge($all_keys, array_keys($decoded));
-            }
+            $all_keys = array_merge($all_keys, array_keys($decoded));
         }
 
         return array_unique($all_keys);

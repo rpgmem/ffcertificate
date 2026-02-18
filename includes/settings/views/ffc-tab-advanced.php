@@ -241,7 +241,7 @@ $ffcertificate_get_option = \Closure::fromCallable( [ $settings, 'get_option' ] 
                             $ffcertificate_forms = get_posts(['post_type' => 'ffc_form', 'posts_per_page' => -1, 'post_status' => 'publish']);
                             if (!empty($ffcertificate_forms)) :
                                 foreach ($ffcertificate_forms as $ffcertificate_f) : ?>
-                                    <option value="<?php echo esc_attr($ffcertificate_f->ID); ?>">
+                                    <option value="<?php echo esc_attr((string) $ffcertificate_f->ID); ?>">
                                         <?php echo esc_html($ffcertificate_f->post_title); ?>
                                     </option>
                                 <?php endforeach;

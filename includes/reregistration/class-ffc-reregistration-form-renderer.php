@@ -531,7 +531,7 @@ class ReregistrationFormRenderer {
                 $is_required = !empty($cf->is_required);
                 $rules = $cf->validation_rules ? json_decode($cf->validation_rules, true) : array();
                 ?>
-                <div class="ffc-rereg-field" data-field-id="<?php echo esc_attr($cf->id); ?>"
+                <div class="ffc-rereg-field" data-field-id="<?php echo esc_attr((string) $cf->id); ?>"
                      data-format="<?php echo esc_attr($rules['format'] ?? ''); ?>"
                      data-regex="<?php echo esc_attr($rules['custom_regex'] ?? ''); ?>"
                      data-regex-msg="<?php echo esc_attr($rules['custom_regex_message'] ?? ''); ?>">
@@ -753,7 +753,7 @@ class ReregistrationFormRenderer {
                         <td>
                             <select class="ffc-wh-day">
                                 <?php foreach ($days_labels as $d_num => $d_name) : ?>
-                                    <option value="<?php echo esc_attr($d_num); ?>" <?php selected($wh_entry['day'], $d_num); ?>><?php echo esc_html($d_name); ?></option>
+                                    <option value="<?php echo esc_attr((string) $d_num); ?>" <?php selected($wh_entry['day'], $d_num); ?>><?php echo esc_html($d_name); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </td>
@@ -811,7 +811,7 @@ class ReregistrationFormRenderer {
                         <td>
                             <select class="ffc-wh-day">
                                 <?php foreach ($days_labels as $d_num => $d_name) : ?>
-                                    <option value="<?php echo esc_attr($d_num); ?>" <?php selected($wh_entry['day'] ?? 0, $d_num); ?>><?php echo esc_html($d_name); ?></option>
+                                    <option value="<?php echo esc_attr((string) $d_num); ?>" <?php selected($wh_entry['day'] ?? 0, $d_num); ?>><?php echo esc_html($d_name); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </td>

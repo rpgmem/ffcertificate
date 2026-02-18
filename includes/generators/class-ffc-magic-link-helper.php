@@ -70,7 +70,7 @@ class MagicLinkHelper {
      * @return string Magic token (32 hex characters)
      */
     public static function ensure_token( int $submission_id, object $handler ): string {
-    if ( ! $handler || ! method_exists( $handler, 'ensure_magic_token' ) ) {
+    if ( ! method_exists( $handler, 'ensure_magic_token' ) ) {
         return '';
     }
     

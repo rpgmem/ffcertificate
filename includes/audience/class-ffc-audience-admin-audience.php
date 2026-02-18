@@ -143,9 +143,9 @@ class AudienceAdminAudience {
             </td>
             <td class="column-members">
                 <a href="<?php echo esc_url($members_url); ?>">
-                    <?php echo esc_html($direct_count); ?>
+                    <?php echo esc_html((string) $direct_count); ?>
                     <?php if ($has_children && $total_count > $direct_count) : ?>
-                        <span class="ffc-member-total" title="<?php esc_attr_e('Including children', 'ffcertificate'); ?>">(<?php echo esc_html($total_count); ?>)</span>
+                        <span class="ffc-member-total" title="<?php esc_attr_e('Including children', 'ffcertificate'); ?>">(<?php echo esc_html((string) $total_count); ?>)</span>
                     <?php endif; ?>
                 </a>
             </td>
@@ -223,7 +223,7 @@ class AudienceAdminAudience {
 
         <form method="post" action="" class="ffc-form">
             <?php wp_nonce_field('save_audience', 'ffc_audience_nonce'); ?>
-            <input type="hidden" name="audience_id" value="<?php echo esc_attr($id); ?>">
+            <input type="hidden" name="audience_id" value="<?php echo esc_attr((string) $id); ?>">
             <input type="hidden" name="ffc_action" value="save_audience">
 
             <table class="form-table" role="presentation"><tbody>
@@ -255,7 +255,7 @@ class AudienceAdminAudience {
                             <option value=""><?php esc_html_e('None (top-level audience)', 'ffcertificate'); ?></option>
                             <?php foreach ($parents as $parent) : ?>
                                 <?php if ($parent->id !== $id) : // Prevent selecting self as parent ?>
-                                    <option value="<?php echo esc_attr($parent->id); ?>" <?php selected($audience->parent_id ?? '', $parent->id); ?>>
+                                    <option value="<?php echo esc_attr((string) $parent->id); ?>" <?php selected($audience->parent_id ?? '', $parent->id); ?>>
                                         <?php echo esc_html($parent->name); ?>
                                     </option>
                                 <?php endif; ?>
@@ -334,7 +334,7 @@ class AudienceAdminAudience {
         <h2><?php esc_html_e('Custom Fields', 'ffcertificate'); ?></h2>
         <p class="description"><?php esc_html_e('Define custom fields for members of this audience. Fields are shown during reregistration and on the user profile.', 'ffcertificate'); ?></p>
 
-        <div id="ffc-custom-fields-container" data-audience-id="<?php echo esc_attr($audience_id); ?>">
+        <div id="ffc-custom-fields-container" data-audience-id="<?php echo esc_attr((string) $audience_id); ?>">
             <div id="ffc-custom-fields-list" class="ffc-custom-fields-sortable">
                 <?php if (!empty($fields)) : ?>
                     <?php foreach ($fields as $field) : ?>
@@ -507,7 +507,7 @@ class AudienceAdminAudience {
             <h2><?php esc_html_e('Add Members', 'ffcertificate'); ?></h2>
             <form method="post" action="">
                 <?php wp_nonce_field('add_members', 'ffc_add_members_nonce'); ?>
-                <input type="hidden" name="audience_id" value="<?php echo esc_attr($id); ?>">
+                <input type="hidden" name="audience_id" value="<?php echo esc_attr((string) $id); ?>">
                 <input type="hidden" name="ffc_action" value="add_members">
 
                 <p>

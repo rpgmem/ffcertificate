@@ -98,7 +98,7 @@ class AdminUserCustomFields {
                     <span class="ffc-cf-toggle-icon dashicons dashicons-arrow-down-alt2"></span>
                     <span class="ffc-color-dot" style="background-color: <?php echo esc_attr($audience->color); ?>;"></span>
                     <?php echo esc_html($audience->name); ?>
-                    <span class="ffc-cf-field-count"><?php echo esc_html(count($fields)); ?></span>
+                    <span class="ffc-cf-field-count"><?php echo esc_html((string) count($fields)); ?></span>
                 </h3>
 
                 <div id="<?php echo esc_attr($section_id); ?>" class="ffc-cf-section-body">
@@ -311,7 +311,7 @@ class AdminUserCustomFields {
                                 <td>
                                     <select class="ffc-wh-day">
                                         <?php foreach ($days_labels as $d_num => $d_name) : ?>
-                                            <option value="<?php echo esc_attr($d_num); ?>" <?php selected($wh_entry['day'] ?? 0, $d_num); ?>><?php echo esc_html($d_name); ?></option>
+                                            <option value="<?php echo esc_attr((string) $d_num); ?>" <?php selected($wh_entry['day'] ?? 0, $d_num); ?>><?php echo esc_html($d_name); ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </td>

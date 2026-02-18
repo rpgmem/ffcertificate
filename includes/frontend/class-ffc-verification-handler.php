@@ -27,19 +27,15 @@ class VerificationHandler {
 
     /** @var SubmissionHandler|null */
     private $submission_handler;
-    /** @var mixed */
-    private $email_handler;
     private VerificationResponseRenderer $renderer;
 
     /**
      * Constructor
      *
      * @param SubmissionHandler|null $submission_handler Submission handler dependency
-     * @param mixed $email_handler Email handler for PDF generation
      */
-    public function __construct( ?SubmissionHandler $submission_handler = null, $email_handler = null ) {
+    public function __construct( ?SubmissionHandler $submission_handler = null ) {
         $this->submission_handler = $submission_handler;
-        $this->email_handler = $email_handler;
         $this->renderer = new VerificationResponseRenderer();
     }
 
@@ -413,7 +409,7 @@ class VerificationHandler {
         }
         
         // Step 3: Merge (columns have priority over JSON)
-        if ( is_array( $extra_data ) && ! empty( $extra_data ) ) {
+        if ( ! empty( $extra_data ) ) {
             $data = array_merge( $extra_data, $data );
         }
 
@@ -426,7 +422,7 @@ class VerificationHandler {
         return array(
             'found' => true,
             'submission' => (object) $submission,
-            'data' => is_array( $data ) ? $data : array(),
+            'data' => $data,
             'magic_token' => $magic_token
         );
     }

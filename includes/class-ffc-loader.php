@@ -102,7 +102,7 @@ class Loader {
         // Admin-only classes skipped on frontend
         if ( is_admin() ) {
             $this->csv_exporter   = new CsvExporter();
-            $this->admin          = new Admin($this->submission_handler, $this->csv_exporter, $this->email_handler);
+            $this->admin          = new Admin($this->submission_handler, $this->csv_exporter);
             $this->admin_ajax     = new AdminAjax();
             AdminUserColumns::init();
             AdminUserCapabilities::init();
@@ -115,7 +115,7 @@ class Loader {
         }
 
         // Frontend + AJAX classes
-        $this->frontend           = new Frontend($this->submission_handler, $this->email_handler);
+        $this->frontend           = new Frontend($this->submission_handler);
 
         DashboardShortcode::init();
         ReregistrationFrontend::init();
@@ -218,7 +218,7 @@ class Loader {
     }
 
     private function define_admin_hooks(): void {
-        add_action('ffcertificate_daily_cleanup_hook', [$this->submission_handler, 'run_data_cleanup']);
+        add_action('ffcertificate_daily_cleanup_hook', function() { $this->submission_handler->run_data_cleanup(); });
         add_action('ffcertificate_reregistration_expire_hook', array(ReregistrationRepository::class, 'expire_overdue'));
         add_action('ffcertificate_reregistration_expire_hook', array(ReregistrationEmailHandler::class, 'run_automated_reminders'));
     }

@@ -33,8 +33,7 @@ class FormProcessorTest extends TestCase {
         Functions\when( 'wp_unslash' )->returnArg();
 
         $mock_handler = Mockery::mock( SubmissionHandler::class );
-        $mock_email   = Mockery::mock( 'stdClass' );
-        $this->processor = new FormProcessor( $mock_handler, $mock_email );
+        $this->processor = new FormProcessor( $mock_handler );
     }
 
     protected function tearDown(): void {
