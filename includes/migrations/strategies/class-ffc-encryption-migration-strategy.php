@@ -136,29 +136,23 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
                     $email_hash = \FreeFormCertificate\Core\Encryption::hash( $submission['email'] );
                 }
 
-                // Encrypt CPF/RF (legacy + split columns)
-                $cpf_rf_encrypted = null;
-                $cpf_rf_hash = null;
+                // Encrypt CPF/RF (split columns only)
                 $cpf_split_encrypted = null;
                 $cpf_split_hash = null;
                 $rf_split_encrypted = null;
                 $rf_split_hash = null;
                 if ( ! empty( $submission['cpf_rf'] ) ) {
                     $clean_id = preg_replace( '/[^0-9]/', '', $submission['cpf_rf'] );
-                    $cpf_rf_encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $clean_id );
-                    $cpf_rf_hash = \FreeFormCertificate\Core\Encryption::hash( $clean_id );
+                    $encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $clean_id );
+                    $hash = \FreeFormCertificate\Core\Encryption::hash( $clean_id );
 
-                    // Also populate split columns
                     $id_len = strlen( $clean_id );
-                    if ( $id_len === 11 ) {
-                        $cpf_split_encrypted = $cpf_rf_encrypted;
-                        $cpf_split_hash = $cpf_rf_hash;
-                    } elseif ( $id_len === 7 ) {
-                        $rf_split_encrypted = $cpf_rf_encrypted;
-                        $rf_split_hash = $cpf_rf_hash;
+                    if ( $id_len === 7 ) {
+                        $rf_split_encrypted = $encrypted;
+                        $rf_split_hash = $hash;
                     } else {
-                        $cpf_split_encrypted = $cpf_rf_encrypted;
-                        $cpf_split_hash = $cpf_rf_hash;
+                        $cpf_split_encrypted = $encrypted;
+                        $cpf_split_hash = $hash;
                     }
                 }
 
@@ -174,18 +168,16 @@ class EncryptionMigrationStrategy implements MigrationStrategyInterface {
                     $data_encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $submission['data'] );
                 }
 
-                // Update database
+                // Update database (split columns only — no legacy cpf_rf_*)
                 $update_data = array(
-                    'email_encrypted'  => $email_encrypted,
-                    'email_hash'       => $email_hash,
-                    'cpf_rf_encrypted' => $cpf_rf_encrypted,
-                    'cpf_rf_hash'      => $cpf_rf_hash,
-                    'cpf_encrypted'    => $cpf_split_encrypted,
-                    'cpf_hash'         => $cpf_split_hash,
-                    'rf_encrypted'     => $rf_split_encrypted,
-                    'rf_hash'          => $rf_split_hash,
+                    'email_encrypted'   => $email_encrypted,
+                    'email_hash'        => $email_hash,
+                    'cpf_encrypted'     => $cpf_split_encrypted,
+                    'cpf_hash'          => $cpf_split_hash,
+                    'rf_encrypted'      => $rf_split_encrypted,
+                    'rf_hash'           => $rf_split_hash,
                     'user_ip_encrypted' => $ip_encrypted,
-                    'data_encrypted'   => $data_encrypted,
+                    'data_encrypted'    => $data_encrypted,
                 );
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $updated = $wpdb->update(

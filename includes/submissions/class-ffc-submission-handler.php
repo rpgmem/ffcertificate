@@ -164,8 +164,6 @@ class SubmissionHandler {
         // 6. Encryption
         $email_encrypted = null;
         $email_hash = null;
-        $cpf_rf_encrypted = null;
-        $cpf_rf_hash = null;
         $cpf_encrypted_val = null;
         $cpf_hash_val = null;
         $rf_encrypted_val = null;
@@ -180,13 +178,7 @@ class SubmissionHandler {
                 $email_hash = \FreeFormCertificate\Core\Encryption::hash($user_email);
             }
 
-            // Legacy combined column (backward compat during transition)
-            if (!empty($clean_cpf_rf)) {
-                $cpf_rf_encrypted = \FreeFormCertificate\Core\Encryption::encrypt($clean_cpf_rf);
-                $cpf_rf_hash = \FreeFormCertificate\Core\Encryption::hash($clean_cpf_rf);
-            }
-
-            // New split columns
+            // Split columns only — no legacy cpf_rf_* dual-write
             if (!empty($clean_cpf)) {
                 $cpf_encrypted_val = \FreeFormCertificate\Core\Encryption::encrypt($clean_cpf);
                 $cpf_hash_val = \FreeFormCertificate\Core\Encryption::hash($clean_cpf);
@@ -216,8 +208,7 @@ class SubmissionHandler {
         $consent_text = $consent_given ? __('User agreed to Privacy Policy and data storage', 'ffcertificate') : null;
 
         // 8. Link to WordPress user (v3.1.0)
-        // Use split hash for user lookup; fall back to combined hash
-        $lookup_cpf_hash = $cpf_hash_val ?? $rf_hash_val ?? $cpf_rf_hash;
+        $lookup_cpf_hash = $cpf_hash_val ?? $rf_hash_val;
         $user_id = null;
         if (!empty($lookup_cpf_hash) && !empty($user_email)) {
             // Load User Manager if not already loaded
@@ -252,8 +243,6 @@ class SubmissionHandler {
             'magic_token' => $magic_token,
             'email_encrypted' => $email_encrypted,
             'email_hash' => $email_hash,
-            'cpf_rf_encrypted' => $cpf_rf_encrypted,
-            'cpf_rf_hash' => $cpf_rf_hash,
             'cpf_encrypted' => $cpf_encrypted_val,
             'cpf_hash' => $cpf_hash_val,
             'rf_encrypted' => $rf_encrypted_val,

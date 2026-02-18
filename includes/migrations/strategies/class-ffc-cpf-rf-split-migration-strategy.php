@@ -9,7 +9,8 @@ declare(strict_types=1);
  *   - 11 digits (CPF) → cpf, cpf_encrypted, cpf_hash
  *   - 7 digits (RF)   → rf, rf_encrypted, rf_hash
  *
- * Legacy cpf_rf_* columns are preserved for backward compatibility.
+ * Copies existing encrypted/hash values (no re-encryption needed)
+ * and NULLs out the legacy cpf_rf_* columns after migration.
  * Processes both submissions and appointments tables.
  *
  * @since 4.13.0
@@ -133,8 +134,8 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
     /**
      * Check if migration can be executed
      *
-     * Requires encryption to be configured (to decrypt cpf_rf_encrypted)
-     * and the new columns to exist.
+     * Requires encryption to be configured (to decrypt cpf_rf_encrypted
+     * when plain text is unavailable) and the new columns to exist.
      *
      * @param string $migration_key Migration identifier
      * @param array<string, mixed> $migration_config Migration configuration
@@ -222,10 +223,10 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
      * Process a batch of records from a single table
      *
      * For each record:
-     * 1. Decrypt cpf_rf_encrypted to get the plain value
-     * 2. Classify by digit length: 11 = CPF, 7 = RF
-     * 3. Encrypt and hash into the appropriate new columns
-     * Legacy cpf_rf_* columns are preserved for backward compatibility.
+     * 1. Resolve the plain-text value to determine digit length
+     * 2. Classify: 11 = CPF, 7 = RF
+     * 3. Copy existing encrypted/hash to the appropriate new column (no re-encryption)
+     * 4. NULL out the legacy cpf_rf_* columns
      *
      * @param string $table_name Table to process
      * @param int $batch_size Number of records per batch
@@ -266,21 +267,26 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
                 $digits = preg_replace( '/[^0-9]/', '', $plain_value );
                 $len = strlen( $digits );
 
-                // Populate new split columns — keep legacy cpf_rf_* intact for backward compat
-                $update_data = array();
+                // Copy existing encrypted/hash to the correct split column — no re-encryption
+                // Then NULL out legacy cpf_rf_* columns
+                $update_data = array(
+                    'cpf_rf'           => null,
+                    'cpf_rf_encrypted' => null,
+                    'cpf_rf_hash'      => null,
+                );
 
-                if ( $len === self::CPF_LENGTH ) {
-                    // It's a CPF
-                    $update_data['cpf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $digits );
-                    $update_data['cpf_hash']      = \FreeFormCertificate\Core\Encryption::hash( $digits );
-                } elseif ( $len === self::RF_LENGTH ) {
+                if ( $len === self::RF_LENGTH ) {
                     // It's an RF
-                    $update_data['rf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $digits );
-                    $update_data['rf_hash']      = \FreeFormCertificate\Core\Encryption::hash( $digits );
+                    $update_data['rf_encrypted'] = $record['cpf_rf_encrypted'];
+                    $update_data['rf_hash']      = $record['cpf_rf_hash'];
+                } elseif ( $len === self::CPF_LENGTH ) {
+                    // It's a CPF
+                    $update_data['cpf_encrypted'] = $record['cpf_rf_encrypted'];
+                    $update_data['cpf_hash']      = $record['cpf_rf_hash'];
                 } else {
-                    // Unknown length — store as CPF (most common) but log warning
-                    $update_data['cpf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $digits );
-                    $update_data['cpf_hash']      = \FreeFormCertificate\Core\Encryption::hash( $digits );
+                    // Unknown length — default to CPF, log warning
+                    $update_data['cpf_encrypted'] = $record['cpf_rf_encrypted'];
+                    $update_data['cpf_hash']      = $record['cpf_rf_hash'];
 
                     if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
                         \FreeFormCertificate\Core\ActivityLog::log(

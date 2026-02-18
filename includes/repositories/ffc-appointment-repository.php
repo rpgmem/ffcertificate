@@ -439,19 +439,14 @@ class AppointmentRepository extends AbstractRepository {
 
             if (!empty($data['cpf_rf'])) {
                 $clean_id = preg_replace('/[^0-9]/', '', $data['cpf_rf']);
-                $data['cpf_rf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($clean_id);
-                $data['cpf_rf_hash'] = hash('sha256', $clean_id);
 
-                // Write to split columns based on digit length
+                // Write to split columns only — no legacy cpf_rf_* dual-write
                 $id_len = strlen($clean_id);
-                if ($id_len === 11) {
-                    $data['cpf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($clean_id);
-                    $data['cpf_hash'] = \FreeFormCertificate\Core\Encryption::hash($clean_id);
-                } elseif ($id_len === 7) {
+                if ($id_len === 7) {
                     $data['rf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($clean_id);
                     $data['rf_hash'] = \FreeFormCertificate\Core\Encryption::hash($clean_id);
                 } else {
-                    // Default to CPF for unknown lengths
+                    // 11 digits (CPF) or unknown length — default to CPF
                     $data['cpf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($clean_id);
                     $data['cpf_hash'] = \FreeFormCertificate\Core\Encryption::hash($clean_id);
                 }
