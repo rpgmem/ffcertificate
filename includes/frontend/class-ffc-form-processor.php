@@ -531,18 +531,31 @@ class FormProcessor {
         if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
             $id_hash = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
 
-            // Search new split columns first, then fallback to legacy cpf_rf_hash
+            // Search split columns (cpf_hash, rf_hash)
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            return $wpdb->get_row( $wpdb->prepare(
-                'SELECT * FROM %i WHERE form_id = %d AND (cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s) ORDER BY id DESC LIMIT 1',
+            $result = $wpdb->get_row( $wpdb->prepare(
+                'SELECT * FROM %i WHERE form_id = %d AND (cpf_hash = %s OR rf_hash = %s) ORDER BY id DESC LIMIT 1',
                 $table,
                 $form_id,
                 $id_hash,
-                $id_hash,
+                $id_hash
+            ) );
+
+            if ( $result ) {
+                return $result;
+            }
+
+            // @deprecated legacy cpf_rf_hash fallback — remove in next major version.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            return $wpdb->get_row( $wpdb->prepare(
+                'SELECT * FROM %i WHERE form_id = %d AND cpf_rf_hash = %s ORDER BY id DESC LIMIT 1',
+                $table,
+                $form_id,
                 $id_hash
             ) );
         }
 
+        // @deprecated legacy plain cpf_rf fallback — remove in next major version.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $wpdb->get_row( $wpdb->prepare(
             'SELECT * FROM %i WHERE form_id = %d AND cpf_rf = %s ORDER BY id DESC LIMIT 1',

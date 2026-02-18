@@ -404,7 +404,7 @@ class SubmissionHandler {
         $submission['user_ip'] = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'user_ip');
         $submission['data']    = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'data');
 
-        // Decrypt split cpf/rf columns (new) with fallback to combined cpf_rf (legacy)
+        // Decrypt split cpf/rf columns
         $cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'cpf');
         $rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'rf');
 
@@ -417,7 +417,7 @@ class SubmissionHandler {
             $submission['rf']     = $rf_val;
             $submission['cpf']    = null;
         } else {
-            // Fallback to legacy combined column
+            // @deprecated legacy cpf_rf fallback — remove in next major version.
             $submission['cpf_rf'] = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'cpf_rf');
             $submission['cpf']    = null;
             $submission['rf']     = null;

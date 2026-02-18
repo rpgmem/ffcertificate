@@ -329,10 +329,17 @@ class RateLimiter {
         } elseif ($field === 'cpf') {
             if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
                 $h = \FreeFormCertificate\Core\Encryption::hash($value);
-                // Search split columns + legacy
+                // Search split columns
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
-                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE (cpf_hash=%s OR rf_hash=%s OR cpf_rf_hash=%s) $dw $fw", $t, $h, $h, $h)));
+                $count = intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE (cpf_hash=%s OR rf_hash=%s) $dw $fw", $t, $h, $h)));
+                if ($count > 0) {
+                    return $count;
+                }
+                // @deprecated legacy cpf_rf_hash fallback — remove in next major version.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
+                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE cpf_rf_hash=%s $dw $fw", $t, $h)));
             } else {
+                // @deprecated legacy plain cpf_rf fallback — remove in next major version.
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
                 return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE cpf_rf=%s $dw $fw", $t, $value)));
             }

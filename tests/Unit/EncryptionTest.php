@@ -130,7 +130,6 @@ class EncryptionTest extends TestCase {
     public function test_encrypt_submission_encrypts_all_fields(): void {
         $submission = array(
             'email'   => 'user@example.com',
-            'cpf_rf'  => '12345678901',
             'user_ip' => '192.168.1.1',
             'data'    => '{"name":"João"}',
         );
@@ -139,25 +138,25 @@ class EncryptionTest extends TestCase {
 
         $this->assertArrayHasKey( 'email_encrypted', $result );
         $this->assertArrayHasKey( 'email_hash', $result );
-        $this->assertArrayHasKey( 'cpf_rf_encrypted', $result );
-        $this->assertArrayHasKey( 'cpf_rf_hash', $result );
         $this->assertArrayHasKey( 'user_ip_encrypted', $result );
         $this->assertArrayHasKey( 'data_encrypted', $result );
 
+        // cpf_rf no longer encrypted by batch method (use split cpf/rf columns)
+        $this->assertArrayNotHasKey( 'cpf_rf_encrypted', $result );
+        $this->assertArrayNotHasKey( 'cpf_rf_hash', $result );
+
         // Encrypted values should decrypt back
         $this->assertSame( 'user@example.com', Encryption::decrypt( $result['email_encrypted'] ) );
-        $this->assertSame( '12345678901', Encryption::decrypt( $result['cpf_rf_encrypted'] ) );
         $this->assertSame( '192.168.1.1', Encryption::decrypt( $result['user_ip_encrypted'] ) );
         $this->assertSame( '{"name":"João"}', Encryption::decrypt( $result['data_encrypted'] ) );
     }
 
     public function test_encrypt_submission_skips_empty_fields(): void {
-        $submission = array( 'email' => '', 'cpf_rf' => '' );
+        $submission = array( 'email' => '' );
 
         $result = Encryption::encrypt_submission( $submission );
 
         $this->assertArrayNotHasKey( 'email_encrypted', $result );
-        $this->assertArrayNotHasKey( 'cpf_rf_encrypted', $result );
     }
 
     // ------------------------------------------------------------------

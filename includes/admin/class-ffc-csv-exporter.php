@@ -127,11 +127,11 @@ class CsvExporter {
         // Decrypt sensitive fields (encrypted → plain fallback)
         $email   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' );
         $user_ip = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'user_ip' );
-        // Decrypt split CPF/RF columns with fallback to legacy
+        // Decrypt split CPF/RF columns
         $cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf' );
         $rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'rf' );
         if ( empty( $cpf_val ) && empty( $rf_val ) ) {
-            // Fallback to legacy combined column
+            // @deprecated legacy cpf_rf fallback — remove in next major version.
             $legacy = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf_rf' );
             if ( ! empty( $legacy ) ) {
                 $id_len = strlen( preg_replace( '/[^0-9]/', '', $legacy ) );

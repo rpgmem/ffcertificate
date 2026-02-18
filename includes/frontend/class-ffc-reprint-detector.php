@@ -69,20 +69,30 @@ class ReprintDetector {
 
             // Check if encryption is enabled
             if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
-                // Use HASH — search split columns first, then legacy
+                // Search split columns (cpf_hash, rf_hash)
                 $id_hash = \FreeFormCertificate\Core\Encryption::hash($clean_cpf);
 
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $existing_submission = $wpdb->get_row( $wpdb->prepare(
-                    'SELECT * FROM %i WHERE form_id = %d AND (cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s) ORDER BY id DESC LIMIT 1',
+                    'SELECT * FROM %i WHERE form_id = %d AND (cpf_hash = %s OR rf_hash = %s) ORDER BY id DESC LIMIT 1',
                     $table_name,
                     $form_id,
                     $id_hash,
-                    $id_hash,
                     $id_hash
                 ) );
+
+                // @deprecated legacy cpf_rf_hash fallback — remove in next major version.
+                if ( ! $existing_submission ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                    $existing_submission = $wpdb->get_row( $wpdb->prepare(
+                        'SELECT * FROM %i WHERE form_id = %d AND cpf_rf_hash = %s ORDER BY id DESC LIMIT 1',
+                        $table_name,
+                        $form_id,
+                        $id_hash
+                    ) );
+                }
             } else {
-                // Use plain CPF for non-encrypted data
+                // @deprecated legacy plain cpf_rf fallback — remove in next major version.
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $existing_submission = $wpdb->get_row( $wpdb->prepare(
                     'SELECT * FROM %i WHERE form_id = %d AND cpf_rf = %s ORDER BY id DESC LIMIT 1',
@@ -92,7 +102,7 @@ class ReprintDetector {
                 ) );
             }
 
-            // Fallback: If column doesn't exist or is NULL, search in JSON
+            // @deprecated legacy JSON data fallback — remove in next major version.
             if ( ! $existing_submission ) {
                 $like_query = '%' . $wpdb->esc_like( '"cpf_rf":"' . $val_cpf . '"' ) . '%';
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

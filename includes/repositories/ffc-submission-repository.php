@@ -159,15 +159,30 @@ class SubmissionRepository extends AbstractRepository {
         $clean_cpf = preg_replace('/[^0-9]/', '', $cpf);
         $id_hash = $this->hash($clean_cpf);
 
-        // Search new split columns (cpf_hash, rf_hash) with fallback to legacy cpf_rf/cpf_rf_hash
+        // Search split columns (cpf_hash, rf_hash)
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $results = $this->wpdb->get_results(
+            $this->wpdb->prepare(
+                'SELECT * FROM %i WHERE cpf_hash = %s OR rf_hash = %s ORDER BY id DESC LIMIT %d',
+                $this->table,
+                $id_hash,
+                $id_hash,
+                $limit
+            ),
+            ARRAY_A
+        );
+
+        if ( ! empty( $results ) ) {
+            return $results;
+        }
+
+        // @deprecated legacy cpf_rf fallback — remove in next major version.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $this->wpdb->get_results(
             $this->wpdb->prepare(
-                'SELECT * FROM %i WHERE cpf_rf = %s OR cpf_rf_hash = %s OR cpf_hash = %s OR rf_hash = %s ORDER BY id DESC LIMIT %d',
+                'SELECT * FROM %i WHERE cpf_rf = %s OR cpf_rf_hash = %s ORDER BY id DESC LIMIT %d',
                 $this->table,
                 $clean_cpf,
-                $id_hash,
-                $id_hash,
                 $id_hash,
                 $limit
             ),
@@ -320,9 +335,10 @@ class SubmissionRepository extends AbstractRepository {
             // 3. Search by email/CPF/RF hash (for encrypted data)
             $search_hash = $this->hash($search_term);
             $search_conditions[] = $this->wpdb->prepare("email_hash = %s", $search_hash);
-            $search_conditions[] = $this->wpdb->prepare("cpf_rf_hash = %s", $search_hash);
             $search_conditions[] = $this->wpdb->prepare("cpf_hash = %s", $search_hash);
             $search_conditions[] = $this->wpdb->prepare("rf_hash = %s", $search_hash);
+            // @deprecated legacy cpf_rf_hash fallback — remove in next major version.
+            $search_conditions[] = $this->wpdb->prepare("cpf_rf_hash = %s", $search_hash);
 
             // 4. Search in unencrypted data field (legacy/fallback)
             // Only search if data column has content (not NULL, not empty)

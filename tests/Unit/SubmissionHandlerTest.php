@@ -690,11 +690,16 @@ class SubmissionHandlerTest extends TestCase {
         $data = array( 'name' => 'CPF User', 'cpf_rf' => '123.456.789-01' );
         $this->handler->process_submission( 1, 'Form', $data, 'cpf@test.com', array(), array() );
 
-        // With encryption on, cpf_rf plain is null but hash/encrypted are set
-        $this->assertNull( $captured['cpf_rf'] );
-        $this->assertNotNull( $captured['cpf_rf_encrypted'] );
-        $this->assertNotNull( $captured['cpf_rf_hash'] );
-        $this->assertSame( 64, strlen( $captured['cpf_rf_hash'] ) );
+        // Legacy cpf_rf columns no longer written; split columns used instead
+        $this->assertArrayNotHasKey( 'cpf_rf', $captured );
+        $this->assertArrayNotHasKey( 'cpf_rf_encrypted', $captured );
+        $this->assertArrayNotHasKey( 'cpf_rf_hash', $captured );
+
+        // Split cpf_hash is populated (11 digits = CPF)
+        $this->assertNotNull( $captured['cpf_hash'] );
+        $this->assertSame( 64, strlen( $captured['cpf_hash'] ) );
+        $this->assertNotNull( $captured['cpf_encrypted'] );
+        $this->assertNull( $captured['rf_hash'] );
     }
 
     public function test_process_submission_pre_populated_auth_code(): void {

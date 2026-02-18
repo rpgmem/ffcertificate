@@ -167,9 +167,10 @@ class VerificationHandler {
         // Decrypt sensitive fields
         $email = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
 
-        // Decrypt split cpf/rf columns with fallback to legacy
+        // Decrypt split cpf/rf columns
         $cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'cpf' );
         $rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'rf' );
+        // @deprecated legacy cpf_rf fallback — remove in next major version.
         $cpf_rf  = ! empty( $cpf_val ) ? $cpf_val : ( ! empty( $rf_val ) ? $rf_val : \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'cpf_rf' ) );
 
         // Build data array

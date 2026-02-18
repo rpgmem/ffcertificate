@@ -421,8 +421,8 @@ class PrivacyHandler {
      * Erase personal data across all FFC tables
      *
      * Strategy:
-     * - Submissions: SET user_id = NULL, clear email_encrypted, cpf_rf_encrypted
-     *   (preserve auth_code, magic_token, cpf_rf_hash for public certificate verification)
+     * - Submissions: SET user_id = NULL, clear encrypted PII columns
+     *   (preserve auth_code, magic_token for public certificate verification)
      * - Appointments: SET user_id = NULL, clear PII fields
      * - Audience members/booking users/permissions: DELETE
      * - User profiles: DELETE
@@ -452,10 +452,12 @@ class PrivacyHandler {
 
         // 1. Submissions: anonymize (preserve certificate verification)
         $submissions_table = $wpdb->prefix . 'ffc_submissions';
+        // @deprecated cpf_rf_encrypted, cpf_rf_hash — legacy columns cleared alongside split columns; remove in next major version.
         $rows = $wpdb->query($wpdb->prepare(
             "UPDATE %i
              SET user_id = NULL, email_encrypted = NULL,
-                 cpf_rf_encrypted = NULL, cpf_encrypted = NULL, rf_encrypted = NULL,
+                 cpf_rf_encrypted = NULL, cpf_rf_hash = NULL,
+                 cpf_encrypted = NULL, rf_encrypted = NULL,
                  cpf_hash = NULL, rf_hash = NULL
              WHERE user_id = %d",
             $submissions_table,
@@ -478,7 +480,7 @@ class PrivacyHandler {
                 "UPDATE %i
                  SET user_id = NULL, name = NULL, email = NULL, email_encrypted = NULL,
                      email_hash = NULL, phone = NULL, phone_encrypted = NULL,
-                     cpf_rf = NULL, cpf_rf_encrypted = NULL,
+                     cpf_rf = NULL, cpf_rf_encrypted = NULL, cpf_rf_hash = NULL,
                      cpf_encrypted = NULL, cpf_hash = NULL,
                      rf_encrypted = NULL, rf_hash = NULL,
                      custom_data = NULL, custom_data_encrypted = NULL,
