@@ -390,7 +390,8 @@ class PdfGenerator {
     }
     
     // Generate QR code
-    return self::generate_qr_code( $magic_link, $size );
+    $qr_generator = new \FreeFormCertificate\Generators\QRCodeGenerator();
+    return $qr_generator->generate( $magic_link, array( 'size' => $size ) );
     }
 
     /**

@@ -33,10 +33,9 @@ class FormProcessor {
     /**
      * Constructor
      *
-     * @param SubmissionHandler                               $submission_handler
-     * @param \FreeFormCertificate\Integrations\EmailHandler $email_handler
+     * @param SubmissionHandler $submission_handler
      */
-    public function __construct( SubmissionHandler $submission_handler, $email_handler ) {
+    public function __construct( SubmissionHandler $submission_handler ) {
         $this->submission_handler = $submission_handler;
 
         // AJAX hooks registered in Frontend::register_hooks() to avoid duplicate registration.
@@ -194,7 +193,7 @@ class FormProcessor {
             
             // Record attempt
             \FreeFormCertificate\Security\RateLimiter::record_attempt('ip', $ip, $form_id);
-            if ($email) \FreeFormCertificate\Security\RateLimiter::record_attempt('email', $email, $form_id);
+            \FreeFormCertificate\Security\RateLimiter::record_attempt('email', $email, $form_id);
             if ($cpf) \FreeFormCertificate\Security\RateLimiter::record_attempt('cpf', preg_replace('/[^0-9]/', '', $cpf), $form_id);
         }
 

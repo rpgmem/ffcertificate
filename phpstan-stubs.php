@@ -11,7 +11,7 @@ define( 'FFC_JQUERY_UI_VERSION', '1.12.1' );
 define( 'FFC_MIN_WP_VERSION', '6.2' );
 define( 'FFC_MIN_PHP_VERSION', '7.4' );
 define( 'FFC_DEBUG', false );
-define( 'FFC_PLUGIN_DIR', '/path/to/plugin/' );
+define( 'FFC_PLUGIN_DIR', __DIR__ . '/' );
 define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
 
 // WordPress DB constant

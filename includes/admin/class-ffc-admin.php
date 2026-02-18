@@ -42,7 +42,7 @@ class Admin {
     /** @var AdminActivityLogPage */
     private $activity_log_page;
 
-    public function __construct( object $handler, object $exporter, ?object $email_handler = null ) {
+    public function __construct( object $handler, object $exporter ) {
         $this->submission_handler = $handler;
         $this->csv_exporter = $exporter;
 

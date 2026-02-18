@@ -174,7 +174,7 @@ class SubmissionHandler {
                 $ticket_hash = \FreeFormCertificate\Core\Encryption::hash($ticket_value);
             }
 
-            if (!empty($data_json) && $data_json !== '{}') {
+            if ($data_json !== '{}') {
                 $data_encrypted = \FreeFormCertificate\Core\Encryption::encrypt($data_json);
             }
         }
@@ -283,7 +283,7 @@ class SubmissionHandler {
         $update_data = [];
 
         // Update email if provided
-        if ($new_email !== null) {
+        if ($new_email !== '') {
             if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
                 $update_data['email_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($new_email);
                 $update_data['email_hash'] = \FreeFormCertificate\Core\Encryption::hash($new_email);
@@ -294,7 +294,7 @@ class SubmissionHandler {
         }
 
         // Update data if provided
-        if ($clean_data !== null && is_array($clean_data)) {
+        if (!empty($clean_data)) {
             // Remove edit tracking from JSON data (should be in columns)
             unset($clean_data['is_edited']);
             unset($clean_data['edited_at']);

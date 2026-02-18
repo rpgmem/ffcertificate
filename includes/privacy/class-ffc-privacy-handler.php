@@ -135,14 +135,12 @@ class PrivacyHandler {
             $data[] = array('name' => __('Member Since', 'ffcertificate'), 'value' => $reg_date);
         }
 
-        if (!empty($data)) {
-            $export_items[] = array(
-                'group_id' => 'ffc-profile',
-                'group_label' => __('FFC Profile', 'ffcertificate'),
-                'item_id' => 'ffc-profile-' . $user->ID,
-                'data' => $data,
-            );
-        }
+        $export_items[] = array(
+            'group_id' => 'ffc-profile',
+            'group_label' => __('FFC Profile', 'ffcertificate'),
+            'item_id' => 'ffc-profile-' . $user->ID,
+            'data' => $data,
+        );
 
         return array('data' => $export_items, 'done' => true);
     }

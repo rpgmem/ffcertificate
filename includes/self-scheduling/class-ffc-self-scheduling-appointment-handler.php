@@ -468,7 +468,7 @@ class AppointmentHandler {
                         \FreeFormCertificate\Core\Utils::debug_log('User created/linked for appointment', array(
                             'user_id' => $user_id,
                             'email' => $data['email'],
-                            'has_cpf_rf' => !empty($cpf_rf_clean)
+                            'has_cpf_rf' => true
                         ));
                     }
                 }

@@ -275,9 +275,9 @@ class SelfSchedulingEditor {
                     <?php foreach ($working_hours as $index => $hours): ?>
                         <tr>
                             <td>
-                                <select name="ffc_self_scheduling_working_hours[<?php echo esc_attr( $index ); ?>][day]" required>
+                                <select name="ffc_self_scheduling_working_hours[<?php echo esc_attr( (string) $index ); ?>][day]" required>
                                     <?php foreach ($days_of_week as $day_num => $day_name): ?>
-                                        <option value="<?php echo esc_attr( $day_num ); ?>" <?php selected($hours['day'], $day_num); ?>><?php echo esc_html($day_name); ?></option>
+                                        <option value="<?php echo esc_attr( (string) $day_num ); ?>" <?php selected($hours['day'], $day_num); ?>><?php echo esc_html($day_name); ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </td>

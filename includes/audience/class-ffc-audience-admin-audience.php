@@ -334,7 +334,7 @@ class AudienceAdminAudience {
         <h2><?php esc_html_e('Custom Fields', 'ffcertificate'); ?></h2>
         <p class="description"><?php esc_html_e('Define custom fields for members of this audience. Fields are shown during reregistration and on the user profile.', 'ffcertificate'); ?></p>
 
-        <div id="ffc-custom-fields-container" data-audience-id="<?php echo esc_attr($audience_id); ?>">
+        <div id="ffc-custom-fields-container" data-audience-id="<?php echo esc_attr((string) $audience_id); ?>">
             <div id="ffc-custom-fields-list" class="ffc-custom-fields-sortable">
                 <?php if (!empty($fields)) : ?>
                     <?php foreach ($fields as $field) : ?>

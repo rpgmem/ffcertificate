@@ -137,21 +137,24 @@ class MigrationCustomFieldsTables {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
         dbDelta($sql);
 
-        $exists = self::table_exists($table_name);
-
-        return [
-            'success' => $exists,
-            'message' => $exists
-                ? sprintf(
+        if (self::table_exists($table_name)) { // @phpstan-ignore if.alwaysFalse (dbDelta creates the table)
+            return [
+                'success' => true,
+                'message' => sprintf(
                     /* translators: %s: table name */
                     __('Table %s created successfully.', 'ffcertificate'),
                     $table_name
-                )
-                : sprintf(
-                    /* translators: %s: table name */
-                    __('Failed to create table %s.', 'ffcertificate'),
-                    $table_name
                 ),
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => sprintf(
+                /* translators: %s: table name */
+                __('Failed to create table %s.', 'ffcertificate'),
+                $table_name
+            ),
         ];
     }
 
@@ -200,21 +203,24 @@ class MigrationCustomFieldsTables {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
         dbDelta($sql);
 
-        $exists = self::table_exists($table_name);
-
-        return [
-            'success' => $exists,
-            'message' => $exists
-                ? sprintf(
+        if (self::table_exists($table_name)) { // @phpstan-ignore if.alwaysFalse (dbDelta creates the table)
+            return [
+                'success' => true,
+                'message' => sprintf(
                     /* translators: %s: table name */
                     __('Table %s created successfully.', 'ffcertificate'),
                     $table_name
-                )
-                : sprintf(
-                    /* translators: %s: table name */
-                    __('Failed to create table %s.', 'ffcertificate'),
-                    $table_name
                 ),
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => sprintf(
+                /* translators: %s: table name */
+                __('Failed to create table %s.', 'ffcertificate'),
+                $table_name
+            ),
         ];
     }
 
@@ -260,21 +266,24 @@ class MigrationCustomFieldsTables {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
         dbDelta($sql);
 
-        $exists = self::table_exists($table_name);
-
-        return [
-            'success' => $exists,
-            'message' => $exists
-                ? sprintf(
+        if (self::table_exists($table_name)) { // @phpstan-ignore if.alwaysFalse (dbDelta creates the table)
+            return [
+                'success' => true,
+                'message' => sprintf(
                     /* translators: %s: table name */
                     __('Table %s created successfully.', 'ffcertificate'),
                     $table_name
-                )
-                : sprintf(
-                    /* translators: %s: table name */
-                    __('Failed to create table %s.', 'ffcertificate'),
-                    $table_name
                 ),
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => sprintf(
+                /* translators: %s: table name */
+                __('Failed to create table %s.', 'ffcertificate'),
+                $table_name
+            ),
         ];
     }
 

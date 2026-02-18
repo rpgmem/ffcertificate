@@ -33,9 +33,8 @@ class VerificationHandler {
      * Constructor
      *
      * @param SubmissionHandler|null $submission_handler Submission handler dependency
-     * @param mixed $email_handler Email handler for PDF generation
      */
-    public function __construct( ?SubmissionHandler $submission_handler = null, $email_handler = null ) {
+    public function __construct( ?SubmissionHandler $submission_handler = null ) {
         $this->submission_handler = $submission_handler;
         $this->renderer = new VerificationResponseRenderer();
     }
@@ -423,7 +422,7 @@ class VerificationHandler {
         return array(
             'found' => true,
             'submission' => (object) $submission,
-            'data' => is_array( $data ) ? $data : array(),
+            'data' => $data,
             'magic_token' => $magic_token
         );
     }

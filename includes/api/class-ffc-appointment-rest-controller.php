@@ -148,9 +148,9 @@ class AppointmentRestController {
             // Rate limiting (prevent automated booking abuse)
             if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
                 $ip = \FreeFormCertificate\Core\Utils::get_user_ip();
-                $rate_limiter = new \FreeFormCertificate\Security\RateLimiter();
+                $rate_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit($ip);
 
-                if (!$rate_limiter->check_limit('ip', $ip)) {
+                if (!$rate_check['allowed']) {
                     return new \WP_Error(
                         'rate_limit_exceeded',
                         __('Too many requests. Please try again later.', 'ffcertificate'),

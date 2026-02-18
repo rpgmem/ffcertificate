@@ -258,18 +258,16 @@ class AppointmentAjaxHandler {
             }
 
             $blocked = $blocked_repo->getBlockedDatesInRange($calendar_id, $start_date, $end_date);
-            if (is_array($blocked)) {
-                foreach ($blocked as $block) {
-                    if (isset($block['block_type']) && $block['block_type'] === 'full_day') {
-                        $block_start = $block['start_date'];
-                        $block_end = $block['end_date'] ?? $block['start_date'];
-                        $current = $block_start;
-                        while ($current <= $block_end) {
-                            if (!isset($holidays[$current])) {
-                                $holidays[$current] = $block['reason'] ?: __('Closed', 'ffcertificate');
-                            }
-                            $current = gmdate('Y-m-d', strtotime($current . ' +1 day'));
+            foreach ($blocked as $block) {
+                if (isset($block['block_type']) && $block['block_type'] === 'full_day') {
+                    $block_start = $block['start_date'];
+                    $block_end = $block['end_date'] ?? $block['start_date'];
+                    $current = $block_start;
+                    while ($current <= $block_end) {
+                        if (!isset($holidays[$current])) {
+                        $holidays[$current] = $block['reason'] ?: __('Closed', 'ffcertificate');
                         }
+                        $current = gmdate('Y-m-d', strtotime($current . ' +1 day'));
                     }
                 }
             }

@@ -24,12 +24,8 @@ class Shortcodes {
 
     /**
      * Constructor
-     *
-     * @param FormProcessor $form_processor
-     * @param VerificationHandler $verification_handler
-     * @param SubmissionHandler|null $submission_handler Added in v2.8.0
      */
-    public function __construct( FormProcessor $form_processor, VerificationHandler $verification_handler, ?SubmissionHandler $submission_handler = null ) {
+    public function __construct() {
     }
 
     /**
@@ -119,7 +115,7 @@ class Shortcodes {
 
         \FreeFormCertificate\Core\Utils::debug_log( 'Verification shortcode rendered', array(
             'ip' => \FreeFormCertificate\Core\Utils::get_user_ip(),
-            'has_token' => ! empty( $magic_token )
+            'has_token' => false
         ) );
 
         // Render verification page using template

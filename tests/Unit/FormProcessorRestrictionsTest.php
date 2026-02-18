@@ -30,9 +30,8 @@ class FormProcessorRestrictionsTest extends TestCase {
         Monkey\setUp();
 
         $handler = Mockery::mock( SubmissionHandler::class );
-        $email_handler = Mockery::mock( 'EmailHandler' );
 
-        $this->processor = new FormProcessor( $handler, $email_handler );
+        $this->processor = new FormProcessor( $handler );
 
         // Make private quiz method accessible via reflection.
         $ref = new \ReflectionClass( FormProcessor::class );

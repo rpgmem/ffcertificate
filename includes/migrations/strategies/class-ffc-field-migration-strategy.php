@@ -57,7 +57,14 @@ class FieldMigrationStrategy implements MigrationStrategyInterface {
         $column = isset( $migration_config['column'] ) ? $migration_config['column'] : null;
 
         if ( ! $column ) {
-            return new WP_Error( 'invalid_config', __( 'Missing column configuration', 'ffcertificate' ) );
+            return array(
+                'total'       => 0,
+                'migrated'    => 0,
+                'pending'     => 0,
+                'percent'     => 0,
+                'is_complete' => false,
+                'error'       => __( 'Missing column configuration', 'ffcertificate' ),
+            );
         }
 
         // Count total records

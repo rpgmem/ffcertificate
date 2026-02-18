@@ -449,7 +449,7 @@ class ReregistrationSubmissionRepository {
                 'notes'        => null,
             ),
             array('id' => $id),
-            array('%s', null, null, null, null),
+            array('%s', '%s', '%s', '%s', '%s'),
             array('%d')
         );
 

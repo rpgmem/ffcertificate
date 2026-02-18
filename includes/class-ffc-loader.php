@@ -102,7 +102,7 @@ class Loader {
         // Admin-only classes skipped on frontend
         if ( is_admin() ) {
             $this->csv_exporter   = new CsvExporter();
-            $this->admin          = new Admin($this->submission_handler, $this->csv_exporter, $this->email_handler);
+            $this->admin          = new Admin($this->submission_handler, $this->csv_exporter);
             $this->admin_ajax     = new AdminAjax();
             AdminUserColumns::init();
             AdminUserCapabilities::init();
@@ -115,7 +115,7 @@ class Loader {
         }
 
         // Frontend + AJAX classes
-        $this->frontend           = new Frontend($this->submission_handler, $this->email_handler);
+        $this->frontend           = new Frontend($this->submission_handler);
 
         DashboardShortcode::init();
         ReregistrationFrontend::init();

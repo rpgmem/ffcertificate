@@ -181,8 +181,8 @@ class FormCache {
      * Warm up cache for a form
      */
     public static function warm_cache( int $form_id ): bool {
-        $data = self::get_form_complete( $form_id );
-        return $data !== false;
+        self::get_form_complete( $form_id );
+        return true;
     }
     
     /**

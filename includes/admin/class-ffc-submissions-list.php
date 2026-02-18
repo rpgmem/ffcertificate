@@ -270,6 +270,15 @@ class SubmissionsList extends \WP_List_Table {
     }
 
     /**
+     * Process bulk actions.
+     *
+     * @return void
+     */
+    public function process_bulk_action() {
+        // Intentionally empty: bulk actions are handled in the admin page callback.
+    }
+
+    /**
      * @return void
      */
     public function prepare_items() {
