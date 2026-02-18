@@ -262,27 +262,36 @@ class UserManager {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
+        // Query split columns first, then fallback to legacy cpf_rf_encrypted
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $encrypted_cpfs = $wpdb->get_col( $wpdb->prepare(
-            "SELECT DISTINCT cpf_rf_encrypted FROM %i
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT DISTINCT cpf_encrypted, rf_encrypted, cpf_rf_encrypted FROM %i
              WHERE user_id = %d
-             AND cpf_rf_encrypted IS NOT NULL
-             AND cpf_rf_encrypted != ''",
+             AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL OR cpf_rf_encrypted IS NOT NULL)",
             $table,
             $user_id
-        ) );
+        ), ARRAY_A );
 
-        if ( empty( $encrypted_cpfs ) ) {
+        if ( empty( $rows ) ) {
             return array();
         }
 
         $cpfs_masked = array();
 
-        foreach ( $encrypted_cpfs as $cpf_encrypted ) {
+        foreach ( $rows as $row ) {
             try {
-                $cpf_plain = \FreeFormCertificate\Core\Encryption::decrypt( $cpf_encrypted );
-                if ( ! empty( $cpf_plain ) ) {
-                    $masked = self::mask_cpf_rf( $cpf_plain );
+                // Prefer split columns
+                $plain = null;
+                if ( ! empty( $row['cpf_encrypted'] ) ) {
+                    $plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_encrypted'] );
+                } elseif ( ! empty( $row['rf_encrypted'] ) ) {
+                    $plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['rf_encrypted'] );
+                } elseif ( ! empty( $row['cpf_rf_encrypted'] ) ) {
+                    $plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_rf_encrypted'] );
+                }
+
+                if ( ! empty( $plain ) ) {
+                    $masked = self::mask_cpf_rf( $plain );
                     if ( ! in_array( $masked, $cpfs_masked, true ) ) {
                         $cpfs_masked[] = $masked;
                     }

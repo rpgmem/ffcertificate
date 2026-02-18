@@ -76,7 +76,8 @@ class CsvExporter {
             __( 'Submission Date', 'ffcertificate' ),
             __( 'E-mail', 'ffcertificate' ),
             __( 'User IP', 'ffcertificate' ),
-            __( 'CPF/RF', 'ffcertificate' ),
+            __( 'CPF', 'ffcertificate' ),
+            __( 'RF', 'ffcertificate' ),
             __( 'Auth Code', 'ffcertificate' ),
             __( 'Token', 'ffcertificate' ),
             __( 'Consent Given', 'ffcertificate' ),
@@ -126,7 +127,21 @@ class CsvExporter {
         // Decrypt sensitive fields (encrypted → plain fallback)
         $email   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' );
         $user_ip = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'user_ip' );
-        $cpf_rf  = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf_rf' );
+        // Decrypt split CPF/RF columns with fallback to legacy
+        $cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf' );
+        $rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'rf' );
+        if ( empty( $cpf_val ) && empty( $rf_val ) ) {
+            // Fallback to legacy combined column
+            $legacy = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf_rf' );
+            if ( ! empty( $legacy ) ) {
+                $id_len = strlen( preg_replace( '/[^0-9]/', '', $legacy ) );
+                if ( $id_len === 7 ) {
+                    $rf_val = $legacy;
+                } else {
+                    $cpf_val = $legacy;
+                }
+            }
+        }
 
         // User ID
         $user_id = !empty( $row['user_id'] ) ? $row['user_id'] : '';
@@ -163,7 +178,8 @@ class CsvExporter {
             $row['submission_date'],    // Submission Date
             $email,                     // E-mail (decrypted)
             $user_ip,                   // User IP (decrypted)
-            $cpf_rf,                    // CPF/RF (decrypted)
+            $cpf_val ?? '',             // CPF (decrypted)
+            $rf_val ?? '',              // RF (decrypted)
             $auth_code,                 // Auth Code (omitted if empty)
             $token,                     // Token (magic_token column)
             $consent_given,             // Consent Given (Yes/No)

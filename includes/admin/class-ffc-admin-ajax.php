@@ -226,10 +226,13 @@ class AdminAjax {
 
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
+        // Search split columns first, then legacy
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $user_id = $wpdb->get_var( $wpdb->prepare(
-            "SELECT user_id FROM %i WHERE cpf_rf_hash = %s AND user_id IS NOT NULL LIMIT 1",
+            "SELECT user_id FROM %i WHERE (cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s) AND user_id IS NOT NULL LIMIT 1",
             $table,
+            $cpf_rf_hash,
+            $cpf_rf_hash,
             $cpf_rf_hash
         ) );
 

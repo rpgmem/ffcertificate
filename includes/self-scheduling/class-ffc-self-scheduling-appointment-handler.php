@@ -445,7 +445,12 @@ class AppointmentHandler {
             return;
         }
 
-        $cpf_rf_hash = hash('sha256', $cpf_rf_clean);
+        // Use Encryption::hash() when available for consistency with SubmissionHandler
+        if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
+            $cpf_rf_hash = \FreeFormCertificate\Core\Encryption::hash($cpf_rf_clean);
+        } else {
+            $cpf_rf_hash = hash('sha256', $cpf_rf_clean);
+        }
 
         if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
             try {

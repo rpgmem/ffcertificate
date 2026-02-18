@@ -328,8 +328,10 @@ class RateLimiter {
             }
         } elseif ($field === 'cpf') {
             if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
+                $h = \FreeFormCertificate\Core\Encryption::hash($value);
+                // Search split columns + legacy
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
-                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE cpf_rf_hash=%s $dw $fw", $t, \FreeFormCertificate\Core\Encryption::hash($value))));
+                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE (cpf_hash=%s OR rf_hash=%s OR cpf_rf_hash=%s) $dw $fw", $t, $h, $h, $h)));
             } else {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
                 return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE cpf_rf=%s $dw $fw", $t, $value)));

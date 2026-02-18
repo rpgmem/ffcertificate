@@ -89,6 +89,12 @@ class VerificationHandler {
         if (!empty($submission['cpf_rf'])) {
             $data['cpf_rf'] = $submission['cpf_rf'];
         }
+        if (!empty($submission['cpf'])) {
+            $data['cpf'] = $submission['cpf'];
+        }
+        if (!empty($submission['rf'])) {
+            $data['rf'] = $submission['rf'];
+        }
 
         $extra_data = json_decode($submission['data'], true);
         if (!is_array($extra_data)) {
@@ -160,7 +166,11 @@ class VerificationHandler {
     private function build_appointment_result( array $appointment ): array {
         // Decrypt sensitive fields
         $email = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
-        $cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'cpf_rf' );
+
+        // Decrypt split cpf/rf columns with fallback to legacy
+        $cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'cpf' );
+        $rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'rf' );
+        $cpf_rf  = ! empty( $cpf_val ) ? $cpf_val : ( ! empty( $rf_val ) ? $rf_val : \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'cpf_rf' ) );
 
         // Build data array
         $data = array(

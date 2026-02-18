@@ -415,11 +415,11 @@ class AdminSubmissionEditPage {
         <!-- ✅ CPF/RF (read-only se existir) -->
         <?php if ( !empty( $this->sub_array['cpf_rf'] ) ): ?>
         <tr>
-            <th><label><?php esc_html_e( 'CPF/RF', 'ffcertificate' ); ?></label></th>
+            <th><label><?php echo esc_html( !empty( $this->sub_array['rf'] ) ? __( 'RF', 'ffcertificate' ) : __( 'CPF', 'ffcertificate' ) ); ?></label></th>
             <td>
                 <input type="text" value="<?php echo esc_attr( $this->sub_array['cpf_rf'] ); ?>" class="regular-text ffc-input-readonly" readonly>
-                <?php if ( ! empty( $this->sub_array['cpf_rf_encrypted'] ) ): ?>
-                    <p class="description"><span class="ffc-icon-lock"></span><?php esc_html_e( 'This CPF/RF is encrypted in the database.', 'ffcertificate' ); ?></p>
+                <?php if ( ! empty( $this->sub_array['cpf_encrypted'] ) || ! empty( $this->sub_array['rf_encrypted'] ) || ! empty( $this->sub_array['cpf_rf_encrypted'] ) ): ?>
+                    <p class="description"><span class="ffc-icon-lock"></span><?php esc_html_e( 'This identifier is encrypted in the database.', 'ffcertificate' ); ?></p>
                 <?php endif; ?>
             </td>
         </tr>

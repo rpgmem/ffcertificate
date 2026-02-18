@@ -150,6 +150,8 @@ class SubmissionRestController {
                     'status' => $item['status'],
                     'email' => !empty($item['email']) ? $item['email'] : null,
                     'cpf_rf' => !empty($item['cpf_rf']) ? \FreeFormCertificate\Core\Utils::mask_cpf($item['cpf_rf']) : null,
+                    'cpf' => !empty($item['cpf']) ? \FreeFormCertificate\Core\Utils::mask_cpf($item['cpf']) : null,
+                    'rf' => !empty($item['rf']) ? $item['rf'] : null,
                     'data' => $data,
                 );
             }
@@ -223,6 +225,8 @@ class SubmissionRestController {
                 'status' => $submission['status'],
                 'email' => !empty($submission['email']) ? $submission['email'] : null,
                 'cpf_rf' => !empty($submission['cpf_rf']) ? $submission['cpf_rf'] : null,
+                'cpf' => !empty($submission['cpf']) ? $submission['cpf'] : null,
+                'rf' => !empty($submission['rf']) ? $submission['rf'] : null,
                 'data' => $data,
             );
 
@@ -306,6 +310,14 @@ class SubmissionRestController {
 
             if (!empty($submission['cpf_rf'])) {
                 $response['certificate']['cpf_rf'] = \FreeFormCertificate\Core\Utils::mask_cpf($submission['cpf_rf']);
+            }
+
+            if (!empty($submission['cpf'])) {
+                $response['certificate']['cpf'] = \FreeFormCertificate\Core\Utils::mask_cpf($submission['cpf']);
+            }
+
+            if (!empty($submission['rf'])) {
+                $response['certificate']['rf'] = $submission['rf'];
             }
 
             return rest_ensure_response($response);

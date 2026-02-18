@@ -454,7 +454,9 @@ class PrivacyHandler {
         $submissions_table = $wpdb->prefix . 'ffc_submissions';
         $rows = $wpdb->query($wpdb->prepare(
             "UPDATE %i
-             SET user_id = NULL, email_encrypted = NULL, cpf_rf_encrypted = NULL
+             SET user_id = NULL, email_encrypted = NULL,
+                 cpf_rf_encrypted = NULL, cpf_encrypted = NULL, rf_encrypted = NULL,
+                 cpf_hash = NULL, rf_hash = NULL
              WHERE user_id = %d",
             $submissions_table,
             $user_id
@@ -477,6 +479,8 @@ class PrivacyHandler {
                  SET user_id = NULL, name = NULL, email = NULL, email_encrypted = NULL,
                      email_hash = NULL, phone = NULL, phone_encrypted = NULL,
                      cpf_rf = NULL, cpf_rf_encrypted = NULL,
+                     cpf_encrypted = NULL, cpf_hash = NULL,
+                     rf_encrypted = NULL, rf_hash = NULL,
                      custom_data = NULL, custom_data_encrypted = NULL,
                      user_notes = NULL, user_ip = NULL, user_ip_encrypted = NULL,
                      user_agent = NULL, consent_ip = NULL
