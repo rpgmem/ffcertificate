@@ -630,9 +630,9 @@ class SubmissionHandler {
     /**
      * Run data cleanup (old submissions)
      *
-     * @return array<string, int>
+     * @return int Number of deleted submissions
      */
-    public function run_data_cleanup(): array {
+    public function run_data_cleanup(): int {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
@@ -658,7 +658,7 @@ class SubmissionHandler {
             ]);
         }
 
-        return $deleted;
+        return $deleted !== false ? (int) $deleted : 0;
     }
 
     /**

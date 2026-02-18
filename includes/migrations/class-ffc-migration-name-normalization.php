@@ -121,7 +121,7 @@ class MigrationNameNormalization {
                     if (!empty($submission['email_encrypted'])) {
                         $email = \FreeFormCertificate\Core\Encryption::decrypt($submission['email_encrypted']);
 
-                        if (!empty($email) && is_string($email)) {
+                        if (!empty($email)) {
                             $email_normalized = strtolower($email);
 
                             if ($email !== $email_normalized) {

@@ -211,7 +211,7 @@ class Activator {
         $migration_manager = new \FreeFormCertificate\Migrations\MigrationManager();
         $migrations = $migration_manager->get_migrations();
 
-        if (!is_array($migrations) || empty($migrations)) {
+        if (empty($migrations)) {
             return;
         }
 

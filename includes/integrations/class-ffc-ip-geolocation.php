@@ -18,6 +18,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Integrations;
 
+use WP_Error;
+
 if (!defined('ABSPATH')) exit;
 
 class IpGeolocation {
@@ -211,7 +213,7 @@ class IpGeolocation {
      * Get cached location for IP
      *
      * @param string $ip IP address
-     * @return array<string, mixed>|null Location data or null if not cached
+     * @return array<string, mixed>|false Location data or false if not cached
      */
     private static function get_cached_location( string $ip ) {
         $cache_key = 'ffc_ip_geo_' . md5($ip);
@@ -274,7 +276,7 @@ class IpGeolocation {
             return false;
         }
 
-        if (empty($areas) || !is_array($areas)) {
+        if (empty($areas)) {
             return false;
         }
 
@@ -353,12 +355,13 @@ class IpGeolocation {
         } else {
             // Clear all IP geolocation transients
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            return $wpdb->query($wpdb->prepare(
+            $result = $wpdb->query($wpdb->prepare(
                 "DELETE FROM %i WHERE option_name LIKE %s OR option_name LIKE %s",
                 $wpdb->options,
                 '_transient_ffc_ip_geo_%',
                 '_transient_timeout_ffc_ip_geo_%'
             ));
+            return $result !== false ? (int) $result : 0;
         }
     }
 }

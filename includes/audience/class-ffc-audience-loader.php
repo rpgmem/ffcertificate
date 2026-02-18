@@ -308,7 +308,7 @@ class AudienceLoader {
             'createdBy' => __('Created By', 'ffcertificate'),
             'audiences' => __('Audiences', 'ffcertificate'),
             'users' => __('Users', 'ffcertificate'),
-            'cancelReason' => __('Cancel Reason', 'ffcertificate'),
+            'cancelReasonLabel' => __('Cancel Reason', 'ffcertificate'),
             'close' => __('Close', 'ffcertificate'),
             'allDay' => __('All Day', 'ffcertificate'),
             'audience' => __('Audience', 'ffcertificate'),
@@ -609,7 +609,7 @@ class AudienceLoader {
 
         ob_start();
         ?>
-        <tr data-user-id="<?php echo esc_attr($user_id); ?>">
+        <tr data-user-id="<?php echo esc_attr((string) $user_id); ?>">
             <td>
                 <strong><?php echo esc_html($user->display_name); ?></strong>
                 <br><span class="description"><?php echo esc_html($user->user_email); ?></span>

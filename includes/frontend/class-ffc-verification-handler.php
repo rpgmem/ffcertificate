@@ -27,8 +27,6 @@ class VerificationHandler {
 
     /** @var SubmissionHandler|null */
     private $submission_handler;
-    /** @var mixed */
-    private $email_handler;
     private VerificationResponseRenderer $renderer;
 
     /**
@@ -39,7 +37,6 @@ class VerificationHandler {
      */
     public function __construct( ?SubmissionHandler $submission_handler = null, $email_handler = null ) {
         $this->submission_handler = $submission_handler;
-        $this->email_handler = $email_handler;
         $this->renderer = new VerificationResponseRenderer();
     }
 
@@ -413,7 +410,7 @@ class VerificationHandler {
         }
         
         // Step 3: Merge (columns have priority over JSON)
-        if ( is_array( $extra_data ) && ! empty( $extra_data ) ) {
+        if ( ! empty( $extra_data ) ) {
             $data = array_merge( $extra_data, $data );
         }
 

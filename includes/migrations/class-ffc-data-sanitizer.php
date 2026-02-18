@@ -77,9 +77,6 @@ class DataSanitizer {
      * @return mixed Field value or empty string if not found
      */
     public static function extract_field_from_json( array $data, array $possible_keys ) {
-        if ( ! is_array( $data ) || ! is_array( $possible_keys ) ) {
-            return '';
-        }
 
         foreach ( $possible_keys as $key ) {
             if ( isset( $data[ $key ] ) && ! empty( $data[ $key ] ) ) {

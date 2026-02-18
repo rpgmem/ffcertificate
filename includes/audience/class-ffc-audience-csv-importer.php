@@ -26,11 +26,6 @@ if (!defined('ABSPATH')) {
 class AudienceCsvImporter {
 
     /**
-     * Batch size for processing
-     */
-    private const BATCH_SIZE = 100;
-
-    /**
      * Import members from CSV
      *
      * @param string $file_path Path to CSV file

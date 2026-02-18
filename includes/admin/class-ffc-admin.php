@@ -29,12 +29,10 @@ class Admin {
     private $submission_handler;
     /** @var object */
     private $csv_exporter;
-    /** @var object|null */
-    private $email_handler;
     /** @var FormEditor */
-    private $form_editor;
+    private $form_editor; // @phpstan-ignore property.onlyWritten
     /** @var Settings */
-    private $settings_page;
+    private $settings_page; // @phpstan-ignore property.onlyWritten
     /** @var MigrationManager|null */
     private $migration_manager;
     /** @var AdminAssetsManager */
@@ -47,7 +45,6 @@ class Admin {
     public function __construct( object $handler, object $exporter, ?object $email_handler = null ) {
         $this->submission_handler = $handler;
         $this->csv_exporter = $exporter;
-        $this->email_handler = $email_handler;
 
         // Autoloader handles class loading
         $this->form_editor   = new FormEditor();
@@ -169,7 +166,7 @@ class Admin {
                     if ( !empty( $filter_form_ids ) ) :
                         foreach ( $filter_form_ids as $form_id ) :
                     ?>
-                        <input type="hidden" name="form_ids[]" value="<?php echo esc_attr( $form_id ); ?>">
+                        <input type="hidden" name="form_ids[]" value="<?php echo esc_attr( (string) $form_id ); ?>">
                     <?php
                         endforeach;
                     ?>

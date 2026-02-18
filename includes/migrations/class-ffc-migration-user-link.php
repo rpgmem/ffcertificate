@@ -21,6 +21,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations;
 
+use WP_User;
+
 if (!defined('ABSPATH')) exit;
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.SchemaChange

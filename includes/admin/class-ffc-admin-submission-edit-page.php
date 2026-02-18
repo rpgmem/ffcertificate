@@ -270,7 +270,7 @@ class AdminSubmissionEditPage {
                                     <?php echo get_avatar( $current_user_id, 32 ); ?>
                                     <strong><?php echo esc_html( $current_user->display_name ); ?></strong>
                                     <span class="ffc-user-email">(<?php echo esc_html( $current_user->user_email ); ?>)</span>
-                                    <span class="ffc-user-id">ID: <?php echo esc_html( $current_user_id ); ?></span>
+                                    <span class="ffc-user-id">ID: <?php echo esc_html( (string) $current_user_id ); ?></span>
                                 </span>
                                 <a href="<?php echo esc_url( get_edit_user_link( $current_user_id ) ); ?>" target="_blank" class="button button-small">
                                     <?php esc_html_e( 'View Profile', 'ffcertificate' ); ?>

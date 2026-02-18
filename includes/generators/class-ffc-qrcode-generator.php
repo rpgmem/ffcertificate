@@ -19,6 +19,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Generators;
 
+use Exception;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -382,16 +384,16 @@ class QRCodeGenerator {
     
     /**
      * Clear QR Code cache
-     * 
+     *
      * @param int $submission_id Optional specific submission (0 = all)
-     * @return int Number of cleared entries
+     * @return bool True if cache was cleared, false otherwise
      */
     public function clear_cache( int $submission_id = 0 ): bool {
         global $wpdb;
         $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
-        
+
         if ( ! $this->cache_column_exists() ) {
-            return 0;
+            return false;
         }
         
         \FreeFormCertificate\Core\Utils::debug_log( 'Clearing QR cache', array(
@@ -420,8 +422,8 @@ class QRCodeGenerator {
         \FreeFormCertificate\Core\Utils::debug_log( 'QR cache cleared', array(
             'cleared_count' => $cleared
         ) );
-        
-        return $cleared;
+
+        return $cleared !== 0;
     }
     
     /**

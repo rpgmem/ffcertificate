@@ -25,16 +25,10 @@ class SelfSchedulingShortcode {
     private $calendar_repository;
 
     /**
-     * @var AppointmentHandler
-     */
-    private $appointment_handler;
-
-    /**
      * Constructor
      */
     public function __construct() {
         $this->calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
-        $this->appointment_handler = new AppointmentHandler();
 
         // Register shortcode
         add_shortcode('ffc_self_scheduling', array($this, 'render_calendar'));

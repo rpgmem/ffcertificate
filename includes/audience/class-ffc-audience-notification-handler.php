@@ -303,14 +303,6 @@ class AudienceNotificationHandler {
     }
 
     /**
-     * Wrap email body in HTML structure.
-     * Delegates to EmailTemplateService::wrap_html().
-     */
-    private static function wrap_email_html(string $body): string {
-        return \FreeFormCertificate\Scheduling\EmailTemplateService::wrap_html($body);
-    }
-
-    /**
      * Get default booking created email template
      *
      * @return string Template HTML

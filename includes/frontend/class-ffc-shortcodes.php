@@ -23,21 +23,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Shortcodes {
 
     /**
-     * @var FormProcessor
-     */
-    private $form_processor;
-
-    /**
-     * @var VerificationHandler
-     */
-    private $verification_handler;
-
-    /**
-     * @var SubmissionHandler|null
-     */
-    private $submission_handler;
-
-    /**
      * Constructor
      *
      * @param FormProcessor $form_processor
@@ -45,9 +30,6 @@ class Shortcodes {
      * @param SubmissionHandler|null $submission_handler Added in v2.8.0
      */
     public function __construct( FormProcessor $form_processor, VerificationHandler $verification_handler, ?SubmissionHandler $submission_handler = null ) {
-        $this->form_processor = $form_processor;
-        $this->verification_handler = $verification_handler;
-        $this->submission_handler = $submission_handler;
     }
 
     /**
@@ -195,10 +177,10 @@ class Shortcodes {
 
         ob_start();
         ?>
-        <div class="<?php echo esc_attr( $wrapper_class ); ?>" id="ffc-form-<?php echo esc_attr( $form_id ); ?>">
+        <div class="<?php echo esc_attr( $wrapper_class ); ?>" id="ffc-form-<?php echo esc_attr( (string) $form_id ); ?>">
             <h2 class="ffc-form-title"><?php echo esc_html( $form_title ); ?></h2>
-            <form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( $form_id ); ?>" autocomplete="off">
-                <input type="hidden" name="form_id" value="<?php echo esc_attr( $form_id ); ?>">
+            <form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" autocomplete="off">
+                <input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form_id ); ?>">
                 
                 <?php foreach ( $fields as $field ) :
                     // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_field() escapes all output internally

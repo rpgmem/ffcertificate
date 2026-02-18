@@ -218,7 +218,7 @@ class Loader {
     }
 
     private function define_admin_hooks(): void {
-        add_action('ffcertificate_daily_cleanup_hook', [$this->submission_handler, 'run_data_cleanup']);
+        add_action('ffcertificate_daily_cleanup_hook', function() { $this->submission_handler->run_data_cleanup(); });
         add_action('ffcertificate_reregistration_expire_hook', array(ReregistrationRepository::class, 'expire_overdue'));
         add_action('ffcertificate_reregistration_expire_hook', array(ReregistrationEmailHandler::class, 'run_automated_reminders'));
     }

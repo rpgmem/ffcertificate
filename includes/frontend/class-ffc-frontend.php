@@ -25,7 +25,7 @@ class Frontend {
     /** @var VerificationHandler */
     private $verification_handler;
     /** @var DynamicFragments */
-    private $dynamic_fragments;
+    private $dynamic_fragments; // @phpstan-ignore property.onlyWritten
 
     /**
      * @param SubmissionHandler $submission_handler

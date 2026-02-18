@@ -109,7 +109,7 @@ class AudienceAdminEnvironment {
             <select name="schedule_id">
                 <option value=""><?php esc_html_e('All Calendars', 'ffcertificate'); ?></option>
                 <?php foreach ($schedules as $schedule) : ?>
-                    <option value="<?php echo esc_attr($schedule->id); ?>" <?php selected($filter_schedule, $schedule->id); ?>>
+                    <option value="<?php echo esc_attr((string) $schedule->id); ?>" <?php selected($filter_schedule, $schedule->id); ?>>
                         <?php echo esc_html($schedule->name); ?>
                     </option>
                 <?php endforeach; ?>
@@ -145,6 +145,8 @@ class AudienceAdminEnvironment {
                         $is_active = ($env->status === 'active');
                         $env_label_singular = mb_strtolower(AudienceScheduleRepository::get_environment_label(isset($env->schedule_id) ? (int) $env->schedule_id : null, true));
 
+                        $deactivate_url = '';
+                        $delete_url = '';
                         if ($is_active) {
                             $deactivate_url = wp_nonce_url(
                                 admin_url('admin.php?page=' . $this->menu_slug . '-environments&action=deactivate&id=' . $env->id),
@@ -253,7 +255,7 @@ class AudienceAdminEnvironment {
 
         <form method="post" action="" class="ffc-form">
             <?php wp_nonce_field('save_environment', 'ffc_environment_nonce'); ?>
-            <input type="hidden" name="environment_id" value="<?php echo esc_attr($id); ?>">
+            <input type="hidden" name="environment_id" value="<?php echo esc_attr((string) $id); ?>">
             <input type="hidden" name="ffc_action" value="save_environment">
 
             <table class="form-table" role="presentation"><tbody>
@@ -265,7 +267,7 @@ class AudienceAdminEnvironment {
                         <select name="environment_schedule" id="environment_schedule" required>
                             <option value=""><?php esc_html_e('Select a calendar', 'ffcertificate'); ?></option>
                             <?php foreach ($schedules as $schedule) : ?>
-                                <option value="<?php echo esc_attr($schedule->id); ?>" <?php selected($environment->schedule_id ?? '', $schedule->id); ?>>
+                                <option value="<?php echo esc_attr((string) $schedule->id); ?>" <?php selected($environment->schedule_id ?? '', $schedule->id); ?>>
                                     <?php echo esc_html($schedule->name); ?>
                                 </option>
                             <?php endforeach; ?>

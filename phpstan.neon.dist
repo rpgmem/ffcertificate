@@ -12,6 +12,8 @@ parameters:
         analyseAndScan:
             - includes/libraries (?)
             - includes/views (?)
+            - includes/admin/views (?)
+            - includes/settings/views (?)
 
     scanDirectories:
         - vendor/php-stubs/wordpress-stubs/

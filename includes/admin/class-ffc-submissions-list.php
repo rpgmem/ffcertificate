@@ -470,9 +470,9 @@ class SubmissionsList extends \WP_List_Table {
                             $checked = in_array( $form->ID, $selected_form_ids ) ? 'checked' : '';
                         ?>
                             <label class="ffc-filter-form-item">
-                                <input type="checkbox" name="filter_form_id[]" value="<?php echo esc_attr( $form->ID ); ?>" <?php echo $checked; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 'checked' literal ?>>
+                                <input type="checkbox" name="filter_form_id[]" value="<?php echo esc_attr( (string) $form->ID ); ?>" <?php echo $checked; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 'checked' literal ?>>
                                 <span class="ffc-filter-form-title"><?php echo esc_html( $form->post_title ); ?></span>
-                                <span class="ffc-filter-form-id">#<?php echo esc_html( $form->ID ); ?></span>
+                                <span class="ffc-filter-form-id">#<?php echo esc_html( (string) $form->ID ); ?></span>
                             </label>
                         <?php endforeach; ?>
                     </div>

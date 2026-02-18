@@ -19,6 +19,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Generators;
 
+use WP_Error;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
@@ -38,7 +40,7 @@ class PdfGenerator {
      *
      * @param int $submission_id Submission ID
      * @param object $submission_handler Submission handler instance
-     * @return array{html: string, filename: string, form_title: string, auth_code: string, submission_id: int, submission: array<string, mixed>, bg_image: mixed}|\WP_Error PDF data array or error
+     * @return array<string, mixed>|\WP_Error PDF data array or error
      */
     public function generate_pdf_data( int $submission_id, object $submission_handler ) {
         // Get submission
@@ -607,7 +609,7 @@ class PdfGenerator {
      * @param array<string, mixed> $submission_data Posted form data
      * @param int $form_id Form ID
      * @param string $submission_date Submission date
-     * @return array{html: string, filename: string, form_title: string, submission: array<string, mixed>, bg_image: mixed}|\WP_Error PDF data array
+     * @return array<string, mixed>|\WP_Error PDF data array
      */
     public function generate_pdf_data_from_form( array $submission_data, int $form_id, ?string $submission_date = null ) {
         // Get form data

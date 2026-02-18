@@ -55,7 +55,6 @@ class AppointmentAjaxHandler {
                 wp_send_json_error(array(
                     'message' => __('System error: Utils class not loaded.', 'ffcertificate')
                 ));
-                return;
             }
 
             $security_check = \FreeFormCertificate\Core\Utils::validate_security_fields($_POST);
@@ -67,7 +66,6 @@ class AppointmentAjaxHandler {
                     'new_label' => $new_captcha['label'],
                     'new_hash' => $new_captcha['hash']
                 ));
-                return;
             }
 
             $calendar_id = $this->get_post_int('calendar_id');
@@ -78,7 +76,6 @@ class AppointmentAjaxHandler {
                 wp_send_json_error(array(
                     'message' => __('Missing required fields.', 'ffcertificate')
                 ));
-                return;
             }
 
             $appointment_data = array(
@@ -108,7 +105,6 @@ class AppointmentAjaxHandler {
                     'code'    => $result->get_error_code(),
                     'message' => $result->get_error_message(),
                 ));
-                return;
             }
 
             // Generate receipt PDF data for auto-download (only for confirmed appointments)
@@ -138,7 +134,7 @@ class AppointmentAjaxHandler {
                 'requires_approval' => $requires_approval,
             );
 
-            if ( $pdf_data && ! is_wp_error( $pdf_data ) ) {
+            if ( $pdf_data ) {
                 $response['pdf_data'] = $pdf_data;
             }
 
@@ -171,7 +167,6 @@ class AppointmentAjaxHandler {
             wp_send_json_error(array(
                 'message' => __('Invalid parameters.', 'ffcertificate')
             ));
-            return;
         }
 
         $slots = $this->handler->get_available_slots($calendar_id, $date);
@@ -180,7 +175,6 @@ class AppointmentAjaxHandler {
             wp_send_json_error(array(
                 'message' => $slots->get_error_message()
             ));
-            return;
         }
 
         wp_send_json_success(array(
@@ -204,7 +198,6 @@ class AppointmentAjaxHandler {
                 wp_send_json_error(array(
                     'message' => __('Invalid appointment ID.', 'ffcertificate')
                 ));
-                return;
             }
 
             $result = $this->handler->cancel_appointment($appointment_id, $token, $reason);
@@ -214,7 +207,6 @@ class AppointmentAjaxHandler {
                     'code'    => $result->get_error_code(),
                     'message' => $result->get_error_message(),
                 ));
-                return;
             }
 
             wp_send_json_success(array(
@@ -247,7 +239,6 @@ class AppointmentAjaxHandler {
 
             if (!$calendar_id) {
                 wp_send_json_error(array('message' => __('Invalid calendar.', 'ffcertificate')));
-                return;
             }
 
             $start_date = sprintf('%04d-%02d-01', $year, $month);

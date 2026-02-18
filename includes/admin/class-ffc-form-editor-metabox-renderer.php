@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use WP_Post;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }

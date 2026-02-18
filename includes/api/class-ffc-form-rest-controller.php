@@ -352,7 +352,8 @@ class FormRestController {
             }
             
             $handler = new \FreeFormCertificate\Submissions\SubmissionHandler();
-            $result = $handler->process_submission($form_id, $submission_data);
+            $user_email = isset($submission_data['email']) ? sanitize_email($submission_data['email']) : '';
+            $result = $handler->process_submission($form_id, $form->post_title, $submission_data, $user_email, $form_fields, $form_config);
             
             if (is_wp_error($result)) {
                 return $result;
@@ -393,7 +394,7 @@ class FormRestController {
     private function validate_required_fields(array $data, array $fields): array {
         $errors = array();
         
-        if (empty($fields) || !is_array($fields)) {
+        if (empty($fields)) {
             return $errors;
         }
         

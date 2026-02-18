@@ -245,7 +245,7 @@ class BlockedDateRepository extends AbstractRepository {
      * @return bool
      */
     private function matchesRecurringPattern(string $date, ?string $time, array $pattern): bool {
-        if (!is_array($pattern) || empty($pattern['type'])) {
+        if (empty($pattern['type'])) {
             return false;
         }
 

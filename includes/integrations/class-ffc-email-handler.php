@@ -24,6 +24,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Integrations;
 
+use PHPMailer\PHPMailer\PHPMailer;
+
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }

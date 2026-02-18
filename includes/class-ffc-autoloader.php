@@ -183,9 +183,9 @@ class FFC_Autoloader {
         $kebab = strtolower($kebab ?? '');
 
         // Clean up multiple hyphens and leading/trailing hyphens
-        $kebab = preg_replace('/-+/', '-', $kebab ?? '');
+        $kebab = preg_replace('/-+/', '-', $kebab) ?? $kebab;
 
-        return trim($kebab ?? '', '-');
+        return trim($kebab, '-');
     }
 
     /**

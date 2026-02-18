@@ -288,10 +288,7 @@ class CsvExporter {
 
             // Convert all row data to UTF-8
             $csv_row = array_map( function( $value ) {
-                if ( is_string( $value ) ) {
-                    return mb_convert_encoding( $value, 'UTF-8', 'UTF-8' );
-                }
-                return $value;
+                return mb_convert_encoding( $value, 'UTF-8', 'UTF-8' );
             }, $csv_row );
 
             // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV file output, not HTML context

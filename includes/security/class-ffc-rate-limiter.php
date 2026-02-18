@@ -245,13 +245,13 @@ class RateLimiter {
             return sprintf(_n('%d second', '%d seconds', $seconds, 'ffcertificate'), $seconds);
         }
         
-        $minutes = ceil($seconds / 60);
+        $minutes = (int) ceil($seconds / 60);
         if ($minutes < 60) {
             /* translators: %d: number of minutes */
             return sprintf(_n('%d minute', '%d minutes', $minutes, 'ffcertificate'), $minutes);
         }
-        
-        $hours = ceil($minutes / 60);
+
+        $hours = (int) ceil($minutes / 60);
         /* translators: %d: number of hours */
         return sprintf(_n('%d hour', '%d hours', $hours, 'ffcertificate'), $hours);
     }
@@ -435,7 +435,7 @@ class RateLimiter {
      * @param array<string, mixed> $data
      */
     private static function format_message(string $template, array $data): string {
-        return str_replace(array('{time}', '{count}', '{max}', '{remaining}'), array($data['time'] ?? '', $data['count'] ?? 0, $data['max'] ?? 0, ($data['max'] ?? 0) - ($data['count'] ?? 0)), $template);
+        return str_replace(array('{time}', '{count}', '{max}', '{remaining}'), array((string) ($data['time'] ?? ''), (string) ($data['count'] ?? 0), (string) ($data['max'] ?? 0), (string) (($data['max'] ?? 0) - ($data['count'] ?? 0))), $template);
     }
     
     /**

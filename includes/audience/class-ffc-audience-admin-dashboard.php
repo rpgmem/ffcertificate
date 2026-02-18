@@ -70,7 +70,7 @@ class AudienceAdminDashboard {
                         <span class="ffc-stat-label"><?php esc_html_e('Active Calendars', 'ffcertificate'); ?></span>
                         <div class="ffc-stat-number">
                             <span class="ffc-stat-icon dashicons dashicons-calendar"></span>
-                            <span class="ffc-stat-value"><?php echo esc_html($self_stats['calendars']); ?></span>
+                            <span class="ffc-stat-value"><?php echo esc_html((string) $self_stats['calendars']); ?></span>
                         </div>
                         <a href="<?php echo esc_url(admin_url('edit.php?post_type=ffc_self_scheduling')); ?>" class="ffc-stat-link">
                             <?php esc_html_e('Manage', 'ffcertificate'); ?> &rarr;
@@ -81,7 +81,7 @@ class AudienceAdminDashboard {
                         <span class="ffc-stat-label"><?php esc_html_e('Upcoming Appointments', 'ffcertificate'); ?></span>
                         <div class="ffc-stat-number">
                             <span class="ffc-stat-icon dashicons dashicons-clock"></span>
-                            <span class="ffc-stat-value"><?php echo esc_html($self_stats['upcoming_appointments']); ?></span>
+                            <span class="ffc-stat-value"><?php echo esc_html((string) $self_stats['upcoming_appointments']); ?></span>
                         </div>
                         <a href="<?php echo esc_url(admin_url('admin.php?page=ffc-appointments')); ?>" class="ffc-stat-link">
                             <?php esc_html_e('View All', 'ffcertificate'); ?> &rarr;
@@ -96,7 +96,7 @@ class AudienceAdminDashboard {
                         <span class="ffc-stat-label"><?php esc_html_e('Active Calendars', 'ffcertificate'); ?></span>
                         <div class="ffc-stat-number">
                             <span class="ffc-stat-icon dashicons dashicons-calendar-alt"></span>
-                            <span class="ffc-stat-value"><?php echo esc_html($audience_stats['schedules']); ?></span>
+                            <span class="ffc-stat-value"><?php echo esc_html((string) $audience_stats['schedules']); ?></span>
                         </div>
                         <a href="<?php echo esc_url(admin_url('admin.php?page=' . $this->menu_slug . '-calendars')); ?>" class="ffc-stat-link">
                             <?php esc_html_e('Manage', 'ffcertificate'); ?> &rarr;
@@ -112,7 +112,7 @@ class AudienceAdminDashboard {
                         </span>
                         <div class="ffc-stat-number">
                             <span class="ffc-stat-icon dashicons dashicons-building"></span>
-                            <span class="ffc-stat-value"><?php echo esc_html($audience_stats['environments']); ?></span>
+                            <span class="ffc-stat-value"><?php echo esc_html((string) $audience_stats['environments']); ?></span>
                         </div>
                         <a href="<?php echo esc_url(admin_url('admin.php?page=' . $this->menu_slug . '-environments')); ?>" class="ffc-stat-link">
                             <?php esc_html_e('Manage', 'ffcertificate'); ?> &rarr;
@@ -123,7 +123,7 @@ class AudienceAdminDashboard {
                         <span class="ffc-stat-label"><?php esc_html_e('Active Audiences', 'ffcertificate'); ?></span>
                         <div class="ffc-stat-number">
                             <span class="ffc-stat-icon dashicons dashicons-groups"></span>
-                            <span class="ffc-stat-value"><?php echo esc_html($audience_stats['audiences']); ?></span>
+                            <span class="ffc-stat-value"><?php echo esc_html((string) $audience_stats['audiences']); ?></span>
                         </div>
                         <a href="<?php echo esc_url(admin_url('admin.php?page=' . $this->menu_slug . '-audiences')); ?>" class="ffc-stat-link">
                             <?php esc_html_e('Manage', 'ffcertificate'); ?> &rarr;
@@ -134,7 +134,7 @@ class AudienceAdminDashboard {
                         <span class="ffc-stat-label"><?php esc_html_e('Upcoming Bookings', 'ffcertificate'); ?></span>
                         <div class="ffc-stat-number">
                             <span class="ffc-stat-icon dashicons dashicons-clock"></span>
-                            <span class="ffc-stat-value"><?php echo esc_html($audience_stats['upcoming_bookings']); ?></span>
+                            <span class="ffc-stat-value"><?php echo esc_html((string) $audience_stats['upcoming_bookings']); ?></span>
                         </div>
                         <a href="<?php echo esc_url(admin_url('admin.php?page=' . $this->menu_slug . '-bookings')); ?>" class="ffc-stat-link">
                             <?php esc_html_e('View All', 'ffcertificate'); ?> &rarr;
