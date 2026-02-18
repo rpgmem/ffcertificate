@@ -128,19 +128,19 @@ class AppointmentRepository extends AbstractRepository {
      * @return array<int, array<string, mixed>>
      */
     public function findByCpfRf(string $cpf_rf, ?int $limit = null, int $offset = 0): array {
-        // Search both plain and hashed CPF/RF
+        // Search plain, legacy hash, and new split hashes
         $cpf_rf_clean = preg_replace('/[^0-9]/', '', $cpf_rf);
         $cpf_rf_hash = hash('sha256', $cpf_rf_clean);
 
         if ($limit) {
             $sql = $this->wpdb->prepare(
-                'SELECT * FROM %i WHERE cpf_rf = %s OR cpf_rf_hash = %s ORDER BY appointment_date DESC LIMIT %d OFFSET %d',
-                $this->table, $cpf_rf, $cpf_rf_hash, $limit, $offset
+                'SELECT * FROM %i WHERE cpf_rf = %s OR cpf_rf_hash = %s OR cpf_hash = %s OR rf_hash = %s ORDER BY appointment_date DESC LIMIT %d OFFSET %d',
+                $this->table, $cpf_rf, $cpf_rf_hash, $cpf_rf_hash, $cpf_rf_hash, $limit, $offset
             );
         } else {
             $sql = $this->wpdb->prepare(
-                'SELECT * FROM %i WHERE cpf_rf = %s OR cpf_rf_hash = %s ORDER BY appointment_date DESC',
-                $this->table, $cpf_rf, $cpf_rf_hash
+                'SELECT * FROM %i WHERE cpf_rf = %s OR cpf_rf_hash = %s OR cpf_hash = %s OR rf_hash = %s ORDER BY appointment_date DESC',
+                $this->table, $cpf_rf, $cpf_rf_hash, $cpf_rf_hash, $cpf_rf_hash
             );
         }
 
@@ -438,8 +438,24 @@ class AppointmentRepository extends AbstractRepository {
             }
 
             if (!empty($data['cpf_rf'])) {
-                $data['cpf_rf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($data['cpf_rf']);
-                $data['cpf_rf_hash'] = hash('sha256', preg_replace('/[^0-9]/', '', $data['cpf_rf']));
+                $clean_id = preg_replace('/[^0-9]/', '', $data['cpf_rf']);
+                $data['cpf_rf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($clean_id);
+                $data['cpf_rf_hash'] = hash('sha256', $clean_id);
+
+                // Write to split columns based on digit length
+                $id_len = strlen($clean_id);
+                if ($id_len === 11) {
+                    $data['cpf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($clean_id);
+                    $data['cpf_hash'] = \FreeFormCertificate\Core\Encryption::hash($clean_id);
+                } elseif ($id_len === 7) {
+                    $data['rf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($clean_id);
+                    $data['rf_hash'] = \FreeFormCertificate\Core\Encryption::hash($clean_id);
+                } else {
+                    // Default to CPF for unknown lengths
+                    $data['cpf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($clean_id);
+                    $data['cpf_hash'] = \FreeFormCertificate\Core\Encryption::hash($clean_id);
+                }
+
                 // Clear plain text - do not store unencrypted (LGPD compliance)
                 unset($data['cpf_rf']);
             }

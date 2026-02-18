@@ -128,6 +128,21 @@ class SubmissionHandler {
             $clean_cpf_rf = preg_replace('/[^0-9]/', '', $submission_data['cpf_rf']);
         }
 
+        // 2b. Classify identifier as CPF or RF by digit length
+        $clean_cpf = null;
+        $clean_rf = null;
+        if ( ! empty( $clean_cpf_rf ) ) {
+            $id_len = strlen( $clean_cpf_rf );
+            if ( $id_len === 11 ) {
+                $clean_cpf = $clean_cpf_rf;
+            } elseif ( $id_len === 7 ) {
+                $clean_rf = $clean_cpf_rf;
+            } else {
+                // Unknown length — default to CPF (most common)
+                $clean_cpf = $clean_cpf_rf;
+            }
+        }
+
         // 3. Generate magic token
         $magic_token = $this->generate_magic_token();
 
@@ -149,8 +164,12 @@ class SubmissionHandler {
         // 6. Encryption
         $email_encrypted = null;
         $email_hash = null;
-        $cpf_encrypted = null;
-        $cpf_hash = null;
+        $cpf_rf_encrypted = null;
+        $cpf_rf_hash = null;
+        $cpf_encrypted_val = null;
+        $cpf_hash_val = null;
+        $rf_encrypted_val = null;
+        $rf_hash_val = null;
         $ticket_hash = null;
         $ip_encrypted = null;
         $data_encrypted = null;
@@ -161,9 +180,21 @@ class SubmissionHandler {
                 $email_hash = \FreeFormCertificate\Core\Encryption::hash($user_email);
             }
 
+            // Legacy combined column (backward compat during transition)
             if (!empty($clean_cpf_rf)) {
-                $cpf_encrypted = \FreeFormCertificate\Core\Encryption::encrypt($clean_cpf_rf);
-                $cpf_hash = \FreeFormCertificate\Core\Encryption::hash($clean_cpf_rf);
+                $cpf_rf_encrypted = \FreeFormCertificate\Core\Encryption::encrypt($clean_cpf_rf);
+                $cpf_rf_hash = \FreeFormCertificate\Core\Encryption::hash($clean_cpf_rf);
+            }
+
+            // New split columns
+            if (!empty($clean_cpf)) {
+                $cpf_encrypted_val = \FreeFormCertificate\Core\Encryption::encrypt($clean_cpf);
+                $cpf_hash_val = \FreeFormCertificate\Core\Encryption::hash($clean_cpf);
+            }
+
+            if (!empty($clean_rf)) {
+                $rf_encrypted_val = \FreeFormCertificate\Core\Encryption::encrypt($clean_rf);
+                $rf_hash_val = \FreeFormCertificate\Core\Encryption::hash($clean_rf);
             }
 
             if (!empty($user_ip)) {
@@ -185,8 +216,10 @@ class SubmissionHandler {
         $consent_text = $consent_given ? __('User agreed to Privacy Policy and data storage', 'ffcertificate') : null;
 
         // 8. Link to WordPress user (v3.1.0)
+        // Use split hash for user lookup; fall back to combined hash
+        $lookup_cpf_hash = $cpf_hash_val ?? $rf_hash_val ?? $cpf_rf_hash;
         $user_id = null;
-        if (!empty($cpf_hash) && !empty($user_email)) {
+        if (!empty($lookup_cpf_hash) && !empty($user_email)) {
             // Load User Manager if not already loaded
             if (!class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
                 $user_manager_file = FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-user-manager.php';
@@ -197,7 +230,7 @@ class SubmissionHandler {
 
             if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
                 $user_result = \FreeFormCertificate\UserDashboard\UserManager::get_or_create_user(
-                    $cpf_hash,
+                    $lookup_cpf_hash,
                     $user_email,
                     $submission_data,
                     \FreeFormCertificate\UserDashboard\UserManager::CONTEXT_CERTIFICATE
@@ -219,8 +252,12 @@ class SubmissionHandler {
             'magic_token' => $magic_token,
             'email_encrypted' => $email_encrypted,
             'email_hash' => $email_hash,
-            'cpf_rf_encrypted' => $cpf_encrypted,
-            'cpf_rf_hash' => $cpf_hash,
+            'cpf_rf_encrypted' => $cpf_rf_encrypted,
+            'cpf_rf_hash' => $cpf_rf_hash,
+            'cpf_encrypted' => $cpf_encrypted_val,
+            'cpf_hash' => $cpf_hash_val,
+            'rf_encrypted' => $rf_encrypted_val,
+            'rf_hash' => $rf_hash_val,
             'ticket_hash' => $ticket_hash,
             'user_ip_encrypted' => $ip_encrypted,
             'data_encrypted' => $data_encrypted,
@@ -374,9 +411,27 @@ class SubmissionHandler {
         }
 
         $submission['email']   = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'email');
-        $submission['cpf_rf']  = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'cpf_rf');
         $submission['user_ip'] = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'user_ip');
         $submission['data']    = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'data');
+
+        // Decrypt split cpf/rf columns (new) with fallback to combined cpf_rf (legacy)
+        $cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'cpf');
+        $rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'rf');
+
+        if ( ! empty( $cpf_val ) ) {
+            $submission['cpf_rf'] = $cpf_val;
+            $submission['cpf']    = $cpf_val;
+            $submission['rf']     = null;
+        } elseif ( ! empty( $rf_val ) ) {
+            $submission['cpf_rf'] = $rf_val;
+            $submission['rf']     = $rf_val;
+            $submission['cpf']    = null;
+        } else {
+            // Fallback to legacy combined column
+            $submission['cpf_rf'] = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'cpf_rf');
+            $submission['cpf']    = null;
+            $submission['rf']     = null;
+        }
 
         return $submission;
     }

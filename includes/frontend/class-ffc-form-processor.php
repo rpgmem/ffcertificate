@@ -529,13 +529,17 @@ class FormProcessor {
         $clean_cpf = preg_replace( '/[^0-9]/', '', $cpf );
 
         if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-            $cpf_hash = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
+            $id_hash = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
+
+            // Search new split columns first, then fallback to legacy cpf_rf_hash
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             return $wpdb->get_row( $wpdb->prepare(
-                'SELECT * FROM %i WHERE form_id = %d AND cpf_rf_hash = %s ORDER BY id DESC LIMIT 1',
+                'SELECT * FROM %i WHERE form_id = %d AND (cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s) ORDER BY id DESC LIMIT 1',
                 $table,
                 $form_id,
-                $cpf_hash
+                $id_hash,
+                $id_hash,
+                $id_hash
             ) );
         }
 

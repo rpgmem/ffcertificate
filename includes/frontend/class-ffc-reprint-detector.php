@@ -69,15 +69,17 @@ class ReprintDetector {
 
             // Check if encryption is enabled
             if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
-                // Use HASH for encrypted data
-                $cpf_hash = \FreeFormCertificate\Core\Encryption::hash($clean_cpf);
+                // Use HASH — search split columns first, then legacy
+                $id_hash = \FreeFormCertificate\Core\Encryption::hash($clean_cpf);
 
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $existing_submission = $wpdb->get_row( $wpdb->prepare(
-                    'SELECT * FROM %i WHERE form_id = %d AND cpf_rf_hash = %s ORDER BY id DESC LIMIT 1',
+                    'SELECT * FROM %i WHERE form_id = %d AND (cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s) ORDER BY id DESC LIMIT 1',
                     $table_name,
                     $form_id,
-                    $cpf_hash
+                    $id_hash,
+                    $id_hash,
+                    $id_hash
                 ) );
             } else {
                 // Use plain CPF for non-encrypted data
