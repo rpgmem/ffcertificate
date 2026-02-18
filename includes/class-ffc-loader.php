@@ -87,6 +87,9 @@ class Loader {
     }
 
     public function init_plugin(): void {
+        // Ensure submissions table schema is current (runs add_columns on version change)
+        \FreeFormCertificate\Activator::maybe_add_columns();
+
         if (class_exists('\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator')) {
             \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::maybe_migrate();
         }
