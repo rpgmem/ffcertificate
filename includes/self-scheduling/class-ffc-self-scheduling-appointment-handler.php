@@ -452,6 +452,9 @@ class AppointmentHandler {
             $cpf_rf_hash = hash('sha256', $cpf_rf_clean);
         }
 
+        // Determine identifier type by digit count: 11 = CPF, 7 = RF
+        $identifier_type = strlen( $cpf_rf_clean ) === 7 ? 'rf' : 'cpf';
+
         if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
             try {
                 $submission_data = array(
@@ -463,7 +466,8 @@ class AppointmentHandler {
                     $cpf_rf_hash,
                     $data['email'],
                     $submission_data,
-                    \FreeFormCertificate\UserDashboard\UserManager::CONTEXT_APPOINTMENT
+                    \FreeFormCertificate\UserDashboard\UserManager::CONTEXT_APPOINTMENT,
+                    $identifier_type
                 );
 
                 if (!is_wp_error($user_id) && $user_id > 0) {

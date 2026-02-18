@@ -209,6 +209,7 @@ class SubmissionHandler {
 
         // 8. Link to WordPress user (v3.1.0)
         $lookup_cpf_hash = $cpf_hash_val ?? $rf_hash_val;
+        $identifier_type = ! empty( $cpf_hash_val ) ? 'cpf' : ( ! empty( $rf_hash_val ) ? 'rf' : 'auto' );
         $user_id = null;
         if (!empty($lookup_cpf_hash) && !empty($user_email)) {
             // Load User Manager if not already loaded
@@ -224,7 +225,8 @@ class SubmissionHandler {
                     $lookup_cpf_hash,
                     $user_email,
                     $submission_data,
-                    \FreeFormCertificate\UserDashboard\UserManager::CONTEXT_CERTIFICATE
+                    \FreeFormCertificate\UserDashboard\UserManager::CONTEXT_CERTIFICATE,
+                    $identifier_type
                 );
 
                 if (!is_wp_error($user_result)) {

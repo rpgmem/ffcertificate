@@ -274,4 +274,82 @@ class UserCreatorTest extends TestCase {
 
         $this->assertSame( 42, $result );
     }
+
+    // ------------------------------------------------------------------
+    // get_or_create_user() — identifier_type parameter
+    // ------------------------------------------------------------------
+
+    public function test_get_or_create_user_accepts_cpf_identifier_type(): void {
+        global $wpdb;
+
+        $wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '77' );
+        $wpdb->shouldReceive( 'query' )->andReturn( 0 );
+
+        Functions\when( 'get_userdata' )->justReturn( null );
+
+        $result = UserCreator::get_or_create_user( 'cpfhash', 'cpf@example.com', array(), 'certificate', UserCreator::TYPE_CPF );
+
+        $this->assertSame( 77, $result );
+    }
+
+    public function test_get_or_create_user_accepts_rf_identifier_type(): void {
+        global $wpdb;
+
+        $wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '88' );
+        $wpdb->shouldReceive( 'query' )->andReturn( 0 );
+
+        Functions\when( 'get_userdata' )->justReturn( null );
+
+        $result = UserCreator::get_or_create_user( 'rfhash', 'rf@example.com', array(), 'certificate', UserCreator::TYPE_RF );
+
+        $this->assertSame( 88, $result );
+    }
+
+    // ------------------------------------------------------------------
+    // build_hash_where_clause / build_hash_params — via reflection
+    // ------------------------------------------------------------------
+
+    public function test_build_hash_where_clause_cpf(): void {
+        $method = new \ReflectionMethod( UserCreator::class, 'build_hash_where_clause' );
+        $method->setAccessible( true );
+
+        $clause = $method->invoke( null, UserCreator::TYPE_CPF );
+        $this->assertSame( 'cpf_hash = %s OR cpf_rf_hash = %s', $clause );
+    }
+
+    public function test_build_hash_where_clause_rf(): void {
+        $method = new \ReflectionMethod( UserCreator::class, 'build_hash_where_clause' );
+        $method->setAccessible( true );
+
+        $clause = $method->invoke( null, UserCreator::TYPE_RF );
+        $this->assertSame( 'rf_hash = %s OR cpf_rf_hash = %s', $clause );
+    }
+
+    public function test_build_hash_where_clause_auto(): void {
+        $method = new \ReflectionMethod( UserCreator::class, 'build_hash_where_clause' );
+        $method->setAccessible( true );
+
+        $clause = $method->invoke( null, UserCreator::TYPE_AUTO );
+        $this->assertSame( 'cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s', $clause );
+    }
+
+    public function test_build_hash_params_cpf_returns_two(): void {
+        $method = new \ReflectionMethod( UserCreator::class, 'build_hash_params' );
+        $method->setAccessible( true );
+
+        $params = $method->invoke( null, 'myhash', UserCreator::TYPE_CPF );
+        $this->assertCount( 2, $params );
+        $this->assertSame( array( 'myhash', 'myhash' ), $params );
+    }
+
+    public function test_build_hash_params_auto_returns_three(): void {
+        $method = new \ReflectionMethod( UserCreator::class, 'build_hash_params' );
+        $method->setAccessible( true );
+
+        $params = $method->invoke( null, 'myhash', UserCreator::TYPE_AUTO );
+        $this->assertCount( 3, $params );
+        $this->assertSame( array( 'myhash', 'myhash', 'myhash' ), $params );
+    }
 }

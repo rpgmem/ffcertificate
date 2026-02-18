@@ -51,8 +51,8 @@ class UserManager {
      * @param array<string, mixed> $submission_data Submission data
      * @return int|\WP_Error User ID on success, WP_Error on failure
      */
-    public static function get_or_create_user( string $cpf_rf_hash, string $email, array $submission_data = array(), string $context = self::CONTEXT_CERTIFICATE ) {
-        return UserCreator::get_or_create_user( $cpf_rf_hash, $email, $submission_data, $context );
+    public static function get_or_create_user( string $cpf_rf_hash, string $email, array $submission_data = array(), string $context = self::CONTEXT_CERTIFICATE, string $identifier_type = UserCreator::TYPE_AUTO ) {
+        return UserCreator::get_or_create_user( $cpf_rf_hash, $email, $submission_data, $context, $identifier_type );
     }
 
     /**

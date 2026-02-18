@@ -22,46 +22,55 @@ class UserCreator {
     use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
     /**
+     * Identifier type constants
+     */
+    public const TYPE_CPF  = 'cpf';
+    public const TYPE_RF   = 'rf';
+    public const TYPE_AUTO = 'auto';
+
+    /**
      * Get or create WordPress user based on CPF/RF and email
      *
      * Flow:
-     * 1. Check if CPF/RF hash already has user_id in submissions table
+     * 1. Check if identifier hash already has user_id in submissions table
      * 2. If yes: return existing user_id (and add context-specific capabilities)
      * 3. If no: check if email exists in WordPress
      * 4. If yes: link to existing user (add role + context-specific capabilities)
      * 5. If no: create new user (with only context-specific capabilities)
      *
-     * @param string $cpf_rf_hash   Hash of CPF or RF
-     * @param string $email         Plain email address
+     * @param string $identifier_hash Hash of CPF or RF
+     * @param string $email           Plain email address
      * @param array<string, mixed>  $submission_data Optional submission data for user creation
-     * @param string $context       Context for capability granting
+     * @param string $context         Context for capability granting
+     * @param string $identifier_type 'cpf', 'rf', or 'auto' (searches all columns)
      * @return int|\WP_Error User ID or error
      */
-    public static function get_or_create_user( string $cpf_rf_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE ) {
+    public static function get_or_create_user( string $identifier_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, string $identifier_type = self::TYPE_AUTO ) {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // STEP 1: Check if CPF/RF hash already has user_id in submissions
-        // Search split columns (cpf_hash, rf_hash) with fallback to legacy cpf_rf_hash
+        // STEP 1: Check if identifier hash already has user_id in submissions
+        // When type is known, search the specific column + legacy fallback
+        $hash_where = self::build_hash_where_clause( $identifier_type );
+        $hash_params = self::build_hash_params( $identifier_hash, $identifier_type );
+
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $existing_user_id = $wpdb->get_var( $wpdb->prepare(
             "SELECT user_id FROM %i
-             WHERE (cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s)
+             WHERE ({$hash_where})
              AND user_id IS NOT NULL
              LIMIT 1",
             $table,
-            $cpf_rf_hash,
-            $cpf_rf_hash,
-            $cpf_rf_hash
+            ...$hash_params
         ) );
 
         if ( $existing_user_id ) {
             CapabilityManager::grant_context_capabilities( (int) $existing_user_id, $context );
-            self::link_orphaned_records( $cpf_rf_hash, (int) $existing_user_id );
+            self::link_orphaned_records( $identifier_hash, (int) $existing_user_id, $identifier_type );
             return (int) $existing_user_id;
         }
 
-        // STEP 2: CPF/RF is new → check if email exists in WordPress
+        // STEP 2: Identifier is new → check if email exists in WordPress
         $existing_user = get_user_by( 'email', $email );
 
         if ( $existing_user ) {
@@ -73,7 +82,7 @@ class UserCreator {
                 self::sync_user_metadata( $user_id, $submission_data );
             }
 
-            self::link_orphaned_records( $cpf_rf_hash, $user_id );
+            self::link_orphaned_records( $identifier_hash, $user_id, $identifier_type );
             return $user_id;
         }
 
@@ -84,7 +93,7 @@ class UserCreator {
             return $user_id;
         }
 
-        self::link_orphaned_records( $cpf_rf_hash, $user_id );
+        self::link_orphaned_records( $identifier_hash, $user_id, $identifier_type );
         return $user_id;
     }
 
@@ -137,26 +146,64 @@ class UserCreator {
     }
 
     /**
+     * Build WHERE clause for hash column lookup
+     *
+     * When the identifier type is known, targets the specific column + legacy fallback.
+     * When 'auto', searches all three columns.
+     *
+     * @param string $identifier_type 'cpf', 'rf', or 'auto'
+     * @return string SQL WHERE fragment (without surrounding parentheses from caller)
+     */
+    private static function build_hash_where_clause( string $identifier_type ): string {
+        switch ( $identifier_type ) {
+            case self::TYPE_CPF:
+                return 'cpf_hash = %s OR cpf_rf_hash = %s';
+            case self::TYPE_RF:
+                return 'rf_hash = %s OR cpf_rf_hash = %s';
+            default:
+                return 'cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s';
+        }
+    }
+
+    /**
+     * Build parameter array for hash column lookup
+     *
+     * @param string $hash            The hash value
+     * @param string $identifier_type 'cpf', 'rf', or 'auto'
+     * @return array<int, string> Parameters matching build_hash_where_clause placeholders
+     */
+    private static function build_hash_params( string $hash, string $identifier_type ): array {
+        switch ( $identifier_type ) {
+            case self::TYPE_CPF:
+            case self::TYPE_RF:
+                return array( $hash, $hash );
+            default:
+                return array( $hash, $hash, $hash );
+        }
+    }
+
+    /**
      * Link orphaned records (submissions and appointments) to a user
      *
      * @since 4.9.6
-     * @param string $cpf_rf_hash Hash of CPF or RF
-     * @param int    $user_id     WordPress user ID
+     * @param string $identifier_hash Hash of CPF or RF
+     * @param int    $user_id         WordPress user ID
+     * @param string $identifier_type 'cpf', 'rf', or 'auto'
      * @return void
      */
-    private static function link_orphaned_records( string $cpf_rf_hash, int $user_id ): void {
+    private static function link_orphaned_records( string $identifier_hash, int $user_id, string $identifier_type = self::TYPE_AUTO ): void {
         global $wpdb;
 
+        $hash_where  = self::build_hash_where_clause( $identifier_type );
+        $hash_params = self::build_hash_params( $identifier_hash, $identifier_type );
+
         $submissions_table = \FreeFormCertificate\Core\Utils::get_submissions_table();
-        // Link by split columns (cpf_hash, rf_hash) with fallback to legacy cpf_rf_hash
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $linked_submissions = $wpdb->query( $wpdb->prepare(
-            "UPDATE %i SET user_id = %d WHERE (cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s) AND user_id IS NULL",
+            "UPDATE %i SET user_id = %d WHERE ({$hash_where}) AND user_id IS NULL",
             $submissions_table,
             $user_id,
-            $cpf_rf_hash,
-            $cpf_rf_hash,
-            $cpf_rf_hash
+            ...$hash_params
         ) );
 
         $appointments_table  = $wpdb->prefix . 'ffc_self_scheduling_appointments';
@@ -164,12 +211,10 @@ class UserCreator {
         if ( self::table_exists( $appointments_table ) ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $linked_appointments = $wpdb->query( $wpdb->prepare(
-                "UPDATE %i SET user_id = %d WHERE (cpf_hash = %s OR rf_hash = %s OR cpf_rf_hash = %s) AND user_id IS NULL",
+                "UPDATE %i SET user_id = %d WHERE ({$hash_where}) AND user_id IS NULL",
                 $appointments_table,
                 $user_id,
-                $cpf_rf_hash,
-                $cpf_rf_hash,
-                $cpf_rf_hash
+                ...$hash_params
             ) );
 
             if ( $linked_appointments > 0 ) {
