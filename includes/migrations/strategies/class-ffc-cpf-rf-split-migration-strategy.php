@@ -9,7 +9,7 @@ declare(strict_types=1);
  *   - 11 digits (CPF) → cpf, cpf_encrypted, cpf_hash
  *   - 7 digits (RF)   → rf, rf_encrypted, rf_hash
  *
- * After migration, the old cpf_rf columns are set to NULL.
+ * Legacy cpf_rf_* columns are preserved for backward compatibility.
  * Processes both submissions and appointments tables.
  *
  * @since 4.13.0
@@ -225,7 +225,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
      * 1. Decrypt cpf_rf_encrypted to get the plain value
      * 2. Classify by digit length: 11 = CPF, 7 = RF
      * 3. Encrypt and hash into the appropriate new columns
-     * 4. NULL out the old cpf_rf columns
+     * Legacy cpf_rf_* columns are preserved for backward compatibility.
      *
      * @param string $table_name Table to process
      * @param int $batch_size Number of records per batch
@@ -266,25 +266,19 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
                 $digits = preg_replace( '/[^0-9]/', '', $plain_value );
                 $len = strlen( $digits );
 
-                $update_data = array(
-                    'cpf_rf'           => null,
-                    'cpf_rf_encrypted' => null,
-                    'cpf_rf_hash'      => null,
-                );
+                // Populate new split columns — keep legacy cpf_rf_* intact for backward compat
+                $update_data = array();
 
                 if ( $len === self::CPF_LENGTH ) {
                     // It's a CPF
-                    $update_data['cpf']           = null; // Don't store plain text
                     $update_data['cpf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $digits );
                     $update_data['cpf_hash']      = \FreeFormCertificate\Core\Encryption::hash( $digits );
                 } elseif ( $len === self::RF_LENGTH ) {
                     // It's an RF
-                    $update_data['rf']           = null; // Don't store plain text
                     $update_data['rf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $digits );
                     $update_data['rf_hash']      = \FreeFormCertificate\Core\Encryption::hash( $digits );
                 } else {
                     // Unknown length — store as CPF (most common) but log warning
-                    $update_data['cpf']           = null;
                     $update_data['cpf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $digits );
                     $update_data['cpf_hash']      = \FreeFormCertificate\Core\Encryption::hash( $digits );
 
