@@ -128,19 +128,44 @@ class AppointmentRepository extends AbstractRepository {
      * @return array<int, array<string, mixed>>
      */
     public function findByCpfRf(string $cpf_rf, ?int $limit = null, int $offset = 0): array {
-        // Search plain, legacy hash, and new split hashes
         $cpf_rf_clean = preg_replace('/[^0-9]/', '', $cpf_rf);
         $cpf_rf_hash = hash('sha256', $cpf_rf_clean);
 
+        // Classify by digit count: 7 digits = RF, else CPF
+        $hash_column = strlen( $cpf_rf_clean ) === 7 ? 'rf_hash' : 'cpf_hash';
+
+        // Search targeted split column first
+        if ($limit) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $sql = $this->wpdb->prepare(
+                "SELECT * FROM %i WHERE {$hash_column} = %s ORDER BY appointment_date DESC LIMIT %d OFFSET %d",
+                $this->table, $cpf_rf_hash, $limit, $offset
+            );
+        } else {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            $sql = $this->wpdb->prepare(
+                "SELECT * FROM %i WHERE {$hash_column} = %s ORDER BY appointment_date DESC",
+                $this->table, $cpf_rf_hash
+            );
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $results = $this->wpdb->get_results($sql, ARRAY_A);
+
+        if ( ! empty( $results ) ) {
+            return $results;
+        }
+
+        // @deprecated legacy cpf_rf fallback — remove in next major version.
         if ($limit) {
             $sql = $this->wpdb->prepare(
-                'SELECT * FROM %i WHERE cpf_rf = %s OR cpf_rf_hash = %s OR cpf_hash = %s OR rf_hash = %s ORDER BY appointment_date DESC LIMIT %d OFFSET %d',
-                $this->table, $cpf_rf, $cpf_rf_hash, $cpf_rf_hash, $cpf_rf_hash, $limit, $offset
+                'SELECT * FROM %i WHERE cpf_rf_hash = %s OR cpf_rf = %s ORDER BY appointment_date DESC LIMIT %d OFFSET %d',
+                $this->table, $cpf_rf_hash, $cpf_rf, $limit, $offset
             );
         } else {
             $sql = $this->wpdb->prepare(
-                'SELECT * FROM %i WHERE cpf_rf = %s OR cpf_rf_hash = %s OR cpf_hash = %s OR rf_hash = %s ORDER BY appointment_date DESC',
-                $this->table, $cpf_rf, $cpf_rf_hash, $cpf_rf_hash, $cpf_rf_hash
+                'SELECT * FROM %i WHERE cpf_rf_hash = %s OR cpf_rf = %s ORDER BY appointment_date DESC',
+                $this->table, $cpf_rf_hash, $cpf_rf
             );
         }
 
