@@ -150,7 +150,14 @@ class Admin {
                     <input type="hidden" name="action" value="ffc_export_csv">
                     <input type="hidden" name="ffc_action" value="export_csv_smart">
                     <?php
-                    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameter for form selection.
+                    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters for export form.
+
+                    // Forward current status filter so export matches the active view.
+                    $export_status = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
+                    ?>
+                    <input type="hidden" name="status" value="<?php echo esc_attr( $export_status ); ?>">
+                    <?php
+
                     $filter_form_ids = [];
                     // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty() existence check only.
                     if ( !empty( $_GET['filter_form_id'] ) ) {
@@ -163,7 +170,9 @@ class Admin {
                     }
                     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-                    if ( !empty( $filter_form_ids ) ) :
+                    $has_filters = ! empty( $filter_form_ids ) || $export_status !== 'publish';
+
+                    if ( $has_filters ) :
                         foreach ( $filter_form_ids as $form_id ) :
                     ?>
                         <input type="hidden" name="form_ids[]" value="<?php echo esc_attr( (string) $form_id ); ?>">
