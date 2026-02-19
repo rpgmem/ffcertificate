@@ -346,6 +346,26 @@ class SubmissionRepository extends AbstractRepository {
     }
 
     /**
+     * Count total matching rows for export progress reporting.
+     *
+     * @since 5.0.0
+     * @param array<int, int>|null $form_ids Form IDs filter.
+     * @param string|null          $status   Status filter.
+     * @return int
+     */
+    public function countForExport( ?array $form_ids, ?string $status ): int {
+        list( $where_clause, $prepare_args ) = $this->build_export_where( $form_ids, $status );
+
+        $query = "SELECT COUNT(*) FROM %i {$where_clause}";
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $query = $this->wpdb->prepare( $query, ...$prepare_args );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        return (int) $this->wpdb->get_var( $query );
+    }
+
+    /**
      * ✅ NEW v3.0.1: Check if any submission has edit information
      *
      * @return bool True if edited_at column exists and has data

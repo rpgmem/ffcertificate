@@ -66,6 +66,9 @@ class Admin {
         add_action( 'admin_init', array( $this, 'handle_migration_action' ) );
 
         add_action( 'admin_post_ffc_export_csv', array( $this, 'handle_csv_export_request' ) );
+
+        // AJAX-driven CSV export (avoids web-server timeouts with large datasets).
+        $this->csv_exporter->register_ajax_hooks();
     }
 
     public function register_admin_menu(): void {
@@ -146,45 +149,35 @@ class Admin {
         <div class="wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e( 'Submissions', 'ffcertificate' ); ?></h1>
             <div class="ffc-admin-top-actions">
-                <form method="POST" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-                    <input type="hidden" name="action" value="ffc_export_csv">
-                    <input type="hidden" name="ffc_action" value="export_csv_smart">
-                    <?php
-                    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters for export form.
-
-                    // Forward current status filter so export matches the active view.
-                    $export_status = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
-                    ?>
-                    <input type="hidden" name="status" value="<?php echo esc_attr( $export_status ); ?>">
-                    <?php
-
-                    $filter_form_ids = [];
-                    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty() existence check only.
-                    if ( !empty( $_GET['filter_form_id'] ) ) {
-                        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- is_array() type check only.
-                        if ( is_array( $_GET['filter_form_id'] ) ) {
-                            $filter_form_ids = array_map( 'absint', wp_unslash( $_GET['filter_form_id'] ) );
-                        } else {
-                            $filter_form_ids = [ absint( wp_unslash( $_GET['filter_form_id'] ) ) ];
-                        }
+                <?php
+                // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters for export button.
+                $export_status   = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
+                $filter_form_ids = array();
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty() existence check only.
+                if ( ! empty( $_GET['filter_form_id'] ) ) {
+                    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- is_array() type check only.
+                    if ( is_array( $_GET['filter_form_id'] ) ) {
+                        $filter_form_ids = array_map( 'absint', wp_unslash( $_GET['filter_form_id'] ) );
+                    } else {
+                        $filter_form_ids = array( absint( wp_unslash( $_GET['filter_form_id'] ) ) );
                     }
-                    // phpcs:enable WordPress.Security.NonceVerification.Recommended
+                }
+                // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-                    $has_filters = ! empty( $filter_form_ids ) || $export_status !== 'publish';
-
-                    if ( $has_filters ) :
-                        foreach ( $filter_form_ids as $form_id ) :
-                    ?>
-                        <input type="hidden" name="form_ids[]" value="<?php echo esc_attr( (string) $form_id ); ?>">
-                    <?php
-                        endforeach;
-                    ?>
-                        <button type="submit" class="button button-primary"><?php esc_html_e( 'Export Filtered CSV', 'ffcertificate' ); ?></button>
-                    <?php else: ?>
-                        <button type="submit" class="button"><?php esc_html_e( 'Export All CSV', 'ffcertificate' ); ?></button>
-                    <?php endif; ?>
-                    <?php wp_nonce_field('ffc_export_csv_nonce','ffc_export_csv_action'); ?>
-                </form>
+                $has_filters = ! empty( $filter_form_ids ) || $export_status !== 'publish';
+                $btn_class   = $has_filters ? 'button button-primary' : 'button';
+                $btn_label   = $has_filters
+                    ? __( 'Export Filtered CSV', 'ffcertificate' )
+                    : __( 'Export All CSV', 'ffcertificate' );
+                ?>
+                <button
+                    type="button"
+                    id="ffc-csv-export-btn"
+                    class="<?php echo esc_attr( $btn_class ); ?>"
+                    data-form-ids="<?php echo esc_attr( wp_json_encode( $filter_form_ids ) ); ?>"
+                    data-status="<?php echo esc_attr( $export_status ); ?>"
+                ><?php echo esc_html( $btn_label ); ?></button>
+                <span id="ffc-csv-export-progress" style="display:none; margin-left:8px; vertical-align:middle;"></span>
             </div>
             <hr class="wp-header-end">
             <form method="GET">

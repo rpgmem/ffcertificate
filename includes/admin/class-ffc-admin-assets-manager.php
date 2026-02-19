@@ -321,9 +321,10 @@ class AdminAssetsManager {
      */
     private function get_localization_data(): array {
         return array(
-            'ajax_url' => admin_url( 'admin-ajax.php' ),
-            'nonce'    => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
-            'strings'  => array(
+            'ajax_url'     => admin_url( 'admin-ajax.php' ),
+            'nonce'        => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
+            'export_nonce' => wp_create_nonce( 'ffc_csv_export' ),
+            'strings'      => array(
                 // General
                 'generating'              => __( 'Generating...', 'ffcertificate' ),
                 'error'                   => __( 'Error: ', 'ffcertificate' ),
@@ -354,7 +355,10 @@ class AdminAssetsManager {
                 'dismiss'                 => __( 'Dismiss', 'ffcertificate' ),
 
                 // CSV Export
-                'exporting'               => __( 'Exporting\u2026', 'ffcertificate' ),
+                'exportPreparing'         => __( 'Preparing…', 'ffcertificate' ),
+                /* translators: %1$d: processed count, %2$d: total count */
+                'exportProgress'          => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
+                'exportDone'              => __( 'Done!', 'ffcertificate' ),
 
                 // Ticket Generation
                 'enterValidNumber'        => __( 'Please enter a valid number.', 'ffcertificate' ),

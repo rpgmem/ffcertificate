@@ -2,18 +2,17 @@
 declare(strict_types=1);
 
 /**
- * CsvExporter (formerly CSVExporter)
- * Handles CSV export functionality with dynamic columns and filtering.
+ * CsvExporter
  *
- * @version 4.0.0 - HOTFIX 21: All DB columns in CSV, UTF-8 encoding fix, multi-form filters
- * @version 4.0.0 - Renamed to CsvExporter for PSR-4 compliance (Phase 4 hotfix)
- * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
- * v3.0.3: REFACTORED - Uses Repository Pattern instead of direct SQL
- * v3.0.2: FIXED - Use magic_token column, conditional columns for edit info
- * v3.0.1: COMPLETE - All columns including token, consent, edit history, status, auth_code
- * v3.0.0: FIXED - Decrypt email/IP and complete format_csv_row() method
- * v2.9.2: OPTIMIZED to use FFC_Utils functions
+ * Handles CSV export via AJAX-driven batches to avoid web-server timeouts.
+ *
+ * Flow:
+ *  1. JS  → wp_ajax_ffc_csv_export_start   → creates job, discovers keys, writes header
+ *  2. JS  → wp_ajax_ffc_csv_export_batch   → processes N rows, appends to temp file (repeat)
+ *  3. JS  → wp_ajax_ffc_csv_export_download → serves completed file and deletes it
+ *
+ * @since 5.0.0  Rewritten as AJAX-driven batched export.
+ * @since 4.0.0  Multi-form ID support.
  */
 
 namespace FreeFormCertificate\Admin;
@@ -21,457 +20,435 @@ namespace FreeFormCertificate\Admin;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 class CsvExporter {
 
-    use \FreeFormCertificate\Core\CsvExportTrait;
+	use \FreeFormCertificate\Core\CsvExportTrait;
 
-    /**
-     * Records per database query during export.
-     *
-     * @since 5.0.0
-     */
-    const EXPORT_BATCH_SIZE = 100;
+	/**
+	 * Records per AJAX batch request.
+	 */
+	const EXPORT_BATCH_SIZE = 100;
 
-    /**
-     * Records per database query during dynamic-key discovery (lighter query).
-     *
-     * @since 5.0.0
-     */
-    const KEYS_BATCH_SIZE = 500;
+	/**
+	 * Records per query during dynamic-key discovery (lighter query).
+	 */
+	const KEYS_BATCH_SIZE = 500;
 
-    /**
-     * @var SubmissionRepository Repository instance
-     */
-    protected $repository;
+	/**
+	 * How long (seconds) the job transient lives before auto-cleanup.
+	 */
+	const JOB_TTL = 3600;
 
-    /**
-     * Cached form titles to avoid repeated get_the_title() calls.
-     *
-     * @since 5.0.0
-     * @var array<int, string>
-     */
-    private array $form_title_cache = array();
+	/**
+	 * @var SubmissionRepository
+	 */
+	protected $repository;
 
-    /**
-     * Constructor
-     */
-    public function __construct() {
-        $this->repository = new SubmissionRepository();
-    }
+	/**
+	 * Cached form titles.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $form_title_cache = array();
 
-    /**
-     * Get a form title with local caching to avoid repeated DB queries.
-     *
-     * @since 5.0.0
-     * @param int $form_id Form post ID.
-     * @return string Form title or "(Deleted)".
-     */
-    private function get_form_title_cached( int $form_id ): string {
-        if ( ! isset( $this->form_title_cache[ $form_id ] ) ) {
-            $title = get_the_title( $form_id );
-            $this->form_title_cache[ $form_id ] = $title ? $title : __( '(Deleted)', 'ffcertificate' );
-        }
-        return $this->form_title_cache[ $form_id ];
-    }
+	public function __construct() {
+		$this->repository = new SubmissionRepository();
+	}
 
-    /**
-     * Get all unique dynamic field keys from submissions.
-     * Delegates to CsvExportTrait::extract_dynamic_keys().
-     *
-     * @param array<int, array<string, mixed>> $rows Submission rows
-     * @return array<int, string>
-     */
-    private function get_dynamic_columns( array $rows ): array {
-        return $this->extract_dynamic_keys( $rows, 'data', 'data_encrypted' );
-    }
+	// ──────────────────────────────────────────────────────────────
+	//  Hook registration (called from Admin __construct)
+	// ──────────────────────────────────────────────────────────────
 
-    /**
-     * Get submission data from a row, handling encryption.
-     * Delegates to CsvExportTrait::decode_json_field().
-     *
-     * @param array<string, mixed> $row Submission row
-     * @return array<string, mixed>
-     */
-    private function get_submission_data( array $row ): array {
-        return $this->decode_json_field( $row, 'data', 'data_encrypted' );
-    }
+	/**
+	 * Register AJAX handlers for the three-step export flow.
+	 */
+	public function register_ajax_hooks(): void {
+		add_action( 'wp_ajax_ffc_csv_export_start', array( $this, 'ajax_start' ) );
+		add_action( 'wp_ajax_ffc_csv_export_batch', array( $this, 'ajax_batch' ) );
+		add_action( 'wp_ajax_ffc_csv_export_download', array( $this, 'ajax_download' ) );
+	}
 
-    /**
-     * Generate translatable headers for fixed columns
-     * v3.0.2: Made edit columns conditional
-     *
-     * @return array<int, string>
-     */
-    private function get_fixed_headers( bool $include_edit_columns = false ): array {
-        $headers = array(
-            __( 'ID', 'ffcertificate' ),
-            __( 'Form', 'ffcertificate' ),
-            __( 'User ID', 'ffcertificate' ),
-            __( 'Submission Date', 'ffcertificate' ),
-            __( 'E-mail', 'ffcertificate' ),
-            __( 'User IP', 'ffcertificate' ),
-            __( 'CPF', 'ffcertificate' ),
-            __( 'RF', 'ffcertificate' ),
-            __( 'Auth Code', 'ffcertificate' ),
-            __( 'Token', 'ffcertificate' ),
-            __( 'Consent Given', 'ffcertificate' ),
-            __( 'Consent Date', 'ffcertificate' ),
-            __( 'Consent IP', 'ffcertificate' ),
-            __( 'Consent Text', 'ffcertificate' ),
-            __( 'Status', 'ffcertificate' )
-        );
+	// ──────────────────────────────────────────────────────────────
+	//  AJAX: Start
+	// ──────────────────────────────────────────────────────────────
 
-        // Only add edit columns if there's data
-        if ( $include_edit_columns ) {
-            $headers[] = __( 'Was Edited', 'ffcertificate' );
-            $headers[] = __( 'Edit Date', 'ffcertificate' );
-            $headers[] = __( 'Edited By', 'ffcertificate' );
-        }
+	/**
+	 * Start a new export job.
+	 *
+	 * - Validates permissions / nonce.
+	 * - Scans all matching rows for dynamic JSON keys (lightweight).
+	 * - Counts total rows.
+	 * - Writes CSV header + BOM to a temp file.
+	 * - Returns job_id + total to JS.
+	 */
+	public function ajax_start(): void {
+		check_ajax_referer( 'ffc_csv_export', 'nonce' );
 
-        return $headers;
-    }
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+			wp_send_json_error( __( 'Permission denied.', 'ffcertificate' ), 403 );
+		}
 
-    /**
-     * Generate translatable headers for dynamic columns.
-     * Delegates to CsvExportTrait::build_dynamic_headers().
-     *
-     * @param array<int, string> $dynamic_keys List of dynamic field keys
-     * @return array<string, string>
-     */
-    private function get_dynamic_headers( array $dynamic_keys ): array {
-        return $this->build_dynamic_headers( $dynamic_keys );
-    }
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- sanitised below.
+		$form_ids = null;
+		if ( ! empty( $_POST['form_ids'] ) && is_array( $_POST['form_ids'] ) ) {
+			$form_ids = array_map( 'absint', wp_unslash( $_POST['form_ids'] ) );
+		}
+		$status = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : 'publish';
 
-    /**
-     * Format a single CSV row
-     *
-     * v3.0.3: Added edited_by column
-     * v3.0.2: Use magic_token column, conditional edit columns
-     * v3.0.1: Added all requested columns with conditional display
-     * v3.0.0: FIXED - Added return statement and dynamic columns processing
-     *
-     * @param array<string, mixed> $row Submission row
-     * @param array<int, string> $dynamic_keys List of dynamic field keys
-     * @return array<int, string>
-     */
-    private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {
-        $form_display = $this->get_form_title_cached( (int) $row['form_id'] );
-        
-        // Decrypt sensitive fields (encrypted → plain fallback)
-        $email   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' );
-        $user_ip = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'user_ip' );
-        // Decrypt split CPF/RF columns
-        $cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf' );
-        $rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'rf' );
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- set_time_limit may be disabled.
+		@set_time_limit( 0 );
+		wp_raise_memory_limit( 'admin' );
 
-        // User ID
-        $user_id = !empty( $row['user_id'] ) ? $row['user_id'] : '';
+		// Discover dynamic keys in batches (lightweight: only id + data columns).
+		$dynamic_keys = $this->scan_dynamic_keys( $form_ids, $status );
 
-        // Auth Code (omit if empty)
-        $auth_code = !empty( $row['auth_code'] ) ? $row['auth_code'] : '';
+		// Count total rows to report progress to JS.
+		$total = $this->count_export_rows( $form_ids, $status );
 
-        // Token (magic_token column - not encrypted)
-        $token = !empty( $row['magic_token'] ) ? $row['magic_token'] : '';
+		if ( $total === 0 ) {
+			wp_send_json_error( __( 'No records available for export.', 'ffcertificate' ) );
+		}
 
-        // Consent Given (Yes/No)
-        $consent_given = '';
-        if ( isset( $row['consent_given'] ) ) {
-            $consent_given = $row['consent_given'] ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' );
-        }
+		$include_edit_columns = $this->repository->hasEditInfo();
 
-        // Consent Date (omit if empty)
-        $consent_date = !empty( $row['consent_date'] ) ? $row['consent_date'] : '';
+		// Build filename.
+		if ( $form_ids && count( $form_ids ) === 1 ) {
+			$form_title = get_the_title( $form_ids[0] );
+		} elseif ( $form_ids && count( $form_ids ) > 1 ) {
+			$form_title = count( $form_ids ) . '-forms';
+		} else {
+			$form_title = 'all-forms';
+		}
+		$filename = \FreeFormCertificate\Core\Utils::sanitize_filename( $form_title ) . '-' . gmdate( 'Y-m-d' ) . '.csv';
 
-        // Consent IP (from decrypted user_ip)
-        $consent_ip = $user_ip;
+		// Create temp file.
+		$upload_dir = wp_upload_dir();
+		$tmp_dir    = trailingslashit( $upload_dir['basedir'] ) . 'ffc-tmp';
+		wp_mkdir_p( $tmp_dir );
 
-        // Consent Text (omit if empty)
-        $consent_text = !empty( $row['consent_text'] ) ? $row['consent_text'] : '';
+		// Protect the temp dir from direct HTTP access.
+		$htaccess = $tmp_dir . '/.htaccess';
+		if ( ! file_exists( $htaccess ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			file_put_contents( $htaccess, "Deny from all\n" );
+		}
 
-        // Status (publish, trash, etc)
-        $status = !empty( $row['status'] ) ? $row['status'] : 'publish';
+		$job_id   = wp_generate_uuid4();
+		$tmp_file = $tmp_dir . '/ffc-export-' . $job_id . '.csv';
 
-        // Fixed Columns (in order)
-        $line = array(
-            $row['id'],                 // ID
-            $form_display,              // Form
-            $user_id,                   // User ID
-            $row['submission_date'],    // Submission Date
-            $email,                     // E-mail (decrypted)
-            $user_ip,                   // User IP (decrypted)
-            $cpf_val ?? '',             // CPF (decrypted)
-            $rf_val ?? '',              // RF (decrypted)
-            $auth_code,                 // Auth Code (omitted if empty)
-            $token,                     // Token (magic_token column)
-            $consent_given,             // Consent Given (Yes/No)
-            $consent_date,              // Consent Date (omitted if empty)
-            $consent_ip,                // Consent IP (omitted if empty)
-            $consent_text,              // Consent Text (omitted if empty)
-            $status                     // Status
-        );
-        
-        if ( $include_edit_columns ) {
-            $was_edited = '';
-            $edit_date = '';
-            $edited_by = '';
-            
-            if ( !empty( $row['edited_at'] ) ) {
-                $was_edited = __( 'Yes', 'ffcertificate' );
-                $edit_date = $row['edited_at'];
-                
-                // Get editor name if edited_by exists
-                if ( !empty( $row['edited_by'] ) ) {
-                    $user = get_userdata( (int) $row['edited_by'] );
-                    $edited_by = $user ? $user->display_name : 'ID: ' . $row['edited_by'];
-                }
-            }
-            
-            $line[] = $was_edited;      // Was Edited
-            $line[] = $edit_date;       // Edit Date
-            $line[] = $edited_by;       // Edited By
-        }
-        
-        // Dynamic Columns (each field from 'data' column in separate CSV column)
-        $data = $this->get_submission_data( $row );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		$fh = fopen( $tmp_file, 'w' );
+		if ( ! $fh ) {
+			wp_send_json_error( __( 'Cannot create temp file.', 'ffcertificate' ) );
+		}
 
-        foreach ( $dynamic_keys as $key ) {
-            $value = $data[$key] ?? '';
-            // Flatten arrays/objects to string
-            if ( is_array( $value ) ) {
-                $value = implode( ', ', $value );
-            }
-            $line[] = $value;
-        }
-        
-        return $line;
-    }
+		// BOM + headers.
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV binary output.
+		fprintf( $fh, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
 
-    /**
-     * Export submissions to CSV file using batched streaming.
-     *
-     * Processes records in batches of EXPORT_BATCH_SIZE using cursor-based
-     * pagination to avoid loading all records into memory at once.
-     * Dynamic column keys are discovered in a separate lightweight pass
-     * (only id + JSON data columns) before streaming begins.
-     *
-     * @since 5.0.0 Rewritten with batched streaming for large datasets.
-     * @since 4.0.0 Support multiple form IDs.
-     *
-     * @param array<int, int>|int|null $form_ids Single form ID, array of IDs, or null for all
-     * @param string $status Status filter
-     */
-    public function export_csv( $form_ids = null, string $status = 'publish' ): void {
-        // Normalize form_ids to array
-        if ( $form_ids !== null && ! is_array( $form_ids ) ) {
-            $form_ids = array( (int) $form_ids );
-        }
+		$headers = array_merge(
+			$this->get_fixed_headers( $include_edit_columns ),
+			$this->get_dynamic_headers( $dynamic_keys )
+		);
+		$headers = array_map( function ( $h ) {
+			return mb_convert_encoding( $h, 'UTF-8', 'UTF-8' );
+		}, $headers );
+		fputcsv( $fh, $headers, ';' );
+		fclose( $fh );
 
-        \FreeFormCertificate\Core\Utils::debug_log( 'CSV export started (batched)', array(
-            'form_ids'   => $form_ids,
-            'status'     => $status,
-            'batch_size' => self::EXPORT_BATCH_SIZE,
-        ) );
+		// Store job state in a transient.
+		$job = array(
+			'form_ids'             => $form_ids,
+			'status'               => $status,
+			'dynamic_keys'         => $dynamic_keys,
+			'include_edit_columns' => $include_edit_columns,
+			'cursor'               => PHP_INT_MAX,
+			'processed'            => 0,
+			'total'                => $total,
+			'file'                 => $tmp_file,
+			'filename'             => $filename,
+			'user_id'              => get_current_user_id(),
+		);
+		set_transient( 'ffc_csv_export_' . $job_id, $job, self::JOB_TTL );
 
-        // Allow long-running export without hitting PHP time/memory limits.
-        // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- set_time_limit may be disabled.
-        @set_time_limit( 0 );
-        wp_raise_memory_limit( 'admin' );
+		wp_send_json_success( array(
+			'job_id' => $job_id,
+			'total'  => $total,
+		) );
+	}
 
-        // ── Phase 1: Discover dynamic column keys (lightweight query) ──
-        // This also serves as an existence check — if scan finds zero rows,
-        // we can still wp_die() because no output has been sent yet.
-        $dynamic_keys = $this->scan_dynamic_keys( $form_ids, $status );
+	// ──────────────────────────────────────────────────────────────
+	//  AJAX: Batch
+	// ──────────────────────────────────────────────────────────────
 
-        // Quick check: attempt first batch to see if any records exist.
-        $probe = $this->repository->getExportBatch( $form_ids, $status, PHP_INT_MAX, 1 );
-        if ( empty( $probe ) ) {
-            wp_die( esc_html__( 'No records available for export.', 'ffcertificate' ) );
-        }
-        unset( $probe );
+	/**
+	 * Process one batch (EXPORT_BATCH_SIZE rows) and append to temp file.
+	 */
+	public function ajax_batch(): void {
+		check_ajax_referer( 'ffc_csv_export', 'nonce' );
 
-        $include_edit_columns = $this->repository->hasEditInfo();
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+			wp_send_json_error( __( 'Permission denied.', 'ffcertificate' ), 403 );
+		}
 
-        // Generate filename
-        if ( $form_ids && count( $form_ids ) === 1 ) {
-            $form_title = get_the_title( $form_ids[0] );
-        } elseif ( $form_ids && count( $form_ids ) > 1 ) {
-            $form_title = count( $form_ids ) . '-forms';
-        } else {
-            $form_title = 'all-forms';
-        }
+		$job_id = isset( $_POST['job_id'] ) ? sanitize_text_field( wp_unslash( $_POST['job_id'] ) ) : '';
+		$job    = get_transient( 'ffc_csv_export_' . $job_id );
 
-        $filename = \FreeFormCertificate\Core\Utils::sanitize_filename( $form_title ) . '-' . gmdate( 'Y-m-d' ) . '.csv';
+		if ( ! $job || (int) $job['user_id'] !== get_current_user_id() ) {
+			wp_send_json_error( __( 'Export job not found or expired.', 'ffcertificate' ) );
+		}
 
-        // ── Phase 2: Stream CSV in batches ──────────────────────────
-        // Discard any WordPress output buffers so flushing reaches the client.
-        // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-        while ( @ob_end_clean() ) {} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		@set_time_limit( 60 );
 
-        header( 'Content-Type: text/csv; charset=utf-8' );
-        header( "Content-Disposition: attachment; filename={$filename}" );
-        header( 'Pragma: no-cache' );
-        header( 'Expires: 0' );
-        // Prevent proxies/CDNs from buffering the entire response.
-        header( 'X-Accel-Buffering: no' );
+		$batch = $this->repository->getExportBatch(
+			$job['form_ids'],
+			$job['status'],
+			$job['cursor'],
+			self::EXPORT_BATCH_SIZE
+		);
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Opening php://output for CSV streaming.
-        $output = fopen( 'php://output', 'w' );
+		if ( empty( $batch ) ) {
+			// All done.
+			wp_send_json_success( array(
+				'done'      => true,
+				'processed' => $job['processed'],
+				'total'     => $job['total'],
+			) );
+		}
 
-        // BOM for Excel UTF-8 recognition
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV binary output, not HTML context
-        fprintf( $output, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
+		/**
+		 * Filters a batch of submission rows during CSV export.
+		 *
+		 * @since 5.0.0
+		 */
+		$batch = apply_filters( 'ffcertificate_csv_export_data', $batch, $job['form_ids'], $job['status'] );
 
-        // Write header row
-        $headers = array_merge(
-            $this->get_fixed_headers( $include_edit_columns ),
-            $this->get_dynamic_headers( $dynamic_keys )
-        );
-        $headers = array_map( function ( $header ) {
-            return mb_convert_encoding( $header, 'UTF-8', 'UTF-8' );
-        }, $headers );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		$fh = fopen( $job['file'], 'a' );
+		if ( ! $fh ) {
+			wp_send_json_error( __( 'Cannot write to temp file.', 'ffcertificate' ) );
+		}
 
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV file output, not HTML context
-        fputcsv( $output, $headers, ';' );
+		foreach ( $batch as $row ) {
+			$csv_row = $this->format_csv_row( $row, $job['dynamic_keys'], $job['include_edit_columns'] );
+			$csv_row = array_map( function ( $v ) {
+				return mb_convert_encoding( (string) $v, 'UTF-8', 'UTF-8' );
+			}, $csv_row );
+			fputcsv( $fh, $csv_row, ';' );
+		}
+		fclose( $fh );
 
-        // Stream rows in cursor-based batches
-        $cursor     = PHP_INT_MAX;
-        $total_rows = 0;
+		// Advance cursor.
+		$last_row          = end( $batch );
+		$job['cursor']     = (int) $last_row['id'];
+		$job['processed'] += count( $batch );
 
-        while ( true ) {
-            $batch = $this->repository->getExportBatch( $form_ids, $status, $cursor, self::EXPORT_BATCH_SIZE );
+		set_transient( 'ffc_csv_export_' . $job_id, $job, self::JOB_TTL );
 
-            if ( empty( $batch ) ) {
-                break;
-            }
+		wp_send_json_success( array(
+			'done'      => false,
+			'processed' => $job['processed'],
+			'total'     => $job['total'],
+		) );
+	}
 
-            /**
-             * Filters a batch of submission rows during CSV export.
-             *
-             * @since 5.0.0
-             * @param array      $batch    Current batch of rows.
-             * @param array|null $form_ids Form IDs filter (null for all).
-             * @param string     $status   Status filter.
-             */
-            $batch = apply_filters( 'ffcertificate_csv_export_data', $batch, $form_ids, $status );
+	// ──────────────────────────────────────────────────────────────
+	//  AJAX: Download
+	// ──────────────────────────────────────────────────────────────
 
-            foreach ( $batch as $row ) {
-                $csv_row = $this->format_csv_row( $row, $dynamic_keys, $include_edit_columns );
-                $csv_row = array_map( function ( $value ) {
-                    return mb_convert_encoding( (string) $value, 'UTF-8', 'UTF-8' );
-                }, $csv_row );
+	/**
+	 * Serve the completed CSV file and clean up.
+	 */
+	public function ajax_download(): void {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+		if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['nonce'] ) ), 'ffc_csv_export' ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
+		}
 
-                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV file output, not HTML context
-                fputcsv( $output, $csv_row, ';' );
-            }
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
+		}
 
-            // Advance cursor to the last id in this batch
-            $last_row    = end( $batch );
-            $cursor      = (int) $last_row['id'];
-            $total_rows += count( $batch );
+		$job_id = isset( $_GET['job_id'] ) ? sanitize_text_field( wp_unslash( $_GET['job_id'] ) ) : '';
+		$job    = get_transient( 'ffc_csv_export_' . $job_id );
 
-            // Flush output so the browser receives data progressively
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-            fflush( $output );
-            flush();
+		if ( ! $job || (int) $job['user_id'] !== get_current_user_id() ) {
+			wp_die( esc_html__( 'Export job not found or expired.', 'ffcertificate' ) );
+		}
 
-            // Free batch memory before next iteration
-            unset( $batch );
-        }
+		$file = $job['file'];
+		if ( ! file_exists( $file ) ) {
+			wp_die( esc_html__( 'Export file not found.', 'ffcertificate' ) );
+		}
 
-        \FreeFormCertificate\Core\Utils::debug_log( 'CSV export completed', array(
-            'total_rows' => $total_rows,
-        ) );
+		// Serve file.
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		while ( @ob_end_clean() ) {} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing php://output stream for CSV export.
-        fclose( $output );
-        exit;
-    }
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename=' . $job['filename'] );
+		header( 'Content-Length: ' . filesize( $file ) );
+		header( 'Pragma: no-cache' );
+		header( 'Expires: 0' );
 
-    /**
-     * Scan all matching records to discover dynamic JSON keys.
-     *
-     * Uses a lightweight query (only id, data, data_encrypted) in batches
-     * to avoid loading full rows into memory just for key discovery.
-     *
-     * @since 5.0.0
-     * @param array<int, int>|null $form_ids Form IDs filter.
-     * @param string               $status   Status filter.
-     * @return array<int, string> Unique dynamic keys across all matching records.
-     */
-    private function scan_dynamic_keys( ?array $form_ids, string $status ): array {
-        $all_keys = array();
-        $cursor   = PHP_INT_MAX;
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
+		readfile( $file );
 
-        while ( true ) {
-            $batch = $this->repository->getExportKeysBatch( $form_ids, $status, $cursor, self::KEYS_BATCH_SIZE );
+		// Cleanup.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		unlink( $file );
+		delete_transient( 'ffc_csv_export_' . $job_id );
 
-            if ( empty( $batch ) ) {
-                break;
-            }
+		exit;
+	}
 
-            $batch_keys = $this->extract_dynamic_keys( $batch, 'data', 'data_encrypted' );
-            $all_keys   = array_merge( $all_keys, $batch_keys );
+	// ──────────────────────────────────────────────────────────────
+	//  Legacy entry point (kept for backwards compat)
+	// ──────────────────────────────────────────────────────────────
 
-            $last_row = end( $batch );
-            $cursor   = (int) $last_row['id'];
+	/**
+	 * Legacy handler called from admin_post_ffc_export_csv.
+	 *
+	 * Redirects back to submissions page — the actual export now happens
+	 * via AJAX. This avoids 503 errors on slow hosting.
+	 *
+	 * @deprecated 5.0.0 Use AJAX endpoints instead.
+	 */
+	public function handle_export_request(): void {
+		// If someone hits the old POST endpoint, redirect back.
+		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' ) );
+		exit;
+	}
 
-            unset( $batch );
-        }
+	// ──────────────────────────────────────────────────────────────
+	//  Helpers (private)
+	// ──────────────────────────────────────────────────────────────
 
-        return array_values( array_unique( $all_keys ) );
-    }
+	/**
+	 * @param int $form_id Form post ID.
+	 * @return string Form title or "(Deleted)".
+	 */
+	private function get_form_title_cached( int $form_id ): string {
+		if ( ! isset( $this->form_title_cache[ $form_id ] ) ) {
+			$title = get_the_title( $form_id );
+			$this->form_title_cache[ $form_id ] = $title ? $title : __( '(Deleted)', 'ffcertificate' );
+		}
+		return $this->form_title_cache[ $form_id ];
+	}
 
-    /**
-     * Handle export request from admin
-     */
-    public function handle_export_request(): void {
-        try {
-            // Debug logging
-            // phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Debug logging before nonce check; POST superglobal used as-is for debug.
-            \FreeFormCertificate\Core\Utils::debug_log( 'CSV export handler called', array(
-                'POST' => $_POST,
-                'has_nonce' => isset( $_POST['ffc_export_csv_action'] )
-            ) );
-            // phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+	private function get_fixed_headers( bool $include_edit_columns = false ): array {
+		$headers = array(
+			__( 'ID', 'ffcertificate' ),
+			__( 'Form', 'ffcertificate' ),
+			__( 'User ID', 'ffcertificate' ),
+			__( 'Submission Date', 'ffcertificate' ),
+			__( 'E-mail', 'ffcertificate' ),
+			__( 'User IP', 'ffcertificate' ),
+			__( 'CPF', 'ffcertificate' ),
+			__( 'RF', 'ffcertificate' ),
+			__( 'Auth Code', 'ffcertificate' ),
+			__( 'Token', 'ffcertificate' ),
+			__( 'Consent Given', 'ffcertificate' ),
+			__( 'Consent Date', 'ffcertificate' ),
+			__( 'Consent IP', 'ffcertificate' ),
+			__( 'Consent Text', 'ffcertificate' ),
+			__( 'Status', 'ffcertificate' ),
+		);
 
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
-            if ( ! isset( $_POST['ffc_export_csv_action'] ) ||
-                 ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_export_csv_action'] ) ), 'ffc_export_csv_nonce' ) ) {
-                \FreeFormCertificate\Core\Utils::debug_log( 'CSV export nonce failed' );
-                wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
-            }
+		if ( $include_edit_columns ) {
+			$headers[] = __( 'Was Edited', 'ffcertificate' );
+			$headers[] = __( 'Edit Date', 'ffcertificate' );
+			$headers[] = __( 'Edited By', 'ffcertificate' );
+		}
 
-            if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
-                \FreeFormCertificate\Core\Utils::debug_log( 'CSV export permission denied' );
-                wp_die( esc_html__( 'You do not have permission to export data.', 'ffcertificate' ) );
-            }
+		return $headers;
+	}
 
-            $form_ids = null;
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty()/is_array() existence and type checks only.
-            if ( !empty( $_POST['form_ids'] ) && is_array( $_POST['form_ids'] ) ) {
-                $form_ids = array_map( 'absint', wp_unslash( $_POST['form_ids'] ) );
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty() existence check only.
-            } elseif ( !empty( $_POST['form_id'] ) ) {
-                $form_ids = [ absint( wp_unslash( $_POST['form_id'] ) ) ];
-            }
+	private function get_dynamic_headers( array $dynamic_keys ): array {
+		return $this->build_dynamic_headers( $dynamic_keys );
+	}
 
-            $status = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : 'publish';
+	private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {
+		$form_display = $this->get_form_title_cached( (int) $row['form_id'] );
 
-            \FreeFormCertificate\Core\Utils::debug_log( 'CSV export starting', array(
-                'form_ids' => $form_ids,
-                'status' => $status
-            ) );
+		$email   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' );
+		$user_ip = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'user_ip' );
+		$cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf' );
+		$rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'rf' );
 
-            $this->export_csv( $form_ids, $status );
-        } catch ( \Exception $e ) {
-            \FreeFormCertificate\Core\Utils::debug_log( 'CSV export exception', array(
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ) );
-            wp_die( esc_html__( 'Error generating CSV: ', 'ffcertificate' ) . esc_html( $e->getMessage() ) );
-        }
-    }
+		$line = array(
+			$row['id'],
+			$form_display,
+			! empty( $row['user_id'] ) ? $row['user_id'] : '',
+			$row['submission_date'],
+			$email,
+			$user_ip,
+			$cpf_val ?? '',
+			$rf_val ?? '',
+			! empty( $row['auth_code'] ) ? $row['auth_code'] : '',
+			! empty( $row['magic_token'] ) ? $row['magic_token'] : '',
+			isset( $row['consent_given'] ) ? ( $row['consent_given'] ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ) ) : '',
+			! empty( $row['consent_date'] ) ? $row['consent_date'] : '',
+			$user_ip, // Consent IP
+			! empty( $row['consent_text'] ) ? $row['consent_text'] : '',
+			! empty( $row['status'] ) ? $row['status'] : 'publish',
+		);
+
+		if ( $include_edit_columns ) {
+			$was_edited = '';
+			$edit_date  = '';
+			$edited_by  = '';
+			if ( ! empty( $row['edited_at'] ) ) {
+				$was_edited = __( 'Yes', 'ffcertificate' );
+				$edit_date  = $row['edited_at'];
+				if ( ! empty( $row['edited_by'] ) ) {
+					$user      = get_userdata( (int) $row['edited_by'] );
+					$edited_by = $user ? $user->display_name : 'ID: ' . $row['edited_by'];
+				}
+			}
+			$line[] = $was_edited;
+			$line[] = $edit_date;
+			$line[] = $edited_by;
+		}
+
+		$data = $this->decode_json_field( $row, 'data', 'data_encrypted' );
+		foreach ( $dynamic_keys as $key ) {
+			$value  = $data[ $key ] ?? '';
+			$line[] = is_array( $value ) ? implode( ', ', $value ) : $value;
+		}
+
+		return $line;
+	}
+
+	/**
+	 * Scan all matching records to discover dynamic JSON keys.
+	 */
+	private function scan_dynamic_keys( ?array $form_ids, string $status ): array {
+		$all_keys = array();
+		$cursor   = PHP_INT_MAX;
+
+		while ( true ) {
+			$batch = $this->repository->getExportKeysBatch( $form_ids, $status, $cursor, self::KEYS_BATCH_SIZE );
+			if ( empty( $batch ) ) {
+				break;
+			}
+			$all_keys = array_merge( $all_keys, $this->extract_dynamic_keys( $batch, 'data', 'data_encrypted' ) );
+			$last_row = end( $batch );
+			$cursor   = (int) $last_row['id'];
+			unset( $batch );
+		}
+
+		return array_values( array_unique( $all_keys ) );
+	}
+
+	/**
+	 * Count total matching rows for progress reporting.
+	 */
+	private function count_export_rows( ?array $form_ids, string $status ): int {
+		return $this->repository->countForExport( $form_ids, $status );
+	}
 }

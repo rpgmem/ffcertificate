@@ -164,25 +164,100 @@
     });
 
     // ==========================================================================
-    // CSV EXPORT - Loading state on submit
+    // CSV EXPORT - AJAX-driven batched export
     // ==========================================================================
 
-    $(document).on('submit', 'form:has([name="ffc_action"][value="export_csv_smart"])', function() {
-        var $btn = $(this).find('button[type="submit"]');
-        if ( $btn.length ) {
-            var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
-            var exportingText = strings.exporting || 'Exporting\u2026';
-            $btn.data('ffc-original-text', $btn.text());
-            $btn.prop('disabled', true).text(exportingText).addClass('ffc-btn-loading');
+    $(document).on('click', '#ffc-csv-export-btn', function() {
+        var $btn      = $(this);
+        var $progress = $('#ffc-csv-export-progress');
+        var strings   = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+        var nonce     = (typeof ffc_ajax !== 'undefined') ? ffc_ajax.export_nonce : '';
 
-            // Re-enable after 10 s — by then the browser has received the
-            // file download headers and the user can export again if needed.
-            setTimeout(function() {
-                $btn.prop('disabled', false)
-                    .text($btn.data('ffc-original-text'))
-                    .removeClass('ffc-btn-loading');
-            }, 10000);
+        if (!nonce) {
+            alert(strings.error || 'Error: missing export nonce');
+            return;
         }
+
+        var formIds = $btn.data('form-ids') || [];
+        var status  = $btn.data('status') || 'publish';
+
+        var originalText = $btn.text();
+        var preparingText = strings.exportPreparing || 'Preparing\u2026';
+        $btn.prop('disabled', true).text(preparingText);
+        $progress.show().text('');
+
+        // Step 1: Start export job
+        var postData = { action: 'ffc_csv_export_start', nonce: nonce, status: status };
+        if (formIds && formIds.length) {
+            postData.form_ids = formIds;
+        }
+
+        $.post(ajaxurl, postData, function(res) {
+            if (!res.success) {
+                $btn.prop('disabled', false).text(originalText);
+                $progress.text(res.data || strings.error || 'Error');
+                return;
+            }
+
+            var jobId = res.data.job_id;
+            var total = res.data.total;
+            var exportingTpl = strings.exportProgress || 'Exporting %1$d/%2$d\u2026';
+
+            // Step 2: Process batches sequentially
+            function processBatch() {
+                $.post(ajaxurl, {
+                    action: 'ffc_csv_export_batch',
+                    nonce: nonce,
+                    job_id: jobId
+                }, function(batchRes) {
+                    if (!batchRes.success) {
+                        $btn.prop('disabled', false).text(originalText);
+                        $progress.text(batchRes.data || 'Error');
+                        return;
+                    }
+
+                    var processed = batchRes.data.processed;
+                    var progressText = exportingTpl
+                        .replace('%1$d', processed)
+                        .replace('%2$d', total);
+                    $progress.text(progressText);
+
+                    if (batchRes.data.done) {
+                        // Step 3: Trigger file download
+                        var downloadUrl = ajaxurl
+                            + '?action=ffc_csv_export_download'
+                            + '&job_id=' + encodeURIComponent(jobId)
+                            + '&nonce=' + encodeURIComponent(nonce);
+
+                        // Use a hidden iframe to trigger download without navigating
+                        var $iframe = $('<iframe>', { src: downloadUrl })
+                            .css({ display: 'none' })
+                            .appendTo('body');
+
+                        // Cleanup UI
+                        setTimeout(function() {
+                            $btn.prop('disabled', false).text(originalText);
+                            var doneText = strings.exportDone || 'Done!';
+                            $progress.text('\u2713 ' + processed + '/' + total + ' \u2014 ' + doneText);
+                            setTimeout(function() { $progress.fadeOut(); }, 5000);
+                            $iframe.remove();
+                        }, 2000);
+                    } else {
+                        // Continue to next batch
+                        processBatch();
+                    }
+                }).fail(function() {
+                    $btn.prop('disabled', false).text(originalText);
+                    $progress.text(strings.connectionError || 'Connection error.');
+                });
+            }
+
+            processBatch();
+
+        }).fail(function() {
+            $btn.prop('disabled', false).text(originalText);
+            $progress.text(strings.connectionError || 'Connection error.');
+        });
     });
 
     // ==========================================================================
