@@ -452,11 +452,9 @@ class PrivacyHandler {
 
         // 1. Submissions: anonymize (preserve certificate verification)
         $submissions_table = $wpdb->prefix . 'ffc_submissions';
-        // @deprecated cpf_rf_encrypted, cpf_rf_hash — legacy columns cleared alongside split columns; remove in next major version.
         $rows = $wpdb->query($wpdb->prepare(
             "UPDATE %i
              SET user_id = NULL, email_encrypted = NULL,
-                 cpf_rf_encrypted = NULL, cpf_rf_hash = NULL,
                  cpf_encrypted = NULL, rf_encrypted = NULL,
                  cpf_hash = NULL, rf_hash = NULL
              WHERE user_id = %d",
@@ -478,13 +476,12 @@ class PrivacyHandler {
         if (self::table_exists($appointments_table)) {
             $rows = $wpdb->query($wpdb->prepare(
                 "UPDATE %i
-                 SET user_id = NULL, name = NULL, email = NULL, email_encrypted = NULL,
+                 SET user_id = NULL, name = NULL, email_encrypted = NULL,
                      email_hash = NULL, phone = NULL, phone_encrypted = NULL,
-                     cpf_rf = NULL, cpf_rf_encrypted = NULL, cpf_rf_hash = NULL,
                      cpf_encrypted = NULL, cpf_hash = NULL,
                      rf_encrypted = NULL, rf_hash = NULL,
                      custom_data = NULL, custom_data_encrypted = NULL,
-                     user_notes = NULL, user_ip = NULL, user_ip_encrypted = NULL,
+                     user_notes = NULL, user_ip_encrypted = NULL,
                      user_agent = NULL, consent_ip = NULL
                  WHERE user_id = %d",
                 $appointments_table,

@@ -541,27 +541,9 @@ class FormProcessor {
                 $id_hash
             ) );
 
-            if ( $result ) {
-                return $result;
-            }
-
-            // @deprecated legacy cpf_rf_hash fallback — remove in next major version.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            return $wpdb->get_row( $wpdb->prepare(
-                'SELECT * FROM %i WHERE form_id = %d AND cpf_rf_hash = %s ORDER BY id DESC LIMIT 1',
-                $table,
-                $form_id,
-                $id_hash
-            ) );
+            return $result;
         }
 
-        // @deprecated legacy plain cpf_rf fallback — remove in next major version.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        return $wpdb->get_row( $wpdb->prepare(
-            'SELECT * FROM %i WHERE form_id = %d AND cpf_rf = %s ORDER BY id DESC LIMIT 1',
-            $table,
-            $form_id,
-            $clean_cpf
-        ) );
+        return null;
     }
 }

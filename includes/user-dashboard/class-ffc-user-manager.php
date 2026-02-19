@@ -262,12 +262,11 @@ class UserManager {
         global $wpdb;
         $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        // Query split columns first, then fallback to legacy cpf_rf_encrypted
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT DISTINCT cpf_encrypted, rf_encrypted, cpf_rf_encrypted FROM %i
+            "SELECT DISTINCT cpf_encrypted, rf_encrypted FROM %i
              WHERE user_id = %d
-             AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL OR cpf_rf_encrypted IS NOT NULL)",
+             AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL)",
             $table,
             $user_id
         ), ARRAY_A );
@@ -286,8 +285,6 @@ class UserManager {
                     $plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_encrypted'] );
                 } elseif ( ! empty( $row['rf_encrypted'] ) ) {
                     $plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['rf_encrypted'] );
-                } elseif ( ! empty( $row['cpf_rf_encrypted'] ) ) {
-                    $plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_rf_encrypted'] );
                 }
 
                 if ( ! empty( $plain ) ) {
@@ -326,9 +323,9 @@ class UserManager {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT DISTINCT cpf_encrypted, rf_encrypted, cpf_rf_encrypted FROM %i
+            "SELECT DISTINCT cpf_encrypted, rf_encrypted FROM %i
              WHERE user_id = %d
-             AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL OR cpf_rf_encrypted IS NOT NULL)",
+             AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL)",
             $table,
             $user_id
         ), ARRAY_A );
@@ -356,22 +353,6 @@ class UserManager {
                         $masked = self::mask_cpf_rf( $plain );
                         if ( ! in_array( $masked, $rfs, true ) ) {
                             $rfs[] = $masked;
-                        }
-                    }
-                } elseif ( ! empty( $row['cpf_rf_encrypted'] ) ) {
-                    // Legacy fallback — classify by digit length
-                    $plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_rf_encrypted'] );
-                    if ( ! empty( $plain ) ) {
-                        $digits = preg_replace( '/[^0-9]/', '', $plain );
-                        $masked = self::mask_cpf_rf( $plain );
-                        if ( strlen( $digits ) === 7 ) {
-                            if ( ! in_array( $masked, $rfs, true ) ) {
-                                $rfs[] = $masked;
-                            }
-                        } else {
-                            if ( ! in_array( $masked, $cpfs, true ) ) {
-                                $cpfs[] = $masked;
-                            }
                         }
                     }
                 }

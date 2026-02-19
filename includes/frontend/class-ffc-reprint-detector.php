@@ -81,25 +81,6 @@ class ReprintDetector {
                     $id_hash
                 ) );
 
-                // @deprecated legacy cpf_rf_hash fallback — remove in next major version.
-                if ( ! $existing_submission ) {
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                    $existing_submission = $wpdb->get_row( $wpdb->prepare(
-                        'SELECT * FROM %i WHERE form_id = %d AND cpf_rf_hash = %s ORDER BY id DESC LIMIT 1',
-                        $table_name,
-                        $form_id,
-                        $id_hash
-                    ) );
-                }
-            } else {
-                // @deprecated legacy plain cpf_rf fallback — remove in next major version.
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                $existing_submission = $wpdb->get_row( $wpdb->prepare(
-                    'SELECT * FROM %i WHERE form_id = %d AND cpf_rf = %s ORDER BY id DESC LIMIT 1',
-                    $table_name,
-                    $form_id,
-                    $clean_cpf
-                ) );
             }
 
             // @deprecated legacy JSON data fallback — remove in next major version.
@@ -154,21 +135,24 @@ class ReprintDetector {
         }
 
         // Ensure required column fields are included
-        if ( ! isset( $decoded_data['email'] ) && ! empty( $existing_submission->email ) ) {
-            $decoded_data['email'] = $existing_submission->email;
-        }
-        if ( ! isset( $decoded_data['cpf_rf'] ) && ! empty( $existing_submission->cpf_rf ) ) {
-            $decoded_data['cpf_rf'] = $existing_submission->cpf_rf;
-        }
         if ( ! isset( $decoded_data['auth_code'] ) && ! empty( $existing_submission->auth_code ) ) {
             $decoded_data['auth_code'] = $existing_submission->auth_code;
+        }
+
+        // Populate email from encrypted column
+        $email = '';
+        if ( ! empty( $existing_submission->email_encrypted ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
+            $email = \FreeFormCertificate\Core\Encryption::decrypt( $existing_submission->email_encrypted ) ?? '';
+        }
+        if ( ! isset( $decoded_data['email'] ) && ! empty( $email ) ) {
+            $decoded_data['email'] = $email;
         }
 
         return array(
             'is_reprint' => true,
             'data' => $decoded_data,
             'id' => $existing_submission->id,
-            'email' => $existing_submission->email,
+            'email' => $email,
             'date' => $existing_submission->submission_date
         );
     }

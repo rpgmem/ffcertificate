@@ -130,18 +130,6 @@ class CsvExporter {
         // Decrypt split CPF/RF columns
         $cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf' );
         $rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'rf' );
-        if ( empty( $cpf_val ) && empty( $rf_val ) ) {
-            // @deprecated legacy cpf_rf fallback — remove in next major version.
-            $legacy = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'cpf_rf' );
-            if ( ! empty( $legacy ) ) {
-                $id_len = strlen( preg_replace( '/[^0-9]/', '', $legacy ) );
-                if ( $id_len === 7 ) {
-                    $rf_val = $legacy;
-                } else {
-                    $cpf_val = $legacy;
-                }
-            }
-        }
 
         // User ID
         $user_id = !empty( $row['user_id'] ) ? $row['user_id'] : '';

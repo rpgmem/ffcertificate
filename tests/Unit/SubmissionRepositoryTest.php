@@ -78,10 +78,11 @@ class SubmissionRepositoryTest extends TestCase {
 
         $this->assertContains( 'id', $columns );
         $this->assertContains( 'form_id', $columns );
-        $this->assertContains( 'email', $columns );
         $this->assertContains( 'auth_code', $columns );
         $this->assertContains( 'submission_date', $columns );
         $this->assertContains( 'status', $columns );
+        $this->assertNotContains( 'email', $columns );
+        $this->assertNotContains( 'cpf_rf', $columns );
     }
 
     public function test_sanitize_order_rejects_invalid_column(): void {

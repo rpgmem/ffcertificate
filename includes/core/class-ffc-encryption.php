@@ -213,12 +213,9 @@ class Encryption {
         } elseif ( ! empty( $rf_val ) ) {
             $decrypted['rf']     = $rf_val;
             $decrypted['cpf_rf'] = $rf_val;
-        } elseif ( ! empty( $submission['cpf_rf_encrypted'] ) ) {
-            // @deprecated legacy cpf_rf fallback — remove in next major version.
-            $decrypted['cpf_rf'] = self::decrypt( $submission['cpf_rf_encrypted'] );
         }
 
-        // IP Address (try encrypted first, fallback to plain)
+        // IP Address
         if ( ! empty( $submission['user_ip_encrypted'] ) ) {
             $decrypted['user_ip'] = self::decrypt( $submission['user_ip_encrypted'] );
         }
@@ -273,10 +270,10 @@ class Encryption {
         $decrypted = $appointment;
 
         if ( ! empty( $appointment['email_encrypted'] ) ) {
-            $decrypted['email'] = self::decrypt( $appointment['email_encrypted'] ) ?? ( $appointment['email'] ?? '' );
+            $decrypted['email'] = self::decrypt( $appointment['email_encrypted'] ) ?? '';
         }
 
-        // CPF/RF — decrypt split columns, then legacy fallback
+        // CPF/RF — decrypt split columns
         $cpf_val = ! empty( $appointment['cpf_encrypted'] ) ? self::decrypt( $appointment['cpf_encrypted'] ) : null;
         $rf_val  = ! empty( $appointment['rf_encrypted'] )  ? self::decrypt( $appointment['rf_encrypted'] )  : null;
 
@@ -286,16 +283,13 @@ class Encryption {
         } elseif ( ! empty( $rf_val ) ) {
             $decrypted['rf']     = $rf_val;
             $decrypted['cpf_rf'] = $rf_val;
-        } elseif ( ! empty( $appointment['cpf_rf_encrypted'] ) ) {
-            // @deprecated legacy cpf_rf fallback — remove in next major version.
-            $decrypted['cpf_rf'] = self::decrypt( $appointment['cpf_rf_encrypted'] ) ?? ( $appointment['cpf_rf'] ?? '' );
         }
 
         if ( ! empty( $appointment['phone_encrypted'] ) ) {
             $decrypted['phone'] = self::decrypt( $appointment['phone_encrypted'] ) ?? ( $appointment['phone'] ?? '' );
         }
         if ( ! empty( $appointment['user_ip_encrypted'] ) ) {
-            $decrypted['user_ip'] = self::decrypt( $appointment['user_ip_encrypted'] ) ?? ( $appointment['user_ip'] ?? '' );
+            $decrypted['user_ip'] = self::decrypt( $appointment['user_ip_encrypted'] ) ?? '';
         }
         if ( ! empty( $appointment['custom_data_encrypted'] ) ) {
             $decrypted['custom_data'] = self::decrypt( $appointment['custom_data_encrypted'] ) ?? ( $appointment['custom_data'] ?? '' );

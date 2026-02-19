@@ -87,20 +87,14 @@ class Activator {
             form_id bigint(20) unsigned NOT NULL,
             submission_date datetime NOT NULL,
             data longtext NULL,
-            user_ip varchar(100) NULL,
-            email varchar(255) NULL,
             status varchar(20) DEFAULT 'publish',
             magic_token varchar(32) DEFAULT NULL,
-            cpf_rf varchar(20) DEFAULT NULL,
             auth_code varchar(20) DEFAULT NULL,
             PRIMARY KEY (id),
             KEY form_id (form_id),
             KEY status (status),
-            KEY email (email),
             KEY magic_token (magic_token),
-            KEY cpf_rf (cpf_rf),
-            KEY auth_code (auth_code),
-            KEY idx_form_cpf (form_id, cpf_rf)
+            KEY auth_code (auth_code)
         ) {$charset_collate};";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -135,13 +129,10 @@ class Activator {
         $columns = array(
             'user_id' => array('type' => 'BIGINT(20) UNSIGNED DEFAULT NULL', 'after' => 'form_id', 'index' => 'user_id'),
             'magic_token' => array('type' => 'VARCHAR(32) DEFAULT NULL', 'after' => 'status', 'index' => 'magic_token'),
-            'cpf_rf' => array('type' => 'VARCHAR(20) DEFAULT NULL', 'after' => 'magic_token', 'index' => 'cpf_rf'),
-            'auth_code' => array('type' => 'VARCHAR(20) DEFAULT NULL', 'after' => 'cpf_rf', 'index' => 'auth_code'),
+            'auth_code' => array('type' => 'VARCHAR(20) DEFAULT NULL', 'after' => 'magic_token', 'index' => 'auth_code'),
             'email_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'auth_code'),
             'email_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'email_encrypted', 'index' => 'email_hash'),
-            'cpf_rf_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'email_hash'),
-            'cpf_rf_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'cpf_rf_encrypted', 'index' => 'cpf_rf_hash'),
-            'cpf' => array('type' => 'VARCHAR(20) NULL DEFAULT NULL', 'after' => 'cpf_rf_hash'),
+            'cpf' => array('type' => 'VARCHAR(20) NULL DEFAULT NULL', 'after' => 'email_hash'),
             'cpf_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'cpf'),
             'cpf_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'cpf_encrypted', 'index' => 'cpf_hash'),
             'rf' => array('type' => 'VARCHAR(20) NULL DEFAULT NULL', 'after' => 'cpf_hash'),
@@ -160,7 +151,6 @@ class Activator {
         );
 
         self::add_columns_if_missing($table_name, $columns);
-        self::add_index_if_missing($table_name, 'idx_form_cpf', '(form_id, cpf_rf)');
         self::add_index_if_missing($table_name, 'idx_form_cpf_new', '(form_id, cpf_hash)');
         self::add_index_if_missing($table_name, 'idx_form_rf', '(form_id, rf_hash)');
     }

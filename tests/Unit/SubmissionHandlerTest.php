@@ -174,9 +174,9 @@ class SubmissionHandlerTest extends TestCase {
         $data = array( 'name' => 'Carol', 'email' => 'carol@test.com' );
         $this->handler->process_submission( 1, 'Form', $data, 'carol@test.com', array(), array() );
 
-        // With encryption on (constants defined in bootstrap), plaintext is null,
-        // encrypted/hash fields are populated.
-        $this->assertNull( $captured['email'] );
+        // With encryption on (constants defined in bootstrap), plaintext column
+        // is not written; encrypted/hash fields are populated.
+        $this->assertArrayNotHasKey( 'email', $captured );
         $this->assertNotNull( $captured['email_encrypted'] );
         $this->assertNotNull( $captured['email_hash'] );
         $this->assertSame( 64, strlen( $captured['email_hash'] ) );
@@ -429,7 +429,7 @@ class SubmissionHandlerTest extends TestCase {
             ->once()
             ->withArgs( function( $id, $data ) {
                 return $id === 1
-                    && $data['email'] === null
+                    && ! array_key_exists( 'email', $data )
                     && ! empty( $data['email_encrypted'] )
                     && ! empty( $data['email_hash'] )
                     && strlen( $data['email_hash'] ) === 64;
@@ -539,11 +539,9 @@ class SubmissionHandlerTest extends TestCase {
 
     public function test_decrypt_submission_data_plaintext_passthrough(): void {
         $submission = array(
-            'email'            => 'plain@test.com',
             'email_encrypted'  => null,
-            'cpf_rf'           => '12345678901',
-            'cpf_rf_encrypted' => null,
-            'user_ip'          => '127.0.0.1',
+            'cpf_encrypted'    => null,
+            'rf_encrypted'     => null,
             'user_ip_encrypted'=> null,
             'data'             => '{"name":"Alice"}',
             'data_encrypted'   => null,
@@ -551,9 +549,9 @@ class SubmissionHandlerTest extends TestCase {
 
         $result = $this->handler->decrypt_submission_data( $submission );
 
-        $this->assertSame( 'plain@test.com', $result['email'] );
-        $this->assertSame( '12345678901', $result['cpf_rf'] );
-        $this->assertSame( '127.0.0.1', $result['user_ip'] );
+        $this->assertSame( '', $result['email'] );
+        $this->assertSame( '', $result['cpf_rf'] );
+        $this->assertSame( '', $result['user_ip'] );
         $this->assertSame( '{"name":"Alice"}', $result['data'] );
     }
 
@@ -564,11 +562,9 @@ class SubmissionHandlerTest extends TestCase {
         $enc_data  = \FreeFormCertificate\Core\Encryption::encrypt( '{"score":100}' );
 
         $submission = array(
-            'email'            => null,
             'email_encrypted'  => $enc_email,
-            'cpf_rf'           => null,
-            'cpf_rf_encrypted' => $enc_cpf,
-            'user_ip'          => null,
+            'cpf_encrypted'    => $enc_cpf,
+            'rf_encrypted'     => null,
             'user_ip_encrypted'=> $enc_ip,
             'data'             => null,
             'data_encrypted'   => $enc_data,

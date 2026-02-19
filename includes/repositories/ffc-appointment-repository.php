@@ -100,18 +100,17 @@ class AppointmentRepository extends AbstractRepository {
      * @return array<int, array<string, mixed>>
      */
     public function findByEmail(string $email, ?int $limit = null, int $offset = 0): array {
-        // Search both plain and hashed email
         $email_hash = hash('sha256', strtolower(trim($email)));
 
         if ($limit) {
             $sql = $this->wpdb->prepare(
-                'SELECT * FROM %i WHERE email = %s OR email_hash = %s ORDER BY appointment_date DESC LIMIT %d OFFSET %d',
-                $this->table, $email, $email_hash, $limit, $offset
+                'SELECT * FROM %i WHERE email_hash = %s ORDER BY appointment_date DESC LIMIT %d OFFSET %d',
+                $this->table, $email_hash, $limit, $offset
             );
         } else {
             $sql = $this->wpdb->prepare(
-                'SELECT * FROM %i WHERE email = %s OR email_hash = %s ORDER BY appointment_date DESC',
-                $this->table, $email, $email_hash
+                'SELECT * FROM %i WHERE email_hash = %s ORDER BY appointment_date DESC',
+                $this->table, $email_hash
             );
         }
 
@@ -152,25 +151,7 @@ class AppointmentRepository extends AbstractRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $results = $this->wpdb->get_results($sql, ARRAY_A);
 
-        if ( ! empty( $results ) ) {
-            return $results;
-        }
-
-        // @deprecated legacy cpf_rf fallback — remove in next major version.
-        if ($limit) {
-            $sql = $this->wpdb->prepare(
-                'SELECT * FROM %i WHERE cpf_rf_hash = %s OR cpf_rf = %s ORDER BY appointment_date DESC LIMIT %d OFFSET %d',
-                $this->table, $cpf_rf_hash, $cpf_rf, $limit, $offset
-            );
-        } else {
-            $sql = $this->wpdb->prepare(
-                'SELECT * FROM %i WHERE cpf_rf_hash = %s OR cpf_rf = %s ORDER BY appointment_date DESC',
-                $this->table, $cpf_rf_hash, $cpf_rf
-            );
-        }
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        return $this->wpdb->get_results($sql, ARRAY_A);
+        return $results;
     }
 
     /**

@@ -426,16 +426,6 @@ if ($ffc_self_scheduling_appointment_id > 0) {
             $ffcertificate_phone = $ffcertificate_decrypted['phone'] ?? '';
             $ffcertificate_cpf   = $ffcertificate_decrypted['cpf'] ?? '';
             $ffcertificate_rf    = $ffcertificate_decrypted['rf'] ?? '';
-            // Legacy fallback
-            if (empty($ffcertificate_cpf) && empty($ffcertificate_rf) && !empty($ffcertificate_decrypted['cpf_rf'])) {
-                $ffcertificate_legacy = $ffcertificate_decrypted['cpf_rf'];
-                $ffcertificate_digits = preg_replace('/[^0-9]/', '', $ffcertificate_legacy);
-                if (strlen($ffcertificate_digits) === 7) {
-                    $ffcertificate_rf = $ffcertificate_legacy;
-                } else {
-                    $ffcertificate_cpf = $ffcertificate_legacy;
-                }
-            }
 
             $ffcertificate_name = '';
             if (!empty($ffcertificate_appointment['user_id'])) {

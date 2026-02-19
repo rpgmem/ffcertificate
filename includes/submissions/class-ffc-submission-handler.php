@@ -257,16 +257,11 @@ class SubmissionHandler {
             'consent_text' => $consent_text
         ];
 
-        // Legacy plain-text columns — only if encryption NOT configured.
-        // cpf_rf no longer written; split cpf_hash/rf_hash used instead.
+        // Plaintext data column — only if encryption NOT configured.
         if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
             $insert_data['data'] = null;
-            $insert_data['user_ip'] = null;
-            $insert_data['email'] = null;
         } else {
             $insert_data['data'] = $data_json;
-            $insert_data['user_ip'] = $user_ip;
-            $insert_data['email'] = $user_email;
         }
 
         // 9. Insert using repository
@@ -309,14 +304,11 @@ class SubmissionHandler {
 
         $update_data = [];
 
-        // Update email if provided
+        // Update email if provided (always encrypted)
         if ($new_email !== '') {
             if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
                 $update_data['email_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($new_email);
                 $update_data['email_hash'] = \FreeFormCertificate\Core\Encryption::hash($new_email);
-                $update_data['email'] = null;
-            } else {
-                $update_data['email'] = $new_email;
             }
         }
 
@@ -417,8 +409,7 @@ class SubmissionHandler {
             $submission['rf']     = $rf_val;
             $submission['cpf']    = null;
         } else {
-            // @deprecated legacy cpf_rf fallback — remove in next major version.
-            $submission['cpf_rf'] = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'cpf_rf');
+            $submission['cpf_rf'] = '';
             $submission['cpf']    = null;
             $submission['rf']     = null;
         }
@@ -733,48 +724,4 @@ class SubmissionHandler {
         return $magic_token;
     }
 
-    /**
-     * Migration: Move emails to encrypted column
-     *
-     * @return array<string, mixed>
-     */
-    public function migrate_emails_to_column() {
-        if (!class_exists('\FreeFormCertificate\Core\Encryption') || !\FreeFormCertificate\Core\Encryption::is_configured()) {
-            return ['success' => false, 'message' => __( 'Encryption not configured', 'ffcertificate' )];
-        }
-
-        global $wpdb;
-        $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $submissions = $wpdb->get_results(
-            $wpdb->prepare( 'SELECT id, email FROM %i WHERE email IS NOT NULL AND email_encrypted IS NULL LIMIT 100', $table ),
-            ARRAY_A
-        );
-
-        $migrated = 0;
-
-        foreach ($submissions as $sub) {
-            if (empty($sub['email'])) continue;
-
-            $encrypted = \FreeFormCertificate\Core\Encryption::encrypt($sub['email']);
-            $hash = \FreeFormCertificate\Core\Encryption::hash($sub['email']);
-
-            if ($encrypted && $hash) {
-                $this->repository->update((int) $sub['id'], [
-                    'email_encrypted' => $encrypted,
-                    'email_hash' => $hash,
-                    'email' => null
-                ]);
-
-                $migrated++;
-            }
-        }
-
-        return [
-            'success' => true,
-            'migrated' => $migrated,
-            'remaining' => count($submissions) - $migrated
-        ];
-    }
 }

@@ -121,6 +121,11 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
         $status = $this->calculate_status( $migration_key, $migration_config );
         $has_more = $status['pending'] > 0;
 
+        // When all data is migrated, drop legacy columns
+        if ( ! $has_more && count( $all_errors ) === 0 ) {
+            $this->drop_legacy_columns();
+        }
+
         return array(
             'success'   => count( $all_errors ) === 0,
             'processed' => $total_processed,
@@ -194,8 +199,14 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
             return array( 'total' => 0, 'migrated' => 0, 'pending' => 0 );
         }
 
-        // Check required columns exist
-        if ( ! self::column_exists( $table_name, 'cpf_rf_hash' ) || ! self::column_exists( $table_name, 'cpf_hash' ) ) {
+        // If cpf_rf_hash was already dropped, migration is complete for this table
+        if ( ! self::column_exists( $table_name, 'cpf_rf_hash' ) ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i", $table_name ) );
+            return array( 'total' => $total, 'migrated' => $total, 'pending' => 0 );
+        }
+
+        if ( ! self::column_exists( $table_name, 'cpf_hash' ) ) {
             return array( 'total' => 0, 'migrated' => 0, 'pending' => 0 );
         }
 
@@ -364,5 +375,73 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
         }
 
         return null;
+    }
+
+    /**
+     * Drop legacy columns after migration completes
+     *
+     * Removes cpf_rf, cpf_rf_encrypted, cpf_rf_hash, user_ip, and email
+     * plaintext columns from both submissions and appointments tables.
+     * These are replaced by the split cpf/rf columns and their encrypted
+     * counterparts (email_encrypted, user_ip_encrypted).
+     *
+     * Safe to call multiple times (idempotent).
+     *
+     * @since 4.14.0
+     * @return void
+     */
+    private function drop_legacy_columns(): void {
+        $columns_to_drop = array( 'cpf_rf', 'cpf_rf_encrypted', 'cpf_rf_hash', 'user_ip', 'email' );
+
+        $tables = array( $this->submissions_table );
+        if ( self::table_exists( $this->appointments_table ) ) {
+            $tables[] = $this->appointments_table;
+        }
+
+        foreach ( $tables as $table ) {
+            self::drop_columns_if_exist( $table, $columns_to_drop );
+        }
+
+        if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
+            \FreeFormCertificate\Core\ActivityLog::log(
+                'legacy_columns_dropped',
+                \FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+                array( 'columns' => $columns_to_drop, 'tables' => $tables )
+            );
+        }
+    }
+
+    /**
+     * Drop columns from a table if they exist (idempotent)
+     *
+     * @param string $table Table name
+     * @param array<int, string> $columns Column names to drop
+     * @return void
+     */
+    private static function drop_columns_if_exist( string $table, array $columns ): void {
+        global $wpdb;
+
+        foreach ( $columns as $column ) {
+            if ( self::column_exists( $table, $column ) ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+                $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, $column ) );
+            }
+        }
+
+        // Also drop indexes that reference these columns
+        $indexes_to_drop = array( 'cpf_rf', 'cpf_rf_hash', 'email', 'idx_form_cpf' );
+        foreach ( $indexes_to_drop as $index_name ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $index_exists = $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+                 WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND INDEX_NAME = %s",
+                DB_NAME, $table, $index_name
+            ) );
+
+            if ( (int) $index_exists > 0 ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+                $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table, $index_name ) );
+            }
+        }
     }
 }

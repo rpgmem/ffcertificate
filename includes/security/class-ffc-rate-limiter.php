@@ -319,30 +319,18 @@ class RateLimiter {
         $fw = $form_id ? $wpdb->prepare("AND form_id=%d", $form_id) : '';
         
         if ($field === 'email') {
-            if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $dw and $fw are pre-validated date window and form clauses.
-                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE email_hash=%s $dw $fw", $t, \FreeFormCertificate\Core\Encryption::hash($value))));
-            } else {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
-                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE email=%s $dw $fw", $t, $value)));
-            }
+            $email_hash = class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()
+                ? \FreeFormCertificate\Core\Encryption::hash($value)
+                : hash('sha256', strtolower(trim($value)));
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $dw and $fw are pre-validated date window and form clauses.
+            return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE email_hash=%s $dw $fw", $t, $email_hash)));
         } elseif ($field === 'cpf') {
             if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
                 $h = \FreeFormCertificate\Core\Encryption::hash($value);
                 $hc = strlen(preg_replace('/[^0-9]/', '', $value)) === 7 ? 'rf_hash' : 'cpf_hash';
                 // Search the specific split column based on digit count
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
-                $count = intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE {$hc}=%s $dw $fw", $t, $h)));
-                if ($count > 0) {
-                    return $count;
-                }
-                // @deprecated legacy cpf_rf_hash fallback — remove in next major version.
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
-                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE cpf_rf_hash=%s $dw $fw", $t, $h)));
-            } else {
-                // @deprecated legacy plain cpf_rf fallback — remove in next major version.
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
-                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE cpf_rf=%s $dw $fw", $t, $value)));
+                return intval($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM %i WHERE {$hc}=%s $dw $fw", $t, $h)));
             }
         }
         

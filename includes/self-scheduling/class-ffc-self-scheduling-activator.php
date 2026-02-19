@@ -147,12 +147,8 @@ class SelfSchedulingActivator {
 
             -- Contact information (for non-logged users or additional info)
             name varchar(255) DEFAULT NULL,
-            email varchar(255) DEFAULT NULL,
             email_encrypted text DEFAULT NULL,
             email_hash varchar(64) DEFAULT NULL,
-            cpf_rf varchar(20) DEFAULT NULL,
-            cpf_rf_encrypted text DEFAULT NULL,
-            cpf_rf_hash varchar(64) DEFAULT NULL,
             cpf varchar(20) DEFAULT NULL,
             cpf_encrypted text DEFAULT NULL,
             cpf_hash varchar(64) DEFAULT NULL,
@@ -195,7 +191,6 @@ class SelfSchedulingActivator {
             consent_text text DEFAULT NULL,
 
             -- Metadata
-            user_ip varchar(45) DEFAULT NULL,
             user_ip_encrypted text DEFAULT NULL,
             user_agent varchar(255) DEFAULT NULL,
 
@@ -210,9 +205,7 @@ class SelfSchedulingActivator {
             KEY user_id (user_id),
             KEY appointment_date (appointment_date),
             KEY status (status),
-            KEY email (email),
             KEY email_hash (email_hash),
-            KEY cpf_rf_hash (cpf_rf_hash),
             KEY cpf_hash (cpf_hash),
             KEY rf_hash (rf_hash),
             KEY confirmation_token (confirmation_token),
@@ -227,7 +220,7 @@ class SelfSchedulingActivator {
     }
 
     /**
-     * Migrate appointments table to add cpf_rf columns
+     * Migrate appointments table to add split cpf/rf columns
      *
      * @return void
      */
@@ -235,46 +228,16 @@ class SelfSchedulingActivator {
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-        // Check if cpf_rf column exists
-        if (!self::column_exists($table_name, 'cpf_rf')) {
-            // Check if email_hash column exists to determine where to add new columns
-            if (self::column_exists($table_name, 'email_hash')) {
-                // Add cpf_rf columns after email_hash
-                self::add_column_if_missing($table_name, 'cpf_rf', "varchar(20) DEFAULT NULL", 'email_hash');
-                self::add_column_if_missing($table_name, 'cpf_rf_encrypted', "text DEFAULT NULL", 'cpf_rf');
-                self::add_column_if_missing($table_name, 'cpf_rf_hash', "varchar(64) DEFAULT NULL", 'cpf_rf_encrypted', 'cpf_rf_hash');
-            } else {
-                // Fallback: add after email column
-                self::add_column_if_missing($table_name, 'cpf_rf', "varchar(20) DEFAULT NULL", 'email');
-                self::add_column_if_missing($table_name, 'cpf_rf_encrypted', "text DEFAULT NULL", 'cpf_rf');
-                self::add_column_if_missing($table_name, 'cpf_rf_hash', "varchar(64) DEFAULT NULL", 'cpf_rf_encrypted', 'cpf_rf_hash');
-            }
+        // Determine position for new columns
+        $after_column = 'email_hash';
+        if ( ! self::column_exists( $table_name, 'email_hash' ) ) {
+            $after_column = 'name';
         }
 
-        // Add separate cpf/rf columns for split identifier storage
-        self::migrate_appointments_cpf_rf_split_columns();
-    }
-
-    /**
-     * Migrate appointments table to add separate cpf and rf columns
-     *
-     * Part of the CPF/RF split migration: separates the combined cpf_rf
-     * column into individual cpf and rf columns with their own encrypted/hash pairs.
-     *
-     * @since 4.13.0
-     * @return void
-     */
-    private static function migrate_appointments_cpf_rf_split_columns(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-
-        // Add cpf columns after cpf_rf_hash
-        $after_column = self::column_exists($table_name, 'cpf_rf_hash') ? 'cpf_rf_hash' : 'cpf_rf_encrypted';
+        // Add split cpf/rf columns
         self::add_column_if_missing($table_name, 'cpf', "varchar(20) DEFAULT NULL", $after_column);
         self::add_column_if_missing($table_name, 'cpf_encrypted', "text DEFAULT NULL", 'cpf');
         self::add_column_if_missing($table_name, 'cpf_hash', "varchar(64) DEFAULT NULL", 'cpf_encrypted', 'cpf_hash');
-
-        // Add rf columns after cpf_hash
         self::add_column_if_missing($table_name, 'rf', "varchar(20) DEFAULT NULL", 'cpf_hash');
         self::add_column_if_missing($table_name, 'rf_encrypted', "text DEFAULT NULL", 'rf');
         self::add_column_if_missing($table_name, 'rf_hash', "varchar(64) DEFAULT NULL", 'rf_encrypted', 'rf_hash');
@@ -360,106 +323,6 @@ class SelfSchedulingActivator {
         return $code;
     }
 
-    /**
-     * Encrypt all unencrypted appointment data
-     *
-     * @return void
-     */
-    private static function migrate_encrypt_appointments_data(): void {
-        global $wpdb;
-
-        // Check if encryption is configured
-        if (!class_exists('\FreeFormCertificate\Core\Encryption') ||
-            !\FreeFormCertificate\Core\Encryption::is_configured()) {
-            return;
-        }
-
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-
-        // Get appointments with unencrypted data
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $appointments = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT id, email, cpf_rf, phone, user_ip
-                 FROM %i
-                 WHERE (email IS NOT NULL AND email != '' AND (email_encrypted IS NULL OR email_encrypted = ''))
-                    OR (cpf_rf IS NOT NULL AND cpf_rf != '' AND (cpf_rf_encrypted IS NULL OR cpf_rf_encrypted = ''))
-                    OR (phone IS NOT NULL AND phone != '' AND (phone_encrypted IS NULL OR phone_encrypted = ''))
-                    OR (user_ip IS NOT NULL AND user_ip != '' AND (user_ip_encrypted IS NULL OR user_ip_encrypted = ''))",
-                $table_name
-            ),
-            ARRAY_A
-        );
-
-        foreach ($appointments as $appointment) {
-            $update_data = array();
-            $update_format = array();
-
-            // Encrypt email
-            if (!empty($appointment['email'])) {
-                $encrypted = \FreeFormCertificate\Core\Encryption::encrypt($appointment['email']);
-                if ($encrypted) {
-                    $update_data['email_encrypted'] = $encrypted;
-                    $update_data['email_hash'] = hash('sha256', strtolower(trim($appointment['email'])));
-                    // Clear plain text
-                    $update_data['email'] = null;
-                    $update_format[] = '%s';
-                    $update_format[] = '%s';
-                    $update_format[] = '%s';
-                }
-            }
-
-            // Encrypt CPF/RF
-            if (!empty($appointment['cpf_rf'])) {
-                $encrypted = \FreeFormCertificate\Core\Encryption::encrypt($appointment['cpf_rf']);
-                if ($encrypted) {
-                    $update_data['cpf_rf_encrypted'] = $encrypted;
-                    $update_data['cpf_rf_hash'] = hash('sha256', preg_replace('/[^0-9]/', '', $appointment['cpf_rf']));
-                    // Clear plain text
-                    $update_data['cpf_rf'] = null;
-                    $update_format[] = '%s';
-                    $update_format[] = '%s';
-                    $update_format[] = '%s';
-                }
-            }
-
-            // Encrypt phone
-            if (!empty($appointment['phone'])) {
-                $encrypted = \FreeFormCertificate\Core\Encryption::encrypt($appointment['phone']);
-                if ($encrypted) {
-                    $update_data['phone_encrypted'] = $encrypted;
-                    // Clear plain text
-                    $update_data['phone'] = null;
-                    $update_format[] = '%s';
-                    $update_format[] = '%s';
-                }
-            }
-
-            // Encrypt user IP
-            if (!empty($appointment['user_ip'])) {
-                $encrypted = \FreeFormCertificate\Core\Encryption::encrypt($appointment['user_ip']);
-                if ($encrypted) {
-                    $update_data['user_ip_encrypted'] = $encrypted;
-                    // Clear plain text
-                    $update_data['user_ip'] = null;
-                    $update_format[] = '%s';
-                    $update_format[] = '%s';
-                }
-            }
-
-            // Update appointment if we have data to encrypt
-            if (!empty($update_data)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                $wpdb->update(
-                    $table_name,
-                    $update_data,
-                    array('id' => $appointment['id']),
-                    $update_format,
-                    array('%d')
-                );
-            }
-        }
-    }
 
     /**
      * Run migrations on plugin load
@@ -474,12 +337,10 @@ class SelfSchedulingActivator {
         $appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
         if (self::table_exists($appointments_table)) {
-            // Run migration to ensure cpf_rf columns exist
+            // Run migration to ensure cpf/rf split columns exist
             self::migrate_appointments_table();
             // Run migration to ensure validation_code column exists
             self::migrate_appointments_validation_code();
-            // Run migration to encrypt all unencrypted data
-            self::migrate_encrypt_appointments_data();
         }
 
         // Migrate calendars table

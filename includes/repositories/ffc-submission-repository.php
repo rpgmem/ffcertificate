@@ -70,7 +70,7 @@ class SubmissionRepository extends AbstractRepository {
      * @return array<int, string>
      */
     protected function get_allowed_order_columns(): array {
-        return [ 'id', 'form_id', 'email', 'cpf_rf', 'auth_code', 'status', 'submission_date', 'created_at', 'updated_at' ];
+        return [ 'id', 'form_id', 'auth_code', 'status', 'submission_date', 'created_at', 'updated_at' ];
     }
 
     /**
@@ -138,9 +138,8 @@ class SubmissionRepository extends AbstractRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $this->wpdb->get_results(
             $this->wpdb->prepare(
-                'SELECT * FROM %i WHERE email = %s OR email_hash = %s ORDER BY id DESC LIMIT %d',
+                'SELECT * FROM %i WHERE email_hash = %s ORDER BY id DESC LIMIT %d',
                 $this->table,
-                $email,
                 $this->hash($email),
                 $limit
             ),
@@ -172,22 +171,7 @@ class SubmissionRepository extends AbstractRepository {
             ARRAY_A
         );
 
-        if ( ! empty( $results ) ) {
-            return $results;
-        }
-
-        // @deprecated legacy cpf_rf fallback — remove in next major version.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        return $this->wpdb->get_results(
-            $this->wpdb->prepare(
-                'SELECT * FROM %i WHERE cpf_rf = %s OR cpf_rf_hash = %s ORDER BY id DESC LIMIT %d',
-                $this->table,
-                $clean_cpf,
-                $id_hash,
-                $limit
-            ),
-            ARRAY_A
-        );
+        return $results;
     }
 
     /**
@@ -337,8 +321,6 @@ class SubmissionRepository extends AbstractRepository {
             $search_conditions[] = $this->wpdb->prepare("email_hash = %s", $search_hash);
             $search_conditions[] = $this->wpdb->prepare("cpf_hash = %s", $search_hash);
             $search_conditions[] = $this->wpdb->prepare("rf_hash = %s", $search_hash);
-            // @deprecated legacy cpf_rf_hash fallback — remove in next major version.
-            $search_conditions[] = $this->wpdb->prepare("cpf_rf_hash = %s", $search_hash);
 
             // 4. Search in unencrypted data field (legacy/fallback)
             // Only search if data column has content (not NULL, not empty)

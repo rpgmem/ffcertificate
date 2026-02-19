@@ -272,13 +272,10 @@ class EncryptionTest extends TestCase {
     public function test_decrypt_appointment_decrypts_all_fields(): void {
         $appt = array(
             'id'                    => 1,
-            'email'                 => '',
             'email_encrypted'       => Encryption::encrypt( 'a@b.com' ),
-            'cpf_rf'               => '',
-            'cpf_rf_encrypted'     => Encryption::encrypt( '12345678901' ),
+            'cpf_encrypted'        => Encryption::encrypt( '12345678901' ),
             'phone'                => '',
             'phone_encrypted'      => Encryption::encrypt( '11999999999' ),
-            'user_ip'              => '',
             'user_ip_encrypted'    => Encryption::encrypt( '10.0.0.1' ),
             'custom_data'          => '',
             'custom_data_encrypted' => Encryption::encrypt( '{"key":"val"}' ),

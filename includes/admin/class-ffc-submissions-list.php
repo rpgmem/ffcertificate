@@ -70,7 +70,6 @@ class SubmissionsList extends \WP_List_Table {
         return [
             'id' => ['id', true],
             'form' => ['form_id', false],
-            'email' => ['email', false],
             'submission_date' => ['submission_date', false],
         ];
     }
