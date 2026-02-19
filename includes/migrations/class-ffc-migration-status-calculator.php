@@ -81,18 +81,40 @@ class MigrationStatusCalculator {
         try {
             switch ( $migration_key ) {
                 case 'split_cpf_rf':
-                    // Explicit require — the autoloader may fail to resolve strategy paths
-                    // depending on OPcache state or realpath cache.
+                    // Load strategy files explicitly — use include (not require_once)
+                    // because a prior autoloader attempt may have marked the file as
+                    // "already included" even though the class definition failed.
                     $strategy_dir = __DIR__ . '/strategies/';
                     $core_dir     = dirname( __DIR__ ) . '/core/';
+
                     if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
-                        require_once $core_dir . 'class-ffc-database-helper-trait.php';
+                        $trait_file = $core_dir . 'class-ffc-database-helper-trait.php';
+                        if ( file_exists( $trait_file ) ) {
+                            include $trait_file;
+                        }
                     }
                     if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
-                        require_once $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+                        $iface_file = $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+                        if ( file_exists( $iface_file ) ) {
+                            include $iface_file;
+                        }
                     }
                     if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\CpfRfSplitMigrationStrategy', false ) ) {
-                        require_once $strategy_dir . 'class-ffc-cpf-rf-split-migration-strategy.php';
+                        $class_file = $strategy_dir . 'class-ffc-cpf-rf-split-migration-strategy.php';
+                        if ( file_exists( $class_file ) ) {
+                            include $class_file;
+                        }
+                    }
+
+                    // If class still not found after explicit loading, provide diagnostic info
+                    if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\CpfRfSplitMigrationStrategy', false ) ) {
+                        throw new \RuntimeException( sprintf(
+                            'CpfRfSplitMigrationStrategy not defined after include. file_exists=%s, trait=%s, interface=%s, path=%s',
+                            file_exists( $strategy_dir . 'class-ffc-cpf-rf-split-migration-strategy.php' ) ? 'yes' : 'no',
+                            trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ? 'yes' : 'no',
+                            interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ? 'yes' : 'no',
+                            $strategy_dir . 'class-ffc-cpf-rf-split-migration-strategy.php'
+                        ) );
                     }
 
                     $this->strategies['split_cpf_rf'] = new \FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy();
