@@ -52,7 +52,21 @@ class SelfSchedulingAdmin {
             wp_die(esc_html__('You do not have permission to access this page.', 'ffcertificate'));
         }
 
-        require_once plugin_dir_path(__FILE__) . 'views/appointments-list.php';
+        try {
+            require_once plugin_dir_path(__FILE__) . 'views/appointments-list.php';
+        } catch (\Throwable $e) {
+            echo '<div class="wrap"><div class="notice notice-error"><p><strong>'
+                . esc_html__('Error:', 'ffcertificate') . '</strong> '
+                . esc_html($e->getMessage())
+                . ' <em>(' . esc_html(basename($e->getFile())) . ':' . esc_html((string) $e->getLine()) . ')</em>'
+                . '</p></div></div>';
+            \FreeFormCertificate\Core\Utils::debug_log('Appointments page error', array(
+                'error' => $e->getMessage(),
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ));
+        }
     }
 
     /**
