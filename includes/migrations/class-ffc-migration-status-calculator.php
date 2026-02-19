@@ -33,6 +33,11 @@ class MigrationStatusCalculator {
     private $strategies = array();
 
     /**
+     * @var array<string, string> Initialization errors per strategy key
+     */
+    private $strategy_errors = array();
+
+    /**
      * Constructor
      *
      * @param MigrationRegistry $registry Migration registry instance
@@ -52,21 +57,46 @@ class MigrationStatusCalculator {
      * @return void
      */
     private function initialize_strategies(): void {
-        try {
-            $this->strategies['split_cpf_rf'] = new \FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy();
-        } catch ( \Throwable $e ) {
-            // Strategy failed to initialize (e.g. missing table, opcache stale bytecode).
-            // Log and continue — the tab will show the error gracefully.
-            if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
-                \FreeFormCertificate\Core\Utils::debug_log( 'Failed to initialize CpfRfSplitMigrationStrategy', array(
-                    'error' => $e->getMessage(),
-                ) );
-            }
-        }
+        $this->try_create_strategy( 'split_cpf_rf' );
 
         // Allow plugins to register custom strategies
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
         $this->strategies = apply_filters( 'ffcertificate_migration_strategies', $this->strategies );
+    }
+
+    /**
+     * Try to create a strategy instance
+     *
+     * If the strategy already exists, does nothing.
+     * If creation fails, logs the error for later reporting.
+     *
+     * @param string $migration_key Migration identifier
+     * @return void
+     */
+    private function try_create_strategy( string $migration_key ): void {
+        if ( isset( $this->strategies[ $migration_key ] ) ) {
+            return;
+        }
+
+        try {
+            switch ( $migration_key ) {
+                case 'split_cpf_rf':
+                    $this->strategies['split_cpf_rf'] = new \FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy();
+                    // Clear any previous error on success
+                    unset( $this->strategy_errors['split_cpf_rf'] );
+                    break;
+            }
+        } catch ( \Throwable $e ) {
+            $this->strategy_errors[ $migration_key ] = $e->getMessage();
+            if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
+                \FreeFormCertificate\Core\Utils::debug_log( 'Failed to initialize migration strategy', array(
+                    'key'   => $migration_key,
+                    'error' => $e->getMessage(),
+                    'file'  => $e->getFile(),
+                    'line'  => $e->getLine(),
+                ) );
+            }
+        }
     }
 
     /**
@@ -102,11 +132,19 @@ class MigrationStatusCalculator {
      * @return \FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface|WP_Error Strategy instance or error
      */
     private function get_strategy_for_migration( string $migration_key ) {
+        // Lazy retry: if strategy wasn't loaded during init, try again now
         if ( ! isset( $this->strategies[ $migration_key ] ) ) {
+            $this->try_create_strategy( $migration_key );
+        }
+
+        if ( ! isset( $this->strategies[ $migration_key ] ) ) {
+            $error_detail = isset( $this->strategy_errors[ $migration_key ] )
+                ? ': ' . $this->strategy_errors[ $migration_key ]
+                : '';
             return new WP_Error(
                 'strategy_not_found',
-                /* translators: %s: migration key */
-                sprintf( __( 'No strategy found for migration: %s', 'ffcertificate' ), $migration_key )
+                /* translators: %s: migration key and optional error detail */
+                sprintf( __( 'No strategy found for migration: %s', 'ffcertificate' ), $migration_key ) . $error_detail
             );
         }
 

@@ -43,12 +43,12 @@
                         });
 
                         if ($newCard.length) {
-                            // Update progress bar
-                            var $newProgress = $newCard.find('.ffc-progress-bar-fill');
-                            var newPercent = $newProgress.attr('style').match(/width:\s*(\d+\.?\d*)%/);
+                            // Update progress bar — read percentage from aria-valuenow
+                            var newPercent = $newCard.find('.ffc-progress-bar-container').attr('aria-valuenow');
                             if (newPercent) {
-                                $card.find('.ffc-progress-bar-fill').attr('style', 'width: ' + newPercent[1] + '%');
-                                $card.find('.ffc-progress-bar-label').text(newPercent[1] + '% ' + (strings.complete || 'Complete'));
+                                $card.find('.ffc-progress-bar-fill').css('width', newPercent + '%');
+                                $card.find('.ffc-progress-bar-container').attr('aria-valuenow', newPercent);
+                                $card.find('.ffc-progress-bar-label').text(parseFloat(newPercent).toFixed(1) + '% ' + (strings.complete || 'Complete'));
                             }
 
                             // Update counters
