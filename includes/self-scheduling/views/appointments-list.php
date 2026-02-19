@@ -5,7 +5,7 @@
  * Displays all appointments with filters and export options.
  *
  * @since 4.1.0
- * @version 4.1.0
+ * @version 5.0.0 - Fixed URLs to use absolute paths and removed action=view to prevent 500 errors
  */
 
 if (!defined('ABSPATH')) exit;
@@ -21,6 +21,8 @@ if (!class_exists('WP_List_Table')) {
  * Appointments List Table
  */
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Internal class, not part of public API.
+if (!class_exists('FFC_Appointments_List_Table')) :
+
 class FFC_Appointments_List_Table extends WP_List_Table {
 
     /** @var \FreeFormCertificate\Repositories\AppointmentRepository */
@@ -101,23 +103,30 @@ class FFC_Appointments_List_Table extends WP_List_Table {
      */
     public function column_id($item): string {
         $actions = array();
+        $ffc_page_slug = 'ffc-appointments';
 
         if ($item['status'] === 'pending') {
+            $confirm_url = wp_nonce_url(
+                add_query_arg(
+                    array('page' => $ffc_page_slug, 'ffc_action' => 'confirm', 'appointment' => $item['id']),
+                    admin_url('admin.php')
+                ),
+                'ffc_confirm_appointment_' . $item['id']
+            );
             $actions['confirm'] = sprintf(
-                '<a href="?post_type=ffc_self_scheduling&page=%s&action=confirm&appointment=%d&_wpnonce=%s">%s</a>',
-                esc_attr( ( isset( $_REQUEST['page'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['page'] ) ) : '' ) ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-                $item['id'],
-                wp_create_nonce('ffc_confirm_appointment_' . $item['id']),
+                '<a href="%s">%s</a>',
+                esc_url($confirm_url),
                 __('Confirm', 'ffcertificate')
             );
         }
 
         if (in_array($item['status'], ['pending', 'confirmed'])) {
-            $cancel_url = sprintf(
-                '?post_type=ffc_self_scheduling&page=%s&action=cancel&appointment=%d&_wpnonce=%s',
-                esc_attr( ( isset( $_REQUEST['page'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['page'] ) ) : '' ) ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-                $item['id'],
-                wp_create_nonce('ffc_cancel_appointment_' . $item['id'])
+            $cancel_url = wp_nonce_url(
+                add_query_arg(
+                    array('page' => $ffc_page_slug, 'ffc_action' => 'cancel', 'appointment' => $item['id']),
+                    admin_url('admin.php')
+                ),
+                'ffc_cancel_appointment_' . $item['id']
             );
             $actions['cancel'] = sprintf(
                 '<a href="#" onclick="var r=prompt(\'%s\'); if(r && r.length >= 5){window.location=\'%s&reason=\'+encodeURIComponent(r);} return false;" style="color: #b32d2e;">%s</a>',
@@ -127,10 +136,14 @@ class FFC_Appointments_List_Table extends WP_List_Table {
             );
         }
 
+        // View link: uses just appointment=X (no action parameter to avoid admin_action_view dispatch)
+        $view_url = add_query_arg(
+            array('page' => $ffc_page_slug, 'appointment' => $item['id']),
+            admin_url('admin.php')
+        );
         $actions['view'] = sprintf(
-            '<a href="?post_type=ffc_self_scheduling&page=%s&action=view&appointment=%d">%s</a>',
-            esc_attr( ( isset( $_REQUEST['page'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['page'] ) ) : '' ) ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-            $item['id'],
+            '<a href="%s">%s</a>',
+            esc_url($view_url),
             __('View', 'ffcertificate')
         );
 
@@ -307,12 +320,22 @@ class FFC_Appointments_List_Table extends WP_List_Table {
     }
 }
 
-// Process actions
-// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified in switch cases below via check_admin_referer.
-if (isset($_GET['action']) && isset($_GET['appointment'])) {
-    $ffc_self_scheduling_appointment_id = absint(wp_unslash($_GET['appointment']));
-    $ffcertificate_action = sanitize_text_field(wp_unslash($_GET['action']));
-    // phpcs:enable WordPress.Security.NonceVerification.Recommended
+endif; // class_exists guard
+
+// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified per-action below via check_admin_referer.
+
+// Appointments base URL (used for redirects and back links)
+$ffcertificate_appointments_url = add_query_arg(array('page' => 'ffc-appointments'), admin_url('admin.php'));
+
+// Determine if viewing a specific appointment:
+//   - appointment=X alone → view
+//   - appointment=X + ffc_action=confirm|cancel → mutation
+$ffc_self_scheduling_appointment_id = isset($_GET['appointment']) ? absint(wp_unslash($_GET['appointment'])) : 0;
+$ffcertificate_action = isset($_GET['ffc_action']) ? sanitize_text_field(wp_unslash($_GET['ffc_action'])) : '';
+
+// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+if ($ffc_self_scheduling_appointment_id > 0) {
 
     // Verify user has admin permissions
     if (!\FreeFormCertificate\Core\Utils::current_user_can_manage()) {
@@ -321,237 +344,212 @@ if (isset($_GET['action']) && isset($_GET['appointment'])) {
 
     $ffcertificate_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
 
-    switch ($ffcertificate_action) {
-        case 'view':
-            try {
-                $ffcertificate_appointment = $ffcertificate_repo->findById($ffc_self_scheduling_appointment_id);
-                if (!$ffcertificate_appointment) {
-                    echo '<div class="wrap"><div class="notice notice-error"><p>' . esc_html__('Appointment not found.', 'ffcertificate') . '</p></div></div>';
-                    return;
-                }
+    // Handle mutations (confirm/cancel) — these redirect and exit
+    if ($ffcertificate_action === 'confirm') {
+        check_admin_referer('ffc_confirm_appointment_' . $ffc_self_scheduling_appointment_id);
+        $ffcertificate_result = $ffcertificate_repo->confirm($ffc_self_scheduling_appointment_id, get_current_user_id());
 
-                // Get calendar info
+        if ($ffcertificate_result) {
+            // Send approval notification email with receipt link
+            $ffcertificate_appointment = $ffcertificate_repo->findById($ffc_self_scheduling_appointment_id);
+            if ($ffcertificate_appointment && !empty($ffcertificate_appointment['calendar_id'])) {
                 $ffcertificate_cal_repo = new \FreeFormCertificate\Repositories\CalendarRepository();
-                $ffcertificate_calendar = !empty($ffcertificate_appointment['calendar_id'])
-                    ? $ffcertificate_cal_repo->findById((int) $ffcertificate_appointment['calendar_id'])
-                    : null;
-                $ffcertificate_calendar_title = $ffcertificate_calendar ? $ffcertificate_calendar['title'] : __('(Deleted)', 'ffcertificate');
-
-                // Decrypt sensitive fields
-                $ffcertificate_decrypted = $ffcertificate_appointment;
-                if (class_exists('\\FreeFormCertificate\\Core\\Encryption')) {
-                    try {
-                        $ffcertificate_decrypted = \FreeFormCertificate\Core\Encryption::decrypt_appointment($ffcertificate_appointment);
-                    } catch (\Throwable $decrypt_err) {
-                        // Decryption failed — continue with raw data
-                    }
+                $ffcertificate_calendar = $ffcertificate_cal_repo->findById((int) $ffcertificate_appointment['calendar_id']);
+                if ($ffcertificate_calendar) {
+                    do_action('ffcertificate_self_scheduling_appointment_confirmed_email', $ffcertificate_appointment, $ffcertificate_calendar);
                 }
+            }
 
-                // Resolve display values
-                $ffcertificate_email = $ffcertificate_decrypted['email'] ?? '';
-                $ffcertificate_phone = $ffcertificate_decrypted['phone'] ?? '';
-                $ffcertificate_cpf   = $ffcertificate_decrypted['cpf'] ?? '';
-                $ffcertificate_rf    = $ffcertificate_decrypted['rf'] ?? '';
-                // Legacy fallback
-                if (empty($ffcertificate_cpf) && empty($ffcertificate_rf) && !empty($ffcertificate_decrypted['cpf_rf'])) {
-                    $ffcertificate_legacy = $ffcertificate_decrypted['cpf_rf'];
-                    $ffcertificate_digits = preg_replace('/[^0-9]/', '', $ffcertificate_legacy);
-                    if (strlen($ffcertificate_digits) === 7) {
-                        $ffcertificate_rf = $ffcertificate_legacy;
-                    } else {
-                        $ffcertificate_cpf = $ffcertificate_legacy;
-                    }
+            set_transient('ffc_admin_notice_' . get_current_user_id(), array(
+                'type' => 'success',
+                'message' => __('Appointment confirmed successfully.', 'ffcertificate')
+            ), 30);
+        } else {
+            set_transient('ffc_admin_notice_' . get_current_user_id(), array(
+                'type' => 'error',
+                'message' => __('Failed to confirm appointment.', 'ffcertificate')
+            ), 30);
+        }
+
+        wp_safe_redirect($ffcertificate_appointments_url);
+        exit;
+
+    } elseif ($ffcertificate_action === 'cancel') {
+        check_admin_referer('ffc_cancel_appointment_' . $ffc_self_scheduling_appointment_id);
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        $ffcertificate_cancel_reason = isset($_GET['reason']) ? sanitize_textarea_field(wp_unslash($_GET['reason'])) : __('Cancelled by admin', 'ffcertificate');
+        $ffcertificate_result = $ffcertificate_repo->cancel($ffc_self_scheduling_appointment_id, get_current_user_id(), $ffcertificate_cancel_reason);
+
+        if ($ffcertificate_result) {
+            set_transient('ffc_admin_notice_' . get_current_user_id(), array(
+                'type' => 'success',
+                'message' => __('Appointment cancelled successfully.', 'ffcertificate')
+            ), 30);
+        } else {
+            set_transient('ffc_admin_notice_' . get_current_user_id(), array(
+                'type' => 'error',
+                'message' => __('Failed to cancel appointment.', 'ffcertificate')
+            ), 30);
+        }
+
+        wp_safe_redirect($ffcertificate_appointments_url);
+        exit;
+
+    } else {
+        // Default: View appointment detail
+        try {
+            $ffcertificate_appointment = $ffcertificate_repo->findById($ffc_self_scheduling_appointment_id);
+            if (!$ffcertificate_appointment) {
+                echo '<div class="wrap"><div class="notice notice-error"><p>' . esc_html__('Appointment not found.', 'ffcertificate') . '</p></div></div>';
+                return;
+            }
+
+            // Get calendar info
+            $ffcertificate_cal_repo = new \FreeFormCertificate\Repositories\CalendarRepository();
+            $ffcertificate_calendar = !empty($ffcertificate_appointment['calendar_id'])
+                ? $ffcertificate_cal_repo->findById((int) $ffcertificate_appointment['calendar_id'])
+                : null;
+            $ffcertificate_calendar_title = $ffcertificate_calendar ? $ffcertificate_calendar['title'] : __('(Deleted)', 'ffcertificate');
+
+            // Decrypt sensitive fields
+            $ffcertificate_decrypted = $ffcertificate_appointment;
+            if (class_exists('\\FreeFormCertificate\\Core\\Encryption')) {
+                try {
+                    $ffcertificate_decrypted = \FreeFormCertificate\Core\Encryption::decrypt_appointment($ffcertificate_appointment);
+                } catch (\Throwable $decrypt_err) {
+                    // Decryption failed — continue with raw data
                 }
+            }
 
-                $ffcertificate_name = '';
-                if (!empty($ffcertificate_appointment['user_id'])) {
-                    $ffcertificate_user = get_user_by('id', $ffcertificate_appointment['user_id']);
-                    if ($ffcertificate_user) {
-                        $ffcertificate_name = $ffcertificate_user->display_name;
-                    }
+            // Resolve display values
+            $ffcertificate_email = $ffcertificate_decrypted['email'] ?? '';
+            $ffcertificate_phone = $ffcertificate_decrypted['phone'] ?? '';
+            $ffcertificate_cpf   = $ffcertificate_decrypted['cpf'] ?? '';
+            $ffcertificate_rf    = $ffcertificate_decrypted['rf'] ?? '';
+            // Legacy fallback
+            if (empty($ffcertificate_cpf) && empty($ffcertificate_rf) && !empty($ffcertificate_decrypted['cpf_rf'])) {
+                $ffcertificate_legacy = $ffcertificate_decrypted['cpf_rf'];
+                $ffcertificate_digits = preg_replace('/[^0-9]/', '', $ffcertificate_legacy);
+                if (strlen($ffcertificate_digits) === 7) {
+                    $ffcertificate_rf = $ffcertificate_legacy;
+                } else {
+                    $ffcertificate_cpf = $ffcertificate_legacy;
                 }
-                if (empty($ffcertificate_name)) {
-                    $ffcertificate_name = $ffcertificate_appointment['name'] ?? __('(Guest)', 'ffcertificate');
+            }
+
+            $ffcertificate_name = '';
+            if (!empty($ffcertificate_appointment['user_id'])) {
+                $ffcertificate_user = get_user_by('id', $ffcertificate_appointment['user_id']);
+                if ($ffcertificate_user) {
+                    $ffcertificate_name = $ffcertificate_user->display_name;
                 }
+            }
+            if (empty($ffcertificate_name)) {
+                $ffcertificate_name = $ffcertificate_appointment['name'] ?? __('(Guest)', 'ffcertificate');
+            }
 
-                // Decode custom data
-                $ffcertificate_custom_data = array();
-                if (!empty($ffcertificate_decrypted['custom_data'])) {
-                    $ffcertificate_custom_data = is_array($ffcertificate_decrypted['custom_data'])
-                        ? $ffcertificate_decrypted['custom_data']
-                        : (json_decode($ffcertificate_decrypted['custom_data'], true) ?: array());
-                } elseif (!empty($ffcertificate_appointment['custom_data'])) {
-                    $ffcertificate_custom_data = json_decode($ffcertificate_appointment['custom_data'], true) ?: array();
-                }
+            // Decode custom data
+            $ffcertificate_custom_data = array();
+            if (!empty($ffcertificate_decrypted['custom_data'])) {
+                $ffcertificate_custom_data = is_array($ffcertificate_decrypted['custom_data'])
+                    ? $ffcertificate_decrypted['custom_data']
+                    : (json_decode($ffcertificate_decrypted['custom_data'], true) ?: array());
+            } elseif (!empty($ffcertificate_appointment['custom_data'])) {
+                $ffcertificate_custom_data = json_decode($ffcertificate_appointment['custom_data'], true) ?: array();
+            }
 
-                // Status labels
-                $ffcertificate_status_labels = array(
-                    'pending'   => __('Pending', 'ffcertificate'),
-                    'confirmed' => __('Confirmed', 'ffcertificate'),
-                    'cancelled' => __('Cancelled', 'ffcertificate'),
-                    'completed' => __('Completed', 'ffcertificate'),
-                    'no_show'   => __('No Show', 'ffcertificate'),
-                );
-                $ffcertificate_status_text = $ffcertificate_status_labels[$ffcertificate_appointment['status']] ?? $ffcertificate_appointment['status'];
+            // Status labels
+            $ffcertificate_status_labels = array(
+                'pending'   => __('Pending', 'ffcertificate'),
+                'confirmed' => __('Confirmed', 'ffcertificate'),
+                'cancelled' => __('Cancelled', 'ffcertificate'),
+                'completed' => __('Completed', 'ffcertificate'),
+                'no_show'   => __('No Show', 'ffcertificate'),
+            );
+            $ffcertificate_status_text = $ffcertificate_status_labels[$ffcertificate_appointment['status']] ?? $ffcertificate_appointment['status'];
 
-                $ffcertificate_back_url = add_query_arg(
-                    array('page' => 'ffc-appointments'),
-                    admin_url('admin.php')
-                );
+            // Render detail view
+            ?>
+            <div class="wrap">
+                <h1 class="wp-heading-inline">
+                    <?php
+                    printf(
+                        /* translators: %d: appointment ID */
+                        esc_html__('Appointment #%d', 'ffcertificate'),
+                        $ffc_self_scheduling_appointment_id
+                    );
+                    ?>
+                </h1>
+                <a href="<?php echo esc_url($ffcertificate_appointments_url); ?>" class="page-title-action"><?php esc_html_e('Back to List', 'ffcertificate'); ?></a>
+                <hr class="wp-header-end">
 
-                // Render detail view
-                ?>
-                <div class="wrap">
-                    <h1 class="wp-heading-inline">
-                        <?php
-                        printf(
-                            /* translators: %d: appointment ID */
-                            esc_html__('Appointment #%d', 'ffcertificate'),
-                            $ffc_self_scheduling_appointment_id
-                        );
-                        ?>
-                    </h1>
-                    <a href="<?php echo esc_url($ffcertificate_back_url); ?>" class="page-title-action"><?php esc_html_e('Back to List', 'ffcertificate'); ?></a>
-                    <hr class="wp-header-end">
-
-                    <div id="poststuff">
-                        <div id="post-body" class="metabox-holder columns-2">
-                            <div id="post-body-content">
-                                <div class="postbox">
-                                    <div class="postbox-header"><h2 class="hndle"><?php esc_html_e('Appointment Details', 'ffcertificate'); ?></h2></div>
-                                    <div class="inside">
-                                        <table class="form-table">
-                                            <tr><th><?php esc_html_e('Status', 'ffcertificate'); ?></th><td><span class="ffc-status ffc-status-<?php echo esc_attr($ffcertificate_appointment['status']); ?>"><?php echo esc_html($ffcertificate_status_text); ?></span></td></tr>
-                                            <tr><th><?php esc_html_e('Calendar', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_calendar_title); ?></td></tr>
-                                            <tr><th><?php esc_html_e('Date', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_appointment['appointment_date'] ?? '-'); ?></td></tr>
-                                            <tr><th><?php esc_html_e('Time', 'ffcertificate'); ?></th><td><?php echo esc_html(($ffcertificate_appointment['start_time'] ?? '') . ' - ' . ($ffcertificate_appointment['end_time'] ?? '')); ?></td></tr>
-                                            <tr><th><?php esc_html_e('Name', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_name); ?></td></tr>
-                                            <tr><th><?php esc_html_e('E-mail', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_email ?: '-'); ?></td></tr>
-                                            <tr><th><?php esc_html_e('Phone', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_phone ?: '-'); ?></td></tr>
-                                            <?php if (!empty($ffcertificate_cpf)): ?>
-                                            <tr><th><?php esc_html_e('CPF', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_cpf); ?></td></tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($ffcertificate_rf)): ?>
-                                            <tr><th><?php esc_html_e('RF', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_rf); ?></td></tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($ffcertificate_appointment['user_notes'])): ?>
-                                            <tr><th><?php esc_html_e('User Notes', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_appointment['user_notes']); ?></td></tr>
-                                            <?php endif; ?>
-                                            <?php if (!empty($ffcertificate_appointment['admin_notes'])): ?>
-                                            <tr><th><?php esc_html_e('Admin Notes', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_appointment['admin_notes']); ?></td></tr>
-                                            <?php endif; ?>
-                                            <tr><th><?php esc_html_e('Created', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_appointment['created_at'] ?? '-'); ?></td></tr>
-                                            <?php if (!empty($ffcertificate_appointment['confirmation_token'])): ?>
-                                            <tr><th><?php esc_html_e('Confirmation Token', 'ffcertificate'); ?></th><td><code><?php echo esc_html($ffcertificate_appointment['confirmation_token']); ?></code></td></tr>
-                                            <?php endif; ?>
-                                        </table>
-
-                                        <?php if (!empty($ffcertificate_custom_data)): ?>
-                                        <h3><?php esc_html_e('Custom Fields', 'ffcertificate'); ?></h3>
-                                        <table class="form-table">
-                                            <?php foreach ($ffcertificate_custom_data as $ffcertificate_field_key => $ffcertificate_field_val): ?>
-                                            <tr>
-                                                <th><?php echo esc_html(ucwords(str_replace(array('_', '-'), ' ', $ffcertificate_field_key))); ?></th>
-                                                <td><?php echo esc_html(is_array($ffcertificate_field_val) ? implode(', ', $ffcertificate_field_val) : (string) $ffcertificate_field_val); ?></td>
-                                            </tr>
-                                            <?php endforeach; ?>
-                                        </table>
+                <div id="poststuff">
+                    <div id="post-body" class="metabox-holder columns-2">
+                        <div id="post-body-content">
+                            <div class="postbox">
+                                <div class="postbox-header"><h2 class="hndle"><?php esc_html_e('Appointment Details', 'ffcertificate'); ?></h2></div>
+                                <div class="inside">
+                                    <table class="form-table">
+                                        <tr><th><?php esc_html_e('Status', 'ffcertificate'); ?></th><td><span class="ffc-status ffc-status-<?php echo esc_attr($ffcertificate_appointment['status']); ?>"><?php echo esc_html($ffcertificate_status_text); ?></span></td></tr>
+                                        <tr><th><?php esc_html_e('Calendar', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_calendar_title); ?></td></tr>
+                                        <tr><th><?php esc_html_e('Date', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_appointment['appointment_date'] ?? '-'); ?></td></tr>
+                                        <tr><th><?php esc_html_e('Time', 'ffcertificate'); ?></th><td><?php echo esc_html(($ffcertificate_appointment['start_time'] ?? '') . ' - ' . ($ffcertificate_appointment['end_time'] ?? '')); ?></td></tr>
+                                        <tr><th><?php esc_html_e('Name', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_name); ?></td></tr>
+                                        <tr><th><?php esc_html_e('E-mail', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_email ?: '-'); ?></td></tr>
+                                        <tr><th><?php esc_html_e('Phone', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_phone ?: '-'); ?></td></tr>
+                                        <?php if (!empty($ffcertificate_cpf)): ?>
+                                        <tr><th><?php esc_html_e('CPF', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_cpf); ?></td></tr>
                                         <?php endif; ?>
-                                    </div>
+                                        <?php if (!empty($ffcertificate_rf)): ?>
+                                        <tr><th><?php esc_html_e('RF', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_rf); ?></td></tr>
+                                        <?php endif; ?>
+                                        <?php if (!empty($ffcertificate_appointment['user_notes'])): ?>
+                                        <tr><th><?php esc_html_e('User Notes', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_appointment['user_notes']); ?></td></tr>
+                                        <?php endif; ?>
+                                        <?php if (!empty($ffcertificate_appointment['admin_notes'])): ?>
+                                        <tr><th><?php esc_html_e('Admin Notes', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_appointment['admin_notes']); ?></td></tr>
+                                        <?php endif; ?>
+                                        <tr><th><?php esc_html_e('Created', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_appointment['created_at'] ?? '-'); ?></td></tr>
+                                        <?php if (!empty($ffcertificate_appointment['confirmation_token'])): ?>
+                                        <tr><th><?php esc_html_e('Confirmation Token', 'ffcertificate'); ?></th><td><code><?php echo esc_html($ffcertificate_appointment['confirmation_token']); ?></code></td></tr>
+                                        <?php endif; ?>
+                                    </table>
+
+                                    <?php if (!empty($ffcertificate_custom_data)): ?>
+                                    <h3><?php esc_html_e('Custom Fields', 'ffcertificate'); ?></h3>
+                                    <table class="form-table">
+                                        <?php foreach ($ffcertificate_custom_data as $ffcertificate_field_key => $ffcertificate_field_val): ?>
+                                        <tr>
+                                            <th><?php echo esc_html(ucwords(str_replace(array('_', '-'), ' ', $ffcertificate_field_key))); ?></th>
+                                            <td><?php echo esc_html(is_array($ffcertificate_field_val) ? implode(', ', $ffcertificate_field_val) : (string) $ffcertificate_field_val); ?></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </table>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <?php
-            } catch (\Throwable $e) {
-                $ffcertificate_back_url = add_query_arg(
-                    array('page' => 'ffc-appointments'),
-                    admin_url('admin.php')
-                );
-                echo '<div class="wrap">';
-                echo '<h1>' . esc_html__('Appointment Details', 'ffcertificate') . '</h1>';
-                echo '<div class="notice notice-error"><p><strong>' . esc_html__('Error loading appointment:', 'ffcertificate') . '</strong> ' . esc_html($e->getMessage()) . '</p></div>';
-                echo '<p><a href="' . esc_url($ffcertificate_back_url) . '" class="button">' . esc_html__('Back to List', 'ffcertificate') . '</a></p>';
-                echo '</div>';
-                if (class_exists('\\FreeFormCertificate\\Core\\Utils')) {
-                    \FreeFormCertificate\Core\Utils::debug_log('Appointment view error', array(
-                        'id' => $ffc_self_scheduling_appointment_id,
-                        'error' => $e->getMessage(),
-                        'file' => $e->getFile(),
-                        'line' => $e->getLine(),
-                    ));
-                }
+            </div>
+            <?php
+        } catch (\Throwable $e) {
+            echo '<div class="wrap">';
+            echo '<h1>' . esc_html__('Appointment Details', 'ffcertificate') . '</h1>';
+            echo '<div class="notice notice-error"><p><strong>' . esc_html__('Error loading appointment:', 'ffcertificate') . '</strong> ' . esc_html($e->getMessage()) . '</p></div>';
+            echo '<p><a href="' . esc_url($ffcertificate_appointments_url) . '" class="button">' . esc_html__('Back to List', 'ffcertificate') . '</a></p>';
+            echo '</div>';
+            if (class_exists('\\FreeFormCertificate\\Core\\Utils')) {
+                \FreeFormCertificate\Core\Utils::debug_log('Appointment view error', array(
+                    'id' => $ffc_self_scheduling_appointment_id,
+                    'error' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ));
             }
-            return; // Stop — don't render the list table
+        }
 
-        case 'confirm':
-            check_admin_referer('ffc_confirm_appointment_' . $ffc_self_scheduling_appointment_id);
-            $ffcertificate_result = $ffcertificate_repo->confirm($ffc_self_scheduling_appointment_id, get_current_user_id());
-
-            if ($ffcertificate_result) {
-                // Send approval notification email with receipt link
-                $ffcertificate_appointment = $ffcertificate_repo->findById($ffc_self_scheduling_appointment_id);
-                if ($ffcertificate_appointment && !empty($ffcertificate_appointment['calendar_id'])) {
-                    $ffcertificate_cal_repo = new \FreeFormCertificate\Repositories\CalendarRepository();
-                    $ffcertificate_calendar = $ffcertificate_cal_repo->findById((int) $ffcertificate_appointment['calendar_id']);
-                    if ($ffcertificate_calendar) {
-                        do_action('ffcertificate_self_scheduling_appointment_confirmed_email', $ffcertificate_appointment, $ffcertificate_calendar);
-                    }
-                }
-
-                // Store success message in transient
-                set_transient('ffc_admin_notice_' . get_current_user_id(), array(
-                    'type' => 'success',
-                    'message' => __('Appointment confirmed successfully.', 'ffcertificate')
-                ), 30);
-            } else {
-                // Store error message in transient
-                set_transient('ffc_admin_notice_' . get_current_user_id(), array(
-                    'type' => 'error',
-                    'message' => __('Failed to confirm appointment.', 'ffcertificate')
-                ), 30);
-            }
-
-            $ffcertificate_redirect = add_query_arg(
-                array(
-                    'post_type' => 'ffc_self_scheduling',
-                    'page' => 'ffc-appointments'
-                ),
-                admin_url('edit.php')
-            );
-            wp_safe_redirect($ffcertificate_redirect);
-            exit;
-
-        case 'cancel':
-            check_admin_referer('ffc_cancel_appointment_' . $ffc_self_scheduling_appointment_id);
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-            $ffcertificate_cancel_reason = isset($_GET['reason']) ? sanitize_textarea_field(wp_unslash($_GET['reason'])) : __('Cancelled by admin', 'ffcertificate');
-            $ffcertificate_result = $ffcertificate_repo->cancel($ffc_self_scheduling_appointment_id, get_current_user_id(), $ffcertificate_cancel_reason);
-
-            if ($ffcertificate_result) {
-                // Store success message in transient
-                set_transient('ffc_admin_notice_' . get_current_user_id(), array(
-                    'type' => 'success',
-                    'message' => __('Appointment cancelled successfully.', 'ffcertificate')
-                ), 30);
-            } else {
-                // Store error message in transient
-                set_transient('ffc_admin_notice_' . get_current_user_id(), array(
-                    'type' => 'error',
-                    'message' => __('Failed to cancel appointment.', 'ffcertificate')
-                ), 30);
-            }
-
-            $ffcertificate_redirect = add_query_arg(
-                array(
-                    'post_type' => 'ffc_self_scheduling',
-                    'page' => 'ffc-appointments'
-                ),
-                admin_url('edit.php')
-            );
-            wp_safe_redirect($ffcertificate_redirect);
-            exit;
+        return; // Stop — don't render the list table
     }
 }
 
@@ -575,7 +573,7 @@ $ffcertificate_table->prepare_items();
     <hr class="wp-header-end">
 
     <form method="get">
-        <input type="hidden" name="page" value="<?php echo esc_attr( ( isset( $_REQUEST['page'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['page'] ) ) : '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>" />
+        <input type="hidden" name="page" value="ffc-appointments" />
         <?php $ffcertificate_table->display(); ?>
     </form>
 </div>

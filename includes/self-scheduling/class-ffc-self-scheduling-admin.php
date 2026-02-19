@@ -52,6 +52,16 @@ class SelfSchedulingAdmin {
             wp_die(esc_html__('You do not have permission to access this page.', 'ffcertificate'));
         }
 
+        // Capture fatal errors that bypass try-catch (E_COMPILE_ERROR, E_PARSE, etc.)
+        register_shutdown_function(static function (): void {
+            $error = error_get_last();
+            if ($error && in_array($error['type'], array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR), true)) {
+                if (class_exists('\\FreeFormCertificate\\Core\\Utils', false)) {
+                    \FreeFormCertificate\Core\Utils::debug_log('Appointments page FATAL error (shutdown)', $error);
+                }
+            }
+        });
+
         try {
             require_once plugin_dir_path(__FILE__) . 'views/appointments-list.php';
         } catch (\Throwable $e) {

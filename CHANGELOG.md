@@ -52,6 +52,11 @@ Multi-identifier architecture: split combined CPF/RF into independent columns, a
 - Fix: Implemented missing `action=view` handler for appointments admin page (was causing 500 error)
 - Added: Appointment detail view in admin panel with decrypted CPF/RF split fields, calendar info, and custom data
 - Fix: Hardened appointments view and render method with try-catch to prevent unhandled 500 errors
+- Fix: Rewrote appointment URLs to use absolute paths via `admin_url()` and replaced `action=view` with `appointment=X` parameter to avoid WordPress `admin_action_view` dispatch that was causing persistent 500 errors
+- Fix: Changed appointment action URLs from `action` to `ffc_action` parameter to avoid conflicts with WordPress admin.php action processing
+- Fix: Corrected confirm/cancel redirect URLs to use `admin.php` instead of `edit.php` for consistency with menu registration
+- Fix: Added `class_exists` guard around `FFC_Appointments_List_Table` definition to prevent class redeclaration errors
+- Fix: Added PHP shutdown function error handler to capture fatal errors in appointments page for debug logging
 - Fix: Calendar export dropdown (`Exportar Calendário`) was clipped by `overflow:hidden` on `.ffc-appointments-table`
 - Improved: Privacy/LGPD deletion request success message now tells admins where to find it (Tools > Erase Personal Data)
 - Result: **934 tests, 1830 assertions, 0 failures**
