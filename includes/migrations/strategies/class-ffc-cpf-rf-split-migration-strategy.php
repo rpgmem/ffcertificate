@@ -180,6 +180,12 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
     /**
      * Count migration status for a single table
      *
+     * After migration, cpf_rf_hash is NULLed out, so counting by cpf_rf_hash alone
+     * would show zero for both total and migrated. Instead we count:
+     *   - Migrated: records that have cpf_hash or rf_hash (split format)
+     *   - Pending:  records that still have cpf_rf_hash but no cpf_hash/rf_hash
+     *   - Total:    migrated + pending
+     *
      * @param string $table_name Table to check
      * @return array{total: int, migrated: int}
      */
@@ -191,32 +197,31 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
         }
 
         // Check if new columns exist
-        $has_new_columns = self::column_exists( $table_name, 'cpf_hash' );
-        if ( ! $has_new_columns ) {
+        if ( ! self::column_exists( $table_name, 'cpf_hash' ) ) {
             return array( 'total' => 0, 'migrated' => 0 );
         }
 
-        // Total = records that have cpf_rf data (encrypted or hash)
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $total = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM %i
-             WHERE cpf_rf_hash IS NOT NULL AND cpf_rf_hash != ''",
-            $table_name
-        ) );
-
-        // Migrated = records that already have cpf_hash OR rf_hash populated
+        // Migrated = records that already have cpf_hash OR rf_hash (split format)
+        // This includes both migrated-from-legacy and natively-written records
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $migrated = (int) $wpdb->get_var( $wpdb->prepare(
             "SELECT COUNT(*) FROM %i
-             WHERE cpf_rf_hash IS NOT NULL AND cpf_rf_hash != ''
-             AND (
-                 (cpf_hash IS NOT NULL AND cpf_hash != '')
-                 OR (rf_hash IS NOT NULL AND rf_hash != '')
-             )",
+             WHERE (cpf_hash IS NOT NULL AND cpf_hash != '')
+                OR (rf_hash IS NOT NULL AND rf_hash != '')",
             $table_name
         ) );
 
-        return array( 'total' => $total, 'migrated' => $migrated );
+        // Pending = records that still have legacy cpf_rf_hash but haven't been split yet
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $pending = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM %i
+             WHERE cpf_rf_hash IS NOT NULL AND cpf_rf_hash != ''
+             AND (cpf_hash IS NULL OR cpf_hash = '')
+             AND (rf_hash IS NULL OR rf_hash = '')",
+            $table_name
+        ) );
+
+        return array( 'total' => $migrated + $pending, 'migrated' => $migrated );
     }
 
     /**

@@ -84,13 +84,15 @@ try {
             }
 
             if ( is_wp_error( $ffcertificate_status ) ) {
-                // If there's an error, assume no data exists (empty database)
-                $ffcertificate_percent = 100;
-                $ffcertificate_is_complete = true;
-                $ffcertificate_pending = 0;
-                $ffcertificate_total = 0;
-                $ffcertificate_migrated = 0;
+                // Status calculation failed — show error state, keep migration available
+                $ffcertificate_percent = 0;
+                $ffcertificate_is_complete = false;
+                $ffcertificate_pending = '?';
+                $ffcertificate_total = '?';
+                $ffcertificate_migrated = '?';
+                $ffcertificate_status_error = $ffcertificate_status->get_error_message();
             } else {
+                $ffcertificate_status_error = '';
                 $ffcertificate_percent = $ffcertificate_status['percent'];
                 $ffcertificate_is_complete = $ffcertificate_status['is_complete'];
                 $ffcertificate_pending = number_format( $ffcertificate_status['pending'] );
@@ -130,7 +132,13 @@ try {
             <p class="description">
                 <?php echo esc_html( $ffcertificate_migration['description'] ); ?>
             </p>
-            
+
+            <?php if ( ! empty( $ffcertificate_status_error ) ) : ?>
+                <div class="notice notice-warning inline" style="margin: 10px 0;">
+                    <p><strong><?php esc_html_e( 'Status check error:', 'ffcertificate' ); ?></strong> <?php echo esc_html( $ffcertificate_status_error ); ?></p>
+                </div>
+            <?php endif; ?>
+
             <!-- Migration Statistics -->
             <div class="ffc-migration-stats">
                 <div>
