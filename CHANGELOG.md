@@ -49,6 +49,8 @@ Multi-identifier architecture: split combined CPF/RF into independent columns, a
 - Added: `test_format_csv_row_rf_only` test case for RF-only submissions
 - Fix: Added defensive try-catch to MigrationStatusCalculator strategy initialization to prevent 500 errors from stale opcache or DB issues
 - Fix: Added try-catch to migrations settings tab view to gracefully handle runtime errors instead of 500
+- Fix: Implemented missing `action=view` handler for appointments admin page (was causing 500 error)
+- Added: Appointment detail view in admin panel with decrypted CPF/RF split fields, calendar info, and custom data
 - Result: **934 tests, 1830 assertions, 0 failures**
 
 ## 4.12.26 (2026-02-18)
