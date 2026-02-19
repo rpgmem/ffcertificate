@@ -14,6 +14,9 @@ use FreeFormCertificate\Admin\CsvExporter;
  *
  * Uses Reflection to access private/protected methods for testing business logic.
  * Uses newInstanceWithoutConstructor() to avoid SubmissionRepository dependency.
+ *
+ * v5.0.0: Updated for split CPF/RF columns (CPF + RF instead of CPF/RF).
+ *         Fixed columns count: 15 (was 14), with edit: 18 (was 17).
  */
 class CsvExporterTest extends TestCase {
 
@@ -55,16 +58,17 @@ class CsvExporterTest extends TestCase {
 
     // ==================================================================
     // get_fixed_headers()
+    // v5.0.0: 15 fixed headers (CPF + RF instead of CPF/RF)
     // ==================================================================
 
-    public function test_fixed_headers_without_edit_columns_returns_14(): void {
+    public function test_fixed_headers_without_edit_columns_returns_15(): void {
         $headers = $this->invoke( 'get_fixed_headers', array( false ) );
-        $this->assertCount( 14, $headers );
+        $this->assertCount( 15, $headers );
     }
 
-    public function test_fixed_headers_with_edit_columns_returns_17(): void {
+    public function test_fixed_headers_with_edit_columns_returns_18(): void {
         $headers = $this->invoke( 'get_fixed_headers', array( true ) );
-        $this->assertCount( 17, $headers );
+        $this->assertCount( 18, $headers );
     }
 
     public function test_fixed_headers_contains_expected_strings(): void {
@@ -73,7 +77,8 @@ class CsvExporterTest extends TestCase {
         $this->assertContains( 'Form', $headers );
         $this->assertContains( 'E-mail', $headers );
         $this->assertContains( 'User IP', $headers );
-        $this->assertContains( 'CPF/RF', $headers );
+        $this->assertContains( 'CPF', $headers );
+        $this->assertContains( 'RF', $headers );
         $this->assertContains( 'Auth Code', $headers );
         $this->assertContains( 'Token', $headers );
         $this->assertContains( 'Consent Given', $headers );
@@ -82,13 +87,17 @@ class CsvExporterTest extends TestCase {
 
     public function test_fixed_headers_edit_columns_at_end(): void {
         $headers = $this->invoke( 'get_fixed_headers', array( true ) );
-        $this->assertSame( 'Was Edited', $headers[14] );
-        $this->assertSame( 'Edit Date', $headers[15] );
-        $this->assertSame( 'Edited By', $headers[16] );
+        $this->assertSame( 'Was Edited', $headers[15] );
+        $this->assertSame( 'Edit Date', $headers[16] );
+        $this->assertSame( 'Edited By', $headers[17] );
     }
 
     // ==================================================================
     // format_csv_row()
+    // v5.0.0: Split CPF/RF — indices shifted by +1 from Auth Code onward
+    //   [0] ID, [1] Form, [2] User ID, [3] Date, [4] Email, [5] IP,
+    //   [6] CPF, [7] RF, [8] Auth Code, [9] Token, [10] Consent Given,
+    //   [11] Consent Date, [12] Consent IP, [13] Consent Text, [14] Status
     // ==================================================================
 
     private function sample_row(): array {
@@ -101,7 +110,11 @@ class CsvExporterTest extends TestCase {
             'email_encrypted'   => '',
             'user_ip'           => '192.168.1.1',
             'user_ip_encrypted' => '',
-            'cpf_rf'            => '123.456.789-00',
+            'cpf'               => '123.456.789-00',
+            'cpf_encrypted'     => '',
+            'rf'                => '',
+            'rf_encrypted'      => '',
+            'cpf_rf'            => '',
             'cpf_rf_encrypted'  => '',
             'auth_code'         => 'ABC123',
             'magic_token'       => 'abc123def456',
@@ -121,8 +134,8 @@ class CsvExporterTest extends TestCase {
         $row = $this->sample_row();
         $dynamic_keys = array( 'field_name', 'field_city' );
         $result = $this->invoke( 'format_csv_row', array( $row, $dynamic_keys, false ) );
-        // 14 fixed + 2 dynamic = 16
-        $this->assertCount( 16, $result );
+        // 15 fixed + 2 dynamic = 17
+        $this->assertCount( 17, $result );
     }
 
     public function test_format_csv_row_fixed_columns_values(): void {
@@ -135,17 +148,18 @@ class CsvExporterTest extends TestCase {
         $this->assertSame( 'test@example.com', $result[4] );          // Email
         $this->assertSame( '192.168.1.1', $result[5] );               // IP
         $this->assertSame( '123.456.789-00', $result[6] );            // CPF
-        $this->assertSame( 'ABC123', $result[7] );                    // Auth Code
-        $this->assertSame( 'abc123def456', $result[8] );              // Token
-        $this->assertSame( 'Yes', $result[9] );                       // Consent Given
-        $this->assertSame( 'publish', $result[13] );                  // Status
+        $this->assertSame( '', $result[7] );                          // RF (empty)
+        $this->assertSame( 'ABC123', $result[8] );                    // Auth Code
+        $this->assertSame( 'abc123def456', $result[9] );              // Token
+        $this->assertSame( 'Yes', $result[10] );                      // Consent Given
+        $this->assertSame( 'publish', $result[14] );                  // Status
     }
 
     public function test_format_csv_row_consent_no(): void {
         $row = $this->sample_row();
         $row['consent_given'] = 0;
         $result = $this->invoke( 'format_csv_row', array( $row, array(), false ) );
-        $this->assertSame( 'No', $result[9] );
+        $this->assertSame( 'No', $result[10] );
     }
 
     public function test_format_csv_row_deleted_form_title(): void {
@@ -160,35 +174,35 @@ class CsvExporterTest extends TestCase {
         $row['edited_at'] = '2025-02-01 09:00:00';
         $row['edited_by'] = 5;
         $result = $this->invoke( 'format_csv_row', array( $row, array(), true ) );
-        // 14 fixed + 3 edit = 17
-        $this->assertCount( 17, $result );
-        $this->assertSame( 'Yes', $result[14] );                      // Was Edited
-        $this->assertSame( '2025-02-01 09:00:00', $result[15] );      // Edit Date
-        $this->assertSame( 'Admin User', $result[16] );               // Edited By
+        // 15 fixed + 3 edit = 18
+        $this->assertCount( 18, $result );
+        $this->assertSame( 'Yes', $result[15] );                      // Was Edited
+        $this->assertSame( '2025-02-01 09:00:00', $result[16] );      // Edit Date
+        $this->assertSame( 'Admin User', $result[17] );               // Edited By
     }
 
     public function test_format_csv_row_not_edited_empty_edit_columns(): void {
         $row = $this->sample_row();
         $result = $this->invoke( 'format_csv_row', array( $row, array(), true ) );
-        $this->assertSame( '', $result[14] );
         $this->assertSame( '', $result[15] );
         $this->assertSame( '', $result[16] );
+        $this->assertSame( '', $result[17] );
     }
 
     public function test_format_csv_row_dynamic_columns_values(): void {
         $row = $this->sample_row();
         $dynamic_keys = array( 'field_name', 'field_city' );
         $result = $this->invoke( 'format_csv_row', array( $row, $dynamic_keys, false ) );
-        $this->assertSame( 'John', $result[14] );
-        $this->assertSame( 'SP', $result[15] );
+        $this->assertSame( 'John', $result[15] );
+        $this->assertSame( 'SP', $result[16] );
     }
 
     public function test_format_csv_row_missing_dynamic_key_returns_empty(): void {
         $row = $this->sample_row();
         $dynamic_keys = array( 'field_name', 'nonexistent_field' );
         $result = $this->invoke( 'format_csv_row', array( $row, $dynamic_keys, false ) );
-        $this->assertSame( 'John', $result[14] );
-        $this->assertSame( '', $result[15] );
+        $this->assertSame( 'John', $result[15] );
+        $this->assertSame( '', $result[16] );
     }
 
     public function test_format_csv_row_empty_optional_fields(): void {
@@ -200,12 +214,21 @@ class CsvExporterTest extends TestCase {
         $row['consent_ip']    = '';
         $row['consent_text']  = '';
         $result = $this->invoke( 'format_csv_row', array( $row, array(), false ) );
-        $this->assertSame( '', $result[2] );  // User ID
-        $this->assertSame( '', $result[7] );  // Auth Code
-        $this->assertSame( '', $result[8] );  // Token
-        $this->assertSame( '', $result[10] ); // Consent Date
-        $this->assertSame( '', $result[11] ); // Consent IP
-        $this->assertSame( '', $result[12] ); // Consent Text
+        $this->assertSame( '', $result[2] );   // User ID
+        $this->assertSame( '', $result[8] );   // Auth Code
+        $this->assertSame( '', $result[9] );   // Token
+        $this->assertSame( '', $result[11] );  // Consent Date
+        $this->assertSame( '', $result[12] );  // Consent IP
+        $this->assertSame( '', $result[13] );  // Consent Text
+    }
+
+    public function test_format_csv_row_rf_only(): void {
+        $row = $this->sample_row();
+        $row['cpf'] = '';
+        $row['rf'] = '1234567';
+        $result = $this->invoke( 'format_csv_row', array( $row, array(), false ) );
+        $this->assertSame( '', $result[6] );           // CPF empty
+        $this->assertSame( '1234567', $result[7] );    // RF populated
     }
 
     // ==================================================================

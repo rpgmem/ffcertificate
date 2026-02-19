@@ -44,6 +44,10 @@ Multi-identifier architecture: split combined CPF/RF into independent columns, a
 - Simplified: MigrationRegistry, MigrationStatusCalculator, and MigrationManager reduced to single-migration focus
 - Simplified: Activator `run_migrations()` — no longer auto-runs retired migrations on activation
 - Updated: MigrationManager unit tests adapted to simplified architecture
+- Fix: CsvExporterTest updated for split CPF/RF columns (15 fixed headers instead of 14, indices shifted)
+- Fix: CsvExporter sample_row uses separate `cpf`/`rf` fields instead of combined `cpf_rf`
+- Added: `test_format_csv_row_rf_only` test case for RF-only submissions
+- Result: **934 tests, 1830 assertions, 0 failures**
 
 ## 4.12.26 (2026-02-18)
 
