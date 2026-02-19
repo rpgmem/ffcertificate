@@ -4,15 +4,10 @@ declare(strict_types=1);
 /**
  * MigrationStatusCalculator
  *
- * ⭐ CRITICAL COMPONENT ⭐
- *
- * Replaces the MONOLITHIC 223-line get_migration_status() method
- * with a clean Strategy Pattern implementation.
- *
- * This class delegates status calculation to appropriate strategies,
- * reducing complexity from 223 lines of conditionals to ~50 lines of delegation.
+ * Delegates status calculation to appropriate strategies.
  *
  * @since 3.1.0 (Migration Manager refactor - Phase 2)
+ * @version 5.0.0 - Retired 10 completed migrations, kept only split_cpf_rf
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
@@ -52,28 +47,12 @@ class MigrationStatusCalculator {
     /**
      * Initialize all migration strategies
      *
-     * Maps migration keys to their corresponding strategy instances.
-     * This is where the 223-line conditional becomes simple delegation!
+     * v5.0.0: Only split_cpf_rf remains after retiring 10 completed migrations.
      *
      * @return void
      */
     private function initialize_strategies(): void {
-        // Field migration strategy (handles email, cpf_rf, auth_code)
-        $field_strategy = new \FreeFormCertificate\Migrations\Strategies\FieldMigrationStrategy( $this->registry );
-
-        $this->strategies['email']     = $field_strategy;
-        $this->strategies['cpf_rf']    = $field_strategy;
-        $this->strategies['auth_code'] = $field_strategy;
-
-        // Special migration strategies
-        $this->strategies['magic_tokens']          = new \FreeFormCertificate\Migrations\Strategies\MagicTokenMigrationStrategy();
-        $this->strategies['encrypt_sensitive_data'] = new \FreeFormCertificate\Migrations\Strategies\EncryptionMigrationStrategy();
-        $this->strategies['cleanup_unencrypted']   = new \FreeFormCertificate\Migrations\Strategies\CleanupMigrationStrategy();
-
-        $this->strategies['user_link'] = new \FreeFormCertificate\Migrations\Strategies\UserLinkMigrationStrategy();
         $this->strategies['split_cpf_rf'] = new \FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy();
-        $this->strategies['name_normalization'] = new \FreeFormCertificate\Migrations\Strategies\NameNormalizationMigrationStrategy();
-        $this->strategies['user_capabilities'] = new \FreeFormCertificate\Migrations\Strategies\UserCapabilitiesMigrationStrategy();
 
         // Allow plugins to register custom strategies
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
@@ -83,16 +62,6 @@ class MigrationStatusCalculator {
     /**
      * Calculate migration status
      *
-     * ⭐ THIS METHOD REPLACES 223 LINES OF CONDITIONALS ⭐
-     *
-     * Instead of a giant if/elseif chain, we simply:
-     * 1. Get the strategy for this migration
-     * 2. Get the migration config
-     * 3. Delegate to the strategy
-     *
-     * BEFORE: 223 lines of conditional logic
-     * AFTER: ~10 lines of delegation
-     *
      * @param string $migration_key Migration identifier
      * @return array<string, mixed>|WP_Error Status array or error
      */
@@ -100,11 +69,6 @@ class MigrationStatusCalculator {
         // Validate migration exists
         if ( ! $this->registry->exists( $migration_key ) ) {
             return new WP_Error( 'invalid_migration', __( 'Migration not found', 'ffcertificate' ) );
-        }
-
-        // Handle data_cleanup special case (option-based, not strategy-based)
-        if ( $migration_key === 'data_cleanup' ) {
-            return $this->calculate_data_cleanup_status();
         }
 
         // Get strategy for this migration
@@ -117,7 +81,7 @@ class MigrationStatusCalculator {
         // Get migration configuration
         $migration_config = $this->registry->get_migration( $migration_key );
 
-        // Delegate to strategy (THIS IS THE MAGIC! 🎩✨)
+        // Delegate to strategy
         return $strategy->calculate_status( $migration_key, $migration_config );
     }
 
@@ -140,25 +104,6 @@ class MigrationStatusCalculator {
     }
 
     /**
-     * Calculate data_cleanup status (special case - option-based)
-     *
-     * This migration doesn't follow the standard pattern, so we handle it separately.
-     *
-     * @return array<string, mixed> Status information
-     */
-    private function calculate_data_cleanup_status(): array {
-        $completed = get_option( 'ffc_migration_data_cleanup_completed', false );
-
-        return array(
-            'total' => 0,
-            'migrated' => $completed ? 1 : 0,
-            'pending' => $completed ? 0 : 1,
-            'percent' => $completed ? 100 : 0,
-            'is_complete' => $completed
-        );
-    }
-
-    /**
      * Check if a migration can be executed
      *
      * Delegates to strategy's can_run() method.
@@ -167,11 +112,6 @@ class MigrationStatusCalculator {
      * @return bool|WP_Error True if can run, WP_Error if cannot
      */
     public function can_run( string $migration_key ) {
-        // Handle data_cleanup special case
-        if ( $migration_key === 'data_cleanup' ) {
-            return true; // Option-based, always can run
-        }
-
         // Get strategy
         $strategy = $this->get_strategy_for_migration( $migration_key );
 
@@ -203,11 +143,6 @@ class MigrationStatusCalculator {
             return $can_run;
         }
 
-        // Handle data_cleanup special case
-        if ( $migration_key === 'data_cleanup' ) {
-            return $this->execute_data_cleanup();
-        }
-
         // Get strategy
         $strategy = $this->get_strategy_for_migration( $migration_key );
 
@@ -220,23 +155,6 @@ class MigrationStatusCalculator {
 
         // Delegate to strategy
         return $strategy->execute( $migration_key, $migration_config, $batch_number );
-    }
-
-    /**
-     * Execute data_cleanup migration (special case)
-     *
-     * @return array<string, mixed> Execution result
-     */
-    private function execute_data_cleanup(): array {
-        // Mark as complete
-        update_option( 'ffc_migration_data_cleanup_completed', true );
-
-        return array(
-            'success' => true,
-            'processed' => 1,
-            'has_more' => false,
-            'message' => __( 'Data cleanup completed', 'ffcertificate' )
-        );
     }
 
     /**

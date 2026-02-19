@@ -226,46 +226,17 @@ class Activator {
         }
     }
 
+    /**
+     * Run batch migrations during activation.
+     *
+     * v5.0.0: Only split_cpf_rf remains and it must be run manually by admin
+     * (requires existing data). No auto-run migrations left.
+     *
+     * @return void
+     */
     private static function run_migrations(): void {
-        if (!class_exists('\FreeFormCertificate\Migrations\MigrationManager')) {
-            $migration_file = dirname(__FILE__) . '/class-ffc-migration-manager.php';
-            if (file_exists($migration_file)) {
-                require_once $migration_file;
-            } else {
-                return;
-            }
-        }
-
-        $migration_manager = new \FreeFormCertificate\Migrations\MigrationManager();
-        $migrations = $migration_manager->get_migrations();
-
-        if (empty($migrations)) {
-            return;
-        }
-
-        // Migrations that should NOT run automatically during activation
-        // (they require existing data or should be run manually by admin)
-        $skip_on_activation = array('user_link', 'cleanup_unencrypted', 'data_cleanup', 'split_cpf_rf');
-
-        foreach ($migrations as $key => $migration) {
-            // Skip migrations that should be run manually
-            if (in_array($key, $skip_on_activation)) {
-                continue;
-            }
-
-            if (!$migration_manager->can_run_migration($key)) continue;
-
-            $option_key = "ffc_migration_{$key}_completed";
-            if (get_option($option_key, false)) continue;
-
-            $result = $migration_manager->run_migration($key, 0);
-
-            if (is_wp_error($result)) continue;
-
-            if (isset($result['has_more']) && !$result['has_more']) {
-                update_option($option_key, true);
-            }
-        }
+        // v5.0.0: All auto-run migrations have been retired.
+        // split_cpf_rf is the only remaining migration and must be run manually.
     }
 
     /**

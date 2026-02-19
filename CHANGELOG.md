@@ -6,6 +6,45 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## 5.0.0 (2026-02-19)
+
+Multi-identifier architecture: split combined CPF/RF into independent columns, and retirement of 10 completed legacy migrations.
+
+### Multi-Identifier (Split CPF/RF)
+
+- Feat: Added separate `cpf`, `cpf_encrypted`, `cpf_hash`, `rf`, `rf_encrypted`, `rf_hash` columns to submissions and appointments tables (Sprint 1)
+- Feat: Updated core layer (SubmissionHandler, FormProcessor, Encryption) to read/write split columns natively (Sprint 2)
+- Feat: Updated admin, API, security, and privacy layers for split cpf/rf columns (Sprint 3)
+- Feat: Preserved legacy `cpf_rf` columns during split migration for backward compatibility (Sprint 4)
+- Refactor: Removed legacy `cpf_rf` dual-write; optimized split migration to be the single source of truth (Sprint 5)
+- Feat: Updated user dashboard layer (UserCreator, UserManager, CapabilityManager) for split columns (Sprint 5)
+- Refactor: Removed `cpf_rf_hash` legacy fallback from UserCreator queries
+- Feat: Added `identifier_type` parameter to UserCreator for targeted column lookup (CPF vs RF)
+- Refactor: Deprecated legacy `cpf_rf` columns across entire plugin with `@deprecated` annotations
+- Fix: Added split cpf/rf column support to `decrypt_submission` and `decrypt_appointment`
+- Perf: Identifier digit-count classification targets specific hash column (11→CPF, 7→RF) instead of scanning both
+- Perf: Applied digit-count classification to AppointmentRepository `findByCpfRf`
+
+### Migration Cleanup
+
+- Removed: **10 completed migrations** retired from admin panel — these ran their course and are no longer needed:
+  - `email` field migration (JSON→column extraction, handled at insert since v2.9)
+  - `cpf_rf` field migration (JSON→column extraction, handled at insert since v2.9)
+  - `auth_code` field migration (JSON→column extraction, handled at insert since v2.9)
+  - `magic_tokens` generation (handled at insert since v2.10)
+  - `encrypt_sensitive_data` (100% complete, LGPD compliance)
+  - `cleanup_unencrypted` (100% complete, replaced by daily cron)
+  - `user_link` submissions→users (handled at insert by UserCreator since v3.1)
+  - `name_normalization` (handled at insert by FormProcessor since v4.3)
+  - `user_capabilities` (handled at insert by UserCreator since v4.4)
+  - `data_cleanup` (flag-based, replaced by cron)
+- Kept: `split_cpf_rf` migration remains available for legacy data
+- Removed: 7 migration strategy classes (FieldMigration, MagicToken, Encryption, Cleanup, UserLink, NameNormalization, UserCapabilities)
+- Removed: 3 legacy migration executor classes (MigrationUserLink, MigrationNameNormalization, MigrationUserCapabilities)
+- Simplified: MigrationRegistry, MigrationStatusCalculator, and MigrationManager reduced to single-migration focus
+- Simplified: Activator `run_migrations()` — no longer auto-runs retired migrations on activation
+- Updated: MigrationManager unit tests adapted to simplified architecture
+
 ## 4.12.26 (2026-02-18)
 
 PHPStan level 6 — zero-baseline compliance. Resolved all 317 static analysis errors across 80+ files without any baseline suppressions.
