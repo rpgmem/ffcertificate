@@ -47,6 +47,8 @@ Multi-identifier architecture: split combined CPF/RF into independent columns, a
 - Fix: CsvExporterTest updated for split CPF/RF columns (15 fixed headers instead of 14, indices shifted)
 - Fix: CsvExporter sample_row uses separate `cpf`/`rf` fields instead of combined `cpf_rf`
 - Added: `test_format_csv_row_rf_only` test case for RF-only submissions
+- Fix: Added defensive try-catch to MigrationStatusCalculator strategy initialization to prevent 500 errors from stale opcache or DB issues
+- Fix: Added try-catch to migrations settings tab view to gracefully handle runtime errors instead of 500
 - Result: **934 tests, 1830 assertions, 0 failures**
 
 ## 4.12.26 (2026-02-18)

@@ -13,9 +13,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
 
-// Autoloader handles class loading
-$ffcertificate_migration_manager = new \FreeFormCertificate\Migrations\MigrationManager();
-$ffcertificate_migrations = $ffcertificate_migration_manager->get_migrations();
+// Autoloader handles class loading — wrapped in try-catch to prevent 500 errors.
+$ffcertificate_migration_manager = null;
+$ffcertificate_migrations = array();
+$ffcertificate_init_error = '';
+
+try {
+    $ffcertificate_migration_manager = new \FreeFormCertificate\Migrations\MigrationManager();
+    $ffcertificate_migrations = $ffcertificate_migration_manager->get_migrations();
+} catch ( \Throwable $e ) {
+    $ffcertificate_init_error = $e->getMessage();
+    if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
+        \FreeFormCertificate\Core\Utils::debug_log( 'Migration tab initialization failed', array(
+            'error' => $e->getMessage(),
+            'file'  => $e->getFile(),
+            'line'  => $e->getLine(),
+        ) );
+    }
+}
 ?>
 <div class="ffc-settings-wrap">
 
@@ -37,8 +52,18 @@ $ffcertificate_migrations = $ffcertificate_migration_manager->get_migrations();
     </div>
 
     <?php
-    // Display migrations
-    if ( empty( $ffcertificate_migrations ) ) :
+    // Show initialization error if MigrationManager failed
+    if ( ! empty( $ffcertificate_init_error ) ) :
+    ?>
+        <div class="notice notice-error inline">
+            <p>
+                <strong><?php esc_html_e( 'Migration system error:', 'ffcertificate' ); ?></strong>
+                <?php echo esc_html( $ffcertificate_init_error ); ?>
+            </p>
+            <p><?php esc_html_e( 'Try deactivating and reactivating the plugin, or clearing any server-side cache (OPcache).', 'ffcertificate' ); ?></p>
+        </div>
+    <?php
+    elseif ( empty( $ffcertificate_migrations ) ) :
     ?>
         <div class="notice notice-info inline">
             <p><?php esc_html_e( 'No migrations available at this time.', 'ffcertificate' ); ?></p>
@@ -51,9 +76,13 @@ $ffcertificate_migrations = $ffcertificate_migration_manager->get_migrations();
                 continue;
             }
             
-            // Get migration status
-            $ffcertificate_status = $ffcertificate_migration_manager->get_migration_status( $ffcertificate_key );
-            
+            // Get migration status — wrapped in try-catch to prevent DB errors from crashing the page.
+            try {
+                $ffcertificate_status = $ffcertificate_migration_manager->get_migration_status( $ffcertificate_key );
+            } catch ( \Throwable $e ) {
+                $ffcertificate_status = new WP_Error( 'status_error', $e->getMessage() );
+            }
+
             if ( is_wp_error( $ffcertificate_status ) ) {
                 // If there's an error, assume no data exists (empty database)
                 $ffcertificate_percent = 100;

@@ -52,7 +52,17 @@ class MigrationStatusCalculator {
      * @return void
      */
     private function initialize_strategies(): void {
-        $this->strategies['split_cpf_rf'] = new \FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy();
+        try {
+            $this->strategies['split_cpf_rf'] = new \FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy();
+        } catch ( \Throwable $e ) {
+            // Strategy failed to initialize (e.g. missing table, opcache stale bytecode).
+            // Log and continue — the tab will show the error gracefully.
+            if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
+                \FreeFormCertificate\Core\Utils::debug_log( 'Failed to initialize CpfRfSplitMigrationStrategy', array(
+                    'error' => $e->getMessage(),
+                ) );
+            }
+        }
 
         // Allow plugins to register custom strategies
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
