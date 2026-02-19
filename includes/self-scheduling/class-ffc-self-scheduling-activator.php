@@ -149,17 +149,13 @@ class SelfSchedulingActivator {
             name varchar(255) DEFAULT NULL,
             email_encrypted text DEFAULT NULL,
             email_hash varchar(64) DEFAULT NULL,
-            cpf varchar(20) DEFAULT NULL,
             cpf_encrypted text DEFAULT NULL,
             cpf_hash varchar(64) DEFAULT NULL,
-            rf varchar(20) DEFAULT NULL,
             rf_encrypted text DEFAULT NULL,
             rf_hash varchar(64) DEFAULT NULL,
-            phone varchar(50) DEFAULT NULL,
             phone_encrypted text DEFAULT NULL,
 
             -- Additional data (JSON: custom fields)
-            custom_data longtext DEFAULT NULL,
             custom_data_encrypted longtext DEFAULT NULL,
 
             -- Notes
@@ -187,7 +183,6 @@ class SelfSchedulingActivator {
             -- LGPD Consent
             consent_given tinyint(1) DEFAULT 0,
             consent_date datetime DEFAULT NULL,
-            consent_ip varchar(45) DEFAULT NULL,
             consent_text text DEFAULT NULL,
 
             -- Metadata
@@ -234,12 +229,10 @@ class SelfSchedulingActivator {
             $after_column = 'name';
         }
 
-        // Add split cpf/rf columns
-        self::add_column_if_missing($table_name, 'cpf', "varchar(20) DEFAULT NULL", $after_column);
-        self::add_column_if_missing($table_name, 'cpf_encrypted', "text DEFAULT NULL", 'cpf');
+        // Add split cpf/rf encrypted columns
+        self::add_column_if_missing($table_name, 'cpf_encrypted', "text DEFAULT NULL", $after_column);
         self::add_column_if_missing($table_name, 'cpf_hash', "varchar(64) DEFAULT NULL", 'cpf_encrypted', 'cpf_hash');
-        self::add_column_if_missing($table_name, 'rf', "varchar(20) DEFAULT NULL", 'cpf_hash');
-        self::add_column_if_missing($table_name, 'rf_encrypted', "text DEFAULT NULL", 'rf');
+        self::add_column_if_missing($table_name, 'rf_encrypted', "text DEFAULT NULL", 'cpf_hash');
         self::add_column_if_missing($table_name, 'rf_hash', "varchar(64) DEFAULT NULL", 'rf_encrypted', 'rf_hash');
     }
 

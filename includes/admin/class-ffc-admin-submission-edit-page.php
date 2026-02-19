@@ -326,7 +326,7 @@ class AdminSubmissionEditPage {
     private function render_consent_section(): void {
         $consent_given = isset( $this->sub_array['consent_given'] ) ? (int) $this->sub_array['consent_given'] : 0;
         $consent_date = isset( $this->sub_array['consent_date'] ) ? $this->sub_array['consent_date'] : '';
-        $consent_ip = isset( $this->sub_array['consent_ip'] ) ? $this->sub_array['consent_ip'] : '';
+        $consent_ip = \FreeFormCertificate\Core\Encryption::decrypt_field( $this->sub_array, 'user_ip' );
 
         ?>
         <!-- SEÇÃO LGPD CONSENT STATUS (collapsible) -->

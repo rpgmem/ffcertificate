@@ -180,7 +180,7 @@ class AppointmentCsvExporter {
             $row['admin_notes'] ?? '',
             $consent_given,
             $row['consent_date'] ?? '',
-            $row['consent_ip'] ?? '',
+            $user_ip,
             $row['consent_text'] ?? '',
             $row['created_at'] ?? '',
             $row['updated_at'] ?? '',

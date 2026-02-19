@@ -120,7 +120,7 @@ class CsvExporterTest extends TestCase {
             'magic_token'       => 'abc123def456',
             'consent_given'     => 1,
             'consent_date'      => '2025-01-15 10:30:00',
-            'consent_ip'        => '192.168.1.1',
+            // consent_ip derived from decrypted user_ip
             'consent_text'      => 'I agree',
             'status'            => 'publish',
             'data'              => '{"field_name":"John","field_city":"SP"}',
@@ -211,7 +211,8 @@ class CsvExporterTest extends TestCase {
         $row['auth_code']     = '';
         $row['magic_token']   = '';
         $row['consent_date']  = '';
-        $row['consent_ip']    = '';
+        $row['user_ip']       = '';
+        $row['user_ip_encrypted'] = '';
         $row['consent_text']  = '';
         $result = $this->invoke( 'format_csv_row', array( $row, array(), false ) );
         $this->assertSame( '', $result[2] );   // User ID

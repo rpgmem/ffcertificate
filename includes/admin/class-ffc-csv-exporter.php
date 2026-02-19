@@ -149,8 +149,8 @@ class CsvExporter {
         // Consent Date (omit if empty)
         $consent_date = !empty( $row['consent_date'] ) ? $row['consent_date'] : '';
 
-        // Consent IP (omit if empty)
-        $consent_ip = !empty( $row['consent_ip'] ) ? $row['consent_ip'] : '';
+        // Consent IP (from decrypted user_ip)
+        $consent_ip = $user_ip;
 
         // Consent Text (omit if empty)
         $consent_text = !empty( $row['consent_text'] ) ? $row['consent_text'] : '';

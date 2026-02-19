@@ -85,7 +85,7 @@ class AppointmentCsvExporterTest extends TestCase {
             'admin_notes'         => '',
             'consent_given'       => 1,
             'consent_date'        => '2030-01-10',
-            'consent_ip'          => '192.168.1.1',
+            // consent_ip derived from decrypted user_ip
             'consent_text'        => 'I agree',
             'created_at'          => '2030-01-10 09:00:00',
             'updated_at'          => '2030-01-10 09:00:00',

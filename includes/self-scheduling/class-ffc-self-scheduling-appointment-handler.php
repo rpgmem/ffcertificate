@@ -101,7 +101,7 @@ class AppointmentHandler {
         }
 
         $data['consent_date'] = current_time('mysql');
-        $data['consent_ip'] = $data['user_ip'];
+        // consent_ip is stored via user_ip_encrypted (same IP, encrypted)
 
         // Create or link user if CPF/RF is provided and user is not logged in
         if (!empty($data['cpf_rf']) && empty($data['user_id'])) {

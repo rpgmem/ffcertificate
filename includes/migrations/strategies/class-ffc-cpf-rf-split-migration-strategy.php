@@ -380,10 +380,9 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
     /**
      * Drop legacy columns after migration completes
      *
-     * Removes cpf_rf, cpf_rf_encrypted, cpf_rf_hash, user_ip, and email
-     * plaintext columns from both submissions and appointments tables.
-     * These are replaced by the split cpf/rf columns and their encrypted
-     * counterparts (email_encrypted, user_ip_encrypted).
+     * Drops all legacy plaintext columns replaced by encrypted counterparts:
+     * cpf_rf, cpf_rf_encrypted, cpf_rf_hash, user_ip, email, cpf, rf,
+     * consent_ip, phone, custom_data.
      *
      * Safe to call multiple times (idempotent).
      *
@@ -391,22 +390,31 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
      * @return void
      */
     private function drop_legacy_columns(): void {
-        $columns_to_drop = array( 'cpf_rf', 'cpf_rf_encrypted', 'cpf_rf_hash', 'user_ip', 'email' );
+        // Columns to drop from submissions table
+        $submissions_columns = array(
+            'cpf_rf', 'cpf_rf_encrypted', 'cpf_rf_hash',
+            'user_ip', 'email',
+            'cpf', 'rf', 'consent_ip',
+        );
 
-        $tables = array( $this->submissions_table );
+        self::drop_columns_if_exist( $this->submissions_table, $submissions_columns );
+
+        // Appointments table has additional plaintext columns to drop
         if ( self::table_exists( $this->appointments_table ) ) {
-            $tables[] = $this->appointments_table;
-        }
-
-        foreach ( $tables as $table ) {
-            self::drop_columns_if_exist( $table, $columns_to_drop );
+            $appointments_columns = array(
+                'cpf_rf', 'cpf_rf_encrypted', 'cpf_rf_hash',
+                'user_ip', 'email',
+                'cpf', 'rf', 'consent_ip',
+                'phone', 'custom_data',
+            );
+            self::drop_columns_if_exist( $this->appointments_table, $appointments_columns );
         }
 
         if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
             \FreeFormCertificate\Core\ActivityLog::log(
                 'legacy_columns_dropped',
                 \FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
-                array( 'columns' => $columns_to_drop, 'tables' => $tables )
+                array( 'tables' => array( $this->submissions_table, $this->appointments_table ) )
             );
         }
     }
