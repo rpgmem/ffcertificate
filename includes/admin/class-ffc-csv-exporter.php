@@ -30,7 +30,7 @@ class CsvExporter {
 	/**
 	 * Records per AJAX batch request.
 	 */
-	const EXPORT_BATCH_SIZE = 100;
+	const EXPORT_BATCH_SIZE = 50;
 
 	/**
 	 * Records per query during dynamic-key discovery (lighter query).
