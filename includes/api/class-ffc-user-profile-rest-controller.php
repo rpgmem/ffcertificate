@@ -391,9 +391,20 @@ class UserProfileRestController {
                 \FreeFormCertificate\Core\ActivityLog::log_privacy_request($user_id, $type);
             }
 
+            $admin_hint = '';
+            if (current_user_can('manage_options')) {
+                $admin_hint = ' ' . sprintf(
+                    /* translators: %s: admin menu path, e.g. "Erase Personal Data" */
+                    __('Review it under Tools > %s in the WordPress admin.', 'ffcertificate'),
+                    ($type === 'export_personal_data')
+                        ? __('Export Personal Data', 'ffcertificate')
+                        : __('Erase Personal Data', 'ffcertificate')
+                );
+            }
+
             return rest_ensure_response(array(
                 'success' => true,
-                'message' => __('Request sent! The administrator will review it.', 'ffcertificate'),
+                'message' => __('Request sent! The administrator will review it.', 'ffcertificate') . $admin_hint,
             ));
 
         } catch (\Exception $e) {

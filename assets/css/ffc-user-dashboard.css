@@ -1231,6 +1231,11 @@
    CALENDAR EXPORT DROPDOWN
    ========================================================================== */
 
+/* Override overflow:hidden on the appointments table so the export dropdown is not clipped */
+.ffc-appointments-table {
+    overflow: visible;
+}
+
 .ffc-cal-export-wrap {
     position: relative;
     display: inline-block;
