@@ -5,7 +5,7 @@ declare(strict_types=1);
  * CpfRfSplitMigrationStrategy
  *
  * Migrates data from the combined cpf_rf/cpf_rf_encrypted/cpf_rf_hash columns
- * into separate cpf_*/rf_* columns based on identifier length:
+ * into separate cpf and rf columns based on identifier length:
  *   - 11 digits (CPF) → cpf, cpf_encrypted, cpf_hash
  *   - 7 digits (RF)   → rf, rf_encrypted, rf_hash
  *
