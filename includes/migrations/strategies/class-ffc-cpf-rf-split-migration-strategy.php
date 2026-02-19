@@ -73,7 +73,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 
         $total = $submissions_status['total'] + $appointments_status['total'];
         $migrated = $submissions_status['migrated'] + $appointments_status['migrated'];
-        $pending = $total - $migrated;
+        $pending = $submissions_status['pending'] + $appointments_status['pending'];
         $percent = ( $total > 0 ) ? ( $migrated / $total ) * 100 : 100;
 
         return array(
@@ -180,48 +180,43 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
     /**
      * Count migration status for a single table
      *
-     * After migration, cpf_rf_hash is NULLed out, so counting by cpf_rf_hash alone
-     * would show zero for both total and migrated. Instead we count:
-     *   - Migrated: records that have cpf_hash or rf_hash (split format)
-     *   - Pending:  records that still have cpf_rf_hash but no cpf_hash/rf_hash
-     *   - Total:    migrated + pending
+     * - Total:    all rows in the table
+     * - Migrated: rows that have cpf_hash OR rf_hash AND do NOT have cpf_rf_hash
+     * - Pending:  rows that still have cpf_rf_hash (need migration)
      *
      * @param string $table_name Table to check
-     * @return array{total: int, migrated: int}
+     * @return array{total: int, migrated: int, pending: int}
      */
     private function count_table_status( string $table_name ): array {
         global $wpdb;
 
-        if ( ! self::table_exists( $table_name ) || ! self::column_exists( $table_name, 'cpf_rf_hash' ) ) {
-            return array( 'total' => 0, 'migrated' => 0 );
+        if ( ! self::table_exists( $table_name ) ) {
+            return array( 'total' => 0, 'migrated' => 0, 'pending' => 0 );
         }
 
-        // Check if new columns exist
-        if ( ! self::column_exists( $table_name, 'cpf_hash' ) ) {
-            return array( 'total' => 0, 'migrated' => 0 );
+        // Check required columns exist
+        if ( ! self::column_exists( $table_name, 'cpf_rf_hash' ) || ! self::column_exists( $table_name, 'cpf_hash' ) ) {
+            return array( 'total' => 0, 'migrated' => 0, 'pending' => 0 );
         }
 
-        // Migrated = records that already have cpf_hash OR rf_hash (split format)
-        // This includes both migrated-from-legacy and natively-written records
+        // Total = all rows in the table
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $migrated = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM %i
-             WHERE (cpf_hash IS NOT NULL AND cpf_hash != '')
-                OR (rf_hash IS NOT NULL AND rf_hash != '')",
+        $total = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM %i",
             $table_name
         ) );
 
-        // Pending = records that still have legacy cpf_rf_hash but haven't been split yet
+        // Pending = rows that still have cpf_rf_hash (legacy data not yet split)
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $pending = (int) $wpdb->get_var( $wpdb->prepare(
             "SELECT COUNT(*) FROM %i
-             WHERE cpf_rf_hash IS NOT NULL AND cpf_rf_hash != ''
-             AND (cpf_hash IS NULL OR cpf_hash = '')
-             AND (rf_hash IS NULL OR rf_hash = '')",
+             WHERE cpf_rf_hash IS NOT NULL AND cpf_rf_hash != ''",
             $table_name
         ) );
 
-        return array( 'total' => $migrated + $pending, 'migrated' => $migrated );
+        $migrated = $total - $pending;
+
+        return array( 'total' => $total, 'migrated' => $migrated, 'pending' => $pending );
     }
 
     /**
