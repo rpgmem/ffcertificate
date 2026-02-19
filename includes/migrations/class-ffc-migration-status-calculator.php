@@ -81,8 +81,21 @@ class MigrationStatusCalculator {
         try {
             switch ( $migration_key ) {
                 case 'split_cpf_rf':
+                    // Explicit require — the autoloader may fail to resolve strategy paths
+                    // depending on OPcache state or realpath cache.
+                    $strategy_dir = __DIR__ . '/strategies/';
+                    $core_dir     = dirname( __DIR__ ) . '/core/';
+                    if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
+                        require_once $core_dir . 'class-ffc-database-helper-trait.php';
+                    }
+                    if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+                        require_once $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+                    }
+                    if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\CpfRfSplitMigrationStrategy', false ) ) {
+                        require_once $strategy_dir . 'class-ffc-cpf-rf-split-migration-strategy.php';
+                    }
+
                     $this->strategies['split_cpf_rf'] = new \FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy();
-                    // Clear any previous error on success
                     unset( $this->strategy_errors['split_cpf_rf'] );
                     break;
             }
