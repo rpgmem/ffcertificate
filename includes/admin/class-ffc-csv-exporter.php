@@ -29,15 +29,52 @@ class CsvExporter {
     use \FreeFormCertificate\Core\CsvExportTrait;
 
     /**
+     * Records per database query during export.
+     *
+     * @since 5.0.0
+     */
+    const EXPORT_BATCH_SIZE = 100;
+
+    /**
+     * Records per database query during dynamic-key discovery (lighter query).
+     *
+     * @since 5.0.0
+     */
+    const KEYS_BATCH_SIZE = 500;
+
+    /**
      * @var SubmissionRepository Repository instance
      */
     protected $repository;
+
+    /**
+     * Cached form titles to avoid repeated get_the_title() calls.
+     *
+     * @since 5.0.0
+     * @var array<int, string>
+     */
+    private array $form_title_cache = array();
 
     /**
      * Constructor
      */
     public function __construct() {
         $this->repository = new SubmissionRepository();
+    }
+
+    /**
+     * Get a form title with local caching to avoid repeated DB queries.
+     *
+     * @since 5.0.0
+     * @param int $form_id Form post ID.
+     * @return string Form title or "(Deleted)".
+     */
+    private function get_form_title_cached( int $form_id ): string {
+        if ( ! isset( $this->form_title_cache[ $form_id ] ) ) {
+            $title = get_the_title( $form_id );
+            $this->form_title_cache[ $form_id ] = $title ? $title : __( '(Deleted)', 'ffcertificate' );
+        }
+        return $this->form_title_cache[ $form_id ];
     }
 
     /**
@@ -121,8 +158,7 @@ class CsvExporter {
      * @return array<int, string>
      */
     private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {
-        $form_title = get_the_title( (int) $row['form_id'] );
-        $form_display = $form_title ? $form_title : __( '(Deleted)', 'ffcertificate' );
+        $form_display = $this->get_form_title_cached( (int) $row['form_id'] );
         
         // Decrypt sensitive fields (encrypted → plain fallback)
         $email   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' );
@@ -214,44 +250,51 @@ class CsvExporter {
     }
 
     /**
-     * Export submissions to CSV file
+     * Export submissions to CSV file using batched streaming.
      *
-     * v4.0.0: ENHANCED - Support multiple form IDs
-     * v3.0.3: REFACTORED - Uses Repository instead of direct SQL
+     * Processes records in batches of EXPORT_BATCH_SIZE using cursor-based
+     * pagination to avoid loading all records into memory at once.
+     * Dynamic column keys are discovered in a separate lightweight pass
+     * (only id + JSON data columns) before streaming begins.
+     *
+     * @since 5.0.0 Rewritten with batched streaming for large datasets.
+     * @since 4.0.0 Support multiple form IDs.
      *
      * @param array<int, int>|int|null $form_ids Single form ID, array of IDs, or null for all
      * @param string $status Status filter
      */
     public function export_csv( $form_ids = null, string $status = 'publish' ): void {
         // Normalize form_ids to array
-        if ( $form_ids !== null && !is_array( $form_ids ) ) {
-            $form_ids = [ (int) $form_ids ];
+        if ( $form_ids !== null && ! is_array( $form_ids ) ) {
+            $form_ids = array( (int) $form_ids );
         }
 
-        \FreeFormCertificate\Core\Utils::debug_log( 'CSV export started', array(
-            'form_ids' => $form_ids,
-            'status' => $status
+        \FreeFormCertificate\Core\Utils::debug_log( 'CSV export started (batched)', array(
+            'form_ids'   => $form_ids,
+            'status'     => $status,
+            'batch_size' => self::EXPORT_BATCH_SIZE,
         ) );
 
-        $rows = $this->repository->getForExport( $form_ids, $status );
+        // Allow long-running export without hitting PHP time/memory limits.
+        // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- set_time_limit may be disabled.
+        @set_time_limit( 0 );
+        wp_raise_memory_limit( 'admin' );
 
-        /**
-         * Filters submission rows before CSV export.
-         *
-         * @since 4.6.4
-         * @param array      $rows     Submission rows to export.
-         * @param array|null $form_ids Form IDs filter (null for all).
-         * @param string     $status   Status filter.
-         */
-        $rows = apply_filters( 'ffcertificate_csv_export_data', $rows, $form_ids, $status );
+        // ── Phase 1: Discover dynamic column keys (lightweight query) ──
+        // This also serves as an existence check — if scan finds zero rows,
+        // we can still wp_die() because no output has been sent yet.
+        $dynamic_keys = $this->scan_dynamic_keys( $form_ids, $status );
 
-        if ( empty( $rows ) ) {
+        // Quick check: attempt first batch to see if any records exist.
+        $probe = $this->repository->getExportBatch( $form_ids, $status, PHP_INT_MAX, 1 );
+        if ( empty( $probe ) ) {
             wp_die( esc_html__( 'No records available for export.', 'ffcertificate' ) );
         }
+        unset( $probe );
 
         $include_edit_columns = $this->repository->hasEditInfo();
 
-        // Generate filename based on filters
+        // Generate filename
         if ( $form_ids && count( $form_ids ) === 1 ) {
             $form_title = get_the_title( $form_ids[0] );
         } elseif ( $form_ids && count( $form_ids ) > 1 ) {
@@ -261,47 +304,124 @@ class CsvExporter {
         }
 
         $filename = \FreeFormCertificate\Core\Utils::sanitize_filename( $form_title ) . '-' . gmdate( 'Y-m-d' ) . '.csv';
-        
+
+        // ── Phase 2: Stream CSV in batches ──────────────────────────
+        // Discard any WordPress output buffers so flushing reaches the client.
+        // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+        while ( @ob_end_clean() ) {} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
+
         header( 'Content-Type: text/csv; charset=utf-8' );
         header( "Content-Disposition: attachment; filename={$filename}" );
         header( 'Pragma: no-cache' );
         header( 'Expires: 0' );
+        // Prevent proxies/CDNs from buffering the entire response.
+        header( 'X-Accel-Buffering: no' );
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Opening php://output for CSV streaming.
         $output = fopen( 'php://output', 'w' );
 
         // BOM for Excel UTF-8 recognition
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV binary output, not HTML context
-        fprintf( $output, chr(0xEF).chr(0xBB).chr(0xBF) );
+        fprintf( $output, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
 
-        $dynamic_keys = $this->get_dynamic_columns( $rows );
+        // Write header row
         $headers = array_merge(
             $this->get_fixed_headers( $include_edit_columns ),
             $this->get_dynamic_headers( $dynamic_keys )
         );
-
-        // Convert all headers to UTF-8
-        $headers = array_map( function( $header ) {
+        $headers = array_map( function ( $header ) {
             return mb_convert_encoding( $header, 'UTF-8', 'UTF-8' );
         }, $headers );
 
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV file output, not HTML context
         fputcsv( $output, $headers, ';' );
 
-        foreach( $rows as $row ) {
-            $csv_row = $this->format_csv_row( $row, $dynamic_keys, $include_edit_columns );
+        // Stream rows in cursor-based batches
+        $cursor     = PHP_INT_MAX;
+        $total_rows = 0;
 
-            // Convert all row data to UTF-8
-            $csv_row = array_map( function( $value ) {
-                return mb_convert_encoding( $value, 'UTF-8', 'UTF-8' );
-            }, $csv_row );
+        while ( true ) {
+            $batch = $this->repository->getExportBatch( $form_ids, $status, $cursor, self::EXPORT_BATCH_SIZE );
 
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV file output, not HTML context
-            fputcsv( $output, $csv_row, ';' );
+            if ( empty( $batch ) ) {
+                break;
+            }
+
+            /**
+             * Filters a batch of submission rows during CSV export.
+             *
+             * @since 5.0.0
+             * @param array      $batch    Current batch of rows.
+             * @param array|null $form_ids Form IDs filter (null for all).
+             * @param string     $status   Status filter.
+             */
+            $batch = apply_filters( 'ffcertificate_csv_export_data', $batch, $form_ids, $status );
+
+            foreach ( $batch as $row ) {
+                $csv_row = $this->format_csv_row( $row, $dynamic_keys, $include_edit_columns );
+                $csv_row = array_map( function ( $value ) {
+                    return mb_convert_encoding( (string) $value, 'UTF-8', 'UTF-8' );
+                }, $csv_row );
+
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV file output, not HTML context
+                fputcsv( $output, $csv_row, ';' );
+            }
+
+            // Advance cursor to the last id in this batch
+            $last_row    = end( $batch );
+            $cursor      = (int) $last_row['id'];
+            $total_rows += count( $batch );
+
+            // Flush output so the browser receives data progressively
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            fflush( $output );
+            flush();
+
+            // Free batch memory before next iteration
+            unset( $batch );
         }
+
+        \FreeFormCertificate\Core\Utils::debug_log( 'CSV export completed', array(
+            'total_rows' => $total_rows,
+        ) );
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing php://output stream for CSV export.
         fclose( $output );
         exit;
+    }
+
+    /**
+     * Scan all matching records to discover dynamic JSON keys.
+     *
+     * Uses a lightweight query (only id, data, data_encrypted) in batches
+     * to avoid loading full rows into memory just for key discovery.
+     *
+     * @since 5.0.0
+     * @param array<int, int>|null $form_ids Form IDs filter.
+     * @param string               $status   Status filter.
+     * @return array<int, string> Unique dynamic keys across all matching records.
+     */
+    private function scan_dynamic_keys( ?array $form_ids, string $status ): array {
+        $all_keys = array();
+        $cursor   = PHP_INT_MAX;
+
+        while ( true ) {
+            $batch = $this->repository->getExportKeysBatch( $form_ids, $status, $cursor, self::KEYS_BATCH_SIZE );
+
+            if ( empty( $batch ) ) {
+                break;
+            }
+
+            $batch_keys = $this->extract_dynamic_keys( $batch, 'data', 'data_encrypted' );
+            $all_keys   = array_merge( $all_keys, $batch_keys );
+
+            $last_row = end( $batch );
+            $cursor   = (int) $last_row['id'];
+
+            unset( $batch );
+        }
+
+        return array_values( array_unique( $all_keys ) );
     }
 
     /**

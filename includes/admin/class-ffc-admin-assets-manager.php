@@ -353,6 +353,9 @@ class AdminAssetsManager {
                 'confirmLoadTemplate'     => __( 'Load "%s"? This will replace your current certificate HTML.', 'ffcertificate' ),
                 'dismiss'                 => __( 'Dismiss', 'ffcertificate' ),
 
+                // CSV Export
+                'exporting'               => __( 'Exporting\u2026', 'ffcertificate' ),
+
                 // Ticket Generation
                 'enterValidNumber'        => __( 'Please enter a valid number.', 'ffcertificate' ),
                 'generatingTickets'       => __( 'Generating tickets...', 'ffcertificate' ),

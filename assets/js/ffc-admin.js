@@ -164,6 +164,28 @@
     });
 
     // ==========================================================================
+    // CSV EXPORT - Loading state on submit
+    // ==========================================================================
+
+    $(document).on('submit', 'form:has([name="ffc_action"][value="export_csv_smart"])', function() {
+        var $btn = $(this).find('button[type="submit"]');
+        if ( $btn.length ) {
+            var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+            var exportingText = strings.exporting || 'Exporting\u2026';
+            $btn.data('ffc-original-text', $btn.text());
+            $btn.prop('disabled', true).text(exportingText).addClass('ffc-btn-loading');
+
+            // Re-enable after 10 s — by then the browser has received the
+            // file download headers and the user can export again if needed.
+            setTimeout(function() {
+                $btn.prop('disabled', false)
+                    .text($btn.data('ffc-original-text'))
+                    .removeClass('ffc-btn-loading');
+            }, 10000);
+        }
+    });
+
+    // ==========================================================================
     // INITIALIZE ON DOCUMENT READY
     // ==========================================================================
 

@@ -250,6 +250,102 @@ class SubmissionRepository extends AbstractRepository {
     }
 
     /**
+     * Build WHERE clause and prepare args for export queries.
+     *
+     * @since 5.0.0
+     * @param array<int, int>|null $form_ids Form IDs filter.
+     * @param string|null          $status   Status filter.
+     * @return array{string, array<int, mixed>} [where_clause, prepare_args] — args include table as first element.
+     */
+    private function build_export_where( ?array $form_ids, ?string $status ): array {
+        $where = array();
+        $prepare_args = array( $this->table );
+
+        if ( ! empty( $form_ids ) ) {
+            $form_ids_int = array_map( 'absint', $form_ids );
+            $placeholders = implode( ', ', array_fill( 0, count( $form_ids_int ), '%d' ) );
+            $where[] = "form_id IN ({$placeholders})";
+            $prepare_args = array_merge( $prepare_args, $form_ids_int );
+        }
+
+        if ( $status ) {
+            $where[] = 'status = %s';
+            $prepare_args[] = $status;
+        }
+
+        $where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
+
+        return array( $where_clause, $prepare_args );
+    }
+
+    /**
+     * Get a batch of submissions for export using cursor-based pagination.
+     *
+     * Uses `id < $cursor` instead of OFFSET for O(1) index seeks regardless of page depth.
+     *
+     * @since 5.0.0
+     * @param array<int, int>|null $form_ids  Form IDs filter (null = all forms).
+     * @param string|null          $status    Status filter.
+     * @param int                  $cursor_id Cursor: fetch rows with id < this value. Use PHP_INT_MAX for first batch.
+     * @param int                  $limit     Batch size.
+     * @return array<int, array<string, mixed>>
+     */
+    public function getExportBatch( ?array $form_ids, ?string $status, int $cursor_id, int $limit ): array {
+        list( $where_clause, $prepare_args ) = $this->build_export_where( $form_ids, $status );
+
+        // Append cursor condition
+        $cursor_condition = 'id < %d';
+        if ( $where_clause === '' ) {
+            $where_clause = 'WHERE ' . $cursor_condition;
+        } else {
+            $where_clause .= ' AND ' . $cursor_condition;
+        }
+        $prepare_args[] = $cursor_id;
+        $prepare_args[] = $limit;
+
+        $query = "SELECT * FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $query = $this->wpdb->prepare( $query, ...$prepare_args );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $this->wpdb->get_results( $query, ARRAY_A );
+    }
+
+    /**
+     * Get only JSON data columns in batches for dynamic-key discovery.
+     *
+     * Much lighter than SELECT * — skips all encrypted/heavy columns.
+     *
+     * @since 5.0.0
+     * @param array<int, int>|null $form_ids  Form IDs filter.
+     * @param string|null          $status    Status filter.
+     * @param int                  $cursor_id Cursor: fetch rows with id < this value.
+     * @param int                  $limit     Batch size.
+     * @return array<int, array<string, mixed>>
+     */
+    public function getExportKeysBatch( ?array $form_ids, ?string $status, int $cursor_id, int $limit ): array {
+        list( $where_clause, $prepare_args ) = $this->build_export_where( $form_ids, $status );
+
+        $cursor_condition = 'id < %d';
+        if ( $where_clause === '' ) {
+            $where_clause = 'WHERE ' . $cursor_condition;
+        } else {
+            $where_clause .= ' AND ' . $cursor_condition;
+        }
+        $prepare_args[] = $cursor_id;
+        $prepare_args[] = $limit;
+
+        $query = "SELECT id, data, data_encrypted FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $query = $this->wpdb->prepare( $query, ...$prepare_args );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $this->wpdb->get_results( $query, ARRAY_A );
+    }
+
+    /**
      * ✅ NEW v3.0.1: Check if any submission has edit information
      *
      * @return bool True if edited_at column exists and has data
