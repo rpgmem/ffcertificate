@@ -1,0 +1,104 @@
+/**
+ * URL Shortener Admin Styles
+ *
+ * @since 5.1.0
+ */
+
+/* Meta box container */
+.ffc-shorturl-metabox {
+    padding: 4px 0;
+}
+
+.ffc-shorturl-metabox label {
+    font-weight: 600;
+}
+
+.ffc-shorturl-metabox input[readonly] {
+    background: #f7f7f7;
+    cursor: text;
+}
+
+/* Copy button in meta box */
+.ffc-copy-shorturl {
+    min-width: 36px;
+    text-align: center;
+}
+
+.ffc-copy-shorturl .dashicons {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+/* Download buttons */
+.ffc-download-qr {
+    min-width: 60px;
+}
+
+/* Toast notification */
+.ffc-shorturl-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1d2327;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-size: 13px;
+    z-index: 100100;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ffc-shorturl-toast--visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.ffc-shorturl-toast--error {
+    background: #dc3232;
+}
+
+/* Admin page: clickable short URL code */
+.ffc-shorturl-code {
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.ffc-shorturl-code:hover {
+    background: #ddd;
+}
+
+/* Stats cards */
+.ffc-shorturl-stats > div {
+    transition: box-shadow 0.2s;
+}
+
+.ffc-shorturl-stats > div:hover {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Create form */
+.ffc-shorturl-create input[type="url"],
+.ffc-shorturl-create input[type="text"] {
+    height: 34px;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+    .ffc-shorturl-stats {
+        flex-direction: column !important;
+    }
+
+    .ffc-shorturl-create form {
+        flex-direction: column !important;
+    }
+
+    .ffc-shorturl-create input[type="url"],
+    .ffc-shorturl-create input[type="text"] {
+        width: 100% !important;
+    }
+}

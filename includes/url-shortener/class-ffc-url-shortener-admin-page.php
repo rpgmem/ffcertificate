@@ -1,0 +1,380 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * URL Shortener Admin Page
+ *
+ * Admin submenu page listing all short URLs with CRUD operations.
+ *
+ * @since 5.1.0
+ * @package FreeFormCertificate\UrlShortener
+ */
+
+namespace FreeFormCertificate\UrlShortener;
+
+use FreeFormCertificate\Core\AjaxTrait;
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class UrlShortenerAdminPage {
+
+    use AjaxTrait;
+
+    /** @var UrlShortenerService */
+    private UrlShortenerService $service;
+
+    public function __construct( UrlShortenerService $service ) {
+        $this->service = $service;
+    }
+
+    /**
+     * Register hooks.
+     */
+    public function init(): void {
+        add_action( 'admin_menu', [ $this, 'register_menu' ], 25 );
+        add_action( 'admin_init', [ $this, 'handle_actions' ] );
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+        add_action( 'wp_ajax_ffc_create_short_url', [ $this, 'ajax_create' ] );
+        add_action( 'wp_ajax_ffc_delete_short_url', [ $this, 'ajax_delete' ] );
+        add_action( 'wp_ajax_ffc_toggle_short_url', [ $this, 'ajax_toggle' ] );
+    }
+
+    /**
+     * Enqueue assets on the Short URLs admin page.
+     *
+     * @param string $hook_suffix Admin page hook suffix.
+     */
+    public function enqueue_assets( string $hook_suffix ): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $page = sanitize_text_field( wp_unslash( $_GET['page'] ?? '' ) );
+        if ( $page !== 'ffc-short-urls' ) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'ffc-url-shortener-admin',
+            FFC_PLUGIN_URL . 'assets/css/ffc-url-shortener-admin.css',
+            [],
+            FFC_VERSION
+        );
+        wp_enqueue_script(
+            'ffc-url-shortener-admin',
+            FFC_PLUGIN_URL . 'assets/js/ffc-url-shortener-admin.js',
+            [ 'jquery' ],
+            FFC_VERSION,
+            true
+        );
+        wp_localize_script( 'ffc-url-shortener-admin', 'ffcUrlShortener', [
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+            'nonce'   => wp_create_nonce( 'ffc_short_url_nonce' ),
+            'i18n'    => [
+                'copied'     => __( 'Copied!', 'ffcertificate' ),
+                'copyFailed' => __( 'Copy failed', 'ffcertificate' ),
+                'error'      => __( 'An error occurred.', 'ffcertificate' ),
+            ],
+        ] );
+    }
+
+    /**
+     * Add submenu under the FFC Forms menu.
+     */
+    public function register_menu(): void {
+        add_submenu_page(
+            'edit.php?post_type=ffc_form',
+            __( 'Short URLs', 'ffcertificate' ),
+            __( 'Short URLs', 'ffcertificate' ),
+            'manage_options',
+            'ffc-short-urls',
+            [ $this, 'render_page' ]
+        );
+    }
+
+    /**
+     * Handle non-AJAX admin actions (bulk delete, toggle).
+     */
+    public function handle_actions(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ( ! isset( $_GET['page'] ) || sanitize_text_field( wp_unslash( $_GET['page'] ) ) !== 'ffc-short-urls' ) {
+            return;
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ( ! isset( $_GET['ffc_action'] ) ) {
+            return;
+        }
+
+        $action = sanitize_key( wp_unslash( $_GET['ffc_action'] ) );
+        $nonce  = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+
+        if ( $action === 'delete' && isset( $_GET['id'] ) ) {
+            if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_delete_' . absint( $_GET['id'] ) ) ) {
+                wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
+            }
+            $this->service->delete_short_url( absint( wp_unslash( $_GET['id'] ) ) );
+            wp_safe_redirect( admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&msg=deleted' ) );
+            exit;
+        }
+
+        if ( $action === 'toggle' && isset( $_GET['id'] ) ) {
+            if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_toggle_' . absint( $_GET['id'] ) ) ) {
+                wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
+            }
+            $this->service->toggle_status( absint( wp_unslash( $_GET['id'] ) ) );
+            wp_safe_redirect( admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&msg=toggled' ) );
+            exit;
+        }
+    }
+
+    /**
+     * AJAX: Create a new short URL.
+     */
+    public function ajax_create(): void {
+        $this->verify_ajax_nonce( 'ffc_short_url_nonce' );
+        $this->check_ajax_permission();
+
+        $url   = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ) );
+        $title = sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) );
+
+        if ( empty( $url ) ) {
+            wp_send_json_error( [ 'message' => __( 'URL is required.', 'ffcertificate' ) ] );
+        }
+
+        $result = $this->service->create_short_url( $url, $title );
+
+        if ( $result['success'] ) {
+            $data = $result['data'];
+            $data['short_url'] = $this->service->get_short_url( $data['short_code'] );
+            wp_send_json_success( $data );
+        } else {
+            wp_send_json_error( [ 'message' => $result['error'] ] );
+        }
+    }
+
+    /**
+     * AJAX: Delete a short URL.
+     */
+    public function ajax_delete(): void {
+        $this->verify_ajax_nonce( 'ffc_short_url_nonce' );
+        $this->check_ajax_permission();
+
+        $id = (int) ( $_POST['id'] ?? 0 );
+        if ( $id <= 0 ) {
+            wp_send_json_error( [ 'message' => __( 'Invalid ID.', 'ffcertificate' ) ] );
+        }
+
+        $this->service->delete_short_url( $id );
+        wp_send_json_success();
+    }
+
+    /**
+     * AJAX: Toggle short URL status.
+     */
+    public function ajax_toggle(): void {
+        $this->verify_ajax_nonce( 'ffc_short_url_nonce' );
+        $this->check_ajax_permission();
+
+        $id = (int) ( $_POST['id'] ?? 0 );
+        if ( $id <= 0 ) {
+            wp_send_json_error( [ 'message' => __( 'Invalid ID.', 'ffcertificate' ) ] );
+        }
+
+        $this->service->toggle_status( $id );
+        wp_send_json_success();
+    }
+
+    /**
+     * Render the admin page.
+     */
+    public function render_page(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only parameters
+        $page    = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $search  = sanitize_text_field( wp_unslash( $_GET['s'] ?? '' ) );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $orderby = sanitize_key( $_GET['orderby'] ?? 'created_at' );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $order   = strtoupper( sanitize_key( $_GET['order'] ?? 'DESC' ) );
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $status  = sanitize_key( $_GET['status'] ?? 'all' );
+
+        $per_page = 20;
+        $result   = $this->service->get_repository()->findPaginated( [
+            'per_page' => $per_page,
+            'page'     => $page,
+            'orderby'  => $orderby,
+            'order'    => $order,
+            'search'   => $search,
+            'status'   => $status,
+        ] );
+
+        $items       = $result['items'];
+        $total       = $result['total'];
+        $total_pages = (int) ceil( $total / $per_page );
+        $stats       = $this->service->get_stats();
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $msg         = sanitize_key( $_GET['msg'] ?? '' );
+
+        ?>
+        <div class="wrap">
+            <h1 class="wp-heading-inline"><?php esc_html_e( 'Short URLs', 'ffcertificate' ); ?></h1>
+            <hr class="wp-header-end">
+
+            <?php if ( $msg === 'deleted' ) : ?>
+                <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Short URL deleted.', 'ffcertificate' ); ?></p></div>
+            <?php elseif ( $msg === 'toggled' ) : ?>
+                <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Status updated.', 'ffcertificate' ); ?></p></div>
+            <?php endif; ?>
+
+            <!-- Stats -->
+            <div class="ffc-shorturl-stats" style="display:flex;gap:20px;margin:15px 0;">
+                <div style="background:#fff;padding:12px 20px;border:1px solid #ccd0d4;border-radius:4px;">
+                    <strong><?php echo esc_html( number_format_i18n( $stats['total_links'] ) ); ?></strong>
+                    <span style="color:#666;margin-left:4px;"><?php esc_html_e( 'Total Links', 'ffcertificate' ); ?></span>
+                </div>
+                <div style="background:#fff;padding:12px 20px;border:1px solid #ccd0d4;border-radius:4px;">
+                    <strong><?php echo esc_html( number_format_i18n( $stats['active_links'] ) ); ?></strong>
+                    <span style="color:#666;margin-left:4px;"><?php esc_html_e( 'Active', 'ffcertificate' ); ?></span>
+                </div>
+                <div style="background:#fff;padding:12px 20px;border:1px solid #ccd0d4;border-radius:4px;">
+                    <strong><?php echo esc_html( number_format_i18n( $stats['total_clicks'] ) ); ?></strong>
+                    <span style="color:#666;margin-left:4px;"><?php esc_html_e( 'Total Clicks', 'ffcertificate' ); ?></span>
+                </div>
+            </div>
+
+            <!-- Create New -->
+            <div class="ffc-shorturl-create" style="background:#fff;padding:15px 20px;border:1px solid #ccd0d4;border-radius:4px;margin-bottom:15px;">
+                <h3 style="margin-top:0;"><?php esc_html_e( 'Create Short URL', 'ffcertificate' ); ?></h3>
+                <form id="ffc-create-short-url" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                    <?php wp_nonce_field( 'ffc_short_url_nonce', 'ffc_short_url_nonce' ); ?>
+                    <div>
+                        <label for="ffc-shorturl-target"><strong><?php esc_html_e( 'Destination URL', 'ffcertificate' ); ?></strong></label><br>
+                        <input type="url" id="ffc-shorturl-target" name="target_url" placeholder="https://example.com/long-page" required style="width:400px;" />
+                    </div>
+                    <div>
+                        <label for="ffc-shorturl-title"><strong><?php esc_html_e( 'Title (optional)', 'ffcertificate' ); ?></strong></label><br>
+                        <input type="text" id="ffc-shorturl-title" name="title" placeholder="<?php esc_attr_e( 'My Campaign', 'ffcertificate' ); ?>" style="width:200px;" />
+                    </div>
+                    <div>
+                        <button type="submit" class="button button-primary"><?php esc_html_e( 'Create', 'ffcertificate' ); ?></button>
+                    </div>
+                    <div id="ffc-shorturl-result" style="display:none;padding:8px 12px;background:#d4edda;border-radius:3px;"></div>
+                </form>
+            </div>
+
+            <!-- Search + Filter -->
+            <form method="get" style="margin-bottom:10px;">
+                <input type="hidden" name="post_type" value="ffc_form" />
+                <input type="hidden" name="page" value="ffc-short-urls" />
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <select name="status">
+                        <option value="all" <?php selected( $status, 'all' ); ?>><?php esc_html_e( 'All statuses', 'ffcertificate' ); ?></option>
+                        <option value="active" <?php selected( $status, 'active' ); ?>><?php esc_html_e( 'Active', 'ffcertificate' ); ?></option>
+                        <option value="disabled" <?php selected( $status, 'disabled' ); ?>><?php esc_html_e( 'Disabled', 'ffcertificate' ); ?></option>
+                    </select>
+                    <input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search...', 'ffcertificate' ); ?>" />
+                    <button type="submit" class="button"><?php esc_html_e( 'Filter', 'ffcertificate' ); ?></button>
+                </div>
+            </form>
+
+            <!-- Table -->
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
+                    <tr>
+                        <th style="width:25%;"><?php esc_html_e( 'Title', 'ffcertificate' ); ?></th>
+                        <th style="width:18%;"><?php esc_html_e( 'Short URL', 'ffcertificate' ); ?></th>
+                        <th style="width:25%;"><?php esc_html_e( 'Destination', 'ffcertificate' ); ?></th>
+                        <th style="width:8%;">
+                            <?php
+                            $clicks_url = add_query_arg( [
+                                'post_type' => 'ffc_form',
+                                'page'      => 'ffc-short-urls',
+                                'orderby'   => 'click_count',
+                                'order'     => ( $orderby === 'click_count' && $order === 'DESC' ) ? 'asc' : 'desc',
+                                's'         => $search,
+                                'status'    => $status,
+                            ], admin_url( 'edit.php' ) );
+                            ?>
+                            <a href="<?php echo esc_url( $clicks_url ); ?>"><?php esc_html_e( 'Clicks', 'ffcertificate' ); ?></a>
+                        </th>
+                        <th style="width:10%;"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
+                        <th style="width:14%;"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if ( empty( $items ) ) : ?>
+                        <tr>
+                            <td colspan="6"><?php esc_html_e( 'No short URLs found.', 'ffcertificate' ); ?></td>
+                        </tr>
+                    <?php else : ?>
+                        <?php foreach ( $items as $item ) : ?>
+                            <?php
+                            $short_url  = $this->service->get_short_url( $item['short_code'] );
+                            $toggle_url = wp_nonce_url(
+                                admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&ffc_action=toggle&id=' . $item['id'] ),
+                                'ffc_short_url_toggle_' . $item['id']
+                            );
+                            $delete_url = wp_nonce_url(
+                                admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&ffc_action=delete&id=' . $item['id'] ),
+                                'ffc_short_url_delete_' . $item['id']
+                            );
+                            $status_class = $item['status'] === 'active' ? 'color:#46b450;' : 'color:#dc3232;';
+                            $status_label = $item['status'] === 'active'
+                                ? __( 'Active', 'ffcertificate' )
+                                : __( 'Disabled', 'ffcertificate' );
+                            ?>
+                            <tr>
+                                <td>
+                                    <strong><?php echo esc_html( $item['title'] ?: '(' . __( 'no title', 'ffcertificate' ) . ')' ); ?></strong>
+                                    <?php if ( $item['post_id'] ) : ?>
+                                        <br><small><?php echo esc_html( get_the_title( (int) $item['post_id'] ) ); ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <code class="ffc-shorturl-code" style="cursor:pointer;" title="<?php esc_attr_e( 'Click to copy', 'ffcertificate' ); ?>" data-url="<?php echo esc_attr( $short_url ); ?>">
+                                        <?php echo esc_html( $short_url ); ?>
+                                    </code>
+                                </td>
+                                <td>
+                                    <a href="<?php echo esc_url( $item['target_url'] ); ?>" target="_blank" rel="noopener noreferrer" title="<?php echo esc_attr( $item['target_url'] ); ?>">
+                                        <?php echo esc_html( \FreeFormCertificate\Core\Utils::truncate( $item['target_url'], 50, '...' ) ); ?>
+                                    </a>
+                                </td>
+                                <td><strong><?php echo esc_html( number_format_i18n( (int) $item['click_count'] ) ); ?></strong></td>
+                                <td><span style="<?php echo esc_attr( $status_class ); ?>font-weight:600;"><?php echo esc_html( $status_label ); ?></span></td>
+                                <td>
+                                    <a href="<?php echo esc_url( $toggle_url ); ?>" class="button button-small">
+                                        <?php echo $item['status'] === 'active' ? esc_html__( 'Disable', 'ffcertificate' ) : esc_html__( 'Enable', 'ffcertificate' ); ?>
+                                    </a>
+                                    <a href="<?php echo esc_url( $delete_url ); ?>" class="button button-small button-link-delete" onclick="return confirm('<?php esc_attr_e( 'Are you sure?', 'ffcertificate' ); ?>');">
+                                        <?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <?php if ( $total_pages > 1 ) : ?>
+                <div class="tablenav bottom">
+                    <div class="tablenav-pages">
+                        <?php
+                        echo wp_kses_post( paginate_links( [
+                            'base'      => add_query_arg( 'paged', '%#%' ),
+                            'format'    => '',
+                            'total'     => $total_pages,
+                            'current'   => $page,
+                            'prev_text' => '&laquo;',
+                            'next_text' => '&raquo;',
+                        ] ) );
+                        ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+}

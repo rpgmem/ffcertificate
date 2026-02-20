@@ -42,6 +42,8 @@ use FreeFormCertificate\Reregistration\ReregistrationAdmin;
 use FreeFormCertificate\Reregistration\ReregistrationFrontend;
 use FreeFormCertificate\Reregistration\ReregistrationRepository;
 use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
+use FreeFormCertificate\UrlShortener\UrlShortenerActivator;
+use FreeFormCertificate\UrlShortener\UrlShortenerLoader;
 
 if (!defined('ABSPATH')) exit;
 
@@ -96,6 +98,9 @@ class Loader {
         if (class_exists('\FreeFormCertificate\Audience\AudienceActivator')) {
             \FreeFormCertificate\Audience\AudienceActivator::maybe_migrate();
         }
+        if (class_exists(UrlShortenerActivator::class)) {
+            UrlShortenerActivator::maybe_migrate();
+        }
 
         // Shared classes (needed in both admin and frontend contexts)
         $this->submission_handler = new SubmissionHandler();
@@ -135,6 +140,12 @@ class Loader {
 
         $this->audience_loader = AudienceLoader::get_instance();
         $this->audience_loader->init();
+
+        // URL Shortener module (v5.1.0)
+        if (class_exists(UrlShortenerLoader::class)) {
+            $url_shortener = new UrlShortenerLoader();
+            $url_shortener->init();
+        }
 
         new ActivityLogSubscriber();
 

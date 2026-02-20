@@ -86,6 +86,7 @@ class SettingsSaveHandler {
         $clean = $this->save_smtp_settings( $clean, $new );
         $clean = $this->save_qrcode_settings( $clean, $new );
         $clean = $this->save_date_format_settings( $clean, $new );
+        $clean = $this->save_url_shortener_settings( $clean, $new );
 
         /**
          * Filters plugin settings before they are saved.
@@ -289,6 +290,50 @@ class SettingsSaveHandler {
             $clean['date_format_custom'] = sanitize_text_field( $new['date_format_custom'] );
         }
 
+        return $clean;
+    }
+
+    /**
+     * Save URL Shortener settings (v5.1.0)
+     *
+     * @param array<string, mixed> $clean Current settings
+     * @param array<string, mixed> $new New settings from POST
+     * @return array<string, mixed> Updated settings
+     */
+    private function save_url_shortener_settings( array $clean, array $new ): array {
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions().
+
+        // Checkbox fields (unchecked = absent from POST)
+        $clean['url_shortener_enabled']     = isset( $new['url_shortener_enabled'] ) ? 1 : 0;
+        $clean['url_shortener_auto_create'] = isset( $new['url_shortener_auto_create'] ) ? 1 : 0;
+
+        if ( isset( $new['url_shortener_prefix'] ) ) {
+            $old_prefix = $clean['url_shortener_prefix'] ?? 'go';
+            $clean['url_shortener_prefix'] = sanitize_title( $new['url_shortener_prefix'] );
+            // Flush rewrite rules when prefix changes
+            if ( $clean['url_shortener_prefix'] !== $old_prefix ) {
+                add_action( 'shutdown', 'flush_rewrite_rules' );
+            }
+        }
+
+        if ( isset( $new['url_shortener_code_length'] ) ) {
+            $clean['url_shortener_code_length'] = max( 4, min( 10, (int) $new['url_shortener_code_length'] ) );
+        }
+
+        if ( isset( $new['url_shortener_redirect_type'] ) ) {
+            $type = (int) $new['url_shortener_redirect_type'];
+            $clean['url_shortener_redirect_type'] = in_array( $type, [ 301, 302, 307 ], true ) ? $type : 302;
+        }
+
+        // Post types is an array of checkboxes - read directly from raw POST
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+        if ( isset( $_POST['ffc_settings']['url_shortener_post_types'] ) && is_array( $_POST['ffc_settings']['url_shortener_post_types'] ) ) {
+            $clean['url_shortener_post_types'] = array_map( 'sanitize_key', wp_unslash( $_POST['ffc_settings']['url_shortener_post_types'] ) );
+        } else {
+            $clean['url_shortener_post_types'] = [];
+        }
+
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
         return $clean;
     }
 

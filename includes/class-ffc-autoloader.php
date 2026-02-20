@@ -259,6 +259,9 @@ class FFC_Autoloader {
 
             // Reregistration namespace (v4.11.0) - Custom fields & reregistration
             'Reregistration' => 'reregistration',
+
+            // URL Shortener namespace (v5.1.0) - Short URLs + QR Codes
+            'UrlShortener' => 'url-shortener',
         ];
     }
 

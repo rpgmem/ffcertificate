@@ -56,6 +56,10 @@ class Activator {
             \FreeFormCertificate\Audience\AudienceActivator::create_tables();
         }
 
+        if (class_exists('\FreeFormCertificate\UrlShortener\UrlShortenerActivator')) {
+            \FreeFormCertificate\UrlShortener\UrlShortenerActivator::create_tables();
+        }
+
         self::add_composite_indexes();
         self::add_foreign_keys();
         self::run_migrations();
