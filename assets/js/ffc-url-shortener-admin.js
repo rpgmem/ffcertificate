@@ -144,6 +144,57 @@
             });
         });
 
+        // --- QR Code Modal ---
+        $(document).on('click', '.ffc-show-qr-modal', function (e) {
+            e.preventDefault();
+            var code = $(this).data('code');
+            var url = $(this).data('url');
+            var title = $(this).data('title');
+            var $modal = $('#ffc-qr-modal');
+
+            // Populate modal
+            $modal.find('.ffc-qr-modal__title').text(title);
+            $modal.find('.ffc-qr-modal__url').text(url);
+            $modal.find('.ffc-copy-shorturl').data('url', url);
+            $modal.find('.ffc-download-qr').data('code', code);
+
+            // Reset state
+            $modal.find('.ffc-qr-modal__img').hide();
+            $modal.find('.ffc-qr-modal__spinner').show();
+            $modal.show();
+
+            // Fetch QR Code via AJAX
+            $.post(settings.ajaxUrl, {
+                action: 'ffc_download_qr_png',
+                nonce: settings.nonce,
+                code: code
+            }, function (response) {
+                $modal.find('.ffc-qr-modal__spinner').hide();
+                if (response.success) {
+                    $modal.find('.ffc-qr-modal__img')
+                        .attr('src', 'data:image/png;base64,' + response.data.data)
+                        .show();
+                } else {
+                    $modal.find('.ffc-qr-modal__preview')
+                        .html('<p style="color:#dc3232;">' + (response.data ? response.data.message : 'Error') + '</p>');
+                }
+            }).fail(function () {
+                $modal.find('.ffc-qr-modal__spinner').hide();
+                $modal.find('.ffc-qr-modal__preview')
+                    .html('<p style="color:#dc3232;">Failed to load QR Code</p>');
+            });
+        });
+
+        // Close modal
+        $(document).on('click', '.ffc-qr-modal__close, .ffc-qr-modal__backdrop', function () {
+            $('#ffc-qr-modal').hide();
+        });
+        $(document).on('keydown', function (e) {
+            if (e.key === 'Escape') {
+                $('#ffc-qr-modal').hide();
+            }
+        });
+
         // --- Create short URL (admin page form) ---
         $('#ffc-create-short-url').on('submit', function (e) {
             e.preventDefault();

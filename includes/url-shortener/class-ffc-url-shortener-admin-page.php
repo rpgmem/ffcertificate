@@ -344,6 +344,13 @@ class UrlShortenerAdminPage {
                                 <td><strong><?php echo esc_html( number_format_i18n( (int) $item['click_count'] ) ); ?></strong></td>
                                 <td><span style="<?php echo esc_attr( $status_class ); ?>font-weight:600;"><?php echo esc_html( $status_label ); ?></span></td>
                                 <td>
+                                    <button type="button" class="button button-small ffc-show-qr-modal"
+                                            data-code="<?php echo esc_attr( $item['short_code'] ); ?>"
+                                            data-url="<?php echo esc_attr( $short_url ); ?>"
+                                            data-title="<?php echo esc_attr( $item['title'] ?: $item['short_code'] ); ?>">
+                                        <span class="dashicons dashicons-screenoptions" style="margin-top:3px;font-size:14px;width:14px;height:14px;"></span>
+                                        QR
+                                    </button>
                                     <a href="<?php echo esc_url( $toggle_url ); ?>" class="button button-small">
                                         <?php echo $item['status'] === 'active' ? esc_html__( 'Disable', 'ffcertificate' ) : esc_html__( 'Enable', 'ffcertificate' ); ?>
                                     </a>
@@ -374,6 +381,34 @@ class UrlShortenerAdminPage {
                     </div>
                 </div>
             <?php endif; ?>
+
+            <!-- QR Code Modal Overlay -->
+            <div id="ffc-qr-modal" class="ffc-qr-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ffc-qr-modal-title">
+                <div class="ffc-qr-modal__backdrop"></div>
+                <div class="ffc-qr-modal__content">
+                    <button type="button" class="ffc-qr-modal__close" aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+                    <h2 id="ffc-qr-modal-title" class="ffc-qr-modal__title"></h2>
+                    <p class="ffc-qr-modal__url"></p>
+                    <div class="ffc-qr-modal__preview">
+                        <div class="ffc-qr-modal__spinner"><span class="spinner is-active"></span></div>
+                        <img class="ffc-qr-modal__img" src="" alt="QR Code" style="display:none;" />
+                    </div>
+                    <div class="ffc-qr-modal__actions">
+                        <button type="button" class="button ffc-copy-shorturl" data-url="">
+                            <span class="dashicons dashicons-clipboard" style="margin-top:3px;"></span>
+                            <?php esc_html_e( 'Copy URL', 'ffcertificate' ); ?>
+                        </button>
+                        <button type="button" class="button ffc-download-qr" data-format="png" data-code="">
+                            <span class="dashicons dashicons-download" style="margin-top:3px;"></span>
+                            PNG
+                        </button>
+                        <button type="button" class="button ffc-download-qr" data-format="svg" data-code="">
+                            <span class="dashicons dashicons-download" style="margin-top:3px;"></span>
+                            SVG
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
         <?php
     }
