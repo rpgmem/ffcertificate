@@ -302,10 +302,13 @@ class SettingsSaveHandler {
      */
     private function save_url_shortener_settings( array $clean, array $new ): array {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions().
+        $ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
 
-        // Checkbox fields (unchecked = absent from POST)
-        $clean['url_shortener_enabled']     = isset( $new['url_shortener_enabled'] ) ? 1 : 0;
-        $clean['url_shortener_auto_create'] = isset( $new['url_shortener_auto_create'] ) ? 1 : 0;
+        // Checkbox fields (unchecked = absent from POST) — only process on URL Shortener tab
+        if ( $ffc_tab === 'url_shortener' ) {
+            $clean['url_shortener_enabled']     = isset( $new['url_shortener_enabled'] ) ? 1 : 0;
+            $clean['url_shortener_auto_create'] = isset( $new['url_shortener_auto_create'] ) ? 1 : 0;
+        }
 
         if ( isset( $new['url_shortener_prefix'] ) ) {
             $old_prefix = $clean['url_shortener_prefix'] ?? 'go';
@@ -326,12 +329,14 @@ class SettingsSaveHandler {
             $clean['url_shortener_redirect_type'] = in_array( $type, [ 301, 302, 307 ], true ) ? $type : 302;
         }
 
-        // Post types is an array of checkboxes - read directly from raw POST
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-        if ( isset( $_POST['ffc_settings']['url_shortener_post_types'] ) && is_array( $_POST['ffc_settings']['url_shortener_post_types'] ) ) {
-            $clean['url_shortener_post_types'] = array_map( 'sanitize_key', wp_unslash( $_POST['ffc_settings']['url_shortener_post_types'] ) );
-        } else {
-            $clean['url_shortener_post_types'] = [];
+        // Post types is an array of checkboxes - only process on URL Shortener tab
+        if ( $ffc_tab === 'url_shortener' ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+            if ( isset( $_POST['ffc_settings']['url_shortener_post_types'] ) && is_array( $_POST['ffc_settings']['url_shortener_post_types'] ) ) {
+                $clean['url_shortener_post_types'] = array_map( 'sanitize_key', wp_unslash( $_POST['ffc_settings']['url_shortener_post_types'] ) );
+            } else {
+                $clean['url_shortener_post_types'] = [];
+            }
         }
 
         // phpcs:enable WordPress.Security.NonceVerification.Missing

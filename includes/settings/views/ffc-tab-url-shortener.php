@@ -32,6 +32,10 @@ $all_post_types = get_post_types( [ 'public' => true ], 'objects' );
     </p>
 </div>
 
+<form method="post">
+    <?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
+    <input type="hidden" name="_ffc_tab" value="url_shortener">
+
 <table class="form-table">
     <tr>
         <th scope="row">
@@ -122,3 +126,6 @@ $all_post_types = get_post_types( [ 'public' => true ], 'objects' );
         </td>
     </tr>
 </table>
+
+    <?php submit_button(); ?>
+</form>
