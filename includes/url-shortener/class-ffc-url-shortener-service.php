@@ -200,6 +200,32 @@ class UrlShortenerService {
     }
 
     /**
+     * Move a short URL to the trash.
+     *
+     * @param int $id Record ID.
+     * @return bool
+     */
+    public function trash_short_url( int $id ): bool {
+        return (bool) $this->repository->update( $id, [
+            'status'     => 'trashed',
+            'updated_at' => current_time( 'mysql' ),
+        ] );
+    }
+
+    /**
+     * Restore a short URL from the trash (sets to disabled).
+     *
+     * @param int $id Record ID.
+     * @return bool
+     */
+    public function restore_short_url( int $id ): bool {
+        return (bool) $this->repository->update( $id, [
+            'status'     => 'disabled',
+            'updated_at' => current_time( 'mysql' ),
+        ] );
+    }
+
+    /**
      * Toggle the status of a short URL (active ↔ disabled).
      *
      * @param int $id Record ID.

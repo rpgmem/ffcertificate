@@ -162,7 +162,11 @@ class UrlShortenerRepository extends AbstractRepository {
         $where_clauses = [];
         $where_values  = [];
 
-        if ( 'all' !== $args['status'] ) {
+        if ( 'all' === $args['status'] ) {
+            // "All" excludes trashed items (like WordPress core).
+            $where_clauses[] = 'status != %s';
+            $where_values[]  = 'trashed';
+        } else {
             $where_clauses[] = 'status = %s';
             $where_values[]  = $args['status'];
         }
@@ -215,16 +219,17 @@ class UrlShortenerRepository extends AbstractRepository {
     /**
      * Get aggregate statistics.
      *
-     * @return array{total_links: int, active_links: int, total_clicks: int}
+     * @return array{total_links: int, active_links: int, total_clicks: int, trashed_links: int}
      */
     public function getStats(): array {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $row = $this->wpdb->get_row(
             $this->wpdb->prepare(
                 "SELECT
-                    COUNT(*) AS total_links,
+                    SUM(CASE WHEN status != 'trashed' THEN 1 ELSE 0 END) AS total_links,
                     SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active_links,
-                    COALESCE(SUM(click_count), 0) AS total_clicks
+                    COALESCE(SUM(CASE WHEN status != 'trashed' THEN click_count ELSE 0 END), 0) AS total_clicks,
+                    SUM(CASE WHEN status = 'trashed' THEN 1 ELSE 0 END) AS trashed_links
                 FROM %i",
                 $this->table
             ),
@@ -232,9 +237,10 @@ class UrlShortenerRepository extends AbstractRepository {
         );
 
         return [
-            'total_links'  => (int) ( $row['total_links'] ?? 0 ),
-            'active_links' => (int) ( $row['active_links'] ?? 0 ),
-            'total_clicks' => (int) ( $row['total_clicks'] ?? 0 ),
+            'total_links'   => (int) ( $row['total_links'] ?? 0 ),
+            'active_links'  => (int) ( $row['active_links'] ?? 0 ),
+            'total_clicks'  => (int) ( $row['total_clicks'] ?? 0 ),
+            'trashed_links' => (int) ( $row['trashed_links'] ?? 0 ),
         ];
     }
 }
