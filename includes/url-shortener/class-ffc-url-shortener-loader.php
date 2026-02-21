@@ -114,8 +114,8 @@ class UrlShortenerLoader {
         $record = $repository->findByShortCode( $code );
 
         if ( ! $record || $record['status'] !== 'active' ) {
-            // Short code not found or disabled - let WordPress handle the 404
-            return;
+            wp_safe_redirect( home_url( '/' ), 302 );
+            exit;
         }
 
         // Increment click counter
