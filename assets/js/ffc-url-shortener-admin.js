@@ -93,15 +93,23 @@
             var $btn = $(this);
             var format = $btn.data('format');
             var code = $btn.data('code');
+            var postId = $btn.data('post-id');
             var action = format === 'svg' ? 'ffc_download_qr_svg' : 'ffc_download_qr_png';
+
+            var payload = {
+                action: action,
+                nonce: settings.nonce
+            };
+
+            if (postId) {
+                payload.post_id = postId;
+            } else {
+                payload.code = code;
+            }
 
             $btn.prop('disabled', true);
 
-            $.post(settings.ajaxUrl, {
-                action: action,
-                nonce: settings.nonce,
-                code: code
-            }, function (response) {
+            $.post(settings.ajaxUrl, payload, function (response) {
                 $btn.prop('disabled', false);
                 if (response.success) {
                     downloadBase64(response.data.data, response.data.filename, response.data.mime);

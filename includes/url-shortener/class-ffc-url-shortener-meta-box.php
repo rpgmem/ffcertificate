@@ -88,10 +88,11 @@ class UrlShortenerMetaBox {
         }
 
         $short_url = $this->service->get_short_url( $record['short_code'] );
+        $permalink = get_permalink( $post->ID );
 
-        // Generate QR Code
+        // Generate QR Code pointing to the post permalink (not the short URL)
         $qr_handler = new UrlShortenerQrHandler( $this->service );
-        $qr_base64  = $qr_handler->generate_qr_base64( $short_url, 200 );
+        $qr_base64  = $qr_handler->generate_qr_base64( $permalink, 200 );
 
         wp_nonce_field( 'ffc_short_url_meta_box', 'ffc_short_url_meta_nonce' );
         ?>
@@ -124,10 +125,10 @@ class UrlShortenerMetaBox {
 
                 <!-- Download Buttons -->
                 <div style="display:flex;gap:6px;justify-content:center;margin-bottom:8px;">
-                    <button type="button" class="button button-small ffc-download-qr" data-format="png" data-code="<?php echo esc_attr( $record['short_code'] ); ?>">
+                    <button type="button" class="button button-small ffc-download-qr" data-format="png" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
                         <span class="dashicons dashicons-download" style="margin-top:3px;font-size:14px;"></span> PNG
                     </button>
-                    <button type="button" class="button button-small ffc-download-qr" data-format="svg" data-code="<?php echo esc_attr( $record['short_code'] ); ?>">
+                    <button type="button" class="button button-small ffc-download-qr" data-format="svg" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
                         <span class="dashicons dashicons-download" style="margin-top:3px;font-size:14px;"></span> SVG
                     </button>
                 </div>

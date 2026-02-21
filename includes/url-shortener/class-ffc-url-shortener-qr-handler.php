@@ -120,11 +120,24 @@ class UrlShortenerQrHandler {
     }
 
     /**
-     * AJAX: Download QR Code as PNG.
+     * Resolve the QR target URL and filename prefix.
+     *
+     * When a post_id is provided, uses the post permalink directly.
+     * When a short code is provided, uses the short URL.
+     *
+     * @return array{url: string, prefix: string} Target URL and filename prefix.
      */
-    public function handle_download_png(): void {
-        $this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-        $this->check_ajax_permission();
+    private function resolve_qr_target(): array {
+        $post_id = (int) ( $_POST['post_id'] ?? 0 );
+        if ( $post_id > 0 ) {
+            $permalink = get_permalink( $post_id );
+            if ( ! $permalink ) {
+                wp_send_json_error( [ 'message' => __( 'Post not found.', 'ffcertificate' ) ] );
+            }
+            $post = get_post( $post_id );
+            $slug = $post ? $post->post_name : (string) $post_id;
+            return [ 'url' => $permalink, 'prefix' => 'qr-' . $slug ];
+        }
 
         $code = sanitize_text_field( wp_unslash( $_POST['code'] ?? '' ) );
         if ( empty( $code ) ) {
@@ -136,8 +149,18 @@ class UrlShortenerQrHandler {
             wp_send_json_error( [ 'message' => __( 'Short URL not found.', 'ffcertificate' ) ] );
         }
 
-        $short_url = $this->service->get_short_url( $code );
-        $base64    = $this->generate_qr_base64( $short_url, 400 );
+        return [ 'url' => $this->service->get_short_url( $code ), 'prefix' => 'qr-' . $code ];
+    }
+
+    /**
+     * AJAX: Download QR Code as PNG.
+     */
+    public function handle_download_png(): void {
+        $this->verify_ajax_nonce( 'ffc_short_url_nonce' );
+        $this->check_ajax_permission();
+
+        $target = $this->resolve_qr_target();
+        $base64 = $this->generate_qr_base64( $target['url'], 400 );
 
         if ( empty( $base64 ) ) {
             wp_send_json_error( [ 'message' => __( 'QR generation failed.', 'ffcertificate' ) ] );
@@ -145,7 +168,7 @@ class UrlShortenerQrHandler {
 
         wp_send_json_success( [
             'data'     => $base64,
-            'filename' => 'qr-' . $code . '.png',
+            'filename' => $target['prefix'] . '.png',
             'mime'     => 'image/png',
         ] );
     }
@@ -157,18 +180,8 @@ class UrlShortenerQrHandler {
         $this->verify_ajax_nonce( 'ffc_short_url_nonce' );
         $this->check_ajax_permission();
 
-        $code = sanitize_text_field( wp_unslash( $_POST['code'] ?? '' ) );
-        if ( empty( $code ) ) {
-            wp_send_json_error( [ 'message' => __( 'Invalid code.', 'ffcertificate' ) ] );
-        }
-
-        $record = $this->service->get_repository()->findByShortCode( $code );
-        if ( ! $record ) {
-            wp_send_json_error( [ 'message' => __( 'Short URL not found.', 'ffcertificate' ) ] );
-        }
-
-        $short_url = $this->service->get_short_url( $code );
-        $svg       = $this->generate_svg( $short_url, 400 );
+        $target = $this->resolve_qr_target();
+        $svg    = $this->generate_svg( $target['url'], 400 );
 
         if ( empty( $svg ) ) {
             wp_send_json_error( [ 'message' => __( 'SVG generation failed.', 'ffcertificate' ) ] );
@@ -176,7 +189,7 @@ class UrlShortenerQrHandler {
 
         wp_send_json_success( [
             'data'     => base64_encode( $svg ),
-            'filename' => 'qr-' . $code . '.svg',
+            'filename' => $target['prefix'] . '.svg',
             'mime'     => 'image/svg+xml',
         ] );
     }
