@@ -43,7 +43,7 @@ class UrlShortenerLoader {
         // Rewrite rules (front-end routing)
         add_action( 'init', [ $this, 'register_rewrite_rules' ] );
         add_filter( 'query_vars', [ $this, 'add_query_vars' ] );
-        add_action( 'template_redirect', [ $this, 'handle_redirect' ] );
+        add_action( 'template_redirect', [ $this, 'handle_redirect' ], 1 );
 
         // Auto-flush rewrite rules when prefix changes or first install
         add_action( 'init', [ $this, 'maybe_flush_rewrite_rules' ], 99 );
@@ -114,7 +114,8 @@ class UrlShortenerLoader {
         $record = $repository->findByShortCode( $code );
 
         if ( ! $record || $record['status'] !== 'active' ) {
-            wp_safe_redirect( home_url( '/' ), 302 );
+            nocache_headers();
+            wp_redirect( home_url( '/' ), 302 );
             exit;
         }
 
@@ -126,7 +127,9 @@ class UrlShortenerLoader {
 
         // Prevent redirect loops
         if ( empty( $target_url ) ) {
-            return;
+            nocache_headers();
+            wp_redirect( home_url( '/' ), 302 );
+            exit;
         }
 
         /**
