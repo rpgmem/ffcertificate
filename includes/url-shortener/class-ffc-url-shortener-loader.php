@@ -27,6 +27,12 @@ class UrlShortenerLoader {
     }
 
     /**
+     * Option key used to track whether rewrite rules have been flushed
+     * for the current prefix configuration.
+     */
+    private const FLUSH_FLAG = 'ffc_url_shortener_rewrite_version';
+
+    /**
      * Wire all hooks for the URL Shortener module.
      */
     public function init(): void {
@@ -38,6 +44,9 @@ class UrlShortenerLoader {
         add_action( 'init', [ $this, 'register_rewrite_rules' ] );
         add_filter( 'query_vars', [ $this, 'add_query_vars' ] );
         add_action( 'template_redirect', [ $this, 'handle_redirect' ] );
+
+        // Auto-flush rewrite rules when prefix changes or first install
+        add_action( 'init', [ $this, 'maybe_flush_rewrite_rules' ], 99 );
 
         // Admin components
         if ( is_admin() ) {
@@ -51,6 +60,20 @@ class UrlShortenerLoader {
         // AJAX handlers (needed for both admin and front-end contexts)
         $qr_handler = new UrlShortenerQrHandler( $this->service );
         $qr_handler->init();
+    }
+
+    /**
+     * Flush rewrite rules once when the module is first installed
+     * or when the URL prefix changes.
+     */
+    public function maybe_flush_rewrite_rules(): void {
+        $current_version = $this->service->get_prefix() . ':1';
+        $stored_version  = get_option( self::FLUSH_FLAG, '' );
+
+        if ( $stored_version !== $current_version ) {
+            flush_rewrite_rules( false );
+            update_option( self::FLUSH_FLAG, $current_version, true );
+        }
     }
 
     /**

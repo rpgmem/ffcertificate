@@ -312,6 +312,7 @@ class SettingsSaveHandler {
             $clean['url_shortener_prefix'] = sanitize_title( $new['url_shortener_prefix'] );
             // Flush rewrite rules when prefix changes
             if ( $clean['url_shortener_prefix'] !== $old_prefix ) {
+                delete_option( 'ffc_url_shortener_rewrite_version' );
                 add_action( 'shutdown', 'flush_rewrite_rules' );
             }
         }
