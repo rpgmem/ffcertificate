@@ -9490,7 +9490,7 @@ msgid "WP-Admin Access Control"
 msgstr ""
 
 #: templates/verification-page.php:43
-msgid "XXXX-XXXX-XXXX"
+msgid "C-XXXX-XXXX-XXXX"
 msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:161 includes/admin/class-ffc-form-editor-metabox-renderer.php:302 includes/admin/class-ffc-csv-exporter.php:394 includes/admin/class-ffc-csv-exporter.php:406 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:140 includes/reregistration/class-ffc-ficha-generator.php:263
