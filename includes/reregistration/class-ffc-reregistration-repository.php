@@ -38,6 +38,31 @@ class ReregistrationRepository {
     public const STATUSES = array('draft', 'active', 'expired', 'closed');
 
     /**
+     * Get human-readable status labels.
+     *
+     * @return array<string, string> Status key => translated label.
+     */
+    public static function get_status_labels(): array {
+        return array(
+            'draft'   => __('Draft', 'ffcertificate'),
+            'active'  => __('Active', 'ffcertificate'),
+            'expired' => __('Expired', 'ffcertificate'),
+            'closed'  => __('Closed', 'ffcertificate'),
+        );
+    }
+
+    /**
+     * Get a single status label.
+     *
+     * @param string $status Status key.
+     * @return string Translated label (falls back to the key).
+     */
+    public static function get_status_label(string $status): string {
+        $labels = self::get_status_labels();
+        return $labels[$status] ?? $status;
+    }
+
+    /**
      * Get table name.
      *
      * @return string

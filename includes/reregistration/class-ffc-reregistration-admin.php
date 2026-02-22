@@ -218,7 +218,7 @@ class ReregistrationAdmin {
                     <option value=""><?php esc_html_e('All Statuses', 'ffcertificate'); ?></option>
                     <?php foreach (ReregistrationRepository::STATUSES as $s) : ?>
                         <option value="<?php echo esc_attr($s); ?>" <?php selected($status_filter, $s); ?>>
-                            <?php echo esc_html(ucfirst($s)); ?>
+                            <?php echo esc_html(ReregistrationRepository::get_status_label($s)); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -286,7 +286,7 @@ class ReregistrationAdmin {
             </td>
             <td class="column-status">
                 <span class="ffc-status-badge ffc-status-<?php echo esc_attr($item->status); ?>">
-                    <?php echo esc_html(ucfirst($item->status)); ?>
+                    <?php echo esc_html(ReregistrationRepository::get_status_label($item->status)); ?>
                 </span>
             </td>
             <td class="column-period"><?php echo esc_html($start . ' — ' . $end); ?></td>
@@ -382,7 +382,7 @@ class ReregistrationAdmin {
                         <select name="rereg_status" id="rereg_status">
                             <?php foreach (ReregistrationRepository::STATUSES as $s) : ?>
                                 <option value="<?php echo esc_attr($s); ?>" <?php selected($item->status ?? 'draft', $s); ?>>
-                                    <?php echo esc_html(ucfirst($s)); ?>
+                                    <?php echo esc_html(ReregistrationRepository::get_status_label($s)); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -495,7 +495,7 @@ class ReregistrationAdmin {
             <?php foreach ($stats as $status => $count) : ?>
                 <?php if ($status !== 'total') : ?>
                     <span class="ffc-stat-item">
-                        <span class="ffc-status-badge ffc-status-<?php echo esc_attr($status); ?>"><?php echo esc_html(ucfirst($status)); ?></span>
+                        <span class="ffc-status-badge ffc-status-<?php echo esc_attr($status); ?>"><?php echo esc_html(ReregistrationSubmissionRepository::get_status_label($status)); ?></span>
                         <strong><?php echo esc_html((string) $count); ?></strong>
                     </span>
                 <?php endif; ?>
@@ -514,7 +514,7 @@ class ReregistrationAdmin {
                 <select name="sub_status">
                     <option value=""><?php esc_html_e('All Statuses', 'ffcertificate'); ?></option>
                     <?php foreach (ReregistrationSubmissionRepository::STATUSES as $s) : ?>
-                        <option value="<?php echo esc_attr($s); ?>" <?php selected($status_filter, $s); ?>><?php echo esc_html(ucfirst($s)); ?></option>
+                        <option value="<?php echo esc_attr($s); ?>" <?php selected($status_filter, $s); ?>><?php echo esc_html(ReregistrationSubmissionRepository::get_status_label($s)); ?></option>
                     <?php endforeach; ?>
                 </select>
                 <input type="search" name="s" value="<?php echo esc_attr($search ?? ''); ?>" placeholder="<?php esc_attr_e('Search name or email...', 'ffcertificate'); ?>">
@@ -603,7 +603,7 @@ class ReregistrationAdmin {
             <td><?php echo esc_html($sub->user_email ?? '—'); ?></td>
             <td>
                 <span class="ffc-status-badge ffc-status-<?php echo esc_attr($sub->status); ?>">
-                    <?php echo esc_html(ucfirst(str_replace('_', ' ', $sub->status))); ?>
+                    <?php echo esc_html(ReregistrationSubmissionRepository::get_status_label($sub->status)); ?>
                 </span>
             </td>
             <td><?php echo esc_html($submitted); ?></td>
