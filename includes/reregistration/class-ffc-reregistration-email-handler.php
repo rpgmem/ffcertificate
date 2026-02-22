@@ -152,13 +152,9 @@ class ReregistrationEmailHandler {
             $magic_link_url = untrailingslashit(site_url('valid')) . '#token=' . $submission->magic_token;
         }
 
-        // Format auth code (XXXX-XXXX-XXXX)
-        $auth_code_formatted = '';
-        if (!empty($submission->auth_code) && strlen($submission->auth_code) === 12) {
-            $auth_code_formatted = substr($submission->auth_code, 0, 4) . '-'
-                . substr($submission->auth_code, 4, 4) . '-'
-                . substr($submission->auth_code, 8, 4);
-        }
+        $auth_code_formatted = ! empty( $submission->auth_code )
+            ? \FreeFormCertificate\Core\Utils::format_auth_code( $submission->auth_code )
+            : '';
 
         return self::send_to_user((int) $submission->user_id, $rereg, $template, array(
             'submission_status'    => $status_label,

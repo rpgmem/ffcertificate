@@ -297,8 +297,8 @@ class UserManager {
                 }
 
                 if ( ! empty( $plain ) ) {
-                    $masked = self::mask_cpf_rf( $plain );
-                    if ( ! in_array( $masked, $cpfs_masked, true ) ) {
+                    $masked = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $plain );
+                    if ( ! empty( $masked ) && ! in_array( $masked, $cpfs_masked, true ) ) {
                         $cpfs_masked[] = $masked;
                     }
                 }
@@ -359,16 +359,16 @@ class UserManager {
                 if ( ! empty( $row['cpf_encrypted'] ) ) {
                     $plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_encrypted'] );
                     if ( ! empty( $plain ) ) {
-                        $masked = self::mask_cpf_rf( $plain );
-                        if ( ! in_array( $masked, $cpfs, true ) ) {
+                        $masked = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $plain );
+                        if ( ! empty( $masked ) && ! in_array( $masked, $cpfs, true ) ) {
                             $cpfs[] = $masked;
                         }
                     }
                 } elseif ( ! empty( $row['rf_encrypted'] ) ) {
                     $plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['rf_encrypted'] );
                     if ( ! empty( $plain ) ) {
-                        $masked = self::mask_cpf_rf( $plain );
-                        if ( ! in_array( $masked, $rfs, true ) ) {
+                        $masked = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $plain );
+                        if ( ! empty( $masked ) && ! in_array( $masked, $rfs, true ) ) {
                             $rfs[] = $masked;
                         }
                     }
@@ -379,24 +379,6 @@ class UserManager {
         }
 
         return array( 'cpfs' => $cpfs, 'rfs' => $rfs );
-    }
-
-    /**
-     * Mask CPF/RF for display
-     *
-     * @param string $cpf_rf CPF or RF (plain)
-     * @return string Masked value
-     */
-    private static function mask_cpf_rf( string $cpf_rf ): string {
-        $clean = preg_replace( '/[^0-9]/', '', $cpf_rf );
-
-        if ( strlen( $clean ) === 11 ) {
-            return '***.***.' . substr( $clean, 7, 2 ) . '-' . substr( $clean, 9, 2 );
-        } elseif ( strlen( $clean ) === 7 ) {
-            return '****' . substr( $clean, 4, 3 );
-        }
-
-        return str_repeat( '*', strlen( $clean ) - 3 ) . substr( $clean, -3 );
     }
 
     /**

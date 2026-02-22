@@ -36,12 +36,9 @@ class VerificationResponseRenderer {
             get_option('date_format') . ' ' . get_option('time_format'),
             strtotime( $submission->submission_date )
         );
-        $display_code = isset($data['auth_code']) ? $data['auth_code'] : '';
-
-        // Format auth code (XXXX-XXXX-XXXX)
-        if ( strlen( $display_code ) === 12 ) {
-            $display_code = substr( $display_code, 0, 4 ) . '-' . substr( $display_code, 4, 4 ) . '-' . substr( $display_code, 8, 4 );
-        }
+        $display_code = isset($data['auth_code'])
+            ? \FreeFormCertificate\Core\Utils::format_auth_code( $data['auth_code'] )
+            : '';
 
         // Fields to skip (internal/technical)
         $skip_fields = array(
@@ -242,11 +239,9 @@ class VerificationResponseRenderer {
             }
         }
 
-        // Format auth code (XXXX-XXXX-XXXX)
-        $display_code = $rereg['auth_code'] ?? '';
-        if ( strlen( $display_code ) === 12 ) {
-            $display_code = substr( $display_code, 0, 4 ) . '-' . substr( $display_code, 4, 4 ) . '-' . substr( $display_code, 8, 4 );
-        }
+        $display_code = ! empty( $rereg['auth_code'] )
+            ? \FreeFormCertificate\Core\Utils::format_auth_code( $rereg['auth_code'] )
+            : '';
 
         // Format CPF
         $cpf_display = '';
