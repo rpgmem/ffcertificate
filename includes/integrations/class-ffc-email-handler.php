@@ -153,11 +153,11 @@ class EmailHandler {
             $magic_link_url = $base_url . '#token=' . $magic_token;
         }
 
-        // Format auth code
-        $auth_code = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
-        if ( strlen( $auth_code ) === 12 ) {
-            $auth_code = substr( $auth_code, 0, 4 ) . '-' . substr( $auth_code, 4, 4 ) . '-' . substr( $auth_code, 8, 4 );
-        }
+        // Format auth code with certificate prefix
+        $raw_code = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
+        $auth_code = ! empty( $raw_code )
+            ? \FreeFormCertificate\Core\Utils::format_auth_code( $raw_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
+            : '';
 
         // Custom body text from form config
         $body_text = isset( $form_config['email_body'] ) ? wpautop( $form_config['email_body'] ) : '';
@@ -262,9 +262,9 @@ class EmailHandler {
                 $display_v = \FreeFormCertificate\Core\Utils::format_document( $display_v );
             }
 
-            // Format auth code
+            // Format auth code with certificate prefix
             if ( $k === 'auth_code' ) {
-                $display_v = \FreeFormCertificate\Core\Utils::format_auth_code( $display_v );
+                $display_v = \FreeFormCertificate\Core\Utils::format_auth_code( $display_v, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
             }
 
             $label = ucwords( str_replace('_', ' ', $k) );

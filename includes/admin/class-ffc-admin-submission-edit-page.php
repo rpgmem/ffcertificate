@@ -430,7 +430,7 @@ class AdminSubmissionEditPage {
         <tr>
             <th><label><?php esc_html_e( 'Auth Code', 'ffcertificate' ); ?></label></th>
             <td>
-                <input type="text" value="<?php echo esc_attr( \FreeFormCertificate\Core\Utils::format_auth_code( $this->sub_array['auth_code'] ) ); ?>" class="regular-text ffc-input-readonly" readonly>
+                <input type="text" value="<?php echo esc_attr( \FreeFormCertificate\Core\Utils::format_auth_code( $this->sub_array['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ) ); ?>" class="regular-text ffc-input-readonly" readonly>
                 <p class="description"><?php esc_html_e( 'Protected authentication code.', 'ffcertificate' ); ?></p>
             </td>
         </tr>

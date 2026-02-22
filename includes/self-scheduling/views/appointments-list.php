@@ -494,7 +494,7 @@ if ($ffc_self_scheduling_appointment_id > 0) {
                                         <tr><th><?php esc_html_e('RF', 'ffcertificate'); ?></th><td><?php echo esc_html(\FreeFormCertificate\Core\Utils::format_document($ffcertificate_rf)); ?></td></tr>
                                         <?php endif; ?>
                                         <?php if (!empty($ffcertificate_appointment['validation_code'])): ?>
-                                        <tr><th><?php esc_html_e('Validation Code', 'ffcertificate'); ?></th><td><code><?php echo esc_html(\FreeFormCertificate\Core\Utils::format_auth_code($ffcertificate_appointment['validation_code'])); ?></code></td></tr>
+                                        <tr><th><?php esc_html_e('Validation Code', 'ffcertificate'); ?></th><td><code><?php echo esc_html(\FreeFormCertificate\Core\Utils::format_auth_code($ffcertificate_appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT)); ?></code></td></tr>
                                         <?php endif; ?>
                                         <?php if (!empty($ffcertificate_appointment['user_notes'])): ?>
                                         <tr><th><?php esc_html_e('User Notes', 'ffcertificate'); ?></th><td><?php echo esc_html($ffcertificate_appointment['user_notes']); ?></td></tr>

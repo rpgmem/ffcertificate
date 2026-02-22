@@ -366,7 +366,7 @@ class FormRestController {
             $response = array(
                 'success' => true,
                 'submission_id' => $submission_id,
-                'auth_code' => \FreeFormCertificate\Core\Utils::format_auth_code($auth_code),
+                'auth_code' => \FreeFormCertificate\Core\Utils::format_auth_code($auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE),
                 'message' => __( 'Form submitted successfully', 'ffcertificate' ),
             );
 

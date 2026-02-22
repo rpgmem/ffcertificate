@@ -37,7 +37,7 @@ class VerificationResponseRenderer {
             strtotime( $submission->submission_date )
         );
         $display_code = isset($data['auth_code'])
-            ? \FreeFormCertificate\Core\Utils::format_auth_code( $data['auth_code'] )
+            ? \FreeFormCertificate\Core\Utils::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
             : '';
 
         // Fields to skip (internal/technical)
@@ -119,7 +119,7 @@ class VerificationResponseRenderer {
         // Format validation code
         $display_code = '';
         if ( ! empty( $appointment['validation_code'] ) ) {
-            $display_code = \FreeFormCertificate\Core\Utils::format_auth_code( $appointment['validation_code'] );
+            $display_code = \FreeFormCertificate\Core\Utils::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT );
         }
 
         // Format CPF/RF
@@ -240,7 +240,7 @@ class VerificationResponseRenderer {
         }
 
         $display_code = ! empty( $rereg['auth_code'] )
-            ? \FreeFormCertificate\Core\Utils::format_auth_code( $rereg['auth_code'] )
+            ? \FreeFormCertificate\Core\Utils::format_auth_code( $rereg['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
             : '';
 
         // Format CPF

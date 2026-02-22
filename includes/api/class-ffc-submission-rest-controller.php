@@ -153,7 +153,7 @@ class SubmissionRestController {
                 $submissions[] = array(
                     'id' => (int) $item['id'],
                     'form_id' => (int) $item['form_id'],
-                    'auth_code' => \FreeFormCertificate\Core\Utils::format_auth_code($item['auth_code']),
+                    'auth_code' => \FreeFormCertificate\Core\Utils::format_auth_code($item['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE),
                     'submission_date' => $item['submission_date'],
                     'status' => $item['status'],
                     'email' => !empty($email) ? $email : null,
@@ -234,7 +234,7 @@ class SubmissionRestController {
                 'id' => (int) $submission['id'],
                 'form_id' => (int) $submission['form_id'],
                 'form_title' => $form_title,
-                'auth_code' => \FreeFormCertificate\Core\Utils::format_auth_code($submission['auth_code']),
+                'auth_code' => \FreeFormCertificate\Core\Utils::format_auth_code($submission['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE),
                 'submission_date' => $submission['submission_date'],
                 'status' => $submission['status'],
                 'email' => !empty($email) ? $email : null,
@@ -306,7 +306,7 @@ class SubmissionRestController {
 
             $response = array(
                 'valid' => true,
-                'auth_code' => \FreeFormCertificate\Core\Utils::format_auth_code($auth_code),
+                'auth_code' => \FreeFormCertificate\Core\Utils::format_auth_code($auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE),
                 'certificate' => array(
                     'id' => (int) $submission['id'],
                     'form_id' => (int) $submission['form_id'],

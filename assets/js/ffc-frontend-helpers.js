@@ -257,8 +257,10 @@ $inputs.each(function() {
         
         /**
          * Apply auth code mask to input fields
-         * Format: XXXX-XXXX-XXXX
-         * 
+         * Supports two formats:
+         *   - With prefix:    P-XXXX-XXXX-XXXX  (P = C, R, or A)
+         *   - Without prefix: XXXX-XXXX-XXXX    (backwards compatible)
+         *
          * @param {jQuery} $inputs - Input elements to apply mask (optional)
          */
         applyAuthCode: function($inputs) {
@@ -266,29 +268,43 @@ $inputs.each(function() {
             if (!$inputs || $inputs.length === 0) {
                 $inputs = $('input[name="ffc_auth_code"], .ffc-verify-input, .ffc-manual-auth-code');
             }
-            
+
             if ($inputs.length === 0) {
                 return;
             }
 
-            // console.log('[FFC Masks] Applying auth code mask to', $inputs.length, 'field(s)');
+            var validPrefixes = ['C', 'R', 'A'];
 
-$inputs.each(function() {
+            $inputs.each(function() {
                 var $input = $(this);
-                
+
+                // Update maxlength to accommodate prefix format (P-XXXX-XXXX-XXXX = 16 chars)
+                if (!$input.attr('maxlength') || parseInt($input.attr('maxlength'), 10) < 16) {
+                    $input.attr('maxlength', 16);
+                }
+
                 // Remove existing handlers to avoid duplicates
                 $input.off('input.authcode paste.authcode');
-                
+
                 // Apply mask on input
                 $input.on('input.authcode', function() {
                     // Remove all except A-Z and 0-9, convert to uppercase
                     var value = $(this).val().toUpperCase().replace(/[^A-Z0-9]/g, '');
-                    
-                    // Limit to 12 characters
+
+                    // Detect prefix: first char is C/R/A and total length > 12
+                    var hasPrefix = false;
+                    var prefix = '';
+                    if (value.length > 0 && validPrefixes.indexOf(value[0]) !== -1 && value.length > 12) {
+                        hasPrefix = true;
+                        prefix = value[0];
+                        value = value.substring(1);
+                    }
+
+                    // Limit code portion to 12 characters
                     if (value.length > 12) {
                         value = value.substring(0, 12);
                     }
-                    
+
                     // Apply mask: XXXX-XXXX-XXXX
                     var masked = '';
                     if (value.length <= 4) {
@@ -298,10 +314,15 @@ $inputs.each(function() {
                     } else {
                         masked = value.substring(0, 4) + '-' + value.substring(4, 8) + '-' + value.substring(8);
                     }
-                    
+
+                    // Prepend prefix if detected
+                    if (hasPrefix) {
+                        masked = prefix + '-' + masked;
+                    }
+
                     $(this).val(masked);
                 });
-                
+
                 // Apply on paste
                 $input.on('paste.authcode', function() {
                     var $this = $(this);
@@ -309,7 +330,7 @@ $inputs.each(function() {
                         $this.trigger('input');
                     }, 10);
                 });
-                
+
                 // Apply to initial value if exists
                 if ($input.val()) {
                     $input.trigger('input');

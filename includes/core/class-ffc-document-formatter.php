@@ -20,6 +20,30 @@ if (!defined('ABSPATH')) exit;
 class DocumentFormatter {
 
     /**
+     * Virtual prefix for certificates (ffc_submissions).
+     * @since 4.13.0
+     */
+    public const PREFIX_CERTIFICATE = 'C';
+
+    /**
+     * Virtual prefix for reregistrations (ffc_reregistration_submissions).
+     * @since 4.13.0
+     */
+    public const PREFIX_REREGISTRATION = 'R';
+
+    /**
+     * Virtual prefix for appointments (ffc_self_scheduling_appointments).
+     * @since 4.13.0
+     */
+    public const PREFIX_APPOINTMENT = 'A';
+
+    /**
+     * Valid auth code prefixes.
+     * @since 4.13.0
+     */
+    private const VALID_PREFIXES = array( 'C', 'R', 'A' );
+
+    /**
      * Phone validation regex pattern (without delimiters).
      */
     public const PHONE_REGEX = '^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$';
@@ -110,19 +134,27 @@ class DocumentFormatter {
     }
 
     /**
-     * Format authentication code
+     * Format authentication code with optional virtual prefix.
      *
-     * @param string $code Auth code to format
-     * @return string Formatted code (XXXX-XXXX-XXXX)
+     * @since 4.13.0 Added $prefix parameter.
+     * @param string $code Auth code to format (raw 12-char or already formatted).
+     * @param string $prefix Virtual prefix letter (C, R, A) — not stored in DB.
+     * @return string Formatted code: P-XXXX-XXXX-XXXX (with prefix) or XXXX-XXXX-XXXX (without).
      */
-    public static function format_auth_code(string $code): string {
+    public static function format_auth_code(string $code, string $prefix = ''): string {
         $code = strtoupper(preg_replace('/[^A-Z0-9]/i', '', $code));
 
         if (strlen($code) === 12) {
-            return substr($code, 0, 4) . '-' . substr($code, 4, 4) . '-' . substr($code, 8, 4);
+            $formatted = substr($code, 0, 4) . '-' . substr($code, 4, 4) . '-' . substr($code, 8, 4);
+        } else {
+            $formatted = $code;
         }
 
-        return $code;
+        if ($prefix !== '' && in_array(strtoupper($prefix), self::VALID_PREFIXES, true)) {
+            return strtoupper($prefix) . '-' . $formatted;
+        }
+
+        return $formatted;
     }
 
     /**
@@ -202,13 +234,56 @@ class DocumentFormatter {
     }
 
     /**
-     * Clean authentication code (remove special chars, uppercase)
+     * Parse a potentially prefixed auth code into prefix + raw code.
      *
-     * @param string $code Auth code to clean
-     * @return string Cleaned code (uppercase alphanumeric only)
+     * Accepts: "C-XXXX-XXXX-XXXX", "CXXXXXXXXXXXX", "XXXX-XXXX-XXXX", "XXXXXXXXXXXX".
+     * Returns: ['prefix' => 'C'|'R'|'A'|'', 'code' => 'XXXXXXXXXXXX']
+     *
+     * @since 4.13.0
+     * @param string $input Raw user input (with or without prefix/dashes).
+     * @return array{prefix: string, code: string}
+     */
+    public static function parse_prefixed_code(string $input): array {
+        // Strip whitespace, uppercase
+        $clean = strtoupper(trim($input));
+
+        // Remove all non-alphanumeric chars
+        $alphanumeric = preg_replace('/[^A-Z0-9]/', '', $clean);
+
+        // 13 chars: first char is a valid prefix letter
+        if (strlen($alphanumeric) === 13 && in_array($alphanumeric[0], self::VALID_PREFIXES, true)) {
+            return array(
+                'prefix' => $alphanumeric[0],
+                'code'   => substr($alphanumeric, 1),
+            );
+        }
+
+        // 12 chars: no prefix
+        if (strlen($alphanumeric) === 12) {
+            return array(
+                'prefix' => '',
+                'code'   => $alphanumeric,
+            );
+        }
+
+        // Fallback: return as-is (invalid length)
+        return array(
+            'prefix' => '',
+            'code'   => $alphanumeric,
+        );
+    }
+
+    /**
+     * Clean authentication code (remove special chars, prefix, uppercase).
+     *
+     * Strips the virtual prefix if present, returning only the 12-char code.
+     *
+     * @param string $code Auth code to clean (may include prefix).
+     * @return string Cleaned 12-char code (uppercase alphanumeric only, no prefix).
      */
     public static function clean_auth_code(string $code): string {
-        return strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', $code));
+        $parsed = self::parse_prefixed_code($code);
+        return $parsed['code'];
     }
 
     /**

@@ -45,13 +45,20 @@ class VerificationHandler {
      * v2.9.15: RECONSTRUÇÃO - Combina colunas + JSON
      */
     /**
-     * Search for certificate - uses Repository
+     * Search for certificate - uses Repository.
      *
+     * Supports virtual prefix routing (C/R/A) for faster lookups.
+     * When a prefix is detected, the corresponding table is searched first,
+     * with fallback to other tables. Without prefix, all tables are searched
+     * sequentially (backwards compatible).
+     *
+     * @since 4.13.0 Added prefix-based routing.
      * @return array<string, mixed>
      */
     private function search_certificate( string $auth_code ): array {
-        $repository = new SubmissionRepository();
-        $clean_code = \FreeFormCertificate\Core\Utils::clean_auth_code($auth_code);
+        $parsed = \FreeFormCertificate\Core\DocumentFormatter::parse_prefixed_code($auth_code);
+        $clean_code = $parsed['code'];
+        $prefix = $parsed['prefix'];
 
         if (empty($clean_code)) {
             return [
@@ -61,17 +68,45 @@ class VerificationHandler {
             ];
         }
 
-        $submission = $repository->findByAuthCode($clean_code);
+        $repository = new SubmissionRepository();
 
-        // Fallback: search appointments by validation_code
-        if (!$submission) {
+        // Prefix-based routing: search the hinted table first
+        if ($prefix === \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT) {
+            // A = Appointment first
             $appointment_result = $this->search_appointment_by_code( $clean_code );
             if ( $appointment_result['found'] ) {
                 return $appointment_result;
             }
+            // Fallback: certificates, then reregistrations
+            $submission = $repository->findByAuthCode($clean_code);
+            if (!$submission) {
+                return $this->search_reregistration_by_code( $clean_code );
+            }
+        } elseif ($prefix === \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION) {
+            // R = Reregistration first
+            $rereg_result = $this->search_reregistration_by_code( $clean_code );
+            if ( $rereg_result['found'] ) {
+                return $rereg_result;
+            }
+            // Fallback: certificates, then appointments
+            $submission = $repository->findByAuthCode($clean_code);
+            if (!$submission) {
+                return $this->search_appointment_by_code( $clean_code );
+            }
+        } else {
+            // C prefix or no prefix: certificates first (original behavior)
+            $submission = $repository->findByAuthCode($clean_code);
 
-            // Fallback: search reregistration submissions by auth_code
-            return $this->search_reregistration_by_code( $clean_code );
+            // Fallback: search appointments by validation_code
+            if (!$submission) {
+                $appointment_result = $this->search_appointment_by_code( $clean_code );
+                if ( $appointment_result['found'] ) {
+                    return $appointment_result;
+                }
+
+                // Fallback: search reregistration submissions by auth_code
+                return $this->search_reregistration_by_code( $clean_code );
+            }
         }
 
         // Decrypt

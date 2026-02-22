@@ -112,7 +112,7 @@ class UserCertificatesRestController {
 
                 $auth_code_formatted = '';
                 if (!empty($submission['auth_code'])) {
-                    $auth_code_formatted = \FreeFormCertificate\Core\Utils::format_auth_code($submission['auth_code']);
+                    $auth_code_formatted = \FreeFormCertificate\Core\Utils::format_auth_code($submission['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE);
                 }
 
                 $date_formatted = '';
