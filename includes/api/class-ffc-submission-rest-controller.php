@@ -159,7 +159,7 @@ class SubmissionRestController {
                     'email' => !empty($email) ? $email : null,
                     'cpf_rf' => !empty($cpf_rf) ? \FreeFormCertificate\Core\Utils::mask_cpf($cpf_rf) : null,
                     'cpf' => !empty($cpf) ? \FreeFormCertificate\Core\Utils::mask_cpf($cpf) : null,
-                    'rf' => !empty($rf) ? $rf : null,
+                    'rf' => !empty($rf) ? \FreeFormCertificate\Core\Utils::mask_cpf($rf) : null,
                     'data' => $data,
                 );
             }
@@ -238,9 +238,9 @@ class SubmissionRestController {
                 'submission_date' => $submission['submission_date'],
                 'status' => $submission['status'],
                 'email' => !empty($email) ? $email : null,
-                'cpf_rf' => !empty($cpf_rf) ? $cpf_rf : null,
-                'cpf' => !empty($cpf) ? $cpf : null,
-                'rf' => !empty($rf) ? $rf : null,
+                'cpf_rf' => !empty($cpf_rf) ? \FreeFormCertificate\Core\Utils::format_document($cpf_rf) : null,
+                'cpf' => !empty($cpf) ? \FreeFormCertificate\Core\Utils::format_document($cpf) : null,
+                'rf' => !empty($rf) ? \FreeFormCertificate\Core\Utils::format_document($rf) : null,
                 'data' => $data,
             );
 
