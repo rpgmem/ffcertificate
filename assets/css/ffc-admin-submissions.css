@@ -77,8 +77,6 @@
     font-size: 13px;
 }
 
-/* ✅ v3.1.0 Phase 3: Removed .ffc-invalid-data (never applied to elements) */
-
 .ffc-data-preview {
     font-size: 13px;
     line-height: 1.6;
@@ -476,10 +474,6 @@
 
     .ffc-table-responsive tbody tr {
         transition: none;
-    }
-
-    .ffc-loading-row .spinner::after {
-        animation: none;
     }
 }
 

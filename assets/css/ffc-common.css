@@ -360,10 +360,7 @@
 .ffc-icon-scroll::before { content: "\1F4DC "; }
 .ffc-icon-calendar::before { content: "\1F4C5 "; }
 .ffc-icon-id::before { content: "\1F194 "; }
-.ffc-icon-magic::before { content: "\1F52E "; }
-.ffc-icon-broom::before { content: "\1F9F9 "; }
 .ffc-icon-user::before { content: "\1F464 "; }
-.ffc-icon-key::before { content: "\1F511 "; }
 .ffc-icon-file::before { content: "\1F4CB "; }
 
 /* ==========================================================================
