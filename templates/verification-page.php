@@ -40,11 +40,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                     name="ffc_auth_code"
                     id="ffc_auth_code"
                     class="ffc-input ffc-verify-input"
-                    placeholder="<?php esc_attr_e( 'XXXX-XXXX-XXXX', 'ffcertificate' ); ?>"
+                    placeholder="<?php esc_attr_e( 'C-XXXX-XXXX-XXXX', 'ffcertificate' ); ?>"
                     required
                     aria-required="true"
                     aria-describedby="ffc-auth-code-desc"
-                    maxlength="14"
+                    maxlength="16"
                     pattern="[A-Za-z0-9\-]+"
                 >
             </div>

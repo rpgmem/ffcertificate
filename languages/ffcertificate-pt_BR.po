@@ -9474,8 +9474,8 @@ msgid "WP-Admin Access Control"
 msgstr "Controle de Acesso do WP-Admin"
 
 #: templates/verification-page.php:43
-msgid "XXXX-XXXX-XXXX"
-msgstr "XXXX-XXXX-XXXX"
+msgid "C-XXXX-XXXX-XXXX"
+msgstr "C-XXXX-XXXX-XXXX"
 
 #: includes/shortcodes/class-ffc-dashboard-shortcode.php:610 includes/admin/class-ffc-form-editor-metabox-renderer.php:300 includes/admin/class-ffc-csv-exporter.php:128 includes/admin/class-ffc-csv-exporter.php:167 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:132 includes/reregistration/class-ffc-ficha-generator.php:263
 msgid "Yes"
