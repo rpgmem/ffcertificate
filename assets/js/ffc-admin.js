@@ -415,4 +415,38 @@
         // console.log('[FFC Admin] Restriction field toggles initialized');
     });
 
+    // =========================================================================
+    // Filter Overlay (Submissions page)
+    // =========================================================================
+    var overlay = document.getElementById('ffc-filter-overlay');
+    if (overlay) {
+        var openBtn = document.getElementById('ffc-open-filter-overlay');
+        if (openBtn) {
+            openBtn.addEventListener('click', function() { overlay.style.display = 'flex'; });
+        }
+        overlay.querySelectorAll('.ffc-filter-overlay-close, .ffc-filter-overlay-backdrop').forEach(function(el) {
+            el.addEventListener('click', function() { overlay.style.display = 'none'; });
+        });
+        overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.style.display = 'none'; });
+    }
+
+    // =========================================================================
+    // Quiz Mode Toggle (Form Editor)
+    // =========================================================================
+    if ($('#ffc_quiz_enabled').length) {
+        function toggleQuizUI(on) {
+            $('.ffc-quiz-setting').toggleClass('ffc-hidden', !on);
+            $('.ffc-options-field').each(function() {
+                var $opts = $(this);
+                if (!$opts.hasClass('ffc-hidden')) {
+                    $opts.find('.ffc-quiz-points').toggleClass('ffc-hidden', !on);
+                }
+            });
+        }
+        $('#ffc_quiz_enabled').on('change', function() {
+            toggleQuizUI($(this).is(':checked'));
+        });
+        toggleQuizUI($('#ffc_quiz_enabled').is(':checked'));
+    }
+
 })(jQuery);

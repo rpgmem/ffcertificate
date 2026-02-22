@@ -49,6 +49,7 @@ class AdminUserCustomFields {
         $s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
         wp_enqueue_style('ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array(), FFC_VERSION);
+        wp_enqueue_style('ffc-custom-fields-admin', FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css", array(), FFC_VERSION);
         wp_enqueue_script('ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array('jquery'), FFC_VERSION, true);
         wp_localize_script('ffc-working-hours', 'ffcWorkingHours', array(
             'days' => array(
@@ -153,76 +154,24 @@ class AdminUserCustomFields {
             </div>
         <?php endforeach; ?>
 
-        <style>
-            .ffc-audience-section-heading {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                margin-top: 20px;
-                padding-bottom: 5px;
-                border-bottom: 1px solid #c3c4c7;
-            }
-            .ffc-color-dot {
-                display: inline-block;
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-                flex-shrink: 0;
-            }
-            .ffc-cf-toggle {
-                cursor: pointer;
-                user-select: none;
-            }
-            .ffc-cf-toggle:hover {
-                color: #2271b1;
-            }
-            .ffc-cf-toggle-icon {
-                font-size: 16px;
-                width: 16px;
-                height: 16px;
-                transition: transform 0.2s;
-            }
-            .ffc-cf-toggle.collapsed .ffc-cf-toggle-icon {
-                transform: rotate(-90deg);
-            }
-            .ffc-cf-field-count {
-                background: #dcdcde;
-                color: #50575e;
-                font-size: 11px;
-                font-weight: 400;
-                padding: 1px 7px;
-                border-radius: 10px;
-                margin-left: auto;
-            }
-            .ffc-cf-section-body {
-                transition: max-height 0.25s ease;
-                overflow: hidden;
-            }
-            .ffc-cf-section-body.collapsed {
-                display: none;
-            }
-        </style>
-        <script>
-        (function() {
-            document.querySelectorAll('.ffc-cf-toggle').forEach(function(heading) {
-                heading.addEventListener('click', function() {
-                    var targetId = this.getAttribute('data-target');
-                    var body = document.getElementById(targetId);
-                    var isCollapsed = this.classList.toggle('collapsed');
-                    this.setAttribute('aria-expanded', !isCollapsed);
-                    if (body) {
-                        body.classList.toggle('collapsed', isCollapsed);
-                    }
+        <?php
+        wp_add_inline_script('ffc-working-hours', '
+            (function() {
+                document.querySelectorAll(".ffc-cf-toggle").forEach(function(heading) {
+                    heading.addEventListener("click", function() {
+                        var targetId = this.getAttribute("data-target");
+                        var body = document.getElementById(targetId);
+                        var isCollapsed = this.classList.toggle("collapsed");
+                        this.setAttribute("aria-expanded", !isCollapsed);
+                        if (body) { body.classList.toggle("collapsed", isCollapsed); }
+                    });
+                    heading.addEventListener("keydown", function(e) {
+                        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); this.click(); }
+                    });
                 });
-                heading.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        this.click();
-                    }
-                });
-            });
-        })();
-        </script>
+            })();
+        ');
+        ?>
         <?php
     }
 

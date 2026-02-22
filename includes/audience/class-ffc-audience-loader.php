@@ -236,6 +236,7 @@ class AudienceLoader {
             'restUrl' => rest_url('ffc/v1/audience/'),
             'restNonce' => wp_create_nonce('wp_rest'),
             'searchUsersNonce' => wp_create_nonce('ffc_search_users'),
+            'schedulePermissionsNonce' => wp_create_nonce('ffc_schedule_permissions'),
             'adminNonce' => wp_create_nonce('ffc_admin_nonce'),
             'strings' => $this->get_admin_strings(),
         ));
@@ -317,6 +318,11 @@ class AudienceLoader {
             'customUsers' => __('Custom Users', 'ffcertificate'),
             'active' => __('Active', 'ffcertificate'),
             'cancelled' => __('Cancelled', 'ffcertificate'),
+            'alreadyAdded' => __('already added', 'ffcertificate'),
+            'noUsersFound' => __('No users found.', 'ffcertificate'),
+            'errorAddingUser' => __('Error adding user.', 'ffcertificate'),
+            'confirmRemoveUser' => __("Remove this user's access?", 'ffcertificate'),
+            'noUsersYet' => __('No users have been granted access yet.', 'ffcertificate'),
         );
     }
 

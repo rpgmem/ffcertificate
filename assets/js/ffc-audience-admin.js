@@ -42,6 +42,9 @@
 
             // Booking actions (view/cancel) on bookings page
             this.initBookingActions();
+
+            // Calendar user access permissions
+            this.initCalendarPermissions();
         },
 
         /**
@@ -311,6 +314,145 @@
                     error: function() {
                         alert(strings.error || 'An error occurred.');
                         $link.css('pointer-events', '').css('opacity', '');
+                    }
+                });
+            });
+        },
+
+        /**
+         * Calendar user access permissions (individual user search, add, toggle, remove)
+         */
+        initCalendarPermissions: function() {
+            var $table = $('#ffc-permissions-table');
+            if (!$table.length) {
+                return;
+            }
+
+            var scheduleId = $table.data('schedule-id');
+            if (!scheduleId) {
+                return;
+            }
+
+            var data = typeof ffcAudienceAdmin !== 'undefined' ? ffcAudienceAdmin : {};
+            var permNonce = data.schedulePermissionsNonce || '';
+            var searchNonce = data.searchUsersNonce || '';
+            var strings = data.strings || {};
+            var searchTimer = null;
+            var selectedUserId = 0;
+
+            // User search
+            $('#ffc-user-search').on('input', function() {
+                clearTimeout(searchTimer);
+                var query = $(this).val().trim();
+                if (query.length < 2) {
+                    $('#ffc-user-search-results').hide();
+                    return;
+                }
+                searchTimer = setTimeout(function() {
+                    $.get(ajaxurl, {
+                        action: 'ffc_search_users',
+                        query: query,
+                        nonce: searchNonce
+                    }, function(response) {
+                        if (response.success && response.data.length > 0) {
+                            var html = '';
+                            var existingIds = [];
+                            $table.find('tbody tr[data-user-id]').each(function() {
+                                existingIds.push(parseInt($(this).data('user-id')));
+                            });
+                            $.each(response.data, function(i, user) {
+                                var disabled = existingIds.indexOf(user.id) !== -1;
+                                html += '<div class="ffc-user-result' + (disabled ? ' ffc-user-exists' : '') + '" data-id="' + user.id + '" data-name="' + escHtml(user.name) + '" style="padding: 8px 12px; cursor: ' + (disabled ? 'default' : 'pointer') + '; border-bottom: 1px solid #eee;' + (disabled ? ' opacity: 0.5;' : '') + '">';
+                                html += '<strong>' + escHtml(user.name) + '</strong>';
+                                html += '<br><small>' + escHtml(user.email) + '</small>';
+                                if (disabled) html += ' <em>(' + escHtml(strings.alreadyAdded || 'already added') + ')</em>';
+                                html += '</div>';
+                            });
+                            $('#ffc-user-search-results').html(html).show();
+                        } else {
+                            $('#ffc-user-search-results').html('<div style="padding: 8px 12px; color: #666;"><em>' + escHtml(strings.noUsersFound || 'No users found.') + '</em></div>').show();
+                        }
+                    });
+                }, 300);
+            });
+
+            // Select user from results
+            $(document).on('click', '#ffc-user-search-results .ffc-user-result:not(.ffc-user-exists)', function() {
+                selectedUserId = parseInt($(this).data('id'));
+                $('#ffc-user-search').val($(this).data('name'));
+                $('#ffc-selected-user-id').val(selectedUserId);
+                $('#ffc-add-user-btn').prop('disabled', false);
+                $('#ffc-user-search-results').hide();
+            });
+
+            // Hide results on outside click
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#ffc-user-search, #ffc-user-search-results').length) {
+                    $('#ffc-user-search-results').hide();
+                }
+            });
+
+            // Add user
+            $('#ffc-add-user-btn').on('click', function() {
+                if (!selectedUserId) return;
+                var btn = $(this);
+                btn.prop('disabled', true);
+
+                $.post(ajaxurl, {
+                    action: 'ffc_audience_add_user_permission',
+                    schedule_id: scheduleId,
+                    user_id: selectedUserId,
+                    _wpnonce: permNonce
+                }, function(response) {
+                    if (response.success) {
+                        $('#ffc-no-permissions-row').remove();
+                        $table.find('tbody').append(response.data.html);
+                        $('#ffc-user-search').val('');
+                        selectedUserId = 0;
+                        $('#ffc-selected-user-id').val('');
+                    } else {
+                        alert(response.data.message || strings.errorAddingUser || 'Error adding user.');
+                        btn.prop('disabled', false);
+                    }
+                });
+            });
+
+            // Toggle permission
+            $(document).on('change', '.ffc-perm-toggle', function() {
+                var row = $(this).closest('tr');
+                var userId = row.data('user-id');
+                var perm = $(this).data('perm');
+                var value = $(this).is(':checked') ? 1 : 0;
+
+                $.post(ajaxurl, {
+                    action: 'ffc_audience_update_user_permission',
+                    schedule_id: scheduleId,
+                    user_id: userId,
+                    permission: perm,
+                    value: value,
+                    _wpnonce: permNonce
+                });
+            });
+
+            // Remove user
+            $(document).on('click', '.ffc-remove-user-btn', function() {
+                if (!confirm(strings.confirmRemoveUser || 'Remove this user\'s access?')) return;
+                var row = $(this).closest('tr');
+                var userId = row.data('user-id');
+
+                $.post(ajaxurl, {
+                    action: 'ffc_audience_remove_user_permission',
+                    schedule_id: scheduleId,
+                    user_id: userId,
+                    _wpnonce: permNonce
+                }, function(response) {
+                    if (response.success) {
+                        row.fadeOut(300, function() {
+                            $(this).remove();
+                            if ($table.find('tbody tr').length === 0) {
+                                $table.find('tbody').html('<tr id="ffc-no-permissions-row"><td colspan="5"><em>' + escHtml(strings.noUsersYet || 'No users have been granted access yet.') + '</em></td></tr>');
+                            }
+                        });
                     }
                 });
             });

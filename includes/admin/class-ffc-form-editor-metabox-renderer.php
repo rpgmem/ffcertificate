@@ -589,26 +589,8 @@ class FormEditorMetaboxRenderer {
                 </td>
             </tr>
         </table>
-        <script>
-        jQuery(function($){
-            function toggleQuizUI(on) {
-                $('.ffc-quiz-setting').toggleClass('ffc-hidden', !on);
-                // Only show points on fields that have options visible
-                $('.ffc-options-field').each(function(){
-                    var $opts = $(this);
-                    if (!$opts.hasClass('ffc-hidden')) {
-                        $opts.find('.ffc-quiz-points').toggleClass('ffc-hidden', !on);
-                    }
-                });
-            }
-            $('#ffc_quiz_enabled').on('change', function(){
-                toggleQuizUI($(this).is(':checked'));
-            });
-            // Initial state
-            toggleQuizUI($('#ffc_quiz_enabled').is(':checked'));
-        });
-        </script>
         <?php
+        // Quiz toggle logic in ffc-admin.js
     }
 
     /**

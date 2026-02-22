@@ -476,42 +476,47 @@ class AppointmentReceiptHandler {
                 </div>
             </div>
 
-            <?php wp_print_scripts('jquery'); ?>
-            <?php wp_print_scripts('html2canvas'); ?>
-            <?php wp_print_scripts('jspdf'); ?>
-            <?php wp_print_scripts('ffc-pdf-generator'); ?>
+            <?php
+            $validation_code = ! empty( $appointment['validation_code'] )
+                ? \FreeFormCertificate\Core\Utils::format_auth_code(
+                    $appointment['validation_code'],
+                    \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT
+                )
+                : '';
 
-            <script>
-            jQuery(document).ready(function($) {
-                <?php if ( $pdf_data ) : ?>
-                var ffcReceiptPdfData = <?php echo wp_json_encode( $pdf_data ); ?>;
-                <?php endif; ?>
+            wp_localize_script( 'ffc-pdf-generator', 'ffcReceiptData', array(
+                'pdfData'        => $pdf_data ?: null,
+                'appointmentId'  => $appointment['id'] ?? '0',
+                'validationCode' => $validation_code,
+                'errorMsg'       => __( 'Error: PDF generator not loaded. Please refresh the page.', 'ffcertificate' ),
+            ) );
 
-                $('#ffc-download-pdf-btn').on('click', function() {
-                    if (typeof window.ffcGeneratePDF !== 'function') {
-                        console.error('FFC PDF Generator not loaded');
-                        alert('<?php echo esc_js(__('Error: PDF generator not loaded. Please refresh the page.', 'ffcertificate')); ?>');
-                        return;
-                    }
-
-                    // Use server-rendered PDF template (with QR code) if available
-                    if (typeof ffcReceiptPdfData !== 'undefined' && ffcReceiptPdfData.html) {
-                        window.ffcGeneratePDF(ffcReceiptPdfData, ffcReceiptPdfData.filename || 'appointment_receipt.pdf');
-                        return;
-                    }
-
-                    // Fallback: capture visible receipt HTML
-                    var htmlContent = $('#ffc-receipt-content').html();
-                    var appointmentId = '<?php echo esc_js($appointment['id'] ?? '0'); ?>';
-                    var validationCode = '<?php echo esc_js(!empty($appointment['validation_code']) ? \FreeFormCertificate\Core\Utils::format_auth_code($appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT) : ''); ?>';
-                    var filename = validationCode ?
-                        'Appointment_Receipt_' + validationCode + '.pdf' :
-                        'Appointment_Receipt_' + appointmentId + '.pdf';
-
-                    window.ffcGeneratePDF({ html: htmlContent, bg_image: null }, filename);
+            wp_add_inline_script( 'ffc-pdf-generator', '
+                jQuery(document).ready(function($) {
+                    $("#ffc-download-pdf-btn").on("click", function() {
+                        if (typeof window.ffcGeneratePDF !== "function") {
+                            console.error("FFC PDF Generator not loaded");
+                            alert(ffcReceiptData.errorMsg);
+                            return;
+                        }
+                        if (ffcReceiptData.pdfData && ffcReceiptData.pdfData.html) {
+                            window.ffcGeneratePDF(ffcReceiptData.pdfData, ffcReceiptData.pdfData.filename || "appointment_receipt.pdf");
+                            return;
+                        }
+                        var htmlContent = $("#ffc-receipt-content").html();
+                        var filename = ffcReceiptData.validationCode
+                            ? "Appointment_Receipt_" + ffcReceiptData.validationCode + ".pdf"
+                            : "Appointment_Receipt_" + ffcReceiptData.appointmentId + ".pdf";
+                        window.ffcGeneratePDF({ html: htmlContent, bg_image: null }, filename);
+                    });
                 });
-            });
-            </script>
+            ' );
+
+            wp_print_scripts( 'jquery' );
+            wp_print_scripts( 'html2canvas' );
+            wp_print_scripts( 'jspdf' );
+            wp_print_scripts( 'ffc-pdf-generator' );
+            ?>
         </body>
         </html>
         <?php

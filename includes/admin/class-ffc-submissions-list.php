@@ -492,17 +492,7 @@ class SubmissionsList extends \WP_List_Table {
             </div>
         </div>
 
-        <script>
-        (function(){
-            var overlay = document.getElementById('ffc-filter-overlay');
-            if (!overlay) return;
-            document.getElementById('ffc-open-filter-overlay').addEventListener('click', function(){ overlay.style.display = 'flex'; });
-            overlay.querySelectorAll('.ffc-filter-overlay-close, .ffc-filter-overlay-backdrop').forEach(function(el){
-                el.addEventListener('click', function(){ overlay.style.display = 'none'; });
-            });
-            overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.style.display = 'none'; });
-        })();
-        </script>
         <?php
+        // Filter overlay logic in ffc-admin.js
     }
 }
