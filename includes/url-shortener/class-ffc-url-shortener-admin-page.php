@@ -50,7 +50,7 @@ class UrlShortenerAdminPage {
      * @param string $hook_suffix Admin page hook suffix.
      */
     public function enqueue_assets( string $hook_suffix ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing parameter for conditional asset loading.
         $page = sanitize_text_field( wp_unslash( $_GET['page'] ?? '' ) );
         if ( $page !== 'ffc-short-urls' ) {
             return;
@@ -98,12 +98,12 @@ class UrlShortenerAdminPage {
      * Handle non-AJAX admin actions (bulk delete, toggle).
      */
     public function handle_actions(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing parameter; nonce verified below via wp_verify_nonce.
         if ( ! isset( $_GET['page'] ) || sanitize_text_field( wp_unslash( $_GET['page'] ) ) !== 'ffc-short-urls' ) {
             return;
         }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Presence check only; nonce verified below via wp_verify_nonce.
         if ( ! isset( $_GET['ffc_action'] ) ) {
             return;
         }
@@ -274,15 +274,15 @@ class UrlShortenerAdminPage {
      * Render the admin page.
      */
     public function render_page(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only parameters
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only pagination parameter.
         $page    = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only search parameter.
         $search  = sanitize_text_field( wp_unslash( $_GET['s'] ?? '' ) );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only sort parameter.
         $orderby = sanitize_key( $_GET['orderby'] ?? 'created_at' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only sort direction parameter.
         $order   = strtoupper( sanitize_key( $_GET['order'] ?? 'DESC' ) );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only status filter parameter.
         $status  = sanitize_key( $_GET['status'] ?? 'all' );
 
         $per_page = 20;
@@ -299,7 +299,7 @@ class UrlShortenerAdminPage {
         $total       = $result['total'];
         $total_pages = (int) ceil( $total / $per_page );
         $stats       = $this->service->get_stats();
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only flash message parameter.
         $msg         = sanitize_key( $_GET['msg'] ?? '' );
 
         ?>
