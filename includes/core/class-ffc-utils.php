@@ -449,8 +449,8 @@ class Utils {
         // Format date
         $date_formatted = date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $submission_date ) );
 
-        // Auth code
-        $auth_code = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
+        // Auth code (formatted for display)
+        $auth_code = isset( $submission_data['auth_code'] ) ? self::format_auth_code( $submission_data['auth_code'] ) : '';
 
         // Load template
         ob_start();
