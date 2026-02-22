@@ -321,49 +321,49 @@ class UrlShortenerAdminPage {
 
             <?php if ( $status !== 'trashed' ) : ?>
             <!-- Stats -->
-            <div class="ffc-shorturl-stats" style="display:flex;gap:20px;margin:15px 0;">
-                <div style="background:#fff;padding:12px 20px;border:1px solid #ccd0d4;border-radius:4px;">
+            <div class="ffc-shorturl-stats">
+                <div>
                     <strong><?php echo esc_html( number_format_i18n( $stats['total_links'] ) ); ?></strong>
-                    <span style="color:#666;margin-left:4px;"><?php esc_html_e( 'Total Links', 'ffcertificate' ); ?></span>
+                    <span class="ffc-stat-label"><?php esc_html_e( 'Total Links', 'ffcertificate' ); ?></span>
                 </div>
-                <div style="background:#fff;padding:12px 20px;border:1px solid #ccd0d4;border-radius:4px;">
+                <div>
                     <strong><?php echo esc_html( number_format_i18n( $stats['active_links'] ) ); ?></strong>
-                    <span style="color:#666;margin-left:4px;"><?php esc_html_e( 'Active', 'ffcertificate' ); ?></span>
+                    <span class="ffc-stat-label"><?php esc_html_e( 'Active', 'ffcertificate' ); ?></span>
                 </div>
-                <div style="background:#fff;padding:12px 20px;border:1px solid #ccd0d4;border-radius:4px;">
+                <div>
                     <strong><?php echo esc_html( number_format_i18n( $stats['total_clicks'] ) ); ?></strong>
-                    <span style="color:#666;margin-left:4px;"><?php esc_html_e( 'Total Clicks', 'ffcertificate' ); ?></span>
+                    <span class="ffc-stat-label"><?php esc_html_e( 'Total Clicks', 'ffcertificate' ); ?></span>
                 </div>
             </div>
             <?php endif; ?>
 
             <?php if ( $status !== 'trashed' ) : ?>
             <!-- Create New -->
-            <div class="ffc-shorturl-create" style="background:#fff;padding:15px 20px;border:1px solid #ccd0d4;border-radius:4px;margin-bottom:15px;">
-                <h3 style="margin-top:0;"><?php esc_html_e( 'Create Short URL', 'ffcertificate' ); ?></h3>
-                <form id="ffc-create-short-url" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="ffc-shorturl-create">
+                <h3><?php esc_html_e( 'Create Short URL', 'ffcertificate' ); ?></h3>
+                <form id="ffc-create-short-url">
                     <?php wp_nonce_field( 'ffc_short_url_nonce', 'ffc_short_url_nonce' ); ?>
                     <div>
                         <label for="ffc-shorturl-target"><strong><?php esc_html_e( 'Destination URL', 'ffcertificate' ); ?></strong></label><br>
-                        <input type="url" id="ffc-shorturl-target" name="target_url" placeholder="https://example.com/long-page" required style="width:400px;" />
+                        <input type="url" id="ffc-shorturl-target" name="target_url" placeholder="https://example.com/long-page" required />
                     </div>
                     <div>
                         <label for="ffc-shorturl-title"><strong><?php esc_html_e( 'Title (optional)', 'ffcertificate' ); ?></strong></label><br>
-                        <input type="text" id="ffc-shorturl-title" name="title" placeholder="<?php esc_attr_e( 'My Campaign', 'ffcertificate' ); ?>" style="width:200px;" />
+                        <input type="text" id="ffc-shorturl-title" name="title" placeholder="<?php esc_attr_e( 'My Campaign', 'ffcertificate' ); ?>" />
                     </div>
                     <div>
                         <button type="submit" class="button button-primary"><?php esc_html_e( 'Create', 'ffcertificate' ); ?></button>
                     </div>
-                    <div id="ffc-shorturl-result" style="display:none;padding:8px 12px;background:#d4edda;border-radius:3px;"></div>
+                    <div id="ffc-shorturl-result"></div>
                 </form>
             </div>
             <?php endif; ?>
 
             <!-- Search + Filter -->
-            <form method="get" style="margin-bottom:10px;">
+            <form method="get" class="ffc-shorturl-filter">
                 <input type="hidden" name="post_type" value="ffc_form" />
                 <input type="hidden" name="page" value="ffc-short-urls" />
-                <div style="display:flex;gap:10px;align-items:center;">
+                <div class="ffc-shorturl-filter-row">
                     <select name="status">
                         <option value="all" <?php selected( $status, 'all' ); ?>><?php esc_html_e( 'All statuses', 'ffcertificate' ); ?></option>
                         <option value="active" <?php selected( $status, 'active' ); ?>><?php esc_html_e( 'Active', 'ffcertificate' ); ?></option>
@@ -449,7 +449,7 @@ class UrlShortenerAdminPage {
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <code class="ffc-shorturl-code" style="cursor:pointer;" title="<?php esc_attr_e( 'Click to copy', 'ffcertificate' ); ?>" data-url="<?php echo esc_attr( $short_url ); ?>">
+                                    <code class="ffc-shorturl-code" title="<?php esc_attr_e( 'Click to copy', 'ffcertificate' ); ?>" data-url="<?php echo esc_attr( $short_url ); ?>">
                                         <?php echo esc_html( $short_url ); ?>
                                     </code>
                                 </td>
