@@ -184,7 +184,7 @@ class SubmissionsList extends \WP_List_Table {
         if ( ! empty( $data_json ) ) {
             $data = json_decode( $data_json, true );
             if ( ! is_array( $data ) ) {
-                $data = json_decode( stripslashes( $data_json ), true );
+                $data = json_decode( wp_unslash( $data_json ), true );
             }
             if ( is_array( $data ) && isset( $data['_quiz_percent'] ) ) {
                 $score_html = ' <small>(' . absint( $data['_quiz_percent'] ) . '%)</small>';
@@ -212,7 +212,7 @@ class SubmissionsList extends \WP_List_Table {
         
         $data = json_decode($data_json, true);
         if (!is_array($data)) {
-            $data = json_decode(stripslashes($data_json), true);
+            $data = json_decode(wp_unslash($data_json), true);
         }
         
         if (!is_array($data) || empty($data)) {

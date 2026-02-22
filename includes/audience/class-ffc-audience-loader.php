@@ -699,7 +699,14 @@ class AudienceLoader {
             $fields_json = isset($_POST['fields']) ? wp_unslash($_POST['fields']) : '[]';
             $fields = json_decode($fields_json, true);
 
-            if (!$audience_id || !is_array($fields)) {
+            if (!is_array($fields)) {
+                \FreeFormCertificate\Core\Utils::debug_log('json_decode failed in ajax_save_custom_fields', array(
+                    'json_error' => json_last_error_msg(),
+                ));
+                wp_send_json_error(array('message' => __('Invalid field data format.', 'ffcertificate')));
+            }
+
+            if (!$audience_id) {
                 wp_send_json_error(array('message' => __('Invalid data.', 'ffcertificate')));
             }
 

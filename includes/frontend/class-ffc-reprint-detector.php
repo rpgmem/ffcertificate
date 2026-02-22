@@ -123,7 +123,7 @@ class ReprintDetector {
         if (!empty($data_json) && is_string($data_json)) {
             $decoded_data = json_decode( $data_json, true );
             if( !is_array($decoded_data) ) {
-                $decoded_data = json_decode( stripslashes( $data_json ), true );
+                $decoded_data = json_decode( wp_unslash( $data_json ), true );
             }
         } else {
             $decoded_data = null;

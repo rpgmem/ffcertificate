@@ -98,7 +98,7 @@ class VerificationHandler {
 
         $extra_data = json_decode($submission['data'], true);
         if (!is_array($extra_data)) {
-            $extra_data = json_decode(stripslashes($submission['data']), true);
+            $extra_data = json_decode(wp_unslash($submission['data']), true);
         }
 
         if (is_array($extra_data) && !empty($extra_data)) {
@@ -325,18 +325,8 @@ class VerificationHandler {
             'token_length' => strlen( $token )
         ) );
 
-        if ( ! \FreeFormCertificate\Generators\MagicLinkHelper::is_valid_token( $token ) ) {
-            \FreeFormCertificate\Core\Utils::debug_log( 'Magic token invalid format' );
-            return array(
-                'found' => false,
-                'submission' => null,
-                'data' => array(),
-                'error' => 'invalid_token_format',
-                'magic_token' => ''
-            );
-        }
-
-        // Rate limiting check
+        // Rate limiting check — must run BEFORE format validation to prevent
+        // attackers from probing token formats without being throttled.
         $user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
         $rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
         if ( ! $rate_check['allowed'] ) {
@@ -346,6 +336,17 @@ class VerificationHandler {
                 'submission' => null,
                 'data' => array(),
                 'error' => 'rate_limited',
+                'magic_token' => ''
+            );
+        }
+
+        if ( ! \FreeFormCertificate\Generators\MagicLinkHelper::is_valid_token( $token ) ) {
+            \FreeFormCertificate\Core\Utils::debug_log( 'Magic token invalid format' );
+            return array(
+                'found' => false,
+                'submission' => null,
+                'data' => array(),
+                'error' => 'invalid_token_format',
                 'magic_token' => ''
             );
         }
@@ -416,7 +417,7 @@ class VerificationHandler {
         // Passo 2: Campos extras do JSON
         $extra_data = json_decode( $submission['data'], true );
         if ( ! is_array( $extra_data ) ) {
-            $extra_data = json_decode( stripslashes( $submission['data'] ), true );
+            $extra_data = json_decode( wp_unslash( $submission['data'] ), true );
         }
         
         // Step 3: Merge (columns have priority over JSON)

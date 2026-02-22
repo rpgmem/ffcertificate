@@ -524,13 +524,14 @@ class SubmissionRepository extends AbstractRepository {
             return 0;
         }
 
-        $safe_ids = array_map( 'absint', $ids );
-        $id_list  = implode( ',', $safe_ids );
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $safe_ids     = array_map( 'absint', $ids );
+        $placeholders = implode( ', ', array_fill( 0, count( $safe_ids ), '%d' ) );
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders generated via array_fill().
         $query = $this->wpdb->prepare(
-            "UPDATE %i SET status = %s WHERE id IN ({$id_list})",
+            "UPDATE %i SET status = %s WHERE id IN ({$placeholders})",
             $this->table,
-            $status
+            $status,
+            ...$safe_ids
         );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -554,12 +555,13 @@ class SubmissionRepository extends AbstractRepository {
             return 0;
         }
 
-        $safe_ids = array_map( 'absint', $ids );
-        $id_list  = implode( ',', $safe_ids );
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $safe_ids     = array_map( 'absint', $ids );
+        $placeholders = implode( ', ', array_fill( 0, count( $safe_ids ), '%d' ) );
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders generated via array_fill().
         $query = $this->wpdb->prepare(
-            "DELETE FROM %i WHERE id IN ({$id_list})",
-            $this->table
+            "DELETE FROM %i WHERE id IN ({$placeholders})",
+            $this->table,
+            ...$safe_ids
         );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
