@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 5.0.0
+Stable tag: 5.0.1
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,132 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 5.0.1 (2026-02-22) =
+
+Security hardening, code quality improvements, URL Shortener test coverage, and phpcs:ignore standardization.
+
+* Fix: Removed nonce fallback chain in AjaxTrait — single specific nonce action per handler
+* Fix: Removed `wp_rest` as fallback nonce in Self-Scheduling AJAX handlers
+* Fix: Elevated permissions on 6 Audience AJAX handlers from `read` to `manage_options`
+* Fix: Changed `$_GET['booking_id']` to `$_POST['booking_id']` in Audience POST handler
+* Fix: Replaced `stripslashes()` with `wp_unslash()` in 4 locations
+* Fix: Improved SQL IN clause pattern with `%d` + `intval()` mapping
+* Fix: Moved rate limiter before format validation in magic token verification
+* Fix: Added early IP rate limit in FormProcessor before nonce/CAPTCHA
+* Fix: Standardized all `phpcs:ignore` comments with justifications
+* New: **117 URL Shortener tests** — Service (40), Repository (20), Loader (15), AdminPage (17), MetaBox (12), QrHandler (7), Activator (6)
+* Test suite: 934 → **1051 tests**, 1830 → **2076 assertions**
+
+= 5.0.0 (2026-02-19) =
+
+Multi-identifier architecture: split combined CPF/RF into independent columns, and retirement of 10 completed legacy migrations.
+
+* Feat: Added separate `cpf`, `cpf_encrypted`, `cpf_hash`, `rf`, `rf_encrypted`, `rf_hash` columns to submissions and appointments tables
+* Feat: Updated core, admin, API, security, and privacy layers for split cpf/rf columns
+* Refactor: Removed legacy `cpf_rf` dual-write; split migration is the single source of truth
+* Refactor: Deprecated legacy `cpf_rf` columns with `@deprecated` annotations
+* Removed: **10 completed migrations** retired from admin panel
+* Result: **934 tests, 1830 assertions, 0 failures**
+
+= 4.12.26 (2026-02-18) =
+
+PHPStan level 6 — zero-baseline compliance. Resolved all 317 static analysis errors across 80+ files without any baseline suppressions.
+
+* Fix: Added missing `use` import statements for 94 class.notFound errors
+* Fix: Cast `int` to `string` for `esc_html()`, `esc_attr()`, `sprintf()`, `_n()` calls (50 errors)
+* Fix: Removed 15 unreachable code blocks after `wp_die()`, `exit`, `wp_send_json_*()` calls
+* Config: Reduced PHPStan baseline from 317 errors to **0**
+
+= 4.12.25 (2026-02-17) =
+
+Unit tests for EmailHelperTrait, AjaxTrait, and Debug.
+
+* New: **EmailHelperTraitTest** — 20 tests
+* New: **AjaxTraitTest** — 17 tests
+* New: **DebugTest** — 13 tests
+* Config: Added `patchwork.json` for Brain\Monkey `error_log` mocking
+* Test suite: 765 → 815 tests, 1496 → 1563 assertions
+
+= 4.12.24 (2026-02-17) =
+
+Unit tests for CsvExportTrait, ActivityLogQuery, and AppointmentCsvExporter.
+
+* New: **CsvExportTraitTest** — 18 tests
+* New: **ActivityLogQueryTest** — 17 tests
+* New: **AppointmentCsvExporterTest** — 21 tests
+* Test suite: 709 → 765 tests, 1427 → 1496 assertions
+
+= 4.12.23 (2026-02-17) =
+
+Unit tests for BlockedDateRepository, EmailTemplateService, and ActivityLogSubscriber.
+
+* New: **BlockedDateRepositoryTest** — 20 tests
+* New: **EmailTemplateServiceTest** — 24 tests
+* New: **ActivityLogSubscriberTest** — 13 tests
+* Test suite: 652 → 709 tests, 1338 → 1427 assertions
+
+= 4.12.22 (2026-02-17) =
+
+Unit tests for Self-Scheduling and Date Blocking.
+
+* New: **AppointmentValidatorTest** — 24 tests
+* New: **SelfSchedulingSaveHandlerTest** — 18 tests
+* New: **DateBlockingServiceTest** — 18 tests
+* Test suite: 592 → 652 tests, 1235 → 1338 assertions
+
+= 4.12.21 (2026-02-17) =
+
+Unit tests for Migrations, Scheduling, and Generators.
+
+* New: **DataSanitizerTest** — 31 tests
+* New: **WorkingHoursServiceTest** — 30 tests
+* New: **MagicLinkHelperTest** — 32 tests
+* Test suite: 499 → 592 tests, 1118 → 1235 assertions
+
+= 4.12.20 (2026-02-17) =
+
+Unit tests for Admin module: settings validation, CSV export formatting, geofence logic.
+
+* New: **FormEditorSaveHandlerTest** — 24 tests
+* New: **SettingsSaveHandlerTest** — 28 tests
+* New: **CsvExporterTest** — 25 tests
+* Test suite: 422 → 499 tests, 974 → 1118 assertions
+
+= 4.12.19 (2026-02-17) =
+
+Refactoring: extract focused classes from DashboardShortcode (720 → 395 lines, 45% reduction).
+
+* Refactor: **DashboardAssetManager** — extracted asset enqueuing + localization (269 lines)
+* Refactor: **DashboardViewMode** — extracted admin view-as validation + banner (98 lines)
+
+= 4.12.18 (2026-02-17) =
+
+Unit tests for SubmissionHandler: comprehensive coverage of update, decrypt, failure paths, and edge cases.
+
+* New: **21 additional SubmissionHandler tests** covering update, decrypt, failure paths, bulk guards, edge cases
+* Test suite: 401 → 422 tests, 923 → 974 assertions
+
+= 4.12.17 (2026-02-17) =
+
+Refactoring: extract focused classes from FormProcessor (822 → 548 lines, 33% reduction).
+
+* Refactor: **AccessRestrictionChecker** — password, denylist, allowlist, and ticket validation (168 lines)
+* Refactor: **ReprintDetector** — reprint detection with JSON decoding and field enrichment (164 lines)
+
+= 4.12.16 (2026-02-17) =
+
+Refactoring: extract focused classes from SelfSchedulingEditor (924 → 559 lines, 39% reduction).
+
+* Refactor: **SelfSchedulingCleanupHandler** — AJAX cleanup handler and metabox rendering (303 lines)
+* Refactor: **SelfSchedulingSaveHandler** — calendar data persistence (141 lines)
+
+= 4.12.15 (2026-02-17) =
+
+Unit tests for Utils: comprehensive coverage of document validation, formatting, sanitization, captcha, and helper functions.
+
+* New: **UtilsTest** — 95 tests covering all Utils methods in 3 groups
+* Test suite: 306 → 401 tests, 812 → 923 assertions
 
 = 4.12.14 (2026-02-17) =
 
@@ -339,6 +465,15 @@ Audience custom fields, reregistration campaigns, ficha PDF, email notifications
 For the complete changelog history, see [CHANGELOG.md](CHANGELOG.md).
 
 == Upgrade Notice ==
+
+= 5.0.1 =
+Security hardening: nonce fallback removal, permission elevation on Audience AJAX, early IP rate limiting on form submission. 117 new URL Shortener tests (1051 total). No database changes. No breaking changes.
+
+= 5.0.0 =
+Multi-identifier architecture: split CPF/RF into independent columns. 10 retired migrations removed. Backup recommended before update.
+
+= 4.12.26 =
+PHPStan level 6 zero-baseline compliance. 317 static analysis errors resolved. No database changes. No breaking changes.
 
 = 4.12.6 =
 Frontend cleanup: removed 58 console.log calls, hardened XSS in 7 JS files, fixed CSS selector overlaps. No database changes. No breaking changes.
