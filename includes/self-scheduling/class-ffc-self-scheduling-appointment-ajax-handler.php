@@ -130,7 +130,7 @@ class AppointmentAjaxHandler {
                 'appointment_id' => $result['appointment_id'],
                 'confirmation_token' => $result['confirmation_token'] ?? null,
                 'validation_code' => $appointment && ! empty( $appointment['validation_code'] )
-                    ? \FreeFormCertificate\Core\Utils::format_auth_code( $appointment['validation_code'] )
+                    ? \FreeFormCertificate\Core\Utils::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT )
                     : null,
                 'receipt_url' => $requires_approval ? '' : ( $result['receipt_url'] ?? '' ),
                 'requires_approval' => $requires_approval,

@@ -424,7 +424,7 @@ class AppointmentReceiptHandler {
                     <?php if (!empty($appointment['validation_code'])): ?>
                     <div class="info-row">
                         <span class="info-label"><?php echo esc_html__('Validation Code:', 'ffcertificate'); ?></span>
-                        <span class="info-value" style="font-weight: bold; font-size: 1.1em; letter-spacing: 1px;"><?php echo esc_html(\FreeFormCertificate\Core\Utils::format_auth_code($appointment['validation_code'])); ?></span>
+                        <span class="info-value" style="font-weight: bold; font-size: 1.1em; letter-spacing: 1px;"><?php echo esc_html(\FreeFormCertificate\Core\Utils::format_auth_code($appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT)); ?></span>
                     </div>
                     <?php endif; ?>
                     <div class="info-row">
@@ -503,7 +503,7 @@ class AppointmentReceiptHandler {
                     // Fallback: capture visible receipt HTML
                     var htmlContent = $('#ffc-receipt-content').html();
                     var appointmentId = '<?php echo esc_js($appointment['id'] ?? '0'); ?>';
-                    var validationCode = '<?php echo esc_js(!empty($appointment['validation_code']) ? \FreeFormCertificate\Core\Utils::format_auth_code($appointment['validation_code']) : ''); ?>';
+                    var validationCode = '<?php echo esc_js(!empty($appointment['validation_code']) ? \FreeFormCertificate\Core\Utils::format_auth_code($appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT) : ''); ?>';
                     var filename = validationCode ?
                         'Appointment_Receipt_' + validationCode + '.pdf' :
                         'Appointment_Receipt_' + appointmentId + '.pdf';

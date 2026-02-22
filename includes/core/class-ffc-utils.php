@@ -210,8 +210,8 @@ class Utils {
     }
 
     /** @deprecated Use DocumentFormatter::format_auth_code() */
-    public static function format_auth_code( string $code ): string {
-        return DocumentFormatter::format_auth_code( $code );
+    public static function format_auth_code( string $code, string $prefix = '' ): string {
+        return DocumentFormatter::format_auth_code( $code, $prefix );
     }
 
     /** @deprecated Use DocumentFormatter::format_document() */
@@ -449,8 +449,8 @@ class Utils {
         // Format date
         $date_formatted = date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $submission_date ) );
 
-        // Auth code (formatted for display)
-        $auth_code = isset( $submission_data['auth_code'] ) ? self::format_auth_code( $submission_data['auth_code'] ) : '';
+        // Auth code (formatted for display with certificate prefix)
+        $auth_code = isset( $submission_data['auth_code'] ) ? self::format_auth_code( $submission_data['auth_code'], DocumentFormatter::PREFIX_CERTIFICATE ) : '';
 
         // Load template
         ob_start();
