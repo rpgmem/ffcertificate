@@ -8,7 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## 5.0.1 (2026-02-22)
 
-Security hardening, code quality improvements, URL Shortener test coverage, and phpcs:ignore standardization.
+Security hardening, code quality improvements, URL Shortener test coverage, virtual auth code prefixes, and multiple bug fixes.
 
 ### Security Fixes (Sprint 1)
 
@@ -42,6 +42,34 @@ Security hardening, code quality improvements, URL Shortener test coverage, and 
 - New: **UrlShortenerQrHandlerTest** — 7 tests covering generate_qr_base64 (PNG), generate_svg (SVG), handle_download_png/svg, resolve_qr_target (via reflection)
 - New: **UrlShortenerActivatorTest** — 6 tests covering get_table_name, create_tables (idempotent), maybe_migrate (migrations)
 - Test suite: **934 → 1051 tests, 1830 → 2076 assertions**
+
+### Virtual Auth Code Prefixes
+
+- Feat: Added virtual prefixes (C/R/A) to authentication codes — `C` for certificates, `R` for reregistrations, `A` for appointments. Display format changes from `XXXX-XXXX-XXXX` to `C-XXXX-XXXX-XXXX` / `R-XXXX-XXXX-XXXX` / `A-XXXX-XXXX-XXXX`
+- Feat: Prefixes are presentation-only — not stored in database, zero migration needed. Raw 12-char codes remain the source of truth
+- Feat: Intelligent verification routing on `/valid/` — prefix hints which DB table to search first, with fallback to all others for backward compatibility
+- Feat: Updated DocumentFormatter with `format_auth_code($code, $prefix)`, `parse_prefixed_code($input)`, and `clean_auth_code($code)` methods
+- Feat: Updated verification page input to accept prefixed codes (maxlength 16, placeholder `C-XXXX-XXXX-XXXX`)
+- Feat: Updated JS input mask to dynamically detect prefix and format as `P-XXXX-XXXX-XXXX` or legacy `XXXX-XXXX-XXXX`
+- Updated: All call sites across PDFs, emails, REST APIs, admin views, receipts, and verification responses now pass the appropriate prefix constant
+
+### Bug Fixes
+
+- Fix: Encrypted fields (email, CPF, RF) not decrypted in REST API responses for submissions and user certificates
+- Fix: XSS vulnerability in dashboard JS — sanitized dynamic HTML output with proper escaping
+- Fix: Appointment creation failing due to non-column keys (`ffc_form_id`, `ffc_calendar_id`) in insert data array
+- Fix: QR code not appearing in auto-download PDF and duplicate download button on success page
+- Fix: CPF/RF and email not found for users with only self-scheduling appointments — added join on appointments table in UserCreator
+- Fix: Certificate verification card narrower than appointment card on `/valid/` — added `width: 100%` to `.ffc-certificate-preview` (root cause: `displayVerificationResult()` replaces container innerHTML, removing `.ffc-verify-result` wrapper, so flex `align-items: center` caused shrink-wrap)
+
+### Refactoring & Improvements
+
+- Refactor: Centralized CPF/RF and auth_code formatting into DocumentFormatter — replaced scattered inline formatting across admin, API, and frontend layers
+- Refactor: Replaced inline `onclick` handlers with `data-confirm` delegation pattern for safer event handling
+- Improved: Added summary error feedback on form validation failures
+- Improved: Applied format masks for CPF, RF, auth_code, and validation_code across all admin and API views (submissions list, appointment detail, REST responses)
+- Improved: Used translated status labels in reregistration admin views
+- Chore: Centralized `FFC_VERSION` constant in tests/bootstrap.php from main plugin file
 
 ---
 
