@@ -188,7 +188,7 @@ class AppointmentAjaxHandler {
      */
     public function ajax_cancel_appointment(): void {
         try {
-            $this->verify_ajax_nonce(array('ffc_self_scheduling_nonce', 'wp_rest'));
+            check_ajax_referer('ffc_self_scheduling_nonce', 'nonce');
 
             $appointment_id = $this->get_post_int('appointment_id');
             $token = $this->get_post_param('token');

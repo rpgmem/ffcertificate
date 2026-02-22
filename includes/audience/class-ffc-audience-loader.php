@@ -325,9 +325,9 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_check_conflicts(): void {
-        check_ajax_referer('wp_rest', 'nonce');
+        check_ajax_referer('ffc_admin_nonce', 'nonce');
 
-        if (!current_user_can('read')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
         }
 
@@ -359,9 +359,9 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_create_booking(): void {
-        check_ajax_referer('wp_rest', 'nonce');
+        check_ajax_referer('ffc_admin_nonce', 'nonce');
 
-        if (!current_user_can('read')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
         }
 
@@ -420,7 +420,8 @@ class AudienceLoader {
             wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
         }
 
-        $booking_id = isset($_GET['booking_id']) ? absint($_GET['booking_id']) : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via check_ajax_referer() above.
+        $booking_id = isset($_POST['booking_id']) ? absint($_POST['booking_id']) : 0;
         if (!$booking_id) {
             wp_send_json_error(array('message' => __('Invalid booking ID.', 'ffcertificate')));
         }
@@ -484,9 +485,9 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_get_schedule_slots(): void {
-        check_ajax_referer('wp_rest', 'nonce');
+        check_ajax_referer('ffc_admin_nonce', 'nonce');
 
-        if (!current_user_can('read')) {
+        if (!current_user_can('manage_options')) {
             wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
         }
 

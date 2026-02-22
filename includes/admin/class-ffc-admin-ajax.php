@@ -29,7 +29,7 @@ class AdminAjax {
      * Generate tickets/codes
      */
     public function generate_tickets(): void {
-        $this->verify_ajax_nonce( array( 'ffc_form_nonce', 'ffc_admin_nonce' ) );
+        $this->verify_ajax_nonce( 'ffc_admin_nonce' );
         $this->check_ajax_permission( 'edit_posts' );
 
         $quantity = $this->get_post_int( 'quantity' );

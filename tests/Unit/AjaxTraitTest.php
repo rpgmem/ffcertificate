@@ -26,8 +26,8 @@ class AjaxTraitStub {
         return $this->get_post_array( $key );
     }
 
-    public function pub_verify_ajax_nonce( $actions, string $field = 'nonce' ): void {
-        $this->verify_ajax_nonce( $actions, $field );
+    public function pub_verify_ajax_nonce( string $action, string $field = 'nonce' ): void {
+        $this->verify_ajax_nonce( $action, $field );
     }
 
     public function pub_check_ajax_permission( string $cap = 'manage_options' ): void {
@@ -142,19 +142,17 @@ class AjaxTraitTest extends TestCase {
         $this->assertFalse( $called );
     }
 
-    public function test_nonce_fallback_action_accepted(): void {
-        $_POST['nonce'] = 'valid_nonce';
-        Functions\when( 'wp_verify_nonce' )->alias( function ( $nonce, $action ) {
-            return $action === 'ffc_fallback' ? 1 : false;
-        } );
+    public function test_nonce_invalid_sends_error(): void {
+        $_POST['nonce'] = 'invalid_nonce';
+        Functions\when( 'wp_verify_nonce' )->justReturn( false );
 
         $called = false;
         Functions\when( 'wp_send_json_error' )->alias( function () use ( &$called ) {
             $called = true;
         } );
 
-        $this->stub->pub_verify_ajax_nonce( array( 'ffc_primary', 'ffc_fallback' ) );
-        $this->assertFalse( $called );
+        $this->stub->pub_verify_ajax_nonce( 'ffc_action' );
+        $this->assertTrue( $called );
     }
 
     public function test_nonce_missing_sends_error(): void {
