@@ -340,7 +340,7 @@
                             self.refreshCaptcha(response.data.new_label, response.data.new_hash);
                         }
 
-                        self.showError(response.data.message || ffcCalendar.strings.error);
+                        self.showError((response.data && response.data.message) || ffcCalendar.strings.error);
                         $submitBtn.prop('disabled', false).text(ffcCalendar.strings.submit || 'Book Appointment');
                     }
                 },

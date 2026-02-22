@@ -290,7 +290,7 @@
                     FFCDashboard.renderSummary(data);
                 },
                 error: function() {
-                    $summary.remove();
+                    $summary.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
                 }
             });
         },
@@ -803,7 +803,7 @@
                 html += '<td>';
                 if (booking.audiences && booking.audiences.length > 0) {
                     booking.audiences.forEach(function(audience) {
-                        html += '<span class="ffc-audience-tag" style="background-color: ' + audience.color + '; color: #fff; padding: 2px 8px; border-radius: 3px; font-size: 12px;">' + audience.name + '</span>';
+                        html += '<span class="ffc-audience-tag" style="background-color: ' + esc(audience.color) + '; color: #fff; padding: 2px 8px; border-radius: 3px; font-size: 12px;">' + esc(audience.name) + '</span>';
                     });
                 }
                 html += '</td>';
@@ -1029,12 +1029,12 @@
             html += '<label>' + s.name + '</label>';
             if (profile.names && profile.names.length > 1) {
                 html += '<ul class="name-list">';
-                profile.names.forEach(function(name) { html += '<li>' + name + '</li>'; });
+                profile.names.forEach(function(name) { html += '<li>' + esc(name) + '</li>'; });
                 html += '</ul>';
             } else if (profile.names && profile.names.length === 1) {
-                html += '<div class="value">' + profile.names[0] + '</div>';
+                html += '<div class="value">' + esc(profile.names[0]) + '</div>';
             } else {
-                html += '<div class="value">' + (profile.display_name || '-') + '</div>';
+                html += '<div class="value">' + esc(profile.display_name || '-') + '</div>';
             }
             html += '</div>';
 
@@ -1043,12 +1043,12 @@
             html += '<label>' + s.linkedEmails + '</label>';
             if (profile.emails && profile.emails.length > 1) {
                 html += '<ul class="email-list">';
-                profile.emails.forEach(function(email) { html += '<li>' + email + '</li>'; });
+                profile.emails.forEach(function(email) { html += '<li>' + esc(email) + '</li>'; });
                 html += '</ul>';
             } else if (profile.emails && profile.emails.length === 1) {
-                html += '<div class="value">' + profile.emails[0] + '</div>';
+                html += '<div class="value">' + esc(profile.emails[0]) + '</div>';
             } else {
-                html += '<div class="value">' + (profile.email || '-') + '</div>';
+                html += '<div class="value">' + esc(profile.email || '-') + '</div>';
             }
             html += '</div>';
 
@@ -1057,26 +1057,26 @@
             html += '<label>' + s.cpfRf + '</label>';
             if (profile.cpfs_masked && profile.cpfs_masked.length > 1) {
                 html += '<ul class="cpf-list">';
-                profile.cpfs_masked.forEach(function(cpf) { html += '<li>' + cpf + '</li>'; });
+                profile.cpfs_masked.forEach(function(cpf) { html += '<li>' + esc(cpf) + '</li>'; });
                 html += '</ul>';
             } else if (profile.cpfs_masked && profile.cpfs_masked.length === 1) {
-                html += '<div class="value">' + profile.cpfs_masked[0] + '</div>';
+                html += '<div class="value">' + esc(profile.cpfs_masked[0]) + '</div>';
             } else {
-                html += '<div class="value">' + (profile.cpf_masked || '-') + '</div>';
+                html += '<div class="value">' + esc(profile.cpf_masked || '-') + '</div>';
             }
             html += '</div>';
 
             // Phone
             html += '<div class="ffc-profile-field"><label>' + (s.phone || 'Phone:') + '</label>';
-            html += '<div class="value">' + (profile.phone || '-') + '</div></div>';
+            html += '<div class="value">' + esc(profile.phone || '-') + '</div></div>';
 
             // Department
             html += '<div class="ffc-profile-field"><label>' + (s.department || 'Department:') + '</label>';
-            html += '<div class="value">' + (profile.department || '-') + '</div></div>';
+            html += '<div class="value">' + esc(profile.department || '-') + '</div></div>';
 
             // Organization
             html += '<div class="ffc-profile-field"><label>' + (s.organization || 'Organization:') + '</label>';
-            html += '<div class="value">' + (profile.organization || '-') + '</div></div>';
+            html += '<div class="value">' + esc(profile.organization || '-') + '</div></div>';
 
             // Notes
             if (profile.notes) {
@@ -1090,14 +1090,14 @@
                 html += '<label>' + (s.audienceGroups || 'Groups') + '</label>';
                 html += '<div class="value" style="display: flex; flex-wrap: wrap; gap: 6px;">';
                 profile.audience_groups.forEach(function(group) {
-                    html += '<span style="background-color: ' + (group.color || '#2271b1') + '; color: #fff; padding: 4px 12px; border-radius: 3px; font-size: 13px;">' + group.name + '</span>';
+                    html += '<span style="background-color: ' + esc(group.color || '#2271b1') + '; color: #fff; padding: 4px 12px; border-radius: 3px; font-size: 13px;">' + esc(group.name) + '</span>';
                 });
                 html += '</div></div>';
             }
 
             // Member Since
             html += '<div class="ffc-profile-field"><label>' + s.memberSince + '</label>';
-            html += '<div class="value">' + (profile.member_since || '-') + '</div></div>';
+            html += '<div class="value">' + esc(profile.member_since || '-') + '</div></div>';
 
             html += '</div>'; // .ffc-profile-info
 

@@ -140,7 +140,7 @@ class SubmissionsList extends \WP_List_Table {
             );
             
             $actions .= '<a href="' . esc_url($restore_url) . '" class="button button-small">' . __('Restore', 'ffcertificate') . '</a> ';
-            $actions .= '<a href="' . esc_url($delete_url) . '" class="button button-small ffc-delete-btn" onclick="return confirm(\'' . esc_js(__('Permanently delete?', 'ffcertificate')) . '\')">' . __('Delete', 'ffcertificate') . '</a>';
+            $actions .= '<a href="' . esc_url($delete_url) . '" class="button button-small ffc-delete-btn" data-confirm="' . esc_attr(__('Permanently delete?', 'ffcertificate')) . '">' . __('Delete', 'ffcertificate') . '</a>';
         }
         
         return $actions;

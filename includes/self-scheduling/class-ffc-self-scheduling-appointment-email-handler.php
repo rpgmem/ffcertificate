@@ -177,7 +177,7 @@ class AppointmentEmailHandler {
             __('Status', 'ffcertificate')   => $this->get_status_label($appointment['status']),
             __('Name', 'ffcertificate')     => $appointment['name'] ?? '-',
             __('Email', 'ffcertificate')    => $this->get_appointment_email($appointment),
-            __('Phone', 'ffcertificate')    => $appointment['phone'] ?? '-',
+            __('Phone', 'ffcertificate')    => \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'phone' ) ?: '-',
             __('Notes', 'ffcertificate')    => $appointment['user_notes'] ?? '-',
         ));
 
