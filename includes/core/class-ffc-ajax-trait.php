@@ -27,16 +27,17 @@ trait AjaxTrait {
     /**
      * Verify AJAX nonce from POST data.
      *
-     * Supports trying multiple nonce actions (e.g. 'ffc_form_nonce', 'ffc_admin_nonce').
+     * Each AJAX handler must use a single, specific nonce action.
      * Sends wp_send_json_error() and dies if verification fails.
      *
-     * @param string|array<string> $actions  One or more nonce action names to try.
-     * @param string               $field    POST field name containing the nonce value.
+     * @since 4.11.2
+     * @since 5.1.1 Accepts only a single nonce action (array fallback removed for security).
+     *
+     * @param string $action Nonce action name to verify.
+     * @param string $field  POST field name containing the nonce value.
      * @return void Dies with JSON error if nonce is invalid.
      */
-    protected function verify_ajax_nonce($actions, string $field = 'nonce'): void {
-        $actions = (array) $actions;
-
+    protected function verify_ajax_nonce(string $action, string $field = 'nonce'): void {
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only; nonce verified immediately inside.
         if (!isset($_POST[$field])) {
             wp_send_json_error(array('message' => __('Security check failed. Please reload the page.', 'ffcertificate')));
@@ -44,13 +45,9 @@ trait AjaxTrait {
 
         $nonce_value = sanitize_text_field(wp_unslash($_POST[$field]));
 
-        foreach ($actions as $action) {
-            if (wp_verify_nonce($nonce_value, $action)) {
-                return; // Valid nonce found
-            }
+        if (!wp_verify_nonce($nonce_value, $action)) {
+            wp_send_json_error(array('message' => __('Security check failed. Please reload the page.', 'ffcertificate')));
         }
-
-        wp_send_json_error(array('message' => __('Security check failed. Please reload the page.', 'ffcertificate')));
     }
 
     /**
@@ -111,5 +108,30 @@ trait AjaxTrait {
         }
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by the calling method.
         return array_map('sanitize_text_field', wp_unslash($_POST[$key]));
+    }
+
+    /**
+     * Handle uncaught exceptions in AJAX handlers.
+     *
+     * Logs the error via Utils::debug_log() and sends a generic JSON error
+     * to prevent internal details from leaking to the frontend.
+     *
+     * @since 5.1.1
+     *
+     * @param \Throwable $e The caught exception.
+     * @return void Dies with JSON error.
+     */
+    protected function handle_ajax_exception(\Throwable $e): void {
+        if (class_exists('\FreeFormCertificate\Core\Utils')) {
+            Utils::debug_log('AJAX error', array(
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ));
+        }
+        wp_send_json_error(array(
+            'code'    => 'ffc_internal_error',
+            'message' => __('An unexpected error occurred.', 'ffcertificate'),
+        ));
     }
 }

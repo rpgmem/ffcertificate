@@ -499,12 +499,14 @@ class AudienceAdminSettings {
         }
 
         // Save Self-Scheduling visibility settings
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
         if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'save_ss_visibility_settings') {
             if (!isset($_POST['ffc_ss_visibility_nonce']) ||
                 !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_ss_visibility_nonce'])), 'ffc_ss_visibility_settings')) {
                 return;
             }
 
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
             $display_mode = isset($_POST['ffc_ss_private_display_mode'])
                 ? sanitize_text_field(wp_unslash($_POST['ffc_ss_private_display_mode'])) : 'show_message';
             if (!in_array($display_mode, ['show_message', 'show_title_message', 'hide'], true)) {
@@ -512,32 +514,39 @@ class AudienceAdminSettings {
             }
 
             update_option('ffc_ss_private_display_mode', $display_mode);
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; wp_kses_post() sanitises.
             update_option('ffc_ss_visibility_message', wp_kses_post(wp_unslash($_POST['ffc_ss_visibility_message'] ?? '')));
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; wp_kses_post() sanitises.
             update_option('ffc_ss_scheduling_message', wp_kses_post(wp_unslash($_POST['ffc_ss_scheduling_message'] ?? '')));
 
             add_settings_error('ffc_audience', 'ffc_message', __('Self-scheduling visibility settings saved.', 'ffcertificate'), 'success');
         }
 
         // Save Self-Scheduling business hours restriction messages
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
         if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'save_ss_business_hours_settings') {
             if (!isset($_POST['ffc_ss_business_hours_nonce']) ||
                 !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_ss_business_hours_nonce'])), 'ffc_ss_business_hours_settings')) {
                 return;
             }
 
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; wp_kses_post() sanitises.
             update_option('ffc_ss_business_hours_viewing_message', wp_kses_post(wp_unslash($_POST['ffc_ss_business_hours_viewing_message'] ?? '')));
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; wp_kses_post() sanitises.
             update_option('ffc_ss_business_hours_booking_message', wp_kses_post(wp_unslash($_POST['ffc_ss_business_hours_booking_message'] ?? '')));
 
             add_settings_error('ffc_audience', 'ffc_message', __('Business hours restriction messages saved.', 'ffcertificate'), 'success');
         }
 
         // Save Audience visibility settings
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
         if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'save_aud_visibility_settings') {
             if (!isset($_POST['ffc_aud_visibility_nonce']) ||
                 !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_aud_visibility_nonce'])), 'ffc_aud_visibility_settings')) {
                 return;
             }
 
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
             $display_mode = isset($_POST['ffc_aud_private_display_mode'])
                 ? sanitize_text_field(wp_unslash($_POST['ffc_aud_private_display_mode'])) : 'show_message';
             if (!in_array($display_mode, ['show_message', 'show_title_message', 'hide'], true)) {
@@ -545,9 +554,12 @@ class AudienceAdminSettings {
             }
 
             update_option('ffc_aud_private_display_mode', $display_mode);
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; wp_kses_post() sanitises.
             update_option('ffc_aud_visibility_message', wp_kses_post(wp_unslash($_POST['ffc_aud_visibility_message'] ?? '')));
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; wp_kses_post() sanitises.
             update_option('ffc_aud_scheduling_message', wp_kses_post(wp_unslash($_POST['ffc_aud_scheduling_message'] ?? '')));
 
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
             $ma_color = isset($_POST['ffc_aud_multiple_audiences_color'])
                 ? sanitize_hex_color(wp_unslash($_POST['ffc_aud_multiple_audiences_color'])) : '';
             update_option('ffc_aud_multiple_audiences_color', $ma_color ?: '');
@@ -563,6 +575,7 @@ class AudienceAdminSettings {
      */
     public function handle_global_holiday_actions(): void {
         // Add global holiday (POST)
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
         if (isset($_POST['ffc_action']) && $_POST['ffc_action'] === 'add_global_holiday') {
             if (!isset($_POST['ffc_global_holiday_nonce']) ||
                 !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ffc_global_holiday_nonce'])), 'ffc_global_holiday_action')) {
@@ -573,7 +586,9 @@ class AudienceAdminSettings {
                 return;
             }
 
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
             $date = isset($_POST['global_holiday_date']) ? sanitize_text_field(wp_unslash($_POST['global_holiday_date'])) : '';
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
             $description = isset($_POST['global_holiday_description']) ? sanitize_text_field(wp_unslash($_POST['global_holiday_description'])) : '';
 
             if (!empty($date)) {

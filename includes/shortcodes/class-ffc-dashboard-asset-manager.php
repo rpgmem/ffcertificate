@@ -141,6 +141,7 @@ class DashboardAssetManager {
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'restUrl' => rest_url('ffc/v1/'),
             'nonce' => wp_create_nonce('wp_rest'),
+            'schedulingNonce' => wp_create_nonce('ffc_self_scheduling_nonce'),
             'viewAsUserId' => $view_as_user_id ? $view_as_user_id : false,
             'isAdminViewing' => $view_as_user_id && $view_as_user_id !== get_current_user_id(),
             'canViewCertificates' => $can_view_certificates,

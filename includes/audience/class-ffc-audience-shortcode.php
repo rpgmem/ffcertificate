@@ -722,6 +722,7 @@ class AudienceShortcode {
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'restUrl' => rest_url('ffc/v1/audience/'),
             'nonce' => wp_create_nonce('wp_rest'),
+            'searchUsersNonce' => wp_create_nonce('ffc_search_users'),
             'locale' => get_locale(),
             'dateFormat' => get_option('date_format', 'Y-m-d'),
             'timeFormat' => get_option('time_format', 'H:i'),

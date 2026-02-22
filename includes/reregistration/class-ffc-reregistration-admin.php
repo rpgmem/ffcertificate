@@ -700,6 +700,7 @@ class ReregistrationAdmin {
      * @return void
      */
     private function handle_save(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified immediately below.
         if (!isset($_POST['ffc_action']) || $_POST['ffc_action'] !== 'save_reregistration') {
             return;
         }
@@ -707,6 +708,7 @@ class ReregistrationAdmin {
             return;
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
         $id = isset($_POST['reregistration_id']) ? absint($_POST['reregistration_id']) : 0;
         $prev_status = null;
 
@@ -715,6 +717,7 @@ class ReregistrationAdmin {
             $prev_status = $existing ? $existing->status : null;
         }
 
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above (line 707).
         $data = array(
             'title'                      => isset($_POST['rereg_title']) ? sanitize_text_field(wp_unslash($_POST['rereg_title'])) : '',
             'audience_id'                => isset($_POST['rereg_audience_id']) ? absint($_POST['rereg_audience_id']) : 0,
@@ -727,6 +730,7 @@ class ReregistrationAdmin {
             'reminder_days'              => isset($_POST['rereg_reminder_days']) ? absint($_POST['rereg_reminder_days']) : 7,
             'status'                     => isset($_POST['rereg_status']) ? sanitize_text_field(wp_unslash($_POST['rereg_status'])) : 'draft',
         );
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         if ($id > 0) {
             ReregistrationRepository::update($id, $data);
@@ -787,6 +791,7 @@ class ReregistrationAdmin {
             wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
         }
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via check_ajax_referer() above.
         $submission_id = isset($_POST['submission_id']) ? absint($_POST['submission_id']) : 0;
         if (!$submission_id) {
             wp_send_json_error(array('message' => __('Invalid submission.', 'ffcertificate')));

@@ -207,7 +207,7 @@
 
                 $.ajax({
                     url: ajaxurl,
-                    type: 'GET',
+                    type: 'POST',
                     data: {
                         action: 'ffc_audience_get_booking',
                         booking_id: bookingId,

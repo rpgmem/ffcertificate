@@ -974,7 +974,7 @@
         cancelAppointment: function(appointmentId) {
             if (!confirm(ffcDashboard.strings.confirmCancel)) return;
 
-            var data = { action: 'ffc_cancel_appointment', appointment_id: appointmentId, nonce: ffcDashboard.nonce };
+            var data = { action: 'ffc_cancel_appointment', appointment_id: appointmentId, nonce: ffcDashboard.schedulingNonce };
             if (ffcDashboard.viewAsUserId) { data.viewAsUserId = ffcDashboard.viewAsUserId; }
 
             $.ajax({

@@ -45,6 +45,20 @@ class FormProcessor {
      * Handle form submission via AJAX
      */
     public function handle_submission_ajax(): void {
+        // Rate limit by IP — run BEFORE nonce/CAPTCHA to prevent brute-force
+        // and DoS attacks from consuming server resources on expensive checks.
+        if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
+            $user_ip    = \FreeFormCertificate\Core\Utils::get_user_ip();
+            $rate_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit( $user_ip );
+            if ( ! $rate_check['allowed'] ) {
+                wp_send_json_error( array(
+                    'message'      => $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ),
+                    'rate_limit'   => true,
+                    'wait_seconds' => $rate_check['wait_seconds'] ?? 0,
+                ) );
+            }
+        }
+
         // Verify nonce
         if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'ffc_frontend_nonce')) {
             wp_send_json_error(['message' => __('Security check failed. Please refresh the page.', 'ffcertificate')]);

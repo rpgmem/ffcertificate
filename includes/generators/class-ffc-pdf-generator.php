@@ -69,7 +69,7 @@ class PdfGenerator {
         // Extra fields from JSON
         $extra_data = json_decode( $sub_array['data'], true );
         if ( ! is_array( $extra_data ) ) {
-            $extra_data = json_decode( stripslashes( $sub_array['data'] ), true );
+            $extra_data = json_decode( wp_unslash( $sub_array['data'] ), true );
         }
 
         // Merge — columns have priority over JSON fields

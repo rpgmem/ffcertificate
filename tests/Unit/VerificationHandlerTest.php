@@ -65,7 +65,7 @@ class VerificationHandlerTest extends TestCase {
         Functions\when( 'do_action' )->justReturn( null );
         Functions\when( 'apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
         Functions\when( 'sanitize_text_field' )->returnArg();
-        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'wp_unslash' )->alias( 'stripslashes' );
         Functions\when( 'get_current_user_id' )->justReturn( 0 );
         Functions\when( 'wp_parse_args' )->alias( function( $args, $defaults = array() ) {
             if ( is_array( $args ) ) {
