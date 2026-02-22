@@ -481,6 +481,12 @@ class AppointmentRepository extends AbstractRepository {
             }
         }
 
+        // Always remove non-column keys that only exist in encrypted form in the DB.
+        // When encryption is configured, these are unset inside the !empty() blocks above,
+        // but if a value is empty the key stays in the array and causes wpdb->insert()
+        // to fail with "Unknown column". Remove them unconditionally.
+        unset($data['email'], $data['cpf_rf'], $data['phone'], $data['custom_data'], $data['user_ip']);
+
         // Generate confirmation token for all appointments (allows receipt access without login)
         if (empty($data['confirmation_token'])) {
             $data['confirmation_token'] = bin2hex(random_bytes(32));
