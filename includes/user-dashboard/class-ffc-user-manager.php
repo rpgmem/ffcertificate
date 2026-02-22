@@ -260,14 +260,23 @@ class UserManager {
      */
     public static function get_user_cpfs_masked( int $user_id ): array {
         global $wpdb;
-        $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+        $submissions_table  = \FreeFormCertificate\Core\Utils::get_submissions_table();
+        $appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
+        // Query both submissions and appointments tables so users who only
+        // have self-scheduling appointments still get their CPF/RF displayed.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT DISTINCT cpf_encrypted, rf_encrypted FROM %i
+            "SELECT cpf_encrypted, rf_encrypted FROM %i
+             WHERE user_id = %d
+             AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL)
+             UNION ALL
+             SELECT cpf_encrypted, rf_encrypted FROM %i
              WHERE user_id = %d
              AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL)",
-            $table,
+            $submissions_table,
+            $user_id,
+            $appointments_table,
             $user_id
         ), ARRAY_A );
 
@@ -319,14 +328,22 @@ class UserManager {
      */
     public static function get_user_identifiers_masked( int $user_id ): array {
         global $wpdb;
-        $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+        $submissions_table  = \FreeFormCertificate\Core\Utils::get_submissions_table();
+        $appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
+        // Query both submissions and appointments tables.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT DISTINCT cpf_encrypted, rf_encrypted FROM %i
+            "SELECT cpf_encrypted, rf_encrypted FROM %i
+             WHERE user_id = %d
+             AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL)
+             UNION ALL
+             SELECT cpf_encrypted, rf_encrypted FROM %i
              WHERE user_id = %d
              AND (cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL)",
-            $table,
+            $submissions_table,
+            $user_id,
+            $appointments_table,
             $user_id
         ), ARRAY_A );
 
@@ -390,15 +407,24 @@ class UserManager {
      */
     public static function get_user_emails( int $user_id ): array {
         global $wpdb;
-        $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
+        $submissions_table  = \FreeFormCertificate\Core\Utils::get_submissions_table();
+        $appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
+        // Query both submissions and appointments tables.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $encrypted_emails = $wpdb->get_col( $wpdb->prepare(
-            "SELECT DISTINCT email_encrypted FROM %i
+            "SELECT email_encrypted FROM %i
+             WHERE user_id = %d
+             AND email_encrypted IS NOT NULL
+             AND email_encrypted != ''
+             UNION ALL
+             SELECT email_encrypted FROM %i
              WHERE user_id = %d
              AND email_encrypted IS NOT NULL
              AND email_encrypted != ''",
-            $table,
+            $submissions_table,
+            $user_id,
+            $appointments_table,
             $user_id
         ) );
 
