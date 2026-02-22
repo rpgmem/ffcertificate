@@ -245,6 +245,7 @@ class AppointmentRestController {
             $calendar = $calendar_repository->findById($appointment['calendar_id']);
 
             $email_display = \FreeFormCertificate\Core\Encryption::decrypt_field($appointment, 'email');
+            $phone_display = \FreeFormCertificate\Core\Encryption::decrypt_field($appointment, 'phone');
 
             return rest_ensure_response(array(
                 'id' => (int) $appointment['id'],
@@ -256,7 +257,7 @@ class AppointmentRestController {
                 'status' => $appointment['status'],
                 'name' => $appointment['name'],
                 'email' => $email_display,
-                'phone' => $appointment['phone'] ?? '',
+                'phone' => $phone_display,
                 'user_notes' => $appointment['user_notes'] ?? '',
                 'created_at' => $appointment['created_at'],
             ));

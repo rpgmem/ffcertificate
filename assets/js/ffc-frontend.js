@@ -319,7 +319,7 @@
                 type: 'POST',
                 data: formData,
                 success: function(response) {
-                    if (response.success) {
+                    if (response.success && response.data) {
                         // ✅ Use response.data.html for beautiful layout
                         if (response.data.html) {
                             $form.html(response.data.html);

@@ -125,6 +125,7 @@ class UserAppointmentsRestController {
                 }
 
                 $email_display = \FreeFormCertificate\Core\Encryption::decrypt_field($appointment, 'email');
+                $phone_display = \FreeFormCertificate\Core\Encryption::decrypt_field($appointment, 'phone');
 
                 $end_time_formatted = '';
                 if (!empty($appointment['end_time'])) {
@@ -188,7 +189,7 @@ class UserAppointmentsRestController {
                     'status_label' => $status_labels[$status] ?? $status,
                     'name' => $appointment['name'] ?? '',
                     'email' => $email_display,
-                    'phone' => $appointment['phone'] ?? '',
+                    'phone' => $phone_display,
                     'user_notes' => $appointment['user_notes'] ?? '',
                     'created_at' => $appointment['created_at'] ?? '',
                     'can_cancel' => $can_cancel,
