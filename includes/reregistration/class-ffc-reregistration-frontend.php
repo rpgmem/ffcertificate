@@ -42,6 +42,7 @@ class ReregistrationFrontend {
     public static function ajax_get_form(): void {
         check_ajax_referer('ffc_reregistration_frontend', 'nonce');
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via check_ajax_referer() above.
         $reregistration_id = isset($_POST['reregistration_id']) ? absint($_POST['reregistration_id']) : 0;
         $user_id = get_current_user_id();
 
@@ -75,6 +76,7 @@ class ReregistrationFrontend {
     public static function ajax_submit(): void {
         check_ajax_referer('ffc_reregistration_frontend', 'nonce');
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via check_ajax_referer() above.
         $reregistration_id = isset($_POST['reregistration_id']) ? absint($_POST['reregistration_id']) : 0;
         $user_id = get_current_user_id();
 
@@ -118,6 +120,7 @@ class ReregistrationFrontend {
     public static function ajax_save_draft(): void {
         check_ajax_referer('ffc_reregistration_frontend', 'nonce');
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via check_ajax_referer() above.
         $reregistration_id = isset($_POST['reregistration_id']) ? absint($_POST['reregistration_id']) : 0;
         $user_id = get_current_user_id();
 

@@ -845,7 +845,7 @@
             data: {
                 action: 'ffc_search_users',
                 query: query,
-                nonce: ffcAudience.nonce
+                nonce: ffcAudience.searchUsersNonce
             },
             success: function(response) {
                 if (response.success && response.data.length > 0) {

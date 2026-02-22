@@ -18,6 +18,8 @@ if (!defined('ABSPATH')) {
 
 class AudienceLoader {
 
+    use \FreeFormCertificate\Core\AjaxTrait;
+
     /**
      * Singleton instance
      *
@@ -232,7 +234,7 @@ class AudienceLoader {
         wp_localize_script('ffc-audience-admin', 'ffcAudienceAdmin', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'restUrl' => rest_url('ffc/v1/audience/'),
-            'nonce' => wp_create_nonce('wp_rest'),
+            'restNonce' => wp_create_nonce('wp_rest'),
             'searchUsersNonce' => wp_create_nonce('ffc_search_users'),
             'adminNonce' => wp_create_nonce('ffc_admin_nonce'),
             'strings' => $this->get_admin_strings(),
@@ -325,19 +327,15 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_check_conflicts(): void {
-        check_ajax_referer('ffc_admin_nonce', 'nonce');
+        $this->verify_ajax_nonce('ffc_admin_nonce');
+        $this->check_ajax_permission();
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
-        }
-
-        // Get parameters
-        $environment_id = isset($_POST['environment_id']) ? absint($_POST['environment_id']) : 0;
-        $booking_date = isset($_POST['booking_date']) ? sanitize_text_field(wp_unslash($_POST['booking_date'])) : '';
-        $start_time = isset($_POST['start_time']) ? sanitize_text_field(wp_unslash($_POST['start_time'])) : '';
-        $end_time = isset($_POST['end_time']) ? sanitize_text_field(wp_unslash($_POST['end_time'])) : '';
-        $audience_ids = isset($_POST['audience_ids']) ? array_map('absint', (array) $_POST['audience_ids']) : array();
-        $user_ids = isset($_POST['user_ids']) ? array_map('absint', (array) $_POST['user_ids']) : array();
+        $environment_id = $this->get_post_int('environment_id');
+        $booking_date = $this->get_post_param('booking_date');
+        $start_time = $this->get_post_param('start_time');
+        $end_time = $this->get_post_param('end_time');
+        $audience_ids = array_map('absint', $this->get_post_array('audience_ids'));
+        $user_ids = array_map('absint', $this->get_post_array('user_ids'));
 
         if (!$environment_id || !$booking_date || !$start_time || !$end_time) {
             wp_send_json_error(array('message' => __('Missing required parameters.', 'ffcertificate')));
@@ -359,11 +357,8 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_create_booking(): void {
-        check_ajax_referer('ffc_admin_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
-        }
+        $this->verify_ajax_nonce('ffc_admin_nonce');
+        $this->check_ajax_permission();
 
         // Booking creation is handled by AudienceBookingService
         // This is a placeholder - actual implementation in Phase 6
@@ -376,13 +371,11 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_cancel_booking(): void {
-        check_ajax_referer('ffc_admin_nonce', 'nonce');
+        $this->verify_ajax_nonce('ffc_admin_nonce');
+        $this->check_ajax_permission();
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
-        }
-
-        $booking_id = isset($_POST['booking_id']) ? absint($_POST['booking_id']) : 0;
+        $booking_id = $this->get_post_int('booking_id');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via verify_ajax_nonce() above.
         $reason = isset($_POST['reason']) ? sanitize_textarea_field(wp_unslash($_POST['reason'])) : '';
 
         if (!$booking_id) {
@@ -414,14 +407,10 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_get_booking(): void {
-        check_ajax_referer('ffc_admin_nonce', 'nonce');
+        $this->verify_ajax_nonce('ffc_admin_nonce');
+        $this->check_ajax_permission();
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
-        }
-
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via check_ajax_referer() above.
-        $booking_id = isset($_POST['booking_id']) ? absint($_POST['booking_id']) : 0;
+        $booking_id = $this->get_post_int('booking_id');
         if (!$booking_id) {
             wp_send_json_error(array('message' => __('Invalid booking ID.', 'ffcertificate')));
         }
@@ -485,11 +474,8 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_get_schedule_slots(): void {
-        check_ajax_referer('ffc_admin_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
-        }
+        $this->verify_ajax_nonce('ffc_admin_nonce');
+        $this->check_ajax_permission();
 
         // Slot retrieval is handled by AudienceScheduleService
         // This is a placeholder - actual implementation in Phase 5
@@ -502,13 +488,10 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_search_users(): void {
-        check_ajax_referer('ffc_search_users', 'nonce');
+        $this->verify_ajax_nonce('ffc_search_users');
+        $this->check_ajax_permission();
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
-        }
-
-        $query = isset($_POST['query']) ? sanitize_text_field(wp_unslash($_POST['query'])) : '';
+        $query = $this->get_post_param('query');
 
         if (strlen($query) < 2) {
             wp_send_json_success(array());
@@ -539,13 +522,10 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_get_environments(): void {
-        check_ajax_referer('ffc_admin_nonce', 'nonce');
+        $this->verify_ajax_nonce('ffc_admin_nonce');
+        $this->check_ajax_permission();
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
-        }
-
-        $schedule_id = isset($_POST['schedule_id']) ? absint($_POST['schedule_id']) : 0;
+        $schedule_id = $this->get_post_int('schedule_id');
 
         if ($schedule_id <= 0) {
             wp_send_json_success(array());
@@ -570,14 +550,11 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_add_user_permission(): void {
-        check_ajax_referer('ffc_schedule_permissions', '_wpnonce');
+        $this->verify_ajax_nonce('ffc_schedule_permissions', '_wpnonce');
+        $this->check_ajax_permission();
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
-        }
-
-        $schedule_id = isset($_POST['schedule_id']) ? absint($_POST['schedule_id']) : 0;
-        $user_id = isset($_POST['user_id']) ? absint($_POST['user_id']) : 0;
+        $schedule_id = $this->get_post_int('schedule_id');
+        $user_id = $this->get_post_int('user_id');
 
         if (!$schedule_id || !$user_id) {
             wp_send_json_error(array('message' => __('Missing required parameters.', 'ffcertificate')));
@@ -640,16 +617,13 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_update_user_permission(): void {
-        check_ajax_referer('ffc_schedule_permissions', '_wpnonce');
+        $this->verify_ajax_nonce('ffc_schedule_permissions', '_wpnonce');
+        $this->check_ajax_permission();
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
-        }
-
-        $schedule_id = isset($_POST['schedule_id']) ? absint($_POST['schedule_id']) : 0;
-        $user_id = isset($_POST['user_id']) ? absint($_POST['user_id']) : 0;
-        $permission = isset($_POST['permission']) ? sanitize_text_field(wp_unslash($_POST['permission'])) : '';
-        $value = isset($_POST['value']) ? absint($_POST['value']) : 0;
+        $schedule_id = $this->get_post_int('schedule_id');
+        $user_id = $this->get_post_int('user_id');
+        $permission = $this->get_post_param('permission');
+        $value = $this->get_post_int('value');
 
         if (!$schedule_id || !$user_id || !$permission) {
             wp_send_json_error(array('message' => __('Missing required parameters.', 'ffcertificate')));
@@ -688,13 +662,10 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_save_custom_fields(): void {
-        check_ajax_referer('ffc_admin_nonce', 'nonce');
+        $this->verify_ajax_nonce('ffc_admin_nonce');
+        $this->check_ajax_permission();
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
-        }
-
-        $audience_id = isset($_POST['audience_id']) ? absint($_POST['audience_id']) : 0;
+        $audience_id = $this->get_post_int('audience_id');
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded and sanitized per-field below.
         $fields_json = isset($_POST['fields']) ? wp_unslash($_POST['fields']) : '[]';
         $fields = json_decode($fields_json, true);
@@ -806,13 +777,10 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_delete_custom_field(): void {
-        check_ajax_referer('ffc_admin_nonce', 'nonce');
+        $this->verify_ajax_nonce('ffc_admin_nonce');
+        $this->check_ajax_permission();
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
-        }
-
-        $field_id = isset($_POST['field_id']) ? absint($_POST['field_id']) : 0;
+        $field_id = $this->get_post_int('field_id');
         if (!$field_id) {
             wp_send_json_error(array('message' => __('Invalid field ID.', 'ffcertificate')));
         }
@@ -836,14 +804,11 @@ class AudienceLoader {
      * @return void
      */
     public function ajax_remove_user_permission(): void {
-        check_ajax_referer('ffc_schedule_permissions', '_wpnonce');
+        $this->verify_ajax_nonce('ffc_schedule_permissions', '_wpnonce');
+        $this->check_ajax_permission();
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
-        }
-
-        $schedule_id = isset($_POST['schedule_id']) ? absint($_POST['schedule_id']) : 0;
-        $user_id = isset($_POST['user_id']) ? absint($_POST['user_id']) : 0;
+        $schedule_id = $this->get_post_int('schedule_id');
+        $user_id = $this->get_post_int('user_id');
 
         if (!$schedule_id || !$user_id) {
             wp_send_json_error(array('message' => __('Missing required parameters.', 'ffcertificate')));
