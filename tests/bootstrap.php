@@ -30,7 +30,13 @@ if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
     define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
 }
 if ( ! defined( 'FFC_VERSION' ) ) {
-    define( 'FFC_VERSION', '5.0.1' );
+    // Extract version from main plugin file to keep a single source of truth.
+    $plugin_contents = file_get_contents( dirname( __DIR__ ) . '/ffcertificate.php' );
+    if ( preg_match( "/define\(\s*'FFC_VERSION',\s*'([^']+)'/", $plugin_contents, $version_match ) ) {
+        define( 'FFC_VERSION', $version_match[1] );
+    } else {
+        define( 'FFC_VERSION', 'dev' );
+    }
 }
 if ( ! defined( 'DB_NAME' ) ) {
     define( 'DB_NAME', 'test_db' );
