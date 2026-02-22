@@ -115,7 +115,7 @@
         var containerW = isPortrait ? '794px' : '1123px';
         var containerH = isPortrait ? '1123px' : '794px';
 
-        var $tempContainer = $('<div class="ffc-pdf-temp-container"></div>').css({
+        var $tempContainer = $('<div class="ffc-pdf-temp-container no-lazyload skip-lazy"></div>').css({
             'position': 'fixed',
             'top': '0',
             'left': '0',
@@ -132,13 +132,19 @@
         var finalHTML = '<div class="ffc-pdf-wrapper" style="width:100%;height:100%;position:relative;">';
 
         if (pdfData.bg_image) {
-            finalHTML += '<img src="' + pdfData.bg_image + '" class="ffc-pdf-bg" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" crossorigin="anonymous">';
+            finalHTML += '<img src="' + pdfData.bg_image + '" class="ffc-pdf-bg skip-lazy no-lazyload" loading="eager" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" crossorigin="anonymous">';
         }
 
         finalHTML += '<div class="ffc-pdf-content" style="position:relative;z-index:1;">' + processedHTML + '</div>';
         finalHTML += '</div>';
 
         $tempContainer.html(finalHTML);
+
+        // Ensure all images opt out of lazy loading (prevents plugins from interfering)
+        $tempContainer.find('img').attr({
+            'loading': 'eager',
+            'decoding': 'sync'
+        }).addClass('skip-lazy no-lazyload');
 
         var images = $tempContainer.find('img');
         var totalImages = images.length;
@@ -166,7 +172,25 @@
                 var $img = $(img);
                 var src = $img.attr('src');
 
-                if (img.complete && img.naturalHeight > 0) {
+                // For data URIs, use decode() API to ensure image is ready
+                if (src && src.startsWith('data:')) {
+                    if (typeof img.decode === 'function') {
+                        img.decode().then(function() {
+                            checkAllImagesLoaded();
+                        }).catch(function() {
+                            console.warn('[FFC PDF] Data URI decode failed');
+                            checkAllImagesLoaded();
+                        });
+                    } else if (img.complete && img.naturalHeight > 0) {
+                        checkAllImagesLoaded();
+                    } else {
+                        $img.one('load', checkAllImagesLoaded);
+                        $img.one('error', function() {
+                            console.warn('[FFC PDF] Data URI image failed to load');
+                            checkAllImagesLoaded();
+                        });
+                    }
+                } else if (img.complete && img.naturalHeight > 0) {
                     checkAllImagesLoaded();
                 } else {
                     $img.one('load', function() {
@@ -178,7 +202,7 @@
                         checkAllImagesLoaded();
                     });
 
-                    if (src && !src.startsWith('data:')) {
+                    if (src) {
                         var tempSrc = img.src;
                         img.src = '';
                         img.src = tempSrc;

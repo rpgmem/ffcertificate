@@ -430,14 +430,13 @@
                 detailsHtml += '</div>';
             }
 
-            // Receipt actions
+            // Receipt actions (show only one button: pdf_data takes priority over receipt_url)
             detailsHtml += '<div class="ffc-receipt-actions">';
             if (data.pdf_data) {
                 detailsHtml += '<button type="button" class="ffc-btn ffc-btn-primary ffc-download-receipt-btn">';
                 detailsHtml += ffcCalendar.strings.downloadReceipt;
                 detailsHtml += '</button>';
-            }
-            if (data.receipt_url) {
+            } else if (data.receipt_url) {
                 detailsHtml += ' <a href="' + esc(data.receipt_url) + '" class="ffc-btn ffc-btn-secondary" target="_blank">';
                 detailsHtml += ffcCalendar.strings.downloadReceipt;
                 detailsHtml += '</a>';
