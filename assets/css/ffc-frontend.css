@@ -625,6 +625,7 @@ textarea.ffc-input,
 }
 
 .ffc-certificate-preview {
+    width: 100%;
     max-width: 700px;
     margin: 0 auto;
     background: var(--ffc-bg-card);
