@@ -290,7 +290,7 @@
                     FFCDashboard.renderSummary(data);
                 },
                 error: function() {
-                    $summary.remove();
+                    $summary.html('<div class="ffc-error">' + ffcDashboard.strings.error + '</div>');
                 }
             });
         },

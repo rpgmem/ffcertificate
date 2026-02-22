@@ -287,6 +287,15 @@
      */
     if (typeof jQuery === 'undefined') {
         console.warn('[FFC Core] jQuery not found. Some features may not work.');
+    } else {
+        jQuery(function($) {
+            // Delegated confirm dialog for destructive actions
+            $(document).on('click', '[data-confirm]', function(e) {
+                if (!confirm($(this).attr('data-confirm'))) {
+                    e.preventDefault();
+                }
+            });
+        });
     }
-    
+
 })(window);
