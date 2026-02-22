@@ -292,7 +292,7 @@ class QRCodeGenerator {
         }
         
         return sprintf(
-            '<img src="data:image/png;base64,%s" alt="QR Code" style="width:%dpx; height:%dpx; display:block; margin:0 auto;" />',
+            '<img src="data:image/png;base64,%s" alt="QR Code" class="skip-lazy no-lazyload" loading="eager" decoding="sync" style="width:%dpx; height:%dpx; display:block; margin:0 auto;" />',
             $base64,
             $size,
             $size
