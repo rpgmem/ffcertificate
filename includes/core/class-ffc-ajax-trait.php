@@ -109,4 +109,29 @@ trait AjaxTrait {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by the calling method.
         return array_map('sanitize_text_field', wp_unslash($_POST[$key]));
     }
+
+    /**
+     * Handle uncaught exceptions in AJAX handlers.
+     *
+     * Logs the error via Utils::debug_log() and sends a generic JSON error
+     * to prevent internal details from leaking to the frontend.
+     *
+     * @since 5.1.1
+     *
+     * @param \Throwable $e The caught exception.
+     * @return void Dies with JSON error.
+     */
+    protected function handle_ajax_exception(\Throwable $e): void {
+        if (class_exists('\FreeFormCertificate\Core\Utils')) {
+            Utils::debug_log('AJAX error', array(
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ));
+        }
+        wp_send_json_error(array(
+            'code'    => 'ffc_internal_error',
+            'message' => __('An unexpected error occurred.', 'ffcertificate'),
+        ));
+    }
 }
