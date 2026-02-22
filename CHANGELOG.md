@@ -6,6 +6,45 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## 5.0.1 (2026-02-22)
+
+Security hardening, code quality improvements, URL Shortener test coverage, and phpcs:ignore standardization.
+
+### Security Fixes (Sprint 1)
+
+- Fix: Removed nonce fallback chain in AjaxTrait — each handler now verifies a single specific nonce action, eliminating timing side-channel
+- Fix: Removed `wp_rest` as fallback nonce in Self-Scheduling AJAX handlers — only `ffc_self_scheduling_nonce` accepted
+- Fix: Elevated `current_user_can('read')` to `manage_options` on sensitive Audience AJAX handlers (save_booking, cancel_booking, get_environments, search_users, save_custom_fields, get_custom_fields)
+- Fix: Changed `$_GET['booking_id']` to `$_POST['booking_id']` in Audience AJAX POST handler
+- Fix: Standardized nonce field name to `nonce` across all Audience handlers (was `_wpnonce` in one handler)
+
+### Code Quality (Sprint 2)
+
+- Fix: Replaced `stripslashes()` with `wp_unslash()` in SubmissionsList and VerificationHandler (4 occurrences)
+- Fix: Improved SQL IN clause pattern in SubmissionRepository and AppointmentRepository — switched from string interpolation of `%s` placeholders to `%d` with `intval()` array mapping for integer ID arrays
+- Fix: Moved rate limiter before format validation in `verify_by_magic_token()` to prevent probing token formats without throttling
+- Fix: Added explicit `json_last_error_msg()` check and error logging after `json_decode()` in Audience loader
+
+### Security Hardening (Sprint 6)
+
+- Fix: Added early IP-based rate limit check in `FormProcessor::handle_submission_ajax()` before nonce/CAPTCHA — prevents brute-force DoS from consuming server resources on expensive checks
+- Fix: Added justifications to all bare `phpcs:ignore` comments in URL Shortener admin page (9 comments standardized)
+- Verified: Magic token endpoint documentation already complete (nonce intentionally omitted, rate limiting in place)
+- Verified: JSON fallback handling in Audience loader already addressed in Sprint 2
+
+### URL Shortener Tests (Sprints 3–5)
+
+- New: **UrlShortenerServiceTest** — 40 tests covering create/delete/trash/restore, generate_unique_code (Base62, collision, length), get_short_url, settings (prefix, code_length, redirect_type, enabled, auto_create, post_types), toggle_status, get_stats
+- New: **UrlShortenerRepositoryTest** — 20 tests covering findByShortCode (cache hit/miss), findByPostId (active only, cache), incrementClickCount (success/failure, cache clear), codeExists, findPaginated (WHERE building, search, sort, pagination), getStats
+- New: **UrlShortenerLoaderTest** — 15 tests covering init (hooks conditional on enabled), maybe_flush_rewrite_rules (version tracking), register_rewrite_rules (regex), add_query_vars, handle_redirect (full redirect flow with click tracking), flush_rules (static method)
+- New: **UrlShortenerAdminPageTest** — 17 tests covering handle_actions (nonce, routing), ajax_create (validation, permission), ajax_delete/trash/restore, ajax_empty_trash (bulk delete), ajax_toggle (status toggle)
+- New: **UrlShortenerMetaBoxTest** — 12 tests covering register_meta_box (by post type), on_save_post (auto-create with guards), ajax_regenerate (regeneration flow)
+- New: **UrlShortenerQrHandlerTest** — 7 tests covering generate_qr_base64 (PNG), generate_svg (SVG), handle_download_png/svg, resolve_qr_target (via reflection)
+- New: **UrlShortenerActivatorTest** — 6 tests covering get_table_name, create_tables (idempotent), maybe_migrate (migrations)
+- Test suite: **934 → 1051 tests, 1830 → 2076 assertions**
+
+---
+
 ## 5.0.0 (2026-02-19)
 
 Multi-identifier architecture: split combined CPF/RF into independent columns, and retirement of 10 completed legacy migrations.
