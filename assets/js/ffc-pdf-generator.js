@@ -268,6 +268,10 @@
                 });
 
                 setTimeout(function() {
+                    // Make container visible for html2canvas (it respects computed opacity)
+                    // Container is safely behind the overlay (z-index 999998 vs 999999)
+                    $tempContainer.css('opacity', '1');
+
                     // Restore img src that may have been hijacked by lazy-loading plugins
                     $tempContainer.find('img').each(function() {
                         var $img = $(this);
