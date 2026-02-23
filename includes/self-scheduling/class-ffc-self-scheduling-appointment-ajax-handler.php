@@ -118,9 +118,25 @@ class AppointmentAjaxHandler {
                     $pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator();
                     $pdf_data = $pdf_generator->generate_appointment_pdf_data( $appointment, $calendar );
                 }
-            } catch ( \Exception $e ) {
-                // phpcs:ignore WordPress.PHP.DevelopmentFunctions
-                error_log( 'FFC Appointment PDF Error: ' . $e->getMessage() );
+            } catch ( \Throwable $e ) {
+                if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+                    \FreeFormCertificate\Core\Utils::debug_log( 'Appointment PDF generation error', array(
+                        'message' => $e->getMessage(),
+                        'file'    => $e->getFile(),
+                        'line'    => $e->getLine(),
+                    ) );
+                }
+            }
+
+            // Determine if a confirmation email was actually sent
+            $email_sent = false;
+            if ( ! $requires_approval ) {
+                $settings = get_option( 'ffc_settings', array() );
+                $emails_disabled = ! empty( $settings['disable_all_emails'] );
+                if ( ! $emails_disabled && $calendar ) {
+                    $email_config = json_decode( $calendar['email_config'] ?? '{}', true );
+                    $email_sent = ! empty( $email_config['send_user_confirmation'] );
+                }
             }
 
             $response = array(
@@ -134,6 +150,7 @@ class AppointmentAjaxHandler {
                     : null,
                 'receipt_url' => $requires_approval ? '' : ( $result['receipt_url'] ?? '' ),
                 'requires_approval' => $requires_approval,
+                'email_sent' => $email_sent,
             );
 
             if ( $pdf_data ) {

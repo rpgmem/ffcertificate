@@ -60,6 +60,10 @@
 
         var titleText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.generatingPdf)
             ? ffc_ajax.strings.generatingPdf
+            : (typeof ffcCalendar !== 'undefined' && ffcCalendar.strings && ffcCalendar.strings.generatingPdf)
+            ? ffcCalendar.strings.generatingPdf
+            : (typeof ffcReceiptData !== 'undefined' && ffcReceiptData.strings && ffcReceiptData.strings.generatingPdf)
+            ? ffcReceiptData.strings.generatingPdf
             : 'Generating PDF...';
 
         var title = $('<h3></h3>').css({
@@ -71,6 +75,10 @@
 
         var messageText = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pleaseWait)
             ? ffc_ajax.strings.pleaseWait
+            : (typeof ffcCalendar !== 'undefined' && ffcCalendar.strings && ffcCalendar.strings.pleaseWait)
+            ? ffcCalendar.strings.pleaseWait
+            : (typeof ffcReceiptData !== 'undefined' && ffcReceiptData.strings && ffcReceiptData.strings.pleaseWait)
+            ? ffcReceiptData.strings.pleaseWait
             : 'Please wait, this may take a few seconds...';
 
         var message = $('<p></p>').css({

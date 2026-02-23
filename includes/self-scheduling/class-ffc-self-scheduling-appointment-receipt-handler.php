@@ -489,6 +489,10 @@ class AppointmentReceiptHandler {
                 'appointmentId'  => $appointment['id'] ?? '0',
                 'validationCode' => $validation_code,
                 'errorMsg'       => __( 'Error: PDF generator not loaded. Please refresh the page.', 'ffcertificate' ),
+                'strings'        => array(
+                    'generatingPdf' => __( 'Generating PDF...', 'ffcertificate' ),
+                    'pleaseWait'    => __( 'Please wait, this may take a few seconds...', 'ffcertificate' ),
+                ),
             ) );
 
             wp_add_inline_script( 'ffc-pdf-generator', '
