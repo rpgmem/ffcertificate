@@ -280,7 +280,7 @@ class QRCodeGenerator {
 
             return '';
 
-        } catch ( Exception $e ) {
+        } catch ( \Exception $e ) {
             \FreeFormCertificate\Core\Utils::debug_log( 'QR Code generation exception', array(
                 'error' => $e->getMessage(),
                 'url' => substr( $url, 0, 50 ) . '...'
@@ -329,7 +329,7 @@ class QRCodeGenerator {
         }
         
         return sprintf(
-            '<img src="data:image/png;base64,%s" alt="QR Code" class="skip-lazy no-lazyload" loading="eager" decoding="sync" style="width:%dpx; height:%dpx; display:block; margin:0 auto;" />',
+            '<img src="data:image/png;base64,%s" alt="QR Code" class="skip-lazy no-lazyload perfmatters-lazy-skip" loading="eager" decoding="sync" data-no-lazy="1" data-skip-lazy="1" data-exclude="true" style="width:%dpx !important; height:%dpx !important; display:block !important; margin:0 auto; visibility:visible !important; opacity:1 !important;" />',
             $base64,
             $size,
             $size
