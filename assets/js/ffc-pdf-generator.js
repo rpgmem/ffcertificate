@@ -148,11 +148,26 @@
 
         $tempContainer.html(finalHTML);
 
-        // Ensure all images opt out of lazy loading (prevents plugins from interfering)
-        $tempContainer.find('img').attr({
-            'loading': 'eager',
-            'decoding': 'sync'
-        }).addClass('skip-lazy no-lazyload');
+        // Protect images from lazy-loading plugins (LiteSpeed Cache, WP Rocket, etc.)
+        // These plugins use MutationObserver and may replace src with data-src immediately
+        $tempContainer.find('img').each(function() {
+            var $img = $(this);
+            var src = $img.attr('src');
+
+            // Store original src as backup before any plugin can modify it
+            if (src) {
+                $img.attr('data-ffc-original-src', src);
+            }
+
+            // Add all known anti-lazy-loading attributes
+            $img.attr({
+                'loading': 'eager',
+                'decoding': 'sync',
+                'data-no-lazy': '1',
+                'data-skip-lazy': '1',
+                'data-exclude': 'true'
+            }).addClass('skip-lazy no-lazyload perfmatters-lazy-skip');
+        });
 
         var images = $tempContainer.find('img');
         var totalImages = images.length;
@@ -253,6 +268,26 @@
                 });
 
                 setTimeout(function() {
+                    // Restore img src that may have been hijacked by lazy-loading plugins
+                    $tempContainer.find('img').each(function() {
+                        var $img = $(this);
+                        var currentSrc = $img.attr('src') || '';
+                        var originalSrc = $img.attr('data-ffc-original-src');
+
+                        // If src was replaced by a lazy-loading plugin, restore it
+                        if (originalSrc && currentSrc !== originalSrc) {
+                            $img.attr('src', originalSrc);
+                        }
+
+                        // Also check common lazy-loading data attributes
+                        if (!currentSrc || currentSrc === 'about:blank' || currentSrc === 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7') {
+                            var lazySrc = $img.attr('data-src') || $img.attr('data-lazy-src') || $img.attr('data-original') || originalSrc;
+                            if (lazySrc) {
+                                $img.attr('src', lazySrc);
+                            }
+                        }
+                    });
+
                     html2canvas(element, {
                         scale: 2,
                         width: a4WidthPx,
