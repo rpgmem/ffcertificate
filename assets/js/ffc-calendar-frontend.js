@@ -450,6 +450,11 @@
                 $('.ffc-download-receipt-btn').data('pdfData', data.pdf_data);
             }
 
+            // Show email confirmation notice only if email was actually sent
+            if (data.email_sent) {
+                $('.ffc-confirmation-notice').show();
+            }
+
             // Hide calendar, show confirmation
             $('.ffc-calendar-container').hide();
             $('.ffc-confirmation-wrapper').show();

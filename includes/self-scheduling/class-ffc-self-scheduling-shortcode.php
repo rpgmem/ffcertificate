@@ -204,6 +204,9 @@ class SelfSchedulingShortcode {
                 'submit' => __('Book Appointment', 'ffcertificate'),
                 'timeout' => __('Connection timeout. Please try again.', 'ffcertificate'),
                 'networkError' => __('Network error. Please check your connection and try again.', 'ffcertificate'),
+                // PDF overlay
+                'generatingPdf' => __('Generating PDF...', 'ffcertificate'),
+                'pleaseWait' => __('Please wait, this may take a few seconds...', 'ffcertificate'),
             )
         ));
     }
@@ -629,11 +632,10 @@ class SelfSchedulingShortcode {
                         <p class="ffc-approval-notice">
                             <?php esc_html_e('Your appointment is pending approval. You will receive an email confirmation once it is approved.', 'ffcertificate'); ?>
                         </p>
-                    <?php else: ?>
-                        <p class="ffc-confirmation-notice">
-                            <?php esc_html_e('A confirmation email has been sent to your email address.', 'ffcertificate'); ?>
-                        </p>
                     <?php endif; ?>
+                    <p class="ffc-confirmation-notice" style="display: none;">
+                        <?php esc_html_e('A confirmation email has been sent to your email address.', 'ffcertificate'); ?>
+                    </p>
 
                     <button type="button" class="ffc-btn ffc-btn-primary ffc-btn-new-booking">
                         <?php esc_html_e('Book Another Appointment', 'ffcertificate'); ?>
