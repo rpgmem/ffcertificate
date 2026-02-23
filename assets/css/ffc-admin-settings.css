@@ -605,14 +605,6 @@ pre code {
     color: var(--ffc-info-text);
 }
 
-/* ✅ v3.1.0 Phase 3: Removed unused alert variants
- * - .ffc-alert-warning (never rendered)
- * - .ffc-alert-success (never rendered)
- * - .ffc-alert-danger (never rendered)
- */
-
-/* ✅ v3.1.0 Phase 3: Removed unused .ffc-doc-troubleshooting styles (never applied) */
-
 /* Tables in Documentation */
 .ffc-settings-wrap .widefat {
     border: 1px solid var(--ffc-border);

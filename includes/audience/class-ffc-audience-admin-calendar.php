@@ -393,7 +393,7 @@ class AudienceAdminCalendar {
             <?php
             $permissions = AudienceScheduleRepository::get_all_permissions($id);
             ?>
-            <table class="wp-list-table widefat fixed striped" id="ffc-permissions-table">
+            <table class="wp-list-table widefat fixed striped" id="ffc-permissions-table" data-schedule-id="<?php echo esc_attr((string) $id); ?>">
                 <thead>
                     <tr>
                         <th style="width: 30%;"><?php esc_html_e('User', 'ffcertificate'); ?></th>
@@ -436,132 +436,7 @@ class AudienceAdminCalendar {
                 </tbody>
             </table>
 
-            <script>
-            jQuery(document).ready(function($) {
-                var scheduleId = <?php echo (int) $id; ?>;
-                var permNonce = '<?php echo esc_js(wp_create_nonce('ffc_schedule_permissions')); ?>';
-                var searchNonce = '<?php echo esc_js(wp_create_nonce('ffc_search_users')); ?>';
-                var searchTimer = null;
-                var selectedUserId = 0;
-
-                // User search
-                $('#ffc-user-search').on('input', function() {
-                    clearTimeout(searchTimer);
-                    var query = $(this).val().trim();
-                    if (query.length < 2) {
-                        $('#ffc-user-search-results').hide();
-                        return;
-                    }
-                    searchTimer = setTimeout(function() {
-                        $.get(ajaxurl, {
-                            action: 'ffc_search_users',
-                            query: query,
-                            nonce: searchNonce
-                        }, function(response) {
-                            if (response.success && response.data.length > 0) {
-                                var html = '';
-                                var existingIds = [];
-                                $('#ffc-permissions-table tbody tr[data-user-id]').each(function() {
-                                    existingIds.push(parseInt($(this).data('user-id')));
-                                });
-                                $.each(response.data, function(i, user) {
-                                    var disabled = existingIds.indexOf(user.id) !== -1;
-                                    html += '<div class="ffc-user-result' + (disabled ? ' ffc-user-exists' : '') + '" data-id="' + user.id + '" data-name="' + $('<span>').text(user.name).html() + '" style="padding: 8px 12px; cursor: ' + (disabled ? 'default' : 'pointer') + '; border-bottom: 1px solid #eee;' + (disabled ? ' opacity: 0.5;' : '') + '">';
-                                    html += '<strong>' + $('<span>').text(user.name).html() + '</strong>';
-                                    html += '<br><small>' + $('<span>').text(user.email).html() + '</small>';
-                                    if (disabled) html += ' <em>(<?php echo esc_js(__('already added', 'ffcertificate')); ?>)</em>';
-                                    html += '</div>';
-                                });
-                                $('#ffc-user-search-results').html(html).show();
-                            } else {
-                                $('#ffc-user-search-results').html('<div style="padding: 8px 12px; color: #666;"><em><?php echo esc_js(__('No users found.', 'ffcertificate')); ?></em></div>').show();
-                            }
-                        });
-                    }, 300);
-                });
-
-                // Select user from results
-                $(document).on('click', '.ffc-user-result:not(.ffc-user-exists)', function() {
-                    selectedUserId = parseInt($(this).data('id'));
-                    $('#ffc-user-search').val($(this).data('name'));
-                    $('#ffc-selected-user-id').val(selectedUserId);
-                    $('#ffc-add-user-btn').prop('disabled', false);
-                    $('#ffc-user-search-results').hide();
-                });
-
-                // Hide results on outside click
-                $(document).on('click', function(e) {
-                    if (!$(e.target).closest('#ffc-user-search, #ffc-user-search-results').length) {
-                        $('#ffc-user-search-results').hide();
-                    }
-                });
-
-                // Add user
-                $('#ffc-add-user-btn').on('click', function() {
-                    if (!selectedUserId) return;
-                    var btn = $(this);
-                    btn.prop('disabled', true);
-
-                    $.post(ajaxurl, {
-                        action: 'ffc_audience_add_user_permission',
-                        schedule_id: scheduleId,
-                        user_id: selectedUserId,
-                        _wpnonce: permNonce
-                    }, function(response) {
-                        if (response.success) {
-                            $('#ffc-no-permissions-row').remove();
-                            $('#ffc-permissions-table tbody').append(response.data.html);
-                            $('#ffc-user-search').val('');
-                            selectedUserId = 0;
-                            $('#ffc-selected-user-id').val('');
-                        } else {
-                            alert(response.data.message || '<?php echo esc_js(__('Error adding user.', 'ffcertificate')); ?>');
-                            btn.prop('disabled', false);
-                        }
-                    });
-                });
-
-                // Toggle permission
-                $(document).on('change', '.ffc-perm-toggle', function() {
-                    var row = $(this).closest('tr');
-                    var userId = row.data('user-id');
-                    var perm = $(this).data('perm');
-                    var value = $(this).is(':checked') ? 1 : 0;
-
-                    $.post(ajaxurl, {
-                        action: 'ffc_audience_update_user_permission',
-                        schedule_id: scheduleId,
-                        user_id: userId,
-                        permission: perm,
-                        value: value,
-                        _wpnonce: permNonce
-                    });
-                });
-
-                // Remove user
-                $(document).on('click', '.ffc-remove-user-btn', function() {
-                    if (!confirm('<?php echo esc_js(__('Remove this user\'s access?', 'ffcertificate')); ?>')) return;
-                    var row = $(this).closest('tr');
-                    var userId = row.data('user-id');
-
-                    $.post(ajaxurl, {
-                        action: 'ffc_audience_remove_user_permission',
-                        schedule_id: scheduleId,
-                        user_id: userId,
-                        _wpnonce: permNonce
-                    }, function(response) {
-                        if (response.success) {
-                            row.fadeOut(300, function() {
-                                $(this).remove();
-                                if ($('#ffc-permissions-table tbody tr').length === 0) {
-                                    $('#ffc-permissions-table tbody').html('<tr id="ffc-no-permissions-row"><td colspan="5"><em><?php echo esc_js(__('No users have been granted access yet.', 'ffcertificate')); ?></em></td></tr>');
-                                }
-                            });
-                        }
-                    });
-                });
-            });
-            </script>
+            <?php // Calendar permissions logic in ffc-audience-admin.js ?>
 
             <!-- Holidays Section -->
             <hr>

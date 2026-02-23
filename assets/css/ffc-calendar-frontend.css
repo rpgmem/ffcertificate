@@ -219,7 +219,7 @@
 }
 
 .ffc-captcha-row label {
-    margin-bottom: 10px !important;
+    margin-bottom: 10px;
 }
 
 .ffc-captcha-row input {
@@ -238,7 +238,7 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    font-weight: normal !important;
+    font-weight: normal;
     cursor: pointer;
 }
 
@@ -262,60 +262,7 @@
     border-top: 1px solid var(--ffc-gray-200);
 }
 
-.ffc-btn {
-    display: inline-block;
-    padding: 10px 20px;
-    border: none;
-    border-radius: var(--ffc-radius-sm);
-    font-size: 14px;
-    font-weight: 500;
-    font-family: var(--ffc-font-family);
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    text-align: center;
-}
-
-.ffc-btn-primary {
-    background: var(--ffc-primary);
-    color: #fff;
-}
-
-.ffc-btn-primary:hover {
-    background: var(--ffc-primary-hover);
-}
-
-.ffc-btn-primary:disabled {
-    background: var(--ffc-gray-300);
-    cursor: not-allowed;
-}
-
-.ffc-btn-secondary {
-    background: var(--ffc-gray-200);
-    color: var(--ffc-gray-800);
-}
-
-.ffc-btn-secondary:hover {
-    background: var(--ffc-gray-300);
-}
-
-.ffc-btn-success {
-    background: var(--ffc-success);
-    color: #fff;
-}
-
-.ffc-btn-success:hover {
-    background: #008a20;
-}
-
-.ffc-btn-danger {
-    background: var(--ffc-danger);
-    color: #fff;
-}
-
-.ffc-btn-danger:hover {
-    background: #b32d2e;
-}
+/* Buttons — base classes consolidated in ffc-common.css */
 
 .ffc-btn-back {
     margin-left: auto;
@@ -340,18 +287,6 @@
     background: var(--ffc-danger-light);
     color: var(--ffc-danger);
     border: 1px solid var(--ffc-danger);
-}
-
-.ffc-message-success {
-    background: var(--ffc-success-light);
-    color: var(--ffc-success);
-    border: 1px solid var(--ffc-success);
-}
-
-.ffc-message-warning {
-    background: var(--ffc-warning-light);
-    color: #886400;
-    border: 1px solid var(--ffc-warning);
 }
 
 /* Error Message */
@@ -448,7 +383,7 @@
 .ffc-code-help {
     color: var(--ffc-gray-500);
     font-size: 13px;
-    margin-bottom: 0 !important;
+    margin-bottom: 0;
 }
 
 /* Receipt Actions */

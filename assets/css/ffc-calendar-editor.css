@@ -41,17 +41,6 @@
     margin-top: 10px;
 }
 
-/* Metabox Sections */
-.ffc-metabox-section {
-    margin-bottom: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.ffc-metabox-section:last-child {
-    border-bottom: none;
-}
-
 /* Form Table Styles */
 .form-table th {
     width: 200px;
@@ -75,66 +64,8 @@
 }
 
 /* Conditional Fields */
-.ffc-cancellation-hours,
-.ffc-allowed-roles {
+.ffc-cancellation-hours {
     transition: opacity 0.3s ease;
-}
-
-/* Email Configuration */
-.ffc-email-toggle {
-    margin-bottom: 15px;
-}
-
-/* Blocked Dates Section */
-.ffc-blocked-dates-list {
-    list-style: none;
-    padding: 0;
-    margin: 15px 0;
-}
-
-.ffc-blocked-dates-list li {
-    padding: 8px 12px;
-    margin-bottom: 5px;
-    background: #f5f5f5;
-    border-left: 3px solid #d63638;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.ffc-blocked-dates-list .button {
-    margin-left: 10px;
-}
-
-/* Status Badges */
-.ffc-status-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.ffc-status-badge.active {
-    background: #d4edda;
-    color: #155724;
-}
-
-.ffc-status-badge.inactive {
-    background: #f8d7da;
-    color: #721c24;
-}
-
-/* Help Text */
-.ffc-help-text {
-    padding: 12px;
-    background: #e7f3ff;
-    border-left: 4px solid #0073aa;
-    margin: 15px 0;
-}
-
-.ffc-help-text p {
-    margin: 5px 0;
 }
 
 /* Shortcode Display */
@@ -177,8 +108,7 @@
    ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
-    .ffc-cancellation-hours,
-    .ffc-allowed-roles {
+    .ffc-cancellation-hours {
         transition: none;
     }
 }

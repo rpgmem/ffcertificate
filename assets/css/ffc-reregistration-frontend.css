@@ -184,12 +184,12 @@
 }
 
 .ffc-rereg-field-sm {
-    flex: 0 0 100px !important;
+    flex: 0 0 100px;
     max-width: 120px;
 }
 
 .ffc-rereg-field-grow {
-    flex: 2 !important;
+    flex: 2;
 }
 
 /* ── Dependent Select ───────────────────────── */
@@ -204,7 +204,7 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-weight: 400 !important;
+    font-weight: 400;
     cursor: pointer;
 }
 
@@ -395,7 +395,7 @@
     }
 
     .ffc-rereg-field-sm {
-        flex: 1 !important;
+        flex: 1;
         max-width: 100%;
     }
 

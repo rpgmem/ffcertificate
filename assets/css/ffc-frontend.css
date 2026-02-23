@@ -88,7 +88,7 @@ textarea.ffc-input,
     font-weight: 500;
     color: var(--ffc-text-secondary);
     font-size: 18px;
-    text-transform: none !important;
+    text-transform: none;
 }
 
 .ffc-form-field label .required {
@@ -525,11 +525,11 @@ textarea.ffc-input,
 }
 
 .ffc-verify-input {
-    padding: 12px 15px !important;
-    border: 2px solid var(--ffc-border-light) !important;
-    border-radius: 5px !important;
-    font-size: 18px !important;
-    font-family: monospace !important;
+    padding: 12px 15px;
+    border: 2px solid var(--ffc-border-light);
+    border-radius: 5px;
+    font-size: 18px;
+    font-family: monospace;
     text-transform: uppercase;
     letter-spacing: 2px;
     text-align: center;
@@ -540,7 +540,7 @@ textarea.ffc-input,
 
 .ffc-verify-input:focus {
     outline: none;
-    border-color: var(--ffc-primary) !important;
+    border-color: var(--ffc-primary);
     box-shadow: 0 0 0 3px var(--ffc-focus-ring);
 }
 
@@ -970,7 +970,7 @@ textarea.ffc-input,
     .ffc-preview-actions,
     .ffc-verify-input-group,
     .ffc-submit-btn {
-        display: none !important;
+        display: none;
     }
 
     .ffc-certificate-preview {

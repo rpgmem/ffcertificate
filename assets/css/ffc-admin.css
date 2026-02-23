@@ -4,14 +4,7 @@
    ========================================================================== */
 
 /* ==========================================================================
-   1. METABOX TABS (Native WP Style) - REMOVED v3.1.0
-   ========================================================================== */
-/* ✅ Phase 3: Unused metabox tabs classes removed
- * Removed: .ffc-metabox-tabs, .ffc-tabs-nav (never instantiated)
- */
-
-/* ==========================================================================
-   2. FORM BUILDER (Field Rows) - RESPONSIVE GRID
+   FORM BUILDER (Field Rows) - RESPONSIVE GRID
    ========================================================================== */
 #ffc-fields-container { 
     margin-bottom: 15px; 
@@ -61,7 +54,7 @@
 
 .ffc-field-row-grid input[type="text"],
 .ffc-field-row-grid select {
-    width: 100% !important;
+    width: 100%;
     box-sizing: border-box;
     height: 30px;
 }
@@ -88,7 +81,7 @@
 }
 
 .ffc-options-desc {
-    margin: 0 0 5px !important;
+    margin: 0 0 5px;
     font-weight: bold;
     color: var(--ffc-primary);
 }
@@ -167,8 +160,6 @@
     border-collapse: collapse;
 }
 
-/* ✅ v3.1.0 Phase 3: Removed .ffc-more-fields (never rendered) */
-
 /* Quebra de texto em emails e dados */
 .ffc-table-responsive table.wp-list-table td.column-email,
 .ffc-table-responsive table.wp-list-table td.column-data {
@@ -213,12 +204,6 @@
 /* ==========================================================================
    6. SETTINGS & DOCUMENTATION
    ========================================================================== */
-/* ✅ v3.1.0 Phase 3: Removed unused classes
- * - .ffc-settings-card (never used)
- * - .ffc-help-table, .ffc-help-table th, .ffc-help-table td (never instantiated)
- * - .ffc-danger-select (never applied)
- */
-
 .ffc-danger-zone {
     margin-top: 40px;
     padding: 20px;
@@ -299,23 +284,7 @@
 }
 
 /* ==========================================================================
-   10. STATUS BADGES - REMOVED v3.1.0
-   ========================================================================== */
-/* ✅ Phase 3: Status badges moved to ffc-common.css
- * Removed duplicates: .ffc-status-badge, .ffc-status-publish, .ffc-status-trash
- * See assets/css/ffc-common.css for the consolidated version
- */
-
-/* ==========================================================================
-   11. ADMIN NOTICES - REMOVED v3.1.0
-   ========================================================================== */
-/* ✅ Phase 3: Unused admin notice classes removed
- * Removed: .ffc-admin-notice, .ffc-admin-notice-success, .ffc-admin-notice-warning
- * These classes were never rendered in the codebase
- */
-
-/* ==========================================================================
-   12. HIGHLIGHTS
+   HIGHLIGHTS
    ========================================================================== */
 .ffc-highlight-row {
     background: var(--ffc-primary-light);
@@ -339,7 +308,6 @@
         align-items: flex-start;
     }
 
-    /* ✅ v3.1.0 Phase 3: Removed .ffc-row-actions (class never defined or used) */
 }
 
 /* ==========================================================================
@@ -446,8 +414,6 @@
    CORREÇÕES SPRINT 3.0 - v3.0.0
    ========================================================================== */
 
-/* ✅ v3.1.0 Phase 3: Removed duplicate .ffc-settings-card (never used, already removed above) */
-
 /* Fix: Ícones não duplicar nos botões */
 .ffc-template-loader .button::before {
     display: inline-block;
@@ -549,18 +515,9 @@
 }
 
 /* ==========================================================================
-   Badge styles
+   Badge styles — base .ffc-badge class in ffc-common.css
    ========================================================================== */
 
-.ffc-badge {
-    display: inline-block;
-    padding: 3px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    border-radius: 3px;
-    text-transform: uppercase;
-    line-height: 1;
-}
 .ffc-badge-info {
     background: var(--ffc-info-bg);
     color: var(--ffc-info-text);
@@ -589,7 +546,7 @@
 
 /* Form label blocks */
 .ffc-restriction-label {
-    display: block !important;
+    display: block;
     margin: 10px 0;
 }
 
@@ -649,14 +606,14 @@
 
 /* Checkbox label block */
 .ffc-checkbox-label {
-    display: block !important;
+    display: block;
     margin-bottom: 8px;
 }
 
 /* Ensure fieldset labels also display as blocks */
 fieldset .ffc-checkbox-label,
 td .ffc-restriction-label {
-    display: block !important;
+    display: block;
 }
 
 /* Info card */

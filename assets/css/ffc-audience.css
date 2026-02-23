@@ -325,64 +325,7 @@
     border: 1px solid var(--ffc-primary);
 }
 
-/* Buttons */
-.ffc-btn {
-    display: inline-block;
-    padding: 10px 20px;
-    border: none;
-    border-radius: var(--ffc-radius-sm);
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-.ffc-btn-primary {
-    background: var(--ffc-primary);
-    color: #fff;
-}
-
-.ffc-btn-primary:hover {
-    background: var(--ffc-primary-hover);
-}
-
-.ffc-btn:focus-visible {
-    outline: 2px solid var(--ffc-primary);
-    outline-offset: 2px;
-}
-
-.ffc-btn-secondary {
-    background: var(--ffc-gray-200);
-    color: var(--ffc-gray-800);
-}
-
-.ffc-btn-secondary:hover {
-    background: var(--ffc-gray-300);
-}
-
-.ffc-btn-success {
-    background: var(--ffc-success);
-    color: #fff;
-}
-
-.ffc-btn-success:hover {
-    background: #008a20;
-}
-
-.ffc-btn-danger {
-    background: var(--ffc-danger);
-    color: #fff;
-}
-
-.ffc-btn-danger:hover {
-    background: #b32d2e;
-}
-
-.ffc-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
+/* Buttons — base classes consolidated in ffc-common.css */
 
 /* Modal */
 .ffc-modal {
@@ -556,7 +499,7 @@
 
 /* Multi-select */
 .ffc-multiselect {
-    height: auto !important;
+    height: auto;
     min-height: 100px;
 }
 
@@ -943,8 +886,7 @@
 
 @media (prefers-reduced-motion: reduce) {
     .ffc-nav-btn,
-    .ffc-day,
-    .ffc-btn {
+    .ffc-day {
         transition: none;
     }
 }
