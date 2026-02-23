@@ -71,12 +71,22 @@ class UrlShortenerQrHandler {
             require_once FFC_PLUGIN_DIR . 'libs/phpqrcode/qrlib.php';
         }
 
-        // Get the QR code matrix as text
-        $temp_file = tempnam( sys_get_temp_dir(), 'ffc_qr_svg_' );
+        // Get the QR code matrix as text - prefer wp_tempnam for hosting compatibility
+        $temp_file = function_exists( 'wp_tempnam' )
+            ? wp_tempnam( 'ffc_qr_svg_' )
+            : tempnam( sys_get_temp_dir(), 'ffc_qr_svg_' );
+
+        if ( ! $temp_file ) {
+            return '';
+        }
+
         \QRcode::png( $url, $temp_file, QR_ECLEVEL_M, 1, 0 );
 
         // Read the PNG and get dimensions
-        if ( ! file_exists( $temp_file ) ) {
+        if ( ! file_exists( $temp_file ) || filesize( $temp_file ) === 0 ) {
+            if ( file_exists( $temp_file ) ) {
+                wp_delete_file( $temp_file );
+            }
             return '';
         }
 
