@@ -218,42 +218,79 @@ class QRCodeGenerator {
     public function generate( string $url, array $params = array() ): string {
         // Merge with defaults
         $params = array_merge( $this->defaults, $params );
-        
+
         // Validate URL
         if ( empty( $url ) ) {
+            \FreeFormCertificate\Core\Utils::debug_log( 'QR Code: empty URL provided' );
             return '';
         }
-        
+
         try {
-            // Create temporary file
-            $temp_file = tempnam( sys_get_temp_dir(), 'ffc_qr_' );
-            
+            // Create temporary file - prefer wp_tempnam for better hosting compatibility
+            $temp_file = function_exists( 'wp_tempnam' )
+                ? wp_tempnam( 'ffc_qr_' )
+                : tempnam( sys_get_temp_dir(), 'ffc_qr_' );
+
+            if ( ! $temp_file || $temp_file === '' ) {
+                \FreeFormCertificate\Core\Utils::debug_log( 'QR Code: temp file creation failed', array(
+                    'sys_tmp_dir' => sys_get_temp_dir(),
+                ) );
+                return '';
+            }
+
+            // Cast size to int to prevent PHP 8.1+ deprecation warnings
+            $point_size = max( 1, (int) ( $params['size'] / 10 ) );
+            $margin     = (int) $params['margin'];
+
             // Generate QR Code
             \QRcode::png(
                 $url,
                 $temp_file,
                 $this->get_error_correction_constant( $params['error_level'] ),
-                $params['size'] / 10, // Size parameter for phpqrcode
-                $params['margin']
+                $point_size,
+                $margin
             );
-            
+
             // Read file and encode
-            if ( file_exists( $temp_file ) ) {
+            if ( file_exists( $temp_file ) && filesize( $temp_file ) > 0 ) {
                 $image_data = file_get_contents( $temp_file );
                 $base64 = base64_encode( $image_data );
-                
+
                 // Clean up
                 wp_delete_file( $temp_file );
-                
+
+                \FreeFormCertificate\Core\Utils::debug_log( 'QR Code generated successfully', array(
+                    'url_length'    => strlen( $url ),
+                    'base64_length' => strlen( $base64 ),
+                    'point_size'    => $point_size,
+                ) );
+
                 return $base64;
             }
-            
+
+            // Clean up the empty/missing temp file
+            if ( file_exists( $temp_file ) ) {
+                wp_delete_file( $temp_file );
+            }
+
+            \FreeFormCertificate\Core\Utils::debug_log( 'QR Code: temp file empty or missing after generation', array(
+                'temp_file' => $temp_file,
+                'exists'    => file_exists( $temp_file ),
+            ) );
+
             return '';
-            
+
         } catch ( Exception $e ) {
             \FreeFormCertificate\Core\Utils::debug_log( 'QR Code generation exception', array(
                 'error' => $e->getMessage(),
                 'url' => substr( $url, 0, 50 ) . '...'
+            ) );
+            return '';
+        } catch ( \Throwable $e ) {
+            \FreeFormCertificate\Core\Utils::debug_log( 'QR Code generation fatal error', array(
+                'error' => $e->getMessage(),
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
             ) );
             return '';
         }

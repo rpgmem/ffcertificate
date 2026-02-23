@@ -340,23 +340,37 @@ class PdfGenerator {
     private function process_qrcode_placeholders( string $layout, array $data, array $form_config ): string {
         // Autoloader handles class loading
         $qr_generator = new \FreeFormCertificate\Generators\QRCodeGenerator();
-        
+
         // Determine target URL (magic link or verification page)
         $target_url = $this->get_qr_code_target_url( $data );
-        
+
+        \FreeFormCertificate\Core\Utils::debug_log( 'QR Code placeholder processing', array(
+            'target_url'    => $target_url,
+            'has_magic_token' => isset( $data['magic_token'] ),
+            'placeholder_found' => ( strpos( $layout, '{{qr_code' ) !== false ),
+        ) );
+
         // Get submission ID for caching
         $submission_id = isset( $data['submission_id'] ) ? absint( $data['submission_id'] ) : 0;
-        
+
         // Replace all QR Code placeholders
         $layout = preg_replace_callback(
             '/\{\{qr_code(?::([^}]+))?\}\}/',
             function( $matches ) use ( $qr_generator, $target_url, $submission_id ) {
                 $placeholder = $matches[0];
-                return $qr_generator->parse_and_generate( $placeholder, $target_url, $submission_id );
+                $result = $qr_generator->parse_and_generate( $placeholder, $target_url, $submission_id );
+
+                \FreeFormCertificate\Core\Utils::debug_log( 'QR Code placeholder replaced', array(
+                    'placeholder'   => $placeholder,
+                    'result_length' => strlen( $result ),
+                    'has_img_tag'   => ( strpos( $result, '<img' ) !== false ),
+                ) );
+
+                return $result;
             },
             $layout
         );
-        
+
         return $layout;
     }
     
