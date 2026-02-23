@@ -508,12 +508,3 @@
     border: 1px solid var(--ffc-danger, #d63638);
 }
 
-/* Admin bypass alert for booking actions */
-.ffc-bypass-alert {
-    padding: 8px 12px;
-    margin: 8px 0;
-    background: var(--ffc-warning-light, #fff8e5);
-    border-left: 3px solid var(--ffc-warning, #dba617);
-    font-size: 0.85em;
-    color: var(--ffc-warning, #dba617);
-}

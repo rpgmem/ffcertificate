@@ -289,18 +289,6 @@
     border: 1px solid var(--ffc-danger);
 }
 
-.ffc-message-success {
-    background: var(--ffc-success-light);
-    color: var(--ffc-success);
-    border: 1px solid var(--ffc-success);
-}
-
-.ffc-message-warning {
-    background: var(--ffc-warning-light);
-    color: #886400;
-    border: 1px solid var(--ffc-warning);
-}
-
 /* Error Message */
 .ffc-error {
     padding: 20px;
