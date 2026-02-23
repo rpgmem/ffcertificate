@@ -389,6 +389,7 @@
 /* Receipt Actions */
 .ffc-receipt-actions {
     margin: 20px 0;
+    text-align: center;
 }
 
 .ffc-receipt-actions .ffc-btn-secondary {
