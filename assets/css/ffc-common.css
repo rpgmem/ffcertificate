@@ -428,6 +428,80 @@
     letter-spacing: 0.3px;
 }
 
+/* ==========================================================================
+   BUTTONS — shared base classes (consolidated from audience + calendar-frontend)
+   ========================================================================== */
+
+.ffc-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--ffc-radius-sm);
+    font-family: var(--ffc-font-family);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.ffc-btn:focus-visible {
+    outline: 2px solid var(--ffc-primary);
+    outline-offset: 2px;
+}
+
+.ffc-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.ffc-btn-primary {
+    background: var(--ffc-primary);
+    color: #fff;
+}
+
+.ffc-btn-primary:hover {
+    background: var(--ffc-primary-hover);
+}
+
+.ffc-btn-primary:disabled {
+    background: var(--ffc-gray-300);
+}
+
+.ffc-btn-secondary {
+    background: var(--ffc-gray-200);
+    color: var(--ffc-gray-800);
+}
+
+.ffc-btn-secondary:hover {
+    background: var(--ffc-gray-300);
+}
+
+.ffc-btn-success {
+    background: var(--ffc-success);
+    color: #fff;
+}
+
+.ffc-btn-success:hover {
+    background: #008a20;
+}
+
+.ffc-btn-danger {
+    background: var(--ffc-danger);
+    color: #fff;
+}
+
+.ffc-btn-danger:hover {
+    background: #b32d2e;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-btn {
+        transition: none;
+    }
+}
+
 .ffc-badge-private {
     background: var(--ffc-danger-light, #fcf0f1);
     color: var(--ffc-danger, #d63638);

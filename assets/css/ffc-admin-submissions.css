@@ -173,15 +173,7 @@
     color: var(--ffc-danger-text);
 }
 
-.ffc-badge-warning {
-    background: #fcf0e0;
-    color: #8a6d3b;
-}
-
-.ffc-badge-danger {
-    background: #fce4e4;
-    color: #a94442;
-}
+/* .ffc-badge-warning and .ffc-badge-danger defined in ffc-admin.css with CSS variables */
 
 .ffc-badge small {
     font-weight: 400;
