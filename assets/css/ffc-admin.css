@@ -54,7 +54,7 @@
 
 .ffc-field-row-grid input[type="text"],
 .ffc-field-row-grid select {
-    width: 100% !important;
+    width: 100%;
     box-sizing: border-box;
     height: 30px;
 }
@@ -81,7 +81,7 @@
 }
 
 .ffc-options-desc {
-    margin: 0 0 5px !important;
+    margin: 0 0 5px;
     font-weight: bold;
     color: var(--ffc-primary);
 }
@@ -546,7 +546,7 @@
 
 /* Form label blocks */
 .ffc-restriction-label {
-    display: block !important;
+    display: block;
     margin: 10px 0;
 }
 
@@ -606,14 +606,14 @@
 
 /* Checkbox label block */
 .ffc-checkbox-label {
-    display: block !important;
+    display: block;
     margin-bottom: 8px;
 }
 
 /* Ensure fieldset labels also display as blocks */
 fieldset .ffc-checkbox-label,
 td .ffc-restriction-label {
-    display: block !important;
+    display: block;
 }
 
 /* Info card */

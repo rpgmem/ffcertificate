@@ -219,7 +219,7 @@
 }
 
 .ffc-captcha-row label {
-    margin-bottom: 10px !important;
+    margin-bottom: 10px;
 }
 
 .ffc-captcha-row input {
@@ -238,7 +238,7 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    font-weight: normal !important;
+    font-weight: normal;
     cursor: pointer;
 }
 
@@ -395,7 +395,7 @@
 .ffc-code-help {
     color: var(--ffc-gray-500);
     font-size: 13px;
-    margin-bottom: 0 !important;
+    margin-bottom: 0;
 }
 
 /* Receipt Actions */

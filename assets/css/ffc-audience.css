@@ -499,7 +499,7 @@
 
 /* Multi-select */
 .ffc-multiselect {
-    height: auto !important;
+    height: auto;
     min-height: 100px;
 }
 

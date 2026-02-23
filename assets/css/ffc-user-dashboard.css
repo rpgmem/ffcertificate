@@ -1174,7 +1174,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-top: 18px !important;
+    margin-top: 18px;
 }
 
 .ffc-profile-edit-actions .button {
@@ -1410,7 +1410,7 @@
     }
 
     .ffc-profile-field {
-        border-right: none !important;
+        border-right: none;
     }
 
     .ffc-profile-field:last-child {
