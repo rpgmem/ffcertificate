@@ -28,9 +28,18 @@ class AccessControl {
     /**
      * Block wp-admin access for configured roles
      *
-     * Redirects users to configured URL when they try to access wp-admin
+     * Redirects users to configured URL when they try to access wp-admin.
+     * AJAX requests (admin-ajax.php) are excluded to allow frontend AJAX
+     * endpoints (magic link verification, form submission, etc.) to work
+     * for all users regardless of role.
      */
     public static function block_wp_admin(): void {
+        // Never block AJAX requests — admin-ajax.php lives under /wp-admin/
+        // but is the standard WordPress endpoint for frontend AJAX calls.
+        if ( wp_doing_ajax() ) {
+            return;
+        }
+
         $settings = get_option('ffc_user_access_settings', array());
 
         // Check if blocking is enabled
