@@ -1476,7 +1476,7 @@
         }
     };
 
-    // ---- Direct PDF Download (bypasses verification page) ----
+    // ---- Direct PDF Download via REST API ----
 
     $(document).on('click', '.ffc-direct-download', function(e) {
         e.preventDefault();
@@ -1495,16 +1495,18 @@
         var originalText = $btn.text();
         $btn.prop('disabled', true).text(ffcDashboard.strings.loading || 'Loading...');
 
+        // Use REST API (same auth as certificate listing) instead of admin-ajax.php
         $.ajax({
-            url: ffcDashboard.ajaxUrl,
+            url: ffcDashboard.restUrl + 'user/download-pdf',
             type: 'POST',
-            data: {
-                action: 'ffc_verify_magic_token',
-                token: token
+            contentType: 'application/json',
+            data: JSON.stringify({ token: token }),
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce);
             },
             success: function(response) {
-                if (response.success && response.data && response.data.pdf_data) {
-                    var pdfData = response.data.pdf_data;
+                var pdfData = response && response.pdf_data;
+                if (pdfData) {
                     var filename = pdfData.filename || 'certificate.pdf';
 
                     if (typeof window.ffcGeneratePDF === 'function') {
@@ -1519,7 +1521,7 @@
                         $btn.prop('disabled', false).text(originalText);
                     }
                 } else {
-                    // AJAX failed - fallback to magic link
+                    // No PDF data - fallback to magic link
                     if (magicLink) {
                         window.open(magicLink, '_blank');
                     }
