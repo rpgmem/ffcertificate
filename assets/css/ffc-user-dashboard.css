@@ -694,6 +694,45 @@
 }
 
 /* ==========================================================================
+   PROFILE LOGOUT
+   ========================================================================== */
+
+.ffc-profile-logout {
+    text-align: right;
+    margin-bottom: 12px;
+}
+
+.ffc-logout-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ffc-text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border: 1px solid var(--ffc-border-light);
+    border-radius: var(--ffc-radius);
+    background: var(--ffc-bg);
+    transition: all 0.2s ease;
+}
+
+.ffc-logout-link:hover {
+    color: #c0392b;
+    border-color: #c0392b;
+    background: #fdf2f2;
+}
+
+.ffc-icon-logout {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4'/%3E%3Cpolyline points='16 17 21 12 16 7'/%3E%3Cline x1='21' y1='12' x2='9' y2='12'/%3E%3C/svg%3E") center/contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4'/%3E%3Cpolyline points='16 17 21 12 16 7'/%3E%3Cline x1='21' y1='12' x2='9' y2='12'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+/* ==========================================================================
    PROFILE SECTION
    ========================================================================== */
 
