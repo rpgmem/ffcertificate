@@ -91,7 +91,7 @@ class UserReregistrationsRestController {
                 $magic_link = '';
                 if ($can_download) {
                     $token = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::ensure_magic_token($sub);
-                    $magic_link = untrailingslashit(site_url('valid')) . '#token=' . $token;
+                    $magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link($token);
                 }
 
                 $formatted[] = array(

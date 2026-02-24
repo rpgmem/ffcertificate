@@ -520,7 +520,9 @@
                 html += '<td>' + cert.auth_code + '</td>';
                 html += '<td>';
                 if (cert.magic_link) {
-                    html += '<a href="' + cert.magic_link + '" class="button ffc-btn-pdf" target="_blank">' + ffcDashboard.strings.downloadPdf + '</a>';
+                    var tokenMatch = cert.magic_link.match(/[?&#]token=([a-f0-9]+)/i);
+                    var token = tokenMatch ? tokenMatch[1] : '';
+                    html += '<button type="button" class="button ffc-btn-pdf ffc-direct-download" data-token="' + token + '" data-magic-link="' + cert.magic_link + '">' + ffcDashboard.strings.downloadPdf + '</button>';
                 }
                 html += '</td>';
                 html += '</tr>';
@@ -952,7 +954,9 @@
                     html += '<button type="button" class="button ffc-btn-edit ffc-rereg-open-form" data-reregistration-id="' + item.reregistration_id + '">' + (s.editReregistration || 'Edit') + '</button> ';
                 }
                 if (item.can_download && item.magic_link) {
-                    html += '<a href="' + esc(item.magic_link) + '" class="button ffc-btn-pdf" target="_blank" rel="noopener">' + (s.downloadFicha || 'Download Ficha') + '</a>';
+                    var reregTokenMatch = item.magic_link.match(/[?&#]token=([a-f0-9]+)/i);
+                    var reregToken = reregTokenMatch ? reregTokenMatch[1] : '';
+                    html += '<button type="button" class="button ffc-btn-pdf ffc-direct-download" data-token="' + reregToken + '" data-magic-link="' + esc(item.magic_link) + '">' + (s.downloadFicha || 'Download Ficha') + '</button>';
                 }
                 html += '</td>';
                 html += '</tr>';
@@ -1471,6 +1475,66 @@
             });
         }
     };
+
+    // ---- Direct PDF Download (bypasses verification page) ----
+
+    $(document).on('click', '.ffc-direct-download', function(e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var token = $btn.data('token');
+        var magicLink = $btn.data('magic-link');
+
+        // Fallback: if token extraction failed, open magic link in new tab
+        if (!token && magicLink) {
+            window.open(magicLink, '_blank');
+            return;
+        }
+
+        if (!token) { return; }
+
+        var originalText = $btn.text();
+        $btn.prop('disabled', true).text(ffcDashboard.strings.loading || 'Loading...');
+
+        $.ajax({
+            url: ffcDashboard.ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'ffc_verify_magic_token',
+                token: token
+            },
+            success: function(response) {
+                if (response.success && response.data && response.data.pdf_data) {
+                    var pdfData = response.data.pdf_data;
+                    var filename = pdfData.filename || 'certificate.pdf';
+
+                    if (typeof window.ffcGeneratePDF === 'function') {
+                        $btn.text(ffcDashboard.strings.loading || 'Generating...');
+                        window.ffcGeneratePDF(pdfData, filename);
+                        setTimeout(function() {
+                            $btn.prop('disabled', false).text(originalText);
+                        }, 3000);
+                    } else {
+                        // PDF generator not loaded - fallback to magic link
+                        window.open(magicLink, '_blank');
+                        $btn.prop('disabled', false).text(originalText);
+                    }
+                } else {
+                    // AJAX failed - fallback to magic link
+                    if (magicLink) {
+                        window.open(magicLink, '_blank');
+                    }
+                    $btn.prop('disabled', false).text(originalText);
+                }
+            },
+            error: function() {
+                // Network error - fallback to magic link
+                if (magicLink) {
+                    window.open(magicLink, '_blank');
+                }
+                $btn.prop('disabled', false).text(originalText);
+            }
+        });
+    });
 
     // Initialize when document is ready
     $(document).ready(function() {

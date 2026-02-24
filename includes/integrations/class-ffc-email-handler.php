@@ -149,8 +149,7 @@ class EmailHandler {
         // Generate magic link URL
         $magic_link_url = '';
         if ( ! empty( $magic_token ) ) {
-            $base_url = untrailingslashit( site_url( 'valid' ) );
-            $magic_link_url = $base_url . '#token=' . $magic_token;
+            $magic_link_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $magic_token );
         }
 
         // Format auth code with certificate prefix
