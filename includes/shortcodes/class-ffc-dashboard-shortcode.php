@@ -315,16 +315,11 @@ class DashboardShortcode {
                                 <strong><?php echo esc_html($rereg['title']); ?></strong>
                                 <p class="ffc-m-5-0"><?php esc_html_e('Your reregistration has been approved.', 'ffcertificate'); ?></p>
                             </div>
-                            <?php if (!empty($rereg['magic_link'])) :
-                                $token = '';
-                                if (preg_match('/[?&#]token=([a-f0-9]+)/i', $rereg['magic_link'], $m)) {
-                                    $token = $m[1];
-                                }
-                            ?>
+                            <?php if (!empty($rereg['magic_link'])) : ?>
                             <div>
-                                <button type="button" class="button ffc-btn-pdf ffc-direct-download" data-token="<?php echo esc_attr($token); ?>" data-magic-link="<?php echo esc_url($rereg['magic_link']); ?>">
+                                <a href="<?php echo esc_url($rereg['magic_link']); ?>" class="button ffc-btn-pdf" target="_blank" rel="noopener">
                                     <?php esc_html_e('Download Ficha', 'ffcertificate'); ?>
-                                </button>
+                                </a>
                             </div>
                             <?php endif; ?>
                         </div>
@@ -338,16 +333,11 @@ class DashboardShortcode {
                                 <strong><?php echo esc_html($rereg['title']); ?></strong>
                                 <p class="ffc-m-5-0"><?php esc_html_e('Your reregistration has been submitted and is pending review.', 'ffcertificate'); ?></p>
                             </div>
-                            <?php if (!empty($rereg['magic_link'])) :
-                                $token = '';
-                                if (preg_match('/[?&#]token=([a-f0-9]+)/i', $rereg['magic_link'], $m)) {
-                                    $token = $m[1];
-                                }
-                            ?>
+                            <?php if (!empty($rereg['magic_link'])) : ?>
                             <div>
-                                <button type="button" class="button ffc-btn-pdf ffc-direct-download" data-token="<?php echo esc_attr($token); ?>" data-magic-link="<?php echo esc_url($rereg['magic_link']); ?>">
+                                <a href="<?php echo esc_url($rereg['magic_link']); ?>" class="button ffc-btn-pdf" target="_blank" rel="noopener">
                                     <?php esc_html_e('Download Ficha', 'ffcertificate'); ?>
-                                </button>
+                                </a>
                             </div>
                             <?php endif; ?>
                         </div>

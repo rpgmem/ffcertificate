@@ -520,9 +520,7 @@
                 html += '<td>' + cert.auth_code + '</td>';
                 html += '<td>';
                 if (cert.magic_link) {
-                    var tokenMatch = cert.magic_link.match(/[?&#]token=([a-f0-9]+)/i);
-                    var token = tokenMatch ? tokenMatch[1] : '';
-                    html += '<button type="button" class="button ffc-btn-pdf ffc-direct-download" data-token="' + token + '" data-magic-link="' + cert.magic_link + '">' + ffcDashboard.strings.downloadPdf + '</button>';
+                    html += '<a href="' + cert.magic_link + '" class="button ffc-btn-pdf" target="_blank">' + ffcDashboard.strings.downloadPdf + '</a>';
                 }
                 html += '</td>';
                 html += '</tr>';
@@ -954,9 +952,7 @@
                     html += '<button type="button" class="button ffc-btn-edit ffc-rereg-open-form" data-reregistration-id="' + item.reregistration_id + '">' + (s.editReregistration || 'Edit') + '</button> ';
                 }
                 if (item.can_download && item.magic_link) {
-                    var reregTokenMatch = item.magic_link.match(/[?&#]token=([a-f0-9]+)/i);
-                    var reregToken = reregTokenMatch ? reregTokenMatch[1] : '';
-                    html += '<button type="button" class="button ffc-btn-pdf ffc-direct-download" data-token="' + reregToken + '" data-magic-link="' + esc(item.magic_link) + '">' + (s.downloadFicha || 'Download Ficha') + '</button>';
+                    html += '<a href="' + esc(item.magic_link) + '" class="button ffc-btn-pdf" target="_blank" rel="noopener">' + (s.downloadFicha || 'Download Ficha') + '</a>';
                 }
                 html += '</td>';
                 html += '</tr>';
@@ -1475,68 +1471,6 @@
             });
         }
     };
-
-    // ---- Direct PDF Download via REST API ----
-
-    $(document).on('click', '.ffc-direct-download', function(e) {
-        e.preventDefault();
-        var $btn = $(this);
-        var token = $btn.data('token');
-        var magicLink = $btn.data('magic-link');
-
-        // Fallback: if token extraction failed, open magic link in new tab
-        if (!token && magicLink) {
-            window.open(magicLink, '_blank');
-            return;
-        }
-
-        if (!token) { return; }
-
-        var originalText = $btn.text();
-        $btn.prop('disabled', true).text(ffcDashboard.strings.loading || 'Loading...');
-
-        // Use REST API (same auth as certificate listing) instead of admin-ajax.php
-        $.ajax({
-            url: ffcDashboard.restUrl + 'user/download-pdf',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ token: token }),
-            beforeSend: function(xhr) {
-                xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce);
-            },
-            success: function(response) {
-                var pdfData = response && response.pdf_data;
-                if (pdfData) {
-                    var filename = pdfData.filename || 'certificate.pdf';
-
-                    if (typeof window.ffcGeneratePDF === 'function') {
-                        $btn.text(ffcDashboard.strings.loading || 'Generating...');
-                        window.ffcGeneratePDF(pdfData, filename);
-                        setTimeout(function() {
-                            $btn.prop('disabled', false).text(originalText);
-                        }, 3000);
-                    } else {
-                        // PDF generator not loaded - fallback to magic link
-                        window.open(magicLink, '_blank');
-                        $btn.prop('disabled', false).text(originalText);
-                    }
-                } else {
-                    // No PDF data - fallback to magic link
-                    if (magicLink) {
-                        window.open(magicLink, '_blank');
-                    }
-                    $btn.prop('disabled', false).text(originalText);
-                }
-            },
-            error: function() {
-                // Network error - fallback to magic link
-                if (magicLink) {
-                    window.open(magicLink, '_blank');
-                }
-                $btn.prop('disabled', false).text(originalText);
-            }
-        });
-    });
 
     // Initialize when document is ready
     $(document).ready(function() {
