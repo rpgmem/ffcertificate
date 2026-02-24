@@ -144,6 +144,7 @@ class DashboardAssetManager {
             'schedulingNonce' => wp_create_nonce('ffc_self_scheduling_nonce'),
             'viewAsUserId' => $view_as_user_id ? $view_as_user_id : false,
             'isAdminViewing' => $view_as_user_id && $view_as_user_id !== get_current_user_id(),
+            'logoutUrl' => wp_logout_url(home_url()),
             'canViewCertificates' => $can_view_certificates,
             'canViewAppointments' => $can_view_appointments,
             'canViewAudienceBookings' => $can_view_audience_bookings,
@@ -209,6 +210,7 @@ class DashboardAssetManager {
                 // Password change
                 'securitySection' => __('Security', 'ffcertificate'),
                 'changePassword' => __('Change Password', 'ffcertificate'),
+                'logout' => __('Log Out', 'ffcertificate'),
                 'currentPassword' => __('Current Password', 'ffcertificate'),
                 'newPassword' => __('New Password', 'ffcertificate'),
                 'confirmPassword' => __('Confirm New Password', 'ffcertificate'),

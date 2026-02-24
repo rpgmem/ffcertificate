@@ -1022,7 +1022,14 @@
             this._profileData = profile;
             var s = ffcDashboard.strings;
 
-            var html = '<div class="ffc-profile-info">';
+            var html = '';
+
+            // Logout link (top-right)
+            if (ffcDashboard.logoutUrl) {
+                html += '<div class="ffc-profile-logout"><a href="' + ffcDashboard.logoutUrl + '" class="ffc-logout-link"><span class="ffc-icon-logout" aria-hidden="true"></span>' + (s.logout || 'Log Out') + '</a></div>';
+            }
+
+            html += '<div class="ffc-profile-info">';
 
             // Name(s)
             html += '<div class="ffc-profile-field">';
