@@ -282,4 +282,103 @@ class MagicLinkHelperTest extends TestCase {
         $url = MagicLinkHelper::get_verification_page_url();
         $this->assertStringEndsWith( '/valid/', $url );
     }
+
+    // ==================================================================
+    // URL format consistency (standardization)
+    // ==================================================================
+
+    public function test_magic_link_uses_hash_fragment_format(): void {
+        $token = 'abcdef1234567890abcdef1234567890';
+        $url = MagicLinkHelper::generate_magic_link( $token );
+        // Canonical format: /valid/#token=xxx (hash fragment, NOT query string)
+        $this->assertStringContainsString( '/#token=', $url );
+        $this->assertStringNotContainsString( '?token=', $url );
+    }
+
+    public function test_magic_link_has_trailing_slash_before_hash(): void {
+        $token = 'abcdef1234567890abcdef1234567890';
+        $url = MagicLinkHelper::generate_magic_link( $token );
+        // Must have trailing slash before hash: /valid/#token= (not /valid#token=)
+        $this->assertMatchesRegularExpression( '#/valid/\#token=#', $url );
+    }
+
+    public function test_magic_link_exact_canonical_format(): void {
+        $token = 'abcdef1234567890abcdef1234567890';
+        $url = MagicLinkHelper::generate_magic_link( $token );
+        $this->assertSame( 'https://example.com/valid/#token=' . $token, $url );
+    }
+
+    // ==================================================================
+    // Round-trip: generate → extract
+    // ==================================================================
+
+    public function test_round_trip_generate_then_extract_returns_original_token(): void {
+        $token = 'abcdef1234567890abcdef1234567890';
+        $url = MagicLinkHelper::generate_magic_link( $token );
+        $extracted = MagicLinkHelper::extract_token_from_url( $url );
+        $this->assertSame( $token, $extracted );
+    }
+
+    public function test_round_trip_64_char_token(): void {
+        $token = str_repeat( 'abcdef12', 8 ); // 64 chars
+        $url = MagicLinkHelper::generate_magic_link( $token );
+        $extracted = MagicLinkHelper::extract_token_from_url( $url );
+        $this->assertSame( $token, $extracted );
+    }
+
+    // ==================================================================
+    // QR code encodes canonical magic link
+    // ==================================================================
+
+    public function test_qr_code_url_encodes_canonical_magic_link(): void {
+        $token = 'abcdef1234567890abcdef1234567890';
+        $magic_link = MagicLinkHelper::generate_magic_link( $token );
+        $qr_url = MagicLinkHelper::get_magic_link_qr_code( $token );
+        // QR code URL should contain the URL-encoded magic link
+        $this->assertStringContainsString( urlencode( $magic_link ), $qr_url );
+    }
+
+    public function test_qr_code_encodes_hash_fragment_format(): void {
+        $token = 'abcdef1234567890abcdef1234567890';
+        $qr_url = MagicLinkHelper::get_magic_link_qr_code( $token );
+        // The encoded URL must contain the hash fragment format
+        $this->assertStringContainsString( urlencode( '#token=' . $token ), $qr_url );
+    }
+
+    // ==================================================================
+    // get_magic_link_from_submission() — additional edge cases
+    // ==================================================================
+
+    public function test_from_submission_generates_canonical_format(): void {
+        $token = 'abcdef1234567890abcdef1234567890';
+        $submission = array( 'id' => 1, 'magic_token' => $token );
+        $url = MagicLinkHelper::get_magic_link_from_submission( $submission );
+        // Must use the same canonical format
+        $this->assertSame( 'https://example.com/valid/#token=' . $token, $url );
+    }
+
+    public function test_from_submission_with_handler_generates_canonical_format(): void {
+        $token = 'abcdef1234567890abcdef1234567890';
+        $handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
+        $handler->shouldReceive( 'ensure_magic_token' )
+            ->with( 42 )
+            ->andReturn( $token );
+        $submission = array( 'id' => 42 );
+        $url = MagicLinkHelper::get_magic_link_from_submission( $submission, $handler );
+        $this->assertSame( 'https://example.com/valid/#token=' . $token, $url );
+    }
+
+    // ==================================================================
+    // get_submission_magic_link() — canonical format
+    // ==================================================================
+
+    public function test_submission_magic_link_uses_canonical_format(): void {
+        $token = 'abcdef1234567890abcdef1234567890';
+        $handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
+        $handler->shouldReceive( 'ensure_magic_token' )
+            ->with( 42 )
+            ->andReturn( $token );
+        $url = MagicLinkHelper::get_submission_magic_link( 42, $handler );
+        $this->assertSame( 'https://example.com/valid/#token=' . $token, $url );
+    }
 }
