@@ -12,7 +12,6 @@ declare(strict_types=1);
  *   UserAudienceRestController         – GET  /user/audience-bookings, GET /user/joinable-groups, POST /user/audience-group/join|leave
  *   UserSummaryRestController          – GET  /user/summary
  *   UserReregistrationsRestController  – GET  /user/reregistrations
- *   UserDownloadRestController         – POST /user/download-pdf
  *
  * @since 4.6.1
  * @version 4.12.7 - Refactored into coordinator + 6 sub-controllers
@@ -57,7 +56,6 @@ class UserDataRestController {
             'audience'        => new UserAudienceRestController($this->namespace),
             'summary'         => new UserSummaryRestController($this->namespace),
             'reregistrations' => new UserReregistrationsRestController($this->namespace),
-            'download'        => new UserDownloadRestController($this->namespace),
         );
 
         foreach ($this->sub_controllers as $controller) {
@@ -184,7 +182,6 @@ class UserDataRestController {
                 'audience'        => UserAudienceRestController::class,
                 'summary'         => UserSummaryRestController::class,
                 'reregistrations' => UserReregistrationsRestController::class,
-                'download'        => UserDownloadRestController::class,
             );
             $class = $map[$key];
             $this->sub_controllers[$key] = new $class($this->namespace);
