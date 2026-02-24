@@ -149,7 +149,7 @@ class ReregistrationEmailHandler {
         // Build magic link URL for direct verification
         $magic_link_url = '';
         if (!empty($submission->magic_token)) {
-            $magic_link_url = untrailingslashit(site_url('valid')) . '#token=' . $submission->magic_token;
+            $magic_link_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link($submission->magic_token);
         }
 
         $auth_code_formatted = ! empty( $submission->auth_code )

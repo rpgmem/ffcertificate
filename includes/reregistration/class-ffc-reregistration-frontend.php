@@ -179,7 +179,7 @@ class ReregistrationFrontend {
             $magic_link = '';
             if ($submission && in_array($sub_status, array('submitted', 'approved'), true)) {
                 $token = ReregistrationSubmissionRepository::ensure_magic_token($submission);
-                $magic_link = untrailingslashit(site_url('valid')) . '#token=' . $token;
+                $magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link($token);
             }
 
             $result[] = array(

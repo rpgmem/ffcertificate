@@ -102,12 +102,9 @@ class UserCertificatesRestController {
                 $email_plain = \FreeFormCertificate\Core\Encryption::decrypt_field($submission, 'email');
                 $email_display = ($email_plain !== '') ? \FreeFormCertificate\Core\Utils::mask_email($email_plain) : '';
 
-                $verification_page_id = get_option('ffc_verification_page_id');
-                $verification_url = $verification_page_id ? get_permalink((int) $verification_page_id) : home_url('/valid');
-
                 $magic_link = '';
                 if (!empty($submission['magic_token'])) {
-                    $magic_link = add_query_arg('token', $submission['magic_token'], $verification_url);
+                    $magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link($submission['magic_token']);
                 }
 
                 $auth_code_formatted = '';
