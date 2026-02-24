@@ -81,8 +81,14 @@ class DashboardAssetManager {
         // Dark mode
         \FreeFormCertificate\Core\Utils::enqueue_dark_mode();
 
+        // PDF generation libraries (needed for direct download from dashboard)
+        wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
+        wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true );
+        wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js", array( 'jquery', 'html2canvas', 'jspdf' ), FFC_VERSION, true );
+        wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css", array(), FFC_VERSION );
+
         // Enqueue JavaScript
-        wp_enqueue_script( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard{$s}.js", array('jquery'), FFC_VERSION, true );
+        wp_enqueue_script( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard{$s}.js", array('jquery', 'ffc-pdf-generator'), FFC_VERSION, true );
 
         // Working hours field component (shared)
         wp_enqueue_style('ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array(), FFC_VERSION);
