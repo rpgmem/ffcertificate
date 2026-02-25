@@ -43,6 +43,10 @@ class UrlShortenerLoader {
         // Rewrite rules (front-end routing)
         add_action( 'init', [ $this, 'register_rewrite_rules' ] );
         add_filter( 'query_vars', [ $this, 'add_query_vars' ] );
+
+        // Primary: intercept during parse_request (before WP_Query, no rewrite dependency)
+        add_action( 'parse_request', [ $this, 'intercept_short_url' ], 1 );
+        // Fallback: template_redirect catches anything parse_request missed
         add_action( 'template_redirect', [ $this, 'handle_redirect' ], 1 );
 
         // Auto-flush rewrite rules when prefix changes or first install
@@ -100,22 +104,79 @@ class UrlShortenerLoader {
     }
 
     /**
-     * Handle incoming short URL requests and redirect to target.
+     * Extract a short code from the current request path.
+     *
+     * Parses REQUEST_URI directly so it works regardless of whether
+     * WordPress rewrite rules matched the request.
+     *
+     * @return string Short code, or empty string if not a short URL request.
      */
-    public function handle_redirect(): void {
-        $code = get_query_var( 'ffc_short_code' );
+    private function extract_code_from_uri(): string {
+        $prefix  = $this->service->get_prefix();
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- Existence checked by preg_match; sanitized by regex capture group (alphanumeric only).
+        $raw_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+        $path    = trim( (string) wp_parse_url( $raw_uri, PHP_URL_PATH ), '/' );
+
+        if ( preg_match( '/(?:^|\/)' . preg_quote( $prefix, '/' ) . '\/([A-Za-z0-9]+)\/?$/', $path, $matches ) ) {
+            return $matches[1];
+        }
+
+        return '';
+    }
+
+    /**
+     * Primary redirect handler — fires during parse_request, before WP_Query.
+     *
+     * This is more efficient than template_redirect because it avoids
+     * running the main query for requests that are just short URL redirects.
+     * It also works when rewrite rules are not properly flushed.
+     *
+     * @param \WP $wp WordPress environment instance.
+     */
+    public function intercept_short_url( $wp ): void {
+        $code = $this->extract_code_from_uri();
 
         if ( empty( $code ) ) {
             return;
         }
 
-        $code = sanitize_text_field( $code );
+        $this->do_redirect( sanitize_text_field( $code ) );
+    }
+
+    /**
+     * Fallback redirect handler — fires on template_redirect.
+     *
+     * Catches short URL requests that were not handled by intercept_short_url
+     * (e.g. if parse_request was skipped by another plugin).
+     */
+    public function handle_redirect(): void {
+        // Try the rewrite-rule query var first
+        $code = get_query_var( 'ffc_short_code' );
+
+        // Fallback: parse URI directly
+        if ( empty( $code ) ) {
+            $code = $this->extract_code_from_uri();
+        }
+
+        if ( empty( $code ) ) {
+            return;
+        }
+
+        $this->do_redirect( sanitize_text_field( $code ) );
+    }
+
+    /**
+     * Perform the actual redirect for a given short code.
+     *
+     * @param string $code Sanitized short code.
+     */
+    private function do_redirect( string $code ): void {
         $repository = $this->service->get_repository();
-        $record = $repository->findByShortCode( $code );
+        $record     = $repository->findByShortCode( $code );
 
         if ( ! $record || $record['status'] !== 'active' ) {
             nocache_headers();
-            wp_redirect( home_url( '/' ), 302 );
+            wp_redirect( home_url( '/' ), 302 ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
             exit;
         }
 
@@ -128,7 +189,7 @@ class UrlShortenerLoader {
         // Prevent redirect loops
         if ( empty( $target_url ) ) {
             nocache_headers();
-            wp_redirect( home_url( '/' ), 302 );
+            wp_redirect( home_url( '/' ), 302 ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
             exit;
         }
 
@@ -136,8 +197,8 @@ class UrlShortenerLoader {
          * Fires before a short URL redirect.
          *
          * @since 5.1.0
-         * @param array  $record      The short URL record.
-         * @param string $target_url   The target URL.
+         * @param array  $record        The short URL record.
+         * @param string $target_url    The target URL.
          * @param int    $redirect_type HTTP status code.
          */
         do_action( 'ffcertificate_before_short_redirect', $record, $target_url, $redirect_type );

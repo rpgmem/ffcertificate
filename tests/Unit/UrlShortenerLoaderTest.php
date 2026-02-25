@@ -61,6 +61,14 @@ class UrlShortenerLoaderTest extends TestCase {
         Functions\when( 'FreeFormCertificate\UrlShortener\current_time' )->justReturn( '2026-02-22 12:00:00' );
         Functions\when( 'FreeFormCertificate\UrlShortener\get_current_user_id' )->justReturn( 1 );
         Functions\when( 'FreeFormCertificate\UrlShortener\__' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'FreeFormCertificate\UrlShortener\wp_unslash' )->returnArg();
+        Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
+            return parse_url( $url, $component );
+        } );
+        Functions\when( 'FreeFormCertificate\UrlShortener\wp_parse_url' )->alias( function ( $url, $component = -1 ) {
+            return parse_url( $url, $component );
+        } );
 
         // Create loader and inject a mock service via reflection
         $this->loader  = new UrlShortenerLoader();
@@ -90,6 +98,7 @@ class UrlShortenerLoaderTest extends TestCase {
 
         $this->assertTrue( has_action( 'init', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->register_rewrite_rules()' ) !== false );
         $this->assertTrue( has_filter( 'query_vars', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->add_query_vars()' ) !== false );
+        $this->assertTrue( has_action( 'parse_request', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->intercept_short_url()' ) !== false );
         $this->assertTrue( has_action( 'template_redirect', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->handle_redirect()' ) !== false );
     }
 
@@ -211,6 +220,8 @@ class UrlShortenerLoaderTest extends TestCase {
 
     public function test_handle_redirect_returns_early_when_no_code(): void {
         Functions\when( 'get_query_var' )->justReturn( '' );
+        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+        unset( $_SERVER['REQUEST_URI'] );
 
         // If it doesn't exit, the test passes (no redirect triggered)
         $this->loader->handle_redirect();
@@ -340,6 +351,145 @@ class UrlShortenerLoaderTest extends TestCase {
 
         $this->expectException( \RuntimeException::class );
         $this->expectExceptionMessage( 'redirected_home_empty' );
+
+        $this->loader->handle_redirect();
+    }
+
+    // ==================================================================
+    // intercept_short_url() — parse_request handler
+    // ==================================================================
+
+    public function test_intercept_short_url_redirects_via_uri(): void {
+        $_SERVER['REQUEST_URI'] = '/go/abc123';
+        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+
+        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+        Functions\when( 'do_action' )->justReturn( null );
+
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn( [
+            'id'         => 10,
+            'short_code' => 'abc123',
+            'target_url' => 'https://target.com/page',
+            'status'     => 'active',
+        ] );
+        $repo->shouldReceive( 'incrementClickCount' )->with( 10 )->once();
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
+
+        Functions\when( 'wp_validate_redirect' )->justReturn( false );
+        Functions\when( 'wp_redirect' )->alias( function ( $url, $code ) {
+            throw new \RuntimeException( "wp_redirect:{$url}:{$code}" );
+        } );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'wp_redirect:https://target.com/page:302' );
+
+        $wp = new \stdClass();
+        $this->loader->intercept_short_url( $wp );
+    }
+
+    public function test_intercept_short_url_returns_early_for_non_matching_uri(): void {
+        $_SERVER['REQUEST_URI'] = '/some-other-page/';
+        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+
+        $wp = new \stdClass();
+        $this->loader->intercept_short_url( $wp );
+
+        // If we reach here, early return worked
+        $this->assertTrue( true );
+    }
+
+    public function test_intercept_short_url_handles_trailing_slash(): void {
+        $_SERVER['REQUEST_URI'] = '/go/TraiL1/';
+        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+
+        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+        Functions\when( 'do_action' )->justReturn( null );
+
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findByShortCode' )->with( 'TraiL1' )->andReturn( [
+            'id'         => 11,
+            'short_code' => 'TraiL1',
+            'target_url' => 'https://example.com/dest',
+            'status'     => 'active',
+        ] );
+        $repo->shouldReceive( 'incrementClickCount' )->with( 11 )->once();
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 301 );
+
+        Functions\when( 'wp_validate_redirect' )->justReturn( true );
+        Functions\when( 'wp_safe_redirect' )->alias( function ( $url, $code ) {
+            throw new \RuntimeException( "safe_redirect:{$url}:{$code}" );
+        } );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'safe_redirect:https://example.com/dest:301' );
+
+        $wp = new \stdClass();
+        $this->loader->intercept_short_url( $wp );
+    }
+
+    public function test_intercept_short_url_works_with_subdirectory(): void {
+        $_SERVER['REQUEST_URI'] = '/blog/go/sub123';
+        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+
+        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+        Functions\when( 'do_action' )->justReturn( null );
+
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findByShortCode' )->with( 'sub123' )->andReturn( [
+            'id'         => 12,
+            'short_code' => 'sub123',
+            'target_url' => 'https://external.com/',
+            'status'     => 'active',
+        ] );
+        $repo->shouldReceive( 'incrementClickCount' )->with( 12 )->once();
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
+
+        Functions\when( 'wp_validate_redirect' )->justReturn( false );
+        Functions\when( 'wp_redirect' )->alias( function ( $url, $code ) {
+            throw new \RuntimeException( "wp_redirect:{$url}:{$code}" );
+        } );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'wp_redirect:https://external.com/:302' );
+
+        $wp = new \stdClass();
+        $this->loader->intercept_short_url( $wp );
+    }
+
+    // ==================================================================
+    // handle_redirect() — URI fallback (when get_query_var is empty)
+    // ==================================================================
+
+    public function test_handle_redirect_falls_back_to_uri_when_query_var_empty(): void {
+        Functions\when( 'get_query_var' )->justReturn( '' );
+        $_SERVER['REQUEST_URI'] = '/go/fallback1';
+        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+
+        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+        Functions\when( 'do_action' )->justReturn( null );
+
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findByShortCode' )->with( 'fallback1' )->andReturn( [
+            'id'         => 20,
+            'short_code' => 'fallback1',
+            'target_url' => 'https://example.com/target',
+            'status'     => 'active',
+        ] );
+        $repo->shouldReceive( 'incrementClickCount' )->with( 20 )->once();
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
+
+        Functions\when( 'wp_validate_redirect' )->justReturn( true );
+        Functions\when( 'wp_safe_redirect' )->alias( function ( $url, $code ) {
+            throw new \RuntimeException( "safe_redirect:{$url}:{$code}" );
+        } );
+
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'safe_redirect:https://example.com/target:302' );
 
         $this->loader->handle_redirect();
     }
