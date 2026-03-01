@@ -38,8 +38,9 @@ class ReregistrationFormRenderer {
             $profile = UserManager::get_profile($user_id);
         }
 
-        // Get custom fields for this audience (including parent hierarchy)
-        $custom_fields = CustomFieldRepository::get_by_audience_with_parents((int) $rereg->audience_id, true);
+        // Get custom fields for all audiences linked to this reregistration
+        $audience_ids = ReregistrationRepository::get_audience_ids((int) $rereg->id);
+        $custom_fields = self::get_custom_fields_for_audiences($audience_ids);
 
         // Pre-populate from saved draft data, then from profile/user_meta
         $saved_data = $submission->data ? json_decode($submission->data, true) : array();
@@ -828,5 +829,28 @@ class ReregistrationFormRenderer {
         </div>
         <?php
         return ob_get_clean();
+    }
+
+    /**
+     * Get custom fields for multiple audiences, deduplicating by field ID.
+     *
+     * @param array<int> $audience_ids Audience IDs.
+     * @return array<object>
+     */
+    private static function get_custom_fields_for_audiences(array $audience_ids): array {
+        $all_fields = array();
+        $seen = array();
+
+        foreach ($audience_ids as $aud_id) {
+            $fields = CustomFieldRepository::get_by_audience_with_parents((int) $aud_id, true);
+            foreach ($fields as $field) {
+                if (!isset($seen[(int) $field->id])) {
+                    $seen[(int) $field->id] = true;
+                    $all_fields[] = $field;
+                }
+            }
+        }
+
+        return $all_fields;
     }
 }

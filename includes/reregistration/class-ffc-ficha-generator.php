@@ -47,7 +47,7 @@ class FichaGenerator {
         $custom_values = $sub_data['custom_fields'] ?? array();
 
         // Get custom field definitions
-        $custom_fields = CustomFieldRepository::get_by_audience_with_parents((int) $rereg->audience_id, true);
+        $custom_fields = self::get_custom_fields_for_reregistration($rereg);
 
         // Status labels (centralized in SubmissionRepository)
         $status_labels = ReregistrationSubmissionRepository::get_status_labels();
@@ -335,5 +335,29 @@ class FichaGenerator {
             . '<p><strong>' . esc_html__('Status:', 'ffcertificate') . '</strong> {{submission_status}}</p>'
             . '{{custom_fields_section}}'
             . '</div>';
+    }
+
+    /**
+     * Get custom fields for all audiences linked to a reregistration.
+     *
+     * @param object $rereg Reregistration object.
+     * @return array<object>
+     */
+    private static function get_custom_fields_for_reregistration(object $rereg): array {
+        $audience_ids = ReregistrationRepository::get_audience_ids((int) $rereg->id);
+        $all_fields = array();
+        $seen = array();
+
+        foreach ($audience_ids as $aud_id) {
+            $fields = CustomFieldRepository::get_by_audience_with_parents((int) $aud_id, true);
+            foreach ($fields as $field) {
+                if (!isset($seen[(int) $field->id])) {
+                    $seen[(int) $field->id] = true;
+                    $all_fields[] = $field;
+                }
+            }
+        }
+
+        return $all_fields;
     }
 }
