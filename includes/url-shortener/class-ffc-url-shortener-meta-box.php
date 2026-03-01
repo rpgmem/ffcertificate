@@ -88,11 +88,10 @@ class UrlShortenerMetaBox {
         }
 
         $short_url = $this->service->get_short_url( $record['short_code'] );
-        $permalink = get_permalink( $post->ID );
 
-        // Generate QR Code pointing to the post permalink (not the short URL)
+        // Generate QR Code pointing to the short URL so clicks are tracked
         $qr_handler = new UrlShortenerQrHandler( $this->service );
-        $qr_base64  = $qr_handler->generate_qr_base64( $permalink, 200 );
+        $qr_base64  = $qr_handler->generate_qr_base64( $short_url, 200 );
 
         wp_nonce_field( 'ffc_short_url_meta_box', 'ffc_short_url_meta_nonce' );
         ?>

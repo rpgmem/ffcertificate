@@ -66,7 +66,13 @@ class UrlShortenerQrHandlerTest extends TestCase {
     public function test_resolve_qr_target_with_post_id(): void {
         $_POST['post_id'] = '42';
 
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_permalink' )->justReturn( 'https://example.com/my-page' );
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findByPostId' )->with( 42 )->andReturn( [
+            'id'         => 7,
+            'short_code' => 'pst42x',
+        ] );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+        $this->service->shouldReceive( 'get_short_url' )->with( 'pst42x' )->andReturn( 'https://example.com/go/pst42x' );
 
         $mock_post = Mockery::mock( \WP_Post::class );
         $mock_post->post_name = 'my-page';
@@ -74,14 +80,16 @@ class UrlShortenerQrHandlerTest extends TestCase {
 
         $result = $this->invoke_resolve_qr_target();
 
-        $this->assertSame( 'https://example.com/my-page', $result['url'] );
+        $this->assertSame( 'https://example.com/go/pst42x', $result['url'] );
         $this->assertSame( 'qr-my-page', $result['prefix'] );
     }
 
-    public function test_resolve_qr_target_post_not_found_sends_error(): void {
+    public function test_resolve_qr_target_post_has_no_short_url_sends_error(): void {
         $_POST['post_id'] = '999';
 
-        Functions\when( 'FreeFormCertificate\UrlShortener\get_permalink' )->justReturn( false );
+        $repo = Mockery::mock( UrlShortenerRepository::class );
+        $repo->shouldReceive( 'findByPostId' )->with( 999 )->andReturn( null );
+        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 
         Functions\when( 'FreeFormCertificate\UrlShortener\wp_send_json_error' )->alias( function () {
             throw new \RuntimeException( 'json_error_post_not_found' );

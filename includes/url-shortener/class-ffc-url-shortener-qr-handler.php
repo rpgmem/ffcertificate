@@ -132,21 +132,23 @@ class UrlShortenerQrHandler {
     /**
      * Resolve the QR target URL and filename prefix.
      *
-     * When a post_id is provided, uses the post permalink directly.
-     * When a short code is provided, uses the short URL.
+     * Always encodes the short URL so that scans are tracked by the
+     * click counter — regardless of whether the request comes from
+     * the post meta box (post_id) or the admin listing (code).
      *
      * @return array{url: string, prefix: string} Target URL and filename prefix.
      */
     private function resolve_qr_target(): array {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by the calling method.
         $post_id = (int) ( $_POST['post_id'] ?? 0 );
         if ( $post_id > 0 ) {
-            $permalink = get_permalink( $post_id );
-            if ( ! $permalink ) {
-                wp_send_json_error( [ 'message' => __( 'Post not found.', 'ffcertificate' ) ] );
+            $record = $this->service->get_repository()->findByPostId( $post_id );
+            if ( ! $record ) {
+                wp_send_json_error( [ 'message' => __( 'Short URL not found for this post.', 'ffcertificate' ) ] );
             }
             $post = get_post( $post_id );
             $slug = $post ? $post->post_name : (string) $post_id;
-            return [ 'url' => $permalink, 'prefix' => 'qr-' . $slug ];
+            return [ 'url' => $this->service->get_short_url( $record['short_code'] ), 'prefix' => 'qr-' . $slug ];
         }
 
         $code = sanitize_text_field( wp_unslash( $_POST['code'] ?? '' ) );

@@ -218,6 +218,18 @@ class UrlShortenerLoaderTest extends TestCase {
     // handle_redirect()
     // ==================================================================
 
+    public function test_handle_redirect_skips_when_already_redirected(): void {
+        // Simulate that intercept_short_url already handled this request
+        $ref = new \ReflectionClass( $this->loader );
+        $prop = $ref->getProperty( 'redirected' );
+        $prop->setAccessible( true );
+        $prop->setValue( $this->loader, true );
+
+        // Should return early without calling any redirect functions
+        $this->loader->handle_redirect();
+        $this->assertTrue( true );
+    }
+
     public function test_handle_redirect_returns_early_when_no_code(): void {
         Functions\when( 'get_query_var' )->justReturn( '' );
         $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
