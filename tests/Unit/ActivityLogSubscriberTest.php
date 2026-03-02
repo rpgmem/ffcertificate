@@ -153,47 +153,72 @@ class ActivityLogSubscriberTest extends TestCase {
 
     public function test_on_submission_created_runs_without_error(): void {
         Functions\when( 'add_action' )->justReturn( true );
-        $subscriber = new ActivityLogSubscriber();
 
-        // Should not throw — ActivityLog::log() returns false early
+        global $wpdb;
+        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldNotReceive( 'insert' );
+
+        $subscriber = new ActivityLogSubscriber();
         $subscriber->on_submission_created( 1, 10, array( 'cpf_rf' => '12345678901' ), 'test@example.com' );
-        $this->assertTrue( true ); // Reached without error
     }
 
     public function test_on_submission_updated_runs_without_error(): void {
         Functions\when( 'add_action' )->justReturn( true );
-        $subscriber = new ActivityLogSubscriber();
 
+        global $wpdb;
+        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldNotReceive( 'insert' );
+
+        $subscriber = new ActivityLogSubscriber();
         $subscriber->on_submission_updated( 1, array( 'field' => 'value' ) );
-        $this->assertTrue( true );
     }
 
     public function test_on_submission_trashed_runs_without_error(): void {
         Functions\when( 'add_action' )->justReturn( true );
-        $subscriber = new ActivityLogSubscriber();
 
+        global $wpdb;
+        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldNotReceive( 'insert' );
+
+        $subscriber = new ActivityLogSubscriber();
         $subscriber->on_submission_trashed( 1 );
-        $this->assertTrue( true );
     }
 
     public function test_on_submission_restored_runs_without_error(): void {
         Functions\when( 'add_action' )->justReturn( true );
-        $subscriber = new ActivityLogSubscriber();
 
+        global $wpdb;
+        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldNotReceive( 'insert' );
+
+        $subscriber = new ActivityLogSubscriber();
         $subscriber->on_submission_restored( 1 );
-        $this->assertTrue( true );
     }
 
     public function test_on_submission_deleted_runs_without_error(): void {
         Functions\when( 'add_action' )->justReturn( true );
-        $subscriber = new ActivityLogSubscriber();
 
+        global $wpdb;
+        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldNotReceive( 'insert' );
+
+        $subscriber = new ActivityLogSubscriber();
         $subscriber->on_submission_deleted( 1 );
-        $this->assertTrue( true );
     }
 
     public function test_on_appointment_created_runs_without_error(): void {
         Functions\when( 'add_action' )->justReturn( true );
+
+        global $wpdb;
+        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldNotReceive( 'insert' );
+
         $subscriber = new ActivityLogSubscriber();
 
         $data = array(
@@ -205,30 +230,32 @@ class ActivityLogSubscriberTest extends TestCase {
             'user_ip'          => '127.0.0.1',
         );
         $subscriber->on_appointment_created( 100, $data, array() );
-        $this->assertTrue( true );
     }
 
     public function test_on_appointment_cancelled_runs_without_error(): void {
         Functions\when( 'add_action' )->justReturn( true );
+
+        global $wpdb;
+        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldNotReceive( 'insert' );
+
         $subscriber = new ActivityLogSubscriber();
 
         $appointment = array( 'calendar_id' => 1 );
         $subscriber->on_appointment_cancelled( 100, $appointment, 'User request', 42 );
-        $this->assertTrue( true );
     }
 
     public function test_on_daily_cleanup_runs_without_error(): void {
-        // run_cleanup() → ActivityLogQuery::run_cleanup() uses global $wpdb
         global $wpdb;
         $wpdb = \Mockery::mock( 'wpdb' );
         $wpdb->prefix = 'wp_';
-        $wpdb->shouldReceive( 'prepare' )->andReturn( '' );
-        $wpdb->shouldReceive( 'query' )->andReturn( 0 );
+        $wpdb->shouldReceive( 'prepare' )->atLeast()->once()->andReturn( '' );
+        $wpdb->shouldReceive( 'query' )->atLeast()->once()->andReturn( 0 );
 
         Functions\when( 'add_action' )->justReturn( true );
         $subscriber = new ActivityLogSubscriber();
 
         $subscriber->on_daily_cleanup();
-        $this->assertTrue( true );
     }
 }

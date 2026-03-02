@@ -125,3 +125,114 @@ a.delete-link {
 a.delete-link:hover {
     color: #a00;
 }
+
+/* ── Audience badges (list view) ────────────── */
+.ffc-audience-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: #f0f0f1;
+    padding: 1px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    margin: 1px 2px;
+    white-space: nowrap;
+}
+
+/* ── Transfer list (dual-column picker) ─────── */
+.ffc-transfer-list {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    max-width: 700px;
+}
+
+.ffc-transfer-col {
+    flex: 1;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.ffc-transfer-header {
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 13px;
+    background: #f6f7f7;
+    border-bottom: 1px solid #c3c4c7;
+    border-radius: 4px 4px 0 0;
+}
+
+.ffc-transfer-search {
+    margin: 6px 8px;
+    padding: 4px 8px;
+    border: 1px solid #c3c4c7;
+    border-radius: 3px;
+    font-size: 12px;
+    width: calc(100% - 16px);
+    box-sizing: border-box;
+}
+
+.ffc-transfer-items {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 180px;
+    max-height: 300px;
+    padding: 4px 0;
+}
+
+.ffc-transfer-item {
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+    transition: background 0.1s;
+}
+
+.ffc-transfer-item:hover {
+    background: #f0f6fc;
+}
+
+.ffc-transfer-item.ffc-transfer-highlight {
+    background: #2271b1;
+    color: #fff;
+}
+
+.ffc-transfer-item.ffc-transfer-highlight .ffc-color-dot {
+    box-shadow: 0 0 0 1px #fff;
+}
+
+.ffc-transfer-child {
+    padding-left: 24px;
+}
+
+.ffc-transfer-actions {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 6px;
+}
+
+.ffc-transfer-actions .button {
+    min-width: 32px;
+    padding: 2px 8px;
+    font-size: 16px;
+    line-height: 1.4;
+    text-align: center;
+}
+
+.ffc-transfer-selected.ffc-transfer-error {
+    border-color: #d63638;
+    box-shadow: 0 0 0 1px #d63638;
+}
+
+.ffc-transfer-member-count {
+    margin-top: 8px;
+}

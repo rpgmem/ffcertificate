@@ -5,8 +5,10 @@ declare(strict_types=1);
  * Reregistration Repository
  *
  * Handles database operations for reregistration campaigns.
+ * Audiences are stored in a junction table (wp_ffc_reregistration_audiences).
  *
  * @since 4.11.0
+ * @since 4.13.0 Multi-audience support via junction table.
  * @package FreeFormCertificate\Reregistration
  */
 
@@ -72,6 +74,94 @@ class ReregistrationRepository {
     }
 
     /**
+     * Get junction table name.
+     *
+     * @return string
+     */
+    public static function get_audiences_table_name(): string {
+        return self::db()->prefix . 'ffc_reregistration_audiences';
+    }
+
+    // ─────────────────────────────────────────────
+    // AUDIENCE JUNCTION TABLE
+    // ─────────────────────────────────────────────
+
+    /**
+     * Get audience IDs for a reregistration.
+     *
+     * @param int $reregistration_id Reregistration ID.
+     * @return array<int>
+     */
+    public static function get_audience_ids(int $reregistration_id): array {
+        $wpdb = self::db();
+        $table = self::get_audiences_table_name();
+
+        $rows = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT audience_id FROM %i WHERE reregistration_id = %d",
+                $table,
+                $reregistration_id
+            )
+        );
+
+        return array_map('intval', $rows);
+    }
+
+    /**
+     * Set audience IDs for a reregistration (replaces all existing).
+     *
+     * @param int       $reregistration_id Reregistration ID.
+     * @param array<int> $audience_ids      Audience IDs.
+     * @return void
+     */
+    public static function set_audience_ids(int $reregistration_id, array $audience_ids): void {
+        $wpdb = self::db();
+        $table = self::get_audiences_table_name();
+
+        $wpdb->delete($table, array('reregistration_id' => $reregistration_id), array('%d'));
+
+        foreach (array_unique(array_filter(array_map('intval', $audience_ids))) as $aud_id) {
+            $wpdb->insert(
+                $table,
+                array(
+                    'reregistration_id' => $reregistration_id,
+                    'audience_id'       => $aud_id,
+                ),
+                array('%d', '%d')
+            );
+        }
+    }
+
+    /**
+     * Get audience objects for a reregistration (with name and color).
+     *
+     * @param int $reregistration_id Reregistration ID.
+     * @return array<object>
+     */
+    public static function get_audiences(int $reregistration_id): array {
+        $wpdb = self::db();
+        $junction = self::get_audiences_table_name();
+        $audiences = AudienceRepository::get_table_name();
+
+        return $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT a.id, a.name, a.color
+                 FROM %i ra
+                 JOIN %i a ON ra.audience_id = a.id
+                 WHERE ra.reregistration_id = %d
+                 ORDER BY a.name ASC",
+                $junction,
+                $audiences,
+                $reregistration_id
+            )
+        );
+    }
+
+    // ─────────────────────────────────────────────
+    // CRUD
+    // ─────────────────────────────────────────────
+
+    /**
      * Get a reregistration by ID.
      *
      * @param int $id Reregistration ID.
@@ -100,9 +190,9 @@ class ReregistrationRepository {
     /**
      * Get all reregistrations with optional filters.
      *
-     * @param array $filters {
+     * @param array<string, mixed> $filters {
      *     Optional. Query filters.
-     *     @type int    $audience_id Filter by audience.
+     *     @type int    $audience_id Filter by audience (campaigns that include this audience).
      *     @type string $status      Filter by status.
      *     @type string $search      Search in title.
      *     @type string $orderby     Column to order by. Default 'created_at'.
@@ -110,13 +200,12 @@ class ReregistrationRepository {
      *     @type int    $limit       Max results. Default 0 (no limit).
      *     @type int    $offset      Offset. Default 0.
      * }
-     * @param array<string, mixed> $filters
      * @return array<object>
      */
     public static function get_all(array $filters = array()): array {
         $wpdb = self::db();
         $table = self::get_table_name();
-        $audiences_table = AudienceRepository::get_table_name();
+        $junction = self::get_audiences_table_name();
 
         $defaults = array(
             'audience_id' => null,
@@ -129,11 +218,13 @@ class ReregistrationRepository {
         );
         $filters = wp_parse_args($filters, $defaults);
 
+        $joins = '';
         $where = array();
-        $values = array();
+        $values = array($table);
 
         if ($filters['audience_id'] !== null) {
-            $where[] = 'r.audience_id = %d';
+            $joins = 'JOIN %i ra_filter ON r.id = ra_filter.reregistration_id AND ra_filter.audience_id = %d';
+            $values[] = $junction;
             $values[] = (int) $filters['audience_id'];
         }
 
@@ -154,17 +245,15 @@ class ReregistrationRepository {
         $order = strtoupper($filters['order']) === 'ASC' ? 'ASC' : 'DESC';
         $limit_clause = $filters['limit'] > 0 ? sprintf('LIMIT %d OFFSET %d', $filters['limit'], $filters['offset']) : '';
 
-        $sql = "SELECT r.*, a.name AS audience_name, a.color AS audience_color
+        $sql = "SELECT DISTINCT r.*
                 FROM %i r
-                LEFT JOIN %i a ON r.audience_id = a.id
+                {$joins}
                 {$where_clause}
                 ORDER BY r.{$orderby} {$order}
                 {$limit_clause}";
 
-        $prepare_values = array_merge(array($table, $audiences_table), $values);
-
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-        $sql = $wpdb->prepare($sql, $prepare_values);
+        $sql = $wpdb->prepare($sql, $values);
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         return $wpdb->get_results($sql);
@@ -179,28 +268,29 @@ class ReregistrationRepository {
     public static function count(array $filters = array()): int {
         $wpdb = self::db();
         $table = self::get_table_name();
+        $junction = self::get_audiences_table_name();
 
+        $joins = '';
         $where = array();
-        $values = array();
+        $values = array($table);
 
         if (!empty($filters['audience_id'])) {
-            $where[] = 'audience_id = %d';
+            $joins = 'JOIN %i ra_filter ON r.id = ra_filter.reregistration_id AND ra_filter.audience_id = %d';
+            $values[] = $junction;
             $values[] = (int) $filters['audience_id'];
         }
 
         if (!empty($filters['status'])) {
-            $where[] = 'status = %s';
+            $where[] = 'r.status = %s';
             $values[] = $filters['status'];
         }
 
         $where_clause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
-        $sql = "SELECT COUNT(*) FROM %i {$where_clause}";
-
-        $prepare_values = array_merge(array($table), $values);
+        $sql = "SELECT COUNT(DISTINCT r.id) FROM %i r {$joins} {$where_clause}";
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-        $sql = $wpdb->prepare($sql, $prepare_values);
+        $sql = $wpdb->prepare($sql, $values);
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
         return (int) $wpdb->get_var($sql);
@@ -209,7 +299,7 @@ class ReregistrationRepository {
     /**
      * Create a reregistration campaign.
      *
-     * @param array<string, mixed> $data Campaign data.
+     * @param array<string, mixed> $data Campaign data (audience_ids handled separately).
      * @return int|false Reregistration ID or false on failure.
      */
     public static function create(array $data) {
@@ -218,7 +308,6 @@ class ReregistrationRepository {
 
         $defaults = array(
             'title'                      => '',
-            'audience_id'                => 0,
             'start_date'                 => '',
             'end_date'                   => '',
             'auto_approve'               => 0,
@@ -235,7 +324,6 @@ class ReregistrationRepository {
             $table,
             array(
                 'title'                      => sanitize_text_field($data['title']),
-                'audience_id'                => (int) $data['audience_id'],
                 'start_date'                 => $data['start_date'],
                 'end_date'                   => $data['end_date'],
                 'auto_approve'               => (int) $data['auto_approve'],
@@ -246,7 +334,7 @@ class ReregistrationRepository {
                 'status'                     => $data['status'],
                 'created_by'                 => (int) $data['created_by'],
             ),
-            array('%s', '%d', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%d')
+            array('%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%d')
         );
 
         return $result ? $wpdb->insert_id : false;
@@ -274,7 +362,6 @@ class ReregistrationRepository {
 
         $field_formats = array(
             'title'                      => '%s',
-            'audience_id'                => '%d',
             'start_date'                 => '%s',
             'end_date'                   => '%s',
             'auto_approve'               => '%d',
@@ -314,7 +401,7 @@ class ReregistrationRepository {
     }
 
     /**
-     * Delete a reregistration campaign and its submissions.
+     * Delete a reregistration campaign, its audience links, and submissions.
      *
      * @param int $id Reregistration ID.
      * @return bool
@@ -323,9 +410,13 @@ class ReregistrationRepository {
         $wpdb = self::db();
         $table = self::get_table_name();
         $subs_table = ReregistrationSubmissionRepository::get_table_name();
+        $junction = self::get_audiences_table_name();
 
         // Delete submissions first
         $wpdb->delete($subs_table, array('reregistration_id' => $id), array('%d'));
+
+        // Delete audience links
+        $wpdb->delete($junction, array('reregistration_id' => $id), array('%d'));
 
         // Delete the campaign
         $result = $wpdb->delete($table, array('id' => $id), array('%d'));
@@ -335,8 +426,15 @@ class ReregistrationRepository {
         return $result !== false;
     }
 
+    // ─────────────────────────────────────────────
+    // ACTIVE LOOKUPS (frontend)
+    // ─────────────────────────────────────────────
+
     /**
-     * Get active reregistrations for a specific audience (including parent cascading).
+     * Get active reregistrations for a specific audience.
+     *
+     * Finds campaigns whose audience set includes the given audience
+     * or any of its parent audiences.
      *
      * @param int $audience_id Audience ID.
      * @return array<object>
@@ -360,17 +458,19 @@ class ReregistrationRepository {
 
         $wpdb = self::db();
         $table = self::get_table_name();
+        $junction = self::get_audiences_table_name();
 
         $placeholders = implode(',', array_fill(0, count($audience_ids), '%d'));
 
         // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM %i
-                WHERE audience_id IN ({$placeholders})
-                AND status = 'active'
-                ORDER BY start_date ASC",
-                array_merge(array($table), $audience_ids)
+                "SELECT DISTINCT r.* FROM %i r
+                 JOIN %i ra ON r.id = ra.reregistration_id
+                 WHERE ra.audience_id IN ({$placeholders})
+                 AND r.status = 'active'
+                 ORDER BY r.start_date ASC",
+                array_merge(array($table, $junction), $audience_ids)
             )
         );
     }
@@ -402,6 +502,10 @@ class ReregistrationRepository {
 
         return $all_regs;
     }
+
+    // ─────────────────────────────────────────────
+    // EXPIRATION
+    // ─────────────────────────────────────────────
 
     /**
      * Expire overdue reregistrations.
@@ -452,38 +556,32 @@ class ReregistrationRepository {
         }
     }
 
+    // ─────────────────────────────────────────────
+    // AFFECTED MEMBERS
+    // ─────────────────────────────────────────────
+
     /**
-     * Get audiences affected by a reregistration (target + all children).
+     * Get all user IDs affected by a reregistration's audience set.
      *
-     * @param int $audience_id Root audience ID.
-     * @return array<int> Audience IDs.
+     * @param int $reregistration_id Reregistration ID.
+     * @return array<int> User IDs.
      */
-    public static function get_affected_audience_ids(int $audience_id): array {
-        $ids = array($audience_id);
-        $children = AudienceRepository::get_children($audience_id);
-        foreach ($children as $child) {
-            $ids[] = (int) $child->id;
-            // Recurse for deeper hierarchy
-            $grandchildren = AudienceRepository::get_children((int) $child->id);
-            foreach ($grandchildren as $gc) {
-                $ids[] = (int) $gc->id;
-            }
-        }
-        return array_unique($ids);
+    public static function get_affected_user_ids_for_reregistration(int $reregistration_id): array {
+        $audience_ids = self::get_audience_ids($reregistration_id);
+        return self::get_user_ids_for_audiences($audience_ids);
     }
 
     /**
-     * Get all members affected by a reregistration (audience + children).
+     * Get all user IDs that belong to the given audience IDs.
      *
-     * @param int $audience_id Root audience ID.
+     * @param array<int> $audience_ids Audience IDs (individual, no cascading).
      * @return array<int> User IDs.
      */
-    public static function get_affected_user_ids(int $audience_id): array {
-        $audience_ids = self::get_affected_audience_ids($audience_id);
+    public static function get_user_ids_for_audiences(array $audience_ids): array {
         $user_ids = array();
 
         foreach ($audience_ids as $aud_id) {
-            $members = AudienceRepository::get_members($aud_id);
+            $members = AudienceRepository::get_members((int) $aud_id);
             $user_ids = array_merge($user_ids, $members);
         }
 

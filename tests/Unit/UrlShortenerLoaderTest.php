@@ -218,16 +218,26 @@ class UrlShortenerLoaderTest extends TestCase {
     // handle_redirect()
     // ==================================================================
 
+    public function test_handle_redirect_skips_when_already_redirected(): void {
+        // Simulate that intercept_short_url already handled this request
+        $ref = new \ReflectionClass( $this->loader );
+        $prop = $ref->getProperty( 'redirected' );
+        $prop->setAccessible( true );
+        $prop->setValue( $this->loader, true );
+
+        $this->service->shouldNotReceive( 'get_repository' );
+
+        $this->loader->handle_redirect();
+    }
+
     public function test_handle_redirect_returns_early_when_no_code(): void {
         Functions\when( 'get_query_var' )->justReturn( '' );
         $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
         unset( $_SERVER['REQUEST_URI'] );
 
-        // If it doesn't exit, the test passes (no redirect triggered)
-        $this->loader->handle_redirect();
+        $this->service->shouldNotReceive( 'get_repository' );
 
-        // If we reach here, early return worked
-        $this->assertTrue( true );
+        $this->loader->handle_redirect();
     }
 
     public function test_handle_redirect_redirects_home_for_inactive_code(): void {
@@ -393,11 +403,10 @@ class UrlShortenerLoaderTest extends TestCase {
         $_SERVER['REQUEST_URI'] = '/some-other-page/';
         $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
 
+        $this->service->shouldNotReceive( 'get_repository' );
+
         $wp = new \stdClass();
         $this->loader->intercept_short_url( $wp );
-
-        // If we reach here, early return worked
-        $this->assertTrue( true );
     }
 
     public function test_intercept_short_url_handles_trailing_slash(): void {

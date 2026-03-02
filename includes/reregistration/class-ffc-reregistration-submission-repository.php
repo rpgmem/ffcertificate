@@ -547,12 +547,12 @@ class ReregistrationSubmissionRepository {
      *
      * Skips users who already have a submission for this reregistration.
      *
-     * @param int $reregistration_id Reregistration ID.
-     * @param int $audience_id       Audience ID (root of hierarchy).
+     * @param int       $reregistration_id Reregistration ID.
+     * @param array<int> $audience_ids      Audience IDs.
      * @return int Number of submissions created.
      */
-    public static function create_for_audience_members(int $reregistration_id, int $audience_id): int {
-        $user_ids = ReregistrationRepository::get_affected_user_ids($audience_id);
+    public static function create_for_audience_members(int $reregistration_id, array $audience_ids): int {
+        $user_ids = ReregistrationRepository::get_user_ids_for_audiences($audience_ids);
         $created = 0;
 
         foreach ($user_ids as $user_id) {

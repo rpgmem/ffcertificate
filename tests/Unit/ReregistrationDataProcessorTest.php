@@ -62,6 +62,8 @@ class ReregistrationDataProcessorTest extends TestCase {
             return func_get_args()[0];
         } )->byDefault();
         $wpdb->shouldReceive( 'get_results' )->andReturn( $fields )->byDefault();
+        // ReregistrationRepository::get_audience_ids uses get_col
+        $wpdb->shouldReceive( 'get_col' )->andReturn( array( '1' ) )->byDefault();
 
         Functions\when( 'wp_cache_get' )->justReturn( false );
         Functions\when( 'wp_cache_set' )->justReturn( true );
@@ -83,6 +85,8 @@ class ReregistrationDataProcessorTest extends TestCase {
         } )->byDefault();
         // CustomFieldRepository::get_by_audience — return our custom fields
         $wpdb->shouldReceive( 'get_results' )->andReturn( $fields )->byDefault();
+        // ReregistrationRepository::get_audience_ids uses get_col
+        $wpdb->shouldReceive( 'get_col' )->andReturn( array( '1' ) )->byDefault();
     }
 
     // ==================================================================
@@ -210,7 +214,7 @@ class ReregistrationDataProcessorTest extends TestCase {
     }
 
     private function make_rereg( int $audience_id = 1 ): object {
-        return (object) array( 'audience_id' => $audience_id );
+        return (object) array( 'id' => 1, 'audience_id' => $audience_id );
     }
 
     public function test_validate_submission_all_valid(): void {

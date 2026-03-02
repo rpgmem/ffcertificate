@@ -22,6 +22,9 @@ class UrlShortenerLoader {
     /** @var UrlShortenerService */
     private UrlShortenerService $service;
 
+    /** @var bool Whether a redirect was already handled in this request. */
+    private bool $redirected = false;
+
     public function __construct() {
         $this->service = new UrlShortenerService();
     }
@@ -140,6 +143,7 @@ class UrlShortenerLoader {
             return;
         }
 
+        $this->redirected = true;
         $this->do_redirect( sanitize_text_field( $code ) );
     }
 
@@ -150,6 +154,11 @@ class UrlShortenerLoader {
      * (e.g. if parse_request was skipped by another plugin).
      */
     public function handle_redirect(): void {
+        // Skip if already handled by intercept_short_url (prevents double-counting)
+        if ( $this->redirected ) {
+            return;
+        }
+
         // Try the rewrite-rule query var first
         $code = get_query_var( 'ffc_short_code' );
 

@@ -88,7 +88,7 @@ class ReregistrationDataProcessor {
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Nonce verified in AJAX handler; sanitized per-field below.
         $raw_custom = isset($_POST['custom_fields']) ? (array) wp_unslash($_POST['custom_fields']) : array();
 
-        $fields = CustomFieldRepository::get_by_audience_with_parents((int) $rereg->audience_id, true);
+        $fields = self::get_custom_fields_for_reregistration($rereg);
         foreach ($fields as $cf) {
             $key = 'field_' . $cf->id;
             if (isset($raw_custom[$key])) {
@@ -220,7 +220,7 @@ class ReregistrationDataProcessor {
         }
 
         // Custom fields validation
-        $fields = CustomFieldRepository::get_by_audience_with_parents((int) $rereg->audience_id, true);
+        $fields = self::get_custom_fields_for_reregistration($rereg);
         foreach ($fields as $cf) {
             $key = 'field_' . $cf->id;
             $value = $data['custom_fields'][$key] ?? '';
@@ -354,5 +354,29 @@ class ReregistrationDataProcessor {
                 (int) $submission->id
             );
         }
+    }
+
+    /**
+     * Get custom fields for all audiences linked to a reregistration.
+     *
+     * @param object $rereg Reregistration object.
+     * @return array<object>
+     */
+    private static function get_custom_fields_for_reregistration(object $rereg): array {
+        $audience_ids = ReregistrationRepository::get_audience_ids((int) $rereg->id);
+        $all_fields = array();
+        $seen = array();
+
+        foreach ($audience_ids as $aud_id) {
+            $fields = CustomFieldRepository::get_by_audience_with_parents((int) $aud_id, true);
+            foreach ($fields as $field) {
+                if (!isset($seen[(int) $field->id])) {
+                    $seen[(int) $field->id] = true;
+                    $all_fields[] = $field;
+                }
+            }
+        }
+
+        return $all_fields;
     }
 }

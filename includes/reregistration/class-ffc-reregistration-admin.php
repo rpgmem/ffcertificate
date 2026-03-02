@@ -49,6 +49,7 @@ class ReregistrationAdmin {
         add_action('admin_init', array($this, 'handle_actions'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
         add_action('wp_ajax_ffc_generate_ficha', array($this, 'ajax_generate_ficha'));
+        add_action('wp_ajax_ffc_rereg_count_members', array($this, 'ajax_count_members'));
     }
 
     /**
@@ -131,6 +132,7 @@ class ReregistrationAdmin {
                 'generatingPdf'        => __('Generating PDF...', 'ffcertificate'),
                 'errorGenerating'      => __('Error generating ficha.', 'ffcertificate'),
                 'ficha'                => __('Record', 'ffcertificate'),
+                'affectedUsers'        => __('Affected users:', 'ffcertificate'),
             ),
         ));
 
@@ -272,6 +274,7 @@ class ReregistrationAdmin {
         $stats = ReregistrationSubmissionRepository::get_statistics((int) $item->id);
         $start = wp_date(get_option('date_format'), strtotime($item->start_date));
         $end = wp_date(get_option('date_format'), strtotime($item->end_date));
+        $audiences = ReregistrationRepository::get_audiences((int) $item->id);
 
         ?>
         <tr>
@@ -279,10 +282,16 @@ class ReregistrationAdmin {
                 <strong><a href="<?php echo esc_url($edit_url); ?>"><?php echo esc_html($item->title); ?></a></strong>
             </td>
             <td class="column-audience">
-                <?php if (!empty($item->audience_color)) : ?>
-                    <span class="ffc-color-dot" style="background:<?php echo esc_attr($item->audience_color); ?>"></span>
+                <?php if (empty($audiences)) : ?>
+                    —
+                <?php else : ?>
+                    <?php foreach ($audiences as $aud) : ?>
+                        <span class="ffc-audience-badge">
+                            <span class="ffc-color-dot" style="background:<?php echo esc_attr($aud->color); ?>"></span>
+                            <?php echo esc_html($aud->name); ?>
+                        </span>
+                    <?php endforeach; ?>
                 <?php endif; ?>
-                <?php echo esc_html($item->audience_name ?? '—'); ?>
             </td>
             <td class="column-status">
                 <span class="ffc-status-badge ffc-status-<?php echo esc_attr($item->status); ?>">
@@ -340,6 +349,7 @@ class ReregistrationAdmin {
         }
 
         $audiences = AudienceRepository::get_hierarchical('active');
+        $selected_ids = $id > 0 ? ReregistrationRepository::get_audience_ids($id) : array();
         $back_url = admin_url('admin.php?page=' . self::MENU_SLUG);
 
         ?>
@@ -359,13 +369,9 @@ class ReregistrationAdmin {
                     <td><input type="text" name="rereg_title" id="rereg_title" class="regular-text" value="<?php echo esc_attr($item->title ?? ''); ?>" required></td>
                 </tr>
                 <tr>
-                    <th scope="row"><label for="rereg_audience"><?php esc_html_e('Audience', 'ffcertificate'); ?> <span class="required">*</span></label></th>
+                    <th scope="row"><?php esc_html_e('Audiences', 'ffcertificate'); ?> <span class="required">*</span></th>
                     <td>
-                        <select name="rereg_audience_id" id="rereg_audience" required>
-                            <option value=""><?php esc_html_e('Select audience...', 'ffcertificate'); ?></option>
-                            <?php $this->render_audience_options($audiences, $item->audience_id ?? ''); ?>
-                        </select>
-                        <p class="description"><?php esc_html_e('The reregistration will apply to this audience and all its children.', 'ffcertificate'); ?></p>
+                        <?php $this->render_audience_transfer_list($audiences, $selected_ids); ?>
                     </td>
                 </tr>
                 <tr>
@@ -426,16 +432,18 @@ class ReregistrationAdmin {
                 </tr>
             </tbody></table>
 
-            <?php
-            if ($id > 0) {
-                $affected = ReregistrationRepository::get_affected_user_ids((int) $item->audience_id);
-                printf(
-                    '<p class="description"><strong>%s</strong> %s</p>',
-                    esc_html__('Affected users:', 'ffcertificate'),
-                    esc_html((string) count($affected))
-                );
-            }
-            ?>
+            <p class="description" id="ffc-affected-users">
+                <?php
+                if ($id > 0) {
+                    $affected = ReregistrationRepository::get_affected_user_ids_for_reregistration($id);
+                    printf(
+                        '<strong>%s</strong> %s',
+                        esc_html__('Affected users:', 'ffcertificate'),
+                        esc_html((string) count($affected))
+                    );
+                }
+                ?>
+            </p>
 
             <?php submit_button($id > 0 ? __('Update Reregistration', 'ffcertificate') : __('Create Reregistration', 'ffcertificate')); ?>
         </form>
@@ -720,7 +728,6 @@ class ReregistrationAdmin {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above (line 707).
         $data = array(
             'title'                      => isset($_POST['rereg_title']) ? sanitize_text_field(wp_unslash($_POST['rereg_title'])) : '',
-            'audience_id'                => isset($_POST['rereg_audience_id']) ? absint($_POST['rereg_audience_id']) : 0,
             'start_date'                 => isset($_POST['rereg_start_date']) ? sanitize_text_field(wp_unslash($_POST['rereg_start_date'])) : '',
             'end_date'                   => isset($_POST['rereg_end_date']) ? sanitize_text_field(wp_unslash($_POST['rereg_end_date'])) : '',
             'auto_approve'               => !empty($_POST['rereg_auto_approve']) ? 1 : 0,
@@ -730,14 +737,21 @@ class ReregistrationAdmin {
             'reminder_days'              => isset($_POST['rereg_reminder_days']) ? absint($_POST['rereg_reminder_days']) : 7,
             'status'                     => isset($_POST['rereg_status']) ? sanitize_text_field(wp_unslash($_POST['rereg_status'])) : 'draft',
         );
+
+        // Collect audience IDs from transfer list hidden inputs
+        $audience_ids = array();
+        if (isset($_POST['rereg_audience_ids']) && is_array($_POST['rereg_audience_ids'])) {
+            $audience_ids = array_map('absint', $_POST['rereg_audience_ids']);
+        }
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         if ($id > 0) {
             ReregistrationRepository::update($id, $data);
+            ReregistrationRepository::set_audience_ids($id, $audience_ids);
 
             // If transitioning to active, create submissions for members and send invitations
             if ($data['status'] === 'active' && $prev_status !== 'active') {
-                ReregistrationSubmissionRepository::create_for_audience_members($id, (int) $data['audience_id']);
+                ReregistrationSubmissionRepository::create_for_audience_members($id, $audience_ids);
                 ReregistrationEmailHandler::send_invitations($id);
             }
 
@@ -746,9 +760,11 @@ class ReregistrationAdmin {
         } else {
             $new_id = ReregistrationRepository::create($data);
             if ($new_id) {
+                ReregistrationRepository::set_audience_ids($new_id, $audience_ids);
+
                 // If creating as active, also create submissions and send invitations
                 if ($data['status'] === 'active') {
-                    ReregistrationSubmissionRepository::create_for_audience_members($new_id, (int) $data['audience_id']);
+                    ReregistrationSubmissionRepository::create_for_audience_members($new_id, $audience_ids);
                     ReregistrationEmailHandler::send_invitations($new_id);
                 }
 
@@ -808,6 +824,8 @@ class ReregistrationAdmin {
     /**
      * Render audience <option> elements with hierarchy (parent → &mdash; child).
      *
+     * Used by the list-view audience filter dropdown.
+     *
      * @param array<int, mixed> $audiences Audience tree (objects with optional ->children).
      * @param int|string $selected  Currently selected audience ID.
      * @return void
@@ -831,5 +849,88 @@ class ReregistrationAdmin {
                 }
             }
         }
+    }
+
+    /**
+     * Render dual-column audience transfer list.
+     *
+     * @param array<int, mixed> $audiences    Hierarchical audience tree.
+     * @param array<int>        $selected_ids Currently selected audience IDs.
+     * @return void
+     */
+    private function render_audience_transfer_list(array $audiences, array $selected_ids): void {
+        // Flatten hierarchy for data attributes
+        $flat = array();
+        foreach ($audiences as $parent) {
+            $children_ids = array();
+            if (!empty($parent->children)) {
+                foreach ($parent->children as $child) {
+                    $children_ids[] = (int) $child->id;
+                }
+            }
+            $flat[] = array(
+                'id'       => (int) $parent->id,
+                'name'     => $parent->name,
+                'color'    => $parent->color ?? '#ccc',
+                'parent'   => 0,
+                'children' => $children_ids,
+            );
+            if (!empty($parent->children)) {
+                foreach ($parent->children as $child) {
+                    $flat[] = array(
+                        'id'       => (int) $child->id,
+                        'name'     => $child->name,
+                        'color'    => $child->color ?? '#ccc',
+                        'parent'   => (int) $parent->id,
+                        'children' => array(),
+                    );
+                }
+            }
+        }
+        ?>
+        <div class="ffc-transfer-list" data-audiences="<?php echo esc_attr(wp_json_encode($flat)); ?>" data-selected="<?php echo esc_attr(wp_json_encode(array_values($selected_ids))); ?>">
+            <div class="ffc-transfer-col ffc-transfer-available">
+                <div class="ffc-transfer-header"><?php esc_html_e('Available', 'ffcertificate'); ?></div>
+                <input type="text" class="ffc-transfer-search" placeholder="<?php esc_attr_e('Filter...', 'ffcertificate'); ?>">
+                <div class="ffc-transfer-items"></div>
+            </div>
+            <div class="ffc-transfer-actions">
+                <button type="button" class="button ffc-transfer-add" title="<?php esc_attr_e('Add selected', 'ffcertificate'); ?>">&rsaquo;</button>
+                <button type="button" class="button ffc-transfer-add-all" title="<?php esc_attr_e('Add all', 'ffcertificate'); ?>">&raquo;</button>
+                <button type="button" class="button ffc-transfer-remove" title="<?php esc_attr_e('Remove selected', 'ffcertificate'); ?>">&lsaquo;</button>
+                <button type="button" class="button ffc-transfer-remove-all" title="<?php esc_attr_e('Remove all', 'ffcertificate'); ?>">&laquo;</button>
+            </div>
+            <div class="ffc-transfer-col ffc-transfer-selected">
+                <div class="ffc-transfer-header"><?php esc_html_e('Selected', 'ffcertificate'); ?></div>
+                <div class="ffc-transfer-items"></div>
+            </div>
+            <div class="ffc-transfer-hidden-inputs"></div>
+        </div>
+        <p class="description ffc-transfer-member-count"></p>
+        <?php
+    }
+
+    /**
+     * AJAX: Count members for a set of audience IDs.
+     *
+     * @return void
+     */
+    public function ajax_count_members(): void {
+        check_ajax_referer('ffc_reregistration_nonce', 'nonce');
+
+        if (!current_user_can(self::CAPABILITY)) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+        $raw = isset($_POST['audience_ids']) ? array_map('absint', (array) $_POST['audience_ids']) : array();
+        $audience_ids = array_filter($raw);
+
+        if (empty($audience_ids)) {
+            wp_send_json_success(array('count' => 0));
+        }
+
+        $user_ids = ReregistrationRepository::get_user_ids_for_audiences($audience_ids);
+        wp_send_json_success(array('count' => count($user_ids)));
     }
 }

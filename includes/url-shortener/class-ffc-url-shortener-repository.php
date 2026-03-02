@@ -110,7 +110,7 @@ class UrlShortenerRepository extends AbstractRepository {
         );
 
         if ( $result !== false ) {
-            $this->clear_cache();
+            $this->clear_cache( "id_{$id}" );
         }
 
         return $result !== false;

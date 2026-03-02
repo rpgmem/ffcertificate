@@ -360,20 +360,23 @@ class UrlShortenerAdminPageTest extends TestCase {
     // ==================================================================
 
     public function test_handle_actions_returns_early_without_page(): void {
-        // No $_GET['page'] set
-        $this->page->handle_actions();
+        $this->service->shouldNotReceive( 'trash_short_url' );
+        $this->service->shouldNotReceive( 'restore_short_url' );
+        $this->service->shouldNotReceive( 'delete_short_url' );
+        $this->service->shouldNotReceive( 'toggle_status' );
 
-        // Should return without doing anything — test passes if no exception
-        $this->assertTrue( true );
+        $this->page->handle_actions();
     }
 
     public function test_handle_actions_returns_early_without_action(): void {
         $_GET['page'] = 'ffc-short-urls';
-        // No $_GET['ffc_action'] set
+
+        $this->service->shouldNotReceive( 'trash_short_url' );
+        $this->service->shouldNotReceive( 'restore_short_url' );
+        $this->service->shouldNotReceive( 'delete_short_url' );
+        $this->service->shouldNotReceive( 'toggle_status' );
 
         $this->page->handle_actions();
-
-        $this->assertTrue( true );
     }
 
     public function test_handle_actions_trash_calls_service(): void {
