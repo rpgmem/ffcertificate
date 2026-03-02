@@ -70,6 +70,7 @@ if ( ! class_exists( 'WP_REST_Server' ) ) {
     class WP_REST_Server {
         const READABLE  = 'GET';
         const CREATABLE = 'POST';
+        const DELETABLE = 'DELETE';
     }
 }
 
@@ -96,6 +97,33 @@ if ( ! class_exists( 'WP_Error' ) ) {
 
         public function get_error_data() {
             return $this->data;
+        }
+    }
+}
+
+// Stub WP_REST_Response class for unit tests (used by audience REST controller).
+if ( ! class_exists( 'WP_REST_Response' ) ) {
+    class WP_REST_Response {
+        public $data;
+        public $status;
+        public $headers = array();
+
+        public function __construct( $data = null, $status = 200, $headers = array() ) {
+            $this->data    = $data;
+            $this->status  = $status;
+            $this->headers = $headers;
+        }
+
+        public function get_data() {
+            return $this->data;
+        }
+
+        public function get_status() {
+            return $this->status;
+        }
+
+        public function get_headers() {
+            return $this->headers;
         }
     }
 }
