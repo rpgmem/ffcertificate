@@ -117,10 +117,6 @@ class CapabilityManagerTest extends TestCase {
         Functions\when( 'get_userdata' )->justReturn( $mock_user );
 
         CapabilityManager::grant_context_capabilities( 10, 'certificate' );
-
-        // If we got here without exception, the dispatch worked.
-        // Mockery will verify add_cap was called 3 times.
-        $this->assertTrue( true );
     }
 
     public function test_grant_context_capabilities_delegates_to_appointment(): void {
@@ -134,7 +130,6 @@ class CapabilityManagerTest extends TestCase {
         Functions\when( 'get_userdata' )->justReturn( $mock_user );
 
         CapabilityManager::grant_context_capabilities( 20, 'appointment' );
-        $this->assertTrue( true );
     }
 
     public function test_grant_context_capabilities_delegates_to_audience(): void {
@@ -148,7 +143,6 @@ class CapabilityManagerTest extends TestCase {
         Functions\when( 'get_userdata' )->justReturn( $mock_user );
 
         CapabilityManager::grant_context_capabilities( 30, 'audience' );
-        $this->assertTrue( true );
     }
 
     // ------------------------------------------------------------------
@@ -166,17 +160,14 @@ class CapabilityManagerTest extends TestCase {
         Functions\when( 'get_userdata' )->justReturn( $mock_user );
 
         CapabilityManager::grant_certificate_capabilities( 10 );
-        $this->assertTrue( true );
     }
 
     public function test_grant_capabilities_does_nothing_for_invalid_user(): void {
-        Functions\when( 'get_userdata' )->justReturn( false );
+        Functions\expect( 'get_userdata' )->times( 3 )->with( 999 )->andReturn( false );
 
-        // Should not throw
         CapabilityManager::grant_certificate_capabilities( 999 );
         CapabilityManager::grant_appointment_capabilities( 999 );
         CapabilityManager::grant_audience_capabilities( 999 );
-        $this->assertTrue( true );
     }
 
     // ------------------------------------------------------------------
@@ -333,15 +324,12 @@ class CapabilityManagerTest extends TestCase {
         Functions\when( 'get_userdata' )->justReturn( $mock_user );
 
         CapabilityManager::reset_user_ffc_capabilities( 5 );
-        $this->assertTrue( true );
     }
 
     public function test_reset_user_ffc_capabilities_does_nothing_for_invalid_user(): void {
-        Functions\when( 'get_userdata' )->justReturn( false );
+        Functions\expect( 'get_userdata' )->once()->with( 999 )->andReturn( false );
 
-        // Should not throw
         CapabilityManager::reset_user_ffc_capabilities( 999 );
-        $this->assertTrue( true );
     }
 
     // ------------------------------------------------------------------
@@ -373,7 +361,6 @@ class CapabilityManagerTest extends TestCase {
         Functions\when( 'get_role' )->justReturn( $mock_role );
 
         CapabilityManager::register_role();
-        $this->assertTrue( true );
     }
 
     public function test_remove_role_calls_wp_remove_role(): void {

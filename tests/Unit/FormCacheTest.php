@@ -787,7 +787,11 @@ class FormCacheTest extends TestCase {
             ->andReturn( false );
 
         // clear_form_cache calls wp_cache_delete 5 times.
-        Functions\when( 'wp_cache_delete' )->justReturn( true );
+        $deleted_keys = array();
+        Functions\when( 'wp_cache_delete' )->alias( function ( $key, $group ) use ( &$deleted_keys ) {
+            $deleted_keys[] = $key;
+            return true;
+        });
 
         // warm_cache -> get_form_complete -> wp_cache_get for 'complete_200'.
         Functions\when( 'wp_cache_get' )->justReturn(
@@ -796,8 +800,13 @@ class FormCacheTest extends TestCase {
 
         FormCache::on_form_saved( 200, $post, true );
 
-        // If we reached here without exception, clear + warm both executed.
-        $this->assertTrue( true );
+        // Verify cache was cleared for all 5 keys.
+        $this->assertCount( 5, $deleted_keys );
+        $this->assertContains( 'config_200', $deleted_keys );
+        $this->assertContains( 'fields_200', $deleted_keys );
+        $this->assertContains( 'bg_200', $deleted_keys );
+        $this->assertContains( 'complete_200', $deleted_keys );
+        $this->assertContains( 'post_200', $deleted_keys );
     }
 
     public function test_on_form_saved_clears_but_does_not_warm_draft_form(): void {
@@ -832,12 +841,18 @@ class FormCacheTest extends TestCase {
         $post = Mockery::mock( \WP_Post::class );
         $post->post_type = 'ffc_form';
 
-        Functions\when( 'wp_cache_delete' )->justReturn( true );
+        $deleted_keys = array();
+        Functions\when( 'wp_cache_delete' )->alias( function ( $key, $group ) use ( &$deleted_keys ) {
+            $deleted_keys[] = $key;
+            return true;
+        });
 
         FormCache::on_form_deleted( 300, $post );
 
-        // Verify by calling it -- if clear_form_cache ran, it called wp_cache_delete.
-        $this->assertTrue( true );
+        // Verify all 5 cache keys were deleted.
+        $this->assertCount( 5, $deleted_keys );
+        $this->assertContains( 'config_300', $deleted_keys );
+        $this->assertContains( 'post_300', $deleted_keys );
     }
 
     public function test_on_form_deleted_ignores_non_ffc_form(): void {

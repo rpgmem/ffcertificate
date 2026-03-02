@@ -80,15 +80,14 @@ class UrlShortenerActivatorTest extends TestCase {
         $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SHOW TABLES LIKE "wp_ffc_short_urls"' );
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_short_urls' );
 
-        // dbDelta should NOT be called
-        Functions\when( 'dbDelta' )->alias( function () {
-            throw new \RuntimeException( 'dbDelta should not be called' );
+        $delta_called = false;
+        Functions\when( 'dbDelta' )->alias( function () use ( &$delta_called ) {
+            $delta_called = true;
         } );
 
         UrlShortenerActivator::create_tables();
 
-        // If we get here, table_exists returned true and create was skipped
-        $this->assertTrue( true );
+        $this->assertFalse( $delta_called, 'dbDelta should not be called when table already exists' );
     }
 
     public function test_create_tables_calls_db_delta_when_missing(): void {

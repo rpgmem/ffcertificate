@@ -71,10 +71,10 @@ class AppointmentRepositoryTest extends TestCase {
         );
         $this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
 
-        $this->repo->findById(1);
+        $result = $this->repo->findById(1);
 
-        // If we got here without error, the table was set correctly
-        $this->assertTrue(true);
+        // findById returns null when row not found; Mockery verifies prepare/get_row were called
+        $this->assertNull($result);
     }
 
     public function test_table_name_with_custom_prefix(): void {

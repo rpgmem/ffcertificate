@@ -98,7 +98,6 @@ class UrlShortenerMetaBoxTest extends TestCase {
         $this->service->shouldNotReceive( 'is_auto_create_enabled' );
 
         $this->meta_box->on_save_post( 1, $post );
-        $this->assertTrue( true );
     }
 
     public function test_on_save_post_skips_non_publish(): void {
@@ -109,7 +108,6 @@ class UrlShortenerMetaBoxTest extends TestCase {
         $this->service->shouldNotReceive( 'is_auto_create_enabled' );
 
         $this->meta_box->on_save_post( 1, $post );
-        $this->assertTrue( true );
     }
 
     public function test_on_save_post_skips_when_auto_create_disabled(): void {
@@ -121,7 +119,6 @@ class UrlShortenerMetaBoxTest extends TestCase {
         $this->service->shouldNotReceive( 'get_enabled_post_types' );
 
         $this->meta_box->on_save_post( 1, $post );
-        $this->assertTrue( true );
     }
 
     public function test_on_save_post_skips_wrong_post_type(): void {
@@ -134,7 +131,6 @@ class UrlShortenerMetaBoxTest extends TestCase {
         $this->service->shouldNotReceive( 'get_repository' );
 
         $this->meta_box->on_save_post( 1, $post );
-        $this->assertTrue( true );
     }
 
     public function test_on_save_post_skips_existing_short_url(): void {
@@ -153,7 +149,6 @@ class UrlShortenerMetaBoxTest extends TestCase {
         $this->service->shouldNotReceive( 'create_short_url' );
 
         $this->meta_box->on_save_post( 5, $post );
-        $this->assertTrue( true );
     }
 
     public function test_on_save_post_creates_short_url(): void {
@@ -306,7 +301,5 @@ class UrlShortenerMetaBoxTest extends TestCase {
         $this->service->shouldNotReceive( 'is_auto_create_enabled' );
 
         $this->meta_box->on_save_post( 1, $post );
-
-        $this->assertTrue( true );
     }
 }
