@@ -24,6 +24,9 @@ class FormRepositoryTest extends TestCase {
     /** @var Mockery\MockInterface */
     private $wpdb;
 
+    /** @var Mockery\MockInterface */
+    private $formCacheMock;
+
     /** @var FormRepository */
     private $repo;
 
@@ -46,6 +49,14 @@ class FormRepositoryTest extends TestCase {
         Functions\when('absint')->alias(function ($val) {
             return abs(intval($val));
         });
+
+        // Alias mock for FormCache: created before autoloading to prevent
+        // the real class from being loaded. All getConfig/getFields/getBackground
+        // tests work against this mock.
+        $this->formCacheMock = Mockery::mock('alias:\FreeFormCertificate\Submissions\FormCache');
+        $this->formCacheMock->shouldReceive('get_form_config')->andReturn([])->byDefault();
+        $this->formCacheMock->shouldReceive('get_form_fields')->andReturn([])->byDefault();
+        $this->formCacheMock->shouldReceive('get_form_background')->andReturn([])->byDefault();
 
         $this->wpdb->shouldReceive('prepare')->andReturnUsing(function () {
             return func_get_args()[0];
@@ -185,177 +196,76 @@ class FormRepositoryTest extends TestCase {
     }
 
     // ==================================================================
-    // getConfig
+    // getConfig — delegates to FormCache (alias mock created in setUp)
     // ==================================================================
 
-    public function test_get_config_delegates_to_form_cache_when_class_exists(): void {
+    public function test_get_config_delegates_to_form_cache(): void {
         $config = ['field1' => 'value1', 'field2' => 'value2'];
 
-        Functions\when('class_exists')->alias(function ($class) {
-            return $class === '\FreeFormCertificate\Submissions\FormCache';
-        });
-
-        // Create a mock for FormCache
-        $formCacheMock = Mockery::mock('alias:\FreeFormCertificate\Submissions\FormCache');
-        $formCacheMock->shouldReceive('get_form_config')
+        $this->formCacheMock->shouldReceive('get_form_config')
             ->with(42)
             ->once()
             ->andReturn($config);
 
-        // Rebuild repo so the class_exists mock takes effect
-        $this->repo = new FormRepository();
-
         $result = $this->repo->getConfig(42);
 
         $this->assertSame($config, $result);
     }
 
-    public function test_get_config_falls_back_to_get_post_meta_without_form_cache(): void {
-        $config = ['field1' => 'value1'];
+    public function test_get_config_returns_empty_array_for_unknown_form(): void {
+        // Default FormCache mock returns [] (from setUp)
+        $result = $this->repo->getConfig(999);
 
-        Functions\when('class_exists')->justReturn(false);
-
-        Functions\expect('get_post_meta')
-            ->once()
-            ->with(42, '_ffc_form_config', true)
-            ->andReturn($config);
-
-        // Rebuild repo so the class_exists mock takes effect
-        $this->repo = new FormRepository();
-
-        $result = $this->repo->getConfig(42);
-
-        $this->assertSame($config, $result);
-    }
-
-    public function test_get_config_fallback_returns_empty_when_no_meta(): void {
-        Functions\when('class_exists')->justReturn(false);
-
-        Functions\expect('get_post_meta')
-            ->once()
-            ->with(99, '_ffc_form_config', true)
-            ->andReturn('');
-
-        $this->repo = new FormRepository();
-
-        $result = $this->repo->getConfig(99);
-
-        $this->assertSame('', $result);
+        $this->assertSame([], $result);
     }
 
     // ==================================================================
-    // getFields
+    // getFields — delegates to FormCache
     // ==================================================================
 
-    public function test_get_fields_delegates_to_form_cache_when_class_exists(): void {
+    public function test_get_fields_delegates_to_form_cache(): void {
         $fields = [
             ['name' => 'first_name', 'type' => 'text'],
             ['name' => 'email', 'type' => 'email'],
         ];
 
-        Functions\when('class_exists')->alias(function ($class) {
-            return $class === '\FreeFormCertificate\Submissions\FormCache';
-        });
-
-        $formCacheMock = Mockery::mock('alias:\FreeFormCertificate\Submissions\FormCache');
-        $formCacheMock->shouldReceive('get_form_fields')
+        $this->formCacheMock->shouldReceive('get_form_fields')
             ->with(42)
             ->once()
             ->andReturn($fields);
 
-        $this->repo = new FormRepository();
-
         $result = $this->repo->getFields(42);
 
         $this->assertSame($fields, $result);
     }
 
-    public function test_get_fields_falls_back_to_get_post_meta_without_form_cache(): void {
-        $fields = [['name' => 'first_name', 'type' => 'text']];
+    public function test_get_fields_returns_empty_array_for_unknown_form(): void {
+        $result = $this->repo->getFields(999);
 
-        Functions\when('class_exists')->justReturn(false);
-
-        Functions\expect('get_post_meta')
-            ->once()
-            ->with(42, '_ffc_form_fields', true)
-            ->andReturn($fields);
-
-        $this->repo = new FormRepository();
-
-        $result = $this->repo->getFields(42);
-
-        $this->assertSame($fields, $result);
-    }
-
-    public function test_get_fields_fallback_returns_empty_when_no_meta(): void {
-        Functions\when('class_exists')->justReturn(false);
-
-        Functions\expect('get_post_meta')
-            ->once()
-            ->with(99, '_ffc_form_fields', true)
-            ->andReturn('');
-
-        $this->repo = new FormRepository();
-
-        $result = $this->repo->getFields(99);
-
-        $this->assertSame('', $result);
+        $this->assertSame([], $result);
     }
 
     // ==================================================================
-    // getBackground
+    // getBackground — delegates to FormCache
     // ==================================================================
 
-    public function test_get_background_delegates_to_form_cache_when_class_exists(): void {
+    public function test_get_background_delegates_to_form_cache(): void {
         $bg = ['url' => 'https://example.com/bg.jpg', 'opacity' => 0.5];
 
-        Functions\when('class_exists')->alias(function ($class) {
-            return $class === '\FreeFormCertificate\Submissions\FormCache';
-        });
-
-        $formCacheMock = Mockery::mock('alias:\FreeFormCertificate\Submissions\FormCache');
-        $formCacheMock->shouldReceive('get_form_background')
+        $this->formCacheMock->shouldReceive('get_form_background')
             ->with(42)
             ->once()
             ->andReturn($bg);
 
-        $this->repo = new FormRepository();
-
         $result = $this->repo->getBackground(42);
 
         $this->assertSame($bg, $result);
     }
 
-    public function test_get_background_falls_back_to_get_post_meta_without_form_cache(): void {
-        $bg = ['url' => 'https://example.com/bg.jpg'];
+    public function test_get_background_returns_empty_array_for_unknown_form(): void {
+        $result = $this->repo->getBackground(999);
 
-        Functions\when('class_exists')->justReturn(false);
-
-        Functions\expect('get_post_meta')
-            ->once()
-            ->with(42, '_ffc_form_bg', true)
-            ->andReturn($bg);
-
-        $this->repo = new FormRepository();
-
-        $result = $this->repo->getBackground(42);
-
-        $this->assertSame($bg, $result);
-    }
-
-    public function test_get_background_fallback_returns_empty_when_no_meta(): void {
-        Functions\when('class_exists')->justReturn(false);
-
-        Functions\expect('get_post_meta')
-            ->once()
-            ->with(99, '_ffc_form_bg', true)
-            ->andReturn('');
-
-        $this->repo = new FormRepository();
-
-        $result = $this->repo->getBackground(99);
-
-        $this->assertSame('', $result);
+        $this->assertSame([], $result);
     }
 
     // ==================================================================
