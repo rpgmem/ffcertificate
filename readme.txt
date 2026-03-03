@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 5.0.1
+Stable tag: 5.0.2
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,18 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 5.0.2 (2026-03-03) =
+
+100% unit test coverage across all 21 modules (146 concrete classes). Every class now has a dedicated test file.
+
+* New: 24 test files added — Admin (5), Self-Scheduling (5), Audience (7), Frontend (3), Reregistration (4)
+* New: AdminClassTest, FormEditorTest, FormEditorMetaboxRendererTest, AdminSubmissionEditPageTest, SubmissionsListTest
+* New: FrontendTest, FrontendShortcodesTest, VerificationResponseRendererTest
+* New: ReregistrationAdminTest, ReregistrationCsvExporterTest, ReregistrationCustomFieldsPageTest, ReregistrationFormRendererTest
+* New: AppointmentReceiptHandlerTest, SelfSchedulingAdminTest, SelfSchedulingCPTTest, SelfSchedulingEditorTest, SelfSchedulingShortcodeTest
+* New: AudienceAdminAudienceTest, AudienceAdminBookingsTest, AudienceAdminCalendarTest, AudienceAdminDashboardTest, AudienceAdminEnvironmentTest, AudienceAdminImportTest, AudienceAdminSettingsTest
+* Test suite: 1051 → **3089 tests** across **153 test files** — 100% class coverage on all 21 modules
 
 = 5.0.1 (2026-02-22) =
 
