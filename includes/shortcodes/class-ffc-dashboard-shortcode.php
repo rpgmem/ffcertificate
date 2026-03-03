@@ -120,7 +120,14 @@ class DashboardShortcode {
             }
             echo wp_kses_post( self::render_redirect_message() );
             echo wp_kses_post( self::render_reregistration_banners($user_id) );
+
+            // Form panel for reregistration editing — always present when reregistrations tab is visible.
+            // Previously rendered inside render_reregistration_banners(), which could omit it
+            // when the banner query returned empty while the tab's REST API still showed editable items.
+            if ( $can_view_reregistrations ) :
             ?>
+            <div id="ffc-rereg-form-panel" style="display:none;"></div>
+            <?php endif; ?>
 
             <div class="ffc-dashboard-summary" id="ffc-dashboard-summary"></div>
 
@@ -386,9 +393,6 @@ class DashboardShortcode {
             </div>
             <?php
         }
-        ?>
-        <div id="ffc-rereg-form-panel" style="display:none;"></div>
-        <?php
         return ob_get_clean();
     }
 
