@@ -70,6 +70,7 @@ if ( ! class_exists( 'WP_REST_Server' ) ) {
     class WP_REST_Server {
         const READABLE  = 'GET';
         const CREATABLE = 'POST';
+        const DELETABLE = 'DELETE';
     }
 }
 
@@ -100,6 +101,33 @@ if ( ! class_exists( 'WP_Error' ) ) {
     }
 }
 
+// Stub WP_REST_Response class for unit tests (used by audience REST controller).
+if ( ! class_exists( 'WP_REST_Response' ) ) {
+    class WP_REST_Response {
+        public $data;
+        public $status;
+        public $headers = array();
+
+        public function __construct( $data = null, $status = 200, $headers = array() ) {
+            $this->data    = $data;
+            $this->status  = $status;
+            $this->headers = $headers;
+        }
+
+        public function get_data() {
+            return $this->data;
+        }
+
+        public function get_status() {
+            return $this->status;
+        }
+
+        public function get_headers() {
+            return $this->headers;
+        }
+    }
+}
+
 // Stub WP_Role class for unit tests.
 if ( ! class_exists( 'WP_Role' ) ) {
     class WP_Role {
@@ -107,6 +135,10 @@ if ( ! class_exists( 'WP_Role' ) ) {
 
         public function add_cap( $cap, $grant = true ) {
             $this->capabilities[ $cap ] = $grant;
+        }
+
+        public function remove_cap( $cap ) {
+            unset( $this->capabilities[ $cap ] );
         }
     }
 }
@@ -135,6 +167,10 @@ if ( ! class_exists( 'WP_User' ) ) {
             $this->caps[ $cap ] = $grant;
         }
 
+        public function remove_cap( $cap ) {
+            unset( $this->caps[ $cap ] );
+        }
+
         public function add_role( $role ) {
             $this->roles[] = $role;
         }
@@ -143,6 +179,21 @@ if ( ! class_exists( 'WP_User' ) ) {
             $this->roles = array( $role );
         }
     }
+}
+
+// Create stub for wp-admin/includes/upgrade.php used by activators.
+// The activator classes call require_once ABSPATH . 'wp-admin/includes/upgrade.php'
+// which needs to exist (even as a no-op) so the require_once doesn't fatal.
+$wp_admin_upgrade_dir = ABSPATH . 'wp-admin/includes';
+if ( ! is_dir( $wp_admin_upgrade_dir ) ) {
+    mkdir( $wp_admin_upgrade_dir, 0777, true );
+}
+$wp_admin_upgrade_file = $wp_admin_upgrade_dir . '/upgrade.php';
+if ( ! file_exists( $wp_admin_upgrade_file ) ) {
+    file_put_contents(
+        $wp_admin_upgrade_file,
+        "<?php\n// Stub for unit tests.\nif ( ! function_exists( 'dbDelta' ) ) {\n    function dbDelta( \$queries = '', \$execute = true ) { return array(); }\n}\n"
+    );
 }
 
 // Register the plugin's own PSR-4 autoloader (WordPress file naming conventions).
