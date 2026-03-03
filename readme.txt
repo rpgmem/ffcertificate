@@ -166,14 +166,25 @@ In the certificate layout editor, use these dynamic tags:
 
 = 5.0.2 (2026-03-03) =
 
-100% unit test coverage across all 21 modules (146 concrete classes). Every class now has a dedicated test file.
+100% unit test coverage across all 21 modules (146 concrete classes), plus bug fixes, new features, and CSS/asset refactoring.
 
+* Fix: AJAX requests blocked for non-admin users
+* Fix: Certificate download bypassing verification page with direct AJAX
+* Fix: Download for regular users — migrated from admin-ajax to REST API
+* Fix: Reregistration 'Editar' button not working in dashboard
+* Fix: QR codes encoding permalink instead of short URL, and click counter issues
+* Fix: Short URL redirects not working when rewrite rules fail
+* Fix: QR code stacking/visibility and lazy-loading issues in PDF rendering
+* Fix: Self-scheduling overlay translation, email notice, and PDF error handling
+* Fix: Reverted PDF button to magic link (undo direct download approach)
+* Feat: Multi-audience transfer list for reregistration campaigns
+* Feat: URL Shortener documentation added to the Documentation tab
+* Feat: Logout button added to Profile tab in user dashboard
+* Feat: Standardized magic link URL format across all document types
+* Refactor: Footer two-column layout with QR code on the left
+* Refactor: Extracted inline CSS/JS to dedicated asset files, consolidated CSS classes
+* Refactor: Removed 27 unnecessary !important declarations and unused CSS
 * New: 24 test files added — Admin (5), Self-Scheduling (5), Audience (7), Frontend (3), Reregistration (4)
-* New: AdminClassTest, FormEditorTest, FormEditorMetaboxRendererTest, AdminSubmissionEditPageTest, SubmissionsListTest
-* New: FrontendTest, FrontendShortcodesTest, VerificationResponseRendererTest
-* New: ReregistrationAdminTest, ReregistrationCsvExporterTest, ReregistrationCustomFieldsPageTest, ReregistrationFormRendererTest
-* New: AppointmentReceiptHandlerTest, SelfSchedulingAdminTest, SelfSchedulingCPTTest, SelfSchedulingEditorTest, SelfSchedulingShortcodeTest
-* New: AudienceAdminAudienceTest, AudienceAdminBookingsTest, AudienceAdminCalendarTest, AudienceAdminDashboardTest, AudienceAdminEnvironmentTest, AudienceAdminImportTest, AudienceAdminSettingsTest
 * Test suite: 1051 → **3089 tests** across **153 test files** — 100% class coverage on all 21 modules
 
 = 5.0.1 (2026-02-22) =
