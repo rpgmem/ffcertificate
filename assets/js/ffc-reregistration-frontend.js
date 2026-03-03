@@ -33,6 +33,18 @@
 
     function loadForm(reregistrationId) {
         var $panel = $('#ffc-rereg-form-panel');
+
+        // Safety: create panel if it doesn't exist in the DOM
+        if ($panel.length === 0) {
+            $panel = $('<div id="ffc-rereg-form-panel" style="display:none;"></div>');
+            var $dashboard = $('#ffc-user-dashboard');
+            if ($dashboard.length) {
+                $dashboard.prepend($panel);
+            } else {
+                $('body').append($panel);
+            }
+        }
+
         $panel.html('<div class="ffc-loading">' + (S.loading || 'Carregando formulário...') + '</div>').show();
 
         // Scroll to panel
