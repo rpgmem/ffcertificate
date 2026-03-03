@@ -8,7 +8,38 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## 5.0.2 (2026-03-03)
 
-100% unit test coverage across all 21 modules (146 concrete classes). Every class now has a dedicated test file.
+100% unit test coverage across all 21 modules (146 concrete classes), plus bug fixes, new features, and CSS/asset refactoring.
+
+### Bug Fixes
+
+- Fix: AJAX requests blocked for non-admin users — permission check was too restrictive
+- Fix: Certificate download bypassing verification page with direct AJAX
+- Fix: Download for regular users — migrated from admin-ajax to REST API
+- Fix: Reregistration 'Editar' button not working in dashboard
+- Fix: QR codes encoding permalink instead of short URL, and click counter issues
+- Fix: Short URL redirects not working when rewrite rules fail
+- Fix: QR code stacking/visibility issues in html2canvas PDF rendering
+- Fix: Lazy-loading plugins hiding QR code in appointment PDF
+- Fix: QR code generation and center download button
+- Fix: URL Shortener SVG QR generation — use `wp_tempnam` and add filesize check
+- Fix: Self-scheduling overlay translation, email notice, and PDF error handling
+- Fix: Reverted PDF button to magic link (undo direct download approach)
+
+### New Features
+
+- Feat: Multi-audience transfer list for reregistration campaigns
+- Feat: URL Shortener documentation added to the Documentation tab
+- Feat: Logout button added to Profile tab in user dashboard
+- Feat: Standardized magic link URL format across all document types
+
+### Refactoring
+
+- Refactor: Footer refactored to two-column layout with QR code on the left
+- Refactor: Extracted inline CSS/JS to dedicated asset files
+- Refactor: Replaced inline styles with CSS classes in URL Shortener
+- Refactor: Consolidated duplicate button/badge classes into `ffc-common.css`
+- Refactor: Removed 27 unnecessary `!important` declarations
+- Refactor: Removed unused CSS classes and stale Phase 3 comments
 
 ### Test Coverage — 100% Class Coverage
 
