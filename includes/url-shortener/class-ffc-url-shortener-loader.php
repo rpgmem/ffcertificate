@@ -189,8 +189,11 @@ class UrlShortenerLoader {
             exit;
         }
 
-        // Increment click counter
-        $repository->incrementClickCount( (int) $record['id'] );
+        // Defer click counter to shutdown so the redirect response is sent first.
+        $record_id = (int) $record['id'];
+        add_action( 'shutdown', static function () use ( $repository, $record_id ): void {
+            $repository->incrementClickCount( $record_id );
+        } );
 
         $target_url    = esc_url_raw( $record['target_url'] );
         $redirect_type = $this->service->get_redirect_type();

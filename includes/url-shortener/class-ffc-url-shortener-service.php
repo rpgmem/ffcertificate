@@ -21,6 +21,9 @@ class UrlShortenerService {
     /** @var UrlShortenerRepository */
     private UrlShortenerRepository $repository;
 
+    /** @var array<string, mixed> Cached plugin settings (loaded once per request). */
+    private array $settings;
+
     /**
      * Base62 character set for short code generation.
      */
@@ -28,6 +31,7 @@ class UrlShortenerService {
 
     public function __construct( ?UrlShortenerRepository $repository = null ) {
         $this->repository = $repository ?? new UrlShortenerRepository();
+        $this->settings   = (array) get_option( 'ffc_settings', [] );
     }
 
     /**
@@ -126,8 +130,7 @@ class UrlShortenerService {
      * @return string Prefix without slashes (e.g. "go").
      */
     public function get_prefix(): string {
-        $settings = get_option( 'ffc_settings', [] );
-        $prefix   = $settings['url_shortener_prefix'] ?? 'go';
+        $prefix = $this->settings['url_shortener_prefix'] ?? 'go';
         return sanitize_title( $prefix );
     }
 
@@ -137,8 +140,7 @@ class UrlShortenerService {
      * @return int
      */
     public function get_code_length(): int {
-        $settings = get_option( 'ffc_settings', [] );
-        $length   = (int) ( $settings['url_shortener_code_length'] ?? 6 );
+        $length = (int) ( $this->settings['url_shortener_code_length'] ?? 6 );
         return max( 4, min( 10, $length ) );
     }
 
@@ -148,8 +150,7 @@ class UrlShortenerService {
      * @return int HTTP status code (301, 302, or 307).
      */
     public function get_redirect_type(): int {
-        $settings = get_option( 'ffc_settings', [] );
-        $type     = (int) ( $settings['url_shortener_redirect_type'] ?? 302 );
+        $type = (int) ( $this->settings['url_shortener_redirect_type'] ?? 302 );
         return in_array( $type, [ 301, 302, 307 ], true ) ? $type : 302;
     }
 
@@ -159,8 +160,7 @@ class UrlShortenerService {
      * @return bool
      */
     public function is_enabled(): bool {
-        $settings = get_option( 'ffc_settings', [] );
-        return ! isset( $settings['url_shortener_enabled'] ) || (int) $settings['url_shortener_enabled'] === 1;
+        return ! isset( $this->settings['url_shortener_enabled'] ) || (int) $this->settings['url_shortener_enabled'] === 1;
     }
 
     /**
@@ -169,8 +169,7 @@ class UrlShortenerService {
      * @return bool
      */
     public function is_auto_create_enabled(): bool {
-        $settings = get_option( 'ffc_settings', [] );
-        return ! isset( $settings['url_shortener_auto_create'] ) || (int) $settings['url_shortener_auto_create'] === 1;
+        return ! isset( $this->settings['url_shortener_auto_create'] ) || (int) $this->settings['url_shortener_auto_create'] === 1;
     }
 
     /**
@@ -179,8 +178,7 @@ class UrlShortenerService {
      * @return array<string>
      */
     public function get_enabled_post_types(): array {
-        $settings   = get_option( 'ffc_settings', [] );
-        $post_types = $settings['url_shortener_post_types'] ?? [ 'post', 'page' ];
+        $post_types = $this->settings['url_shortener_post_types'] ?? [ 'post', 'page' ];
 
         if ( is_string( $post_types ) ) {
             $post_types = array_filter( array_map( 'trim', explode( ',', $post_types ) ) );

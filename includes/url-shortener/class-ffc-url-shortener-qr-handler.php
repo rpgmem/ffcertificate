@@ -40,26 +40,87 @@ class UrlShortenerQrHandler {
     }
 
     /**
-     * Generate a QR Code as base64 PNG.
+     * Generate a QR Code as base64 PNG, with database caching.
      *
-     * @param string $url  The URL to encode.
-     * @param int    $size Image size in pixels.
+     * When a short_code is provided the result is stored in the
+     * `qr_cache` column of ffc_short_urls so subsequent calls
+     * skip the CPU-intensive phpqrcode + GD pipeline entirely.
+     *
+     * @param string $url        The URL to encode.
+     * @param int    $size       Image size in pixels.
+     * @param string $short_code Optional short code for cache lookup.
      * @return string Base64-encoded PNG data.
      */
-    public function generate_qr_base64( string $url, int $size = 200 ): string {
+    public function generate_qr_base64( string $url, int $size = 200, string $short_code = '' ): string {
+        // Try cache first
+        if ( $short_code !== '' ) {
+            $cached = $this->get_qr_cache( $short_code );
+            if ( $cached !== '' ) {
+                return $cached;
+            }
+        }
+
         $generator = new QRCodeGenerator();
 
-        return $generator->generate( $url, [
+        $base64 = $generator->generate( $url, [
             'size'        => $size,
             'margin'      => 2,
             'error_level' => 'M',
         ] );
+
+        // Persist to cache
+        if ( $short_code !== '' && $base64 !== '' ) {
+            $this->set_qr_cache( $short_code, $base64 );
+        }
+
+        return $base64;
+    }
+
+    /**
+     * Retrieve cached QR code from the ffc_short_urls table.
+     *
+     * @param string $short_code Short code.
+     * @return string Base64 data or empty string.
+     */
+    private function get_qr_cache( string $short_code ): string {
+        global $wpdb;
+        $table = $wpdb->prefix . 'ffc_short_urls';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $value = $wpdb->get_var(
+            $wpdb->prepare( 'SELECT qr_cache FROM %i WHERE short_code = %s', $table, $short_code )
+        );
+
+        return is_string( $value ) && $value !== '' ? $value : '';
+    }
+
+    /**
+     * Store QR code cache in the ffc_short_urls table.
+     *
+     * @param string $short_code Short code.
+     * @param string $base64     Base64-encoded PNG.
+     */
+    private function set_qr_cache( string $short_code, string $base64 ): void {
+        global $wpdb;
+        $table = $wpdb->prefix . 'ffc_short_urls';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->update(
+            $table,
+            [ 'qr_cache' => $base64 ],
+            [ 'short_code' => $short_code ],
+            [ '%s' ],
+            [ '%s' ]
+        );
     }
 
     /**
      * Generate a QR Code as SVG string.
      *
-     * Uses phpqrcode to get the matrix, then renders as SVG.
+     * Builds SVG directly from the phpqrcode raw matrix — no PNG
+     * generation, no GD image loading, no pixel-by-pixel scanning.
+     * This eliminates the two most CPU-intensive steps of the old
+     * implementation.
      *
      * @param string $url  The URL to encode.
      * @param int    $size SVG viewBox size.
@@ -71,72 +132,55 @@ class UrlShortenerQrHandler {
             require_once FFC_PLUGIN_DIR . 'libs/phpqrcode/qrlib.php';
         }
 
-        // Get the QR code matrix as text - prefer wp_tempnam for hosting compatibility
-        $temp_file = function_exists( 'wp_tempnam' )
-            ? wp_tempnam( 'ffc_qr_svg_' )
-            : tempnam( sys_get_temp_dir(), 'ffc_qr_svg_' );
+        // Get the raw QR matrix directly (no temp files, no GD).
+        $matrix = \QRcode::raw( $url, false, QR_ECLEVEL_M );
 
-        if ( ! $temp_file ) {
+        if ( ! is_array( $matrix ) || empty( $matrix ) ) {
             return '';
         }
 
-        \QRcode::png( $url, $temp_file, QR_ECLEVEL_M, 1, 0 );
+        $margin      = 2;
+        $matrix_size = count( $matrix );
+        $total       = $matrix_size + $margin * 2;
+        $module_size = (int) floor( $size / $total );
 
-        // Read the PNG and get dimensions
-        if ( ! file_exists( $temp_file ) || filesize( $temp_file ) === 0 ) {
-            if ( file_exists( $temp_file ) ) {
-                wp_delete_file( $temp_file );
-            }
-            return '';
+        if ( $module_size < 1 ) {
+            $module_size = 1;
         }
 
-        $image = @imagecreatefrompng( $temp_file );
-        wp_delete_file( $temp_file );
+        $svg_size = $module_size * $total;
 
-        if ( ! $image ) {
-            return '';
-        }
+        $parts   = [];
+        $parts[] = '<?xml version="1.0" encoding="UTF-8"?>';
+        $parts[] = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . $svg_size . ' ' . $svg_size . '" width="' . $svg_size . '" height="' . $svg_size . '">';
+        $parts[] = '<rect width="100%" height="100%" fill="white"/>';
 
-        $width  = imagesx( $image );
-        $height = imagesy( $image );
-
-        $module_size = (int) floor( $size / $width );
-        $svg_size    = $module_size * $width;
-
-        $svg = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $svg .= '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . $svg_size . ' ' . $svg_size . '" width="' . $svg_size . '" height="' . $svg_size . '">' . "\n";
-        $svg .= '<rect width="100%" height="100%" fill="white"/>' . "\n";
-
-        for ( $y = 0; $y < $height; $y++ ) {
-            for ( $x = 0; $x < $width; $x++ ) {
-                $rgb   = imagecolorat( $image, $x, $y );
-                $red   = ( $rgb >> 16 ) & 0xFF;
-                $green = ( $rgb >> 8 ) & 0xFF;
-                $blue  = $rgb & 0xFF;
-
-                // Dark module (black pixel)
-                if ( $red < 128 && $green < 128 && $blue < 128 ) {
-                    $svg .= '<rect x="' . ( $x * $module_size ) . '" y="' . ( $y * $module_size )
-                          . '" width="' . $module_size . '" height="' . $module_size . '" fill="black"/>' . "\n";
+        for ( $y = 0; $y < $matrix_size; $y++ ) {
+            $row = $matrix[ $y ];
+            for ( $x = 0; $x < $matrix_size; $x++ ) {
+                // Each cell is 0 (white) or non-zero (dark module).
+                if ( isset( $row[ $x ] ) && $row[ $x ] ) {
+                    $px = ( $x + $margin ) * $module_size;
+                    $py = ( $y + $margin ) * $module_size;
+                    $parts[] = '<rect x="' . $px . '" y="' . $py
+                             . '" width="' . $module_size . '" height="' . $module_size . '" fill="black"/>';
                 }
             }
         }
 
-        $svg .= '</svg>';
+        $parts[] = '</svg>';
 
-        imagedestroy( $image );
-
-        return $svg;
+        return implode( "\n", $parts );
     }
 
     /**
-     * Resolve the QR target URL and filename prefix.
+     * Resolve the QR target URL, filename prefix, and short code.
      *
      * Always encodes the short URL so that scans are tracked by the
      * click counter — regardless of whether the request comes from
      * the post meta box (post_id) or the admin listing (code).
      *
-     * @return array{url: string, prefix: string} Target URL and filename prefix.
+     * @return array{url: string, prefix: string, code: string} Target URL, filename prefix and short code.
      */
     private function resolve_qr_target(): array {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by the calling method.
@@ -148,7 +192,7 @@ class UrlShortenerQrHandler {
             }
             $post = get_post( $post_id );
             $slug = $post ? $post->post_name : (string) $post_id;
-            return [ 'url' => $this->service->get_short_url( $record['short_code'] ), 'prefix' => 'qr-' . $slug ];
+            return [ 'url' => $this->service->get_short_url( $record['short_code'] ), 'prefix' => 'qr-' . $slug, 'code' => $record['short_code'] ];
         }
 
         $code = sanitize_text_field( wp_unslash( $_POST['code'] ?? '' ) );
@@ -161,7 +205,7 @@ class UrlShortenerQrHandler {
             wp_send_json_error( [ 'message' => __( 'Short URL not found.', 'ffcertificate' ) ] );
         }
 
-        return [ 'url' => $this->service->get_short_url( $code ), 'prefix' => 'qr-' . $code ];
+        return [ 'url' => $this->service->get_short_url( $code ), 'prefix' => 'qr-' . $code, 'code' => $code ];
     }
 
     /**

@@ -96,6 +96,9 @@ class UrlShortenerRepository extends AbstractRepository {
     /**
      * Increment the click counter for a short URL.
      *
+     * Uses a lightweight UPDATE without cache invalidation since
+     * the click_count field is not needed for redirect resolution.
+     *
      * @param int $id Record ID.
      * @return bool
      */
@@ -108,10 +111,6 @@ class UrlShortenerRepository extends AbstractRepository {
                 $id
             )
         );
-
-        if ( $result !== false ) {
-            $this->clear_cache( "id_{$id}" );
-        }
 
         return $result !== false;
     }

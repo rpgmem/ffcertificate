@@ -75,5 +75,8 @@ class UrlShortenerActivator {
         if ( ! self::table_exists( $table_name ) ) {
             self::create_tables();
         }
+
+        // Add qr_cache column for QR code caching (avoids regeneration on every admin load).
+        self::add_column_if_missing( $table_name, 'qr_cache', 'LONGTEXT NULL', 'status' );
     }
 }
