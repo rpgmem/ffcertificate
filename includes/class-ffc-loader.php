@@ -19,6 +19,7 @@ use FreeFormCertificate\Admin\CPT;
 use FreeFormCertificate\Admin\Admin;
 use FreeFormCertificate\Admin\AdminUserColumns;
 use FreeFormCertificate\Admin\AdminUserCapabilities;
+use FreeFormCertificate\Admin\FormListColumns;
 use FreeFormCertificate\Frontend\Frontend;
 use FreeFormCertificate\Admin\AdminAjax;
 use FreeFormCertificate\API\RestController;
@@ -114,6 +115,7 @@ class Loader {
             $this->admin_ajax     = new AdminAjax();
             AdminUserColumns::init();
             AdminUserCapabilities::init();
+            FormListColumns::init();
             AdminUserCustomFields::init();
             $reregistration_admin = new ReregistrationAdmin();
             $reregistration_admin->init();
