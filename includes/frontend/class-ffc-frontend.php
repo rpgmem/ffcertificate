@@ -194,8 +194,11 @@ class Frontend {
                 'positionUnavailable' => __('Location information is unavailable.', 'ffcertificate'),
                 'timeout' => __('Location request timed out.', 'ffcertificate'),
                 'outsideArea' => __('You are outside the allowed area for this form.', 'ffcertificate'),
-                // Safari/iOS specific messages
-                'safariLocationHint' => __('Requesting your location… If prompted, tap "Allow". If nothing happens, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate'),
+                // Safari/iOS progressive loading phases
+                'safariPhase1' => __('Requesting your location… If prompted, tap "Allow".', 'ffcertificate'),
+                'safariPhase2' => __('Waiting for location permission… Check if a browser prompt appeared.', 'ffcertificate'),
+                'safariPhase3' => __('Still trying to get your location… If it is not working, check that Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate'),
+                // Safari/iOS specific error messages
                 'safariPermissionDenied' => __('Location access was denied. On Safari/iOS, go to Settings > Privacy & Security > Location Services and ensure it is enabled for your browser.', 'ffcertificate'),
                 'safariPositionUnavailable' => __('Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate'),
                 'safariTimeout' => __('Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate'),

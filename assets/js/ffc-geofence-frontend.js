@@ -252,13 +252,28 @@
             formWrapper.find('.ffc-submission-form').hide();
             formWrapper.addClass('ffc-geofence-loading');
 
-            // Safari/iOS: show guidance BEFORE the permission prompt so the
-            // user knows what to do if Location Services is off.
+            // Safari/iOS: progressive loading messages so the user knows
+            // the page is alive and gets increasingly specific guidance.
+            // Android/Chrome shows the permission prompt immediately so a
+            // single static message is enough.
+            var progressTimers = [];
             if (isSafariBrowser) {
                 this.showLoadingMessage(
                     formWrapper,
-                    this.getString('safariLocationHint', 'Requesting your location… If prompted, tap "Allow". If nothing happens, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.')
+                    this.getString('safariPhase1', 'Requesting your location\u2026 If prompted, tap "Allow".')
                 );
+                progressTimers.push(setTimeout(function() {
+                    self.updateLoadingMessage(
+                        formWrapper,
+                        self.getString('safariPhase2', 'Waiting for location permission\u2026 Check if a browser prompt appeared.')
+                    );
+                }, 8000));
+                progressTimers.push(setTimeout(function() {
+                    self.updateLoadingMessage(
+                        formWrapper,
+                        self.getString('safariPhase3', 'Still trying to get your location\u2026 If it is not working, check that Location Services is enabled in Settings > Privacy & Security > Location Services.')
+                    );
+                }, 20000));
             } else {
                 this.showLoadingMessage(formWrapper, this.getString('detectingLocation', 'Detecting your location...'));
             }
@@ -279,6 +294,7 @@
                     return;
                 }
                 resolved = true;
+                progressTimers.forEach(clearTimeout);
                 self.debug('Safety timeout reached — geolocation never responded');
                 self.hideLoadingMessage(formWrapper);
                 formWrapper.removeClass('ffc-geofence-loading');
@@ -288,6 +304,7 @@
             function done() {
                 resolved = true;
                 clearTimeout(safetyTimer);
+                progressTimers.forEach(clearTimeout);
             }
 
             function onSuccess(position) {
@@ -583,6 +600,20 @@
         showLoadingMessage: function(formWrapper, message) {
             const html = '<div class="ffc-geofence-loading-msg"><div class="ffc-spinner"></div><p>' + this.escapeHtml(message) + '</p></div>';
             formWrapper.prepend(html);
+        },
+
+        /**
+         * Update the text of an existing loading message without
+         * removing/re-adding the element (preserves the spinner animation).
+         *
+         * @param {jQuery} formWrapper Form wrapper element.
+         * @param {string} message     New message text.
+         */
+        updateLoadingMessage: function(formWrapper, message) {
+            var el = formWrapper.find('.ffc-geofence-loading-msg p');
+            if (el.length) {
+                el.text(message);
+            }
         },
 
         /**
