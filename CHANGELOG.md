@@ -6,6 +6,40 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## 5.0.3 (2026-03-27)
+
+Performance optimizations for URL shortener and QR code generation, new admin columns for forms listing, and Safari/iOS geofence fixes.
+
+### Performance
+
+- Perf: Cache plugin settings in UrlShortenerService — single `get_option` per request instead of ~7 repeated calls
+- Perf: Defer redirect click count increment to `shutdown` hook — redirect response is sent before the DB update
+- Perf: Remove unnecessary cache invalidation from `incrementClickCount` (click_count not needed for redirect resolution)
+- Perf: Add `qr_cache` column to `ffc_short_urls` table — QR code base64 stored in DB, avoids phpqrcode + GD regeneration on every admin page load
+- Perf: Rewrite SVG QR generation to use `QRcode::raw()` matrix directly — eliminates temp file I/O, PNG generation, GD image loading, and pixel-by-pixel color scanning
+
+### New Features
+
+- Feat: Add ID column (sortable) to ffc_form listing screen for quick form reference
+- Feat: Add Shortcode column with copy-to-clipboard button to ffc_form listing screen
+- Feat: Add Submissions column with batch-loaded count (single GROUP BY query, no N+1) linking to filtered submissions page
+
+### Bug Fixes
+
+- Fix: `isSafari()` detection for iPadOS 13+ — modern iPads report Mac desktop user-agent, now detected via `navigator.maxTouchPoints`
+- Fix: Geofence loading spinner stuck indefinitely when Safari silently ignores geolocation request — added safety timeout (40s Safari / 25s others) with `gps_fallback` honoring
+- Fix: `maximumAge: 0` on first geolocation attempt forces fresh GPS fix causing unnecessary 20s timeout on Safari — now uses `maximumAge: 30000` to accept recent cached position
+- Fix: `gps_fallback` admin setting (`allow`/`block`) not passed to frontend — GPS failure always blocked the form regardless of admin configuration
+- Fix: Safari-specific error messages (Location Services guidance) overridden by generic admin `messageError` — browser-specific messages now always take priority
+- Fix: Geofence `handleBlocked` signature simplified to 3 arguments, preventing `customMessage` from silently swallowing specific error messages
+
+### Enhancements
+
+- UX: Progressive loading messages for Safari/iOS geolocation wait — three timed phases replace the static message so users know the page is alive and receive increasingly specific guidance (t=0s: tap Allow, t=8s: check for prompt, t=20s: check Location Services settings)
+- UX: `updateLoadingMessage()` helper updates text in-place without removing/re-adding the spinner element
+
+---
+
 ## 5.0.2 (2026-03-03)
 
 100% unit test coverage across all 21 modules (146 concrete classes), plus bug fixes, new features, and CSS/asset refactoring.
