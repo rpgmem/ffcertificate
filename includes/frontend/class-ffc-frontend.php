@@ -195,6 +195,7 @@ class Frontend {
                 'timeout' => __('Location request timed out.', 'ffcertificate'),
                 'outsideArea' => __('You are outside the allowed area for this form.', 'ffcertificate'),
                 // Safari/iOS specific messages
+                'safariLocationHint' => __('Requesting your location… If prompted, tap "Allow". If nothing happens, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate'),
                 'safariPermissionDenied' => __('Location access was denied. On Safari/iOS, go to Settings > Privacy & Security > Location Services and ensure it is enabled for your browser.', 'ffcertificate'),
                 'safariPositionUnavailable' => __('Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate'),
                 'safariTimeout' => __('Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate'),

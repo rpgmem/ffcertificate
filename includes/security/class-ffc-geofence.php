@@ -447,11 +447,12 @@ class Geofence {
         // Check if any bypass is active
         $has_partial_bypass = $bypass_datetime || $bypass_geo;
 
-        // Get GPS cache TTL from global settings
+        // Get global geolocation settings
         $geolocation_settings = get_option('ffc_geolocation_settings', array());
         $gps_cache_ttl = !empty($geolocation_settings['gps_cache_ttl'])
             ? absint($geolocation_settings['gps_cache_ttl'])
             : 600; // Default 10 minutes
+        $gps_fallback = $geolocation_settings['gps_fallback'] ?? 'allow';
 
         $frontend_config = array(
             'formId' => $form_id,
@@ -479,6 +480,7 @@ class Geofence {
                 'messageBlocked' => $config['msg_geo_blocked'] ?? '',
                 'messageError' => $config['msg_geo_error'] ?? '',
                 'hideMode' => $config['geo_hide_mode'] ?? 'message', // 'hide' or 'message'
+                'gpsFallback' => $gps_fallback, // 'allow' or 'block' — honoured by frontend on GPS failure
                 'cacheEnabled' => true, // Always enable frontend cache
                 'cacheTtl' => $gps_cache_ttl, // From global settings
             ),

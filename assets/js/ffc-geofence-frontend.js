@@ -65,7 +65,7 @@
                 const datetimeValid = this.validateDateTime(config.datetime);
 
                 if (!datetimeValid.valid) {
-                    this.handleBlocked(formWrapper, config.datetime.hideMode, datetimeValid.message, config.datetime.message);
+                    this.handleBlocked(formWrapper, config.datetime.hideMode, config.datetime.message || datetimeValid.message);
                     return; // Stop here, don't check geo
                 }
                 // DateTime validation passed, continue...
@@ -197,11 +197,21 @@
          * @param {object} config Geo configuration
          */
         /**
-         * Detect if running on Safari/iOS
+         * Detect if running on Safari/iOS (including iPadOS 13+ which
+         * reports a Mac desktop user-agent).
          */
         isSafari: function() {
             var ua = navigator.userAgent;
-            return /^((?!chrome|android).)*safari/i.test(ua) || /iPad|iPhone|iPod/.test(ua);
+            // Classic iOS devices
+            if (/iPad|iPhone|iPod/.test(ua)) {
+                return true;
+            }
+            // iPadOS 13+ identifies as Macintosh but has touch support
+            if (/Macintosh/.test(ua) && navigator.maxTouchPoints && navigator.maxTouchPoints > 1) {
+                return true;
+            }
+            // Desktop Safari (not Chrome, Edge, or Android)
+            return /^((?!chrome|android).)*safari/i.test(ua);
         },
 
         validateGeolocation: function(formWrapper, config) {
@@ -213,8 +223,7 @@
                 this.handleBlocked(
                     formWrapper,
                     config.hideMode,
-                    this.getString('httpsRequired', 'This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator.'),
-                    config.messageError
+                    this.getString('httpsRequired', 'This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator.')
                 );
                 return;
             }
@@ -224,8 +233,7 @@
                 this.handleBlocked(
                     formWrapper,
                     config.hideMode,
-                    this.getString('browserNoSupport', 'Your browser does not support geolocation.'),
-                    config.messageError
+                    this.getString('browserNoSupport', 'Your browser does not support geolocation.')
                 );
                 return;
             }
@@ -238,41 +246,79 @@
                 return;
             }
 
+            var isSafariBrowser = this.isSafari();
+
             // IMPORTANT: Hide form BEFORE requesting location
             formWrapper.find('.ffc-submission-form').hide();
             formWrapper.addClass('ffc-geofence-loading');
-            this.showLoadingMessage(formWrapper, this.getString('detectingLocation', 'Detecting your location...'));
 
-            // Safari/iOS needs longer timeout and may need a retry
-            var isSafariBrowser = this.isSafari();
-            var geoTimeout = isSafariBrowser ? 20000 : 10000;
+            // Safari/iOS: show guidance BEFORE the permission prompt so the
+            // user knows what to do if Location Services is off.
+            if (isSafariBrowser) {
+                this.showLoadingMessage(
+                    formWrapper,
+                    this.getString('safariLocationHint', 'Requesting your location… If prompted, tap "Allow". If nothing happens, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.')
+                );
+            } else {
+                this.showLoadingMessage(formWrapper, this.getString('detectingLocation', 'Detecting your location...'));
+            }
+
             var retried = false;
+            // Safari/iOS: allow a recent cached position on the first attempt
+            // so the browser can respond instantly instead of forcing a fresh
+            // GPS fix that may time out.
+            var firstMaxAge = isSafariBrowser ? 30000 : 0;
+            var geoTimeout  = isSafariBrowser ? 15000 : 10000;
+
+            // Safety timeout: if neither success nor error fires (Safari can
+            // silently ignore the request), clean up and apply the gps_fallback
+            // setting so the user is never stuck on an infinite spinner.
+            var resolved = false;
+            var safetyTimer = setTimeout(function() {
+                if (resolved) {
+                    return;
+                }
+                resolved = true;
+                self.debug('Safety timeout reached — geolocation never responded');
+                self.hideLoadingMessage(formWrapper);
+                formWrapper.removeClass('ffc-geofence-loading');
+                self.applyGpsFallback(formWrapper, config);
+            }, isSafariBrowser ? 40000 : 25000);
+
+            function done() {
+                resolved = true;
+                clearTimeout(safetyTimer);
+            }
 
             function onSuccess(position) {
+                if (resolved) { return; }
+                done();
+
                 self.hideLoadingMessage(formWrapper);
                 formWrapper.removeClass('ffc-geofence-loading');
 
-                const location = {
+                var loc = {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                     accuracy: position.coords.accuracy
                 };
 
-                self.debug('GPS location obtained', location);
+                self.debug('GPS location obtained', loc);
 
                 // Cache location
                 if (config.cacheEnabled) {
-                    self.setLocationCache(formWrapper.attr('id'), location, config.cacheTtl || 600);
+                    self.setLocationCache(formWrapper.attr('id'), loc, config.cacheTtl || 600);
                 }
 
                 // Check if within areas (will show form if valid)
-                self.checkLocation(formWrapper, location, config);
+                self.checkLocation(formWrapper, loc, config);
             }
 
             function onError(error) {
+                if (resolved) { return; }
                 self.debug('Geolocation error', error);
 
-                // On Safari, retry once with enableHighAccuracy=false on timeout
+                // On Safari, retry once with relaxed settings
                 if (isSafariBrowser && !retried && (error.code === error.TIMEOUT || error.code === error.POSITION_UNAVAILABLE)) {
                     retried = true;
                     self.debug('Safari: retrying with enableHighAccuracy=false');
@@ -288,47 +334,71 @@
             }
 
             function onFinalError(error) {
+                if (resolved) { return; }
+                done();
+
                 self.hideLoadingMessage(formWrapper);
                 formWrapper.removeClass('ffc-geofence-loading');
 
-                let errorMessage = config.messageError || self.getString('locationError', 'Unable to determine your location.');
+                // Build a browser-specific error message. This ALWAYS takes
+                // priority over the generic admin messageError so the user
+                // receives actionable guidance (especially on Safari/iOS).
+                var errorMessage;
 
                 switch (error.code) {
                     case error.PERMISSION_DENIED:
-                        if (isSafariBrowser) {
-                            errorMessage = self.getString('safariPermissionDenied',
-                                'Location access was denied. On Safari/iOS, go to Settings > Privacy & Security > Location Services and ensure it is enabled for your browser.');
-                        } else {
-                            errorMessage = self.getString('permissionDenied', 'Location permission denied. Please enable location services.');
-                        }
+                        errorMessage = isSafariBrowser
+                            ? self.getString('safariPermissionDenied', 'Location access was denied. On Safari/iOS, go to Settings > Privacy & Security > Location Services and ensure it is enabled for your browser.')
+                            : self.getString('permissionDenied', 'Location permission denied. Please enable location services.');
                         break;
                     case error.POSITION_UNAVAILABLE:
-                        if (isSafariBrowser) {
-                            errorMessage = self.getString('safariPositionUnavailable',
-                                'Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.');
-                        } else {
-                            errorMessage = self.getString('positionUnavailable', 'Location information is unavailable.');
-                        }
+                        errorMessage = isSafariBrowser
+                            ? self.getString('safariPositionUnavailable', 'Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.')
+                            : self.getString('positionUnavailable', 'Location information is unavailable.');
                         break;
                     case error.TIMEOUT:
-                        if (isSafariBrowser) {
-                            errorMessage = self.getString('safariTimeout',
-                                'Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.');
-                        } else {
-                            errorMessage = self.getString('timeout', 'Location request timed out.');
-                        }
+                        errorMessage = isSafariBrowser
+                            ? self.getString('safariTimeout', 'Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.')
+                            : self.getString('timeout', 'Location request timed out.');
                         break;
+                    default:
+                        errorMessage = config.messageError || self.getString('locationError', 'Unable to determine your location.');
                 }
 
-                self.handleBlocked(formWrapper, config.hideMode, errorMessage, config.messageError);
+                // Honor gps_fallback = 'allow': show the form instead of blocking.
+                if (config.gpsFallback === 'allow') {
+                    self.debug('GPS failed but gps_fallback=allow, showing form');
+                    self.showForm(formWrapper);
+                    return;
+                }
+
+                self.handleBlocked(formWrapper, config.hideMode, errorMessage);
             }
 
             // Request geolocation
             navigator.geolocation.getCurrentPosition(onSuccess, onError, {
                 enableHighAccuracy: true,
                 timeout: geoTimeout,
-                maximumAge: 0
+                maximumAge: firstMaxAge
             });
+        },
+
+        /**
+         * Apply the gps_fallback admin setting when GPS is unavailable.
+         *
+         * @param {jQuery} formWrapper Form wrapper element
+         * @param {object} config      Geo configuration
+         */
+        applyGpsFallback: function(formWrapper, config) {
+            if (config.gpsFallback === 'allow') {
+                this.debug('gps_fallback=allow, showing form despite GPS failure');
+                this.showForm(formWrapper);
+            } else {
+                var msg = this.isSafari()
+                    ? this.getString('safariTimeout', 'Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.')
+                    : this.getString('timeout', 'Location request timed out.');
+                this.handleBlocked(formWrapper, config.hideMode, msg);
+            }
         },
 
         /**
@@ -375,8 +445,7 @@
                 this.handleBlocked(
                     formWrapper,
                     config.hideMode,
-                    this.getString('outsideArea', 'You are outside the allowed area for this form.'),
-                    config.messageBlocked
+                    config.messageBlocked || this.getString('outsideArea', 'You are outside the allowed area for this form.')
                 );
             } else {
                 this.debug('User within allowed area, showing form');
@@ -431,11 +500,9 @@
          *
          * @param {jQuery} formWrapper Form wrapper element
          * @param {string} hideMode Display mode ('hide', 'message', 'title_message')
-         * @param {string} defaultMessage Default message
-         * @param {string} customMessage Custom message (optional)
+         * @param {string} message  The message to display (already resolved by caller)
          */
-        handleBlocked: function(formWrapper, hideMode, defaultMessage, customMessage) {
-            const message = customMessage || defaultMessage;
+        handleBlocked: function(formWrapper, hideMode, message) {
 
             this.debug('Blocking form', { hideMode, message });
 
