@@ -15,7 +15,15 @@ use FreeFormCertificate\Admin\AdminUserCustomFields;
  * Tests for AdminUserCustomFields: hook registration, conditional asset loading,
  * save_section nonce/permission checks, and data persistence.
  *
+ * Class-level process isolation is required because this test uses
+ * Mockery alias mocks for AudienceRepository and CustomFieldRepository.
+ * Other tests in the suite trigger autoloading of those classes
+ * (CustomFieldRepository now depends on AudienceRepository), which
+ * makes subsequent `alias:` mocks fail with "class already exists".
+ *
  * @covers \FreeFormCertificate\Admin\AdminUserCustomFields
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class AdminUserCustomFieldsTest extends TestCase {
 

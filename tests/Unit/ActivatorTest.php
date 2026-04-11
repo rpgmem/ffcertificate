@@ -74,6 +74,9 @@ class ActivatorTest extends TestCase {
         $this->wpdb->shouldReceive( 'get_results' )
             ->andReturn( [] )
             ->byDefault();
+        $this->wpdb->shouldReceive( 'get_col' )
+            ->andReturn( [] )
+            ->byDefault();
         $this->wpdb->shouldReceive( 'query' )
             ->andReturn( 1 )
             ->byDefault();
