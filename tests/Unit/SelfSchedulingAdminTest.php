@@ -12,6 +12,8 @@ use FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin;
 
 /**
  * @covers \FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin
+ * @runClassInSeparateProcess
+ * @preserveGlobalState disabled
  */
 class SelfSchedulingAdminTest extends TestCase {
 

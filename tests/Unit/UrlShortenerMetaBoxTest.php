@@ -17,6 +17,8 @@ use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
  * on_save_post guards and auto-create, and ajax_regenerate flow.
  *
  * @covers \FreeFormCertificate\UrlShortener\UrlShortenerMetaBox
+ * @runClassInSeparateProcess
+ * @preserveGlobalState disabled
  */
 class UrlShortenerMetaBoxTest extends TestCase {
 

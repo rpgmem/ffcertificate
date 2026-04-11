@@ -16,6 +16,8 @@ use FreeFormCertificate\Integrations\EmailHandler;
  * Note: send_wp_user_notification() context logic is covered by EmailHandlerContextTest.
  *
  * @covers \FreeFormCertificate\Integrations\EmailHandler
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class EmailHandlerTest extends TestCase {
 

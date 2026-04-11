@@ -196,6 +196,33 @@ if ( ! file_exists( $wp_admin_upgrade_file ) ) {
     );
 }
 
+// Stub WP_List_Table for tests that extend it (e.g. SubmissionsList).
+// The real class lives in wp-admin/includes/class-wp-list-table.php and is
+// loaded via require_once when WordPress is available, but unit tests run
+// without WordPress, so we provide a minimal parent class.
+if ( ! class_exists( 'WP_List_Table' ) ) {
+    class WP_List_Table {
+        protected $_args = array();
+        protected $items = array();
+        protected $_column_headers = array();
+        protected $_pagination_args = array();
+
+        public function __construct( $args = array() ) {
+            $this->_args = $args;
+        }
+
+        public function prepare_items() {}
+        public function display() {}
+        public function get_columns() { return array(); }
+        protected function get_sortable_columns() { return array(); }
+        protected function get_bulk_actions() { return array(); }
+        protected function set_pagination_args( $args ) { $this->_pagination_args = $args; }
+        public function get_pagenum() { return 1; }
+        public function has_items() { return ! empty( $this->items ); }
+        public function no_items() { echo 'No items found.'; }
+    }
+}
+
 // Register the plugin's own PSR-4 autoloader (WordPress file naming conventions).
 require_once dirname( __DIR__ ) . '/includes/class-ffc-autoloader.php';
 $ffc_autoloader = new \FFC_Autoloader( dirname( __DIR__ ) . '/includes' );

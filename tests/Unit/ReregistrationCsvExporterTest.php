@@ -12,6 +12,8 @@ use FreeFormCertificate\Reregistration\ReregistrationCsvExporter;
 
 /**
  * @covers \FreeFormCertificate\Reregistration\ReregistrationCsvExporter
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class ReregistrationCsvExporterTest extends TestCase {
 

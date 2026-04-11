@@ -14,6 +14,8 @@ use FreeFormCertificate\Repositories\FormRepository;
 /**
  * Tests for FormRestController: route registration, get_forms,
  * get_form, and submit_form endpoints.
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class FormRestControllerTest extends TestCase {
 

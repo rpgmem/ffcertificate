@@ -14,6 +14,8 @@ use FreeFormCertificate\Settings\Tabs\TabSMTP;
  * Tests for TabSMTP: SMTP settings tab.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabSMTP
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class TabSmtpTest extends TestCase {
 

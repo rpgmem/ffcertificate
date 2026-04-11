@@ -13,6 +13,8 @@ use FreeFormCertificate\API\UserProfileRestController;
 /**
  * Tests for UserProfileRestController: route registration, permission checks,
  * and endpoint callback error/success paths for profile, password, and privacy endpoints.
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class UserProfileRestControllerTest extends TestCase {
 

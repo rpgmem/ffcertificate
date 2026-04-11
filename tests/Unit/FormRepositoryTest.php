@@ -16,6 +16,8 @@ use FreeFormCertificate\Repositories\FormRepository;
  * and inherited CRUD operations from AbstractRepository.
  *
  * @covers \FreeFormCertificate\Repositories\FormRepository
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class FormRepositoryTest extends TestCase {
 

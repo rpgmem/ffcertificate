@@ -12,6 +12,8 @@ use FreeFormCertificate\Migrations\MigrationForeignKeys;
 
 /**
  * @covers \FreeFormCertificate\Migrations\MigrationForeignKeys
+ * @runClassInSeparateProcess
+ * @preserveGlobalState disabled
  */
 class MigrationForeignKeysTest extends TestCase {
 

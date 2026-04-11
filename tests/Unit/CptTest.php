@@ -15,6 +15,8 @@ use FreeFormCertificate\Admin\CPT;
  * add_duplicate_link, handle_form_duplication, and translate_views.
  *
  * @covers \FreeFormCertificate\Admin\CPT
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class CptTest extends TestCase {
 

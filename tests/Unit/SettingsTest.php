@@ -24,6 +24,8 @@ use FreeFormCertificate\Admin\Settings;
  * the PHPUnit process.
  *
  * @covers \FreeFormCertificate\Admin\Settings
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class SettingsTest extends TestCase {
 

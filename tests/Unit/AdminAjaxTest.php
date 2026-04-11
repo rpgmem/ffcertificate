@@ -15,6 +15,8 @@ use FreeFormCertificate\Admin\AdminAjax;
  * and search_user AJAX handlers.
  *
  * @covers \FreeFormCertificate\Admin\AdminAjax
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class AdminAjaxTest extends TestCase {
 

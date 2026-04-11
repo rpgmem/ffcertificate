@@ -18,6 +18,8 @@ use FreeFormCertificate\Core\Encryption;
  * Note: WP crypto constants are defined in bootstrap.php, so
  * Encryption::is_configured() returns true — the encryption path
  * is always active.
+ * @runClassInSeparateProcess
+ * @preserveGlobalState disabled
  */
 class SubmissionHandlerTest extends TestCase {
 

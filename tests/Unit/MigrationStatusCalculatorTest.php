@@ -17,7 +17,13 @@ use FreeFormCertificate\Migrations\MigrationStatusCalculator;
  * complex dependencies, so we bypass it using reflection and inject mock
  * strategies directly.
  *
+ * Runs in separate processes because try_create_strategy() behaviour depends
+ * on whether CpfRfSplitMigrationStrategy is already loaded (other test files
+ * that load it change the outcome of lazy strategy creation in this suite).
+ *
  * @covers \FreeFormCertificate\Migrations\MigrationStatusCalculator
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class MigrationStatusCalculatorTest extends TestCase {
 
@@ -199,16 +205,18 @@ class MigrationStatusCalculatorTest extends TestCase {
             ->once()
             ->andReturn( true );
 
-        // Set a strategy error to verify it appears in the WP_Error message
-        $this->setPrivate( 'strategy_errors', array(
-            'split_cpf_rf' => 'Class not found',
-        ) );
-
+        // get_strategy_for_migration() calls try_create_strategy() as a lazy
+        // retry, which attempts to instantiate the real strategy. Without a
+        // $wpdb global the constructor throws, and try_create_strategy catches
+        // the Throwable and stores its message in strategy_errors. We can't
+        // pre-set a custom message because it will be overwritten, so assert
+        // that *some* error detail is appended to the WP_Error.
         $result = $this->calculator->calculate( 'split_cpf_rf' );
 
         $this->assertInstanceOf( \WP_Error::class, $result );
         $this->assertSame( 'strategy_not_found', $result->get_error_code() );
-        $this->assertStringContainsString( 'Class not found', $result->get_error_message() );
+        // Error detail separator ": " is only present when strategy_errors has an entry
+        $this->assertStringContainsString( 'split_cpf_rf: ', $result->get_error_message() );
     }
 
     public function test_calculate_with_complete_migration(): void {
@@ -457,14 +465,16 @@ class MigrationStatusCalculatorTest extends TestCase {
     // ==================================================================
 
     public function test_strategy_error_is_included_in_wp_error_message(): void {
-        $this->setPrivate( 'strategy_errors', array(
-            'split_cpf_rf' => 'Failed to load class file',
-        ) );
-
+        // As with test_calculate_with_missing_strategy_includes_error_detail,
+        // try_create_strategy() will overwrite any pre-set strategy_errors
+        // with whatever error the real strategy constructor throws. So we
+        // just verify that the WP_Error message contains SOME error detail
+        // (signalled by the ": " separator that only appears when a strategy
+        // error is present).
         $result = $this->calculator->can_run( 'split_cpf_rf' );
 
         $this->assertInstanceOf( \WP_Error::class, $result );
-        $this->assertStringContainsString( 'Failed to load class file', $result->get_error_message() );
+        $this->assertStringContainsString( 'split_cpf_rf: ', $result->get_error_message() );
     }
 
     public function test_strategy_not_found_without_error_detail(): void {

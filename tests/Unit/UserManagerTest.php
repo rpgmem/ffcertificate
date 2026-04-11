@@ -15,6 +15,8 @@ use FreeFormCertificate\UserDashboard\UserManager;
  * email retrieval, name extraction, and delegation methods.
  *
  * @covers \FreeFormCertificate\UserDashboard\UserManager
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class UserManagerTest extends TestCase {
 

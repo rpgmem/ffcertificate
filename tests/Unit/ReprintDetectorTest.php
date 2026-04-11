@@ -18,6 +18,8 @@ use FreeFormCertificate\Frontend\ReprintDetector;
  * autoloading of the real classes.
  *
  * @covers \FreeFormCertificate\Frontend\ReprintDetector
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class ReprintDetectorTest extends TestCase {
 
@@ -25,6 +27,9 @@ class ReprintDetectorTest extends TestCase {
 
     /** @var Mockery\MockInterface */
     private $wpdb;
+
+    /** @var Mockery\MockInterface */
+    private $encMock;
 
     protected function setUp(): void {
         parent::setUp();
@@ -41,10 +46,15 @@ class ReprintDetectorTest extends TestCase {
             ->andReturn('wp_ffc_submissions')->byDefault();
         $utilsMock->shouldReceive('debug_log')->byDefault();
 
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
-        $encMock->shouldReceive('is_configured')->andReturn(true)->byDefault();
-        $encMock->shouldReceive('hash')->andReturn('default_hash')->byDefault();
-        $encMock->shouldReceive('decrypt')->andReturn(null)->byDefault();
+        // IMPORTANT: store the Encryption alias mock so tests can add
+        // expectations to the SAME instance. Re-creating the alias mock in a
+        // test body creates a secondary mock that does NOT intercept static
+        // calls — those still go through the first alias mock. Default stubs
+        // here use byDefault() so tests can override with specific with()/once().
+        $this->encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $this->encMock->shouldReceive('is_configured')->andReturn(true)->byDefault();
+        $this->encMock->shouldReceive('hash')->andReturn('default_hash')->byDefault();
+        $this->encMock->shouldReceive('decrypt')->andReturn(null)->byDefault();
 
         Functions\when('__')->returnArg();
         Functions\when('wp_unslash')->alias(function ($val) {
@@ -108,7 +118,7 @@ class ReprintDetectorTest extends TestCase {
     // ==================================================================
 
     public function test_detect_by_ticket_using_hash_when_encryption_configured(): void {
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $encMock = $this->encMock;
         $encMock->shouldReceive('is_configured')->andReturn(true);
         $encMock->shouldReceive('hash')
             ->with('ABC123')
@@ -137,7 +147,7 @@ class ReprintDetectorTest extends TestCase {
     // ==================================================================
 
     public function test_detect_by_ticket_falls_back_to_json_when_hash_misses(): void {
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $encMock = $this->encMock;
         $encMock->shouldReceive('is_configured')->andReturn(true);
         $encMock->shouldReceive('hash')->andReturn('hashed_ticket');
         $encMock->shouldReceive('decrypt')->andReturn(null);
@@ -175,7 +185,7 @@ class ReprintDetectorTest extends TestCase {
     // ==================================================================
 
     public function test_detect_by_ticket_uses_json_only_when_encryption_not_configured(): void {
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $encMock = $this->encMock;
         $encMock->shouldReceive('is_configured')->andReturn(false);
         $encMock->shouldReceive('decrypt')->andReturn(null);
 
@@ -198,7 +208,7 @@ class ReprintDetectorTest extends TestCase {
     // ==================================================================
 
     public function test_detect_by_cpf_uses_cpf_hash_column_for_11_digit_ids(): void {
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $encMock = $this->encMock;
         $encMock->shouldReceive('is_configured')->andReturn(true);
         $encMock->shouldReceive('hash')
             ->with('12345678901')
@@ -224,7 +234,7 @@ class ReprintDetectorTest extends TestCase {
     // ==================================================================
 
     public function test_detect_by_cpf_uses_rf_hash_column_for_7_digit_ids(): void {
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $encMock = $this->encMock;
         $encMock->shouldReceive('is_configured')->andReturn(true);
         $encMock->shouldReceive('hash')
             ->with('1234567')
@@ -250,7 +260,7 @@ class ReprintDetectorTest extends TestCase {
     // ==================================================================
 
     public function test_detect_by_cpf_falls_back_to_json_when_hash_misses(): void {
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $encMock = $this->encMock;
         $encMock->shouldReceive('is_configured')->andReturn(true);
         $encMock->shouldReceive('hash')->andReturn('hash');
         $encMock->shouldReceive('decrypt')->andReturn(null);
@@ -287,7 +297,7 @@ class ReprintDetectorTest extends TestCase {
     // ==================================================================
 
     public function test_detect_strips_cpf_formatting_before_hash(): void {
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $encMock = $this->encMock;
         $encMock->shouldReceive('is_configured')->andReturn(true);
         $encMock->shouldReceive('hash')
             ->with('12345678901')
@@ -308,7 +318,7 @@ class ReprintDetectorTest extends TestCase {
     // ==================================================================
 
     public function test_detect_ticket_takes_priority_over_cpf(): void {
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $encMock = $this->encMock;
         $encMock->shouldReceive('is_configured')->andReturn(true);
         $encMock->shouldReceive('hash')->andReturn('ticket_hash');
         $encMock->shouldReceive('decrypt')->andReturn(null);
@@ -333,7 +343,7 @@ class ReprintDetectorTest extends TestCase {
     // ==================================================================
 
     public function test_reprint_result_includes_auth_code_from_column_when_missing_in_json(): void {
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $encMock = $this->encMock;
         $encMock->shouldReceive('is_configured')->andReturn(false);
         $encMock->shouldReceive('decrypt')->andReturn(null);
 
@@ -354,7 +364,7 @@ class ReprintDetectorTest extends TestCase {
     // ==================================================================
 
     public function test_reprint_result_includes_decrypted_email(): void {
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $encMock = $this->encMock;
         $encMock->shouldReceive('is_configured')->andReturn(false);
         $encMock->shouldReceive('decrypt')
             ->with('encrypted_email_data')
@@ -378,7 +388,7 @@ class ReprintDetectorTest extends TestCase {
     // ==================================================================
 
     public function test_reprint_result_handles_null_data_field(): void {
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $encMock = $this->encMock;
         $encMock->shouldReceive('is_configured')->andReturn(false);
         $encMock->shouldReceive('decrypt')->andReturn(null);
 
@@ -401,7 +411,7 @@ class ReprintDetectorTest extends TestCase {
     // ==================================================================
 
     public function test_reprint_result_handles_empty_string_data(): void {
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $encMock = $this->encMock;
         $encMock->shouldReceive('is_configured')->andReturn(false);
         $encMock->shouldReceive('decrypt')->andReturn(null);
 
@@ -423,7 +433,7 @@ class ReprintDetectorTest extends TestCase {
     // ==================================================================
 
     public function test_reprint_result_handles_slashed_json_via_wp_unslash(): void {
-        $encMock = Mockery::mock('alias:\FreeFormCertificate\Core\Encryption');
+        $encMock = $this->encMock;
         $encMock->shouldReceive('is_configured')->andReturn(false);
         $encMock->shouldReceive('decrypt')->andReturn(null);
 

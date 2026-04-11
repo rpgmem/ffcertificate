@@ -12,6 +12,8 @@ use FreeFormCertificate\Reregistration\ReregistrationFormRenderer;
 
 /**
  * @covers \FreeFormCertificate\Reregistration\ReregistrationFormRenderer
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class ReregistrationFormRendererTest extends TestCase {
 

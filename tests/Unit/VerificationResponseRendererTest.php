@@ -12,6 +12,8 @@ use FreeFormCertificate\Frontend\VerificationResponseRenderer;
 
 /**
  * @covers \FreeFormCertificate\Frontend\VerificationResponseRenderer
+ * @runClassInSeparateProcess
+ * @preserveGlobalState disabled
  */
 class VerificationResponseRendererTest extends TestCase {
 

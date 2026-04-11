@@ -17,6 +17,8 @@ use FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy;
  * construct with a properly stubbed environment, then use reflection for private methods.
  *
  * @covers \FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy
+ * @runClassInSeparateProcess
+ * @preserveGlobalState disabled
  */
 class CpfRfSplitMigrationStrategyTest extends TestCase {
 

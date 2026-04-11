@@ -14,7 +14,12 @@ use FreeFormCertificate\Core\AuthCodeService;
  * Tests for AuthCodeService: random string generation, auth code formatting,
  * and globally unique code generation across multiple database tables.
  *
+ * Runs in separate processes because earlier tests in the suite pollute
+ * Brain/Monkey state for wp_rand and namespaced function fallbacks.
+ *
  * @covers \FreeFormCertificate\Core\AuthCodeService
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class AuthCodeServiceTest extends TestCase {
 

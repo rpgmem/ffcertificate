@@ -19,6 +19,8 @@ use FreeFormCertificate\Admin\AdminUserCapabilities;
  * capability logic, and Debug logging.
  *
  * @covers \FreeFormCertificate\Admin\AdminUserCapabilities
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class AdminUserCapabilitiesTest extends TestCase {
 

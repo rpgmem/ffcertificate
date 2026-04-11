@@ -15,6 +15,8 @@ use FreeFormCertificate\Frontend\DynamicFragments;
  * for pages served from full-page cache.
  *
  * @covers \FreeFormCertificate\Frontend\DynamicFragments
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class DynamicFragmentsTest extends TestCase {
 

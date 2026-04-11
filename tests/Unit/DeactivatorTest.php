@@ -14,6 +14,8 @@ use FreeFormCertificate\Deactivator;
  * Tests for Deactivator: deactivation hook cleanup and destructive uninstall.
  *
  * @covers \FreeFormCertificate\Deactivator
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class DeactivatorTest extends TestCase {
 

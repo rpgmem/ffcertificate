@@ -14,6 +14,8 @@ use FreeFormCertificate\Core\SecurityService;
  * honeypot-based security field validation.
  *
  * @covers \FreeFormCertificate\Core\SecurityService
+ * @runClassInSeparateProcess
+ * @preserveGlobalState disabled
  */
 class SecurityServiceTest extends TestCase {
 

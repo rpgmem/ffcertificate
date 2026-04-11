@@ -12,6 +12,8 @@ use FreeFormCertificate\SelfScheduling\SelfSchedulingCPT;
 
 /**
  * @covers \FreeFormCertificate\SelfScheduling\SelfSchedulingCPT
+ * @runClassInSeparateProcess
+ * @preserveGlobalState disabled
  */
 class SelfSchedulingCPTTest extends TestCase {
 

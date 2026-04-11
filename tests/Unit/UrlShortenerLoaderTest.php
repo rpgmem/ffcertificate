@@ -85,6 +85,22 @@ class UrlShortenerLoaderTest extends TestCase {
         parent::tearDown();
     }
 
+    /**
+     * do_redirect() wraps the click counter in add_action('shutdown', ...).
+     * PHPUnit never fires 'shutdown', so we install a local stub that runs
+     * the callback immediately, letting incrementClickCount expectations
+     * resolve. Only call from tests that do NOT assert hook registration
+     * via has_action(), since this override bypasses Brain/Monkey's internal
+     * action tracker.
+     */
+    private function run_shutdown_callbacks_immediately(): void {
+        Functions\when( 'add_action' )->alias( function ( $hook, $callback = null ) {
+            if ( $hook === 'shutdown' && is_callable( $callback ) ) {
+                $callback();
+            }
+        } );
+    }
+
     // ==================================================================
     // init()
     // ==================================================================
@@ -287,6 +303,7 @@ class UrlShortenerLoaderTest extends TestCase {
         Functions\when( 'get_query_var' )->justReturn( 'abc123' );
         Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
         Functions\when( 'do_action' )->justReturn( null );
+        $this->run_shutdown_callbacks_immediately();
 
         $repo = Mockery::mock( UrlShortenerRepository::class );
         $repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn( [
@@ -314,6 +331,7 @@ class UrlShortenerLoaderTest extends TestCase {
         Functions\when( 'get_query_var' )->justReturn( 'ext123' );
         Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
         Functions\when( 'do_action' )->justReturn( null );
+        $this->run_shutdown_callbacks_immediately();
 
         $repo = Mockery::mock( UrlShortenerRepository::class );
         $repo->shouldReceive( 'findByShortCode' )->with( 'ext123' )->andReturn( [
@@ -342,6 +360,7 @@ class UrlShortenerLoaderTest extends TestCase {
         Functions\when( 'get_query_var' )->justReturn( 'empty1' );
         Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
         Functions\when( 'FreeFormCertificate\UrlShortener\esc_url_raw' )->justReturn( '' );
+        $this->run_shutdown_callbacks_immediately();
 
         $repo = Mockery::mock( UrlShortenerRepository::class );
         $repo->shouldReceive( 'findByShortCode' )->with( 'empty1' )->andReturn( [
@@ -375,6 +394,7 @@ class UrlShortenerLoaderTest extends TestCase {
 
         Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
         Functions\when( 'do_action' )->justReturn( null );
+        $this->run_shutdown_callbacks_immediately();
 
         $repo = Mockery::mock( UrlShortenerRepository::class );
         $repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn( [
@@ -415,6 +435,7 @@ class UrlShortenerLoaderTest extends TestCase {
 
         Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
         Functions\when( 'do_action' )->justReturn( null );
+        $this->run_shutdown_callbacks_immediately();
 
         $repo = Mockery::mock( UrlShortenerRepository::class );
         $repo->shouldReceive( 'findByShortCode' )->with( 'TraiL1' )->andReturn( [
@@ -445,6 +466,7 @@ class UrlShortenerLoaderTest extends TestCase {
 
         Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
         Functions\when( 'do_action' )->justReturn( null );
+        $this->run_shutdown_callbacks_immediately();
 
         $repo = Mockery::mock( UrlShortenerRepository::class );
         $repo->shouldReceive( 'findByShortCode' )->with( 'sub123' )->andReturn( [
@@ -480,6 +502,7 @@ class UrlShortenerLoaderTest extends TestCase {
 
         Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
         Functions\when( 'do_action' )->justReturn( null );
+        $this->run_shutdown_callbacks_immediately();
 
         $repo = Mockery::mock( UrlShortenerRepository::class );
         $repo->shouldReceive( 'findByShortCode' )->with( 'fallback1' )->andReturn( [

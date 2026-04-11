@@ -13,6 +13,8 @@ use FreeFormCertificate\API\UserCertificatesRestController;
 /**
  * Tests for UserCertificatesRestController: route registration, permission checks,
  * and get_user_certificates success/error paths.
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class UserCertificatesRestControllerTest extends TestCase {
 

@@ -15,6 +15,8 @@ use FreeFormCertificate\Shortcodes\DashboardAssetManager;
  * enqueue_assets() permission logic.
  *
  * @covers \FreeFormCertificate\Shortcodes\DashboardAssetManager
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class DashboardAssetManagerTest extends TestCase {
 

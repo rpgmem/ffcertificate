@@ -18,6 +18,8 @@ use FreeFormCertificate\Admin\AdminUserColumns;
  * unknown columns), style enqueueing, and batch-loading cache behaviour.
  *
  * @covers \FreeFormCertificate\Admin\AdminUserColumns
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class AdminUserColumnsTest extends TestCase {
 

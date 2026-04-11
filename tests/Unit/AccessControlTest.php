@@ -22,6 +22,7 @@ class AccessControlTest extends TestCase {
         Monkey\setUp();
 
         Functions\when( '__' )->returnArg();
+        Functions\when( 'wp_doing_ajax' )->justReturn( false );
     }
 
     protected function tearDown(): void {

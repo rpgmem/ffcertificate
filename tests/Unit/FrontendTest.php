@@ -12,6 +12,8 @@ use FreeFormCertificate\Frontend\Frontend;
 
 /**
  * @covers \FreeFormCertificate\Frontend\Frontend
+ * @runClassInSeparateProcess
+ * @preserveGlobalState disabled
  */
 class FrontendTest extends TestCase {
 

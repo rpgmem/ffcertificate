@@ -15,6 +15,8 @@ use FreeFormCertificate\Audience\AudienceShortcode;
  * login/access states, private visibility message, and helper methods.
  *
  * @covers \FreeFormCertificate\Audience\AudienceShortcode
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class AudienceShortcodeTest extends TestCase {
 

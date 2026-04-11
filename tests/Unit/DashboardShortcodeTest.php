@@ -12,6 +12,8 @@ use FreeFormCertificate\Shortcodes\DashboardShortcode;
 
 /**
  * @covers \FreeFormCertificate\Shortcodes\DashboardShortcode
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class DashboardShortcodeTest extends TestCase {
 

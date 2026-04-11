@@ -15,6 +15,8 @@ use FreeFormCertificate\Activator;
  * verification page creation, and schema migration.
  *
  * @covers \FreeFormCertificate\Activator
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class ActivatorTest extends TestCase {
 

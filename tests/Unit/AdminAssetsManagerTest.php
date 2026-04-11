@@ -16,6 +16,8 @@ use FreeFormCertificate\Admin\AdminAssetsManager;
  * conditional asset loading, and enqueue calls.
  *
  * @covers \FreeFormCertificate\Admin\AdminAssetsManager
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class AdminAssetsManagerTest extends TestCase {
 

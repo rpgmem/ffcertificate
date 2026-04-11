@@ -18,6 +18,8 @@ use FreeFormCertificate\Services\UserService;
  * autoloading of the real classes (same pattern as DataSanitizerTest).
  *
  * @covers \FreeFormCertificate\Services\UserService
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class UserServiceTest extends TestCase {
 
@@ -25,6 +27,12 @@ class UserServiceTest extends TestCase {
 
     /** @var Mockery\MockInterface */
     private $wpdb;
+
+    /** @var Mockery\MockInterface */
+    private $userManagerMock;
+
+    /** @var Mockery\MockInterface */
+    private $utilsMock;
 
     protected function setUp(): void {
         parent::setUp();
@@ -35,15 +43,19 @@ class UserServiceTest extends TestCase {
         $wpdb->prefix = 'wp_';
         $this->wpdb = $wpdb;
 
-        // Alias mocks: created before autoloading to intercept class_exists
-        $userManagerMock = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
-        $userManagerMock->shouldReceive('get_profile')->andReturn([])->byDefault();
-        $userManagerMock->shouldReceive('get_all_capabilities')->andReturn([])->byDefault();
+        // Alias mocks: created before autoloading to intercept class_exists.
+        // IMPORTANT: store on $this so tests can add expectations to the SAME
+        // instance. Re-creating the alias mock in a test body creates a
+        // secondary mock that does NOT intercept static calls — those still
+        // hit the original (byDefault) expectations registered here.
+        $this->userManagerMock = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
+        $this->userManagerMock->shouldReceive('get_profile')->andReturn([])->byDefault();
+        $this->userManagerMock->shouldReceive('get_all_capabilities')->andReturn([])->byDefault();
 
-        $utilsMock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
-        $utilsMock->shouldReceive('get_submissions_table')
+        $this->utilsMock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
+        $this->utilsMock->shouldReceive('get_submissions_table')
             ->andReturn('wp_ffc_submissions')->byDefault();
-        $utilsMock->shouldReceive('debug_log')->byDefault();
+        $this->utilsMock->shouldReceive('debug_log')->byDefault();
 
         // Default WP stubs
         Functions\when('__')->returnArg();
@@ -111,7 +123,7 @@ class UserServiceTest extends TestCase {
         $user = $this->makeWpUser(['display_name' => 'Maria Silva']);
         Functions\when('get_userdata')->justReturn($user);
 
-        $userManagerMock = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
+        $userManagerMock = $this->userManagerMock;
         $userManagerMock->shouldReceive('get_profile')
             ->with(42)
             ->andReturn([
@@ -134,7 +146,7 @@ class UserServiceTest extends TestCase {
         $user = $this->makeWpUser();
         Functions\when('get_userdata')->justReturn($user);
 
-        $userManagerMock = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
+        $userManagerMock = $this->userManagerMock;
         $userManagerMock->shouldReceive('get_profile')
             ->with(10)
             ->andReturn([]); // no phone, department, etc.
@@ -153,7 +165,7 @@ class UserServiceTest extends TestCase {
     // ==================================================================
 
     public function test_get_user_capabilities_returns_cap_status_map(): void {
-        $userManagerMock = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
+        $userManagerMock = $this->userManagerMock;
         $userManagerMock->shouldReceive('get_all_capabilities')
             ->andReturn(['ffc_view_certificates', 'ffc_download_pdf', 'ffc_manage_forms']);
         $userManagerMock->shouldReceive('get_profile')->andReturn([]);

@@ -14,6 +14,8 @@ use FreeFormCertificate\Core\DocumentFormatter;
 /**
  * Tests for UserReregistrationsRestController: route registration,
  * authentication checks, empty/formatted submission responses.
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class UserReregistrationsRestControllerTest extends TestCase {
 

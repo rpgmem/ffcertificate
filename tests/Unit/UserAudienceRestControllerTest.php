@@ -13,6 +13,8 @@ use FreeFormCertificate\API\UserAudienceRestController;
 /**
  * Tests for UserAudienceRestController: route registration, permission checks,
  * and endpoint callback error paths.
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class UserAudienceRestControllerTest extends TestCase {
 

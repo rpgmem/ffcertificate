@@ -20,6 +20,8 @@ use FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository;
  * missing data, missing template) which we exercise thoroughly.
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationEmailHandler
+ * @runClassInSeparateProcess
+ * @preserveGlobalState disabled
  */
 class ReregistrationEmailHandlerTest extends TestCase {
 

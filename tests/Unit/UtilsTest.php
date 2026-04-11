@@ -14,6 +14,8 @@ use FreeFormCertificate\Core\Utils;
  *
  * Group A: Pure functions (no mocking needed)
  * Group B: Functions requiring WordPress mocks (Brain\Monkey)
+ * @runClassInSeparateProcess
+ * @preserveGlobalState disabled
  */
 class UtilsTest extends TestCase {
 

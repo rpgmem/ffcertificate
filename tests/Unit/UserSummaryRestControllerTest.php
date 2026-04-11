@@ -13,6 +13,8 @@ use FreeFormCertificate\API\UserSummaryRestController;
 /**
  * Tests for UserSummaryRestController: route registration, summary data,
  * capability gating, and exception handling.
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class UserSummaryRestControllerTest extends TestCase {
 

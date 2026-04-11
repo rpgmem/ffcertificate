@@ -15,6 +15,8 @@ use FreeFormCertificate\Core\DataSanitizer;
  * Brazilian name normalization.
  *
  * @covers \FreeFormCertificate\Core\DataSanitizer
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class DataSanitizerTest extends TestCase {
 

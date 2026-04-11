@@ -13,6 +13,8 @@ use FreeFormCertificate\API\AppointmentRestController;
 /**
  * Tests for AppointmentRestController: route registration, create_appointment,
  * get_appointment, cancel_appointment, and check_appointment_access endpoints.
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class AppointmentRestControllerTest extends TestCase {
 

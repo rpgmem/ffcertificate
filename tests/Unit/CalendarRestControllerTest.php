@@ -13,6 +13,8 @@ use FreeFormCertificate\API\CalendarRestController;
 /**
  * Tests for CalendarRestController: route registration, get_calendars,
  * get_calendar, and get_calendar_slots endpoints.
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class CalendarRestControllerTest extends TestCase {
 

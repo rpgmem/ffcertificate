@@ -121,6 +121,12 @@ class UrlShortenerActivatorTest extends TestCase {
         $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
         $this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
+        // maybe_migrate() also calls add_column_if_missing() which uses
+        // DatabaseHelperTrait::column_exists() → $wpdb->get_results().
+        // Return empty array so the column is considered missing and then
+        // stub the resulting ALTER TABLE via $wpdb->query.
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+        $this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
 
         $delta_called = false;
         Functions\when( 'dbDelta' )->alias( function () use ( &$delta_called ) {
@@ -135,6 +141,9 @@ class UrlShortenerActivatorTest extends TestCase {
     public function test_maybe_migrate_skips_if_table_exists(): void {
         $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
         $this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_short_urls' );
+        // add_column_if_missing() runs even when table exists.
+        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'qr_cache' ) ) );
+        $this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
 
         $delta_called = false;
         Functions\when( 'dbDelta' )->alias( function () use ( &$delta_called ) {

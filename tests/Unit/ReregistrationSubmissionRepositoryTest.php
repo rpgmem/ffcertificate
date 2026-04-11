@@ -16,6 +16,8 @@ use FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository;
  * and audience member submission creation.
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class ReregistrationSubmissionRepositoryTest extends TestCase {
 

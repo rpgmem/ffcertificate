@@ -13,6 +13,8 @@ use FreeFormCertificate\Audience\AudienceRestController;
 /**
  * Tests for AudienceRestController: route registration, permission checks,
  * get_bookings, create_booking, cancel_booking, and check_conflicts.
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class AudienceRestControllerTest extends TestCase {
 
