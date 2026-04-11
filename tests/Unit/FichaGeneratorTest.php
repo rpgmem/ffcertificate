@@ -30,6 +30,7 @@ class FichaGeneratorTest extends TestCase {
         Functions\when('esc_html__')->returnArg();
         Functions\when('esc_html')->returnArg();
         Functions\when('esc_attr')->returnArg();
+        Functions\when('wp_kses_post')->returnArg();
         Functions\when('sanitize_text_field')->alias('trim');
         Functions\when('sanitize_file_name')->alias(function ($name) {
             return preg_replace('/[^a-zA-Z0-9_\-.]/', '_', $name);
@@ -164,11 +165,12 @@ class FichaGeneratorTest extends TestCase {
     public function test_build_custom_fields_section_renders_text_field(): void {
         $field = (object) [
             'id'          => 1,
+            'field_key'   => 'hobby',
             'field_label' => 'Hobby',
             'field_type'  => 'text',
         ];
 
-        $values = ['field_1' => 'Reading'];
+        $values = ['hobby' => 'Reading'];
 
         $result = $this->invokePrivateStatic('build_custom_fields_section', [[$field], $values]);
 
@@ -181,11 +183,12 @@ class FichaGeneratorTest extends TestCase {
     public function test_build_custom_fields_section_formats_checkbox_yes(): void {
         $field = (object) [
             'id'          => 2,
+            'field_key'   => 'agreed',
             'field_label' => 'Agreed',
             'field_type'  => 'checkbox',
         ];
 
-        $values = ['field_2' => '1'];
+        $values = ['agreed' => '1'];
 
         $result = $this->invokePrivateStatic('build_custom_fields_section', [[$field], $values]);
 
@@ -196,11 +199,12 @@ class FichaGeneratorTest extends TestCase {
     public function test_build_custom_fields_section_formats_checkbox_no(): void {
         $field = (object) [
             'id'          => 2,
+            'field_key'   => 'agreed',
             'field_label' => 'Agreed',
             'field_type'  => 'checkbox',
         ];
 
-        $values = ['field_2' => '0'];
+        $values = ['agreed' => '0'];
 
         $result = $this->invokePrivateStatic('build_custom_fields_section', [[$field], $values]);
 
@@ -210,12 +214,13 @@ class FichaGeneratorTest extends TestCase {
     public function test_build_custom_fields_section_formats_dependent_select(): void {
         $field = (object) [
             'id'          => 3,
+            'field_key'   => 'location',
             'field_label' => 'Location',
             'field_type'  => 'dependent_select',
         ];
 
         $dep_json = json_encode(['parent' => 'State', 'child' => 'City']);
-        $values = ['field_3' => $dep_json];
+        $values = ['location' => $dep_json];
 
         $result = $this->invokePrivateStatic('build_custom_fields_section', [[$field], $values]);
 
@@ -225,6 +230,7 @@ class FichaGeneratorTest extends TestCase {
     public function test_build_custom_fields_section_formats_working_hours(): void {
         $field = (object) [
             'id'          => 4,
+            'field_key'   => 'schedule',
             'field_label' => 'Schedule',
             'field_type'  => 'working_hours',
         ];
@@ -232,7 +238,7 @@ class FichaGeneratorTest extends TestCase {
         $wh_json = json_encode([
             ['day' => 1, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00'],
         ]);
-        $values = ['field_4' => $wh_json];
+        $values = ['schedule' => $wh_json];
 
         $result = $this->invokePrivateStatic('build_custom_fields_section', [[$field], $values]);
 
@@ -243,11 +249,12 @@ class FichaGeneratorTest extends TestCase {
     public function test_build_custom_fields_section_handles_missing_value(): void {
         $field = (object) [
             'id'          => 5,
+            'field_key'   => 'notes',
             'field_label' => 'Notes',
             'field_type'  => 'textarea',
         ];
 
-        // No value for field_5
+        // No value for "notes"
         $values = [];
 
         $result = $this->invokePrivateStatic('build_custom_fields_section', [[$field], $values]);

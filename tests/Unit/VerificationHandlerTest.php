@@ -47,6 +47,7 @@ class VerificationHandlerTest extends TestCase {
         $wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
         $wpdb->shouldReceive( 'get_var' )->andReturn( null )->byDefault();
         $wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
+        $wpdb->shouldReceive( 'get_col' )->andReturn( array() )->byDefault();
 
         // Set server IP for Utils::get_user_ip()
         $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
@@ -727,7 +728,7 @@ class VerificationHandlerTest extends TestCase {
             'user_id'           => '10',
             'auth_code'         => 'REREG1234567',
             'status'            => 'submitted',
-            'data'              => '{"standard_fields":{"display_name":"Maria Silva","cpf":"111.222.333-44"}}',
+            'data'              => '{"fields":{"display_name":"Maria Silva","cpf":"111.222.333-44"}}',
             'magic_token'       => 'reregtoken123',
             'submitted_at'      => '2026-02-15 10:00:00',
         );
@@ -775,7 +776,7 @@ class VerificationHandlerTest extends TestCase {
             'user_id'           => '20',
             'auth_code'         => 'RTKN12345678',
             'status'            => 'approved',
-            'data'              => '{"standard_fields":{"display_name":"João","cpf":"555.666.777-88"}}',
+            'data'              => '{"fields":{"display_name":"João","cpf":"555.666.777-88"}}',
             'magic_token'       => 'magictoken64hex',
             'submitted_at'      => '2026-02-10',
         );

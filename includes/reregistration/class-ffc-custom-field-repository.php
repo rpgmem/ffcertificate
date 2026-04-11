@@ -812,8 +812,20 @@ class CustomFieldRepository {
 
                 case 'custom_regex':
                     if (!empty($rules['custom_regex'])) {
-                        $pattern = '/' . str_replace('/', '\/', $rules['custom_regex']) . '/';
-                        if (!preg_match($pattern, $str_value)) {
+                        $regex = (string) $rules['custom_regex'];
+                        // Accept both delimited (/foo/, ~foo~, #foo#) and
+                        // bare patterns supplied by admins. Wrap bare
+                        // patterns with `~` to avoid conflicts with the
+                        // `/` character commonly used inside patterns.
+                        if ($regex !== '' && $regex[0] !== '/' && $regex[0] !== '~' && $regex[0] !== '#') {
+                            $regex = '~' . $regex . '~';
+                        }
+                        // Suppress the warning PHP emits for invalid
+                        // patterns; treat invalid patterns as "no rule".
+                        if (@preg_match($regex, '') === false) {
+                            break;
+                        }
+                        if (!preg_match($regex, $str_value)) {
                             $message = !empty($rules['custom_regex_message'])
                                 ? $rules['custom_regex_message']
                                 /* translators: %s: field label */

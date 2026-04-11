@@ -606,6 +606,11 @@ class CustomFieldRepositoryTest extends TestCase {
     // ==================================================================
 
     public function test_delete_returns_true_on_success(): void {
+        // delete() now performs a standard-source guard via get_by_id.
+        $this->wpdb->shouldReceive('get_row')->andReturn($this->make_field([
+            'id'           => 5,
+            'field_source' => 'custom',
+        ]));
         $this->wpdb->shouldReceive('delete')->once()
             ->with('wp_ffc_custom_fields', ['id' => 5], ['%d'])
             ->andReturn(1);
@@ -616,6 +621,10 @@ class CustomFieldRepositoryTest extends TestCase {
     }
 
     public function test_delete_returns_false_on_failure(): void {
+        $this->wpdb->shouldReceive('get_row')->andReturn($this->make_field([
+            'id'           => 5,
+            'field_source' => 'custom',
+        ]));
         $this->wpdb->shouldReceive('delete')->once()->andReturn(false);
 
         $result = CustomFieldRepository::delete(5);
@@ -624,6 +633,10 @@ class CustomFieldRepositoryTest extends TestCase {
     }
 
     public function test_delete_clears_cache(): void {
+        $this->wpdb->shouldReceive('get_row')->andReturn($this->make_field([
+            'id'           => 5,
+            'field_source' => 'custom',
+        ]));
         $this->wpdb->shouldReceive('delete')->once()->andReturn(1);
 
         $cache_deleted = false;
@@ -637,6 +650,19 @@ class CustomFieldRepositoryTest extends TestCase {
         CustomFieldRepository::delete(5);
 
         $this->assertTrue($cache_deleted);
+    }
+
+    public function test_delete_refuses_to_delete_standard_field(): void {
+        $this->wpdb->shouldReceive('get_row')->andReturn($this->make_field([
+            'id'           => 99,
+            'field_source' => 'standard',
+        ]));
+        // delete() should short-circuit before calling $wpdb->delete.
+        $this->wpdb->shouldNotReceive('delete');
+
+        $result = CustomFieldRepository::delete(99);
+
+        $this->assertFalse($result);
     }
 
     // ==================================================================

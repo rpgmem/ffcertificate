@@ -9,13 +9,19 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationDataProcessor;
-use FreeFormCertificate\Reregistration\CustomFieldRepository;
 
 /**
- * Tests for ReregistrationDataProcessor: sanitization and validation logic.
+ * Tests for ReregistrationDataProcessor: sanitization and validation logic
+ * under the unified dynamic field architecture.
  *
- * Uses real Utils::validate_cpf() and validate_phone() (pure functions)
- * and mocks $wpdb for CustomFieldRepository database access.
+ * The processor no longer distinguishes between "standard" and "custom"
+ * fields — every field shown in the form is a row in wp_ffc_custom_fields
+ * and the submission payload is a flat `fields: { field_key => value }`
+ * map. Validation mirrors CustomFieldRepository::validate_field_value.
+ *
+ * Uses real Utils::validate_cpf() / validate_phone() (pure helpers) and
+ * mocks $wpdb so CustomFieldRepository::get_by_audience_with_parents
+ * returns whatever field definitions each test requires.
  */
 class ReregistrationDataProcessorTest extends TestCase {
 
@@ -31,13 +37,20 @@ class ReregistrationDataProcessorTest extends TestCase {
             return abs( intval( $val ) );
         } );
         Functions\when( 'sanitize_text_field' )->alias( 'trim' );
+        Functions\when( 'sanitize_textarea_field' )->alias( 'trim' );
         Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+        Functions\when( 'wp_unslash' )->alias( function ( $val ) {
+            return is_string( $val ) ? stripslashes( $val ) : $val;
+        } );
         Functions\when( 'is_email' )->alias( function ( $email ) {
             return (bool) filter_var( $email, FILTER_VALIDATE_EMAIL );
         } );
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
+        Functions\when( 'wp_cache_delete' )->justReturn( true );
 
-        // Mock $wpdb for CustomFieldRepository
-        $this->mock_wpdb_for_custom_fields( array() );
+        // Default $wpdb mock — no fields returned.
+        $this->setup_wpdb_with_fields( array() );
     }
 
     protected function tearDown(): void {
@@ -46,47 +59,200 @@ class ReregistrationDataProcessorTest extends TestCase {
     }
 
     /**
-     * Configure $wpdb mock so that CustomFieldRepository::get_by_audience_with_parents
-     * returns the given custom fields. It must also mock AudienceRepository::get_by_id.
+     * Configure the global $wpdb so that:
+     *   - AudienceRepository::get_by_id returns a one-level audience (no parent)
+     *   - ReregistrationRepository::get_audience_ids returns [1]
+     *   - CustomFieldRepository::get_by_audience returns $fields
      *
-     * @param array $fields Custom field objects to return.
+     * @param array<object> $fields Field stdClass definitions to return.
      */
-    private function mock_wpdb_for_custom_fields( array $fields ): void {
+    private function setup_wpdb_with_fields( array $fields ): void {
         global $wpdb;
         $wpdb = Mockery::mock( 'wpdb' );
         $wpdb->prefix = 'wp_';
-        // AudienceRepository::get_by_id uses wp_cache_get + $wpdb->get_row
-        // Return null so get_by_audience_with_parents returns early with []
-        $wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
-        $wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
-            return func_get_args()[0];
-        } )->byDefault();
-        $wpdb->shouldReceive( 'get_results' )->andReturn( $fields )->byDefault();
-        // ReregistrationRepository::get_audience_ids uses get_col
-        $wpdb->shouldReceive( 'get_col' )->andReturn( array( '1' ) )->byDefault();
 
-        Functions\when( 'wp_cache_get' )->justReturn( false );
-        Functions\when( 'wp_cache_set' )->justReturn( true );
-        Functions\when( 'wp_cache_delete' )->justReturn( true );
-    }
-
-    /**
-     * Configure $wpdb to return an audience and custom fields for validation tests.
-     */
-    private function setup_custom_fields( array $fields ): void {
-        global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' );
-        $wpdb->prefix = 'wp_';
-        // AudienceRepository::get_by_id — return an audience with no parent
-        $audience = (object) array( 'id' => 1, 'name' => 'Test', 'parent_id' => 0 );
+        $audience = (object) array(
+            'id'        => 1,
+            'name'      => 'Test Audience',
+            'parent_id' => 0,
+        );
         $wpdb->shouldReceive( 'get_row' )->andReturn( $audience )->byDefault();
         $wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
             return func_get_args()[0];
         } )->byDefault();
-        // CustomFieldRepository::get_by_audience — return our custom fields
         $wpdb->shouldReceive( 'get_results' )->andReturn( $fields )->byDefault();
-        // ReregistrationRepository::get_audience_ids uses get_col
         $wpdb->shouldReceive( 'get_col' )->andReturn( array( '1' ) )->byDefault();
+    }
+
+    /**
+     * Build a stdClass field definition with sensible defaults.
+     *
+     * @param array<string, mixed> $overrides Property overrides.
+     * @return object
+     */
+    private function make_field( array $overrides ): object {
+        $defaults = array(
+            'id'                 => 0,
+            'audience_id'        => 1,
+            'field_key'          => '',
+            'field_label'        => '',
+            'field_type'         => 'text',
+            'field_group'        => 'personal',
+            'field_source'       => 'standard',
+            'field_profile_key'  => null,
+            'field_mask'         => null,
+            'is_sensitive'       => 0,
+            'field_options'      => null,
+            'validation_rules'   => null,
+            'sort_order'         => 0,
+            'is_required'        => 0,
+            'is_active'          => 1,
+        );
+        return (object) array_merge( $defaults, $overrides );
+    }
+
+    /**
+     * Build the 10 standard fields that are required for the core
+     * "happy path" / "required fields" validation tests. Each returns a
+     * stdClass with the exact property surface the processor reads.
+     *
+     * @return array<object>
+     */
+    private function standard_field_mocks(): array {
+        $divisao_map = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_divisao_setor_map();
+        $sexo        = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_sexo_options();
+        $estado      = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_estado_civil_options();
+        $jornada     = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_jornada_options();
+
+        $id = 1;
+        return array(
+            $this->make_field( array(
+                'id'          => $id++,
+                'field_key'   => 'display_name',
+                'field_label' => 'Name',
+                'field_type'  => 'text',
+                'is_required' => 1,
+            ) ),
+            $this->make_field( array(
+                'id'            => $id++,
+                'field_key'     => 'sexo',
+                'field_label'   => 'Sex',
+                'field_type'    => 'select',
+                'is_required'   => 1,
+                'field_options' => json_encode( array( 'choices' => $sexo ) ),
+            ) ),
+            $this->make_field( array(
+                'id'            => $id++,
+                'field_key'     => 'estado_civil',
+                'field_label'   => 'Marital Status',
+                'field_type'    => 'select',
+                'is_required'   => 1,
+                'field_options' => json_encode( array( 'choices' => $estado ) ),
+            ) ),
+            $this->make_field( array(
+                'id'          => $id++,
+                'field_key'   => 'data_nascimento',
+                'field_label' => 'Date of Birth',
+                'field_type'  => 'date',
+                'is_required' => 1,
+            ) ),
+            $this->make_field( array(
+                'id'               => $id++,
+                'field_key'        => 'cpf',
+                'field_label'      => 'CPF/CIN',
+                'field_type'       => 'text',
+                'is_required'      => 1,
+                'is_sensitive'     => 1,
+                'validation_rules' => json_encode( array( 'format' => 'cpf' ) ),
+            ) ),
+            $this->make_field( array(
+                'id'            => $id++,
+                'field_key'     => 'divisao_setor',
+                'field_label'   => 'Division / Department',
+                'field_type'    => 'dependent_select',
+                'is_required'   => 1,
+                'field_options' => json_encode( array( 'groups' => $divisao_map ) ),
+            ) ),
+            $this->make_field( array(
+                'id'            => $id++,
+                'field_key'     => 'jornada',
+                'field_label'   => 'Work Schedule',
+                'field_type'    => 'select',
+                'is_required'   => 1,
+                'field_options' => json_encode( array( 'choices' => $jornada ) ),
+            ) ),
+            $this->make_field( array(
+                'id'               => $id++,
+                'field_key'        => 'phone',
+                'field_label'      => 'Home Phone',
+                'field_type'       => 'text',
+                'is_required'      => 0,
+                'validation_rules' => json_encode( array( 'format' => 'phone' ) ),
+            ) ),
+            $this->make_field( array(
+                'id'               => $id++,
+                'field_key'        => 'celular',
+                'field_label'      => 'Cell Phone',
+                'field_type'       => 'text',
+                'is_required'      => 1,
+                'validation_rules' => json_encode( array( 'format' => 'phone' ) ),
+            ) ),
+            $this->make_field( array(
+                'id'          => $id++,
+                'field_key'   => 'contato_emergencia',
+                'field_label' => 'Emergency Contact',
+                'field_type'  => 'text',
+                'is_required' => 1,
+            ) ),
+            $this->make_field( array(
+                'id'               => $id++,
+                'field_key'        => 'tel_emergencia',
+                'field_label'      => 'Emergency Phone',
+                'field_type'       => 'text',
+                'is_required'      => 1,
+                'validation_rules' => json_encode( array( 'format' => 'phone' ) ),
+            ) ),
+        );
+    }
+
+    /**
+     * Valid values matching the standard_field_mocks above.
+     *
+     * @return array<string, mixed>
+     */
+    private function valid_field_values(): array {
+        return array(
+            'display_name'       => 'João Silva',
+            'sexo'               => 'Male',
+            'estado_civil'       => 'Single',
+            'data_nascimento'    => '1990-01-15',
+            'cpf'                => '529.982.247-25', // Valid CPF
+            'divisao_setor'      => json_encode( array(
+                'parent' => 'DRE - Gabinete',
+                'child'  => 'Assessoria',
+            ) ),
+            'jornada'            => 'JB.30',
+            'phone'              => '',
+            'celular'            => '(11) 99999-9999',
+            'contato_emergencia' => 'Maria Silva',
+            'tel_emergencia'     => '(11) 98888-8888',
+        );
+    }
+
+    /**
+     * Build a unified { fields: {...} } payload with optional overrides.
+     *
+     * @param array<string, mixed> $overrides Field overrides merged on top.
+     * @return array<string, mixed>
+     */
+    private function make_data( array $overrides = array() ): array {
+        return array(
+            'fields' => array_merge( $this->valid_field_values(), $overrides ),
+        );
+    }
+
+    private function make_rereg( int $audience_id = 1 ): object {
+        return (object) array( 'id' => 1, 'audience_id' => $audience_id );
     }
 
     // ==================================================================
@@ -164,75 +330,28 @@ class ReregistrationDataProcessorTest extends TestCase {
     }
 
     // ==================================================================
-    // validate_submission() — standard fields
+    // validate_submission() — standard field definitions
     // ==================================================================
 
-    private function valid_standard_fields(): array {
-        return array(
-            'display_name'       => 'João Silva',
-            'sexo'               => 'Male',
-            'estado_civil'       => 'Single',
-            'data_nascimento'    => '1990-01-15',
-            'cpf'                => '529.982.247-25', // Valid CPF (passes Utils::validate_cpf)
-            'rg'                 => '12345678',
-            'divisao'            => 'DRE - Gabinete',
-            'setor'              => 'Assessoria',
-            'jornada'            => 'JB.30',
-            'celular'            => '(11) 99999-9999',
-            'contato_emergencia' => 'Maria Silva',
-            'tel_emergencia'     => '(11) 98888-8888',
-            'phone'              => '',
-            'vinculo'            => '',
-            'rf'                 => '',
-            'unidade_lotacao'    => '',
-            'unidade_exercicio'  => '',
-            'endereco'           => '',
-            'endereco_numero'    => '',
-            'endereco_complemento' => '',
-            'bairro'             => '',
-            'cidade'             => '',
-            'uf'                 => '',
-            'cep'                => '',
-            'email_institucional' => '',
-            'email_particular'   => '',
-            'horario_trabalho'   => '',
-            'sindicato'          => '',
-            'acumulo_cargos'     => '',
-            'jornada_acumulo'    => '',
-            'cargo_funcao_acumulo' => '',
-            'horario_trabalho_acumulo' => '',
-            'department'         => '',
-            'organization'       => '',
-        );
-    }
-
-    private function make_data( array $standard_overrides = array(), array $custom = array() ): array {
-        return array(
-            'standard_fields' => array_merge( $this->valid_standard_fields(), $standard_overrides ),
-            'custom_fields'   => $custom,
-        );
-    }
-
-    private function make_rereg( int $audience_id = 1 ): object {
-        return (object) array( 'id' => 1, 'audience_id' => $audience_id );
-    }
-
     public function test_validate_submission_all_valid(): void {
+        $this->setup_wpdb_with_fields( $this->standard_field_mocks() );
+
         $data   = $this->make_data();
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
 
-        $this->assertEmpty( $errors, 'Valid data should produce no errors' );
+        $this->assertEmpty( $errors, 'Valid data should produce no errors. Got: ' . json_encode( $errors ) );
     }
 
     public function test_validate_submission_empty_required_fields(): void {
+        $this->setup_wpdb_with_fields( $this->standard_field_mocks() );
+
         $data = $this->make_data( array(
             'display_name'       => '',
             'sexo'               => '',
             'estado_civil'       => '',
             'data_nascimento'    => '',
             'cpf'                => '',
-            'divisao'            => '',
-            'setor'              => '',
+            'divisao_setor'      => '',
             'jornada'            => '',
             'celular'            => '',
             'contato_emergencia' => '',
@@ -241,177 +360,207 @@ class ReregistrationDataProcessorTest extends TestCase {
 
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
 
-        $this->assertArrayHasKey( 'standard_fields[display_name]', $errors );
-        $this->assertArrayHasKey( 'standard_fields[sexo]', $errors );
-        $this->assertArrayHasKey( 'standard_fields[estado_civil]', $errors );
-        $this->assertArrayHasKey( 'standard_fields[data_nascimento]', $errors );
-        $this->assertArrayHasKey( 'standard_fields[cpf]', $errors );
-        $this->assertArrayHasKey( 'standard_fields[divisao]', $errors );
-        $this->assertArrayHasKey( 'standard_fields[setor]', $errors );
-        $this->assertArrayHasKey( 'standard_fields[jornada]', $errors );
-        $this->assertArrayHasKey( 'standard_fields[celular]', $errors );
-        $this->assertArrayHasKey( 'standard_fields[contato_emergencia]', $errors );
-        $this->assertArrayHasKey( 'standard_fields[tel_emergencia]', $errors );
+        $this->assertArrayHasKey( 'fields[display_name]', $errors );
+        $this->assertArrayHasKey( 'fields[sexo]', $errors );
+        $this->assertArrayHasKey( 'fields[estado_civil]', $errors );
+        $this->assertArrayHasKey( 'fields[data_nascimento]', $errors );
+        $this->assertArrayHasKey( 'fields[cpf]', $errors );
+        $this->assertArrayHasKey( 'fields[divisao_setor]', $errors );
+        $this->assertArrayHasKey( 'fields[jornada]', $errors );
+        $this->assertArrayHasKey( 'fields[celular]', $errors );
+        $this->assertArrayHasKey( 'fields[contato_emergencia]', $errors );
+        $this->assertArrayHasKey( 'fields[tel_emergencia]', $errors );
 
-        $this->assertCount( 11, $errors );
+        $this->assertCount( 10, $errors );
     }
 
     public function test_validate_submission_invalid_cpf(): void {
+        $this->setup_wpdb_with_fields( $this->standard_field_mocks() );
+
         // '000.000.000-00' is a known invalid CPF (all same digits)
         $data   = $this->make_data( array( 'cpf' => '000.000.000-00' ) );
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
 
-        $this->assertArrayHasKey( 'standard_fields[cpf]', $errors );
-        $this->assertStringContainsString( 'Invalid CPF', $errors['standard_fields[cpf]'] );
+        $this->assertArrayHasKey( 'fields[cpf]', $errors );
+        $this->assertStringContainsString( 'CPF', $errors['fields[cpf]'] );
     }
 
     public function test_validate_submission_invalid_phone(): void {
+        $this->setup_wpdb_with_fields( $this->standard_field_mocks() );
+
         $data   = $this->make_data( array( 'phone' => 'abc' ) );
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
 
-        $this->assertArrayHasKey( 'standard_fields[phone]', $errors );
+        $this->assertArrayHasKey( 'fields[phone]', $errors );
     }
 
     public function test_validate_submission_invalid_celular(): void {
+        $this->setup_wpdb_with_fields( $this->standard_field_mocks() );
+
         $data   = $this->make_data( array( 'celular' => 'xyz123' ) );
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
 
-        $this->assertArrayHasKey( 'standard_fields[celular]', $errors );
+        $this->assertArrayHasKey( 'fields[celular]', $errors );
     }
 
     public function test_validate_submission_invalid_division_department_combo(): void {
-        // 'NTIC' belongs to DIAF, not Gabinete
-        $data   = $this->make_data( array( 'divisao' => 'DRE - Gabinete', 'setor' => 'NTIC' ) );
+        $this->setup_wpdb_with_fields( $this->standard_field_mocks() );
+
+        // 'NTIC' belongs to DIAF, not Gabinete → dependent_select rejects it.
+        $data = $this->make_data( array(
+            'divisao_setor' => json_encode( array(
+                'parent' => 'DRE - Gabinete',
+                'child'  => 'NTIC',
+            ) ),
+        ) );
+
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
 
-        $this->assertArrayHasKey( 'standard_fields[setor]', $errors );
-        $this->assertStringContainsString( 'Invalid department', $errors['standard_fields[setor]'] );
+        $this->assertArrayHasKey( 'fields[divisao_setor]', $errors );
     }
 
     public function test_validate_submission_valid_division_department_combo(): void {
-        // 'NTIC' belongs to DIAF — this is valid
-        $data   = $this->make_data( array( 'divisao' => 'DRE - DIAF', 'setor' => 'NTIC' ) );
+        $this->setup_wpdb_with_fields( $this->standard_field_mocks() );
+
+        // 'NTIC' belongs to DIAF — valid.
+        $data = $this->make_data( array(
+            'divisao_setor' => json_encode( array(
+                'parent' => 'DRE - DIAF',
+                'child'  => 'NTIC',
+            ) ),
+        ) );
+
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
 
-        $this->assertArrayNotHasKey( 'standard_fields[setor]', $errors );
+        $this->assertArrayNotHasKey( 'fields[divisao_setor]', $errors );
     }
 
     // ==================================================================
-    // validate_submission() — custom field validation
+    // validate_submission() — admin-created custom fields
     // ==================================================================
 
     public function test_validate_submission_required_custom_field_empty(): void {
-        $custom_field = (object) array(
-            'id'               => 10,
-            'field_label'      => 'Department Code',
-            'field_type'       => 'text',
-            'is_required'      => 1,
-            'validation_rules' => null,
-        );
-        $this->setup_custom_fields( array( $custom_field ) );
+        $custom_field = $this->make_field( array(
+            'id'           => 10,
+            'field_key'    => 'department_code',
+            'field_label'  => 'Department Code',
+            'field_type'   => 'text',
+            'field_source' => 'custom',
+            'is_required'  => 1,
+        ) );
+        $this->setup_wpdb_with_fields( array( $custom_field ) );
 
-        $data   = $this->make_data( array(), array( 'field_10' => '' ) );
+        $data   = array( 'fields' => array( 'department_code' => '' ) );
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
 
-        $this->assertArrayHasKey( 'custom_fields[field_10]', $errors );
-        $this->assertStringContainsString( 'Department Code', $errors['custom_fields[field_10]'] );
+        $this->assertArrayHasKey( 'fields[department_code]', $errors );
+        $this->assertStringContainsString( 'Department Code', $errors['fields[department_code]'] );
     }
 
     public function test_validate_submission_custom_field_cpf_format(): void {
-        $custom_field = (object) array(
+        $custom_field = $this->make_field( array(
             'id'               => 20,
+            'field_key'        => 'secondary_cpf',
             'field_label'      => 'Secondary CPF',
             'field_type'       => 'text',
+            'field_source'     => 'custom',
             'is_required'      => 0,
             'validation_rules' => json_encode( array( 'format' => 'cpf' ) ),
-        );
-        $this->setup_custom_fields( array( $custom_field ) );
+        ) );
+        $this->setup_wpdb_with_fields( array( $custom_field ) );
 
         // '111.111.111-11' is invalid (all same digits)
-        $data   = $this->make_data( array(), array( 'field_20' => '111.111.111-11' ) );
+        $data   = array( 'fields' => array( 'secondary_cpf' => '111.111.111-11' ) );
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
 
-        $this->assertArrayHasKey( 'custom_fields[field_20]', $errors );
-        $this->assertStringContainsString( 'CPF', $errors['custom_fields[field_20]'] );
+        $this->assertArrayHasKey( 'fields[secondary_cpf]', $errors );
+        $this->assertStringContainsString( 'CPF', $errors['fields[secondary_cpf]'] );
     }
 
     public function test_validate_submission_custom_field_email_format(): void {
-        $custom_field = (object) array(
+        $custom_field = $this->make_field( array(
             'id'               => 30,
+            'field_key'        => 'alt_email',
             'field_label'      => 'Alt Email',
             'field_type'       => 'text',
+            'field_source'     => 'custom',
             'is_required'      => 0,
             'validation_rules' => json_encode( array( 'format' => 'email' ) ),
-        );
-        $this->setup_custom_fields( array( $custom_field ) );
+        ) );
+        $this->setup_wpdb_with_fields( array( $custom_field ) );
 
-        $data   = $this->make_data( array(), array( 'field_30' => 'not-an-email' ) );
+        $data   = array( 'fields' => array( 'alt_email' => 'not-an-email' ) );
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
 
-        $this->assertArrayHasKey( 'custom_fields[field_30]', $errors );
+        $this->assertArrayHasKey( 'fields[alt_email]', $errors );
     }
 
     public function test_validate_submission_custom_field_regex_valid_and_invalid(): void {
-        $custom_field = (object) array(
+        $custom_field = $this->make_field( array(
             'id'               => 40,
+            'field_key'        => 'code',
             'field_label'      => 'Code',
             'field_type'       => 'text',
+            'field_source'     => 'custom',
             'is_required'      => 0,
             'validation_rules' => json_encode( array(
                 'format'               => 'custom_regex',
                 'custom_regex'         => '^\d{3}-\d{4}$',
                 'custom_regex_message' => 'Must be in format 000-0000',
             ) ),
-        );
-        $this->setup_custom_fields( array( $custom_field ) );
+        ) );
+        $this->setup_wpdb_with_fields( array( $custom_field ) );
 
         // Valid format
-        $data   = $this->make_data( array(), array( 'field_40' => '123-4567' ) );
+        $data   = array( 'fields' => array( 'code' => '123-4567' ) );
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
-        $this->assertArrayNotHasKey( 'custom_fields[field_40]', $errors );
+        $this->assertArrayNotHasKey( 'fields[code]', $errors );
 
         // Invalid format
-        $data2   = $this->make_data( array(), array( 'field_40' => 'abc' ) );
+        $data2   = array( 'fields' => array( 'code' => 'abc' ) );
         $errors2 = ReregistrationDataProcessor::validate_submission( $data2, $this->make_rereg(), 1 );
-        $this->assertArrayHasKey( 'custom_fields[field_40]', $errors2 );
-        $this->assertSame( 'Must be in format 000-0000', $errors2['custom_fields[field_40]'] );
+        $this->assertArrayHasKey( 'fields[code]', $errors2 );
+        $this->assertSame( 'Must be in format 000-0000', $errors2['fields[code]'] );
     }
 
     public function test_validate_submission_custom_field_regex_with_slash_delimiter(): void {
-        $custom_field = (object) array(
+        $custom_field = $this->make_field( array(
             'id'               => 50,
+            'field_key'        => 'lowercase_only',
             'field_label'      => 'Lowercase',
             'field_type'       => 'text',
+            'field_source'     => 'custom',
             'is_required'      => 0,
             'validation_rules' => json_encode( array(
                 'format'       => 'custom_regex',
                 'custom_regex' => '/^[a-z]+$/',
             ) ),
-        );
-        $this->setup_custom_fields( array( $custom_field ) );
+        ) );
+        $this->setup_wpdb_with_fields( array( $custom_field ) );
 
-        $data   = $this->make_data( array(), array( 'field_50' => 'abc' ) );
+        $data   = array( 'fields' => array( 'lowercase_only' => 'abc' ) );
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
-        $this->assertArrayNotHasKey( 'custom_fields[field_50]', $errors );
+        $this->assertArrayNotHasKey( 'fields[lowercase_only]', $errors );
 
-        $data2   = $this->make_data( array(), array( 'field_50' => 'ABC123' ) );
+        $data2   = array( 'fields' => array( 'lowercase_only' => 'ABC123' ) );
         $errors2 = ReregistrationDataProcessor::validate_submission( $data2, $this->make_rereg(), 1 );
-        $this->assertArrayHasKey( 'custom_fields[field_50]', $errors2 );
+        $this->assertArrayHasKey( 'fields[lowercase_only]', $errors2 );
     }
 
     public function test_validate_submission_custom_field_optional_empty_no_error(): void {
-        $custom_field = (object) array(
-            'id'               => 60,
-            'field_label'      => 'Notes',
-            'field_type'       => 'textarea',
-            'is_required'      => 0,
-            'validation_rules' => null,
-        );
-        $this->setup_custom_fields( array( $custom_field ) );
+        $custom_field = $this->make_field( array(
+            'id'           => 60,
+            'field_key'    => 'notes',
+            'field_label'  => 'Notes',
+            'field_type'   => 'textarea',
+            'field_source' => 'custom',
+            'is_required'  => 0,
+        ) );
+        $this->setup_wpdb_with_fields( array( $custom_field ) );
 
-        $data   = $this->make_data( array(), array( 'field_60' => '' ) );
+        $data   = array( 'fields' => array( 'notes' => '' ) );
         $errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
 
-        $this->assertArrayNotHasKey( 'custom_fields[field_60]', $errors );
+        $this->assertArrayNotHasKey( 'fields[notes]', $errors );
     }
 }

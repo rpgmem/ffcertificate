@@ -62,16 +62,60 @@ class ReregistrationFormRendererTest extends TestCase {
         parent::tearDown();
     }
 
-    private function mockRepositories(): void {
+    /**
+     * @var array<object>|null Field definitions the CustomFieldRepository mock
+     *                         returns. Reset before each `mockRepositories` call.
+     */
+    private static $mockFields = null;
+
+    /**
+     * Build a minimal field stdClass with renderer-safe defaults.
+     *
+     * @param array<string, mixed> $overrides
+     */
+    private function makeField( array $overrides ): object {
+        return (object) array_merge( array(
+            'id'                 => 0,
+            'field_key'          => '',
+            'field_label'        => '',
+            'field_type'         => 'text',
+            'field_group'        => 'personal',
+            'field_source'       => 'standard',
+            'field_profile_key'  => null,
+            'field_mask'         => null,
+            'is_sensitive'       => 0,
+            'field_options'      => null,
+            'validation_rules'   => null,
+            'sort_order'         => 0,
+            'is_required'        => 0,
+            'is_active'          => 1,
+        ), $overrides );
+    }
+
+    /**
+     * Register alias mocks for the renderer's static repository dependencies.
+     *
+     * @param array<object> $fields Fields to expose through
+     *                              CustomFieldRepository::get_by_audience_with_parents.
+     */
+    private function mockRepositories( array $fields = array() ): void {
+        self::$mockFields = $fields;
+
         $reregRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
-        $reregRepoMock->shouldReceive( 'get_audience_ids' )->andReturn( array() );
+        $reregRepoMock->shouldReceive( 'get_audience_ids' )->andReturn( empty( $fields ) ? array() : array( 1 ) );
 
         $customFieldRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldRepository' );
-        $customFieldRepoMock->shouldReceive( 'get_by_audience_with_parents' )->andReturn( array() );
+        $customFieldRepoMock->shouldReceive( 'get_by_audience_with_parents' )->andReturn( $fields );
         $customFieldRepoMock->shouldReceive( 'get_user_data' )->andReturn( array() );
 
         $fieldOptionsMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' );
         $fieldOptionsMock->shouldIgnoreMissing( array() );
+
+        $seederMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
+        $seederMock->shouldReceive( 'get_group_labels' )->andReturn( array(
+            'personal' => 'Personal Data',
+            'contact'  => 'Contact Information',
+        ) );
     }
 
     // ==================================================================
@@ -100,7 +144,23 @@ class ReregistrationFormRendererTest extends TestCase {
     // ==================================================================
 
     public function test_render_populates_from_saved_draft(): void {
-        $this->mockRepositories();
+        $this->mockRepositories( array(
+            $this->makeField( array(
+                'id'          => 1,
+                'field_key'   => 'display_name',
+                'field_label' => 'Name',
+                'field_type'  => 'text',
+                'field_group' => 'personal',
+                'is_required' => 1,
+            ) ),
+            $this->makeField( array(
+                'id'          => 2,
+                'field_key'   => 'phone',
+                'field_label' => 'Home Phone',
+                'field_type'  => 'text',
+                'field_group' => 'contact',
+            ) ),
+        ) );
 
         $rereg = (object) array(
             'id'       => 2,
@@ -109,11 +169,10 @@ class ReregistrationFormRendererTest extends TestCase {
         );
         $submission = (object) array(
             'data' => json_encode( array(
-                'standard_fields' => array(
+                'fields' => array(
                     'display_name' => 'Maria Silva',
                     'phone'        => '11999999999',
                 ),
-                'custom_fields' => array( 'field_1' => 'placeholder' ),
             ) ),
         );
 
