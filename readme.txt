@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 5.0.3
+Stable tag: 5.1.0
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -163,6 +163,33 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 5.1.0 (2026-04-11) =
+
+New public CSV download feature allowing form organizers without WordPress admin access to retrieve submissions via a revocable per-form hash, gated by form expiration and a configurable download quota.
+
+* Feat: New `[ffc_csv_download]` shortcode — public page where visitors enter a form ID + hash to download submissions as CSV
+* Feat: New `PublicCsvDownload` handler on `admin-post(_nopriv)_ffc_public_csv_download` — validates nonce, honeypot, CAPTCHA, per-IP rate limit, form-level enable flag, hash equality, geofence expiration, and per-form download quota
+* Feat: New `PublicCsvExporter` that streams the CSV synchronously (single request, no AJAX batching) with the same column layout as the admin exporter
+* Feat: New `Geofence::get_form_end_timestamp()` and `has_form_expired()` helpers — public CSV download is released only after the form's configured end date/time
+* Feat: New "Public CSV Download" metabox on the form editor — toggle, read-only hash with regenerate/reset controls, download counter, per-form quota override, and a ready-to-share URL preview
+* Feat: New `public_csv_default_limit` setting on the Advanced tab — default quota suggested to the admin when enabling the feature per-form (default: 1)
+* Test: 45 new unit tests — 12 for Geofence form expiration helpers, 14 for PublicCsvExporter column/row layout, 19 for PublicCsvDownload request validation branches and happy path
+
+= 5.0.3 (2026-03-27) =
+
+Performance optimizations for URL shortener and QR code generation, new admin columns for forms listing, and Safari/iOS geofence fixes.
+
+* Perf: Cache plugin settings in UrlShortenerService — single `get_option` per request
+* Perf: Defer redirect click count increment to `shutdown` hook
+* Perf: Add `qr_cache` column to `ffc_short_urls` table — QR base64 stored in DB
+* Perf: Rewrite SVG QR generation to use `QRcode::raw()` matrix directly
+* Feat: Add ID, Shortcode and Submissions columns to ffc_form listing screen
+* Fix: `isSafari()` detection for iPadOS 13+
+* Fix: Geofence loading spinner stuck indefinitely on Safari
+* Fix: `gps_fallback` admin setting not passed to frontend
+* Fix: Safari-specific error messages overridden by generic admin message
+* UX: Progressive loading messages for Safari/iOS geolocation wait
 
 = 5.0.2 (2026-03-03) =
 

@@ -6,6 +6,37 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## 5.1.0 (2026-04-11)
+
+Public CSV download feature: form organizers without WordPress admin access can now retrieve the submissions CSV of a specific form via a revocable per-form hash, gated by form expiration and a configurable download quota. No new dependencies and no schema changes.
+
+### New Features
+
+- Feat: New `[ffc_csv_download]` shortcode — public page where visitors enter a form ID + hash and receive the submissions CSV as a direct download
+- Feat: New `PublicCsvDownload` handler on `admin-post(_nopriv)_ffc_public_csv_download` — validates nonce, honeypot, CAPTCHA, per-IP rate limit, form-level enable flag, hash equality, geofence expiration, and per-form download quota before streaming the file
+- Feat: New `PublicCsvExporter` that streams the CSV synchronously in a single request (no AJAX batching) — column layout mirrors the admin `CsvExporter` so both downloads are interchangeable
+- Feat: New `Geofence::get_form_end_timestamp()` and `Geofence::has_form_expired()` helpers — the public CSV download is only released after the form's configured end date/time
+- Feat: New "Public CSV Download" metabox on the form editor — toggle, read-only hash with regenerate control, download counter, reset button, per-form quota override, and a ready-to-share URL preview
+- Feat: Advanced settings tab now exposes `public_csv_default_limit` — default quota suggested to the admin when enabling the feature on a new form (default: 1)
+- Feat: Counter is incremented *before* the stream starts to prevent race conditions between concurrent requests
+
+### Security
+
+- Security: Download hash stored in a dedicated post meta (`_ffc_csv_public_hash`), generated with `bin2hex(random_bytes(16))` and compared via `hash_equals()` to mitigate timing attacks
+- Security: Reuses `Shortcodes::generate_security_fields()` so the public form includes the same honeypot (`ffc_honeypot_trap`) and mathematical CAPTCHA already validated by `SecurityService::validate_security_fields()`
+- Security: Per-IP rate limiting via `RateLimiter::check_ip_limit()`, identical to the public form submission path
+- Security: `get_post_type()` check blocks the handler from serving data for non-`ffc_form` posts even if a valid hash is supplied
+- Security: Empty stored hash short-circuits the comparison — prevents `hash_equals('', '')` from accepting any request before the admin has generated a hash
+
+### Test Coverage
+
+- New: **GeofenceFormExpirationTest** — 12 tests covering `get_form_end_timestamp()` (null on empty/invalid meta, trims whitespace, defaults `time_end` to `23:59:59`, respects `wp_timezone()`) and `has_form_expired()` (past vs. future, end-of-day default)
+- New: **PublicCsvExporterTest** — 14 tests locking the CSV column layout (15 fixed + 3 edit + N dynamic), fixed-column value mapping, consent yes/no rendering, deleted-form placeholder, dynamic key ordering, RF-only rows, and sensible batch-size constants
+- New: **PublicCsvDownloadTest** — 19 tests covering constants, shortcode rendering (nonce, form fields, honeypot, CAPTCHA, URL prefill, flash messages) and the 12 failure branches of the validation flow plus the happy-path counter-increment observable effect
+- Test suite: **3090 → 3135 tests** (+45) with all 7359 assertions green
+
+---
+
 ## 5.0.3 (2026-03-27)
 
 Performance optimizations for URL shortener and QR code generation, new admin columns for forms listing, and Safari/iOS geofence fixes.
