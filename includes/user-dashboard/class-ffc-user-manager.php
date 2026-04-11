@@ -241,6 +241,151 @@ class UserManager {
     }
 
     /**
+     * User profile fields that live in wp_ffc_user_profiles.
+     *
+     * Keys not in this list are stored as individual usermeta entries
+     * under the pattern ffc_user_{key}.
+     *
+     * @var array<int, string>
+     */
+    private const PROFILE_TABLE_KEYS = array( 'display_name', 'phone', 'department', 'organization', 'notes' );
+
+    /**
+     * Usermeta key prefix for extended profile fields.
+     */
+    private const EXTENDED_META_PREFIX = 'ffc_user_';
+
+    /**
+     * Update extended user profile.
+     *
+     * Splits the payload between the ffc_user_profiles table (for columns it
+     * supports) and wp_usermeta (for everything else, keyed by
+     * ffc_user_{profile_key}). Keys listed in $sensitive_keys are encrypted
+     * via the Encryption helper before being persisted to usermeta.
+     *
+     * Intended to be called from the dynamic reregistration data processor
+     * when syncing approved submission values back onto the user profile.
+     *
+     * @since 4.13.0
+     * @param int                  $user_id        WordPress user ID.
+     * @param array<string, mixed> $data           profile_key => value pairs.
+     * @param array<int, string>   $sensitive_keys profile_keys whose values must be encrypted.
+     * @return bool True if at least one value was persisted successfully.
+     */
+    public static function update_extended_profile( int $user_id, array $data, array $sensitive_keys = array() ): bool {
+        if ( empty( $data ) ) {
+            return false;
+        }
+
+        $table_payload   = array();
+        $usermeta_payload = array();
+
+        foreach ( $data as $key => $value ) {
+            if ( ! is_string( $key ) || $key === '' ) {
+                continue;
+            }
+
+            if ( in_array( $key, self::PROFILE_TABLE_KEYS, true ) ) {
+                $table_payload[ $key ] = $value;
+            } else {
+                $usermeta_payload[ $key ] = $value;
+            }
+        }
+
+        $success = false;
+
+        // 1. Profile table columns → delegate to update_profile().
+        if ( ! empty( $table_payload ) ) {
+            $success = self::update_profile( $user_id, $table_payload ) || $success;
+        }
+
+        // 2. Extended keys → wp_usermeta (encrypted when sensitive).
+        $sensitive_map = array_flip( $sensitive_keys );
+        foreach ( $usermeta_payload as $key => $value ) {
+            $meta_key = self::EXTENDED_META_PREFIX . sanitize_key( $key );
+
+            $scalar_value = is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
+
+            if ( isset( $sensitive_map[ $key ] ) ) {
+                if ( $scalar_value === '' || $scalar_value === null ) {
+                    delete_user_meta( $user_id, $meta_key );
+                    continue;
+                }
+
+                if ( ! class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
+                    continue;
+                }
+
+                $encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $scalar_value );
+                if ( $encrypted === null ) {
+                    continue;
+                }
+
+                update_user_meta( $user_id, $meta_key, $encrypted );
+
+                // Store a lookup hash for indexed searches (e.g. find user by CPF).
+                $hash = \FreeFormCertificate\Core\Encryption::hash( $scalar_value );
+                if ( $hash !== null ) {
+                    update_user_meta( $user_id, $meta_key . '_hash', $hash );
+                }
+
+                $success = true;
+                continue;
+            }
+
+            update_user_meta( $user_id, $meta_key, sanitize_text_field( $scalar_value ) );
+            $success = true;
+        }
+
+        return $success;
+    }
+
+    /**
+     * Get extended user profile, decrypting sensitive keys.
+     *
+     * Reads values from the ffc_user_profiles table (for standard columns)
+     * and from wp_usermeta (for everything else). Sensitive keys are
+     * transparently decrypted.
+     *
+     * @since 4.13.0
+     * @param int                $user_id        WordPress user ID.
+     * @param array<int, string> $extra_keys     Non-table keys to fetch from usermeta.
+     * @param array<int, string> $sensitive_keys Keys whose stored values are encrypted.
+     * @return array<string, mixed>
+     */
+    public static function get_extended_profile( int $user_id, array $extra_keys = array(), array $sensitive_keys = array() ): array {
+        $profile = self::get_profile( $user_id );
+
+        $sensitive_map = array_flip( $sensitive_keys );
+
+        foreach ( $extra_keys as $key ) {
+            if ( ! is_string( $key ) || $key === '' ) {
+                continue;
+            }
+            if ( in_array( $key, self::PROFILE_TABLE_KEYS, true ) ) {
+                continue; // Already in $profile.
+            }
+
+            $meta_key = self::EXTENDED_META_PREFIX . sanitize_key( $key );
+            $raw      = get_user_meta( $user_id, $meta_key, true );
+
+            if ( $raw === '' || $raw === null ) {
+                $profile[ $key ] = '';
+                continue;
+            }
+
+            if ( isset( $sensitive_map[ $key ] ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
+                $decrypted       = \FreeFormCertificate\Core\Encryption::decrypt( (string) $raw );
+                $profile[ $key ] = $decrypted !== null ? $decrypted : '';
+            } else {
+                $profile[ $key ] = $raw;
+            }
+        }
+
+        return $profile;
+    }
+
+    /**
      * Get user's CPF/RF (masked) — first found
      *
      * @param int $user_id WordPress user ID

@@ -763,18 +763,44 @@ class AudienceLoader {
                 }
 
                 $data = array(
-                    'audience_id'      => $audience_id,
-                    'field_label'      => $label,
-                    'field_key'        => sanitize_key($field_data['key'] ?? ''),
-                    'field_type'       => sanitize_text_field($field_data['type'] ?? 'text'),
-                    'field_options'    => !empty($options) ? $options : null,
-                    'validation_rules' => !empty($rules) ? $rules : null,
-                    'sort_order'       => $index,
-                    'is_required'      => !empty($field_data['is_required']) ? 1 : 0,
-                    'is_active'        => isset($field_data['is_active']) ? (int) $field_data['is_active'] : 1,
+                    'audience_id'       => $audience_id,
+                    'field_label'       => $label,
+                    'field_key'         => sanitize_key($field_data['key'] ?? ''),
+                    'field_type'        => sanitize_text_field($field_data['type'] ?? 'text'),
+                    'field_group'       => sanitize_text_field($field_data['group'] ?? ''),
+                    'field_profile_key' => isset($field_data['profile_key']) && $field_data['profile_key'] !== ''
+                        ? sanitize_key((string) $field_data['profile_key'])
+                        : null,
+                    'field_mask'        => isset($field_data['mask']) && $field_data['mask'] !== ''
+                        ? sanitize_text_field((string) $field_data['mask'])
+                        : null,
+                    'is_sensitive'      => !empty($field_data['is_sensitive']) ? 1 : 0,
+                    'field_options'     => !empty($options) ? $options : null,
+                    'validation_rules'  => !empty($rules) ? $rules : null,
+                    'sort_order'        => $index,
+                    'is_required'       => !empty($field_data['is_required']) ? 1 : 0,
+                    'is_active'         => isset($field_data['is_active']) ? (int) $field_data['is_active'] : 1,
                 );
 
+                // Standard fields are locked: admin can only toggle active/label/group/sort/required.
+                // Anything else is stripped before update.
+                if (!$is_new) {
+                    $existing = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_id((int) $field_id);
+                    if ($existing && isset($existing->field_source) && $existing->field_source === 'standard') {
+                        $data = array_intersect_key($data, array_flip(array(
+                            'field_label',
+                            'field_group',
+                            'sort_order',
+                            'is_required',
+                            'is_active',
+                        )));
+                    }
+                }
+
                 if ($is_new) {
+                    // New fields are always marked as custom; standard fields
+                    // are only ever created via the seeder.
+                    $data['field_source'] = 'custom';
                     $new_id = \FreeFormCertificate\Reregistration\CustomFieldRepository::create($data);
                     if ($new_id) {
                         $saved_ids[] = $new_id;
@@ -834,6 +860,13 @@ class AudienceLoader {
             $field = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_id($field_id);
             if (!$field) {
                 wp_send_json_error(array('message' => __('Field not found.', 'ffcertificate')));
+            }
+
+            // Standard fields cannot be deleted, only deactivated.
+            if (isset($field->field_source) && $field->field_source === 'standard') {
+                wp_send_json_error(array(
+                    'message' => __('Standard fields cannot be deleted. Deactivate instead.', 'ffcertificate'),
+                ));
             }
 
             $result = \FreeFormCertificate\Reregistration\CustomFieldRepository::delete($field_id);

@@ -374,8 +374,7 @@
                 action: 'ffc_save_reregistration_draft',
                 nonce: ffcReregistration.nonce,
                 reregistration_id: id,
-                standard_fields: getStandardFields($container),
-                custom_fields: getCustomFields($container)
+                fields: getFields($container)
             }, function (res) {
                 $btn.prop('disabled', false).text(S.saveDraft || 'Salvar Rascunho');
                 if (res.success) {
@@ -432,8 +431,7 @@
                 action: 'ffc_submit_reregistration',
                 nonce: ffcReregistration.nonce,
                 reregistration_id: id,
-                standard_fields: getStandardFields($container),
-                custom_fields: getCustomFields($container)
+                fields: getFields($container)
             }, function (res) {
                 if (res.success) {
                     var $notice = $('<div class="ffc-dashboard-notice ffc-notice-info">').append(
@@ -468,21 +466,18 @@
 
     /* ─── Helpers ──────────────────────────────────────── */
 
-    function getStandardFields($container) {
+    function getFields($container) {
         var data = {};
-        $container.find('[name^="standard_fields["]').each(function () {
-            var key = this.name.match(/\[(\w+)\]/)[1];
-            data[key] = $(this).val();
-        });
-        return data;
-    }
-
-    function getCustomFields($container) {
-        var data = {};
-        $container.find('[name^="custom_fields["]').each(function () {
-            var key = this.name.match(/\[(field_\d+)\]/)[1];
+        $container.find('[name^="fields["]').each(function () {
+            var match = this.name.match(/fields\[([^\]]+)\]/);
+            if (!match) return;
+            var key = match[1];
             if (this.type === 'checkbox') {
                 data[key] = this.checked ? '1' : '';
+            } else if (this.type === 'radio') {
+                if (this.checked) {
+                    data[key] = $(this).val();
+                }
             } else {
                 data[key] = $(this).val();
             }

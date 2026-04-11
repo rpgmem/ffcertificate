@@ -273,20 +273,19 @@ class VerificationHandler {
         $rereg = \FreeFormCertificate\Reregistration\ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
         $user = get_userdata( (int) $submission->user_id );
 
-        $sub_data = $submission->data ? json_decode( $submission->data, true ) : array();
-        $standard = $sub_data['standard_fields'] ?? array();
+        $fields = $this->decode_submission_fields( $submission, $rereg );
 
         $status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_status_labels();
 
         return array(
             'found'       => true,
             'submission'  => $submission,
-            'data'        => $standard,
+            'data'        => $fields,
             'type'        => 'reregistration',
             'reregistration' => array(
                 'title'           => $rereg ? $rereg->title : '',
-                'display_name'    => $standard['display_name'] ?? ( $user ? $user->display_name : '' ),
-                'cpf'             => $standard['cpf'] ?? '',
+                'display_name'    => $fields['display_name'] ?? ( $user ? $user->display_name : '' ),
+                'cpf'             => $fields['cpf'] ?? '',
                 'email'           => $user ? $user->user_email : '',
                 'status'          => $submission->status,
                 'status_label'    => $status_labels[ $submission->status ] ?? $submission->status,
@@ -318,21 +317,20 @@ class VerificationHandler {
         $rereg = \FreeFormCertificate\Reregistration\ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
         $user = get_userdata( (int) $submission->user_id );
 
-        $sub_data = $submission->data ? json_decode( $submission->data, true ) : array();
-        $standard = $sub_data['standard_fields'] ?? array();
+        $fields = $this->decode_submission_fields( $submission, $rereg );
 
         $status_labels = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_status_labels();
 
         return array(
             'found'       => true,
             'submission'  => $submission,
-            'data'        => $standard,
+            'data'        => $fields,
             'type'        => 'reregistration',
             'magic_token' => $submission->magic_token,
             'reregistration' => array(
                 'title'           => $rereg ? $rereg->title : '',
-                'display_name'    => $standard['display_name'] ?? ( $user ? $user->display_name : '' ),
-                'cpf'             => $standard['cpf'] ?? '',
+                'display_name'    => $fields['display_name'] ?? ( $user ? $user->display_name : '' ),
+                'cpf'             => $fields['cpf'] ?? '',
                 'email'           => $user ? $user->user_email : '',
                 'status'          => $submission->status,
                 'status_label'    => $status_labels[ $submission->status ] ?? $submission->status,
@@ -341,6 +339,56 @@ class VerificationHandler {
                 'submission_id'   => (int) $submission->id,
             ),
         );
+    }
+
+    /**
+     * Decode a reregistration submission's stored fields, decrypting any
+     * values whose field definition is marked as sensitive.
+     *
+     * @since 4.13.0
+     * @param object      $submission Submission row.
+     * @param object|null $rereg      Reregistration row.
+     * @return array<string, mixed> field_key => plain value.
+     */
+    private function decode_submission_fields( object $submission, $rereg ): array {
+        $sub_data = $submission->data ? json_decode( $submission->data, true ) : array();
+        $values   = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
+
+        if ( ! $rereg || ! class_exists( '\\FreeFormCertificate\\Reregistration\\CustomFieldRepository' ) ) {
+            return $values;
+        }
+
+        if ( ! class_exists( '\\FreeFormCertificate\\Core\\Encryption' ) ) {
+            return $values;
+        }
+
+        // Gather all active fields for the reregistration's audiences and
+        // decrypt sensitive values in place.
+        $audience_ids = \FreeFormCertificate\Reregistration\ReregistrationRepository::get_audience_ids( (int) $rereg->id );
+        $seen         = array();
+        foreach ( $audience_ids as $aud_id ) {
+            $fields = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_audience_with_parents( (int) $aud_id, true );
+            foreach ( $fields as $field ) {
+                if ( isset( $seen[ (int) $field->id ] ) ) {
+                    continue;
+                }
+                $seen[ (int) $field->id ] = true;
+
+                if ( empty( $field->is_sensitive ) ) {
+                    continue;
+                }
+                $key = (string) $field->field_key;
+                if ( ! isset( $values[ $key ] ) || $values[ $key ] === '' || ! is_string( $values[ $key ] ) ) {
+                    continue;
+                }
+                $plain = \FreeFormCertificate\Core\Encryption::decrypt( $values[ $key ] );
+                if ( $plain !== null ) {
+                    $values[ $key ] = $plain;
+                }
+            }
+        }
+
+        return $values;
     }
 
     /**

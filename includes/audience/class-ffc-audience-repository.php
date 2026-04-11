@@ -209,7 +209,25 @@ class AudienceRepository {
 
         $result = $wpdb->insert($table, $insert_data, $insert_format);
 
-        return $result ? $wpdb->insert_id : false;
+        if (!$result) {
+            return false;
+        }
+
+        $new_id = (int) $wpdb->insert_id;
+
+        /**
+         * Fires after an audience is successfully created.
+         *
+         * Subscribers can perform secondary provisioning such as seeding
+         * reregistration standard fields for the new audience.
+         *
+         * @since 4.13.0
+         * @param int                  $audience_id New audience ID.
+         * @param array<string, mixed> $data        Normalized creation data.
+         */
+        do_action('ffc_audience_created', $new_id, $data);
+
+        return $new_id;
     }
 
     /**

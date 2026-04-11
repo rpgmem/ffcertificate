@@ -129,6 +129,9 @@ class Loader {
 
         DashboardShortcode::init();
         ReregistrationFrontend::init();
+        if (class_exists('\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder')) {
+            \FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::register();
+        }
         AccessControl::init();
         UserCleanup::init();
         PrivacyHandler::init();

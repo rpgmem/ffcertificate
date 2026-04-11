@@ -208,21 +208,31 @@ class CustomFieldRepository {
         $table = self::get_table_name();
 
         $defaults = array(
-            'audience_id'      => 0,
-            'field_key'        => '',
-            'field_label'      => '',
-            'field_type'       => 'text',
-            'field_options'    => null,
-            'validation_rules' => null,
-            'sort_order'       => 0,
-            'is_required'      => 0,
-            'is_active'        => 1,
+            'audience_id'       => 0,
+            'field_key'         => '',
+            'field_label'       => '',
+            'field_type'        => 'text',
+            'field_group'       => '',
+            'field_source'      => 'custom',
+            'field_profile_key' => null,
+            'field_mask'        => null,
+            'is_sensitive'      => 0,
+            'field_options'     => null,
+            'validation_rules'  => null,
+            'sort_order'        => 0,
+            'is_required'       => 0,
+            'is_active'         => 1,
         );
         $data = wp_parse_args($data, $defaults);
 
         // Validate field type
         if (!in_array($data['field_type'], self::FIELD_TYPES, true)) {
             $data['field_type'] = 'text';
+        }
+
+        // Validate field source
+        if (!in_array($data['field_source'], array('standard', 'custom'), true)) {
+            $data['field_source'] = 'custom';
         }
 
         // Auto-generate field_key from label if empty
@@ -234,21 +244,26 @@ class CustomFieldRepository {
         $data['field_key'] = self::ensure_unique_key($data['field_key'], (int) $data['audience_id']);
 
         $insert_data = array(
-            'audience_id'      => (int) $data['audience_id'],
-            'field_key'        => sanitize_key($data['field_key']),
-            'field_label'      => sanitize_text_field($data['field_label']),
-            'field_type'       => $data['field_type'],
-            'field_options'    => is_string($data['field_options']) ? $data['field_options'] : wp_json_encode($data['field_options']),
-            'validation_rules' => is_string($data['validation_rules']) ? $data['validation_rules'] : wp_json_encode($data['validation_rules']),
-            'sort_order'       => (int) $data['sort_order'],
-            'is_required'      => (int) $data['is_required'],
-            'is_active'        => (int) $data['is_active'],
+            'audience_id'       => (int) $data['audience_id'],
+            'field_key'         => sanitize_key($data['field_key']),
+            'field_label'       => sanitize_text_field($data['field_label']),
+            'field_type'        => $data['field_type'],
+            'field_group'       => sanitize_text_field((string) $data['field_group']),
+            'field_source'      => $data['field_source'],
+            'field_profile_key' => $data['field_profile_key'] !== null ? sanitize_key((string) $data['field_profile_key']) : null,
+            'field_mask'        => $data['field_mask'] !== null ? sanitize_text_field((string) $data['field_mask']) : null,
+            'is_sensitive'      => (int) $data['is_sensitive'],
+            'field_options'     => is_string($data['field_options']) ? $data['field_options'] : wp_json_encode($data['field_options']),
+            'validation_rules'  => is_string($data['validation_rules']) ? $data['validation_rules'] : wp_json_encode($data['validation_rules']),
+            'sort_order'        => (int) $data['sort_order'],
+            'is_required'       => (int) $data['is_required'],
+            'is_active'         => (int) $data['is_active'],
         );
 
         $result = $wpdb->insert(
             $table,
             $insert_data,
-            array('%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d')
+            array('%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%d', '%d')
         );
 
         return $result ? $wpdb->insert_id : false;
@@ -276,15 +291,20 @@ class CustomFieldRepository {
         $format = array();
 
         $field_formats = array(
-            'audience_id'      => '%d',
-            'field_key'        => '%s',
-            'field_label'      => '%s',
-            'field_type'       => '%s',
-            'field_options'    => '%s',
-            'validation_rules' => '%s',
-            'sort_order'       => '%d',
-            'is_required'      => '%d',
-            'is_active'        => '%d',
+            'audience_id'       => '%d',
+            'field_key'         => '%s',
+            'field_label'       => '%s',
+            'field_type'        => '%s',
+            'field_group'       => '%s',
+            'field_source'      => '%s',
+            'field_profile_key' => '%s',
+            'field_mask'        => '%s',
+            'is_sensitive'      => '%d',
+            'field_options'     => '%s',
+            'validation_rules'  => '%s',
+            'sort_order'        => '%d',
+            'is_required'       => '%d',
+            'is_active'         => '%d',
         );
 
         foreach ($data as $key => $value) {
@@ -298,13 +318,20 @@ class CustomFieldRepository {
             }
 
             // Sanitize text fields
-            if (in_array($key, array('field_key', 'field_label', 'field_type'), true)) {
-                $value = $key === 'field_key' ? sanitize_key($value) : sanitize_text_field($value);
+            if (in_array($key, array('field_key', 'field_profile_key'), true)) {
+                $value = $value !== null ? sanitize_key((string) $value) : null;
+            } elseif (in_array($key, array('field_label', 'field_type', 'field_group', 'field_mask', 'field_source'), true)) {
+                $value = $value !== null ? sanitize_text_field((string) $value) : null;
             }
 
             // Validate field type
             if ($key === 'field_type' && !in_array($value, self::FIELD_TYPES, true)) {
                 $value = 'text';
+            }
+
+            // Validate field source
+            if ($key === 'field_source' && !in_array($value, array('standard', 'custom'), true)) {
+                $value = 'custom';
             }
 
             $update_data[$key] = $value;
@@ -331,6 +358,9 @@ class CustomFieldRepository {
     /**
      * Delete a custom field definition.
      *
+     * Standard fields (field_source='standard') cannot be deleted — only
+     * deactivated. This is enforced to preserve the field seeding invariant.
+     *
      * Note: This only removes the field definition. User data in wp_usermeta
      * remains as orphaned keys in the JSON — this is by design so data can
      * be recovered if the field is re-created.
@@ -339,6 +369,11 @@ class CustomFieldRepository {
      * @return bool
      */
     public static function delete(int $field_id): bool {
+        $field = self::get_by_id($field_id);
+        if ($field && isset($field->field_source) && $field->field_source === 'standard') {
+            return false;
+        }
+
         $wpdb = self::db();
         $table = self::get_table_name();
 
@@ -421,6 +456,152 @@ class CustomFieldRepository {
         return (int) $wpdb->get_var(
             $wpdb->prepare("SELECT COUNT(*) FROM %i {$where}", array_merge(array($table), $values))
         );
+    }
+
+    // ─────────────────────────────────────────────
+    // Dynamic field grouping / profile / sensitive helpers
+    // ─────────────────────────────────────────────
+
+    /**
+     * Get fields for an audience grouped by field_group.
+     *
+     * Preserves sort_order within groups. Groups appear in the order they
+     * are first encountered in the sort sequence, so that drag-and-drop
+     * ordering in the admin UI determines both field and group order.
+     *
+     * @param int  $audience_id Audience ID.
+     * @param bool $active_only Only return active fields.
+     * @return array<string, array<object>> Map of group_key => fields[].
+     */
+    public static function get_by_audience_grouped(int $audience_id, bool $active_only = true): array {
+        $fields = self::get_by_audience($audience_id, $active_only);
+        $grouped = array();
+
+        foreach ($fields as $field) {
+            $group = isset($field->field_group) ? (string) $field->field_group : '';
+            if (!isset($grouped[$group])) {
+                $grouped[$group] = array();
+            }
+            $grouped[$group][] = $field;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Get the ordered list of groups for an audience.
+     *
+     * Groups are ordered by the minimum sort_order of their fields.
+     *
+     * @param int  $audience_id Audience ID.
+     * @param bool $active_only Only consider active fields.
+     * @return array<string> Ordered group keys.
+     */
+    public static function get_groups_for_audience(int $audience_id, bool $active_only = true): array {
+        $grouped = self::get_by_audience_grouped($audience_id, $active_only);
+        return array_keys($grouped);
+    }
+
+    /**
+     * Update only the field_group of a field.
+     *
+     * @param int    $field_id Field ID.
+     * @param string $group    New group key.
+     * @return bool
+     */
+    public static function update_field_group(int $field_id, string $group): bool {
+        return self::update($field_id, array('field_group' => $group));
+    }
+
+    /**
+     * Get fields that map to a user profile key (field_profile_key IS NOT NULL).
+     *
+     * Used by the data processor to sync reregistration data back to the
+     * WordPress user profile upon approval.
+     *
+     * @param int  $audience_id Audience ID.
+     * @param bool $active_only Only active fields.
+     * @return array<object>
+     */
+    public static function get_profile_fields(int $audience_id, bool $active_only = true): array {
+        $fields = self::get_by_audience($audience_id, $active_only);
+        return array_values(array_filter($fields, static function ($field) {
+            return !empty($field->field_profile_key);
+        }));
+    }
+
+    /**
+     * Get sensitive (is_sensitive=1) fields for an audience.
+     *
+     * Used by the data processor to know which values must be encrypted
+     * before persistence and decrypted on read.
+     *
+     * @param int  $audience_id Audience ID.
+     * @param bool $active_only Only active fields.
+     * @return array<object>
+     */
+    public static function get_sensitive_fields(int $audience_id, bool $active_only = true): array {
+        $fields = self::get_by_audience($audience_id, $active_only);
+        return array_values(array_filter($fields, static function ($field) {
+            return !empty($field->is_sensitive);
+        }));
+    }
+
+    /**
+     * Get the set of sensitive field_keys for an audience.
+     *
+     * Convenient lookup form used in hot paths (validation, encryption).
+     *
+     * @param int  $audience_id Audience ID.
+     * @param bool $active_only Only active fields.
+     * @return array<string> field_keys of sensitive fields.
+     */
+    public static function get_sensitive_keys_for_audience(int $audience_id, bool $active_only = true): array {
+        $fields = self::get_sensitive_fields($audience_id, $active_only);
+        return array_map(static function ($field) {
+            return (string) $field->field_key;
+        }, $fields);
+    }
+
+    /**
+     * Get fields for an audience indexed by field_key.
+     *
+     * Used by the data processor and renderer to perform O(1) field lookups.
+     *
+     * @param int  $audience_id Audience ID.
+     * @param bool $active_only Only active fields.
+     * @return array<string, object>
+     */
+    public static function get_by_audience_keyed(int $audience_id, bool $active_only = true): array {
+        $fields = self::get_by_audience($audience_id, $active_only);
+        $keyed = array();
+        foreach ($fields as $field) {
+            $keyed[(string) $field->field_key] = $field;
+        }
+        return $keyed;
+    }
+
+    /**
+     * Get a single field by (audience_id, field_key).
+     *
+     * @param int    $audience_id Audience ID.
+     * @param string $field_key   Field key.
+     * @return object|null
+     */
+    public static function get_by_key(int $audience_id, string $field_key): ?object {
+        $wpdb = self::db();
+        $table = self::get_table_name();
+
+        $result = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM %i WHERE audience_id = %d AND field_key = %s LIMIT 1",
+                $table,
+                $audience_id,
+                $field_key
+            )
+        );
+
+        return $result ?: null;
     }
 
     // ─────────────────────────────────────────────

@@ -326,19 +326,27 @@ class AudienceAdminAudience {
      * @return void
      */
     private function render_custom_fields_section(int $audience_id): void {
-        $fields = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_audience($audience_id, false);
+        // Ensure standard fields are seeded for this audience before rendering.
+        if (class_exists('\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder')) {
+            \FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::seed_for_audience($audience_id);
+        }
+
+        $fields      = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_audience($audience_id, false);
         $field_types = \FreeFormCertificate\Reregistration\CustomFieldRepository::FIELD_TYPES;
+        $group_labels = class_exists('\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder')
+            ? \FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::get_group_labels()
+            : array();
 
         ?>
         <hr>
-        <h2><?php esc_html_e('Custom Fields', 'ffcertificate'); ?></h2>
-        <p class="description"><?php esc_html_e('Define custom fields for members of this audience. Fields are shown during reregistration and on the user profile.', 'ffcertificate'); ?></p>
+        <h2><?php esc_html_e('Reregistration Fields', 'ffcertificate'); ?></h2>
+        <p class="description"><?php esc_html_e('Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use "+ Add Field" to create custom fields.', 'ffcertificate'); ?></p>
 
         <div id="ffc-custom-fields-container" data-audience-id="<?php echo esc_attr((string) $audience_id); ?>">
             <div id="ffc-custom-fields-list" class="ffc-custom-fields-sortable">
                 <?php if (!empty($fields)) : ?>
                     <?php foreach ($fields as $field) : ?>
-                        <?php $this->render_custom_field_row($field, $field_types); ?>
+                        <?php $this->render_custom_field_row($field, $field_types, $group_labels); ?>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </div>
@@ -356,14 +364,21 @@ class AudienceAdminAudience {
 
         <!-- Template for new field row (used by JS) -->
         <script type="text/html" id="tmpl-ffc-custom-field-row">
-            <div class="ffc-custom-field-row" data-field-id="new_{{data.index}}">
+            <div class="ffc-custom-field-row" data-field-id="new_{{data.index}}" data-field-source="custom">
                 <div class="ffc-field-handle"><span class="dashicons dashicons-menu"></span></div>
                 <div class="ffc-field-content">
                     <div class="ffc-field-main-row">
+                        <span class="ffc-field-source-badge ffc-field-source-custom"><?php esc_html_e('Custom', 'ffcertificate'); ?></span>
                         <input type="text" class="ffc-field-label regular-text" placeholder="<?php esc_attr_e('Field Label', 'ffcertificate'); ?>" value="">
                         <select class="ffc-field-type">
                             <?php foreach ($field_types as $type) : ?>
                                 <option value="<?php echo esc_attr($type); ?>"><?php echo esc_html(ucfirst($type)); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <select class="ffc-field-group">
+                            <option value=""><?php esc_html_e('(No group)', 'ffcertificate'); ?></option>
+                            <?php foreach ($group_labels as $gkey => $glabel) : ?>
+                                <option value="<?php echo esc_attr($gkey); ?>"><?php echo esc_html($glabel); ?></option>
                             <?php endforeach; ?>
                         </select>
                         <label class="ffc-field-required-label">
@@ -372,9 +387,14 @@ class AudienceAdminAudience {
                         <label class="ffc-field-active-label">
                             <input type="checkbox" class="ffc-field-active" checked> <?php esc_html_e('Active', 'ffcertificate'); ?>
                         </label>
+                        <label class="ffc-field-sensitive-label" title="<?php esc_attr_e('Encrypt this value at rest (AES-256).', 'ffcertificate'); ?>">
+                            <input type="checkbox" class="ffc-field-sensitive"> <?php esc_html_e('Sensitive', 'ffcertificate'); ?>
+                        </label>
                     </div>
                     <div class="ffc-field-details-row">
                         <input type="text" class="ffc-field-key" placeholder="<?php esc_attr_e('field_key (auto)', 'ffcertificate'); ?>" value="">
+                        <input type="text" class="ffc-field-profile-key" placeholder="<?php esc_attr_e('profile_key (optional)', 'ffcertificate'); ?>" value="">
+                        <input type="text" class="ffc-field-mask" placeholder="<?php esc_attr_e('Mask (cpf, phone, cep…)', 'ffcertificate'); ?>" value="">
                         <div class="ffc-field-options-container" style="display:none;">
                             <textarea class="ffc-field-choices" placeholder="<?php esc_attr_e('Options (one per line)', 'ffcertificate'); ?>" rows="3"></textarea>
                         </div>
@@ -408,11 +428,12 @@ class AudienceAdminAudience {
     /**
      * Render a single custom field row in the editor.
      *
-     * @param object $field      Field object from database.
-     * @param array<int, string> $field_types Available field types.
+     * @param object $field        Field object from database.
+     * @param array<int, string>   $field_types  Available field types.
+     * @param array<string, string> $group_labels Map of group_key => translated label.
      * @return void
      */
-    private function render_custom_field_row(object $field, array $field_types): void {
+    private function render_custom_field_row(object $field, array $field_types, array $group_labels = array()): void {
         $options = $field->field_options;
         if (is_string($options)) {
             $options = json_decode($options, true);
@@ -426,22 +447,48 @@ class AudienceAdminAudience {
         if (!empty($options['choices'])) {
             $choices_text = implode("\n", $options['choices']);
         }
-        $format = $rules['format'] ?? '';
-        $regex = $rules['custom_regex'] ?? '';
-        $regex_msg = $rules['custom_regex_message'] ?? '';
-        $help_text = $options['help_text'] ?? '';
-        $is_select = ($field->field_type === 'select');
-        $is_regex = ($format === 'custom_regex');
+        $format        = $rules['format'] ?? '';
+        $regex         = $rules['custom_regex'] ?? '';
+        $regex_msg     = $rules['custom_regex_message'] ?? '';
+        $help_text     = $options['help_text'] ?? '';
+        $is_select     = ($field->field_type === 'select');
+        $is_regex      = ($format === 'custom_regex');
+
+        $source        = isset($field->field_source) && $field->field_source === 'standard' ? 'standard' : 'custom';
+        $is_standard   = ($source === 'standard');
+        $locked_attr   = $is_standard ? ' disabled' : '';
+        $field_group   = (string) ($field->field_group ?? '');
+        $profile_key   = (string) ($field->field_profile_key ?? '');
+        $mask          = (string) ($field->field_mask ?? '');
+        $is_sensitive  = !empty($field->is_sensitive);
+
+        $badge_label   = $is_standard
+            ? __('Standard', 'ffcertificate')
+            : __('Custom', 'ffcertificate');
+        $badge_class   = $is_standard ? 'ffc-field-source-standard' : 'ffc-field-source-custom';
+
+        // Ensure the field's current group appears in the select even if it
+        // is not one of the canonical seeder groups (custom field groups).
+        if ($field_group !== '' && !isset($group_labels[$field_group])) {
+            $group_labels[$field_group] = $field_group;
+        }
 
         ?>
-        <div class="ffc-custom-field-row <?php echo empty($field->is_active) ? 'ffc-field-inactive' : ''; ?>" data-field-id="<?php echo esc_attr($field->id); ?>">
+        <div class="ffc-custom-field-row <?php echo empty($field->is_active) ? 'ffc-field-inactive' : ''; ?> ffc-field-source-<?php echo esc_attr($source); ?>" data-field-id="<?php echo esc_attr((string) $field->id); ?>" data-field-source="<?php echo esc_attr($source); ?>">
             <div class="ffc-field-handle"><span class="dashicons dashicons-menu"></span></div>
             <div class="ffc-field-content">
                 <div class="ffc-field-main-row">
+                    <span class="ffc-field-source-badge <?php echo esc_attr($badge_class); ?>"><?php echo esc_html($badge_label); ?></span>
                     <input type="text" class="ffc-field-label regular-text" placeholder="<?php esc_attr_e('Field Label', 'ffcertificate'); ?>" value="<?php echo esc_attr($field->field_label); ?>">
-                    <select class="ffc-field-type">
+                    <select class="ffc-field-type"<?php echo esc_attr($locked_attr); ?>>
                         <?php foreach ($field_types as $type) : ?>
                             <option value="<?php echo esc_attr($type); ?>" <?php selected($field->field_type, $type); ?>><?php echo esc_html(ucfirst($type)); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select class="ffc-field-group">
+                        <option value=""><?php esc_html_e('(No group)', 'ffcertificate'); ?></option>
+                        <?php foreach ($group_labels as $gkey => $glabel) : ?>
+                            <option value="<?php echo esc_attr($gkey); ?>" <?php selected($field_group, $gkey); ?>><?php echo esc_html($glabel); ?></option>
                         <?php endforeach; ?>
                     </select>
                     <label class="ffc-field-required-label">
@@ -450,22 +497,27 @@ class AudienceAdminAudience {
                     <label class="ffc-field-active-label">
                         <input type="checkbox" class="ffc-field-active" <?php checked(!empty($field->is_active)); ?>> <?php esc_html_e('Active', 'ffcertificate'); ?>
                     </label>
+                    <label class="ffc-field-sensitive-label" title="<?php esc_attr_e('Encrypt this value at rest (AES-256).', 'ffcertificate'); ?>">
+                        <input type="checkbox" class="ffc-field-sensitive" <?php checked($is_sensitive); ?><?php echo esc_attr($locked_attr); ?>> <?php esc_html_e('Sensitive', 'ffcertificate'); ?>
+                    </label>
                 </div>
                 <div class="ffc-field-details-row" style="display:none;">
-                    <input type="text" class="ffc-field-key" placeholder="<?php esc_attr_e('field_key', 'ffcertificate'); ?>" value="<?php echo esc_attr($field->field_key); ?>">
+                    <input type="text" class="ffc-field-key" placeholder="<?php esc_attr_e('field_key', 'ffcertificate'); ?>" value="<?php echo esc_attr($field->field_key); ?>"<?php echo esc_attr($locked_attr); ?>>
+                    <input type="text" class="ffc-field-profile-key" placeholder="<?php esc_attr_e('profile_key (optional)', 'ffcertificate'); ?>" value="<?php echo esc_attr($profile_key); ?>"<?php echo esc_attr($locked_attr); ?>>
+                    <input type="text" class="ffc-field-mask" placeholder="<?php esc_attr_e('Mask (cpf, phone, cep…)', 'ffcertificate'); ?>" value="<?php echo esc_attr($mask); ?>"<?php echo esc_attr($locked_attr); ?>>
                     <div class="ffc-field-options-container" <?php echo $is_select ? '' : 'style="display:none;"'; ?>>
-                        <textarea class="ffc-field-choices" placeholder="<?php esc_attr_e('Options (one per line)', 'ffcertificate'); ?>" rows="3"><?php echo esc_textarea($choices_text); ?></textarea>
+                        <textarea class="ffc-field-choices" placeholder="<?php esc_attr_e('Options (one per line)', 'ffcertificate'); ?>" rows="3"<?php echo esc_attr($locked_attr); ?>><?php echo esc_textarea($choices_text); ?></textarea>
                     </div>
                     <div class="ffc-field-validation-container">
-                        <select class="ffc-field-format">
+                        <select class="ffc-field-format"<?php echo esc_attr($locked_attr); ?>>
                             <option value=""><?php esc_html_e('No format validation', 'ffcertificate'); ?></option>
                             <option value="cpf" <?php selected($format, 'cpf'); ?>><?php esc_html_e('CPF', 'ffcertificate'); ?></option>
                             <option value="email" <?php selected($format, 'email'); ?>><?php esc_html_e('Email', 'ffcertificate'); ?></option>
                             <option value="phone" <?php selected($format, 'phone'); ?>><?php esc_html_e('Phone', 'ffcertificate'); ?></option>
                             <option value="custom_regex" <?php selected($format, 'custom_regex'); ?>><?php esc_html_e('Custom Regex', 'ffcertificate'); ?></option>
                         </select>
-                        <input type="text" class="ffc-field-regex" placeholder="<?php esc_attr_e('Regex pattern', 'ffcertificate'); ?>" value="<?php echo esc_attr($regex); ?>" <?php echo $is_regex ? '' : 'style="display:none;"'; ?>>
-                        <input type="text" class="ffc-field-regex-msg" placeholder="<?php esc_attr_e('Error message for regex', 'ffcertificate'); ?>" value="<?php echo esc_attr($regex_msg); ?>" <?php echo $is_regex ? '' : 'style="display:none;"'; ?>>
+                        <input type="text" class="ffc-field-regex" placeholder="<?php esc_attr_e('Regex pattern', 'ffcertificate'); ?>" value="<?php echo esc_attr($regex); ?>" <?php echo $is_regex ? '' : 'style="display:none;"'; ?><?php echo esc_attr($locked_attr); ?>>
+                        <input type="text" class="ffc-field-regex-msg" placeholder="<?php esc_attr_e('Error message for regex', 'ffcertificate'); ?>" value="<?php echo esc_attr($regex_msg); ?>" <?php echo $is_regex ? '' : 'style="display:none;"'; ?><?php echo esc_attr($locked_attr); ?>>
                     </div>
                     <input type="text" class="ffc-field-help" placeholder="<?php esc_attr_e('Help text (optional)', 'ffcertificate'); ?>" value="<?php echo esc_attr($help_text); ?>">
                 </div>
@@ -474,9 +526,11 @@ class AudienceAdminAudience {
                 <button type="button" class="button button-small ffc-field-toggle-details" title="<?php esc_attr_e('Toggle details', 'ffcertificate'); ?>">
                     <span class="dashicons dashicons-admin-generic"></span>
                 </button>
-                <button type="button" class="button button-small button-link-delete ffc-field-delete" title="<?php esc_attr_e('Remove', 'ffcertificate'); ?>">
-                    <span class="dashicons dashicons-trash"></span>
-                </button>
+                <?php if (!$is_standard) : ?>
+                    <button type="button" class="button button-small button-link-delete ffc-field-delete" title="<?php esc_attr_e('Remove', 'ffcertificate'); ?>">
+                        <span class="dashicons dashicons-trash"></span>
+                    </button>
+                <?php endif; ?>
             </div>
         </div>
         <?php

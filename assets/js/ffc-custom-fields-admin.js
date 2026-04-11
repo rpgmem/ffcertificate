@@ -84,9 +84,10 @@
         }
 
         var fields = [];
-        $('#ffc-custom-fields-list .ffc-custom-field-row').each(function () {
+        $('#ffc-custom-fields-list .ffc-custom-field-row').each(function (idx) {
             var $row = $(this);
             var fieldId = $row.data('field-id');
+            var source  = $row.data('field-source') || 'custom';
 
             // Collect choices from textarea
             var choicesText = $row.find('.ffc-field-choices').val() || '';
@@ -94,11 +95,17 @@
 
             fields.push({
                 id: fieldId,
+                source: source,
+                sort_order: idx,
                 label: $row.find('.ffc-field-label').val(),
                 key: $row.find('.ffc-field-key').val(),
                 type: $row.find('.ffc-field-type').val(),
+                group: $row.find('.ffc-field-group').val() || '',
                 is_required: $row.find('.ffc-field-required').is(':checked') ? 1 : 0,
                 is_active: $row.find('.ffc-field-active').is(':checked') ? 1 : 0,
+                is_sensitive: $row.find('.ffc-field-sensitive').is(':checked') ? 1 : 0,
+                profile_key: $row.find('.ffc-field-profile-key').val() || '',
+                mask: $row.find('.ffc-field-mask').val() || '',
                 choices: choices,
                 help_text: $row.find('.ffc-field-help').val(),
                 format: $row.find('.ffc-field-format').val(),
@@ -141,7 +148,13 @@
     function deleteField() {
         var $row = $(this).closest('.ffc-custom-field-row');
         var fieldId = $row.data('field-id');
+        var source = $row.data('field-source') || 'custom';
         var isNew = String(fieldId).indexOf('new_') === 0;
+
+        if (source === 'standard') {
+            alert(ffcAudienceAdmin.strings.cannotDeleteStandard || 'Standard fields cannot be deleted. Deactivate instead.');
+            return;
+        }
 
         if (!confirm(ffcAudienceAdmin.strings.confirmDelete || 'Are you sure?')) {
             return;

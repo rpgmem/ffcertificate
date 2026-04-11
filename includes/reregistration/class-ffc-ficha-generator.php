@@ -41,13 +41,25 @@ class FichaGenerator {
             return null;
         }
 
-        // Get submission data
-        $sub_data = $submission->data ? json_decode($submission->data, true) : array();
-        $standard = $sub_data['standard_fields'] ?? array();
-        $custom_values = $sub_data['custom_fields'] ?? array();
+        // Get submission data (unified dynamic shape).
+        $sub_data    = $submission->data ? json_decode($submission->data, true) : array();
+        $raw_values  = is_array($sub_data['fields'] ?? null) ? $sub_data['fields'] : array();
 
-        // Get custom field definitions
-        $custom_fields = self::get_custom_fields_for_reregistration($rereg);
+        // Get field definitions for all audiences linked to this reregistration.
+        $all_fields = self::get_custom_fields_for_reregistration($rereg);
+
+        // Decrypt sensitive values and split by field_source.
+        $decrypted_values = self::decrypt_field_values($all_fields, $raw_values);
+        $standard_fields  = array();
+        $custom_fields    = array();
+        foreach ($all_fields as $field) {
+            $src = isset($field->field_source) ? (string) $field->field_source : 'custom';
+            if ($src === 'standard') {
+                $standard_fields[] = $field;
+            } else {
+                $custom_fields[] = $field;
+            }
+        }
 
         // Status labels (centralized in SubmissionRepository)
         $status_labels = ReregistrationSubmissionRepository::get_status_labels();
@@ -62,53 +74,40 @@ class FichaGenerator {
         }
 
         // Check if user has acúmulo de cargos
-        $acumulo_value = $standard['acumulo_cargos'] ?? __('I do not hold', 'ffcertificate');
+        $acumulo_value = $decrypted_values['acumulo_cargos'] ?? __('I do not hold', 'ffcertificate');
         $has_acumulo   = $acumulo_value === __('I hold', 'ffcertificate');
 
-        // Build template variables
+        // Build template variables: framework keys + every standard field by field_key.
         $variables = array(
             'reregistration_title' => $rereg->title,
             'audience_name'        => $rereg->audience_name ?? '',
             'submission_status'    => $status_labels[$submission->status] ?? $submission->status,
             'submitted_at'         => $submitted_at,
-            'display_name'         => $standard['display_name'] ?? $user->display_name,
             'email'                => $user->user_email,
-            'sexo'                 => $standard['sexo'] ?? '',
-            'estado_civil'         => $standard['estado_civil'] ?? '',
-            'rf'                   => $standard['rf'] ?? '',
-            'vinculo'              => $standard['vinculo'] ?? '',
-            'data_nascimento'      => $standard['data_nascimento'] ?? '',
-            'cpf'                  => $standard['cpf'] ?? '',
-            'rg'                   => $standard['rg'] ?? '',
-            'unidade_lotacao'      => $standard['unidade_lotacao'] ?? '',
-            'unidade_exercicio'    => $standard['unidade_exercicio'] ?? '',
-            'divisao'              => $standard['divisao'] ?? '',
-            'setor'                => $standard['setor'] ?? '',
-            'endereco'             => $standard['endereco'] ?? '',
-            'endereco_numero'      => $standard['endereco_numero'] ?? '',
-            'endereco_complemento' => $standard['endereco_complemento'] ?? '',
-            'bairro'               => $standard['bairro'] ?? '',
-            'cidade'               => $standard['cidade'] ?? '',
-            'uf'                   => $standard['uf'] ?? '',
-            'cep'                  => $standard['cep'] ?? '',
-            'phone'                => $standard['phone'] ?? '',
-            'celular'              => $standard['celular'] ?? '',
-            'contato_emergencia'   => $standard['contato_emergencia'] ?? '',
-            'tel_emergencia'       => $standard['tel_emergencia'] ?? '',
-            'email_institucional'  => $standard['email_institucional'] ?? $user->user_email,
-            'email_particular'     => $standard['email_particular'] ?? '',
-            'jornada'              => $standard['jornada'] ?? '',
-            'horario_trabalho'     => self::format_working_hours($standard['horario_trabalho'] ?? ''),
-            'sindicato'            => $standard['sindicato'] ?? '',
-            'acumulo_cargos'       => $standard['acumulo_cargos'] ?? __('I do not hold', 'ffcertificate'),
-            'jornada_acumulo'      => $has_acumulo ? ($standard['jornada_acumulo'] ?? '') : '',
-            'cargo_funcao_acumulo' => $has_acumulo ? ($standard['cargo_funcao_acumulo'] ?? '') : '',
-            'horario_trabalho_acumulo' => $has_acumulo ? self::format_working_hours($standard['horario_trabalho_acumulo'] ?? '') : '',
-            'department'           => $standard['department'] ?? '',
-            'organization'         => $standard['organization'] ?? '',
             'site_name'            => get_bloginfo('name'),
             'generation_date'      => wp_date($date_format . ' ' . $time_format),
         );
+
+        foreach ($standard_fields as $field) {
+            $key   = (string) $field->field_key;
+            $value = $decrypted_values[$key] ?? '';
+
+            // Hide accumulation-related fields unless the user declared they hold another job.
+            if (!$has_acumulo && in_array($key, array('jornada_acumulo', 'cargo_funcao_acumulo', 'horario_trabalho_acumulo'), true)) {
+                $variables[$key] = '';
+                continue;
+            }
+
+            $variables[$key] = self::format_field_value($field, $value);
+        }
+
+        // Sensible defaults for framework-level keys.
+        if (empty($variables['display_name'])) {
+            $variables['display_name'] = $user->display_name;
+        }
+        if (empty($variables['email_institucional'])) {
+            $variables['email_institucional'] = $user->user_email;
+        }
 
         /**
          * Filters ficha template variables before HTML generation.
@@ -121,8 +120,8 @@ class FichaGenerator {
          */
         $variables = apply_filters('ffcertificate_ficha_data', $variables, $submission_id, $submission, $rereg);
 
-        // Build custom fields section HTML
-        $custom_section = self::build_custom_fields_section($custom_fields, $custom_values);
+        // Build custom fields section HTML (only non-standard fields).
+        $custom_section = self::build_custom_fields_section($custom_fields, $decrypted_values);
 
         // Load template
         $template = self::load_template();
@@ -237,13 +236,13 @@ class FichaGenerator {
     }
 
     /**
-     * Build custom fields section HTML for the template.
+     * Build the "Additional Information" HTML section for custom (non-standard) fields.
      *
-     * @param array<int, mixed> $custom_fields  Custom field definitions.
-     * @param array<string, mixed> $custom_values  Custom field values keyed by field_X.
+     * @param array<int, object>   $custom_fields    Field definitions.
+     * @param array<string, mixed> $decrypted_values field_key => plain value map.
      * @return string HTML section.
      */
-    private static function build_custom_fields_section(array $custom_fields, array $custom_values): string {
+    private static function build_custom_fields_section(array $custom_fields, array $decrypted_values): string {
         if (empty($custom_fields)) {
             return '';
         }
@@ -254,52 +253,88 @@ class FichaGenerator {
         $html .= '</div>';
         $html .= '<table style="width: 100%;border-collapse: collapse;font-size: 8pt" role="presentation">';
 
-        foreach ($custom_fields as $cf) {
-            $key = 'field_' . $cf->id;
-            $value = $custom_values[$key] ?? '';
-
-            // Format checkbox values
-            if ($cf->field_type === 'checkbox') {
-                $value = $value === '1' ? __('Yes', 'ffcertificate') : __('No', 'ffcertificate');
-            }
-
-            // Format dependent_select values
-            if ($cf->field_type === 'dependent_select') {
-                $dep = is_string($value) ? json_decode($value, true) : $value;
-                if (is_array($dep)) {
-                    $value = trim(($dep['parent'] ?? '') . ' - ' . ($dep['child'] ?? ''), ' -');
-                }
-            }
-
-            // Format working_hours values
-            if ($cf->field_type === 'working_hours') {
-                $wh = is_string($value) ? json_decode($value, true) : $value;
-                if (is_array($wh) && !empty($wh)) {
-                    $days_map = array(
-                        0 => __('Sun', 'ffcertificate'), 1 => __('Mon', 'ffcertificate'),
-                        2 => __('Tue', 'ffcertificate'), 3 => __('Wed', 'ffcertificate'),
-                        4 => __('Thu', 'ffcertificate'), 5 => __('Fri', 'ffcertificate'),
-                        6 => __('Sat', 'ffcertificate'),
-                    );
-                    $lines = array();
-                    foreach ($wh as $entry) {
-                        $day = $days_map[$entry['day'] ?? 0] ?? '';
-                        $times = ($entry['entry1'] ?? '') . '-' . ($entry['exit1'] ?? '') . ' / ' . ($entry['entry2'] ?? '') . '-' . ($entry['exit2'] ?? '');
-                        $lines[] = $day . ': ' . $times;
-                    }
-                    $value = implode('; ', $lines);
-                }
-            }
+        foreach ($custom_fields as $field) {
+            $key       = (string) $field->field_key;
+            $raw_value = $decrypted_values[$key] ?? '';
+            $display   = self::format_field_value($field, $raw_value);
 
             $html .= '<tr>';
-            $html .= '<td style="padding: 2px 0;font-weight: bold;color: #666;width: 120px;vertical-align: top">' . esc_html($cf->field_label) . ':</td>';
-            $html .= '<td style="padding: 2px 0;color: #222">' . esc_html($value) . '</td>';
+            $html .= '<td style="padding: 2px 0;font-weight: bold;color: #666;width: 120px;vertical-align: top">' . esc_html((string) $field->field_label) . ':</td>';
+            $html .= '<td style="padding: 2px 0;color: #222">' . wp_kses_post((string) $display) . '</td>';
             $html .= '</tr>';
         }
 
         $html .= '</table></div>';
 
         return $html;
+    }
+
+    /**
+     * Decrypt sensitive fields in a value map.
+     *
+     * Fields with is_sensitive=1 are persisted as AES-256-CBC ciphertext in
+     * the submission JSON. Ficha rendering needs the plaintext value.
+     *
+     * @param array<int, object>   $fields Field definitions.
+     * @param array<string, mixed> $values field_key => persisted value (may be encrypted).
+     * @return array<string, mixed> field_key => plaintext value.
+     */
+    private static function decrypt_field_values(array $fields, array $values): array {
+        $decrypted = $values;
+
+        if (!class_exists('\FreeFormCertificate\Core\Encryption')) {
+            return $decrypted;
+        }
+
+        foreach ($fields as $field) {
+            if (empty($field->is_sensitive)) {
+                continue;
+            }
+            $key = (string) $field->field_key;
+            if (!isset($decrypted[$key]) || $decrypted[$key] === '' || !is_string($decrypted[$key])) {
+                continue;
+            }
+            $plain = \FreeFormCertificate\Core\Encryption::decrypt($decrypted[$key]);
+            if ($plain !== null) {
+                $decrypted[$key] = $plain;
+            }
+        }
+
+        return $decrypted;
+    }
+
+    /**
+     * Format a single field value for PDF display.
+     *
+     * @param object $field Field definition.
+     * @param mixed  $value Plain value.
+     * @return string Display-ready string (may contain safe HTML for working_hours).
+     */
+    private static function format_field_value(object $field, $value): string {
+        switch ((string) $field->field_type) {
+            case 'checkbox':
+                return $value === '1' || $value === 1 || $value === true
+                    ? __('Yes', 'ffcertificate')
+                    : __('No', 'ffcertificate');
+
+            case 'dependent_select':
+                $dep = is_string($value) ? json_decode($value, true) : $value;
+                if (is_array($dep)) {
+                    $parent = (string) ($dep['parent'] ?? '');
+                    $child  = (string) ($dep['child']  ?? '');
+                    return trim($parent . ' - ' . $child, ' -');
+                }
+                return '';
+
+            case 'working_hours':
+                return self::format_working_hours(is_string($value) ? $value : (string) wp_json_encode($value));
+
+            default:
+                if (is_array($value)) {
+                    return implode(', ', array_map('strval', $value));
+                }
+                return is_scalar($value) ? (string) $value : '';
+        }
     }
 
     /**

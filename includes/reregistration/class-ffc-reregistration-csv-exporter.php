@@ -42,7 +42,7 @@ class ReregistrationCsvExporter {
         }
 
         $submissions = ReregistrationSubmissionRepository::get_for_export($id);
-        $custom_fields = self::get_custom_fields_for_reregistration($rereg);
+        $fields      = self::get_custom_fields_for_reregistration($rereg);
 
         // Build CSV
         $filename = 'reregistration-' . sanitize_file_name($rereg->title) . '-' . gmdate('Y-m-d') . '.csv';
@@ -59,7 +59,7 @@ class ReregistrationCsvExporter {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
         fwrite($output, "\xEF\xBB\xBF");
 
-        // Header row
+        // Header row — fixed metadata + all dynamic fields in repository order.
         $headers = array(
             __('User ID', 'ffcertificate'),
             __('Name', 'ffcertificate'),
@@ -67,14 +67,10 @@ class ReregistrationCsvExporter {
             __('Status', 'ffcertificate'),
             __('Submitted At', 'ffcertificate'),
             __('Reviewed At', 'ffcertificate'),
-            __('Phone', 'ffcertificate'),
-            __('Department', 'ffcertificate'),
-            __('Organization', 'ffcertificate'),
         );
 
-        // Add custom field headers
-        foreach ($custom_fields as $cf) {
-            $headers[] = $cf->field_label;
+        foreach ($fields as $f) {
+            $headers[] = $f->field_label;
         }
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv
@@ -83,8 +79,10 @@ class ReregistrationCsvExporter {
         // Data rows
         foreach ($submissions as $sub) {
             $sub_data = $sub->data ? json_decode($sub->data, true) : array();
-            $standard = $sub_data['standard_fields'] ?? array();
-            $custom = $sub_data['custom_fields'] ?? array();
+            $values   = is_array($sub_data['fields'] ?? null) ? $sub_data['fields'] : array();
+
+            // Decrypt sensitive fields in-place.
+            $values = self::decrypt_sensitive($fields, $values);
 
             $row = array(
                 $sub->user_id,
@@ -93,13 +91,10 @@ class ReregistrationCsvExporter {
                 $sub->status,
                 $sub->submitted_at ?? '',
                 $sub->reviewed_at ?? '',
-                $standard['phone'] ?? '',
-                $standard['department'] ?? '',
-                $standard['organization'] ?? '',
             );
 
-            foreach ($custom_fields as $cf) {
-                $row[] = $custom['field_' . $cf->id] ?? '';
+            foreach ($fields as $f) {
+                $row[] = self::stringify_value($f, $values[(string) $f->field_key] ?? '');
             }
 
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv
@@ -133,5 +128,72 @@ class ReregistrationCsvExporter {
         }
 
         return $all_fields;
+    }
+
+    /**
+     * Decrypt sensitive values in place.
+     *
+     * @param array<int, object>   $fields Field definitions.
+     * @param array<string, mixed> $values field_key => value map.
+     * @return array<string, mixed> Decrypted map.
+     */
+    private static function decrypt_sensitive(array $fields, array $values): array {
+        if (!class_exists('\FreeFormCertificate\Core\Encryption')) {
+            return $values;
+        }
+
+        foreach ($fields as $field) {
+            if (empty($field->is_sensitive)) {
+                continue;
+            }
+            $key = (string) $field->field_key;
+            if (!isset($values[$key]) || $values[$key] === '' || !is_string($values[$key])) {
+                continue;
+            }
+            $plain = \FreeFormCertificate\Core\Encryption::decrypt($values[$key]);
+            if ($plain !== null) {
+                $values[$key] = $plain;
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * Convert a stored field value into a CSV-friendly string.
+     *
+     * @param object $field Field definition.
+     * @param mixed  $value Plain value (may already be decrypted).
+     * @return string
+     */
+    private static function stringify_value(object $field, $value): string {
+        switch ((string) $field->field_type) {
+            case 'checkbox':
+                return ($value === '1' || $value === 1 || $value === true)
+                    ? __('Yes', 'ffcertificate')
+                    : __('No', 'ffcertificate');
+
+            case 'dependent_select':
+                $dep = is_string($value) ? json_decode($value, true) : $value;
+                if (is_array($dep)) {
+                    $parent = (string) ($dep['parent'] ?? '');
+                    $child  = (string) ($dep['child']  ?? '');
+                    return trim($parent . ' / ' . $child, ' /');
+                }
+                return '';
+
+            case 'working_hours':
+                // Keep raw JSON — users can post-process in Excel if needed.
+                if (is_string($value)) {
+                    return $value === '[]' ? '' : $value;
+                }
+                return is_array($value) ? (string) wp_json_encode($value) : '';
+
+            default:
+                if (is_array($value)) {
+                    return implode(', ', array_map('strval', $value));
+                }
+                return is_scalar($value) ? (string) $value : '';
+        }
     }
 }
