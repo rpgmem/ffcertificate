@@ -236,3 +236,126 @@ a.delete-link:hover {
 .ffc-transfer-member-count {
     margin-top: 8px;
 }
+
+/* ── Submission details modal ────────────────── */
+.ffc-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+}
+
+body.ffc-modal-open {
+    overflow: hidden;
+}
+
+.ffc-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(30, 30, 30, 0.55);
+}
+
+.ffc-modal-content {
+    position: relative;
+    max-width: 820px;
+    width: calc(100% - 40px);
+    max-height: calc(100vh - 60px);
+    margin: 30px auto 0;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+}
+
+.ffc-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid #dcdcde;
+    background: #f6f7f7;
+    border-radius: 6px 6px 0 0;
+}
+
+.ffc-modal-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.ffc-modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    color: #50575e;
+    cursor: pointer;
+    padding: 0 6px;
+}
+
+.ffc-modal-close:hover {
+    color: #000;
+}
+
+.ffc-modal-body {
+    padding: 18px 22px;
+    overflow-y: auto;
+    flex: 1 1 auto;
+}
+
+.ffc-modal-loading {
+    color: #50575e;
+    font-style: italic;
+}
+
+/* Submission details content */
+.ffc-submission-meta {
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dcdcde;
+}
+
+.ffc-submission-meta p {
+    margin: 4px 0;
+}
+
+.ffc-details-fieldset {
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 8px 14px 12px;
+    margin: 0 0 14px;
+    background: #fff;
+}
+
+.ffc-details-fieldset > legend {
+    padding: 0 6px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #1d2327;
+}
+
+.ffc-details-list {
+    display: grid;
+    grid-template-columns: minmax(140px, 30%) 1fr;
+    gap: 6px 14px;
+    margin: 0;
+}
+
+.ffc-details-list dt {
+    font-weight: 600;
+    color: #50575e;
+    font-size: 13px;
+    padding: 4px 0;
+    border-bottom: 1px dashed #f0f0f1;
+}
+
+.ffc-details-list dd {
+    margin: 0;
+    padding: 4px 0;
+    border-bottom: 1px dashed #f0f0f1;
+    word-break: break-word;
+}
+
+.ffc-details-empty {
+    color: #a7aaad;
+}

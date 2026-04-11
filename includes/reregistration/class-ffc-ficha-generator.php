@@ -279,7 +279,7 @@ class FichaGenerator {
      * @param array<string, mixed> $values field_key => persisted value (may be encrypted).
      * @return array<string, mixed> field_key => plaintext value.
      */
-    private static function decrypt_field_values(array $fields, array $values): array {
+    public static function decrypt_field_values(array $fields, array $values): array {
         $decrypted = $values;
 
         if (!class_exists('\FreeFormCertificate\Core\Encryption')) {
@@ -310,7 +310,7 @@ class FichaGenerator {
      * @param mixed  $value Plain value.
      * @return string Display-ready string (may contain safe HTML for working_hours).
      */
-    private static function format_field_value(object $field, $value): string {
+    public static function format_field_value(object $field, $value): string {
         switch ((string) $field->field_type) {
             case 'checkbox':
                 return $value === '1' || $value === 1 || $value === true
@@ -378,7 +378,7 @@ class FichaGenerator {
      * @param object $rereg Reregistration object.
      * @return array<object>
      */
-    private static function get_custom_fields_for_reregistration(object $rereg): array {
+    public static function get_custom_fields_for_reregistration(object $rereg): array {
         $audience_ids = ReregistrationRepository::get_audience_ids((int) $rereg->id);
         $all_fields = array();
         $seen = array();

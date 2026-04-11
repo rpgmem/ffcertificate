@@ -12,6 +12,7 @@
         initBulkConfirm();
         initReturnToDraftConfirm();
         initFichaDownload();
+        initSubmissionDetailsModal();
         initTransferList();
     });
 
@@ -109,6 +110,64 @@
                 );
                 alert(S.errorGenerating || 'Error generating ficha.');
             });
+        });
+    }
+
+    /**
+     * Submission details modal — reads grouped/decrypted field values via AJAX.
+     */
+    function initSubmissionDetailsModal() {
+        var $modal = $('#ffc-submission-details-modal');
+        if (!$modal.length) return;
+
+        var $body = $modal.find('.ffc-modal-body');
+
+        function openModal() {
+            $modal.show();
+            $('body').addClass('ffc-modal-open');
+        }
+
+        function closeModal() {
+            $modal.hide();
+            $('body').removeClass('ffc-modal-open');
+            $body.html('<p class="ffc-modal-loading"></p>');
+        }
+
+        $(document).on('click', '.ffc-view-details-btn', function (e) {
+            e.preventDefault();
+            var subId = $(this).data('submission-id');
+            if (!subId) return;
+
+            var S = (window.ffcReregistrationAdmin && window.ffcReregistrationAdmin.strings) || {};
+            $body.html('<p class="ffc-modal-loading">' + (S.loadingDetails || 'Loading…') + '</p>');
+            openModal();
+
+            $.post(ffcReregistrationAdmin.ajaxUrl, {
+                action: 'ffc_view_submission_details',
+                nonce: ffcReregistrationAdmin.viewDetailsNonce,
+                submission_id: subId
+            }).done(function (res) {
+                if (res && res.success && res.data && res.data.html) {
+                    $body.html(res.data.html);
+                } else {
+                    var msg = (res && res.data && res.data.message)
+                        ? res.data.message
+                        : (S.errorLoadingDetails || 'Failed to load submission details.');
+                    $body.html('<p class="notice notice-error">' + msg + '</p>');
+                }
+            }).fail(function () {
+                $body.html('<p class="notice notice-error">' + (S.errorLoadingDetails || 'Failed to load submission details.') + '</p>');
+            });
+        });
+
+        // Close handlers: X button, backdrop, ESC key
+        $modal.on('click', '.ffc-modal-close, .ffc-modal-backdrop', function () {
+            closeModal();
+        });
+        $(document).on('keydown.ffcDetails', function (e) {
+            if (e.key === 'Escape' && $modal.is(':visible')) {
+                closeModal();
+            }
         });
     }
 
