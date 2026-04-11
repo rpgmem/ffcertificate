@@ -236,6 +236,14 @@ class UrlShortenerMetaBoxTest extends TestCase {
         $this->assertTrue( $error_sent );
     }
 
+    /**
+     * Runs in a separate process because AjaxTrait::check_ajax_permission()
+     * calls Utils::current_user_can_manage(), and other tests in the suite
+     * leave a Mockery alias for Utils loaded.
+     *
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function test_ajax_regenerate_no_existing_creates_new(): void {
         $_POST['nonce']   = 'valid';
         $_POST['post_id'] = '15';

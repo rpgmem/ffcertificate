@@ -171,6 +171,14 @@ class ReregistrationAdminTest extends TestCase {
     // render_page() — permission denied
     // ==================================================================
 
+    /**
+     * Runs in a separate process because other tests in the suite leak a
+     * Mockery alias for current_user_can through Brain/Monkey's global state,
+     * causing the local `when()` stub to be ignored here.
+     *
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function test_render_page_dies_without_capability(): void {
         Functions\when( 'current_user_can' )->justReturn( false );
         Functions\when( 'wp_die' )->alias( function ( $msg ) {

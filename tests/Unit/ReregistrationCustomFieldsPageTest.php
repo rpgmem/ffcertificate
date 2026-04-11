@@ -11,7 +11,16 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationCustomFieldsPage;
 
 /**
+ * Tests for ReregistrationCustomFieldsPage.
+ *
+ * Runs in separate processes because it uses Mockery alias mocks for
+ * AudienceRepository and CustomFieldRepository, which get polluted by
+ * prior tests that autoload those classes (e.g. via the dynamic-fields
+ * seeder chain).
+ *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationCustomFieldsPage
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class ReregistrationCustomFieldsPageTest extends TestCase {
 

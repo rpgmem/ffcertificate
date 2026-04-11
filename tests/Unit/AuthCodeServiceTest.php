@@ -88,6 +88,14 @@ class AuthCodeServiceTest extends TestCase {
         $this->assertMatchesRegularExpression( '/^[0-9]{8}$/', $result );
     }
 
+    /**
+     * Runs in a separate process so Brain/Monkey's wp_rand stub registered
+     * in setUp() is guaranteed to be active even when earlier tests in the
+     * full suite have corrupted Monkey's internal state.
+     *
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function test_generate_random_string_empty_chars_throws_on_nonzero_length(): void {
         // When chars is empty, strlen($chars) = 0, so the loop body attempts
         // wp_rand(0, -1) which causes a ValueError from random_int.

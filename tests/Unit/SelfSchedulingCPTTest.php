@@ -114,6 +114,14 @@ class SelfSchedulingCPTTest extends TestCase {
     // handle_calendar_duplication() — no permission
     // ==================================================================
 
+    /**
+     * Runs in a separate process because other tests in the suite leave a
+     * Mockery alias for Utils loaded, which makes the permission check
+     * resolve to a null mock in full-suite runs.
+     *
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function test_handle_calendar_duplication_dies_without_permission(): void {
         Functions\when( 'current_user_can' )->justReturn( false );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
