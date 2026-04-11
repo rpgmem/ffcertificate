@@ -128,6 +128,7 @@ class Settings {
             'cache_enabled'          => 1,      // Default: ON
             'cache_expiration'       => 3600,   // 1 hour
             'cache_auto_warm'        => 0,      // Default: OFF
+            'public_csv_default_limit' => 1,    // Default limit for public CSV downloads
         );
     }
     

@@ -134,6 +134,15 @@ class FormEditor {
             'high'
         );
 
+        add_meta_box(
+            'ffc_box_public_csv_download',
+            __( '7. Public CSV Download', 'ffcertificate' ),
+            array( $this->metabox_renderer, 'render_box_public_csv_download' ),
+            'ffc_form',
+            'normal',
+            'default'
+        );
+
         // Sidebar metabox (shortcode + instructions) - Delegated to Metabox Renderer
         add_meta_box(
             'ffc_form_shortcode',

@@ -26,6 +26,8 @@ class Frontend {
     private $verification_handler;
     /** @var DynamicFragments */
     private $dynamic_fragments; // @phpstan-ignore property.onlyWritten
+    /** @var PublicCsvDownload */
+    private $public_csv_download;
 
     /**
      * @param SubmissionHandler $submission_handler
@@ -35,8 +37,10 @@ class Frontend {
         $this->form_processor = new FormProcessor( $submission_handler );
         $this->shortcodes = new Shortcodes();
         $this->dynamic_fragments = new DynamicFragments();
+        $this->public_csv_download = new PublicCsvDownload();
 
         $this->register_hooks();
+        $this->public_csv_download->register_hooks();
     }
 
     private function register_hooks(): void {

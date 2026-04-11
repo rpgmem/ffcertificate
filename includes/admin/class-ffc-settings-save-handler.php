@@ -162,6 +162,11 @@ class SettingsSaveHandler {
             foreach ( $debug_flags as $flag ) {
                 $clean[ $flag ] = isset( $new[ $flag ] ) ? 1 : 0;
             }
+
+            // Public CSV Download default limit
+            if ( isset( $new['public_csv_default_limit'] ) ) {
+                $clean['public_csv_default_limit'] = max( 1, absint( $new['public_csv_default_limit'] ) );
+            }
         }
 
         // v4.6.16: Cache settings moved to Cache tab

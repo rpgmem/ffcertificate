@@ -145,6 +145,46 @@ class FormEditorSaveHandler {
 
             update_post_meta( $post_id, '_ffc_geofence_config', $clean_geofence );
         }
+
+        // 4. Save Public CSV Download configuration
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check; values sanitized below.
+        if ( isset( $_POST['ffc_csv_public'] ) && is_array( $_POST['ffc_csv_public'] ) ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each key sanitized individually.
+            $public_raw = wp_unslash( $_POST['ffc_csv_public'] );
+
+            $enabled = ! empty( $public_raw['enabled'] ) ? '1' : '0';
+            update_post_meta( $post_id, '_ffc_csv_public_enabled', $enabled );
+
+            // Limit: positive integer ≥ 1. Fall back to settings default (min 1).
+            $limit = isset( $public_raw['limit'] ) ? absint( $public_raw['limit'] ) : 0;
+            if ( $limit < 1 ) {
+                $settings      = get_option( 'ffc_settings', array() );
+                $default_limit = ( is_array( $settings ) && isset( $settings['public_csv_default_limit'] ) )
+                    ? (int) $settings['public_csv_default_limit']
+                    : 1;
+                $limit = $default_limit > 0 ? $default_limit : 1;
+            }
+            update_post_meta( $post_id, '_ffc_csv_public_limit', $limit );
+
+            // Hash handling: auto-generate on first enable, or regenerate on request.
+            $current_hash  = (string) get_post_meta( $post_id, '_ffc_csv_public_hash', true );
+            $regenerate    = ! empty( $public_raw['regenerate_hash'] );
+            $needs_new_hash = $regenerate || ( $enabled === '1' && $current_hash === '' );
+
+            if ( $needs_new_hash ) {
+                try {
+                    $new_hash = bin2hex( random_bytes( 16 ) );
+                } catch ( \Exception $e ) {
+                    $new_hash = wp_generate_password( 32, false, false );
+                }
+                update_post_meta( $post_id, '_ffc_csv_public_hash', $new_hash );
+            }
+
+            // Counter reset (explicit opt-in).
+            if ( ! empty( $public_raw['reset_counter'] ) ) {
+                update_post_meta( $post_id, '_ffc_csv_public_count', 0 );
+            }
+        }
     }
 
     /**

@@ -312,6 +312,62 @@ class Geofence {
     }
 
     /**
+     * Compute the absolute end timestamp for a form based on its geofence config.
+     *
+     * Uses `_ffc_geofence_config['date_end']` combined with `time_end` when present
+     * (respecting `wp_timezone()`). Returns null when no `date_end` is configured,
+     * signalling that the caller cannot make an "is expired" decision.
+     *
+     * Unlike `validate_datetime()`, this helper ignores the `datetime_enabled` flag
+     * — it is intended for features (like public CSV download) that need to know
+     * when a form's collection window ends regardless of whether geofence is active.
+     *
+     * @param int $form_id Form post ID.
+     * @return int|null Unix timestamp of the end moment, or null if `date_end` is missing.
+     */
+    public static function get_form_end_timestamp(int $form_id): ?int {
+        $config = get_post_meta($form_id, '_ffc_geofence_config', true);
+        if (empty($config) || !is_array($config)) {
+            return null;
+        }
+
+        $date_end = isset($config['date_end']) ? trim((string) $config['date_end']) : '';
+        if ($date_end === '') {
+            return null;
+        }
+
+        $time_end = isset($config['time_end']) ? trim((string) $config['time_end']) : '';
+        if ($time_end === '') {
+            $time_end = '23:59:59';
+        }
+
+        try {
+            $dt = new \DateTimeImmutable($date_end . ' ' . $time_end, wp_timezone());
+        } catch (\Exception $e) {
+            return null;
+        }
+
+        return $dt->getTimestamp();
+    }
+
+    /**
+     * Check whether a form has already ended.
+     *
+     * Returns true only when `get_form_end_timestamp()` returns a valid
+     * timestamp AND the current time is strictly after that timestamp.
+     *
+     * @param int $form_id Form post ID.
+     * @return bool
+     */
+    public static function has_form_expired(int $form_id): bool {
+        $end = self::get_form_end_timestamp($form_id);
+        if ($end === null) {
+            return false;
+        }
+        return time() > $end;
+    }
+
+    /**
      * Get form geofence configuration
      *
      * @param int $form_id Form ID

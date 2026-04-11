@@ -700,4 +700,135 @@ class FormEditorMetaboxRenderer {
         </div>
         <?php
     }
+
+    /**
+     * Section 7: Public CSV Download (shortcode-powered frontend export).
+     *
+     * Lets the admin enable a public download link guarded by a revocable
+     * hash + usage quota. The actual download endpoint is handled by
+     * {@see \FreeFormCertificate\Frontend\PublicCsvDownload}.
+     *
+     * @since 5.1.0
+     * @param WP_Post $post The post object
+     */
+    public function render_box_public_csv_download( object $post ): void {
+        $enabled = (string) get_post_meta( $post->ID, '_ffc_csv_public_enabled', true );
+        $hash    = (string) get_post_meta( $post->ID, '_ffc_csv_public_hash', true );
+        $limit   = (int) get_post_meta( $post->ID, '_ffc_csv_public_limit', true );
+        $count   = (int) get_post_meta( $post->ID, '_ffc_csv_public_count', true );
+
+        if ( $limit <= 0 ) {
+            $settings       = get_option( 'ffc_settings', array() );
+            $default_limit  = ( is_array( $settings ) && isset( $settings['public_csv_default_limit'] ) )
+                ? (int) $settings['public_csv_default_limit']
+                : 1;
+            $limit          = $default_limit > 0 ? $default_limit : 1;
+        }
+
+        // Check that a geofence end date is configured — required for this feature.
+        $geofence_config = get_post_meta( $post->ID, '_ffc_geofence_config', true );
+        $date_end        = ( is_array( $geofence_config ) && ! empty( $geofence_config['date_end'] ) )
+            ? (string) $geofence_config['date_end']
+            : '';
+
+        wp_nonce_field( 'ffc_save_form_data', 'ffc_form_nonce' );
+        ?>
+        <p class="description">
+            <?php esc_html_e( 'Allow a person without WordPress access to download the submissions CSV for this form by providing the Form ID + a hash on a public page that contains the [ffc_csv_download] shortcode.', 'ffcertificate' ); ?>
+        </p>
+
+        <table class="form-table">
+            <tr>
+                <th scope="row">
+                    <label for="ffc_csv_public_enabled">
+                        <?php esc_html_e( 'Enable Public Download', 'ffcertificate' ); ?>
+                    </label>
+                </th>
+                <td>
+                    <label>
+                        <input type="checkbox"
+                               name="ffc_csv_public[enabled]"
+                               id="ffc_csv_public_enabled"
+                               value="1"
+                               <?php checked( $enabled, '1' ); ?>>
+                        <?php esc_html_e( 'Allow visitors with the hash to download this form\'s CSV.', 'ffcertificate' ); ?>
+                    </label>
+
+                    <?php if ( $date_end === '' ) : ?>
+                        <p class="description" style="color:#a00;">
+                            <strong><?php esc_html_e( 'Warning:', 'ffcertificate' ); ?></strong>
+                            <?php esc_html_e( 'This form has no end date configured in the "Geolocation & Date/Time Restrictions" metabox. You must set an end date before public downloads will work — downloads are only released after the form has ended.', 'ffcertificate' ); ?>
+                        </p>
+                    <?php endif; ?>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="ffc_csv_public_limit">
+                        <?php esc_html_e( 'Download Limit', 'ffcertificate' ); ?>
+                    </label>
+                </th>
+                <td>
+                    <input type="number"
+                           name="ffc_csv_public[limit]"
+                           id="ffc_csv_public_limit"
+                           min="1"
+                           step="1"
+                           class="small-text"
+                           value="<?php echo esc_attr( (string) $limit ); ?>">
+                    <p class="description">
+                        <?php
+                        printf(
+                            /* translators: 1: current count, 2: limit */
+                            esc_html__( 'Maximum number of CSV downloads allowed via the public page. Current usage: %1$d of %2$d.', 'ffcertificate' ),
+                            (int) $count,
+                            (int) $limit
+                        );
+                        ?>
+                    </p>
+                </td>
+            </tr>
+
+            <tr>
+                <th scope="row">
+                    <label for="ffc_csv_public_hash">
+                        <?php esc_html_e( 'Access Hash', 'ffcertificate' ); ?>
+                    </label>
+                </th>
+                <td>
+                    <input type="text"
+                           id="ffc_csv_public_hash"
+                           value="<?php echo esc_attr( $hash ); ?>"
+                           readonly
+                           class="large-text code"
+                           onclick="this.select();">
+                    <p class="ffc-mt-10">
+                        <label>
+                            <input type="checkbox" name="ffc_csv_public[regenerate_hash]" value="1">
+                            <?php esc_html_e( 'Regenerate hash on save (invalidates the current link).', 'ffcertificate' ); ?>
+                        </label>
+                    </p>
+                    <p>
+                        <label>
+                            <input type="checkbox" name="ffc_csv_public[reset_counter]" value="1">
+                            <?php esc_html_e( 'Reset the download counter to zero on save.', 'ffcertificate' ); ?>
+                        </label>
+                    </p>
+                    <p class="description">
+                        <?php esc_html_e( 'Share the Form ID and this hash with the person who should download the CSV. If no hash exists yet, one will be generated automatically when you enable the feature and save.', 'ffcertificate' ); ?>
+                    </p>
+
+                    <?php if ( $enabled === '1' && $hash !== '' ) : ?>
+                        <p class="description">
+                            <?php esc_html_e( 'Example pre-filled link (append this as a query string to the page that contains the [ffc_csv_download] shortcode):', 'ffcertificate' ); ?>
+                            <br>
+                            <code>?form_id=<?php echo esc_html( (string) $post->ID ); ?>&amp;hash=<?php echo esc_html( $hash ); ?></code>
+                        </p>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+        <?php
+    }
 }

@@ -215,6 +215,27 @@ $ffcertificate_get_option = \Closure::fromCallable( [ $settings, 'get_option' ] 
             </tbody>
         </table>
 
+        <h3 class="ffc-icon-download"><?php esc_html_e('Public CSV Download', 'ffcertificate'); ?></h3>
+        <p class="description">
+            <?php esc_html_e('Default limit suggested when enabling the public CSV download feature on a form. Each form can override this value in its editor.', 'ffcertificate'); ?>
+        </p>
+
+        <table class="form-table" role="presentation">
+            <tbody>
+                <tr>
+                    <th scope="row">
+                        <label for="public_csv_default_limit"><?php esc_html_e('Default Download Limit', 'ffcertificate'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="ffc_settings[public_csv_default_limit]" id="public_csv_default_limit" value="<?php echo esc_attr($ffcertificate_get_option('public_csv_default_limit', 1)); ?>" min="1" max="1000" class="small-text">
+                        <p class="description">
+                            <?php esc_html_e('Pre-filled value when enabling public CSV download on a new form. Minimum 1.', 'ffcertificate'); ?>
+                        </p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
         <?php submit_button(); ?>
     </form>
 </div>
