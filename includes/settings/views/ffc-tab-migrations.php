@@ -263,6 +263,10 @@ try {
         add_query_arg( 'ffc_obsolete_cleanup', 'apply', $ffcertificate_base_url ),
         'ffc_obsolete_cleanup_apply'
     );
+    $ffcertificate_save_days_url = wp_nonce_url(
+        add_query_arg( 'ffc_obsolete_cleanup', 'save_days', $ffcertificate_base_url ),
+        'ffc_obsolete_cleanup_save_days'
+    );
     ?>
 
     <div class="postbox ffc-migration-card ffc-obsolete-cleanup-card">
@@ -297,12 +301,7 @@ try {
             <?php endif; ?>
 
             <!-- Grace-window form -->
-            <form method="post" action="<?php echo esc_url( admin_url( 'edit.php' ) ); ?>" style="margin: 12px 0;">
-                <input type="hidden" name="post_type" value="ffc_form">
-                <input type="hidden" name="page" value="ffc-settings">
-                <input type="hidden" name="tab" value="migrations">
-                <input type="hidden" name="ffc_obsolete_cleanup" value="save_days">
-                <?php wp_nonce_field( 'ffc_obsolete_cleanup_save_days' ); ?>
+            <form method="post" action="<?php echo esc_url( $ffcertificate_save_days_url ); ?>" style="margin: 12px 0;">
                 <label for="ffc-obsolete-days" style="margin-right: 8px;">
                     <?php esc_html_e( 'Remove shortcodes for forms ended more than', 'ffcertificate' ); ?>
                 </label>
