@@ -64,6 +64,38 @@ if ( ! defined( 'NONCE_KEY' ) ) {
 if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
     define( 'HOUR_IN_SECONDS', 3600 );
 }
+if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
+    define( 'MINUTE_IN_SECONDS', 60 );
+}
+if ( ! defined( 'DAY_IN_SECONDS' ) ) {
+    define( 'DAY_IN_SECONDS', 86400 );
+}
+
+// Stub WP_Query for the obsolete shortcode cleaner (and any other test
+// instantiating a WP_Query directly). Consumers seed a FIFO queue in
+// `$GLOBALS['ffc_test_wp_query_queue']` — each constructor invocation pops
+// the next result array into `->posts`. Constructor args are logged in
+// `$GLOBALS['ffc_test_wp_query_calls']` for assertion.
+if ( ! class_exists( 'WP_Query' ) ) {
+    class WP_Query {
+        /** @var array<int, mixed> */
+        public $posts = array();
+
+        /** @param array<string, mixed> $args */
+        public function __construct( $args = array() ) {
+            if ( ! isset( $GLOBALS['ffc_test_wp_query_calls'] ) || ! is_array( $GLOBALS['ffc_test_wp_query_calls'] ) ) {
+                $GLOBALS['ffc_test_wp_query_calls'] = array();
+            }
+            $GLOBALS['ffc_test_wp_query_calls'][] = $args;
+
+            if ( ! isset( $GLOBALS['ffc_test_wp_query_queue'] ) || ! is_array( $GLOBALS['ffc_test_wp_query_queue'] ) || empty( $GLOBALS['ffc_test_wp_query_queue'] ) ) {
+                $this->posts = array();
+                return;
+            }
+            $this->posts = array_shift( $GLOBALS['ffc_test_wp_query_queue'] );
+        }
+    }
+}
 
 // Stub WP_REST_Server class for REST controller tests.
 if ( ! class_exists( 'WP_REST_Server' ) ) {

@@ -368,6 +368,32 @@ class Geofence {
     }
 
     /**
+     * Check whether a form ended more than `$days` ago.
+     *
+     * Used by the obsolete shortcode cleanup feature to decide which forms
+     * qualify for sweeping embedded `[ffc_form]` shortcodes off published
+     * posts/pages.
+     *
+     * Returns false for forms that don't have a `date_end` configured or
+     * whose end timestamp is still in the future / within the grace window.
+     *
+     * @param int $form_id Form post ID.
+     * @param int $days    Grace window in days. Must be >= 0.
+     * @return bool
+     */
+    public static function has_form_expired_by_days(int $form_id, int $days): bool {
+        $end = self::get_form_end_timestamp($form_id);
+        if ($end === null) {
+            return false;
+        }
+        if ($days < 0) {
+            $days = 0;
+        }
+        $cutoff = time() - ($days * DAY_IN_SECONDS);
+        return $end < $cutoff;
+    }
+
+    /**
      * Get form geofence configuration
      *
      * @param int $form_id Form ID
