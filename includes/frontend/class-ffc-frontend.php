@@ -155,6 +155,34 @@ class Frontend {
             )
         ) );
         }
+
+        if ( $has_csv_download ) {
+            $s = $s ?? \FreeFormCertificate\Core\Utils::asset_suffix();
+
+            wp_enqueue_script(
+                'ffc-csv-download',
+                FFC_PLUGIN_URL . "assets/js/ffc-csv-download{$s}.js",
+                array( 'jquery' ),
+                FFC_VERSION,
+                true
+            );
+            wp_localize_script( 'ffc-csv-download', 'ffc_csv_download', array(
+                'ajax_url'       => admin_url( 'admin-ajax.php' ),
+                'min_display_ms' => 1500,
+                'strings'        => array(
+                    'validating'  => __( 'Validating access…', 'ffcertificate' ),
+                    'generating'  => __( 'Generating CSV — %d records…', 'ffcertificate' ),
+                    'exporting'   => __( 'Exporting %1$d / %2$d…', 'ffcertificate' ),
+                    'downloading' => __( 'Starting download…', 'ffcertificate' ),
+                    'complete'    => __( 'Download complete!', 'ffcertificate' ),
+                    'error'       => __( 'Error', 'ffcertificate' ),
+                    'downloadCsv' => __( 'Download CSV', 'ffcertificate' ),
+                    'timeout'     => __( 'Export timed out. Please try again.', 'ffcertificate' ),
+                    'noRecords'   => __( 'No records found to export.', 'ffcertificate' ),
+                    'connError'   => __( 'Connection error. Please try again.', 'ffcertificate' ),
+                ),
+            ) );
+        }
     }
 
     /**

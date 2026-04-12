@@ -6,14 +6,17 @@ declare(strict_types=1);
  *
  * Public-facing CSV download feature.
  *
- * Flow:
+ * Flow (with JavaScript — AJAX batched):
  *  1. Admin enables the feature on a form and generates a hash.
  *  2. Admin embeds [ffc_csv_download] on a WP page and shares it with
  *     the form ID + hash.
- *  3. Visitor submits the form; this handler validates nonce, honeypot,
- *     captcha, hash, form expiration and quota, then streams the CSV.
+ *  3. JS intercepts form submit and drives a 3-step AJAX flow via
+ *     {@see PublicCsvExporter}: start → batch (×N) → download.
+ *     A progress bar shows real processed/total feedback.
  *
- * The actual CSV is generated synchronously by {@see PublicCsvExporter}.
+ * Fallback (without JavaScript):
+ *  The form submits normally via admin-post.php to {@see handle_request()},
+ *  which streams the CSV synchronously (legacy path).
  *
  * @since 5.1.0
  */
@@ -39,12 +42,23 @@ class PublicCsvDownload {
 	const FLASH_TRANSIENT_TTL = 60; // Seconds.
 
 	/**
-	 * Register shortcode + admin-post handlers.
+	 * Register shortcode + admin-post + AJAX handlers.
 	 */
 	public function register_hooks(): void {
 		add_shortcode( self::SHORTCODE, array( $this, 'render_shortcode' ) );
+
+		// Synchronous fallback (no-JS path).
 		add_action( 'admin_post_' . self::ACTION, array( $this, 'handle_request' ) );
 		add_action( 'admin_post_nopriv_' . self::ACTION, array( $this, 'handle_request' ) );
+
+		// AJAX batched export (JS path).
+		$exporter = new PublicCsvExporter();
+		add_action( 'wp_ajax_ffc_public_csv_start', array( $exporter, 'ajax_start' ) );
+		add_action( 'wp_ajax_nopriv_ffc_public_csv_start', array( $exporter, 'ajax_start' ) );
+		add_action( 'wp_ajax_ffc_public_csv_batch', array( $exporter, 'ajax_batch' ) );
+		add_action( 'wp_ajax_nopriv_ffc_public_csv_batch', array( $exporter, 'ajax_batch' ) );
+		add_action( 'wp_ajax_ffc_public_csv_download', array( $exporter, 'ajax_download' ) );
+		add_action( 'wp_ajax_nopriv_ffc_public_csv_download', array( $exporter, 'ajax_download' ) );
 	}
 
 	// ──────────────────────────────────────────────────────────────
@@ -145,7 +159,7 @@ class PublicCsvDownload {
 	// ──────────────────────────────────────────────────────────────
 
 	/**
-	 * Process a CSV download request.
+	 * Process a CSV download request (synchronous fallback for no-JS).
 	 *
 	 * Exits on success (streams the CSV) or on error (redirects back
 	 * with a flash message transient).
@@ -183,30 +197,60 @@ class PublicCsvDownload {
 			$this->fail_redirect( __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) );
 		}
 
+		// 5–9. Business-logic validation.
+		$error = $this->validate_form_access( $form_id, $posted_hash );
+		if ( $error !== null ) {
+			$this->fail_redirect( $error );
+		}
+
+		// 10. Increment BEFORE streaming to avoid race conditions under rapid retries.
+		$count = (int) get_post_meta( $form_id, self::META_COUNT, true );
+		update_post_meta( $form_id, self::META_COUNT, $count + 1 );
+
+		// 11. Stream the CSV. This exits the request.
+		$exporter = new PublicCsvExporter();
+		$exporter->stream_form_csv( $form_id, 'publish' );
+	}
+
+	// ──────────────────────────────────────────────────────────────
+	//  Shared validation (used by handle_request + PublicCsvExporter)
+	// ──────────────────────────────────────────────────────────────
+
+	/**
+	 * Validate form access for CSV download (steps 5–9).
+	 *
+	 * Checks that the form exists, has the feature enabled, the hash matches,
+	 * the form has expired, and the download quota has not been exceeded.
+	 *
+	 * @param int    $form_id     Sanitized form ID.
+	 * @param string $posted_hash Sanitized access hash.
+	 * @return string|null Error message on failure, null on success.
+	 */
+	public function validate_form_access( int $form_id, string $posted_hash ): ?string {
 		// 5. Form exists and is a ffc_form.
 		if ( get_post_type( $form_id ) !== 'ffc_form' ) {
-			$this->fail_redirect( __( 'Form not found.', 'ffcertificate' ) );
+			return __( 'Form not found.', 'ffcertificate' );
 		}
 
 		// 6. Feature enabled on this form.
 		$enabled = (string) get_post_meta( $form_id, self::META_ENABLED, true );
 		if ( $enabled !== '1' ) {
-			$this->fail_redirect( __( 'Public CSV download is not enabled for this form.', 'ffcertificate' ) );
+			return __( 'Public CSV download is not enabled for this form.', 'ffcertificate' );
 		}
 
 		// 7. Hash match (constant-time).
 		$stored_hash = (string) get_post_meta( $form_id, self::META_HASH, true );
 		if ( $stored_hash === '' || ! hash_equals( $stored_hash, $posted_hash ) ) {
-			$this->fail_redirect( __( 'Invalid access hash.', 'ffcertificate' ) );
+			return __( 'Invalid access hash.', 'ffcertificate' );
 		}
 
-		// 8. Form must have ended. Missing date_end → feature unusable.
+		// 8. Form must have ended.
 		$end_ts = Geofence::get_form_end_timestamp( $form_id );
 		if ( $end_ts === null ) {
-			$this->fail_redirect( __( 'This form has no end date configured. The administrator must set a Geolocation "End Date" to enable public downloads.', 'ffcertificate' ) );
+			return __( 'This form has no end date configured. The administrator must set a Geolocation "End Date" to enable public downloads.', 'ffcertificate' );
 		}
 		if ( time() <= $end_ts ) {
-			$this->fail_redirect( __( 'This form is still active. Downloads are only allowed after the form end date has passed.', 'ffcertificate' ) );
+			return __( 'This form is still active. Downloads are only allowed after the form end date has passed.', 'ffcertificate' );
 		}
 
 		// 9. Quota.
@@ -222,21 +266,14 @@ class PublicCsvDownload {
 
 		$count = (int) get_post_meta( $form_id, self::META_COUNT, true );
 		if ( $count >= $limit ) {
-			$this->fail_redirect(
-				sprintf(
-					/* translators: %d is the configured download limit */
-					__( 'The maximum number of downloads (%d) for this form has been reached.', 'ffcertificate' ),
-					$limit
-				)
+			return sprintf(
+				/* translators: %d is the configured download limit */
+				__( 'The maximum number of downloads (%d) for this form has been reached.', 'ffcertificate' ),
+				$limit
 			);
 		}
 
-		// 10. Increment BEFORE streaming to avoid race conditions under rapid retries.
-		update_post_meta( $form_id, self::META_COUNT, $count + 1 );
-
-		// 11. Stream the CSV. This exits the request.
-		$exporter = new PublicCsvExporter();
-		$exporter->stream_form_csv( $form_id, 'publish' );
+		return null;
 	}
 
 	// ──────────────────────────────────────────────────────────────

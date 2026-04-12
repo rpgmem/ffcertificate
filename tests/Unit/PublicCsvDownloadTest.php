@@ -446,4 +446,91 @@ class PublicCsvDownloadTest extends TestCase {
         $this->assertSame( 3, $this->meta_store['42:_ffc_csv_public_count'] );
         $this->assertSame( 1, $this->meta_updates['42:_ffc_csv_public_count'] );
     }
+
+    // ==================================================================
+    //  validate_form_access() — direct unit tests
+    // ==================================================================
+
+    public function test_validate_form_access_returns_null_on_success(): void {
+        $this->seed_valid_request( 42 );
+        $result = $this->handler->validate_form_access( 42, 'validhash123' );
+        $this->assertNull( $result );
+    }
+
+    public function test_validate_form_access_rejects_non_ffc_form(): void {
+        $this->seed_valid_request( 42, array( 'post_type' => 'post' ) );
+        $result = $this->handler->validate_form_access( 42, 'validhash123' );
+        $this->assertNotNull( $result );
+        $this->assertStringContainsString( 'Form not found', $result );
+    }
+
+    public function test_validate_form_access_rejects_disabled_feature(): void {
+        $this->seed_valid_request( 42, array( 'enabled' => '0' ) );
+        $result = $this->handler->validate_form_access( 42, 'validhash123' );
+        $this->assertNotNull( $result );
+        $this->assertStringContainsString( 'not enabled', $result );
+    }
+
+    public function test_validate_form_access_rejects_invalid_hash(): void {
+        $this->seed_valid_request( 42 );
+        $result = $this->handler->validate_form_access( 42, 'wronghash' );
+        $this->assertNotNull( $result );
+        $this->assertStringContainsString( 'Invalid access hash', $result );
+    }
+
+    public function test_validate_form_access_rejects_missing_end_date(): void {
+        $this->seed_valid_request( 42, array( 'date_end' => '' ) );
+        $result = $this->handler->validate_form_access( 42, 'validhash123' );
+        $this->assertNotNull( $result );
+        $this->assertStringContainsString( 'no end date', $result );
+    }
+
+    public function test_validate_form_access_rejects_active_form(): void {
+        $future = gmdate( 'Y-m-d', time() + 86400 * 7 );
+        $this->seed_valid_request( 42, array( 'date_end' => $future, 'time_end' => '23:59:59' ) );
+        $result = $this->handler->validate_form_access( 42, 'validhash123' );
+        $this->assertNotNull( $result );
+        $this->assertStringContainsString( 'still active', $result );
+    }
+
+    public function test_validate_form_access_rejects_exceeded_quota(): void {
+        $this->seed_valid_request( 42, array( 'limit' => 3, 'count' => 3 ) );
+        $result = $this->handler->validate_form_access( 42, 'validhash123' );
+        $this->assertNotNull( $result );
+        $this->assertStringContainsString( 'maximum number of downloads', $result );
+    }
+
+    public function test_validate_form_access_uses_settings_default_when_form_limit_zero(): void {
+        $this->seed_valid_request( 42, array( 'limit' => 0, 'count' => 1 ) );
+        Functions\when( 'get_option' )->alias( function ( $key, $default = array() ) {
+            if ( $key === 'ffc_settings' ) {
+                return array( 'public_csv_default_limit' => 1 );
+            }
+            return $default;
+        } );
+        $result = $this->handler->validate_form_access( 42, 'validhash123' );
+        $this->assertNotNull( $result );
+        $this->assertStringContainsString( 'maximum number of downloads', $result );
+    }
+
+    // ==================================================================
+    //  register_hooks() — AJAX hook registration
+    // ==================================================================
+
+    public function test_register_hooks_registers_ajax_actions(): void {
+        $registered = array();
+        Functions\when( 'add_shortcode' )->justReturn( true );
+        Functions\when( 'add_action' )->alias( function ( $tag, $cb ) use ( &$registered ) {
+            $registered[] = $tag;
+        } );
+
+        $this->handler->register_hooks();
+
+        $this->assertContains( 'wp_ajax_ffc_public_csv_start', $registered );
+        $this->assertContains( 'wp_ajax_nopriv_ffc_public_csv_start', $registered );
+        $this->assertContains( 'wp_ajax_ffc_public_csv_batch', $registered );
+        $this->assertContains( 'wp_ajax_nopriv_ffc_public_csv_batch', $registered );
+        $this->assertContains( 'wp_ajax_ffc_public_csv_download', $registered );
+        $this->assertContains( 'wp_ajax_nopriv_ffc_public_csv_download', $registered );
+    }
 }
