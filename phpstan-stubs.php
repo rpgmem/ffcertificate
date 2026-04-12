@@ -33,4 +33,12 @@ class QRcode {
 	 * @return void
 	 */
 	public static function png( $text, $outfile = false, $level = QR_ECLEVEL_L, $size = 3, $margin = 4 ) {}
+
+	/**
+	 * @param string       $text
+	 * @param string|false $outfile
+	 * @param int          $level
+	 * @return array<int, string>
+	 */
+	public static function raw( $text, $outfile = false, $level = QR_ECLEVEL_L ) { return array(); }
 }

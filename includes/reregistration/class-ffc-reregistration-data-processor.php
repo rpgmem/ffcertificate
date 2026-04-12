@@ -129,7 +129,7 @@ class ReregistrationDataProcessor {
                 return '';
 
             case 'checkbox':
-                return ! empty($raw) && $raw !== '0' ? '1' : '0';
+                return ! empty($raw) ? '1' : '0';
 
             case 'date':
                 $str = is_scalar($raw) ? sanitize_text_field((string) $raw) : '';

@@ -817,7 +817,7 @@ class CustomFieldRepository {
                         // bare patterns supplied by admins. Wrap bare
                         // patterns with `~` to avoid conflicts with the
                         // `/` character commonly used inside patterns.
-                        if ($regex !== '' && $regex[0] !== '/' && $regex[0] !== '~' && $regex[0] !== '#') {
+                        if ($regex[0] !== '/' && $regex[0] !== '~' && $regex[0] !== '#') {
                             $regex = '~' . $regex . '~';
                         }
                         // Suppress the warning PHP emits for invalid

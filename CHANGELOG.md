@@ -35,6 +35,17 @@ Public CSV download feature: form organizers without WordPress admin access can 
 - New: **PublicCsvDownloadTest** — 19 tests covering constants, shortcode rendering (nonce, form fields, honeypot, CAPTCHA, URL prefill, flash messages) and the 12 failure branches of the validation flow plus the happy-path counter-increment observable effect
 - Test suite: **3090 → 3135 tests** (+45) with all 7359 assertions green
 
+### Code Quality
+
+- Chore: Zero PHPStan level 6 errors — cleared 26 pre-existing static analysis findings across 13 files (`CsvExporter`, `QrcodeGenerator`, reregistration module, self-scheduling handler, URL shortener module, user dashboard module, PHPStan stubs)
+- Chore: Add array shape PHPDoc (`array<int, string>`, `array<string, mixed>`, `array{items: ..., total: int}`) to `CsvExporter` private helpers, `ReregistrationStandardFieldsSeeder::on_audience_created()`, `UrlShortenerRepository::findPaginated()`, `UrlShortenerService::get_stats()` and `UserManager::get_user_identifiers_masked()`
+- Chore: Remove dead code flagged by PHPStan — duplicated `wp_doing_ajax()` early-return in `AccessControl::block_wp_admin()`; redundant `!== ''` / `!== null` / `!== '0'` checks in the reregistration module; `|| $success` tail in `UserManager::save_profile_data()`; empty-guard around the always-populated `$where_clauses` in `UrlShortenerRepository::findPaginated()`; redundant `$temp_file === ''` check in `QrcodeGenerator::generate()`
+- Chore: Remove redundant `?? ''` fallbacks on `Encryption::decrypt_field()` calls in `CsvExporter::format_csv_row()` — the method returns a non-nullable string (same fix already applied to `PublicCsvExporter`)
+- Chore: Pre-initialize `$calendar = null;` in `AppointmentAjaxHandler::create()` alongside `$pdf_data` / `$appointment` — fixes `variable.undefined` when `findById()` throws before the assignment
+- Chore: Add `QRcode::raw()` to `phpstan-stubs.php` — the SVG QR generator already calls it in production, only the static-analysis stub was missing
+- Chore: Fix `@return` PHPDoc parse error in `UserManager::get_user_identifiers_masked()` (`string[}}` → `array<int, string>`)
+- Chore: Correct `wp_validate_redirect()` fallback argument type in `UrlShortenerLoader` (`false` → `''`) to match the WordPress stub signature
+
 ---
 
 ## 5.0.3 (2026-03-27)

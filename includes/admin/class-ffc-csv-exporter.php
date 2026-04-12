@@ -340,6 +340,9 @@ class CsvExporter {
 		return $this->form_title_cache[ $form_id ];
 	}
 
+	/**
+	 * @return array<int, string>
+	 */
 	private function get_fixed_headers( bool $include_edit_columns = false ): array {
 		$headers = array(
 			__( 'ID', 'ffcertificate' ),
@@ -368,10 +371,19 @@ class CsvExporter {
 		return $headers;
 	}
 
+	/**
+	 * @param array<int, string> $dynamic_keys
+	 * @return array<int, string>
+	 */
 	private function get_dynamic_headers( array $dynamic_keys ): array {
 		return $this->build_dynamic_headers( $dynamic_keys );
 	}
 
+	/**
+	 * @param array<string, mixed> $row
+	 * @param array<int, string>   $dynamic_keys
+	 * @return array<int, mixed>
+	 */
 	private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {
 		$form_display = $this->get_form_title_cached( (int) $row['form_id'] );
 
@@ -387,8 +399,8 @@ class CsvExporter {
 			$row['submission_date'],
 			$email,
 			$user_ip,
-			$cpf_val ?? '',
-			$rf_val ?? '',
+			$cpf_val,
+			$rf_val,
 			! empty( $row['auth_code'] ) ? $row['auth_code'] : '',
 			! empty( $row['magic_token'] ) ? $row['magic_token'] : '',
 			isset( $row['consent_given'] ) ? ( $row['consent_given'] ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ) ) : '',
@@ -426,6 +438,9 @@ class CsvExporter {
 
 	/**
 	 * Scan all matching records to discover dynamic JSON keys.
+	 *
+	 * @param array<int, int>|null $form_ids
+	 * @return array<int, string>
 	 */
 	private function scan_dynamic_keys( ?array $form_ids, string $status ): array {
 		$all_keys = array();
@@ -447,6 +462,8 @@ class CsvExporter {
 
 	/**
 	 * Count total matching rows for progress reporting.
+	 *
+	 * @param array<int, int>|null $form_ids
 	 */
 	private function count_export_rows( ?array $form_ids, string $status ): int {
 		return $this->repository->countForExport( $form_ids, $status );

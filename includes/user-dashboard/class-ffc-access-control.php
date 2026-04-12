@@ -47,12 +47,6 @@ class AccessControl {
             return;
         }
 
-        // Allow AJAX requests through — admin-ajax.php is under /wp-admin/
-        // but must remain accessible to all logged-in users
-        if (wp_doing_ajax()) {
-            return;
-        }
-
         // Bypass for admins (if configured)
         if (!empty($settings['bypass_for_admins']) && current_user_can('manage_options')) {
             return;

@@ -110,6 +110,7 @@ class AppointmentAjaxHandler {
             // Generate receipt PDF data for auto-download (only for confirmed appointments)
             $pdf_data = null;
             $appointment = null;
+            $calendar = null;
             $requires_approval = $result['requires_approval'] ?? false;
             try {
                 $appointment = $this->handler->get_appointment_repository()->findById($result['appointment_id']);

@@ -231,7 +231,7 @@ class QRCodeGenerator {
                 ? wp_tempnam( 'ffc_qr_' )
                 : tempnam( sys_get_temp_dir(), 'ffc_qr_' );
 
-            if ( ! $temp_file || $temp_file === '' ) {
+            if ( ! $temp_file ) {
                 \FreeFormCertificate\Core\Utils::debug_log( 'QR Code: temp file creation failed', array(
                     'sys_tmp_dir' => sys_get_temp_dir(),
                 ) );

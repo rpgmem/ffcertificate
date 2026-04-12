@@ -296,7 +296,7 @@ class UserManager {
 
         // 1. Profile table columns → delegate to update_profile().
         if ( ! empty( $table_payload ) ) {
-            $success = self::update_profile( $user_id, $table_payload ) || $success;
+            $success = self::update_profile( $user_id, $table_payload );
         }
 
         // 2. Extended keys → wp_usermeta (encrypted when sensitive).
@@ -469,7 +469,7 @@ class UserManager {
      *
      * @since 4.13.0
      * @param int $user_id WordPress user ID
-     * @return array{cpfs: string[], rfs: string[}}
+     * @return array{cpfs: array<int, string>, rfs: array<int, string>}
      */
     public static function get_user_identifiers_masked( int $user_id ): array {
         global $wpdb;

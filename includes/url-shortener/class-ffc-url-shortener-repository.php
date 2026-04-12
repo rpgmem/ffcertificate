@@ -145,7 +145,7 @@ class UrlShortenerRepository extends AbstractRepository {
      *     @type string $search    Search term for title/target_url.
      *     @type string $status    Filter by status (default 'all').
      * }
-     * @return array{items: array, total: int}
+     * @return array{items: array<int, array<string, mixed>>, total: int}
      */
     public function findPaginated( array $args = [] ): array {
         $defaults = [
@@ -178,10 +178,7 @@ class UrlShortenerRepository extends AbstractRepository {
             $where_values[]  = $like;
         }
 
-        $where_sql = '';
-        if ( ! empty( $where_clauses ) ) {
-            $where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
-        }
+        $where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
 
         $allowed_columns = [ 'id', 'title', 'short_code', 'click_count', 'created_at', 'status' ];
         $orderby         = in_array( $args['orderby'], $allowed_columns, true ) ? $args['orderby'] : 'created_at';

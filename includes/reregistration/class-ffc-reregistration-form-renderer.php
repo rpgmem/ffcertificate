@@ -206,7 +206,7 @@ class ReregistrationFormRenderer {
             // 2. Profile sync value.
             if (!empty($field->field_profile_key)) {
                 $pkey = (string) $field->field_profile_key;
-                if (isset($profile[$pkey]) && $profile[$pkey] !== '' && $profile[$pkey] !== null) {
+                if (isset($profile[$pkey]) && $profile[$pkey] !== '') {
                     $values[$key] = $profile[$pkey];
                     continue;
                 }

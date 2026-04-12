@@ -175,6 +175,7 @@ New public CSV download feature allowing form organizers without WordPress admin
 * Feat: New "Public CSV Download" metabox on the form editor — toggle, read-only hash with regenerate/reset controls, download counter, per-form quota override, and a ready-to-share URL preview
 * Feat: New `public_csv_default_limit` setting on the Advanced tab — default quota suggested to the admin when enabling the feature per-form (default: 1)
 * Test: 45 new unit tests — 12 for Geofence form expiration helpers, 14 for PublicCsvExporter column/row layout, 19 for PublicCsvDownload request validation branches and happy path
+* Chore: Zero PHPStan level 6 errors — cleared 26 pre-existing static analysis findings across 13 files (array shape PHPDoc, dead code removal, `QRcode::raw()` stub, `$calendar` pre-initialization, PHPDoc parse error fix, redundant `?? ''` removal)
 
 = 5.0.3 (2026-03-27) =
 

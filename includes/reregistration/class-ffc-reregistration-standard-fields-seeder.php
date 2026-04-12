@@ -44,8 +44,8 @@ class ReregistrationStandardFieldsSeeder {
      * Hook handler for `ffc_audience_created`.
      *
      * @since 4.13.0
-     * @param int   $audience_id New audience ID.
-     * @param array $data        Audience creation data.
+     * @param int                  $audience_id New audience ID.
+     * @param array<string, mixed> $data        Audience creation data.
      * @return void
      */
     public static function on_audience_created(int $audience_id, array $data = array()): void {

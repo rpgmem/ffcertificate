@@ -259,7 +259,7 @@ class UrlShortenerService {
     /**
      * Get aggregate statistics.
      *
-     * @return array{total_links: int, active_links: int, total_clicks: int}
+     * @return array{total_links: int, active_links: int, total_clicks: int, trashed_links: int}
      */
     public function get_stats(): array {
         return $this->repository->getStats();

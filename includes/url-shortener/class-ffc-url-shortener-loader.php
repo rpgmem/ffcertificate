@@ -216,7 +216,7 @@ class UrlShortenerLoader {
         do_action( 'ffcertificate_before_short_redirect', $record, $target_url, $redirect_type );
 
         // Use wp_redirect for external, wp_safe_redirect for internal
-        if ( wp_validate_redirect( $target_url, false ) ) {
+        if ( wp_validate_redirect( $target_url, '' ) ) {
             wp_safe_redirect( $target_url, $redirect_type );
         } else {
             // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- External URL redirect is intentional.
