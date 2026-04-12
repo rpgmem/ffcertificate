@@ -176,6 +176,9 @@ New public CSV download feature allowing form organizers without WordPress admin
 * Feat: New `public_csv_default_limit` setting on the Advanced tab — default quota suggested to the admin when enabling the feature per-form (default: 1)
 * Test: 45 new unit tests — 12 for Geofence form expiration helpers, 14 for PublicCsvExporter column/row layout, 19 for PublicCsvDownload request validation branches and happy path
 * Chore: Zero PHPStan level 6 errors — cleared 26 pre-existing static analysis findings across 13 files (array shape PHPDoc, dead code removal, `QRcode::raw()` stub, `$calendar` pre-initialization, PHPDoc parse error fix, redundant `?? ''` removal)
+* UX: `[ffc_csv_download]` now reuses the same CSS classes as `[ffc_verification]` (`ffc-verification-container`, `ffc-verification-form`, `ffc-form-field`, `ffc-input`, `ffc-submit-btn`) — inherits the card layout, dark-mode and focus ring from the main stylesheet, no more inline `<style>` block
+* UX: `ffc-frontend.css` is now auto-enqueued on pages containing `[ffc_csv_download]`; PDF/geofence JS stays gated behind `[ffc_form]` / `[ffc_verification]` — the download page still ships zero JavaScript
+* Docs: Added a `[ffc_csv_download]` row to the Shortcodes table in the Documentation tab describing the Form ID + hash workflow, expiration/quota gating, and the optional `title` attribute
 
 = 5.0.3 (2026-03-27) =
 
