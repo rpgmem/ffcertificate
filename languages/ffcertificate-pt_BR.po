@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-06 11:00+0000\n"
-"PO-Revision-Date: 2026-04-12 00:17+0000\n"
+"PO-Revision-Date: 2026-04-12 00:45+0000\n"
 "Last-Translator: Alex Meusburger\n"
 "Language-Team: Português do Brasil\n"
 "Language: pt_BR\n"
@@ -336,7 +336,7 @@ msgstr "&mdash; Selecionar &mdash; "
 msgid "(Calendar Deleted)"
 msgstr "(Calendário Excluído)"
 
-#: includes/settings/views/ffc-tab-documentation.php:209
+#: includes/settings/views/ffc-tab-documentation.php:217
 msgid "(default: 2)"
 msgstr "(padrão: 2)"
 
@@ -400,16 +400,16 @@ msgstr "1. Layout do Certificado"
 msgid "1. Shortcodes"
 msgstr "1. Códigos Curtos"
 
-#: includes/settings/views/ffc-tab-documentation.php:30 includes/settings/views/ffc-tab-documentation.php:610
+#: includes/settings/views/ffc-tab-documentation.php:30 includes/settings/views/ffc-tab-documentation.php:618
 #| msgid "7. Features"
 msgid "10. Features"
 msgstr "10. Recursos"
 
-#: includes/settings/views/ffc-tab-documentation.php:202
+#: includes/settings/views/ffc-tab-documentation.php:210
 msgid "100px at 500px"
 msgstr "100px até 500px"
 
-#: includes/settings/views/ffc-tab-documentation.php:31 includes/settings/views/ffc-tab-documentation.php:678
+#: includes/settings/views/ffc-tab-documentation.php:31 includes/settings/views/ffc-tab-documentation.php:686
 #| msgid "8. Security Features"
 msgid "11. Security Features"
 msgstr "11. Recursos de Segurança"
@@ -419,12 +419,12 @@ msgstr "11. Recursos de Segurança"
 msgid "12. Complete Examples"
 msgstr "12. Exemplos Completos"
 
-#: includes/settings/views/ffc-tab-documentation.php:714
+#: includes/settings/views/ffc-tab-documentation.php:722
 #| msgid "9. Complete Template Examples"
 msgid "12. Complete Template Examples"
 msgstr "12. Exemplos de Modelos Completos"
 
-#: includes/settings/views/ffc-tab-documentation.php:33 includes/settings/views/ffc-tab-documentation.php:803
+#: includes/settings/views/ffc-tab-documentation.php:33 includes/settings/views/ffc-tab-documentation.php:811
 msgid "13. URL Shortener & QR Codes"
 msgstr "13. Encurtador de URL e Códigos QR"
 
@@ -432,7 +432,7 @@ msgstr "13. Encurtador de URL e Códigos QR"
 msgid "13th Salary Advance:"
 msgstr "13º e Adiantamento Salarial:"
 
-#: includes/settings/views/ffc-tab-documentation.php:34 includes/settings/views/ffc-tab-documentation.php:904
+#: includes/settings/views/ffc-tab-documentation.php:34 includes/settings/views/ffc-tab-documentation.php:912
 #| msgid "13. Troubleshooting"
 msgid "14. Troubleshooting"
 msgstr "14. Resolução de Problemas"
@@ -445,7 +445,7 @@ msgstr "15 minutos"
 msgid "2. Form Builder (Fields)"
 msgstr "2. Construtor de Formulários (Campos)"
 
-#: includes/settings/views/ffc-tab-documentation.php:92
+#: includes/settings/views/ffc-tab-documentation.php:100
 msgid "2. PDF Template Variables"
 msgstr "2. Variáveis ​​do modelo PDF"
 
@@ -469,7 +469,7 @@ msgstr "3. Regras e Restrições de Agendamento"
 msgid "3. QR Code Options"
 msgstr "3. Opções de código QR"
 
-#: includes/settings/views/ffc-tab-documentation.php:180
+#: includes/settings/views/ffc-tab-documentation.php:188
 msgid "3. QR Code Options & Attributes"
 msgstr "3. Opções e atributos do código QR"
 
@@ -497,7 +497,7 @@ msgstr "4. Configuração de E-mail"
 msgid "4. Email Notifications"
 msgstr "4. Notificações por E-mail"
 
-#: includes/settings/views/ffc-tab-documentation.php:24 includes/settings/views/ffc-tab-documentation.php:233
+#: includes/settings/views/ffc-tab-documentation.php:24 includes/settings/views/ffc-tab-documentation.php:241
 msgid "4. Validation URL"
 msgstr "4. URL de Validação"
 
@@ -505,11 +505,11 @@ msgstr "4. URL de Validação"
 msgid "5. Geolocation & Date/Time Restrictions"
 msgstr "5. Geolocalização e Restrições de Data/Hora"
 
-#: includes/settings/views/ffc-tab-documentation.php:25 includes/settings/views/ffc-tab-documentation.php:269
+#: includes/settings/views/ffc-tab-documentation.php:25 includes/settings/views/ffc-tab-documentation.php:277
 msgid "5. HTML & Styling"
 msgstr "4. HTML e Estilização"
 
-#: includes/settings/views/ffc-tab-documentation.php:26 includes/settings/views/ffc-tab-documentation.php:391
+#: includes/settings/views/ffc-tab-documentation.php:26 includes/settings/views/ffc-tab-documentation.php:399
 msgid "6. Custom Fields"
 msgstr "5. Campos Personalizados"
 
@@ -517,7 +517,7 @@ msgstr "5. Campos Personalizados"
 msgid "6. Quiz / Evaluation Mode"
 msgstr "6. Modo Quiz / Avaliação"
 
-#: includes/settings/views/ffc-tab-documentation.php:27 includes/settings/views/ffc-tab-documentation.php:417
+#: includes/settings/views/ffc-tab-documentation.php:27 includes/settings/views/ffc-tab-documentation.php:425
 msgid "7. Audience Custom Fields"
 msgstr "7. Campos Personalizados de Público-alvo"
 
@@ -525,11 +525,11 @@ msgstr "7. Campos Personalizados de Público-alvo"
 msgid "7. Public CSV Download"
 msgstr "7. Download público do arquivo CSV"
 
-#: includes/settings/views/ffc-tab-documentation.php:28 includes/settings/views/ffc-tab-documentation.php:469
+#: includes/settings/views/ffc-tab-documentation.php:28 includes/settings/views/ffc-tab-documentation.php:477
 msgid "8. Reregistration"
 msgstr "8. Recadastramento"
 
-#: includes/settings/views/ffc-tab-documentation.php:29 includes/settings/views/ffc-tab-documentation.php:560
+#: includes/settings/views/ffc-tab-documentation.php:29 includes/settings/views/ffc-tab-documentation.php:568
 msgid "9. Ficha PDF"
 msgstr "9. Ficha PDF"
 
@@ -589,7 +589,7 @@ msgstr "Hash de Acesso"
 msgid "Access the Reregistration admin page."
 msgstr "Acesse a página administrativa de recadastramento."
 
-#: includes/settings/views/ffc-tab-documentation.php:819
+#: includes/settings/views/ffc-tab-documentation.php:827
 msgid "Access via FFC Forms > Short URLs. From there you can:"
 msgstr "Acesse através de Formulários FFC > URLs curtas. A partir daí, você pode:"
 
@@ -620,7 +620,7 @@ msgstr "Ação"
 msgid "Actions"
 msgstr "Ações"
 
-#: includes/settings/views/ffc-tab-documentation.php:479
+#: includes/settings/views/ffc-tab-documentation.php:487
 msgid "Activate the campaign — invitation emails are sent automatically"
 msgstr "Ative a campanha — os e-mails de convite serão enviados automaticamente."
 
@@ -684,7 +684,7 @@ msgstr "Adicionar Dia"
 msgid "Add Fields"
 msgstr "Adicionar Campos"
 
-#: includes/settings/views/ffc-tab-documentation.php:455
+#: includes/settings/views/ffc-tab-documentation.php:463
 msgid "Add fields with labels, types, and validation rules"
 msgstr "Adicione campos com rótulos, tipos e regras de validação."
 
@@ -742,7 +742,7 @@ msgstr "Adicione datas específicas quando o calendário estará fechado (feriad
 msgid "Add User"
 msgstr "Adicionar Usuário"
 
-#: includes/settings/views/ffc-tab-documentation.php:927
+#: includes/settings/views/ffc-tab-documentation.php:935
 msgid "Add width/height attributes"
 msgstr "Adicionar atributos de largura/altura"
 
@@ -766,19 +766,19 @@ msgstr "Georreferenciamento do Endereço"
 msgid "Admin Bar"
 msgstr "Barra de Administração"
 
-#: includes/frontend/class-ffc-frontend.php:190
+#: includes/frontend/class-ffc-frontend.php:198
 msgid "Admin Bypass Mode Active"
 msgstr "Modo de bypass de Administrador Ativo"
 
-#: includes/frontend/class-ffc-frontend.php:187
+#: includes/frontend/class-ffc-frontend.php:195
 msgid "Admin Bypass Mode Active - Geofence restrictions are disabled for administrators"
 msgstr "Modo de Desbloqueio Administrativo Ativo - As restrições de geolocalização estão desativadas para administradores."
 
-#: includes/frontend/class-ffc-frontend.php:188
+#: includes/frontend/class-ffc-frontend.php:196
 msgid "Admin Bypass: Date/Time restrictions are disabled for administrators"
 msgstr "Acesso Administrativo: As restrições de data/hora estão desativadas para administradores"
 
-#: includes/frontend/class-ffc-frontend.php:189
+#: includes/frontend/class-ffc-frontend.php:197
 msgid "Admin Bypass: Geolocation restrictions are disabled for administrators"
 msgstr "Acesso Administrativo: As restrições de geolocalização estão desativadas para administradores"
 
@@ -794,7 +794,7 @@ msgstr "O administrador deve aprovar manualmente todos os agendamentos"
 msgid "Admin Notes"
 msgstr "Notas do Administrador"
 
-#: includes/settings/views/ffc-tab-documentation.php:818
+#: includes/settings/views/ffc-tab-documentation.php:826
 msgid "Admin Page:"
 msgstr "Página do Administrador:"
 
@@ -807,7 +807,7 @@ msgstr "Permissões de Administrador"
 msgid "Admin View Mode"
 msgstr "Modo de Visualização do Administrador"
 
-#: includes/settings/views/ffc-tab-documentation.php:567
+#: includes/settings/views/ffc-tab-documentation.php:575
 msgid "Admin:"
 msgstr "Administrador:"
 
@@ -823,11 +823,11 @@ msgstr "Administradores ignoram restrições de data/hora"
 msgid "Administrators bypass geolocation restrictions"
 msgstr "Administradores ignoram restrições de geolocalização"
 
-#: includes/settings/views/ffc-tab-documentation.php:83
+#: includes/settings/views/ffc-tab-documentation.php:91
 msgid "Administrators can schedule activities for audiences (groups) in configured environments."
 msgstr "Os administradores podem agendar atividades para públicos (grupos) em ambientes configurados."
 
-#: includes/settings/views/ffc-tab-documentation.php:481
+#: includes/settings/views/ffc-tab-documentation.php:489
 msgid "Admins review and approve/reject submissions"
 msgstr "Os administradores revisam e aprovam/rejeitam as submissões."
 
@@ -1010,7 +1010,7 @@ msgstr "Lista de permissões (CPF/RF)"
 msgid "Allowlist (CPFs / IDs)"
 msgstr "Lista de permissões (CPFs / IDs)"
 
-#: includes/settings/views/ffc-tab-documentation.php:686
+#: includes/settings/views/ffc-tab-documentation.php:694
 msgid "Allowlist/Denylist:"
 msgstr "Lista de permissões/bloqueios:"
 
@@ -1030,7 +1030,7 @@ msgstr "Permite visualizar calendários privados, reservar datas passadas, horá
 msgid "already added"
 msgstr "já adicionado"
 
-#: includes/settings/views/ffc-tab-documentation.php:948
+#: includes/settings/views/ffc-tab-documentation.php:956
 msgid "Always use inline styles"
 msgstr "Sempre use estilos embutidos"
 
@@ -1046,11 +1046,11 @@ msgstr "Ocorreu um erro."
 msgid "An error occurred. Please try again."
 msgstr "Ocorreu um erro. Por favor, tente novamente."
 
-#: includes/api/class-ffc-form-rest-controller.php:132 includes/api/class-ffc-form-rest-controller.php:184 includes/api/class-ffc-form-rest-controller.php:381 includes/api/class-ffc-calendar-rest-controller.php:139 includes/api/class-ffc-calendar-rest-controller.php:217 includes/api/class-ffc-calendar-rest-controller.php:261 includes/api/class-ffc-submission-rest-controller.php:181 includes/api/class-ffc-submission-rest-controller.php:253 includes/api/class-ffc-submission-rest-controller.php:343 includes/api/class-ffc-appointment-rest-controller.php:207 includes/api/class-ffc-appointment-rest-controller.php:269 includes/api/class-ffc-appointment-rest-controller.php:313 includes/core/class-ffc-ajax-trait.php:134 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:243 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:307
+#: includes/api/class-ffc-form-rest-controller.php:132 includes/api/class-ffc-form-rest-controller.php:184 includes/api/class-ffc-form-rest-controller.php:381 includes/api/class-ffc-calendar-rest-controller.php:139 includes/api/class-ffc-calendar-rest-controller.php:217 includes/api/class-ffc-calendar-rest-controller.php:261 includes/api/class-ffc-submission-rest-controller.php:181 includes/api/class-ffc-submission-rest-controller.php:253 includes/api/class-ffc-submission-rest-controller.php:343 includes/api/class-ffc-appointment-rest-controller.php:207 includes/api/class-ffc-appointment-rest-controller.php:269 includes/api/class-ffc-appointment-rest-controller.php:313 includes/core/class-ffc-ajax-trait.php:134 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:244 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:308
 msgid "An unexpected error occurred."
 msgstr "Ocorreu um erro inesperado."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:171
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:172
 msgid "An unexpected error occurred. Please try again."
 msgstr "Ocorreu um erro inesperado. Por favor, tente novamente."
 
@@ -1062,11 +1062,11 @@ msgstr "E - Exigir que tanto o GPS quanto o IP sejam válidos (mais rigoroso)"
 msgid "Annual Re-registration (Proof of Life):"
 msgstr "Recadastramento anual (comprovante de vida):"
 
-#: includes/settings/views/ffc-tab-documentation.php:171
+#: includes/settings/views/ffc-tab-documentation.php:179
 msgid "Any custom field name you created"
 msgstr "Qualquer nome de campo personalizado que você criou."
 
-#: includes/settings/views/ffc-tab-documentation.php:393
+#: includes/settings/views/ffc-tab-documentation.php:401
 msgid "Any custom field you create in Form Builder automatically becomes a template variable:"
 msgstr "Qualquer campo personalizado que você criar no Construtor de Formulários se tornará automaticamente uma variável de modelo:"
 
@@ -1099,11 +1099,11 @@ msgstr "Agendamento #%d"
 msgid "Appointment Approved: %s"
 msgstr "Agendamento Aprovado: %s"
 
-#: includes/api/class-ffc-appointment-rest-controller.php:198 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:158 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:145
+#: includes/api/class-ffc-appointment-rest-controller.php:198 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:158 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:146
 msgid "Appointment booked successfully!"
 msgstr "Agendamento realizado com sucesso!"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:144
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:145
 msgid "Appointment booked successfully! Awaiting admin approval."
 msgstr "Agendamento realizado com sucesso! Aguardando aprovação dos administradores."
 
@@ -1119,7 +1119,7 @@ msgstr "Agendamento Cancelado"
 msgid "Appointment cancelled successfully"
 msgstr "Agendamento cancelado com sucesso"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:232 includes/self-scheduling/views/appointments-list.php:386
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:233 includes/self-scheduling/views/appointments-list.php:386
 msgid "Appointment cancelled successfully."
 msgstr "Agendamento cancelado com sucesso."
 
@@ -1249,7 +1249,7 @@ msgstr "Aprovado Em"
 msgid "Approved By"
 msgstr "Aprovado Por"
 
-#: includes/settings/views/ffc-tab-documentation.php:521
+#: includes/settings/views/ffc-tab-documentation.php:529
 msgid "Approved by admin"
 msgstr "Aprovado pelo administrador"
 
@@ -1384,7 +1384,7 @@ msgstr "Calendários de Público-alvo"
 msgid "Audience created successfully."
 msgstr "Público-alvo criado com sucesso."
 
-#: includes/settings/views/ffc-tab-documentation.php:662
+#: includes/settings/views/ffc-tab-documentation.php:670
 msgid "Audience Custom Fields:"
 msgstr "Campos Personalizados de Público-alvo:"
 
@@ -1396,7 +1396,7 @@ msgstr "Público-alvo desativado com sucesso."
 msgid "Audience deleted successfully."
 msgstr "Público-alvo excluído com sucesso."
 
-#: includes/settings/views/ffc-tab-documentation.php:589
+#: includes/settings/views/ffc-tab-documentation.php:597
 msgid "Audience group name"
 msgstr "Nome do grupo de público-alvo"
 
@@ -1448,7 +1448,7 @@ msgstr "Públicos-alvo:"
 msgid "August"
 msgstr "Agosto"
 
-#: includes/admin/class-ffc-csv-exporter.php:353 includes/admin/class-ffc-admin-submission-edit-page.php:431 includes/privacy/class-ffc-privacy-handler.php:197 includes/frontend/class-ffc-frontend.php:118 includes/frontend/class-ffc-public-csv-exporter.php:179
+#: includes/admin/class-ffc-csv-exporter.php:356 includes/admin/class-ffc-admin-submission-edit-page.php:431 includes/privacy/class-ffc-privacy-handler.php:197 includes/frontend/class-ffc-frontend.php:126 includes/frontend/class-ffc-public-csv-exporter.php:179
 msgid "Auth Code"
 msgstr "Código de Autenticação"
 
@@ -1468,7 +1468,7 @@ msgstr "Autenticidade:"
 msgid "Auto (follow OS)"
 msgstr "Auto (seguir SO)"
 
-#: includes/reregistration/class-ffc-reregistration-admin.php:243 includes/settings/views/ffc-tab-documentation.php:496
+#: includes/reregistration/class-ffc-reregistration-admin.php:243 includes/settings/views/ffc-tab-documentation.php:504
 msgid "Auto-approve"
 msgstr "Aprovação automática"
 
@@ -1480,7 +1480,7 @@ msgstr "Aprovar automaticamente as submissões (sem necessidade de revisão manu
 msgid "Auto-approved"
 msgstr "Aprovado automaticamente"
 
-#: includes/settings/views/ffc-tab-documentation.php:872
+#: includes/settings/views/ffc-tab-documentation.php:880
 msgid "Auto-Create on Publish"
 msgstr "Criar automaticamente ao publicar"
 
@@ -1492,15 +1492,15 @@ msgstr "Criar URLs curtas automaticamente"
 msgid "Auto-delete (days)"
 msgstr "Exclusão automática (dias)"
 
-#: includes/settings/views/ffc-tab-documentation.php:642
+#: includes/settings/views/ffc-tab-documentation.php:650
 msgid "Auto-delete:"
 msgstr "Exclusão automática:"
 
-#: includes/settings/views/ffc-tab-documentation.php:592
+#: includes/settings/views/ffc-tab-documentation.php:600
 msgid "Auto-generated section with all custom field values"
 msgstr "Seção gerada automaticamente com todos os valores dos campos personalizados."
 
-#: includes/settings/views/ffc-tab-documentation.php:635
+#: includes/settings/views/ffc-tab-documentation.php:643
 msgid "Automatic (or not) email sent with certificate PDF attached upon submission"
 msgstr "Envio automático (ou não) de e-mail com o certificado em PDF anexado após a submissão."
 
@@ -1508,7 +1508,7 @@ msgstr "Envio automático (ou não) de e-mail com o certificado em PDF anexado a
 msgid "Automatic Warming"
 msgstr "Aquecimento Automático"
 
-#: includes/settings/views/ffc-tab-documentation.php:497
+#: includes/settings/views/ffc-tab-documentation.php:505
 msgid "Automatically approve submissions without manual review"
 msgstr "Aprovar automaticamente as submissões sem revisão manual."
 
@@ -1516,7 +1516,7 @@ msgstr "Aprovar automaticamente as submissões sem revisão manual."
 msgid "Automatically delete activity logs older than this many days. Set to 0 to keep logs indefinitely."
 msgstr "Excluir automaticamente os registros de atividades com mais de um determinado número de dias. Defina como 0 para manter os registros indefinidamente."
 
-#: includes/settings/views/ffc-tab-documentation.php:873
+#: includes/settings/views/ffc-tab-documentation.php:881
 msgid "Automatically generate a short URL when a post or page is published"
 msgstr "Gere automaticamente um URL curto quando uma publicação ou página for publicada."
 
@@ -1570,7 +1570,7 @@ msgstr "Voltar para Recadastramentos"
 msgid "Backend:"
 msgstr "Backend:"
 
-#: includes/settings/views/ffc-tab-documentation.php:370
+#: includes/settings/views/ffc-tab-documentation.php:378
 msgid "Background color"
 msgstr "Cor de fundo"
 
@@ -1594,7 +1594,7 @@ msgstr "Solicitação inválida. Verifique o console."
 msgid "Banned users..."
 msgstr "Usuários banidos..."
 
-#: includes/settings/views/ffc-tab-documentation.php:707
+#: includes/settings/views/ffc-tab-documentation.php:715
 msgid "Basic humanity verification"
 msgstr "Verificação básica de humanidade"
 
@@ -1654,7 +1654,7 @@ msgstr "Funções Bloqueadas"
 msgid "Blocked today:"
 msgstr "Bloqueado hoje:"
 
-#: includes/settings/views/ffc-tab-documentation.php:283
+#: includes/settings/views/ffc-tab-documentation.php:291
 msgid "Bold text:"
 msgstr "Texto em negrito:"
 
@@ -1739,11 +1739,11 @@ msgstr "reservas"
 msgid "Bookings can only be made during working hours"
 msgstr "As reservas só podem ser feitas durante o horário de funcionamento."
 
-#: includes/settings/views/ffc-tab-documentation.php:436
+#: includes/settings/views/ffc-tab-documentation.php:444
 msgid "Boolean yes/no toggle"
 msgstr "Alternar entre booleanos sim/não"
 
-#: includes/settings/views/ffc-tab-documentation.php:382
+#: includes/settings/views/ffc-tab-documentation.php:390
 msgid "Border"
 msgstr "Borda"
 
@@ -1906,15 +1906,15 @@ msgstr "Calendários"
 msgid "Campaign"
 msgstr "Campanha"
 
-#: includes/settings/views/ffc-tab-documentation.php:523
+#: includes/settings/views/ffc-tab-documentation.php:531
 msgid "Campaign ended without submission"
 msgstr "A campanha terminou sem nenhuma submissão."
 
-#: includes/settings/views/ffc-tab-documentation.php:588
+#: includes/settings/views/ffc-tab-documentation.php:596
 msgid "Campaign name"
 msgstr "Nome da campanha"
 
-#: includes/settings/views/ffc-tab-documentation.php:486
+#: includes/settings/views/ffc-tab-documentation.php:494
 msgid "Campaign Settings:"
 msgstr "Configurações da campanha:"
 
@@ -2124,11 +2124,11 @@ msgstr "Verificar Conflitos"
 msgid "Check database"
 msgstr "Verificar banco de dados"
 
-#: includes/settings/views/ffc-tab-documentation.php:926
+#: includes/settings/views/ffc-tab-documentation.php:934
 msgid "Check image is publicly accessible"
 msgstr "Verifique se a imagem é de acesso público."
 
-#: includes/settings/views/ffc-tab-documentation.php:917
+#: includes/settings/views/ffc-tab-documentation.php:925
 msgid "Check spelling matches exactly"
 msgstr "Verifique se a ortografia corresponde exatamente."
 
@@ -2136,7 +2136,7 @@ msgstr "Verifique se a ortografia corresponde exatamente."
 msgid "Checkbox"
 msgstr "Caixa de seleção múltipla"
 
-#: includes/settings/views/ffc-tab-documentation.php:457
+#: includes/settings/views/ffc-tab-documentation.php:465
 msgid "Child audiences inherit fields from parent audiences"
 msgstr "Os públicos filhos herdam os campos dos públicos pais."
 
@@ -2184,7 +2184,7 @@ msgstr "Limpar todos os códigos QR armazenados em cache?\\n\\nEles serão regen
 msgid "Clear All QR Code Cache"
 msgstr "Limpar Todo o Cache de Códigos QR"
 
-#: includes/settings/views/ffc-tab-documentation.php:957
+#: includes/settings/views/ffc-tab-documentation.php:965
 msgid "Clear browser cache (Ctrl+F5)"
 msgstr "Limpar cache do navegador (Ctrl+F5)"
 
@@ -2200,15 +2200,15 @@ msgstr "Limpar Filtro"
 msgid "Clear Filters"
 msgstr "Limpar Filtros"
 
-#: includes/settings/views/ffc-tab-documentation.php:956
+#: includes/settings/views/ffc-tab-documentation.php:964
 msgid "Clear WordPress cache"
 msgstr "Limpar cache do WordPress"
 
-#: includes/settings/views/ffc-tab-documentation.php:568
+#: includes/settings/views/ffc-tab-documentation.php:576
 msgid "Click \"Download Ficha\" on the reregistration banner after submitting"
 msgstr "Após o envio, clique em \"Baixar Ficha\" no banner de recadastramento."
 
-#: includes/settings/views/ffc-tab-documentation.php:834
+#: includes/settings/views/ffc-tab-documentation.php:842
 msgid "Click count for this short URL"
 msgstr "Contagem de cliques para este URL curto"
 
@@ -2218,7 +2218,7 @@ msgstr "Contagem de cliques para este URL curto"
 msgid "Click once to process all records automatically. %s records remaining."
 msgstr "Clique uma vez para processar todos os registros automaticamente. %s registros restantes."
 
-#: includes/settings/views/ffc-tab-documentation.php:567
+#: includes/settings/views/ffc-tab-documentation.php:575
 msgid "Click the \"Ficha\" button next to any submission in the Reregistration > Submissions list"
 msgstr "Clique no botão \"Ficha\" ao lado de qualquer inscrição na lista de Recadastramento > Inscrições"
 
@@ -2246,7 +2246,7 @@ msgstr "cliques"
 msgid "Close"
 msgstr "Fechar"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:186 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:287 includes/reregistration/class-ffc-reregistration-repository.php:52 includes/audience/class-ffc-audience-admin-environment.php:333 includes/audience/class-ffc-audience-shortcode.php:266 includes/audience/class-ffc-audience-shortcode.php:765
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:186 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:288 includes/reregistration/class-ffc-reregistration-repository.php:52 includes/audience/class-ffc-audience-admin-environment.php:333 includes/audience/class-ffc-audience-shortcode.php:266 includes/audience/class-ffc-audience-shortcode.php:765
 msgid "Closed"
 msgstr "Fechado"
 
@@ -2258,7 +2258,7 @@ msgstr "Fechado hoje"
 msgid "Code"
 msgstr "Código"
 
-#: includes/settings/views/ffc-tab-url-shortener.php:70 includes/settings/views/ffc-tab-documentation.php:862
+#: includes/settings/views/ffc-tab-url-shortener.php:70 includes/settings/views/ffc-tab-documentation.php:870
 msgid "Code Length"
 msgstr "Comprimento do Código"
 
@@ -2266,7 +2266,7 @@ msgstr "Comprimento do Código"
 msgid "codes generated"
 msgstr "códigos gerados"
 
-#: includes/settings/views/ffc-tab-documentation.php:667
+#: includes/settings/views/ffc-tab-documentation.php:675
 msgid "Collect updated information from audience members with configurable email notifications and approval workflow"
 msgstr "Colete informações atualizadas dos membros da audiência com notificações de e-mail configuráveis ​​e fluxo de trabalho de aprovação."
 
@@ -2286,7 +2286,7 @@ msgstr "Cor utilizada para identificação visual nos calendários."
 msgid "Color used to identify this environment in the calendar."
 msgstr "Cor utilizada para identificar este ambiente no calendário."
 
-#: includes/settings/views/ffc-tab-documentation.php:225
+#: includes/settings/views/ffc-tab-documentation.php:233
 msgid "Combining multiple attributes (separate with colons)"
 msgstr "Combinando múltiplos atributos (separados com dois pontos)"
 
@@ -2294,7 +2294,7 @@ msgstr "Combinando múltiplos atributos (separados com dois pontos)"
 msgid "Comma-separated email addresses for admin notifications (leave empty to use site admin email)"
 msgstr "Endereços de e-mail separados por vírgula para notificações do administrador (deixe vazio para usar o e-mail do administrador do site)"
 
-#: includes/settings/views/ffc-tab-documentation.php:348
+#: includes/settings/views/ffc-tab-documentation.php:356
 msgid "Common Inline Styles:"
 msgstr "Estilos embutidos comuns:"
 
@@ -2330,7 +2330,7 @@ msgstr "Recadastramento Completo"
 msgid "Completed"
 msgstr "Concluído"
 
-#: includes/settings/views/ffc-tab-documentation.php:478
+#: includes/settings/views/ffc-tab-documentation.php:486
 msgid "Configure email notifications (invitation, reminder, confirmation)"
 msgstr "Configure as notificações por e-mail (convite, lembrete, confirmação)"
 
@@ -2354,7 +2354,7 @@ msgstr "Configure como os calendários privados são exibidos para visitantes qu
 msgid "Configure the built-in URL shortener. Short URLs redirect visitors and generate QR Codes."
 msgstr "Configure o encurtador de URLs integrado. URLs curtas redirecionam os visitantes e geram códigos QR."
 
-#: includes/settings/views/ffc-tab-documentation.php:897
+#: includes/settings/views/ffc-tab-documentation.php:905
 msgid "Configure URL Shortener settings in the \"URL Shortener\" tab. If you change the prefix, rewrite rules are flushed automatically."
 msgstr "Configure as definições do encurtador de URLs na aba \"Encurtador de URLs\". Se alterar o prefixo, as regras de reescrita serão atualizadas automaticamente."
 
@@ -2370,7 +2370,7 @@ msgstr "Confirmar Nova Senha"
 msgid "Confirmation Code"
 msgstr "Código de Confirmação"
 
-#: includes/settings/views/ffc-tab-documentation.php:508
+#: includes/settings/views/ffc-tab-documentation.php:516
 msgid "Confirmation Email"
 msgstr "E-mail de Confirmação"
 
@@ -2400,7 +2400,7 @@ msgstr "Parabéns! Quiz aprovado. Certificado gerado."
 msgid "Congratulations! Score: %d%%. Certificate generated."
 msgstr "Parabéns! Nota: %d%%. Certificado gerado."
 
-#: includes/admin/class-ffc-admin-assets-manager.php:331 includes/frontend/class-ffc-frontend.php:106
+#: includes/admin/class-ffc-admin-assets-manager.php:331 includes/frontend/class-ffc-frontend.php:114
 msgid "Connection error."
 msgstr "Erro de conexão."
 
@@ -2412,11 +2412,11 @@ msgstr "Tempo de conexão esgotado. Por favor, tente novamente."
 msgid "Consent (LGPD)"
 msgstr "Consentimento (LGPD)"
 
-#: includes/admin/class-ffc-csv-exporter.php:356 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:68 includes/frontend/class-ffc-public-csv-exporter.php:182
+#: includes/admin/class-ffc-csv-exporter.php:359 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:68 includes/frontend/class-ffc-public-csv-exporter.php:182
 msgid "Consent Date"
 msgstr "Data do Consentimento"
 
-#: includes/admin/class-ffc-csv-exporter.php:355 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:67 includes/frontend/class-ffc-public-csv-exporter.php:181
+#: includes/admin/class-ffc-csv-exporter.php:358 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:67 includes/frontend/class-ffc-public-csv-exporter.php:181
 msgid "Consent Given"
 msgstr "Consentimento"
 
@@ -2428,11 +2428,11 @@ msgstr "Consentimento dado"
 msgid "Consent given:"
 msgstr "Consentimento concedido:"
 
-#: includes/admin/class-ffc-csv-exporter.php:357 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:69 includes/frontend/class-ffc-public-csv-exporter.php:183
+#: includes/admin/class-ffc-csv-exporter.php:360 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:69 includes/frontend/class-ffc-public-csv-exporter.php:183
 msgid "Consent IP"
 msgstr "Consentimento IP"
 
-#: includes/admin/class-ffc-csv-exporter.php:358 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:70 includes/frontend/class-ffc-public-csv-exporter.php:184
+#: includes/admin/class-ffc-csv-exporter.php:361 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:70 includes/frontend/class-ffc-public-csv-exporter.php:184
 msgid "Consent Text"
 msgstr "Texto de Consentimento"
 
@@ -2441,7 +2441,7 @@ msgstr "Texto de Consentimento"
 msgid "Contact Information"
 msgstr "Informações de Contato"
 
-#: includes/settings/views/ffc-tab-documentation.php:303
+#: includes/settings/views/ffc-tab-documentation.php:311
 msgid "Container for sections"
 msgstr "Recipiente para seções"
 
@@ -2521,7 +2521,7 @@ msgstr "Contagem regressiva"
 msgid "Course"
 msgstr "Curso"
 
-#: includes/admin/class-ffc-csv-exporter.php:351 includes/admin/class-ffc-admin-submission-edit-page.php:418 includes/audience/class-ffc-audience-admin-audience.php:404 includes/audience/class-ffc-audience-admin-audience.php:514 includes/frontend/class-ffc-verification-response-renderer.php:323 includes/frontend/class-ffc-public-csv-exporter.php:177 includes/self-scheduling/views/appointments-list.php:491
+#: includes/admin/class-ffc-csv-exporter.php:354 includes/admin/class-ffc-admin-submission-edit-page.php:418 includes/audience/class-ffc-audience-admin-audience.php:404 includes/audience/class-ffc-audience-admin-audience.php:514 includes/frontend/class-ffc-verification-response-renderer.php:323 includes/frontend/class-ffc-public-csv-exporter.php:177 includes/self-scheduling/views/appointments-list.php:491
 msgid "CPF"
 msgstr "CPF"
 
@@ -2583,11 +2583,11 @@ msgstr "Criar"
 msgid "Create %s"
 msgstr "Criar %s"
 
-#: includes/settings/views/ffc-tab-documentation.php:398
+#: includes/settings/views/ffc-tab-documentation.php:406
 msgid "Create a field in Form Builder (e.g., field name:"
 msgstr "Crie um campo no Construtor de Formulários (por exemplo, nome do campo:"
 
-#: includes/settings/views/ffc-tab-documentation.php:476
+#: includes/settings/views/ffc-tab-documentation.php:484
 msgid "Create a reregistration campaign linked to an audience"
 msgstr "Crie uma campanha de recadastramento vinculada a um público-alvo."
 
@@ -2603,7 +2603,7 @@ msgstr "Criar Reserva"
 msgid "Create Calendar"
 msgstr "Criar Calendário"
 
-#: includes/settings/views/ffc-tab-documentation.php:821
+#: includes/settings/views/ffc-tab-documentation.php:829
 msgid "Create new short URLs with a title and destination URL"
 msgstr "Crie novos URLs curtos com um título e um URL de destino."
 
@@ -2611,7 +2611,7 @@ msgstr "Crie novos URLs curtos com um título e um URL de destino."
 msgid "Create Reregistration"
 msgstr "Criar Recadastramento"
 
-#: includes/settings/views/ffc-tab-documentation.php:471
+#: includes/settings/views/ffc-tab-documentation.php:479
 msgid "Create reregistration campaigns to collect updated information from audience members. Campaigns run for a set period and can include email notifications."
 msgstr "Crie campanhas de recadastramento para coletar informações atualizadas dos membros do público. As campanhas têm duração definida e podem incluir notificações por e-mail."
 
@@ -2619,7 +2619,7 @@ msgstr "Crie campanhas de recadastramento para coletar informações atualizadas
 msgid "Create Short URL"
 msgstr "Criar URL Curta"
 
-#: includes/settings/views/ffc-tab-documentation.php:805
+#: includes/settings/views/ffc-tab-documentation.php:813
 msgid "Create short URLs for any page and track clicks. Each short URL has a unique QR code that can be downloaded as PNG or SVG."
 msgstr "Crie URLs curtas para qualquer página e acompanhe os cliques. Cada URL curta possui um código QR exclusivo que pode ser baixado como PNG ou SVG."
 
@@ -2639,7 +2639,7 @@ msgstr "Criado Em"
 msgid "Created By"
 msgstr "Criado Por"
 
-#: includes/settings/views/ffc-tab-documentation.php:630
+#: includes/settings/views/ffc-tab-documentation.php:638
 msgid "CSV Export:"
 msgstr "Exportação em CSV:"
 
@@ -2647,7 +2647,7 @@ msgstr "Exportação em CSV:"
 msgid "CSV File"
 msgstr "Arquivo CSV"
 
-#: includes/settings/views/ffc-tab-documentation.php:136
+#: includes/settings/views/ffc-tab-documentation.php:144
 msgid "Current date/time when PDF is being generated"
 msgstr "Data e hora atuais em que o PDF está sendo gerado."
 
@@ -2667,7 +2667,7 @@ msgstr "A senha atual está incorreta."
 msgid "Current Position/Role"
 msgstr "Cargo/Função atual"
 
-#: includes/settings/views/ffc-tab-documentation.php:590
+#: includes/settings/views/ffc-tab-documentation.php:598
 msgid "Current status (Submitted, Approved, etc.)"
 msgstr "Status atual (Enviado, Aprovado, etc.)"
 
@@ -2707,7 +2707,7 @@ msgstr "Rótulo personalizado para os ambientes deste calendário (ex.: \"Salas\
 msgid "Custom Regex"
 msgstr "Regex Personalizada"
 
-#: includes/settings/views/ffc-tab-documentation.php:447
+#: includes/settings/views/ffc-tab-documentation.php:455
 msgid "Custom regular expression pattern"
 msgstr "Padrão de expressão regular personalizado"
 
@@ -2715,7 +2715,7 @@ msgstr "Padrão de expressão regular personalizado"
 msgid "Custom singular/plural label for the booking count shown in calendar day cells (e.g. \"session\" / \"sessions\"). Leave empty to use default."
 msgstr "Rótulo personalizado no singular/plural para a contagem de reservas exibida nas células do calendário (por exemplo, \"sessão\" / \"sessões\"). Deixe em branco para usar o padrão."
 
-#: includes/settings/views/ffc-tab-documentation.php:201
+#: includes/settings/views/ffc-tab-documentation.php:209
 msgid "Custom size (150x150 pixels)"
 msgstr "Tamanho personalizado (150x150 pixels)"
 
@@ -2727,7 +2727,7 @@ msgstr "SMTP Personalizado"
 msgid "Custom Users"
 msgstr "Usuários Personalizados"
 
-#: includes/settings/views/ffc-tab-documentation.php:600
+#: includes/settings/views/ffc-tab-documentation.php:608
 msgid "Customization:"
 msgstr "Personalização:"
 
@@ -2791,7 +2791,7 @@ msgstr "Dados apagados e contador reiniciado com sucesso."
 msgid "Data deleted successfully."
 msgstr "Dados excluídos com sucesso."
 
-#: includes/settings/views/ffc-tab-documentation.php:698
+#: includes/settings/views/ffc-tab-documentation.php:706
 msgid "Data Encryption:"
 msgstr "Criptografia de Dados:"
 
@@ -2799,11 +2799,11 @@ msgstr "Criptografia de Dados:"
 msgid "Data Migrations"
 msgstr "Migrações de Dados"
 
-#: includes/settings/views/ffc-tab-documentation.php:650
+#: includes/settings/views/ffc-tab-documentation.php:658
 msgid "Data Migrations:"
 msgstr "Migrações de Dados:"
 
-#: includes/settings/views/ffc-tab-documentation.php:462
+#: includes/settings/views/ffc-tab-documentation.php:470
 msgid "Data Storage:"
 msgstr "Armazenamento de Dados:"
 
@@ -2827,7 +2827,7 @@ msgstr "Data e horário são obrigatórios."
 msgid "Date Format"
 msgstr "Formato de Data"
 
-#: includes/settings/views/ffc-tab-documentation.php:646
+#: includes/settings/views/ffc-tab-documentation.php:654
 msgid "Date Format:"
 msgstr "Formato da Data:"
 
@@ -2835,7 +2835,7 @@ msgstr "Formato da Data:"
 msgid "Date of Birth"
 msgstr "Data de Nascimento"
 
-#: includes/settings/views/ffc-tab-documentation.php:434
+#: includes/settings/views/ffc-tab-documentation.php:442
 msgid "Date picker (YYYY-MM-DD)"
 msgstr "Seletor de data (AAAA-MM-DD)"
 
@@ -2843,11 +2843,11 @@ msgstr "Seletor de data (AAAA-MM-DD)"
 msgid "Date Range"
 msgstr "Intervalo de Datas"
 
-#: includes/settings/views/ffc-tab-documentation.php:131
+#: includes/settings/views/ffc-tab-documentation.php:139
 msgid "Date when submission was created (from database)"
 msgstr "Data de criação do envio (a partir do banco de dados)"
 
-#: includes/settings/views/ffc-tab-documentation.php:594
+#: includes/settings/views/ffc-tab-documentation.php:602
 msgid "Date when the PDF was generated"
 msgstr "Data em que o PDF foi gerado."
 
@@ -2908,7 +2908,7 @@ msgstr "Configurações de Depuração"
 msgid "December"
 msgstr "Dezembro"
 
-#: includes/settings/views/ffc-tab-documentation.php:847
+#: includes/settings/views/ffc-tab-documentation.php:855
 msgid "Default"
 msgstr "Padrão"
 
@@ -2928,7 +2928,7 @@ msgstr "Áreas de Geofencing Padrão"
 msgid "Default limit suggested when enabling the public CSV download feature on a form. Each form can override this value in its editor."
 msgstr "Limite padrão sugerido ao ativar o recurso de download público de CSV em um formulário. Cada formulário pode substituir esse valor em seu editor."
 
-#: includes/settings/views/ffc-tab-documentation.php:194
+#: includes/settings/views/ffc-tab-documentation.php:202
 msgid "Default QR code (uses settings from QR Code tab)"
 msgstr "Código QR padrão (usa as configurações da aba Código QR)"
 
@@ -2948,7 +2948,7 @@ msgstr "Configurações padrão para geração de código QR em certificados."
 msgid "Default size when {{qr_code}} placeholder is used without size parameter. Range: 100-500px."
 msgstr "Tamanho padrão quando o marcador {{qr_code}} é usado sem parâmetro de tamanho. Intervalo: 100-500px."
 
-#: includes/settings/views/ffc-tab-documentation.php:195
+#: includes/settings/views/ffc-tab-documentation.php:203
 msgid "Default size:"
 msgstr "Tamanho padrão:"
 
@@ -2956,7 +2956,7 @@ msgstr "Tamanho padrão:"
 msgid "Default: All notifications disabled"
 msgstr "Padrão: Todas as notificações desabilitadas"
 
-#: includes/settings/views/ffc-tab-documentation.php:247
+#: includes/settings/views/ffc-tab-documentation.php:255
 msgid "Default: link to magic, text shows /valid"
 msgstr "Padrão: link magico, o texto mostra /valid"
 
@@ -2964,11 +2964,11 @@ msgstr "Padrão: link magico, o texto mostra /valid"
 msgid "Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use \"+ Add Field\" to create custom fields."
 msgstr "Defina todos os campos exibidos durante o recadastramento. Os campos padrão podem ser reordenados, renomeados, reagrupados e desativados, mas não excluídos. Use \"+ Adicionar Campo\" para criar campos personalizados."
 
-#: includes/settings/views/ffc-tab-documentation.php:663
+#: includes/settings/views/ffc-tab-documentation.php:671
 msgid "Define custom data fields per audience group with validation (CPF, email, phone, regex)"
 msgstr "Defina campos de dados personalizados por grupo de público-alvo com validação (CPF, e-mail, telefone, expressão regular)."
 
-#: includes/settings/views/ffc-tab-documentation.php:419
+#: includes/settings/views/ffc-tab-documentation.php:427
 msgid "Define custom data fields per audience group. These fields are shown during reregistration and on the WordPress user profile."
 msgstr "Defina campos de dados personalizados por grupo de público-alvo. Esses campos são exibidos durante o novo cadastro e no perfil do usuário no WordPress."
 
@@ -3041,7 +3041,7 @@ msgstr "Departamento:"
 msgid "Describe the purpose of this booking (15-300 characters)"
 msgstr "Descreva o objetivo desta reserva (15-300 caracteres)"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:193 includes/privacy/class-ffc-privacy-handler.php:399 includes/self-scheduling/class-ffc-self-scheduling-editor.php:184 includes/audience/class-ffc-audience-admin-bookings.php:147 includes/audience/class-ffc-audience-admin-environment.php:288 includes/audience/class-ffc-audience-admin-calendar.php:214 includes/audience/class-ffc-audience-admin-calendar.php:474 includes/audience/class-ffc-audience-loader.php:308 includes/audience/class-ffc-audience-admin-settings.php:158 includes/audience/class-ffc-audience-admin-settings.php:183 includes/audience/class-ffc-audience-shortcode.php:352 includes/settings/views/ffc-tab-documentation.php:47 includes/settings/views/ffc-tab-documentation.php:99 includes/settings/views/ffc-tab-documentation.php:187 includes/settings/views/ffc-tab-documentation.php:240 includes/settings/views/ffc-tab-documentation.php:427 includes/settings/views/ffc-tab-documentation.php:491 includes/settings/views/ffc-tab-documentation.php:534 includes/settings/views/ffc-tab-documentation.php:579 includes/settings/views/ffc-tab-documentation.php:846
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:193 includes/privacy/class-ffc-privacy-handler.php:399 includes/self-scheduling/class-ffc-self-scheduling-editor.php:184 includes/audience/class-ffc-audience-admin-bookings.php:147 includes/audience/class-ffc-audience-admin-environment.php:288 includes/audience/class-ffc-audience-admin-calendar.php:214 includes/audience/class-ffc-audience-admin-calendar.php:474 includes/audience/class-ffc-audience-loader.php:308 includes/audience/class-ffc-audience-admin-settings.php:158 includes/audience/class-ffc-audience-admin-settings.php:183 includes/audience/class-ffc-audience-shortcode.php:352 includes/settings/views/ffc-tab-documentation.php:47 includes/settings/views/ffc-tab-documentation.php:107 includes/settings/views/ffc-tab-documentation.php:195 includes/settings/views/ffc-tab-documentation.php:248 includes/settings/views/ffc-tab-documentation.php:435 includes/settings/views/ffc-tab-documentation.php:499 includes/settings/views/ffc-tab-documentation.php:542 includes/settings/views/ffc-tab-documentation.php:587 includes/settings/views/ffc-tab-documentation.php:854
 msgid "Description"
 msgstr "Descrição"
 
@@ -3069,7 +3069,7 @@ msgstr "Destino"
 msgid "Destination URL"
 msgstr "URL de Destino"
 
-#: includes/frontend/class-ffc-frontend.php:193
+#: includes/frontend/class-ffc-frontend.php:201
 msgid "Detecting your location..."
 msgstr "Detectando sua localização..."
 
@@ -3109,15 +3109,19 @@ msgstr "Nome de Exibição"
 msgid "Display Options"
 msgstr "Opções de Exibição"
 
-#: includes/settings/views/ffc-tab-documentation.php:75
+#: includes/settings/views/ffc-tab-documentation.php:83
 msgid "Displays a personal calendar with appointment booking."
 msgstr "Exibe um calendário pessoal com agendamento de compromissos."
 
 #: includes/settings/views/ffc-tab-documentation.php:68
+msgid "Displays a public page where visitors can download the submissions CSV of a specific form using a Form ID and an access hash."
+msgstr "Exibe uma página pública onde os visitantes podem baixar o arquivo CSV com os envios de um formulário específico, utilizando um ID de formulário e um hash de acesso."
+
+#: includes/settings/views/ffc-tab-documentation.php:76
 msgid "Displays dashboard page."
 msgstr "Exibe a painel de controle."
 
-#: includes/settings/views/ffc-tab-documentation.php:82
+#: includes/settings/views/ffc-tab-documentation.php:90
 msgid "Displays the audience scheduling calendar for group bookings."
 msgstr "Exibe o calendário de agendamento de público para reservas de grupo."
 
@@ -3145,7 +3149,7 @@ msgstr "Divorciado(a)"
 msgid "Do not fill this field if you are human:"
 msgstr "Não preencha este campo se você for humano:"
 
-#: includes/frontend/class-ffc-frontend.php:116
+#: includes/frontend/class-ffc-frontend.php:124
 msgid "Document Invalid"
 msgstr "Documento Inválido"
 
@@ -3157,7 +3161,7 @@ msgstr "Documento não encontrado ou código inválido."
 msgid "Document not found or invalid link."
 msgstr "Documento não encontrado ou link inválido."
 
-#: includes/frontend/class-ffc-frontend.php:115
+#: includes/frontend/class-ffc-frontend.php:123
 msgid "Document Valid!"
 msgstr "Documento Válido!"
 
@@ -3185,7 +3189,7 @@ msgstr "União estável"
 msgid "Done!"
 msgstr "Feito!"
 
-#: includes/admin/class-ffc-admin-assets-manager.php:346 includes/frontend/class-ffc-frontend.php:112
+#: includes/admin/class-ffc-admin-assets-manager.php:346 includes/frontend/class-ffc-frontend.php:120
 msgid "Download Again"
 msgstr "Baixar Novamente"
 
@@ -3193,7 +3197,7 @@ msgstr "Baixar Novamente"
 msgid "Download Certificate (PDF)"
 msgstr "Baixar Certificado (PDF)"
 
-#: includes/frontend/class-ffc-public-csv-download.php:132
+#: includes/frontend/class-ffc-public-csv-download.php:135
 msgid "Download CSV"
 msgstr "Baixar CSV"
 
@@ -3217,11 +3221,11 @@ msgstr "Limite de Download"
 msgid "Download own certificates"
 msgstr "Baixe seus próprios certificados"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:388 includes/frontend/class-ffc-frontend.php:120
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:388 includes/frontend/class-ffc-frontend.php:128
 msgid "Download PDF"
 msgstr "Baixar PDF"
 
-#: includes/settings/views/ffc-tab-documentation.php:824
+#: includes/settings/views/ffc-tab-documentation.php:832
 msgid "Download QR codes in PNG or SVG format"
 msgstr "Baixe códigos QR nos formatos PNG ou SVG."
 
@@ -3249,7 +3253,7 @@ msgstr "Rascunho salvo."
 msgid "Dropdown Select"
 msgstr "Caixa de seleção suspensa"
 
-#: includes/settings/views/ffc-tab-documentation.php:435
+#: includes/settings/views/ffc-tab-documentation.php:443
 msgid "Dropdown with predefined options"
 msgstr "Menu suspenso com opções predefinidas"
 
@@ -3289,7 +3293,7 @@ msgstr "Migração dinâmica dos campos de recadastramento concluída com sucess
 msgid "Dynamic reregistration fields migration encountered issues. Check details."
 msgstr "A migração dos campos de recadastramento dinâmico apresentou problemas. Confira os detalhes."
 
-#: includes/admin/class-ffc-csv-exporter.php:349 includes/frontend/class-ffc-public-csv-exporter.php:175 includes/self-scheduling/views/appointments-list.php:488
+#: includes/admin/class-ffc-csv-exporter.php:352 includes/frontend/class-ffc-public-csv-exporter.php:175 includes/self-scheduling/views/appointments-list.php:488
 msgid "E-mail"
 msgstr "E-mail"
 
@@ -3323,7 +3327,7 @@ msgstr "Editar Público-alvo"
 msgid "Edit Calendar"
 msgstr "Editar Calendário"
 
-#: includes/admin/class-ffc-csv-exporter.php:364 includes/frontend/class-ffc-public-csv-exporter.php:190
+#: includes/admin/class-ffc-csv-exporter.php:367 includes/frontend/class-ffc-public-csv-exporter.php:190
 msgid "Edit Date"
 msgstr "Data de Edição"
 
@@ -3353,7 +3357,7 @@ msgstr "Editar Recadastramento"
 msgid "Edit Submission #%s"
 msgstr "Editar Envio #%s"
 
-#: includes/admin/class-ffc-csv-exporter.php:365 includes/frontend/class-ffc-public-csv-exporter.php:191
+#: includes/admin/class-ffc-csv-exporter.php:368 includes/frontend/class-ffc-public-csv-exporter.php:191
 msgid "Edited By"
 msgstr "Editado Por"
 
@@ -3389,7 +3393,7 @@ msgstr "Gerador de E-mail"
 msgid "Email Notifications"
 msgstr "Notificações por E-mail"
 
-#: includes/settings/views/ffc-tab-documentation.php:634
+#: includes/settings/views/ffc-tab-documentation.php:642
 msgid "Email Notifications:"
 msgstr "Notificações por E-mail:"
 
@@ -3440,6 +3444,10 @@ msgstr "Esvaziar Lixeira"
 #: includes/url-shortener/class-ffc-url-shortener-admin-page.php:500 includes/settings/views/ffc-tab-rate-limit.php:13 includes/settings/views/ffc-tab-rate-limit.php:25 includes/settings/views/ffc-tab-rate-limit.php:37 includes/settings/views/ffc-tab-rate-limit.php:77
 msgid "Enable"
 msgstr "Habilitar"
+
+#: includes/settings/views/ffc-tab-documentation.php:69
+msgid "Enable \"Public CSV Download\" on the form editor to generate a hash, then share the page URL together with the Form ID and hash (e.g. ?form_id=123&hash=...). Downloads are only released after the form end date has passed and are capped by the per-form quota configured in the form editor."
+msgstr "Ative a opção \"Download Público de CSV\" no editor de formulários para gerar um hash e, em seguida, compartilhe o URL da página juntamente com o ID do formulário e o hash (por exemplo, ?form_id=123&hash=...). Os downloads só serão liberados após a data de encerramento do formulário e estão limitados pela cota configurada no editor de formulários."
 
 #: includes/settings/views/ffc-tab-advanced.php:38
 msgid "Enable Activity Log"
@@ -3541,15 +3549,15 @@ msgstr "Ativar Modo Quiz"
 msgid "Enable the URL Shortener module"
 msgstr "Ative o módulo de encurtamento de URL."
 
-#: includes/settings/views/ffc-tab-url-shortener.php:42 includes/settings/views/ffc-tab-documentation.php:852
+#: includes/settings/views/ffc-tab-url-shortener.php:42 includes/settings/views/ffc-tab-documentation.php:860
 msgid "Enable URL Shortener"
 msgstr "Ativar encurtador de URL"
 
-#: includes/settings/views/ffc-tab-documentation.php:823
+#: includes/settings/views/ffc-tab-documentation.php:831
 msgid "Enable/disable individual short URLs"
 msgstr "Ativar/desativar URLs curtas individuais"
 
-#: includes/settings/views/ffc-tab-smtp.php:48 includes/settings/views/ffc-tab-smtp.php:70 includes/settings/views/ffc-tab-smtp.php:92 includes/settings/views/ffc-tab-smtp.php:114 includes/settings/views/ffc-tab-documentation.php:854 includes/settings/views/ffc-tab-documentation.php:874 includes/settings/views/ffc-tab-cache.php:167
+#: includes/settings/views/ffc-tab-smtp.php:48 includes/settings/views/ffc-tab-smtp.php:70 includes/settings/views/ffc-tab-smtp.php:92 includes/settings/views/ffc-tab-smtp.php:114 includes/settings/views/ffc-tab-documentation.php:862 includes/settings/views/ffc-tab-documentation.php:882 includes/settings/views/ffc-tab-cache.php:167
 msgid "Enabled"
 msgstr "Habilitado"
 
@@ -3565,7 +3573,7 @@ msgstr "Criptografia"
 msgid "Encryption class not found. Required for CPF/RF split migration."
 msgstr "Classe de criptografia não encontrada. Necessária para a migração de divisão CPF/RF."
 
-#: includes/settings/views/ffc-tab-documentation.php:699
+#: includes/settings/views/ffc-tab-documentation.php:707
 msgid "Encryption for sensitive data (LGPD compliant)"
 msgstr "Criptografia para dados sensíveis (em conformidade com o LGPD)"
 
@@ -3589,27 +3597,27 @@ msgstr "O horário final deve ser posterior ao horário inicial."
 msgid "End:"
 msgstr "Fim:"
 
-#: includes/settings/views/ffc-tab-documentation.php:533
+#: includes/settings/views/ffc-tab-documentation.php:541
 msgid "Endpoint"
 msgstr "Ponto Final"
 
-#: includes/settings/views/ffc-tab-documentation.php:918
+#: includes/settings/views/ffc-tab-documentation.php:926
 msgid "Ensure field exists in form"
 msgstr "Verifique se o campo existe no formulário."
 
-#: includes/settings/views/ffc-tab-documentation.php:643
+#: includes/settings/views/ffc-tab-documentation.php:651
 msgid "Ensure submissions are deleted after \"X\" days."
 msgstr "Garanta que as submissões sejam excluídas após \"X\" dias."
 
-#: includes/settings/views/ffc-tab-documentation.php:687
+#: includes/settings/views/ffc-tab-documentation.php:695
 msgid "Ensure that the listed IDs are allowed or blocked from retrieving certificates."
 msgstr "Verifique se os IDs listados têm permissão ou estão bloqueados para recuperar certificados."
 
-#: includes/frontend/class-ffc-frontend.php:127
+#: includes/frontend/class-ffc-frontend.php:135
 msgid "Enter a valid CPF (11 digits) or RF (7 digits)"
 msgstr "Insira um CPF válido (11 dígitos) ou RF (7 dígitos)."
 
-#: includes/frontend/class-ffc-frontend.php:122
+#: includes/frontend/class-ffc-frontend.php:130
 msgid "Enter auth code"
 msgstr "Insira o código de autorização"
 
@@ -3621,6 +3629,10 @@ msgstr "Digite a senha"
 #| msgid "Enter the authentication code to verify the certificate authenticity."
 msgid "Enter the authentication code to verify document authenticity."
 msgstr "Insira o código de autenticação para verificar a autenticidade do certificado."
+
+#: includes/frontend/class-ffc-public-csv-download.php:81
+msgid "Enter the Form ID and the access hash to download the submissions CSV."
+msgstr "Insira o ID do formulário e o hash de acesso para baixar o arquivo CSV com os envios."
 
 #: includes/settings/views/ffc-tab-geolocation.php:119
 msgid "Enter your ipinfo.io API key"
@@ -3690,7 +3702,7 @@ msgstr "Erro ao verificar conflitos."
 msgid "Error communicating with server"
 msgstr "Erro ao comunicar com o servidor"
 
-#: includes/settings/views/ffc-tab-documentation.php:215
+#: includes/settings/views/ffc-tab-documentation.php:223
 msgid "Error correction level"
 msgstr "Nível de correção de erros"
 
@@ -3710,11 +3722,11 @@ msgstr "Erro ao gerar o arquivo CSV:"
 msgid "Error generating ficha."
 msgstr "Error generating ficha."
 
-#: includes/admin/class-ffc-admin-assets-manager.php:351 includes/frontend/class-ffc-frontend.php:145
+#: includes/admin/class-ffc-admin-assets-manager.php:351 includes/frontend/class-ffc-frontend.php:153
 msgid "Error generating PDF"
 msgstr "Erro ao gerar o PDF"
 
-#: includes/frontend/class-ffc-frontend.php:141
+#: includes/frontend/class-ffc-frontend.php:149
 msgid "Error generating PDF (html2canvas). Please try again."
 msgstr "Erro ao gerar o PDF (html2canvas). Tente novamente."
 
@@ -3780,7 +3792,7 @@ msgstr "Mensagem de Erro"
 msgid "Error message for regex"
 msgstr "Mensagem de erro para regex"
 
-#: includes/frontend/class-ffc-frontend.php:132
+#: includes/frontend/class-ffc-frontend.php:140
 msgid "Error occurred"
 msgstr "Ocorreu um erro"
 
@@ -3844,11 +3856,11 @@ msgstr "Erro: campo de códigos não encontrado"
 msgid "Error: HTML textarea not found"
 msgstr "Erro: Área de texto HTML não encontrada"
 
-#: includes/admin/class-ffc-admin-assets-manager.php:352 includes/frontend/class-ffc-frontend.php:146
+#: includes/admin/class-ffc-admin-assets-manager.php:352 includes/frontend/class-ffc-frontend.php:154
 msgid "Error: html2canvas failed"
 msgstr "Erro: falha na conversão de html2canvas"
 
-#: includes/admin/class-ffc-admin-assets-manager.php:350 includes/frontend/class-ffc-frontend.php:144
+#: includes/admin/class-ffc-admin-assets-manager.php:350 includes/frontend/class-ffc-frontend.php:152
 msgid "Error: PDF container not found"
 msgstr "Erro: Contêiner PDF não encontrado"
 
@@ -3892,7 +3904,7 @@ msgstr "Evento:"
 msgid "Events"
 msgstr "Eventos"
 
-#: includes/settings/views/ffc-tab-documentation.php:615
+#: includes/settings/views/ffc-tab-documentation.php:623
 msgid "Every certificate gets a unique 12-character code (e.g., A1B2-C3D4-E5F6)"
 msgstr "Cada certificado recebe um código único de 12 caracteres (por exemplo, A1B2-C3D4-E5F6)."
 
@@ -3912,19 +3924,19 @@ msgstr "Exemplo: Opção 1, Opção 2, Opção 3"
 msgid "Ex: PASS2025"
 msgstr "Ex: PASS2025"
 
-#: includes/settings/views/ffc-tab-documentation.php:328 includes/settings/views/ffc-tab-documentation.php:353
+#: includes/settings/views/ffc-tab-documentation.php:336 includes/settings/views/ffc-tab-documentation.php:361
 msgid "Example"
 msgstr "Exemplo"
 
-#: includes/settings/views/ffc-tab-documentation.php:717
+#: includes/settings/views/ffc-tab-documentation.php:725
 msgid "Example 1: Simple Certificate"
 msgstr "Exemplo 1: Certificado Simples"
 
-#: includes/settings/views/ffc-tab-documentation.php:735
+#: includes/settings/views/ffc-tab-documentation.php:743
 msgid "Example 2: Certificate with Header & Footer"
 msgstr "Exemplo 2: Certificado com cabeçalho e rodapé"
 
-#: includes/settings/views/ffc-tab-documentation.php:100
+#: includes/settings/views/ffc-tab-documentation.php:108
 msgid "Example Output"
 msgstr "Exemplo de Saída"
 
@@ -3932,7 +3944,7 @@ msgstr "Exemplo de Saída"
 msgid "Example pre-filled link (append this as a query string to the page that contains the [ffc_csv_download] shortcode):"
 msgstr "Exemplo de link pré-preenchido (adicione isso como uma string de consulta à página que contém o shortcode [ffc_csv_download]):"
 
-#: includes/settings/views/ffc-tab-documentation.php:405
+#: includes/settings/views/ffc-tab-documentation.php:413
 msgid "Example:"
 msgstr "Exemplo:"
 
@@ -4178,7 +4190,7 @@ msgstr "Classe FFC_Utils não encontrada"
 msgid "Ficha"
 msgstr "Ficha"
 
-#: includes/settings/views/ffc-tab-documentation.php:670
+#: includes/settings/views/ffc-tab-documentation.php:678
 msgid "Ficha PDF:"
 msgstr "Ficha PDF:"
 
@@ -4191,7 +4203,7 @@ msgstr "Campo"
 msgid "Field #%d: label is required."
 msgstr "Campo #%d: o rótulo é obrigatório."
 
-#: includes/settings/views/ffc-tab-documentation.php:463
+#: includes/settings/views/ffc-tab-documentation.php:471
 msgid "Field definitions are stored in the ffc_custom_fields table. User data is stored as JSON in wp_usermeta under the key ffc_custom_fields_data."
 msgstr "As definições de campos são armazenadas na tabela ffc_custom_fields. Os dados do usuário são armazenados como JSON em wp_usermeta sob a chave ffc_custom_fields_data."
 
@@ -4227,7 +4239,7 @@ msgstr "field_name"
 msgid "Fields"
 msgstr "Campos"
 
-#: includes/settings/views/ffc-tab-documentation.php:456
+#: includes/settings/views/ffc-tab-documentation.php:464
 msgid "Fields appear on user profiles and reregistration forms automatically"
 msgstr "Os campos aparecem automaticamente nos perfis de usuário e nos formulários de recadastramento."
 
@@ -4273,15 +4285,15 @@ msgstr "Filtrar por nível"
 msgid "Filter..."
 msgstr "Filtro..."
 
-#: includes/settings/views/ffc-tab-documentation.php:378
+#: includes/settings/views/ffc-tab-documentation.php:386
 msgid "Font family"
 msgstr "Família de fontes"
 
-#: includes/settings/views/ffc-tab-documentation.php:358
+#: includes/settings/views/ffc-tab-documentation.php:366
 msgid "Font size"
 msgstr "Tamanho da fonte"
 
-#: includes/settings/views/ffc-tab-documentation.php:966
+#: includes/settings/views/ffc-tab-documentation.php:974
 msgid "For additional support, check the plugin repository documentation or contact support."
 msgstr "Para obter suporte adicional, consulte a documentação do repositório de plugins ou entre em contato com o suporte."
 
@@ -4299,7 +4311,7 @@ msgstr "Chaves estrangeiras requerem o mecanismo InnoDB. Migração ignorada."
 msgid "Foreign keys: %1$d added, %2$d skipped, %3$d errors"
 msgstr "Chaves estrangeiras: %1$d adicionadas, %2$d ignoradas, %3$d erros"
 
-#: includes/admin/class-ffc-submissions-list.php:57 includes/admin/class-ffc-csv-exporter.php:346 includes/privacy/class-ffc-privacy-handler.php:195 includes/frontend/class-ffc-frontend.php:117 includes/frontend/class-ffc-public-csv-exporter.php:172
+#: includes/admin/class-ffc-submissions-list.php:57 includes/admin/class-ffc-csv-exporter.php:349 includes/privacy/class-ffc-privacy-handler.php:195 includes/frontend/class-ffc-frontend.php:125 includes/frontend/class-ffc-public-csv-exporter.php:172
 msgid "Form"
 msgstr "Formulário"
 
@@ -4307,7 +4319,7 @@ msgstr "Formulário"
 msgid "Form Cache"
 msgstr "Cache de Formulários"
 
-#: includes/settings/views/ffc-tab-documentation.php:654
+#: includes/settings/views/ffc-tab-documentation.php:662
 msgid "Form Cache:"
 msgstr "Cache de Formulários:"
 
@@ -4323,7 +4335,7 @@ msgstr "Configuração do Formulário:"
 msgid "Form has no fields."
 msgstr "O formulário não possui campos."
 
-#: includes/frontend/class-ffc-public-csv-download.php:104
+#: includes/frontend/class-ffc-public-csv-download.php:98
 msgid "Form ID"
 msgstr "ID do Formulário"
 
@@ -4335,7 +4347,7 @@ msgstr "O formulário não foi publicado."
 msgid "Form not found"
 msgstr "Formulário não encontrado"
 
-#: includes/generators/class-ffc-pdf-generator.php:633 includes/frontend/class-ffc-shortcodes.php:144 includes/frontend/class-ffc-public-csv-download.php:186
+#: includes/generators/class-ffc-pdf-generator.php:633 includes/frontend/class-ffc-shortcodes.php:144 includes/frontend/class-ffc-public-csv-download.php:188
 msgid "Form not found."
 msgstr "Formulário não encontrado."
 
@@ -4359,7 +4371,7 @@ msgstr "Formulário enviado com sucesso"
 msgid "Form:"
 msgstr "Formulário:"
 
-#: includes/settings/views/ffc-tab-documentation.php:647
+#: includes/settings/views/ffc-tab-documentation.php:655
 msgid "Format used for {{submission_date}} and {{print_date}} placeholders in PDFs and emails."
 msgstr "Formato utilizado para os marcadores {{submission_date}} e {{print_date}} em PDFs e e-mails."
 
@@ -4379,7 +4391,7 @@ msgstr "Formato: latitude, longitude, raio (metros) — um por linha."
 msgid "Format: latitude, longitude, radius(meters) - One per line. Example: -23.5505, -46.6333, 5000"
 msgstr "Formato: latitude, longitude, raio (metros) - Um por linha. Exemplo: -23,5505, -46,6333, 5000"
 
-#: includes/settings/views/ffc-tab-documentation.php:938
+#: includes/settings/views/ffc-tab-documentation.php:946
 msgid "Formatting not showing (bold, italic)"
 msgstr "Formatação não exibida (negrito, itálico)"
 
@@ -4416,7 +4428,7 @@ msgstr "De:"
 msgid "Full email as username"
 msgstr "E-mail completo como nome de usuário"
 
-#: includes/settings/views/ffc-tab-documentation.php:639
+#: includes/settings/views/ffc-tab-documentation.php:647
 msgid "Full HTML editor to design your own certificate layout"
 msgstr "Editor HTML completo para criar seu próprio layout de certificado."
 
@@ -4424,7 +4436,7 @@ msgstr "Editor HTML completo para criar seu próprio layout de certificado."
 msgid "Full Name"
 msgstr "Nome Completo"
 
-#: includes/settings/views/ffc-tab-documentation.php:106
+#: includes/settings/views/ffc-tab-documentation.php:114
 msgid "Full name of the participant"
 msgstr "Nome completo do participante"
 
@@ -4461,7 +4473,7 @@ msgstr "Configurações Gerais"
 msgid "General settings view file not found."
 msgstr "Arquivo de visualização das configurações gerais não encontrado."
 
-#: includes/settings/views/ffc-tab-documentation.php:631
+#: includes/settings/views/ffc-tab-documentation.php:639
 msgid "Generate a CSV list with the submissions already sent."
 msgstr "Gere uma lista em formato CSV com os formulários já enviados."
 
@@ -4469,11 +4481,11 @@ msgstr "Gere uma lista em formato CSV com os formulários já enviados."
 msgid "Generate a new short code? The old one will stop working."
 msgstr "Gerar um novo código curto? O antigo deixará de funcionar."
 
-#: includes/settings/views/ffc-tab-documentation.php:562
+#: includes/settings/views/ffc-tab-documentation.php:570
 msgid "Generate a PDF record (ficha) for reregistration submissions. Available for submitted and approved submissions."
 msgstr "Gere um registro em PDF (ficha) para solicitações de recadastramento. Disponível para solicitações enviadas e aprovadas."
 
-#: includes/settings/views/ffc-tab-documentation.php:671
+#: includes/settings/views/ffc-tab-documentation.php:679
 msgid "Generate PDF records for reregistration submissions with custom template support"
 msgstr "Gere um registro em PDF (ficha) para solicitações de recadastramento. Disponível para solicitações enviadas e aprovadas."
 
@@ -4487,11 +4499,11 @@ msgstr "Gerar Ingressos"
 msgid "Generated on %s"
 msgstr "Gerado em %s"
 
-#: includes/frontend/class-ffc-frontend.php:108
+#: includes/frontend/class-ffc-frontend.php:116
 msgid "Generating certificate in the background, please wait 10 seconds and check your downloads folder..."
 msgstr "O certificado está sendo gerado em segundo plano. Aguarde 10 segundos e verifique sua pasta de downloads."
 
-#: includes/admin/class-ffc-admin-assets-manager.php:349 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:208 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:493 includes/reregistration/class-ffc-reregistration-admin.php:132 includes/frontend/class-ffc-frontend.php:143
+#: includes/admin/class-ffc-admin-assets-manager.php:349 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:208 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:493 includes/reregistration/class-ffc-reregistration-admin.php:132 includes/frontend/class-ffc-frontend.php:151
 msgid "Generating PDF..."
 msgstr "Gerando PDF..."
 
@@ -4503,7 +4515,7 @@ msgstr "Gerando comprovante em segundo plano, por favor aguarde..."
 msgid "Generating tickets..."
 msgstr "Gerando ingressos..."
 
-#: includes/admin/class-ffc-admin-assets-manager.php:329 includes/frontend/class-ffc-frontend.php:111
+#: includes/admin/class-ffc-admin-assets-manager.php:329 includes/frontend/class-ffc-frontend.php:119
 msgid "Generating..."
 msgstr "Gerando..."
 
@@ -4535,7 +4547,7 @@ msgstr "Feriados Globais"
 msgid "Global Rate Limit"
 msgstr "Taxa Limite Global "
 
-#: includes/settings/views/ffc-tab-documentation.php:454
+#: includes/settings/views/ffc-tab-documentation.php:462
 msgid "Go to Audiences > Edit an audience > Custom Fields tab"
 msgstr "Acesse Públicos-alvo > Editar um público-alvo > Guia de Campos Personalizados"
 
@@ -4615,7 +4627,7 @@ msgstr "Grupos:"
 msgid "Has priority over Allowlist. Accepts same formats."
 msgstr "Tem prioridade sobre a lista de permissões. Aceita os mesmos formatos."
 
-#: includes/settings/views/ffc-tab-documentation.php:315
+#: includes/settings/views/ffc-tab-documentation.php:323
 msgid "Headers/titles"
 msgstr "Cabeçalhos/títulos"
 
@@ -4681,7 +4693,7 @@ msgstr "Ocultar formulário completamente"
 msgid "High (30% correction)"
 msgstr "Alto (correção de 30%)"
 
-#: includes/settings/views/ffc-tab-documentation.php:220
+#: includes/settings/views/ffc-tab-documentation.php:228
 msgid "High (30%)"
 msgstr "Alto (30%)"
 
@@ -4689,7 +4701,7 @@ msgstr "Alto (30%)"
 msgid "Higher levels allow more damage to QR Code but create denser patterns."
 msgstr "Níveis mais altos permitem mais danos ao QR Code, mas criam padrões mais densos."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:185 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:276 includes/audience/class-ffc-audience-rest-controller.php:357 includes/audience/class-ffc-audience-shortcode.php:265 includes/audience/class-ffc-audience-shortcode.php:764
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:185 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:277 includes/audience/class-ffc-audience-rest-controller.php:357 includes/audience/class-ffc-audience-shortcode.php:265 includes/audience/class-ffc-audience-shortcode.php:764
 msgid "Holiday"
 msgstr "Feriado"
 
@@ -4713,7 +4725,7 @@ msgstr "Feriados adicionados aqui bloquearão reservas em todos os calendários 
 msgid "Home Phone"
 msgstr "Telefone Residencial"
 
-#: includes/settings/views/ffc-tab-documentation.php:702
+#: includes/settings/views/ffc-tab-documentation.php:710
 msgid "Honeypot Fields:"
 msgstr "Campo Honeypot:"
 
@@ -4745,7 +4757,7 @@ msgstr "Com quanta antecedência os usuários podem agendar?"
 msgid "How Geolocation Works"
 msgstr "Como funciona a geolocalização"
 
-#: includes/settings/views/ffc-tab-documentation.php:396 includes/settings/views/ffc-tab-documentation.php:452 includes/settings/views/ffc-tab-documentation.php:808
+#: includes/settings/views/ffc-tab-documentation.php:404 includes/settings/views/ffc-tab-documentation.php:460 includes/settings/views/ffc-tab-documentation.php:816
 msgid "How It Works:"
 msgstr "Como Funciona:"
 
@@ -4781,7 +4793,7 @@ msgstr "Campo HTML não encontrado."
 msgid "HTML imported successfully!"
 msgstr "HTML importado com sucesso!"
 
-#: includes/settings/views/ffc-tab-documentation.php:868
+#: includes/settings/views/ffc-tab-documentation.php:876
 msgid "HTTP status code for the redirect: 301 (permanent), 302 (temporary), or 307 (temporary, preserves method)"
 msgstr "Código de status HTTP para o redirecionamento: 301 (permanente), 302 (temporário) ou 307 (temporário, preserva o método)."
 
@@ -4825,11 +4837,11 @@ msgstr "Eu tenho"
 msgid "I, working at the Regional Education Board of São Miguel – DRE-MP, declare that I am aware of the guidelines for the current year:"
 msgstr "Eu, funcionário(a) da Direção Regional de Educação de São Miguel – DRE-MP, declaro estar ciente das diretrizes para o ano letivo em curso:"
 
-#: includes/admin/class-ffc-submissions-list.php:56 includes/admin/class-ffc-form-list-columns.php:55 includes/admin/class-ffc-csv-exporter.php:345 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:54 includes/audience/class-ffc-audience-admin-bookings.php:143 includes/frontend/class-ffc-public-csv-exporter.php:171 includes/self-scheduling/views/appointments-list.php:53
+#: includes/admin/class-ffc-submissions-list.php:56 includes/admin/class-ffc-form-list-columns.php:55 includes/admin/class-ffc-csv-exporter.php:348 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:54 includes/audience/class-ffc-audience-admin-bookings.php:143 includes/frontend/class-ffc-public-csv-exporter.php:171 includes/self-scheduling/views/appointments-list.php:53
 msgid "ID"
 msgstr "ID"
 
-#: includes/settings/views/ffc-tab-documentation.php:111
+#: includes/settings/views/ffc-tab-documentation.php:119
 msgid "ID/CPF/RF entered by user"
 msgstr "ID/CPF/RF inserido pelo usuário"
 
@@ -4841,19 +4853,19 @@ msgstr "Se esta opção estiver desativada, o registro de depuração também se
 msgid "If unchecked, the WordPress admin bar will be hidden for blocked roles."
 msgstr "Se desmarcado, a barra de administração do WordPress será ocultada para funções bloqueadas."
 
-#: includes/settings/views/ffc-tab-documentation.php:406
+#: includes/settings/views/ffc-tab-documentation.php:414
 msgid "If you create these custom fields:"
 msgstr "Se você criar esses campos personalizados:"
 
-#: includes/settings/views/ffc-tab-documentation.php:324
+#: includes/settings/views/ffc-tab-documentation.php:332
 msgid "Image Attributes:"
 msgstr "Atributos da Imagem:"
 
-#: includes/settings/views/ffc-tab-documentation.php:923
+#: includes/settings/views/ffc-tab-documentation.php:931
 msgid "Image not showing in PDF"
 msgstr "A imagem não aparece no PDF."
 
-#: includes/settings/views/ffc-tab-documentation.php:311
+#: includes/settings/views/ffc-tab-documentation.php:319
 msgid "Images (logos, signatures, decorations)"
 msgstr "Imagens (logotipos, assinaturas, decorações)"
 
@@ -4958,7 +4970,7 @@ msgstr "Herdado de %s"
 msgid "Inherited from parent audience. Users can join this group from their dashboard."
 msgstr "Herdado do público-alvo principal. Os usuários podem entrar neste grupo a partir do painel de controle."
 
-#: includes/settings/views/ffc-tab-documentation.php:146
+#: includes/settings/views/ffc-tab-documentation.php:154
 msgid "Institutional address from Settings > General"
 msgstr "Endereço institucional em Configurações > Geral"
 
@@ -4974,11 +4986,11 @@ msgstr "Permissões insuficientes"
 msgid "Interface"
 msgstr "Interface"
 
-#: includes/frontend/class-ffc-public-csv-download.php:198
+#: includes/frontend/class-ffc-public-csv-download.php:200
 msgid "Invalid access hash."
 msgstr "Hash de acesso inválido."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:218
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:219
 msgid "Invalid appointment ID."
 msgstr "ID de agendamento inválido."
 
@@ -4990,7 +5002,7 @@ msgstr "Solicitação de comprovante de agendamento inválida."
 msgid "Invalid booking ID."
 msgstr "ID de reserva inválido."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-cpt.php:150 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:260
+#: includes/self-scheduling/class-ffc-self-scheduling-cpt.php:150 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:261
 msgid "Invalid calendar."
 msgstr "Calendário inválido."
 
@@ -5002,7 +5014,7 @@ msgstr "Ação de limpeza inválida"
 msgid "Invalid code."
 msgstr "Código inválido."
 
-#: includes/frontend/class-ffc-frontend.php:126
+#: includes/frontend/class-ffc-frontend.php:134
 msgid "Invalid CPF"
 msgstr "CPF Inválido"
 
@@ -5082,7 +5094,7 @@ msgstr "Bilhete inválido ou já utilizado."
 msgid "Invalid parameters"
 msgstr "Parâmetros inválidos"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:187
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:188
 msgid "Invalid parameters."
 msgstr "Parâmetros inválidos."
 
@@ -5118,7 +5130,7 @@ msgstr "Resposta inválida de ip-api.com"
 msgid "Invalid response from ipinfo.io"
 msgstr "Resposta inválida de ipinfo.io"
 
-#: includes/frontend/class-ffc-frontend.php:125
+#: includes/frontend/class-ffc-frontend.php:133
 msgid "Invalid RF"
 msgstr "RF Inválido"
 
@@ -5142,7 +5154,7 @@ msgstr "Formato de horário inválido."
 msgid "Invalid token format."
 msgstr "Formato de token inválido."
 
-#: includes/frontend/class-ffc-frontend.php:110 includes/frontend/class-ffc-verification-handler.php:594
+#: includes/frontend/class-ffc-frontend.php:118 includes/frontend/class-ffc-verification-handler.php:594
 msgid "Invalid token."
 msgstr "Token inválido."
 
@@ -5150,11 +5162,11 @@ msgstr "Token inválido."
 msgid "Invalid URL."
 msgstr "URL Inválida."
 
-#: includes/settings/views/ffc-tab-documentation.php:703
+#: includes/settings/views/ffc-tab-documentation.php:711
 msgid "Invisible spam protection"
 msgstr "Proteção invisível contra spam"
 
-#: includes/settings/views/ffc-tab-documentation.php:500
+#: includes/settings/views/ffc-tab-documentation.php:508
 msgid "Invitation Email"
 msgstr "E-mail de Convite"
 
@@ -5228,7 +5240,7 @@ msgstr "IPs"
 msgid "Is it safe?"
 msgstr "É seguro?"
 
-#: includes/frontend/class-ffc-frontend.php:119
+#: includes/frontend/class-ffc-frontend.php:127
 msgid "Issue Date"
 msgstr "Data de Emissão"
 
@@ -5236,7 +5248,7 @@ msgstr "Data de Emissão"
 msgid "Issued on:"
 msgstr "Emitido em:"
 
-#: includes/settings/views/ffc-tab-documentation.php:287
+#: includes/settings/views/ffc-tab-documentation.php:295
 msgid "Italic text:"
 msgstr "Texto em itálico:"
 
@@ -5292,7 +5304,7 @@ msgstr "Rótulo"
 msgid "Label:"
 msgstr "Rótulo:"
 
-#: includes/settings/views/ffc-tab-documentation.php:945
+#: includes/settings/views/ffc-tab-documentation.php:953
 msgid "Layout broken in PDF"
 msgstr "Formatação quebrada no PDF"
 
@@ -5336,35 +5348,35 @@ msgstr "Limitar o acesso ao formulário a usuários dentro de áreas geográfica
 msgid "Limit reached. Please wait {time}."
 msgstr "Limite atingido. Aguarde {time}."
 
-#: includes/settings/views/ffc-tab-documentation.php:295
+#: includes/settings/views/ffc-tab-documentation.php:303
 msgid "Line break"
 msgstr "Quebra de linha"
 
-#: includes/settings/views/ffc-tab-documentation.php:257
+#: includes/settings/views/ffc-tab-documentation.php:265
 msgid "Link to /valid, custom text"
 msgstr "Link para /valid, texto personalizado"
 
-#: includes/settings/views/ffc-tab-documentation.php:254
+#: includes/settings/views/ffc-tab-documentation.php:262
 msgid "Link to /valid, text /valid"
 msgstr "Link para /valid, texto /valid"
 
-#: includes/settings/views/ffc-tab-documentation.php:256
+#: includes/settings/views/ffc-tab-documentation.php:264
 msgid "Link to /valid, text magic"
 msgstr "Link para /valid, texto magic link"
 
-#: includes/settings/views/ffc-tab-documentation.php:258
+#: includes/settings/views/ffc-tab-documentation.php:266
 msgid "Link to magic, custom text"
 msgstr "Link magico, texto personalizado"
 
-#: includes/settings/views/ffc-tab-documentation.php:253
+#: includes/settings/views/ffc-tab-documentation.php:261
 msgid "Link to magic, text /valid"
 msgstr "Link magico, texto /valid"
 
-#: includes/settings/views/ffc-tab-documentation.php:255
+#: includes/settings/views/ffc-tab-documentation.php:263
 msgid "Link to magic, text magic"
 msgstr "Link magico, texto link mágico"
 
-#: includes/settings/views/ffc-tab-documentation.php:166
+#: includes/settings/views/ffc-tab-documentation.php:174
 msgid "Link to page with certificate validation"
 msgstr "Link para a página com a validação do certificado."
 
@@ -5376,15 +5388,15 @@ msgstr "E-mails Vinculados:"
 msgid "Linked User"
 msgstr "Usuário Vinculado"
 
-#: includes/settings/views/ffc-tab-documentation.php:623
+#: includes/settings/views/ffc-tab-documentation.php:631
 msgid "Links that don't pass validation on the website. Shared by email and quickly verifying the certificate's."
 msgstr "Links que não passam pela validação do site. Compartilhável por e-mail e com verificação rápida dos certificados."
 
-#: includes/settings/views/ffc-tab-documentation.php:541
+#: includes/settings/views/ffc-tab-documentation.php:549
 msgid "List active reregistrations for the current user"
 msgstr "Liste os novos registros ativos para o usuário atual."
 
-#: includes/settings/views/ffc-tab-documentation.php:319
+#: includes/settings/views/ffc-tab-documentation.php:327
 msgid "Lists (bullet or numbered)"
 msgstr "Listas (com marcadores ou numeradas)"
 
@@ -5442,23 +5454,23 @@ msgstr "Carregando modelo..."
 msgid "Loading..."
 msgstr "Carregando..."
 
-#: includes/frontend/class-ffc-frontend.php:206
+#: includes/frontend/class-ffc-frontend.php:214
 msgid "Location access was denied. On Safari/iOS, go to Settings > Privacy & Security > Location Services and ensure it is enabled for your browser."
 msgstr "O acesso à localização foi negado. No Safari/iOS, acesse Ajustes > Privacidade e Segurança > Serviços de Localização e verifique se está ativado para o seu navegador."
 
-#: includes/frontend/class-ffc-frontend.php:198
+#: includes/frontend/class-ffc-frontend.php:206
 msgid "Location information is unavailable."
 msgstr "Informações de localização não estão disponíveis."
 
-#: includes/frontend/class-ffc-frontend.php:197
+#: includes/frontend/class-ffc-frontend.php:205
 msgid "Location permission denied. Please enable location services."
 msgstr "Permissão de localização negada. Por favor, ative os serviços de localização."
 
-#: includes/frontend/class-ffc-frontend.php:199
+#: includes/frontend/class-ffc-frontend.php:207
 msgid "Location request timed out."
 msgstr "O tempo limite da solicitação de localização expirou."
 
-#: includes/frontend/class-ffc-frontend.php:208
+#: includes/frontend/class-ffc-frontend.php:216
 msgid "Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services."
 msgstr "O tempo limite da solicitação de localização expirou. No Safari/iOS, verifique se os Serviços de Localização estão ativados em Ajustes > Privacidade e Segurança > Serviços de Localização."
 
@@ -5490,7 +5502,7 @@ msgstr "Administradores com sessão iniciada podem acessar os formulários indep
 msgid "Logged-in administrators can access forms regardless of GPS/IP geolocation configuration. A visual message will appear indicating bypass is active."
 msgstr "Administradores com sessão iniciada podem acessar os formulários independentemente da configuração de geolocalização GPS/IP. Uma mensagem visual será exibida indicando que o recurso de bypass está ativo."
 
-#: includes/settings/views/ffc-tab-documentation.php:69
+#: includes/settings/views/ffc-tab-documentation.php:77
 msgid "Logged-in users will be able to view all certificates generated for their own CPF/RF (Brazilian tax identification number)."
 msgstr "Usuários logados poderão visualizar todos os certificados gerados para seu próprio CPF/RF (número de identificação fiscal brasileiro)."
 
@@ -5502,7 +5514,7 @@ msgstr "Login"
 msgid "Login as User"
 msgstr "Entrar como Usuário"
 
-#: includes/settings/views/ffc-tab-documentation.php:335
+#: includes/settings/views/ffc-tab-documentation.php:343
 msgid "Logo with fixed width"
 msgstr "Logotipo com largura fixa"
 
@@ -5554,7 +5566,7 @@ msgstr "Registra falhas na criação de usuários, erros de descriptografia e op
 msgid "Low (7% correction)"
 msgstr "Baixa (correção de 7%)"
 
-#: includes/settings/views/ffc-tab-documentation.php:217
+#: includes/settings/views/ffc-tab-documentation.php:225
 msgid "Low (7%)"
 msgstr "Baixo (7%)"
 
@@ -5570,7 +5582,7 @@ msgstr "Retorno refeição"
 msgid "Magic Link Token"
 msgstr "Token de Link Mágico"
 
-#: includes/settings/views/ffc-tab-documentation.php:622
+#: includes/settings/views/ffc-tab-documentation.php:630
 msgid "Magic Links:"
 msgstr "Links Mágicos:"
 
@@ -5622,7 +5634,7 @@ msgstr "Etiquetas Obrigatórias:"
 msgid "March"
 msgstr "Março"
 
-#: includes/settings/views/ffc-tab-documentation.php:374
+#: includes/settings/views/ffc-tab-documentation.php:382
 msgid "Margins/padding"
 msgstr "Margens/preenchimento"
 
@@ -5638,7 +5650,7 @@ msgstr "Casado(a)"
 msgid "Mask (cpf, phone, cep…)"
 msgstr "Máscara (CPF, telefone, CEP…)"
 
-#: includes/settings/views/ffc-tab-documentation.php:706
+#: includes/settings/views/ffc-tab-documentation.php:714
 msgid "Math CAPTCHA:"
 msgstr "CAPTCHA Matemático"
 
@@ -5720,7 +5732,7 @@ msgstr "URL da Mídia (YouTube, Vimeo, imagem ou áudio):"
 msgid "Media URL:"
 msgstr "URL da Mídia:"
 
-#: includes/settings/views/ffc-tab-documentation.php:218
+#: includes/settings/views/ffc-tab-documentation.php:226
 msgid "Medium (15% - recommended)"
 msgstr "Médio (15% - recomendado)"
 
@@ -5778,7 +5790,7 @@ msgstr "Mensagem exibida quando o usuário está fora das áreas geográficas pe
 msgid "Messages shown when a calendar has business hours restrictions enabled (configured per calendar)."
 msgstr "Mensagens exibidas quando um calendário tem restrições de horário comercial ativadas (configuradas para cada calendário)."
 
-#: includes/settings/views/ffc-tab-documentation.php:532
+#: includes/settings/views/ffc-tab-documentation.php:540
 msgid "Method"
 msgstr "Método"
 
@@ -5811,7 +5823,7 @@ msgstr "Migração executada: %d registros processados."
 msgid "Migration not found"
 msgstr "Migração não encontrada"
 
-#: includes/settings/views/ffc-tab-documentation.php:651
+#: includes/settings/views/ffc-tab-documentation.php:659
 msgid "Migration of all data from the plugin's old infrastructure."
 msgstr "Migração de todos os dados da infraestrutura antiga do plugin."
 
@@ -5901,15 +5913,15 @@ msgstr "Segunda-feira"
 msgid "Move to Trash"
 msgstr "Mover para a Lixeira"
 
-#: includes/settings/views/ffc-tab-documentation.php:890
+#: includes/settings/views/ffc-tab-documentation.php:898
 msgid "Moved to trash; can be restored or permanently deleted"
 msgstr "Movido para a lixeira; pode ser restaurado ou excluído permanentemente."
 
-#: includes/settings/views/ffc-tab-documentation.php:658
+#: includes/settings/views/ffc-tab-documentation.php:666
 msgid "Multi-language Support:"
 msgstr "Suporte a vários idiomas:"
 
-#: includes/settings/views/ffc-tab-documentation.php:432
+#: includes/settings/views/ffc-tab-documentation.php:440
 msgid "Multi-line text input"
 msgstr "Entrada de texto em várias linhas"
 
@@ -5949,7 +5961,7 @@ msgstr "Nome:"
 msgid "Need Help?"
 msgstr "Precisar de ajuda?"
 
-#: includes/settings/views/ffc-tab-documentation.php:965
+#: includes/settings/views/ffc-tab-documentation.php:973
 msgid "Need More Help?"
 msgstr "Precisa de mais ajuda?"
 
@@ -6037,7 +6049,7 @@ msgstr "Próximo agendamento"
 msgid "Next month"
 msgstr "Próximo mês"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:163 includes/admin/class-ffc-form-editor-metabox-renderer.php:301 includes/admin/class-ffc-csv-exporter.php:394 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:140 includes/reregistration/class-ffc-reregistration-csv-exporter.php:174 includes/reregistration/class-ffc-ficha-generator.php:318 includes/frontend/class-ffc-public-csv-exporter.php:225
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:163 includes/admin/class-ffc-form-editor-metabox-renderer.php:301 includes/admin/class-ffc-csv-exporter.php:406 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:140 includes/reregistration/class-ffc-reregistration-csv-exporter.php:174 includes/reregistration/class-ffc-ficha-generator.php:318 includes/frontend/class-ffc-public-csv-exporter.php:225
 msgid "No"
 msgstr "Não"
 
@@ -6225,7 +6237,7 @@ msgstr "Nenhum usuário encontrado."
 msgid "No users have been granted access yet."
 msgstr "Nenhum usuário recebeu acesso ainda."
 
-#: includes/settings/views/ffc-tab-documentation.php:208
+#: includes/settings/views/ffc-tab-documentation.php:216
 msgid "No white margin around QR code"
 msgstr "Sem margem branca ao redor do código QR"
 
@@ -6298,15 +6310,15 @@ msgstr "Novembro"
 msgid "Number"
 msgstr "Número"
 
-#: includes/settings/views/ffc-tab-documentation.php:863
+#: includes/settings/views/ffc-tab-documentation.php:871
 msgid "Number of characters in the generated short code (4–10)"
 msgstr "Número de caracteres no código curto gerado (4–10)"
 
-#: includes/settings/views/ffc-tab-documentation.php:433
+#: includes/settings/views/ffc-tab-documentation.php:441
 msgid "Numeric input"
 msgstr "Entrada numérica"
 
-#: includes/settings/views/ffc-tab-documentation.php:141
+#: includes/settings/views/ffc-tab-documentation.php:149
 msgid "Numeric submission ID"
 msgstr "ID de envio numérico"
 
@@ -6354,6 +6366,10 @@ msgstr "Somente campos obrigatórios"
 msgid "Opens PDF in new tab"
 msgstr "Abre o PDF em uma nova aba"
 
+#: includes/settings/views/ffc-tab-documentation.php:70
+msgid "Optional attribute:"
+msgstr "Atributo opcional:"
+
 #: includes/audience/class-ffc-audience-admin-import.php:106
 msgid "Options"
 msgstr "Opções"
@@ -6366,7 +6382,7 @@ msgstr "Opções (uma por linha)"
 msgid "Options (separate with commas):"
 msgstr "Opções (separadas por vírgulas):"
 
-#: includes/admin/class-ffc-admin-assets-manager.php:382 includes/settings/views/ffc-tab-documentation.php:216
+#: includes/admin/class-ffc-admin-assets-manager.php:382 includes/settings/views/ffc-tab-documentation.php:224
 msgid "Options:"
 msgstr "Opções:"
 
@@ -6374,11 +6390,11 @@ msgstr "Opções:"
 msgid "OR - Allow if GPS OR IP is valid (recommended)"
 msgstr "\"OU\" - Permitir se o GPS OU o IP for válido (recomendado)"
 
-#: includes/settings/views/ffc-tab-documentation.php:941
+#: includes/settings/views/ffc-tab-documentation.php:949
 msgid "Or inline style:"
 msgstr "Ou estilo embutido:"
 
-#: includes/frontend/class-ffc-frontend.php:121
+#: includes/frontend/class-ffc-frontend.php:129
 msgid "Or try manual verification"
 msgstr "Ou tente a verificação manual"
 
@@ -6422,7 +6438,7 @@ msgstr "Página {current} de {total}"
 msgid "Pages with [user_dashboard_personal] are automatically excluded from page cache (no-cache headers sent)."
 msgstr "As páginas com [user_dashboard_personal] são automaticamente excluídas do cache de páginas (cabeçalhos no-cache enviados)."
 
-#: includes/settings/views/ffc-tab-documentation.php:299
+#: includes/settings/views/ffc-tab-documentation.php:307
 msgid "Paragraph with spacing"
 msgstr "Parágrafo com espaçamento"
 
@@ -6491,7 +6507,7 @@ msgstr "Cole este código em qualquer Página ou Post para exibir o formulário.
 msgid "PDF"
 msgstr "PDF"
 
-#: includes/settings/views/ffc-tab-documentation.php:638
+#: includes/settings/views/ffc-tab-documentation.php:646
 msgid "PDF Customization:"
 msgstr "Personalização de PDF:"
 
@@ -6499,7 +6515,7 @@ msgstr "Personalização de PDF:"
 msgid "PDF Generator"
 msgstr "Gerador de PDF"
 
-#: includes/admin/class-ffc-admin-assets-manager.php:343 includes/frontend/class-ffc-frontend.php:140
+#: includes/admin/class-ffc-admin-assets-manager.php:343 includes/frontend/class-ffc-frontend.php:148
 msgid "PDF libraries failed to load. Please refresh the page."
 msgstr "As bibliotecas de PDF não carregaram. Por favor, atualize a página."
 
@@ -6584,7 +6600,7 @@ msgstr "Telefone"
 msgid "Phone:"
 msgstr "Telefone:"
 
-#: includes/settings/views/ffc-tab-documentation.php:343
+#: includes/settings/views/ffc-tab-documentation.php:351
 msgid "Photo cropped to fit dimensions"
 msgstr "Foto recortada para se ajustar às dimensões."
 
@@ -6616,11 +6632,11 @@ msgstr "Por favor, insira um número válido."
 msgid "Please enter at least 2 characters."
 msgstr "Por favor, digite pelo menos 2 caracteres."
 
-#: includes/frontend/class-ffc-frontend.php:107
+#: includes/frontend/class-ffc-frontend.php:115
 msgid "Please enter the code."
 msgstr "Por favor, insira o código."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:152 includes/frontend/class-ffc-frontend.php:133
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:152 includes/frontend/class-ffc-frontend.php:141
 msgid "Please fill all required fields"
 msgstr "Por favor, preencha todos os campos obrigatórios."
 
@@ -6628,7 +6644,7 @@ msgstr "Por favor, preencha todos os campos obrigatórios."
 msgid "Please fix the errors below."
 msgstr "Por favor, corrija os erros abaixo."
 
-#: includes/frontend/class-ffc-public-csv-download.php:181
+#: includes/frontend/class-ffc-public-csv-download.php:183
 msgid "Please inform both the Form ID and the Access Hash."
 msgstr "Por favor, informe o ID do formulário e o hash de acesso."
 
@@ -6677,7 +6693,7 @@ msgstr "Por favor, selecione pelo menos um usuário."
 msgid "Please wait %d seconds."
 msgstr "Aguarde %d segundos."
 
-#: includes/admin/class-ffc-admin-assets-manager.php:345 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:209 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:494 includes/frontend/class-ffc-frontend.php:142
+#: includes/admin/class-ffc-admin-assets-manager.php:345 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:209 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:494 includes/frontend/class-ffc-frontend.php:150
 msgid "Please wait, this may take a few seconds..."
 msgstr "Aguarde, isso pode levar alguns segundos..."
 
@@ -6721,11 +6737,11 @@ msgctxt "Post Type Singular Name"
 msgid "Personal Calendar"
 msgstr "Calendário Pessoal"
 
-#: includes/settings/views/ffc-tab-url-shortener.php:111 includes/settings/views/ffc-tab-documentation.php:877
+#: includes/settings/views/ffc-tab-url-shortener.php:111 includes/settings/views/ffc-tab-documentation.php:885
 msgid "Post Types"
 msgstr "Tipos Post"
 
-#: includes/settings/views/ffc-tab-documentation.php:830
+#: includes/settings/views/ffc-tab-documentation.php:838
 msgid "Post/Page Meta Box:"
 msgstr "Metabox de postagem/página:"
 
@@ -6757,7 +6773,7 @@ msgstr "Impedir que funções selecionadas acessem /wp-admin"
 msgid "Prevent users from booking another appointment within X hours of their last booking (0 = disabled, default: 24 hours)"
 msgstr "Impedir que usuários agendem outro horário dentro de X horas do último agendamento (0 = desabilitado, padrão: 24 horas)"
 
-#: includes/settings/views/ffc-tab-documentation.php:695
+#: includes/settings/views/ffc-tab-documentation.php:703
 msgid "Prevents abuse with configurable submission limits"
 msgstr "Impede o abuso com limites de envio configuráveis."
 
@@ -6781,7 +6797,7 @@ msgstr "Anterior"
 msgid "Previous month"
 msgstr "Mês anterior"
 
-#: includes/settings/views/ffc-tab-documentation.php:627
+#: includes/settings/views/ffc-tab-documentation.php:635
 msgid "Previously submitted identification information (CPF/RF) does not generate new certificates."
 msgstr "As informações de identificação previamente enviadas (CPF/RF) não geram novos certificados."
 
@@ -6813,7 +6829,7 @@ msgstr "Privado"
 msgid "Private Calendar Display"
 msgstr "Exibição de Calendário Privado"
 
-#: includes/settings/views/ffc-tab-documentation.php:909
+#: includes/settings/views/ffc-tab-documentation.php:917
 msgid "Problem"
 msgstr "Problema"
 
@@ -6821,7 +6837,7 @@ msgstr "Problema"
 msgid "Processed "
 msgstr "Processado"
 
-#: includes/admin/class-ffc-admin-assets-manager.php:234 includes/admin/class-ffc-admin-assets-manager.php:348 includes/frontend/class-ffc-frontend.php:104
+#: includes/admin/class-ffc-admin-assets-manager.php:234 includes/admin/class-ffc-admin-assets-manager.php:348 includes/frontend/class-ffc-frontend.php:112
 msgid "Processing..."
 msgstr "Processando..."
 
@@ -6837,7 +6853,7 @@ msgstr "chave_de_perfil (opcional)"
 msgid "Program"
 msgstr "Programa"
 
-#: includes/settings/views/ffc-tab-documentation.php:156
+#: includes/settings/views/ffc-tab-documentation.php:164
 msgid "Program/Course name (if custom field exists)"
 msgstr "Nome do Programa/Curso (se houver campo personalizado)"
 
@@ -6861,7 +6877,7 @@ msgstr "Público"
 msgid "Public CSV Download"
 msgstr "Download Público do Arquivo CSV"
 
-#: includes/frontend/class-ffc-public-csv-download.php:192
+#: includes/frontend/class-ffc-public-csv-download.php:194
 msgid "Public CSV download is not enabled for this form."
 msgstr "O download público em CSV não está habilitado para este formulário."
 
@@ -6905,23 +6921,23 @@ msgstr "Cache de Código QR"
 msgid "QR Code Defaults"
 msgstr "Configurações Padrão do Código QR"
 
-#: includes/settings/views/ffc-tab-documentation.php:161
+#: includes/settings/views/ffc-tab-documentation.php:169
 msgid "QR Code image (see section 3 for options)"
 msgstr "Imagem do Código QR (consulte a seção 3 para opções)"
 
-#: includes/settings/views/ffc-tab-documentation.php:835
+#: includes/settings/views/ffc-tab-documentation.php:843
 msgid "QR code preview with PNG/SVG download buttons"
 msgstr "Pré-visualização do código QR com botões de download PNG/SVG"
 
-#: includes/settings/views/ffc-tab-documentation.php:931
+#: includes/settings/views/ffc-tab-documentation.php:939
 msgid "QR Code too large/small"
 msgstr "Código QR muito grande/pequeno"
 
-#: includes/settings/views/ffc-tab-documentation.php:618
+#: includes/settings/views/ffc-tab-documentation.php:626
 msgid "QR Code Validation:"
 msgstr "Validação do código QR:"
 
-#: includes/settings/views/ffc-tab-documentation.php:813
+#: includes/settings/views/ffc-tab-documentation.php:821
 msgid "QR codes always point to the short URL so that scans are tracked"
 msgstr "Os códigos QR sempre direcionam para um URL curto, permitindo o rastreamento das leituras."
 
@@ -6945,7 +6961,7 @@ msgstr "A quantidade deve estar entre 1 e 1000."
 msgid "Quartile (25% correction)"
 msgstr "Quartil (correção de 25%)"
 
-#: includes/settings/views/ffc-tab-documentation.php:219
+#: includes/settings/views/ffc-tab-documentation.php:227
 msgid "Quartile (25%)"
 msgstr "Quartil (25%)"
 
@@ -6983,7 +6999,7 @@ msgstr "Caixa Radial"
 msgid "Radio Buttons"
 msgstr "Botões de Seleção Única"
 
-#: includes/settings/views/ffc-tab-documentation.php:202 includes/settings/views/ffc-tab-documentation.php:209
+#: includes/settings/views/ffc-tab-documentation.php:210 includes/settings/views/ffc-tab-documentation.php:217
 msgid "Range:"
 msgstr "Faixa:"
 
@@ -6995,7 +7011,7 @@ msgstr "Taxa Limite"
 msgid "Rate limiter counters persist between requests. Form cache is shared across all processes."
 msgstr "Os contadores do limitador de taxa persistem entre as requisições. O cache de formulários é compartilhado entre todos os processos."
 
-#: includes/settings/views/ffc-tab-documentation.php:694
+#: includes/settings/views/ffc-tab-documentation.php:702
 msgid "Rate Limiting:"
 msgstr "Taxa Limite:"
 
@@ -7015,7 +7031,7 @@ msgstr "Recomendado para sites com muitos formulários ou alto tráfego."
 msgid "Recommended. Caches geolocation by IP to avoid repeated API calls."
 msgstr "Recomendado. Armazena geolocalização por IP em cache para evitar chamadas repetidas à API."
 
-#: includes/settings/views/ffc-tab-documentation.php:934
+#: includes/settings/views/ffc-tab-documentation.php:942
 msgid "Recommended: 100-200px for certificates"
 msgstr "Recomendado: 100-200px para certificados"
 
@@ -7027,7 +7043,7 @@ msgstr "Registro"
 msgid "records..."
 msgstr "registros..."
 
-#: includes/settings/views/ffc-tab-documentation.php:889
+#: includes/settings/views/ffc-tab-documentation.php:897
 msgid "Redirect is temporarily paused; visitors are sent to the homepage"
 msgstr "O redirecionamento está temporariamente suspenso; os visitantes serão enviados para a página inicial."
 
@@ -7039,7 +7055,7 @@ msgstr "Mensagem de Redirecionamento"
 msgid "Redirect Settings"
 msgstr "Configurações de Redirecionamento"
 
-#: includes/settings/views/ffc-tab-url-shortener.php:84 includes/settings/views/ffc-tab-documentation.php:867
+#: includes/settings/views/ffc-tab-url-shortener.php:84 includes/settings/views/ffc-tab-documentation.php:875
 msgid "Redirect Type"
 msgstr "Tipo de Redirecionamento"
 
@@ -7047,7 +7063,7 @@ msgstr "Tipo de Redirecionamento"
 msgid "Redirect URL"
 msgstr "URL de Redirecionamento"
 
-#: includes/settings/views/ffc-tab-documentation.php:888
+#: includes/settings/views/ffc-tab-documentation.php:896
 msgid "Redirects to the destination and counts clicks"
 msgstr "Redireciona para o destino e contabiliza os cliques."
 
@@ -7055,7 +7071,7 @@ msgstr "Redireciona para o destino e contabiliza os cliques."
 msgid "Regenerate"
 msgstr "Re-gerado"
 
-#: includes/settings/views/ffc-tab-documentation.php:836
+#: includes/settings/views/ffc-tab-documentation.php:844
 msgid "Regenerate button to create a new short code (the old one stops working)"
 msgstr "Botão \"Regenerar\" para criar um novo código curto (o antigo deixa de funcionar)."
 
@@ -7079,7 +7095,7 @@ msgstr "Rejeitar"
 msgid "Rejected"
 msgstr "Rejeitado"
 
-#: includes/settings/views/ffc-tab-documentation.php:522
+#: includes/settings/views/ffc-tab-documentation.php:530
 msgid "Rejected by admin (with notes)"
 msgstr "Rejeitado pelo administrador (com observações)"
 
@@ -7087,7 +7103,7 @@ msgstr "Rejeitado pelo administrador (com observações)"
 msgid "Reminder Days"
 msgstr "Dias de Lembrete"
 
-#: includes/settings/views/ffc-tab-documentation.php:504
+#: includes/settings/views/ffc-tab-documentation.php:512
 msgid "Reminder Email"
 msgstr "E-mail de Lembrete"
 
@@ -7149,11 +7165,11 @@ msgstr "Remove a associação entre esta submissão e o usuário do WordPress."
 msgid "Replace \"123\" with your Form ID from the \"All Forms\" list."
 msgstr "Substitua \"123\" pelo ID do seu Formulário da lista \"Todos os Formulários\"."
 
-#: includes/settings/views/ffc-tab-documentation.php:76
+#: includes/settings/views/ffc-tab-documentation.php:84
 msgid "Replace \"456\" with your Calendar ID. Users can view available slots and book appointments."
 msgstr "Substitua \"456\" pelo seu ID do calendário. Os usuários podem visualizar os horários disponíveis e agendar compromissos."
 
-#: includes/settings/views/ffc-tab-documentation.php:626
+#: includes/settings/views/ffc-tab-documentation.php:634
 msgid "Reprinting certificates:"
 msgstr "Reimpressão de certificados:"
 
@@ -7177,7 +7193,7 @@ msgstr "Solicitação enviada! O administrador irá analisá-la."
 msgid "Request timed out. Please try again."
 msgstr "A solicitação expirou. Por favor, tente novamente."
 
-#: includes/frontend/class-ffc-frontend.php:202
+#: includes/frontend/class-ffc-frontend.php:210
 msgid "Requesting your location… If prompted, tap \"Allow\"."
 msgstr "Solicitando sua localização… Se solicitado, toque em \"Permitir\"."
 
@@ -7185,7 +7201,7 @@ msgstr "Solicitando sua localização… Se solicitado, toque em \"Permitir\"."
 msgid "Require Manual Approval"
 msgstr "Exigir Aprovação Manual"
 
-#: includes/settings/views/ffc-tab-documentation.php:691
+#: includes/settings/views/ffc-tab-documentation.php:699
 msgid "Require users to have a single-use ticket to generate the certificate (it is consumed after use)."
 msgstr "Exigir que os usuários possuam um ingresso de uso único para gerar o certificado (ele é consumido após o uso)."
 
@@ -7238,7 +7254,7 @@ msgstr "Requer ingresso válido (consumido após o uso)"
 msgid "Reregistration"
 msgstr "Recadastramento"
 
-#: includes/settings/views/ffc-tab-documentation.php:666
+#: includes/settings/views/ffc-tab-documentation.php:674
 msgid "Reregistration Campaigns:"
 msgstr "Campanhas de Recadastramento:"
 
@@ -7302,7 +7318,7 @@ msgstr "Ao salvar, o contador de downloads é zerado."
 msgid "REST API"
 msgstr "API REST"
 
-#: includes/settings/views/ffc-tab-documentation.php:528
+#: includes/settings/views/ffc-tab-documentation.php:536
 msgid "REST API Endpoints:"
 msgstr "Pontos de extremidade da API REST:"
 
@@ -7330,7 +7346,7 @@ msgstr "Restringir Visualização ao Horário Comercial"
 msgid "Resubmit Reregistration"
 msgstr "Reenviar Recadastramento"
 
-#: includes/settings/views/ffc-tab-documentation.php:329
+#: includes/settings/views/ffc-tab-documentation.php:337
 msgid "Result"
 msgstr "Resultado"
 
@@ -7368,7 +7384,7 @@ msgstr "Revisado Em"
 msgid "Revoke All"
 msgstr "Revogar Tudo"
 
-#: includes/admin/class-ffc-csv-exporter.php:352 includes/admin/class-ffc-admin-submission-edit-page.php:418 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:145 includes/frontend/class-ffc-verification-response-renderer.php:324 includes/frontend/class-ffc-public-csv-exporter.php:178 includes/self-scheduling/views/appointments-list.php:494
+#: includes/admin/class-ffc-csv-exporter.php:355 includes/admin/class-ffc-admin-submission-edit-page.php:418 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:145 includes/frontend/class-ffc-verification-response-renderer.php:324 includes/frontend/class-ffc-public-csv-exporter.php:178 includes/self-scheduling/views/appointments-list.php:494
 msgid "RF"
 msgstr "RF"
 
@@ -7463,7 +7479,7 @@ msgstr "Salvar Alterações"
 msgid "Save Draft"
 msgstr "Salvar Rascunho"
 
-#: includes/settings/views/ffc-tab-documentation.php:551
+#: includes/settings/views/ffc-tab-documentation.php:559
 msgid "Save draft without submitting"
 msgstr "Salvar rascunho sem enviar"
 
@@ -7491,7 +7507,7 @@ msgstr "Salvo!"
 msgid "Saving..."
 msgstr "Salvando..."
 
-#: includes/settings/views/ffc-tab-documentation.php:619
+#: includes/settings/views/ffc-tab-documentation.php:627
 msgid "Scan to instantly verify certificate authenticity"
 msgstr "Escaneie para verificar instantaneamente a autenticidade do certificado"
 
@@ -7595,7 +7611,7 @@ msgstr "Verificação de segurança falhou"
 msgid "Security check failed."
 msgstr "A verificação de segurança falhou."
 
-#: includes/frontend/class-ffc-public-csv-download.php:164
+#: includes/frontend/class-ffc-public-csv-download.php:166
 msgid "Security check failed. Please refresh the page and try again."
 msgstr "A verificação de segurança falhou. Atualize a página e tente novamente."
 
@@ -7754,7 +7770,7 @@ msgstr "Configurações de visibilidade de autoagendamento salvas."
 msgid "Self-Scheduling:"
 msgstr "Auto-Agendamento:"
 
-#: includes/frontend/class-ffc-frontend.php:137
+#: includes/frontend/class-ffc-frontend.php:145
 msgid "Send"
 msgstr "Enviar"
 
@@ -7762,7 +7778,7 @@ msgstr "Enviar"
 msgid "Send confirmation email after submission"
 msgstr "Enviar e-mail de confirmação após o envio."
 
-#: includes/settings/views/ffc-tab-documentation.php:509
+#: includes/settings/views/ffc-tab-documentation.php:517
 msgid "Send confirmation email after user submits the form"
 msgstr "Enviar e-mail de confirmação após o usuário enviar o formulário."
 
@@ -7778,7 +7794,7 @@ msgstr "Enviar e-mail ao cancelamento"
 msgid "Send email on new booking"
 msgstr "Enviar e-mail ao novo agendamento"
 
-#: includes/settings/views/ffc-tab-documentation.php:501
+#: includes/settings/views/ffc-tab-documentation.php:509
 msgid "Send email to all audience members when campaign is activated"
 msgstr "Enviar e-mail para todos os membros da audiência quando a campanha for ativada."
 
@@ -7814,7 +7830,7 @@ msgstr "Enviar lembrete antes do agendamento"
 msgid "Send reminder email before deadline"
 msgstr "Enviar e-mail de lembrete antes do fim do prazo"
 
-#: includes/settings/views/ffc-tab-documentation.php:505
+#: includes/settings/views/ffc-tab-documentation.php:513
 msgid "Send reminder email N days before the deadline (configurable)"
 msgstr "Enviar e-mail de lembrete N dias antes do prazo (configurável)"
 
@@ -7871,11 +7887,11 @@ msgstr "Cascata de Serviços"
 msgid "Service not available."
 msgstr "Serviço não disponível."
 
-#: includes/settings/views/ffc-tab-documentation.php:477
+#: includes/settings/views/ffc-tab-documentation.php:485
 msgid "Set the start and end dates for the campaign period"
 msgstr "Defina as datas de início e término do período da campanha."
 
-#: includes/settings/views/ffc-tab-documentation.php:490 includes/settings/views/ffc-tab-documentation.php:845
+#: includes/settings/views/ffc-tab-documentation.php:498 includes/settings/views/ffc-tab-documentation.php:853
 msgid "Setting"
 msgstr "Configuração"
 
@@ -7891,7 +7907,7 @@ msgstr "Configurações > Geral > Configurações do Registro de Atividades"
 msgid "Settings Changed"
 msgstr "Configurações Alteradas"
 
-#: includes/settings/views/ffc-tab-documentation.php:953
+#: includes/settings/views/ffc-tab-documentation.php:961
 msgid "Settings not saving between tabs"
 msgstr "As configurações não estão sendo salvas entre as abas."
 
@@ -7911,7 +7927,7 @@ msgstr "Configurações específicas para o sistema de agendamento de público-a
 msgid "Settings specific to the personal appointment booking system. Calendar-specific settings (slots, working hours, email templates) are configured on each calendar's edit page."
 msgstr "Configurações específicas para o sistema de agendamento pessoal. Configurações específicas do calendário (horários, horas de funcionamento, modelos de e-mail) são configuradas na página de edição de cada calendário."
 
-#: includes/settings/views/ffc-tab-documentation.php:841
+#: includes/settings/views/ffc-tab-documentation.php:849
 msgid "Settings:"
 msgstr "Configurações:"
 
@@ -7959,7 +7975,7 @@ msgstr "URL curta regenerada!"
 msgid "Short URL restored."
 msgstr "URL curta restaurada."
 
-#: includes/settings/views/ffc-tab-documentation.php:886
+#: includes/settings/views/ffc-tab-documentation.php:894
 msgid "Short URL Statuses:"
 msgstr "Status de URLs curtas:"
 
@@ -7967,7 +7983,7 @@ msgstr "Status de URLs curtas:"
 msgid "Short URLs"
 msgstr "URLs Curtas"
 
-#: includes/settings/views/ffc-tab-documentation.php:810
+#: includes/settings/views/ffc-tab-documentation.php:818
 msgid "Short URLs are created automatically when a post/page is published (if auto-create is enabled)"
 msgstr "URLs curtas são criadas automaticamente quando uma postagem/página é publicada (se a criação automática estiver ativada)."
 
@@ -8057,7 +8073,7 @@ msgstr "Ao lado (responsivo)"
 msgid "Side: appears next to the calendar on desktop, moves below on mobile. Below: always below the calendar."
 msgstr "Ao lado: aparece ao lado do calendário no computador, move-se para baixo no celular. Abaixo: sempre abaixo do calendário."
 
-#: includes/settings/views/ffc-tab-documentation.php:339
+#: includes/settings/views/ffc-tab-documentation.php:347
 msgid "Signature with fixed height, proportional width"
 msgstr "Assinatura com altura fixa e largura proporcional."
 
@@ -8069,11 +8085,11 @@ msgstr "Solteiro(a)"
 msgid "Single Password"
 msgstr "Senha Única"
 
-#: includes/settings/views/ffc-tab-documentation.php:682
+#: includes/settings/views/ffc-tab-documentation.php:690
 msgid "Single Password:"
 msgstr "Senha Única:"
 
-#: includes/settings/views/ffc-tab-documentation.php:431
+#: includes/settings/views/ffc-tab-documentation.php:439
 msgid "Single-line text input"
 msgstr "Entrada de texto em linha única"
 
@@ -8097,7 +8113,7 @@ msgstr "Configuração do servidor SMTP"
 msgid "SMTP settings view file not found."
 msgstr "Arquivo de visualização das configurações SMTP não encontrado."
 
-#: includes/settings/views/ffc-tab-documentation.php:910
+#: includes/settings/views/ffc-tab-documentation.php:918
 msgid "Solution"
 msgstr "Solução"
 
@@ -8154,7 +8170,7 @@ msgstr "Estado"
 msgid "Statistics"
 msgstr "Estatísticas"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:169 includes/admin/class-ffc-submissions-list.php:60 includes/admin/class-ffc-csv-exporter.php:359 includes/admin/class-ffc-admin-submission-edit-page.php:210 includes/privacy/class-ffc-privacy-handler.php:271 includes/privacy/class-ffc-privacy-handler.php:400 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:177 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:64 includes/self-scheduling/class-ffc-self-scheduling-editor.php:219 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:196 includes/reregistration/class-ffc-reregistration-csv-exporter.php:67 includes/reregistration/class-ffc-reregistration-admin.php:240 includes/reregistration/class-ffc-reregistration-admin.php:386 includes/reregistration/class-ffc-reregistration-admin.php:558 includes/url-shortener/class-ffc-url-shortener-admin-page.php:418 includes/audience/class-ffc-audience-admin-bookings.php:149 includes/audience/class-ffc-audience-admin-environment.php:126 includes/audience/class-ffc-audience-admin-environment.php:346 includes/audience/class-ffc-audience-admin-calendar.php:82 includes/audience/class-ffc-audience-admin-calendar.php:351 includes/audience/class-ffc-audience-admin-audience.php:85 includes/audience/class-ffc-audience-admin-audience.php:269 includes/audience/class-ffc-audience-loader.php:310 includes/audience/class-ffc-audience-admin-settings.php:106 includes/frontend/class-ffc-public-csv-exporter.php:185 includes/self-scheduling/views/appointments-list.php:59 includes/self-scheduling/views/appointments-list.php:483
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:169 includes/admin/class-ffc-submissions-list.php:60 includes/admin/class-ffc-csv-exporter.php:362 includes/admin/class-ffc-admin-submission-edit-page.php:210 includes/privacy/class-ffc-privacy-handler.php:271 includes/privacy/class-ffc-privacy-handler.php:400 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:177 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:64 includes/self-scheduling/class-ffc-self-scheduling-editor.php:219 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:196 includes/reregistration/class-ffc-reregistration-csv-exporter.php:67 includes/reregistration/class-ffc-reregistration-admin.php:240 includes/reregistration/class-ffc-reregistration-admin.php:386 includes/reregistration/class-ffc-reregistration-admin.php:558 includes/url-shortener/class-ffc-url-shortener-admin-page.php:418 includes/audience/class-ffc-audience-admin-bookings.php:149 includes/audience/class-ffc-audience-admin-environment.php:126 includes/audience/class-ffc-audience-admin-environment.php:346 includes/audience/class-ffc-audience-admin-calendar.php:82 includes/audience/class-ffc-audience-admin-calendar.php:351 includes/audience/class-ffc-audience-admin-audience.php:85 includes/audience/class-ffc-audience-admin-audience.php:269 includes/audience/class-ffc-audience-loader.php:310 includes/audience/class-ffc-audience-admin-settings.php:106 includes/frontend/class-ffc-public-csv-exporter.php:185 includes/self-scheduling/views/appointments-list.php:59 includes/self-scheduling/views/appointments-list.php:483
 msgid "Status"
 msgstr "Status"
 
@@ -8174,23 +8190,23 @@ msgstr "Status atualizado."
 msgid "Status:"
 msgstr "Status:"
 
-#: includes/settings/views/ffc-tab-documentation.php:398 includes/settings/views/ffc-tab-documentation.php:454
+#: includes/settings/views/ffc-tab-documentation.php:406 includes/settings/views/ffc-tab-documentation.php:462
 msgid "Step 1:"
 msgstr "Passo 1:"
 
-#: includes/settings/views/ffc-tab-documentation.php:399 includes/settings/views/ffc-tab-documentation.php:455
+#: includes/settings/views/ffc-tab-documentation.php:407 includes/settings/views/ffc-tab-documentation.php:463
 msgid "Step 2:"
 msgstr "Passo 2:"
 
-#: includes/settings/views/ffc-tab-documentation.php:400 includes/settings/views/ffc-tab-documentation.php:456
+#: includes/settings/views/ffc-tab-documentation.php:408 includes/settings/views/ffc-tab-documentation.php:464
 msgid "Step 3:"
 msgstr "Passo 3:"
 
-#: includes/settings/views/ffc-tab-documentation.php:457
+#: includes/settings/views/ffc-tab-documentation.php:465
 msgid "Step 4:"
 msgstr "Passo 4:"
 
-#: includes/frontend/class-ffc-frontend.php:204
+#: includes/frontend/class-ffc-frontend.php:212
 msgid "Still trying to get your location… If it is not working, check that Location Services is enabled in Settings > Privacy & Security > Location Services."
 msgstr "Ainda tentando obter sua localização… Se não estiver funcionando, verifique se os Serviços de Localização estão ativados em Configurações > Privacidade e Segurança > Serviços de Localização."
 
@@ -8202,7 +8218,7 @@ msgstr "Armazene os Códigos QR gerados no banco de dados."
 msgid "Store generated QR Codes in database to avoid regenerating them on each request."
 msgstr "Armazene os códigos QR gerados no banco de dados para evitar regenerá-los a cada solicitação."
 
-#: includes/settings/views/ffc-tab-documentation.php:352
+#: includes/settings/views/ffc-tab-documentation.php:360
 msgid "Style"
 msgstr "Estilo"
 
@@ -8226,11 +8242,11 @@ msgstr "Submissão Criada"
 msgid "Submission created before magic links"
 msgstr "Envio criado antes dos links mágicos"
 
-#: includes/admin/class-ffc-csv-exporter.php:348 includes/admin/class-ffc-admin-submission-edit-page.php:202 includes/privacy/class-ffc-privacy-handler.php:196 includes/frontend/class-ffc-public-csv-exporter.php:174
+#: includes/admin/class-ffc-csv-exporter.php:351 includes/admin/class-ffc-admin-submission-edit-page.php:202 includes/privacy/class-ffc-privacy-handler.php:196 includes/frontend/class-ffc-public-csv-exporter.php:174
 msgid "Submission Date"
 msgstr "Data de Envio"
 
-#: includes/settings/views/ffc-tab-documentation.php:591
+#: includes/settings/views/ffc-tab-documentation.php:599
 msgid "Submission date"
 msgstr "Data de submissão"
 
@@ -8266,7 +8282,7 @@ msgstr "A submissão foi devolvida à fase de rascunho para revisão."
 msgid "Submission status (publish, trash, etc)."
 msgstr "Status da submissão (publicado, lixo, etc.)."
 
-#: includes/settings/views/ffc-tab-documentation.php:516
+#: includes/settings/views/ffc-tab-documentation.php:524
 msgid "Submission Statuses:"
 msgstr "Status das Submissões:"
 
@@ -8288,11 +8304,11 @@ msgstr "Submissões"
 msgid "Submissions: %s"
 msgstr "Submissões: %s"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:113 includes/reregistration/class-ffc-reregistration-form-renderer.php:111 includes/frontend/class-ffc-frontend.php:105 includes/frontend/class-ffc-shortcodes.php:263
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:113 includes/reregistration/class-ffc-reregistration-form-renderer.php:111 includes/frontend/class-ffc-frontend.php:113 includes/frontend/class-ffc-shortcodes.php:263
 msgid "Submit"
 msgstr "Enviar"
 
-#: includes/settings/views/ffc-tab-documentation.php:546
+#: includes/settings/views/ffc-tab-documentation.php:554
 msgid "Submit reregistration form data"
 msgstr "Enviar dados do formulário de recadastramento"
 
@@ -8304,7 +8320,7 @@ msgstr "Enviar recadastramentos (nível de usuário)"
 msgid "Submitted"
 msgstr "Enviado"
 
-#: includes/settings/views/ffc-tab-documentation.php:520
+#: includes/settings/views/ffc-tab-documentation.php:528
 msgid "Submitted and awaiting review"
 msgstr "Enviado e aguardando revisão."
 
@@ -8324,7 +8340,7 @@ msgstr "Enviado:"
 msgid "Submitting..."
 msgstr "Enviando..."
 
-#: includes/frontend/class-ffc-form-processor.php:440 includes/frontend/class-ffc-frontend.php:130
+#: includes/frontend/class-ffc-form-processor.php:440 includes/frontend/class-ffc-frontend.php:138
 msgid "Success!"
 msgstr "Sucesso!"
 
@@ -8366,15 +8382,15 @@ msgstr "Dom"
 msgid "Sunday"
 msgstr "Domingo"
 
-#: includes/settings/views/ffc-tab-documentation.php:422
+#: includes/settings/views/ffc-tab-documentation.php:430
 msgid "Supported Field Types:"
 msgstr "Tipos de Campos Suportados:"
 
-#: includes/settings/views/ffc-tab-documentation.php:272
+#: includes/settings/views/ffc-tab-documentation.php:280
 msgid "Supported HTML Tags:"
 msgstr "Tags HTML suportadas:"
 
-#: includes/settings/views/ffc-tab-documentation.php:659
+#: includes/settings/views/ffc-tab-documentation.php:667
 msgid "Supports Portuguese and English languages"
 msgstr "Suporta os idiomas português e inglês."
 
@@ -8428,11 +8444,11 @@ msgstr "A tabela %s foi atualizada com as colunas auth_code/magic_token."
 msgid "Table %s upgraded with dynamic field columns."
 msgstr "A tabela %s foi atualizada com colunas de campos dinâmicos."
 
-#: includes/settings/views/ffc-tab-documentation.php:307
+#: includes/settings/views/ffc-tab-documentation.php:315
 msgid "Tables for layout (logos, signatures)"
 msgstr "Tabelas para layout (logotipos, assinaturas)"
 
-#: includes/settings/views/ffc-tab-documentation.php:276
+#: includes/settings/views/ffc-tab-documentation.php:284
 msgid "Tag"
 msgstr "Tag"
 
@@ -8462,7 +8478,7 @@ msgstr "Arquivo de modelo não encontrado. Verifique se o arquivo existe na past
 msgid "Template loaded successfully!"
 msgstr "Modelo carregado com sucesso!"
 
-#: includes/settings/views/ffc-tab-documentation.php:573
+#: includes/settings/views/ffc-tab-documentation.php:581
 msgid "Template Variables:"
 msgstr "Variáveis ​​de Modelo:"
 
@@ -8474,7 +8490,7 @@ msgstr "Temporário (recomendado)"
 msgid "Temporary (strict)"
 msgstr "Temporário (estrito)"
 
-#: includes/settings/views/ffc-tab-documentation.php:949
+#: includes/settings/views/ffc-tab-documentation.php:957
 msgid "Test with simple content first"
 msgstr "Teste primeiro com conteúdo simples."
 
@@ -8482,11 +8498,11 @@ msgstr "Teste primeiro com conteúdo simples."
 msgid "Text"
 msgstr "Texto"
 
-#: includes/settings/views/ffc-tab-documentation.php:366
+#: includes/settings/views/ffc-tab-documentation.php:374
 msgid "Text alignment"
 msgstr "Alinhamento de texto"
 
-#: includes/settings/views/ffc-tab-documentation.php:362
+#: includes/settings/views/ffc-tab-documentation.php:370
 msgid "Text color"
 msgstr "Cor do texto"
 
@@ -8506,7 +8522,7 @@ msgstr "Área de texto"
 msgid "The \"FFC User\" role is automatically assigned to users who submit forms with CPF/RF."
 msgstr "A função \"FFC User\" é atribuída automaticamente aos usuários que enviam formulários com CPF/RF."
 
-#: includes/settings/views/ffc-tab-documentation.php:655 includes/settings/views/ffc-tab-cache.php:24
+#: includes/settings/views/ffc-tab-documentation.php:663 includes/settings/views/ffc-tab-cache.php:24
 msgid "The cache stores form settings to improve performance."
 msgstr "O cache armazena configurações do formulário para melhorar o desempenho."
 
@@ -8518,15 +8534,15 @@ msgstr "O ambiente está fechado neste horário."
 msgid "The Family Declaration must be completed during the employee's birthday month, through the website:"
 msgstr "A Declaração de Família deve ser preenchida durante o mês de aniversário do funcionário, através do site:"
 
-#: includes/settings/views/ffc-tab-documentation.php:574
+#: includes/settings/views/ffc-tab-documentation.php:582
 msgid "The ficha template (html/default_ficha_template.html) supports these variables:"
 msgstr "O modelo de ficha (html/default_ficha_template.html) suporta estas variáveis:"
 
-#: includes/settings/views/ffc-tab-documentation.php:602
+#: includes/settings/views/ffc-tab-documentation.php:610
 msgid "The ficha template can be customized using the filter:"
 msgstr "O modelo de ficha pode ser personalizado usando o filtro:"
 
-#: includes/settings/views/ffc-tab-documentation.php:683
+#: includes/settings/views/ffc-tab-documentation.php:691
 msgid "The form will have a global password for submission."
 msgstr "O formulário terá uma senha global para envio."
 
@@ -8534,20 +8550,20 @@ msgstr "O formulário terá uma senha global para envio."
 msgid "The HTML editor is empty. Add a template first."
 msgstr "O editor HTML está vazio. Adicione um template primeiro."
 
-#: includes/frontend/class-ffc-frontend.php:109
+#: includes/frontend/class-ffc-frontend.php:117
 msgid "The ID must have exactly 7 digits (RF) or 11 digits (CPF)."
 msgstr "O ID deve ter exatamente 7 dígitos (RF) ou 11 dígitos (CPF)."
 
 #. %d is the configured download limit
-#: includes/frontend/class-ffc-public-csv-download.php:226
+#: includes/frontend/class-ffc-public-csv-download.php:228
 msgid "The maximum number of downloads (%d) for this form has been reached."
 msgstr "O número máximo de downloads (%d) para este formulário foi atingido."
 
-#: includes/settings/views/ffc-tab-documentation.php:858
+#: includes/settings/views/ffc-tab-documentation.php:866
 msgid "The path segment before the short code (e.g. \"go\" makes URLs like /go/abc123)"
 msgstr "O segmento do caminho antes do código curto (por exemplo, \"go\" cria URLs como /go/abc123)"
 
-#: includes/settings/views/ffc-tab-documentation.php:181
+#: includes/settings/views/ffc-tab-documentation.php:189
 msgid "The QR code can be customized with various attributes:"
 msgstr "O Código QR pode ser personalizado com diversos atributos:"
 
@@ -8567,7 +8583,7 @@ msgstr "Aplicam-se as mesmas diretrizes. O formulário deve ser preenchido após
 msgid "The same guidelines apply. Note that an ID card issued more than 10 years ago will not be accepted, and the employee must obtain a new document before completing the re-registration;"
 msgstr "As mesmas diretrizes se aplicam. Observe que um documento de identidade emitido há mais de 10 anos não será aceito, e o funcionário deverá obter um novo documento antes de concluir o recadastramento;"
 
-#: includes/settings/views/ffc-tab-documentation.php:833
+#: includes/settings/views/ffc-tab-documentation.php:841
 msgid "The short URL with a copy button"
 msgstr "URL curta com botão de copiar"
 
@@ -8575,7 +8591,7 @@ msgstr "URL curta com botão de copiar"
 msgid "The URL prefix for short links (e.g. \"go\", \"r\", \"l\"). Only letters, numbers, and hyphens."
 msgstr "O prefixo da URL para links curtos (por exemplo, \"go\", \"r\", \"l\"). Somente letras, números e hífenes."
 
-#: includes/settings/views/ffc-tab-documentation.php:234
+#: includes/settings/views/ffc-tab-documentation.php:242
 msgid "The Validation URL can be customized with various attributes:"
 msgstr "O URL de validação pode ser personalizado com vários atributos:"
 
@@ -8628,11 +8644,11 @@ msgstr "Este campo é obrigatório."
 msgid "This form has no end date configured in the \"Geolocation & Date/Time Restrictions\" metabox. You must set an end date before public downloads will work — downloads are only released after the form has ended."
 msgstr "Este formulário não possui data de término configurada na caixa de metadados \"Geolocalização e Restrições de Data/Hora\". Você precisa definir uma data de término para que os downloads públicos funcionem — os downloads só são liberados após o encerramento do formulário."
 
-#: includes/frontend/class-ffc-public-csv-download.php:204
+#: includes/frontend/class-ffc-public-csv-download.php:206
 msgid "This form has no end date configured. The administrator must set a Geolocation \"End Date\" to enable public downloads."
 msgstr "Este formulário não possui data de término configurada. O administrador deve definir uma \"Data de Término\" por Geolocalização para permitir downloads públicos."
 
-#: includes/security/class-ffc-geofence.php:131 includes/security/class-ffc-geofence.php:162 includes/frontend/class-ffc-frontend.php:212
+#: includes/security/class-ffc-geofence.php:131 includes/security/class-ffc-geofence.php:162 includes/frontend/class-ffc-frontend.php:220
 msgid "This form is no longer available."
 msgstr "Este formulário não está mais disponível."
 
@@ -8644,19 +8660,19 @@ msgstr "Este formulário não está disponível no momento."
 msgid "This form is not available in your location."
 msgstr "Este formulário não está disponível na sua região."
 
-#: includes/security/class-ffc-geofence.php:118 includes/security/class-ffc-geofence.php:150 includes/frontend/class-ffc-frontend.php:211
+#: includes/security/class-ffc-geofence.php:118 includes/security/class-ffc-geofence.php:150 includes/frontend/class-ffc-frontend.php:219
 msgid "This form is not yet available."
 msgstr "Este formulário ainda não está disponível."
 
-#: includes/security/class-ffc-geofence.php:180 includes/frontend/class-ffc-frontend.php:213
+#: includes/security/class-ffc-geofence.php:180 includes/frontend/class-ffc-frontend.php:221
 msgid "This form is only available during specific hours."
 msgstr "Este formulário está disponível apenas em horários específicos."
 
-#: includes/frontend/class-ffc-public-csv-download.php:207
+#: includes/frontend/class-ffc-public-csv-download.php:209
 msgid "This form is still active. Downloads are only allowed after the form end date has passed."
 msgstr "Este formulário ainda está ativo. Os downloads só serão permitidos após a data de encerramento do formulário."
 
-#: includes/frontend/class-ffc-frontend.php:195
+#: includes/frontend/class-ffc-frontend.php:203
 msgid "This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator."
 msgstr "Este formulário requer uma conexão segura (HTTPS) para acessar sua localização. Por favor, entre em contato com o administrador do site."
 
@@ -8743,7 +8759,7 @@ msgstr "Quinta-feira"
 msgid "Ticket (Unique Codes)"
 msgstr "Ingresso (Códigos Únicos)"
 
-#: includes/settings/views/ffc-tab-documentation.php:690
+#: includes/settings/views/ffc-tab-documentation.php:698
 msgid "Ticket (Unique Codes):"
 msgstr "Ingressos (Códigos Únicos):"
 
@@ -8803,7 +8819,7 @@ msgstr "Tempo que os dados permanecem no cache antes de serem atualizados."
 msgid "Time:"
 msgstr "Horário:"
 
-#: includes/settings/views/ffc-tab-documentation.php:896
+#: includes/settings/views/ffc-tab-documentation.php:904
 msgid "Tip:"
 msgstr "Dica:"
 
@@ -8827,7 +8843,7 @@ msgstr "Título (opcional)"
 msgid "Title (optional):"
 msgstr "Título (opcional):"
 
-#: includes/settings/views/ffc-tab-documentation.php:126
+#: includes/settings/views/ffc-tab-documentation.php:134
 msgid "Title of the form/event"
 msgstr "Título do formulário/evento"
 
@@ -8869,7 +8885,7 @@ msgstr "Hoje"
 msgid "Toggle details"
 msgstr "Mostrar detalhes"
 
-#: includes/admin/class-ffc-csv-exporter.php:354 includes/frontend/class-ffc-public-csv-exporter.php:180
+#: includes/admin/class-ffc-csv-exporter.php:357 includes/frontend/class-ffc-public-csv-exporter.php:180
 msgid "Token"
 msgstr "Token"
 
@@ -8896,7 +8912,7 @@ msgstr "Muitas tentativas. Aguarde %s."
 msgid "Too many requests. Please try again later."
 msgstr "Muitas solicitações. Tente novamente mais tarde."
 
-#: includes/frontend/class-ffc-form-processor.php:55 includes/frontend/class-ffc-public-csv-download.php:157
+#: includes/frontend/class-ffc-form-processor.php:55 includes/frontend/class-ffc-public-csv-download.php:159
 msgid "Too many requests. Please wait."
 msgstr "Muitas solicitações. Aguarde, por favor."
 
@@ -8972,7 +8988,7 @@ msgstr "Lixo (%d)"
 msgid "Trash emptied."
 msgstr "Lixo esvaziado."
 
-#: includes/settings/views/ffc-tab-documentation.php:825
+#: includes/settings/views/ffc-tab-documentation.php:833
 msgid "Trash, restore, or permanently delete short URLs"
 msgstr "Lixeira, restauração ou exclusão permanente de URLs curtas."
 
@@ -8988,7 +9004,7 @@ msgstr "Ter"
 msgid "Tuesday"
 msgstr "Terça-feira"
 
-#: includes/settings/views/ffc-tab-documentation.php:853
+#: includes/settings/views/ffc-tab-documentation.php:861
 msgid "Turn the module on or off"
 msgstr "Ligue ou desligue o módulo."
 
@@ -8996,7 +9012,7 @@ msgstr "Ligue ou desligue o módulo."
 msgid "Turn this form into a quiz/evaluation"
 msgstr "Transformar este formulário em um quiz/avaliação"
 
-#: includes/admin/class-ffc-form-editor-metabox-renderer.php:652 includes/audience/class-ffc-audience-admin-bookings.php:148 includes/audience/class-ffc-audience-loader.php:309 includes/settings/views/ffc-tab-documentation.php:426
+#: includes/admin/class-ffc-form-editor-metabox-renderer.php:652 includes/audience/class-ffc-audience-admin-bookings.php:148 includes/audience/class-ffc-audience-loader.php:309 includes/settings/views/ffc-tab-documentation.php:434
 msgid "Type"
 msgstr "Tipo"
 
@@ -9004,11 +9020,11 @@ msgstr "Tipo"
 msgid "Type to search..."
 msgstr "Digite para pesquisar..."
 
-#: includes/security/class-ffc-geofence.php:231 includes/frontend/class-ffc-frontend.php:196
+#: includes/security/class-ffc-geofence.php:231 includes/frontend/class-ffc-frontend.php:204
 msgid "Unable to determine your location."
 msgstr "Não foi possível determinar sua localização."
 
-#: includes/frontend/class-ffc-frontend.php:207
+#: includes/frontend/class-ffc-frontend.php:215
 msgid "Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services."
 msgstr "Não foi possível determinar sua localização. No Safari/iOS, verifique se os Serviços de Localização estão ativados em Ajustes > Privacidade e Segurança > Serviços de Localização."
 
@@ -9016,7 +9032,7 @@ msgstr "Não foi possível determinar sua localização. No Safari/iOS, verifiqu
 msgid "Unable to determine your location. Please enable location services."
 msgstr "Não foi possível determinar sua localização. Por favor, ative os serviços de localização."
 
-#: includes/settings/views/ffc-tab-documentation.php:291
+#: includes/settings/views/ffc-tab-documentation.php:299
 msgid "Underline text:"
 msgstr "Texto sublinhado:"
 
@@ -9024,11 +9040,11 @@ msgstr "Texto sublinhado:"
 msgid "Union"
 msgstr "Estado"
 
-#: includes/settings/views/ffc-tab-documentation.php:121
+#: includes/settings/views/ffc-tab-documentation.php:129
 msgid "Unique authentication code for validation"
 msgstr "Código de autenticação único para validação"
 
-#: includes/settings/views/ffc-tab-documentation.php:614
+#: includes/settings/views/ffc-tab-documentation.php:622
 msgid "Unique Authentication Codes:"
 msgstr "Códigos de Autenticação Exclusivos:"
 
@@ -9102,7 +9118,7 @@ msgstr "Atualizar Calendário"
 msgid "Update Reregistration"
 msgstr "Atualizar Recadastramento"
 
-#: includes/settings/views/ffc-tab-documentation.php:955
+#: includes/settings/views/ffc-tab-documentation.php:963
 msgid "Update to latest version"
 msgstr "Atualize para a versão mais recente."
 
@@ -9114,7 +9130,7 @@ msgstr "Atualizado Em"
 msgid "URL is required."
 msgstr "É necessário uma URL."
 
-#: includes/settings/views/ffc-tab-url-shortener.php:54 includes/settings/views/ffc-tab-documentation.php:857
+#: includes/settings/views/ffc-tab-url-shortener.php:54 includes/settings/views/ffc-tab-documentation.php:865
 msgid "URL Prefix"
 msgstr "Prefixo da URL"
 
@@ -9126,11 +9142,11 @@ msgstr "Encurtador de URL"
 msgid "URL Shortener settings view file not found."
 msgstr "Arquivo de configurações do encurtador de URL não encontrado."
 
-#: includes/settings/views/ffc-tab-documentation.php:186 includes/settings/views/ffc-tab-documentation.php:239 includes/settings/views/ffc-tab-documentation.php:277
+#: includes/settings/views/ffc-tab-documentation.php:194 includes/settings/views/ffc-tab-documentation.php:247 includes/settings/views/ffc-tab-documentation.php:285
 msgid "Usage"
 msgstr "Uso"
 
-#: includes/settings/views/ffc-tab-documentation.php:55 includes/settings/views/ffc-tab-documentation.php:62 includes/settings/views/ffc-tab-documentation.php:69 includes/settings/views/ffc-tab-documentation.php:76 includes/settings/views/ffc-tab-documentation.php:83
+#: includes/settings/views/ffc-tab-documentation.php:55 includes/settings/views/ffc-tab-documentation.php:62 includes/settings/views/ffc-tab-documentation.php:69 includes/settings/views/ffc-tab-documentation.php:77 includes/settings/views/ffc-tab-documentation.php:84 includes/settings/views/ffc-tab-documentation.php:91
 msgid "Usage:"
 msgstr "Uso:"
 
@@ -9138,7 +9154,7 @@ msgstr "Uso:"
 msgid "Use <b>{{field_name}}</b> in the PDF Layout to insert user data."
 msgstr "Use <b>{{field_name}}</b> no Layout do PDF para inserir dados do usuário."
 
-#: includes/settings/views/ffc-tab-documentation.php:925
+#: includes/settings/views/ffc-tab-documentation.php:933
 msgid "Use absolute URLs (https://...)"
 msgstr "Use URLs absolutos (https://...)"
 
@@ -9170,15 +9186,15 @@ msgstr "Utilize áreas diferentes (mais permissivas) para validação de IP."
 msgid "Use GPS only (ignore IP validation)"
 msgstr "Usar somente GPS (ignorar validação de IP)"
 
-#: includes/settings/views/ffc-tab-documentation.php:940
+#: includes/settings/views/ffc-tab-documentation.php:948
 msgid "Use HTML tags:"
 msgstr "Use tags HTML:"
 
-#: includes/settings/views/ffc-tab-documentation.php:399
+#: includes/settings/views/ffc-tab-documentation.php:407
 msgid "Use in template:"
 msgstr "Utilizar no modelo:"
 
-#: includes/settings/views/ffc-tab-documentation.php:919
+#: includes/settings/views/ffc-tab-documentation.php:927
 msgid "Use lowercase for custom fields"
 msgstr "Use letras minúsculas para campos personalizados."
 
@@ -9186,11 +9202,11 @@ msgstr "Use letras minúsculas para campos personalizados."
 msgid "Use PHP date format characters."
 msgstr "Use caracteres de formatação de data PHP."
 
-#: includes/settings/views/ffc-tab-documentation.php:947
+#: includes/settings/views/ffc-tab-documentation.php:955
 msgid "Use tables for complex layouts"
 msgstr "Utilize tabelas para layouts complexos."
 
-#: includes/settings/views/ffc-tab-documentation.php:93
+#: includes/settings/views/ffc-tab-documentation.php:101
 msgid "Use these variables in your PDF template (HTML editor). They will be automatically replaced with user data:"
 msgstr "Utilize estas variáveis ​​no seu modelo de PDF (editor HTML). Elas serão automaticamente substituídas pelos dados do usuário:"
 
@@ -9206,7 +9222,7 @@ msgstr "Use este shortcode para exibir o calendário em qualquer página ou post
 msgid "Use this shortcode to display the calendar:"
 msgstr "Use este código curto para exibir o calendário:"
 
-#: includes/settings/views/ffc-tab-documentation.php:408 includes/settings/views/ffc-tab-documentation.php:409 includes/settings/views/ffc-tab-documentation.php:410 includes/settings/views/ffc-tab-documentation.php:933
+#: includes/settings/views/ffc-tab-documentation.php:416 includes/settings/views/ffc-tab-documentation.php:417 includes/settings/views/ffc-tab-documentation.php:418 includes/settings/views/ffc-tab-documentation.php:941
 msgid "Use:"
 msgstr "Usar:"
 
@@ -9275,11 +9291,11 @@ msgstr "E-mails de criação de usuário (Migração)"
 msgid "User Creation Emails (Submission)"
 msgstr "E-mails de criação de usuário (Submissão)"
 
-#: includes/settings/views/ffc-tab-documentation.php:568
+#: includes/settings/views/ffc-tab-documentation.php:576
 msgid "User Dashboard:"
 msgstr "Painel do Usuário:"
 
-#: includes/settings/views/ffc-tab-documentation.php:586
+#: includes/settings/views/ffc-tab-documentation.php:594
 msgid "User department"
 msgstr "Departamento do usuário"
 
@@ -9287,11 +9303,11 @@ msgstr "Departamento do usuário"
 msgid "User does not have access to this calendar."
 msgstr "O usuário não tem acesso a este calendário."
 
-#: includes/settings/views/ffc-tab-documentation.php:584
+#: includes/settings/views/ffc-tab-documentation.php:592
 msgid "User email"
 msgstr "E-mail do usuário"
 
-#: includes/settings/views/ffc-tab-documentation.php:116
+#: includes/settings/views/ffc-tab-documentation.php:124
 msgid "User email address"
 msgstr "Endereço de e-mail do usuário"
 
@@ -9299,15 +9315,15 @@ msgstr "Endereço de e-mail do usuário"
 msgid "User explicitly agreed to data storage and privacy policy."
 msgstr "O usuário concordou explicitamente com o armazenamento de dados e a política de privacidade."
 
-#: includes/settings/views/ffc-tab-documentation.php:583
+#: includes/settings/views/ffc-tab-documentation.php:591
 msgid "User full name"
 msgstr "Nome completo do usuário"
 
-#: includes/settings/views/ffc-tab-documentation.php:518
+#: includes/settings/views/ffc-tab-documentation.php:526
 msgid "User has not yet submitted"
 msgstr "O usuário ainda não enviou"
 
-#: includes/admin/class-ffc-csv-exporter.php:347 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:57 includes/reregistration/class-ffc-reregistration-csv-exporter.php:64 includes/frontend/class-ffc-public-csv-exporter.php:173
+#: includes/admin/class-ffc-csv-exporter.php:350 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:57 includes/reregistration/class-ffc-reregistration-csv-exporter.php:64 includes/frontend/class-ffc-public-csv-exporter.php:173
 msgid "User ID"
 msgstr "ID do usuário"
 
@@ -9317,7 +9333,7 @@ msgstr "ID do usuário"
 msgid "User ID %1$d: %2$s"
 msgstr "ID do Usuário %1$d: %2$s"
 
-#: includes/admin/class-ffc-csv-exporter.php:350 includes/admin/class-ffc-admin-submission-edit-page.php:234 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:79 includes/frontend/class-ffc-public-csv-exporter.php:176
+#: includes/admin/class-ffc-csv-exporter.php:353 includes/admin/class-ffc-admin-submission-edit-page.php:234 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:79 includes/frontend/class-ffc-public-csv-exporter.php:176
 msgid "User IP"
 msgstr "IP do usuário"
 
@@ -9337,11 +9353,11 @@ msgstr "Usuário não encontrado."
 msgid "User Notes"
 msgstr "Notas do Usuário"
 
-#: includes/settings/views/ffc-tab-documentation.php:587
+#: includes/settings/views/ffc-tab-documentation.php:595
 msgid "User organization"
 msgstr "Organização de usuários"
 
-#: includes/settings/views/ffc-tab-documentation.php:585
+#: includes/settings/views/ffc-tab-documentation.php:593
 msgid "User phone number"
 msgstr "Número de telefone do usuário"
 
@@ -9357,7 +9373,7 @@ msgstr "A tabela de perfis de usuário não existe."
 msgid "User profiles table does not exist. Reactivate the plugin."
 msgstr "A tabela de perfis de usuário não existe. Reative o plugin."
 
-#: includes/settings/views/ffc-tab-documentation.php:519
+#: includes/settings/views/ffc-tab-documentation.php:527
 msgid "User saved a draft but did not submit"
 msgstr "O usuário salvou um rascunho, mas não o enviou."
 
@@ -9391,7 +9407,7 @@ msgstr "Os usuários podem entrar/sair de grupos filhos a partir do painel de co
 msgid "Users can validate certificates by entering the authentication code."
 msgstr "Os usuários podem validar certificados inserindo o código de autenticação."
 
-#: includes/settings/views/ffc-tab-documentation.php:480
+#: includes/settings/views/ffc-tab-documentation.php:488
 msgid "Users see a banner on their dashboard and complete the reregistration form"
 msgstr "Os usuários visualizam um banner em seu painel e preenchem o formulário de recadastramento."
 
@@ -9411,15 +9427,15 @@ msgstr "Utilizando o cache padrão do WordPress (banco de dados)"
 msgid "Valid Certificate"
 msgstr "Certificado Válido"
 
-#: includes/settings/views/ffc-tab-documentation.php:444
+#: includes/settings/views/ffc-tab-documentation.php:452
 msgid "Validates Brazilian CPF format"
 msgstr "Valida o formato CPF brasileiro"
 
-#: includes/settings/views/ffc-tab-documentation.php:445
+#: includes/settings/views/ffc-tab-documentation.php:453
 msgid "Validates email format"
 msgstr "Valida o formato do e-mail"
 
-#: includes/settings/views/ffc-tab-documentation.php:446
+#: includes/settings/views/ffc-tab-documentation.php:454
 msgid "Validates phone number format"
 msgstr "Valida o formato do número de telefone."
 
@@ -9435,15 +9451,15 @@ msgstr "Código de Validação:"
 msgid "Validation Methods"
 msgstr "Métodos de Validação"
 
-#: includes/settings/views/ffc-tab-documentation.php:442
+#: includes/settings/views/ffc-tab-documentation.php:450
 msgid "Validation Options:"
 msgstr "Opções de Validação:"
 
-#: includes/settings/views/ffc-tab-documentation.php:400
+#: includes/settings/views/ffc-tab-documentation.php:408
 msgid "Value gets replaced automatically in PDF"
 msgstr "O valor é substituído automaticamente no PDF."
 
-#: includes/settings/views/ffc-tab-documentation.php:98 includes/settings/views/ffc-tab-documentation.php:578
+#: includes/settings/views/ffc-tab-documentation.php:106 includes/settings/views/ffc-tab-documentation.php:586
 msgid "Variable"
 msgstr "Variável"
 
@@ -9451,7 +9467,7 @@ msgstr "Variável"
 msgid "Variable Name (Tag)"
 msgstr "Nome da variável (etiqueta)"
 
-#: includes/settings/views/ffc-tab-documentation.php:915
+#: includes/settings/views/ffc-tab-documentation.php:923
 msgid "Variable not replaced"
 msgstr "Variável não substituída"
 
@@ -9459,7 +9475,7 @@ msgstr "Variável não substituída"
 msgid "Verification Code:"
 msgstr "Código de Verificação:"
 
-#: templates/verification-page.php:55 includes/frontend/class-ffc-frontend.php:103
+#: templates/verification-page.php:55 includes/frontend/class-ffc-frontend.php:111
 msgid "Verify"
 msgstr "Verificar"
 
@@ -9475,7 +9491,7 @@ msgstr "Verificando Certificado..."
 msgid "Verifying document..."
 msgstr "Verificando documento..."
 
-#: includes/admin/class-ffc-admin-assets-manager.php:347 includes/frontend/class-ffc-frontend.php:102
+#: includes/admin/class-ffc-admin-assets-manager.php:347 includes/frontend/class-ffc-frontend.php:110
 msgid "Verifying..."
 msgstr "Verificando..."
 
@@ -9515,7 +9531,7 @@ msgstr "Veja as reservas de público-alvo"
 msgid "View certificate history"
 msgstr "Ver histórico de certificados"
 
-#: includes/settings/views/ffc-tab-documentation.php:822
+#: includes/settings/views/ffc-tab-documentation.php:830
 msgid "View click statistics (total links, active links, total clicks)"
 msgstr "Veja as estatísticas de cliques (total de links, links ativos, total de cliques)"
 
@@ -9583,11 +9599,11 @@ msgstr "Mensagem de Visibilidade"
 msgid "Visibility Settings"
 msgstr "Configurações de Visibilidade"
 
-#: includes/frontend/class-ffc-frontend.php:136
+#: includes/frontend/class-ffc-frontend.php:144
 msgid "Wait..."
 msgstr "Espere..."
 
-#: includes/frontend/class-ffc-frontend.php:203
+#: includes/frontend/class-ffc-frontend.php:211
 msgid "Waiting for location permission… Check if a browser prompt appeared."
 msgstr "Aguardando permissão de localização… Verifique se apareceu uma solicitação no navegador."
 
@@ -9623,7 +9639,7 @@ msgstr "Aviso: Essas ações não podem ser desfeitas."
 msgid "Warning: This action is permanent and cannot be undone!"
 msgstr "Atenção: Esta ação é permanente e não pode ser desfeita!"
 
-#: includes/admin/class-ffc-csv-exporter.php:363 includes/frontend/class-ffc-public-csv-exporter.php:189
+#: includes/admin/class-ffc-csv-exporter.php:366 includes/frontend/class-ffc-public-csv-exporter.php:189
 msgid "Was Edited"
 msgstr "Foi Editado"
 
@@ -9675,7 +9691,7 @@ msgstr "Quando GPS e IP estão habilitados, como combinar os resultados."
 msgid "When checked, next submission will start from ID #1. Only works if table becomes empty."
 msgstr "Quando selecionada, a próxima submissão começará a partir do ID #1. Só funciona se a tabela estiver vazia."
 
-#: includes/settings/views/ffc-tab-documentation.php:831
+#: includes/settings/views/ffc-tab-documentation.php:839
 msgid "When editing a post or page, the \"Short URL & QR Code\" meta box appears in the sidebar. It shows:"
 msgstr "Ao editar uma publicação ou página, a caixa meta \"URL curta e código QR\" aparece na barra lateral. Ela exibe:"
 
@@ -9723,11 +9739,11 @@ msgstr "Quando o GPS falha"
 msgid "When IP API Fails"
 msgstr "Quando a API IP falha"
 
-#: includes/settings/views/ffc-tab-documentation.php:812
+#: includes/settings/views/ffc-tab-documentation.php:820
 msgid "When someone visits a short URL, they are redirected to the destination and the click is counted"
 msgstr "Quando alguém visita um URL curto, é redirecionado para o destino e o clique é contabilizado."
 
-#: includes/settings/views/ffc-tab-documentation.php:565
+#: includes/settings/views/ffc-tab-documentation.php:573
 msgid "Where to Download:"
 msgstr "Onde fazer o Download:"
 
@@ -9737,7 +9753,7 @@ msgstr "Onde fazer o Download:"
 msgid "Where to redirect blocked users. Default: %s"
 msgstr "Para onde redirecionar os usuários bloqueados. Padrão: %s"
 
-#: includes/settings/views/ffc-tab-documentation.php:878
+#: includes/settings/views/ffc-tab-documentation.php:886
 msgid "Which post types show the Short URL meta box and support auto-create"
 msgstr "Quais tipos de postagem exibem a caixa meta de URL curta e oferecem suporte à criação automática?"
 
@@ -9753,11 +9769,11 @@ msgstr "Lista de permissões"
 msgid "Widowed"
 msgstr "Viúvo(a)"
 
-#: includes/settings/views/ffc-tab-documentation.php:260
+#: includes/settings/views/ffc-tab-documentation.php:268
 msgid "With color link"
 msgstr "Com a cor de link"
 
-#: includes/settings/views/ffc-tab-documentation.php:259
+#: includes/settings/views/ffc-tab-documentation.php:267
 msgid "With target"
 msgstr "Com alvo"
 
@@ -9769,7 +9785,7 @@ msgstr "Sem Redis/Memcached, os contadores horários do limitador de taxa são r
 msgid "WordPress Media Library is not available. Please reload the page."
 msgstr "A Biblioteca de Mídia do WordPress não está disponível. Por favor, recarregue a página."
 
-#: includes/settings/views/ffc-tab-documentation.php:151 includes/settings/views/ffc-tab-documentation.php:593
+#: includes/settings/views/ffc-tab-documentation.php:159 includes/settings/views/ffc-tab-documentation.php:601
 msgid "WordPress site name"
 msgstr "Nome do site WordPress"
 
@@ -9777,7 +9793,7 @@ msgstr "Nome do site WordPress"
 msgid "Work Schedule"
 msgstr "Horário de Trabalho"
 
-#: includes/settings/views/ffc-tab-documentation.php:474
+#: includes/settings/views/ffc-tab-documentation.php:482
 msgid "Workflow:"
 msgstr "Fluxo de Trabalho:"
 
@@ -9797,7 +9813,7 @@ msgstr "WP Padrão (PHPMail)"
 msgid "WP-Admin Access Control"
 msgstr "Controle de Acesso do WP-Admin"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:162 includes/admin/class-ffc-form-editor-metabox-renderer.php:302 includes/admin/class-ffc-csv-exporter.php:394 includes/admin/class-ffc-csv-exporter.php:406 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:140 includes/reregistration/class-ffc-reregistration-csv-exporter.php:173 includes/reregistration/class-ffc-ficha-generator.php:317 includes/frontend/class-ffc-public-csv-exporter.php:225 includes/frontend/class-ffc-public-csv-exporter.php:237
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:162 includes/admin/class-ffc-form-editor-metabox-renderer.php:302 includes/admin/class-ffc-csv-exporter.php:406 includes/admin/class-ffc-csv-exporter.php:418 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:140 includes/reregistration/class-ffc-reregistration-csv-exporter.php:173 includes/reregistration/class-ffc-ficha-generator.php:317 includes/frontend/class-ffc-public-csv-exporter.php:225 includes/frontend/class-ffc-public-csv-exporter.php:237
 msgid "Yes"
 msgstr "Sim"
 
@@ -9829,7 +9845,7 @@ msgstr "Você já é membro deste grupo."
 msgid "You are not a member of this group"
 msgstr "Você não é membro deste grupo."
 
-#: includes/frontend/class-ffc-frontend.php:200
+#: includes/frontend/class-ffc-frontend.php:208
 msgid "You are outside the allowed area for this form."
 msgstr "Você está fora da área permitida para este formulário."
 
@@ -9837,7 +9853,7 @@ msgstr "Você está fora da área permitida para este formulário."
 msgid "You are viewing this calendar as an administrator (bypass active)."
 msgstr "Você está visualizando este calendário como administrador (modo ignorar ativo)."
 
-#: includes/settings/views/ffc-tab-documentation.php:811
+#: includes/settings/views/ffc-tab-documentation.php:819
 msgid "You can also create short URLs manually from the Short URLs admin page"
 msgstr "Você também pode criar URLs curtas manualmente na página de administração de URLs curtas."
 
@@ -9854,7 +9870,7 @@ msgstr "Você também pode verificar este certificado manualmente em"
 msgid "You can join a maximum of %d groups. Leave one first."
 msgstr "Você pode participar de no máximo %d grupos. Saia de um antes de entrar."
 
-#: includes/settings/views/ffc-tab-documentation.php:270
+#: includes/settings/views/ffc-tab-documentation.php:278
 msgid "You can use HTML and inline CSS to style your certificate:"
 msgstr "Você pode usar HTML e CSS embutido para estilizar seu certificado:"
 
@@ -9996,7 +10012,7 @@ msgstr "Você precisa estar conectado para visualizar seu painel de controle."
 msgid "You now have access to %1$s on %2$s."
 msgstr "Agora você tem acesso a %1$s em %2$s."
 
-#: includes/shortcodes/class-ffc-dashboard-shortcode.php:284 includes/user-dashboard/class-ffc-access-control.php:117 includes/settings/views/ffc-tab-user-access.php:23
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php:284 includes/user-dashboard/class-ffc-access-control.php:111 includes/settings/views/ffc-tab-user-access.php:23
 msgid "You were redirected from the admin panel. Use this dashboard to access your certificates."
 msgstr "Você foi redirecionado do painel de administração. Use este painel para acessar seus certificados."
 
@@ -10020,7 +10036,7 @@ msgstr "Seu agendamento está aguardando aprovação. Você receberá um e-mail 
 msgid "Your appointment is pending approval. You will receive an email confirmation once it is approved."
 msgstr "Seu agendamento está aguardando aprovação. Você receberá uma confirmação por e-mail assim que for aprovado."
 
-#: includes/frontend/class-ffc-frontend.php:194
+#: includes/frontend/class-ffc-frontend.php:202
 msgid "Your browser does not support geolocation."
 msgstr "Seu navegador não suporta geolocalização."
 
@@ -10082,7 +10098,7 @@ msgstr "O endereço do seu servidor SMTP"
 msgid "Your SMTP username (usually your email)"
 msgstr "Seu nome de usuário SMTP (geralmente seu e-mail)"
 
-#: includes/frontend/class-ffc-frontend.php:131
+#: includes/frontend/class-ffc-frontend.php:139
 msgid "Your submission was successful."
 msgstr "Sua submissão foi bem-sucedida."
 
