@@ -214,25 +214,30 @@ class AudienceAdminPageTest extends TestCase {
     public function test_print_menu_separator_css_outputs_style_tag(): void {
         $page = new AudienceAdminPage();
 
-        ob_start();
-        $page->print_menu_separator_css();
-        $output = ob_get_clean();
+        $captured_css = '';
+        Functions\expect( 'wp_add_inline_style' )
+            ->once()
+            ->with( 'admin-menu', Mockery::capture( $captured_css ) );
 
-        $this->assertStringContainsString( '<style>', $output, 'Should output a <style> tag' );
-        $this->assertStringContainsString( '#ffc-separator-', $output, 'Should reference separator selectors' );
-        $this->assertStringContainsString( 'pointer-events: none', $output, 'Separators should have pointer-events: none' );
+        $page->print_menu_separator_css();
+
+        $this->assertStringContainsString( '#ffc-separator-', $captured_css, 'Should reference separator selectors' );
+        $this->assertStringContainsString( 'pointer-events:none', $captured_css, 'Separators should have pointer-events:none' );
     }
 
     public function test_print_menu_separator_css_contains_dashicons_references(): void {
         $page = new AudienceAdminPage();
 
-        ob_start();
-        $page->print_menu_separator_css();
-        $output = ob_get_clean();
+        $captured_css = '';
+        Functions\expect( 'wp_add_inline_style' )
+            ->once()
+            ->with( 'admin-menu', Mockery::capture( $captured_css ) );
 
-        $this->assertStringContainsString( 'dashicons', $output, 'CSS should reference dashicons font family' );
-        $this->assertStringContainsString( '#ffc-separator-self', $output, 'CSS should style the self separator' );
-        $this->assertStringContainsString( '#ffc-separator-audience', $output, 'CSS should style the audience separator' );
-        $this->assertStringContainsString( '#ffc-separator-tools', $output, 'CSS should style the tools separator' );
+        $page->print_menu_separator_css();
+
+        $this->assertStringContainsString( 'dashicons', $captured_css, 'CSS should reference dashicons font family' );
+        $this->assertStringContainsString( '#ffc-separator-self', $captured_css, 'CSS should style the self separator' );
+        $this->assertStringContainsString( '#ffc-separator-audience', $captured_css, 'CSS should style the audience separator' );
+        $this->assertStringContainsString( '#ffc-separator-tools', $captured_css, 'CSS should style the tools separator' );
     }
 }

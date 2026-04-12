@@ -86,6 +86,52 @@
     display: inline-block;
 }
 
+/* Email notification checkbox labels */
+.ffc-email-checkbox-label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* Shortcode input (sidebar metabox) */
+.ffc-shortcode-input {
+    width: 100%;
+    padding: 6px;
+    font-family: monospace;
+    background: #f0f0f1;
+}
+
+/* Shortcode preview label */
+.ffc-shortcode-preview-label {
+    margin-top: 15px;
+}
+
+/* ==========================================================================
+   CLEANUP METABOX (class-ffc-self-scheduling-cleanup-handler.php)
+   ========================================================================== */
+
+.ffc-cleanup-stats {
+    margin: 15px 0;
+}
+
+.ffc-cleanup-stats .widefat {
+    border: none;
+}
+
+.ffc-cleanup-btn-full {
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+.ffc-cleanup-btn-delete-all {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.ffc-cleanup-warning {
+    margin-top: 10px;
+    color: #d63638;
+}
+
 /* Responsive */
 @media (max-width: 782px) {
     .ffc-working-hours-table select,

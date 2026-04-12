@@ -98,46 +98,46 @@ class UrlShortenerMetaBox {
         ?>
         <div class="ffc-shorturl-metabox">
             <!-- Short URL -->
-            <div style="margin-bottom:12px;">
-                <label style="font-weight:600;display:block;margin-bottom:4px;"><?php esc_html_e( 'Short URL', 'ffcertificate' ); ?></label>
-                <div style="display:flex;gap:4px;">
+            <div class="ffc-mb-md">
+                <label class="ffc-shorturl-label"><?php esc_html_e( 'Short URL', 'ffcertificate' ); ?></label>
+                <div class="ffc-shorturl-input-row">
                     <input type="text" value="<?php echo esc_attr( $short_url ); ?>" readonly
-                           id="ffc-shorturl-input" class="widefat" style="font-size:12px;" />
+                           id="ffc-shorturl-input" class="widefat ffc-shorturl-input-sm" />
                     <button type="button" class="button ffc-copy-shorturl" data-url="<?php echo esc_attr( $short_url ); ?>"
                             title="<?php esc_attr_e( 'Copy', 'ffcertificate' ); ?>">
-                        <span class="dashicons dashicons-clipboard" style="margin-top:3px;"></span>
+                        <span class="dashicons dashicons-clipboard ffc-dashicon-valign"></span>
                     </button>
                 </div>
             </div>
 
             <!-- Click count -->
-            <p style="margin:8px 0;">
+            <p class="ffc-shorturl-clicks">
                 <strong><?php echo esc_html( number_format_i18n( (int) $record['click_count'] ) ); ?></strong>
                 <?php esc_html_e( 'clicks', 'ffcertificate' ); ?>
             </p>
 
             <!-- QR Code Preview -->
             <?php if ( ! empty( $qr_base64 ) ) : ?>
-                <div style="text-align:center;margin:12px 0;padding:10px;background:#fff;border:1px solid #ddd;border-radius:4px;">
+                <div class="ffc-shorturl-qr-preview">
                     <img src="data:image/png;base64,<?php echo esc_attr( $qr_base64 ); ?>"
-                         alt="QR Code" style="width:180px;height:180px;display:block;margin:0 auto;" />
+                         alt="QR Code" />
                 </div>
 
                 <!-- Download Buttons -->
-                <div style="display:flex;gap:6px;justify-content:center;margin-bottom:8px;">
+                <div class="ffc-shorturl-download-row">
                     <button type="button" class="button button-small ffc-download-qr" data-format="png" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
-                        <span class="dashicons dashicons-download" style="margin-top:3px;font-size:14px;"></span> PNG
+                        <span class="dashicons dashicons-download ffc-dashicon-sm"></span> PNG
                     </button>
                     <button type="button" class="button button-small ffc-download-qr" data-format="svg" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
-                        <span class="dashicons dashicons-download" style="margin-top:3px;font-size:14px;"></span> SVG
+                        <span class="dashicons dashicons-download ffc-dashicon-sm"></span> SVG
                     </button>
                 </div>
             <?php endif; ?>
 
             <!-- Regenerate -->
-            <div style="text-align:center;margin-top:8px;">
+            <div class="ffc-shorturl-regenerate">
                 <button type="button" class="button button-small ffc-regenerate-shorturl" data-post-id="<?php echo esc_attr( (string) $post->ID ); ?>">
-                    <span class="dashicons dashicons-update" style="margin-top:3px;font-size:14px;"></span>
+                    <span class="dashicons dashicons-update ffc-dashicon-sm"></span>
                     <?php esc_html_e( 'Regenerate', 'ffcertificate' ); ?>
                 </button>
             </div>

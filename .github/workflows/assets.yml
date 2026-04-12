@@ -1,0 +1,29 @@
+name: Asset Build Verification
+
+on:
+  pull_request:
+    paths:
+      - 'assets/**'
+      - 'package.json'
+
+jobs:
+  verify:
+    name: Verify minified assets are up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Build assets
+        run: npm run build
+      - name: Check for uncommitted changes
+        run: |
+          if ! git diff --quiet assets/; then
+            echo "::error::Minified assets are stale. Run 'npm run build' and commit the results."
+            git diff --stat assets/
+            exit 1
+          fi
+          echo "All minified assets are up to date."

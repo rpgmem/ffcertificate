@@ -653,35 +653,29 @@ class VerificationHandler {
      */
     public function handle_verification_ajax(): void {
         check_ajax_referer( 'ffc_frontend_nonce', 'nonce' );
-        
+
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_ajax_referer.
-        // Validate security
-        $captcha_ans = isset($_POST['ffc_captcha_ans']) ? sanitize_text_field(wp_unslash($_POST['ffc_captcha_ans'])) : '';
-        $captcha_hash = isset($_POST['ffc_captcha_hash']) ? sanitize_text_field(wp_unslash($_POST['ffc_captcha_hash'])) : '';
-        $honeypot = isset($_POST['ffc_honeypot_trap']) ? sanitize_text_field(wp_unslash($_POST['ffc_honeypot_trap'])) : '';
-        $user_ip = \FreeFormCertificate\Core\Utils::get_user_ip();
 
-        if ( ! empty( $honeypot ) ) {
-            wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
-        }
-
-        $rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );  
-        if ( ! $rate_check['allowed'] ) {
-            wp_send_json_error( array( 
-                'message' => __( 'Too many verification attempts. Please try again later.', 'ffcertificate' ) 
-            ) );
-        }
-        
-        if ( ! \FreeFormCertificate\Core\Utils::verify_simple_captcha( $captcha_ans, $captcha_hash ) ) {
+        // Validate honeypot + captcha via centralised service.
+        $security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
+        if ( $security_check !== true ) {
             $new_captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
-            wp_send_json_error( array( 
-                'message' => __( 'Incorrect answer to math question.', 'ffcertificate' ),
+            wp_send_json_error( array(
+                'message'         => $security_check,
                 'refresh_captcha' => true,
-                'new_label' => $new_captcha['label'],
-                'new_hash' => $new_captcha['hash']
+                'new_label'       => $new_captcha['label'],
+                'new_hash'        => $new_captcha['hash'],
             ) );
         }
-        
+
+        $user_ip    = \FreeFormCertificate\Core\Utils::get_user_ip();
+        $rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
+        if ( ! $rate_check['allowed'] ) {
+            wp_send_json_error( array(
+                'message' => __( 'Too many verification attempts. Please try again later.', 'ffcertificate' ),
+            ) );
+        }
+
         $auth_code = isset($_POST['ffc_auth_code']) ? sanitize_text_field(wp_unslash($_POST['ffc_auth_code'])) : '';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
         $result = $this->search_certificate( $auth_code );

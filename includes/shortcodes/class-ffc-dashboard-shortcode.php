@@ -45,6 +45,12 @@ class DashboardShortcode {
             return;
         }
 
+        // Universal constant recognised by WP Rocket, W3 Total Cache, WP Super Cache,
+        // Batcache, and most other full-page cache plugins.
+        if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+            define( 'DONOTCACHEPAGE', true );
+        }
+
         // Standard WordPress no-cache headers
         nocache_headers();
 

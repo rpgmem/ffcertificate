@@ -268,6 +268,106 @@
     height: 16px;
 }
 
+/* Meta box: shorturl label */
+.ffc-shorturl-metabox .ffc-shorturl-label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* Meta box: input row */
+.ffc-shorturl-input-row {
+    display: flex;
+    gap: 4px;
+}
+
+/* Meta box: small monospace input */
+.ffc-shorturl-metabox input.ffc-shorturl-input-sm {
+    font-size: 12px;
+}
+
+/* Meta box: click counter */
+.ffc-shorturl-clicks {
+    margin: 8px 0;
+}
+
+/* Meta box: QR preview card */
+.ffc-shorturl-qr-preview {
+    text-align: center;
+    margin: 12px 0;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.ffc-shorturl-qr-preview img {
+    width: 180px;
+    height: 180px;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Meta box: download row */
+.ffc-shorturl-download-row {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+/* Meta box: dashicon alignment inside buttons */
+.ffc-shorturl-metabox .dashicons.ffc-dashicon-valign {
+    margin-top: 3px;
+}
+
+/* Meta box: small dashicon */
+.ffc-shorturl-metabox .dashicons.ffc-dashicon-sm {
+    margin-top: 3px;
+    font-size: 14px;
+}
+
+/* Meta box: regenerate row */
+.ffc-shorturl-regenerate {
+    text-align: center;
+    margin-top: 8px;
+}
+
+/* Admin page: table column widths */
+.ffc-shorturl-table .column-title    { width: 25%; }
+.ffc-shorturl-table .column-shorturl { width: 18%; }
+.ffc-shorturl-table .column-dest     { width: 25%; }
+.ffc-shorturl-table .column-clicks   { width: 8%; }
+.ffc-shorturl-table .column-status   { width: 10%; }
+.ffc-shorturl-table .column-actions  { width: 14%; }
+
+/* Admin page: status labels */
+.ffc-shorturl-status {
+    font-weight: 600;
+}
+
+.ffc-shorturl-status-active   { color: #46b450; }
+.ffc-shorturl-status-disabled { color: #dc3232; }
+.ffc-shorturl-status-trashed  { color: #b32d2e; }
+
+/* Admin page: empty trash wrapper */
+.ffc-shorturl-empty-trash {
+    margin-bottom: 10px;
+}
+
+/* Admin page: dashicon vertical align in buttons */
+.ffc-dashicon-valign {
+    margin-top: 3px;
+}
+
+/* Admin page: small dashicon (QR button in table) */
+.ffc-dashicon-sm-inline {
+    margin-top: 3px;
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+}
+
 /* Responsive */
 @media screen and (max-width: 782px) {
     .ffc-shorturl-stats {

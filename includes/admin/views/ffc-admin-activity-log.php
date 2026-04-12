@@ -60,7 +60,7 @@ $ffcertificate_base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activ
 
         <!-- Search Box -->
         <div class="alignright actions">
-            <form method="get">
+            <form method="get" style="display:inline">
                 <input type="hidden" name="post_type" value="ffc_form">
                 <input type="hidden" name="page" value="ffc-activity-log">
                 <?php if ( $level ) : ?>
@@ -73,6 +73,30 @@ $ffcertificate_base_url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-activ
                 <input type="search" id="ffc-log-search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search logs...', 'ffcertificate' ); ?>">
                 <input type="submit" class="button" value="<?php esc_attr_e( 'Search', 'ffcertificate' ); ?>">
             </form>
+
+            <?php
+            $ffcertificate_export_args = array(
+                'post_type'         => 'ffc_form',
+                'page'              => 'ffc-activity-log',
+                'ffc_export_logs'   => '1',
+            );
+            if ( $level ) {
+                $ffcertificate_export_args['level'] = $level;
+            }
+            if ( $action ) {
+                $ffcertificate_export_args['log_action'] = $action;
+            }
+            if ( $search ) {
+                $ffcertificate_export_args['s'] = $search;
+            }
+            $ffcertificate_export_url = wp_nonce_url(
+                add_query_arg( $ffcertificate_export_args, admin_url( 'edit.php' ) ),
+                'ffc_export_activity_log'
+            );
+            ?>
+            <a href="<?php echo esc_url( $ffcertificate_export_url ); ?>" class="button">
+                <?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
+            </a>
         </div>
     </div>
 

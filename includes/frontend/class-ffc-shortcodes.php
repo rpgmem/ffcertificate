@@ -175,7 +175,7 @@ class Shortcodes {
         ?>
         <div class="<?php echo esc_attr( $wrapper_class ); ?>" id="ffc-form-<?php echo esc_attr( (string) $form_id ); ?>">
             <h2 class="ffc-form-title"><?php echo esc_html( $form_title ); ?></h2>
-            <form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" autocomplete="off">
+            <form class="ffc-submission-form" id="ffc-form-element-<?php echo esc_attr( (string) $form_id ); ?>" autocomplete="off" aria-label="<?php echo esc_attr( $form_title ); ?>">
                 <input type="hidden" name="form_id" value="<?php echo esc_attr( (string) $form_id ); ?>">
                 
                 <?php foreach ( $fields as $field ) :
@@ -225,10 +225,11 @@ class Shortcodes {
                                id="ffc_ticket"
                                required
                                aria-required="true"
+                               aria-describedby="ffc-ticket-desc"
                                placeholder="ABCD-1234"
                                autocomplete="off"
                                maxlength="9">
-                        <p class="description"><?php esc_html_e('Enter your unique ticket code', 'ffcertificate'); ?></p>
+                        <p class="description" id="ffc-ticket-desc"><?php esc_html_e('Enter your unique ticket code', 'ffcertificate'); ?></p>
                     </div>
                     <?php
                 }

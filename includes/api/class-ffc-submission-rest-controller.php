@@ -265,6 +265,19 @@ class SubmissionRestController {
      */
     public function verify_certificate($request) {
         try {
+            // Rate limit by IP — mirrors the AJAX verification handler.
+            if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
+                $ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
+                $rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $ip );
+                if ( empty( $rate_check['allowed'] ) ) {
+                    return new \WP_Error(
+                        'ffc_rate_limited',
+                        $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ),
+                        array( 'status' => 429 )
+                    );
+                }
+            }
+
             $auth_code = $request->get_param('auth_code');
             $auth_code = \FreeFormCertificate\Core\Utils::clean_auth_code($auth_code);
 

@@ -455,3 +455,50 @@
         min-width: 0;
     }
 }
+
+/* ==========================================================================
+   ADMIN MENU — Submenu separators & dashicon labels
+   Migrated from class-ffc-audience-admin-page.php (Sprint 2)
+   ========================================================================== */
+#adminmenu .wp-submenu a[href^="#ffc-separator-"] {
+    pointer-events: none;
+    cursor: default;
+    color: #a7aaad !important;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    margin-top: 6px;
+    padding-top: 8px;
+}
+#adminmenu .wp-submenu a[href^="#ffc-separator-"]:hover {
+    color: #a7aaad !important;
+    background: none !important;
+}
+#adminmenu .wp-submenu a[href^="#ffc-separator-"]::before {
+    font-family: dashicons;
+    font-size: 14px;
+    margin-right: 4px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+}
+#adminmenu .wp-submenu a[href="#ffc-separator-self"]::before {
+    content: "\f110";
+}
+#adminmenu .wp-submenu a[href="#ffc-separator-audience"]::before {
+    content: "\f307";
+}
+#adminmenu .wp-submenu a[href="#ffc-separator-tools"]::before {
+    content: "\f107";
+}
+#adminmenu .wp-submenu a[href$="ffc-scheduling-dashboard"]::before {
+    font-family: dashicons;
+    font-size: 14px;
+    margin-right: 4px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+    content: "\f226";
+}

@@ -387,7 +387,7 @@ class UrlShortenerAdminPage {
                     'ffc_short_url_empty_trash'
                 );
                 ?>
-                <div style="margin-bottom:10px;">
+                <div class="ffc-shorturl-empty-trash">
                     <a href="<?php echo esc_url( $empty_trash_url ); ?>" class="button button-link-delete"
                        onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete all items in the trash?', 'ffcertificate' ); ?>');">
                         <?php esc_html_e( 'Empty Trash', 'ffcertificate' ); ?>
@@ -396,13 +396,13 @@ class UrlShortenerAdminPage {
             <?php endif; ?>
 
             <!-- Table -->
-            <table class="wp-list-table widefat fixed striped">
+            <table class="wp-list-table widefat fixed striped ffc-shorturl-table">
                 <thead>
                     <tr>
-                        <th style="width:25%;"><?php esc_html_e( 'Title', 'ffcertificate' ); ?></th>
-                        <th style="width:18%;"><?php esc_html_e( 'Short URL', 'ffcertificate' ); ?></th>
-                        <th style="width:25%;"><?php esc_html_e( 'Destination', 'ffcertificate' ); ?></th>
-                        <th style="width:8%;">
+                        <th class="column-title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?></th>
+                        <th class="column-shorturl"><?php esc_html_e( 'Short URL', 'ffcertificate' ); ?></th>
+                        <th class="column-dest"><?php esc_html_e( 'Destination', 'ffcertificate' ); ?></th>
+                        <th class="column-clicks">
                             <?php
                             $clicks_url = add_query_arg( [
                                 'post_type' => 'ffc_form',
@@ -415,8 +415,8 @@ class UrlShortenerAdminPage {
                             ?>
                             <a href="<?php echo esc_url( $clicks_url ); ?>"><?php esc_html_e( 'Clicks', 'ffcertificate' ); ?></a>
                         </th>
-                        <th style="width:10%;"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
-                        <th style="width:14%;"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
+                        <th class="column-status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
+                        <th class="column-actions"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -431,14 +431,14 @@ class UrlShortenerAdminPage {
                             $is_trashed  = $item['status'] === 'trashed';
 
                             if ( $is_trashed ) {
-                                $status_class = 'color:#b32d2e;';
-                                $status_label = __( 'Trash', 'ffcertificate' );
+                                $status_css_class = 'ffc-shorturl-status ffc-shorturl-status-trashed';
+                                $status_label     = __( 'Trash', 'ffcertificate' );
                             } elseif ( $item['status'] === 'active' ) {
-                                $status_class = 'color:#46b450;';
-                                $status_label = __( 'Active', 'ffcertificate' );
+                                $status_css_class = 'ffc-shorturl-status ffc-shorturl-status-active';
+                                $status_label     = __( 'Active', 'ffcertificate' );
                             } else {
-                                $status_class = 'color:#dc3232;';
-                                $status_label = __( 'Disabled', 'ffcertificate' );
+                                $status_css_class = 'ffc-shorturl-status ffc-shorturl-status-disabled';
+                                $status_label     = __( 'Disabled', 'ffcertificate' );
                             }
                             ?>
                             <tr>
@@ -459,7 +459,7 @@ class UrlShortenerAdminPage {
                                     </a>
                                 </td>
                                 <td><strong><?php echo esc_html( number_format_i18n( (int) $item['click_count'] ) ); ?></strong></td>
-                                <td><span style="<?php echo esc_attr( $status_class ); ?>font-weight:600;"><?php echo esc_html( $status_label ); ?></span></td>
+                                <td><span class="<?php echo esc_attr( $status_css_class ); ?>"><?php echo esc_html( $status_label ); ?></span></td>
                                 <td>
                                     <?php if ( $is_trashed ) : ?>
                                         <?php
@@ -493,7 +493,7 @@ class UrlShortenerAdminPage {
                                                 data-code="<?php echo esc_attr( $item['short_code'] ); ?>"
                                                 data-url="<?php echo esc_attr( $short_url ); ?>"
                                                 data-title="<?php echo esc_attr( $item['title'] ?: $item['short_code'] ); ?>">
-                                            <span class="dashicons dashicons-screenoptions" style="margin-top:3px;font-size:14px;width:14px;height:14px;"></span>
+                                            <span class="dashicons dashicons-screenoptions ffc-dashicon-sm-inline"></span>
                                             QR
                                         </button>
                                         <a href="<?php echo esc_url( $toggle_url ); ?>" class="button button-small">
@@ -541,15 +541,15 @@ class UrlShortenerAdminPage {
                     </div>
                     <div class="ffc-qr-modal__actions">
                         <button type="button" class="button ffc-copy-shorturl" data-url="">
-                            <span class="dashicons dashicons-clipboard" style="margin-top:3px;"></span>
+                            <span class="dashicons dashicons-clipboard ffc-dashicon-valign"></span>
                             <?php esc_html_e( 'Copy URL', 'ffcertificate' ); ?>
                         </button>
                         <button type="button" class="button ffc-download-qr" data-format="png" data-code="">
-                            <span class="dashicons dashicons-download" style="margin-top:3px;"></span>
+                            <span class="dashicons dashicons-download ffc-dashicon-valign"></span>
                             PNG
                         </button>
                         <button type="button" class="button ffc-download-qr" data-format="svg" data-code="">
-                            <span class="dashicons dashicons-download" style="margin-top:3px;"></span>
+                            <span class="dashicons dashicons-download ffc-dashicon-valign"></span>
                             SVG
                         </button>
                     </div>

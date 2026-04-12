@@ -21,8 +21,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class AdminActivityLogPage {
 
+    use \FreeFormCertificate\Core\CsvExportTrait;
+
     /**
-     * Register admin menu
+     * Register admin menu and export handler
      */
     public function register_menu(): void {
         add_submenu_page(
@@ -33,6 +35,94 @@ class AdminActivityLogPage {
             'ffc-activity-log',
             array( $this, 'render_page' )
         );
+
+        add_action( 'admin_init', array( $this, 'handle_csv_export' ) );
+    }
+
+    /**
+     * Handle CSV export of activity logs
+     *
+     * @since 5.2.0
+     */
+    public function handle_csv_export(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce checked below
+        if ( ! isset( $_GET['page'] ) || sanitize_text_field( wp_unslash( $_GET['page'] ) ) !== 'ffc-activity-log' ) {
+            return;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ( ! isset( $_GET['ffc_export_logs'] ) ) {
+            return;
+        }
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Unauthorized.', 'ffcertificate' ) );
+        }
+
+        check_admin_referer( 'ffc_export_activity_log' );
+
+        // Gather current filters
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Already verified above
+        $args = array(
+            'limit'   => 999999, // Export all matching rows
+            'offset'  => 0,
+            'orderby' => 'created_at',
+            'order'   => 'DESC',
+        );
+
+        $level = isset( $_GET['level'] ) ? sanitize_key( wp_unslash( $_GET['level'] ) ) : '';
+        if ( $level ) {
+            $args['level'] = $level;
+        }
+
+        $action = isset( $_GET['log_action'] ) ? sanitize_text_field( wp_unslash( $_GET['log_action'] ) ) : '';
+        if ( $action ) {
+            $args['action'] = $action;
+        }
+
+        $search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+        if ( $search ) {
+            $args['search'] = $search;
+        }
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+        $logs = \FreeFormCertificate\Core\ActivityLog::get_activities( $args );
+
+        $headers = array(
+            __( 'Date/Time', 'ffcertificate' ),
+            __( 'Level', 'ffcertificate' ),
+            __( 'Action', 'ffcertificate' ),
+            __( 'User', 'ffcertificate' ),
+            __( 'IP Address', 'ffcertificate' ),
+            __( 'Context', 'ffcertificate' ),
+        );
+
+        $rows = array();
+        foreach ( $logs as $log ) {
+            $user_display = __( 'System / Anonymous', 'ffcertificate' );
+            if ( ! empty( $log['user_id'] ) && (int) $log['user_id'] > 0 ) {
+                $user = get_userdata( (int) $log['user_id'] );
+                $user_display = $user ? $user->display_name . ' (' . $user->user_login . ')' : sprintf( 'User #%d', $log['user_id'] );
+            }
+
+            $context = '';
+            if ( ! empty( $log['context'] ) ) {
+                $context = is_array( $log['context'] )
+                    ? wp_json_encode( $log['context'], JSON_UNESCAPED_UNICODE )
+                    : (string) $log['context'];
+            }
+
+            $rows[] = array(
+                $log['created_at'] ?? '',
+                strtoupper( $log['level'] ?? '' ),
+                self::get_action_label( $log['action'] ?? '' ),
+                $user_display,
+                $log['user_ip'] ?? '',
+                $context,
+            );
+        }
+
+        $filename = 'ffc-activity-log-' . gmdate( 'Y-m-d' ) . '.csv';
+        $this->output_csv( $filename, $headers, $rows );
     }
 
     /**

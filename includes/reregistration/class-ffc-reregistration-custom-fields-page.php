@@ -43,12 +43,12 @@ class ReregistrationCustomFieldsPage {
                 <?php esc_html_e('Custom fields are defined per audience. Select an audience to manage its fields.', 'ffcertificate'); ?>
             </p>
 
-            <table class="wp-list-table widefat fixed striped">
+            <table class="wp-list-table widefat fixed striped ffc-custom-fields-table">
                 <thead>
                     <tr>
                         <th class="column-audience"><?php esc_html_e('Audience', 'ffcertificate'); ?></th>
-                        <th class="column-fields" style="width:120px"><?php esc_html_e('Fields', 'ffcertificate'); ?></th>
-                        <th class="column-actions" style="width:180px"><?php esc_html_e('Actions', 'ffcertificate'); ?></th>
+                        <th class="column-fields"><?php esc_html_e('Fields', 'ffcertificate'); ?></th>
+                        <th class="column-actions"><?php esc_html_e('Actions', 'ffcertificate'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -87,7 +87,7 @@ class ReregistrationCustomFieldsPage {
         <tr>
             <td>
                 <?php if (!empty($audience->color)) : ?>
-                    <span class="ffc-color-dot" style="background:<?php echo esc_attr($audience->color); ?>"></span>
+                    <span class="ffc-color-dot" style="--ffc-color:<?php echo esc_attr($audience->color); ?>"></span>
                 <?php endif; ?>
                 <?php echo $is_child ? '&mdash; ' : ''; ?>
                 <?php echo esc_html($audience->name); ?>

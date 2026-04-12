@@ -463,23 +463,23 @@ class SelfSchedulingEditor {
                 <th><?php esc_html_e('Notifications', 'ffcertificate'); ?></th>
                 <td>
                     <fieldset>
-                        <label style="display: block; margin-bottom: 8px;">
+                        <label class="ffc-email-checkbox-label">
                             <input type="checkbox" name="ffc_self_scheduling_email_config[send_user_confirmation]" value="1" <?php checked($email_config['send_user_confirmation'], 1); ?> />
                             <?php esc_html_e('Send confirmation email to user', 'ffcertificate'); ?>
                         </label>
-                        <label style="display: block; margin-bottom: 8px;">
+                        <label class="ffc-email-checkbox-label">
                             <input type="checkbox" name="ffc_self_scheduling_email_config[send_admin_notification]" value="1" <?php checked($email_config['send_admin_notification'], 1); ?> />
                             <?php esc_html_e('Send notification to admin on new booking', 'ffcertificate'); ?>
                         </label>
-                        <label style="display: block; margin-bottom: 8px;">
+                        <label class="ffc-email-checkbox-label">
                             <input type="checkbox" name="ffc_self_scheduling_email_config[send_approval_notification]" value="1" <?php checked($email_config['send_approval_notification'], 1); ?> />
                             <?php esc_html_e('Send notification when booking is approved', 'ffcertificate'); ?>
                         </label>
-                        <label style="display: block; margin-bottom: 8px;">
+                        <label class="ffc-email-checkbox-label">
                             <input type="checkbox" name="ffc_self_scheduling_email_config[send_cancellation_notification]" value="1" <?php checked($email_config['send_cancellation_notification'], 1); ?> />
                             <?php esc_html_e('Send notification when booking is cancelled', 'ffcertificate'); ?>
                         </label>
-                        <label style="display: block; margin-bottom: 8px;">
+                        <label class="ffc-email-checkbox-label">
                             <input type="checkbox" name="ffc_self_scheduling_email_config[send_reminder]" value="1" <?php checked($email_config['send_reminder'], 1); ?> />
                             <?php esc_html_e('Send reminder before appointment', 'ffcertificate'); ?>
                         </label>
@@ -536,9 +536,9 @@ class SelfSchedulingEditor {
             <p><strong><?php esc_html_e('Use this shortcode to display the calendar:', 'ffcertificate'); ?></strong></p>
 
             <?php if ($post->post_status === 'publish'): ?>
-                <input type="text" readonly value='[ffc_self_scheduling id="<?php echo esc_attr( (string) $post->ID ); ?>"]' onclick="this.select();" style="width: 100%; padding: 6px; font-family: monospace; background: #f0f0f1;" />
+                <input type="text" readonly value='[ffc_self_scheduling id="<?php echo esc_attr( (string) $post->ID ); ?>"]' onclick="this.select();" class="ffc-shortcode-input" />
 
-                <p style="margin-top: 15px;"><strong><?php esc_html_e('Preview:', 'ffcertificate'); ?></strong></p>
+                <p class="ffc-shortcode-preview-label"><strong><?php esc_html_e('Preview:', 'ffcertificate'); ?></strong></p>
                 <p><a href="<?php echo esc_url( add_query_arg('calendar_preview', $post->ID, home_url('/')) ); ?>" target="_blank" class="button button-secondary"><?php esc_html_e('Preview Calendar', 'ffcertificate'); ?></a></p>
             <?php else: ?>
                 <p class="description"><?php esc_html_e('Publish this calendar to generate the shortcode.', 'ffcertificate'); ?></p>

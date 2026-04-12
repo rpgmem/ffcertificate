@@ -223,8 +223,35 @@ $ffcertificate_get_option = \Closure::fromCallable( [ $settings, 'get_option' ] 
 <div class="card">
     <h2 class="ffc-icon-shield"><?php esc_html_e('Page Cache Compatibility', 'ffcertificate'); ?></h2>
     <p class="description">
-        <?php esc_html_e('Status of cache-compatibility features that ensure forms work correctly with full-page caching (LiteSpeed, Varnish, etc.).', 'ffcertificate'); ?>
+        <?php esc_html_e('Status of cache-compatibility features that ensure forms work correctly with full-page caching.', 'ffcertificate'); ?>
     </p>
+
+    <?php
+    // Detect active page cache plugins
+    $ffcertificate_cache_plugins = array();
+    if ( defined( 'LSCWP_V' ) ) {
+        $ffcertificate_cache_plugins[] = 'LiteSpeed Cache v' . LSCWP_V;
+    }
+    if ( defined( 'WP_ROCKET_VERSION' ) ) {
+        $ffcertificate_cache_plugins[] = 'WP Rocket v' . WP_ROCKET_VERSION;
+    }
+    if ( defined( 'W3TC' ) ) {
+        $ffcertificate_cache_plugins[] = 'W3 Total Cache';
+    }
+    if ( defined( 'WPSC_VERSION' ) ) {
+        $ffcertificate_cache_plugins[] = 'WP Super Cache v' . WPSC_VERSION;
+    }
+    if ( defined( 'WPCACHEHOME' ) && ! defined( 'WPSC_VERSION' ) && ! defined( 'W3TC' ) ) {
+        $ffcertificate_cache_plugins[] = __( 'Unknown page cache (WPCACHEHOME defined)', 'ffcertificate' );
+    }
+    ?>
+
+    <?php if ( ! empty( $ffcertificate_cache_plugins ) ) : ?>
+    <p>
+        <strong><?php esc_html_e( 'Detected:', 'ffcertificate' ); ?></strong>
+        <?php echo esc_html( implode( ', ', $ffcertificate_cache_plugins ) ); ?>
+    </p>
+    <?php endif; ?>
 
     <table class="form-table" role="presentation">
         <tbody>
@@ -242,7 +269,7 @@ $ffcertificate_get_option = \Closure::fromCallable( [ $settings, 'get_option' ] 
                 <td>
                     <span class="ffc-text-success ffc-icon-checkmark"><?php esc_html_e('Active', 'ffcertificate'); ?></span>
                     <p class="description">
-                        <?php esc_html_e('Pages with [user_dashboard_personal] are automatically excluded from page cache (no-cache headers sent).', 'ffcertificate'); ?>
+                        <?php esc_html_e('Pages with [user_dashboard_personal] are automatically excluded from page cache via DONOTCACHEPAGE constant, no-cache headers, and LiteSpeed-specific hooks.', 'ffcertificate'); ?>
                     </p>
                 </td>
             </tr>

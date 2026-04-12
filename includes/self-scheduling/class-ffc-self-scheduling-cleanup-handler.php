@@ -214,8 +214,8 @@ class SelfSchedulingCleanupHandler {
                 <?php esc_html_e('Permanently delete appointments from this calendar. This action cannot be undone.', 'ffcertificate'); ?>
             </p>
 
-            <div class="ffc-cleanup-stats" style="margin: 15px 0;">
-                <table class="widefat" style="border: none;">
+            <div class="ffc-cleanup-stats">
+                <table class="widefat">
                     <tr>
                         <td><strong><?php esc_html_e('Total:', 'ffcertificate'); ?></strong></td>
                         <td><?php echo esc_html((string) $count_all); ?></td>
@@ -241,10 +241,9 @@ class SelfSchedulingCleanupHandler {
 
                     <?php if ($count_cancelled > 0) : ?>
                         <button type="button"
-                                class="button ffc-cleanup-btn"
+                                class="button ffc-cleanup-btn ffc-cleanup-btn-full"
                                 data-action="cancelled"
-                                data-calendar-id="<?php echo esc_attr((string) $calendar_id); ?>"
-                                style="width: 100%; margin-bottom: 5px;">
+                                data-calendar-id="<?php echo esc_attr((string) $calendar_id); ?>">
                             <span class="ffc-icon-delete"></span><?php
                             /* translators: %d: number of cancelled appointments */
                             printf(esc_html__('Cancelled (%d)', 'ffcertificate'), intval($count_cancelled)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format ?>
@@ -253,10 +252,9 @@ class SelfSchedulingCleanupHandler {
 
                     <?php if ($count_old > 0) : ?>
                         <button type="button"
-                                class="button ffc-cleanup-btn"
+                                class="button ffc-cleanup-btn ffc-cleanup-btn-full"
                                 data-action="old"
-                                data-calendar-id="<?php echo esc_attr((string) $calendar_id); ?>"
-                                style="width: 100%; margin-bottom: 5px;">
+                                data-calendar-id="<?php echo esc_attr((string) $calendar_id); ?>">
                             <span class="dashicons dashicons-calendar"></span> <?php
                             /* translators: %d: number of past appointments */
                             printf(esc_html__('Past (%d)', 'ffcertificate'), intval($count_old)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format ?>
@@ -265,10 +263,9 @@ class SelfSchedulingCleanupHandler {
 
                     <?php if ($count_future > 0) : ?>
                         <button type="button"
-                                class="button ffc-cleanup-btn"
+                                class="button ffc-cleanup-btn ffc-cleanup-btn-full"
                                 data-action="future"
-                                data-calendar-id="<?php echo esc_attr((string) $calendar_id); ?>"
-                                style="width: 100%; margin-bottom: 5px;">
+                                data-calendar-id="<?php echo esc_attr((string) $calendar_id); ?>">
                             <span class="ffc-icon-skip"></span><?php
                             /* translators: %d: number of future appointments */
                             printf(esc_html__('Future (%d)', 'ffcertificate'), intval($count_future)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format ?>
@@ -276,10 +273,9 @@ class SelfSchedulingCleanupHandler {
                     <?php endif; ?>
 
                     <button type="button"
-                            class="button button-link-delete ffc-cleanup-btn"
+                            class="button button-link-delete ffc-cleanup-btn ffc-cleanup-btn-delete-all"
                             data-action="all"
-                            data-calendar-id="<?php echo esc_attr((string) $calendar_id); ?>"
-                            style="width: 100%; margin-top: 10px;">
+                            data-calendar-id="<?php echo esc_attr((string) $calendar_id); ?>">
                         <?php
                         /* translators: %d: total number of appointments */
                         printf(esc_html__('All Appointments (%d)', 'ffcertificate'), intval($count_all)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format
@@ -287,7 +283,7 @@ class SelfSchedulingCleanupHandler {
                     </button>
                 </div>
 
-                <p class="description" style="margin-top: 10px; color: #d63638;">
+                <p class="description ffc-cleanup-warning">
                     <span class="ffc-icon-warning"></span><?php esc_html_e('Warning: This action is permanent and cannot be undone!', 'ffcertificate'); ?>
                 </p>
             <?php else : ?>

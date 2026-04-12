@@ -267,52 +267,27 @@ class AudienceAdminPage {
      * @return void
      */
     public function print_menu_separator_css(): void {
-        ?>
-        <style>
-            #adminmenu .wp-submenu a[href^="#ffc-separator-"] {
-                pointer-events: none;
-                cursor: default;
-                color: #a7aaad !important;
-                font-size: 11px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                border-top: 1px solid rgba(255,255,255,0.1);
-                margin-top: 6px;
-                padding-top: 8px;
-            }
-            #adminmenu .wp-submenu a[href^="#ffc-separator-"]:hover {
-                color: #a7aaad !important;
-                background: none !important;
-            }
-            #adminmenu .wp-submenu a[href^="#ffc-separator-"]::before {
-                font-family: dashicons;
-                font-size: 14px;
-                margin-right: 4px;
-                vertical-align: middle;
-                position: relative;
-                top: -1px;
-            }
-            #adminmenu .wp-submenu a[href="#ffc-separator-self"]::before {
-                content: "\f110"; /* dashicons-admin-users */
-            }
-            #adminmenu .wp-submenu a[href="#ffc-separator-audience"]::before {
-                content: "\f307"; /* dashicons-groups */
-            }
-            #adminmenu .wp-submenu a[href="#ffc-separator-tools"]::before {
-                content: "\f107"; /* dashicons-admin-tools */
-            }
-            #adminmenu .wp-submenu a[href$="ffc-scheduling-dashboard"]::before {
-                font-family: dashicons;
-                font-size: 14px;
-                margin-right: 4px;
-                vertical-align: middle;
-                position: relative;
-                top: -1px;
-                content: "\f226"; /* dashicons-dashboard */
-            }
-        </style>
-        <?php
+        // Menu separator styles live in ffc-audience-admin.css, but that file only
+        // loads on scheduling pages.  Use wp_add_inline_style attached to the
+        // always-present 'admin-menu' core stylesheet so the rules apply globally.
+        wp_add_inline_style( 'admin-menu', $this->get_menu_separator_css() );
+    }
+
+    /**
+     * Return the menu-separator CSS string.
+     *
+     * Kept as a method so it can be unit-tested if needed.
+     *
+     * @return string Minified CSS.
+     */
+    private function get_menu_separator_css(): string {
+        return '#adminmenu .wp-submenu a[href^="#ffc-separator-"]{pointer-events:none;cursor:default;color:#a7aaad!important;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid rgba(255,255,255,.1);margin-top:6px;padding-top:8px}'
+             . '#adminmenu .wp-submenu a[href^="#ffc-separator-"]:hover{color:#a7aaad!important;background:none!important}'
+             . '#adminmenu .wp-submenu a[href^="#ffc-separator-"]::before{font-family:dashicons;font-size:14px;margin-right:4px;vertical-align:middle;position:relative;top:-1px}'
+             . '#adminmenu .wp-submenu a[href="#ffc-separator-self"]::before{content:"\f110"}'
+             . '#adminmenu .wp-submenu a[href="#ffc-separator-audience"]::before{content:"\f307"}'
+             . '#adminmenu .wp-submenu a[href="#ffc-separator-tools"]::before{content:"\f107"}'
+             . '#adminmenu .wp-submenu a[href$="ffc-scheduling-dashboard"]::before{font-family:dashicons;font-size:14px;margin-right:4px;vertical-align:middle;position:relative;top:-1px;content:"\f226"}';
     }
 
     /**

@@ -170,20 +170,6 @@ class FormListColumns {
         }
 
         ?>
-        <style>
-            .column-ffc_form_id { width: 60px; text-align: center; }
-            .column-ffc_shortcode { width: 240px; }
-            .column-ffc_submissions { width: 100px; }
-            .ffc-shortcode-cell { display: inline-flex; align-items: center; gap: 4px; }
-            .ffc-shortcode-code { font-size: 12px; padding: 2px 6px; user-select: all; }
-            .ffc-copy-shortcode {
-                background: none; border: 1px solid #ddd; border-radius: 3px;
-                cursor: pointer; padding: 2px 4px; line-height: 1; color: #666;
-            }
-            .ffc-copy-shortcode:hover { color: #0073aa; border-color: #0073aa; }
-            .ffc-copy-shortcode .dashicons { font-size: 14px; width: 14px; height: 14px; }
-            .ffc-copy-shortcode.copied { color: #46b450; border-color: #46b450; }
-        </style>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.ffc-copy-shortcode').forEach(function(btn) {
