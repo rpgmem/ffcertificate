@@ -50,6 +50,7 @@ class ReregistrationAdmin {
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
         add_action('wp_ajax_ffc_generate_ficha', array($this, 'ajax_generate_ficha'));
         add_action('wp_ajax_ffc_rereg_count_members', array($this, 'ajax_count_members'));
+        add_action('wp_ajax_ffc_view_submission_details', array($this, 'ajax_view_submission_details'));
     }
 
     /**
@@ -122,10 +123,11 @@ class ReregistrationAdmin {
         );
 
         wp_localize_script('ffc-reregistration-admin', 'ffcReregistrationAdmin', array(
-            'ajaxUrl'    => admin_url('admin-ajax.php'),
-            'adminNonce' => wp_create_nonce('ffc_reregistration_nonce'),
-            'fichaNonce' => wp_create_nonce('ffc_generate_ficha'),
-            'strings'    => array(
+            'ajaxUrl'          => admin_url('admin-ajax.php'),
+            'adminNonce'       => wp_create_nonce('ffc_reregistration_nonce'),
+            'fichaNonce'       => wp_create_nonce('ffc_generate_ficha'),
+            'viewDetailsNonce' => wp_create_nonce('ffc_view_submission_details'),
+            'strings'          => array(
                 'confirmDelete'        => __('Are you sure you want to delete this reregistration? This will also delete all submissions.', 'ffcertificate'),
                 'confirmApprove'       => __('Approve selected submissions?', 'ffcertificate'),
                 'confirmReturnToDraft' => __('Return this submission to draft? The user will be able to edit and resubmit.', 'ffcertificate'),
@@ -133,6 +135,8 @@ class ReregistrationAdmin {
                 'errorGenerating'      => __('Error generating ficha.', 'ffcertificate'),
                 'ficha'                => __('Record', 'ffcertificate'),
                 'affectedUsers'        => __('Affected users:', 'ffcertificate'),
+                'loadingDetails'       => __('Loading…', 'ffcertificate'),
+                'errorLoadingDetails'  => __('Failed to load submission details.', 'ffcertificate'),
             ),
         ));
 
@@ -572,6 +576,20 @@ class ReregistrationAdmin {
                 </tbody>
             </table>
         </form>
+
+        <!-- Submission details modal -->
+        <div id="ffc-submission-details-modal" class="ffc-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ffc-submission-details-title">
+            <div class="ffc-modal-backdrop"></div>
+            <div class="ffc-modal-content">
+                <div class="ffc-modal-header">
+                    <h2 id="ffc-submission-details-title"><?php esc_html_e('Submission Details', 'ffcertificate'); ?></h2>
+                    <button type="button" class="ffc-modal-close" aria-label="<?php esc_attr_e('Close', 'ffcertificate'); ?>">&times;</button>
+                </div>
+                <div class="ffc-modal-body">
+                    <p class="ffc-modal-loading"><?php esc_html_e('Loading…', 'ffcertificate'); ?></p>
+                </div>
+            </div>
+        </div>
         <?php
     }
 
@@ -633,6 +651,10 @@ class ReregistrationAdmin {
                         <?php esc_html_e('Return to Draft', 'ffcertificate'); ?>
                     </a>
                 <?php endif; ?>
+                <button type="button" class="button button-small ffc-view-details-btn" data-submission-id="<?php echo esc_attr($sub->id); ?>">
+                    <span class="dashicons dashicons-visibility" style="vertical-align:middle;font-size:14px"></span>
+                    <?php esc_html_e('View Details', 'ffcertificate'); ?>
+                </button>
                 <?php if (in_array($sub->status, array('submitted', 'approved'), true)) : ?>
                     <button type="button" class="button button-small ffc-ficha-btn" data-submission-id="<?php echo esc_attr($sub->id); ?>">
                         <span class="dashicons dashicons-media-document" style="vertical-align:middle;font-size:14px"></span>
@@ -819,6 +841,142 @@ class ReregistrationAdmin {
         }
 
         wp_send_json_success(array('pdf_data' => $ficha_data));
+    }
+
+    /**
+     * AJAX: return HTML with the full submission detail grouped by fieldset.
+     *
+     * Used by the "View Details" modal on the submissions list. Decrypts
+     * sensitive values (CPF/RF/RG) via FichaGenerator helpers and renders
+     * them grouped by field_group with labels from wp_ffc_custom_fields.
+     *
+     * @return void
+     */
+    public function ajax_view_submission_details(): void {
+        check_ajax_referer('ffc_view_submission_details', 'nonce');
+
+        if (!current_user_can(self::CAPABILITY)) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'ffcertificate')));
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via check_ajax_referer() above.
+        $submission_id = isset($_POST['submission_id']) ? absint($_POST['submission_id']) : 0;
+        if (!$submission_id) {
+            wp_send_json_error(array('message' => __('Invalid submission.', 'ffcertificate')));
+        }
+
+        $submission = ReregistrationSubmissionRepository::get_by_id($submission_id);
+        if (!$submission) {
+            wp_send_json_error(array('message' => __('Submission not found.', 'ffcertificate')));
+        }
+
+        $rereg = ReregistrationRepository::get_by_id((int) $submission->reregistration_id);
+        if (!$rereg) {
+            wp_send_json_error(array('message' => __('Reregistration not found.', 'ffcertificate')));
+        }
+
+        // Unified dynamic shape: { fields: { field_key => value } }
+        $sub_data   = $submission->data ? json_decode($submission->data, true) : array();
+        $raw_values = is_array($sub_data['fields'] ?? null) ? $sub_data['fields'] : array();
+
+        $all_fields       = FichaGenerator::get_custom_fields_for_reregistration($rereg);
+        $decrypted_values = FichaGenerator::decrypt_field_values($all_fields, $raw_values);
+
+        $html = $this->build_submission_details_html($submission, $all_fields, $decrypted_values);
+
+        wp_send_json_success(array('html' => $html));
+    }
+
+    /**
+     * Build the HTML for the submission details modal body.
+     *
+     * Groups fields by field_group (preserving their declared order), renders
+     * a <fieldset> per group and a label/value pair per field. Sensitive
+     * values arrive already decrypted.
+     *
+     * @param object               $submission       Submission row.
+     * @param array<int, object>   $fields           Field definitions for the audience(s).
+     * @param array<string, mixed> $decrypted_values field_key => plaintext value map.
+     * @return string Escaped HTML block.
+     */
+    private function build_submission_details_html(object $submission, array $fields, array $decrypted_values): string {
+        $group_labels = array();
+        if (class_exists('\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder')) {
+            $group_labels = ReregistrationStandardFieldsSeeder::get_group_labels();
+        }
+
+        // Group fields by field_group, preserving order of first appearance.
+        $grouped = array();
+        foreach ($fields as $field) {
+            $group = isset($field->field_group) ? (string) $field->field_group : '';
+            if (!isset($grouped[$group])) {
+                $grouped[$group] = array();
+            }
+            $grouped[$group][] = $field;
+        }
+
+        $date_format = get_option('date_format');
+        $time_format = get_option('time_format');
+        $submitted_at = '';
+        if (!empty($submission->submitted_at)) {
+            $submitted_at = wp_date($date_format . ' ' . $time_format, strtotime($submission->submitted_at));
+        }
+
+        ob_start();
+        ?>
+        <div class="ffc-submission-details">
+            <div class="ffc-submission-meta">
+                <p>
+                    <strong><?php esc_html_e('Status:', 'ffcertificate'); ?></strong>
+                    <span class="ffc-status-badge ffc-status-<?php echo esc_attr($submission->status); ?>">
+                        <?php echo esc_html(ReregistrationSubmissionRepository::get_status_label($submission->status)); ?>
+                    </span>
+                </p>
+                <?php if ($submitted_at) : ?>
+                    <p><strong><?php esc_html_e('Submitted:', 'ffcertificate'); ?></strong> <?php echo esc_html($submitted_at); ?></p>
+                <?php endif; ?>
+            </div>
+
+            <?php foreach ($grouped as $group_key => $group_fields) : ?>
+                <?php
+                $legend = $group_key === ''
+                    ? __('Other Fields', 'ffcertificate')
+                    : ($group_labels[$group_key] ?? ucfirst(str_replace('_', ' ', $group_key)));
+                ?>
+                <fieldset class="ffc-details-fieldset">
+                    <legend><?php echo esc_html($legend); ?></legend>
+                    <dl class="ffc-details-list">
+                        <?php foreach ($group_fields as $field) : ?>
+                            <?php
+                            $key            = (string) $field->field_key;
+                            $raw_value      = $decrypted_values[$key] ?? '';
+                            $formatted      = FichaGenerator::format_field_value($field, $raw_value);
+                            $is_html_field  = ((string) $field->field_type === 'working_hours');
+                            ?>
+                            <dt><?php echo esc_html((string) $field->field_label); ?></dt>
+                            <dd>
+                                <?php if ($formatted === '' || $formatted === null) : ?>
+                                    <span class="ffc-details-empty">&mdash;</span>
+                                <?php elseif ($is_html_field) : ?>
+                                    <?php echo wp_kses_post($formatted); ?>
+                                <?php else : ?>
+                                    <?php echo esc_html($formatted); ?>
+                                <?php endif; ?>
+                            </dd>
+                        <?php endforeach; ?>
+                    </dl>
+                </fieldset>
+            <?php endforeach; ?>
+
+            <?php if (!empty($submission->notes)) : ?>
+                <fieldset class="ffc-details-fieldset">
+                    <legend><?php esc_html_e('Review Notes', 'ffcertificate'); ?></legend>
+                    <p><?php echo esc_html((string) $submission->notes); ?></p>
+                </fieldset>
+            <?php endif; ?>
+        </div>
+        <?php
+        return (string) ob_get_clean();
     }
 
     /**
