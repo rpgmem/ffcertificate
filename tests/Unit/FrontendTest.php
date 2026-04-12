@@ -38,6 +38,14 @@ class FrontendTest extends TestCase {
         Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
         Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/admin-ajax.php' );
 
+        // PublicCsvDownload::register_hooks() instantiates PublicCsvExporter,
+        // whose SubmissionRepository constructor reads $wpdb->prefix.
+        global $wpdb;
+        if ( ! $wpdb ) {
+            $wpdb         = Mockery::mock( 'wpdb' );
+            $wpdb->prefix = 'wp_';
+        }
+
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );
         }
@@ -56,6 +64,8 @@ class FrontendTest extends TestCase {
     }
 
     protected function tearDown(): void {
+        global $wpdb;
+        $wpdb = null;
         Monkey\tearDown();
         parent::tearDown();
     }

@@ -256,4 +256,8 @@ class PublicCsvExporterTest extends TestCase {
             PublicCsvExporter::KEYS_BATCH_SIZE
         );
     }
+
+    public function test_job_ttl_constant_is_one_hour(): void {
+        $this->assertSame( 3600, PublicCsvExporter::JOB_TTL );
+    }
 }

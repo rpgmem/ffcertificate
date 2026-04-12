@@ -14,7 +14,7 @@ Public CSV download feature: form organizers without WordPress admin access can 
 
 - Feat: New `[ffc_csv_download]` shortcode — public page where visitors enter a form ID + hash and receive the submissions CSV as a direct download
 - Feat: New `PublicCsvDownload` handler on `admin-post(_nopriv)_ffc_public_csv_download` — validates nonce, honeypot, CAPTCHA, per-IP rate limit, form-level enable flag, hash equality, geofence expiration, and per-form download quota before streaming the file
-- Feat: New `PublicCsvExporter` that streams the CSV synchronously in a single request (no AJAX batching) — column layout mirrors the admin `CsvExporter` so both downloads are interchangeable
+- Feat: New `PublicCsvExporter` with AJAX batched 3-step export (start → batch ×N → download) matching the admin `CsvExporter` architecture — prevents memory exhaustion and webserver timeouts on large datasets; column layout mirrors the admin export so both downloads are interchangeable. Synchronous streaming preserved as a no-JS fallback
 - Feat: New `Geofence::get_form_end_timestamp()` and `Geofence::has_form_expired()` helpers — the public CSV download is only released after the form's configured end date/time
 - Feat: New "Public CSV Download" metabox on the form editor — toggle, read-only hash with regenerate control, download counter, reset button, per-form quota override, and a ready-to-share URL preview
 - Feat: Advanced settings tab now exposes `public_csv_default_limit` — default quota suggested to the admin when enabling the feature on a new form (default: 1)
@@ -27,12 +27,13 @@ Public CSV download feature: form organizers without WordPress admin access can 
 - Security: Per-IP rate limiting via `RateLimiter::check_ip_limit()`, identical to the public form submission path
 - Security: `get_post_type()` check blocks the handler from serving data for non-`ffc_form` posts even if a valid hash is supplied
 - Security: Empty stored hash short-circuits the comparison — prevents `hash_equals('', '')` from accepting any request before the admin has generated a hash
+- Security: AJAX batch jobs scoped by `sha1(IP)` — subsequent batch/download requests verify the caller's IP matches the IP that started the job. Combined with UUID v4 job IDs (122 bits of entropy) this prevents cross-visitor job hijacking
 
 ### Test Coverage
 
 - New: **GeofenceFormExpirationTest** — 12 tests covering `get_form_end_timestamp()` (null on empty/invalid meta, trims whitespace, defaults `time_end` to `23:59:59`, respects `wp_timezone()`) and `has_form_expired()` (past vs. future, end-of-day default)
-- New: **PublicCsvExporterTest** — 14 tests locking the CSV column layout (15 fixed + 3 edit + N dynamic), fixed-column value mapping, consent yes/no rendering, deleted-form placeholder, dynamic key ordering, RF-only rows, and sensible batch-size constants
-- New: **PublicCsvDownloadTest** — 19 tests covering constants, shortcode rendering (nonce, form fields, honeypot, CAPTCHA, URL prefill, flash messages) and the 12 failure branches of the validation flow plus the happy-path counter-increment observable effect
+- New: **PublicCsvExporterTest** — 15 tests locking the CSV column layout (15 fixed + 3 edit + N dynamic), fixed-column value mapping, consent yes/no rendering, deleted-form placeholder, dynamic key ordering, RF-only rows, batch-size constants, and JOB_TTL
+- New: **PublicCsvDownloadTest** — 28 tests covering constants, shortcode rendering (nonce, form fields, honeypot, CAPTCHA, URL prefill, flash messages), the 12 failure branches of the validation flow, the happy-path counter-increment observable effect, 8 direct `validate_form_access()` unit tests, and AJAX hook registration verification
 - Test suite: **3090 → 3154 tests** (+64) with all 7415 assertions green
 
 ### Code Quality
@@ -49,7 +50,8 @@ Public CSV download feature: form organizers without WordPress admin access can 
 ### Polish
 
 - UX: `[ffc_csv_download]` now reuses the same CSS classes as `[ffc_verification]` (`ffc-verification-container`, `ffc-verification-header`, `ffc-verification-form`, `ffc-form-field`, `ffc-input`, `ffc-submit-btn`, `ffc-verify-error` / `ffc-verify-success`) so the public download page inherits the card layout, dark-mode support and focus ring already used by the verification page — no more inline `<style>` block
-- UX: `ffc-frontend.css` is now auto-enqueued on pages containing the `[ffc_csv_download]` shortcode (matching how `[ffc_form]` / `[ffc_verification]` already trigger the stylesheet). Heavy PDF/geofence JS stays gated behind the form/verification shortcodes — the CSV download page still ships no JavaScript
+- UX: Progress bar overlay with real batch-by-batch feedback on the `[ffc_csv_download]` page — shows record count, progress percentage, and status messages throughout the export. Minimum 1.5 s display threshold prevents the overlay from flashing on small exports. Graceful degradation: when JavaScript is unavailable the form falls back to the synchronous `admin-post.php` handler
+- UX: `ffc-frontend.css` is now auto-enqueued on pages containing the `[ffc_csv_download]` shortcode (matching how `[ffc_form]` / `[ffc_verification]` already trigger the stylesheet); new `ffc-csv-download.js` is enqueued only on CSV download pages
 - Docs: Added a `[ffc_csv_download]` row to the Shortcodes table in the Documentation tab (`ffc-settings&tab=documentation`) describing the Form ID + hash workflow, the expiration/quota gating, and the optional `title` attribute
 
 ### Maintenance Tools

@@ -1016,6 +1016,81 @@ textarea.ffc-input,
 }
 
 /* ============================================
+   CSV DOWNLOAD PROGRESS OVERLAY
+   ============================================ */
+.ffc-csv-progress-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ffc-csv-progress-card {
+    background: var(--ffc-card-bg, #fff);
+    color: var(--ffc-text, #333);
+    border-radius: 8px;
+    padding: 30px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    text-align: center;
+}
+
+.ffc-csv-progress-status {
+    margin-bottom: 16px;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.ffc-csv-progress-bar-container {
+    background: var(--ffc-border, #e0e0e0);
+    border-radius: 4px;
+    height: 20px;
+    overflow: hidden;
+    position: relative;
+}
+
+.ffc-csv-progress-bar-fill {
+    background: var(--ffc-primary, #0073aa);
+    height: 100%;
+    width: 0;
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.ffc-csv-progress-bar-fill.ffc-csv-complete {
+    background: var(--ffc-success, #46b450);
+}
+
+.ffc-csv-progress-bar-fill.ffc-csv-error {
+    background: var(--ffc-danger, #d63638);
+}
+
+.ffc-csv-progress-percent {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--ffc-text-muted, #666);
+}
+
+.ffc-csv-progress-error {
+    color: var(--ffc-danger, #d63638);
+    margin-top: 12px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.ffc-submit-btn.ffc-btn-loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* ============================================
    REDUCED MOTION
    ============================================ */
 @media (prefers-reduced-motion: reduce) {
@@ -1031,7 +1106,8 @@ textarea.ffc-input,
     .ffc-consent-text a,
     .ffc-submit-btn,
     .ffc-verify-input,
-    .ffc-download-btn {
+    .ffc-download-btn,
+    .ffc-csv-progress-bar-fill {
         transition: none;
     }
 }

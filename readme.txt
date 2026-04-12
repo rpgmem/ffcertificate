@@ -170,14 +170,15 @@ New public CSV download feature allowing form organizers without WordPress admin
 
 * Feat: New `[ffc_csv_download]` shortcode — public page where visitors enter a form ID + hash to download submissions as CSV
 * Feat: New `PublicCsvDownload` handler on `admin-post(_nopriv)_ffc_public_csv_download` — validates nonce, honeypot, CAPTCHA, per-IP rate limit, form-level enable flag, hash equality, geofence expiration, and per-form download quota
-* Feat: New `PublicCsvExporter` that streams the CSV synchronously (single request, no AJAX batching) with the same column layout as the admin exporter
+* Feat: New `PublicCsvExporter` with AJAX batched 3-step export (start → batch ×N → download) matching the admin `CsvExporter` architecture — prevents memory exhaustion and webserver timeouts on large datasets; synchronous streaming preserved as a no-JS fallback
 * Feat: New `Geofence::get_form_end_timestamp()` and `has_form_expired()` helpers — public CSV download is released only after the form's configured end date/time
 * Feat: New "Public CSV Download" metabox on the form editor — toggle, read-only hash with regenerate/reset controls, download counter, per-form quota override, and a ready-to-share URL preview
 * Feat: New `public_csv_default_limit` setting on the Advanced tab — default quota suggested to the admin when enabling the feature per-form (default: 1)
 * Test: 45 new unit tests — 12 for Geofence form expiration helpers, 14 for PublicCsvExporter column/row layout, 19 for PublicCsvDownload request validation branches and happy path
 * Chore: Zero PHPStan level 6 errors — cleared 26 pre-existing static analysis findings across 13 files (array shape PHPDoc, dead code removal, `QRcode::raw()` stub, `$calendar` pre-initialization, PHPDoc parse error fix, redundant `?? ''` removal)
 * UX: `[ffc_csv_download]` now reuses the same CSS classes as `[ffc_verification]` (`ffc-verification-container`, `ffc-verification-form`, `ffc-form-field`, `ffc-input`, `ffc-submit-btn`) — inherits the card layout, dark-mode and focus ring from the main stylesheet, no more inline `<style>` block
-* UX: `ffc-frontend.css` is now auto-enqueued on pages containing `[ffc_csv_download]`; PDF/geofence JS stays gated behind `[ffc_form]` / `[ffc_verification]` — the download page still ships zero JavaScript
+* UX: Progress bar overlay with real batch-by-batch feedback on the CSV download page — shows record count, progress percentage, and status messages. Minimum 1.5 s display threshold; graceful degradation when JS is unavailable
+* UX: `ffc-frontend.css` auto-enqueued on `[ffc_csv_download]` pages; new `ffc-csv-download.js` enqueued only on CSV download pages
 * Docs: Added a `[ffc_csv_download]` row to the Shortcodes table in the Documentation tab describing the Form ID + hash workflow, expiration/quota gating, and the optional `title` attribute
 * Feat: New "Obsolete Shortcode Cleanup" section on the Data Migrations tab — scans published posts, pages and reusable blocks (`wp_block`) for embedded `[ffc_form id="..."]` shortcodes pointing at forms ended more than N days ago (default 90, configurable 1-3650) and removes those obsolete shortcodes from `post_content`. Admin-only, nonce-protected, handles both Classic and Gutenberg-wrapped shortcode formats
 * Feat: New `ObsoleteShortcodeCleaner` service (`find_expired_form_ids`, `scan_posts_for_expired_forms`, `strip_shortcodes_from_content`, `run($days, ['dry_run' => bool])`) plus a `Geofence::has_form_expired_by_days()` helper reused from the public CSV download's expiration helper
