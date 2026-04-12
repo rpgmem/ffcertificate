@@ -289,8 +289,9 @@ class CsvExporter {
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		while ( @ob_end_clean() ) {} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
 
+		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $job['filename'] );
 		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename=' . $job['filename'] );
+		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
 		header( 'Content-Length: ' . filesize( $file ) );
 		header( 'Pragma: no-cache' );
 		header( 'Expires: 0' );

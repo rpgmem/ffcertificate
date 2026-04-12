@@ -123,8 +123,9 @@ trait CsvExportTrait {
      * @return void Exits after output.
      */
     protected function output_csv(string $filename, array $headers, array $rows): void {
+        $safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
         header('Content-Type: text/csv; charset=utf-8');
-        header("Content-Disposition: attachment; filename={$filename}");
+        header('Content-Disposition: attachment; filename="' . $safe_filename . '"');
         header('Pragma: no-cache');
         header('Expires: 0');
 

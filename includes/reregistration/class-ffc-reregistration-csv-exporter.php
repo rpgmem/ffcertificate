@@ -48,8 +48,9 @@ class ReregistrationCsvExporter {
         $filename = 'reregistration-' . sanitize_file_name($rereg->title) . '-' . gmdate('Y-m-d') . '.csv';
 
         // Headers
+        $safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
         header('Content-Type: text/csv; charset=UTF-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Disposition: attachment; filename="' . $safe_filename . '"');
         header('Pragma: no-cache');
         header('Expires: 0');
 

@@ -92,11 +92,11 @@ abstract class AbstractRepository {
 
         // Batch load cache misses
         if ( ! empty( $missing ) ) {
-            $safe_ids = array_map( 'absint', $missing );
-            $id_list  = implode( ',', $safe_ids );
+            $safe_ids     = array_map( 'absint', $missing );
+            $placeholders = implode( ',', array_fill( 0, count( $safe_ids ), '%d' ) );
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             $rows = $this->wpdb->get_results(
-                $this->wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$id_list})", $this->table ),
+                $this->wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$placeholders})", $this->table, ...$safe_ids ),
                 ARRAY_A
             );
 

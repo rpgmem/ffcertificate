@@ -305,7 +305,11 @@ class AudienceAdminImport {
             $audience_id = isset($_POST['import_audience_id']) ? absint($_POST['import_audience_id']) : 0;
             $create_users = isset($_POST['create_users']) && $_POST['create_users'] === '1';
 
-            $tmp_name = isset($_FILES['members_csv']['tmp_name']) ? sanitize_text_field(wp_unslash($_FILES['members_csv']['tmp_name'])) : '';
+            $tmp_name = isset($_FILES['members_csv']['tmp_name']) ? $_FILES['members_csv']['tmp_name'] : '';
+            if ( ! $tmp_name || ! is_uploaded_file( $tmp_name ) ) {
+                add_settings_error('ffc_audience', 'ffc_message', __('Invalid file upload.', 'ffcertificate'), 'error');
+                return;
+            }
             $result = AudienceCsvImporter::import_members(
                 $tmp_name,
                 $audience_id,
@@ -348,7 +352,11 @@ class AudienceAdminImport {
                 return;
             }
 
-            $tmp_name = isset($_FILES['audiences_csv']['tmp_name']) ? sanitize_text_field(wp_unslash($_FILES['audiences_csv']['tmp_name'])) : '';
+            $tmp_name = isset($_FILES['audiences_csv']['tmp_name']) ? $_FILES['audiences_csv']['tmp_name'] : '';
+            if ( ! $tmp_name || ! is_uploaded_file( $tmp_name ) ) {
+                add_settings_error('ffc_audience', 'ffc_message', __('Invalid file upload.', 'ffcertificate'), 'error');
+                return;
+            }
             $result = AudienceCsvImporter::import_audiences($tmp_name);
 
             if ($result['success']) {
