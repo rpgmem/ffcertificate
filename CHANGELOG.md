@@ -46,6 +46,12 @@ Public CSV download feature: form organizers without WordPress admin access can 
 - Chore: Fix `@return` PHPDoc parse error in `UserManager::get_user_identifiers_masked()` (`string[}}` → `array<int, string>`)
 - Chore: Correct `wp_validate_redirect()` fallback argument type in `UrlShortenerLoader` (`false` → `''`) to match the WordPress stub signature
 
+### Polish
+
+- UX: `[ffc_csv_download]` now reuses the same CSS classes as `[ffc_verification]` (`ffc-verification-container`, `ffc-verification-header`, `ffc-verification-form`, `ffc-form-field`, `ffc-input`, `ffc-submit-btn`, `ffc-verify-error` / `ffc-verify-success`) so the public download page inherits the card layout, dark-mode support and focus ring already used by the verification page — no more inline `<style>` block
+- UX: `ffc-frontend.css` is now auto-enqueued on pages containing the `[ffc_csv_download]` shortcode (matching how `[ffc_form]` / `[ffc_verification]` already trigger the stylesheet). Heavy PDF/geofence JS stays gated behind the form/verification shortcodes — the CSV download page still ships no JavaScript
+- Docs: Added a `[ffc_csv_download]` row to the Shortcodes table in the Documentation tab (`ffc-settings&tab=documentation`) describing the Form ID + hash workflow, the expiration/quota gating, and the optional `title` attribute
+
 ---
 
 ## 5.0.3 (2026-03-27)

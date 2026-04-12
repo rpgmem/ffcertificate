@@ -75,63 +75,65 @@ class PublicCsvDownload {
 
 		ob_start();
 		?>
-		<div class="ffc-public-csv-download">
-			<style>
-				.ffc-public-csv-download { max-width: 520px; margin: 1.5em auto; font-family: inherit; }
-				.ffc-public-csv-download h3 { margin-top: 0; }
-				.ffc-public-csv-download label { display: block; margin-top: 0.75em; font-weight: 600; }
-				.ffc-public-csv-download input[type="text"],
-				.ffc-public-csv-download input[type="number"] { width: 100%; padding: 0.5em; box-sizing: border-box; }
-				.ffc-public-csv-download .ffc-pcd-actions { margin-top: 1.2em; }
-				.ffc-public-csv-download .ffc-pcd-message { padding: 0.75em 1em; border-radius: 4px; margin-bottom: 1em; }
-				.ffc-public-csv-download .ffc-pcd-message.error { background: #ffe9e9; border: 1px solid #f5b5b5; color: #8a1f11; }
-				.ffc-public-csv-download .ffc-pcd-message.success { background: #e7f6e7; border: 1px solid #b5dfb5; color: #255d25; }
-				.ffc-public-csv-download .ffc-honeypot-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-			</style>
-
-			<h3><?php echo esc_html( $atts['title'] ); ?></h3>
+		<div class="ffc-verification-container ffc-verification-manual ffc-public-csv-download">
+			<div class="ffc-verification-header">
+				<h2><?php echo esc_html( $atts['title'] ); ?></h2>
+				<p><?php esc_html_e( 'Enter the Form ID and the access hash to download the submissions CSV.', 'ffcertificate' ); ?></p>
+			</div>
 
 			<?php if ( $flash ) : ?>
-				<div class="ffc-pcd-message <?php echo esc_attr( $flash['type'] ); ?>">
-					<?php echo esc_html( $flash['message'] ); ?>
+				<div class="ffc-verify-result ffc-pcd-message">
+					<div class="<?php echo esc_attr( $flash['type'] === 'error' ? 'ffc-verify-error' : 'ffc-verify-success' ); ?>">
+						<?php echo esc_html( $flash['message'] ); ?>
+					</div>
 				</div>
 			<?php endif; ?>
 
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-verification-form">
 				<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION ); ?>">
 				<?php wp_nonce_field( self::NONCE_ACTION, '_ffc_pcd_nonce' ); ?>
 
-				<label for="ffc-pcd-form-id"><?php esc_html_e( 'Form ID', 'ffcertificate' ); ?></label>
-				<input
-					type="number"
-					id="ffc-pcd-form-id"
-					name="form_id"
-					min="1"
-					step="1"
-					required
-					value="<?php echo $prefill_form_id ? esc_attr( (string) $prefill_form_id ) : ''; ?>">
+				<div class="ffc-form-field">
+					<label for="ffc-pcd-form-id">
+						<?php esc_html_e( 'Form ID', 'ffcertificate' ); ?> <span class="required">*</span>
+					</label>
+					<input
+						type="number"
+						id="ffc-pcd-form-id"
+						name="form_id"
+						class="ffc-input"
+						min="1"
+						step="1"
+						required
+						aria-required="true"
+						value="<?php echo $prefill_form_id ? esc_attr( (string) $prefill_form_id ) : ''; ?>">
+				</div>
 
-				<label for="ffc-pcd-hash"><?php esc_html_e( 'Access Hash', 'ffcertificate' ); ?></label>
-				<input
-					type="text"
-					id="ffc-pcd-hash"
-					name="hash"
-					required
-					autocomplete="off"
-					value="<?php echo esc_attr( $prefill_hash ); ?>">
+				<div class="ffc-form-field">
+					<label for="ffc-pcd-hash">
+						<?php esc_html_e( 'Access Hash', 'ffcertificate' ); ?> <span class="required">*</span>
+					</label>
+					<input
+						type="text"
+						id="ffc-pcd-hash"
+						name="hash"
+						class="ffc-input"
+						required
+						aria-required="true"
+						autocomplete="off"
+						value="<?php echo esc_attr( $prefill_hash ); ?>">
+				</div>
 
 				<?php
 				// generate_security_fields() emits honeypot + captcha — both are
 				// already escaped inside that helper.
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-				echo $security_html;
 				?>
+				<div class="ffc-no-js-security"><?php echo $security_html; ?></div>
 
-				<div class="ffc-pcd-actions">
-					<button type="submit" class="button button-primary">
-						<?php esc_html_e( 'Download CSV', 'ffcertificate' ); ?>
-					</button>
-				</div>
+				<button type="submit" class="ffc-submit-btn">
+					<?php esc_html_e( 'Download CSV', 'ffcertificate' ); ?>
+				</button>
 			</form>
 		</div>
 		<?php

@@ -66,7 +66,11 @@ class Frontend {
             return;
         }
 
-        if ( has_shortcode( $post->post_content, 'ffc_form' ) || has_shortcode( $post->post_content, 'ffc_verification' ) ) {
+        $has_form         = has_shortcode( $post->post_content, 'ffc_form' );
+        $has_verification = has_shortcode( $post->post_content, 'ffc_verification' );
+        $has_csv_download = has_shortcode( $post->post_content, 'ffc_csv_download' );
+
+        if ( $has_form || $has_verification || $has_csv_download ) {
             $s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
             // Dark mode script (loaded early to prevent flash)
@@ -76,7 +80,11 @@ class Frontend {
             wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css", array(), FFC_VERSION );
             wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
             wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css", array('ffc-pdf-core', 'ffc-common'), FFC_VERSION );
-            
+        }
+
+        if ( $has_form || $has_verification ) {
+            $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
             // PDF Libraries - Using centralized version constants
             wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
             wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true );
