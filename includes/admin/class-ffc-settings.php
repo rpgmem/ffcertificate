@@ -350,9 +350,10 @@ class Settings {
     /**
      * Handle obsolete shortcode cleanup actions (preview / apply / save_days).
      *
-     * Wired into `admin_init`. Reacts to `?ffc_obsolete_cleanup=<mode>` on
-     * the migrations settings tab. Each mode has its own nonce key
-     * (`ffc_obsolete_cleanup_<mode>`) and all modes require `manage_options`.
+     * Wired into `admin_init`. Reacts to `ffc_obsolete_cleanup=<mode>` coming
+     * either from GET (preview/apply links) or POST (save_days form submission).
+     * Each mode has its own nonce key (`ffc_obsolete_cleanup_<mode>`) and all
+     * modes require `manage_options`.
      *
      * Flow:
      *  - `save_days`  → persist the grace window in `ffc_settings`.
@@ -365,8 +366,9 @@ class Settings {
      * @since 5.1.0
      */
     public function handle_obsolete_shortcode_cleanup(): void {
+        // Accept the trigger from GET (preview/apply links) OR POST (save_days form).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
-        if ( ! isset( $_GET['ffc_obsolete_cleanup'] ) ) {
+        if ( ! isset( $_REQUEST['ffc_obsolete_cleanup'] ) ) {
             return;
         }
 
@@ -375,7 +377,7 @@ class Settings {
         }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below.
-        $mode = sanitize_key( wp_unslash( $_GET['ffc_obsolete_cleanup'] ) );
+        $mode = sanitize_key( wp_unslash( $_REQUEST['ffc_obsolete_cleanup'] ) );
         $allowed_modes = array( 'preview', 'apply', 'save_days' );
         if ( ! in_array( $mode, $allowed_modes, true ) ) {
             wp_die( esc_html__( 'Invalid action.', 'ffcertificate' ) );
