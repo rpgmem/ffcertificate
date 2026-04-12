@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-06 11:00+0000\n"
-"PO-Revision-Date: 2026-04-12 11:10+0000\n"
+"PO-Revision-Date: 2026-04-12 15:06+0000\n"
 "Last-Translator: Alex Meusburger\n"
 "Language-Team: Português do Brasil\n"
 "Language: pt_BR\n"
@@ -340,7 +340,7 @@ msgstr "(Calendário Excluído)"
 msgid "(default: 2)"
 msgstr "(padrão: 2)"
 
-#: includes/admin/class-ffc-submissions-list.php:90 includes/admin/class-ffc-csv-exporter.php:338 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:129 includes/frontend/class-ffc-public-csv-exporter.php:290 includes/self-scheduling/views/appointments-list.php:183 includes/self-scheduling/views/appointments-list.php:412
+#: includes/admin/class-ffc-submissions-list.php:90 includes/admin/class-ffc-csv-exporter.php:338 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:129 includes/frontend/class-ffc-public-csv-exporter.php:582 includes/self-scheduling/views/appointments-list.php:183 includes/self-scheduling/views/appointments-list.php:412
 msgid "(Deleted)"
 msgstr "(Excluída)"
 
@@ -586,7 +586,7 @@ msgstr "Acesso Negado"
 msgid "Access denied. Check file permissions."
 msgstr "Acesso negado. Verifique as permissões do arquivo."
 
-#: includes/admin/class-ffc-form-editor-metabox-renderer.php:796 includes/frontend/class-ffc-public-csv-download.php:114
+#: includes/admin/class-ffc-form-editor-metabox-renderer.php:796 includes/frontend/class-ffc-public-csv-download.php:128
 msgid "Access Hash"
 msgstr "Hash de Acesso"
 
@@ -771,19 +771,19 @@ msgstr "Georreferenciamento do Endereço"
 msgid "Admin Bar"
 msgstr "Barra de Administração"
 
-#: includes/frontend/class-ffc-frontend.php:198
+#: includes/frontend/class-ffc-frontend.php:226
 msgid "Admin Bypass Mode Active"
 msgstr "Modo de bypass de Administrador Ativo"
 
-#: includes/frontend/class-ffc-frontend.php:195
+#: includes/frontend/class-ffc-frontend.php:223
 msgid "Admin Bypass Mode Active - Geofence restrictions are disabled for administrators"
 msgstr "Modo de Desbloqueio Administrativo Ativo - As restrições de geolocalização estão desativadas para administradores."
 
-#: includes/frontend/class-ffc-frontend.php:196
+#: includes/frontend/class-ffc-frontend.php:224
 msgid "Admin Bypass: Date/Time restrictions are disabled for administrators"
 msgstr "Acesso Administrativo: As restrições de data/hora estão desativadas para administradores"
 
-#: includes/frontend/class-ffc-frontend.php:197
+#: includes/frontend/class-ffc-frontend.php:225
 msgid "Admin Bypass: Geolocation restrictions are disabled for administrators"
 msgstr "Acesso Administrativo: As restrições de geolocalização estão desativadas para administradores"
 
@@ -1453,7 +1453,7 @@ msgstr "Públicos-alvo:"
 msgid "August"
 msgstr "Agosto"
 
-#: includes/admin/class-ffc-csv-exporter.php:356 includes/admin/class-ffc-admin-submission-edit-page.php:431 includes/privacy/class-ffc-privacy-handler.php:197 includes/frontend/class-ffc-frontend.php:126 includes/frontend/class-ffc-public-csv-exporter.php:179
+#: includes/admin/class-ffc-csv-exporter.php:356 includes/admin/class-ffc-admin-submission-edit-page.php:431 includes/privacy/class-ffc-privacy-handler.php:197 includes/frontend/class-ffc-frontend.php:126 includes/frontend/class-ffc-public-csv-exporter.php:471
 msgid "Auth Code"
 msgstr "Código de Autenticação"
 
@@ -2030,7 +2030,7 @@ msgstr "Não é possível reservar datas no passado."
 msgid "Cannot book more than %d days in advance."
 msgstr "Não é possível reservar com mais de %d dias de antecedência."
 
-#: includes/admin/class-ffc-csv-exporter.php:145
+#: includes/admin/class-ffc-csv-exporter.php:145 includes/frontend/class-ffc-public-csv-exporter.php:271
 msgid "Cannot create temp file."
 msgstr "Não foi possível criar o arquivo temporário."
 
@@ -2038,7 +2038,7 @@ msgstr "Não foi possível criar o arquivo temporário."
 msgid "Cannot save draft."
 msgstr "Não foi possível salvar o rascunho."
 
-#: includes/admin/class-ffc-csv-exporter.php:233
+#: includes/admin/class-ffc-csv-exporter.php:233 includes/frontend/class-ffc-public-csv-exporter.php:369
 msgid "Cannot write to temp file."
 msgstr "Não foi possível escrever no arquivo temporário."
 
@@ -2419,6 +2419,10 @@ msgstr "Parabéns! Nota: %d%%. Certificado gerado."
 msgid "Connection error."
 msgstr "Erro de conexão."
 
+#: includes/frontend/class-ffc-frontend.php:182
+msgid "Connection error. Please try again."
+msgstr "Erro de conexão. Tente novamente."
+
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:205
 msgid "Connection timeout. Please try again."
 msgstr "Tempo de conexão esgotado. Por favor, tente novamente."
@@ -2427,11 +2431,11 @@ msgstr "Tempo de conexão esgotado. Por favor, tente novamente."
 msgid "Consent (LGPD)"
 msgstr "Consentimento (LGPD)"
 
-#: includes/admin/class-ffc-csv-exporter.php:359 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:68 includes/frontend/class-ffc-public-csv-exporter.php:182
+#: includes/admin/class-ffc-csv-exporter.php:359 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:68 includes/frontend/class-ffc-public-csv-exporter.php:474
 msgid "Consent Date"
 msgstr "Data do Consentimento"
 
-#: includes/admin/class-ffc-csv-exporter.php:358 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:67 includes/frontend/class-ffc-public-csv-exporter.php:181
+#: includes/admin/class-ffc-csv-exporter.php:358 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:67 includes/frontend/class-ffc-public-csv-exporter.php:473
 msgid "Consent Given"
 msgstr "Consentimento"
 
@@ -2443,11 +2447,11 @@ msgstr "Consentimento dado"
 msgid "Consent given:"
 msgstr "Consentimento concedido:"
 
-#: includes/admin/class-ffc-csv-exporter.php:360 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:69 includes/frontend/class-ffc-public-csv-exporter.php:183
+#: includes/admin/class-ffc-csv-exporter.php:360 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:69 includes/frontend/class-ffc-public-csv-exporter.php:475
 msgid "Consent IP"
 msgstr "Consentimento IP"
 
-#: includes/admin/class-ffc-csv-exporter.php:361 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:70 includes/frontend/class-ffc-public-csv-exporter.php:184
+#: includes/admin/class-ffc-csv-exporter.php:361 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:70 includes/frontend/class-ffc-public-csv-exporter.php:476
 msgid "Consent Text"
 msgstr "Texto de Consentimento"
 
@@ -2536,7 +2540,7 @@ msgstr "Contagem regressiva"
 msgid "Course"
 msgstr "Curso"
 
-#: includes/admin/class-ffc-csv-exporter.php:354 includes/admin/class-ffc-admin-submission-edit-page.php:418 includes/audience/class-ffc-audience-admin-audience.php:404 includes/audience/class-ffc-audience-admin-audience.php:514 includes/frontend/class-ffc-verification-response-renderer.php:323 includes/frontend/class-ffc-public-csv-exporter.php:177 includes/self-scheduling/views/appointments-list.php:491
+#: includes/admin/class-ffc-csv-exporter.php:354 includes/admin/class-ffc-admin-submission-edit-page.php:418 includes/audience/class-ffc-audience-admin-audience.php:404 includes/audience/class-ffc-audience-admin-audience.php:514 includes/frontend/class-ffc-verification-response-renderer.php:323 includes/frontend/class-ffc-public-csv-exporter.php:469 includes/self-scheduling/views/appointments-list.php:491
 msgid "CPF"
 msgstr "CPF"
 
@@ -3088,7 +3092,7 @@ msgstr "Destino"
 msgid "Destination URL"
 msgstr "URL de Destino"
 
-#: includes/frontend/class-ffc-frontend.php:201
+#: includes/frontend/class-ffc-frontend.php:229
 msgid "Detecting your location..."
 msgstr "Detectando sua localização..."
 
@@ -3216,7 +3220,11 @@ msgstr "Baixar Novamente"
 msgid "Download Certificate (PDF)"
 msgstr "Baixar Certificado (PDF)"
 
-#: includes/frontend/class-ffc-public-csv-download.php:135
+#: includes/frontend/class-ffc-frontend.php:177
+msgid "Download complete!"
+msgstr "Download concluído!"
+
+#: includes/frontend/class-ffc-frontend.php:179 includes/frontend/class-ffc-public-csv-download.php:149
 msgid "Download CSV"
 msgstr "Baixar CSV"
 
@@ -3228,7 +3236,7 @@ msgstr "Baixar Ficha"
 msgid "Download Ficha (PDF)"
 msgstr "Baixar Ficha (PDF)"
 
-#: includes/frontend/class-ffc-public-csv-download.php:63
+#: includes/frontend/class-ffc-public-csv-download.php:77
 msgid "Download form submissions (CSV)"
 msgstr "Baixar submissões (CSV)"
 
@@ -3312,7 +3320,7 @@ msgstr "Migração dinâmica dos campos de recadastramento concluída com sucess
 msgid "Dynamic reregistration fields migration encountered issues. Check details."
 msgstr "A migração dos campos de recadastramento dinâmico apresentou problemas. Confira os detalhes."
 
-#: includes/admin/class-ffc-csv-exporter.php:352 includes/frontend/class-ffc-public-csv-exporter.php:175 includes/self-scheduling/views/appointments-list.php:488
+#: includes/admin/class-ffc-csv-exporter.php:352 includes/frontend/class-ffc-public-csv-exporter.php:467 includes/self-scheduling/views/appointments-list.php:488
 msgid "E-mail"
 msgstr "E-mail"
 
@@ -3346,7 +3354,7 @@ msgstr "Editar Público-alvo"
 msgid "Edit Calendar"
 msgstr "Editar Calendário"
 
-#: includes/admin/class-ffc-csv-exporter.php:367 includes/frontend/class-ffc-public-csv-exporter.php:190
+#: includes/admin/class-ffc-csv-exporter.php:367 includes/frontend/class-ffc-public-csv-exporter.php:482
 msgid "Edit Date"
 msgstr "Data de Edição"
 
@@ -3376,7 +3384,7 @@ msgstr "Editar Recadastramento"
 msgid "Edit Submission #%s"
 msgstr "Editar Envio #%s"
 
-#: includes/admin/class-ffc-csv-exporter.php:368 includes/frontend/class-ffc-public-csv-exporter.php:191
+#: includes/admin/class-ffc-csv-exporter.php:368 includes/frontend/class-ffc-public-csv-exporter.php:483
 msgid "Edited By"
 msgstr "Editado Por"
 
@@ -3649,7 +3657,7 @@ msgstr "Digite a senha"
 msgid "Enter the authentication code to verify document authenticity."
 msgstr "Insira o código de autenticação para verificar a autenticidade do certificado."
 
-#: includes/frontend/class-ffc-public-csv-download.php:81
+#: includes/frontend/class-ffc-public-csv-download.php:95
 msgid "Enter the Form ID and the access hash to download the submissions CSV."
 msgstr "Insira o ID do formulário e o hash de acesso para baixar o arquivo CSV com os envios."
 
@@ -3693,7 +3701,7 @@ msgstr "Ambientes"
 msgid "Erase Personal Data"
 msgstr "Apagar Dados Pessoais"
 
-#: includes/admin/views/ffc-admin-activity-log.php:34
+#: includes/frontend/class-ffc-frontend.php:178 includes/admin/views/ffc-admin-activity-log.php:34
 msgid "Error"
 msgstr "Erro"
 
@@ -4039,7 +4047,7 @@ msgstr "Exportação de Público-alvo"
 msgid "Export CSV"
 msgstr "Exportar CSV"
 
-#: includes/admin/class-ffc-csv-exporter.php:285
+#: includes/admin/class-ffc-csv-exporter.php:285 includes/frontend/class-ffc-public-csv-exporter.php:426
 msgid "Export file not found."
 msgstr "Arquivo de exportação não encontrado."
 
@@ -4047,7 +4055,7 @@ msgstr "Arquivo de exportação não encontrado."
 msgid "Export Filtered CSV"
 msgstr "Exportar CSV Filtrado"
 
-#: includes/admin/class-ffc-csv-exporter.php:201 includes/admin/class-ffc-csv-exporter.php:280
+#: includes/admin/class-ffc-csv-exporter.php:201 includes/admin/class-ffc-csv-exporter.php:280 includes/frontend/class-ffc-public-csv-exporter.php:329 includes/frontend/class-ffc-public-csv-exporter.php:410
 msgid "Export job not found or expired."
 msgstr "Tarefa de exportação não encontrada ou expirada."
 
@@ -4063,9 +4071,18 @@ msgstr "Exportar Meus Dados"
 msgid "Export Personal Data"
 msgstr "Exportar Dados Pessoais"
 
+#: includes/frontend/class-ffc-frontend.php:180
+msgid "Export timed out. Please try again."
+msgstr "O tempo limite para exportação foi excedido. Tente novamente."
+
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:189
 msgid "Export to Calendar"
 msgstr "Exportar Calendário"
+
+#: includes/frontend/class-ffc-frontend.php:175
+#, php-format
+msgid "Exporting %1$d / %2$d…"
+msgstr "Exportando %1$d / %2$d…"
 
 #. %1$d: processed count, %2$d: total count
 #: includes/admin/class-ffc-admin-assets-manager.php:360
@@ -4338,7 +4355,7 @@ msgstr "Chaves estrangeiras requerem o mecanismo InnoDB. Migração ignorada."
 msgid "Foreign keys: %1$d added, %2$d skipped, %3$d errors"
 msgstr "Chaves estrangeiras: %1$d adicionadas, %2$d ignoradas, %3$d erros"
 
-#: includes/admin/class-ffc-submissions-list.php:57 includes/admin/class-ffc-csv-exporter.php:349 includes/privacy/class-ffc-privacy-handler.php:195 includes/frontend/class-ffc-frontend.php:125 includes/frontend/class-ffc-public-csv-exporter.php:172
+#: includes/admin/class-ffc-submissions-list.php:57 includes/admin/class-ffc-csv-exporter.php:349 includes/privacy/class-ffc-privacy-handler.php:195 includes/frontend/class-ffc-frontend.php:125 includes/frontend/class-ffc-public-csv-exporter.php:464
 msgid "Form"
 msgstr "Formulário"
 
@@ -4362,7 +4379,7 @@ msgstr "Configuração do Formulário:"
 msgid "Form has no fields."
 msgstr "O formulário não possui campos."
 
-#: includes/frontend/class-ffc-public-csv-download.php:98
+#: includes/frontend/class-ffc-public-csv-download.php:112
 msgid "Form ID"
 msgstr "ID do Formulário"
 
@@ -4374,7 +4391,7 @@ msgstr "O formulário não foi publicado."
 msgid "Form not found"
 msgstr "Formulário não encontrado"
 
-#: includes/generators/class-ffc-pdf-generator.php:633 includes/frontend/class-ffc-shortcodes.php:144 includes/frontend/class-ffc-public-csv-download.php:188
+#: includes/generators/class-ffc-pdf-generator.php:633 includes/frontend/class-ffc-shortcodes.php:144 includes/frontend/class-ffc-public-csv-download.php:232
 msgid "Form not found."
 msgstr "Formulário não encontrado."
 
@@ -4529,6 +4546,10 @@ msgstr "Gerado em %s"
 #: includes/frontend/class-ffc-frontend.php:116
 msgid "Generating certificate in the background, please wait 10 seconds and check your downloads folder..."
 msgstr "O certificado está sendo gerado em segundo plano. Aguarde 10 segundos e verifique sua pasta de downloads."
+
+#: includes/frontend/class-ffc-frontend.php:174
+msgid "Generating CSV — %d records…"
+msgstr "Gerando CSV — %d registros…"
 
 #: includes/admin/class-ffc-admin-assets-manager.php:349 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:208 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:493 includes/reregistration/class-ffc-reregistration-admin.php:134 includes/frontend/class-ffc-frontend.php:151
 msgid "Generating PDF..."
@@ -4874,7 +4895,7 @@ msgstr "Eu tenho"
 msgid "I, working at the Regional Education Board of São Miguel – DRE-MP, declare that I am aware of the guidelines for the current year:"
 msgstr "Eu, funcionário(a) da Direção Regional de Educação de São Miguel – DRE-MP, declaro estar ciente das diretrizes para o ano letivo em curso:"
 
-#: includes/admin/class-ffc-submissions-list.php:56 includes/admin/class-ffc-form-list-columns.php:55 includes/admin/class-ffc-csv-exporter.php:348 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:54 includes/audience/class-ffc-audience-admin-bookings.php:143 includes/frontend/class-ffc-public-csv-exporter.php:171 includes/self-scheduling/views/appointments-list.php:53
+#: includes/admin/class-ffc-submissions-list.php:56 includes/admin/class-ffc-form-list-columns.php:55 includes/admin/class-ffc-csv-exporter.php:348 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:54 includes/audience/class-ffc-audience-admin-bookings.php:143 includes/frontend/class-ffc-public-csv-exporter.php:463 includes/self-scheduling/views/appointments-list.php:53
 msgid "ID"
 msgstr "ID"
 
@@ -5023,7 +5044,7 @@ msgstr "Permissões insuficientes"
 msgid "Interface"
 msgstr "Interface"
 
-#: includes/frontend/class-ffc-public-csv-download.php:200
+#: includes/frontend/class-ffc-public-csv-download.php:244
 msgid "Invalid access hash."
 msgstr "Hash de acesso inválido."
 
@@ -5499,23 +5520,23 @@ msgstr "Carregando..."
 msgid "Loading…"
 msgstr "Carregando…"
 
-#: includes/frontend/class-ffc-frontend.php:214
+#: includes/frontend/class-ffc-frontend.php:242
 msgid "Location access was denied. On Safari/iOS, go to Settings > Privacy & Security > Location Services and ensure it is enabled for your browser."
 msgstr "O acesso à localização foi negado. No Safari/iOS, acesse Ajustes > Privacidade e Segurança > Serviços de Localização e verifique se está ativado para o seu navegador."
 
-#: includes/frontend/class-ffc-frontend.php:206
+#: includes/frontend/class-ffc-frontend.php:234
 msgid "Location information is unavailable."
 msgstr "Informações de localização não estão disponíveis."
 
-#: includes/frontend/class-ffc-frontend.php:205
+#: includes/frontend/class-ffc-frontend.php:233
 msgid "Location permission denied. Please enable location services."
 msgstr "Permissão de localização negada. Por favor, ative os serviços de localização."
 
-#: includes/frontend/class-ffc-frontend.php:207
+#: includes/frontend/class-ffc-frontend.php:235
 msgid "Location request timed out."
 msgstr "O tempo limite da solicitação de localização expirou."
 
-#: includes/frontend/class-ffc-frontend.php:216
+#: includes/frontend/class-ffc-frontend.php:244
 msgid "Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services."
 msgstr "O tempo limite da solicitação de localização expirou. No Safari/iOS, verifique se os Serviços de Localização estão ativados em Ajustes > Privacidade e Segurança > Serviços de Localização."
 
@@ -6094,7 +6115,7 @@ msgstr "Próximo agendamento"
 msgid "Next month"
 msgstr "Próximo mês"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:163 includes/admin/class-ffc-form-editor-metabox-renderer.php:301 includes/admin/class-ffc-csv-exporter.php:406 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:140 includes/reregistration/class-ffc-reregistration-csv-exporter.php:174 includes/reregistration/class-ffc-ficha-generator.php:318 includes/frontend/class-ffc-public-csv-exporter.php:225
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:163 includes/admin/class-ffc-form-editor-metabox-renderer.php:301 includes/admin/class-ffc-csv-exporter.php:406 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:140 includes/reregistration/class-ffc-reregistration-csv-exporter.php:174 includes/reregistration/class-ffc-ficha-generator.php:318 includes/frontend/class-ffc-public-csv-exporter.php:517
 msgid "No"
 msgstr "Não"
 
@@ -6227,6 +6248,10 @@ msgstr "Nenhum dado de perfil fornecido."
 #: includes/admin/class-ffc-csv-exporter.php:112
 msgid "No records available for export."
 msgstr "Não há registros disponíveis para exportação."
+
+#: includes/frontend/class-ffc-frontend.php:181 includes/frontend/class-ffc-public-csv-exporter.php:247
+msgid "No records found to export."
+msgstr "Nenhum registro encontrado para exportar."
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:260 includes/reregistration/class-ffc-reregistration-admin.php:253
 msgid "No reregistrations found."
@@ -6701,7 +6726,7 @@ msgstr "Por favor, preencha todos os campos obrigatórios."
 msgid "Please fix the errors below."
 msgstr "Por favor, corrija os erros abaixo."
 
-#: includes/frontend/class-ffc-public-csv-download.php:183
+#: includes/frontend/class-ffc-public-csv-exporter.php:218 includes/frontend/class-ffc-public-csv-download.php:197
 msgid "Please inform both the Form ID and the Access Hash."
 msgstr "Por favor, informe o ID do formulário e o hash de acesso."
 
@@ -6962,7 +6987,7 @@ msgstr "Público"
 msgid "Public CSV Download"
 msgstr "Download Público do Arquivo CSV"
 
-#: includes/frontend/class-ffc-public-csv-download.php:194
+#: includes/frontend/class-ffc-public-csv-download.php:238
 msgid "Public CSV download is not enabled for this form."
 msgstr "O download público em CSV não está habilitado para este formulário."
 
@@ -7290,7 +7315,7 @@ msgstr "Solicitação enviada! O administrador irá analisá-la."
 msgid "Request timed out. Please try again."
 msgstr "A solicitação expirou. Por favor, tente novamente."
 
-#: includes/frontend/class-ffc-frontend.php:210
+#: includes/frontend/class-ffc-frontend.php:238
 msgid "Requesting your location… If prompted, tap \"Allow\"."
 msgstr "Solicitando sua localização… Se solicitado, toque em \"Permitir\"."
 
@@ -7485,7 +7510,7 @@ msgstr "Revisado Em"
 msgid "Revoke All"
 msgstr "Revogar Tudo"
 
-#: includes/admin/class-ffc-csv-exporter.php:355 includes/admin/class-ffc-admin-submission-edit-page.php:418 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:145 includes/frontend/class-ffc-verification-response-renderer.php:324 includes/frontend/class-ffc-public-csv-exporter.php:178 includes/self-scheduling/views/appointments-list.php:494
+#: includes/admin/class-ffc-csv-exporter.php:355 includes/admin/class-ffc-admin-submission-edit-page.php:418 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:145 includes/frontend/class-ffc-verification-response-renderer.php:324 includes/frontend/class-ffc-public-csv-exporter.php:470 includes/self-scheduling/views/appointments-list.php:494
 msgid "RF"
 msgstr "RF"
 
@@ -7724,11 +7749,11 @@ msgstr "Segurança"
 msgid "Security check failed"
 msgstr "Verificação de segurança falhou"
 
-#: includes/admin/class-ffc-settings.php:315 includes/admin/class-ffc-settings.php:389 includes/admin/class-ffc-csv-exporter.php:269 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:365 includes/url-shortener/class-ffc-url-shortener-admin-page.php:116 includes/url-shortener/class-ffc-url-shortener-admin-page.php:125 includes/url-shortener/class-ffc-url-shortener-admin-page.php:134 includes/url-shortener/class-ffc-url-shortener-admin-page.php:143 includes/url-shortener/class-ffc-url-shortener-admin-page.php:158
+#: includes/admin/class-ffc-settings.php:315 includes/admin/class-ffc-settings.php:389 includes/admin/class-ffc-csv-exporter.php:269 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:365 includes/url-shortener/class-ffc-url-shortener-admin-page.php:116 includes/url-shortener/class-ffc-url-shortener-admin-page.php:125 includes/url-shortener/class-ffc-url-shortener-admin-page.php:134 includes/url-shortener/class-ffc-url-shortener-admin-page.php:143 includes/url-shortener/class-ffc-url-shortener-admin-page.php:158 includes/frontend/class-ffc-public-csv-exporter.php:336 includes/frontend/class-ffc-public-csv-exporter.php:416
 msgid "Security check failed."
 msgstr "A verificação de segurança falhou."
 
-#: includes/frontend/class-ffc-public-csv-download.php:166
+#: includes/frontend/class-ffc-public-csv-exporter.php:201 includes/frontend/class-ffc-public-csv-download.php:180
 msgid "Security check failed. Please refresh the page and try again."
 msgstr "A verificação de segurança falhou. Atualize a página e tente novamente."
 
@@ -8003,6 +8028,10 @@ msgstr "Cascata de Serviços"
 #: includes/audience/class-ffc-audience-loader.php:358
 msgid "Service not available."
 msgstr "Serviço não disponível."
+
+#: includes/frontend/class-ffc-public-csv-exporter.php:342 includes/frontend/class-ffc-public-csv-exporter.php:421
+msgid "Session mismatch."
+msgstr "Incompatibilidade de sessão."
 
 #: includes/settings/views/ffc-tab-documentation.php:485
 msgid "Set the start and end dates for the campaign period"
@@ -8289,6 +8318,10 @@ msgstr "O horário de início refere-se à data de início, e o horário de tér
 msgid "Start:"
 msgstr "Início:"
 
+#: includes/frontend/class-ffc-frontend.php:176
+msgid "Starting download…"
+msgstr "Iniciando o download…"
+
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:307 includes/frontend/class-ffc-verification-response-renderer.php:333
 msgid "State"
 msgstr "Estado"
@@ -8297,7 +8330,7 @@ msgstr "Estado"
 msgid "Statistics"
 msgstr "Estatísticas"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:169 includes/admin/class-ffc-submissions-list.php:60 includes/admin/class-ffc-csv-exporter.php:362 includes/admin/class-ffc-admin-submission-edit-page.php:210 includes/privacy/class-ffc-privacy-handler.php:271 includes/privacy/class-ffc-privacy-handler.php:400 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:177 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:64 includes/self-scheduling/class-ffc-self-scheduling-editor.php:219 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:196 includes/reregistration/class-ffc-reregistration-csv-exporter.php:67 includes/reregistration/class-ffc-reregistration-admin.php:244 includes/reregistration/class-ffc-reregistration-admin.php:390 includes/reregistration/class-ffc-reregistration-admin.php:562 includes/url-shortener/class-ffc-url-shortener-admin-page.php:418 includes/audience/class-ffc-audience-admin-bookings.php:149 includes/audience/class-ffc-audience-admin-environment.php:126 includes/audience/class-ffc-audience-admin-environment.php:346 includes/audience/class-ffc-audience-admin-calendar.php:82 includes/audience/class-ffc-audience-admin-calendar.php:351 includes/audience/class-ffc-audience-admin-audience.php:85 includes/audience/class-ffc-audience-admin-audience.php:269 includes/audience/class-ffc-audience-loader.php:310 includes/audience/class-ffc-audience-admin-settings.php:106 includes/frontend/class-ffc-public-csv-exporter.php:185 includes/self-scheduling/views/appointments-list.php:59 includes/self-scheduling/views/appointments-list.php:483
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:169 includes/admin/class-ffc-submissions-list.php:60 includes/admin/class-ffc-csv-exporter.php:362 includes/admin/class-ffc-admin-submission-edit-page.php:210 includes/privacy/class-ffc-privacy-handler.php:271 includes/privacy/class-ffc-privacy-handler.php:400 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:177 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:64 includes/self-scheduling/class-ffc-self-scheduling-editor.php:219 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:196 includes/reregistration/class-ffc-reregistration-csv-exporter.php:67 includes/reregistration/class-ffc-reregistration-admin.php:244 includes/reregistration/class-ffc-reregistration-admin.php:390 includes/reregistration/class-ffc-reregistration-admin.php:562 includes/url-shortener/class-ffc-url-shortener-admin-page.php:418 includes/audience/class-ffc-audience-admin-bookings.php:149 includes/audience/class-ffc-audience-admin-environment.php:126 includes/audience/class-ffc-audience-admin-environment.php:346 includes/audience/class-ffc-audience-admin-calendar.php:82 includes/audience/class-ffc-audience-admin-calendar.php:351 includes/audience/class-ffc-audience-admin-audience.php:85 includes/audience/class-ffc-audience-admin-audience.php:269 includes/audience/class-ffc-audience-loader.php:310 includes/audience/class-ffc-audience-admin-settings.php:106 includes/frontend/class-ffc-public-csv-exporter.php:477 includes/self-scheduling/views/appointments-list.php:59 includes/self-scheduling/views/appointments-list.php:483
 msgid "Status"
 msgstr "Status"
 
@@ -8333,7 +8366,7 @@ msgstr "Passo 3:"
 msgid "Step 4:"
 msgstr "Passo 4:"
 
-#: includes/frontend/class-ffc-frontend.php:212
+#: includes/frontend/class-ffc-frontend.php:240
 msgid "Still trying to get your location… If it is not working, check that Location Services is enabled in Settings > Privacy & Security > Location Services."
 msgstr "Ainda tentando obter sua localização… Se não estiver funcionando, verifique se os Serviços de Localização estão ativados em Configurações > Privacidade e Segurança > Serviços de Localização."
 
@@ -8369,7 +8402,7 @@ msgstr "Submissão Criada"
 msgid "Submission created before magic links"
 msgstr "Envio criado antes dos links mágicos"
 
-#: includes/admin/class-ffc-csv-exporter.php:351 includes/admin/class-ffc-admin-submission-edit-page.php:202 includes/privacy/class-ffc-privacy-handler.php:196 includes/frontend/class-ffc-public-csv-exporter.php:174
+#: includes/admin/class-ffc-csv-exporter.php:351 includes/admin/class-ffc-admin-submission-edit-page.php:202 includes/privacy/class-ffc-privacy-handler.php:196 includes/frontend/class-ffc-public-csv-exporter.php:466
 msgid "Submission Date"
 msgstr "Data de Envio"
 
@@ -8686,7 +8719,7 @@ msgid "The ID must have exactly 7 digits (RF) or 11 digits (CPF)."
 msgstr "O ID deve ter exatamente 7 dígitos (RF) ou 11 dígitos (CPF)."
 
 #. %d is the configured download limit
-#: includes/frontend/class-ffc-public-csv-download.php:228
+#: includes/frontend/class-ffc-public-csv-download.php:271
 msgid "The maximum number of downloads (%d) for this form has been reached."
 msgstr "O número máximo de downloads (%d) para este formulário foi atingido."
 
@@ -8775,11 +8808,11 @@ msgstr "Este campo é obrigatório."
 msgid "This form has no end date configured in the \"Geolocation & Date/Time Restrictions\" metabox. You must set an end date before public downloads will work — downloads are only released after the form has ended."
 msgstr "Este formulário não possui data de término configurada na caixa de metadados \"Geolocalização e Restrições de Data/Hora\". Você precisa definir uma data de término para que os downloads públicos funcionem — os downloads só são liberados após o encerramento do formulário."
 
-#: includes/frontend/class-ffc-public-csv-download.php:206
+#: includes/frontend/class-ffc-public-csv-download.php:250
 msgid "This form has no end date configured. The administrator must set a Geolocation \"End Date\" to enable public downloads."
 msgstr "Este formulário não possui data de término configurada. O administrador deve definir uma \"Data de Término\" por Geolocalização para permitir downloads públicos."
 
-#: includes/security/class-ffc-geofence.php:131 includes/security/class-ffc-geofence.php:162 includes/frontend/class-ffc-frontend.php:220
+#: includes/security/class-ffc-geofence.php:131 includes/security/class-ffc-geofence.php:162 includes/frontend/class-ffc-frontend.php:248
 msgid "This form is no longer available."
 msgstr "Este formulário não está mais disponível."
 
@@ -8791,19 +8824,19 @@ msgstr "Este formulário não está disponível no momento."
 msgid "This form is not available in your location."
 msgstr "Este formulário não está disponível na sua região."
 
-#: includes/security/class-ffc-geofence.php:118 includes/security/class-ffc-geofence.php:150 includes/frontend/class-ffc-frontend.php:219
+#: includes/security/class-ffc-geofence.php:118 includes/security/class-ffc-geofence.php:150 includes/frontend/class-ffc-frontend.php:247
 msgid "This form is not yet available."
 msgstr "Este formulário ainda não está disponível."
 
-#: includes/security/class-ffc-geofence.php:180 includes/frontend/class-ffc-frontend.php:221
+#: includes/security/class-ffc-geofence.php:180 includes/frontend/class-ffc-frontend.php:249
 msgid "This form is only available during specific hours."
 msgstr "Este formulário está disponível apenas em horários específicos."
 
-#: includes/frontend/class-ffc-public-csv-download.php:209
+#: includes/frontend/class-ffc-public-csv-download.php:253
 msgid "This form is still active. Downloads are only allowed after the form end date has passed."
 msgstr "Este formulário ainda está ativo. Os downloads só serão permitidos após a data de encerramento do formulário."
 
-#: includes/frontend/class-ffc-frontend.php:203
+#: includes/frontend/class-ffc-frontend.php:231
 msgid "This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator."
 msgstr "Este formulário requer uma conexão segura (HTTPS) para acessar sua localização. Por favor, entre em contato com o administrador do site."
 
@@ -9020,7 +9053,7 @@ msgstr "Hoje"
 msgid "Toggle details"
 msgstr "Mostrar detalhes"
 
-#: includes/admin/class-ffc-csv-exporter.php:357 includes/frontend/class-ffc-public-csv-exporter.php:180
+#: includes/admin/class-ffc-csv-exporter.php:357 includes/frontend/class-ffc-public-csv-exporter.php:472
 msgid "Token"
 msgstr "Token"
 
@@ -9047,7 +9080,7 @@ msgstr "Muitas tentativas. Aguarde %s."
 msgid "Too many requests. Please try again later."
 msgstr "Muitas solicitações. Tente novamente mais tarde."
 
-#: includes/frontend/class-ffc-form-processor.php:55 includes/frontend/class-ffc-public-csv-download.php:159
+#: includes/frontend/class-ffc-form-processor.php:55 includes/frontend/class-ffc-public-csv-exporter.php:192 includes/frontend/class-ffc-public-csv-download.php:173
 msgid "Too many requests. Please wait."
 msgstr "Muitas solicitações. Aguarde, por favor."
 
@@ -9155,11 +9188,11 @@ msgstr "Tipo"
 msgid "Type to search..."
 msgstr "Digite para pesquisar..."
 
-#: includes/security/class-ffc-geofence.php:231 includes/frontend/class-ffc-frontend.php:204
+#: includes/security/class-ffc-geofence.php:231 includes/frontend/class-ffc-frontend.php:232
 msgid "Unable to determine your location."
 msgstr "Não foi possível determinar sua localização."
 
-#: includes/frontend/class-ffc-frontend.php:215
+#: includes/frontend/class-ffc-frontend.php:243
 msgid "Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services."
 msgstr "Não foi possível determinar sua localização. No Safari/iOS, verifique se os Serviços de Localização estão ativados em Ajustes > Privacidade e Segurança > Serviços de Localização."
 
@@ -9458,7 +9491,7 @@ msgstr "Nome completo do usuário"
 msgid "User has not yet submitted"
 msgstr "O usuário ainda não enviou"
 
-#: includes/admin/class-ffc-csv-exporter.php:350 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:57 includes/reregistration/class-ffc-reregistration-csv-exporter.php:64 includes/frontend/class-ffc-public-csv-exporter.php:173
+#: includes/admin/class-ffc-csv-exporter.php:350 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:57 includes/reregistration/class-ffc-reregistration-csv-exporter.php:64 includes/frontend/class-ffc-public-csv-exporter.php:465
 msgid "User ID"
 msgstr "ID do usuário"
 
@@ -9468,7 +9501,7 @@ msgstr "ID do usuário"
 msgid "User ID %1$d: %2$s"
 msgstr "ID do Usuário %1$d: %2$s"
 
-#: includes/admin/class-ffc-csv-exporter.php:353 includes/admin/class-ffc-admin-submission-edit-page.php:234 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:79 includes/frontend/class-ffc-public-csv-exporter.php:176
+#: includes/admin/class-ffc-csv-exporter.php:353 includes/admin/class-ffc-admin-submission-edit-page.php:234 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:79 includes/frontend/class-ffc-public-csv-exporter.php:468
 msgid "User IP"
 msgstr "IP do usuário"
 
@@ -9573,6 +9606,10 @@ msgstr "Valida o formato do e-mail"
 #: includes/settings/views/ffc-tab-documentation.php:454
 msgid "Validates phone number format"
 msgstr "Valida o formato do número de telefone."
+
+#: includes/frontend/class-ffc-frontend.php:173
+msgid "Validating access…"
+msgstr "Validando o acesso…"
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:264 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:203 includes/self-scheduling/views/appointments-list.php:497
 msgid "Validation Code"
@@ -9738,7 +9775,7 @@ msgstr "Configurações de Visibilidade"
 msgid "Wait..."
 msgstr "Espere..."
 
-#: includes/frontend/class-ffc-frontend.php:211
+#: includes/frontend/class-ffc-frontend.php:239
 msgid "Waiting for location permission… Check if a browser prompt appeared."
 msgstr "Aguardando permissão de localização… Verifique se apareceu uma solicitação no navegador."
 
@@ -9774,7 +9811,7 @@ msgstr "Aviso: Essas ações não podem ser desfeitas."
 msgid "Warning: This action is permanent and cannot be undone!"
 msgstr "Atenção: Esta ação é permanente e não pode ser desfeita!"
 
-#: includes/admin/class-ffc-csv-exporter.php:366 includes/frontend/class-ffc-public-csv-exporter.php:189
+#: includes/admin/class-ffc-csv-exporter.php:366 includes/frontend/class-ffc-public-csv-exporter.php:481
 msgid "Was Edited"
 msgstr "Foi Editado"
 
@@ -9956,7 +9993,7 @@ msgstr "WP Padrão (PHPMail)"
 msgid "WP-Admin Access Control"
 msgstr "Controle de Acesso do WP-Admin"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:162 includes/admin/class-ffc-form-editor-metabox-renderer.php:302 includes/admin/class-ffc-csv-exporter.php:406 includes/admin/class-ffc-csv-exporter.php:418 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:140 includes/reregistration/class-ffc-reregistration-csv-exporter.php:173 includes/reregistration/class-ffc-ficha-generator.php:317 includes/frontend/class-ffc-public-csv-exporter.php:225 includes/frontend/class-ffc-public-csv-exporter.php:237
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:162 includes/admin/class-ffc-form-editor-metabox-renderer.php:302 includes/admin/class-ffc-csv-exporter.php:406 includes/admin/class-ffc-csv-exporter.php:418 includes/privacy/class-ffc-privacy-handler.php:199 includes/self-scheduling/class-ffc-self-scheduling-appointment-csv-exporter.php:140 includes/reregistration/class-ffc-reregistration-csv-exporter.php:173 includes/reregistration/class-ffc-ficha-generator.php:317 includes/frontend/class-ffc-public-csv-exporter.php:517 includes/frontend/class-ffc-public-csv-exporter.php:529
 msgid "Yes"
 msgstr "Sim"
 
@@ -9988,7 +10025,7 @@ msgstr "Você já é membro deste grupo."
 msgid "You are not a member of this group"
 msgstr "Você não é membro deste grupo."
 
-#: includes/frontend/class-ffc-frontend.php:208
+#: includes/frontend/class-ffc-frontend.php:236
 msgid "You are outside the allowed area for this form."
 msgstr "Você está fora da área permitida para este formulário."
 
@@ -10183,7 +10220,7 @@ msgstr "Seu agendamento está aguardando aprovação. Você receberá um e-mail 
 msgid "Your appointment is pending approval. You will receive an email confirmation once it is approved."
 msgstr "Seu agendamento está aguardando aprovação. Você receberá uma confirmação por e-mail assim que for aprovado."
 
-#: includes/frontend/class-ffc-frontend.php:202
+#: includes/frontend/class-ffc-frontend.php:230
 msgid "Your browser does not support geolocation."
 msgstr "Seu navegador não suporta geolocalização."
 
