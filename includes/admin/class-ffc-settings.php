@@ -48,6 +48,7 @@ class Settings {
         add_action( 'admin_init', array( $this, 'handle_settings_submission' ) );
         add_action( 'admin_init', array( $this, 'handle_clear_qr_cache' ) );
         add_action( 'admin_init', array( $this, 'handle_migration_execution' ) );
+        add_action( 'admin_init', array( $this, 'handle_obsolete_shortcode_cleanup' ) );
         add_action( 'wp_ajax_ffc_preview_date_format', array( $this, 'ajax_preview_date_format' ) );
         add_action( 'admin_init', array( $this, 'handle_cache_actions'));
     }
@@ -129,6 +130,7 @@ class Settings {
             'cache_expiration'       => 3600,   // 1 hour
             'cache_auto_warm'        => 0,      // Default: OFF
             'public_csv_default_limit' => 1,    // Default limit for public CSV downloads
+            'obsolete_shortcode_days'  => 90,   // Grace window (days) for obsolete shortcode cleanup
         );
     }
     
@@ -341,6 +343,140 @@ class Settings {
             $redirect_url = add_query_arg( 'migration_success', urlencode( $message ), $redirect_url );
         }
         
+        wp_safe_redirect( $redirect_url );
+        exit;
+    }
+
+    /**
+     * Handle obsolete shortcode cleanup actions (preview / apply / save_days).
+     *
+     * Wired into `admin_init`. Reacts to `?ffc_obsolete_cleanup=<mode>` on
+     * the migrations settings tab. Each mode has its own nonce key
+     * (`ffc_obsolete_cleanup_<mode>`) and all modes require `manage_options`.
+     *
+     * Flow:
+     *  - `save_days`  → persist the grace window in `ffc_settings`.
+     *  - `preview`    → run `ObsoleteShortcodeCleaner::run()` in dry-run,
+     *                   store the report + a "preview OK" flag in transients
+     *                   so the UI can unlock the apply button.
+     *  - `apply`      → refuse unless a recent preview exists, then run the
+     *                   destructive pass and store the report.
+     *
+     * @since 5.1.0
+     */
+    public function handle_obsolete_shortcode_cleanup(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
+        if ( ! isset( $_GET['ffc_obsolete_cleanup'] ) ) {
+            return;
+        }
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below.
+        $mode = sanitize_key( wp_unslash( $_GET['ffc_obsolete_cleanup'] ) );
+        $allowed_modes = array( 'preview', 'apply', 'save_days' );
+        if ( ! in_array( $mode, $allowed_modes, true ) ) {
+            wp_die( esc_html__( 'Invalid action.', 'ffcertificate' ) );
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified here.
+        $nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
+        if ( ! wp_verify_nonce( $nonce, 'ffc_obsolete_cleanup_' . $mode ) ) {
+            wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
+        }
+
+        $user_id         = get_current_user_id();
+        $report_key      = 'ffc_obsolete_cleanup_report_' . $user_id;
+        $preview_ok_key  = 'ffc_obsolete_cleanup_preview_ok_' . $user_id;
+
+        $redirect_url = add_query_arg(
+            array(
+                'post_type' => 'ffc_form',
+                'page'      => 'ffc-settings',
+                'tab'       => 'migrations',
+            ),
+            admin_url( 'edit.php' )
+        );
+
+        $settings         = get_option( 'ffc_settings', array() );
+        $current_days_raw = is_array( $settings ) && isset( $settings['obsolete_shortcode_days'] )
+            ? (int) $settings['obsolete_shortcode_days']
+            : 90;
+        $current_days = $current_days_raw > 0 ? $current_days_raw : 90;
+
+        switch ( $mode ) {
+            case 'save_days':
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+                $posted_days = isset( $_POST['obsolete_shortcode_days'] )
+                    ? absint( wp_unslash( $_POST['obsolete_shortcode_days'] ) )
+                    : 0;
+                if ( $posted_days < 1 ) {
+                    $posted_days = 1;
+                } elseif ( $posted_days > 3650 ) {
+                    $posted_days = 3650;
+                }
+
+                if ( ! is_array( $settings ) ) {
+                    $settings = array();
+                }
+                $settings['obsolete_shortcode_days'] = $posted_days;
+                update_option( 'ffc_settings', $settings );
+
+                $redirect_url = add_query_arg(
+                    'obsolete_cleanup_msg',
+                    rawurlencode( sprintf(
+                        /* translators: %d: grace window in days */
+                        __( 'Grace window updated to %d days.', 'ffcertificate' ),
+                        $posted_days
+                    ) ),
+                    $redirect_url
+                );
+                break;
+
+            case 'preview':
+                try {
+                    $cleaner = new \FreeFormCertificate\Migrations\ObsoleteShortcodeCleaner();
+                    $report  = $cleaner->run( $current_days, array( 'dry_run' => true ) );
+                    set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
+                    set_transient( $preview_ok_key, 1, 5 * MINUTE_IN_SECONDS );
+                    $redirect_url = add_query_arg( 'obsolete_cleanup_msg', rawurlencode( __( 'Preview generated.', 'ffcertificate' ) ), $redirect_url );
+                } catch ( \Throwable $e ) {
+                    $redirect_url = add_query_arg( 'obsolete_cleanup_error', rawurlencode( $e->getMessage() ), $redirect_url );
+                }
+                break;
+
+            case 'apply':
+                if ( ! get_transient( $preview_ok_key ) ) {
+                    $redirect_url = add_query_arg(
+                        'obsolete_cleanup_error',
+                        rawurlencode( __( 'Please run a preview first before removing shortcodes.', 'ffcertificate' ) ),
+                        $redirect_url
+                    );
+                    break;
+                }
+                try {
+                    $cleaner = new \FreeFormCertificate\Migrations\ObsoleteShortcodeCleaner();
+                    $report  = $cleaner->run( $current_days, array( 'dry_run' => false ) );
+                    set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
+                    delete_transient( $preview_ok_key );
+                    $redirect_url = add_query_arg(
+                        'obsolete_cleanup_msg',
+                        rawurlencode( sprintf(
+                            /* translators: 1: shortcodes removed, 2: posts affected */
+                            __( 'Cleanup complete. Removed %1$d shortcode(s) from %2$d post(s).', 'ffcertificate' ),
+                            (int) $report['shortcodes_removed'],
+                            (int) $report['posts_affected']
+                        ) ),
+                        $redirect_url
+                    );
+                } catch ( \Throwable $e ) {
+                    $redirect_url = add_query_arg( 'obsolete_cleanup_error', rawurlencode( $e->getMessage() ), $redirect_url );
+                }
+                break;
+        }
+
         wp_safe_redirect( $redirect_url );
         exit;
     }

@@ -179,6 +179,11 @@ New public CSV download feature allowing form organizers without WordPress admin
 * UX: `[ffc_csv_download]` now reuses the same CSS classes as `[ffc_verification]` (`ffc-verification-container`, `ffc-verification-form`, `ffc-form-field`, `ffc-input`, `ffc-submit-btn`) — inherits the card layout, dark-mode and focus ring from the main stylesheet, no more inline `<style>` block
 * UX: `ffc-frontend.css` is now auto-enqueued on pages containing `[ffc_csv_download]`; PDF/geofence JS stays gated behind `[ffc_form]` / `[ffc_verification]` — the download page still ships zero JavaScript
 * Docs: Added a `[ffc_csv_download]` row to the Shortcodes table in the Documentation tab describing the Form ID + hash workflow, expiration/quota gating, and the optional `title` attribute
+* Feat: New "Obsolete Shortcode Cleanup" section on the Data Migrations tab — scans published posts, pages and reusable blocks (`wp_block`) for embedded `[ffc_form id="..."]` shortcodes pointing at forms ended more than N days ago (default 90, configurable 1-3650) and removes those obsolete shortcodes from `post_content`. Admin-only, nonce-protected, handles both Classic and Gutenberg-wrapped shortcode formats
+* Feat: New `ObsoleteShortcodeCleaner` service (`find_expired_form_ids`, `scan_posts_for_expired_forms`, `strip_shortcodes_from_content`, `run($days, ['dry_run' => bool])`) plus a `Geofence::has_form_expired_by_days()` helper reused from the public CSV download's expiration helper
+* Feat: Cleanup UI enforces a dry-run → apply flow — the "Remove shortcodes now" button is disabled until a preview has been recorded in the last 5 minutes. Report shows grace window, expired forms, posts scanned, posts affected and shortcodes removed, plus a table of the first 50 affected posts with edit links
+* Safety: `wp_update_post()` automatically creates WordPress revisions for modified posts/pages, giving admins a manual rollback path; only `[ffc_form]` shortcodes pointing at expired IDs are removed — the rest of the content is left untouched
+* Test: New **ObsoleteShortcodeCleanerTest** — 19 tests covering regex quote styles, extra-attribute handling, classic + Gutenberg + mixed removal, dry-run vs apply pipelines, report truncation at `REPORT_LIMIT`, empty-result short-circuits, and `wp_update_post()` no-op skipping
 
 = 5.0.3 (2026-03-27) =
 
