@@ -123,7 +123,7 @@ try {
             <h3 class="hndle">
                 <span class="<?php echo esc_attr( $ffcertificate_migration['icon'] ); ?>"><?php echo esc_html( $ffcertificate_migration['name'] ); ?></span>
                 <?php if ( $ffcertificate_is_complete ) : ?>
-                    <span class="dashicons dashicons-yes-alt"></span>
+                    <span class="ffc-icon-checkmark"></span>
                 <?php endif; ?>
             </h3>
         </div>
@@ -272,8 +272,7 @@ try {
     <div class="postbox ffc-migration-card ffc-obsolete-cleanup-card">
         <div class="postbox-header">
             <h3 class="hndle">
-                <span class="dashicons dashicons-trash"></span>
-                <?php esc_html_e( 'Obsolete Shortcode Cleanup', 'ffcertificate' ); ?>
+                <span class="ffc-icon-delete"><?php esc_html_e( 'Obsolete Shortcode Cleanup', 'ffcertificate' ); ?></span>
             </h3>
         </div>
 
