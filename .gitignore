@@ -24,6 +24,8 @@ package-lock.json
 # Build
 /build/
 /dist/
+*.min.js.map
+*.min.css.map
 
 # PHPUnit
 .phpunit.result.cache
