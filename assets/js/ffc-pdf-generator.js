@@ -292,8 +292,14 @@
                         }
                     });
 
+                    // Reduce canvas scale on mobile to prevent memory
+                    // exhaustion on low-end devices (scale 2 produces a
+                    // ~14 MP image that can exceed 100 MB of RAM).
+                    var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                    var canvasScale = isMobile ? 1.5 : 2;
+
                     html2canvas(element, {
-                        scale: 2,
+                        scale: canvasScale,
                         width: a4WidthPx,
                         height: a4HeightPx,
                         useCORS: true,
@@ -319,6 +325,13 @@
 
                             if (!hasContent) {
                                 console.warn('[FFC PDF] Canvas is blank — check HTML/CSS.');
+                                var blankMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfBlankWarning)
+                                    ? ffc_ajax.strings.pdfBlankWarning
+                                    : 'Warning: the generated PDF appears to be blank. Please try again.';
+                                alert(blankMsg);
+                                $tempContainer.remove();
+                                hideOverlay();
+                                return;
                             }
 
                             var pdfOrientation = isPortrait ? 'portrait' : 'landscape';
@@ -328,10 +341,44 @@
                             var pdfH = isPortrait ? 297 : 210;
 
                             pdf.addImage(pdfImgData, 'PNG', 0, 0, pdfW, pdfH);
-                            pdf.save(filename || 'certificate.pdf');
+
+                            // iOS Safari: pdf.save() uses blob: URLs which don't
+                            // trigger downloads on Safari. Open in a new tab instead
+                            // so the user can share/save from the Safari PDF viewer.
+                            var safariRegex = /^((?!chrome|android).)*safari/i;
+                            var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                                        (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+
+                            if (isIOS || safariRegex.test(navigator.userAgent)) {
+                                var blobUrl = pdf.output('bloburl');
+                                window.open(blobUrl, '_blank');
+                            } else {
+                                pdf.save(filename || 'certificate.pdf');
+                            }
 
                             $tempContainer.remove();
-                            hideOverlay();
+
+                            // Show brief success feedback with platform-appropriate
+                            // guidance, then auto-dismiss.
+                            var successMsg;
+                            if (isIOS) {
+                                successMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfOpenedIOS)
+                                    ? ffc_ajax.strings.pdfOpenedIOS
+                                    : 'PDF opened in a new tab. Tap the share icon to save or print.';
+                            } else if (/Android/i.test(navigator.userAgent)) {
+                                successMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfSavedAndroid)
+                                    ? ffc_ajax.strings.pdfSavedAndroid
+                                    : 'PDF saved! Check your Downloads folder.';
+                            } else {
+                                successMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfDownloaded)
+                                    ? ffc_ajax.strings.pdfDownloaded
+                                    : 'PDF downloaded successfully.';
+                            }
+
+                            $('#ffc-pdf-overlay').find('h3').text(successMsg);
+                            $('#ffc-pdf-overlay').find('p').hide();
+                            $('#ffc-pdf-overlay').find('.ffc-spinner').hide();
+                            setTimeout(hideOverlay, 2000);
                         } catch (error) {
                             console.error('[FFC PDF] Error:', error);
                             var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.errorGeneratingPdf)

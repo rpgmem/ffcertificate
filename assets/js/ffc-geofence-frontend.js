@@ -379,7 +379,12 @@
                             : self.getString('timeout', 'Location request timed out.');
                         break;
                     default:
-                        errorMessage = config.messageError || self.getString('locationError', 'Unable to determine your location.');
+                        // Some iOS versions return error.code = 0 for unknown
+                        // errors; give Safari users actionable guidance instead
+                        // of a generic message.
+                        errorMessage = isSafariBrowser
+                            ? self.getString('safariPositionUnavailable', 'Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.')
+                            : (config.messageError || self.getString('locationError', 'Unable to determine your location.'));
                 }
 
                 // Honor gps_fallback = 'allow': show the form instead of blocking.
@@ -627,14 +632,14 @@
          * Get cached location
          */
         getLocationCache: function(formId) {
-            if (!localStorage) return null;
-
-            const cacheKey = 'ffc_geo_' + formId;
-            const cached = localStorage.getItem(cacheKey);
-
-            if (!cached) return null;
-
             try {
+                if (!localStorage) return null;
+
+                const cacheKey = 'ffc_geo_' + formId;
+                const cached = localStorage.getItem(cacheKey);
+
+                if (!cached) return null;
+
                 const data = JSON.parse(cached);
                 const now = Math.floor(Date.now() / 1000);
 
@@ -645,6 +650,7 @@
 
                 return data.location;
             } catch (e) {
+                // Safari private mode or quota exceeded
                 return null;
             }
         },
@@ -653,17 +659,22 @@
          * Set location cache
          */
         setLocationCache: function(formId, location, ttl) {
-            if (!localStorage) return;
+            try {
+                if (!localStorage) return;
 
-            const cacheKey = 'ffc_geo_' + formId;
-            const now = Math.floor(Date.now() / 1000);
+                const cacheKey = 'ffc_geo_' + formId;
+                const now = Math.floor(Date.now() / 1000);
 
-            const data = {
-                location: location,
-                expires: now + ttl
-            };
+                const data = {
+                    location: location,
+                    expires: now + ttl
+                };
 
-            localStorage.setItem(cacheKey, JSON.stringify(data));
+                localStorage.setItem(cacheKey, JSON.stringify(data));
+            } catch (e) {
+                // Safari private mode or quota exceeded — silently skip caching
+                this.debug('localStorage unavailable, skipping cache', e.message);
+            }
         },
 
         /**
