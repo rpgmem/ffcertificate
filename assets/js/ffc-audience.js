@@ -181,8 +181,31 @@
             }
         });
 
-        // Audience select: selecting a parent auto-selects children
+        // Audience select: selecting a parent auto-selects all descendants
         (function() {
+            // Collect all descendant IDs of an audience node recursively
+            function getAllDescendantIds(node) {
+                var ids = [];
+                if (!node.children || node.children.length === 0) return ids;
+                node.children.forEach(function(c) {
+                    ids.push(parseInt(c.id));
+                    ids = ids.concat(getAllDescendantIds(c));
+                });
+                return ids;
+            }
+
+            // Walk the audience tree and collect every node that has children
+            function collectParentNodes(nodes) {
+                var result = [];
+                (nodes || []).forEach(function(node) {
+                    if (node.children && node.children.length > 0) {
+                        result.push(node);
+                        result = result.concat(collectParentNodes(node.children));
+                    }
+                });
+                return result;
+            }
+
             var prevSelected = [];
             $('#booking-audiences').on('change', function() {
                 var $sel = $(this);
@@ -190,24 +213,24 @@
                 var audiences = state.config.audiences || [];
                 var newSelected = selected.slice();
 
-                audiences.forEach(function(audience) {
-                    if (!audience.children || audience.children.length === 0) return;
-                    var parentId = parseInt(audience.id);
-                    var childIds = audience.children.map(function(c) { return parseInt(c.id); });
+                var parentNodes = collectParentNodes(audiences);
+                parentNodes.forEach(function(node) {
+                    var parentId = parseInt(node.id);
+                    var descIds = getAllDescendantIds(node);
                     var parentNowSelected = selected.indexOf(parentId) !== -1;
                     var parentWasSelected = prevSelected.indexOf(parentId) !== -1;
 
                     if (parentNowSelected && !parentWasSelected) {
-                        // Parent just selected — add all children
-                        childIds.forEach(function(cid) {
-                            if (newSelected.indexOf(cid) === -1) {
-                                newSelected.push(cid);
+                        // Parent just selected — add all descendants
+                        descIds.forEach(function(did) {
+                            if (newSelected.indexOf(did) === -1) {
+                                newSelected.push(did);
                             }
                         });
                     } else if (!parentNowSelected && parentWasSelected) {
-                        // Parent just deselected — remove all children
+                        // Parent just deselected — remove all descendants
                         newSelected = newSelected.filter(function(id) {
-                            return childIds.indexOf(id) === -1;
+                            return descIds.indexOf(id) === -1;
                         });
                     }
                 });
@@ -343,17 +366,18 @@
 
         var audiences = state.config.audiences || [];
 
-        audiences.forEach(function(audience) {
-            // Parent is always a selectable option
-            $select.append('<option value="' + audience.id + '">' + audience.name + '</option>');
+        function appendNodes(nodes, depth) {
+            nodes.forEach(function(node) {
+                var indent = new Array(depth + 1).join('\u00A0\u00A0\u00A0');
+                var prefix = depth > 0 ? indent + '\u2514 ' : '';
+                $select.append('<option value="' + node.id + '">' + prefix + node.name + '</option>');
+                if (node.children && node.children.length > 0) {
+                    appendNodes(node.children, depth + 1);
+                }
+            });
+        }
 
-            // Children appear indented below the parent
-            if (audience.children && audience.children.length > 0) {
-                audience.children.forEach(function(child) {
-                    $select.append('<option value="' + child.id + '">\u00A0\u00A0\u00A0\u2514 ' + child.name + '</option>');
-                });
-            }
-        });
+        appendNodes(audiences, 0);
     }
 
     /**
@@ -1351,13 +1375,16 @@
      */
     function buildParentNameMap() {
         var map = {};
-        var configAudiences = state.config.audiences || [];
-        configAudiences.forEach(function(parent) {
-            if (!parent.children || parent.children.length === 0) return;
-            parent.children.forEach(function(child) {
-                map[parseInt(child.id)] = parent.name;
+        function walk(nodes) {
+            (nodes || []).forEach(function(node) {
+                if (!node.children || node.children.length === 0) return;
+                node.children.forEach(function(child) {
+                    map[parseInt(child.id)] = node.name;
+                });
+                walk(node.children);
             });
-        });
+        }
+        walk(state.config.audiences || []);
         return map;
     }
 
@@ -1380,24 +1407,36 @@
     function collapseParentAudiences(bookingAudiences) {
         if (!bookingAudiences || bookingAudiences.length === 0) return bookingAudiences;
 
-        var configAudiences = state.config.audiences || [];
         var ids = bookingAudiences.map(function(a) { return parseInt(a.id); });
         var removeIds = [];
 
-        configAudiences.forEach(function(parent) {
-            if (!parent.children || parent.children.length === 0) return;
-            var parentId = parseInt(parent.id);
-            if (ids.indexOf(parentId) === -1) return;
-
-            var childIds = parent.children.map(function(c) { return parseInt(c.id); });
-            var allChildrenPresent = childIds.every(function(cid) {
-                return ids.indexOf(cid) !== -1;
+        // Recursively collect all descendant IDs of a node
+        function allDescIds(node) {
+            var result = [];
+            if (!node.children || node.children.length === 0) return result;
+            node.children.forEach(function(c) {
+                result.push(parseInt(c.id));
+                result = result.concat(allDescIds(c));
             });
+            return result;
+        }
 
-            if (allChildrenPresent) {
-                removeIds = removeIds.concat(childIds);
-            }
-        });
+        function walk(nodes) {
+            (nodes || []).forEach(function(node) {
+                if (!node.children || node.children.length === 0) return;
+                var parentId = parseInt(node.id);
+                if (ids.indexOf(parentId) === -1) { walk(node.children); return; }
+
+                var descIds = allDescIds(node);
+                var allPresent = descIds.every(function(did) { return ids.indexOf(did) !== -1; });
+                if (allPresent) {
+                    removeIds = removeIds.concat(descIds);
+                } else {
+                    walk(node.children);
+                }
+            });
+        }
+        walk(state.config.audiences || []);
 
         if (removeIds.length === 0) return bookingAudiences;
 

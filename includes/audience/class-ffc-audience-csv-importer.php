@@ -251,66 +251,76 @@ class AudienceCsvImporter {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
         fclose($handle);
 
-        // Process parents first (empty parent_name)
-        foreach ($audiences_to_create as $audience_data) {
-            if (!empty($audience_data['parent_name'])) {
-                continue;
+        // Process in depth order: roots first, then children, then grandchildren.
+        // Each pass resolves audiences whose parent already exists.
+        $pending = $audiences_to_create;
+        $max_passes = 4; // safety: 3 levels + 1 to detect unresolvable rows
+
+        for ($pass = 0; $pass < $max_passes && !empty($pending); $pass++) {
+            $still_pending = array();
+
+            foreach ($pending as $audience_data) {
+                // Root audiences (no parent_name)
+                if (empty($audience_data['parent_name'])) {
+                    $existing_id = self::get_audience_id_by_name($audience_data['name']);
+                    if ($existing_id) {
+                        $result['skipped']++;
+                        continue;
+                    }
+
+                    $new_id = AudienceRepository::create(array(
+                        'name' => $audience_data['name'],
+                        'color' => $audience_data['color'],
+                        'parent_id' => null,
+                    ));
+
+                    if ($new_id) {
+                        $result['imported']++;
+                    } else {
+                        /* translators: %d: row number */
+                        $result['errors'][] = sprintf(__('Row %d: Could not create audience.', 'ffcertificate'), $audience_data['row']);
+                        $result['skipped']++;
+                    }
+                    continue;
+                }
+
+                // Child audiences — try to resolve parent
+                $existing_id = self::get_audience_id_by_name($audience_data['name']);
+                if ($existing_id) {
+                    $result['skipped']++;
+                    continue;
+                }
+
+                $parent_id = self::get_audience_id_by_name($audience_data['parent_name']);
+                if (!$parent_id) {
+                    // Parent not yet created — defer to next pass
+                    $still_pending[] = $audience_data;
+                    continue;
+                }
+
+                $new_id = AudienceRepository::create(array(
+                    'name' => $audience_data['name'],
+                    'color' => $audience_data['color'],
+                    'parent_id' => $parent_id,
+                ));
+
+                if ($new_id) {
+                    $result['imported']++;
+                } else {
+                    /* translators: %d: row number */
+                    $result['errors'][] = sprintf(__('Row %d: Could not create audience.', 'ffcertificate'), $audience_data['row']);
+                    $result['skipped']++;
+                }
             }
 
-            $existing_id = self::get_audience_id_by_name($audience_data['name']);
-            if ($existing_id) {
-                $result['skipped']++;
-                continue;
-            }
-
-            $new_id = AudienceRepository::create(array(
-                'name' => $audience_data['name'],
-                'color' => $audience_data['color'],
-                'parent_id' => null,
-            ));
-
-            if ($new_id) {
-                $result['imported']++;
-            } else {
-                /* translators: %d: row number */
-                $result['errors'][] = sprintf(__('Row %d: Could not create audience.', 'ffcertificate'), $audience_data['row']);
-                $result['skipped']++;
-            }
+            $pending = $still_pending;
         }
 
-        // Process children (with parent_name)
-        foreach ($audiences_to_create as $audience_data) {
-            if (empty($audience_data['parent_name'])) {
-                continue;
-            }
-
-            $existing_id = self::get_audience_id_by_name($audience_data['name']);
-            if ($existing_id) {
-                $result['skipped']++;
-                continue;
-            }
-
-            $parent_id = self::get_audience_id_by_name($audience_data['parent_name']);
-            if (!$parent_id) {
-                /* translators: %1$d: row number, %2$s: parent audience name */
-                $result['errors'][] = sprintf(__('Row %1$d: Parent audience "%2$s" not found.', 'ffcertificate'), $audience_data['row'], $audience_data['parent_name']);
-                $result['skipped']++;
-                continue;
-            }
-
-            $new_id = AudienceRepository::create(array(
-                'name' => $audience_data['name'],
-                'color' => $audience_data['color'],
-                'parent_id' => $parent_id,
-            ));
-
-            if ($new_id) {
-                $result['imported']++;
-            } else {
-                /* translators: %d: row number */
-                $result['errors'][] = sprintf(__('Row %d: Could not create audience.', 'ffcertificate'), $audience_data['row']);
-                $result['skipped']++;
-            }
+        // Any remaining rows have unresolvable parents
+        foreach ($pending as $audience_data) {
+            /* translators: %1$d: row number, %2$s: parent audience name */
+            $result['errors'][] = sprintf(__('Row %1$d: Parent audience "%2$s" not found.', 'ffcertificate'), $audience_data['row'], $audience_data['parent_name']);
+            $result['skipped']++;
         }
 
         $result['success'] = true;
@@ -459,7 +469,8 @@ class AudienceCsvImporter {
                    "Group B,#28a745,\n" .
                    "Subgroup A1,#dc3545,Group A\n" .
                    "Subgroup A2,#ffc107,Group A\n" .
-                   "Subgroup B1,#17a2b8,Group B\n";
+                   "Subgroup B1,#17a2b8,Group B\n" .
+                   "Team B1-Alpha,#6f42c1,Subgroup B1\n";
         }
 
         // Default: members

@@ -224,7 +224,7 @@ class AudienceActivator {
     /**
      * Create audiences table
      *
-     * Stores audience groups with 2-level hierarchy (parent/child).
+     * Stores audience groups with 3-level hierarchy (parent/child/grandchild).
      *
      * @return void
      */

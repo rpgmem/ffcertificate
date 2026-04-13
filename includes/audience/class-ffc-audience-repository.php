@@ -5,7 +5,7 @@ declare(strict_types=1);
  * Audience Repository
  *
  * Handles database operations for audience groups (públicos-alvo).
- * Supports 2-level hierarchy (parent/child).
+ * Supports 3-level hierarchy (parent / child / grandchild).
  *
  * @since 4.5.0
  * @package FreeFormCertificate\Audience
@@ -159,17 +159,32 @@ class AudienceRepository {
     /**
      * Get audiences with their children (hierarchical)
      *
+     * Builds a tree up to 3 levels deep (parent / child / grandchild).
+     *
      * @param string|null $status Optional status filter
-     * @return array<object> Parents with 'children' property
+     * @return array<object> Parents with nested 'children' property
      */
     public static function get_hierarchical(?string $status = null): array {
-        $parents = self::get_parents($status);
+        $all = self::get_all(array('status' => $status));
 
-        foreach ($parents as $parent) {
-            $parent->children = self::get_children((int) $parent->id, $status);
+        // Index by id
+        $by_id = array();
+        foreach ($all as $item) {
+            $item->children = array();
+            $by_id[(int) $item->id] = $item;
         }
 
-        return $parents;
+        // Build tree
+        $roots = array();
+        foreach ($by_id as $item) {
+            if (!empty($item->parent_id) && isset($by_id[(int) $item->parent_id])) {
+                $by_id[(int) $item->parent_id]->children[] = $item;
+            } else {
+                $roots[] = $item;
+            }
+        }
+
+        return $roots;
     }
 
     /**
@@ -282,7 +297,7 @@ class AudienceRepository {
     }
 
     /**
-     * Cascade allow_self_join flag from parent to all children
+     * Cascade allow_self_join flag from parent to all descendants
      *
      * @since 4.9.10
      * @param int $parent_id Parent audience ID
@@ -293,13 +308,24 @@ class AudienceRepository {
         $wpdb = self::db();
         $table = self::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $children = self::get_children($parent_id);
+        if (empty($children)) {
+            return;
+        }
+
+        $child_ids = array_map(function ($c) { return (int) $c->id; }, $children);
+        $placeholders = implode(',', array_fill(0, count($child_ids), '%d'));
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $wpdb->query($wpdb->prepare(
-            "UPDATE %i SET allow_self_join = %d WHERE parent_id = %d",
-            $table,
-            $value,
-            $parent_id
+            "UPDATE %i SET allow_self_join = %d WHERE id IN ({$placeholders})",
+            array_merge(array($table, $value), $child_ids)
         ));
+
+        // Recurse into each child
+        foreach ($children as $child) {
+            self::cascade_self_join((int) $child->id, $value);
+        }
     }
 
     /**
@@ -420,12 +446,10 @@ class AudienceRepository {
 
         $audience_ids = array($audience_id);
 
-        // Include children if requested
+        // Include all descendants if requested
         if ($include_children) {
-            $children = self::get_children($audience_id);
-            foreach ($children as $child) {
-                $audience_ids[] = $child->id;
-            }
+            $descendant_ids = self::get_descendant_ids($audience_id);
+            $audience_ids = array_merge($audience_ids, $descendant_ids);
         }
 
         $placeholders = implode(',', array_fill(0, count($audience_ids), '%d'));
@@ -474,18 +498,19 @@ class AudienceRepository {
         );
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
-        // Include parent audiences if requested
+        // Include all ancestor audiences if requested (walks up the full chain)
         if ($include_parents && !empty($audiences)) {
-            $parent_ids = array();
+            $ancestor_ids = array();
             foreach ($audiences as $audience) {
                 if ($audience->parent_id) {
-                    $parent_ids[] = $audience->parent_id;
+                    $ids = self::get_ancestor_ids((int) $audience->parent_id);
+                    $ancestor_ids = array_merge($ancestor_ids, $ids);
                 }
             }
 
-            if (!empty($parent_ids)) {
-                $parent_ids = array_unique( array_map( 'absint', $parent_ids ) );
-                $id_list = implode( ',', $parent_ids );
+            if (!empty($ancestor_ids)) {
+                $ancestor_ids = array_unique( array_map( 'absint', $ancestor_ids ) );
+                $id_list = implode( ',', $ancestor_ids );
 
                 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $id_list is sanitized via absint(); cached below.
                 $parents = $wpdb->get_results(
@@ -669,5 +694,103 @@ class AudienceRepository {
         wp_cache_set( $cache_key, $results, 'ffcertificate' );
 
         return $results;
+    }
+
+    /**
+     * Get all descendant IDs of an audience (children, grandchildren, etc.)
+     *
+     * @param int $audience_id Audience ID
+     * @return array<int>
+     */
+    public static function get_descendant_ids(int $audience_id): array {
+        $children = self::get_children($audience_id);
+        $ids = array();
+        foreach ($children as $child) {
+            $ids[] = (int) $child->id;
+            $ids = array_merge($ids, self::get_descendant_ids((int) $child->id));
+        }
+        return $ids;
+    }
+
+    /**
+     * Get ancestor IDs walking up from a given audience ID.
+     *
+     * Returns the ID passed in plus all its parents up to the root.
+     *
+     * @param int $audience_id Starting audience ID
+     * @return array<int>
+     */
+    public static function get_ancestor_ids(int $audience_id): array {
+        $ids = array($audience_id);
+        $audience = self::get_by_id($audience_id);
+        if ($audience && !empty($audience->parent_id)) {
+            $ids = array_merge($ids, self::get_ancestor_ids((int) $audience->parent_id));
+        }
+        return $ids;
+    }
+
+    /**
+     * Get audiences that may serve as parents (3-level hierarchy).
+     *
+     * Returns root audiences and their direct children (depth 0 and 1).
+     * Audiences at depth 2 cannot be parents because that would create a 4th level.
+     * Optionally excludes an audience and its descendants to prevent circular refs.
+     *
+     * @param int $exclude_id Audience ID to exclude (along with descendants)
+     * @return array<object> Flat list with a 'depth' property on each item
+     */
+    public static function get_possible_parents(int $exclude_id = 0): array {
+        $exclude_ids = array();
+        if ($exclude_id > 0) {
+            $exclude_ids[] = $exclude_id;
+            $exclude_ids = array_merge($exclude_ids, self::get_descendant_ids($exclude_id));
+        }
+
+        $parents = self::get_parents(); // depth 0
+        $result = array();
+
+        foreach ($parents as $parent) {
+            if (in_array((int) $parent->id, $exclude_ids, true)) {
+                continue;
+            }
+            $parent->depth = 0;
+            $result[] = $parent;
+
+            // depth-1 children
+            $children = self::get_children((int) $parent->id);
+            foreach ($children as $child) {
+                if (in_array((int) $child->id, $exclude_ids, true)) {
+                    continue;
+                }
+                $child->depth = 1;
+                $result[] = $child;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get the full ancestor chain for an audience (for breadcrumb display).
+     *
+     * Returns ordered array from root to the immediate parent.
+     *
+     * @param int $audience_id Audience ID
+     * @return array<object>
+     */
+    public static function get_ancestors(int $audience_id): array {
+        $ancestors = array();
+        $current = self::get_by_id($audience_id);
+
+        while ($current && !empty($current->parent_id)) {
+            $parent = self::get_by_id((int) $current->parent_id);
+            if (!$parent) {
+                break;
+            }
+            array_unshift($ancestors, $parent);
+            $current = $parent;
+        }
+
+        return $ancestors;
     }
 }

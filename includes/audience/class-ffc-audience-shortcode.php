@@ -593,27 +593,26 @@ class AudienceShortcode {
      */
     private static function get_public_audiences(): array {
         $audiences = AudienceRepository::get_hierarchical('active');
-        $result = array();
-        foreach ($audiences as $audience) {
-            $item = array(
-                'id' => $audience->id,
-                'name' => $audience->name,
-                'color' => $audience->color,
-                'parent_id' => $audience->parent_id ?? null,
-            );
-            if (isset($audience->children) && !empty($audience->children)) {
-                $item['children'] = array_map(function($c) {
-                    return array(
-                        'id' => $c->id,
-                        'name' => $c->name,
-                        'color' => $c->color,
-                        'parent_id' => $c->parent_id,
-                    );
-                }, $audience->children);
-            }
-            $result[] = $item;
+        return array_map(array(__CLASS__, 'audience_to_array'), $audiences);
+    }
+
+    /**
+     * Recursively convert an audience object (with children) to an array.
+     *
+     * @param object $audience Audience object with optional children.
+     * @return array<string, mixed>
+     */
+    private static function audience_to_array(object $audience): array {
+        $item = array(
+            'id' => $audience->id,
+            'name' => $audience->name,
+            'color' => $audience->color,
+            'parent_id' => $audience->parent_id ?? null,
+        );
+        if (!empty($audience->children)) {
+            $item['children'] = array_map(array(__CLASS__, 'audience_to_array'), $audience->children);
         }
-        return $result;
+        return $item;
     }
 
     /**
@@ -631,31 +630,7 @@ class AudienceShortcode {
             $audiences = AudienceRepository::get_user_audiences($user_id, true);
         }
 
-        $result = array();
-        foreach ($audiences as $audience) {
-            $item = array(
-                'id' => $audience->id,
-                'name' => $audience->name,
-                'color' => $audience->color,
-                'parent_id' => $audience->parent_id ?? null,
-            );
-
-            // Include children for hierarchical structure
-            if (isset($audience->children) && !empty($audience->children)) {
-                $item['children'] = array_map(function($c) {
-                    return array(
-                        'id' => $c->id,
-                        'name' => $c->name,
-                        'color' => $c->color,
-                        'parent_id' => $c->parent_id,
-                    );
-                }, $audience->children);
-            }
-
-            $result[] = $item;
-        }
-
-        return $result;
+        return array_map(array(__CLASS__, 'audience_to_array'), $audiences);
     }
 
     /**

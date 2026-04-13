@@ -7805,8 +7805,8 @@ msgid "Select a calendar"
 msgstr "Selecionar um calendário"
 
 #: includes/audience/class-ffc-audience-admin-audience.php:264
-msgid "Select a parent to create a sub-group (2-level hierarchy only)."
-msgstr "Selecione um pai para criar um subgrupo (apenas hierarquia de 2 níveis)."
+msgid "Select a parent to create a sub-group (up to 3 hierarchy levels)."
+msgstr "Selecione um pai para criar um subgrupo (até 3 níveis de hierarquia)."
 
 #: includes/audience/class-ffc-audience-admin-import.php:101
 msgid "Select a specific audience or leave empty to use audience_id/audience_name from CSV."
@@ -9872,8 +9872,8 @@ msgid "When enabled, actions like submission creation, data access, and settings
 msgstr "Quando ativada, a função regista ações como a criação de submissões, o acesso a dados e as alterações de configurações."
 
 #: includes/audience/class-ffc-audience-admin-audience.php:307
-msgid "When enabled, all child audiences inherit this setting. Users can join up to 2 child groups."
-msgstr "Quando ativada, essa configuração é herdada por todos os públicos filhos. Os usuários podem participar de até 2 grupos filhos."
+msgid "When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups."
+msgstr "Quando ativada, essa configuração é herdada por todos os públicos descendentes. Os usuários podem participar de até 2 grupos filhos."
 
 #: includes/settings/views/ffc-tab-geolocation.php:103
 msgid "When enabled, if the primary service fails, automatically try the alternative service."

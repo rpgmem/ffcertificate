@@ -196,7 +196,7 @@ class AudienceAdminAudience {
             $page_title = __('Edit Audience', 'ffcertificate');
         }
 
-        $parents = AudienceRepository::get_parents();
+        $possible_parents = AudienceRepository::get_possible_parents($id);
         $back_url = admin_url('admin.php?page=' . $this->menu_slug . '-audiences');
 
         ?>
@@ -205,14 +205,17 @@ class AudienceAdminAudience {
 
         <?php if ($audience && !empty($audience->parent_id)) : ?>
             <?php
-            $parent = AudienceRepository::get_by_id((int) $audience->parent_id);
-            if ($parent) :
-                $parent_edit_url = admin_url('admin.php?page=' . $this->menu_slug . '-audiences&action=edit&id=' . $parent->id);
+            $ancestors = AudienceRepository::get_ancestors((int) $audience->id);
+            if (!empty($ancestors)) :
             ?>
             <div class="ffc-breadcrumb">
-                <span class="ffc-color-swatch" style="background-color: <?php echo esc_attr($parent->color); ?>; width:12px; height:12px; display:inline-block; border-radius:50%; vertical-align:middle;"></span>
-                <a href="<?php echo esc_url($parent_edit_url); ?>"><?php echo esc_html($parent->name); ?></a>
-                <span class="ffc-breadcrumb-sep">&rsaquo;</span>
+                <?php foreach ($ancestors as $ancestor) :
+                    $ancestor_edit_url = admin_url('admin.php?page=' . $this->menu_slug . '-audiences&action=edit&id=' . $ancestor->id);
+                ?>
+                    <span class="ffc-color-swatch" style="background-color: <?php echo esc_attr($ancestor->color); ?>; width:12px; height:12px; display:inline-block; border-radius:50%; vertical-align:middle;"></span>
+                    <a href="<?php echo esc_url($ancestor_edit_url); ?>"><?php echo esc_html($ancestor->name); ?></a>
+                    <span class="ffc-breadcrumb-sep">&rsaquo;</span>
+                <?php endforeach; ?>
                 <span class="ffc-color-swatch" style="background-color: <?php echo esc_attr($audience->color); ?>; width:12px; height:12px; display:inline-block; border-radius:50%; vertical-align:middle;"></span>
                 <strong><?php echo esc_html($audience->name); ?></strong>
             </div>
@@ -253,15 +256,13 @@ class AudienceAdminAudience {
                     <td>
                         <select name="audience_parent" id="audience_parent">
                             <option value=""><?php esc_html_e('None (top-level audience)', 'ffcertificate'); ?></option>
-                            <?php foreach ($parents as $parent) : ?>
-                                <?php if ($parent->id !== $id) : // Prevent selecting self as parent ?>
-                                    <option value="<?php echo esc_attr((string) $parent->id); ?>" <?php selected($audience->parent_id ?? '', $parent->id); ?>>
-                                        <?php echo esc_html($parent->name); ?>
-                                    </option>
-                                <?php endif; ?>
+                            <?php foreach ($possible_parents as $pp) : ?>
+                                <option value="<?php echo esc_attr((string) $pp->id); ?>" <?php selected($audience->parent_id ?? '', $pp->id); ?>>
+                                    <?php echo esc_html(str_repeat('— ', (int) $pp->depth) . $pp->name); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
-                        <p class="description"><?php esc_html_e('Select a parent to create a sub-group (2-level hierarchy only).', 'ffcertificate'); ?></p>
+                        <p class="description"><?php esc_html_e('Select a parent to create a sub-group (up to 3 hierarchy levels).', 'ffcertificate'); ?></p>
                     </td>
                 </tr>
                 <tr>
@@ -304,7 +305,7 @@ class AudienceAdminAudience {
                                     <?php checked($is_self_join); ?>>
                                 <?php esc_html_e('Users can join/leave child groups from their dashboard', 'ffcertificate'); ?>
                             </label>
-                            <p class="description"><?php esc_html_e('When enabled, all child audiences inherit this setting. Users can join up to 2 child groups.', 'ffcertificate'); ?></p>
+                            <p class="description"><?php esc_html_e('When enabled, all descendant audiences inherit this setting. Users can join up to 2 child groups.', 'ffcertificate'); ?></p>
                         <?php endif; ?>
                     </td>
                 </tr>
