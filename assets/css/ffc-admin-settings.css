@@ -257,12 +257,6 @@
     margin-bottom: 20px;
 }
 
-.ffc-migration-card .hndle {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
 .ffc-migration-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

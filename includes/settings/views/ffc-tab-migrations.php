@@ -272,8 +272,7 @@ try {
     <div class="postbox ffc-migration-card ffc-obsolete-cleanup-card">
         <div class="postbox-header">
             <h3 class="hndle">
-                <span class="dashicons dashicons-trash"></span>
-                <?php esc_html_e( 'Obsolete Shortcode Cleanup', 'ffcertificate' ); ?>
+                <span class="dashicons dashicons-trash"><?php esc_html_e( 'Obsolete Shortcode Cleanup', 'ffcertificate' ); ?></span>
             </h3>
         </div>
 
