@@ -65,6 +65,42 @@ Public CSV download feature: form organizers without WordPress admin access can 
 - Safety: `wp_update_post()` automatically creates WordPress revisions for modified `post` / `page` entries, giving admins a manual rollback path. Only `[ffc_form]` shortcodes pointing at expired IDs are removed — the rest of the content is left untouched
 - Test: New **ObsoleteShortcodeCleanerTest** — 19 tests covering regex quote styles (`id="N"`, `id='N'`, `id=N`), extra-attribute handling, classic + Gutenberg + mixed removal, dry-run vs apply pipelines, report truncation at `REPORT_LIMIT`, empty-result short-circuits, and `wp_update_post()` no-op skipping
 
+### Audience Scheduling — 3-Level Hierarchy
+
+- Feat: **3-level audience hierarchy** — audiences now support parent / child / grandchild structure. `get_hierarchical()` rewritten to fetch all audiences in a single query and build the tree in PHP; `get_descendant_ids()`, `get_ancestor_ids()`, `get_possible_parents()` and `get_ancestors()` added for recursive traversal
+- Feat: Admin audience form updated — parent dropdown shows all eligible parents with indented display (`— name`), breadcrumb shows full ancestor chain, circular reference prevention excludes self and descendants from parent options
+- Feat: CSV import updated — iterative multi-pass algorithm (up to 4 passes) creates audiences whose parents already exist, deferring the rest to the next pass. Sample CSV updated to include 3rd-level example
+- Feat: Frontend calendar audience select (`populateAudienceSelect`) uses recursive `appendNodes(nodes, depth)` with indented names; auto-selection helpers (`getAllDescendantIds`, `collectParentNodes`) and `collapseParentAudiences` made recursive
+- Feat: Shortcode `audience_to_array()` shared method recursively maps all hierarchy levels for the frontend JSON payload
+
+### Audience Scheduling — Isolated Calendar Mode
+
+- Feat: **Isolated calendar mode** — new "Ignore conflicts from other calendars" checkbox on the calendar edit form. When enabled, audience same-day and user overlap conflict checks only consider bookings within that calendar; environment conflicts remain per-environment regardless
+- Feat: New `is_isolated` column (`tinyint(1) DEFAULT 0`) on `ffc_audience_schedules` table, added via `add_column_if_missing()` migration pattern
+- Feat: `get_user_conflicts()` and `get_audience_same_day_bookings()` accept optional `$scope_schedule_id` parameter — when set, adds `INNER JOIN` on environments table to filter conflicts to the given schedule only
+- Feat: REST controller resolves `schedule_id` from the selected environment and passes it to conflict checks when the schedule is isolated
+
+### Audience Scheduling — Conflict Behavior
+
+- Change: **Audience same-day conflict downgraded from hard block to soft warning** — booking the same audience group on the same day now shows a dismissible warning with existing booking details instead of blocking entirely. Users can acknowledge and proceed, matching the behavior of user overlap conflicts
+
+### Audience Scheduling — User Dashboard
+
+- Feat: **3rd-level audiences in user profile** — `get_joinable_groups()` API rewritten from 2-query parent+children approach to single-query tree builder, matching `get_hierarchical()` pattern. `renderJoinableGroups()` in `ffc-user-dashboard.js` made recursive
+- Feat: **Accordion on audience group selection** — parent and sub-parent headers toggle their children on click, starting collapsed with a `+` icon that switches to `−` when expanded. Uses `aria-expanded` for accessibility. Leaf-only nodes render without accordion
+- Fix: Color dot (`.ffc-audience-dot`) was invisible on subgroup headers — selector was scoped to `.ffc-audience-join-item` only; broadened to apply globally
+- Fix: Subgroup header rows without join/leave buttons had inconsistent height — added `min-height: 44px` to both item and subgroup header rows
+- CSS: Nested subgroup styling with indented padding for 3rd-level items and headers
+
+### Bug Fixes
+
+- Fix: Booking "Create" button stuck on loading text ("Verificando...") after consecutive bookings — `openBookingModal()` reset `disabled` state but not the button text; now also restores `ffcAudience.strings.createBooking`
+- Fix: Frontend calendar did not display 3rd-level audiences — minified JS (`ffc-audience.min.js`) was stale and still contained the old 2-level rendering logic
+
+### Test Coverage
+
+- Test: Updated 6 test mocks in **AudienceRepositoryTest** for recursive operations — `test_get_hierarchical`, `test_get_members_includes_children`, `test_get_user_audiences_includes_parents`, `test_get_user_audiences_does_not_duplicate`, `test_get_member_count_includes_children`, and `test_cascade_self_join` now properly mock multi-level `get_results`/`get_row` calls
+
 ---
 
 ## 5.0.3 (2026-03-27)
