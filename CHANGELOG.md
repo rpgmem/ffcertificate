@@ -65,6 +65,64 @@ Public CSV download feature: form organizers without WordPress admin access can 
 - Safety: `wp_update_post()` automatically creates WordPress revisions for modified `post` / `page` entries, giving admins a manual rollback path. Only `[ffc_form]` shortcodes pointing at expired IDs are removed — the rest of the content is left untouched
 - Test: New **ObsoleteShortcodeCleanerTest** — 19 tests covering regex quote styles (`id="N"`, `id='N'`, `id=N`), extra-attribute handling, classic + Gutenberg + mixed removal, dry-run vs apply pipelines, report truncation at `REPORT_LIMIT`, empty-result short-circuits, and `wp_update_post()` no-op skipping
 
+### Reregistration — Dynamic Fields System
+
+- Feat: **Unified dynamic field system** — all ~30 historical "standard" fields (personal data, contacts, work schedule, accumulation, union) and admin-created custom fields now read from a single source (`wp_ffc_custom_fields`). Admins can relabel, reorder, regroup, deactivate, and delete any field without touching PHP
+- Feat: Schema upgrades via new `MigrationDynamicReregFields` strategy — adds `field_group`, `field_source`, `field_profile_key`, `field_mask`, `is_sensitive` columns to `wp_ffc_custom_fields` + `auth_code`, `magic_token` columns to `wp_ffc_reregistration_submissions` with matching indexes
+- Feat: **Submission details modal** — new "View Details" button in the reregistration submissions list opens a modal that renders all fields grouped by `field_group`, using labels and types from `wp_ffc_custom_fields`. Sensitive values (CPF/RF/RG) decrypted server-side. `FichaGenerator` internal helpers promoted to public API
+- Security: CPF, RF and RG are now encrypted at rest (AES-256-CBC via the existing `Encryption` class) in both the submission JSON and in `usermeta`. Decryption is transparent in form renderer, PDF generator, CSV exporter, and verification handler
+
+### Security Hardening
+
+- Security: Refactor `AppointmentRepository::findByUserId()` and `getStatistics()` to use single `wpdb->prepare()` calls instead of nesting prepared fragments (avoids placeholder re-processing)
+- Security: Replace direct ID interpolation in `AbstractRepository::findByIds()` with proper `%d` placeholders via `array_fill` + spread operator
+- Security: Add `is_uploaded_file()` validation in `AudienceAdminImport` for both member and audience CSV uploads (prevents path traversal via crafted `tmp_name`)
+- Security: Sanitize `Content-Disposition` filenames across all 6 CSV exporters — strip CR/LF/quote characters and wrap in double quotes (CRLF injection prevention per RFC 6266)
+- Security: Centralize honeypot+captcha via `SecurityService` in verification handler; add honeypot field to reregistration form (defense-in-depth)
+- Security: Add SRI hash for jQuery UI CDN stylesheet
+- Security: Add rate limiting to certificate verification REST endpoint
+- Security: Add `X-RateLimit-Limit` / `X-RateLimit-Remaining` headers to REST API responses
+
+### CI/CD
+
+- Feat: Add GitHub Actions CI workflow (`ci.yml`) — PHPStan + PHPUnit matrix
+- Feat: Add asset build verification workflow (`assets.yml`) for PRs
+- Feat: Add source maps to CSS/JS build scripts; add `.map` files to `.gitignore`
+
+### CSS Refactoring
+
+- Refactor: Replace inline `<style>` blocks in form-list-columns, audience-admin-page, self-scheduling editor, URL shortener admin, and reregistration custom fields with dedicated CSS classes and `wp_add_inline_style()`
+
+### Cache Compatibility
+
+- Feat: Add `DONOTCACHEPAGE` constant to dashboard cache exclusion
+- Feat: Detect WP Rocket / W3TC / WP Super Cache in cache settings diagnostic
+- Feat: Add cache compatibility FAQ to `readme.txt`
+
+### Accessibility
+
+- A11y: Add `aria-label` to certificate and booking forms
+- A11y: Add `aria-describedby` to ticket field
+
+### Additional Features
+
+- Feat: Activity log CSV export with filter support
+
+### Mobile Compatibility
+
+- Fix: iOS Safari PDF download — use `pdf.output('bloburl')` + `window.open()` instead of `pdf.save()` which relies on `blob:` URLs unsupported since iOS 13.3
+- Fix: Blank canvas detection — alert user and abort instead of silently generating an empty PDF
+- Fix: Mobile memory — reduce html2canvas scale from 2x to 1.5x on mobile to prevent memory exhaustion on low-end phones
+- Fix: Platform-specific success messages — "Check Downloads" on Android, "Tap share icon" on iOS
+- Fix: Wrap `localStorage` read/write in try/catch for Safari private mode (quota is 0)
+- Fix: Default to Safari-specific guidance when geofence `error.code` is 0 or undefined (some iOS versions)
+
+### Migrations Tab UI
+
+- Fix: Standardize all migration card icons to use `ffc-icon-*` CSS pattern with consistent alignment
+- Fix: Cleanup card markup and dashicon alignment issues across migration cards (5 incremental fixes)
+- Fix: Obsolete shortcode cleanup `save_days` form — nonce and trigger param now sent via URL query string instead of hidden POST fields that were not reaching the handler
+
 ### Audience Scheduling — 3-Level Hierarchy
 
 - Feat: **3-level audience hierarchy** — audiences now support parent / child / grandchild structure. `get_hierarchical()` rewritten to fetch all audiences in a single query and build the tree in PHP; `get_descendant_ids()`, `get_ancestor_ids()`, `get_possible_parents()` and `get_ancestors()` added for recursive traversal
