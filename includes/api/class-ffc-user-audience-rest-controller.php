@@ -258,63 +258,55 @@ class UserAudienceRestController {
                 return rest_ensure_response(array('groups' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
             }
 
-            // Get parent audiences that have allow_self_join enabled
+            // Fetch all joinable audiences at once (with membership status)
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $parents = $wpdb->get_results(
+            $all = $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id, name, color
-                     FROM %i
-                     WHERE allow_self_join = 1 AND parent_id IS NULL AND status = 'active'
-                     ORDER BY name ASC",
-                    $audiences_table
+                    "SELECT a.id, a.name, a.color, a.parent_id,
+                            CASE WHEN m.id IS NOT NULL THEN 1 ELSE 0 END AS is_member
+                     FROM %i a
+                     LEFT JOIN %i m ON m.audience_id = a.id AND m.user_id = %d
+                     WHERE a.allow_self_join = 1 AND a.status = 'active'
+                     ORDER BY a.name ASC",
+                    $audiences_table,
+                    $members_table,
+                    $user_id
                 ),
                 ARRAY_A
             );
 
-            if (empty($parents)) {
+            if (empty($all)) {
                 return rest_ensure_response(array('parents' => array(), 'joined_count' => 0, 'max_groups' => self::MAX_SELF_JOIN_GROUPS));
             }
 
-            $parent_ids = array_map('intval', array_column($parents, 'id'));
-            $placeholders = implode(',', array_fill(0, count($parent_ids), '%d'));
-
-            // Get children of those parents, with membership status
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is a dynamically-generated list of %d placeholders.
-            $children = $wpdb->get_results($wpdb->prepare(
-                "SELECT a.id, a.name, a.color, a.parent_id,
-                        CASE WHEN m.id IS NOT NULL THEN 1 ELSE 0 END AS is_member
-                 FROM %i a
-                 LEFT JOIN %i m ON m.audience_id = a.id AND m.user_id = %d
-                 WHERE a.parent_id IN ({$placeholders}) AND a.allow_self_join = 1 AND a.status = 'active'
-                 ORDER BY a.name ASC",
-                array_merge(array($audiences_table, $members_table, $user_id), $parent_ids)
-            ), ARRAY_A);
-
-            // Group children by parent
-            $children_by_parent = array();
+            // Build tree in PHP
+            $by_id = array();
             $joined_count = 0;
-            foreach ($children as $child) {
-                $pid = (int) $child['parent_id'];
-                $child['id'] = (int) $child['id'];
-                $child['is_member'] = (bool) $child['is_member'];
-                unset($child['parent_id']);
-                if ($child['is_member']) {
-                    $joined_count++;
-                }
-                $children_by_parent[$pid][] = $child;
+            foreach ($all as &$row) {
+                $row['id'] = (int) $row['id'];
+                $row['parent_id'] = $row['parent_id'] ? (int) $row['parent_id'] : null;
+                $row['is_member'] = (bool) (int) $row['is_member'];
+                $row['children'] = array();
+                $by_id[$row['id']] = &$row;
             }
+            unset($row);
 
-            // Build hierarchical response (only include parents that have children)
+            $roots = array();
+            foreach ($by_id as &$item) {
+                if ($item['parent_id'] && isset($by_id[$item['parent_id']])) {
+                    $by_id[$item['parent_id']]['children'][] = &$item;
+                } else {
+                    $roots[] = &$item;
+                }
+            }
+            unset($item);
+
+            // Count joined leaf audiences and strip parent_id from output
             $result = array();
-            foreach ($parents as $p) {
-                $pid = (int) $p['id'];
-                if (!empty($children_by_parent[$pid])) {
-                    $result[] = array(
-                        'id' => $pid,
-                        'name' => $p['name'],
-                        'color' => $p['color'],
-                        'children' => $children_by_parent[$pid],
-                    );
+            foreach ($roots as $root) {
+                $node = $this->build_joinable_node($root, $joined_count);
+                if ($node) {
+                    $result[] = $node;
                 }
             }
 
@@ -327,6 +319,49 @@ class UserAudienceRestController {
         } catch (\Exception $e) {
             return new \WP_Error('joinable_groups_error', __('Error loading joinable groups', 'ffcertificate'), array('status' => 500));
         }
+    }
+
+    /**
+     * Build a joinable node recursively, counting joined members.
+     *
+     * @param array $node  Audience row with 'children' array.
+     * @param int   $count Reference counter for joined leaf audiences.
+     * @return array|null  Cleaned node or null if branch is empty.
+     */
+    private function build_joinable_node(array $node, int &$count): ?array {
+        $children = array();
+        foreach ($node['children'] as $child) {
+            $built = $this->build_joinable_node($child, $count);
+            if ($built) {
+                $children[] = $built;
+            }
+        }
+
+        // Leaf node: include if joinable
+        if (empty($children) && empty($node['children'])) {
+            if ($node['is_member']) {
+                $count++;
+            }
+            return array(
+                'id' => $node['id'],
+                'name' => $node['name'],
+                'color' => $node['color'],
+                'is_member' => $node['is_member'],
+            );
+        }
+
+        // Branch node: only include if it has joinable descendants
+        if (!empty($children)) {
+            $out = array(
+                'id' => $node['id'],
+                'name' => $node['name'],
+                'color' => $node['color'],
+                'children' => $children,
+            );
+            return $out;
+        }
+
+        return null;
     }
 
     /**

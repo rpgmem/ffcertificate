@@ -1269,32 +1269,40 @@
                     .replace('{max}', data.max_groups) +
                 '</p>';
 
-            parents.forEach(function(parent) {
-                html += '<div class="ffc-audience-parent-group">';
-                html += '<div class="ffc-audience-parent-header">';
-                html += '<span class="ffc-audience-dot" style="background-color: ' + (parent.color || '#2271b1') + ';"></span>';
-                html += '<span>' + esc(parent.name) + '</span>';
-                html += '</div>';
-                html += '<div class="ffc-audience-children-list">';
-
-                (parent.children || []).forEach(function(child) {
-                    html += '<div class="ffc-audience-join-item' + (child.is_member ? ' is-member' : '') + '" data-group-id="' + child.id + '">';
-                    html += '<span class="ffc-audience-name">';
-                    html += '<span class="ffc-audience-dot" style="background-color: ' + (child.color || parent.color || '#2271b1') + ';"></span>';
-                    html += esc(child.name);
-                    html += '</span>';
-
-                    if (child.is_member) {
-                        html += '<button type="button" class="button ffc-audience-leave-btn" data-id="' + child.id + '">' + (s.leaveGroup || 'Leave') + '</button>';
+            function renderNodes(nodes, depth, parentColor) {
+                var out = '';
+                nodes.forEach(function(node) {
+                    if (node.children && node.children.length > 0) {
+                        // Branch node — render as header then recurse
+                        out += '<div class="ffc-audience-parent-group' + (depth > 0 ? ' ffc-audience-subgroup' : '') + '">';
+                        out += '<div class="ffc-audience-parent-header">';
+                        out += '<span class="ffc-audience-dot" style="background-color: ' + (node.color || parentColor || '#2271b1') + ';"></span>';
+                        out += '<span>' + esc(node.name) + '</span>';
+                        out += '</div>';
+                        out += '<div class="ffc-audience-children-list">';
+                        out += renderNodes(node.children, depth + 1, node.color || parentColor);
+                        out += '</div></div>';
                     } else {
-                        var disabled = (data.joined_count >= data.max_groups) ? ' disabled' : '';
-                        html += '<button type="button" class="button button-primary ffc-audience-join-btn" data-id="' + child.id + '"' + disabled + '>' + (s.joinGroup || 'Join') + '</button>';
-                    }
-                    html += '</div>';
-                });
+                        // Leaf node — render with join/leave button
+                        out += '<div class="ffc-audience-join-item' + (node.is_member ? ' is-member' : '') + '" data-group-id="' + node.id + '">';
+                        out += '<span class="ffc-audience-name">';
+                        out += '<span class="ffc-audience-dot" style="background-color: ' + (node.color || parentColor || '#2271b1') + ';"></span>';
+                        out += esc(node.name);
+                        out += '</span>';
 
-                html += '</div></div>';
-            });
+                        if (node.is_member) {
+                            out += '<button type="button" class="button ffc-audience-leave-btn" data-id="' + node.id + '">' + (s.leaveGroup || 'Leave') + '</button>';
+                        } else {
+                            var disabled = (data.joined_count >= data.max_groups) ? ' disabled' : '';
+                            out += '<button type="button" class="button button-primary ffc-audience-join-btn" data-id="' + node.id + '"' + disabled + '>' + (s.joinGroup || 'Join') + '</button>';
+                        }
+                        out += '</div>';
+                    }
+                });
+                return out;
+            }
+
+            html += renderNodes(parents, 0, null);
 
             $section.html(html);
         },

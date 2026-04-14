@@ -975,6 +975,32 @@
     border-radius: var(--ffc-radius) var(--ffc-radius) 0 0;
 }
 
+/* Nested subgroups (3rd level) */
+.ffc-audience-subgroup {
+    margin-bottom: 0;
+}
+
+.ffc-audience-subgroup .ffc-audience-parent-header {
+    font-size: 13px;
+    font-weight: 500;
+    padding-left: 28px;
+    background: var(--ffc-bg);
+    border-radius: 0;
+    border-bottom: 1px solid var(--ffc-border-light);
+    border-top: none;
+    border-left: none;
+    border-right: none;
+}
+
+.ffc-audience-subgroup .ffc-audience-children-list {
+    border: none;
+    border-radius: 0;
+}
+
+.ffc-audience-subgroup .ffc-audience-join-item {
+    padding-left: 42px;
+}
+
 /* Children list under parent */
 .ffc-audience-children-list {
     display: flex;
