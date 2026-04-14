@@ -742,7 +742,7 @@
         $('#ffc-conflict-error').hide();
         $('#ffc-conflict-acknowledge').prop('checked', false);
         $('#ffc-check-conflicts-btn').show();
-        $('#ffc-create-booking-btn').hide().prop('disabled', false);
+        $('#ffc-create-booking-btn').hide().prop('disabled', false).text(ffcAudience.strings.createBooking);
         $('#desc-char-count').text('0');
 
         // Set values
