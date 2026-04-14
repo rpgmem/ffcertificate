@@ -1,10 +1,19 @@
 name: Asset Build Verification
 
 on:
+  push:
+    branches: [main, 'claude/**']
+    paths:
+      - 'assets/**'
+      - 'package.json'
   pull_request:
     paths:
       - 'assets/**'
       - 'package.json'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
