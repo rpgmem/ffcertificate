@@ -1273,13 +1273,14 @@
                 var out = '';
                 nodes.forEach(function(node) {
                     if (node.children && node.children.length > 0) {
-                        // Branch node — render as header then recurse
+                        // Branch node — accordion header + collapsible children
                         out += '<div class="ffc-audience-parent-group' + (depth > 0 ? ' ffc-audience-subgroup' : '') + '">';
-                        out += '<div class="ffc-audience-parent-header">';
+                        out += '<button type="button" class="ffc-audience-parent-header ffc-audience-accordion-toggle" aria-expanded="false">';
                         out += '<span class="ffc-audience-dot" style="background-color: ' + (node.color || parentColor || '#2271b1') + ';"></span>';
-                        out += '<span>' + esc(node.name) + '</span>';
-                        out += '</div>';
-                        out += '<div class="ffc-audience-children-list">';
+                        out += '<span class="ffc-audience-header-name">' + esc(node.name) + '</span>';
+                        out += '<span class="ffc-audience-toggle-icon">+</span>';
+                        out += '</button>';
+                        out += '<div class="ffc-audience-children-list ffc-audience-collapsed">';
                         out += renderNodes(node.children, depth + 1, node.color || parentColor);
                         out += '</div></div>';
                     } else {
@@ -1305,6 +1306,17 @@
             html += renderNodes(parents, 0, null);
 
             $section.html(html);
+
+            // Accordion toggle
+            $section.on('click', '.ffc-audience-accordion-toggle', function() {
+                var $btn = $(this);
+                var $list = $btn.next('.ffc-audience-children-list');
+                var expanded = $btn.attr('aria-expanded') === 'true';
+
+                $btn.attr('aria-expanded', !expanded);
+                $btn.find('.ffc-audience-toggle-icon').text(expanded ? '+' : '\u2212');
+                $list.toggleClass('ffc-audience-collapsed');
+            });
         },
 
         joinAudienceGroup: function(groupId) {
