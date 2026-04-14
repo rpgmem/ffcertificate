@@ -640,11 +640,10 @@ class AudienceRestController {
                 $is_hard_conflict = true;
             }
 
-            // 2. Check same audience group on same day (hard conflict)
+            // 2. Check same audience group on same day (soft conflict)
             if (!$is_hard_conflict && !empty($audience_ids)) {
                 $same_day = AudienceBookingRepository::get_audience_same_day_bookings($booking_date, $audience_ids, null, $scope_schedule_id);
                 if (!empty($same_day)) {
-                    $response_data['type'] = 'audience_same_day';
                     $response_data['audience_same_day'] = array_map(function($b) {
                         return array(
                             'id' => (int) $b->id,
@@ -654,7 +653,6 @@ class AudienceRestController {
                             'audience_name' => $b->audience_name,
                         );
                     }, $same_day);
-                    $is_hard_conflict = true;
                 }
             }
 
@@ -682,6 +680,11 @@ class AudienceRestController {
                         );
                     }, $user_conflicts['bookings']);
                     $response_data['affected_users'] = $user_conflicts['affected_users'];
+                }
+
+                // Audience same-day is also a soft conflict
+                if ($response_data['type'] === 'none' && !empty($response_data['audience_same_day'])) {
+                    $response_data['type'] = 'audience_same_day';
                 }
             }
 

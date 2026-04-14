@@ -8779,10 +8779,6 @@ msgstr "Este agendamento já foi cancelado."
 msgid "This appointment is awaiting admin approval. The receipt will be available after confirmation."
 msgstr "Este agendamento está aguardando aprovação administrativa. O recibo será disponibilizado após a confirmação."
 
-#: includes/audience/class-ffc-audience-shortcode.php:746
-msgid "This audience group already has a booking on this day. You cannot create another booking for the same group on the same day."
-msgstr "O público-alvo selecionado já possui um agendamento para este dia. Não é possível criar outro agendamento para o mesmo público-alvo no mesmo dia."
-
 #. %hours% is replaced with today's working hours range
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:421 includes/audience/class-ffc-audience-admin-settings.php:237
 msgid "This calendar is available for viewing only during business hours (%hours%)."

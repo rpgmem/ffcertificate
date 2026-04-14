@@ -52,7 +52,8 @@
         bookings: 'bookings',
         createBooking: 'Create Booking',
         newBooking: 'New Booking',
-        multipleAudiences: 'Multiple audiences'
+        multipleAudiences: 'Multiple audiences',
+        audienceSameDayWarning: 'This audience group already has a booking on this day:'
     };
     for (var key in defaultStrings) {
         if (!ffcAudience.strings[key]) {
@@ -935,7 +936,7 @@
                 try {
                     if (response.success) {
                         var conflicts = response.conflicts || {};
-                        var isHardConflict = (conflicts.type === 'environment' || conflicts.type === 'audience_same_day');
+                        var isHardConflict = (conflicts.type === 'environment');
 
                         // Reset conflict UI
                         $('#ffc-conflict-warning').hide();
@@ -944,15 +945,22 @@
 
                         if (isHardConflict) {
                             // HARD CONFLICT — block booking
-                            var errorHtml = '';
+                            var errorMsg = ffcAudience.strings.hardConflict || 'This time slot is already booked for this environment.';
+                            var times = conflicts.bookings.map(function(b) { return escapeHtml(b.start_time) + '–' + escapeHtml(b.end_time); }).join(', ');
+                            var errorHtml = '<p><strong>' + escapeHtml(errorMsg) + '</strong></p><p>' + times + '</p>';
 
-                            if (conflicts.type === 'environment') {
-                                // Environment double-booking
-                                var errorMsg = ffcAudience.strings.hardConflict || 'This time slot is already booked for this environment.';
-                                var times = conflicts.bookings.map(function(b) { return escapeHtml(b.start_time) + '–' + escapeHtml(b.end_time); }).join(', ');
-                                errorHtml = '<p><strong>' + escapeHtml(errorMsg) + '</strong></p><p>' + times + '</p>';
-                            } else if (conflicts.type === 'audience_same_day') {
-                                // Same audience group already booked on this day
+                            $('#ffc-conflict-error-details').html(errorHtml);
+                            $('#ffc-conflict-error').show();
+
+                            // Hide check button, do NOT show create button
+                            $btn.hide();
+                            $('#ffc-create-booking-btn').hide();
+                        } else {
+                            // Check for soft conflicts
+                            var softWarnings = [];
+
+                            // Same audience group already booked on this day
+                            if (conflicts.audience_same_day && conflicts.audience_same_day.length > 0) {
                                 var grouped = {};
                                 conflicts.audience_same_day.forEach(function(b) {
                                     if (!grouped[b.audience_name]) {
@@ -964,19 +972,11 @@
                                 for (var name in grouped) {
                                     lines.push('<strong>' + escapeHtml(name) + '</strong>: ' + grouped[name].join(', '));
                                 }
-                                var sameDayMsg = ffcAudience.strings.audienceSameDayHard || 'This audience group already has a booking on this day.';
-                                errorHtml = '<p><strong>' + sameDayMsg + '</strong></p><p>' + lines.join('<br>') + '</p>';
+                                var sameDayMsg = ffcAudience.strings.audienceSameDayWarning || 'This audience group already has a booking on this day:';
+                                softWarnings.push(sameDayMsg + '<br>' + lines.join('<br>'));
                             }
 
-                            $('#ffc-conflict-error-details').html(errorHtml);
-                            $('#ffc-conflict-error').show();
-
-                            // Hide check button, do NOT show create button
-                            $btn.hide();
-                            $('#ffc-create-booking-btn').hide();
-                        } else {
-                            // Check for soft conflicts (user overlap only)
-                            var softWarnings = [];
+                            // User member overlap
                             if (conflicts.bookings && conflicts.bookings.length > 0 && conflicts.type === 'user') {
                                 var count = conflicts.affected_users ? conflicts.affected_users.length : 0;
                                 softWarnings.push(count + ' ' + (ffcAudience.strings.membersOverlapping || 'member(s) have overlapping bookings.'));

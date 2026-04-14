@@ -718,7 +718,6 @@ class AudienceShortcode {
                 'descriptionRequired' => __('Description is required (15-300 characters).', 'ffcertificate'),
                 'conflictWarning' => __('Warning: Conflicts detected with existing bookings.', 'ffcertificate'),
                 'audienceSameDayWarning' => __('Warning: The following groups already have bookings on this day:', 'ffcertificate'),
-                'audienceSameDayHard' => __('This audience group already has a booking on this day. You cannot create another booking for the same group on the same day.', 'ffcertificate'),
                 'membersOverlapping' => __('member(s) have overlapping bookings.', 'ffcertificate'),
                 'hardConflict' => __('This time slot is already booked for this environment. You cannot create a booking at this time.', 'ffcertificate'),
                 'noConflicts' => __('No conflicts found. You may proceed.', 'ffcertificate'),
