@@ -344,22 +344,11 @@ class AudienceRepositoryTest extends TestCase {
         $child1 = (object) ['id' => 3, 'name' => 'Child A', 'parent_id' => 1];
         $child2 = (object) ['id' => 4, 'name' => 'Child B', 'parent_id' => 1];
 
-        // First call: get_parents -> get_all with parent_id=0
-        // Second call: get_children(1) -> get_all with parent_id=1
-        // Third call: get_children(2) -> get_all with parent_id=2
-        $call_count = 0;
+        // get_hierarchical calls get_all once and builds the tree in PHP
         $this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
             return func_get_args()[0];
         });
-        $this->wpdb->shouldReceive('get_results')->andReturnUsing(function() use (&$call_count, $parent1, $parent2, $child1, $child2) {
-            $call_count++;
-            switch ($call_count) {
-                case 1: return [$parent1, $parent2]; // parents
-                case 2: return [$child1, $child2];   // children of parent 1
-                case 3: return [];                    // children of parent 2
-                default: return [];
-            }
-        });
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn([$parent1, $parent2, $child1, $child2]);
 
         $result = AudienceRepository::get_hierarchical();
 
@@ -792,16 +781,18 @@ class AudienceRepositoryTest extends TestCase {
         $child1 = (object) ['id' => 3, 'name' => 'Child A', 'parent_id' => 1];
         $child2 = (object) ['id' => 4, 'name' => 'Child B', 'parent_id' => 1];
 
-        // get_children call (via get_all)
-        $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
-        $this->wpdb->shouldReceive('get_results')->once()->andReturn([$child1, $child2]);
+        // get_descendant_ids calls get_children recursively:
+        // get_children(1) → [$child1, $child2], get_children(3) → [], get_children(4) → []
+        $this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
+            return func_get_args()[0];
+        });
+        $gr_count = 0;
+        $this->wpdb->shouldReceive('get_results')->andReturnUsing(function() use (&$gr_count, $child1, $child2) {
+            $gr_count++;
+            return $gr_count === 1 ? [$child1, $child2] : [];
+        });
 
         // get_col for members query (should include audience_ids 1, 3, 4)
-        $captured_sql = '';
-        $this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {
-            $captured_sql = func_get_args()[0];
-            return $captured_sql;
-        });
         $this->wpdb->shouldReceive('get_col')->once()->andReturn(['10', '20']);
 
         $result = AudienceRepository::get_members(1, true);
@@ -878,14 +869,16 @@ class AudienceRepositoryTest extends TestCase {
             'status' => 'active',
         ];
 
-        $call_count = 0;
+        $gr_count = 0;
         $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
-        $this->wpdb->shouldReceive('get_results')->andReturnUsing(function() use (&$call_count, $child_audience, $parent_audience) {
-            $call_count++;
-            if ($call_count === 1) {
+        // get_ancestor_ids calls get_by_id which uses get_row
+        $this->wpdb->shouldReceive('get_row')->andReturn($parent_audience);
+        $this->wpdb->shouldReceive('get_results')->andReturnUsing(function() use (&$gr_count, $child_audience, $parent_audience) {
+            $gr_count++;
+            if ($gr_count === 1) {
                 return [$child_audience]; // user's direct audiences
             }
-            return [$parent_audience]; // parent audiences
+            return [$parent_audience]; // ancestor lookup by IDs
         });
 
         $result = AudienceRepository::get_user_audiences(42, true);
@@ -913,14 +906,16 @@ class AudienceRepositoryTest extends TestCase {
             'status' => 'active',
         ];
 
-        $call_count = 0;
+        $gr_count = 0;
         $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
-        $this->wpdb->shouldReceive('get_results')->andReturnUsing(function() use (&$call_count, $parent_audience, $child_audience) {
-            $call_count++;
-            if ($call_count === 1) {
+        // get_ancestor_ids calls get_by_id which uses get_row
+        $this->wpdb->shouldReceive('get_row')->andReturn($parent_audience);
+        $this->wpdb->shouldReceive('get_results')->andReturnUsing(function() use (&$gr_count, $parent_audience, $child_audience) {
+            $gr_count++;
+            if ($gr_count === 1) {
                 return [$parent_audience, $child_audience]; // user has both
             }
-            return [$parent_audience]; // parent lookup returns same parent
+            return [$parent_audience]; // ancestor lookup returns same parent
         });
 
         $result = AudienceRepository::get_user_audiences(42, true);
@@ -996,8 +991,13 @@ class AudienceRepositoryTest extends TestCase {
         $child = (object) ['id' => 3, 'name' => 'Child', 'parent_id' => 1];
 
         $this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
-        // get_children call
-        $this->wpdb->shouldReceive('get_results')->once()->andReturn([$child]);
+        // get_descendant_ids calls get_children recursively:
+        // get_children(1) → [$child], get_children(3) → []
+        $gr_count = 0;
+        $this->wpdb->shouldReceive('get_results')->andReturnUsing(function() use (&$gr_count, $child) {
+            $gr_count++;
+            return $gr_count === 1 ? [$child] : [];
+        });
         // get_col for DISTINCT user_id
         $this->wpdb->shouldReceive('get_col')->once()->andReturn(['10', '20', '30', '40']);
 
@@ -1068,18 +1068,30 @@ class AudienceRepositoryTest extends TestCase {
     // ==================================================================
 
     public function test_cascade_self_join_updates_children(): void {
-        $captured_sql = '';
-        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
-            $captured_sql = func_get_args()[0];
-            return $captured_sql;
+        $child = (object) ['id' => 10, 'name' => 'Child', 'parent_id' => 1];
+        $captured_sqls = [];
+
+        $this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sqls) {
+            $sql = func_get_args()[0];
+            $captured_sqls[] = $sql;
+            return $sql;
         });
-        $this->wpdb->shouldReceive('query')->once()->andReturn(3);
+        // get_children(1) returns one child; get_children(10) returns none
+        $call_count = 0;
+        $this->wpdb->shouldReceive('get_results')->andReturnUsing(function() use (&$call_count, $child) {
+            $call_count++;
+            return $call_count === 1 ? [$child] : [];
+        });
+        $this->wpdb->shouldReceive('query')->once()->andReturn(1);
 
         AudienceRepository::cascade_self_join(1, 1);
 
-        $this->assertStringContainsString('UPDATE', $captured_sql);
-        $this->assertStringContainsString('allow_self_join', $captured_sql);
-        $this->assertStringContainsString('parent_id', $captured_sql);
+        $update_sqls = array_filter($captured_sqls, function($sql) {
+            return stripos($sql, 'UPDATE') !== false;
+        });
+        $this->assertNotEmpty($update_sqls);
+        $update_sql = array_values($update_sqls)[0];
+        $this->assertStringContainsString('allow_self_join', $update_sql);
     }
 
     // ==================================================================
