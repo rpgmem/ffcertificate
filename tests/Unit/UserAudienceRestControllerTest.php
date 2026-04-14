@@ -90,11 +90,11 @@ class UserAudienceRestControllerTest extends TestCase {
     // Route registration
     // ------------------------------------------------------------------
 
-    public function test_register_routes_creates_four_endpoints(): void {
+    public function test_register_routes_creates_five_endpoints(): void {
         $ctrl = new UserAudienceRestController( 'ffc/v1' );
         $ctrl->register_routes();
 
-        $this->assertCount( 4, $this->registered_routes );
+        $this->assertCount( 5, $this->registered_routes );
     }
 
     public function test_audience_bookings_route_registered(): void {
@@ -111,6 +111,14 @@ class UserAudienceRestControllerTest extends TestCase {
 
         $paths = array_column( $this->registered_routes, 'route' );
         $this->assertContains( '/user/joinable-groups', $paths );
+    }
+
+    public function test_leave_all_route_registered(): void {
+        $ctrl = new UserAudienceRestController( 'ffc/v1' );
+        $ctrl->register_routes();
+
+        $paths = array_column( $this->registered_routes, 'route' );
+        $this->assertContains( '/user/audience-group/leave-all', $paths );
     }
 
     public function test_all_routes_require_authentication(): void {
