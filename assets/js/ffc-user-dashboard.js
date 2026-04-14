@@ -238,6 +238,10 @@
                 var id = $(this).data('id');
                 FFCDashboard.leaveAudienceGroup(id);
             });
+            $(document).on('click', '.ffc-leave-all-groups-btn', function(e) {
+                e.preventDefault();
+                FFCDashboard.leaveAllAudienceGroups();
+            });
 
             // Notification toggles
             $(document).on('change', '.ffc-notif-toggle', function() { FFCDashboard.saveNotificationPreferences(); });
@@ -1112,6 +1116,9 @@
             html += '<div class="ffc-profile-actions">';
             html += '<button type="button" class="button button-primary ffc-profile-edit-btn">' + (s.editProfile || 'Edit Profile') + '</button>';
             html += '<button type="button" class="button ffc-password-toggle-btn">' + (s.changePassword || 'Change Password') + '</button>';
+            if (profile.audience_groups && profile.audience_groups.length > 0) {
+                html += '<button type="button" class="button ffc-leave-all-groups-btn">' + (s.leaveAllGroups || 'Leave all groups') + '</button>';
+            }
             html += '</div>';
 
             // ---- Password form (hidden until toggle) ----
@@ -1365,6 +1372,38 @@
                     var msg = (xhr.responseJSON && xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
                     alert(msg);
                     $btn.prop('disabled', false).text(ffcDashboard.strings.leaveGroup || 'Leave');
+                }
+            });
+        },
+
+        leaveAllAudienceGroups: function() {
+            var groups = this._profileData && this._profileData.audience_groups;
+            var count = groups ? groups.length : 0;
+            if (!count) return;
+
+            var msg = (ffcDashboard.strings.confirmLeaveAllGroups || 'Are you sure you want to leave all %d group(s)? This action cannot be undone.')
+                .replace('%d', count);
+            if (!confirm(msg)) return;
+
+            var $btn = $('.ffc-leave-all-groups-btn');
+            $btn.prop('disabled', true).text(ffcDashboard.strings.saving || 'Saving...');
+
+            var url = ffcDashboard.restUrl + 'user/audience-group/leave-all';
+            if (ffcDashboard.viewAsUserId) { url += '?viewAsUserId=' + ffcDashboard.viewAsUserId; }
+
+            $.ajax({
+                url: url,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({}),
+                beforeSend: function(xhr) { xhr.setRequestHeader('X-WP-Nonce', ffcDashboard.nonce); },
+                success: function() {
+                    FFCDashboard.reloadProfile();
+                },
+                error: function(xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) || (ffcDashboard.strings.error || 'Error');
+                    alert(msg);
+                    $btn.prop('disabled', false).text(ffcDashboard.strings.leaveAllGroups || 'Leave all groups');
                 }
             });
         },

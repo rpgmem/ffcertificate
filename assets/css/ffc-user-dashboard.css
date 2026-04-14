@@ -863,6 +863,16 @@
     border-color: #b4b9be;
 }
 
+.ffc-profile-actions .ffc-leave-all-groups-btn {
+    color: #b32d2e;
+    border-color: #b32d2e;
+}
+.ffc-profile-actions .ffc-leave-all-groups-btn:hover {
+    background: #b32d2e;
+    color: #fff;
+    border-color: #b32d2e;
+}
+
 /* ==========================================================================
    PASSWORD FORM
    ========================================================================== */

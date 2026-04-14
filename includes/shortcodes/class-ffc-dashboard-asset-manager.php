@@ -233,6 +233,8 @@ class DashboardAssetManager {
                 'joinGroup' => __('Join', 'ffcertificate'),
                 'leaveGroup' => __('Leave', 'ffcertificate'),
                 'confirmLeaveGroup' => __('Are you sure you want to leave this group?', 'ffcertificate'),
+                'leaveAllGroups' => __('Leave all groups', 'ffcertificate'),
+                'confirmLeaveAllGroups' => __('Are you sure you want to leave all %d group(s)? This action cannot be undone.', 'ffcertificate'),
                 // Summary
                 'summaryTitle' => __('Overview', 'ffcertificate'),
                 'totalCertificates' => __('Certificates', 'ffcertificate'),

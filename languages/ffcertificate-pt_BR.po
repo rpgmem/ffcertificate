@@ -1323,6 +1323,22 @@ msgstr "Tem certeza que deseja excluir isso?"
 msgid "Are you sure you want to leave this group?"
 msgstr "Tem certeza de que deseja sair deste grupo?"
 
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Leave all groups"
+msgstr "Sair de todos os grupos"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Are you sure you want to leave all %d group(s)? This action cannot be undone."
+msgstr "Tem certeza de que deseja sair de todos os %d grupo(s)? Esta ação não pode ser desfeita."
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "You left all groups."
+msgstr "Você saiu de todos os grupos."
+
+#: includes/api/class-ffc-user-audience-rest-controller.php
+msgid "Error leaving groups"
+msgstr "Erro ao sair dos grupos"
+
 #: includes/url-shortener/class-ffc-url-shortener-admin-page.php:392
 msgid "Are you sure you want to permanently delete all items in the trash?"
 msgstr "Tem certeza de que deseja excluir permanentemente todos os itens da lixeira?"

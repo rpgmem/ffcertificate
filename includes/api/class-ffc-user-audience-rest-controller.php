@@ -65,6 +65,12 @@ class UserAudienceRestController {
             'callback' => array($this, 'leave_audience_group'),
             'permission_callback' => 'is_user_logged_in',
         ));
+
+        register_rest_route($this->namespace, '/user/audience-group/leave-all', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'leave_all_audience_groups'),
+            'permission_callback' => 'is_user_logged_in',
+        ));
     }
 
     /**
@@ -515,6 +521,48 @@ class UserAudienceRestController {
 
         } catch (\Exception $e) {
             return new \WP_Error('leave_group_error', __('Error leaving group', 'ffcertificate'), array('status' => 500));
+        }
+    }
+
+    /**
+     * POST /user/audience-group/leave-all
+     *
+     * Leave all self-joinable audience groups at once.
+     *
+     * @since 5.1.0
+     * @param \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public function leave_all_audience_groups($request) {
+        try {
+            global $wpdb;
+            $ctx = $this->resolve_user_context($request);
+            $user_id = $ctx['user_id'];
+
+            if (!$user_id) {
+                return new \WP_Error('not_logged_in', __('You must be logged in', 'ffcertificate'), array('status' => 401));
+            }
+
+            $audiences_table = $wpdb->prefix . 'ffc_audiences';
+            $members_table = $wpdb->prefix . 'ffc_audience_members';
+
+            // Delete all memberships where the audience allows self-join
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $deleted = $wpdb->query($wpdb->prepare(
+                "DELETE m FROM %i m INNER JOIN %i a ON a.id = m.audience_id WHERE m.user_id = %d AND a.allow_self_join = 1",
+                $members_table,
+                $audiences_table,
+                $user_id
+            ));
+
+            return rest_ensure_response(array(
+                'success' => true,
+                'removed' => (int) $deleted,
+                'message' => __('You left all groups.', 'ffcertificate'),
+            ));
+
+        } catch (\Exception $e) {
+            return new \WP_Error('leave_all_error', __('Error leaving groups', 'ffcertificate'), array('status' => 500));
         }
     }
 }
