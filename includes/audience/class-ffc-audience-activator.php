@@ -409,6 +409,7 @@ class AudienceActivator {
             self::migrate_schedule_event_list_columns();
             self::migrate_schedule_audience_badge_format_column();
             self::migrate_schedule_booking_label_columns();
+            self::migrate_schedule_isolated_column();
         }
 
         self::migrate_audience_self_join_column();
@@ -539,6 +540,26 @@ class AudienceActivator {
             $table_name,
             'audience_badge_format',
             "enum('name','parent_name') DEFAULT 'name' COMMENT 'How audience badges display: name only or parent: child'"
+        );
+    }
+
+    /**
+     * Migrate schedules table to add is_isolated column
+     *
+     * When enabled, the schedule ignores audience and user conflicts from
+     * other schedules — only conflicts within the same schedule are checked.
+     *
+     * @since 4.14.0
+     * @return void
+     */
+    private static function migrate_schedule_isolated_column(): void {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'ffc_audience_schedules';
+
+        self::add_column_if_missing(
+            $table_name,
+            'is_isolated',
+            "tinyint(1) DEFAULT 0 COMMENT 'Ignore conflicts from other schedules'"
         );
     }
 

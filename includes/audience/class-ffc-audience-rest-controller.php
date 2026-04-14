@@ -606,6 +606,16 @@ class AudienceRestController {
                 ), 400);
             }
 
+            // Determine if this schedule is isolated (ignores cross-schedule conflicts)
+            $scope_schedule_id = null;
+            $environment = AudienceEnvironmentRepository::get_by_id($environment_id);
+            if ($environment) {
+                $schedule = AudienceScheduleRepository::get_by_id((int) $environment->schedule_id);
+                if ($schedule && !empty($schedule->is_isolated)) {
+                    $scope_schedule_id = (int) $schedule->id;
+                }
+            }
+
             $response_data = array(
                 'type' => 'none',
                 'bookings' => array(),
@@ -632,7 +642,7 @@ class AudienceRestController {
 
             // 2. Check same audience group on same day (hard conflict)
             if (!$is_hard_conflict && !empty($audience_ids)) {
-                $same_day = AudienceBookingRepository::get_audience_same_day_bookings($booking_date, $audience_ids);
+                $same_day = AudienceBookingRepository::get_audience_same_day_bookings($booking_date, $audience_ids, null, $scope_schedule_id);
                 if (!empty($same_day)) {
                     $response_data['type'] = 'audience_same_day';
                     $response_data['audience_same_day'] = array_map(function($b) {
@@ -656,7 +666,9 @@ class AudienceRestController {
                     $start_time,
                     $end_time,
                     $audience_ids,
-                    $user_ids
+                    $user_ids,
+                    null,
+                    $scope_schedule_id
                 );
 
                 if (!empty($user_conflicts['bookings'])) {

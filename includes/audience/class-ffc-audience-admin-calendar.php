@@ -347,6 +347,19 @@ class AudienceAdminCalendar {
                     </td>
                 </tr>
                 <tr>
+                    <th scope="row"><?php esc_html_e('Isolated Calendar', 'ffcertificate'); ?></th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="schedule_is_isolated" value="1"
+                                   <?php checked($schedule->is_isolated ?? 0, 1); ?>>
+                            <?php esc_html_e('Ignore conflicts from other calendars', 'ffcertificate'); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e('When enabled, audience same-day and user overlap checks only consider bookings within this calendar. Environment conflicts are always per-environment regardless of this setting.', 'ffcertificate'); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
                     <th scope="row">
                         <label for="schedule_status"><?php esc_html_e('Status', 'ffcertificate'); ?></label>
                     </th>
@@ -559,6 +572,7 @@ class AudienceAdminCalendar {
                 'booking_label_plural' => !empty($_POST['schedule_booking_label_plural'])
                     ? sanitize_text_field(wp_unslash($_POST['schedule_booking_label_plural']))
                     : null,
+                'is_isolated' => isset($_POST['schedule_is_isolated']) ? 1 : 0,
                 'status' => isset($_POST['schedule_status']) ? sanitize_text_field(wp_unslash($_POST['schedule_status'])) : 'active',
             );
 

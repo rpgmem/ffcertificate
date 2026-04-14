@@ -731,9 +731,11 @@ class AudienceBookingRepository {
     }
 
     /**
-     * Check for user conflicts across all environments
+     * Check for user conflicts across environments
      *
      * Returns bookings that would affect the same users at the same time.
+     * When $scope_schedule_id is provided, only bookings in that schedule
+     * are considered (isolated-calendar mode).
      *
      * @param string $date Date (Y-m-d)
      * @param string $start_time Start time (H:i)
@@ -741,6 +743,7 @@ class AudienceBookingRepository {
      * @param array<int> $audience_ids Audience IDs to check
      * @param array<int> $user_ids Individual user IDs to check
      * @param int|null $exclude_booking_id Booking ID to exclude
+     * @param int|null $scope_schedule_id When set, restrict to this schedule only
      * @return array{bookings: array<object>, affected_users: array<int>}
      */
     public static function get_user_conflicts(
@@ -749,7 +752,8 @@ class AudienceBookingRepository {
         string $end_time,
         array $audience_ids,
         array $user_ids,
-        ?int $exclude_booking_id = null
+        ?int $exclude_booking_id = null,
+        ?int $scope_schedule_id = null
     ): array {
         $wpdb = self::db();
         $table = self::get_table_name();
@@ -772,6 +776,19 @@ class AudienceBookingRepository {
         $placeholders = implode(',', array_fill(0, count($all_user_ids), '%d'));
         $exclude_clause = $exclude_booking_id ? $wpdb->prepare("AND b.id != %d", $exclude_booking_id) : '';
 
+        // Isolated schedule: JOIN environments and restrict to schedule
+        $env_join = '';
+        $env_where = '';
+        $env_join_tables = array(); // %i table name for JOIN
+        $env_where_values = array(); // %d schedule_id for WHERE
+        if ($scope_schedule_id) {
+            $env_table = AudienceEnvironmentRepository::get_table_name();
+            $env_join = "INNER JOIN %i env ON b.environment_id = env.id";
+            $env_where = "AND env.schedule_id = %d";
+            $env_join_tables = array($env_table);
+            $env_where_values = array($scope_schedule_id);
+        }
+
         $values = array($date, $end_time, $start_time, $start_time, $end_time, $start_time, $end_time);
         $values = array_merge($values, $all_user_ids, $all_user_ids);
 
@@ -782,6 +799,7 @@ class AudienceBookingRepository {
                 LEFT JOIN %i ba ON b.id = ba.booking_id
                 LEFT JOIN %i am ON ba.audience_id = am.audience_id
                 LEFT JOIN %i bu ON b.id = bu.booking_id
+                {$env_join}
                 WHERE b.booking_date = %s
                 AND b.status = 'active'
                 AND (
@@ -790,9 +808,10 @@ class AudienceBookingRepository {
                     (b.end_time > %s AND b.end_time <= %s)
                 )
                 AND (am.user_id IN ({$placeholders}) OR bu.user_id IN ({$placeholders}))
+                {$env_where}
                 {$exclude_clause}
                 ORDER BY b.start_time ASC",
-                array_merge( array( $table, $ba_table, $members_table, $bu_table ), $values )
+                array_merge( array( $table, $ba_table, $members_table, $bu_table ), $env_join_tables, $values, $env_where_values )
             )
         );
 
@@ -816,16 +835,20 @@ class AudienceBookingRepository {
      *
      * This is a "soft conflict" check — same audience group booked multiple times
      * on the same day (regardless of time overlap).
+     * When $scope_schedule_id is provided, only bookings in that schedule
+     * are considered (isolated-calendar mode).
      *
      * @param string $date Date (Y-m-d)
      * @param array<int> $audience_ids Audience IDs to check
      * @param int|null $exclude_booking_id Booking ID to exclude (for updates)
+     * @param int|null $scope_schedule_id When set, restrict to this schedule only
      * @return array<object> Bookings with matched audience info
      */
     public static function get_audience_same_day_bookings(
         string $date,
         array $audience_ids,
-        ?int $exclude_booking_id = null
+        ?int $exclude_booking_id = null,
+        ?int $scope_schedule_id = null
     ): array {
         $wpdb = self::db();
         $table = self::get_table_name();
@@ -839,6 +862,19 @@ class AudienceBookingRepository {
         $placeholders = implode(',', array_fill(0, count($audience_ids), '%d'));
         $exclude_clause = $exclude_booking_id ? $wpdb->prepare("AND b.id != %d", $exclude_booking_id) : '';
 
+        // Isolated schedule: JOIN environments and restrict to schedule
+        $env_join = '';
+        $env_where = '';
+        $env_join_tables = array(); // %i table name for JOIN
+        $env_where_values = array(); // %d schedule_id for WHERE
+        if ($scope_schedule_id) {
+            $env_table = AudienceEnvironmentRepository::get_table_name();
+            $env_join = "INNER JOIN %i env ON b.environment_id = env.id";
+            $env_where = "AND env.schedule_id = %d";
+            $env_join_tables = array($env_table);
+            $env_where_values = array($scope_schedule_id);
+        }
+
         $values = array($date);
         $values = array_merge($values, $audience_ids);
 
@@ -849,12 +885,14 @@ class AudienceBookingRepository {
                 FROM %i b
                 INNER JOIN %i ba ON b.id = ba.booking_id
                 INNER JOIN %i a ON ba.audience_id = a.id
+                {$env_join}
                 WHERE b.booking_date = %s
                 AND b.status = 'active'
                 AND ba.audience_id IN ({$placeholders})
+                {$env_where}
                 {$exclude_clause}
                 ORDER BY a.name ASC, b.start_time ASC",
-                array_merge( array( $table, $ba_table, $audiences_table ), $values )
+                array_merge( array( $table, $ba_table, $audiences_table ), $env_join_tables, $values, $env_where_values )
             )
         );
     }

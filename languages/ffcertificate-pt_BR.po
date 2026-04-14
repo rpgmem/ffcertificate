@@ -4986,6 +4986,18 @@ msgstr "Inativo"
 msgid "Include .ics calendar file in emails"
 msgstr "Incluir arquivo .ics de calendário nos e-mails"
 
+#: includes/audience/class-ffc-audience-admin-calendar.php:352
+msgid "Isolated Calendar"
+msgstr "Calendário Isolado"
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:356
+msgid "Ignore conflicts from other calendars"
+msgstr "Ignorar conflitos de outros calendários"
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:359
+msgid "When enabled, audience same-day and user overlap checks only consider bookings within this calendar. Environment conflicts are always per-environment regardless of this setting."
+msgstr "Quando ativado, as verificações de público no mesmo dia e sobreposição de membros consideram apenas agendamentos dentro deste calendário. Conflitos de ambiente são sempre por ambiente, independentemente desta configuração."
+
 #: includes/settings/views/ffc-tab-advanced.php:47
 msgid "Includes user ID, IP address, and timestamp for LGPD compliance."
 msgstr "Inclui ID do usuário, endereço IP e timestamp para conformidade com a LGPD."

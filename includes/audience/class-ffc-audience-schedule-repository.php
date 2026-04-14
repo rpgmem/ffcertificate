@@ -173,6 +173,7 @@ class AudienceScheduleRepository {
             'email_template_booking' => null,
             'email_template_cancellation' => null,
             'include_ics' => 0,
+            'is_isolated' => 0,
             'status' => 'active',
             'created_by' => get_current_user_id(),
         );
@@ -191,10 +192,11 @@ class AudienceScheduleRepository {
                 'email_template_booking' => $data['email_template_booking'],
                 'email_template_cancellation' => $data['email_template_cancellation'],
                 'include_ics' => $data['include_ics'],
+                'is_isolated' => $data['is_isolated'],
                 'status' => $data['status'],
                 'created_by' => $data['created_by'],
             ),
-            array('%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%d', '%s', '%d')
+            array('%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%d', '%d', '%s', '%d')
         );
 
         return $result ? $wpdb->insert_id : false;
@@ -233,6 +235,7 @@ class AudienceScheduleRepository {
             'email_template_booking' => '%s',
             'email_template_cancellation' => '%s',
             'include_ics' => '%d',
+            'is_isolated' => '%d',
             'show_event_list' => '%d',
             'event_list_position' => '%s',
             'audience_badge_format' => '%s',

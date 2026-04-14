@@ -395,7 +395,7 @@ class AudienceScheduleRepositoryTest extends TestCase {
     public function test_create_passes_correct_format_array(): void {
         $this->wpdb->shouldReceive('insert')->once()->andReturnUsing(function($table, $data, $format) {
             \PHPUnit\Framework\TestCase::assertSame(
-                array('%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%d', '%s', '%d'),
+                array('%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%d', '%d', '%s', '%d'),
                 $format
             );
             return 1;
