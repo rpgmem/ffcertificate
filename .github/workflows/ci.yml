@@ -80,11 +80,42 @@ jobs:
       - name: Run PHPUnit
         run: vendor/bin/phpunit
 
-  # Coverage job removed: pcov + xdebug both took 14+ minutes on the full
-  # ./includes whitelist (3165 tests, hundreds of files) and produced no
-  # useful artifact in CI. Will be re-introduced in the Coveralls sprint
-  # with proper scoping (pcov.directory pinned to a smaller surface, test
-  # groups, and upload via the dedicated Coveralls action).
+  coverage:
+    name: Coverage (PHP 8.1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Advisory: coverage data is uploaded to Coveralls but does not gate.
+    # Promote to required once we have a baseline % to enforce.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: composer:v2
+          coverage: pcov
+          ini-values: pcov.directory=./includes,pcov.exclude="#(libraries|views)/#",memory_limit=512M
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - name: Cache Composer packages
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-php8.1-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-php8.1-
+      - name: Install dependencies
+        run: composer install --no-progress --prefer-dist
+      - name: Run PHPUnit with coverage
+        run: vendor/bin/phpunit --coverage-clover coverage.xml
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          file: coverage.xml
+          format: clover
+          # GITHUB_TOKEN is enough for public repos; no Coveralls token needed.
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   # Stub: branch protection on `main` still references `PHPUnit (PHP 7.4)`
   # as a required check, but PR #15 dropped PHP < 8.1 support. This job
