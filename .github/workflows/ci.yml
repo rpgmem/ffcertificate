@@ -81,39 +81,8 @@ jobs:
       - name: Run PHPUnit
         run: vendor/bin/phpunit
 
-  coverage:
-    name: PHPUnit coverage (PHP 8.1)
-    runs-on: ubuntu-latest
-    # Use pcov instead of xdebug: ~10x faster and avoids the hang observed in
-    # CI run #24431707679 where xdebug stalled for 23 min. Bound the job to
-    # fail fast if it ever hangs again.
-    timeout-minutes: 15
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v6
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          tools: composer:v2
-          coverage: pcov
-      - name: Get Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
-      - name: Cache Composer packages
-        uses: actions/cache@v5
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-php8.1-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-php8.1-
-      - name: Install dependencies
-        run: composer install --no-progress --prefer-dist
-      - name: Run PHPUnit with coverage
-        run: vendor/bin/phpunit --coverage-clover=coverage.xml --coverage-text
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: coverage-clover
-          path: coverage.xml
-          if-no-files-found: warn
-          retention-days: 14
+  # Coverage job removed: pcov + xdebug both took 14+ minutes on the full
+  # ./includes whitelist (3165 tests, hundreds of files) and produced no
+  # useful artifact in CI. Will be re-introduced in the Coveralls sprint
+  # with proper scoping (pcov.directory pinned to a smaller surface, test
+  # groups, and upload via the dedicated Coveralls action).
