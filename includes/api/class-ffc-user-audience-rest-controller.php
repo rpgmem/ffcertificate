@@ -330,9 +330,9 @@ class UserAudienceRestController {
     /**
      * Build a joinable node recursively, counting joined members.
      *
-     * @param array $node  Audience row with 'children' array.
-     * @param int   $count Reference counter for joined leaf audiences.
-     * @return array|null  Cleaned node or null if branch is empty.
+     * @param array<string, mixed> $node  Audience row with 'children' array.
+     * @param int                  $count Reference counter for joined leaf audiences.
+     * @return array<string, mixed>|null  Cleaned node or null if branch is empty.
      */
     private function build_joinable_node(array $node, int &$count): ?array {
         $children = array();

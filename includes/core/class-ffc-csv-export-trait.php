@@ -117,9 +117,9 @@ trait CsvExportTrait {
      *
      * Handles BOM, UTF-8 encoding, HTTP headers, and row writing.
      *
-     * @param string                           $filename  Download filename (e.g. 'export-2024-01-01.csv').
-     * @param array<int, string>               $headers   Column headers.
-     * @param array<int, array<string, mixed>> $rows      Data rows (each is an array of values).
+     * @param string                              $filename  Download filename (e.g. 'export-2024-01-01.csv').
+     * @param array<int, string>                  $headers   Column headers.
+     * @param array<int, array<array-key, mixed>> $rows      Data rows (each is an array of values passed directly to fputcsv).
      * @return void Exits after output.
      */
     protected function output_csv(string $filename, array $headers, array $rows): void {

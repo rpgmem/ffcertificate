@@ -3,8 +3,8 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 5.1.0
-Requires PHP: 7.4
+Stable tag: 5.2.0
+Requires PHP: 8.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -174,6 +174,16 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 5.2.0 (2026-04-15) =
+
+Raise minimum PHP requirement from 7.4 to 8.1.
+
+* Breaking: Minimum PHP bumped from **7.4 → 8.1**. Update your server before upgrading.
+* Chore: `composer.json#config.platform.php` pinned to `8.1` so the lockfile is reproducible regardless of the developer's local PHP version.
+* Chore: Regenerated `composer.lock` — `doctrine/instantiator` now resolves to `2.0.0` (was `2.1.0`, which required PHP ^8.4 and silently broke `composer install` on 7.4/8.1/8.3 runners).
+* Chore: CI matrix now covers PHP **8.1, 8.2, 8.3, 8.4** (added 8.2, removed 7.4).
+* Chore: Zero PHPStan level 6 errors — cleared 4 findings exposed by newer WordPress stubs (widen `output_csv` PHPDoc, add array value types to `build_joinable_node`, remove dead `$formatted === null` branch).
 
 = 5.1.0 (2026-04-11) =
 

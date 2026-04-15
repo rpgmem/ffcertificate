@@ -955,7 +955,7 @@ class ReregistrationAdmin {
                             ?>
                             <dt><?php echo esc_html((string) $field->field_label); ?></dt>
                             <dd>
-                                <?php if ($formatted === '' || $formatted === null) : ?>
+                                <?php if ($formatted === '') : ?>
                                     <span class="ffc-details-empty">&mdash;</span>
                                 <?php elseif ($is_html_field) : ?>
                                     <?php echo wp_kses_post($formatted); ?>
