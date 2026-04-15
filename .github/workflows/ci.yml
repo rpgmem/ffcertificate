@@ -116,19 +116,3 @@ jobs:
           format: clover
           # GITHUB_TOKEN is enough for public repos; no Coveralls token needed.
           github-token: ${{ secrets.GITHUB_TOKEN }}
-
-  # Stub: branch protection on `main` still references `PHPUnit (PHP 7.4)`
-  # as a required check, but PR #15 dropped PHP < 8.1 support. This job
-  # exists solely to satisfy the protection rule until repo settings are
-  # updated to require the current matrix (PHP 8.1-8.4) instead. Delete
-  # this once Settings → Branches → main is reconfigured.
-  phpunit-74-shim:
-    name: PHPUnit (PHP 7.4)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Skip — PHP 7.4 unsupported since PR #15
-        run: |
-          echo "::notice::PHP 7.4 was dropped in PR #15 (min is now 8.1). This"
-          echo "::notice::stub satisfies the legacy 'PHPUnit (PHP 7.4)' branch"
-          echo "::notice::protection requirement. Update Settings → Branches →"
-          echo "::notice::main to require PHPUnit (PHP 8.1-8.4) and remove this."
