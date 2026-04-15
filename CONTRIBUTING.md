@@ -72,6 +72,20 @@ The `Asset Build Verification` workflow fails the PR if the committed
 - The CI matrix runs PHPUnit on PHP 8.1 / 8.2 / 8.3 / 8.4 plus PHPStan on
   PHP 8.1; all of these must be green to merge.
 
+## Releasing
+
+1. Bump `Version:` in `ffcertificate.php` and `FFC_VERSION` in the same
+   file. Update `CHANGELOG.md` with a section for the new version.
+2. Commit, merge to `main`.
+3. Tag `main` with `vX.Y.Z` and push the tag:
+   ```bash
+   git tag -a vX.Y.Z -m "vX.Y.Z"
+   git push origin vX.Y.Z
+   ```
+4. The `Release` workflow builds `ffcertificate-X.Y.Z.zip` (excluding dev
+   files via `.distignore`), creates a GitHub Release, and attaches the
+   zip. Notes are pulled from the matching `CHANGELOG.md` section.
+
 ## Reporting security issues
 
 Do not open public issues for vulnerabilities. Use GitHub's private

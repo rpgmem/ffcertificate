@@ -1,0 +1,39 @@
+# Files & directories excluded from the distribution zip.
+# Used by .github/workflows/release.yml.
+
+# VCS / project metadata
+/.git
+/.github
+/.githooks
+/.gitignore
+/.distignore
+/.phpunit.result.cache
+
+# Dev tooling
+/composer.json
+/composer.lock
+/package.json
+/package-lock.json
+/node_modules
+/vendor
+/phpstan.neon.dist
+/phpstan-baseline.neon
+/phpstan-stubs.php
+/phpunit.xml
+/phpunit.xml.dist
+/patchwork.json
+
+# Tests & docs not shipped to users
+/tests
+/CHANGELOG.md
+/CONTRIBUTING.md
+/SECURITY.md
+
+# Editor/OS junk
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.vscode
+.idea
