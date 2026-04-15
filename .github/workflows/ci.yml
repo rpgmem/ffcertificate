@@ -2,13 +2,15 @@ name: CI
 
 on:
   push:
-    branches: [main, 'claude/**']
+    branches: [main]
   pull_request:
     branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # Cancel superseded runs everywhere except main (where every commit
+  # represents a merged PR we want to keep on the record).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   lint:
@@ -39,9 +41,6 @@ jobs:
   audit:
     name: Composer audit
     runs-on: ubuntu-latest
-    # Non-blocking: surfaces advisories without gating merges. Promote to a
-    # required check once the team is comfortable acting on every advisory.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v6
       - uses: shivammathur/setup-php@v2
