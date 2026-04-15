@@ -84,6 +84,10 @@ jobs:
   coverage:
     name: PHPUnit coverage (PHP 8.1)
     runs-on: ubuntu-latest
+    # Use pcov instead of xdebug: ~10x faster and avoids the hang observed in
+    # CI run #24431707679 where xdebug stalled for 23 min. Bound the job to
+    # fail fast if it ever hangs again.
+    timeout-minutes: 15
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
@@ -91,7 +95,7 @@ jobs:
         with:
           php-version: '8.1'
           tools: composer:v2
-          coverage: xdebug
+          coverage: pcov
       - name: Get Composer cache directory
         id: composer-cache
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
