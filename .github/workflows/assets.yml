@@ -3,15 +3,12 @@ name: Asset Build Verification
 on:
   push:
     branches: [main]
-    paths:
-      - 'assets/**'
-      - 'package.json'
-      - 'package-lock.json'
   pull_request:
-    paths:
-      - 'assets/**'
-      - 'package.json'
-      - 'package-lock.json'
+    branches: [main]
+# Path filters were removed because branch protection requires this
+# check on every PR. Skipped runs (path-filtered) never report status
+# and leave PRs in mergeable_state: blocked. With npm cache + npm ci
+# the job finishes in well under a minute.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
