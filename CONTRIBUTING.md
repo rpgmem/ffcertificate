@@ -24,8 +24,10 @@ generated `*.min.*` files.
 ## Branches
 
 - `main` is protected; all changes land via pull request.
-- Feature branches use the `claude/<short-description>` prefix so CI runs
-  on push (see `.github/workflows/ci.yml`).
+- Feature branches use the `claude/<short-description>` prefix.
+- CI runs on `pull_request` (and on `push` to `main` post-merge), so open
+  the PR — even as a draft — to get a green/red signal. Pushing to a
+  feature branch without a PR will not trigger CI.
 - Dependabot manages `chore(deps)` / `chore(ci)(deps)` branches.
 
 ## Commit messages
