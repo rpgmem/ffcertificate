@@ -51,8 +51,15 @@ Run these before opening a PR — CI runs the same commands.
 ```bash
 vendor/bin/phpstan analyze        # static analysis
 vendor/bin/phpunit                # unit tests
-composer audit --locked           # advisory check (non-blocking in CI)
+composer audit --locked           # security advisories
+vendor/bin/phpcs                  # WordPress Coding Standards (advisory)
+vendor/bin/phpcbf                 # auto-fix many WPCS violations
 ```
+
+PHPCS runs in CI on changed PHP files only and is currently advisory:
+the legacy codebase has thousands of pre-existing violations. New code
+should be WPCS-clean; a dedicated cleanup sprint will promote PHPCS to
+gating once the baseline shrinks.
 
 If you edit anything under `assets/css/` or `assets/js/`, rebuild the
 minified bundles:
