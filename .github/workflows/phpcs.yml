@@ -12,10 +12,9 @@ jobs:
   changed:
     name: WPCS on changed PHP files
     runs-on: ubuntu-latest
-    # Advisory only: 84k+ pre-existing violations need a dedicated cleanup
-    # sprint before this can gate merges. Surfaces issues on new/touched
-    # code without blocking.
-    continue-on-error: true
+    # Promoted to gating after cleanup sprints #25-#27 reduced violations
+    # from 88k to ~1.3k. Remaining violations only surface when a PR
+    # touches a file that still has legacy issues.
     steps:
       - uses: actions/checkout@v6
         with:
@@ -45,4 +44,4 @@ jobs:
       - name: Run PHPCS on changed files
         if: steps.changed.outputs.files != ''
         run: |
-          vendor/bin/phpcs -q --report=checkstyle ${{ steps.changed.outputs.files }} | cs2pr || true
+          vendor/bin/phpcs -q --report=checkstyle ${{ steps.changed.outputs.files }} | cs2pr
