@@ -73,7 +73,7 @@ class ReregistrationAdmin {
 			27
 		);
 
-		// Rename auto-generated first submenu from "Reregistration" to "Campaigns"
+		// Rename auto-generated first submenu from "Reregistration" to "Campaigns".
 		add_submenu_page(
 			self::MENU_SLUG,
 			__( 'Campaigns', 'ffcertificate' ),
@@ -83,7 +83,7 @@ class ReregistrationAdmin {
 			array( $this, 'render_page' )
 		);
 
-		// Custom Fields submenu
+		// Custom Fields submenu.
 		add_submenu_page(
 			self::MENU_SLUG,
 			__( 'Custom Fields', 'ffcertificate' ),
@@ -144,10 +144,10 @@ class ReregistrationAdmin {
 			)
 		);
 
-		// Enqueue PDF libraries on submissions view
+		// Enqueue PDF libraries on submissions view.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$view = isset( $_GET['view'] ) ? sanitize_text_field( wp_unslash( $_GET['view'] ) ) : '';
-		if ( $view === 'submissions' ) {
+		if ( 'submissions' === $view ) {
 			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
 			wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true );
 			wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . 'assets/js/ffc-pdf-generator.min.js', array( 'html2canvas', 'jspdf' ), FFC_VERSION, true );
@@ -186,9 +186,9 @@ class ReregistrationAdmin {
 		echo '</div>';
 	}
 
-	// ─────────────────────────────────────────────
-	// LIST VIEW
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
+	// LIST VIEW.
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Render reregistration campaigns list.
@@ -334,9 +334,9 @@ class ReregistrationAdmin {
 		<?php
 	}
 
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
 	// FORM VIEW (Create / Edit)
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Render create/edit form.
@@ -458,9 +458,9 @@ class ReregistrationAdmin {
 		<?php
 	}
 
-	// ─────────────────────────────────────────────
-	// SUBMISSIONS VIEW
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
+	// SUBMISSIONS VIEW.
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Render submissions list for a reregistration.
@@ -509,7 +509,7 @@ class ReregistrationAdmin {
 		<!-- Stats summary -->
 		<div class="ffc-rereg-stats">
 			<?php foreach ( $stats as $status => $count ) : ?>
-				<?php if ( $status !== 'total' ) : ?>
+				<?php if ( 'total' !== $status ) : ?>
 					<span class="ffc-stat-item">
 						<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $status ); ?>"><?php echo esc_html( ReregistrationSubmissionRepository::get_status_label( $status ) ); ?></span>
 						<strong><?php echo esc_html( (string) $count ); ?></strong>
@@ -621,7 +621,7 @@ class ReregistrationAdmin {
 		$submitted = $sub->submitted_at ? ( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $sub->submitted_at ) ?: time() ) ?: '—' ) : '—';
 		$reviewed  = $sub->reviewed_at ? ( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $sub->reviewed_at ) ?: time() ) ?: '—' ) : '—';
 
-		// Statuses that can be sent back to draft for user revision
+		// Statuses that can be sent back to draft for user revision.
 		$can_return_to_draft = in_array( $sub->status, array( 'submitted', 'approved', 'rejected' ), true );
 
 		?>
@@ -639,10 +639,10 @@ class ReregistrationAdmin {
 			<td><?php echo esc_html( $submitted ); ?></td>
 			<td><?php echo esc_html( $reviewed ); ?></td>
 			<td>
-				<?php if ( $sub->status === 'submitted' ) : ?>
+				<?php if ( 'submitted' === $sub->status ) : ?>
 					<a href="<?php echo esc_url( $approve_url ); ?>" class="button button-small"><?php esc_html_e( 'Approve', 'ffcertificate' ); ?></a>
 					<a href="<?php echo esc_url( $reject_url ); ?>" class="button button-small button-link-delete"><?php esc_html_e( 'Reject', 'ffcertificate' ); ?></a>
-				<?php elseif ( $sub->status === 'pending' ) : ?>
+				<?php elseif ( 'pending' === $sub->status ) : ?>
 					<span class="description"><?php esc_html_e( 'Awaiting user', 'ffcertificate' ); ?></span>
 				<?php elseif ( ! empty( $sub->notes ) ) : ?>
 					<span class="description" title="<?php echo esc_attr( $sub->notes ); ?>"><?php esc_html_e( 'See notes', 'ffcertificate' ); ?></span>
@@ -670,9 +670,9 @@ class ReregistrationAdmin {
 		<?php
 	}
 
-	// ─────────────────────────────────────────────
-	// ACTION HANDLERS
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
+	// ACTION HANDLERS.
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Handle admin actions (save, delete, approve, reject, bulk, export).
@@ -689,11 +689,11 @@ class ReregistrationAdmin {
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
-		if ( $page !== self::MENU_SLUG ) {
+		if ( self::MENU_SLUG !== $page ) {
 			return;
 		}
 
-		// Show redirect messages
+		// Show redirect messages.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['message'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -714,17 +714,17 @@ class ReregistrationAdmin {
 			}
 		}
 
-		// Campaign CRUD
+		// Campaign CRUD.
 		$this->handle_save();
 		$this->handle_delete();
 
-		// Submission workflow (delegated)
+		// Submission workflow (delegated).
 		ReregistrationSubmissionActions::handle_approve();
 		ReregistrationSubmissionActions::handle_reject();
 		ReregistrationSubmissionActions::handle_return_to_draft();
 		ReregistrationSubmissionActions::handle_bulk();
 
-		// CSV export (delegated)
+		// CSV export (delegated).
 		ReregistrationCsvExporter::handle_export();
 	}
 
@@ -735,7 +735,7 @@ class ReregistrationAdmin {
 	 */
 	private function handle_save(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified immediately below.
-		if ( ! isset( $_POST['ffc_action'] ) || $_POST['ffc_action'] !== 'save_reregistration' ) {
+		if ( ! isset( $_POST['ffc_action'] ) || 'save_reregistration' !== $_POST['ffc_action'] ) {
 			return;
 		}
 		if ( ! isset( $_POST['ffc_reregistration_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_reregistration_nonce'] ) ), 'save_reregistration' ) ) {
@@ -764,7 +764,7 @@ class ReregistrationAdmin {
 			'status'                     => isset( $_POST['rereg_status'] ) ? sanitize_text_field( wp_unslash( $_POST['rereg_status'] ) ) : 'draft',
 		);
 
-		// Collect audience IDs from transfer list hidden inputs
+		// Collect audience IDs from transfer list hidden inputs.
 		$audience_ids = array();
 		if ( isset( $_POST['rereg_audience_ids'] ) && is_array( $_POST['rereg_audience_ids'] ) ) {
 			$audience_ids = array_map( 'absint', $_POST['rereg_audience_ids'] );
@@ -775,8 +775,8 @@ class ReregistrationAdmin {
 			ReregistrationRepository::update( $id, $data );
 			ReregistrationRepository::set_audience_ids( $id, $audience_ids );
 
-			// If transitioning to active, create submissions for members and send invitations
-			if ( $data['status'] === 'active' && $prev_status !== 'active' ) {
+			// If transitioning to active, create submissions for members and send invitations.
+			if ( 'active' === $data['status'] && 'active' !== $prev_status ) {
 				ReregistrationSubmissionRepository::create_for_audience_members( $id, $audience_ids );
 				ReregistrationEmailHandler::send_invitations( $id );
 			}
@@ -788,8 +788,8 @@ class ReregistrationAdmin {
 			if ( $new_id ) {
 				ReregistrationRepository::set_audience_ids( $new_id, $audience_ids );
 
-				// If creating as active, also create submissions and send invitations
-				if ( $data['status'] === 'active' ) {
+				// If creating as active, also create submissions and send invitations.
+				if ( 'active' === $data['status'] ) {
 					ReregistrationSubmissionRepository::create_for_audience_members( $new_id, $audience_ids );
 					ReregistrationEmailHandler::send_invitations( $new_id );
 				}
@@ -807,7 +807,7 @@ class ReregistrationAdmin {
 	 */
 	private function handle_delete(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( ! isset( $_GET['action'] ) || $_GET['action'] !== 'delete' || ! isset( $_GET['id'] ) ) {
+		if ( ! isset( $_GET['action'] ) || 'delete' !== $_GET['action'] || ! isset( $_GET['id'] ) ) {
 			return;
 		}
 
@@ -879,7 +879,7 @@ class ReregistrationAdmin {
 			wp_send_json_error( array( 'message' => __( 'Reregistration not found.', 'ffcertificate' ) ) );
 		}
 
-		// Unified dynamic shape: { fields: { field_key => value } }
+		// Unified dynamic shape: { fields: { field_key => value } }.
 		$sub_data   = $submission->data ? json_decode( $submission->data, true ) : array();
 		$raw_values = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
 
@@ -943,7 +943,7 @@ class ReregistrationAdmin {
 
 			<?php foreach ( $grouped as $group_key => $group_fields ) : ?>
 				<?php
-				$legend = $group_key === ''
+				$legend = '' === $group_key
 					? __( 'Other Fields', 'ffcertificate' )
 					: ( $group_labels[ $group_key ] ?? ucfirst( str_replace( '_', ' ', $group_key ) ) );
 				?>
@@ -955,11 +955,11 @@ class ReregistrationAdmin {
 							$key           = (string) $field->field_key;
 							$raw_value     = $decrypted_values[ $key ] ?? '';
 							$formatted     = FichaGenerator::format_field_value( $field, $raw_value );
-							$is_html_field = ( (string) $field->field_type === 'working_hours' );
+							$is_html_field = ( (string) 'working_hours' === $field->field_type );
 							?>
 							<dt><?php echo esc_html( (string) $field->field_label ); ?></dt>
 							<dd>
-								<?php if ( $formatted === '' ) : ?>
+								<?php if ( '' === $formatted ) : ?>
 									<span class="ffc-details-empty">&mdash;</span>
 								<?php elseif ( $is_html_field ) : ?>
 									<?php echo wp_kses_post( $formatted ); ?>
@@ -1021,7 +1021,7 @@ class ReregistrationAdmin {
 	 * @return void
 	 */
 	private function render_audience_transfer_list( array $audiences, array $selected_ids ): void {
-		// Flatten hierarchy for data attributes
+		// Flatten hierarchy for data attributes.
 		$flat = array();
 		foreach ( $audiences as $parent ) {
 			$children_ids = array();

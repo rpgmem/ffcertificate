@@ -77,51 +77,51 @@ class AppointmentHandler {
 	/**
 	 * Process appointment booking
 	 *
-	 * @param array<string, mixed> $data Appointment data
+	 * @param array<string, mixed> $data Appointment data.
 	 * @return array<string, mixed>|\WP_Error
 	 */
 	public function process_appointment( array $data ) {
-		// Get calendar (outside transaction — immutable config)
+		// Get calendar (outside transaction — immutable config).
 		$calendar = $this->calendar_repository->findById( (int) $data['calendar_id'] );
 
 		if ( ! $calendar ) {
 			return new \WP_Error( 'invalid_calendar', __( 'Calendar not found.', 'ffcertificate' ) );
 		}
 
-		if ( $calendar['status'] !== 'active' ) {
+		if ( 'active' !== $calendar['status'] ) {
 			return new \WP_Error( 'calendar_inactive', __( 'This calendar is not accepting bookings.', 'ffcertificate' ) );
 		}
 
-		// Calculate end time based on slot duration
+		// Calculate end time based on slot duration.
 		$start_datetime   = $data['appointment_date'] . ' ' . $data['start_time'];
 		$end_timestamp    = strtotime( $start_datetime ) + ( $calendar['slot_duration'] * 60 );
 		$data['end_time'] = gmdate( 'H:i:s', $end_timestamp );
 
-		// Check LGPD consent (outside transaction — no DB needed)
+		// Check LGPD consent (outside transaction — no DB needed).
 		if ( empty( $data['consent_given'] ) ) {
 			return new \WP_Error( 'consent_required', __( 'You must agree to the terms to book an appointment.', 'ffcertificate' ) );
 		}
 
 		$data['consent_date'] = current_time( 'mysql' );
-		// consent_ip is stored via user_ip_encrypted (same IP, encrypted)
+		// consent_ip is stored via user_ip_encrypted (same IP, encrypted).
 
-		// Create or link user if CPF/RF is provided and user is not logged in
+		// Create or link user if CPF/RF is provided and user is not logged in.
 		if ( ! empty( $data['cpf_rf'] ) && empty( $data['user_id'] ) ) {
 			$this->create_or_link_user( $data );
 		}
 
-		// Set initial status
+		// Set initial status.
 		$data['status'] = $calendar['requires_approval'] ? 'pending' : 'confirmed';
 
-		if ( $data['status'] === 'confirmed' ) {
+		if ( 'confirmed' === $data['status'] ) {
 			$data['approved_at'] = current_time( 'mysql' );
 		}
 
-		// === BEGIN TRANSACTION: Atomic validate + insert ===
+		// === BEGIN TRANSACTION: Atomic validate + insert ===.
 		$this->appointment_repository->begin_transaction();
 
 		try {
-			// Validate with row-level locks (FOR UPDATE) to prevent concurrent overbooking
+			// Validate with row-level locks (FOR UPDATE) to prevent concurrent overbooking.
 			$validation = $this->validator->validate( $data, $calendar, true );
 			if ( is_wp_error( $validation ) ) {
 				$this->appointment_repository->rollback();
@@ -137,7 +137,7 @@ class AppointmentHandler {
 			 */
 			do_action( 'ffcertificate_before_appointment_create', $data, $calendar );
 
-			// Create appointment (inside transaction — protected by locks)
+			// Create appointment (inside transaction — protected by locks).
 			$appointment_id = $this->appointment_repository->createAppointment( $data );
 
 			if ( ! $appointment_id ) {
@@ -150,7 +150,7 @@ class AppointmentHandler {
 			$this->appointment_repository->rollback();
 			return new \WP_Error( 'booking_error', __( 'An error occurred while booking. Please try again.', 'ffcertificate' ) );
 		}
-		// === END TRANSACTION ===
+		// === END TRANSACTION ===.
 
 		/**
 		 * Fires after an appointment is created.
@@ -162,15 +162,15 @@ class AppointmentHandler {
 		 */
 		do_action( 'ffcertificate_after_appointment_create', $appointment_id, $data, $calendar );
 
-		// Get appointment for email (outside transaction — read-only)
+		// Get appointment for email (outside transaction — read-only).
 		$appointment = $this->appointment_repository->findById( $appointment_id );
 
-		// Schedule email notifications
+		// Schedule email notifications.
 		if ( is_array( $appointment ) ) {
 			$this->schedule_email_notifications( $appointment, $calendar, 'created' );
 		}
 
-		// Generate receipt URL (magic link to /valid/ page)
+		// Generate receipt URL (magic link to /valid/ page).
 		$receipt_url        = '';
 		$confirmation_token = $appointment['confirmation_token'] ?? '';
 		if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
@@ -186,7 +186,7 @@ class AppointmentHandler {
 			'success'            => true,
 			'appointment_id'     => $appointment_id,
 			'confirmation_token' => $appointment['confirmation_token'] ?? null,
-			'requires_approval'  => $calendar['requires_approval'] == 1,
+			'requires_approval'  => 1 === $calendar['requires_approval'],
 			'receipt_url'        => $receipt_url,
 		);
 	}
@@ -199,33 +199,33 @@ class AppointmentHandler {
 	 * @return array<int, array<string, mixed>>|\WP_Error
 	 */
 	public function get_available_slots( int $calendar_id, string $date ) {
-		// Get calendar
+		// Get calendar.
 		$calendar = $this->calendar_repository->getWithWorkingHours( $calendar_id );
 
 		if ( ! $calendar ) {
 			return new \WP_Error( 'invalid_calendar', __( 'Calendar not found.', 'ffcertificate' ) );
 		}
 
-		if ( $calendar['status'] !== 'active' ) {
+		if ( 'active' !== $calendar['status'] ) {
 			return new \WP_Error( 'calendar_inactive', __( 'Calendar is not active.', 'ffcertificate' ) );
 		}
 
 		$has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
 
-		// Check global holidays and blocked dates (bypass can see slots on these dates)
+		// Check global holidays and blocked dates (bypass can see slots on these dates).
 		if ( ! $has_bypass ) {
 			if ( \FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday( $date ) ) {
-				return array(); // Global holiday - no slots
+				return array(); // Global holiday - no slots.
 			}
 			if ( $this->blocked_date_repository->isDateBlocked( $calendar_id, $date ) ) {
-				return array(); // No slots available
+				return array(); // No slots available.
 			}
 		}
 
-		// Get day of week
+		// Get day of week.
 		$day_of_week = (int) gmdate( 'w', strtotime( $date ) ?: time() );
 
-		// Get working hours for this day
+		// Get working hours for this day.
 		$working_hours = $calendar['working_hours'] ?? array();
 		$day_hours     = array_filter(
 			$working_hours,
@@ -235,7 +235,7 @@ class AppointmentHandler {
 		);
 
 		if ( empty( $day_hours ) ) {
-			// Admin bypass: generate default slots (09:00-18:00) for non-working days
+			// Admin bypass: generate default slots (09:00-18:00) for non-working days.
 			if ( $has_bypass ) {
 				$day_hours = array(
 					array(
@@ -245,14 +245,14 @@ class AppointmentHandler {
 					),
 				);
 			} else {
-				return array(); // Not a working day
+				return array(); // Not a working day.
 			}
 		}
 
-		// Get existing appointments for this date
+		// Get existing appointments for this date.
 		$existing_appointments = $this->appointment_repository->getAppointmentsByDate( $calendar_id, $date );
 
-		// Build slot list
+		// Build slot list.
 		$slots         = array();
 		$slot_duration = (int) $calendar['slot_duration'];
 		$slot_interval = (int) $calendar['slot_interval'];
@@ -265,9 +265,9 @@ class AppointmentHandler {
 			while ( $current_time < $end_time ) {
 				$slot_time = gmdate( 'H:i:s', $current_time );
 
-				// Check if slot is not blocked by time-range blocks (bypass skips this check)
+				// Check if slot is not blocked by time-range blocks (bypass skips this check).
 				if ( $has_bypass || ! $this->blocked_date_repository->isDateBlocked( $calendar_id, $date, $slot_time ) ) {
-					// Count existing appointments for this slot
+					// Count existing appointments for this slot.
 					$count = 0;
 					foreach ( $existing_appointments as $apt ) {
 						if ( $apt['start_time'] === $slot_time ) {
@@ -275,7 +275,7 @@ class AppointmentHandler {
 						}
 					}
 
-					// Check availability
+					// Check availability.
 					if ( $count < $max_per_slot ) {
 						$slots[] = array(
 							'time'      => $slot_time,
@@ -286,7 +286,7 @@ class AppointmentHandler {
 					}
 				}
 
-				// Move to next slot
+				// Move to next slot.
 				$current_time += ( $slot_duration + $slot_interval ) * 60;
 			}
 		}
@@ -307,8 +307,8 @@ class AppointmentHandler {
 	 * Cancel appointment
 	 *
 	 * @param int    $appointment_id
-	 * @param string $token Confirmation token for guest users
-	 * @param string $reason Cancellation reason
+	 * @param string $token Confirmation token for guest users.
+	 * @param string $reason Cancellation reason.
 	 * @return true|\WP_Error
 	 */
 	public function cancel_appointment( int $appointment_id, string $token = '', string $reason = '' ) {
@@ -324,14 +324,14 @@ class AppointmentHandler {
 			return new \WP_Error( 'calendar_not_found', __( 'Calendar not found.', 'ffcertificate' ) );
 		}
 
-		// Verify ownership and capability
+		// Verify ownership and capability.
 		$can_cancel   = false;
 		$cancelled_by = null;
 
 		if ( \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() ) {
 			$can_cancel   = true;
 			$cancelled_by = get_current_user_id();
-		} elseif ( is_user_logged_in() && $appointment['user_id'] == get_current_user_id() ) {
+		} elseif ( is_user_logged_in() && get_current_user_id() === $appointment['user_id'] ) {
 			if ( current_user_can( 'ffc_cancel_own_appointments' ) ) {
 				$can_cancel   = true;
 				$cancelled_by = get_current_user_id();
@@ -349,12 +349,12 @@ class AppointmentHandler {
 			return new \WP_Error( 'unauthorized', __( 'You do not have permission to cancel this appointment.', 'ffcertificate' ) );
 		}
 
-		// Check if calendar allows cancellation (admin always can)
+		// Check if calendar allows cancellation (admin always can).
 		if ( ! \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() && ! $calendar['allow_cancellation'] ) {
 			return new \WP_Error( 'cancellation_disabled', __( 'Cancellation is not allowed for this calendar.', 'ffcertificate' ) );
 		}
 
-		// Check cancellation deadline
+		// Check cancellation deadline.
 		if ( ! \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() && $calendar['cancellation_min_hours'] > 0 ) {
 			$tz               = wp_timezone();
 			$appointment_time = ( new \DateTimeImmutable( $appointment['appointment_date'] . ' ' . $appointment['start_time'], $tz ) )->getTimestamp();
@@ -372,15 +372,15 @@ class AppointmentHandler {
 			}
 		}
 
-		// Check if already cancelled
-		if ( $appointment['status'] === 'cancelled' ) {
+		// Check if already cancelled.
+		if ( 'cancelled' === $appointment['status'] ) {
 			return new \WP_Error( 'already_cancelled', __( 'This appointment is already cancelled.', 'ffcertificate' ) );
 		}
 
-		// Cancel appointment
+		// Cancel appointment.
 		$result = $this->appointment_repository->cancel( $appointment_id, $cancelled_by, $reason );
 
-		if ( $result === false ) {
+		if ( false === $result ) {
 			return new \WP_Error( 'cancellation_failed', __( 'Failed to cancel appointment.', 'ffcertificate' ) );
 		}
 
@@ -395,7 +395,7 @@ class AppointmentHandler {
 		 */
 		do_action( 'ffcertificate_appointment_cancelled', $appointment_id, $appointment, $reason, $cancelled_by );
 
-		// Send cancellation emails
+		// Send cancellation emails.
 		$this->schedule_email_notifications( $appointment, $calendar, 'cancelled' );
 
 		return true;
@@ -406,7 +406,7 @@ class AppointmentHandler {
 	 *
 	 * @param array<string, mixed> $appointment
 	 * @param array<string, mixed> $calendar
-	 * @param string               $event (created, confirmed, cancelled, reminder)
+	 * @param string               $event (created, confirmed, cancelled, reminder).
 	 */
 	private function schedule_email_notifications( array $appointment, array $calendar, string $event ): void {
 		$email_config = json_decode( $calendar['email_config'], true );
@@ -446,7 +446,7 @@ class AppointmentHandler {
 	/**
 	 * Create or link WordPress user based on CPF/RF and email
 	 *
-	 * @param array<string, mixed> &$data Appointment data (passed by reference)
+	 * @param array<string, mixed> &$data Appointment data (passed by reference).
 	 */
 	private function create_or_link_user( array &$data ): void {
 		if ( empty( $data['cpf_rf'] ) || empty( $data['email'] ) ) {
@@ -458,14 +458,14 @@ class AppointmentHandler {
 			return;
 		}
 
-		// Use Encryption::hash() when available for consistency with SubmissionHandler
+		// Use Encryption::hash() when available for consistency with SubmissionHandler.
 		if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
 			$cpf_rf_hash = \FreeFormCertificate\Core\Encryption::hash( $cpf_rf_clean );
 		} else {
 			$cpf_rf_hash = hash( 'sha256', $cpf_rf_clean );
 		}
 
-		// Determine identifier type by digit count: 11 = CPF, 7 = RF
+		// Determine identifier type by digit count: 11 = CPF, 7 = RF.
 		$identifier_type = strlen( $cpf_rf_clean ) === 7 ? 'rf' : 'cpf';
 
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {

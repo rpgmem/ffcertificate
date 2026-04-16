@@ -38,7 +38,7 @@ class MigrationRegistry {
 	/**
 	 * Register all available migrations
 	 *
-	 * v5.0.0: Retired 10 completed migrations. Only split_cpf_rf remains
+	 * V5.0.0: Retired 10 completed migrations. Only split_cpf_rf remains
 	 * as it is still needed for legacy records with combined cpf_rf_hash.
 	 *
 	 * @return void
@@ -46,7 +46,7 @@ class MigrationRegistry {
 	private function register_migrations(): void {
 		$this->migrations = array();
 
-		// v5.0.0: CPF/RF split migration (only active migration)
+		// v5.0.0: CPF/RF split migration (only active migration).
 		$this->migrations['split_cpf_rf'] = array(
 			'name'            => __( 'Split CPF/RF', 'ffcertificate' ),
 			'description'     => __( 'Separate combined CPF/RF column into individual CPF and RF columns', 'ffcertificate' ),
@@ -56,7 +56,7 @@ class MigrationRegistry {
 			'requires_column' => true,
 		);
 
-		// Allow plugins to add custom migrations
+		// Allow plugins to add custom migrations.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
 		$this->migrations = apply_filters( 'ffcertificate_migrations_registry', $this->migrations );
 	}
@@ -73,7 +73,7 @@ class MigrationRegistry {
 	/**
 	 * Get a specific migration definition
 	 *
-	 * @param string $migration_key Migration identifier
+	 * @param string $migration_key Migration identifier.
 	 * @return array<string, mixed>|null Migration definition or null if not found
 	 */
 	public function get_migration( string $migration_key ) {
@@ -83,7 +83,7 @@ class MigrationRegistry {
 	/**
 	 * Check if a migration exists
 	 *
-	 * @param string $migration_key Migration identifier
+	 * @param string $migration_key Migration identifier.
 	 * @return bool
 	 */
 	public function exists( string $migration_key ): bool {
@@ -93,7 +93,7 @@ class MigrationRegistry {
 	/**
 	 * Check if a migration is available to run
 	 *
-	 * @param string $migration_key Migration identifier
+	 * @param string $migration_key Migration identifier.
 	 * @return bool
 	 */
 	public function is_available( string $migration_key ): bool {

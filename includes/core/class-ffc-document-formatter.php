@@ -57,13 +57,13 @@ class DocumentFormatter {
 	/**
 	 * Validate CPF (Brazilian tax ID)
 	 *
-	 * @param string $cpf CPF to validate (with or without formatting)
+	 * @param string $cpf CPF to validate (with or without formatting).
 	 * @return bool True if valid
 	 */
 	public static function validate_cpf( string $cpf ): bool {
 		$cpf = preg_replace( '/\D/', '', $cpf );
 
-		if ( strlen( $cpf ) != 11 ) {
+		if ( strlen( $cpf ) !== 11 ) {
 			return false;
 		}
 
@@ -76,7 +76,7 @@ class DocumentFormatter {
 				$d += (int) $cpf[ $c ] * ( ( $t + 1 ) - $c );
 			}
 			$d = ( ( 10 * $d ) % 11 ) % 10;
-			if ( (int) $cpf[ $c ] != $d ) {
+			if ( (int) $cpf[ $c ] !== $d ) {
 				return false;
 			}
 		}
@@ -87,7 +87,7 @@ class DocumentFormatter {
 	/**
 	 * Validate RF (7-digit registration)
 	 *
-	 * @param string $rf RF to validate
+	 * @param string $rf RF to validate.
 	 * @return bool True if valid
 	 */
 	public static function validate_rf( string $rf ): bool {
@@ -110,7 +110,7 @@ class DocumentFormatter {
 	/**
 	 * Format CPF with mask
 	 *
-	 * @param string $cpf CPF to format
+	 * @param string $cpf CPF to format.
 	 * @return string Formatted CPF (XXX.XXX.XXX-XX)
 	 */
 	public static function format_cpf( string $cpf ): string {
@@ -126,7 +126,7 @@ class DocumentFormatter {
 	/**
 	 * Format RF with mask
 	 *
-	 * @param string $rf RF to format
+	 * @param string $rf RF to format.
 	 * @return string Formatted RF (XXX.XXX-X)
 	 */
 	public static function format_rf( string $rf ): string {
@@ -156,7 +156,7 @@ class DocumentFormatter {
 			$formatted = $code;
 		}
 
-		if ( $prefix !== '' && in_array( strtoupper( $prefix ), self::VALID_PREFIXES, true ) ) {
+		if ( '' !== $prefix && in_array( strtoupper( $prefix ), self::VALID_PREFIXES, true ) ) {
 			return strtoupper( $prefix ) . '-' . $formatted;
 		}
 
@@ -166,20 +166,20 @@ class DocumentFormatter {
 	/**
 	 * Format any document based on type
 	 *
-	 * @param string $value Document value
-	 * @param string $type Document type (cpf, rf, auth_code, or 'auto')
+	 * @param string $value Document value.
+	 * @param string $type Document type (cpf, rf, auth_code, or 'auto').
 	 * @return string Formatted document
 	 */
 	public static function format_document( string $value, string $type = 'auto' ): string {
 		$clean = preg_replace( '/\D/', '', $value );
 		$len   = strlen( $clean );
 
-		if ( $type === 'auto' ) {
-			if ( $len === 11 ) {
+		if ( 'auto' === $type ) {
+			if ( 11 === $len ) {
 				$type = 'cpf';
-			} elseif ( $len === 7 ) {
+			} elseif ( 7 === $len ) {
 				$type = 'rf';
-			} elseif ( $len === 12 ) {
+			} elseif ( 12 === $len ) {
 				$type = 'auth_code';
 			}
 		}
@@ -200,7 +200,7 @@ class DocumentFormatter {
 	 * Mask CPF/RF for privacy
 	 *
 	 * @since 2.9.17
-	 * @param string $value CPF or RF to mask
+	 * @param string $value CPF or RF to mask.
 	 * @return string Masked document
 	 */
 	public static function mask_cpf( string $value ): string {
@@ -223,7 +223,7 @@ class DocumentFormatter {
 	 * Mask email address for privacy
 	 *
 	 * @since 3.2.0
-	 * @param string $email Email address to mask
+	 * @param string $email Email address to mask.
 	 * @return string Masked email
 	 */
 	public static function mask_email( string $email ): string {
@@ -250,13 +250,13 @@ class DocumentFormatter {
 	 * @return array{prefix: string, code: string}
 	 */
 	public static function parse_prefixed_code( string $input ): array {
-		// Strip whitespace, uppercase
+		// Strip whitespace, uppercase.
 		$clean = strtoupper( trim( $input ) );
 
-		// Remove all non-alphanumeric chars
+		// Remove all non-alphanumeric chars.
 		$alphanumeric = preg_replace( '/[^A-Z0-9]/', '', $clean );
 
-		// 13 chars: first char is a valid prefix letter
+		// 13 chars: first char is a valid prefix letter.
 		if ( strlen( $alphanumeric ) === 13 && in_array( $alphanumeric[0], self::VALID_PREFIXES, true ) ) {
 			return array(
 				'prefix' => $alphanumeric[0],
@@ -264,7 +264,7 @@ class DocumentFormatter {
 			);
 		}
 
-		// 12 chars: no prefix
+		// 12 chars: no prefix.
 		if ( strlen( $alphanumeric ) === 12 ) {
 			return array(
 				'prefix' => '',
@@ -272,7 +272,7 @@ class DocumentFormatter {
 			);
 		}
 
-		// Fallback: return as-is (invalid length)
+		// Fallback: return as-is (invalid length).
 		return array(
 			'prefix' => '',
 			'code'   => $alphanumeric,
@@ -295,7 +295,7 @@ class DocumentFormatter {
 	/**
 	 * Clean identifier (CPF, RF, ticket) - uppercase alphanumeric only
 	 *
-	 * @param string $value Identifier to clean
+	 * @param string $value Identifier to clean.
 	 * @return string Cleaned identifier
 	 */
 	public static function clean_identifier( string $value ): string {

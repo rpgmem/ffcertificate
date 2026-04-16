@@ -60,7 +60,7 @@ class AppointmentRepository extends AbstractRepository {
 	 * Find appointments by user ID
 	 *
 	 * @param int                $user_id
-	 * @param array<int, string> $statuses Optional status filter
+	 * @param array<int, string> $statuses Optional status filter.
 	 * @param int|null           $limit
 	 * @param int                $offset
 	 * @return array<int, array<string, mixed>>
@@ -136,10 +136,10 @@ class AppointmentRepository extends AbstractRepository {
 		$cpf_rf_clean = preg_replace( '/[^0-9]/', '', $cpf_rf );
 		$cpf_rf_hash  = hash( 'sha256', $cpf_rf_clean );
 
-		// Classify by digit count: 7 digits = RF, else CPF
+		// Classify by digit count: 7 digits = RF, else CPF.
 		$hash_column = strlen( $cpf_rf_clean ) === 7 ? 'rf_hash' : 'cpf_hash';
 
-		// Search targeted split column first
+		// Search targeted split column first.
 		if ( $limit ) {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$sql = $this->wpdb->prepare(
@@ -208,9 +208,9 @@ class AppointmentRepository extends AbstractRepository {
 	 * Get appointments for a specific date and calendar
 	 *
 	 * @param int                $calendar_id
-	 * @param string             $date Date in Y-m-d format
-	 * @param array<int, string> $statuses Optional status filter (default: confirmed appointments)
-	 * @param bool               $use_lock Use FOR UPDATE lock (requires active transaction)
+	 * @param string             $date Date in Y-m-d format.
+	 * @param array<int, string> $statuses Optional status filter (default: confirmed appointments).
+	 * @param bool               $use_lock Use FOR UPDATE lock (requires active transaction).
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getAppointmentsByDate( int $calendar_id, string $date, array $statuses = array( 'confirmed', 'pending' ), bool $use_lock = false ): array {
@@ -264,7 +264,7 @@ class AppointmentRepository extends AbstractRepository {
 	 * @param string $date
 	 * @param string $start_time
 	 * @param int    $max_per_slot
-	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction)
+	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
 	 * @return bool
 	 */
 	public function isSlotAvailable( int $calendar_id, string $date, string $start_time, int $max_per_slot = 1, bool $use_lock = false ): bool {
@@ -292,8 +292,8 @@ class AppointmentRepository extends AbstractRepository {
 	 * Cancel appointment
 	 *
 	 * @param int         $id
-	 * @param int|null    $cancelled_by User ID who cancelled
-	 * @param string|null $reason Cancellation reason
+	 * @param int|null    $cancelled_by User ID who cancelled.
+	 * @param string|null $reason Cancellation reason.
 	 * @return int|false
 	 */
 	public function cancel( int $id, ?int $cancelled_by = null, ?string $reason = null ) {
@@ -313,7 +313,7 @@ class AppointmentRepository extends AbstractRepository {
 	 * Confirm appointment (admin approval)
 	 *
 	 * @param int      $id
-	 * @param int|null $approved_by User ID who approved
+	 * @param int|null $approved_by User ID who approved.
 	 * @return int|false
 	 */
 	public function confirm( int $id, ?int $approved_by = null ) {
@@ -363,7 +363,7 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Get upcoming appointments for reminders
 	 *
-	 * @param int $hours_before Hours before appointment
+	 * @param int $hours_before Hours before appointment.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getUpcomingForReminders( int $hours_before = 24 ): array {
@@ -462,72 +462,72 @@ class AppointmentRepository extends AbstractRepository {
 	 * @return int|false
 	 */
 	public function createAppointment( array $data ) {
-		// Handle encryption if configured
+		// Handle encryption if configured.
 		if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) &&
 			\FreeFormCertificate\Core\Encryption::is_configured() ) {
 
 			if ( ! empty( $data['email'] ) ) {
 				$data['email_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data['email'] );
 				$data['email_hash']      = hash( 'sha256', strtolower( trim( $data['email'] ) ) );
-				// Clear plain text - do not store unencrypted (LGPD compliance)
+				// Clear plain text - do not store unencrypted (LGPD compliance).
 				unset( $data['email'] );
 			}
 
 			if ( ! empty( $data['cpf_rf'] ) ) {
 				$clean_id = preg_replace( '/[^0-9]/', '', $data['cpf_rf'] );
 
-				// Write to split columns only — no legacy cpf_rf_* dual-write
+				// Write to split columns only — no legacy cpf_rf_* dual-write.
 				$id_len = strlen( $clean_id );
-				if ( $id_len === 7 ) {
+				if ( 7 === $id_len ) {
 					$data['rf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $clean_id );
 					$data['rf_hash']      = \FreeFormCertificate\Core\Encryption::hash( $clean_id );
 				} else {
-					// 11 digits (CPF) or unknown length — default to CPF
+					// 11 digits (CPF) or unknown length — default to CPF.
 					$data['cpf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $clean_id );
 					$data['cpf_hash']      = \FreeFormCertificate\Core\Encryption::hash( $clean_id );
 				}
 
-				// Clear plain text - do not store unencrypted (LGPD compliance)
+				// Clear plain text - do not store unencrypted (LGPD compliance).
 				unset( $data['cpf_rf'] );
 			}
 
 			if ( ! empty( $data['phone'] ) ) {
 				$data['phone_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data['phone'] );
-				// Clear plain text - do not store unencrypted (LGPD compliance)
+				// Clear plain text - do not store unencrypted (LGPD compliance).
 				unset( $data['phone'] );
 			}
 
 			if ( ! empty( $data['custom_data'] ) ) {
-				$custom_json                   = is_array( $data['custom_data'] ) ? json_encode( $data['custom_data'] ) : $data['custom_data'];
+				$custom_json                   = is_array( $data['custom_data'] ) ? wp_json_encode( $data['custom_data'] ) : $data['custom_data'];
 				$data['custom_data_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $custom_json );
-				// Clear plain text - do not store unencrypted (LGPD compliance)
+				// Clear plain text - do not store unencrypted (LGPD compliance).
 				unset( $data['custom_data'] );
 			}
 
 			if ( ! empty( $data['user_ip'] ) ) {
 				$data['user_ip_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data['user_ip'] );
-				// Clear plain text - do not store unencrypted (LGPD compliance)
+				// Clear plain text - do not store unencrypted (LGPD compliance).
 				unset( $data['user_ip'] );
 			}
 		}
 
 		// Always remove non-column keys that only exist in encrypted form in the DB.
-		// When encryption is configured, these are unset inside the !empty() blocks above,
+		// When encryption is configured, these are unset inside the !empty() blocks above,.
 		// but if a value is empty the key stays in the array and causes wpdb->insert()
 		// to fail with "Unknown column". Remove them unconditionally.
 		unset( $data['email'], $data['cpf_rf'], $data['phone'], $data['custom_data'], $data['user_ip'] );
 
-		// Generate confirmation token for all appointments (allows receipt access without login)
+		// Generate confirmation token for all appointments (allows receipt access without login).
 		if ( empty( $data['confirmation_token'] ) ) {
 			$data['confirmation_token'] = bin2hex( random_bytes( 32 ) );
 		}
 
-		// Generate validation code for all appointments (user-friendly code like certificates)
+		// Generate validation code for all appointments (user-friendly code like certificates).
 		if ( empty( $data['validation_code'] ) ) {
 			$data['validation_code'] = $this->generate_unique_validation_code();
 		}
 
-		// Set timestamps
+		// Set timestamps.
 		if ( empty( $data['created_at'] ) ) {
 			$data['created_at'] = current_time( 'mysql' );
 		}
@@ -551,8 +551,8 @@ class AppointmentRepository extends AbstractRepository {
 	 * Get booking counts by date range
 	 *
 	 * @param int    $calendar_id
-	 * @param string $start_date YYYY-MM-DD
-	 * @param string $end_date YYYY-MM-DD
+	 * @param string $start_date YYYY-MM-DD.
+	 * @param string $end_date YYYY-MM-DD.
 	 * @return array<string, int> Array with date => count
 	 */
 	public function getBookingCountsByDateRange( int $calendar_id, string $start_date, string $end_date ): array {

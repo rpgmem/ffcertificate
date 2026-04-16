@@ -51,11 +51,11 @@ class FormListColumns {
 		foreach ( $columns as $key => $label ) {
 			$new[ $key ] = $label;
 
-			if ( $key === 'cb' ) {
+			if ( 'cb' === $key ) {
 				$new['ffc_form_id'] = __( 'ID', 'ffcertificate' );
 			}
 
-			if ( $key === 'title' ) {
+			if ( 'title' === $key ) {
 				$new['ffc_shortcode']   = __( 'Shortcode', 'ffcertificate' );
 				$new['ffc_submissions'] = __( 'Submissions', 'ffcertificate' );
 			}
@@ -94,7 +94,7 @@ class FormListColumns {
 			case 'ffc_submissions':
 				$count = self::get_submission_count( $post_id );
 
-				if ( $count === 0 ) {
+				if ( 0 === $count ) {
 					echo '<span class="ffc-empty-value">&mdash;</span>';
 				} else {
 					$url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions&form_id=' . $post_id );
@@ -129,7 +129,7 @@ class FormListColumns {
 	 * @return int
 	 */
 	private static function get_submission_count( int $form_id ): int {
-		if ( self::$submission_counts_cache === null ) {
+		if ( null === self::$submission_counts_cache ) {
 			self::load_submission_counts();
 		}
 
@@ -165,7 +165,7 @@ class FormListColumns {
 	 */
 	public static function inline_styles(): void {
 		$screen = get_current_screen();
-		if ( ! $screen || $screen->post_type !== 'ffc_form' ) {
+		if ( ! $screen || 'ffc_form' !== $screen->post_type ) {
 			return;
 		}
 

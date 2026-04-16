@@ -26,7 +26,7 @@ class ReregistrationSubmissionActions {
 	 */
 	public static function handle_approve(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( ! isset( $_GET['action'] ) || $_GET['action'] !== 'approve' || ! isset( $_GET['sub_id'] ) ) {
+		if ( ! isset( $_GET['action'] ) || 'approve' !== $_GET['action'] || ! isset( $_GET['sub_id'] ) ) {
 			return;
 		}
 
@@ -49,7 +49,7 @@ class ReregistrationSubmissionActions {
 	 */
 	public static function handle_reject(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( ! isset( $_GET['action'] ) || $_GET['action'] !== 'reject' || ! isset( $_GET['sub_id'] ) ) {
+		if ( ! isset( $_GET['action'] ) || 'reject' !== $_GET['action'] || ! isset( $_GET['sub_id'] ) ) {
 			return;
 		}
 
@@ -72,7 +72,7 @@ class ReregistrationSubmissionActions {
 	 */
 	public static function handle_return_to_draft(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( ! isset( $_GET['action'] ) || $_GET['action'] !== 'return_to_draft' || ! isset( $_GET['sub_id'] ) ) {
+		if ( ! isset( $_GET['action'] ) || 'return_to_draft' !== $_GET['action'] || ! isset( $_GET['sub_id'] ) ) {
 			return;
 		}
 
@@ -94,7 +94,7 @@ class ReregistrationSubmissionActions {
 	 * @return void
 	 */
 	public static function handle_bulk(): void {
-		if ( ! isset( $_POST['ffc_action'] ) || $_POST['ffc_action'] !== 'bulk_submissions' ) {
+		if ( ! isset( $_POST['ffc_action'] ) || 'bulk_submissions' !== $_POST['ffc_action'] ) {
 			return;
 		}
 
@@ -110,20 +110,20 @@ class ReregistrationSubmissionActions {
 			return;
 		}
 
-		if ( $action === 'approve' ) {
+		if ( 'approve' === $action ) {
 			ReregistrationSubmissionRepository::bulk_approve( $ids, get_current_user_id() );
 			wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=bulk_approved' ) );
 			exit;
 		}
 
-		if ( $action === 'return_to_draft' ) {
+		if ( 'return_to_draft' === $action ) {
 			ReregistrationSubmissionRepository::bulk_return_to_draft( $ids, get_current_user_id() );
 			wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=bulk_returned_to_draft' ) );
 			exit;
 		}
 
-		if ( $action === 'send_reminder' ) {
-			// Collect user IDs from submission IDs
+		if ( 'send_reminder' === $action ) {
+			// Collect user IDs from submission IDs.
 			$user_ids = array();
 			foreach ( $ids as $sub_id ) {
 				$sub = ReregistrationSubmissionRepository::get_by_id( $sub_id );

@@ -73,20 +73,20 @@ class AudienceAdminEnvironment {
 		$environments = AudienceEnvironmentRepository::get_all( $args );
 		$schedules    = AudienceScheduleRepository::get_all();
 
-		// Build schedule name map for sorting
+		// Build schedule name map for sorting.
 		$schedule_name_map = array();
 		foreach ( $schedules as $schedule ) {
 			$schedule_name_map[ (int) $schedule->id ] = $schedule->name;
 		}
 
-		// Sort by calendar name first, then environment name
+		// Sort by calendar name first, then environment name.
 		usort(
 			$environments,
 			function ( $a, $b ) use ( $schedule_name_map ) {
 				$cal_a = $schedule_name_map[ (int) $a->schedule_id ] ?? '';
 				$cal_b = $schedule_name_map[ (int) $b->schedule_id ] ?? '';
 				$cmp   = strnatcasecmp( $cal_a, $cal_b );
-				if ( $cmp !== 0 ) {
+				if ( 0 !== $cmp ) {
 					return $cmp;
 				}
 				return strnatcasecmp( $a->name, $b->name );
@@ -94,7 +94,7 @@ class AudienceAdminEnvironment {
 		);
 		$add_url = admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&action=new' );
 
-		// Dynamic label: use filtered schedule's label or default
+		// Dynamic label: use filtered schedule's label or default.
 		$env_label = $filter_schedule > 0
 			? AudienceScheduleRepository::get_environment_label( $filter_schedule )
 			: AudienceScheduleRepository::get_environment_label();
@@ -145,7 +145,7 @@ class AudienceAdminEnvironment {
 						<?php
 						$schedule_name      = $schedule_name_map[ (int) $env->schedule_id ] ?? '—';
 						$edit_url           = admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&action=edit&id=' . $env->id );
-						$is_active          = ( $env->status === 'active' );
+						$is_active          = ( 'active' === $env->status );
 						$env_label_singular = mb_strtolower( AudienceScheduleRepository::get_environment_label( isset( $env->schedule_id ) ? (int) $env->schedule_id : null, true ) );
 
 						$deactivate_url = '';
@@ -215,13 +215,13 @@ class AudienceAdminEnvironment {
 	/**
 	 * Render environment form
 	 *
-	 * @param int $id Environment ID (0 for new)
+	 * @param int $id Environment ID (0 for new).
 	 * @return void
 	 */
 	private function render_form( int $id ): void {
 		$environment = null;
 
-		// Get the schedule for dynamic label
+		// Get the schedule for dynamic label.
 		$schedule_id = 0;
 		if ( $id > 0 ) {
 			$environment = AudienceEnvironmentRepository::get_by_id( $id );
@@ -243,7 +243,7 @@ class AudienceAdminEnvironment {
 		$schedules = AudienceScheduleRepository::get_all( array( 'status' => 'active' ) );
 		$back_url  = admin_url( 'admin.php?page=' . $this->menu_slug . '-environments' );
 
-		// Parse working hours
+		// Parse working hours.
 		$working_hours = array();
 		if ( $environment && $environment->working_hours ) {
 			$working_hours = json_decode( $environment->working_hours, true ) ?: array();
@@ -391,7 +391,7 @@ class AudienceAdminEnvironment {
 			return;
 		}
 
-		// Show feedback for redirect-based actions
+		// Show feedback for redirect-based actions.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['message'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -410,15 +410,15 @@ class AudienceAdminEnvironment {
 			}
 		}
 
-		// Handle save
-		if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'save_environment' ) {
+		// Handle save.
+		if ( isset( $_POST['ffc_action'] ) && 'save_environment' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_environment_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_environment_nonce'] ) ), 'save_environment' ) ) {
 				return;
 			}
 
 			$id = isset( $_POST['environment_id'] ) ? absint( $_POST['environment_id'] ) : 0;
 
-			// Process working hours
+			// Process working hours.
 			$working_hours = array();
 			if ( isset( $_POST['working_hours'] ) && is_array( $_POST['working_hours'] ) ) {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
@@ -457,9 +457,9 @@ class AudienceAdminEnvironment {
 			}
 		}
 
-		// Handle deactivate (active items get deactivated instead of deleted)
+		// Handle deactivate (active items get deactivated instead of deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( isset( $_GET['action'] ) && $_GET['action'] === 'deactivate' && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
+		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'deactivate_environment_' . $id ) ) {
 				AudienceEnvironmentRepository::update( $id, array( 'status' => 'inactive' ) );
@@ -468,13 +468,13 @@ class AudienceAdminEnvironment {
 			}
 		}
 
-		// Handle delete (only inactive items can be permanently deleted)
+		// Handle delete (only inactive items can be permanently deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete' && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
+		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'delete_environment_' . $id ) ) {
 				$env = AudienceEnvironmentRepository::get_by_id( $id );
-				if ( $env && $env->status !== 'active' ) {
+				if ( $env && 'active' !== $env->status ) {
 					AudienceEnvironmentRepository::delete( $id );
 					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-environments&message=deleted' ) );
 					exit;

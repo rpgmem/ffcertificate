@@ -48,7 +48,7 @@ class SubmissionRestController {
 	 * Register routes
 	 */
 	public function register_routes(): void {
-		// GET /submissions - List submissions (admin only)
+		// GET /submissions - List submissions (admin only).
 		register_rest_route(
 			$this->namespace,
 			'/submissions',
@@ -77,7 +77,7 @@ class SubmissionRestController {
 			)
 		);
 
-		// GET /submissions/{id} - Get single submission (admin only)
+		// GET /submissions/{id} - Get single submission (admin only).
 		register_rest_route(
 			$this->namespace,
 			'/submissions/(?P<id>\d+)',
@@ -95,7 +95,7 @@ class SubmissionRestController {
 			)
 		);
 
-		// POST /verify - Verify certificate by auth code
+		// POST /verify - Verify certificate by auth code.
 		register_rest_route(
 			$this->namespace,
 			'/verify',
@@ -155,10 +155,10 @@ class SubmissionRestController {
 				if ( ! empty( $item['data'] ) ) {
 					$data = json_decode( $item['data'], true );
 				}
-				// Decrypt encrypted data field when plaintext is empty
+				// Decrypt encrypted data field when plaintext is empty.
 				$data = $this->decrypt_submission_data( $item, is_array( $data ) ? $data : array() );
 
-				// Decrypt individual fields, falling back to plaintext columns
+				// Decrypt individual fields, falling back to plaintext columns.
 				$email  = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'email' );
 				$cpf    = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'cpf' );
 				$rf     = \FreeFormCertificate\Core\Encryption::decrypt_field( $item, 'rf' );
@@ -232,13 +232,13 @@ class SubmissionRestController {
 				$data = json_decode( $submission['data'], true );
 			}
 
-			// Decrypt if encrypted
+			// Decrypt if encrypted.
 			$data = $this->decrypt_submission_data( $submission, $data );
 
 			$form       = get_post( (int) $submission['form_id'] );
 			$form_title = $form ? $form->post_title : 'Unknown Form';
 
-			// Decrypt individual fields, falling back to plaintext columns
+			// Decrypt individual fields, falling back to plaintext columns.
 			$email  = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'email' );
 			$cpf    = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'cpf' );
 			$rf     = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'rf' );
@@ -313,7 +313,7 @@ class SubmissionRestController {
 				);
 			}
 
-			if ( isset( $submission['status'] ) && $submission['status'] === 'trash' ) {
+			if ( isset( $submission['status'] ) && 'trash' === $submission['status'] ) {
 				return new \WP_Error(
 					'certificate_deleted',
 					'This certificate has been deleted.',
@@ -384,8 +384,8 @@ class SubmissionRestController {
 	 * Decrypt submission data if encrypted
 	 *
 	 * @since 3.2.0
-	 * @param array<string, mixed> $submission Submission data array
-	 * @param array<string, mixed> $data Existing data array to merge into
+	 * @param array<string, mixed> $submission Submission data array.
+	 * @param array<string, mixed> $data Existing data array to merge into.
 	 * @return array<string, mixed> Merged data array with decrypted values
 	 */
 	private function decrypt_submission_data( array $submission, array $data = array() ): array {

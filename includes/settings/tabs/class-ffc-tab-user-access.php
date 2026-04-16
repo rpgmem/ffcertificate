@@ -26,7 +26,7 @@ class TabUserAccess extends SettingsTab {
 		$this->tab_icon  = 'ffc-icon-users';
 		$this->tab_order = 60;
 
-		// Enqueue styles for this tab
+		// Enqueue styles for this tab.
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_styles' ) );
 	}
 
@@ -34,8 +34,8 @@ class TabUserAccess extends SettingsTab {
 	 * Enqueue styles for User Access settings page
 	 */
 	public function enqueue_styles( string $hook ): void {
-		// Only load on settings page with this tab active
-		if ( $hook !== 'ffc_form_page_ffc-settings' ) {
+		// Only load on settings page with this tab active.
+		if ( 'ffc_form_page_ffc-settings' !== $hook ) {
 			return;
 		}
 
@@ -43,11 +43,11 @@ class TabUserAccess extends SettingsTab {
 	}
 
 	public function render(): void {
-		// Include view file
+		// Include view file.
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-user-access.php';
 
 		if ( file_exists( $view_file ) ) {
-			// Make variables available to view
+			// Make variables available to view.
 			$settings = $this;
 
 			include $view_file;

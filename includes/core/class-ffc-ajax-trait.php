@@ -59,7 +59,7 @@ trait AjaxTrait {
 	 * @return void Dies with JSON error if permission denied.
 	 */
 	protected function check_ajax_permission( string $capability = 'manage_options' ): void {
-		if ( $capability === 'manage_options' && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+		if ( 'manage_options' === $capability && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
 			if ( ! Utils::current_user_can_manage() ) {
 				wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
 			}

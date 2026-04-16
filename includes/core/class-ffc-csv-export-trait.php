@@ -56,15 +56,15 @@ trait CsvExportTrait {
 	protected function decode_json_field( array $row, string $plain_key = 'data', string $encrypted_key = 'data_encrypted' ): array {
 		$json = null;
 
-		// Try encrypted first
+		// Try encrypted first.
 		if ( ! empty( $row[ $encrypted_key ] ) ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
 				$json = Encryption::decrypt( $row[ $encrypted_key ] );
 			}
 		}
 
-		// Fallback to plain text
-		if ( $json === null && ! empty( $row[ $plain_key ] ) ) {
+		// Fallback to plain text.
+		if ( null === $json && ! empty( $row[ $plain_key ] ) ) {
 			$json = $row[ $plain_key ];
 		}
 
@@ -133,15 +133,15 @@ trait CsvExportTrait {
 		header( 'Expires: 0' );
 
 		$output = fopen( 'php://output', 'w' );
-		if ( $output === false ) {
+		if ( false === $output ) {
 			exit;
 		}
 
-		// BOM for Excel UTF-8 recognition
+		// BOM for Excel UTF-8 recognition.
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV binary output, not HTML context
 		fprintf( $output, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
 
-		// Convert headers to UTF-8
+		// Convert headers to UTF-8.
 		$headers = array_map(
 			function ( $h ) {
 				return mb_convert_encoding( $h, 'UTF-8', 'UTF-8' );

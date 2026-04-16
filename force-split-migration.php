@@ -16,8 +16,8 @@
 
 // ── Bootstrap WordPress ──────────────────────────────────────────
 $wp_load_paths = array(
-	__DIR__ . '/../../../wp-load.php',        // standard: wp-content/plugins/ffcertificate/
-	__DIR__ . '/../../../../wp-load.php',      // alternate depth
+	__DIR__ . '/../../../wp-load.php',        // standard: wp-content/plugins/ffcertificate/.
+	__DIR__ . '/../../../../wp-load.php',      // alternate depth.
 );
 
 $loaded = false;
@@ -29,7 +29,7 @@ foreach ( $wp_load_paths as $path ) {
 	}
 }
 
-// If running via WP-CLI (wp eval-file), WordPress is already loaded
+// If running via WP-CLI (wp eval-file), WordPress is already loaded.
 if ( ! $loaded && ! defined( 'ABSPATH' ) ) {
 	echo "ERROR: Could not locate wp-load.php\n";
 	echo "Run this via WP-CLI instead:\n";
@@ -66,9 +66,9 @@ $sub_table  = $wpdb->prefix . 'ffc_submissions';
 $appt_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
 $columns_to_check = array(
-	// Submissions
+	// Submissions.
 	$sub_table  => array( 'cpf_rf', 'cpf_rf_encrypted', 'cpf_rf_hash', 'user_ip', 'email', 'cpf', 'rf', 'consent_ip' ),
-	// Appointments
+	// Appointments.
 	$appt_table => array( 'cpf_rf', 'cpf_rf_encrypted', 'cpf_rf_hash', 'user_ip', 'email', 'cpf', 'rf', 'consent_ip', 'phone', 'custom_data' ),
 );
 

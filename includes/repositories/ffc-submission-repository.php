@@ -3,7 +3,7 @@
  * Submission Repository
  * Handles all database operations for submissions
  *
- * v3.3.0: Added strict types and type hints for better code safety
+ * V3.3.0: Added strict types and type hints for better code safety
  * v3.2.0: Migrated to namespace (Phase 2)
  * v3.0.2: Fixed search to work with encrypted data (removed data_encrypted LIKE, added auth_code/magic_token search)
  * v3.0.1: Added methods for CSV export
@@ -34,7 +34,7 @@ class SubmissionRepository extends AbstractRepository {
 	 * Check if a column exists in the submissions table (cached per request)
 	 *
 	 * @since 4.6.13
-	 * @param string $column_name Column name to check
+	 * @param string $column_name Column name to check.
 	 * @return bool
 	 */
 	private function column_exists( string $column_name ): bool {
@@ -85,7 +85,7 @@ class SubmissionRepository extends AbstractRepository {
 		$cache_key = "auth_{$auth_code}";
 		$cached    = $this->get_cache( $cache_key );
 
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -112,7 +112,7 @@ class SubmissionRepository extends AbstractRepository {
 		$cache_key = "token_{$token}";
 		$cached    = $this->get_cache( $cache_key );
 
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -161,7 +161,7 @@ class SubmissionRepository extends AbstractRepository {
 		$id_hash     = $this->hash( $clean_cpf );
 		$hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
 
-		// Search the specific split column based on digit count
+		// Search the specific split column based on digit count.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare(
@@ -201,12 +201,12 @@ class SubmissionRepository extends AbstractRepository {
 	/**
 	 * ✅ NEW v4.0.0: Get all submissions by form_id(s) and status for export
 	 *
-	 * @param int|array<int, int>|null $form_ids Single form ID, array of IDs, or null for all forms
-	 * @param string|null              $status Status filter (publish, trash, null = all)
+	 * @param int|array<int, int>|null $form_ids Single form ID, array of IDs, or null for all forms.
+	 * @param string|null              $status Status filter (publish, trash, null = all).
 	 * @return array<int, array<string, mixed>> Array of submissions
 	 */
 	public function getForExport( $form_ids = null, ?string $status = 'publish' ): array {
-		// Handle multiple form IDs with custom query
+		// Handle multiple form IDs with custom query.
 		if ( is_array( $form_ids ) && ! empty( $form_ids ) ) {
 			$form_ids_int          = array_map( 'absint', $form_ids );
 			$form_ids_placeholders = implode( ', ', array_fill( 0, count( $form_ids_int ), '%d' ) );
@@ -214,11 +214,11 @@ class SubmissionRepository extends AbstractRepository {
 			$where        = array();
 			$prepare_args = array();
 
-			// Add form_id filter
+			// Add form_id filter.
 			$where[]      = "form_id IN ({$form_ids_placeholders})";
 			$prepare_args = array_merge( $prepare_args, $form_ids_int );
 
-			// Add status filter
+			// Add status filter.
 			if ( $status ) {
 				$where[]        = 'status = %s';
 				$prepare_args[] = $status;
@@ -236,7 +236,7 @@ class SubmissionRepository extends AbstractRepository {
 			return $this->wpdb->get_results( $query, ARRAY_A );
 		}
 
-		// Single form ID or no filter - use existing logic
+		// Single form ID or no filter - use existing logic.
 		$conditions = array();
 
 		if ( $status ) {
@@ -247,7 +247,7 @@ class SubmissionRepository extends AbstractRepository {
 			$conditions['form_id'] = $form_ids;
 		}
 
-		// Use inherited findAll() method with no limit
+		// Use inherited findAll() method with no limit.
 		return $this->findAll( $conditions, 'id', 'DESC', null, 0 );
 	}
 
@@ -295,9 +295,9 @@ class SubmissionRepository extends AbstractRepository {
 	public function getExportBatch( ?array $form_ids, ?string $status, int $cursor_id, int $limit ): array {
 		list( $where_clause, $prepare_args ) = $this->build_export_where( $form_ids, $status );
 
-		// Append cursor condition
+		// Append cursor condition.
 		$cursor_condition = 'id < %d';
-		if ( $where_clause === '' ) {
+		if ( '' === $where_clause ) {
 			$where_clause = 'WHERE ' . $cursor_condition;
 		} else {
 			$where_clause .= ' AND ' . $cursor_condition;
@@ -331,7 +331,7 @@ class SubmissionRepository extends AbstractRepository {
 		list( $where_clause, $prepare_args ) = $this->build_export_where( $form_ids, $status );
 
 		$cursor_condition = 'id < %d';
-		if ( $where_clause === '' ) {
+		if ( '' === $where_clause ) {
 			$where_clause = 'WHERE ' . $cursor_condition;
 		} else {
 			$where_clause .= ' AND ' . $cursor_condition;
@@ -376,12 +376,12 @@ class SubmissionRepository extends AbstractRepository {
 	 * @return bool True if edited_at column exists and has data
 	 */
 	public function hasEditInfo(): bool {
-		// Check if edited_at column exists (cached per request)
+		// Check if edited_at column exists (cached per request).
 		if ( ! $this->column_exists( 'edited_at' ) ) {
 			return false;
 		}
 
-		// Check if any row has edit data
+		// Check if any row has edit data.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$has_data = $this->wpdb->get_var(
 			$this->wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE edited_at IS NOT NULL', $this->table )
@@ -456,7 +456,7 @@ class SubmissionRepository extends AbstractRepository {
 				'%' . $this->wpdb->esc_like( $search_term ) . '%'
 			);
 
-			// Combine all search conditions with OR
+			// Combine all search conditions with OR.
 			$where[] = '(' . implode( ' OR ', $search_conditions ) . ')';
 		}
 
@@ -548,7 +548,7 @@ class SubmissionRepository extends AbstractRepository {
 			$this->clear_cache();
 		}
 
-		return $result === false ? false : (int) $result;
+		return false === $result ? false : (int) $result;
 	}
 
 	/**
@@ -578,7 +578,7 @@ class SubmissionRepository extends AbstractRepository {
 			$this->clear_cache();
 		}
 
-		return $result === false ? false : (int) $result;
+		return false === $result ? false : (int) $result;
 	}
 
 	/**
@@ -601,16 +601,16 @@ class SubmissionRepository extends AbstractRepository {
 	/**
 	 * ✅ NEW v3.0.1: Update submission with edit tracking
 	 *
-	 * @param int                  $id Submission ID
-	 * @param array<string, mixed> $data Data to update
+	 * @param int                  $id Submission ID.
+	 * @param array<string, mixed> $data Data to update.
 	 * @return int|false Number of rows updated or false on error
 	 */
 	public function updateWithEditTracking( int $id, array $data ) {
-		// Check if edited_at column exists (cached per request)
+		// Check if edited_at column exists (cached per request).
 		if ( $this->column_exists( 'edited_at' ) ) {
 			$data['edited_at'] = current_time( 'mysql' );
 
-			// Add edited_by if column exists (cached per request)
+			// Add edited_by if column exists (cached per request).
 			if ( $this->column_exists( 'edited_by' ) ) {
 				$data['edited_by'] = get_current_user_id();
 			}

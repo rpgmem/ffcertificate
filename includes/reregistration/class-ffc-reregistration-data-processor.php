@@ -101,7 +101,7 @@ class ReregistrationDataProcessor {
 	 * @return mixed Sanitized value.
 	 */
 	private static function sanitize_field_value( object $field, $raw ) {
-		if ( $raw === null ) {
+		if ( null === $raw ) {
 			return '';
 		}
 
@@ -143,7 +143,7 @@ class ReregistrationDataProcessor {
 				// Basic YYYY-MM-DD guard; deeper validation happens later.
 				return $str;
 
-			default: // text, select and unknown types
+			default: // text, select and unknown types.
 				return sanitize_text_field( is_scalar( $raw ) ? (string) $raw : '' );
 		}
 	}
@@ -186,10 +186,10 @@ class ReregistrationDataProcessor {
 				continue;
 			}
 
-			// Additional cross-field consistency for divisao_setor against
-			// the authoritative DRE MP map (covers the case where the
+			// Additional cross-field consistency for divisao_setor against.
+			// the authoritative DRE MP map (covers the case where the.
 			// admin has changed the field but wants the canonical map).
-			if ( $field->field_type === 'dependent_select' && $key === 'divisao_setor' ) {
+			if ( 'dependent_select' === $field->field_type && 'divisao_setor' === $key ) {
 				$decoded = is_string( $value ) ? json_decode( $value, true ) : $value;
 				if ( is_array( $decoded ) && ! empty( $decoded['parent'] ) && ! empty( $decoded['child'] ) ) {
 					$parent = (string) $decoded['parent'];
@@ -230,9 +230,9 @@ class ReregistrationDataProcessor {
 			$key = (string) $field->field_key;
 			$val = $values[ $key ] ?? '';
 
-			if ( ! empty( $field->is_sensitive ) && is_string( $val ) && $val !== '' && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
+			if ( ! empty( $field->is_sensitive ) && is_string( $val ) && '' !== $val && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
 				$encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $val );
-				if ( $encrypted !== null ) {
+				if ( null !== $encrypted ) {
 					$persisted_fields[ $key ] = $encrypted;
 					continue;
 				}
@@ -255,7 +255,7 @@ class ReregistrationDataProcessor {
 			'magic_token'  => $magic_token,
 		);
 
-		if ( $new_status === 'approved' ) {
+		if ( 'approved' === $new_status ) {
 			$update_data['reviewed_at'] = current_time( 'mysql' );
 			$update_data['reviewed_by'] = 0;
 			$update_data['notes']       = __( 'Auto-approved', 'ffcertificate' );
@@ -263,12 +263,12 @@ class ReregistrationDataProcessor {
 
 		ReregistrationSubmissionRepository::update( (int) $submission->id, $update_data );
 
-		// Sync profile-mapped fields back to the user profile. We pass the
-		// *plain* (pre-encryption) values to update_extended_profile which
+		// Sync profile-mapped fields back to the user profile. We pass the.
+		// *plain* (pre-encryption) values to update_extended_profile which.
 		// will re-encrypt the sensitive ones on its side.
 		self::sync_profile( $user_id, $fields, $values );
 
-		// Store the remaining (non-profile) values in usermeta for future
+		// Store the remaining (non-profile) values in usermeta for future.
 		// form pre-population on the user side.
 		self::store_user_snapshot( $user_id, $fields, $values );
 
@@ -351,9 +351,9 @@ class ReregistrationDataProcessor {
 			$key   = 'field_' . (int) $field->id;
 			$value = $values[ (string) $field->field_key ] ?? '';
 
-			if ( ! empty( $field->is_sensitive ) && is_string( $value ) && $value !== '' && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
+			if ( ! empty( $field->is_sensitive ) && is_string( $value ) && '' !== $value && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
 				$encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $value );
-				if ( $encrypted !== null ) {
+				if ( null !== $encrypted ) {
 					$snapshot[ $key ] = $encrypted;
 					continue;
 				}
@@ -398,10 +398,10 @@ class ReregistrationDataProcessor {
 	 * @return bool
 	 */
 	private static function is_empty_value( $value ): bool {
-		if ( $value === null || $value === '' || $value === array() ) {
+		if ( null === $value || '' === $value || array() === $value ) {
 			return true;
 		}
-		if ( is_string( $value ) && ( trim( $value ) === '' || $value === '[]' ) ) {
+		if ( is_string( $value ) && ( '' === trim( $value ) || '[]' === $value ) ) {
 			return true;
 		}
 		return false;

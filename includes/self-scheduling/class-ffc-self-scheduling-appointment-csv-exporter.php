@@ -42,7 +42,7 @@ class AppointmentCsvExporter {
 		$this->appointment_repository = new AppointmentRepository();
 		$this->calendar_repository    = new CalendarRepository();
 
-		// Register export action
+		// Register export action.
 		add_action( 'admin_post_ffc_export_appointments_csv', array( $this, 'handle_export_request' ) );
 	}
 
@@ -124,25 +124,25 @@ class AppointmentCsvExporter {
 	 * @return array<int, string>
 	 */
 	private function format_csv_row( array $row, array $dynamic_keys ): array {
-		// Get calendar title
+		// Get calendar title.
 		$calendar_title = '';
 		if ( ! empty( $row['calendar_id'] ) ) {
 			$calendar       = $this->calendar_repository->findById( (int) $row['calendar_id'] );
 			$calendar_title = $calendar['title'] ?? __( '(Deleted)', 'ffcertificate' );
 		}
 
-		// Decrypt sensitive fields (encrypted → plain fallback)
+		// Decrypt sensitive fields (encrypted → plain fallback).
 		$email   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'email' );
 		$phone   = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'phone' );
 		$user_ip = \FreeFormCertificate\Core\Encryption::decrypt_field( $row, 'user_ip' );
 
-		// Consent given (Yes/No)
+		// Consent given (Yes/No).
 		$consent_given = '';
 		if ( isset( $row['consent_given'] ) ) {
 			$consent_given = $row['consent_given'] ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' );
 		}
 
-		// Get usernames for approval/cancellation
+		// Get usernames for approval/cancellation.
 		$approved_by = '';
 		if ( ! empty( $row['approved_by'] ) ) {
 			$user        = get_userdata( (int) $row['approved_by'] );
@@ -155,7 +155,7 @@ class AppointmentCsvExporter {
 			$cancelled_by = $user ? $user->display_name : 'ID: ' . $row['cancelled_by'];
 		}
 
-		// Status label
+		// Status label.
 		$status_labels = array(
 			'pending'   => __( 'Pending', 'ffcertificate' ),
 			'confirmed' => __( 'Confirmed', 'ffcertificate' ),
@@ -165,7 +165,7 @@ class AppointmentCsvExporter {
 		);
 		$status        = $status_labels[ $row['status'] ] ?? $row['status'];
 
-		// Fixed Columns
+		// Fixed Columns.
 		$line = array(
 			$row['id'],
 			$calendar_title,
@@ -196,12 +196,12 @@ class AppointmentCsvExporter {
 			$row['user_agent'] ?? '',
 		);
 
-		// Dynamic Columns (custom_data fields)
+		// Dynamic Columns (custom_data fields).
 		$custom_data = $this->get_custom_data( $row );
 
 		foreach ( $dynamic_keys as $key ) {
 			$value = $custom_data[ $key ] ?? '';
-			// Flatten arrays/objects to string
+			// Flatten arrays/objects to string.
 			if ( is_array( $value ) ) {
 				$value = implode( ', ', $value );
 			}
@@ -214,15 +214,15 @@ class AppointmentCsvExporter {
 	/**
 	 * Export appointments to CSV file
 	 *
-	 * @param array<int, int>|null $calendar_ids Calendar ID(s) to filter, null for all
-	 * @param array<int, string>   $statuses Status filter
-	 * @param string|null          $start_date Start date filter (Y-m-d)
-	 * @param string|null          $end_date End date filter (Y-m-d)
+	 * @param array<int, int>|null $calendar_ids Calendar ID(s) to filter, null for all.
+	 * @param array<int, string>   $statuses Status filter.
+	 * @param string|null          $start_date Start date filter (Y-m-d).
+	 * @param string|null          $end_date End date filter (Y-m-d).
 	 * @return void
 	 */
 	public function export_csv( $calendar_ids = null, array $statuses = array(), ?string $start_date = null, ?string $end_date = null ): void {
-		// Normalize calendar_ids to array
-		if ( $calendar_ids !== null && ! is_array( $calendar_ids ) ) {
+		// Normalize calendar_ids to array.
+		if ( null !== $calendar_ids && ! is_array( $calendar_ids ) ) {
 			$calendar_ids = array( (int) $calendar_ids );
 		}
 
@@ -236,14 +236,14 @@ class AppointmentCsvExporter {
 			)
 		);
 
-		// Get appointments based on filters
+		// Get appointments based on filters.
 		$rows = $this->get_appointments_for_export( $calendar_ids, $statuses, $start_date, $end_date );
 
 		if ( empty( $rows ) ) {
 			wp_die( esc_html__( 'No appointments available for export.', 'ffcertificate' ) );
 		}
 
-		// Generate filename
+		// Generate filename.
 		if ( $calendar_ids && count( $calendar_ids ) === 1 ) {
 			$calendar       = $this->calendar_repository->findById( $calendar_ids[0] );
 			$calendar_title = $calendar ? $calendar['title'] : 'calendar-' . $calendar_ids[0];
@@ -262,22 +262,22 @@ class AppointmentCsvExporter {
 		header( 'Expires: 0' );
 
 		$output = fopen( 'php://output', 'w' );
-		if ( $output === false ) {
+		if ( false === $output ) {
 			exit;
 		}
 
-		// BOM for Excel UTF-8 recognition
+		// BOM for Excel UTF-8 recognition.
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV binary output, not HTML context
 		fprintf( $output, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
 
-		// Build headers
+		// Build headers.
 		$dynamic_keys = $this->get_dynamic_columns( $rows );
 		$headers      = array_merge(
 			$this->get_fixed_headers(),
 			$this->get_dynamic_headers( $dynamic_keys )
 		);
 
-		// Convert all headers to UTF-8
+		// Convert all headers to UTF-8.
 		$headers = array_map(
 			function ( $header ) {
 				return mb_convert_encoding( $header, 'UTF-8', 'UTF-8' );
@@ -288,11 +288,11 @@ class AppointmentCsvExporter {
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV file output, not HTML context
 		fputcsv( $output, $headers, ';' );
 
-		// Write data rows
+		// Write data rows.
 		foreach ( $rows as $row ) {
 			$csv_row = $this->format_csv_row( $row, $dynamic_keys );
 
-			// Convert all row data to UTF-8
+			// Convert all row data to UTF-8.
 			$csv_row = array_map(
 				function ( string $value ): string {
 					return mb_convert_encoding( $value, 'UTF-8', 'UTF-8' );
@@ -325,21 +325,21 @@ class AppointmentCsvExporter {
 		$where_clauses = array();
 		$where_values  = array();
 
-		// Calendar filter
-		if ( $calendar_ids !== null && ! empty( $calendar_ids ) ) {
+		// Calendar filter.
+		if ( null !== $calendar_ids && ! empty( $calendar_ids ) ) {
 			$placeholders    = implode( ',', array_fill( 0, count( $calendar_ids ), '%d' ) );
 			$where_clauses[] = "calendar_id IN ($placeholders)";
 			$where_values    = array_merge( $where_values, $calendar_ids );
 		}
 
-		// Status filter
+		// Status filter.
 		if ( ! empty( $statuses ) ) {
 			$placeholders    = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
 			$where_clauses[] = "status IN ($placeholders)";
 			$where_values    = array_merge( $where_values, $statuses );
 		}
 
-		// Date range filter
+		// Date range filter.
 		if ( $start_date && $end_date ) {
 			$where_clauses[] = 'appointment_date BETWEEN %s AND %s';
 			$where_values[]  = $start_date;
@@ -373,7 +373,7 @@ class AppointmentCsvExporter {
 	 */
 	public function handle_export_request(): void {
 		try {
-			// Security check
+			// Security check.
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() is an existence check; value sanitized on next line.
 			if ( ! isset( $_POST['ffc_export_appointments_csv_action'] ) ||
 				! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_export_appointments_csv_action'] ) ), 'ffc_export_appointments_csv_nonce' ) ) {
@@ -384,7 +384,7 @@ class AppointmentCsvExporter {
 				wp_die( esc_html__( 'You do not have permission to export appointments.', 'ffcertificate' ) );
 			}
 
-			// Get filters
+			// Get filters.
 			$calendar_ids = null;
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- absint() applied to each element; is_array() is a type check only.
 			if ( ! empty( $_POST['calendar_ids'] ) && is_array( $_POST['calendar_ids'] ) ) {

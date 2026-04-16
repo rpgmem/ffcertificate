@@ -50,7 +50,67 @@
                 <element value="ffc"/>
                 <element value="FFC"/>
                 <element value="FreeFormCertificate"/>
+                <element value="ffcertificate"/>
             </property>
         </properties>
+    </rule>
+
+    <!-- PSR-4 autoloading: class filenames don't follow WP naming. -->
+    <rule ref="WordPress.Files.FileName">
+        <exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+    </rule>
+
+    <!-- PSR-4 naming conventions: camelCase methods and properties are intentional. -->
+    <rule ref="WordPress.NamingConventions.ValidFunctionName">
+        <exclude name="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid"/>
+    </rule>
+    <rule ref="WordPress.NamingConventions.ValidVariableName">
+        <exclude name="WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase"/>
+    </rule>
+
+    <!-- Prefix "ffc"/"FFC" is the established convention for this plugin.
+         PHPCS requires 4+ char prefixes, but ffc/FFC is already the project standard. -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.ShortPrefixPassed"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound"/>
+    </rule>
+
+    <!-- Custom capabilities used by the plugin. -->
+    <rule ref="WordPress.WP.Capabilities">
+        <properties>
+            <property name="custom_capabilities" type="array">
+                <element value="ffc_book_appointments"/>
+                <element value="ffc_cancel_own_appointments"/>
+                <element value="ffc_scheduling_bypass"/>
+                <element value="ffc_view_audience_bookings"/>
+                <element value="ffc_view_self_scheduling"/>
+                <element value="view_own_certificates"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Common parameter names that happen to be PHP reserved keywords. -->
+    <rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.namespaceFound"/>
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.newFound"/>
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.classFound"/>
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.matchFound"/>
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.stringFound"/>
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound"/>
+    </rule>
+
+    <!-- Hook callbacks have fixed signatures; unused trailing params are expected. -->
+    <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+        <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed"/>
+        <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter.Found"/>
+    </rule>
+
+    <!-- False positives: inline comments with code-like syntax (e.g. option values). -->
+    <rule ref="Squiz.PHP.CommentedOutCode">
+        <exclude name="Squiz.PHP.CommentedOutCode.Found"/>
     </rule>
 </ruleset>

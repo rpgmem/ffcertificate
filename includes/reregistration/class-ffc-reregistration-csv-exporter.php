@@ -27,7 +27,7 @@ class ReregistrationCsvExporter {
 	 */
 	public static function handle_export(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( ! isset( $_GET['action'] ) || $_GET['action'] !== 'export_csv' || ! isset( $_GET['id'] ) ) {
+		if ( ! isset( $_GET['action'] ) || 'export_csv' !== $_GET['action'] || ! isset( $_GET['id'] ) ) {
 			return;
 		}
 
@@ -44,10 +44,10 @@ class ReregistrationCsvExporter {
 		$submissions = ReregistrationSubmissionRepository::get_for_export( $id );
 		$fields      = self::get_custom_fields_for_reregistration( $rereg );
 
-		// Build CSV
+		// Build CSV.
 		$filename = 'reregistration-' . sanitize_file_name( $rereg->title ) . '-' . gmdate( 'Y-m-d' ) . '.csv';
 
-		// Headers
+		// Headers.
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
 		header( 'Content-Type: text/csv; charset=UTF-8' );
 		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
@@ -56,10 +56,10 @@ class ReregistrationCsvExporter {
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		$output = fopen( 'php://output', 'w' );
-		if ( $output === false ) {
+		if ( false === $output ) {
 			exit;
 		}
-		// BOM for Excel UTF-8
+		// BOM for Excel UTF-8.
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
 		fwrite( $output, "\xEF\xBB\xBF" );
 
@@ -80,7 +80,7 @@ class ReregistrationCsvExporter {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv
 		fputcsv( $output, $headers );
 
-		// Data rows
+		// Data rows.
 		foreach ( $submissions as $sub ) {
 			$sub_data = $sub->data ? json_decode( $sub->data, true ) : array();
 			$values   = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
@@ -151,11 +151,11 @@ class ReregistrationCsvExporter {
 				continue;
 			}
 			$key = (string) $field->field_key;
-			if ( ! isset( $values[ $key ] ) || $values[ $key ] === '' || ! is_string( $values[ $key ] ) ) {
+			if ( ! isset( $values[ $key ] ) || '' === $values[ $key ] || ! is_string( $values[ $key ] ) ) {
 				continue;
 			}
 			$plain = \FreeFormCertificate\Core\Encryption::decrypt( $values[ $key ] );
-			if ( $plain !== null ) {
+			if ( null !== $plain ) {
 				$values[ $key ] = $plain;
 			}
 		}
@@ -173,7 +173,7 @@ class ReregistrationCsvExporter {
 	private static function stringify_value( object $field, $value ): string {
 		switch ( (string) $field->field_type ) {
 			case 'checkbox':
-				return ( $value === '1' || $value === 1 || $value === true )
+				return ( '1' === $value || 1 === $value || true === $value )
 					? __( 'Yes', 'ffcertificate' )
 					: __( 'No', 'ffcertificate' );
 
@@ -189,7 +189,7 @@ class ReregistrationCsvExporter {
 			case 'working_hours':
 				// Keep raw JSON — users can post-process in Excel if needed.
 				if ( is_string( $value ) ) {
-					return $value === '[]' ? '' : $value;
+					return '[]' === $value ? '' : $value;
 				}
 				return is_array( $value ) ? (string) wp_json_encode( $value ) : '';
 

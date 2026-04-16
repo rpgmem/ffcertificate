@@ -37,7 +37,7 @@ class SettingsSaveHandler {
 	/**
 	 * Constructor
 	 *
-	 * @param SubmissionHandler $handler Submission handler for danger zone
+	 * @param SubmissionHandler $handler Submission handler for danger zone.
 	 */
 	public function __construct( SubmissionHandler $handler ) {
 		$this->submission_handler = $handler;
@@ -52,17 +52,17 @@ class SettingsSaveHandler {
 			return;
 		}
 
-		// Handle General/SMTP/QR Settings
+		// Handle General/SMTP/QR Settings.
 		if ( isset( $_POST['ffc_settings_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_settings_nonce'] ) ), 'ffc_settings_action' ) ) {
 			$this->save_general_and_specific_settings();
 		}
 
-		// Handle User Access Settings (v3.1.0)
+		// Handle User Access Settings (v3.1.0).
 		if ( isset( $_POST['ffc_user_access_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_user_access_nonce'] ) ), 'ffc_user_access_settings' ) ) {
 			$this->save_user_access_settings();
 		}
 
-		// Handle Global Data Deletion (Danger Zone)
+		// Handle Global Data Deletion (Danger Zone).
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only; nonce verified via check_admin_referer.
 		if ( isset( $_POST['ffc_delete_all_data'] ) && check_admin_referer( 'ffc_delete_all_data', 'ffc_critical_nonce' ) ) {
 			$this->handle_danger_zone();
@@ -81,7 +81,7 @@ class SettingsSaveHandler {
 
 		$clean = $current;
 
-		// Process each settings type
+		// Process each settings type.
 		$clean = $this->save_general_settings( $clean, $new );
 		$clean = $this->save_smtp_settings( $clean, $new );
 		$clean = $this->save_qrcode_settings( $clean, $new );
@@ -114,39 +114,39 @@ class SettingsSaveHandler {
 	/**
 	 * Save General tab settings
 	 *
-	 * @param array<string, mixed> $clean Current settings
-	 * @param array<string, mixed> $new New settings from POST
+	 * @param array<string, mixed> $clean Current settings.
+	 * @param array<string, mixed> $new New settings from POST.
 	 * @return array<string, mixed> Updated settings
 	 */
 	private function save_general_settings( array $clean, array $new ): array {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
-		// Dark Mode (v4.6.16)
+		// Dark Mode (v4.6.16).
 		if ( isset( $new['dark_mode'] ) ) {
 			$allowed_modes      = array( 'off', 'on', 'auto' );
 			$clean['dark_mode'] = in_array( $new['dark_mode'], $allowed_modes, true ) ? $new['dark_mode'] : 'off';
 		}
 
-		// Cleanup Days
+		// Cleanup Days.
 		if ( isset( $new['cleanup_days'] ) ) {
 			$clean['cleanup_days'] = absint( $new['cleanup_days'] );
 		}
 
-		// Main Address
+		// Main Address.
 		if ( isset( $new['main_address'] ) ) {
 			$clean['main_address'] = sanitize_text_field( $new['main_address'] );
 		}
 
-		// v4.6.16: Activity Log + Debug moved to Advanced tab
+		// v4.6.16: Activity Log + Debug moved to Advanced tab.
 		$ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
 
-		if ( $ffc_tab === 'advanced' ) {
+		if ( 'advanced' === $ffc_tab ) {
 			$clean['enable_activity_log'] = isset( $new['enable_activity_log'] ) ? 1 : 0;
 
 			if ( isset( $new['activity_log_retention_days'] ) ) {
 				$clean['activity_log_retention_days'] = min( 365, absint( $new['activity_log_retention_days'] ) );
 			}
 
-			// Debug Settings
+			// Debug Settings.
 			$debug_flags = array(
 				'debug_pdf_generator',
 				'debug_email_handler',
@@ -163,14 +163,14 @@ class SettingsSaveHandler {
 				$clean[ $flag ] = isset( $new[ $flag ] ) ? 1 : 0;
 			}
 
-			// Public CSV Download default limit
+			// Public CSV Download default limit.
 			if ( isset( $new['public_csv_default_limit'] ) ) {
 				$clean['public_csv_default_limit'] = max( 1, absint( $new['public_csv_default_limit'] ) );
 			}
 		}
 
-		// v4.6.16: Cache settings moved to Cache tab
-		if ( $ffc_tab === 'cache' ) {
+		// v4.6.16: Cache settings moved to Cache tab.
+		if ( 'cache' === $ffc_tab ) {
 			$clean['cache_enabled'] = isset( $new['cache_enabled'] ) ? 1 : 0;
 
 			if ( isset( $new['cache_expiration'] ) ) {
@@ -187,18 +187,18 @@ class SettingsSaveHandler {
 	/**
 	 * Save SMTP tab settings
 	 *
-	 * @param array<string, mixed> $clean Current settings
-	 * @param array<string, mixed> $new New settings from POST
+	 * @param array<string, mixed> $clean Current settings.
+	 * @param array<string, mixed> $new New settings from POST.
 	 * @return array<string, mixed> Updated settings
 	 */
 	private function save_smtp_settings( array $clean, array $new ): array {
-		// Email Status checkbox (only when on SMTP tab to prevent unchecking from other tabs)
+		// Email Status checkbox (only when on SMTP tab to prevent unchecking from other tabs).
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
 		if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'smtp' ) {
 			$clean['disable_all_emails'] = isset( $new['disable_all_emails'] ) ? 1 : 0;
 		}
 
-		// User creation email settings (radio buttons - always have a value)
+		// User creation email settings (radio buttons - always have a value).
 		if ( isset( $new['send_wp_user_email_submission'] ) ) {
 			$clean['send_wp_user_email_submission'] = sanitize_text_field( $new['send_wp_user_email_submission'] );
 		}
@@ -253,12 +253,12 @@ class SettingsSaveHandler {
 	/**
 	 * Save QR Code tab settings
 	 *
-	 * @param array<string, mixed> $clean Current settings
-	 * @param array<string, mixed> $new New settings from POST
+	 * @param array<string, mixed> $clean Current settings.
+	 * @param array<string, mixed> $new New settings from POST.
 	 * @return array<string, mixed> Updated settings
 	 */
 	private function save_qrcode_settings( array $clean, array $new ): array {
-		// QR Cache checkbox - v4.6.16: now on Cache tab (was qr_code tab)
+		// QR Cache checkbox - v4.6.16: now on Cache tab (was qr_code tab).
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
 		if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'cache' ) {
 			$clean['qr_cache_enabled'] = isset( $new['qr_cache_enabled'] ) ? 1 : 0;
@@ -282,8 +282,8 @@ class SettingsSaveHandler {
 	/**
 	 * Save Date Format settings (v2.10.0)
 	 *
-	 * @param array<string, mixed> $clean Current settings
-	 * @param array<string, mixed> $new New settings from POST
+	 * @param array<string, mixed> $clean Current settings.
+	 * @param array<string, mixed> $new New settings from POST.
 	 * @return array<string, mixed> Updated settings
 	 */
 	private function save_date_format_settings( array $clean, array $new ): array {
@@ -301,16 +301,16 @@ class SettingsSaveHandler {
 	/**
 	 * Save URL Shortener settings (v5.1.0)
 	 *
-	 * @param array<string, mixed> $clean Current settings
-	 * @param array<string, mixed> $new New settings from POST
+	 * @param array<string, mixed> $clean Current settings.
+	 * @param array<string, mixed> $new New settings from POST.
 	 * @return array<string, mixed> Updated settings
 	 */
 	private function save_url_shortener_settings( array $clean, array $new ): array {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions().
 		$ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
 
-		// Checkbox fields (unchecked = absent from POST) — only process on URL Shortener tab
-		if ( $ffc_tab === 'url_shortener' ) {
+		// Checkbox fields (unchecked = absent from POST) — only process on URL Shortener tab.
+		if ( 'url_shortener' === $ffc_tab ) {
 			$clean['url_shortener_enabled']     = isset( $new['url_shortener_enabled'] ) ? 1 : 0;
 			$clean['url_shortener_auto_create'] = isset( $new['url_shortener_auto_create'] ) ? 1 : 0;
 		}
@@ -318,7 +318,7 @@ class SettingsSaveHandler {
 		if ( isset( $new['url_shortener_prefix'] ) ) {
 			$old_prefix                    = $clean['url_shortener_prefix'] ?? 'go';
 			$clean['url_shortener_prefix'] = sanitize_title( $new['url_shortener_prefix'] );
-			// Flush rewrite rules when prefix changes
+			// Flush rewrite rules when prefix changes.
 			if ( $clean['url_shortener_prefix'] !== $old_prefix ) {
 				delete_option( 'ffc_url_shortener_rewrite_version' );
 				add_action( 'shutdown', 'flush_rewrite_rules' );
@@ -334,8 +334,8 @@ class SettingsSaveHandler {
 			$clean['url_shortener_redirect_type'] = in_array( $type, array( 301, 302, 307 ), true ) ? $type : 302;
 		}
 
-		// Post types is an array of checkboxes - only process on URL Shortener tab
-		if ( $ffc_tab === 'url_shortener' ) {
+		// Post types is an array of checkboxes - only process on URL Shortener tab.
+		if ( 'url_shortener' === $ffc_tab ) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 			if ( isset( $_POST['ffc_settings']['url_shortener_post_types'] ) && is_array( $_POST['ffc_settings']['url_shortener_post_types'] ) ) {
 				$clean['url_shortener_post_types'] = array_map( 'sanitize_key', wp_unslash( $_POST['ffc_settings']['url_shortener_post_types'] ) );
@@ -390,7 +390,7 @@ class SettingsSaveHandler {
 	private function handle_danger_zone(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via check_admin_referer.
 		$target        = isset( $_POST['delete_target'] ) ? sanitize_text_field( wp_unslash( $_POST['delete_target'] ) ) : 'all';
-		$reset_counter = isset( $_POST['reset_counter'] ) && sanitize_text_field( wp_unslash( $_POST['reset_counter'] ) ) == '1';
+		$reset_counter = isset( $_POST['reset_counter'] ) && sanitize_text_field( wp_unslash( $_POST['reset_counter'] ) ) === '1';
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		/**
@@ -403,11 +403,11 @@ class SettingsSaveHandler {
 		do_action( 'ffcertificate_before_data_deletion', $target, $reset_counter );
 
 		$result = $this->submission_handler->delete_all_submissions(
-			$target === 'all' ? null : absint( $target ),
+			'all' === $target ? null : absint( $target ),
 			$reset_counter
 		);
 
-		if ( $result !== false ) {
+		if ( false !== $result ) {
 			$message = $reset_counter
 				? __( 'Data deleted and counter reset successfully.', 'ffcertificate' )
 				: __( 'Data deleted successfully.', 'ffcertificate' );

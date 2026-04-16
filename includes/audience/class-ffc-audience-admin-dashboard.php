@@ -43,7 +43,7 @@ class AudienceAdminDashboard {
 	 * @return void
 	 */
 	public function render_dashboard_page(): void {
-		// Audience statistics
+		// Audience statistics.
 		$audience_stats = array(
 			'schedules'         => AudienceScheduleRepository::count( array( 'status' => 'active' ) ),
 			'environments'      => AudienceEnvironmentRepository::count( array( 'status' => 'active' ) ),
@@ -56,7 +56,7 @@ class AudienceAdminDashboard {
 			),
 		);
 
-		// Self-scheduling statistics
+		// Self-scheduling statistics.
 		$self_stats = $this->get_self_scheduling_stats();
 
 		?>
@@ -182,13 +182,13 @@ class AudienceAdminDashboard {
 		$calendars = 0;
 		$upcoming  = 0;
 
-		// Count published self-scheduling calendars
+		// Count published self-scheduling calendars.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$calendars = (int) $wpdb->get_var(
 			"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'ffc_self_scheduling' AND post_status = 'publish'"
 		);
 
-		// Count upcoming appointments (today or future, not cancelled)
+		// Count upcoming appointments (today or future, not cancelled).
 		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		if ( self::table_exists( $appointments_table ) ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

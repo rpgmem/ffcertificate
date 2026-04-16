@@ -26,7 +26,7 @@ class TabSMTP extends SettingsTab {
 		$this->tab_icon  = 'ffc-icon-email';
 		$this->tab_order = 20;
 
-		// Enqueue scripts for this tab
+		// Enqueue scripts for this tab.
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 	}
 
@@ -34,13 +34,13 @@ class TabSMTP extends SettingsTab {
 	 * Enqueue scripts for SMTP settings page
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		// Only load on settings page with this tab active
-		if ( $hook !== 'ffc_form_page_ffc-settings' ) {
+		// Only load on settings page with this tab active.
+		if ( 'ffc_form_page_ffc-settings' !== $hook ) {
 			return;
 		}
 
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for conditional script loading.
-		if ( $active_tab === 'smtp' ) {
+		if ( 'smtp' === $active_tab ) {
 			$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 			wp_enqueue_script(
 				'ffc-smtp-settings',
@@ -53,7 +53,7 @@ class TabSMTP extends SettingsTab {
 	}
 
 	public function render(): void {
-		// Include view file
+		// Include view file.
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-smtp.php';
 
 		if ( file_exists( $view_file ) ) {

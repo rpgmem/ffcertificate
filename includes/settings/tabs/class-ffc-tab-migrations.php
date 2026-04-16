@@ -28,7 +28,7 @@ class TabMigrations extends SettingsTab {
 	}
 
 	public function render(): void {
-		// Include view file
+		// Include view file.
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-migrations.php';
 
 		if ( file_exists( $view_file ) ) {

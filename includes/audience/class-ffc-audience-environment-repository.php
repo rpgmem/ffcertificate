@@ -51,7 +51,7 @@ class AudienceEnvironmentRepository {
 	/**
 	 * Get all environments
 	 *
-	 * @param array<string, mixed> $args Query arguments
+	 * @param array<string, mixed> $args Query arguments.
 	 * @return array<int, object>
 	 */
 	public static function get_all( array $args = array() ): array {
@@ -101,12 +101,12 @@ class AudienceEnvironmentRepository {
 	/**
 	 * Get environment by ID
 	 *
-	 * @param int $id Environment ID
+	 * @param int $id Environment ID.
 	 * @return object|null
 	 */
 	public static function get_by_id( int $id ): ?object {
 		$cached = static::cache_get( "id_{$id}" );
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -128,8 +128,8 @@ class AudienceEnvironmentRepository {
 	/**
 	 * Get environments by schedule ID
 	 *
-	 * @param int         $schedule_id Schedule ID
-	 * @param string|null $status Optional status filter
+	 * @param int         $schedule_id Schedule ID.
+	 * @param string|null $status Optional status filter.
 	 * @return array<int, object>
 	 */
 	public static function get_by_schedule( int $schedule_id, ?string $status = null ): array {
@@ -144,7 +144,7 @@ class AudienceEnvironmentRepository {
 	/**
 	 * Create an environment
 	 *
-	 * @param array<string, mixed> $data Environment data
+	 * @param array<string, mixed> $data Environment data.
 	 * @return int|false Environment ID or false on failure
 	 */
 	public static function create( array $data ) {
@@ -161,7 +161,7 @@ class AudienceEnvironmentRepository {
 		);
 		$data     = wp_parse_args( $data, $defaults );
 
-		// Encode working hours if it's an array
+		// Encode working hours if it's an array.
 		$working_hours = $data['working_hours'];
 		if ( is_array( $working_hours ) ) {
 			$working_hours = wp_json_encode( $working_hours );
@@ -186,27 +186,27 @@ class AudienceEnvironmentRepository {
 	/**
 	 * Update an environment
 	 *
-	 * @param int                  $id Environment ID
-	 * @param array<string, mixed> $data Update data
+	 * @param int                  $id Environment ID.
+	 * @param array<string, mixed> $data Update data.
 	 * @return bool
 	 */
 	public static function update( int $id, array $data ): bool {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// Remove fields that shouldn't be updated
+		// Remove fields that shouldn't be updated.
 		unset( $data['id'], $data['created_at'] );
 
 		if ( empty( $data ) ) {
 			return false;
 		}
 
-		// Encode working hours if it's an array
+		// Encode working hours if it's an array.
 		if ( isset( $data['working_hours'] ) && is_array( $data['working_hours'] ) ) {
 			$data['working_hours'] = wp_json_encode( $data['working_hours'] );
 		}
 
-		// Build update data and format arrays
+		// Build update data and format arrays.
 		$update_data = array();
 		$format      = array();
 
@@ -237,13 +237,13 @@ class AudienceEnvironmentRepository {
 
 		static::cache_delete( "id_{$id}" );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Delete an environment
 	 *
-	 * @param int $id Environment ID
+	 * @param int $id Environment ID.
 	 * @return bool
 	 */
 	public static function delete( int $id ): bool {
@@ -255,13 +255,13 @@ class AudienceEnvironmentRepository {
 
 		static::cache_delete( "id_{$id}" );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Get working hours for an environment
 	 *
-	 * @param int $id Environment ID
+	 * @param int $id Environment ID.
 	 * @return array<int, array<string, mixed>>|null Decoded working hours or null
 	 */
 	public static function get_working_hours( int $id ): ?array {
@@ -277,33 +277,33 @@ class AudienceEnvironmentRepository {
 	/**
 	 * Check if environment is open on a specific day/time
 	 *
-	 * @param int         $id Environment ID
-	 * @param string      $date Date (Y-m-d)
-	 * @param string|null $time Optional time (H:i)
+	 * @param int         $id Environment ID.
+	 * @param string      $date Date (Y-m-d).
+	 * @param string|null $time Optional time (H:i).
 	 * @return bool
 	 */
 	public static function is_open( int $id, string $date, ?string $time = null ): bool {
-		// Check global holidays first
+		// Check global holidays first.
 		if ( \FreeFormCertificate\Scheduling\DateBlockingService::is_global_holiday( $date ) ) {
 			return false;
 		}
 
-		// Check schedule-specific holiday
+		// Check schedule-specific holiday.
 		if ( self::is_holiday( $id, $date ) ) {
 			return false;
 		}
 
 		$env = self::get_by_id( $id );
-		if ( ! $env || $env->status !== 'active' ) {
+		if ( ! $env || 'active' !== $env->status ) {
 			return false;
 		}
 
 		$working_hours = self::get_working_hours( $id );
 		if ( ! $working_hours ) {
-			return true; // No working hours defined = always open
+			return true; // No working hours defined = always open.
 		}
 
-		// Delegate to shared service
+		// Delegate to shared service.
 		if ( $time ) {
 			return \FreeFormCertificate\Scheduling\WorkingHoursService::is_within_working_hours( $date, $time, $working_hours );
 		}
@@ -314,9 +314,9 @@ class AudienceEnvironmentRepository {
 	/**
 	 * Add a holiday to an environment's schedule
 	 *
-	 * @param int         $schedule_id Schedule ID
-	 * @param string      $date Date (Y-m-d)
-	 * @param string|null $description Optional description
+	 * @param int         $schedule_id Schedule ID.
+	 * @param string      $date Date (Y-m-d).
+	 * @param string|null $description Optional description.
 	 * @return int|false Holiday ID or false on failure
 	 */
 	public static function add_holiday( int $schedule_id, string $date, ?string $description = null ) {
@@ -340,7 +340,7 @@ class AudienceEnvironmentRepository {
 	/**
 	 * Remove a holiday
 	 *
-	 * @param int $holiday_id Holiday ID
+	 * @param int $holiday_id Holiday ID.
 	 * @return bool
 	 */
 	public static function remove_holiday( int $holiday_id ): bool {
@@ -350,15 +350,15 @@ class AudienceEnvironmentRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete( $table, array( 'id' => $holiday_id ), array( '%d' ) );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Get holidays for a schedule
 	 *
-	 * @param int         $schedule_id Schedule ID
-	 * @param string|null $start_date Optional start date filter
-	 * @param string|null $end_date Optional end date filter
+	 * @param int         $schedule_id Schedule ID.
+	 * @param string|null $start_date Optional start date filter.
+	 * @param string|null $end_date Optional end date filter.
 	 * @return array<object>
 	 */
 	public static function get_holidays( int $schedule_id, ?string $start_date = null, ?string $end_date = null ): array {
@@ -393,8 +393,8 @@ class AudienceEnvironmentRepository {
 	/**
 	 * Check if a date is a holiday for the environment's schedule
 	 *
-	 * @param int    $environment_id Environment ID
-	 * @param string $date Date (Y-m-d)
+	 * @param int    $environment_id Environment ID.
+	 * @param string $date Date (Y-m-d).
 	 * @return bool
 	 */
 	public static function is_holiday( int $environment_id, string $date ): bool {
@@ -425,7 +425,7 @@ class AudienceEnvironmentRepository {
 	/**
 	 * Count environments
 	 *
-	 * @param array<string, mixed> $args Query arguments (schedule_id, status)
+	 * @param array<string, mixed> $args Query arguments (schedule_id, status).
 	 * @return int
 	 */
 	public static function count( array $args = array() ): int {
@@ -453,7 +453,7 @@ class AudienceEnvironmentRepository {
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
-		// Build prepared query with %i for table name
+		// Build prepared query with %i for table name.
 		$prepare_args = array_merge( array( $table ), $values );
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders; cached above.

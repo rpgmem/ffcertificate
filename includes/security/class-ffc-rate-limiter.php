@@ -5,7 +5,7 @@ declare(strict_types=1);
  * RateLimiter v3.3.0
  * Advanced rate limiting system with WordPress Object Cache API
  *
- * v3.3.0: Added strict types and type hints
+ * V3.3.0: Added strict types and type hints
  * v3.2.0: Migrated to namespace (Phase 2)
  *         Migrated from transients to WordPress Object Cache API
  *         - Automatically uses Redis/Memcached if available (via LiteSpeed Cache, etc.)
@@ -40,7 +40,7 @@ class RateLimiter {
 	 * @return array<string, mixed>
 	 */
 	private static function get_settings(): array {
-		if ( self::$settings_cache !== null ) {
+		if ( null !== self::$settings_cache ) {
 			return self::$settings_cache;
 		}
 		$defaults             = array(
@@ -164,9 +164,9 @@ class RateLimiter {
 	public static function check_ip_limit( string $ip, ?int $form_id = null ): array {
 		$s  = self::get_settings()['ip'];
 		$hk = 'ffc_rate_ip_' . md5( $ip . $form_id ) . '_hour';
-		// v3.2.0: Use Object Cache API (auto Redis/Memcached if available)
+		// v3.2.0: Use Object Cache API (auto Redis/Memcached if available).
 		$hc = wp_cache_get( $hk, self::CACHE_GROUP );
-		$hc = $hc !== false ? $hc : 0;
+		$hc = false !== $hc ? $hc : 0;
 		if ( $hc >= $s['max_per_hour'] ) {
 			return array(
 				'allowed'      => false,
@@ -319,9 +319,9 @@ class RateLimiter {
 	public static function check_global_limit(): array {
 		$s  = self::get_settings()['global'];
 		$mk = 'ffc_rate_global_minute_' . floor( time() / 60 );
-		// v3.2.0: Use Object Cache API
+		// v3.2.0: Use Object Cache API.
 		$mc = wp_cache_get( $mk, self::CACHE_GROUP );
-		$mc = $mc !== false ? $mc : 0;
+		$mc = false !== $mc ? $mc : 0;
 		if ( $mc >= $s['max_per_minute'] ) {
 			return array(
 				'allowed'      => false,
@@ -361,10 +361,10 @@ class RateLimiter {
 		$max_per_day  = 30;
 
 		$hour_key = 'ffc_verify_ip_' . md5( $ip ) . '_hour_' . gmdate( 'YmdH' );
-		// v3.2.0: Use Object Cache API
+		// v3.2.0: Use Object Cache API.
 		$hour_count = wp_cache_get( $hour_key, self::CACHE_GROUP );
 
-		if ( $hour_count === false ) {
+		if ( false === $hour_count ) {
 			$hour_count = 0;
 		}
 
@@ -382,7 +382,7 @@ class RateLimiter {
 		$day_key   = 'ffc_verify_ip_' . md5( $ip ) . '_day_' . gmdate( 'Ymd' );
 		$day_count = wp_cache_get( $day_key, self::CACHE_GROUP );
 
-		if ( $day_count === false ) {
+		if ( false === $day_count ) {
 			$day_count = 0;
 		}
 
@@ -425,28 +425,28 @@ class RateLimiter {
 	public static function record_attempt( string $type, string $identifier, ?int $form_id = null ): void {
 		$s = self::get_settings();
 
-		if ( $type === 'ip' ) {
+		if ( 'ip' === $type ) {
 			$hk = 'ffc_rate_ip_' . md5( $identifier . $form_id ) . '_hour';
-			// v3.2.0: Use Object Cache API for better performance
+			// v3.2.0: Use Object Cache API for better performance.
 			$current = wp_cache_get( $hk, self::CACHE_GROUP );
-			$current = $current !== false ? $current : 0;
+			$current = false !== $current ? $current : 0;
 			wp_cache_set( $hk, $current + 1, self::CACHE_GROUP, 3600 );
 
 			$last_key = 'ffc_rate_ip_' . md5( $identifier . $form_id ) . '_last';
 			wp_cache_set( $last_key, time(), self::CACHE_GROUP, $s['ip']['cooldown_seconds'] );
 		}
 
-		if ( $type === 'global' ) {
+		if ( 'global' === $type ) {
 			$mk      = 'ffc_rate_global_minute_' . floor( time() / 60 );
 			$current = wp_cache_get( $mk, self::CACHE_GROUP );
-			$current = $current !== false ? $current : 0;
+			$current = false !== $current ? $current : 0;
 			wp_cache_set( $mk, $current + 1, self::CACHE_GROUP, 60 );
 		}
 
 		self::increment_counter( $type, $identifier, 'day', $form_id );
-		if ( in_array( $type, array( 'email', 'cpf' ) ) ) {
+		if ( in_array( $type, array( 'email', 'cpf' ), true ) ) {
 			self::increment_counter( $type, $identifier, 'month', $form_id );
-			if ( $type === 'cpf' ) {
+			if ( 'cpf' === $type ) {
 				self::increment_counter( $type, $identifier, 'hour', $form_id );
 			}
 		}
@@ -506,20 +506,20 @@ class RateLimiter {
 	private static function get_submission_count( string $field, string $value, string $period, ?int $form_id ): int {
 		global $wpdb;
 		$t  = $wpdb->prefix . 'ffc_submissions';
-		$dw = $period === 'day' ? 'AND submission_date >= DATE_SUB(NOW(), INTERVAL 1 DAY)' : ( $period === 'week' ? 'AND submission_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)' : 'AND submission_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)' );
+		$dw = 'day' === $period ? 'AND submission_date >= DATE_SUB(NOW(), INTERVAL 1 DAY)' : ( 'week' === $period ? 'AND submission_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)' : 'AND submission_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)' );
 		$fw = $form_id ? $wpdb->prepare( 'AND form_id=%d', $form_id ) : '';
 
-		if ( $field === 'email' ) {
+		if ( 'email' === $field ) {
 			$email_hash = class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured()
 				? \FreeFormCertificate\Core\Encryption::hash( $value )
 				: hash( 'sha256', strtolower( trim( $value ) ) );
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $dw and $fw are pre-validated date window and form clauses.
 			return intval( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE email_hash=%s $dw $fw", $t, $email_hash ) ) );
-		} elseif ( $field === 'cpf' ) {
+		} elseif ( 'cpf' === $field ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
 				$h  = \FreeFormCertificate\Core\Encryption::hash( $value );
 				$hc = strlen( preg_replace( '/[^0-9]/', '', $value ) ) === 7 ? 'rf_hash' : 'cpf_hash';
-				// Search the specific split column based on digit count
+				// Search the specific split column based on digit count.
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
 				return intval( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE {$hc}=%s $dw $fw", $t, $h ) ) );
 			}
@@ -535,7 +535,7 @@ class RateLimiter {
 		$s  = self::get_settings();
 		$bl = $s['blacklist'];
 
-		if ( in_array( $ip, $bl['ips'] ) ) {
+		if ( in_array( $ip, $bl['ips'], true ) ) {
 			return array(
 				'allowed' => false,
 				'reason'  => 'ip_blacklisted',
@@ -544,7 +544,7 @@ class RateLimiter {
 		}
 
 		if ( $email ) {
-			if ( in_array( $email, $bl['emails'] ) ) {
+			if ( in_array( $email, $bl['emails'], true ) ) {
 				return array(
 					'allowed' => false,
 					'reason'  => 'email_blacklisted',
@@ -552,7 +552,7 @@ class RateLimiter {
 				);
 			}
 			$d = substr( strrchr( $email, '@' ) ?: '', 1 );
-			if ( in_array( '*@' . $d, $bl['email_domains'] ) ) {
+			if ( in_array( '*@' . $d, $bl['email_domains'], true ) ) {
 				return array(
 					'allowed' => false,
 					'reason'  => 'domain_blacklisted',
@@ -561,7 +561,7 @@ class RateLimiter {
 			}
 		}
 
-		if ( $cpf && in_array( preg_replace( '/[^0-9]/', '', $cpf ), $bl['cpfs'] ) ) {
+		if ( $cpf && in_array( preg_replace( '/[^0-9]/', '', $cpf ), $bl['cpfs'], true ) ) {
 			return array(
 				'allowed' => false,
 				'reason'  => 'cpf_blacklisted',
@@ -576,21 +576,21 @@ class RateLimiter {
 		$s  = self::get_settings();
 		$wl = $s['whitelist'];
 
-		if ( in_array( $ip, $wl['ips'] ) ) {
+		if ( in_array( $ip, $wl['ips'], true ) ) {
 			return true;
 		}
 
 		if ( $email ) {
-			if ( in_array( $email, $wl['emails'] ) ) {
+			if ( in_array( $email, $wl['emails'], true ) ) {
 				return true;
 			}
 			$d = substr( strrchr( $email, '@' ) ?: '', 1 );
-			if ( in_array( '*@' . $d, $wl['email_domains'] ) ) {
+			if ( in_array( '*@' . $d, $wl['email_domains'], true ) ) {
 				return true;
 			}
 		}
 
-		if ( $cpf && in_array( preg_replace( '/[^0-9]/', '', $cpf ), $wl['cpfs'] ) ) {
+		if ( $cpf && in_array( preg_replace( '/[^0-9]/', '', $cpf ), $wl['cpfs'], true ) ) {
 			return true;
 		}
 
@@ -630,7 +630,7 @@ class RateLimiter {
 
 	public static function log_attempt( string $type, string $identifier, string $action, string $reason, ?int $form_id ): void {
 		$s = self::get_settings();
-		if ( ! $s['logging']['enabled'] || ( ! $s['logging']['log_allowed'] && $action === 'allowed' ) ) {
+		if ( ! $s['logging']['enabled'] || ( ! $s['logging']['log_allowed'] && 'allowed' === $action ) ) {
 			return;
 		}
 
@@ -698,7 +698,7 @@ class RateLimiter {
 	 * @param mixed $apply_to
 	 */
 	private static function applies_to_form( $apply_to, ?int $form_id ): bool {
-		return $apply_to === 'all' || ( is_array( $apply_to ) && in_array( $form_id, $apply_to ) );
+		return 'all' === $apply_to || ( is_array( $apply_to ) && in_array( $form_id, $apply_to, true ) );
 	}
 
 	private static function get_window_start( string $window ): string {
@@ -759,10 +759,10 @@ class RateLimiter {
 	 * Check rate limit for authenticated user actions (password change, privacy request)
 	 *
 	 * @since 4.9.9
-	 * @param int    $user_id WordPress user ID
-	 * @param string $action  Action identifier (e.g. 'password_change', 'privacy_request')
-	 * @param int    $max_per_hour Max attempts per hour (default 5)
-	 * @param int    $max_per_day  Max attempts per day (default 10)
+	 * @param int    $user_id WordPress user ID.
+	 * @param string $action  Action identifier (e.g. 'password_change', 'privacy_request').
+	 * @param int    $max_per_hour Max attempts per hour (default 5).
+	 * @param int    $max_per_day  Max attempts per day (default 10).
 	 * @return array{allowed: bool, message?: string, wait_seconds?: int}
 	 */
 	public static function check_user_limit( int $user_id, string $action = 'default', int $max_per_hour = 5, int $max_per_day = 10 ): array {
@@ -772,7 +772,7 @@ class RateLimiter {
 
 		$hour_key   = 'ffc_rate_user_' . $user_id . '_' . $action . '_hour_' . gmdate( 'YmdH' );
 		$hour_count = wp_cache_get( $hour_key, self::CACHE_GROUP );
-		$hour_count = $hour_count !== false ? (int) $hour_count : 0;
+		$hour_count = false !== $hour_count ? (int) $hour_count : 0;
 
 		if ( $hour_count >= $max_per_hour ) {
 			$wait = 3600 - ( time() % 3600 );
@@ -786,7 +786,7 @@ class RateLimiter {
 
 		$day_key   = 'ffc_rate_user_' . $user_id . '_' . $action . '_day_' . gmdate( 'Ymd' );
 		$day_count = wp_cache_get( $day_key, self::CACHE_GROUP );
-		$day_count = $day_count !== false ? (int) $day_count : 0;
+		$day_count = false !== $day_count ? (int) $day_count : 0;
 
 		if ( $day_count >= $max_per_day ) {
 			return array(
@@ -796,7 +796,7 @@ class RateLimiter {
 			);
 		}
 
-		// Increment counters
+		// Increment counters.
 		wp_cache_set( $hour_key, $hour_count + 1, self::CACHE_GROUP, 3600 );
 		wp_cache_set( $day_key, $day_count + 1, self::CACHE_GROUP, 86400 );
 

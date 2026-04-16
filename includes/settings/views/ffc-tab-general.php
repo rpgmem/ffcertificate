@@ -89,12 +89,12 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 							<span class="ffc-text-info ffc-monospace">
 								<?php
 								$ffcertificate_preview_date = '2026-01-04 15:30:45';
-								echo esc_html( date_i18n( ( $ffcertificate_current_format === 'custom' && ! empty( $ffcertificate_custom_format ) ) ? $ffcertificate_custom_format : $ffcertificate_current_format, strtotime( $ffcertificate_preview_date ) ) );
+								echo esc_html( date_i18n( ( 'custom' === $ffcertificate_current_format && ! empty( $ffcertificate_custom_format ) ) ? $ffcertificate_custom_format : $ffcertificate_current_format, strtotime( $ffcertificate_preview_date ) ) );
 								?>
 							</span>
 						</p>
 
-						<div id="ffc_custom_format_container" class="ffc-collapsible-section <?php echo esc_attr( $ffcertificate_current_format !== 'custom' ? 'ffc-hidden' : '' ); ?>">
+						<div id="ffc_custom_format_container" class="ffc-collapsible-section <?php echo esc_attr( 'custom' !== $ffcertificate_current_format ? 'ffc-hidden' : '' ); ?>">
 							<div class="ffc-collapsible-content active">
 								<label>
 									<strong><?php esc_html_e( 'Custom Format:', 'ffcertificate' ); ?></strong><br>

@@ -39,10 +39,10 @@ class SelfSchedulingCPT {
 		add_filter( 'post_row_actions', array( $this, 'add_duplicate_link' ), 10, 2 );
 		add_action( 'admin_action_ffc_duplicate_calendar', array( $this, 'handle_calendar_duplication' ) );
 
-		// Hook into post save to create/update calendar record in database
+		// Hook into post save to create/update calendar record in database.
 		add_action( 'save_post_ffc_self_scheduling', array( $this, 'sync_calendar_data' ), 10, 3 );
 
-		// Hook into post delete to clean up calendar records
+		// Hook into post delete to clean up calendar records.
 		add_action( 'before_delete_post', array( $this, 'cleanup_calendar_data' ), 10, 2 );
 	}
 
@@ -85,7 +85,7 @@ class SelfSchedulingCPT {
 			'labels'          => $labels,
 			'public'          => false,
 			'show_ui'         => true,
-			'show_in_menu'    => 'ffc-scheduling', // Unified Scheduling menu
+			'show_in_menu'    => 'ffc-scheduling', // Unified Scheduling menu.
 			'query_var'       => true,
 			'capability_type' => 'post',
 			'has_archive'     => false,
@@ -105,7 +105,7 @@ class SelfSchedulingCPT {
 	 * @return array<string, string>
 	 */
 	public function add_duplicate_link( array $actions, object $post ): array {
-		if ( $post->post_type !== 'ffc_self_scheduling' ) {
+		if ( 'ffc_self_scheduling' !== $post->post_type ) {
 			return $actions;
 		}
 
@@ -147,7 +147,7 @@ class SelfSchedulingCPT {
 
 		$post = get_post( $post_id );
 
-		if ( ! $post || $post->post_type !== 'ffc_self_scheduling' ) {
+		if ( ! $post || 'ffc_self_scheduling' !== $post->post_type ) {
 			\FreeFormCertificate\Core\Utils::debug_log(
 				'Invalid calendar duplication request',
 				array(
@@ -162,7 +162,7 @@ class SelfSchedulingCPT {
 		/* translators: %s: original calendar title */
 		$new_title = sprintf( __( '%s (Copy)', 'ffcertificate' ), $original_title );
 
-		// Create new post
+		// Create new post.
 		$new_post_args = array(
 			'post_title'  => $new_title,
 			'post_status' => 'draft',
@@ -183,7 +183,7 @@ class SelfSchedulingCPT {
 			wp_die( esc_html( $new_post_id->get_error_message() ) );
 		}
 
-		// Copy all calendar metadata
+		// Copy all calendar metadata.
 		$config        = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
 		$working_hours = get_post_meta( $post_id, '_ffc_self_scheduling_working_hours', true );
 		$email_config  = get_post_meta( $post_id, '_ffc_self_scheduling_email_config', true );
@@ -230,7 +230,7 @@ class SelfSchedulingCPT {
 	 * @return void
 	 */
 	public function sync_calendar_data( int $post_id, object $post, bool $update ): void {
-		// Skip autosaves and revisions
+		// Skip autosaves and revisions.
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			return;
 		}
@@ -239,35 +239,35 @@ class SelfSchedulingCPT {
 			return;
 		}
 
-		// Only sync published calendars
-		if ( $post->post_status !== 'publish' ) {
+		// Only sync published calendars.
+		if ( 'publish' !== $post->post_status ) {
 			return;
 		}
 
 		$this->init_repository();
 
-		// Check if calendar record exists
+		// Check if calendar record exists.
 		$existing = $this->calendar_repository->findByPostId( $post_id );
 
-		// Get metadata
+		// Get metadata.
 		$config        = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
 		$working_hours = get_post_meta( $post_id, '_ffc_self_scheduling_working_hours', true );
 		$email_config  = get_post_meta( $post_id, '_ffc_self_scheduling_email_config', true );
 
-		// Parse config into database fields
+		// Parse config into database fields.
 		$data                  = $this->parse_calendar_config( $config );
 		$data['title']         = $post->post_title;
 		$data['post_id']       = $post_id;
-		$data['working_hours'] = is_array( $working_hours ) ? json_encode( $working_hours ) : $working_hours;
-		$data['email_config']  = is_array( $email_config ) ? json_encode( $email_config ) : $email_config;
+		$data['working_hours'] = is_array( $working_hours ) ? wp_json_encode( $working_hours ) : $working_hours;
+		$data['email_config']  = is_array( $email_config ) ? wp_json_encode( $email_config ) : $email_config;
 		$data['updated_at']    = current_time( 'mysql' );
 		$data['updated_by']    = get_current_user_id();
 
 		if ( $existing ) {
-			// Update existing record
+			// Update existing record.
 			$this->calendar_repository->update( (int) $existing['id'], $data );
 		} else {
-			// Create new record
+			// Create new record.
 			$data['created_at'] = current_time( 'mysql' );
 			$data['created_by'] = get_current_user_id();
 			$this->calendar_repository->createFromPost( $post_id, $data );
@@ -320,22 +320,22 @@ class SelfSchedulingCPT {
 	 * @return void
 	 */
 	public function cleanup_calendar_data( int $post_id, object $post ): void {
-		if ( $post->post_type !== 'ffc_self_scheduling' ) {
+		if ( 'ffc_self_scheduling' !== $post->post_type ) {
 			return;
 		}
 
 		$this->init_repository();
 
-		// Find calendar record
+		// Find calendar record.
 		$calendar = $this->calendar_repository->findByPostId( $post_id );
 
 		if ( $calendar ) {
 			$calendar_id    = (int) $calendar['id'];
 			$calendar_title = $calendar['title'];
 
-			// Check if we should cancel future appointments
-			// By default, cancel future appointments to prevent orphaned bookings
-			// This can be disabled via filter: add_filter('ffcertificate_self_scheduling_cancel_appointments_on_delete', '__return_false');
+			// Check if we should cancel future appointments.
+			// By default, cancel future appointments to prevent orphaned bookings.
+			// This can be disabled via filter: add_filter('ffcertificate_self_scheduling_cancel_appointments_on_delete', '__return_false');.
 			$cancel_appointments = apply_filters( 'ffcertificate_self_scheduling_cancel_appointments_on_delete', true, $calendar_id, $post_id );
 
 			$cancelled_count = 0;
@@ -344,7 +344,7 @@ class SelfSchedulingCPT {
 				$cancelled_count = $this->cancel_future_appointments( $calendar_id, $calendar_title );
 			}
 
-			// Delete calendar record
+			// Delete calendar record.
 			$this->calendar_repository->delete( $calendar_id );
 
 			\FreeFormCertificate\Core\Utils::debug_log(
@@ -366,8 +366,8 @@ class SelfSchedulingCPT {
 	 * Cancels all pending and confirmed appointments with dates >= today.
 	 * Sends notification emails to affected users (if email notifications are enabled).
 	 *
-	 * @param int    $calendar_id Calendar ID
-	 * @param string $calendar_title Calendar title for notification
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $calendar_title Calendar title for notification.
 	 * @return int Number of appointments cancelled
 	 */
 	private function cancel_future_appointments( int $calendar_id, string $calendar_title ): int {
@@ -375,7 +375,7 @@ class SelfSchedulingCPT {
 		$table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		$today = current_time( 'Y-m-d' );
 
-		// Get all future appointments (pending or confirmed)
+		// Get all future appointments (pending or confirmed).
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$future_appointments = $wpdb->get_results(
 			$wpdb->prepare(
@@ -399,7 +399,7 @@ class SelfSchedulingCPT {
 		$appointment_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
 
 		foreach ( $future_appointments as $appointment ) {
-			// Cancel the appointment
+			// Cancel the appointment.
 			$result = $appointment_repo->cancel(
 				(int) $appointment['id'],
 				get_current_user_id(),
@@ -410,7 +410,7 @@ class SelfSchedulingCPT {
 			if ( $result ) {
 				++$cancelled_count;
 
-				// Send cancellation email notification
+				// Send cancellation email notification.
 				$this->send_calendar_deletion_notification( $appointment, $calendar_title );
 			}
 		}
@@ -421,27 +421,27 @@ class SelfSchedulingCPT {
 	/**
 	 * Send email notification about appointment cancellation due to calendar deletion
 	 *
-	 * @param array<string, mixed> $appointment Appointment data
-	 * @param string               $calendar_title Calendar title
+	 * @param array<string, mixed> $appointment Appointment data.
+	 * @param string               $calendar_title Calendar title.
 	 * @return void
 	 */
 	private function send_calendar_deletion_notification( array $appointment, string $calendar_title ): void {
-		// Check if we should send notifications
-		// Can be disabled via filter: add_filter('ffcertificate_self_scheduling_send_deletion_notification', '__return_false');
+		// Check if we should send notifications.
+		// Can be disabled via filter: add_filter('ffcertificate_self_scheduling_send_deletion_notification', '__return_false');.
 		$send_notification = apply_filters( 'ffcertificate_self_scheduling_send_deletion_notification', true, $appointment );
 
 		if ( ! $send_notification ) {
 			return;
 		}
 
-		// Get recipient email (encrypted → plain fallback)
+		// Get recipient email (encrypted → plain fallback).
 		$email = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
 
 		if ( empty( $email ) || ! is_email( $email ) ) {
 			return;
 		}
 
-		// Prepare email
+		// Prepare email.
 		$subject = sprintf(
 			/* translators: %s: site name */
 			__( '[%s] Appointment Cancelled - Calendar No Longer Available', 'ffcertificate' ),
@@ -473,10 +473,10 @@ class SelfSchedulingCPT {
 			get_bloginfo( 'name' )
 		);
 
-		// Send email
+		// Send email.
 		wp_mail( $email, $subject, $message );
 
-		// Log notification
+		// Log notification.
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
 			\FreeFormCertificate\Core\Utils::debug_log(
 				'Calendar deletion notification sent',

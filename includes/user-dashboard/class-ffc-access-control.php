@@ -44,31 +44,31 @@ class AccessControl {
 
 		$settings = get_option( 'ffc_user_access_settings', array() );
 
-		// Check if blocking is enabled
+		// Check if blocking is enabled.
 		if ( empty( $settings['block_wp_admin'] ) ) {
 			return;
 		}
 
-		// Bypass for admins (if configured)
+		// Bypass for admins (if configured).
 		if ( ! empty( $settings['bypass_for_admins'] ) && current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
-		// Check if user has blocked role
+		// Check if user has blocked role.
 		$user          = wp_get_current_user();
 		$blocked_roles = isset( $settings['blocked_roles'] ) ? $settings['blocked_roles'] : array( 'ffc_user' );
 
 		// Block only if ALL of the user's roles are in the blocked list.
-		// If the user has at least one non-blocked role (e.g. editor + ffc_user),
+		// If the user has at least one non-blocked role (e.g. editor + ffc_user),.
 		// they should retain wp-admin access.
 		if ( ! empty( $user->roles ) && ! array_diff( $user->roles, $blocked_roles ) ) {
-			// Get redirect URL
+			// Get redirect URL.
 			$redirect_url = isset( $settings['redirect_url'] ) ? $settings['redirect_url'] : home_url();
 
-			// Add query parameter for notice
+			// Add query parameter for notice.
 			$redirect_url = add_query_arg( 'ffc_redirect', 'access_denied', $redirect_url );
 
-			// Redirect
+			// Redirect.
 			wp_safe_redirect( $redirect_url );
 			exit;
 		}
@@ -77,22 +77,22 @@ class AccessControl {
 	/**
 	 * Hide admin bar for blocked users
 	 *
-	 * @param bool $show_admin_bar Whether to show admin bar
+	 * @param bool $show_admin_bar Whether to show admin bar.
 	 * @return bool
 	 */
 	public static function hide_admin_bar( $show_admin_bar ): bool {
 		$settings = get_option( 'ffc_user_access_settings', array() );
 
-		// Check if hiding admin bar is enabled
+		// Check if hiding admin bar is enabled.
 		if ( ! empty( $settings['allow_admin_bar'] ) ) {
-			return $show_admin_bar; // Allow admin bar
+			return $show_admin_bar; // Allow admin bar.
 		}
 
-		// Check if user has blocked role
+		// Check if user has blocked role.
 		$user          = wp_get_current_user();
 		$blocked_roles = isset( $settings['blocked_roles'] ) ? $settings['blocked_roles'] : array( 'ffc_user' );
 
-		// Hide admin bar only if ALL of the user's roles are blocked
+		// Hide admin bar only if ALL of the user's roles are blocked.
 		if ( ! empty( $user->roles ) && ! array_diff( $user->roles, $blocked_roles ) ) {
 			return false;
 		}

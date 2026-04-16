@@ -76,7 +76,7 @@ class AudienceAdminPage {
 	 * @return void
 	 */
 	public function init(): void {
-		// Instantiate sub-page handlers
+		// Instantiate sub-page handlers.
 		$this->dashboard   = new AudienceAdminDashboard( self::MENU_SLUG );
 		$this->calendar    = new AudienceAdminCalendar( self::MENU_SLUG );
 		$this->environment = new AudienceAdminEnvironment( self::MENU_SLUG );
@@ -97,7 +97,7 @@ class AudienceAdminPage {
 	 * @return void
 	 */
 	public function add_admin_menus(): void {
-		// Main menu: Scheduling — unified for both systems
+		// Main menu: Scheduling — unified for both systems.
 		add_menu_page(
 			__( 'Scheduling', 'ffcertificate' ),
 			__( 'Scheduling', 'ffcertificate' ),
@@ -109,11 +109,11 @@ class AudienceAdminPage {
 		);
 
 		// --- Self-Scheduling items are auto-registered here by CPT (Personal Calendars, New)
-		// --- and by SelfSchedulingAdmin (Appointments) at priority 25
+		// --- and by SelfSchedulingAdmin (Appointments) at priority 25.
 
-		// --- Audience section ---
+		// --- Audience section ---.
 
-		// Submenu: Dashboard
+		// Submenu: Dashboard.
 		add_submenu_page(
 			self::MENU_SLUG,
 			__( 'Dashboard', 'ffcertificate' ),
@@ -123,7 +123,7 @@ class AudienceAdminPage {
 			array( $this->dashboard, 'render_dashboard_page' )
 		);
 
-		// Submenu: Audience Calendars
+		// Submenu: Audience Calendars.
 		add_submenu_page(
 			self::MENU_SLUG,
 			__( 'Audience Calendars', 'ffcertificate' ),
@@ -133,7 +133,7 @@ class AudienceAdminPage {
 			array( $this->calendar, 'render_page' )
 		);
 
-		// Submenu: Environments
+		// Submenu: Environments.
 		add_submenu_page(
 			self::MENU_SLUG,
 			__( 'Environments', 'ffcertificate' ),
@@ -143,7 +143,7 @@ class AudienceAdminPage {
 			array( $this->environment, 'render_page' )
 		);
 
-		// Submenu: Audiences
+		// Submenu: Audiences.
 		add_submenu_page(
 			self::MENU_SLUG,
 			__( 'Audiences', 'ffcertificate' ),
@@ -153,7 +153,7 @@ class AudienceAdminPage {
 			array( $this->audience, 'render_page' )
 		);
 
-		// Submenu: Audience Bookings
+		// Submenu: Audience Bookings.
 		add_submenu_page(
 			self::MENU_SLUG,
 			__( 'Audience Bookings', 'ffcertificate' ),
@@ -163,9 +163,9 @@ class AudienceAdminPage {
 			array( $this->bookings, 'render_page' )
 		);
 
-		// --- Tools section ---
+		// --- Tools section ---.
 
-		// Submenu: Import & Export
+		// Submenu: Import & Export.
 		add_submenu_page(
 			self::MENU_SLUG,
 			__( 'Import & Export', 'ffcertificate' ),
@@ -175,7 +175,7 @@ class AudienceAdminPage {
 			array( $this->import, 'render_page' )
 		);
 
-		// Submenu: Settings
+		// Submenu: Settings.
 		add_submenu_page(
 			self::MENU_SLUG,
 			__( 'Settings', 'ffcertificate' ),
@@ -201,41 +201,41 @@ class AudienceAdminPage {
 			return;
 		}
 
-		// Index all items by slug for easy lookup
+		// Index all items by slug for easy lookup.
 		$by_slug = array();
 		foreach ( $submenu[ self::MENU_SLUG ] as $item ) {
 			$by_slug[ $item[2] ] = $item;
 		}
 
-		// Define the desired order with separators
+		// Define the desired order with separators.
 		$ordered_slugs = array(
-			// Dashboard at top
+			// Dashboard at top.
 			self::MENU_SLUG . '-dashboard',                          // Dashboard
-			// Self section
+			// Self section.
 			'#ffc-separator-self',
-			'edit.php?post_type=ffc_self_scheduling',               // Personal Calendars
-			'post-new.php?post_type=ffc_self_scheduling',           // New Personal Calendar
+			'edit.php?post_type=ffc_self_scheduling',               // Personal Calendars.
+			'post-new.php?post_type=ffc_self_scheduling',           // New Personal Calendar.
 			'ffc-appointments',                                      // Appointments
-			// Audience section
+			// Audience section.
 			'#ffc-separator-audience',
-			self::MENU_SLUG . '-calendars',                          // Audience Calendars
-			self::MENU_SLUG . '-environments',                       // Environments
-			self::MENU_SLUG . '-audiences',                          // Audiences
+			self::MENU_SLUG . '-calendars',                          // Audience Calendars.
+			self::MENU_SLUG . '-environments',                       // Environments.
+			self::MENU_SLUG . '-audiences',                          // Audiences.
 			self::MENU_SLUG . '-bookings',                           // Audience Bookings
-			// Tools section
+			// Tools section.
 			'#ffc-separator-tools',
-			self::MENU_SLUG . '-import',                             // Import & Export
-			self::MENU_SLUG . '-settings',                           // Settings
+			self::MENU_SLUG . '-import',                             // Import & Export.
+			self::MENU_SLUG . '-settings',                           // Settings.
 		);
 
-		// Build separators
+		// Build separators.
 		$separators = array(
 			'#ffc-separator-self'     => array( __( 'Self', 'ffcertificate' ), 'manage_options', '#ffc-separator-self' ),
 			'#ffc-separator-audience' => array( __( 'Audience', 'ffcertificate' ), 'manage_options', '#ffc-separator-audience' ),
 			'#ffc-separator-tools'    => array( __( 'Tools', 'ffcertificate' ), 'manage_options', '#ffc-separator-tools' ),
 		);
 
-		// Rebuild submenu in the desired order
+		// Rebuild submenu in the desired order.
 		$new_items = array();
 		foreach ( $ordered_slugs as $slug ) {
 			if ( isset( $separators[ $slug ] ) ) {
@@ -245,10 +245,10 @@ class AudienceAdminPage {
 			}
 		}
 
-		// Append any remaining items not in our ordered list (safety net)
+		// Append any remaining items not in our ordered list (safety net).
 		foreach ( $by_slug as $slug => $item ) {
-			if ( $slug === self::MENU_SLUG ) {
-				continue; // Skip the auto-generated parent duplicate
+			if ( self::MENU_SLUG === $slug ) {
+				continue; // Skip the auto-generated parent duplicate.
 			}
 			if ( ! in_array( $slug, $ordered_slugs, true ) ) {
 				$new_items[] = $item;
@@ -267,8 +267,8 @@ class AudienceAdminPage {
 	 * @return void
 	 */
 	public function print_menu_separator_css(): void {
-		// Menu separator styles live in ffc-audience-admin.css, but that file only
-		// loads on scheduling pages.  Use wp_add_inline_style attached to the
+		// Menu separator styles live in ffc-audience-admin.css, but that file only.
+		// loads on scheduling pages.  Use wp_add_inline_style attached to the.
 		// always-present 'admin-menu' core stylesheet so the rules apply globally.
 		wp_add_inline_style( 'admin-menu', $this->get_menu_separator_css() );
 	}
@@ -296,7 +296,7 @@ class AudienceAdminPage {
 	 * @return void
 	 */
 	public function handle_form_submissions(): void {
-		// Only process on our admin pages
+		// Only process on our admin pages.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_GET['page'] ) || strpos( sanitize_text_field( wp_unslash( $_GET['page'] ) ), self::MENU_SLUG ) !== 0 ) {
 			return;

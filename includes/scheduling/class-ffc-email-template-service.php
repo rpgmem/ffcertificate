@@ -22,7 +22,7 @@ class EmailTemplateService {
 	/**
 	 * Wrap email body in a standard HTML layout.
 	 *
-	 * @param string $body Inner HTML content
+	 * @param string $body Inner HTML content.
 	 * @return string Complete HTML email
 	 */
 	public static function wrap_html( string $body ): string {
@@ -64,11 +64,11 @@ class EmailTemplateService {
 	/**
 	 * Send an HTML email with optional attachments.
 	 *
-	 * @param string        $to Recipient email
-	 * @param string        $subject Email subject
-	 * @param string        $body Email body (inner HTML — will be wrapped automatically)
-	 * @param array<string> $attachments File paths to attach
-	 * @param bool          $wrap Whether to wrap body in standard HTML layout (default true)
+	 * @param string        $to Recipient email.
+	 * @param string        $subject Email subject.
+	 * @param string        $body Email body (inner HTML — will be wrapped automatically).
+	 * @param array<string> $attachments File paths to attach.
+	 * @param bool          $wrap Whether to wrap body in standard HTML layout (default true).
 	 * @return bool
 	 */
 	public static function send(
@@ -109,7 +109,7 @@ class EmailTemplateService {
 	/**
 	 * Format a date string using WordPress locale settings.
 	 *
-	 * @param string $date Date string (Y-m-d or any strtotime-parseable format)
+	 * @param string $date Date string (Y-m-d or any strtotime-parseable format).
 	 * @return string Formatted date
 	 */
 	public static function format_date( string $date ): string {
@@ -119,7 +119,7 @@ class EmailTemplateService {
 	/**
 	 * Format a time string using H:i format.
 	 *
-	 * @param string $time Time string (H:i:s or H:i)
+	 * @param string $time Time string (H:i:s or H:i).
 	 * @return string Formatted time
 	 */
 	public static function format_time( string $time ): string {
@@ -129,8 +129,8 @@ class EmailTemplateService {
 	/**
 	 * Render a template string by replacing {placeholder} variables.
 	 *
-	 * @param string                $template Template with {variable} placeholders
-	 * @param array<string, string> $variables Key => value replacements (without braces)
+	 * @param string                $template Template with {variable} placeholders.
+	 * @param array<string, string> $variables Key => value replacements (without braces).
 	 * @return string Rendered template
 	 */
 	public static function render_template( string $template, array $variables ): string {
@@ -155,7 +155,7 @@ class EmailTemplateService {
 	 *     end_time: string,
 	 *     status?: string
 	 * } $event Event data
-	 * @param string $method ICS method (REQUEST or CANCEL)
+	 * @param string $method ICS method (REQUEST or CANCEL).
 	 * @return string ICS file content
 	 */
 	public static function generate_ics( array $event, string $method = 'REQUEST' ): string {
@@ -164,14 +164,14 @@ class EmailTemplateService {
 
 		$uid = ( $event['uid'] ?? 'ffc-event-' . uniqid() ) . '@' . $site_domain;
 
-		// Build ICS datetime: YYYYMMDDTHHMMSS
+		// Build ICS datetime: YYYYMMDDTHHMMSS.
 		$date_clean  = str_replace( '-', '', $event['date'] );
 		$start_clean = str_replace( ':', '', $event['start_time'] );
 		$end_clean   = str_replace( ':', '', $event['end_time'] );
 
 		$dtstamp  = gmdate( 'Ymd\THis\Z' );
-		$status   = $event['status'] ?? ( $method === 'CANCEL' ? 'CANCELLED' : 'CONFIRMED' );
-		$sequence = ( $method === 'CANCEL' ) ? '1' : '0';
+		$status   = $event['status'] ?? ( 'CANCEL' === $method ? 'CANCELLED' : 'CONFIRMED' );
+		$sequence = ( 'CANCEL' === $method ) ? '1' : '0';
 
 		$summary     = self::escape_ics_text( $event['summary'] );
 		$description = self::escape_ics_text( $event['description'] );

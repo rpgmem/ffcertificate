@@ -93,8 +93,8 @@ class CapabilityManager {
 	 * Grant capabilities based on context
 	 *
 	 * @since 4.4.0
-	 * @param int    $user_id WordPress user ID
-	 * @param string $context Context ('certificate', 'appointment', or 'audience')
+	 * @param int    $user_id WordPress user ID.
+	 * @param string $context Context ('certificate', 'appointment', or 'audience').
 	 * @return void
 	 */
 	public static function grant_context_capabilities( int $user_id, string $context ): void {
@@ -115,7 +115,7 @@ class CapabilityManager {
 	 * Grant certificate capabilities to a user
 	 *
 	 * @since 4.4.0
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return void
 	 */
 	public static function grant_certificate_capabilities( int $user_id ): void {
@@ -153,7 +153,7 @@ class CapabilityManager {
 	 * Grant appointment capabilities to a user
 	 *
 	 * @since 4.4.0
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return void
 	 */
 	public static function grant_appointment_capabilities( int $user_id ): void {
@@ -191,7 +191,7 @@ class CapabilityManager {
 	 * Grant audience capabilities to a user
 	 *
 	 * @since 4.9.3
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return void
 	 */
 	public static function grant_audience_capabilities( int $user_id ): void {
@@ -229,9 +229,9 @@ class CapabilityManager {
 	 * Log capability grant to activity log and send email notification
 	 *
 	 * @since 4.9.9
-	 * @param \WP_User           $user         User who received capabilities
-	 * @param string             $context      Context: 'certificate', 'appointment', 'audience'
-	 * @param array<int, string> $capabilities Newly granted capabilities
+	 * @param \WP_User           $user         User who received capabilities.
+	 * @param string             $context      Context: 'certificate', 'appointment', 'audience'.
+	 * @param array<int, string> $capabilities Newly granted capabilities.
 	 * @return void
 	 */
 	private static function log_and_notify_capability_grant( \WP_User $user, string $context, array $capabilities ): void {
@@ -282,7 +282,7 @@ class CapabilityManager {
 	 * Check if user has any certificate capabilities
 	 *
 	 * @since 4.4.0
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return bool
 	 */
 	public static function has_certificate_access( int $user_id ): bool {
@@ -309,7 +309,7 @@ class CapabilityManager {
 	 * Check if user has any appointment capabilities
 	 *
 	 * @since 4.4.0
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return bool
 	 */
 	public static function has_appointment_access( int $user_id ): bool {
@@ -336,7 +336,7 @@ class CapabilityManager {
 	 * Get all FFC capabilities for a user
 	 *
 	 * @since 4.4.0
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return array<string, bool> Associative array of capability => boolean
 	 */
 	public static function get_user_ffc_capabilities( int $user_id ): array {
@@ -359,9 +359,9 @@ class CapabilityManager {
 	 * Set a specific FFC capability for a user
 	 *
 	 * @since 4.4.0
-	 * @param int    $user_id    WordPress user ID
-	 * @param string $capability Capability name
-	 * @param bool   $grant      Whether to grant (true) or revoke (false)
+	 * @param int    $user_id    WordPress user ID.
+	 * @param string $capability Capability name.
+	 * @param bool   $grant      Whether to grant (true) or revoke (false).
 	 * @return bool True on success
 	 */
 	public static function set_user_capability( int $user_id, string $capability, bool $grant ): bool {
@@ -401,7 +401,7 @@ class CapabilityManager {
 	 * Reset all FFC capabilities for a user to false
 	 *
 	 * @since 4.4.0
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return void
 	 */
 	public static function reset_user_ffc_capabilities( int $user_id ): void {
@@ -445,7 +445,7 @@ class CapabilityManager {
 	 * Upgrade existing ffc_user role with new capabilities
 	 *
 	 * @since 4.4.0
-	 * @param \WP_Role $role Existing role object
+	 * @param \WP_Role $role Existing role object.
 	 * @return void
 	 */
 	private static function upgrade_role( \WP_Role $role ): void {

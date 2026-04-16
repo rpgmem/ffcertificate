@@ -101,7 +101,7 @@ class UserCertificatesRestController {
 				ARRAY_A
 			);
 
-			// Check per-capability permissions for the target user
+			// Check per-capability permissions for the target user.
 			$can_download     = $this->user_has_capability( 'download_own_certificates', $user_id, $ctx['is_view_as'] );
 			$can_view_history = $this->user_has_capability( 'view_certificate_history', $user_id, $ctx['is_view_as'] );
 
@@ -109,7 +109,7 @@ class UserCertificatesRestController {
 
 			foreach ( $submissions as $submission ) {
 				$email_plain   = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'email' );
-				$email_display = ( $email_plain !== '' ) ? \FreeFormCertificate\Core\Utils::mask_email( $email_plain ) : '';
+				$email_display = ( '' !== $email_plain ) ? \FreeFormCertificate\Core\Utils::mask_email( $email_plain ) : '';
 
 				$magic_link = '';
 				if ( ! empty( $submission['magic_token'] ) ) {
@@ -124,7 +124,7 @@ class UserCertificatesRestController {
 				$date_formatted = '';
 				if ( ! empty( $submission['submission_date'] ) ) {
 					$timestamp      = strtotime( $submission['submission_date'] );
-					$date_formatted = ( $timestamp !== false ) ? date_i18n( $date_format, $timestamp ) : $submission['submission_date'];
+					$date_formatted = ( false !== $timestamp ) ? date_i18n( $date_format, $timestamp ) : $submission['submission_date'];
 				}
 
 				$certificates[] = array(
@@ -141,7 +141,7 @@ class UserCertificatesRestController {
 				);
 			}
 
-			// When view_certificate_history is disabled, keep only the most recent per form
+			// When view_certificate_history is disabled, keep only the most recent per form.
 			if ( ! $can_view_history && ! empty( $certificates ) ) {
 				$seen_forms = array();
 				$filtered   = array();

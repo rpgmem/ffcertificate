@@ -29,32 +29,32 @@ class IpGeolocation {
 	/**
 	 * Get location data by IP address
 	 *
-	 * @param string|null $ip IP address (optional, defaults to current user IP)
-	 * @param bool        $use_cache Whether to use cached results
+	 * @param string|null $ip IP address (optional, defaults to current user IP).
+	 * @param bool        $use_cache Whether to use cached results.
 	 * @return array<string, mixed>|\WP_Error|null Array with location data, WP_Error on failure, or null
 	 */
 	public static function get_location( ?string $ip = null, bool $use_cache = true ) {
-		// Get settings
+		// Get settings.
 		$settings = get_option( 'ffc_geolocation_settings', array() );
 
 		if ( empty( $settings['ip_api_enabled'] ) ) {
 			return new WP_Error( 'ip_api_disabled', __( 'IP Geolocation API is disabled.', 'ffcertificate' ) );
 		}
 
-		// Get user IP if not provided
+		// Get user IP if not provided.
 		if ( empty( $ip ) ) {
 			$ip = \FreeFormCertificate\Core\Utils::get_user_ip();
 		}
 
-		// Validate IP
+		// Validate IP.
 		if ( ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
 			return new WP_Error( 'invalid_ip', __( 'Invalid IP address for geolocation.', 'ffcertificate' ) );
 		}
 
-		// Check cache
+		// Check cache.
 		if ( $use_cache && ! empty( $settings['ip_cache_enabled'] ) ) {
 			$cached = self::get_cached_location( $ip );
-			if ( $cached !== false ) {
+			if ( false !== $cached ) {
 				self::debug_log(
 					'IP location from cache',
 					array(
@@ -66,13 +66,13 @@ class IpGeolocation {
 			}
 		}
 
-		// Try primary service
+		// Try primary service.
 		$primary_service = $settings['ip_api_service'] ?? 'ip-api';
 		$location        = self::fetch_from_service( $ip, $primary_service, $settings );
 
-		// If primary failed and cascade is enabled, try alternative
+		// If primary failed and cascade is enabled, try alternative.
 		if ( is_wp_error( $location ) && ! empty( $settings['ip_api_cascade'] ) ) {
-			$alternative_service = ( $primary_service === 'ip-api' ) ? 'ipinfo' : 'ip-api';
+			$alternative_service = ( 'ip-api' === $primary_service ) ? 'ipinfo' : 'ip-api';
 			self::debug_log(
 				'Primary service failed, trying alternative',
 				array(
@@ -84,7 +84,7 @@ class IpGeolocation {
 			$location = self::fetch_from_service( $ip, $alternative_service, $settings );
 		}
 
-		// Cache successful result
+		// Cache successful result.
 		if ( ! is_wp_error( $location ) && $use_cache && ! empty( $settings['ip_cache_enabled'] ) ) {
 			self::cache_location( $ip, $location, $settings['ip_cache_ttl'] ?? 600 );
 		}
@@ -95,9 +95,9 @@ class IpGeolocation {
 	/**
 	 * Fetch location from specific service
 	 *
-	 * @param string               $ip IP address
-	 * @param string               $service Service name ('ip-api' or 'ipinfo')
-	 * @param array<string, mixed> $settings Plugin settings
+	 * @param string               $ip IP address.
+	 * @param string               $service Service name ('ip-api' or 'ipinfo').
+	 * @param array<string, mixed> $settings Plugin settings.
 	 * @return array<string, mixed>|\WP_Error Location data or WP_Error on failure
 	 */
 	private static function fetch_from_service( string $ip, string $service, array $settings ) {
@@ -109,9 +109,9 @@ class IpGeolocation {
 			)
 		);
 
-		if ( $service === 'ip-api' ) {
+		if ( 'ip-api' === $service ) {
 			return self::fetch_from_ipapi( $ip );
-		} elseif ( $service === 'ipinfo' ) {
+		} elseif ( 'ipinfo' === $service ) {
 			$api_key = $settings['ipinfo_api_key'] ?? '';
 			return self::fetch_from_ipinfo( $ip, $api_key );
 		}
@@ -122,7 +122,7 @@ class IpGeolocation {
 	/**
 	 * Fetch location from ip-api.com
 	 *
-	 * @param string $ip IP address
+	 * @param string $ip IP address.
 	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function fetch_from_ipapi( string $ip ) {
@@ -132,7 +132,7 @@ class IpGeolocation {
 			$url,
 			array(
 				'timeout'   => 5,
-				'sslverify' => false, // ip-api uses HTTP
+				'sslverify' => false, // ip-api uses HTTP.
 			)
 		);
 
@@ -148,11 +148,11 @@ class IpGeolocation {
 			return new WP_Error( 'invalid_response', __( 'Invalid response from ip-api.com', 'ffcertificate' ) );
 		}
 
-		if ( $data['status'] !== 'success' ) {
+		if ( 'success' !== $data['status'] ) {
 			return new WP_Error( 'api_error', $data['message'] ?? __( 'Unknown error from ip-api.com', 'ffcertificate' ) );
 		}
 
-		// Normalize response format
+		// Normalize response format.
 		$location = array(
 			'ip'           => $ip,
 			'country'      => $data['country'] ?? '',
@@ -173,8 +173,8 @@ class IpGeolocation {
 	/**
 	 * Fetch location from ipinfo.io
 	 *
-	 * @param string $ip IP address
-	 * @param string $api_key API key (optional for free tier)
+	 * @param string $ip IP address.
+	 * @param string $api_key API key (optional for free tier).
 	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function fetch_from_ipinfo( string $ip, string $api_key = '' ) {
@@ -204,17 +204,17 @@ class IpGeolocation {
 			return new WP_Error( 'invalid_response', __( 'Invalid response from ipinfo.io', 'ffcertificate' ) );
 		}
 
-		// Check for API errors
+		// Check for API errors.
 		if ( isset( $data['error'] ) ) {
 			return new WP_Error( 'api_error', $data['error']['title'] ?? __( 'Unknown error from ipinfo.io', 'ffcertificate' ) );
 		}
 
-		// Parse location coordinates
+		// Parse location coordinates.
 		$loc_parts = explode( ',', $data['loc'] ?? '0,0' );
 		$latitude  = floatval( $loc_parts[0] ?? 0 );
 		$longitude = floatval( $loc_parts[1] ?? 0 );
 
-		// Normalize response format
+		// Normalize response format.
 		$location = array(
 			'ip'           => $ip,
 			'country'      => $data['country'] ?? '',
@@ -235,7 +235,7 @@ class IpGeolocation {
 	/**
 	 * Get cached location for IP
 	 *
-	 * @param string $ip IP address
+	 * @param string $ip IP address.
 	 * @return array<string, mixed>|false Location data or false if not cached
 	 */
 	private static function get_cached_location( string $ip ) {
@@ -246,9 +246,9 @@ class IpGeolocation {
 	/**
 	 * Cache location for IP
 	 *
-	 * @param string               $ip IP address
-	 * @param array<string, mixed> $location Location data
-	 * @param int                  $ttl Cache duration in seconds
+	 * @param string               $ip IP address.
+	 * @param array<string, mixed> $location Location data.
+	 * @param int                  $ttl Cache duration in seconds.
 	 * @return bool Success
 	 */
 	private static function cache_location( string $ip, array $location, int $ttl = 600 ): bool {
@@ -259,14 +259,14 @@ class IpGeolocation {
 	/**
 	 * Calculate distance between two coordinates using Haversine formula
 	 *
-	 * @param float $lat1 Latitude of point 1
-	 * @param float $lon1 Longitude of point 1
-	 * @param float $lat2 Latitude of point 2
-	 * @param float $lon2 Longitude of point 2
+	 * @param float $lat1 Latitude of point 1.
+	 * @param float $lon1 Longitude of point 1.
+	 * @param float $lat2 Latitude of point 2.
+	 * @param float $lon2 Longitude of point 2.
 	 * @return float Distance in meters
 	 */
 	public static function calculate_distance( float $lat1, float $lon1, float $lat2, float $lon2 ): float {
-		$earth_radius = 6371000; // Earth radius in meters
+		$earth_radius = 6371000; // Earth radius in meters.
 
 		$lat1 = deg2rad( $lat1 );
 		$lon1 = deg2rad( $lon1 );
@@ -289,9 +289,9 @@ class IpGeolocation {
 	/**
 	 * Check if location is within allowed areas
 	 *
-	 * @param array<string, mixed>             $location Location data (must have 'latitude' and 'longitude')
-	 * @param array<int, array<string, float>> $areas Array of areas (each with 'lat', 'lng', 'radius')
-	 * @param string                           $logic 'or' or 'and' (default: 'or')
+	 * @param array<string, mixed>             $location Location data (must have 'latitude' and 'longitude').
+	 * @param array<int, array<string, float>> $areas Array of areas (each with 'lat', 'lng', 'radius').
+	 * @param string                           $logic 'or' or 'and' (default: 'or').
 	 * @return bool True if location is within allowed areas
 	 */
 	public static function is_within_areas( array $location, array $areas, string $logic = 'or' ): bool {
@@ -334,19 +334,19 @@ class IpGeolocation {
 			);
 		}
 
-		// Apply logic
-		if ( $logic === 'and' ) {
-			return ! in_array( false, $matches, true ); // All must match
+		// Apply logic.
+		if ( 'and' === $logic ) {
+			return ! in_array( false, $matches, true ); // All must match.
 		} else {
-			return in_array( true, $matches, true ); // At least one must match
+			return in_array( true, $matches, true ); // At least one must match.
 		}
 	}
 
 	/**
 	 * Debug logging
 	 *
-	 * @param string               $message Log message
-	 * @param array<string, mixed> $context Additional context
+	 * @param string               $message Log message.
+	 * @param array<string, mixed> $context Additional context.
 	 */
 	private static function debug_log( string $message, array $context = array() ): void {
 		$settings = get_option( 'ffc_geolocation_settings', array() );
@@ -355,12 +355,12 @@ class IpGeolocation {
 			return;
 		}
 
-		// Log via centralized debug system
+		// Log via centralized debug system.
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
 			\FreeFormCertificate\Core\Debug::log_geofence( $message, $context );
 		}
 
-		// Log to activity log
+		// Log to activity log.
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
 				'ip_geolocation_debug',
@@ -373,19 +373,19 @@ class IpGeolocation {
 	/**
 	 * Clear IP geolocation cache
 	 *
-	 * @param string|null $ip Specific IP to clear, or null to clear all
+	 * @param string|null $ip Specific IP to clear, or null to clear all.
 	 * @return int Number of entries cleared
 	 */
 	public static function clear_cache( ?string $ip = null ): int {
 		global $wpdb;
 
-		if ( $ip !== null ) {
-			// Clear specific IP
+		if ( null !== $ip ) {
+			// Clear specific IP.
 			$cache_key = 'ffc_ip_geo_' . md5( $ip );
 			delete_transient( $cache_key );
 			return 1;
 		} else {
-			// Clear all IP geolocation transients
+			// Clear all IP geolocation transients.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result = $wpdb->query(
 				$wpdb->prepare(
@@ -395,7 +395,7 @@ class IpGeolocation {
 					'_transient_timeout_ffc_ip_geo_%'
 				)
 			);
-			return $result !== false ? (int) $result : 0;
+			return false !== $result ? (int) $result : 0;
 		}
 	}
 }

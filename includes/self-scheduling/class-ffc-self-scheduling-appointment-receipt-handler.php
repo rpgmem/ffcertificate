@@ -22,10 +22,10 @@ class AppointmentReceiptHandler {
 	 * Constructor
 	 */
 	public function __construct() {
-		// Register query var for receipt token
+		// Register query var for receipt token.
 		add_filter( 'query_vars', array( $this, 'add_query_vars' ) );
 
-		// Hook into template redirect to catch receipt requests
+		// Hook into template redirect to catch receipt requests.
 		add_action( 'template_redirect', array( $this, 'handle_receipt_request' ) );
 	}
 
@@ -58,23 +58,23 @@ class AppointmentReceiptHandler {
 			wp_die( esc_html__( 'Invalid appointment receipt request.', 'ffcertificate' ), 400 );
 		}
 
-		// Load repositories
+		// Load repositories.
 		$appointment_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
 		$calendar_repo    = new \FreeFormCertificate\Repositories\CalendarRepository();
 
-		// Get appointment
+		// Get appointment.
 		$appointment = $appointment_repo->findById( $appointment_id );
 
 		if ( ! $appointment ) {
 			wp_die( esc_html__( 'Appointment not found.', 'ffcertificate' ), 404 );
 		}
 
-		// Verify access (either logged in user owns it, admin, or has valid token)
+		// Verify access (either logged in user owns it, admin, or has valid token).
 		$has_access = false;
 
 		if ( current_user_can( 'manage_options' ) ) {
 			$has_access = true;
-		} elseif ( is_user_logged_in() && $appointment['user_id'] == get_current_user_id() ) {
+		} elseif ( is_user_logged_in() && get_current_user_id() === $appointment['user_id'] ) {
 			$has_access = true;
 		} elseif ( ! empty( $token ) && ! empty( $appointment['confirmation_token'] ) && $token === $appointment['confirmation_token'] ) {
 			$has_access = true;
@@ -84,19 +84,19 @@ class AppointmentReceiptHandler {
 			wp_die( esc_html__( 'You do not have permission to view this appointment receipt.', 'ffcertificate' ), 403 );
 		}
 
-		// Block receipt for pending appointments (awaiting admin approval)
+		// Block receipt for pending appointments (awaiting admin approval).
 		$appointment_status = $appointment['status'] ?? 'pending';
-		if ( $appointment_status === 'pending' && ! current_user_can( 'manage_options' ) ) {
+		if ( 'pending' === $appointment_status && ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'This appointment is awaiting admin approval. The receipt will be available after confirmation.', 'ffcertificate' ), 403 );
 		}
 
-		// Get calendar (may be null if deleted)
+		// Get calendar (may be null if deleted).
 		$calendar = null;
 		if ( ! empty( $appointment['calendar_id'] ) ) {
 			$calendar = $calendar_repo->findById( (int) $appointment['calendar_id'] );
 		}
 
-		// If calendar was deleted, create a placeholder
+		// If calendar was deleted, create a placeholder.
 		if ( ! $calendar ) {
 			$calendar = array(
 				'id'          => 0,
@@ -105,7 +105,7 @@ class AppointmentReceiptHandler {
 			);
 		}
 
-		// Generate and display receipt
+		// Generate and display receipt.
 		$this->display_receipt( $appointment, $calendar );
 		exit;
 	}
@@ -134,7 +134,7 @@ class AppointmentReceiptHandler {
 			true
 		);
 
-		// Enqueue PDF generator (reuse from certificates)
+		// Enqueue PDF generator (reuse from certificates).
 		wp_enqueue_script(
 			'ffc-pdf-generator',
 			FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js",
@@ -152,20 +152,20 @@ class AppointmentReceiptHandler {
 	 * @return void
 	 */
 	private function display_receipt( array $appointment, array $calendar ): void {
-		// Enqueue PDF scripts
+		// Enqueue PDF scripts.
 		$this->enqueue_pdf_scripts();
 
-		// Generate server-side PDF data (uses template with QR code)
+		// Generate server-side PDF data (uses template with QR code).
 		$pdf_data = null;
 		try {
 			$pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator();
 			$pdf_data      = $pdf_generator->generate_appointment_pdf_data( $appointment, $calendar );
 		} catch ( \Exception $e ) {
-			// Fallback: PDF download will capture receipt HTML (without QR code)
+			// Fallback: PDF download will capture receipt HTML (without QR code).
 			$pdf_data = null;
 		}
 
-		// Decrypt sensitive data with safety checks
+		// Decrypt sensitive data with safety checks.
 		$email = $appointment['email'] ?? '';
 		if ( empty( $email ) && ! empty( $appointment['email_encrypted'] ) ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
@@ -188,47 +188,47 @@ class AppointmentReceiptHandler {
 			}
 		}
 
-		// Format dates with validation
+		// Format dates with validation.
 		$date_format = get_option( 'date_format' );
 		$time_format = get_option( 'time_format' );
 
-		// Validate and format appointment date
+		// Validate and format appointment date.
 		$appointment_date = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['appointment_date'] ) ) {
 			$timestamp = strtotime( $appointment['appointment_date'] );
-			if ( $timestamp !== false ) {
+			if ( false !== $timestamp ) {
 				$appointment_date = date_i18n( $date_format, $timestamp );
 			}
 		}
 
-		// Validate and format start time
+		// Validate and format start time.
 		$start_time = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['start_time'] ) ) {
 			$timestamp = strtotime( $appointment['start_time'] );
-			if ( $timestamp !== false ) {
+			if ( false !== $timestamp ) {
 				$start_time = date_i18n( $time_format, $timestamp );
 			}
 		}
 
-		// Validate and format end time
+		// Validate and format end time.
 		$end_time = '';
 		if ( ! empty( $appointment['end_time'] ) ) {
 			$timestamp = strtotime( $appointment['end_time'] );
-			if ( $timestamp !== false ) {
+			if ( false !== $timestamp ) {
 				$end_time = date_i18n( $time_format, $timestamp );
 			}
 		}
 
-		// Validate and format created at
+		// Validate and format created at.
 		$created_at = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['created_at'] ) ) {
 			$timestamp = strtotime( $appointment['created_at'] );
-			if ( $timestamp !== false ) {
+			if ( false !== $timestamp ) {
 				$created_at = date_i18n( $date_format . ' ' . $time_format, $timestamp );
 			}
 		}
 
-		// Status label with safety check
+		// Status label with safety check.
 		$status_labels      = array(
 			'pending'   => __( 'Pending Approval', 'ffcertificate' ),
 			'confirmed' => __( 'Confirmed', 'ffcertificate' ),
@@ -542,7 +542,7 @@ class AppointmentReceiptHandler {
 	 * Generate receipt URL for an appointment
 	 *
 	 * @param int    $appointment_id
-	 * @param string $token Optional confirmation token for guest access
+	 * @param string $token Optional confirmation token for guest access.
 	 * @return string
 	 */
 	public static function get_receipt_url( int $appointment_id, string $token = '' ): string {

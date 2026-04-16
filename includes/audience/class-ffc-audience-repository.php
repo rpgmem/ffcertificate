@@ -52,7 +52,7 @@ class AudienceRepository {
 	/**
 	 * Get all audiences
 	 *
-	 * @param array<string, mixed> $args Query arguments
+	 * @param array<string, mixed> $args Query arguments.
 	 * @return array<object>
 	 */
 	public static function get_all( array $args = array() ): array {
@@ -60,7 +60,7 @@ class AudienceRepository {
 		$table = self::get_table_name();
 
 		$defaults = array(
-			'parent_id' => null, // null = all, 0 = only parents, >0 = children of specific parent
+			'parent_id' => null, // null = all, 0 = only parents, >0 = children of specific parent.
 			'status'    => null,
 			'orderby'   => 'name',
 			'order'     => 'ASC',
@@ -72,8 +72,8 @@ class AudienceRepository {
 		$where  = array();
 		$values = array();
 
-		if ( $args['parent_id'] !== null ) {
-			if ( $args['parent_id'] === 0 ) {
+		if ( null !== $args['parent_id'] ) {
+			if ( 0 === $args['parent_id'] ) {
 				$where[] = 'parent_id IS NULL';
 			} else {
 				$where[]  = 'parent_id = %d';
@@ -106,12 +106,12 @@ class AudienceRepository {
 	/**
 	 * Get audience by ID
 	 *
-	 * @param int $id Audience ID
+	 * @param int $id Audience ID.
 	 * @return object|null
 	 */
 	public static function get_by_id( int $id ): ?object {
 		$cached = static::cache_get( "id_{$id}" );
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -133,7 +133,7 @@ class AudienceRepository {
 	/**
 	 * Get parent audiences (top-level groups)
 	 *
-	 * @param string|null $status Optional status filter
+	 * @param string|null $status Optional status filter.
 	 * @return array<object>
 	 */
 	public static function get_parents( ?string $status = null ): array {
@@ -148,8 +148,8 @@ class AudienceRepository {
 	/**
 	 * Get children of a parent audience
 	 *
-	 * @param int         $parent_id Parent audience ID
-	 * @param string|null $status Optional status filter
+	 * @param int         $parent_id Parent audience ID.
+	 * @param string|null $status Optional status filter.
 	 * @return array<object>
 	 */
 	public static function get_children( int $parent_id, ?string $status = null ): array {
@@ -166,20 +166,20 @@ class AudienceRepository {
 	 *
 	 * Builds a tree up to 3 levels deep (parent / child / grandchild).
 	 *
-	 * @param string|null $status Optional status filter
+	 * @param string|null $status Optional status filter.
 	 * @return array<object> Parents with nested 'children' property
 	 */
 	public static function get_hierarchical( ?string $status = null ): array {
 		$all = self::get_all( array( 'status' => $status ) );
 
-		// Index by id
+		// Index by id.
 		$by_id = array();
 		foreach ( $all as $item ) {
 			$item->children           = array();
 			$by_id[ (int) $item->id ] = $item;
 		}
 
-		// Build tree
+		// Build tree.
 		$roots = array();
 		foreach ( $by_id as $item ) {
 			if ( ! empty( $item->parent_id ) && isset( $by_id[ (int) $item->parent_id ] ) ) {
@@ -195,7 +195,7 @@ class AudienceRepository {
 	/**
 	 * Create an audience
 	 *
-	 * @param array<string, mixed> $data Audience data
+	 * @param array<string, mixed> $data Audience data.
 	 * @return int|false Audience ID or false on failure
 	 */
 	public static function create( array $data ) {
@@ -221,7 +221,7 @@ class AudienceRepository {
 		);
 		$insert_format = array( '%s', '%s', '%d', '%s', '%d' );
 
-		// Only include allow_self_join if column exists (migration may not have run)
+		// Only include allow_self_join if column exists (migration may not have run).
 		if ( isset( $data['allow_self_join'] ) ) {
 			$insert_data['allow_self_join'] = (int) $data['allow_self_join'];
 			$insert_format[]                = '%d';
@@ -253,22 +253,22 @@ class AudienceRepository {
 	/**
 	 * Update an audience
 	 *
-	 * @param int                  $id Audience ID
-	 * @param array<string, mixed> $data Update data
+	 * @param int                  $id Audience ID.
+	 * @param array<string, mixed> $data Update data.
 	 * @return bool
 	 */
 	public static function update( int $id, array $data ): bool {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// Remove fields that shouldn't be updated
+		// Remove fields that shouldn't be updated.
 		unset( $data['id'], $data['created_by'], $data['created_at'] );
 
 		if ( empty( $data ) ) {
 			return false;
 		}
 
-		// Build update data and format arrays
+		// Build update data and format arrays.
 		$update_data = array();
 		$format      = array();
 
@@ -298,15 +298,15 @@ class AudienceRepository {
 
 		static::cache_delete( "id_{$id}" );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Cascade allow_self_join flag from parent to all descendants
 	 *
 	 * @since 4.9.10
-	 * @param int $parent_id Parent audience ID
-	 * @param int $value     1 or 0
+	 * @param int $parent_id Parent audience ID.
+	 * @param int $value     1 or 0.
 	 * @return void
 	 */
 	public static function cascade_self_join( int $parent_id, int $value ): void {
@@ -334,7 +334,7 @@ class AudienceRepository {
 			)
 		);
 
-		// Recurse into each child
+		// Recurse into each child.
 		foreach ( $children as $child ) {
 			self::cascade_self_join( (int) $child->id, $value );
 		}
@@ -345,7 +345,7 @@ class AudienceRepository {
 	 *
 	 * Note: This also deletes all child audiences and member associations.
 	 *
-	 * @param int $id Audience ID
+	 * @param int $id Audience ID.
 	 * @return bool
 	 */
 	public static function delete( int $id ): bool {
@@ -353,37 +353,37 @@ class AudienceRepository {
 		$table         = self::get_table_name();
 		$members_table = self::get_members_table_name();
 
-		// Delete children first
+		// Delete children first.
 		$children = self::get_children( $id );
 		foreach ( $children as $child ) {
 			self::delete( $child->id );
 		}
 
-		// Delete member associations
+		// Delete member associations.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $members_table, array( 'audience_id' => $id ), array( '%d' ) );
 
-		// Delete the audience
+		// Delete the audience.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Add a member to an audience
 	 *
-	 * @param int $audience_id Audience ID
-	 * @param int $user_id User ID
+	 * @param int $audience_id Audience ID.
+	 * @param int $user_id User ID.
 	 * @return int|false Member ID or false on failure
 	 */
 	public static function add_member( int $audience_id, int $user_id ) {
 		$wpdb  = self::db();
 		$table = self::get_members_table_name();
 
-		// Check if already a member
+		// Check if already a member.
 		if ( self::is_member( $audience_id, $user_id ) ) {
 			return false;
 		}
@@ -403,8 +403,8 @@ class AudienceRepository {
 	/**
 	 * Remove a member from an audience
 	 *
-	 * @param int $audience_id Audience ID
-	 * @param int $user_id User ID
+	 * @param int $audience_id Audience ID.
+	 * @param int $user_id User ID.
 	 * @return bool
 	 */
 	public static function remove_member( int $audience_id, int $user_id ): bool {
@@ -421,14 +421,14 @@ class AudienceRepository {
 			array( '%d', '%d' )
 		);
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Check if a user is a member of an audience
 	 *
-	 * @param int $audience_id Audience ID
-	 * @param int $user_id User ID
+	 * @param int $audience_id Audience ID.
+	 * @param int $user_id User ID.
 	 * @return bool
 	 */
 	public static function is_member( int $audience_id, int $user_id ): bool {
@@ -451,8 +451,8 @@ class AudienceRepository {
 	/**
 	 * Get members of an audience
 	 *
-	 * @param int  $audience_id Audience ID
-	 * @param bool $include_children Whether to include members of child audiences
+	 * @param int  $audience_id Audience ID.
+	 * @param bool $include_children Whether to include members of child audiences.
 	 * @return array<int> User IDs
 	 */
 	public static function get_members( int $audience_id, bool $include_children = false ): array {
@@ -461,7 +461,7 @@ class AudienceRepository {
 
 		$audience_ids = array( $audience_id );
 
-		// Include all descendants if requested
+		// Include all descendants if requested.
 		if ( $include_children ) {
 			$descendant_ids = self::get_descendant_ids( $audience_id );
 			$audience_ids   = array_merge( $audience_ids, $descendant_ids );
@@ -484,8 +484,8 @@ class AudienceRepository {
 	/**
 	 * Get audiences a user belongs to
 	 *
-	 * @param int  $user_id User ID
-	 * @param bool $include_parents Whether to include parent audiences (when user is in child)
+	 * @param int  $user_id User ID.
+	 * @param bool $include_parents Whether to include parent audiences (when user is in child).
 	 * @return array<object>
 	 */
 	public static function get_user_audiences( int $user_id, bool $include_parents = false ): array {
@@ -513,7 +513,7 @@ class AudienceRepository {
 		);
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
-		// Include all ancestor audiences if requested (walks up the full chain)
+		// Include all ancestor audiences if requested (walks up the full chain).
 		if ( $include_parents && ! empty( $audiences ) ) {
 			$ancestor_ids = array();
 			foreach ( $audiences as $audience ) {
@@ -534,7 +534,7 @@ class AudienceRepository {
 				);
                 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-				// Merge and remove duplicates
+				// Merge and remove duplicates.
 				$existing_ids = array_column( $audiences, 'id' );
 				foreach ( $parents as $parent ) {
 					if ( ! in_array( $parent->id, $existing_ids, true ) ) {
@@ -542,7 +542,7 @@ class AudienceRepository {
 					}
 				}
 
-				// Sort by name
+				// Sort by name.
 				usort(
 					$audiences,
 					function ( $a, $b ) {
@@ -560,8 +560,8 @@ class AudienceRepository {
 	/**
 	 * Get member count for an audience
 	 *
-	 * @param int  $audience_id Audience ID
-	 * @param bool $include_children Whether to include members of child audiences
+	 * @param int  $audience_id Audience ID.
+	 * @param bool $include_children Whether to include members of child audiences.
 	 * @return int
 	 */
 	public static function get_member_count( int $audience_id, bool $include_children = false ): int {
@@ -571,8 +571,8 @@ class AudienceRepository {
 	/**
 	 * Bulk add members to an audience
 	 *
-	 * @param int        $audience_id Audience ID
-	 * @param array<int> $user_ids User IDs
+	 * @param int        $audience_id Audience ID.
+	 * @param array<int> $user_ids User IDs.
 	 * @return int Number of members added
 	 */
 	public static function bulk_add_members( int $audience_id, array $user_ids ): int {
@@ -588,8 +588,8 @@ class AudienceRepository {
 	/**
 	 * Bulk remove members from an audience
 	 *
-	 * @param int        $audience_id Audience ID
-	 * @param array<int> $user_ids User IDs
+	 * @param int        $audience_id Audience ID.
+	 * @param array<int> $user_ids User IDs.
 	 * @return int Number of members removed
 	 */
 	public static function bulk_remove_members( int $audience_id, array $user_ids ): int {
@@ -605,8 +605,8 @@ class AudienceRepository {
 	/**
 	 * Replace all members of an audience
 	 *
-	 * @param int        $audience_id Audience ID
-	 * @param array<int> $user_ids User IDs
+	 * @param int        $audience_id Audience ID.
+	 * @param array<int> $user_ids User IDs.
 	 * @return bool
 	 */
 	public static function set_members( int $audience_id, array $user_ids ): bool {
@@ -617,12 +617,12 @@ class AudienceRepository {
 		$wpdb->delete( $table, array( 'audience_id' => $audience_id ), array( '%d' ) );
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
-		// Add new members
+		// Add new members.
 		foreach ( $user_ids as $user_id ) {
 			self::add_member( $audience_id, (int) $user_id );
 		}
 
-		// Invalidate audience membership caches for affected users
+		// Invalidate audience membership caches for affected users.
 		foreach ( $user_ids as $uid ) {
 			wp_cache_delete( 'ffcertificate_user_aud_' . (int) $uid . '_0', 'ffcertificate' );
 			wp_cache_delete( 'ffcertificate_user_aud_' . (int) $uid . '_1', 'ffcertificate' );
@@ -634,7 +634,7 @@ class AudienceRepository {
 	/**
 	 * Count audiences
 	 *
-	 * @param array<string, mixed> $args Query arguments (parent_id, status)
+	 * @param array<string, mixed> $args Query arguments (parent_id, status).
 	 * @return int
 	 */
 	public static function count( array $args = array() ): int {
@@ -651,7 +651,7 @@ class AudienceRepository {
 		$values = array();
 
 		if ( isset( $args['parent_id'] ) ) {
-			if ( $args['parent_id'] === 0 ) {
+			if ( 0 === $args['parent_id'] ) {
 				$where[] = 'parent_id IS NULL';
 			} else {
 				$where[]  = 'parent_id = %d';
@@ -666,7 +666,7 @@ class AudienceRepository {
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
-		// Build prepared query with %i for table name
+		// Build prepared query with %i for table name.
 		$prepare_args = array_merge( array( $table ), $values );
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders; cached below.
@@ -682,8 +682,8 @@ class AudienceRepository {
 	/**
 	 * Search audiences by name
 	 *
-	 * @param string $search Search term
-	 * @param int    $limit Max results
+	 * @param string $search Search term.
+	 * @param int    $limit Max results.
 	 * @return array<object>
 	 */
 	public static function search( string $search, int $limit = 10 ): array {
@@ -718,7 +718,7 @@ class AudienceRepository {
 	/**
 	 * Get all descendant IDs of an audience (children, grandchildren, etc.)
 	 *
-	 * @param int $audience_id Audience ID
+	 * @param int $audience_id Audience ID.
 	 * @return array<int>
 	 */
 	public static function get_descendant_ids( int $audience_id ): array {
@@ -736,7 +736,7 @@ class AudienceRepository {
 	 *
 	 * Returns the ID passed in plus all its parents up to the root.
 	 *
-	 * @param int $audience_id Starting audience ID
+	 * @param int $audience_id Starting audience ID.
 	 * @return array<int>
 	 */
 	public static function get_ancestor_ids( int $audience_id ): array {
@@ -755,7 +755,7 @@ class AudienceRepository {
 	 * Audiences at depth 2 cannot be parents because that would create a 4th level.
 	 * Optionally excludes an audience and its descendants to prevent circular refs.
 	 *
-	 * @param int $exclude_id Audience ID to exclude (along with descendants)
+	 * @param int $exclude_id Audience ID to exclude (along with descendants).
 	 * @return array<object> Flat list with a 'depth' property on each item
 	 */
 	public static function get_possible_parents( int $exclude_id = 0 ): array {
@@ -765,7 +765,7 @@ class AudienceRepository {
 			$exclude_ids   = array_merge( $exclude_ids, self::get_descendant_ids( $exclude_id ) );
 		}
 
-		$parents = self::get_parents(); // depth 0
+		$parents = self::get_parents(); // depth 0.
 		$result  = array();
 
 		foreach ( $parents as $parent ) {
@@ -775,7 +775,7 @@ class AudienceRepository {
 			$parent->depth = 0;
 			$result[]      = $parent;
 
-			// depth-1 children
+			// depth-1 children.
 			$children = self::get_children( (int) $parent->id );
 			foreach ( $children as $child ) {
 				if ( in_array( (int) $child->id, $exclude_ids, true ) ) {
@@ -794,7 +794,7 @@ class AudienceRepository {
 	 *
 	 * Returns ordered array from root to the immediate parent.
 	 *
-	 * @param int $audience_id Audience ID
+	 * @param int $audience_id Audience ID.
 	 * @return array<object>
 	 */
 	public static function get_ancestors( int $audience_id ): array {

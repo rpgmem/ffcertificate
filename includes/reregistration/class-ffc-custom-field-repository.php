@@ -79,7 +79,7 @@ class CustomFieldRepository {
 	 */
 	public static function get_by_id( int $field_id ): ?object {
 		$cached = static::cache_get( "id_{$field_id}" );
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -139,7 +139,7 @@ class CustomFieldRepository {
 			return array();
 		}
 
-		// Collect audience IDs from bottom to top (child → parent)
+		// Collect audience IDs from bottom to top (child → parent).
 		$audience_chain = array();
 		$current        = $audience;
 		while ( $current ) {
@@ -151,7 +151,7 @@ class CustomFieldRepository {
 			}
 		}
 
-		// Reverse to get top-down order (parent → child)
+		// Reverse to get top-down order (parent → child).
 		$audience_chain = array_reverse( $audience_chain );
 
 		$all_fields = array();
@@ -186,7 +186,7 @@ class CustomFieldRepository {
 		foreach ( $audiences as $audience ) {
 			$fields = self::get_by_audience_with_parents( (int) $audience->id, $active_only );
 			foreach ( $fields as $field ) {
-				// Avoid duplicates when user belongs to sibling audiences sharing a parent
+				// Avoid duplicates when user belongs to sibling audiences sharing a parent.
 				if ( ! isset( $seen_ids[ (int) $field->id ] ) ) {
 					$seen_ids[ (int) $field->id ] = true;
 					$all_fields[]                 = $field;
@@ -225,22 +225,22 @@ class CustomFieldRepository {
 		);
 		$data     = wp_parse_args( $data, $defaults );
 
-		// Validate field type
+		// Validate field type.
 		if ( ! in_array( $data['field_type'], self::FIELD_TYPES, true ) ) {
 			$data['field_type'] = 'text';
 		}
 
-		// Validate field source
+		// Validate field source.
 		if ( ! in_array( $data['field_source'], array( 'standard', 'custom' ), true ) ) {
 			$data['field_source'] = 'custom';
 		}
 
-		// Auto-generate field_key from label if empty
+		// Auto-generate field_key from label if empty.
 		if ( empty( $data['field_key'] ) ) {
 			$data['field_key'] = self::generate_field_key( $data['field_label'] );
 		}
 
-		// Ensure field_key uniqueness within audience
+		// Ensure field_key uniqueness within audience.
 		$data['field_key'] = self::ensure_unique_key( $data['field_key'], (int) $data['audience_id'] );
 
 		$insert_data = array(
@@ -250,8 +250,8 @@ class CustomFieldRepository {
 			'field_type'        => $data['field_type'],
 			'field_group'       => sanitize_text_field( (string) $data['field_group'] ),
 			'field_source'      => $data['field_source'],
-			'field_profile_key' => $data['field_profile_key'] !== null ? sanitize_key( (string) $data['field_profile_key'] ) : null,
-			'field_mask'        => $data['field_mask'] !== null ? sanitize_text_field( (string) $data['field_mask'] ) : null,
+			'field_profile_key' => null !== $data['field_profile_key'] ? sanitize_key( (string) $data['field_profile_key'] ) : null,
+			'field_mask'        => null !== $data['field_mask'] ? sanitize_text_field( (string) $data['field_mask'] ) : null,
 			'is_sensitive'      => (int) $data['is_sensitive'],
 			'field_options'     => is_string( $data['field_options'] ) ? $data['field_options'] : wp_json_encode( $data['field_options'] ),
 			'validation_rules'  => is_string( $data['validation_rules'] ) ? $data['validation_rules'] : wp_json_encode( $data['validation_rules'] ),
@@ -280,7 +280,7 @@ class CustomFieldRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// Remove non-updatable fields
+		// Remove non-updatable fields.
 		unset( $data['id'], $data['created_at'] );
 
 		if ( empty( $data ) ) {
@@ -312,25 +312,25 @@ class CustomFieldRepository {
 				continue;
 			}
 
-			// Encode JSON fields
+			// Encode JSON fields.
 			if ( in_array( $key, array( 'field_options', 'validation_rules' ), true ) && ! is_string( $value ) ) {
 				$value = wp_json_encode( $value );
 			}
 
-			// Sanitize text fields
+			// Sanitize text fields.
 			if ( in_array( $key, array( 'field_key', 'field_profile_key' ), true ) ) {
-				$value = $value !== null ? sanitize_key( (string) $value ) : null;
+				$value = null !== $value ? sanitize_key( (string) $value ) : null;
 			} elseif ( in_array( $key, array( 'field_label', 'field_type', 'field_group', 'field_mask', 'field_source' ), true ) ) {
-				$value = $value !== null ? sanitize_text_field( (string) $value ) : null;
+				$value = null !== $value ? sanitize_text_field( (string) $value ) : null;
 			}
 
-			// Validate field type
-			if ( $key === 'field_type' && ! in_array( $value, self::FIELD_TYPES, true ) ) {
+			// Validate field type.
+			if ( 'field_type' === $key && ! in_array( $value, self::FIELD_TYPES, true ) ) {
 				$value = 'text';
 			}
 
-			// Validate field source
-			if ( $key === 'field_source' && ! in_array( $value, array( 'standard', 'custom' ), true ) ) {
+			// Validate field source.
+			if ( 'field_source' === $key && ! in_array( $value, array( 'standard', 'custom' ), true ) ) {
 				$value = 'custom';
 			}
 
@@ -352,7 +352,7 @@ class CustomFieldRepository {
 
 		static::cache_delete( "id_{$field_id}" );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
@@ -370,7 +370,7 @@ class CustomFieldRepository {
 	 */
 	public static function delete( int $field_id ): bool {
 		$field = self::get_by_id( $field_id );
-		if ( $field && isset( $field->field_source ) && $field->field_source === 'standard' ) {
+		if ( $field && isset( $field->field_source ) && 'standard' === $field->field_source ) {
 			return false;
 		}
 
@@ -381,7 +381,7 @@ class CustomFieldRepository {
 
 		static::cache_delete( "id_{$field_id}" );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
@@ -458,9 +458,9 @@ class CustomFieldRepository {
 		);
 	}
 
-	// ─────────────────────────────────────────────
-	// Dynamic field grouping / profile / sensitive helpers
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
+	// Dynamic field grouping / profile / sensitive helpers.
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Get fields for an audience grouped by field_group.
@@ -617,9 +617,9 @@ class CustomFieldRepository {
 		return $result ?: null;
 	}
 
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
 	// User data helpers (wp_usermeta JSON storage)
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Get custom field data for a user.
@@ -676,9 +676,9 @@ class CustomFieldRepository {
 		return self::save_user_data( $user_id, array( 'field_' . $field_id => $value ) );
 	}
 
-	// ─────────────────────────────────────────────
-	// Validation
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
+	// Validation.
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Validate a field value against its definition.
@@ -688,7 +688,7 @@ class CustomFieldRepository {
 	 * @return true|\WP_Error True if valid, WP_Error with message if invalid.
 	 */
 	public static function validate_field_value( object $field, $value ) {
-		// Required check
+		// Required check.
 		if ( ! empty( $field->is_required ) && self::is_empty_value( $value ) ) {
 			return new \WP_Error(
 				'field_required',
@@ -697,12 +697,12 @@ class CustomFieldRepository {
 			);
 		}
 
-		// Skip further validation if empty and not required
+		// Skip further validation if empty and not required.
 		if ( self::is_empty_value( $value ) ) {
 			return true;
 		}
 
-		// Type-specific validation
+		// Type-specific validation.
 		switch ( $field->field_type ) {
 			case 'number':
 				if ( ! is_numeric( $value ) ) {
@@ -750,7 +750,7 @@ class CustomFieldRepository {
 				break;
 		}
 
-		// Format validation from validation_rules
+		// Format validation from validation_rules.
 		$rules = self::get_validation_rules( $field );
 		if ( ! empty( $rules ) ) {
 			$format_result = self::validate_format( $field, $value, $rules );
@@ -773,7 +773,7 @@ class CustomFieldRepository {
 	private static function validate_format( object $field, $value, array $rules ) {
 		$str_value = (string) $value;
 
-		// Min/max length
+		// Min/max length.
 		if ( isset( $rules['min_length'] ) && mb_strlen( $str_value ) < (int) $rules['min_length'] ) {
 			return new \WP_Error(
 				'field_too_short',
@@ -790,7 +790,7 @@ class CustomFieldRepository {
 			);
 		}
 
-		// Built-in format validation
+		// Built-in format validation.
 		if ( ! empty( $rules['format'] ) ) {
 			switch ( $rules['format'] ) {
 				case 'cpf':
@@ -826,14 +826,14 @@ class CustomFieldRepository {
 				case 'custom_regex':
 					if ( ! empty( $rules['custom_regex'] ) ) {
 						$regex = (string) $rules['custom_regex'];
-						// Accept both delimited (/foo/, ~foo~, #foo#) and
-						// bare patterns supplied by admins. Wrap bare
-						// patterns with `~` to avoid conflicts with the
+						// Accept both delimited (/foo/, ~foo~, #foo#) and.
+						// bare patterns supplied by admins. Wrap bare.
+						// patterns with `~` to avoid conflicts with the.
 						// `/` character commonly used inside patterns.
-						if ( $regex[0] !== '/' && $regex[0] !== '~' && $regex[0] !== '#' ) {
+						if ( '/' !== $regex[0] && '~' !== $regex[0] && '#' !== $regex[0] ) {
 							$regex = '~' . $regex . '~';
 						}
-						// Suppress the warning PHP emits for invalid
+						// Suppress the warning PHP emits for invalid.
 						// patterns; treat invalid patterns as "no rule".
 						if ( @preg_match( $regex, '' ) === false ) {
 							break;
@@ -882,33 +882,33 @@ class CustomFieldRepository {
 			}
 
 			$day = $entry['day'] ?? null;
-			if ( $day === null || ! is_numeric( $day ) || (int) $day < 0 || (int) $day > 6 ) {
+			if ( null === $day || ! is_numeric( $day ) || (int) $day < 0 || (int) $day > 6 ) {
 				/* translators: %s: field label */
 				return new \WP_Error( 'field_invalid_working_hours', sprintf( __( '%s contains an invalid day.', 'ffcertificate' ), $field->field_label ) );
 			}
 
-			// entry1 is required
+			// entry1 is required.
 			$entry1 = $entry['entry1'] ?? null;
 			if ( ! $entry1 || ! preg_match( $time_re, $entry1 ) ) {
 				/* translators: %s: field label */
 				return new \WP_Error( 'field_invalid_working_hours', sprintf( __( '%s: Entry 1 is required for each day.', 'ffcertificate' ), $field->field_label ) );
 			}
 
-			// exit2 is required
+			// exit2 is required.
 			$exit2 = $entry['exit2'] ?? null;
 			if ( ! $exit2 || ! preg_match( $time_re, $exit2 ) ) {
 				/* translators: %s: field label */
 				return new \WP_Error( 'field_invalid_working_hours', sprintf( __( '%s: Exit 2 is required for each day.', 'ffcertificate' ), $field->field_label ) );
 			}
 
-			// exit1 and entry2 are optional but must be valid if provided
+			// exit1 and entry2 are optional but must be valid if provided.
 			$exit1 = $entry['exit1'] ?? '';
-			if ( $exit1 !== '' && ! preg_match( $time_re, $exit1 ) ) {
+			if ( '' !== $exit1 && ! preg_match( $time_re, $exit1 ) ) {
 				/* translators: %s: field label */
 				return new \WP_Error( 'field_invalid_working_hours', sprintf( __( '%s contains an invalid time.', 'ffcertificate' ), $field->field_label ) );
 			}
 			$entry2 = $entry['entry2'] ?? '';
-			if ( $entry2 !== '' && ! preg_match( $time_re, $entry2 ) ) {
+			if ( '' !== $entry2 && ! preg_match( $time_re, $entry2 ) ) {
 				/* translators: %s: field label */
 				return new \WP_Error( 'field_invalid_working_hours', sprintf( __( '%s contains an invalid time.', 'ffcertificate' ), $field->field_label ) );
 			}
@@ -993,9 +993,9 @@ class CustomFieldRepository {
 		return $options['groups'] ?? array();
 	}
 
-	// ─────────────────────────────────────────────
-	// Helpers
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
+	// Helpers.
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Generate a field key from a label.
@@ -1038,7 +1038,7 @@ class CustomFieldRepository {
 				$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", array_merge( array( $table ), $values ) )
 			);
 
-			if ( $exists === 0 ) {
+			if ( 0 === $exists ) {
 				break;
 			}
 
@@ -1084,10 +1084,10 @@ class CustomFieldRepository {
 	 * @return bool
 	 */
 	private static function is_empty_value( $value ): bool {
-		if ( $value === null || $value === '' || $value === array() ) {
+		if ( null === $value || '' === $value || array() === $value ) {
 			return true;
 		}
-		if ( is_string( $value ) && ( trim( $value ) === '' || $value === '[]' ) ) {
+		if ( is_string( $value ) && ( '' === trim( $value ) || '[]' === $value ) ) {
 			return true;
 		}
 		return false;

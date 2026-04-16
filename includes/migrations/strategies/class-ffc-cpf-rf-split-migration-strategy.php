@@ -63,8 +63,8 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	 *
 	 * A record is "pending" if it has cpf_rf_hash but neither cpf_hash nor rf_hash.
 	 *
-	 * @param string               $migration_key Migration identifier
-	 * @param array<string, mixed> $migration_config Migration configuration
+	 * @param string               $migration_key Migration identifier.
+	 * @param array<string, mixed> $migration_config Migration configuration.
 	 * @return array<string, mixed> Status information
 	 */
 	public function calculate_status( string $migration_key, array $migration_config ): array {
@@ -81,7 +81,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 			'migrated'    => $migrated,
 			'pending'     => $pending,
 			'percent'     => round( $percent, 2 ),
-			'is_complete' => ( $pending === 0 ),
+			'is_complete' => ( 0 === $pending ),
 		);
 	}
 
@@ -90,9 +90,9 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	 *
 	 * Processes submissions first, then appointments.
 	 *
-	 * @param string               $migration_key Migration identifier
-	 * @param array<string, mixed> $migration_config Migration configuration
-	 * @param int                  $batch_number Batch number (unused — uses OFFSET 0 since migrated records won't reappear)
+	 * @param string               $migration_key Migration identifier.
+	 * @param array<string, mixed> $migration_config Migration configuration.
+	 * @param int                  $batch_number Batch number (unused — uses OFFSET 0 since migrated records won't reappear).
 	 * @return array<string, mixed> Execution result
 	 */
 	public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
@@ -101,14 +101,14 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 		$total_processed = 0;
 		$all_errors      = array();
 
-		// Process submissions table
+		// Process submissions table.
 		$result           = $this->process_table( $this->submissions_table, $batch_size );
 		$total_processed += $result['processed'];
 		if ( ! empty( $result['errors'] ) ) {
 			$all_errors = array_merge( $all_errors, $result['errors'] );
 		}
 
-		// Process appointments table (if it exists)
+		// Process appointments table (if it exists).
 		if ( self::table_exists( $this->appointments_table ) && self::column_exists( $this->appointments_table, 'cpf_rf_hash' ) ) {
 			$result           = $this->process_table( $this->appointments_table, $batch_size );
 			$total_processed += $result['processed'];
@@ -117,11 +117,11 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 			}
 		}
 
-		// Check if there are more records to process
+		// Check if there are more records to process.
 		$status   = $this->calculate_status( $migration_key, $migration_config );
 		$has_more = $status['pending'] > 0;
 
-		// When all data is migrated, drop legacy columns
+		// When all data is migrated, drop legacy columns.
 		if ( ! $has_more && count( $all_errors ) === 0 ) {
 			$this->drop_legacy_columns();
 		}
@@ -142,8 +142,8 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	 * Requires encryption to be configured (to decrypt cpf_rf_encrypted
 	 * when plain text is unavailable) and the new columns to exist.
 	 *
-	 * @param string               $migration_key Migration identifier
-	 * @param array<string, mixed> $migration_config Migration configuration
+	 * @param string               $migration_key Migration identifier.
+	 * @param array<string, mixed> $migration_config Migration configuration.
 	 * @return bool|WP_Error
 	 */
 	public function can_run( string $migration_key, array $migration_config ) {
@@ -161,7 +161,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 			);
 		}
 
-		// Check that new columns exist in submissions table
+		// Check that new columns exist in submissions table.
 		if ( ! self::column_exists( $this->submissions_table, 'cpf_hash' ) ||
 			! self::column_exists( $this->submissions_table, 'rf_hash' ) ) {
 			return new WP_Error(
@@ -189,7 +189,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	 * - Migrated: rows that have cpf_hash OR rf_hash AND do NOT have cpf_rf_hash
 	 * - Pending:  rows that still have cpf_rf_hash (need migration)
 	 *
-	 * @param string $table_name Table to check
+	 * @param string $table_name Table to check.
 	 * @return array{total: int, migrated: int, pending: int}
 	 */
 	private function count_table_status( string $table_name ): array {
@@ -203,7 +203,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 			);
 		}
 
-		// If cpf_rf_hash was already dropped, migration is complete for this table
+		// If cpf_rf_hash was already dropped, migration is complete for this table.
 		if ( ! self::column_exists( $table_name, 'cpf_rf_hash' ) ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$total = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table_name ) );
@@ -222,7 +222,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 			);
 		}
 
-		// Total = all rows in the table
+		// Total = all rows in the table.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$total = (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -231,7 +231,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 			)
 		);
 
-		// Pending = rows that still have cpf_rf_hash (legacy data not yet split)
+		// Pending = rows that still have cpf_rf_hash (legacy data not yet split).
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$pending = (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -259,8 +259,8 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	 * 3. Copy existing encrypted/hash to the appropriate new column (no re-encryption)
 	 * 4. NULL out the legacy cpf_rf_* columns
 	 *
-	 * @param string $table_name Table to process
-	 * @param int    $batch_size Number of records per batch
+	 * @param string $table_name Table to process.
+	 * @param int    $batch_size Number of records per batch.
 	 * @return array{processed: int, errors: string[]}
 	 */
 	private function process_table( string $table_name, int $batch_size ): array {
@@ -269,7 +269,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 		$processed = 0;
 		$errors    = array();
 
-		// Get records that have cpf_rf data but haven't been split yet
+		// Get records that have cpf_rf data but haven't been split yet.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$records = $wpdb->get_results(
 			$wpdb->prepare(
@@ -304,24 +304,24 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 				$digits = preg_replace( '/[^0-9]/', '', $plain_value );
 				$len    = strlen( $digits );
 
-				// Copy existing encrypted/hash to the correct split column — no re-encryption
-				// Then NULL out legacy cpf_rf_* columns
+				// Copy existing encrypted/hash to the correct split column — no re-encryption.
+				// Then NULL out legacy cpf_rf_* columns.
 				$update_data = array(
 					'cpf_rf'           => null,
 					'cpf_rf_encrypted' => null,
 					'cpf_rf_hash'      => null,
 				);
 
-				if ( $len === self::RF_LENGTH ) {
-					// It's an RF
+				if ( self::RF_LENGTH === $len ) {
+					// It's an RF.
 					$update_data['rf_encrypted'] = $record['cpf_rf_encrypted'];
 					$update_data['rf_hash']      = $record['cpf_rf_hash'];
-				} elseif ( $len === self::CPF_LENGTH ) {
-					// It's a CPF
+				} elseif ( self::CPF_LENGTH === $len ) {
+					// It's a CPF.
 					$update_data['cpf_encrypted'] = $record['cpf_rf_encrypted'];
 					$update_data['cpf_hash']      = $record['cpf_rf_hash'];
 				} else {
-					// Unknown length — default to CPF, log warning
+					// Unknown length — default to CPF, log warning.
 					$update_data['cpf_encrypted'] = $record['cpf_rf_encrypted'];
 					$update_data['cpf_hash']      = $record['cpf_rf_hash'];
 
@@ -347,7 +347,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 					array( '%d' )
 				);
 
-				if ( $updated !== false ) {
+				if ( false !== $updated ) {
 					++$processed;
 				} else {
 					$errors[] = sprintf(
@@ -367,7 +367,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 			}
 		}
 
-		// Log batch result
+		// Log batch result.
 		if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
 				'cpf_rf_split_migration_batch',
@@ -393,16 +393,16 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	 * 1. Plain cpf_rf column (legacy unencrypted)
 	 * 2. Decrypt cpf_rf_encrypted
 	 *
-	 * @param array<string, mixed> $record Database row
+	 * @param array<string, mixed> $record Database row.
 	 * @return string|null Clean digits or null
 	 */
 	private function resolve_plain_value( array $record ): ?string {
-		// Try plain text first (legacy)
+		// Try plain text first (legacy).
 		if ( ! empty( $record['cpf_rf'] ) ) {
 			return $record['cpf_rf'];
 		}
 
-		// Decrypt encrypted value
+		// Decrypt encrypted value.
 		if ( ! empty( $record['cpf_rf_encrypted'] ) ) {
 			return \FreeFormCertificate\Core\Encryption::decrypt( $record['cpf_rf_encrypted'] );
 		}
@@ -423,7 +423,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	 * @return void
 	 */
 	private function drop_legacy_columns(): void {
-		// Columns to drop from submissions table
+		// Columns to drop from submissions table.
 		$submissions_columns = array(
 			'cpf_rf',
 			'cpf_rf_encrypted',
@@ -437,7 +437,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 
 		self::drop_columns_if_exist( $this->submissions_table, $submissions_columns );
 
-		// Appointments table has additional plaintext columns to drop
+		// Appointments table has additional plaintext columns to drop.
 		if ( self::table_exists( $this->appointments_table ) ) {
 			$appointments_columns = array(
 				'cpf_rf',
@@ -466,8 +466,8 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	/**
 	 * Drop columns from a table if they exist (idempotent)
 	 *
-	 * @param string             $table Table name
-	 * @param array<int, string> $columns Column names to drop
+	 * @param string             $table Table name.
+	 * @param array<int, string> $columns Column names to drop.
 	 * @return void
 	 */
 	private static function drop_columns_if_exist( string $table, array $columns ): void {
@@ -480,7 +480,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 			}
 		}
 
-		// Also drop indexes that reference these columns
+		// Also drop indexes that reference these columns.
 		$indexes_to_drop = array( 'cpf_rf', 'cpf_rf_hash', 'email', 'idx_form_cpf' );
 		foreach ( $indexes_to_drop as $index_name ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

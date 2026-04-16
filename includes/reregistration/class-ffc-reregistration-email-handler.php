@@ -58,7 +58,7 @@ class ReregistrationEmailHandler {
 			}
 		}
 
-		// Activity log
+		// Activity log.
 		self::log(
 			'reregistration_invitations_sent',
 			0,
@@ -157,7 +157,7 @@ class ReregistrationEmailHandler {
 
 		$status_label = ReregistrationSubmissionRepository::get_status_label( $submission->status );
 
-		// Build magic link URL for direct verification
+		// Build magic link URL for direct verification.
 		$magic_link_url = '';
 		if ( ! empty( $submission->magic_token ) ) {
 			$magic_link_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $submission->magic_token );
@@ -197,7 +197,7 @@ class ReregistrationEmailHandler {
 		global $wpdb;
 		$table = ReregistrationRepository::get_table_name();
 
-		// Get active campaigns where reminder is due
+		// Get active campaigns where reminder is due.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$campaigns = $wpdb->get_results(
 			$wpdb->prepare(

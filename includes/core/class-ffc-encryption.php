@@ -39,7 +39,7 @@ class Encryption {
 	/**
 	 * Encrypt a value
 	 *
-	 * @param string $value Plain text value
+	 * @param string $value Plain text value.
 	 * @return string|null Encrypted value (base64) or null on failure
 	 */
 	public static function encrypt( string $value ): ?string {
@@ -48,13 +48,13 @@ class Encryption {
 		}
 
 		try {
-			// Get encryption key
+			// Get encryption key.
 			$key = self::get_encryption_key();
 
-			// Generate unique IV
+			// Generate unique IV.
 			$iv = random_bytes( self::IV_LENGTH );
 
-			// Encrypt
+			// Encrypt.
 			$encrypted = openssl_encrypt(
 				$value,
 				self::CIPHER,
@@ -63,7 +63,7 @@ class Encryption {
 				$iv
 			);
 
-			if ( $encrypted === false ) {
+			if ( false === $encrypted ) {
 				\FreeFormCertificate\Core\Utils::debug_log(
 					'Encryption failed',
 					array(
@@ -73,7 +73,7 @@ class Encryption {
 				return null;
 			}
 
-			// Prepend IV to encrypted data and encode
+			// Prepend IV to encrypted data and encode.
 			return base64_encode( $iv . $encrypted );
 
 		} catch ( \Exception $e ) {
@@ -90,7 +90,7 @@ class Encryption {
 	/**
 	 * Decrypt a value
 	 *
-	 * @param string $encrypted Encrypted value (base64)
+	 * @param string $encrypted Encrypted value (base64).
 	 * @return string|null Decrypted value or null on failure
 	 */
 	public static function decrypt( string $encrypted ): ?string {
@@ -99,24 +99,24 @@ class Encryption {
 		}
 
 		try {
-			// Get encryption key
+			// Get encryption key.
 			$key = self::get_encryption_key();
 
-			// Decode from base64
+			// Decode from base64.
 			$data = base64_decode( $encrypted, true );
 
-			if ( $data === false ) {
+			if ( false === $data ) {
 				\FreeFormCertificate\Core\Utils::debug_log( 'Base64 decode failed' );
 				return null;
 			}
 
-			// Extract IV (first 16 bytes)
+			// Extract IV (first 16 bytes).
 			$iv = substr( $data, 0, self::IV_LENGTH );
 
-			// Extract encrypted data (rest)
+			// Extract encrypted data (rest).
 			$encrypted_data = substr( $data, self::IV_LENGTH );
 
-			// Decrypt
+			// Decrypt.
 			$decrypted = openssl_decrypt(
 				$encrypted_data,
 				self::CIPHER,
@@ -125,7 +125,7 @@ class Encryption {
 				$iv
 			);
 
-			if ( $decrypted === false ) {
+			if ( false === $decrypted ) {
 				\FreeFormCertificate\Core\Utils::debug_log( 'Decryption failed' );
 				return null;
 			}
@@ -148,7 +148,7 @@ class Encryption {
 	 *
 	 * Uses SHA-256 for consistent, searchable hashes
 	 *
-	 * @param string $value Value to hash
+	 * @param string $value Value to hash.
 	 * @return string|null SHA-256 hash or null if empty
 	 */
 	public static function hash( string $value ): ?string {
@@ -156,10 +156,10 @@ class Encryption {
 			return null;
 		}
 
-		// Get hash salt
+		// Get hash salt.
 		$salt = self::get_hash_salt();
 
-		// Generate SHA-256 hash
+		// Generate SHA-256 hash.
 		return hash( 'sha256', $value . $salt );
 	}
 
@@ -168,13 +168,13 @@ class Encryption {
 	 *
 	 * Encrypts all sensitive fields in a submission array
 	 *
-	 * @param array<string, mixed> $submission Submission data
+	 * @param array<string, mixed> $submission Submission data.
 	 * @return array<string, mixed> Encrypted data with hash fields
 	 */
 	public static function encrypt_submission( array $submission ): array {
 		$encrypted = array();
 
-		// Email
+		// Email.
 		if ( ! empty( $submission['email'] ) ) {
 			$encrypted['email_encrypted'] = self::encrypt( $submission['email'] );
 			$encrypted['email_hash']      = self::hash( $submission['email'] );
@@ -183,12 +183,12 @@ class Encryption {
 		// CPF/RF — split columns only; legacy cpf_rf_encrypted/cpf_rf_hash no longer written.
 		// Callers should encrypt into cpf_encrypted/cpf_hash or rf_encrypted/rf_hash directly.
 
-		// IP Address
+		// IP Address.
 		if ( ! empty( $submission['user_ip'] ) ) {
 			$encrypted['user_ip_encrypted'] = self::encrypt( $submission['user_ip'] );
 		}
 
-		// JSON Data
+		// JSON Data.
 		if ( ! empty( $submission['data'] ) ) {
 			$encrypted['data_encrypted'] = self::encrypt( $submission['data'] );
 		}
@@ -201,18 +201,18 @@ class Encryption {
 	 *
 	 * Decrypts all encrypted fields in a submission array
 	 *
-	 * @param array<string, mixed> $submission Submission data with encrypted fields
+	 * @param array<string, mixed> $submission Submission data with encrypted fields.
 	 * @return array<string, mixed> Decrypted data
 	 */
 	public static function decrypt_submission( array $submission ): array {
-		$decrypted = $submission; // Keep all fields
+		$decrypted = $submission; // Keep all fields.
 
-		// Email (try encrypted first, fallback to plain)
+		// Email (try encrypted first, fallback to plain).
 		if ( ! empty( $submission['email_encrypted'] ) ) {
 			$decrypted['email'] = self::decrypt( $submission['email_encrypted'] );
 		}
 
-		// CPF/RF — decrypt split columns, then legacy fallback
+		// CPF/RF — decrypt split columns, then legacy fallback.
 		$cpf_val = ! empty( $submission['cpf_encrypted'] ) ? self::decrypt( $submission['cpf_encrypted'] ) : null;
 		$rf_val  = ! empty( $submission['rf_encrypted'] ) ? self::decrypt( $submission['rf_encrypted'] ) : null;
 
@@ -224,12 +224,12 @@ class Encryption {
 			$decrypted['cpf_rf'] = $rf_val;
 		}
 
-		// IP Address
+		// IP Address.
 		if ( ! empty( $submission['user_ip_encrypted'] ) ) {
 			$decrypted['user_ip'] = self::decrypt( $submission['user_ip_encrypted'] );
 		}
 
-		// JSON Data (try encrypted first, fallback to plain)
+		// JSON Data (try encrypted first, fallback to plain).
 		if ( ! empty( $submission['data_encrypted'] ) ) {
 			$decrypted['data'] = self::decrypt( $submission['data_encrypted'] );
 		}
@@ -252,13 +252,13 @@ class Encryption {
 	 * @return string Decrypted value, plain fallback, or empty string.
 	 */
 	public static function decrypt_field( array $row, string $field, string $encrypted_key = '' ): string {
-		if ( $encrypted_key === '' ) {
+		if ( '' === $encrypted_key ) {
 			$encrypted_key = $field . '_encrypted';
 		}
 
 		if ( ! empty( $row[ $encrypted_key ] ) ) {
 			$decrypted = self::decrypt( $row[ $encrypted_key ] );
-			if ( $decrypted !== null ) {
+			if ( null !== $decrypted ) {
 				return $decrypted;
 			}
 		}
@@ -282,7 +282,7 @@ class Encryption {
 			$decrypted['email'] = self::decrypt( $appointment['email_encrypted'] ) ?? '';
 		}
 
-		// CPF/RF — decrypt split columns
+		// CPF/RF — decrypt split columns.
 		$cpf_val = ! empty( $appointment['cpf_encrypted'] ) ? self::decrypt( $appointment['cpf_encrypted'] ) : null;
 		$rf_val  = ! empty( $appointment['rf_encrypted'] ) ? self::decrypt( $appointment['rf_encrypted'] ) : null;
 
@@ -315,22 +315,22 @@ class Encryption {
 	 * @return string 32-byte encryption key
 	 */
 	private static function get_encryption_key(): string {
-		// Check if custom key defined
+		// Check if custom key defined.
 		if ( defined( 'FFC_ENCRYPTION_KEY' ) && strlen( FFC_ENCRYPTION_KEY ) >= 32 ) {
 			return substr( FFC_ENCRYPTION_KEY, 0, 32 );
 		}
 
-		// Derive from WordPress keys
+		// Derive from WordPress keys.
 		$base_keys = array(
 			defined( 'SECURE_AUTH_KEY' ) ? SECURE_AUTH_KEY : '',
 			defined( 'LOGGED_IN_KEY' ) ? LOGGED_IN_KEY : '',
 			defined( 'NONCE_KEY' ) ? NONCE_KEY : '',
 		);
 
-		// Combine and hash
+		// Combine and hash.
 		$combined = implode( '|', $base_keys );
 
-		// Use PBKDF2 for key derivation
+		// Use PBKDF2 for key derivation.
 		$key = hash_pbkdf2( 'sha256', $combined, 'ffc-encryption-salt', 10000, 32, true );
 
 		return $key;
@@ -344,12 +344,12 @@ class Encryption {
 	 * @return string Hash salt
 	 */
 	private static function get_hash_salt(): string {
-		// Check if custom salt defined
+		// Check if custom salt defined.
 		if ( defined( 'FFC_HASH_SALT' ) ) {
 			return FFC_HASH_SALT;
 		}
 
-		// Derive from WordPress keys
+		// Derive from WordPress keys.
 		$base_keys = array(
 			defined( 'AUTH_KEY' ) ? AUTH_KEY : '',
 			defined( 'SECURE_AUTH_KEY' ) ? SECURE_AUTH_KEY : '',
@@ -369,16 +369,16 @@ class Encryption {
 		$test_value = 'Test Value 123!@#';
 
 		$encrypted = self::encrypt( $test_value );
-		$decrypted = ( $encrypted !== null ) ? self::decrypt( $encrypted ) : null;
+		$decrypted = ( null !== $encrypted ) ? self::decrypt( $encrypted ) : null;
 		$hash      = self::hash( $test_value );
 
 		return array(
 			'original'         => $test_value,
 			'encrypted'        => $encrypted,
-			'encrypted_length' => ( $encrypted !== null ) ? strlen( $encrypted ) : 0,
+			'encrypted_length' => ( null !== $encrypted ) ? strlen( $encrypted ) : 0,
 			'decrypted'        => $decrypted,
 			'hash'             => $hash,
-			'hash_length'      => ( $hash !== null ) ? strlen( $hash ) : 0,
+			'hash_length'      => ( null !== $hash ) ? strlen( $hash ) : 0,
 			'match'            => $decrypted === $test_value,
 			'key_source'       => defined( 'FFC_ENCRYPTION_KEY' ) ? 'Custom' : 'WordPress Keys',
 		);
@@ -390,7 +390,7 @@ class Encryption {
 	 * @return bool True if encryption keys available
 	 */
 	public static function is_configured(): bool {
-		// Check if WordPress keys exist
+		// Check if WordPress keys exist.
 		if ( ! defined( 'SECURE_AUTH_KEY' ) || empty( SECURE_AUTH_KEY ) ) {
 			return false;
 		}

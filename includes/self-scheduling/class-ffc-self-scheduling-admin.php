@@ -33,7 +33,7 @@ class SelfSchedulingAdmin {
 	 * @return void
 	 */
 	public function add_submenu_pages(): void {
-		// Add Appointments submenu under unified Scheduling menu
+		// Add Appointments submenu under unified Scheduling menu.
 		add_submenu_page(
 			'ffc-scheduling',
 			__( 'Appointments', 'ffcertificate' ),
@@ -54,7 +54,7 @@ class SelfSchedulingAdmin {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ) );
 		}
 
-		// Capture fatal errors that bypass try-catch (E_COMPILE_ERROR, E_PARSE, etc.)
+		// Capture fatal errors that bypass try-catch (E_COMPILE_ERROR, E_PARSE, etc.).
 		register_shutdown_function(
 			static function (): void {
 				$error = error_get_last();
@@ -98,9 +98,9 @@ class SelfSchedulingAdmin {
 			return;
 		}
 
-		// Match self-scheduling screens (CPT edit/list + appointments page)
+		// Match self-scheduling screens (CPT edit/list + appointments page).
 		$is_self_scheduling = (
-			$screen->post_type === 'ffc_self_scheduling' ||
+			'ffc_self_scheduling' === $screen->post_type ||
 			strpos( $screen->id, 'ffc-appointments' ) !== false
 		);
 
@@ -149,7 +149,7 @@ class SelfSchedulingAdmin {
 		add_filter(
 			'style_loader_tag',
 			static function ( string $html, string $handle ): string {
-				if ( $handle !== 'jquery-ui-theme' ) {
+				if ( 'jquery-ui-theme' !== $handle ) {
 					return $html;
 				}
 				// SRI hash for jQuery UI 1.12.1 smoothness theme.

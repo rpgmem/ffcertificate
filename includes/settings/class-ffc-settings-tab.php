@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Ensure WordPress is loaded
+// Ensure WordPress is loaded.
 if ( ! function_exists( 'wp_kses_post' ) ) {
 	require_once ABSPATH . 'wp-includes/formatting.php';
 }
@@ -66,7 +66,7 @@ abstract class SettingsTab {
 	 * @return void
 	 */
 	protected function init() {
-		// Override in child class
+		// Override in child class.
 	}
 
 	/**
@@ -116,8 +116,8 @@ abstract class SettingsTab {
 	/**
 	 * Render admin notice
 	 *
-	 * @param string $message Notice message
-	 * @param string $type Notice type (success, error, warning, info)
+	 * @param string $message Notice message.
+	 * @param string $type Notice type (success, error, warning, info).
 	 * @return void
 	 */
 	protected function render_notice( $message, $type = 'success' ) {
@@ -131,8 +131,8 @@ abstract class SettingsTab {
 	/**
 	 * Render settings section header
 	 *
-	 * @param string $title Section title
-	 * @param string $description Section description (optional)
+	 * @param string $title Section title.
+	 * @param string $description Section description (optional).
 	 * @return void
 	 */
 	protected function render_section_header( $title, $description = '' ) {
@@ -149,9 +149,9 @@ abstract class SettingsTab {
 	/**
 	 * Render settings table row
 	 *
-	 * @param string $label Field label
-	 * @param string $content Field HTML content
-	 * @param string $description Field description (optional)
+	 * @param string $label Field label.
+	 * @param string $content Field HTML content.
+	 * @param string $description Field description (optional).
 	 * @return void
 	 */
 	protected function render_field_row( $label, $content, $description = '' ) {
@@ -192,8 +192,8 @@ abstract class SettingsTab {
 	/**
 	 * Get option value from ffc_settings
 	 *
-	 * @param string $key Option key
-	 * @param string $default Default value
+	 * @param string $key Option key.
+	 * @param string $default Default value.
 	 * @return string
 	 */
 	public function get_option( string $key, string $default = '' ): string {

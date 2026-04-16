@@ -21,12 +21,12 @@ global $wpdb;
 // (order: child tables first to avoid FK issues)
 // ──────────────────────────────────────
 $ffcertificate_tables = array(
-	// Reregistration (children first)
+	// Reregistration (children first).
 	$wpdb->prefix . 'ffc_reregistration_submissions',
 	$wpdb->prefix . 'ffc_reregistrations',
-	// Custom fields (depends on audiences)
+	// Custom fields (depends on audiences).
 	$wpdb->prefix . 'ffc_custom_fields',
-	// Audience (children first)
+	// Audience (children first).
 	$wpdb->prefix . 'ffc_audience_booking_users',
 	$wpdb->prefix . 'ffc_audience_booking_audiences',
 	$wpdb->prefix . 'ffc_audience_bookings',
@@ -36,16 +36,16 @@ $ffcertificate_tables = array(
 	$wpdb->prefix . 'ffc_audience_environments',
 	$wpdb->prefix . 'ffc_audience_schedule_permissions',
 	$wpdb->prefix . 'ffc_audience_schedules',
-	// Self-scheduling
+	// Self-scheduling.
 	$wpdb->prefix . 'ffc_self_scheduling_blocked_dates',
 	$wpdb->prefix . 'ffc_self_scheduling_appointments',
 	$wpdb->prefix . 'ffc_self_scheduling_calendars',
-	// Rate limiting
+	// Rate limiting.
 	$wpdb->prefix . 'ffc_rate_limit_logs',
 	$wpdb->prefix . 'ffc_rate_limits',
-	// User profiles
+	// User profiles.
 	$wpdb->prefix . 'ffc_user_profiles',
-	// Core
+	// Core.
 	$wpdb->prefix . 'ffc_activity_log',
 	$wpdb->prefix . 'ffc_submissions',
 );
@@ -102,7 +102,7 @@ wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 
-// Clear legacy cron hooks from pre-4.6.15 versions
+// Clear legacy cron hooks from pre-4.6.15 versions.
 wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
 wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
 wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
@@ -138,7 +138,7 @@ $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'ffc_registration_date' ) )
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'ffc_custom_fields_data' ) );
 
-// Remove FFC-specific capabilities from all users
+// Remove FFC-specific capabilities from all users.
 $ffcertificate_caps = array(
 	'view_own_certificates',
 	'download_own_certificates',

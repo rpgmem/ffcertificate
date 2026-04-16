@@ -86,7 +86,7 @@ class MigrationDynamicReregFields {
 	/**
 	 * Upgrade ffc_custom_fields table: adds new columns via dbDelta.
 	 *
-	 * dbDelta compares the existing schema with the desired CREATE TABLE and
+	 * DbDelta compares the existing schema with the desired CREATE TABLE and
 	 * issues only the necessary ALTERs.
 	 *
 	 * @return array{success: bool, message: string}

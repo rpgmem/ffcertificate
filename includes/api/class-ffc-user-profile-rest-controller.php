@@ -115,7 +115,7 @@ class UserProfileRestController {
 				);
 			}
 
-			// Load profile from ffc_user_profiles (primary) with wp_users fallback
+			// Load profile from ffc_user_profiles (primary) with wp_users fallback.
 			$profile = array();
 			if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 				$profile = \FreeFormCertificate\UserDashboard\UserManager::get_profile( $user_id );
@@ -146,7 +146,7 @@ class UserProfileRestController {
 				$settings     = get_option( 'ffc_settings', array() );
 				$date_format  = $settings['date_format'] ?? 'F j, Y';
 				$timestamp    = strtotime( $user->user_registered );
-				$member_since = ( $timestamp !== false ) ? date_i18n( $date_format, $timestamp ) : '';
+				$member_since = ( false !== $timestamp ) ? date_i18n( $date_format, $timestamp ) : '';
 			}
 
 			$audience_groups = array();
@@ -174,7 +174,7 @@ class UserProfileRestController {
 				}
 			}
 
-			// Decode preferences JSON
+			// Decode preferences JSON.
 			$preferences = array();
 			if ( ! empty( $profile['preferences'] ) ) {
 				$decoded = json_decode( $profile['preferences'], true );
@@ -249,14 +249,14 @@ class UserProfileRestController {
 
 			foreach ( $allowed_fields as $field ) {
 				$value = $request->get_param( $field );
-				if ( $value !== null ) {
+				if ( null !== $value ) {
 					$data[ $field ] = $value;
 				}
 			}
 
-			// Handle preferences (JSON object)
+			// Handle preferences (JSON object).
 			$preferences = $request->get_param( 'preferences' );
-			if ( $preferences !== null && is_array( $preferences ) ) {
+			if ( null !== $preferences && is_array( $preferences ) ) {
 				$data['preferences'] = $preferences;
 			}
 
@@ -278,12 +278,12 @@ class UserProfileRestController {
 				);
 			}
 
-			// Log profile update
+			// Log profile update.
 			if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 				\FreeFormCertificate\Core\ActivityLog::log_profile_updated( $user_id, array_keys( $data ) );
 			}
 
-			// Return updated profile
+			// Return updated profile.
 			return $this->get_user_profile( $request );
 
 		} catch ( \Exception $e ) {
@@ -311,7 +311,7 @@ class UserProfileRestController {
 				return new \WP_Error( 'not_logged_in', __( 'You must be logged in', 'ffcertificate' ), array( 'status' => 401 ) );
 			}
 
-			// Rate limit: 3/hour, 5/day for password changes
+			// Rate limit: 3/hour, 5/day for password changes.
 			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 				$rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit( $user_id, 'password_change', 3, 5 );
 				if ( ! $rate_check['allowed'] ) {
@@ -332,7 +332,7 @@ class UserProfileRestController {
 
 			$user = get_user_by( 'id', $user_id );
 
-			// Admin in view-as mode can skip current password verification
+			// Admin in view-as mode can skip current password verification.
 			if ( ! $ctx['is_view_as'] ) {
 				if ( empty( $current_password ) ) {
 					return new \WP_Error( 'missing_fields', __( 'All password fields are required', 'ffcertificate' ), array( 'status' => 400 ) );
@@ -344,13 +344,13 @@ class UserProfileRestController {
 
 			wp_set_password( $new_password, $user_id );
 
-			// Re-authenticate: in view-as mode keep the admin session, otherwise re-auth the user
+			// Re-authenticate: in view-as mode keep the admin session, otherwise re-auth the user.
 			if ( ! $ctx['is_view_as'] ) {
 				wp_set_current_user( $user_id );
 				wp_set_auth_cookie( $user_id, true );
 			}
 
-			// Log password change
+			// Log password change.
 			if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 				\FreeFormCertificate\Core\ActivityLog::log_password_changed( $user_id );
 			}
@@ -386,7 +386,7 @@ class UserProfileRestController {
 				return new \WP_Error( 'not_logged_in', __( 'You must be logged in', 'ffcertificate' ), array( 'status' => 401 ) );
 			}
 
-			// Rate limit: 2/hour, 3/day for privacy requests
+			// Rate limit: 2/hour, 3/day for privacy requests.
 			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 				$rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit( $user_id, 'privacy_request', 2, 3 );
 				if ( ! $rate_check['allowed'] ) {
@@ -410,7 +410,7 @@ class UserProfileRestController {
 				);
 			}
 
-			// Log privacy request
+			// Log privacy request.
 			if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 				\FreeFormCertificate\Core\ActivityLog::log_privacy_request( $user_id, $type );
 			}
@@ -420,7 +420,7 @@ class UserProfileRestController {
 				$admin_hint = ' ' . sprintf(
 					/* translators: %s: admin menu path, e.g. "Erase Personal Data" */
 					__( 'Review it under Tools > %s in the WordPress admin.', 'ffcertificate' ),
-					( $type === 'export_personal_data' )
+					( 'export_personal_data' === $type )
 						? __( 'Export Personal Data', 'ffcertificate' )
 						: __( 'Erase Personal Data', 'ffcertificate' )
 				);

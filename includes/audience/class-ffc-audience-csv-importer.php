@@ -28,9 +28,9 @@ class AudienceCsvImporter {
 	/**
 	 * Import members from CSV
 	 *
-	 * @param string $file_path Path to CSV file
-	 * @param int    $audience_id Target audience ID (optional, can be in CSV)
-	 * @param bool   $create_users Whether to create users if they don't exist
+	 * @param string $file_path Path to CSV file.
+	 * @param int    $audience_id Target audience ID (optional, can be in CSV).
+	 * @param bool   $create_users Whether to create users if they don't exist.
 	 * @return array{success: bool, imported: int, skipped: int, errors: array<string>}
 	 */
 	public static function import_members( string $file_path, int $audience_id = 0, bool $create_users = false ): array {
@@ -53,7 +53,7 @@ class AudienceCsvImporter {
 			return $result;
 		}
 
-		// Read header row
+		// Read header row.
 		$header = fgetcsv( $handle );
 		if ( ! $header ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
@@ -62,7 +62,7 @@ class AudienceCsvImporter {
 			return $result;
 		}
 
-		// Normalize header
+		// Normalize header.
 		$header = array_map( 'strtolower', array_map( 'trim', array_map( 'strval', $header ) ) );
 		$header = array_map(
 			function ( $col ) {
@@ -71,34 +71,34 @@ class AudienceCsvImporter {
 			$header
 		);
 
-		// Find required columns
+		// Find required columns.
 		$email_col         = array_search( 'email', $header, true );
 		$name_col          = array_search( 'name', $header, true );
 		$audience_col      = array_search( 'audience_id', $header, true );
 		$audience_name_col = array_search( 'audience_name', $header, true );
-		$audience_name_col = $audience_name_col !== false ? $audience_name_col : array_search( 'audience', $header, true );
+		$audience_name_col = false !== $audience_name_col ? $audience_name_col : array_search( 'audience', $header, true );
 
-		if ( $email_col === false ) {
+		if ( false === $email_col ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			fclose( $handle );
 			$result['errors'][] = __( 'Required column "email" not found in CSV.', 'ffcertificate' );
 			return $result;
 		}
 
-		// If no audience_id provided and not in CSV, error
-		if ( $audience_id === 0 && $audience_col === false && $audience_name_col === false ) {
+		// If no audience_id provided and not in CSV, error.
+		if ( 0 === $audience_id && false === $audience_col && false === $audience_name_col ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			fclose( $handle );
 			$result['errors'][] = __( 'No audience specified. Provide audience_id parameter or include audience_id/audience_name column in CSV.', 'ffcertificate' );
 			return $result;
 		}
 
-		// Process rows
+		// Process rows.
 		$row_num = 1;
 		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
 			++$row_num;
 
-			// Skip empty rows
+			// Skip empty rows.
 			if ( empty( array_filter( $data ) ) ) {
 				continue;
 			}
@@ -112,29 +112,29 @@ class AudienceCsvImporter {
 				continue;
 			}
 
-			// Determine audience
+			// Determine audience.
 			$target_audience_id = $audience_id;
-			if ( $target_audience_id === 0 ) {
-				if ( $audience_col !== false && isset( $data[ $audience_col ] ) ) {
+			if ( 0 === $target_audience_id ) {
+				if ( false !== $audience_col && isset( $data[ $audience_col ] ) ) {
 					$target_audience_id = absint( $data[ $audience_col ] );
-				} elseif ( $audience_name_col !== false && isset( $data[ $audience_name_col ] ) ) {
+				} elseif ( false !== $audience_name_col && isset( $data[ $audience_name_col ] ) ) {
 					$audience_name      = sanitize_text_field( $data[ $audience_name_col ] );
 					$target_audience_id = self::get_audience_id_by_name( $audience_name );
 				}
 			}
 
-			if ( $target_audience_id === 0 ) {
+			if ( 0 === $target_audience_id ) {
 				/* translators: %d: row number */
 				$result['errors'][] = sprintf( __( 'Row %d: Could not determine audience.', 'ffcertificate' ), $row_num );
 				++$result['skipped'];
 				continue;
 			}
 
-			// Find or create user
+			// Find or create user.
 			$user = get_user_by( 'email', $email );
 			if ( ! $user ) {
 				if ( $create_users ) {
-					$name    = ( $name_col !== false && isset( $data[ $name_col ] ) ) ? sanitize_text_field( $data[ $name_col ] ) : '';
+					$name    = ( false !== $name_col && isset( $data[ $name_col ] ) ) ? sanitize_text_field( $data[ $name_col ] ) : '';
 					$user_id = self::create_ffc_user( $email, $name );
 					if ( is_wp_error( $user_id ) ) {
 						/* translators: %1$d: row number, %2$s: error message */
@@ -152,12 +152,12 @@ class AudienceCsvImporter {
 				$user_id = $user->ID;
 			}
 
-			// Add member to audience
+			// Add member to audience.
 			$added = AudienceRepository::add_member( $target_audience_id, $user_id );
 			if ( $added ) {
 				++$result['imported'];
 			} else {
-				// Already a member
+				// Already a member.
 				++$result['skipped'];
 			}
 		}
@@ -172,7 +172,7 @@ class AudienceCsvImporter {
 	/**
 	 * Import audiences from CSV
 	 *
-	 * @param string $file_path Path to CSV file
+	 * @param string $file_path Path to CSV file.
 	 * @return array{success: bool, imported: int, skipped: int, errors: array<string>}
 	 */
 	public static function import_audiences( string $file_path ): array {
@@ -195,7 +195,7 @@ class AudienceCsvImporter {
 			return $result;
 		}
 
-		// Read header row
+		// Read header row.
 		$header = fgetcsv( $handle );
 		if ( ! $header ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
@@ -204,25 +204,25 @@ class AudienceCsvImporter {
 			return $result;
 		}
 
-		// Normalize header
+		// Normalize header.
 		$header = array_map( 'strtolower', array_map( 'trim', array_map( 'strval', $header ) ) );
 
-		// Find required columns
+		// Find required columns.
 		$name_col   = array_search( 'name', $header, true );
 		$color_col  = array_search( 'color', $header, true );
 		$parent_col = array_search( 'parent', $header, true );
-		if ( $parent_col === false ) {
+		if ( false === $parent_col ) {
 			$parent_col = array_search( 'parent_name', $header, true );
 		}
 
-		if ( $name_col === false ) {
+		if ( false === $name_col ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			fclose( $handle );
 			$result['errors'][] = __( 'Required column "name" not found in CSV.', 'ffcertificate' );
 			return $result;
 		}
 
-		// First pass: create all parent audiences
+		// First pass: create all parent audiences.
 		$audiences_to_create = array();
 		$row_num             = 1;
 		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
@@ -233,8 +233,8 @@ class AudienceCsvImporter {
 			}
 
 			$name        = isset( $data[ $name_col ] ) ? sanitize_text_field( $data[ $name_col ] ) : '';
-			$color       = ( $color_col !== false && isset( $data[ $color_col ] ) ) ? sanitize_hex_color( $data[ $color_col ] ) : '#3788d8';
-			$parent_name = ( $parent_col !== false && isset( $data[ $parent_col ] ) ) ? sanitize_text_field( $data[ $parent_col ] ) : '';
+			$color       = ( false !== $color_col && isset( $data[ $color_col ] ) ) ? sanitize_hex_color( $data[ $color_col ] ) : '#3788d8';
+			$parent_name = ( false !== $parent_col && isset( $data[ $parent_col ] ) ) ? sanitize_text_field( $data[ $parent_col ] ) : '';
 
 			if ( empty( $name ) ) {
 				/* translators: %d: row number */
@@ -257,13 +257,13 @@ class AudienceCsvImporter {
 		// Process in depth order: roots first, then children, then grandchildren.
 		// Each pass resolves audiences whose parent already exists.
 		$pending    = $audiences_to_create;
-		$max_passes = 4; // safety: 3 levels + 1 to detect unresolvable rows
+		$max_passes = 4; // safety: 3 levels + 1 to detect unresolvable rows.
 
 		for ( $pass = 0; $pass < $max_passes && ! empty( $pending ); $pass++ ) {
 			$still_pending = array();
 
 			foreach ( $pending as $audience_data ) {
-				// Root audiences (no parent_name)
+				// Root audiences (no parent_name).
 				if ( empty( $audience_data['parent_name'] ) ) {
 					$existing_id = self::get_audience_id_by_name( $audience_data['name'] );
 					if ( $existing_id ) {
@@ -289,7 +289,7 @@ class AudienceCsvImporter {
 					continue;
 				}
 
-				// Child audiences — try to resolve parent
+				// Child audiences — try to resolve parent.
 				$existing_id = self::get_audience_id_by_name( $audience_data['name'] );
 				if ( $existing_id ) {
 					++$result['skipped'];
@@ -298,7 +298,7 @@ class AudienceCsvImporter {
 
 				$parent_id = self::get_audience_id_by_name( $audience_data['parent_name'] );
 				if ( ! $parent_id ) {
-					// Parent not yet created — defer to next pass
+					// Parent not yet created — defer to next pass.
 					$still_pending[] = $audience_data;
 					continue;
 				}
@@ -323,7 +323,7 @@ class AudienceCsvImporter {
 			$pending = $still_pending;
 		}
 
-		// Any remaining rows have unresolvable parents
+		// Any remaining rows have unresolvable parents.
 		foreach ( $pending as $audience_data ) {
 			/* translators: %1$d: row number, %2$s: parent audience name */
 			$result['errors'][] = sprintf( __( 'Row %1$d: Parent audience "%2$s" not found.', 'ffcertificate' ), $audience_data['row'], $audience_data['parent_name'] );
@@ -338,7 +338,7 @@ class AudienceCsvImporter {
 	/**
 	 * Get audience ID by name
 	 *
-	 * @param string $name Audience name
+	 * @param string $name Audience name.
 	 * @return int Audience ID or 0 if not found
 	 */
 	private static function get_audience_id_by_name( string $name ): int {
@@ -356,16 +356,16 @@ class AudienceCsvImporter {
 	/**
 	 * Create FFC user
 	 *
-	 * @param string $email User email
-	 * @param string $name User name
+	 * @param string $email User email.
+	 * @param string $name User name.
 	 * @return int|\WP_Error User ID or error
 	 */
 	private static function create_ffc_user( string $email, string $name = '' ) {
-		// Generate username from email
+		// Generate username from email.
 		$at_pos   = strpos( $email, '@' );
-		$username = sanitize_user( substr( $email, 0, $at_pos !== false ? $at_pos : null ), true );
+		$username = sanitize_user( substr( $email, 0, false !== $at_pos ? $at_pos : null ), true );
 
-		// Ensure unique username
+		// Ensure unique username.
 		$original_username = $username;
 		$counter           = 1;
 		while ( username_exists( $username ) ) {
@@ -373,10 +373,10 @@ class AudienceCsvImporter {
 			++$counter;
 		}
 
-		// Generate password
+		// Generate password.
 		$password = wp_generate_password( 12, false );
 
-		// Create user
+		// Create user.
 		$user_id = wp_insert_user(
 			array(
 				'user_login'   => $username,
@@ -391,10 +391,10 @@ class AudienceCsvImporter {
 			return $user_id;
 		}
 
-		// Grant certificate capabilities via centralized UserManager
+		// Grant certificate capabilities via centralized UserManager.
 		\FreeFormCertificate\UserDashboard\UserManager::grant_certificate_capabilities( $user_id );
 
-		// Send welcome email (respects per-context settings, default: disabled for CSV)
+		// Send welcome email (respects per-context settings, default: disabled for CSV).
 		if ( class_exists( '\FreeFormCertificate\Integrations\EmailHandler' ) ) {
 			$email_handler = new \FreeFormCertificate\Integrations\EmailHandler();
 			$email_handler->send_wp_user_notification( $user_id, 'csv_import' );
@@ -406,8 +406,8 @@ class AudienceCsvImporter {
 	/**
 	 * Validate CSV file
 	 *
-	 * @param string $file_path Path to CSV file
-	 * @param string $type Import type ('members' or 'audiences')
+	 * @param string $file_path Path to CSV file.
+	 * @param string $type Import type ('members' or 'audiences').
 	 * @return array{valid: bool, rows: int, errors: array<string>}
 	 */
 	public static function validate_csv( string $file_path, string $type = 'members' ): array {
@@ -429,7 +429,7 @@ class AudienceCsvImporter {
 			return $result;
 		}
 
-		// Read header
+		// Read header.
 		$header = fgetcsv( $handle );
 		if ( ! $header ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
@@ -440,8 +440,8 @@ class AudienceCsvImporter {
 
 		$header = array_map( 'strtolower', array_map( 'trim', array_map( 'strval', $header ) ) );
 
-		// Check required columns
-		if ( $type === 'members' ) {
+		// Check required columns.
+		if ( 'members' === $type ) {
 			if ( ! in_array( 'email', $header, true ) ) {
 				$result['errors'][] = __( 'Required column "email" not found.', 'ffcertificate' );
 			}
@@ -449,7 +449,7 @@ class AudienceCsvImporter {
 				$result['errors'][] = __( 'Required column "name" not found.', 'ffcertificate' );
 		}
 
-		// Count rows
+		// Count rows.
 		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
 			if ( ! empty( array_filter( $data ) ) ) {
 				++$result['rows'];
@@ -467,11 +467,11 @@ class AudienceCsvImporter {
 	/**
 	 * Generate sample CSV content
 	 *
-	 * @param string $type Type of CSV ('members' or 'audiences')
+	 * @param string $type Type of CSV ('members' or 'audiences').
 	 * @return string CSV content
 	 */
 	public static function get_sample_csv( string $type = 'members' ): string {
-		if ( $type === 'audiences' ) {
+		if ( 'audiences' === $type ) {
 			return "name,color,parent\n" .
 					"Group A,#3788d8,\n" .
 					"Group B,#28a745,\n" .
@@ -481,7 +481,7 @@ class AudienceCsvImporter {
 					"Team B1-Alpha,#6f42c1,Subgroup B1\n";
 		}
 
-		// Default: members
+		// Default: members.
 		return "email,name,audience_name\n" .
 				"john@example.com,John Doe,Group A\n" .
 				"jane@example.com,Jane Smith,Subgroup A1\n" .

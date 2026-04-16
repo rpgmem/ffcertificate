@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Autoloader handles class loading
+// Autoloader handles class loading.
 
 
 class AdminActivityLogPage {
@@ -60,10 +60,10 @@ class AdminActivityLogPage {
 
 		check_admin_referer( 'ffc_export_activity_log' );
 
-		// Gather current filters
+		// Gather current filters.
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Already verified above
 		$args = array(
-			'limit'   => 999999, // Export all matching rows
+			'limit'   => 999999, // Export all matching rows.
 			'offset'  => 0,
 			'orderby' => 'created_at',
 			'order'   => 'DESC',
@@ -129,16 +129,16 @@ class AdminActivityLogPage {
 	 * Render activity log page
 	 */
 	public function render_page(): void {
-		// Check if Activity Log is enabled
+		// Check if Activity Log is enabled.
 		$settings   = get_option( 'ffc_settings', array() );
-		$is_enabled = isset( $settings['enable_activity_log'] ) && $settings['enable_activity_log'] == 1;
+		$is_enabled = isset( $settings['enable_activity_log'] ) && 1 === $settings['enable_activity_log'];
 
 		if ( ! $is_enabled ) {
 			$this->render_disabled_notice();
 			return;
 		}
 
-		// Get filter parameters
+		// Get filter parameters.
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- These are standard admin page filter/pagination parameters.
 		$current_page = isset( $_GET['paged'] ) ? max( 1, absint( wp_unslash( $_GET['paged'] ) ) ) : 1;
 		$per_page     = 50;
@@ -147,7 +147,7 @@ class AdminActivityLogPage {
 		$search       = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-		// Get logs
+		// Get logs.
 		$args = array(
 			'limit'   => $per_page,
 			'offset'  => ( $current_page - 1 ) * $per_page,
@@ -171,10 +171,10 @@ class AdminActivityLogPage {
 		$total_logs  = \FreeFormCertificate\Core\ActivityLog::count_activities( $args );
 		$total_pages = ceil( $total_logs / $per_page );
 
-		// Get unique actions for filter
+		// Get unique actions for filter.
 		$unique_actions = $this->get_unique_actions();
 
-		// Render view
+		// Render view.
 		$view_file = FFC_PLUGIN_DIR . 'includes/admin/views/ffc-admin-activity-log.php';
 
 		if ( file_exists( $view_file ) ) {

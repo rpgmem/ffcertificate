@@ -39,7 +39,7 @@ class AudienceRestController {
 	 * @return void
 	 */
 	public function register_routes(): void {
-		// Get bookings
+		// Get bookings.
 		register_rest_route(
 			self::NAMESPACE,
 			'/' . self::REST_BASE . '/bookings',
@@ -70,7 +70,7 @@ class AudienceRestController {
 			)
 		);
 
-		// Create booking
+		// Create booking.
 		register_rest_route(
 			self::NAMESPACE,
 			'/' . self::REST_BASE . '/bookings',
@@ -124,7 +124,7 @@ class AudienceRestController {
 			)
 		);
 
-		// Cancel booking
+		// Cancel booking.
 		register_rest_route(
 			self::NAMESPACE,
 			'/' . self::REST_BASE . '/bookings/(?P<id>\d+)',
@@ -147,7 +147,7 @@ class AudienceRestController {
 			)
 		);
 
-		// Check conflicts
+		// Check conflicts.
 		register_rest_route(
 			self::NAMESPACE,
 			'/' . self::REST_BASE . '/conflicts',
@@ -200,12 +200,12 @@ class AudienceRestController {
 	 * @return bool
 	 */
 	public function check_read_permission(): bool {
-		// Logged-in users can always read
+		// Logged-in users can always read.
 		if ( is_user_logged_in() ) {
 			return true;
 		}
 
-		// Non-logged-in users can read public schedules (read-only calendar view)
+		// Non-logged-in users can read public schedules (read-only calendar view).
 		return true;
 	}
 
@@ -219,20 +219,20 @@ class AudienceRestController {
 			return false;
 		}
 
-		// Admin or bypass users can always write
+		// Admin or bypass users can always write.
 		if ( \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() ) {
 			return true;
 		}
 
-		// Check if user has booking permission on at least one schedule
-		// Detailed per-schedule permission is verified inside create_booking()
+		// Check if user has booking permission on at least one schedule.
+		// Detailed per-schedule permission is verified inside create_booking().
 		return current_user_can( 'ffc_view_audience_bookings' );
 	}
 
 	/**
 	 * Check cancel permission
 	 *
-	 * @param \WP_REST_Request $request Request object
+	 * @param \WP_REST_Request $request Request object.
 	 * @return bool
 	 */
 	public function check_cancel_permission( \WP_REST_Request $request ): bool {
@@ -240,7 +240,7 @@ class AudienceRestController {
 			return false;
 		}
 
-		// Admin/bypass can cancel anything
+		// Admin/bypass can cancel anything.
 		if ( \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() ) {
 			return true;
 		}
@@ -252,12 +252,12 @@ class AudienceRestController {
 			return false;
 		}
 
-		// Creator can cancel their own booking
-		if ( (int) $booking->created_by === get_current_user_id() ) {
+		// Creator can cancel their own booking.
+		if ( get_current_user_id() === (int) $booking->created_by ) {
 			return true;
 		}
 
-		// Check if user has cancel_others permission on this schedule
+		// Check if user has cancel_others permission on this schedule.
 		$environment = AudienceEnvironmentRepository::get_by_id( (int) $booking->environment_id );
 		if ( $environment ) {
 			return AudienceScheduleRepository::user_can_cancel_others( (int) $environment->schedule_id, get_current_user_id() );
@@ -269,7 +269,7 @@ class AudienceRestController {
 	/**
 	 * Get bookings
 	 *
-	 * @param \WP_REST_Request $request Request object
+	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response
 	 */
 	public function get_bookings( \WP_REST_Request $request ): \WP_REST_Response {
@@ -278,11 +278,11 @@ class AudienceRestController {
 		$schedule_id    = $request->get_param( 'schedule_id' );
 		$environment_id = $request->get_param( 'environment_id' );
 
-		// Build query args
+		// Build query args.
 		$args = array(
 			'start_date' => $start_date,
 			'end_date'   => $end_date,
-			'status'     => null, // Get all statuses
+			'status'     => null, // Get all statuses.
 		);
 
 		if ( $schedule_id ) {
@@ -293,20 +293,20 @@ class AudienceRestController {
 			$args['environment_id'] = $environment_id;
 		}
 
-		// Get bookings
+		// Get bookings.
 		$bookings = AudienceBookingRepository::get_all( $args );
 
-		// Get user info for each booking
+		// Get user info for each booking.
 		$user_id      = get_current_user_id();
 		$is_logged_in = is_user_logged_in();
 		$has_bypass   = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
 
-		// Transform bookings for response
+		// Transform bookings for response.
 		$bookings_data = array_map(
 			function ( $booking ) use ( $user_id, $is_logged_in, $has_bypass ) {
 				$audiences = AudienceBookingRepository::get_booking_audiences( (int) $booking->id );
 
-				// Non-logged-in users get public data (no personal details like created_by)
+				// Non-logged-in users get public data (no personal details like created_by).
 				if ( ! $is_logged_in ) {
 					return array(
 						'id'               => $booking->id,
@@ -361,13 +361,13 @@ class AudienceRestController {
 			$bookings
 		);
 
-		// Get schedule-specific holidays for the date range
+		// Get schedule-specific holidays for the date range.
 		$holidays = array();
 		if ( $schedule_id ) {
 			$holidays = AudienceEnvironmentRepository::get_holidays( (int) $schedule_id, $start_date, $end_date );
 		}
 
-		// Merge global holidays into the response
+		// Merge global holidays into the response.
 		$global_holidays    = \FreeFormCertificate\Scheduling\DateBlockingService::get_global_holidays( $start_date, $end_date );
 		$holidays_formatted = array_map(
 			function ( $h ) {
@@ -386,7 +386,7 @@ class AudienceRestController {
 			);
 		}
 
-		// Get closed weekdays from environment working hours
+		// Get closed weekdays from environment working hours.
 		$closed_weekdays = array();
 		if ( $environment_id ) {
 			$working_hours = AudienceEnvironmentRepository::get_working_hours( (int) $environment_id );
@@ -422,7 +422,7 @@ class AudienceRestController {
 	/**
 	 * Create booking
 	 *
-	 * @param \WP_REST_Request $request Request object
+	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response
 	 */
 	public function create_booking( \WP_REST_Request $request ): \WP_REST_Response {
@@ -436,7 +436,7 @@ class AudienceRestController {
 		$audience_ids   = $request->get_param( 'audience_ids' ) ?: array();
 		$user_ids       = $request->get_param( 'user_ids' ) ?: array();
 
-		// Validate environment exists
+		// Validate environment exists.
 		$environment = AudienceEnvironmentRepository::get_by_id( $environment_id );
 		if ( ! $environment ) {
 			return new \WP_REST_Response(
@@ -448,7 +448,7 @@ class AudienceRestController {
 			);
 		}
 
-		// Check user permission on this schedule
+		// Check user permission on this schedule.
 		$user_id    = get_current_user_id();
 		$has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
 		if ( ! $has_bypass && ! AudienceScheduleRepository::user_can_book( (int) $environment->schedule_id, $user_id ) ) {
@@ -461,7 +461,7 @@ class AudienceRestController {
 			);
 		}
 
-		// Validate date is not in the past (bypass allowed for admins)
+		// Validate date is not in the past (bypass allowed for admins).
 		if ( $booking_date < current_time( 'Y-m-d' ) && ! $has_bypass ) {
 			return new \WP_REST_Response(
 				array(
@@ -472,7 +472,7 @@ class AudienceRestController {
 			);
 		}
 
-		// Validate time range (skip for all-day events)
+		// Validate time range (skip for all-day events).
 		if ( ! $is_all_day && $start_time >= $end_time ) {
 			return new \WP_REST_Response(
 				array(
@@ -483,7 +483,7 @@ class AudienceRestController {
 			);
 		}
 
-		// Validate description length
+		// Validate description length.
 		$desc_length = mb_strlen( $description );
 		if ( $desc_length < 15 || $desc_length > 300 ) {
 			return new \WP_REST_Response(
@@ -495,8 +495,8 @@ class AudienceRestController {
 			);
 		}
 
-		// Validate booking type has required data
-		if ( $booking_type === 'audience' && empty( $audience_ids ) ) {
+		// Validate booking type has required data.
+		if ( 'audience' === $booking_type && empty( $audience_ids ) ) {
 			return new \WP_REST_Response(
 				array(
 					'success' => false,
@@ -506,7 +506,7 @@ class AudienceRestController {
 			);
 		}
 
-		if ( $booking_type === 'individual' && empty( $user_ids ) ) {
+		if ( 'individual' === $booking_type && empty( $user_ids ) ) {
 			return new \WP_REST_Response(
 				array(
 					'success' => false,
@@ -516,7 +516,7 @@ class AudienceRestController {
 			);
 		}
 
-		// Check for future days limit
+		// Check for future days limit.
 		$schedule = AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id );
 		if ( $schedule && $schedule->future_days_limit && ! $has_bypass ) {
 			$max_date = gmdate( 'Y-m-d', strtotime( '+' . $schedule->future_days_limit . ' days' ) ?: time() );
@@ -535,7 +535,7 @@ class AudienceRestController {
 			}
 		}
 
-		// Check environment is open on this date/time (bypass can book anytime)
+		// Check environment is open on this date/time (bypass can book anytime).
 		if ( ! $has_bypass && ! AudienceEnvironmentRepository::is_open( $environment_id, $booking_date, $start_time ) ) {
 			return new \WP_REST_Response(
 				array(
@@ -546,7 +546,7 @@ class AudienceRestController {
 			);
 		}
 
-		// Check for time slot conflicts (environment double-booking)
+		// Check for time slot conflicts (environment double-booking).
 		$conflicts = AudienceBookingRepository::get_conflicts( $environment_id, $booking_date, $start_time, $end_time );
 		if ( ! empty( $conflicts ) ) {
 			return new \WP_REST_Response(
@@ -578,7 +578,7 @@ class AudienceRestController {
 		 */
 		do_action( 'ffcertificate_before_audience_booking_create', $booking_data );
 
-		// Create the booking
+		// Create the booking.
 		$booking_id = AudienceBookingRepository::create( $booking_data );
 
 		if ( ! $booking_id ) {
@@ -591,7 +591,7 @@ class AudienceRestController {
 			);
 		}
 
-		// Trigger notification hook
+		// Trigger notification hook.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix.
 		do_action( 'ffcertificate_audience_booking_created', $booking_id );
 
@@ -608,14 +608,14 @@ class AudienceRestController {
 	/**
 	 * Cancel booking
 	 *
-	 * @param \WP_REST_Request $request Request object
+	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response
 	 */
 	public function cancel_booking( \WP_REST_Request $request ): \WP_REST_Response {
 		$booking_id = $request->get_param( 'id' );
 		$reason     = $request->get_param( 'reason' );
 
-		// Validate reason
+		// Validate reason.
 		if ( empty( $reason ) || mb_strlen( $reason ) < 5 ) {
 			return new \WP_REST_Response(
 				array(
@@ -637,7 +637,7 @@ class AudienceRestController {
 			);
 		}
 
-		if ( $booking->status === 'cancelled' ) {
+		if ( 'cancelled' === $booking->status ) {
 			return new \WP_REST_Response(
 				array(
 					'success' => false,
@@ -647,7 +647,7 @@ class AudienceRestController {
 			);
 		}
 
-		// Cancel the booking
+		// Cancel the booking.
 		$result = AudienceBookingRepository::cancel( $booking_id, $reason );
 
 		if ( ! $result ) {
@@ -660,7 +660,7 @@ class AudienceRestController {
 			);
 		}
 
-		// Trigger notification hook
+		// Trigger notification hook.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix.
 		do_action( 'ffcertificate_audience_booking_cancelled', $booking_id, $reason );
 
@@ -676,7 +676,7 @@ class AudienceRestController {
 	/**
 	 * Check conflicts
 	 *
-	 * @param \WP_REST_Request $request Request object
+	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response
 	 */
 	public function check_conflicts( \WP_REST_Request $request ): \WP_REST_Response {
@@ -688,7 +688,7 @@ class AudienceRestController {
 			$audience_ids   = array_map( 'intval', (array) ( $request->get_param( 'audience_ids' ) ?: array() ) );
 			$user_ids       = array_map( 'intval', (array) ( $request->get_param( 'user_ids' ) ?: array() ) );
 
-			// Validate required parameters
+			// Validate required parameters.
 			if ( ! $environment_id || ! $booking_date || ! $start_time || ! $end_time ) {
 				return new \WP_REST_Response(
 					array(
@@ -699,7 +699,7 @@ class AudienceRestController {
 				);
 			}
 
-			// Determine if this schedule is isolated (ignores cross-schedule conflicts)
+			// Determine if this schedule is isolated (ignores cross-schedule conflicts).
 			$scope_schedule_id = null;
 			$environment       = AudienceEnvironmentRepository::get_by_id( $environment_id );
 			if ( $environment ) {
@@ -756,7 +756,7 @@ class AudienceRestController {
 			}
 
 			// 3. Check user conflicts — members with overlapping bookings (soft conflict)
-			// Only check if no hard conflict detected
+			// Only check if no hard conflict detected.
 			if ( ! $is_hard_conflict ) {
 				$user_conflicts = AudienceBookingRepository::get_user_conflicts(
 					$booking_date,
@@ -784,8 +784,8 @@ class AudienceRestController {
 					$response_data['affected_users'] = $user_conflicts['affected_users'];
 				}
 
-				// Audience same-day is also a soft conflict
-				if ( $response_data['type'] === 'none' && ! empty( $response_data['audience_same_day'] ) ) {
+				// Audience same-day is also a soft conflict.
+				if ( 'none' === $response_data['type'] && ! empty( $response_data['audience_same_day'] ) ) {
 					$response_data['type'] = 'audience_same_day';
 				}
 			}

@@ -38,7 +38,7 @@ class UrlShortenerMetaBox {
 		add_action( 'save_post', array( $this, 'on_save_post' ), 20, 2 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 
-		// AJAX: regenerate short code
+		// AJAX: regenerate short code.
 		add_action( 'wp_ajax_ffc_regenerate_short_url', array( $this, 'ajax_regenerate' ) );
 	}
 
@@ -69,14 +69,14 @@ class UrlShortenerMetaBox {
 		$repository = $this->service->get_repository();
 		$record     = $repository->findByPostId( $post->ID );
 
-		if ( $post->post_status !== 'publish' && ! $record ) {
+		if ( 'publish' !== $post->post_status && ! $record ) {
 			echo '<p class="description">' . esc_html__( 'Publish the post to generate a short URL.', 'ffcertificate' ) . '</p>';
 			wp_nonce_field( 'ffc_short_url_meta_box', 'ffc_short_url_meta_nonce' );
 			return;
 		}
 
-		if ( ! $record && $post->post_status === 'publish' ) {
-			// Auto-create if post is published
+		if ( ! $record && 'publish' === $post->post_status ) {
+			// Auto-create if post is published.
 			$permalink = get_permalink( $post->ID ) ?: '';
 			$result    = $this->service->create_short_url( $permalink, $post->post_title, $post->ID );
 			$record    = $result['success'] && isset( $result['data'] ) ? $result['data'] : null;
@@ -152,14 +152,14 @@ class UrlShortenerMetaBox {
 	 * @param \WP_Post $post    Post object.
 	 */
 	public function on_save_post( int $post_id, \WP_Post $post ): void {
-		// Skip auto-save, revisions, and non-publish
+		// Skip auto-save, revisions, and non-publish.
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			return;
 		}
 		if ( wp_is_post_revision( $post_id ) ) {
 			return;
 		}
-		if ( $post->post_status !== 'publish' ) {
+		if ( 'publish' !== $post->post_status ) {
 			return;
 		}
 		if ( ! $this->service->is_auto_create_enabled() ) {
@@ -171,7 +171,7 @@ class UrlShortenerMetaBox {
 			return;
 		}
 
-		// Check if short URL already exists
+		// Check if short URL already exists.
 		$existing = $this->service->get_repository()->findByPostId( $post_id );
 		if ( $existing ) {
 			return;
@@ -241,13 +241,13 @@ class UrlShortenerMetaBox {
 			wp_send_json_error( array( 'message' => __( 'Invalid post ID.', 'ffcertificate' ) ) );
 		}
 
-		// Delete existing
+		// Delete existing.
 		$existing = $this->service->get_repository()->findByPostId( $post_id );
 		if ( $existing ) {
 			$this->service->delete_short_url( (int) $existing['id'] );
 		}
 
-		// Create new
+		// Create new.
 		$permalink = get_permalink( $post_id ) ?: '';
 		$post      = get_post( $post_id );
 		$result    = $this->service->create_short_url( $permalink, $post->post_title ?? '', $post_id );

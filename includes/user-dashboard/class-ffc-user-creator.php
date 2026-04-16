@@ -38,19 +38,19 @@ class UserCreator {
 	 * 4. If yes: link to existing user (add role + context-specific capabilities)
 	 * 5. If no: create new user (with only context-specific capabilities)
 	 *
-	 * @param string               $identifier_hash Hash of CPF or RF
-	 * @param string               $email           Plain email address
-	 * @param array<string, mixed> $submission_data Optional submission data for user creation
-	 * @param string               $context         Context for capability granting
-	 * @param string               $identifier_type 'cpf', 'rf', or 'auto' (searches all columns)
+	 * @param string               $identifier_hash Hash of CPF or RF.
+	 * @param string               $email           Plain email address.
+	 * @param array<string, mixed> $submission_data Optional submission data for user creation.
+	 * @param string               $context         Context for capability granting.
+	 * @param string               $identifier_type 'cpf', 'rf', or 'auto' (searches all columns).
 	 * @return int|\WP_Error User ID or error
 	 */
 	public static function get_or_create_user( string $identifier_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, string $identifier_type = self::TYPE_AUTO ) {
 		global $wpdb;
 		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-		// STEP 1: Check if identifier hash already has user_id in submissions
-		// When type is known, search the specific column + legacy fallback
+		// STEP 1: Check if identifier hash already has user_id in submissions.
+		// When type is known, search the specific column + legacy fallback.
 		$hash_where  = self::build_hash_where_clause( $identifier_type );
 		$hash_params = self::build_hash_params( $identifier_hash, $identifier_type );
 
@@ -74,7 +74,7 @@ class UserCreator {
 			return (int) $existing_user_id;
 		}
 
-		// STEP 2: Identifier is new → check if email exists in WordPress
+		// STEP 2: Identifier is new → check if email exists in WordPress.
 		$existing_user = get_user_by( 'email', $email );
 
 		if ( $existing_user ) {
@@ -90,7 +90,7 @@ class UserCreator {
 			return $user_id;
 		}
 
-		// STEP 3: Email is also new → create new user
+		// STEP 3: Email is also new → create new user.
 		$user_id = self::create_ffc_user( $email, $submission_data, $context );
 
 		if ( is_wp_error( $user_id ) ) {
@@ -104,9 +104,9 @@ class UserCreator {
 	/**
 	 * Create new WordPress user for FFC
 	 *
-	 * @param string               $email           Email address
-	 * @param array<string, mixed> $submission_data Submission data for user metadata
-	 * @param string               $context         Context for capability granting
+	 * @param string               $email           Email address.
+	 * @param array<string, mixed> $submission_data Submission data for user metadata.
+	 * @param string               $context         Context for capability granting.
 	 * @return int|\WP_Error User ID or error
 	 */
 	private static function create_ffc_user( string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE ) {
@@ -141,7 +141,7 @@ class UserCreator {
 		}
 
 		if ( class_exists( '\FreeFormCertificate\Integrations\EmailHandler' ) ) {
-			$email_context = $context === CapabilityManager::CONTEXT_APPOINTMENT ? 'appointment' : 'submission';
+			$email_context = CapabilityManager::CONTEXT_APPOINTMENT === $context ? 'appointment' : 'submission';
 			$email_handler = new \FreeFormCertificate\Integrations\EmailHandler();
 			$email_handler->send_wp_user_notification( $user_id, $email_context );
 		}
@@ -155,7 +155,7 @@ class UserCreator {
 	 * Targets the specific split column based on identifier type.
 	 * When 'auto', searches both cpf_hash and rf_hash.
 	 *
-	 * @param string $identifier_type 'cpf', 'rf', or 'auto'
+	 * @param string $identifier_type 'cpf', 'rf', or 'auto'.
 	 * @return string SQL WHERE fragment
 	 */
 	private static function build_hash_where_clause( string $identifier_type ): string {
@@ -172,8 +172,8 @@ class UserCreator {
 	/**
 	 * Build parameter array for hash column lookup
 	 *
-	 * @param string $hash            The hash value
-	 * @param string $identifier_type 'cpf', 'rf', or 'auto'
+	 * @param string $hash            The hash value.
+	 * @param string $identifier_type 'cpf', 'rf', or 'auto'.
 	 * @return array<int, string> Parameters matching build_hash_where_clause placeholders
 	 */
 	private static function build_hash_params( string $hash, string $identifier_type ): array {
@@ -190,9 +190,9 @@ class UserCreator {
 	 * Link orphaned records (submissions and appointments) to a user
 	 *
 	 * @since 4.9.6
-	 * @param string $identifier_hash Hash of CPF or RF
-	 * @param int    $user_id         WordPress user ID
-	 * @param string $identifier_type 'cpf', 'rf', or 'auto'
+	 * @param string $identifier_hash Hash of CPF or RF.
+	 * @param int    $user_id         WordPress user ID.
+	 * @param string $identifier_type 'cpf', 'rf', or 'auto'.
 	 * @return void
 	 */
 	private static function link_orphaned_records( string $identifier_hash, int $user_id, string $identifier_type = self::TYPE_AUTO ): void {
@@ -250,8 +250,8 @@ class UserCreator {
 	 * Generate a unique username for a new FFC user
 	 *
 	 * @since 4.9.6
-	 * @param string               $email           Email (used only as last-resort fallback)
-	 * @param array<string, mixed> $submission_data Submission data containing name fields
+	 * @param string               $email           Email (used only as last-resort fallback).
+	 * @param array<string, mixed> $submission_data Submission data containing name fields.
 	 * @return string Unique username
 	 */
 	public static function generate_username( string $email, array $submission_data = array() ): string {
@@ -295,8 +295,8 @@ class UserCreator {
 	/**
 	 * Sync user metadata from submission data
 	 *
-	 * @param int                  $user_id         WordPress user ID
-	 * @param array<string, mixed> $submission_data Submission data
+	 * @param int                  $user_id         WordPress user ID.
+	 * @param array<string, mixed> $submission_data Submission data.
 	 * @return void
 	 */
 	private static function sync_user_metadata( int $user_id, array $submission_data ): void {
@@ -331,7 +331,7 @@ class UserCreator {
 	 * Create user profile entry in ffc_user_profiles
 	 *
 	 * @since 4.9.4
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return void
 	 */
 	private static function create_user_profile( int $user_id ): void {

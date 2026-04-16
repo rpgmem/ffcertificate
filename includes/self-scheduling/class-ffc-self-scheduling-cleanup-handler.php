@@ -33,7 +33,7 @@ class SelfSchedulingCleanupHandler {
 	 * @return void
 	 */
 	public function handle_cleanup_appointments(): void {
-		// Verify nonce
+		// Verify nonce.
 		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'ffc_cleanup_appointments_nonce' ) ) {
 			wp_send_json_error(
 				array(
@@ -42,7 +42,7 @@ class SelfSchedulingCleanupHandler {
 			);
 		}
 
-		// Verify permissions
+		// Verify permissions.
 		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
 			wp_send_json_error(
 				array(
@@ -51,7 +51,7 @@ class SelfSchedulingCleanupHandler {
 			);
 		}
 
-		// Get parameters
+		// Get parameters.
 		$calendar_id    = isset( $_POST['calendar_id'] ) ? absint( wp_unslash( $_POST['calendar_id'] ) ) : 0;
 		$cleanup_action = isset( $_POST['cleanup_action'] ) ? sanitize_text_field( wp_unslash( $_POST['cleanup_action'] ) ) : '';
 
@@ -63,7 +63,7 @@ class SelfSchedulingCleanupHandler {
 			);
 		}
 
-		// Verify calendar exists
+		// Verify calendar exists.
 		$calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
 		$calendar            = $calendar_repository->findById( $calendar_id );
 
@@ -81,10 +81,10 @@ class SelfSchedulingCleanupHandler {
 
 		$deleted = 0;
 
-		// Build query based on action
+		// Build query based on action.
 		switch ( $cleanup_action ) {
 			case 'all':
-				// Delete all appointments for this calendar
+				// Delete all appointments for this calendar.
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$deleted = $wpdb->delete( $table, array( 'calendar_id' => $calendar_id ), array( '%d' ) );
 				$message = sprintf(
@@ -95,7 +95,7 @@ class SelfSchedulingCleanupHandler {
 				break;
 
 			case 'old':
-				// Delete appointments before today
+				// Delete appointments before today.
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$deleted = $wpdb->query(
 					$wpdb->prepare(
@@ -113,7 +113,7 @@ class SelfSchedulingCleanupHandler {
 				break;
 
 			case 'future':
-				// Delete appointments today and after
+				// Delete appointments today and after.
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$deleted = $wpdb->query(
 					$wpdb->prepare(
@@ -131,7 +131,7 @@ class SelfSchedulingCleanupHandler {
 				break;
 
 			case 'cancelled':
-				// Delete only cancelled appointments
+				// Delete only cancelled appointments.
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$deleted = $wpdb->delete(
 					$table,
@@ -156,7 +156,7 @@ class SelfSchedulingCleanupHandler {
 				);
 		}
 
-		// Log the action
+		// Log the action.
 		\FreeFormCertificate\Core\Utils::debug_log(
 			'Appointments cleaned up',
 			array(
@@ -189,7 +189,7 @@ class SelfSchedulingCleanupHandler {
 	 * @return void
 	 */
 	public function render_cleanup_metabox( object $post ): void {
-		// Get calendar ID from database
+		// Get calendar ID from database.
 		$calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
 		$calendar            = $calendar_repository->findByPostId( $post->ID );
 
@@ -201,12 +201,12 @@ class SelfSchedulingCleanupHandler {
 		$calendar_id      = (int) $calendar['id'];
 		$appointment_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
 
-		// Count appointments by category
+		// Count appointments by category.
 		$today = current_time( 'Y-m-d' );
 
 		$count_all = $appointment_repo->count( array( 'calendar_id' => $calendar_id ) );
 
-		// Count old appointments (before today)
+		// Count old appointments (before today).
 		global $wpdb;
 		$table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -219,7 +219,7 @@ class SelfSchedulingCleanupHandler {
 			)
 		);
 
-		// Count future appointments (today and after)
+		// Count future appointments (today and after).
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$count_future = (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -230,7 +230,7 @@ class SelfSchedulingCleanupHandler {
 			)
 		);
 
-		// Count cancelled appointments
+		// Count cancelled appointments.
 		$count_cancelled = $appointment_repo->count(
 			array(
 				'calendar_id' => $calendar_id,

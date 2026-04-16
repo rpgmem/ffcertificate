@@ -45,7 +45,7 @@ class MigrationManager {
 	 * Initializes the facade and loads all required components.
 	 */
 	public function __construct() {
-		// Initialize components
+		// Initialize components.
 		$this->registry          = new MigrationRegistry();
 		$this->status_calculator = new MigrationStatusCalculator( $this->registry );
 	}
@@ -66,7 +66,7 @@ class MigrationManager {
 	 *
 	 * Delegates to Registry.
 	 *
-	 * @param string $migration_key Migration identifier
+	 * @param string $migration_key Migration identifier.
 	 * @return bool True if available
 	 */
 	public function is_migration_available( string $migration_key ): bool {
@@ -76,7 +76,7 @@ class MigrationManager {
 	/**
 	 * Get migration status
 	 *
-	 * @param string $migration_key Migration identifier
+	 * @param string $migration_key Migration identifier.
 	 * @return array<string, mixed>|WP_Error Status array or error
 	 */
 	public function get_migration_status( string $migration_key ) {
@@ -88,7 +88,7 @@ class MigrationManager {
 	 *
 	 * Delegates to Registry.
 	 *
-	 * @param string $migration_key Migration identifier
+	 * @param string $migration_key Migration identifier.
 	 * @return array<string, mixed>|null Migration definition or null
 	 */
 	public function get_migration( string $migration_key ): ?array {
@@ -100,7 +100,7 @@ class MigrationManager {
 	 *
 	 * Delegates to Status Calculator.
 	 *
-	 * @param string $migration_key Migration identifier
+	 * @param string $migration_key Migration identifier.
 	 * @return bool|WP_Error True if can run, WP_Error if cannot
 	 */
 	public function can_run_migration( string $migration_key ) {
@@ -112,8 +112,8 @@ class MigrationManager {
 	 *
 	 * Delegates to Status Calculator which delegates to appropriate Strategy.
 	 *
-	 * @param string $migration_key Migration identifier
-	 * @param int    $batch_number Batch number to process (0-indexed)
+	 * @param string $migration_key Migration identifier.
+	 * @param int    $batch_number Batch number to process (0-indexed).
 	 * @return array<string, mixed>|WP_Error Execution result
 	 */
 	public function run_migration( string $migration_key, int $batch_number = 0 ) {

@@ -31,7 +31,7 @@ class FormCache {
 	/**
 	 * Get form configuration with caching
 	 *
-	 * @param int $form_id Form ID
+	 * @param int $form_id Form ID.
 	 * @return array<string, mixed>|false Form config array or false if not found
 	 */
 	public static function get_form_config( int $form_id ) {
@@ -60,7 +60,7 @@ class FormCache {
 	/**
 	 * Get form fields with caching
 	 *
-	 * @param int $form_id Form ID
+	 * @param int $form_id Form ID.
 	 * @return array<int, array<string, mixed>>|false Form fields array or false if not found
 	 */
 	public static function get_form_fields( int $form_id ) {
@@ -95,13 +95,13 @@ class FormCache {
 			}
 		}
 
-		return $bg ? (string) $bg : '';  // Return empty string instead of false
+		return $bg ? (string) $bg : '';  // Return empty string instead of false.
 	}
 
 	/**
 	 * Get complete form data
 	 *
-	 * @param int $form_id Form ID
+	 * @param int $form_id Form ID.
 	 * @return array<string, mixed> Complete form data
 	 */
 	public static function get_form_complete( int $form_id ): array {
@@ -124,7 +124,7 @@ class FormCache {
 	/**
 	 * Get form post object with caching
 	 *
-	 * @param int $form_id Form ID
+	 * @param int $form_id Form ID.
 	 * @return \WP_Post|false Post object or false if not found
 	 */
 	public static function get_form_post( int $form_id ) {
@@ -134,7 +134,7 @@ class FormCache {
 		if ( false === $post ) {
 			$post = get_post( $form_id );
 
-			if ( $post && $post->post_type === 'ffc_form' ) {
+			if ( $post && 'ffc_form' === $post->post_type ) {
 				wp_cache_set( $cache_key, $post, self::CACHE_GROUP, self::get_expiration() );
 			} else {
 				return false;
@@ -226,7 +226,7 @@ class FormCache {
 	/**
 	 * Check if form cache exists
 	 *
-	 * @param int $form_id Form ID
+	 * @param int $form_id Form ID.
 	 * @return array<string, bool> Cache status per key
 	 */
 	public static function check_form_cache_status( int $form_id ): array {
@@ -242,7 +242,7 @@ class FormCache {
 
 		foreach ( $keys as $name => $cache_key ) {
 			$cached          = wp_cache_get( $cache_key, self::CACHE_GROUP );
-			$status[ $name ] = $cached !== false;
+			$status[ $name ] = false !== $cached;
 		}
 
 		return $status;
@@ -292,7 +292,7 @@ class FormCache {
 
 		self::clear_form_cache( $post_id );
 
-		if ( $post->post_status === 'publish' ) {
+		if ( 'publish' === $post->post_status ) {
 			self::warm_cache( $post_id );
 		}
 	}
@@ -304,7 +304,7 @@ class FormCache {
 	 * @param \WP_Post $post    Post object.
 	 */
 	public static function on_form_deleted( int $post_id, \WP_Post $post ): void {
-		if ( $post->post_type === 'ffc_form' ) {
+		if ( 'ffc_form' === $post->post_type ) {
 			self::clear_form_cache( $post_id );
 		}
 	}
@@ -329,5 +329,5 @@ class FormCache {
 	}
 }
 
-// Register hooks on load
+// Register hooks on load.
 add_action( 'init', array( __NAMESPACE__ . '\\FormCache', 'register_hooks' ), 5 );

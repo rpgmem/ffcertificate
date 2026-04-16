@@ -52,7 +52,7 @@ class UrlShortenerAdminPage {
 	public function enqueue_assets( string $hook_suffix ): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing parameter for conditional asset loading.
 		$page = sanitize_text_field( wp_unslash( $_GET['page'] ?? '' ) );
-		if ( $page !== 'ffc-short-urls' ) {
+		if ( 'ffc-short-urls' !== $page ) {
 			return;
 		}
 
@@ -115,7 +115,7 @@ class UrlShortenerAdminPage {
 		$action = sanitize_key( wp_unslash( $_GET['ffc_action'] ) );
 		$nonce  = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
 
-		if ( $action === 'trash' && isset( $_GET['id'] ) ) {
+		if ( 'trash' === $action && isset( $_GET['id'] ) ) {
 			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_trash_' . absint( $_GET['id'] ) ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
@@ -124,7 +124,7 @@ class UrlShortenerAdminPage {
 			exit;
 		}
 
-		if ( $action === 'restore' && isset( $_GET['id'] ) ) {
+		if ( 'restore' === $action && isset( $_GET['id'] ) ) {
 			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_restore_' . absint( $_GET['id'] ) ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
@@ -133,7 +133,7 @@ class UrlShortenerAdminPage {
 			exit;
 		}
 
-		if ( $action === 'delete' && isset( $_GET['id'] ) ) {
+		if ( 'delete' === $action && isset( $_GET['id'] ) ) {
 			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_delete_' . absint( $_GET['id'] ) ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
@@ -142,7 +142,7 @@ class UrlShortenerAdminPage {
 			exit;
 		}
 
-		if ( $action === 'empty_trash' ) {
+		if ( 'empty_trash' === $action ) {
 			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_empty_trash' ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
@@ -159,7 +159,7 @@ class UrlShortenerAdminPage {
 			exit;
 		}
 
-		if ( $action === 'toggle' && isset( $_GET['id'] ) ) {
+		if ( 'toggle' === $action && isset( $_GET['id'] ) ) {
 			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_toggle_' . absint( $_GET['id'] ) ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
@@ -177,7 +177,7 @@ class UrlShortenerAdminPage {
 		$this->check_ajax_permission();
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
-		$url   = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ) );
+		$url = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ) );
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$title = sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) );
 
@@ -323,19 +323,19 @@ class UrlShortenerAdminPage {
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Short URLs', 'ffcertificate' ); ?></h1>
 			<hr class="wp-header-end">
 
-			<?php if ( $msg === 'trashed' ) : ?>
+			<?php if ( 'trashed' === $msg ) : ?>
 				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Short URL moved to Trash.', 'ffcertificate' ); ?></p></div>
-			<?php elseif ( $msg === 'restored' ) : ?>
+			<?php elseif ( 'restored' === $msg ) : ?>
 				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Short URL restored.', 'ffcertificate' ); ?></p></div>
-			<?php elseif ( $msg === 'deleted' ) : ?>
+			<?php elseif ( 'deleted' === $msg ) : ?>
 				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Short URL permanently deleted.', 'ffcertificate' ); ?></p></div>
-			<?php elseif ( $msg === 'emptied' ) : ?>
+			<?php elseif ( 'emptied' === $msg ) : ?>
 				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Trash emptied.', 'ffcertificate' ); ?></p></div>
-			<?php elseif ( $msg === 'toggled' ) : ?>
+			<?php elseif ( 'toggled' === $msg ) : ?>
 				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Status updated.', 'ffcertificate' ); ?></p></div>
 			<?php endif; ?>
 
-			<?php if ( $status !== 'trashed' ) : ?>
+			<?php if ( 'trashed' !== $status ) : ?>
 			<!-- Stats -->
 			<div class="ffc-shorturl-stats">
 				<div>
@@ -353,7 +353,7 @@ class UrlShortenerAdminPage {
 			</div>
 			<?php endif; ?>
 
-			<?php if ( $status !== 'trashed' ) : ?>
+			<?php if ( 'trashed' !== $status ) : ?>
 			<!-- Create New -->
 			<div class="ffc-shorturl-create">
 				<h3><?php esc_html_e( 'Create Short URL', 'ffcertificate' ); ?></h3>
@@ -396,7 +396,7 @@ class UrlShortenerAdminPage {
 				</div>
 			</form>
 
-			<?php if ( $status === 'trashed' && $total > 0 ) : ?>
+			<?php if ( 'trashed' === $status && $total > 0 ) : ?>
 				<?php
 				$empty_trash_url = wp_nonce_url(
 					admin_url( 'edit.php?post_type=ffc_form&page=ffc-short-urls&ffc_action=empty_trash' ),
@@ -425,7 +425,7 @@ class UrlShortenerAdminPage {
 									'post_type' => 'ffc_form',
 									'page'      => 'ffc-short-urls',
 									'orderby'   => 'click_count',
-									'order'     => ( $orderby === 'click_count' && $order === 'DESC' ) ? 'asc' : 'desc',
+									'order'     => ( 'click_count' === $orderby && 'DESC' === $order ) ? 'asc' : 'desc',
 									's'         => $search,
 									'status'    => $status,
 								),
@@ -447,12 +447,12 @@ class UrlShortenerAdminPage {
 						<?php foreach ( $items as $item ) : ?>
 							<?php
 							$short_url  = $this->service->get_short_url( $item['short_code'] );
-							$is_trashed = $item['status'] === 'trashed';
+							$is_trashed = 'trashed' === $item['status'];
 
 							if ( $is_trashed ) {
 								$status_css_class = 'ffc-shorturl-status ffc-shorturl-status-trashed';
 								$status_label     = __( 'Trash', 'ffcertificate' );
-							} elseif ( $item['status'] === 'active' ) {
+							} elseif ( 'active' === $item['status'] ) {
 								$status_css_class = 'ffc-shorturl-status ffc-shorturl-status-active';
 								$status_label     = __( 'Active', 'ffcertificate' );
 							} else {
@@ -516,7 +516,7 @@ class UrlShortenerAdminPage {
 											QR
 										</button>
 										<a href="<?php echo esc_url( $toggle_url ); ?>" class="button button-small">
-											<?php echo $item['status'] === 'active' ? esc_html__( 'Disable', 'ffcertificate' ) : esc_html__( 'Enable', 'ffcertificate' ); ?>
+											<?php echo 'active' === $item['status'] ? esc_html__( 'Disable', 'ffcertificate' ) : esc_html__( 'Enable', 'ffcertificate' ); ?>
 										</a>
 										<a href="<?php echo esc_url( $trash_url ); ?>" class="button button-small button-link-delete">
 											<?php esc_html_e( 'Trash', 'ffcertificate' ); ?>

@@ -39,7 +39,7 @@ class AppointmentRestController {
 	 * Register routes
 	 */
 	public function register_routes(): void {
-		// POST /calendars/{id}/appointments - Create appointment
+		// POST /calendars/{id}/appointments - Create appointment.
 		register_rest_route(
 			$this->namespace,
 			'/calendars/(?P<id>\d+)/appointments',
@@ -58,7 +58,7 @@ class AppointmentRestController {
 			)
 		);
 
-		// GET /appointments/{id} - Get appointment details
+		// GET /appointments/{id} - Get appointment details.
 		register_rest_route(
 			$this->namespace,
 			'/appointments/(?P<id>\d+)',
@@ -76,7 +76,7 @@ class AppointmentRestController {
 			)
 		);
 
-		// DELETE /appointments/{id} - Cancel appointment
+		// DELETE /appointments/{id} - Cancel appointment.
 		register_rest_route(
 			$this->namespace,
 			'/appointments/(?P<id>\d+)',
@@ -136,7 +136,7 @@ class AppointmentRestController {
 				);
 			}
 
-			// Check scheduling visibility
+			// Check scheduling visibility.
 			$calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
 			$calendar            = $calendar_repository->findById( $calendar_id );
 
@@ -151,7 +151,7 @@ class AppointmentRestController {
 			$has_bypass            = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
 			$scheduling_visibility = $calendar['scheduling_visibility'] ?? 'public';
 
-			if ( $scheduling_visibility === 'private' && ! is_user_logged_in() && ! $has_bypass ) {
+			if ( 'private' === $scheduling_visibility && ! is_user_logged_in() && ! $has_bypass ) {
 				return new \WP_Error(
 					'scheduling_private',
 					__( 'This calendar requires authentication to book.', 'ffcertificate' ),
@@ -159,7 +159,7 @@ class AppointmentRestController {
 				);
 			}
 
-			// Rate limiting (prevent automated booking abuse)
+			// Rate limiting (prevent automated booking abuse).
 			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 				$ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
 				$rate_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit( $ip );
@@ -365,7 +365,7 @@ class AppointmentRestController {
 			return false;
 		}
 
-		return (int) $appointment['user_id'] === get_current_user_id();
+		return get_current_user_id() === (int) $appointment['user_id'];
 	}
 
 	/**

@@ -82,9 +82,9 @@ class ReregistrationRepository {
 		return self::db()->prefix . 'ffc_reregistration_audiences';
 	}
 
-	// ─────────────────────────────────────────────
-	// AUDIENCE JUNCTION TABLE
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
+	// AUDIENCE JUNCTION TABLE.
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Get audience IDs for a reregistration.
@@ -157,9 +157,9 @@ class ReregistrationRepository {
 		);
 	}
 
-	// ─────────────────────────────────────────────
-	// CRUD
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
+	// CRUD.
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Get a reregistration by ID.
@@ -169,7 +169,7 @@ class ReregistrationRepository {
 	 */
 	public static function get_by_id( int $id ): ?object {
 		$cached = static::cache_get( "id_{$id}" );
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -222,13 +222,13 @@ class ReregistrationRepository {
 		$where  = array();
 		$values = array( $table );
 
-		if ( $filters['audience_id'] !== null ) {
+		if ( null !== $filters['audience_id'] ) {
 			$joins    = 'JOIN %i ra_filter ON r.id = ra_filter.reregistration_id AND ra_filter.audience_id = %d';
 			$values[] = $junction;
 			$values[] = (int) $filters['audience_id'];
 		}
 
-		if ( $filters['status'] !== null ) {
+		if ( null !== $filters['status'] ) {
 			$where[]  = 'r.status = %s';
 			$values[] = $filters['status'];
 		}
@@ -377,7 +377,7 @@ class ReregistrationRepository {
 			if ( ! isset( $field_formats[ $key ] ) ) {
 				continue;
 			}
-			if ( $key === 'title' ) {
+			if ( 'title' === $key ) {
 				$value = sanitize_text_field( $value );
 			}
 			$update_data[ $key ] = $value;
@@ -398,7 +398,7 @@ class ReregistrationRepository {
 
 		static::cache_delete( "id_{$id}" );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
@@ -413,23 +413,23 @@ class ReregistrationRepository {
 		$subs_table = ReregistrationSubmissionRepository::get_table_name();
 		$junction   = self::get_audiences_table_name();
 
-		// Delete submissions first
+		// Delete submissions first.
 		$wpdb->delete( $subs_table, array( 'reregistration_id' => $id ), array( '%d' ) );
 
-		// Delete audience links
+		// Delete audience links.
 		$wpdb->delete( $junction, array( 'reregistration_id' => $id ), array( '%d' ) );
 
-		// Delete the campaign
+		// Delete the campaign.
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
 	// ACTIVE LOOKUPS (frontend)
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Get active reregistrations for a specific audience.
@@ -446,7 +446,7 @@ class ReregistrationRepository {
 			return array();
 		}
 
-		// Collect this audience + parents
+		// Collect this audience + parents.
 		$audience_ids = array( $audience_id );
 		$current      = $audience;
 		while ( ! empty( $current->parent_id ) ) {
@@ -504,9 +504,9 @@ class ReregistrationRepository {
 		return $all_regs;
 	}
 
-	// ─────────────────────────────────────────────
-	// EXPIRATION
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
+	// EXPIRATION.
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Expire overdue reregistrations.
@@ -521,7 +521,7 @@ class ReregistrationRepository {
 		$table      = self::get_table_name();
 		$subs_table = ReregistrationSubmissionRepository::get_table_name();
 
-		// Find active reregistrations past end date
+		// Find active reregistrations past end date.
 		$overdue = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT id FROM %i WHERE status = 'active' AND end_date < %s",
@@ -535,7 +535,7 @@ class ReregistrationRepository {
 		}
 
 		foreach ( $overdue as $row ) {
-			// Expire the campaign
+			// Expire the campaign.
 			$wpdb->update(
 				$table,
 				array( 'status' => 'expired' ),
@@ -544,7 +544,7 @@ class ReregistrationRepository {
 				array( '%d' )
 			);
 
-			// Expire pending/in_progress submissions
+			// Expire pending/in_progress submissions.
 			$wpdb->query(
 				$wpdb->prepare(
 					"UPDATE %i SET status = 'expired', updated_at = %s
@@ -557,9 +557,9 @@ class ReregistrationRepository {
 		}
 	}
 
-	// ─────────────────────────────────────────────
-	// AFFECTED MEMBERS
-	// ─────────────────────────────────────────────
+	// ─────────────────────────────────────────────.
+	// AFFECTED MEMBERS.
+	// ─────────────────────────────────────────────.
 
 	/**
 	 * Get all user IDs affected by a reregistration's audience set.

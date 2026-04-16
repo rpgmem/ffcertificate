@@ -171,9 +171,9 @@ class PublicCsvExporter {
 		exit;
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	// AJAX: Start
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Start.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Start a new AJAX export job.
@@ -208,7 +208,7 @@ class PublicCsvExporter {
 		// 3. Honeypot + CAPTCHA.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$security_check = \FreeFormCertificate\Core\Utils::validate_security_fields( $_POST );
-		if ( $security_check !== true ) {
+		if ( true !== $security_check ) {
 			wp_send_json_error( array( 'message' => (string) $security_check ) );
 		}
 
@@ -218,14 +218,14 @@ class PublicCsvExporter {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$posted_hash = isset( $_POST['hash'] ) ? sanitize_text_field( wp_unslash( $_POST['hash'] ) ) : '';
 
-		if ( $form_id <= 0 || $posted_hash === '' ) {
+		if ( $form_id <= 0 || '' === $posted_hash ) {
 			wp_send_json_error( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) );
 		}
 
 		// 5–9. Business-logic validation via PublicCsvDownload.
 		$validator = new PublicCsvDownload();
 		$error     = $validator->validate_form_access( $form_id, $posted_hash );
-		if ( $error !== null ) {
+		if ( null !== $error ) {
 			wp_send_json_error( array( 'message' => $error ) );
 		}
 
@@ -249,7 +249,7 @@ class PublicCsvExporter {
 			)
 		);
 
-		if ( $total === 0 ) {
+		if ( 0 === $total ) {
 			wp_send_json_error( array( 'message' => __( 'No records found to export.', 'ffcertificate' ) ) );
 		}
 
@@ -322,9 +322,9 @@ class PublicCsvExporter {
 		);
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	// AJAX: Batch
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Batch.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Process one batch and append rows to the temp file.
@@ -410,9 +410,9 @@ class PublicCsvExporter {
 		);
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	// AJAX: Download
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Download.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Serve the completed CSV file and clean up.
@@ -466,9 +466,9 @@ class PublicCsvExporter {
 		exit;
 	}
 
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 	// Synchronous fallback (no-JS)
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Fixed CSV headers — mirrors `CsvExporter::get_fixed_headers()`.

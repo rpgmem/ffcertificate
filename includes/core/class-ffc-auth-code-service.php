@@ -26,8 +26,8 @@ class AuthCodeService {
 	/**
 	 * Generate random string
 	 *
-	 * @param int    $length Length of random string
-	 * @param string $chars Characters to use (default: alphanumeric)
+	 * @param int    $length Length of random string.
+	 * @param string $chars Characters to use (default: alphanumeric).
 	 * @return string Random string
 	 */
 	public static function generate_random_string( int $length = 12, string $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' ): string {
@@ -73,7 +73,7 @@ class AuthCodeService {
 		for ( $i = 0; $i < $max_attempts; $i++ ) {
 			$code = DocumentFormatter::clean_auth_code( self::generate_auth_code() );
 
-			// Check ffc_submissions
+			// Check ffc_submissions.
 			$table_subs = $wpdb->prefix . 'ffc_submissions';
 			$exists     = $wpdb->get_var(
 				$wpdb->prepare(
@@ -87,7 +87,7 @@ class AuthCodeService {
 				continue;
 			}
 
-			// Check ffc_reregistration_submissions
+			// Check ffc_reregistration_submissions.
 			$table_rereg = $wpdb->prefix . 'ffc_reregistration_submissions';
 			$exists      = $wpdb->get_var(
 				$wpdb->prepare(
@@ -101,7 +101,7 @@ class AuthCodeService {
 				continue;
 			}
 
-			// Check ffc_self_scheduling_appointments
+			// Check ffc_self_scheduling_appointments.
 			$table_apt = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 			$exists    = $wpdb->get_var(
 				$wpdb->prepare(
@@ -116,7 +116,7 @@ class AuthCodeService {
 			}
 		}
 
-		// Fallback: extremely unlikely to reach here
+		// Fallback: extremely unlikely to reach here.
 		return DocumentFormatter::clean_auth_code( self::generate_auth_code() );
 	}
 }

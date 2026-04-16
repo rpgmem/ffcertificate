@@ -25,21 +25,21 @@ class ActivityLogSubscriber {
 	 * Register all hook listeners.
 	 */
 	public function __construct() {
-		// Submission hooks
+		// Submission hooks.
 		add_action( 'ffcertificate_after_submission_save', array( $this, 'on_submission_created' ), 10, 4 );
 		add_action( 'ffcertificate_after_submission_update', array( $this, 'on_submission_updated' ), 10, 2 );
 		add_action( 'ffcertificate_submission_trashed', array( $this, 'on_submission_trashed' ), 10, 1 );
 		add_action( 'ffcertificate_submission_restored', array( $this, 'on_submission_restored' ), 10, 1 );
 		add_action( 'ffcertificate_after_submission_delete', array( $this, 'on_submission_deleted' ), 10, 1 );
 
-		// Appointment hooks
+		// Appointment hooks.
 		add_action( 'ffcertificate_after_appointment_create', array( $this, 'on_appointment_created' ), 10, 3 );
 		add_action( 'ffcertificate_appointment_cancelled', array( $this, 'on_appointment_cancelled' ), 10, 4 );
 
-		// Settings hooks
+		// Settings hooks.
 		add_action( 'ffcertificate_settings_saved', array( $this, 'on_settings_saved' ), 10, 1 );
 
-		// Daily cron: automatic log cleanup (v4.6.9)
+		// Daily cron: automatic log cleanup (v4.6.9).
 		add_action( 'ffcertificate_daily_cleanup_hook', array( $this, 'on_daily_cleanup' ) );
 	}
 
@@ -181,20 +181,20 @@ class ActivityLogSubscriber {
 	 * @param array<string, mixed> $settings Saved settings.
 	 */
 	public function on_settings_saved( array $settings ): void {
-		// Clear WordPress options cache for ffc_settings
+		// Clear WordPress options cache for ffc_settings.
 		wp_cache_delete( 'ffc_settings', 'options' );
 		wp_cache_delete( 'alloptions', 'options' );
 
-		// Clear any plugin-specific transients
+		// Clear any plugin-specific transients.
 		delete_transient( 'ffc_settings_cache' );
 		delete_transient( 'ffc_geolocation_cache' );
 
-		// Clear ActivityLog column cache (in case table structure changed)
+		// Clear ActivityLog column cache (in case table structure changed).
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			ActivityLog::clear_column_cache();
 		}
 
-		// Clear stats transients so new settings take effect
+		// Clear stats transients so new settings take effect.
 		delete_transient( 'ffc_activity_stats_7' );
 		delete_transient( 'ffc_activity_stats_30' );
 		delete_transient( 'ffc_activity_stats_90' );

@@ -33,21 +33,21 @@ class WorkingHoursService {
 	 *
 	 * Accepts both JSON formats used in the codebase.
 	 *
-	 * @param string              $date  Date string (Y-m-d)
-	 * @param string              $time  Time string (H:i or H:i:s)
-	 * @param string|array<mixed> $working_hours JSON string or decoded array
+	 * @param string              $date  Date string (Y-m-d).
+	 * @param string              $time  Time string (H:i or H:i:s).
+	 * @param string|array<mixed> $working_hours JSON string or decoded array.
 	 * @return bool True if within working hours (or no restrictions defined)
 	 */
 	public static function is_within_working_hours( string $date, string $time, $working_hours ): bool {
 		$hours = self::normalize( $working_hours );
 		if ( empty( $hours ) ) {
-			return true; // No restrictions
+			return true; // No restrictions.
 		}
 
 		$day_of_week = (int) gmdate( 'w', strtotime( $date ) ?: time() );
 		$day_name    = self::DAY_NAMES[ $day_of_week ];
 
-		// Keyed format: {mon: {start, end, closed}, ...}
+		// Keyed format: {mon: {start, end, closed}, ...}.
 		if ( isset( $hours[ $day_name ] ) ) {
 			$day_hours = $hours[ $day_name ];
 
@@ -62,7 +62,7 @@ class WorkingHoursService {
 			return self::time_in_range( $time, $day_hours['start'], $day_hours['end'] );
 		}
 
-		// Array-of-objects format: [{day: 0-6, start: "09:00", end: "17:00"}, ...]
+		// Array-of-objects format: [{day: 0-6, start: "09:00", end: "17:00"}, ...].
 		if ( isset( $hours[0] ) && isset( $hours[0]['day'] ) ) {
 			foreach ( $hours as $entry ) {
 				if ( (int) $entry['day'] === $day_of_week ) {
@@ -76,15 +76,15 @@ class WorkingHoursService {
 			return false;
 		}
 
-		// Unknown format — treat as no restrictions
+		// Unknown format — treat as no restrictions.
 		return true;
 	}
 
 	/**
 	 * Check if a day is a working day (not closed).
 	 *
-	 * @param string              $date  Date string (Y-m-d)
-	 * @param string|array<mixed> $working_hours JSON string or decoded array
+	 * @param string              $date  Date string (Y-m-d).
+	 * @param string|array<mixed> $working_hours JSON string or decoded array.
 	 * @return bool
 	 */
 	public static function is_working_day( string $date, $working_hours ): bool {
@@ -96,12 +96,12 @@ class WorkingHoursService {
 		$day_of_week = (int) gmdate( 'w', strtotime( $date ) ?: time() );
 		$day_name    = self::DAY_NAMES[ $day_of_week ];
 
-		// Keyed format
+		// Keyed format.
 		if ( isset( $hours[ $day_name ] ) ) {
 			return empty( $hours[ $day_name ]['closed'] );
 		}
 
-		// Array-of-objects format — day is working if there's an entry for it
+		// Array-of-objects format — day is working if there's an entry for it.
 		if ( isset( $hours[0] ) && isset( $hours[0]['day'] ) ) {
 			foreach ( $hours as $entry ) {
 				if ( (int) $entry['day'] === $day_of_week ) {
@@ -117,8 +117,8 @@ class WorkingHoursService {
 	/**
 	 * Get working hours range for a specific date.
 	 *
-	 * @param string              $date  Date string (Y-m-d)
-	 * @param string|array<mixed> $working_hours JSON string or decoded array
+	 * @param string              $date  Date string (Y-m-d).
+	 * @param string|array<mixed> $working_hours JSON string or decoded array.
 	 * @return array<int, array<string, string>> Array of time ranges for the day
 	 */
 	public static function get_day_ranges( string $date, $working_hours ): array {
@@ -131,7 +131,7 @@ class WorkingHoursService {
 		$day_name    = self::DAY_NAMES[ $day_of_week ];
 		$ranges      = array();
 
-		// Keyed format
+		// Keyed format.
 		if ( isset( $hours[ $day_name ] ) ) {
 			$day_hours = $hours[ $day_name ];
 			if ( empty( $day_hours['closed'] ) && isset( $day_hours['start'] ) && isset( $day_hours['end'] ) ) {
@@ -143,7 +143,7 @@ class WorkingHoursService {
 			return $ranges;
 		}
 
-		// Array-of-objects format — may have multiple ranges per day
+		// Array-of-objects format — may have multiple ranges per day.
 		if ( isset( $hours[0] ) && isset( $hours[0]['day'] ) ) {
 			foreach ( $hours as $entry ) {
 				if ( (int) $entry['day'] === $day_of_week && isset( $entry['start'] ) && isset( $entry['end'] ) ) {
@@ -176,9 +176,9 @@ class WorkingHoursService {
 	/**
 	 * Check if a time falls within a range (inclusive start, exclusive end).
 	 *
-	 * @param string $time  Time to check
-	 * @param string $start Range start
-	 * @param string $end   Range end
+	 * @param string $time  Time to check.
+	 * @param string $start Range start.
+	 * @param string $end   Range end.
 	 * @return bool
 	 */
 	private static function time_in_range( string $time, string $start, string $end ): bool {

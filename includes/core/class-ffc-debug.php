@@ -35,20 +35,20 @@ class Debug {
 	/**
 	 * Check if debug is enabled for a specific area
 	 *
-	 * @param string $area Debug area constant
+	 * @param string $area Debug area constant.
 	 * @return bool True if debug is enabled for this area
 	 */
 	public static function is_enabled( string $area ): bool {
 		$settings = get_option( 'ffc_settings', array() );
-		return isset( $settings[ $area ] ) && $settings[ $area ] == 1;
+		return isset( $settings[ $area ] ) && 1 === $settings[ $area ];
 	}
 
 	/**
 	 * Log a debug message if debug is enabled for the area
 	 *
-	 * @param string $area Debug area constant
-	 * @param string $message Message to log
-	 * @param mixed  $data Optional data to include (will be converted to string)
+	 * @param string $area Debug area constant.
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include (will be converted to string).
 	 * @return void
 	 */
 	public static function log( string $area, string $message, $data = null ): void {
@@ -58,7 +58,7 @@ class Debug {
 
 		$log_message = '[FFC Debug] ' . $message;
 
-		if ( $data !== null ) {
+		if ( null !== $data ) {
 			if ( is_array( $data ) || is_object( $data ) ) {
                 // phpcs:ignore WordPress.PHP.DevelopmentFunctions
 				$log_message .= ' | Data: ' . print_r( $data, true );
@@ -74,8 +74,8 @@ class Debug {
 	/**
 	 * Log for PDF Generator area
 	 *
-	 * @param string $message Message to log
-	 * @param mixed  $data Optional data to include
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include.
 	 * @return void
 	 */
 	public static function log_pdf( string $message, $data = null ): void {
@@ -85,8 +85,8 @@ class Debug {
 	/**
 	 * Log for Email Handler area
 	 *
-	 * @param string $message Message to log
-	 * @param mixed  $data Optional data to include
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include.
 	 * @return void
 	 */
 	public static function log_email( string $message, $data = null ): void {
@@ -96,8 +96,8 @@ class Debug {
 	/**
 	 * Log for Form Processor area
 	 *
-	 * @param string $message Message to log
-	 * @param mixed  $data Optional data to include
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include.
 	 * @return void
 	 */
 	public static function log_form( string $message, $data = null ): void {
@@ -107,8 +107,8 @@ class Debug {
 	/**
 	 * Log for Encryption area
 	 *
-	 * @param string $message Message to log
-	 * @param mixed  $data Optional data to include (NEVER log actual encrypted data)
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include (NEVER log actual encrypted data).
 	 * @return void
 	 */
 	public static function log_encryption( string $message, $data = null ): void {
@@ -118,8 +118,8 @@ class Debug {
 	/**
 	 * Log for Geofence area
 	 *
-	 * @param string $message Message to log
-	 * @param mixed  $data Optional data to include
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include.
 	 * @return void
 	 */
 	public static function log_geofence( string $message, $data = null ): void {
@@ -129,8 +129,8 @@ class Debug {
 	/**
 	 * Log for User Manager area
 	 *
-	 * @param string $message Message to log
-	 * @param mixed  $data Optional data to include
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include.
 	 * @return void
 	 */
 	public static function log_user_manager( string $message, $data = null ): void {
@@ -140,8 +140,8 @@ class Debug {
 	/**
 	 * Log for REST API area
 	 *
-	 * @param string $message Message to log
-	 * @param mixed  $data Optional data to include
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include.
 	 * @return void
 	 */
 	public static function log_rest_api( string $message, $data = null ): void {
@@ -151,8 +151,8 @@ class Debug {
 	/**
 	 * Log for Migrations area
 	 *
-	 * @param string $message Message to log
-	 * @param mixed  $data Optional data to include
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include.
 	 * @return void
 	 */
 	public static function log_migrations( string $message, $data = null ): void {
@@ -162,8 +162,8 @@ class Debug {
 	/**
 	 * Log for Activity Log area
 	 *
-	 * @param string $message Message to log
-	 * @param mixed  $data Optional data to include
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include.
 	 * @return void
 	 */
 	public static function log_activity_log( string $message, $data = null ): void {

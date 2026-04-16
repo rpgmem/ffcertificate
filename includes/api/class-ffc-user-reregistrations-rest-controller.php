@@ -91,14 +91,14 @@ class UserReregistrationsRestController {
 				$submitted_at = '';
 				if ( ! empty( $sub->submitted_at ) ) {
 					$sub_ts       = strtotime( $sub->submitted_at );
-					$submitted_at = ( $sub_ts !== false ) ? date_i18n( $date_format . ' H:i', $sub_ts ) : $sub->submitted_at;
+					$submitted_at = ( false !== $sub_ts ) ? date_i18n( $date_format . ' H:i', $sub_ts ) : $sub->submitted_at;
 				}
 
 				$can_download = in_array( $sub->status, array( 'submitted', 'approved' ), true );
-				$is_active    = $sub->reregistration_status === 'active';
+				$is_active    = 'active' === $sub->reregistration_status;
 				$can_submit   = $is_active && in_array( $sub->status, array( 'pending', 'in_progress', 'rejected' ), true );
 
-				// Build magic link for direct verification
+				// Build magic link for direct verification.
 				$magic_link = '';
 				if ( $can_download ) {
 					$token      = \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::ensure_magic_token( $sub );
@@ -114,8 +114,8 @@ class UserReregistrationsRestController {
 					'reregistration_status' => $sub->reregistration_status,
 					'start_date'            => $sub->start_date,
 					'end_date'              => $sub->end_date,
-					'start_date_formatted'  => ( $start_ts !== false ) ? date_i18n( $date_format, $start_ts ) : $sub->start_date,
-					'end_date_formatted'    => ( $end_ts !== false ) ? date_i18n( $date_format, $end_ts ) : $sub->end_date,
+					'start_date_formatted'  => ( false !== $start_ts ) ? date_i18n( $date_format, $start_ts ) : $sub->start_date,
+					'end_date_formatted'    => ( false !== $end_ts ) ? date_i18n( $date_format, $end_ts ) : $sub->end_date,
 					'submitted_at'          => $submitted_at,
 					'days_left'             => $is_active ? max( 0, (int) ( ( $end_ts - time() ) / 86400 ) ) : 0,
 					'can_download'          => $can_download,

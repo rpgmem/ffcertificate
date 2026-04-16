@@ -31,7 +31,7 @@ class FormEditor {
 		add_action( 'admin_notices', array( $this->save_handler, 'display_save_errors' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
-		// AJAX handlers for the editor
+		// AJAX handlers for the editor.
 		add_action( 'wp_ajax_ffc_generate_codes', array( $this, 'ajax_generate_random_codes' ) );
 		add_action( 'wp_ajax_ffc_load_template', array( $this, 'ajax_load_template' ) );
 	}
@@ -40,13 +40,13 @@ class FormEditor {
 	 * Enqueue scripts and styles for form editor
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		// Only load on form edit page
-		if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ) ) ) {
+		// Only load on form edit page.
+		if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
 			return;
 		}
 
 		$screen = get_current_screen();
-		if ( ! $screen || $screen->post_type !== 'ffc_form' ) {
+		if ( ! $screen || 'ffc_form' !== $screen->post_type ) {
 			return;
 		}
 
@@ -74,12 +74,12 @@ class FormEditor {
 	 * ✅ v3.1.1: Delegates rendering to FFC_Form_Editor_Metabox_Renderer
 	 */
 	public function add_custom_metaboxes(): void {
-		// Remove any potential duplicates
+		// Remove any potential duplicates.
 		remove_meta_box( 'ffc_form_builder', 'ffc_form', 'normal' );
 		remove_meta_box( 'ffc_form_config', 'ffc_form', 'normal' );
 		remove_meta_box( 'ffc_builder_box', 'ffc_form', 'normal' );
 
-		// Main metaboxes (content area) - Delegated to Metabox Renderer
+		// Main metaboxes (content area) - Delegated to Metabox Renderer.
 		add_meta_box(
 			'ffc_box_layout',
 			__( '1. Certificate Layout', 'ffcertificate' ),
@@ -143,7 +143,7 @@ class FormEditor {
 			'default'
 		);
 
-		// Sidebar metabox (shortcode + instructions) - Delegated to Metabox Renderer
+		// Sidebar metabox (shortcode + instructions) - Delegated to Metabox Renderer.
 		add_meta_box(
 			'ffc_form_shortcode',
 			__( 'How to Use / Shortcode', 'ffcertificate' ),

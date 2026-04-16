@@ -23,7 +23,7 @@ class FormEditorSaveHandler {
 	/**
 	 * Saves all form data and configurations
 	 *
-	 * @param int $post_id The post ID
+	 * @param int $post_id The post ID.
 	 */
 	public function save_form_data( int $post_id ): void {
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
@@ -36,13 +36,13 @@ class FormEditorSaveHandler {
 			return;
 		}
 
-		// 1. Save Form Fields
+		// 1. Save Form Fields.
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset()/is_array() existence and type checks only.
 		if ( isset( $_POST['ffc_fields'] ) && is_array( $_POST['ffc_fields'] ) ) {
 			$clean_fields = array();
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
 			foreach ( wp_unslash( $_POST['ffc_fields'] ) as $index => $field ) {
-				if ( $index === 'TEMPLATE' || ( empty( $field['label'] ) && empty( $field['name'] ) && empty( $field['content'] ) && empty( $field['embed_url'] ) ) ) {
+				if ( 'TEMPLATE' === $index || ( empty( $field['label'] ) && empty( $field['name'] ) && empty( $field['content'] ) && empty( $field['embed_url'] ) ) ) {
 					continue;
 				}
 
@@ -62,7 +62,7 @@ class FormEditorSaveHandler {
 			update_post_meta( $post_id, '_ffc_form_fields', array() );
 		}
 
-		// 2. Save Configurations
+		// 2. Save Configurations.
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
 		if ( isset( $_POST['ffc_config'] ) ) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
@@ -78,7 +78,7 @@ class FormEditorSaveHandler {
 			$clean_config['send_user_email']    = sanitize_key( $config['send_user_email'] );
 			$clean_config['email_subject']      = sanitize_text_field( $config['email_subject'] );
 
-			// Restrictions (checkboxes)
+			// Restrictions (checkboxes).
 			$clean_config['restrictions'] = array(
 				'password'  => isset( $config['restrictions']['password'] ) ? '1' : '0',
 				'allowlist' => isset( $config['restrictions']['allowlist'] ) ? '1' : '0',
@@ -91,14 +91,14 @@ class FormEditorSaveHandler {
 			$clean_config['validation_code']      = sanitize_text_field( $config['validation_code'] );
 			$clean_config['generated_codes_list'] = sanitize_textarea_field( $config['generated_codes_list'] );
 
-			// Quiz / Evaluation Mode
+			// Quiz / Evaluation Mode.
 			$clean_config['quiz_enabled']       = isset( $config['quiz_enabled'] ) ? '1' : '0';
 			$clean_config['quiz_passing_score'] = absint( $config['quiz_passing_score'] ?? 70 );
 			$clean_config['quiz_max_attempts']  = absint( $config['quiz_max_attempts'] ?? 0 );
 			$clean_config['quiz_show_score']    = isset( $config['quiz_show_score'] ) ? '1' : '0';
 			$clean_config['quiz_show_correct']  = isset( $config['quiz_show_correct'] ) ? '1' : '0';
 
-			// Tag Validation: Ensure the user didn't remove critical tags
+			// Tag Validation: Ensure the user didn't remove critical tags.
 			$missing_tags = array();
 			if ( strpos( $clean_config['pdf_layout'], '{{auth_code}}' ) === false ) {
 				$missing_tags[] = '{{auth_code}}';
@@ -122,14 +122,14 @@ class FormEditorSaveHandler {
 			update_post_meta( $post_id, '_ffc_form_config', array_merge( $current_config, $clean_config ) );
 		}
 
-		// 3. Save Geofence Configuration
+		// 3. Save Geofence Configuration.
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
 		if ( isset( $_POST['ffc_geofence'] ) ) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
 			$geofence = wp_unslash( $_POST['ffc_geofence'] );
 
 			$clean_geofence = array(
-				// DateTime settings
+				// DateTime settings.
 				'datetime_enabled'        => isset( $geofence['datetime_enabled'] ) ? '1' : '0',
 				'date_start'              => ! empty( $geofence['date_start'] ) ? sanitize_text_field( $geofence['date_start'] ) : '',
 				'date_end'                => ! empty( $geofence['date_end'] ) ? sanitize_text_field( $geofence['date_end'] ) : '',
@@ -139,7 +139,7 @@ class FormEditorSaveHandler {
 				'datetime_hide_mode'      => sanitize_key( $geofence['datetime_hide_mode'] ?? 'message' ),
 				'msg_datetime'            => sanitize_textarea_field( $geofence['msg_datetime'] ?? '' ),
 
-				// Geolocation settings
+				// Geolocation settings.
 				'geo_enabled'             => isset( $geofence['geo_enabled'] ) ? '1' : '0',
 				'geo_gps_enabled'         => isset( $geofence['geo_gps_enabled'] ) ? '1' : '0',
 				'geo_ip_enabled'          => isset( $geofence['geo_ip_enabled'] ) ? '1' : '0',
@@ -152,7 +152,7 @@ class FormEditorSaveHandler {
 				'msg_geo_error'           => sanitize_textarea_field( $geofence['msg_geo_error'] ?? '' ),
 			);
 
-			// Validate geolocation configuration
+			// Validate geolocation configuration.
 			$validation_errors = $this->validate_geofence_config( $clean_geofence );
 			if ( ! empty( $validation_errors ) ) {
 				set_transient( 'ffc_geofence_error_' . get_current_user_id(), $validation_errors, 45 );
@@ -162,7 +162,7 @@ class FormEditorSaveHandler {
 			update_post_meta( $post_id, '_ffc_geofence_config', $clean_geofence );
 		}
 
-		// 4. Save Public CSV Download configuration
+		// 4. Save Public CSV Download configuration.
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check; values sanitized below.
 		if ( isset( $_POST['ffc_csv_public'] ) && is_array( $_POST['ffc_csv_public'] ) ) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each key sanitized individually.
@@ -185,7 +185,7 @@ class FormEditorSaveHandler {
 			// Hash handling: auto-generate on first enable, or regenerate on request.
 			$current_hash   = (string) get_post_meta( $post_id, '_ffc_csv_public_hash', true );
 			$regenerate     = ! empty( $public_raw['regenerate_hash'] );
-			$needs_new_hash = $regenerate || ( $enabled === '1' && $current_hash === '' );
+			$needs_new_hash = $regenerate || ( '1' === $enabled && '' === $current_hash );
 
 			if ( $needs_new_hash ) {
 				try {
@@ -206,30 +206,30 @@ class FormEditorSaveHandler {
 	/**
 	 * Validates geofence configuration
 	 *
-	 * @param array<string, mixed> $config Geofence configuration
+	 * @param array<string, mixed> $config Geofence configuration.
 	 * @return array<int, string> Array of validation errors (empty if valid)
 	 */
 	private function validate_geofence_config( array $config ): array {
 		$errors = array();
 
-		// Check if GPS is enabled but areas are empty
-		if ( $config['geo_gps_enabled'] === '1' && trim( $config['geo_areas'] ) === '' ) {
+		// Check if GPS is enabled but areas are empty.
+		if ( '1' === $config['geo_gps_enabled'] && '' === trim( $config['geo_areas'] ) ) {
 			$errors[] = __( 'GPS Geolocation is enabled but no allowed areas are defined.', 'ffcertificate' );
 		}
 
-		// Check if IP is enabled with independent areas but areas are empty
-		if ( $config['geo_ip_enabled'] === '1' && $config['geo_ip_areas_permissive'] === '1' && trim( $config['geo_ip_areas'] ) === '' ) {
+		// Check if IP is enabled with independent areas but areas are empty.
+		if ( '1' === $config['geo_ip_enabled'] && '1' === $config['geo_ip_areas_permissive'] && '' === trim( $config['geo_ip_areas'] ) ) {
 			$errors[] = __( 'IP Geolocation is enabled with independent areas but no IP areas are defined.', 'ffcertificate' );
 		}
 
-		// Validate GPS areas format
-		if ( $config['geo_gps_enabled'] === '1' && trim( $config['geo_areas'] ) !== '' ) {
+		// Validate GPS areas format.
+		if ( '1' === $config['geo_gps_enabled'] && '' !== trim( $config['geo_areas'] ) ) {
 			$gps_errors = $this->validate_areas_format( $config['geo_areas'], 'GPS' );
 			$errors     = array_merge( $errors, $gps_errors );
 		}
 
-		// Validate IP areas format (if using independent areas)
-		if ( $config['geo_ip_enabled'] === '1' && $config['geo_ip_areas_permissive'] === '1' && trim( $config['geo_ip_areas'] ) !== '' ) {
+		// Validate IP areas format (if using independent areas).
+		if ( '1' === $config['geo_ip_enabled'] && '1' === $config['geo_ip_areas_permissive'] && '' !== trim( $config['geo_ip_areas'] ) ) {
 			$ip_errors = $this->validate_areas_format( $config['geo_ip_areas'], 'IP' );
 			$errors    = array_merge( $errors, $ip_errors );
 		}
@@ -240,8 +240,8 @@ class FormEditorSaveHandler {
 	/**
 	 * Validates area format (latitude, longitude, radius)
 	 *
-	 * @param string $areas_text Areas text (one per line)
-	 * @param string $type Type of area (GPS or IP) for error messages
+	 * @param string $areas_text Areas text (one per line).
+	 * @param string $type Type of area (GPS or IP) for error messages.
 	 * @return array<int, string> Array of validation errors
 	 */
 	private function validate_areas_format( string $areas_text, string $type ): array {
@@ -252,12 +252,12 @@ class FormEditorSaveHandler {
 		foreach ( $lines as $line ) {
 			++$line_number;
 
-			// Skip empty lines
+			// Skip empty lines.
 			if ( empty( $line ) ) {
 				continue;
 			}
 
-			// Check format: lat,lng,radius
+			// Check format: lat,lng,radius.
 			if ( ! preg_match( '/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*,\s*\d+(\.\d+)?$/', $line ) ) {
 				$errors[] = sprintf(
 					/* translators: 1: Area type (GPS/IP), 2: Line number */
@@ -268,13 +268,13 @@ class FormEditorSaveHandler {
 				continue;
 			}
 
-			// Parse values
+			// Parse values.
 			$parts  = array_map( 'trim', explode( ',', $line ) );
 			$lat    = floatval( $parts[0] );
 			$lng    = floatval( $parts[1] );
 			$radius = floatval( $parts[2] );
 
-			// Validate latitude range
+			// Validate latitude range.
 			if ( $lat < -90 || $lat > 90 ) {
 				$errors[] = sprintf(
 					/* translators: 1: Area type (GPS/IP), 2: Line number, 3: Latitude value */
@@ -285,7 +285,7 @@ class FormEditorSaveHandler {
 				);
 			}
 
-			// Validate longitude range
+			// Validate longitude range.
 			if ( $lng < -180 || $lng > 180 ) {
 				$errors[] = sprintf(
 					/* translators: 1: Area type (GPS/IP), 2: Line number, 3: Longitude value */
@@ -296,7 +296,7 @@ class FormEditorSaveHandler {
 				);
 			}
 
-			// Validate radius
+			// Validate radius.
 			if ( $radius <= 0 ) {
 				$errors[] = sprintf(
 					/* translators: 1: Area type (GPS/IP), 2: Line number */
@@ -314,7 +314,7 @@ class FormEditorSaveHandler {
 	 * Displays validation warnings after saving
 	 */
 	public function display_save_errors(): void {
-		// Display PDF layout errors
+		// Display PDF layout errors.
 		$error_tags = get_transient( 'ffc_save_error_' . get_current_user_id() );
 		if ( $error_tags ) {
 			delete_transient( 'ffc_save_error_' . get_current_user_id() );
@@ -325,7 +325,7 @@ class FormEditorSaveHandler {
 			<?php
 		}
 
-		// Display geofence validation errors
+		// Display geofence validation errors.
 		$geofence_errors = get_transient( 'ffc_geofence_error_' . get_current_user_id() );
 		if ( $geofence_errors ) {
 			delete_transient( 'ffc_geofence_error_' . get_current_user_id() );

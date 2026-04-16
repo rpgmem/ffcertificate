@@ -43,19 +43,19 @@ class UrlShortenerLoader {
 			return;
 		}
 
-		// Rewrite rules (front-end routing)
+		// Rewrite rules (front-end routing).
 		add_action( 'init', array( $this, 'register_rewrite_rules' ) );
 		add_filter( 'query_vars', array( $this, 'add_query_vars' ) );
 
-		// Primary: intercept during parse_request (before WP_Query, no rewrite dependency)
+		// Primary: intercept during parse_request (before WP_Query, no rewrite dependency).
 		add_action( 'parse_request', array( $this, 'intercept_short_url' ), 1 );
-		// Fallback: template_redirect catches anything parse_request missed
+		// Fallback: template_redirect catches anything parse_request missed.
 		add_action( 'template_redirect', array( $this, 'handle_redirect' ), 1 );
 
-		// Auto-flush rewrite rules when prefix changes or first install
+		// Auto-flush rewrite rules when prefix changes or first install.
 		add_action( 'init', array( $this, 'maybe_flush_rewrite_rules' ), 99 );
 
-		// Admin components
+		// Admin components.
 		if ( is_admin() ) {
 			$admin_page = new UrlShortenerAdminPage( $this->service );
 			$admin_page->init();
@@ -64,7 +64,7 @@ class UrlShortenerLoader {
 			$meta_box->init();
 		}
 
-		// AJAX handlers (needed for both admin and front-end contexts)
+		// AJAX handlers (needed for both admin and front-end contexts).
 		$qr_handler = new UrlShortenerQrHandler( $this->service );
 		$qr_handler->init();
 	}
@@ -154,15 +154,15 @@ class UrlShortenerLoader {
 	 * (e.g. if parse_request was skipped by another plugin).
 	 */
 	public function handle_redirect(): void {
-		// Skip if already handled by intercept_short_url (prevents double-counting)
+		// Skip if already handled by intercept_short_url (prevents double-counting).
 		if ( $this->redirected ) {
 			return;
 		}
 
-		// Try the rewrite-rule query var first
+		// Try the rewrite-rule query var first.
 		$code = get_query_var( 'ffc_short_code' );
 
-		// Fallback: parse URI directly
+		// Fallback: parse URI directly.
 		if ( empty( $code ) ) {
 			$code = $this->extract_code_from_uri();
 		}
@@ -183,7 +183,7 @@ class UrlShortenerLoader {
 		$repository = $this->service->get_repository();
 		$record     = $repository->findByShortCode( $code );
 
-		if ( ! $record || $record['status'] !== 'active' ) {
+		if ( ! $record || 'active' !== $record['status'] ) {
 			nocache_headers();
 			wp_redirect( home_url( '/' ), 302 ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
 			exit;
@@ -201,7 +201,7 @@ class UrlShortenerLoader {
 		$target_url    = esc_url_raw( $record['target_url'] );
 		$redirect_type = $this->service->get_redirect_type();
 
-		// Prevent redirect loops
+		// Prevent redirect loops.
 		if ( empty( $target_url ) ) {
 			nocache_headers();
 			wp_redirect( home_url( '/' ), 302 ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
@@ -218,7 +218,7 @@ class UrlShortenerLoader {
 		 */
 		do_action( 'ffcertificate_before_short_redirect', $record, $target_url, $redirect_type );
 
-		// Use wp_redirect for external, wp_safe_redirect for internal
+		// Use wp_redirect for external, wp_safe_redirect for internal.
 		if ( wp_validate_redirect( $target_url, '' ) ) {
 			wp_safe_redirect( $target_url, $redirect_type );
 		} else {

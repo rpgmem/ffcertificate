@@ -39,7 +39,7 @@ class CalendarRestController {
 	 * Register routes
 	 */
 	public function register_routes(): void {
-		// GET /calendars - List all active calendars
+		// GET /calendars - List all active calendars.
 		register_rest_route(
 			$this->namespace,
 			'/calendars',
@@ -50,7 +50,7 @@ class CalendarRestController {
 			)
 		);
 
-		// GET /calendars/{id} - Get calendar details
+		// GET /calendars/{id} - Get calendar details.
 		register_rest_route(
 			$this->namespace,
 			'/calendars/(?P<id>\d+)',
@@ -68,7 +68,7 @@ class CalendarRestController {
 			)
 		);
 
-		// GET /calendars/{id}/slots - Get available time slots
+		// GET /calendars/{id}/slots - Get available time slots.
 		register_rest_route(
 			$this->namespace,
 			'/calendars/(?P<id>\d+)/slots',
@@ -114,7 +114,7 @@ class CalendarRestController {
 			$calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
 			$has_bypass          = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
 
-			// Non-authenticated users only see public calendars
+			// Non-authenticated users only see public calendars.
 			if ( ! is_user_logged_in() && ! $has_bypass ) {
 				$calendars = $calendar_repository->getPublicActiveCalendars();
 			} else {
@@ -189,7 +189,7 @@ class CalendarRestController {
 				);
 			}
 
-			if ( $calendar['status'] !== 'active' ) {
+			if ( 'active' !== $calendar['status'] ) {
 				return new \WP_Error(
 					'calendar_inactive',
 					__( 'Calendar is not active', 'ffcertificate' ),
@@ -197,11 +197,11 @@ class CalendarRestController {
 				);
 			}
 
-			// Check visibility for non-authenticated users
+			// Check visibility for non-authenticated users.
 			$visibility = $calendar['visibility'] ?? 'public';
 			$has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
 
-			if ( $visibility === 'private' && ! is_user_logged_in() && ! $has_bypass ) {
+			if ( 'private' === $visibility && ! is_user_logged_in() && ! $has_bypass ) {
 				return new \WP_Error(
 					'calendar_private',
 					__( 'This calendar requires authentication.', 'ffcertificate' ),

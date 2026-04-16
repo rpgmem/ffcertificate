@@ -45,7 +45,7 @@ class PrivacyHandler {
 	/**
 	 * Register personal data exporters
 	 *
-	 * @param array<string, array<string, mixed>> $exporters Existing exporters
+	 * @param array<string, array<string, mixed>> $exporters Existing exporters.
 	 * @return array<string, array<string, mixed>> Modified exporters
 	 */
 	public static function register_exporters( array $exporters ): array {
@@ -79,7 +79,7 @@ class PrivacyHandler {
 	/**
 	 * Register personal data erasers
 	 *
-	 * @param array<string, array<string, mixed>> $erasers Existing erasers
+	 * @param array<string, array<string, mixed>> $erasers Existing erasers.
 	 * @return array<string, array<string, mixed>> Modified erasers
 	 */
 	public static function register_erasers( array $erasers ): array {
@@ -90,15 +90,15 @@ class PrivacyHandler {
 		return $erasers;
 	}
 
-	// ──────────────────────────────────────
-	// EXPORTERS
-	// ──────────────────────────────────────
+	// ──────────────────────────────────────.
+	// EXPORTERS.
+	// ──────────────────────────────────────.
 
 	/**
 	 * Export user profile data
 	 *
-	 * @param string $email_address User email
-	 * @param int    $page Page number
+	 * @param string $email_address User email.
+	 * @param int    $page Page number.
 	 * @return array<string, mixed>
 	 */
 	public static function export_profile( string $email_address, int $page = 1 ): array {
@@ -110,7 +110,7 @@ class PrivacyHandler {
 			);
 		}
 
-		// Only export on first page
+		// Only export on first page.
 		if ( $page > 1 ) {
 			return array(
 				'data' => array(),
@@ -130,7 +130,7 @@ class PrivacyHandler {
 			'value' => $user->user_email,
 		);
 
-		// Profile table data
+		// Profile table data.
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 			$profile = \FreeFormCertificate\UserDashboard\UserManager::get_profile( $user->ID );
 			if ( ! empty( $profile['phone'] ) ) {
@@ -177,8 +177,8 @@ class PrivacyHandler {
 	/**
 	 * Export certificates (submissions)
 	 *
-	 * @param string $email_address User email
-	 * @param int    $page Page number
+	 * @param string $email_address User email.
+	 * @param int    $page Page number.
 	 * @return array<string, mixed>
 	 */
 	public static function export_certificates( string $email_address, int $page = 1 ): array {
@@ -268,8 +268,8 @@ class PrivacyHandler {
 	/**
 	 * Export appointments
 	 *
-	 * @param string $email_address User email
-	 * @param int    $page Page number
+	 * @param string $email_address User email.
+	 * @param int    $page Page number.
 	 * @return array<string, mixed>
 	 */
 	public static function export_appointments( string $email_address, int $page = 1 ): array {
@@ -380,8 +380,8 @@ class PrivacyHandler {
 	/**
 	 * Export audience group memberships
 	 *
-	 * @param string $email_address User email
-	 * @param int    $page Page number
+	 * @param string $email_address User email.
+	 * @param int    $page Page number.
 	 * @return array<string, mixed>
 	 */
 	public static function export_audience_groups( string $email_address, int $page = 1 ): array {
@@ -404,7 +404,7 @@ class PrivacyHandler {
 			);
 		}
 
-		// Small dataset — no pagination needed
+		// Small dataset — no pagination needed.
 		if ( $page > 1 ) {
 			return array(
 				'data' => array(),
@@ -457,8 +457,8 @@ class PrivacyHandler {
 	/**
 	 * Export audience bookings linked to user
 	 *
-	 * @param string $email_address User email
-	 * @param int    $page Page number
+	 * @param string $email_address User email.
+	 * @param int    $page Page number.
 	 * @return array<string, mixed>
 	 */
 	public static function export_audience_bookings( string $email_address, int $page = 1 ): array {
@@ -550,9 +550,9 @@ class PrivacyHandler {
 		);
 	}
 
-	// ──────────────────────────────────────
-	// ERASER
-	// ──────────────────────────────────────
+	// ──────────────────────────────────────.
+	// ERASER.
+	// ──────────────────────────────────────.
 
 	/**
 	 * Erase personal data across all FFC tables
@@ -565,8 +565,8 @@ class PrivacyHandler {
 	 * - User profiles: DELETE
 	 * - Activity log: SET user_id = NULL
 	 *
-	 * @param string $email_address User email
-	 * @param int    $page Page number
+	 * @param string $email_address User email.
+	 * @param int    $page Page number.
 	 * @return array<string, mixed>
 	 */
 	public static function erase_personal_data( string $email_address, int $page = 1 ): array {
@@ -602,7 +602,7 @@ class PrivacyHandler {
 		);
 		if ( $rows > 0 ) {
 			$items_removed  += $rows;
-			$items_retained += $rows; // Certificate records retained (anonymized)
+			$items_retained += $rows; // Certificate records retained (anonymized).
 			$messages[]      = sprintf(
 				/* translators: %d: number of submissions */
 				__( '%d certificate submissions anonymized (auth codes and verification links preserved).', 'ffcertificate' ),
@@ -610,7 +610,7 @@ class PrivacyHandler {
 			);
 		}
 
-		// 2. Appointments: anonymize PII
+		// 2. Appointments: anonymize PII.
 		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		if ( self::table_exists( $appointments_table ) ) {
 			$rows = $wpdb->query(
@@ -638,7 +638,7 @@ class PrivacyHandler {
 			}
 		}
 
-		// 3. Audience members: DELETE
+		// 3. Audience members: DELETE.
 		$members_table = $wpdb->prefix . 'ffc_audience_members';
 		if ( self::table_exists( $members_table ) ) {
 			$rows = $wpdb->delete( $members_table, array( 'user_id' => $user_id ), array( '%d' ) );
@@ -652,7 +652,7 @@ class PrivacyHandler {
 			}
 		}
 
-		// 4. Audience booking users: DELETE
+		// 4. Audience booking users: DELETE.
 		$booking_users_table = $wpdb->prefix . 'ffc_audience_booking_users';
 		if ( self::table_exists( $booking_users_table ) ) {
 			$rows = $wpdb->delete( $booking_users_table, array( 'user_id' => $user_id ), array( '%d' ) );
@@ -661,7 +661,7 @@ class PrivacyHandler {
 			}
 		}
 
-		// 5. Audience schedule permissions: DELETE
+		// 5. Audience schedule permissions: DELETE.
 		$permissions_table = $wpdb->prefix . 'ffc_audience_schedule_permissions';
 		if ( self::table_exists( $permissions_table ) ) {
 			$rows = $wpdb->delete( $permissions_table, array( 'user_id' => $user_id ), array( '%d' ) );
@@ -670,7 +670,7 @@ class PrivacyHandler {
 			}
 		}
 
-		// 6. User profiles: DELETE
+		// 6. User profiles: DELETE.
 		$profiles_table = $wpdb->prefix . 'ffc_user_profiles';
 		if ( self::table_exists( $profiles_table ) ) {
 			$rows = $wpdb->delete( $profiles_table, array( 'user_id' => $user_id ), array( '%d' ) );
@@ -680,7 +680,7 @@ class PrivacyHandler {
 			}
 		}
 
-		// 7. Activity log: SET user_id = NULL
+		// 7. Activity log: SET user_id = NULL.
 		$activity_table = $wpdb->prefix . 'ffc_activity_log';
 		if ( self::table_exists( $activity_table ) ) {
 			$wpdb->query(
@@ -692,7 +692,7 @@ class PrivacyHandler {
 			);
 		}
 
-		// 8. ffc_* user meta: DELETE
+		// 8. ffc_* user meta: DELETE.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$meta_deleted = $wpdb->query(
 			$wpdb->prepare(
@@ -711,7 +711,7 @@ class PrivacyHandler {
 			);
 		}
 
-		// Log the erasure
+		// Log the erasure.
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
 				'privacy_data_erased',
@@ -736,8 +736,8 @@ class PrivacyHandler {
 	 * Export ffc_* user meta data
 	 *
 	 * @since 4.9.9
-	 * @param string $email_address User email
-	 * @param int    $page          Page number
+	 * @param string $email_address User email.
+	 * @param int    $page          Page number.
 	 * @return array<string, mixed>
 	 */
 	public static function export_usermeta( string $email_address, int $page = 1 ): array {
@@ -770,7 +770,7 @@ class PrivacyHandler {
 			);
 		}
 
-		// Sensitive keys that should not be exported in plain text
+		// Sensitive keys that should not be exported in plain text.
 		$redact_keys = array( 'ffc_cpf_rf_hash' );
 
 		$data = array();
@@ -800,5 +800,5 @@ class PrivacyHandler {
 		);
 	}
 
-	// table_exists() provided by DatabaseHelperTrait
+	// table_exists() provided by DatabaseHelperTrait.
 }

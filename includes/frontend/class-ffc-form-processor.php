@@ -5,7 +5,7 @@ declare(strict_types=1);
  * FormProcessor
  * Handles form submission processing, validation, and restriction checks.
  *
- * v2.9.2: Unified PDF generation with FFC_PDF_Generator
+ * V2.9.2: Unified PDF generation with FFC_PDF_Generator
  * v2.9.11: Using FFC_Utils for validation and sanitization
  * v2.9.13: Optimized detect_reprint() to use cpf_rf column with fallback
  * v2.10.0: LGPD - Validates consent checkbox (mandatory)
@@ -45,7 +45,7 @@ class FormProcessor {
 	 * Handle form submission via AJAX
 	 */
 	public function handle_submission_ajax(): void {
-		// Rate limit by IP — run BEFORE nonce/CAPTCHA to prevent brute-force
+		// Rate limit by IP — run BEFORE nonce/CAPTCHA to prevent brute-force.
 		// and DoS attacks from consuming server resources on expensive checks.
 		if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 			$user_ip    = \FreeFormCertificate\Core\Utils::get_user_ip();
@@ -61,14 +61,14 @@ class FormProcessor {
 			}
 		}
 
-		// Verify nonce
+		// Verify nonce.
 		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'ffc_frontend_nonce' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page.', 'ffcertificate' ) ) );
 		}
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above via wp_verify_nonce.
 
-		// ===== DEBUG CAPTCHA =====
+		// ===== DEBUG CAPTCHA =====.
 		\FreeFormCertificate\Core\Debug::log_form( '===== CAPTCHA DEBUG =====' );
 		\FreeFormCertificate\Core\Debug::log_form( 'Answer received', isset( $_POST['ffc_captcha_ans'] ) ? sanitize_text_field( wp_unslash( $_POST['ffc_captcha_ans'] ) ) : 'NOT SET' );
 		\FreeFormCertificate\Core\Debug::log_form( 'Hash received', isset( $_POST['ffc_captcha_hash'] ) ? sanitize_text_field( wp_unslash( $_POST['ffc_captcha_hash'] ) ) : 'NOT SET' );
@@ -83,17 +83,17 @@ class FormProcessor {
 			\FreeFormCertificate\Core\Debug::log_form( 'Generated hash from answer', $generated_hash );
 			\FreeFormCertificate\Core\Debug::log_form( 'Hashes match', $generated_hash === $received_hash ? 'YES' : 'NO' );
 
-			// Test with different variations
+			// Test with different variations.
 			\FreeFormCertificate\Core\Debug::log_form( 'Test with (int)', wp_hash( (int) $test_answer . 'ffc_math_salt' ) );
 			\FreeFormCertificate\Core\Debug::log_form( 'Test with (string)', wp_hash( (string) $test_answer . 'ffc_math_salt' ) );
 		}
 		\FreeFormCertificate\Core\Debug::log_form( '===== END CAPTCHA DEBUG =====' );
-		// ===== END DEBUG =====
+		// ===== END DEBUG =====.
 
-		// Validate security fields using FFC_Utils
+		// Validate security fields using FFC_Utils.
 		$security_check = \FreeFormCertificate\Core\Utils::validate_security_fields( $_POST );
-		if ( $security_check !== true ) {
-			// Generate new captcha for retry
+		if ( true !== $security_check ) {
+			// Generate new captcha for retry.
 			$new_captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
 			wp_send_json_error(
 				array(
@@ -120,15 +120,15 @@ class FormProcessor {
 			wp_send_json_error( array( 'message' => __( 'Form configuration not found.', 'ffcertificate' ) ) );
 		}
 
-		// Process and sanitize form fields using FFC_Utils
+		// Process and sanitize form fields using FFC_Utils.
 		$submission_data = array();
 		$user_email      = '';
 
-		// Name fields that should be normalized (capitalized with lowercase connectives)
+		// Name fields that should be normalized (capitalized with lowercase connectives).
 		$name_fields = array( 'nome_completo', 'nome', 'name', 'full_name', 'ffc_nome', 'participante' );
 
 		foreach ( $fields_config as $field ) {
-			// Skip display-only field types (no user input)
+			// Skip display-only field types (no user input).
 			if ( isset( $field['type'] ) && in_array( $field['type'], array( 'info', 'embed' ), true ) ) {
 				continue;
 			}
@@ -138,28 +138,28 @@ class FormProcessor {
 			if ( isset( $_POST[ $name ] ) ) {
 				$value = \FreeFormCertificate\Core\Utils::recursive_sanitize( wp_unslash( $_POST[ $name ] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via recursive_sanitize().
 
-				// Normalize name fields (proper capitalization with lowercase connectives)
+				// Normalize name fields (proper capitalization with lowercase connectives).
 				if ( in_array( $name, $name_fields, true ) && is_string( $value ) && ! empty( $value ) ) {
 					$value = \FreeFormCertificate\Core\Utils::normalize_brazilian_name( $value );
 				}
 
-				// Special validation for CPF/RF
-				if ( $name === 'cpf_rf' ) {
+				// Special validation for CPF/RF.
+				if ( 'cpf_rf' === $name ) {
 					$value = preg_replace( '/\D/', '', $value );
 
-					// Validate length
+					// Validate length.
 					if ( strlen( $value ) !== 7 && strlen( $value ) !== 11 ) {
 						wp_send_json_error( array( 'message' => __( 'CPF/RF must be exactly 7 or 11 digits.', 'ffcertificate' ) ) );
 					}
 
-					// Validate CPF (11 digits) using official algorithm
+					// Validate CPF (11 digits) using official algorithm.
 					if ( strlen( $value ) === 11 ) {
 						if ( ! \FreeFormCertificate\Core\Utils::validate_cpf( $value ) ) {
 							wp_send_json_error( array( 'message' => __( 'Invalid CPF. Please check the number and try again.', 'ffcertificate' ) ) );
 						}
 					}
 
-					// Validate RF (7 digits) - must be numeric
+					// Validate RF (7 digits) - must be numeric.
 					if ( strlen( $value ) === 7 ) {
 						if ( ! \FreeFormCertificate\Core\Utils::validate_rf( $value ) ) {
 							wp_send_json_error( array( 'message' => __( 'Invalid RF. Must contain only numbers.', 'ffcertificate' ) ) );
@@ -169,8 +169,8 @@ class FormProcessor {
 
 				$submission_data[ $name ] = $value;
 
-				if ( isset( $field['type'] ) && $field['type'] === 'email' ) {
-					// Normalize email to lowercase for consistent storage and lookups
+				if ( isset( $field['type'] ) && 'email' === $field['type'] ) {
+					// Normalize email to lowercase for consistent storage and lookups.
 					$user_email = strtolower( sanitize_email( $value ) );
 				}
 			}
@@ -179,7 +179,7 @@ class FormProcessor {
 		if ( empty( $user_email ) ) {
 			wp_send_json_error( array( 'message' => __( 'Email address is required.', 'ffcertificate' ) ) );
 		}
-		// Validate LGPD consent (mandatory)
+		// Validate LGPD consent (mandatory).
 		if ( empty( $_POST['ffc_lgpd_consent'] ) || sanitize_text_field( wp_unslash( $_POST['ffc_lgpd_consent'] ) ) !== '1' ) {
 			wp_send_json_error(
 				array(
@@ -188,16 +188,16 @@ class FormProcessor {
 			);
 		}
 
-		// Add consent to submission data
+		// Add consent to submission data.
 		$submission_data['ffc_lgpd_consent'] = '1';
 
-		// Capture restriction fields (password/ticket) from POST
+		// Capture restriction fields (password/ticket) from POST.
 		$val_password = isset( $_POST['ffc_password'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['ffc_password'] ) ) ) : '';
 		$val_ticket   = isset( $_POST['ffc_ticket'] ) ? strtoupper( trim( sanitize_text_field( wp_unslash( $_POST['ffc_ticket'] ) ) ) ) : '';
 
 		$val_cpf = isset( $submission_data['cpf_rf'] ) ? trim( $submission_data['cpf_rf'] ) : '';
 
-		// Rate Limit Check
+		// Rate Limit Check.
 		if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 			$ip    = \FreeFormCertificate\Core\Utils::get_user_ip();
 			$email = $user_email;
@@ -215,7 +215,7 @@ class FormProcessor {
 				);
 			}
 
-			// Record attempt
+			// Record attempt.
 			\FreeFormCertificate\Security\RateLimiter::record_attempt( 'ip', $ip, $form_id );
 			\FreeFormCertificate\Security\RateLimiter::record_attempt( 'email', $email, $form_id );
 			if ( $cpf ) {
@@ -223,17 +223,17 @@ class FormProcessor {
 			}
 		}
 
-		// Geofence validation (date/time + geolocation)
+		// Geofence validation (date/time + geolocation).
 		if ( class_exists( '\FreeFormCertificate\Security\Geofence' ) ) {
-			// Get form geofence config to check if IP validation is enabled
+			// Get form geofence config to check if IP validation is enabled.
 			$geofence_config    = \FreeFormCertificate\Security\Geofence::get_form_config( $form_id );
 			$should_validate_ip = false;
 
 			// Backend validation logic:
 			// - Always validate datetime (server-side is authoritative)
-			// - Only validate IP geolocation if explicitly enabled
+			// - Only validate IP geolocation if explicitly enabled.
 			// - GPS validation happens on frontend (browser geolocation API)
-			// Note: GPS-only mode relies on frontend validation; backend cannot verify GPS
+			// Note: GPS-only mode relies on frontend validation; backend cannot verify GPS.
 			if ( $geofence_config && ! empty( $geofence_config['geo_enabled'] ) && ! empty( $geofence_config['geo_ip_enabled'] ) ) {
 				$should_validate_ip = true;
 			}
@@ -241,8 +241,8 @@ class FormProcessor {
 			$geofence_check = \FreeFormCertificate\Security\Geofence::can_access_form(
 				$form_id,
 				array(
-					'check_datetime' => true,        // Always validate date/time server-side
-					'check_geo'      => $should_validate_ip, // Only validate IP if explicitly enabled
+					'check_datetime' => true,        // Always validate date/time server-side.
+					'check_geo'      => $should_validate_ip, // Only validate IP if explicitly enabled.
 				)
 			);
 
@@ -257,41 +257,41 @@ class FormProcessor {
 			}
 		}
 
-		// Check restrictions (whitelist/denylist/tickets) — delegated to AccessRestrictionChecker
+		// Check restrictions (whitelist/denylist/tickets) — delegated to AccessRestrictionChecker.
 		$restriction_result = AccessRestrictionChecker::check( $form_config, $val_cpf, $val_ticket, $form_id );
 
 		if ( ! $restriction_result['allowed'] ) {
 			wp_send_json_error( array( 'message' => $restriction_result['message'] ) );
 		}
 
-		// === Quiz Mode Processing (v4.9.0) ===
-		$is_quiz    = ! empty( $form_config['quiz_enabled'] ) && $form_config['quiz_enabled'] === '1';
+		// === Quiz Mode Processing (v4.9.0) ===.
+		$is_quiz    = ! empty( $form_config['quiz_enabled'] ) && '1' === $form_config['quiz_enabled'];
 		$form_post  = get_post( $form_id );
 		$is_reprint = false;
 
 		if ( $is_quiz ) {
-			// Calculate quiz score
+			// Calculate quiz score.
 			$quiz_score    = $this->calculate_quiz_score( $fields_config, $submission_data );
 			$passing_score = absint( $form_config['quiz_passing_score'] ?? 70 );
 			$max_attempts  = absint( $form_config['quiz_max_attempts'] ?? 0 );
 			$passed        = $quiz_score['percent'] >= $passing_score;
 
-			// Store quiz data in submission
+			// Store quiz data in submission.
 			$submission_data['_quiz_score']     = $quiz_score['score'];
 			$submission_data['_quiz_max_score'] = $quiz_score['max_score'];
 			$submission_data['_quiz_percent']   = $quiz_score['percent'];
 			$submission_data['_quiz_passed']    = $passed ? '1' : '0';
 
-			// Find existing quiz submission for this CPF + form
+			// Find existing quiz submission for this CPF + form.
 			$existing = $this->find_quiz_submission( $form_id, $val_cpf );
 
-			// If already passed (status=publish), treat as reprint
-			if ( $existing && $existing->status === 'publish' ) {
+			// If already passed (status=publish), treat as reprint.
+			if ( $existing && 'publish' === $existing->status ) {
 				$submission_id        = (int) $existing->id;
 				$real_submission_date = $existing->submission_date;
 				$is_reprint           = true;
 			} else {
-				// Count attempts
+				// Count attempts.
 				$prev_attempt = 0;
 				if ( $existing ) {
 					$prev_data = json_decode( $existing->data ?? '{}', true );
@@ -303,7 +303,7 @@ class FormProcessor {
 				$attempt_number                   = $prev_attempt + 1;
 				$submission_data['_quiz_attempt'] = $attempt_number;
 
-				// Check attempt limit
+				// Check attempt limit.
 				if ( $max_attempts > 0 && $attempt_number > $max_attempts ) {
 					wp_send_json_error(
 						array(
@@ -313,7 +313,7 @@ class FormProcessor {
 					);
 				}
 
-				// Determine status
+				// Determine status.
 				if ( $passed ) {
 					$quiz_status = 'publish';
 				} elseif ( $max_attempts > 0 && $attempt_number >= $max_attempts ) {
@@ -323,11 +323,11 @@ class FormProcessor {
 				}
 
 				if ( $existing ) {
-					// UPDATE existing submission
+					// UPDATE existing submission.
 					$submission_id = (int) $existing->id;
 					$repo          = $this->submission_handler->get_repository();
 
-					// Build updated data JSON
+					// Build updated data JSON.
 					$mandatory_keys = array( 'email', 'cpf_rf', 'auth_code', 'ffc_lgpd_consent' );
 					$extra_data     = array_diff_key( $submission_data, array_flip( $mandatory_keys ) );
 					$data_json      = wp_json_encode( $extra_data ) ?: '{}';
@@ -345,7 +345,7 @@ class FormProcessor {
 					$repo->update( $submission_id, $update_fields );
 					$real_submission_date = current_time( 'mysql' );
 				} else {
-					// INSERT new submission via existing handler
+					// INSERT new submission via existing handler.
 					$submission_id = $this->submission_handler->process_submission(
 						$form_id,
 						$form_post->post_title,
@@ -364,20 +364,20 @@ class FormProcessor {
 						);
 					}
 
-					// Update status if not publish
-					if ( $quiz_status !== 'publish' ) {
+					// Update status if not publish.
+					if ( 'publish' !== $quiz_status ) {
 						$this->submission_handler->get_repository()->updateStatus( $submission_id, $quiz_status );
 					}
 
 					$real_submission_date = current_time( 'mysql' );
 				}
 
-				// If not passed, return quiz feedback (no certificate)
+				// If not passed, return quiz feedback (no certificate).
 				if ( ! $passed ) {
 					$remaining  = ( $max_attempts > 0 ) ? max( 0, $max_attempts - $attempt_number ) : -1;
 					$show_score = ( $form_config['quiz_show_score'] ?? '1' ) === '1';
 
-					if ( $quiz_status === 'quiz_failed' ) {
+					if ( 'quiz_failed' === $quiz_status ) {
 						$msg = $show_score
 							/* translators: %d: quiz score percentage */
 							? sprintf( __( 'Quiz failed. Score: %d%%. Maximum attempts reached.', 'ffcertificate' ), $quiz_score['percent'] )
@@ -389,7 +389,7 @@ class FormProcessor {
 							/* translators: %d: number of remaining quiz attempts */
 							: sprintf( __( 'Not passed. You can try again (%d attempts remaining).', 'ffcertificate' ), $remaining );
 
-						if ( $remaining === -1 ) {
+						if ( -1 === $remaining ) {
 							$msg = $show_score
 								/* translators: %d: quiz score percentage */
 								? sprintf( __( 'Score: %d%%. You can try again.', 'ffcertificate' ), $quiz_score['percent'] )
@@ -414,18 +414,18 @@ class FormProcessor {
 				}
 			}
 		} else {
-			// === Normal (non-quiz) flow ===
+			// === Normal (non-quiz) flow ===.
 
-			// Detect reprint — delegated to ReprintDetector
+			// Detect reprint — delegated to ReprintDetector.
 			$reprint_result = ReprintDetector::detect( $form_id, $val_cpf, $val_ticket );
 			$is_reprint     = $reprint_result['is_reprint'];
 
 			if ( $is_reprint ) {
-				// Reprint - use existing submission ID (convert to int from wpdb string)
+				// Reprint - use existing submission ID (convert to int from wpdb string).
 				$submission_id        = (int) $reprint_result['id'];
 				$real_submission_date = $reprint_result['date'];
 			} else {
-				// New submission - save to database
+				// New submission - save to database.
 				$submission_id = $this->submission_handler->process_submission(
 					$form_id,
 					$form_post->post_title,
@@ -444,17 +444,17 @@ class FormProcessor {
 					);
 				}
 
-				// Get the submission date from the newly created submission
+				// Get the submission date from the newly created submission.
 				$real_submission_date = current_time( 'mysql' );
 
-				// Remove used ticket if applicable — delegated to AccessRestrictionChecker
+				// Remove used ticket if applicable — delegated to AccessRestrictionChecker.
 				if ( $restriction_result['is_ticket'] && ! empty( $val_ticket ) ) {
 					AccessRestrictionChecker::consume_ticket( $form_id, $val_ticket );
 				}
 			}
 		}
 
-		// Generate PDF data
+		// Generate PDF data.
 		$pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator();
 		$pdf_data      = $pdf_generator->generate_pdf_data(
 			$submission_id,
@@ -470,13 +470,13 @@ class FormProcessor {
 			);
 		}
 
-		// Success message with HTML response (v2.9.7+)
+		// Success message with HTML response (v2.9.7+).
 		$custom_message = isset( $form_config['success_message'] ) ? trim( $form_config['success_message'] ) : '';
 		$msg            = $is_reprint
 			? __( 'Certificate previously issued (Reprint).', 'ffcertificate' )
 			: ( ! empty( $custom_message ) ? $custom_message : __( 'Success!', 'ffcertificate' ) );
 
-		// Quiz passed message
+		// Quiz passed message.
 		if ( $is_quiz && ! $is_reprint ) {
 			$show_score = ( $form_config['quiz_show_score'] ?? '1' ) === '1';
 			$msg        = $show_score
@@ -498,7 +498,7 @@ class FormProcessor {
 			),
 		);
 
-		// Add quiz data to success response
+		// Add quiz data to success response.
 		if ( $is_quiz ) {
 			$show_score       = ( $form_config['quiz_show_score'] ?? '1' ) === '1';
 			$response['quiz'] = array(
@@ -515,8 +515,8 @@ class FormProcessor {
 	/**
 	 * Calculate quiz score based on field points
 	 *
-	 * @param array<int, array<string, mixed>> $fields_config Form fields configuration
-	 * @param array<string, mixed>             $submission_data User's submitted data
+	 * @param array<int, array<string, mixed>> $fields_config Form fields configuration.
+	 * @param array<string, mixed>             $submission_data User's submitted data.
 	 * @return array{score: int, max_score: int, percent: int}
 	 */
 	private function calculate_quiz_score( array $fields_config, array $submission_data ): array {
@@ -527,7 +527,7 @@ class FormProcessor {
 			$type       = $field['type'] ?? '';
 			$points_str = $field['points'] ?? '';
 
-			// Only radio/select fields with points participate in scoring
+			// Only radio/select fields with points participate in scoring.
 			if ( empty( $points_str ) || ! in_array( $type, array( 'radio', 'select' ), true ) ) {
 				continue;
 			}
@@ -535,15 +535,15 @@ class FormProcessor {
 			$options = array_map( 'trim', explode( ',', $field['options'] ?? '' ) );
 			$points  = array_map( 'intval', array_map( 'trim', explode( ',', $points_str ) ) );
 
-			// Max score: highest point value for this field
+			// Max score: highest point value for this field.
 			$field_max  = ! empty( $points ) ? max( $points ) : 0;
 			$max_score += $field_max;
 
-			// User's answer
+			// User's answer.
 			$name       = $field['name'] ?? '';
 			$user_value = isset( $submission_data[ $name ] ) ? trim( (string) $submission_data[ $name ] ) : '';
 
-			// Find matching option index and get its points
+			// Find matching option index and get its points.
 			foreach ( $options as $i => $opt ) {
 				if ( trim( $opt ) === $user_value && isset( $points[ $i ] ) ) {
 					$score += $points[ $i ];
@@ -566,8 +566,8 @@ class FormProcessor {
 	 *
 	 * Returns the most recent submission (any quiz status: in_progress, failed, or publish).
 	 *
-	 * @param int    $form_id Form ID
-	 * @param string $cpf     CPF/RF value
+	 * @param int    $form_id Form ID.
+	 * @param string $cpf     CPF/RF value.
 	 * @return object|null
 	 */
 	private function find_quiz_submission( int $form_id, string $cpf ): ?object {
@@ -583,7 +583,7 @@ class FormProcessor {
 			$id_hash     = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
 			$hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
 
-			// Search the specific split column based on digit count
+			// Search the specific split column based on digit count.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_column is derived from strlen() check, not user input.
 			$result = $wpdb->get_row(

@@ -62,7 +62,7 @@ class AppointmentAjaxHandler {
 			}
 
 			$security_check = \FreeFormCertificate\Core\Utils::validate_security_fields( $_POST );
-			if ( $security_check !== true ) {
+			if ( true !== $security_check ) {
 				$new_captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
 				wp_send_json_error(
 					array(
@@ -117,7 +117,7 @@ class AppointmentAjaxHandler {
 				);
 			}
 
-			// Generate receipt PDF data for auto-download (only for confirmed appointments)
+			// Generate receipt PDF data for auto-download (only for confirmed appointments).
 			$pdf_data          = null;
 			$appointment       = null;
 			$calendar          = null;
@@ -142,7 +142,7 @@ class AppointmentAjaxHandler {
 				}
 			}
 
-			// Determine if a confirmation email was actually sent
+			// Determine if a confirmation email was actually sent.
 			$email_sent = false;
 			if ( ! $requires_approval ) {
 				$settings        = get_option( 'ffc_settings', array() );
@@ -304,7 +304,7 @@ class AppointmentAjaxHandler {
 
 			$counts = $appointment_repo->getBookingCountsByDateRange( $calendar_id, $start_date, $end_date );
 
-			// Get holidays for the month (global + calendar-specific blocked dates)
+			// Get holidays for the month (global + calendar-specific blocked dates).
 			$holidays = array();
 
 			$global_holidays = \FreeFormCertificate\Scheduling\DateBlockingService::get_global_holidays( $start_date, $end_date );
@@ -314,7 +314,7 @@ class AppointmentAjaxHandler {
 
 			$blocked = $blocked_repo->getBlockedDatesInRange( $calendar_id, $start_date, $end_date );
 			foreach ( $blocked as $block ) {
-				if ( isset( $block['block_type'] ) && $block['block_type'] === 'full_day' ) {
+				if ( isset( $block['block_type'] ) && 'full_day' === $block['block_type'] ) {
 					$block_start = $block['start_date'];
 					$block_end   = $block['end_date'] ?? $block['start_date'];
 					$current     = $block_start;

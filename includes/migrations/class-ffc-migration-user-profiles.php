@@ -28,8 +28,8 @@ class MigrationUserProfiles {
 	/**
 	 * Run the migration
 	 *
-	 * @param int  $batch_size Number of users per batch
-	 * @param bool $dry_run If true, only shows what would change
+	 * @param int  $batch_size Number of users per batch.
+	 * @param bool $dry_run If true, only shows what would change.
 	 * @return array<string, mixed> Result with success status, processed count, and changes
 	 */
 	public static function run( int $batch_size = 50, bool $dry_run = false ): array {
@@ -37,7 +37,7 @@ class MigrationUserProfiles {
 
 		$profiles_table = $wpdb->prefix . 'ffc_user_profiles';
 
-		// Check if table exists
+		// Check if table exists.
 		if ( ! self::table_exists( $profiles_table ) ) {
 			return array(
 				'success'   => false,
@@ -49,7 +49,7 @@ class MigrationUserProfiles {
 			);
 		}
 
-		// Get all ffc_users that don't have a profile yet
+		// Get all ffc_users that don't have a profile yet.
 		$users = get_users(
 			array(
 				'role'   => 'ffc_user',
@@ -79,7 +79,7 @@ class MigrationUserProfiles {
 			++$processed;
 
 			try {
-				// Skip if profile already exists
+				// Skip if profile already exists.
 				$exists = $wpdb->get_var(
 					$wpdb->prepare(
 						'SELECT id FROM %i WHERE user_id = %d',
@@ -99,7 +99,7 @@ class MigrationUserProfiles {
 					continue;
 				}
 
-				// Get registration date from user_meta (set by UserManager)
+				// Get registration date from user_meta (set by UserManager).
 				$ffc_reg_date = get_user_meta( $user_id, 'ffc_registration_date', true );
 				$created_at   = ! empty( $ffc_reg_date ) ? $ffc_reg_date : $user->user_registered;
 
@@ -128,7 +128,7 @@ class MigrationUserProfiles {
 			}
 		}
 
-		// Log errors
+		// Log errors.
 		if ( ! empty( $errors ) ) {
 			update_option( 'ffc_migration_user_profiles_errors', $errors );
 		}
@@ -211,7 +211,7 @@ class MigrationUserProfiles {
 	/**
 	 * Preview changes (dry run)
 	 *
-	 * @param int $limit Maximum users to preview
+	 * @param int $limit Maximum users to preview.
 	 * @return array<string, mixed> Preview results
 	 */
 	public static function preview( int $limit = 50 ): array {

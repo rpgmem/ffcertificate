@@ -37,7 +37,7 @@ class AudienceNotificationHandler {
 	/**
 	 * Send notification when booking is created
 	 *
-	 * @param int $booking_id Booking ID
+	 * @param int $booking_id Booking ID.
 	 * @return void
 	 */
 	public static function send_booking_created_notification( int $booking_id ): void {
@@ -56,17 +56,17 @@ class AudienceNotificationHandler {
 			return;
 		}
 
-		// Get all affected users
+		// Get all affected users.
 		$affected_users = AudienceBookingRepository::get_all_affected_users( $booking_id );
 		if ( empty( $affected_users ) ) {
 			return;
 		}
 
-		// Get booking creator info
+		// Get booking creator info.
 		$creator      = get_user_by( 'id', $booking->created_by );
 		$creator_name = $creator ? $creator->display_name : __( 'Unknown', 'ffcertificate' );
 
-		// Prepare booking data
+		// Prepare booking data.
 		$environment_label = AudienceScheduleRepository::get_environment_label( $schedule, true );
 		$booking_data      = array(
 			'booking_id'        => $booking_id,
@@ -83,7 +83,7 @@ class AudienceNotificationHandler {
 			'creator_name'      => $creator_name,
 		);
 
-		// Get audiences for the booking
+		// Get audiences for the booking.
 		$audiences                 = AudienceBookingRepository::get_booking_audiences( $booking_id );
 		$audience_names            = array_map(
 			function ( $a ) {
@@ -93,16 +93,16 @@ class AudienceNotificationHandler {
 		);
 		$booking_data['audiences'] = implode( ', ', $audience_names );
 
-		// Generate ICS if enabled
+		// Generate ICS if enabled.
 		$ics_content = null;
 		if ( $schedule->include_ics ) {
 			$ics_content = self::generate_ics( $booking_data, 'created' );
 		}
 
-		// Get email template or use default
+		// Get email template or use default.
 		$template = $schedule->email_template_booking ?: self::get_default_booking_template();
 
-		// Send email to each affected user
+		// Send email to each affected user.
 		foreach ( $affected_users as $user_id ) {
 			$user = get_user_by( 'id', $user_id );
 			if ( ! $user || ! $user->user_email ) {
@@ -121,8 +121,8 @@ class AudienceNotificationHandler {
 	/**
 	 * Send notification when booking is cancelled
 	 *
-	 * @param int    $booking_id Booking ID
-	 * @param string $reason Cancellation reason
+	 * @param int    $booking_id Booking ID.
+	 * @param string $reason Cancellation reason.
 	 * @return void
 	 */
 	public static function send_booking_cancelled_notification( int $booking_id, string $reason ): void {
@@ -141,7 +141,7 @@ class AudienceNotificationHandler {
 			return;
 		}
 
-		// Get all affected users (from booking_users table)
+		// Get all affected users (from booking_users table).
 		global $wpdb;
 		$booking_users_table = $wpdb->prefix . 'ffc_audience_booking_users';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -157,11 +157,11 @@ class AudienceNotificationHandler {
 			return;
 		}
 
-		// Get cancelled by info
+		// Get cancelled by info.
 		$cancelled_by      = get_user_by( 'id', $booking->cancelled_by );
 		$cancelled_by_name = $cancelled_by ? $cancelled_by->display_name : __( 'Unknown', 'ffcertificate' );
 
-		// Prepare booking data
+		// Prepare booking data.
 		$environment_label = AudienceScheduleRepository::get_environment_label( $schedule, true );
 		$booking_data      = array(
 			'booking_id'          => $booking_id,
@@ -179,7 +179,7 @@ class AudienceNotificationHandler {
 			'cancellation_reason' => $reason,
 		);
 
-		// Get audiences for the booking
+		// Get audiences for the booking.
 		$audiences                 = AudienceBookingRepository::get_booking_audiences( $booking_id );
 		$audience_names            = array_map(
 			function ( $a ) {
@@ -189,16 +189,16 @@ class AudienceNotificationHandler {
 		);
 		$booking_data['audiences'] = implode( ', ', $audience_names );
 
-		// Generate ICS cancellation if enabled
+		// Generate ICS cancellation if enabled.
 		$ics_content = null;
 		if ( $schedule->include_ics ) {
 			$ics_content = self::generate_ics( $booking_data, 'cancelled' );
 		}
 
-		// Get email template or use default
+		// Get email template or use default.
 		$template = $schedule->email_template_cancellation ?: self::get_default_cancellation_template();
 
-		// Send email to each affected user
+		// Send email to each affected user.
 		foreach ( $affected_users as $user_id ) {
 			$user = get_user_by( 'id', (int) $user_id );
 			if ( ! $user || ! $user->user_email ) {
@@ -217,17 +217,17 @@ class AudienceNotificationHandler {
 	/**
 	 * Send email with optional ICS attachment
 	 *
-	 * @param string      $to Recipient email
-	 * @param string      $subject Email subject
-	 * @param string      $body Email body (HTML)
-	 * @param string|null $ics_content ICS file content
+	 * @param string      $to Recipient email.
+	 * @param string      $subject Email subject.
+	 * @param string      $body Email body (HTML).
+	 * @param string|null $ics_content ICS file content.
 	 * @return bool
 	 */
 	private static function send_email( string $to, string $subject, string $body, ?string $ics_content = null ): bool {
 		$attachments = array();
 		$temp_files  = array();
 
-		// Create temporary ICS file if content provided
+		// Create temporary ICS file if content provided.
 		if ( $ics_content ) {
 			$upload_dir = wp_upload_dir();
 			$ics_file   = $upload_dir['basedir'] . '/ffc-temp-' . wp_generate_password( 12, false ) . '.ics';
@@ -239,10 +239,10 @@ class AudienceNotificationHandler {
 			}
 		}
 
-		// Delegate to shared email service
+		// Delegate to shared email service.
 		$result = \FreeFormCertificate\Scheduling\EmailTemplateService::send( $to, $subject, $body, $attachments );
 
-		// Clean up temporary ICS file
+		// Clean up temporary ICS file.
 		foreach ( $temp_files as $file ) {
 			if ( file_exists( $file ) ) {
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
@@ -256,17 +256,17 @@ class AudienceNotificationHandler {
 	/**
 	 * Generate ICS calendar file content
 	 *
-	 * @param array<string, mixed> $booking_data Booking data
-	 * @param string               $action Action type (created, cancelled)
+	 * @param array<string, mixed> $booking_data Booking data.
+	 * @param string               $action Action type (created, cancelled).
 	 * @return string ICS content
 	 */
 	private static function generate_ics( array $booking_data, string $action ): string {
 		$summary = $booking_data['description'];
-		if ( $action === 'cancelled' ) {
+		if ( 'cancelled' === $action ) {
 			$summary = '[' . __( 'CANCELLED', 'ffcertificate' ) . '] ' . $summary;
 		}
 
-		$method = ( $action === 'cancelled' ) ? 'CANCEL' : 'REQUEST';
+		$method = ( 'cancelled' === $action ) ? 'CANCEL' : 'REQUEST';
 
 		return \FreeFormCertificate\Scheduling\EmailTemplateService::generate_ics(
 			array(
@@ -282,14 +282,14 @@ class AudienceNotificationHandler {
 		);
 	}
 
-	// escape_ics_text() removed — already available in EmailTemplateService (v4.11.2)
+	// escape_ics_text() removed — already available in EmailTemplateService (v4.11.2).
 
 	/**
 	 * Render email template with variables
 	 *
-	 * @param string               $template Template content
-	 * @param array<string, mixed> $booking_data Booking data
-	 * @param \WP_User             $user Recipient user
+	 * @param string               $template Template content.
+	 * @param array<string, mixed> $booking_data Booking data.
+	 * @param \WP_User             $user Recipient user.
 	 * @return string Rendered template
 	 */
 	private static function render_template( string $template, array $booking_data, \WP_User $user ): string {
@@ -373,7 +373,7 @@ class AudienceNotificationHandler {
 	/**
 	 * Get booking created email subject
 	 *
-	 * @param array<string, mixed> $booking_data Booking data
+	 * @param array<string, mixed> $booking_data Booking data.
 	 * @return string Email subject
 	 */
 	private static function get_booking_subject( array $booking_data ): string {
@@ -388,7 +388,7 @@ class AudienceNotificationHandler {
 	/**
 	 * Get booking cancelled email subject
 	 *
-	 * @param array<string, mixed> $booking_data Booking data
+	 * @param array<string, mixed> $booking_data Booking data.
 	 * @return string Email subject
 	 */
 	private static function get_cancellation_subject( array $booking_data ): string {

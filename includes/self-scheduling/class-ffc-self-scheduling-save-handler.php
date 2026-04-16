@@ -35,7 +35,7 @@ class SelfSchedulingSaveHandler {
 	 * @return void
 	 */
 	public function save_calendar_data( int $post_id, object $post, bool $update ): void {
-		// Security checks
+		// Security checks.
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			return;
 		}
@@ -65,7 +65,7 @@ class SelfSchedulingSaveHandler {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); each field sanitized individually below.
 		$config = wp_unslash( $_POST['ffc_self_scheduling_config'] );
 
-		// Sanitize
+		// Sanitize.
 		$config['description']                       = sanitize_textarea_field( $config['description'] ?? '' );
 		$config['slot_duration']                     = absint( $config['slot_duration'] ?? 30 );
 		$config['slot_interval']                     = absint( $config['slot_interval'] ?? 0 );
@@ -79,16 +79,16 @@ class SelfSchedulingSaveHandler {
 		$config['requires_approval']                 = isset( $config['requires_approval'] ) ? 1 : 0;
 		$config['status']                            = sanitize_text_field( $config['status'] ?? 'active' );
 
-		// Visibility controls
+		// Visibility controls.
 		$config['visibility']            = in_array( ( $config['visibility'] ?? '' ), array( 'public', 'private' ), true ) ? $config['visibility'] : 'public';
 		$config['scheduling_visibility'] = in_array( ( $config['scheduling_visibility'] ?? '' ), array( 'public', 'private' ), true ) ? $config['scheduling_visibility'] : 'public';
 
-		// If visibility is private, scheduling must also be private
-		if ( $config['visibility'] === 'private' ) {
+		// If visibility is private, scheduling must also be private.
+		if ( 'private' === $config['visibility'] ) {
 			$config['scheduling_visibility'] = 'private';
 		}
 
-		// Business hours restriction toggles
+		// Business hours restriction toggles.
 		$config['restrict_viewing_to_hours'] = isset( $config['restrict_viewing_to_hours'] ) ? 1 : 0;
 		$config['restrict_booking_to_hours'] = isset( $config['restrict_booking_to_hours'] ) ? 1 : 0;
 

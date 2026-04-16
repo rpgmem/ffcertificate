@@ -12,10 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file
 
-// Get current settings
+// Get current settings.
 $ffcertificate_current_settings = get_option( 'ffc_user_access_settings', array() );
 
-// Defaults
+// Defaults.
 $ffcertificate_defaults = array(
 	'block_wp_admin'    => false,
 	'blocked_roles'     => array( 'ffc_user' ),
@@ -27,11 +27,11 @@ $ffcertificate_defaults = array(
 
 $ffcertificate_settings = wp_parse_args( $ffcertificate_current_settings, $ffcertificate_defaults );
 
-// Get all WordPress roles
+// Get all WordPress roles.
 $ffcertificate_wp_roles        = wp_roles();
 $ffcertificate_available_roles = $ffcertificate_wp_roles->get_names();
 
-// Get dashboard page URL
+// Get dashboard page URL.
 $ffcertificate_dashboard_page_id = get_option( 'ffc_dashboard_page_id' );
 $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permalink( $ffcertificate_dashboard_page_id ) : home_url( '/dashboard' );
 ?>
@@ -78,9 +78,9 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 									<input type="checkbox"
 											name="blocked_roles[]"
 											value="<?php echo esc_attr( $ffcertificate_role_slug ); ?>"
-											<?php checked( in_array( $ffcertificate_role_slug, $ffcertificate_settings['blocked_roles'] ) ); ?>>
+											<?php checked( in_array( $ffcertificate_role_slug, $ffcertificate_settings['blocked_roles'], true ) ); ?>>
 									<?php echo esc_html( $ffcertificate_role_name ); ?>
-									<?php if ( $ffcertificate_role_slug === 'ffc_user' ) : ?>
+									<?php if ( 'ffc_user' === $ffcertificate_role_slug ) : ?>
 										<em>(<?php esc_html_e( 'recommended', 'ffcertificate' ); ?>)</em>
 									<?php endif; ?>
 								</label>

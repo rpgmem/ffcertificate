@@ -99,7 +99,7 @@ class ReregistrationFormRenderer {
 				$group_index = 0;
 				foreach ( $grouped as $group_key => $group_fields ) {
 					++$group_index;
-					$label = $group_labels[ $group_key ] ?? ( $group_key !== '' ? $group_key : __( 'Additional Information', 'ffcertificate' ) );
+					$label = $group_labels[ $group_key ] ?? ( '' !== $group_key ? $group_key : __( 'Additional Information', 'ffcertificate' ) );
 					self::render_group_fieldset( $group_index, (string) $label, $group_fields, $values );
 				}
 
@@ -212,14 +212,14 @@ class ReregistrationFormRenderer {
 			// 2. Profile sync value.
 			if ( ! empty( $field->field_profile_key ) ) {
 				$pkey = (string) $field->field_profile_key;
-				if ( isset( $profile[ $pkey ] ) && $profile[ $pkey ] !== '' ) {
+				if ( isset( $profile[ $pkey ] ) && '' !== $profile[ $pkey ] ) {
 					$values[ $key ] = $profile[ $pkey ];
 					continue;
 				}
 			}
 
 			// 3. Fallback to user email for institutional_email field shape.
-			if ( $user && $key === 'email_institucional' && ! empty( $user->user_email ) ) {
+			if ( $user && 'email_institucional' === $key && ! empty( $user->user_email ) ) {
 				$values[ $key ] = $user->user_email;
 				continue;
 			}
@@ -276,7 +276,7 @@ class ReregistrationFormRenderer {
 		$rules      = self::decode_rules( $field );
 
 		// Checkbox renders its own label inline.
-		if ( $field->field_type === 'checkbox' ) {
+		if ( 'checkbox' === $field->field_type ) {
 			?>
 			<div class="ffc-rereg-field" data-field-id="<?php echo esc_attr( (string) $field->id ); ?>"
 				data-field-key="<?php echo esc_attr( (string) $field->field_key ); ?>">
@@ -319,10 +319,10 @@ class ReregistrationFormRenderer {
 	 */
 	private static function render_input( object $field, string $field_id, string $field_name, $value, bool $required, array $rules ): void {
 		$mask = isset( $field->field_mask ) ? (string) $field->field_mask : '';
-		if ( $mask === '' && ! empty( $rules['format'] ) ) {
+		if ( '' === $mask && ! empty( $rules['format'] ) ) {
 			$mask = (string) $rules['format'];
 		}
-		$mask_attr = $mask !== '' ? ' data-mask="' . esc_attr( $mask ) . '"' : '';
+		$mask_attr = '' !== $mask ? ' data-mask="' . esc_attr( $mask ) . '"' : '';
 		$req_attr  = $required ? ' required' : '';
 
 		switch ( (string) $field->field_type ) {
@@ -423,7 +423,7 @@ class ReregistrationFormRenderer {
 		$parent_label = $opts['parent_label'] ?? __( 'Category', 'ffcertificate' );
 		$child_label  = $opts['child_label'] ?? __( 'Subcategory', 'ffcertificate' );
 
-		$decoded = $value !== null && $value !== '' ? json_decode( $value, true ) : null;
+		$decoded = null !== $value && '' !== $value ? json_decode( $value, true ) : null;
 		$parent  = is_array( $decoded ) && isset( $decoded['parent'] ) ? (string) $decoded['parent'] : '';
 		$child   = is_array( $decoded ) && isset( $decoded['child'] ) ? (string) $decoded['child'] : '';
 		?>
@@ -456,7 +456,7 @@ class ReregistrationFormRenderer {
 					<select class="ffc-dep-child">
 						<option value=""><?php esc_html_e( 'Select', 'ffcertificate' ); ?></option>
 						<?php
-						if ( $parent !== '' && isset( $groups[ $parent ] ) ) {
+						if ( '' !== $parent && isset( $groups[ $parent ] ) ) {
 							foreach ( $groups[ $parent ] as $child_opt ) {
 								printf(
 									'<option value="%s" %s>%s</option>',
@@ -484,14 +484,14 @@ class ReregistrationFormRenderer {
 	 */
 	private static function render_working_hours_field( string $field_id, string $field_name, ?string $value ): void {
 		$wh_data = null;
-		if ( is_string( $value ) && $value !== '' ) {
+		if ( is_string( $value ) && '' !== $value ) {
 			$decoded = json_decode( $value, true );
 			if ( is_array( $decoded ) && ! empty( $decoded ) ) {
 				$wh_data = $decoded;
 			}
 		}
 
-		if ( $wh_data === null ) {
+		if ( null === $wh_data ) {
 			$wh_data = ReregistrationFieldOptions::get_default_working_hours();
 		}
 
@@ -576,7 +576,7 @@ class ReregistrationFormRenderer {
 	 */
 	private static function decode_options( object $field ): array {
 		$options = $field->field_options ?? null;
-		if ( is_string( $options ) && $options !== '' ) {
+		if ( is_string( $options ) && '' !== $options ) {
 			$options = json_decode( $options, true );
 		}
 		return is_array( $options ) ? $options : array();
@@ -590,7 +590,7 @@ class ReregistrationFormRenderer {
 	 */
 	private static function decode_rules( object $field ): array {
 		$rules = $field->validation_rules ?? null;
-		if ( is_string( $rules ) && $rules !== '' ) {
+		if ( is_string( $rules ) && '' !== $rules ) {
 			$rules = json_decode( $rules, true );
 		}
 		return is_array( $rules ) ? $rules : array();

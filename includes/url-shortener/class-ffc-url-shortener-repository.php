@@ -46,7 +46,7 @@ class UrlShortenerRepository extends AbstractRepository {
 		$cache_key = 'code_' . $code;
 		$cached    = $this->get_cache( $cache_key );
 
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -73,7 +73,7 @@ class UrlShortenerRepository extends AbstractRepository {
 		$cache_key = 'post_' . $post_id;
 		$cached    = $this->get_cache( $cache_key );
 
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -114,7 +114,7 @@ class UrlShortenerRepository extends AbstractRepository {
 			)
 		);
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
@@ -139,7 +139,7 @@ class UrlShortenerRepository extends AbstractRepository {
 	/**
 	 * Find paginated short URLs for admin listing.
 	 *
-	 * @param array<string, mixed> $args {
+	 * @param array<string, mixed> $args {.
 	 *     @type int    $per_page  Items per page (default 20).
 	 *     @type int    $page      Current page (default 1).
 	 *     @type string $orderby   Column to sort by (default 'created_at').
@@ -189,7 +189,7 @@ class UrlShortenerRepository extends AbstractRepository {
 		$offset   = ( max( 1, (int) $args['page'] ) - 1 ) * (int) $args['per_page'];
 		$per_page = (int) $args['per_page'];
 
-		// Build count query
+		// Build count query.
 		$count_query = "SELECT COUNT(*) FROM %i {$where_sql}";
 		$count_args  = array_merge( array( $this->table ), $where_values );
 
@@ -198,7 +198,7 @@ class UrlShortenerRepository extends AbstractRepository {
 			$this->wpdb->prepare( $count_query, ...$count_args ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		);
 
-		// Build items query
+		// Build items query.
 		$items_query = "SELECT * FROM %i {$where_sql} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
 		$items_args  = array_merge( array( $this->table ), $where_values, array( $per_page, $offset ) );
 

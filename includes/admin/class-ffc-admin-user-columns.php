@@ -62,28 +62,28 @@ class AdminUserColumns {
 	 * Initialize user columns
 	 */
 	public static function init(): void {
-		// Add custom columns to users list
+		// Add custom columns to users list.
 		add_filter( 'manage_users_columns', array( __CLASS__, 'add_custom_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'render_custom_column' ), 10, 3 );
 
-		// Enqueue styles for the column
+		// Enqueue styles for the column.
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_styles' ) );
 	}
 
 	/**
 	 * Add custom columns to users table
 	 *
-	 * @param array<string, string> $columns Existing columns
+	 * @param array<string, string> $columns Existing columns.
 	 * @return array<string, string> Modified columns
 	 */
 	public static function add_custom_columns( array $columns ): array {
-		// Add after "Posts" column
+		// Add after "Posts" column.
 		$new_columns = array();
 
 		foreach ( $columns as $key => $value ) {
 			$new_columns[ $key ] = $value;
 
-			if ( $key === 'posts' ) {
+			if ( 'posts' === $key ) {
 				$new_columns['ffc_certificates'] = __( 'Certificates', 'ffcertificate' );
 				$new_columns['ffc_appointments'] = __( 'Appointments', 'ffcertificate' );
 				$new_columns['ffc_user_actions'] = __( 'User Actions', 'ffcertificate' );
@@ -96,9 +96,9 @@ class AdminUserColumns {
 	/**
 	 * Render content for custom columns
 	 *
-	 * @param string $output Custom column output
-	 * @param string $column_name Column name
-	 * @param int    $user_id User ID
+	 * @param string $output Custom column output.
+	 * @param string $column_name Column name.
+	 * @param int    $user_id User ID.
 	 * @return string Column HTML
 	 */
 	public static function render_custom_column( string $output, string $column_name, int $user_id ): string {
@@ -120,13 +120,13 @@ class AdminUserColumns {
 	/**
 	 * Render certificates count
 	 *
-	 * @param int $user_id User ID
+	 * @param int $user_id User ID.
 	 * @return string Column HTML
 	 */
 	private static function render_certificates_count( int $user_id ): string {
 		$count = self::get_user_certificate_count( $user_id );
 
-		if ( $count === 0 ) {
+		if ( 0 === $count ) {
 			return '<span class="ffc-empty-value">—</span>';
 		}
 
@@ -140,13 +140,13 @@ class AdminUserColumns {
 	/**
 	 * Render appointments count
 	 *
-	 * @param int $user_id User ID
+	 * @param int $user_id User ID.
 	 * @return string Column HTML
 	 */
 	private static function render_appointments_count( int $user_id ): string {
 		$count = self::get_user_appointment_count( $user_id );
 
-		if ( $count === 0 ) {
+		if ( 0 === $count ) {
 			return '<span class="ffc-empty-value">—</span>';
 		}
 
@@ -160,12 +160,12 @@ class AdminUserColumns {
 	/**
 	 * Render user actions (login as user link)
 	 *
-	 * @param int $user_id User ID
+	 * @param int $user_id User ID.
 	 * @return string Column HTML
 	 */
 	private static function render_user_actions( int $user_id ): string {
-		// Get dashboard URL from User Access Settings (cached per request)
-		if ( self::$dashboard_url_cache === null ) {
+		// Get dashboard URL from User Access Settings (cached per request).
+		if ( null === self::$dashboard_url_cache ) {
 			$user_access_settings      = get_option( 'ffc_user_access_settings', array() );
 			self::$dashboard_url_cache = isset( $user_access_settings['redirect_url'] ) && ! empty( $user_access_settings['redirect_url'] )
 				? $user_access_settings['redirect_url']
@@ -173,7 +173,7 @@ class AdminUserColumns {
 		}
 		$dashboard_url = self::$dashboard_url_cache;
 
-		// Create view-as link with nonce
+		// Create view-as link with nonce.
 		$view_as_url = add_query_arg(
 			array(
 				'ffc_view_as_user' => $user_id,
@@ -197,11 +197,11 @@ class AdminUserColumns {
 	 * subsequent calls return from cache. Eliminates N+1 queries.
 	 *
 	 * @since 4.9.7 - Batch query replaces per-user COUNT
-	 * @param int $user_id User ID
+	 * @param int $user_id User ID.
 	 * @return int Certificate count
 	 */
 	private static function get_user_certificate_count( int $user_id ): int {
-		if ( self::$certificate_counts_cache === null ) {
+		if ( null === self::$certificate_counts_cache ) {
 			self::load_certificate_counts();
 		}
 
@@ -212,11 +212,11 @@ class AdminUserColumns {
 	 * Get appointment count for user (batch-loaded)
 	 *
 	 * @since 4.9.7 - Batch query replaces per-user COUNT
-	 * @param int $user_id User ID
+	 * @param int $user_id User ID.
 	 * @return int Appointment count
 	 */
 	private static function get_user_appointment_count( int $user_id ): int {
-		if ( self::$appointment_counts_cache === null ) {
+		if ( null === self::$appointment_counts_cache ) {
 			self::load_appointment_counts();
 		}
 
@@ -260,8 +260,8 @@ class AdminUserColumns {
 		global $wpdb;
 		$table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-		// Check if table exists (cached per request)
-		if ( self::$appointments_table_exists === null ) {
+		// Check if table exists (cached per request).
+		if ( null === self::$appointments_table_exists ) {
 			self::$appointments_table_exists = self::table_exists( $table );
 		}
 
@@ -290,8 +290,8 @@ class AdminUserColumns {
 	 * Enqueue CSS for certificates column
 	 */
 	public static function enqueue_styles( string $hook ): void {
-		// Only load on users.php page
-		if ( $hook !== 'users.php' ) {
+		// Only load on users.php page.
+		if ( 'users.php' !== $hook ) {
 			return;
 		}
 

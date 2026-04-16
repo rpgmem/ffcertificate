@@ -42,7 +42,7 @@ class AdminUserCustomFields {
 	 * @return void
 	 */
 	public static function enqueue_assets( string $hook ): void {
-		if ( $hook !== 'user-edit.php' && $hook !== 'profile.php' ) {
+		if ( 'user-edit.php' !== $hook && 'profile.php' !== $hook ) {
 			return;
 		}
 
@@ -132,7 +132,7 @@ class AdminUserCustomFields {
 						<tbody>
 							<?php foreach ( $fields as $field ) : ?>
 								<?php
-								// Avoid rendering same field twice (shared parent)
+								// Avoid rendering same field twice (shared parent).
 								if ( isset( $rendered_field_ids[ (int) $field->id ] ) ) {
 									continue;
 								}
@@ -322,18 +322,18 @@ class AdminUserCustomFields {
 	 * @return void
 	 */
 	public static function save_section( int $user_id ): void {
-		// Verify nonce
+		// Verify nonce.
 		if ( ! isset( $_POST['ffc_user_custom_fields_nonce'] ) ||
 			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_user_custom_fields_nonce'] ) ), 'ffc_save_user_custom_fields' ) ) {
 			return;
 		}
 
-		// Check permissions
+		// Check permissions.
 		if ( ! current_user_can( 'edit_user', $user_id ) ) {
 			return;
 		}
 
-		// Get all fields for this user
+		// Get all fields for this user.
 		$fields = CustomFieldRepository::get_all_for_user( $user_id, true );
 		if ( empty( $fields ) ) {
 			return;
@@ -343,7 +343,7 @@ class AdminUserCustomFields {
 		$seen_ids = array();
 
 		foreach ( $fields as $field ) {
-			// Avoid processing same field twice
+			// Avoid processing same field twice.
 			if ( isset( $seen_ids[ (int) $field->id ] ) ) {
 				continue;
 			}
@@ -352,9 +352,9 @@ class AdminUserCustomFields {
 			$input_name = 'ffc_cf_' . $field->id;
 			$field_key  = 'field_' . $field->id;
 
-			if ( $field->field_type === 'checkbox' ) {
+			if ( 'checkbox' === $field->field_type ) {
 				$data[ $field_key ] = isset( $_POST[ $input_name ] ) ? 1 : 0;
-			} elseif ( $field->field_type === 'working_hours' ) {
+			} elseif ( 'working_hours' === $field->field_type ) {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized via json_decode + sanitize_text_field below.
 				$raw_value = isset( $_POST[ $input_name ] ) ? wp_unslash( $_POST[ $input_name ] ) : '[]';
 				$wh        = json_decode( $raw_value, true );
@@ -378,7 +378,7 @@ class AdminUserCustomFields {
 			} else {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Checked via isset; sanitized via sanitize_text_field/sanitize_textarea_field below.
 				$raw_value          = isset( $_POST[ $input_name ] ) ? wp_unslash( $_POST[ $input_name ] ) : '';
-				$data[ $field_key ] = $field->field_type === 'textarea'
+				$data[ $field_key ] = 'textarea' === $field->field_type
 					? sanitize_textarea_field( $raw_value )
 					: sanitize_text_field( $raw_value );
 			}

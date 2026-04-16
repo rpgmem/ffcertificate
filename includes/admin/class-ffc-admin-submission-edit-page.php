@@ -51,7 +51,7 @@ class AdminSubmissionEditPage {
 	/**
 	 * Constructor
 	 *
-	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler instance
+	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler instance.
 	 */
 	public function __construct( object $handler ) {
 		$this->submission_handler = $handler;
@@ -72,16 +72,16 @@ class AdminSubmissionEditPage {
 	 *
 	 * Main entry point that delegates to specialized render methods.
 	 *
-	 * @param int $submission_id Submission ID to edit
+	 * @param int $submission_id Submission ID to edit.
 	 */
 	public function render( int $submission_id ): void {
-		// Permission check
+		// Permission check.
 		if ( ! $this->can_edit_submission() ) {
 			echo '<div class="wrap"><div class="notice notice-error"><p>' . esc_html__( 'You do not have permission to edit submissions.', 'ffcertificate' ) . '</p></div></div>';
 			return;
 		}
 
-		// Get submission data
+		// Get submission data.
 		$sub = $this->submission_handler->get_submission( $submission_id );
 
 		if ( ! $sub ) {
@@ -89,12 +89,12 @@ class AdminSubmissionEditPage {
 			return;
 		}
 
-		// Prepare data (convert form_id to int - wpdb returns strings)
+		// Prepare data (convert form_id to int - wpdb returns strings).
 		$this->sub_array = (array) $sub;
 		$this->data      = json_decode( $this->sub_array['data'], true ) ?: array();
 		$this->fields    = get_post_meta( (int) $this->sub_array['form_id'], '_ffc_form_fields', true );
 
-		// Render page
+		// Render page.
 		?>
 		<div class="wrap">
 			<h1>
@@ -448,7 +448,7 @@ class AdminSubmissionEditPage {
 	 * Renders all custom fields from the form submission.
 	 */
 	private function render_dynamic_fields(): void {
-		// Protected fields (read-only within JSON)
+		// Protected fields (read-only within JSON).
 		$protected_json_fields = array( 'auth_code', 'fill_date', 'ticket' );
 
 		if ( ! is_array( $this->data ) ) {
@@ -456,12 +456,12 @@ class AdminSubmissionEditPage {
 		}
 
 		foreach ( $this->data as $k => $v ) {
-			// Skip old tracking fields (now in columns)
-			if ( $k === 'is_edited' || $k === 'edited_at' ) {
+			// Skip old tracking fields (now in columns).
+			if ( 'is_edited' === $k || 'edited_at' === $k ) {
 				continue;
 			}
 
-			// Get field label
+			// Get field label.
 			$lbl = $k;
 			if ( is_array( $this->fields ) ) {
 				foreach ( $this->fields as $f ) {
@@ -471,8 +471,8 @@ class AdminSubmissionEditPage {
 				}
 			}
 
-			// Determine if field is protected
-			$is_protected  = in_array( $k, $protected_json_fields );
+			// Determine if field is protected.
+			$is_protected  = in_array( $k, $protected_json_fields, true );
 			$field_class   = $is_protected ? 'regular-text ffc-input-readonly' : 'regular-text';
 			$readonly_attr = $is_protected ? 'readonly' : '';
 			$display_value = is_array( $v ) ? implode( ', ', $v ) : $v;
@@ -502,7 +502,7 @@ class AdminSubmissionEditPage {
 			return;
 		}
 
-		// Permission check
+		// Permission check.
 		if ( ! $this->can_edit_submission() ) {
 			wp_die( esc_html__( 'You do not have permission to edit submissions.', 'ffcertificate' ) );
 		}
@@ -513,20 +513,20 @@ class AdminSubmissionEditPage {
 
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_admin_referer.
 		$id = isset( $_POST['submission_id'] ) ? absint( wp_unslash( $_POST['submission_id'] ) ) : 0;
-		// Normalize email to lowercase for consistent storage and lookups
+		// Normalize email to lowercase for consistent storage and lookups.
 		$new_email = isset( $_POST['user_email'] ) ? strtolower( sanitize_email( wp_unslash( $_POST['user_email'] ) ) ) : '';
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
 		$raw_data   = isset( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : array();
 		$clean_data = array();
 
-		// Name fields that should be normalized (capitalized with lowercase connectives)
+		// Name fields that should be normalized (capitalized with lowercase connectives).
 		$name_fields = array( 'nome_completo', 'nome', 'name', 'full_name', 'ffc_nome', 'participante' );
 
 		foreach ( $raw_data as $k => $v ) {
 			$sanitized_key   = sanitize_key( $k );
 			$sanitized_value = wp_kses( $v, \FreeFormCertificate\Core\Utils::get_allowed_html_tags() );
 
-			// Normalize name fields (proper capitalization with lowercase connectives)
+			// Normalize name fields (proper capitalization with lowercase connectives).
 			if ( in_array( $sanitized_key, $name_fields, true ) && ! empty( $sanitized_value ) ) {
 				$sanitized_value = \FreeFormCertificate\Core\Utils::normalize_brazilian_name( $sanitized_value );
 			}
@@ -534,21 +534,21 @@ class AdminSubmissionEditPage {
 			$clean_data[ $sanitized_key ] = $sanitized_value;
 		}
 
-		// Process user link change (simplified: value is user ID, empty string, or __keep__)
+		// Process user link change (simplified: value is user ID, empty string, or __keep__).
 		$linked_user_id = isset( $_POST['linked_user_id'] ) ? sanitize_text_field( wp_unslash( $_POST['linked_user_id'] ) ) : '__keep__';
 
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
-		// Update submission data (email + custom fields)
+		// Update submission data (email + custom fields).
 		$this->submission_handler->update_submission( $id, $new_email, $clean_data );
 
-		// Update user link if changed (not __keep__)
-		if ( $linked_user_id !== '__keep__' ) {
-			$new_user_id = $linked_user_id === '' ? null : (int) $linked_user_id;
+		// Update user link if changed (not __keep__).
+		if ( '__keep__' !== $linked_user_id ) {
+			$new_user_id = '' === $linked_user_id ? null : (int) $linked_user_id;
 
-			// Validate user exists if linking to a user
-			if ( $new_user_id !== null && ! get_userdata( $new_user_id ) ) {
-				// Invalid user ID - skip user link update
+			// Validate user exists if linking to a user.
+			if ( null !== $new_user_id && ! get_userdata( $new_user_id ) ) {
+				// Invalid user ID - skip user link update.
 				\FreeFormCertificate\Core\Utils::debug_log(
 					'Invalid user ID for linking',
 					array(

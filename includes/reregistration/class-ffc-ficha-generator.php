@@ -54,17 +54,17 @@ class FichaGenerator {
 		$custom_fields    = array();
 		foreach ( $all_fields as $field ) {
 			$src = isset( $field->field_source ) ? (string) $field->field_source : 'custom';
-			if ( $src === 'standard' ) {
+			if ( 'standard' === $src ) {
 				$standard_fields[] = $field;
 			} else {
 				$custom_fields[] = $field;
 			}
 		}
 
-		// Status labels (centralized in SubmissionRepository)
+		// Status labels (centralized in SubmissionRepository).
 		$status_labels = ReregistrationSubmissionRepository::get_status_labels();
 
-		// Date formatting
+		// Date formatting.
 		$date_format = get_option( 'date_format' );
 		$time_format = get_option( 'time_format' );
 
@@ -73,9 +73,9 @@ class FichaGenerator {
 			$submitted_at = date_i18n( $date_format . ' ' . $time_format, strtotime( $submission->submitted_at ) );
 		}
 
-		// Check if user has acúmulo de cargos
+		// Check if user has acúmulo de cargos.
 		$acumulo_value = $decrypted_values['acumulo_cargos'] ?? __( 'I do not hold', 'ffcertificate' );
-		$has_acumulo   = $acumulo_value === __( 'I hold', 'ffcertificate' );
+		$has_acumulo   = __( 'I hold', 'ffcertificate' ) === $acumulo_value;
 
 		// Build template variables: framework keys + every standard field by field_key.
 		$variables = array(
@@ -123,10 +123,10 @@ class FichaGenerator {
 		// Build custom fields section HTML (only non-standard fields).
 		$custom_section = self::build_custom_fields_section( $custom_fields, $decrypted_values );
 
-		// Load template
+		// Load template.
 		$template = self::load_template();
 
-		// Replace placeholders
+		// Replace placeholders.
 		foreach ( $variables as $key => $value ) {
 			if ( is_array( $value ) ) {
 				$value = implode( ', ', $value );
@@ -134,10 +134,10 @@ class FichaGenerator {
 			$template = str_replace( '{{' . $key . '}}', wp_kses( $value, \FreeFormCertificate\Core\Utils::get_allowed_html_tags() ), $template );
 		}
 
-		// Replace custom fields section
+		// Replace custom fields section.
 		$template = str_replace( '{{custom_fields_section}}', $custom_section, $template );
 
-		// Fix relative URLs
+		// Fix relative URLs.
 		$site_url = untrailingslashit( get_home_url() );
 		$template = preg_replace( '/(src|href|background)=["\']\/([^"\']+)["\']/i', '$1="' . $site_url . '/$2"', $template );
 
@@ -151,7 +151,7 @@ class FichaGenerator {
 		 */
 		$html = apply_filters( 'ffcertificate_ficha_html', $template, $variables, $submission_id );
 
-		// Generate filename
+		// Generate filename.
 		$safe_title = sanitize_file_name( $rereg->title );
 		if ( empty( $safe_title ) ) {
 			$safe_title = __( 'Record', 'ffcertificate' );
@@ -189,7 +189,7 @@ class FichaGenerator {
 	 * @return string Formatted HTML table or empty.
 	 */
 	private static function format_working_hours( string $json_or_empty ): string {
-		if ( empty( $json_or_empty ) || $json_or_empty === '[]' ) {
+		if ( empty( $json_or_empty ) || '[]' === $json_or_empty ) {
 			return '';
 		}
 		$wh = json_decode( $json_or_empty, true );
@@ -296,11 +296,11 @@ class FichaGenerator {
 				continue;
 			}
 			$key = (string) $field->field_key;
-			if ( ! isset( $decrypted[ $key ] ) || $decrypted[ $key ] === '' || ! is_string( $decrypted[ $key ] ) ) {
+			if ( ! isset( $decrypted[ $key ] ) || '' === $decrypted[ $key ] || ! is_string( $decrypted[ $key ] ) ) {
 				continue;
 			}
 			$plain = \FreeFormCertificate\Core\Encryption::decrypt( $decrypted[ $key ] );
-			if ( $plain !== null ) {
+			if ( null !== $plain ) {
 				$decrypted[ $key ] = $plain;
 			}
 		}
@@ -318,7 +318,7 @@ class FichaGenerator {
 	public static function format_field_value( object $field, $value ): string {
 		switch ( (string) $field->field_type ) {
 			case 'checkbox':
-				return $value === '1' || $value === 1 || $value === true
+				return '1' === $value || 1 === $value || true === $value
 					? __( 'Yes', 'ffcertificate' )
 					: __( 'No', 'ffcertificate' );
 
@@ -366,7 +366,7 @@ class FichaGenerator {
 			}
 		}
 
-		// Fallback: minimal template
+		// Fallback: minimal template.
 		return '<div style="width:794px;height:1123px;padding:60px;box-sizing:border-box;font-family:Arial,sans-serif">'
 			. '<h1 style="text-align:center;color:#0073aa">' . esc_html__( 'Reregistration Record', 'ffcertificate' ) . '</h1>'
 			. '<p><strong>' . esc_html__( 'Name:', 'ffcertificate' ) . '</strong> {{display_name}}</p>'

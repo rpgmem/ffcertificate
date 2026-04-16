@@ -32,28 +32,28 @@ class PdfGenerator {
 	 * Constructor
 	 */
 	public function __construct() {
-		// Reserved for future hooks
+		// Reserved for future hooks.
 	}
 
 	/**
 	 * Generate PDF data for any context
 	 *
-	 * @param int    $submission_id Submission ID
-	 * @param object $submission_handler Submission handler instance
+	 * @param int    $submission_id Submission ID.
+	 * @param object $submission_handler Submission handler instance.
 	 * @return array<string, mixed>|\WP_Error PDF data array or error
 	 */
 	public function generate_pdf_data( int $submission_id, object $submission_handler ) {
-		// Get submission
+		// Get submission.
 		$submission = $submission_handler->get_submission( $submission_id );
 
 		if ( ! $submission ) {
 			return new WP_Error( 'submission_not_found', __( 'Submission not found.', 'ffcertificate' ) );
 		}
 
-		// Convert to array
+		// Convert to array.
 		$sub_array = (array) $submission;
 
-		// Rebuild complete data (columns + JSON)
+		// Rebuild complete data (columns + JSON).
 		$data = array(
 			'email' => $sub_array['email'],
 		);
@@ -66,18 +66,18 @@ class PdfGenerator {
 			$data['cpf_rf'] = $sub_array['cpf_rf'];
 		}
 
-		// Extra fields from JSON
+		// Extra fields from JSON.
 		$extra_data = json_decode( $sub_array['data'], true );
 		if ( ! is_array( $extra_data ) ) {
 			$extra_data = json_decode( wp_unslash( $sub_array['data'] ), true );
 		}
 
-		// Merge — columns have priority over JSON fields
+		// Merge — columns have priority over JSON fields.
 		if ( is_array( $extra_data ) && ! empty( $extra_data ) ) {
 			$data = array_merge( $extra_data, $data );
 		}
 
-		// Enrich data with submission metadata
+		// Enrich data with submission metadata.
 		$data = $this->enrich_submission_data( $data, $sub_array );
 
 		/**
@@ -90,7 +90,7 @@ class PdfGenerator {
 		 */
 		$data = apply_filters( 'ffcertificate_certificate_data', $data, $submission_id, $sub_array );
 
-		// Get form data (convert form_id to int - wpdb returns strings)
+		// Get form data (convert form_id to int - wpdb returns strings).
 		$form_id      = (int) $sub_array['form_id'];
 		$form_title   = get_the_title( $form_id );
 		$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
@@ -109,10 +109,10 @@ class PdfGenerator {
 		 */
 		$html = apply_filters( 'ffcertificate_certificate_html', $html, $data, $submission_id, $form_id );
 
-		// Get verification code from submission data
+		// Get verification code from submission data.
 		$auth_code = isset( $data['auth_code'] ) ? $data['auth_code'] : '';
 
-		// Generate safe filename with verification code
+		// Generate safe filename with verification code.
 		$filename = $this->generate_filename( $form_title, $auth_code );
 
 		/**
@@ -126,7 +126,7 @@ class PdfGenerator {
 		 */
 		$filename = apply_filters( 'ffcertificate_certificate_filename', $filename, $form_title, $auth_code, $submission_id );
 
-		// Log generation
+		// Log generation.
 		\FreeFormCertificate\Core\Utils::debug_log(
 			'PDF data generated',
 			array(
@@ -165,23 +165,23 @@ class PdfGenerator {
 	/**
 	 * Enrich submission data with metadata
 	 *
-	 * @param array<string, mixed> $data Original submission data
-	 * @param array<string, mixed> $submission Submission database row
+	 * @param array<string, mixed> $data Original submission data.
+	 * @param array<string, mixed> $submission Submission database row.
 	 * @return array<string, mixed> Enriched data
 	 */
 	private function enrich_submission_data( array $data, array $submission ): array {
-		// Add email if missing
+		// Add email if missing.
 		if ( ! isset( $data['email'] ) && ! empty( $submission['email'] ) ) {
 			$data['email'] = $submission['email'];
 		}
 
-		// Add formatted date if missing
+		// Add formatted date if missing.
 		if ( ! isset( $data['fill_date'] ) ) {
 			$settings    = get_option( 'ffc_settings', array() );
 			$date_format = isset( $settings['date_format'] ) ? $settings['date_format'] : 'F j, Y';
 
-			// If custom format selected, use it
-			if ( $date_format === 'custom' && ! empty( $settings['date_format_custom'] ) ) {
+			// If custom format selected, use it.
+			if ( 'custom' === $date_format && ! empty( $settings['date_format_custom'] ) ) {
 				$date_format = $settings['date_format_custom'];
 			}
 
@@ -191,17 +191,17 @@ class PdfGenerator {
 			);
 		}
 
-		// Add date alias
+		// Add date alias.
 		if ( ! isset( $data['date'] ) ) {
 			$data['date'] = $data['fill_date'];
 		}
 
-		// Add submission ID (convert to int - wpdb returns strings)
+		// Add submission ID (convert to int - wpdb returns strings).
 		if ( ! isset( $data['submission_id'] ) ) {
 			$data['submission_id'] = (int) $submission['id'];
 		}
 
-		// Add magic token if exists
+		// Add magic token if exists.
 		if ( ! isset( $data['magic_token'] ) && ! empty( $submission['magic_token'] ) ) {
 			$data['magic_token'] = $submission['magic_token'];
 		}
@@ -227,26 +227,26 @@ class PdfGenerator {
 	 * - {{validation_url}} - Validation link with magic token
 	 * - {{validation_url link:m>v}} - Custom link format
 	 *
-	 * @param array<string, mixed> $data Submission data
-	 * @param string               $form_title Form title
-	 * @param array<string, mixed> $form_config Form configuration
-	 * @param string               $submission_date Submission creation date from database
+	 * @param array<string, mixed> $data Submission data.
+	 * @param string               $form_title Form title.
+	 * @param array<string, mixed> $form_config Form configuration.
+	 * @param string               $submission_date Submission creation date from database.
 	 * @return string Generated HTML
 	 */
 	public function generate_html( array $data, string $form_title, array $form_config, ?string $submission_date = null ): string {
 		$layout = isset( $form_config['pdf_layout'] ) && is_string( $form_config['pdf_layout'] ) ? $form_config['pdf_layout'] : '';
 
-		// Use default template if none configured
+		// Use default template if none configured.
 		if ( empty( $layout ) ) {
 			return $this->generate_default_html( $data, $form_title );
 		}
 
-		// Replace standard placeholders
+		// Replace standard placeholders.
 		$settings    = get_option( 'ffc_settings', array() );
 		$date_format = isset( $settings['date_format'] ) ? $settings['date_format'] : 'F j, Y';
 
-		// If custom format selected, use it
-		if ( $date_format === 'custom' && ! empty( $settings['date_format_custom'] ) ) {
+		// If custom format selected, use it.
+		if ( 'custom' === $date_format && ! empty( $settings['date_format_custom'] ) ) {
 			$date_format = $settings['date_format_custom'];
 		}
 
@@ -255,12 +255,12 @@ class PdfGenerator {
 			$layout = str_replace( '{{submission_date}}', date_i18n( $date_format, strtotime( $submission_date ) ), $layout );
 		}
 
-		// {{print_date}} - Current date/time of PDF generation/printing
+		// {{print_date}} - Current date/time of PDF generation/printing.
 		$layout = str_replace( '{{print_date}}', wp_date( $date_format ) ?: '', $layout );
 
 		$layout = str_replace( '{{form_title}}', $form_title, $layout );
 
-		// Inject settings-based placeholders into data (v4.6.10)
+		// Inject settings-based placeholders into data (v4.6.10).
 		if ( ! isset( $data['main_address'] ) && ! empty( $settings['main_address'] ) ) {
 			$data['main_address'] = $settings['main_address'];
 		}
@@ -268,12 +268,12 @@ class PdfGenerator {
 			$data['site_name'] = get_bloginfo( 'name' );
 		}
 
-		// Ensure email field exists
+		// Ensure email field exists.
 		if ( ! isset( $data['email'] ) && isset( $data['user_email'] ) ) {
 			$data['email'] = $data['user_email'];
 		}
 
-		// Quiz score aliases: map {{score}}, {{max_score}}, {{score_percent}} to internal keys
+		// Quiz score aliases: map {{score}}, {{max_score}}, {{score_percent}} to internal keys.
 		if ( isset( $data['_quiz_score'] ) ) {
 			$data['score'] = $data['_quiz_score'];
 		}
@@ -284,37 +284,37 @@ class PdfGenerator {
 			$data['score_percent'] = $data['_quiz_percent'];
 		}
 
-		// Replace field placeholders with formatted values
+		// Replace field placeholders with formatted values.
 		foreach ( $data as $key => $value ) {
 			if ( is_array( $value ) ) {
 				$value = implode( ', ', $value );
 			}
 
-			// Format documents (CPF, RF, RG)
-			if ( in_array( $key, array( 'cpf', 'cpf_rf', 'rg' ) ) ) {
+			// Format documents (CPF, RF, RG).
+			if ( in_array( $key, array( 'cpf', 'cpf_rf', 'rg' ), true ) ) {
 				$value = \FreeFormCertificate\Core\Utils::format_document( $value );
 			}
 
-			// Format auth code with certificate prefix
-			if ( $key === 'auth_code' ) {
+			// Format auth code with certificate prefix.
+			if ( 'auth_code' === $key ) {
 				$value = \FreeFormCertificate\Core\Utils::format_auth_code( $value, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
 			}
 
-			// Apply allowed HTML filtering
+			// Apply allowed HTML filtering.
 			$safe_value = wp_kses( $value, \FreeFormCertificate\Core\Utils::get_allowed_html_tags() );
 			$layout     = str_replace( '{{' . $key . '}}', $safe_value, $layout );
 		}
 
-		// Fix relative URLs to absolute
+		// Fix relative URLs to absolute.
 		$site_url = untrailingslashit( get_home_url() );
 		$layout   = preg_replace( '/(src|href|background)=["\']\/([^"\']+)["\']/i', '$1="' . $site_url . '/$2"', $layout ) ?? $layout;
 
-		// Process QR Code placeholders
+		// Process QR Code placeholders.
 		if ( strpos( $layout, '{{qr_code' ) !== false ) {
 			$layout = $this->process_qrcode_placeholders( $layout, $data, $form_config );
 		}
 
-		// Process Validation URL placeholders
+		// Process Validation URL placeholders.
 		if ( strpos( $layout, '{{validation_url' ) !== false ) {
 			$layout = $this->process_validation_url_placeholders( $layout, $data );
 		}
@@ -335,16 +335,16 @@ class PdfGenerator {
 	 * - {{qr_code:size=200:margin=0}} - Size + margin
 	 * - {{qr_code:size=250:margin=3:error=H}} - All params
 	 *
-	 * @param string               $layout Template HTML
-	 * @param array<string, mixed> $data Submission data
-	 * @param array<string, mixed> $form_config Form configuration
+	 * @param string               $layout Template HTML.
+	 * @param array<string, mixed> $data Submission data.
+	 * @param array<string, mixed> $form_config Form configuration.
 	 * @return string Processed HTML
 	 */
 	private function process_qrcode_placeholders( string $layout, array $data, array $form_config ): string {
-		// Autoloader handles class loading
+		// Autoloader handles class loading.
 		$qr_generator = new \FreeFormCertificate\Generators\QRCodeGenerator();
 
-		// Determine target URL (magic link or verification page)
+		// Determine target URL (magic link or verification page).
 		$target_url = $this->get_qr_code_target_url( $data );
 
 		\FreeFormCertificate\Core\Utils::debug_log(
@@ -356,10 +356,10 @@ class PdfGenerator {
 			)
 		);
 
-		// Get submission ID for caching
+		// Get submission ID for caching.
 		$submission_id = isset( $data['submission_id'] ) ? absint( $data['submission_id'] ) : 0;
 
-		// Replace all QR Code placeholders
+		// Replace all QR Code placeholders.
 		$layout = preg_replace_callback(
 			'/\{\{qr_code(?::([^}]+))?\}\}/',
 			function ( $matches ) use ( $qr_generator, $target_url, $submission_id ) {
@@ -386,14 +386,14 @@ class PdfGenerator {
 	/**
 	 * Generate QR code for submission magic link
 	 *
-	 * @param int $submission_id Submission ID
-	 * @param int $size QR code size (default: 200)
+	 * @param int $submission_id Submission ID.
+	 * @param int $size QR code size (default: 200).
 	 * @return string QR code image URL or data URI
 	 */
 	public static function generate_magic_link_qr( int $submission_id, int $size = 200 ): string {
 		global $wpdb;
 
-		// Get submission
+		// Get submission.
 		$table = $wpdb->prefix . 'ffc_submissions';
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$submission = $wpdb->get_row(
@@ -405,14 +405,14 @@ class PdfGenerator {
 			return '';
 		}
 
-		// Use helper to generate magic link
+		// Use helper to generate magic link.
 		$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $submission['magic_token'] );
 
 		if ( empty( $magic_link ) ) {
 			return '';
 		}
 
-		// Generate QR code
+		// Generate QR code.
 		$qr_generator = new \FreeFormCertificate\Generators\QRCodeGenerator();
 		return $qr_generator->generate( $magic_link, array( 'size' => $size ) );
 	}
@@ -428,13 +428,13 @@ class PdfGenerator {
 	 *
 	 * Format: /valid#token=xxx (hash prevents WordPress redirects)
 	 *
-	 * @param array<string, mixed> $data Submission data
+	 * @param array<string, mixed> $data Submission data.
 	 * @return string URL
 	 */
 	private function get_qr_code_target_url( array $data ): string {
 		$verification_url = untrailingslashit( site_url( 'valid' ) );
 
-		// Priority 1: Magic link (if exists)
+		// Priority 1: Magic link (if exists).
 		$magic_token = isset( $data['magic_token'] ) ? $data['magic_token'] : '';
 		$magic_url   = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $magic_token );
 
@@ -455,63 +455,63 @@ class PdfGenerator {
 	 * - {{validation_url link:m>v target:_blank}} → With target
 	 * - {{validation_url link:m>v color:blue}} → With color
 	 *
-	 * @param string               $layout Template HTML
-	 * @param array<string, mixed> $data Submission data
+	 * @param string               $layout Template HTML.
+	 * @param array<string, mixed> $data Submission data.
 	 * @return string Processed HTML
 	 */
 	private function process_validation_url_placeholders( string $layout, array $data ): string {
-		// Get base URLs
+		// Get base URLs.
 		$valid_url = untrailingslashit( site_url( 'valid' ) );
 
-		// Get magic link URL (with fallback to /valid)
+		// Get magic link URL (with fallback to /valid).
 		$magic_token = isset( $data['magic_token'] ) ? $data['magic_token'] : '';
 		$magic_url   = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $magic_token );
 
 		if ( empty( $magic_url ) ) {
-			$magic_url = $valid_url; // Fallback
+			$magic_url = $valid_url; // Fallback.
 		}
 
-		// Find all {{validation_url ...}} placeholders
+		// Find all {{validation_url ...}} placeholders.
 		preg_match_all( '/{{validation_url(?:\s+([^}]+))?}}/', $layout, $matches, PREG_SET_ORDER );
 
 		foreach ( $matches as $match ) {
 			$full_placeholder = $match[0];
 			$params_string    = isset( $match[1] ) ? trim( $match[1] ) : '';
 
-			// Parse parameters
+			// Parse parameters.
 			$params = $this->parse_validation_url_params( $params_string );
 
-			// Determine href URL
-			$href = ( $params['to'] === 'm' ) ? $magic_url : $valid_url;
+			// Determine href URL.
+			$href = ( 'm' === $params['to'] ) ? $magic_url : $valid_url;
 
-			// Determine text
+			// Determine text.
 			$text = '';
-			if ( is_string( $params['text'] ) && ! in_array( $params['text'], array( 'm', 'v' ) ) ) {
-				// Custom text literal
+			if ( is_string( $params['text'] ) && ! in_array( $params['text'], array( 'm', 'v' ), true ) ) {
+				// Custom text literal.
 				$text = $params['text'];
-			} elseif ( $params['text'] === 'm' ) {
+			} elseif ( 'm' === $params['text'] ) {
 				$text = $magic_url;
 			} else {
-				// Default to /valid
+				// Default to /valid.
 				$text = $valid_url;
 			}
 
-			// Build <a> tag
+			// Build <a> tag.
 			$link = '<a href="' . esc_url( $href ) . '" class="ffc-validation-link"';
 
-			// Add target if specified
+			// Add target if specified.
 			if ( ! empty( $params['target'] ) ) {
 				$link .= ' target="' . esc_attr( $params['target'] ) . '"';
 			}
 
-			// Add color style if specified
+			// Add color style if specified.
 			if ( ! empty( $params['color'] ) ) {
 				$link .= ' style="color: ' . esc_attr( $params['color'] ) . ';"';
 			}
 
 			$link .= '>' . esc_html( $text ) . '</a>';
 
-			// Replace placeholder with generated link
+			// Replace placeholder with generated link.
 			$layout = str_replace( $full_placeholder, $link, $layout );
 		}
 
@@ -523,49 +523,45 @@ class PdfGenerator {
 	 *
 	 * ✅ MOVED FROM FFC_Email_Handler (v2.9.14)
 	 *
-	 * @param string $params_string Parameter string (e.g., "link:m>v target:_blank color:blue")
+	 * @param string $params_string Parameter string (e.g., "link:m>v target:_blank color:blue").
 	 * @return array{to: string, text: string, target: string, color: string} Parsed parameters
 	 */
 	private function parse_validation_url_params( string $params_string ): array {
 		$defaults = array(
-			'to'     => 'm',      // Default destination: magic link
-			'text'   => 'v',    // Default text: /valid URL
+			'to'     => 'm',      // Default destination: magic link.
+			'text'   => 'v',    // Default text: /valid URL.
 			'target' => '',
 			'color'  => '',
 		);
 
-		// Empty params = default (link:m>v)
+		// Empty params = default (link:m>v).
 		if ( empty( $params_string ) ) {
 			return $defaults;
 		}
 
 		$params = $defaults;
 
-		// Split by spaces to get individual parameters
+		// Split by spaces to get individual parameters.
 		$parts = preg_split( '/\s+/', $params_string );
 
 		foreach ( $parts as $part ) {
-			// Parse link:X>Y or link:X>"Custom Text"
+			// Parse link:X>Y or link:X>"Custom Text".
 			if ( preg_match( '/^link:(.+)$/', $part, $link_match ) ) {
 				$link_value = $link_match[1];
 
-				// Check for custom text: m>"Text" or v>"Text"
+				// Check for custom text: m>"Text" or v>"Text".
 				if ( preg_match( '/^([mv])>"([^"]+)"$/', $link_value, $custom_match ) ) {
 					$params['to']   = $custom_match[1];
-					$params['text'] = $custom_match[2]; // Literal text
-				}
-				// Check for standard format: m>v, v>m, m>m, v>v
-				elseif ( preg_match( '/^([mv])>([mv])$/', $link_value, $standard_match ) ) {
+					$params['text'] = $custom_match[2]; // Literal text.
+				} elseif ( preg_match( '/^([mv])>([mv])$/', $link_value, $standard_match ) ) {
+					// Standard format: m>v, v>m, m>m, v>v.
 					$params['to']   = $standard_match[1];
 					$params['text'] = $standard_match[2];
 				}
-			}
-			// Parse target:_blank
-			elseif ( preg_match( '/^target:(.+)$/', $part, $target_match ) ) {
+			} elseif ( preg_match( '/^target:(.+)$/', $part, $target_match ) ) {
+				// Parse target:_blank.
 				$params['target'] = $target_match[1];
-			}
-			// Parse color:blue or color:#2271b1
-			elseif ( preg_match( '/^color:(.+)$/', $part, $color_match ) ) {
+			} elseif ( preg_match( '/^color:(.+)$/', $part, $color_match ) ) {
 				$params['color'] = $color_match[1];
 			}
 		}
@@ -576,8 +572,8 @@ class PdfGenerator {
 	/**
 	 * Generate default HTML template when none configured
 	 *
-	 * @param array<string, mixed> $data Submission data
-	 * @param string               $form_title Form title
+	 * @param array<string, mixed> $data Submission data.
+	 * @param string               $form_title Form title.
 	 * @return string Default HTML
 	 */
 	private function generate_default_html( array $data, string $form_title ): string {
@@ -585,12 +581,12 @@ class PdfGenerator {
 		$layout .= '<h1>' . esc_html( $form_title ) . '</h1>';
 		$layout .= '<p>' . esc_html__( 'We certify that the holder of the data below has completed the event.', 'ffcertificate' ) . '</p>';
 
-		// Show name if exists
+		// Show name if exists.
 		if ( isset( $data['name'] ) ) {
 			$layout .= '<h2>' . esc_html( $data['name'] ) . '</h2>';
 		}
 
-		// Show auth code if exists
+		// Show auth code if exists.
 		if ( isset( $data['auth_code'] ) ) {
 			$layout .= '<p>' . esc_html__( 'Authenticity:', 'ffcertificate' ) . ' ' . esc_html( \FreeFormCertificate\Core\Utils::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ) ) . '</p>';
 		}
@@ -603,21 +599,21 @@ class PdfGenerator {
 	/**
 	 * Generate safe filename for PDF
 	 *
-	 * @param string $form_title Form title
-	 * @param string $auth_code Verification code (optional)
+	 * @param string $form_title Form title.
+	 * @param string $auth_code Verification code (optional).
 	 * @return string Safe filename with .pdf extension
 	 */
 	private function generate_filename( string $form_title, string $auth_code = '' ): string {
-		// Sanitize form title
+		// Sanitize form title.
 		$safe_name = \FreeFormCertificate\Core\Utils::sanitize_filename( $form_title );
 
 		if ( empty( $safe_name ) ) {
 			$safe_name = 'certificate';
 		}
 
-		// Add verification code if available
+		// Add verification code if available.
 		if ( ! empty( $auth_code ) ) {
-			// Sanitize code (usually already alphanumeric, but just in case)
+			// Sanitize code (usually already alphanumeric, but just in case).
 			$safe_code = preg_replace( '/[^A-Za-z0-9]/', '', $auth_code );
 			if ( ! empty( $safe_code ) ) {
 				$safe_name .= '_' . strtoupper( $safe_code );
@@ -630,13 +626,13 @@ class PdfGenerator {
 	/**
 	 * Generate PDF data from form submission (for frontend)
 	 *
-	 * @param array<string, mixed> $submission_data Posted form data
-	 * @param int                  $form_id Form ID
-	 * @param string               $submission_date Submission date
+	 * @param array<string, mixed> $submission_data Posted form data.
+	 * @param int                  $form_id Form ID.
+	 * @param string               $submission_date Submission date.
 	 * @return array<string, mixed>|\WP_Error PDF data array
 	 */
 	public function generate_pdf_data_from_form( array $submission_data, int $form_id, ?string $submission_date = null ) {
-		// Get form data
+		// Get form data.
 		$form_post = get_post( $form_id );
 		if ( ! $form_post ) {
 			return new WP_Error( 'form_not_found', __( 'Form not found.', 'ffcertificate' ) );
@@ -646,7 +642,7 @@ class PdfGenerator {
 		$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
 		$bg_image_url = get_post_meta( $form_id, '_ffc_form_bg', true );
 
-		// Add formatted date
+		// Add formatted date.
 		if ( $submission_date ) {
 			$formatted_date               = date_i18n(
 				get_option( 'date_format' ) . ' ' . get_option( 'time_format' ),
@@ -658,13 +654,13 @@ class PdfGenerator {
 
 		$html = $this->generate_html( $submission_data, $form_title, $form_config, $submission_date );
 
-		// Get verification code
+		// Get verification code.
 		$auth_code = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
 
-		// Generate filename with verification code
+		// Generate filename with verification code.
 		$filename = $this->generate_filename( $form_title, $auth_code );
 
-		// Log generation
+		// Log generation.
 		\FreeFormCertificate\Core\Utils::debug_log(
 			'PDF data generated from form',
 			array(
@@ -691,63 +687,63 @@ class PdfGenerator {
 	 * Template loaded from plugin default or overridden via filter.
 	 *
 	 * @since 4.2.0
-	 * @param array<string, mixed> $appointment Appointment data array from database
-	 * @param array<string, mixed> $calendar Calendar data array from database
+	 * @param array<string, mixed> $appointment Appointment data array from database.
+	 * @param array<string, mixed> $calendar Calendar data array from database.
 	 * @return array{html: string, filename: string, form_title: string, bg_image: mixed, type: string} PDF data array (html, template, filename, bg_image)
 	 */
 	public function generate_appointment_pdf_data( array $appointment, array $calendar ): array {
-		// Get date/time format settings
+		// Get date/time format settings.
 		$date_format = get_option( 'date_format' );
 		$time_format = get_option( 'time_format' );
 
-		// Format appointment date
+		// Format appointment date.
 		$formatted_date = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['appointment_date'] ) ) {
 			$ts = strtotime( $appointment['appointment_date'] );
-			if ( $ts !== false ) {
+			if ( false !== $ts ) {
 				$formatted_date = date_i18n( $date_format, $ts );
 			}
 		}
 
-		// Format time range
+		// Format time range.
 		$formatted_time = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['start_time'] ) ) {
 			$ts = strtotime( $appointment['start_time'] );
-			if ( $ts !== false ) {
+			if ( false !== $ts ) {
 				$formatted_time = date_i18n( $time_format, $ts );
 			}
 			if ( ! empty( $appointment['end_time'] ) ) {
 				$ts2 = strtotime( $appointment['end_time'] );
-				if ( $ts2 !== false ) {
+				if ( false !== $ts2 ) {
 					$formatted_time .= ' - ' . date_i18n( $time_format, $ts2 );
 				}
 			}
 		}
 
-		// Format created_at
+		// Format created_at.
 		$formatted_created = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['created_at'] ) ) {
 			$ts = strtotime( $appointment['created_at'] );
-			if ( $ts !== false ) {
+			if ( false !== $ts ) {
 				$formatted_created = date_i18n( $date_format . ' ' . $time_format, $ts );
 			}
 		}
 
-		// Decrypt sensitive data if needed
+		// Decrypt sensitive data if needed.
 		$email = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
 
 		// CPF/RF: after the split migration, data lives in cpf_encrypted or rf_encrypted.
 		// decrypt_field('cpf_rf') only checks cpf_rf_encrypted (legacy), so try the split columns.
 		$cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'cpf', 'cpf_encrypted' );
-		if ( $cpf_rf === '' ) {
+		if ( '' === $cpf_rf ) {
 			$cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'rf', 'rf_encrypted' );
 		}
-		if ( $cpf_rf === '' ) {
-			// Legacy fallback (pre-migration data)
+		if ( '' === $cpf_rf ) {
+			// Legacy fallback (pre-migration data).
 			$cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'cpf_rf' );
 		}
 
-		// Status labels
+		// Status labels.
 		$status_labels = array(
 			'pending'   => __( 'Pending Approval', 'ffcertificate' ),
 			'confirmed' => __( 'Confirmed', 'ffcertificate' ),
@@ -758,7 +754,7 @@ class PdfGenerator {
 		$status        = $appointment['status'] ?? 'pending';
 		$status_label  = $status_labels[ $status ] ?? $status;
 
-		// Build data array for placeholder replacement
+		// Build data array for placeholder replacement.
 		$data = array(
 			'name'             => $appointment['name'] ?? '',
 			'email'            => $email,
@@ -777,29 +773,29 @@ class PdfGenerator {
 			'site_name'        => get_bloginfo( 'name' ),
 		);
 
-		// Add magic_token (confirmation_token) for QR code / validation URL
+		// Add magic_token (confirmation_token) for QR code / validation URL.
 		if ( ! empty( $appointment['confirmation_token'] ) ) {
 			$data['magic_token'] = $appointment['confirmation_token'];
 		}
 
-		// Load receipt template
+		// Load receipt template.
 		$template = $this->get_appointment_receipt_template();
 
-		// Build form_config-like structure for generate_html
+		// Build form_config-like structure for generate_html.
 		$form_config = array(
 			'pdf_layout' => $template,
 		);
 
-		// Generate HTML using the existing generate_html() method
+		// Generate HTML using the existing generate_html() method.
 		$calendar_title = $calendar['title'] ?? __( 'Appointment Receipt', 'ffcertificate' );
 		$html           = $this->generate_html( $data, $calendar_title, $form_config, $appointment['created_at'] ?? null );
 
-		// Generate filename
+		// Generate filename.
 		$validation_code = $appointment['validation_code'] ?? '';
 		$safe_title      = __( 'Appointment_Receipt', 'ffcertificate' );
 		$filename        = $this->generate_filename( $safe_title, $validation_code );
 
-		// Allow background image customization via filter
+		// Allow background image customization via filter.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
 		$bg_image = apply_filters( 'ffcertificate_appointment_receipt_bg_image', '', $appointment, $calendar );
 
@@ -823,7 +819,7 @@ class PdfGenerator {
 	private function get_appointment_receipt_template(): string {
 		$template_file = FFC_PLUGIN_DIR . 'html/default_appointment_receipt_1.html';
 
-		// Allow override via filter
+		// Allow override via filter.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
 		$template_file = apply_filters( 'ffcertificate_appointment_receipt_template_file', $template_file );
 
@@ -835,7 +831,7 @@ class PdfGenerator {
 			}
 		}
 
-		// Fallback: minimal receipt template
+		// Fallback: minimal receipt template.
 		return '<div style="width:1123px;height:794px;padding:60px;box-sizing:border-box;font-family:Arial,sans-serif">'
 			. '<h1 style="text-align:center;color:#0073aa">' . esc_html__( 'Appointment Receipt', 'ffcertificate' ) . '</h1>'
 			. '<p><strong>' . esc_html__( 'Name:', 'ffcertificate' ) . '</strong> {{name}}</p>'

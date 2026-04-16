@@ -20,7 +20,7 @@ class AdminAjax {
 	use \FreeFormCertificate\Core\AjaxTrait;
 
 	public function __construct() {
-		// Register AJAX handlers (ffc_load_template is handled by FormEditor)
+		// Register AJAX handlers (ffc_load_template is handled by FormEditor).
 		add_action( 'wp_ajax_ffc_generate_tickets', array( $this, 'generate_tickets' ) );
 		add_action( 'wp_ajax_ffc_search_user', array( $this, 'search_user' ) );
 	}
@@ -43,7 +43,7 @@ class AdminAjax {
 			wp_send_json_error( array( 'message' => __( 'Invalid form ID.', 'ffcertificate' ) ) );
 		}
 
-		// Generate unique codes
+		// Generate unique codes.
 		$codes          = array();
 		$existing_codes = $this->get_existing_codes( $form_id );
 
@@ -53,11 +53,11 @@ class AdminAjax {
 				$code = $this->generate_unique_code();
 				++$attempts;
 
-				// Prevent infinite loop
+				// Prevent infinite loop.
 				if ( $attempts > 100 ) {
 					wp_send_json_error( array( 'message' => __( 'Error generating unique codes. Please try a smaller quantity.', 'ffcertificate' ) ) );
 				}
-			} while ( in_array( $code, $existing_codes ) || in_array( $code, $codes ) );
+			} while ( in_array( $code, $existing_codes, true ) || in_array( $code, $codes, true ) );
 
 			$codes[] = $code;
 		}
@@ -104,7 +104,7 @@ class AdminAjax {
 	 * Generate random letters
 	 */
 	private function random_letters( int $length ): string {
-		$letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Removed I and O to avoid confusion
+		$letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Removed I and O to avoid confusion.
 		$result  = '';
 
 		for ( $i = 0; $i < $length; $i++ ) {
@@ -146,7 +146,7 @@ class AdminAjax {
 
 		$users = array();
 
-		// Check if search term is a numeric ID
+		// Check if search term is a numeric ID.
 		if ( is_numeric( $search_term ) ) {
 			$user = get_userdata( (int) $search_term );
 			if ( $user ) {
@@ -154,7 +154,7 @@ class AdminAjax {
 			}
 		}
 
-		// Search by email or name
+		// Search by email or name.
 		$user_query_args = array(
 			'search'         => '*' . $search_term . '*',
 			'search_columns' => array( 'user_login', 'user_email', 'display_name', 'user_nicename' ),
@@ -167,7 +167,7 @@ class AdminAjax {
 		$found_users = $user_query->get_results();
 
 		foreach ( $found_users as $user ) {
-			// Avoid duplicates if ID search already found this user
+			// Avoid duplicates if ID search already found this user.
 			$exists = false;
 			foreach ( $users as $existing ) {
 				if ( $existing['id'] === $user->ID ) {
@@ -180,7 +180,7 @@ class AdminAjax {
 			}
 		}
 
-		// Search by CPF/RF in submissions (if no users found by standard search)
+		// Search by CPF/RF in submissions (if no users found by standard search).
 		if ( empty( $users ) ) {
 			$users = $this->search_user_by_cpf( $search_term );
 		}
@@ -195,7 +195,7 @@ class AdminAjax {
 	/**
 	 * Format user data for AJAX response
 	 *
-	 * @param \WP_User $user WordPress user object
+	 * @param \WP_User $user WordPress user object.
 	 * @return array<string, mixed> Formatted user data
 	 */
 	private function format_user_result( \WP_User $user ): array {
@@ -210,26 +210,26 @@ class AdminAjax {
 	/**
 	 * Search for user by CPF/RF in submissions
 	 *
-	 * @param string $cpf_rf CPF/RF to search for
+	 * @param string $cpf_rf CPF/RF to search for.
 	 * @return array<int, array<string, mixed>> Array of user results
 	 */
 	private function search_user_by_cpf( string $cpf_rf ): array {
 		global $wpdb;
 
-		// Clean CPF/RF (remove formatting)
+		// Clean CPF/RF (remove formatting).
 		$cpf_rf_clean = preg_replace( '/[^0-9]/', '', $cpf_rf );
 
 		if ( strlen( $cpf_rf_clean ) < 6 ) {
 			return array();
 		}
 
-		// Generate hash and classify by digit count
+		// Generate hash and classify by digit count.
 		$cpf_rf_hash = \FreeFormCertificate\Core\Encryption::hash( $cpf_rf_clean );
 		$hash_column = strlen( $cpf_rf_clean ) === 7 ? 'rf_hash' : 'cpf_hash';
 
 		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-		// Search the specific split column
+		// Search the specific split column.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Column name from internal config, not user input.
 		$user_id = $wpdb->get_var(

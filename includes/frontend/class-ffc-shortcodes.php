@@ -5,7 +5,7 @@ declare(strict_types=1);
  * Shortcodes
  * Handles shortcode rendering for forms and verification pages.
  *
- * v2.8.0: Added magic link detection and certificate preview
+ * V2.8.0: Added magic link detection and certificate preview
  * v2.9.0: Added hash-based token support (#token=)
  * v2.9.2: OPTIMIZED to use FFC_Utils functions
  * v3.3.0: Added strict types and type hints
@@ -72,7 +72,7 @@ class Shortcodes {
 	 * Render certificate preview for magic link access
 	 *
 	 * @since 2.8.0 Magic Links feature
-	 * @param string $token Magic token
+	 * @param string $token Magic token.
 	 * @return string HTML output
 	 */
 	private function render_magic_link_preview( string $token ): string {
@@ -101,18 +101,18 @@ class Shortcodes {
 	 * Shortcode: [ffc_verification]
 	 * Displays certificate verification form (or magic link preview)
 	 *
-	 * v2.8.0: Detects ?token= parameter and renders preview instead of form
+	 * V2.8.0: Detects ?token= parameter and renders preview instead of form
 	 * v2.9.0: Also supports #token= (hash format) via JavaScript detection
 	 *
-	 * @param array<string, mixed> $atts Shortcode attributes
+	 * @param array<string, mixed> $atts Shortcode attributes.
 	 */
 	public function render_verification_page( array $atts ): string {
-		// Check for magic token in URL query string (?token=)
+		// Check for magic token in URL query string (?token=).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Token is a display/routing parameter for verification page.
 		$magic_token = isset( $_GET['token'] ) ? sanitize_text_field( wp_unslash( $_GET['token'] ) ) : '';
 
 		if ( ! empty( $magic_token ) ) {
-			// Magic link access via query string - render preview container
+			// Magic link access via query string - render preview container.
 			return $this->render_magic_link_preview( $magic_token );
 		}
 
@@ -124,7 +124,7 @@ class Shortcodes {
 			)
 		);
 
-		// Render verification page using template
+		// Render verification page using template.
 		$security_fields = $this->generate_security_fields();
 
 		ob_start();
@@ -136,7 +136,7 @@ class Shortcodes {
 	 * Shortcode: [ffc_form id="123"]
 	 * Displays certificate issuance form
 	 *
-	 * @param array<string, mixed> $atts Shortcode attributes
+	 * @param array<string, mixed> $atts Shortcode attributes.
 	 */
 	public function render_form( array $atts ): string {
 		$atts    = shortcode_atts( array( 'id' => 0 ), $atts, 'ffc_form' );
@@ -180,8 +180,8 @@ class Shortcodes {
 		$geofence_config = get_post_meta( $form_id, '_ffc_geofence_config', true );
 		$has_geofence    = false;
 		if ( is_array( $geofence_config ) ) {
-			$has_datetime = ! empty( $geofence_config['datetime_enabled'] ) && $geofence_config['datetime_enabled'] == '1';
-			$has_geo      = ! empty( $geofence_config['geo_enabled'] ) && $geofence_config['geo_enabled'] == '1';
+			$has_datetime = ! empty( $geofence_config['datetime_enabled'] ) && '1' === $geofence_config['datetime_enabled'];
+			$has_geo      = ! empty( $geofence_config['geo_enabled'] ) && '1' === $geofence_config['geo_enabled'];
 			$has_geofence = $has_datetime || $has_geo;
 		}
 		$wrapper_class = $has_geofence ? 'ffc-form-wrapper ffc-has-geofence' : 'ffc-form-wrapper';
@@ -209,8 +209,8 @@ class Shortcodes {
 				$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
 				$restrictions = isset( $form_config['restrictions'] ) ? $form_config['restrictions'] : array();
 
-				// Password field (if active)
-				if ( ! empty( $restrictions['password'] ) && $restrictions['password'] == '1' ) {
+				// Password field (if active).
+				if ( ! empty( $restrictions['password'] ) && '1' === $restrictions['password'] ) {
 					?>
 					<div class="ffc-form-field ffc-restriction-field">
 						<label for="ffc_password">
@@ -229,8 +229,8 @@ class Shortcodes {
 					<?php
 				}
 
-				// Ticket field (if active)
-				if ( ! empty( $restrictions['ticket'] ) && $restrictions['ticket'] == '1' ) {
+				// Ticket field (if active).
+				if ( ! empty( $restrictions['ticket'] ) && '1' === $restrictions['ticket'] ) {
 					?>
 					<div class="ffc-form-field ffc-restriction-field">
 						<label for="ffc_ticket">
@@ -291,7 +291,7 @@ class Shortcodes {
 	/**
 	 * Render individual form field
 	 *
-	 * @param array<string, mixed> $field Field configuration
+	 * @param array<string, mixed> $field Field configuration.
 	 */
 	private function render_field( array $field ): string {
 		$type          = isset( $field['type'] ) ? $field['type'] : 'text';
@@ -302,8 +302,8 @@ class Shortcodes {
 		$required_attr = $is_req ? 'required aria-required="true"' : '';
 		$options       = ! empty( $field['options'] ) ? explode( ',', $field['options'] ) : array();
 
-		// Info block: display-only, no input
-		if ( $type === 'info' ) {
+		// Info block: display-only, no input.
+		if ( 'info' === $type ) {
 			$content = isset( $field['content'] ) ? $field['content'] : '';
 			if ( empty( $content ) && empty( $label ) ) {
 				return '';
@@ -322,8 +322,8 @@ class Shortcodes {
 			return ob_get_clean() ?: '';
 		}
 
-		// Embed block: display media via oembed or img tag
-		if ( $type === 'embed' ) {
+		// Embed block: display media via oembed or img tag.
+		if ( 'embed' === $type ) {
 			$embed_url = isset( $field['embed_url'] ) ? $field['embed_url'] : '';
 			if ( empty( $embed_url ) ) {
 				return '';
@@ -336,16 +336,16 @@ class Shortcodes {
 				<?php endif; ?>
 				<div class="ffc-embed-media">
 					<?php
-					// Check if URL is a direct image
+					// Check if URL is a direct image.
 					if ( preg_match( '/\.(jpe?g|png|gif|webp|svg)(\?.*)?$/i', $embed_url ) ) {
 						echo '<img src="' . esc_url( $embed_url ) . '" alt="' . esc_attr( $label ) . '" class="ffc-embed-image">';
 					} else {
-						// Try oembed (YouTube, Vimeo, audio, etc.)
+						// Try oembed (YouTube, Vimeo, audio, etc.).
 						$embed_html = wp_oembed_get( $embed_url, array( 'width' => 600 ) );
 						if ( $embed_html ) {
 							echo $embed_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_oembed_get returns sanitized HTML from trusted providers.
 						} else {
-							// Fallback: show as a link
+							// Fallback: show as a link.
 							echo '<a href="' . esc_url( $embed_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $embed_url ) . '</a>';
 						}
 					}
@@ -360,13 +360,13 @@ class Shortcodes {
 			return '';
 		}
 
-		// Special treatment for CPF/RF
-		if ( $name === 'cpf_rf' ) {
+		// Special treatment for CPF/RF.
+		if ( 'cpf_rf' === $name ) {
 			$type = 'tel';
 		}
 
-		// Render hidden field outside the visual structure
-		if ( $type === 'hidden' ) {
+		// Render hidden field outside the visual structure.
+		if ( 'hidden' === $type ) {
 			return '<input type="hidden" name="' . esc_attr( $name ) . '" id="' . esc_attr( $name ) . '" value="' . esc_attr( $default ) . '">';
 		}
 
@@ -381,10 +381,10 @@ class Shortcodes {
 				?>
 			</label>
 			
-			<?php if ( $type === 'textarea' ) : ?>
+			<?php if ( 'textarea' === $type ) : ?>
 				<textarea class="ffc-input ffc-textarea" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" <?php echo $required_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string: 'required aria-required="true"' ?> rows="1"><?php echo esc_textarea( $default ); ?></textarea>
 
-			<?php elseif ( $type === 'select' ) : ?>
+			<?php elseif ( 'select' === $type ) : ?>
 				<select class="ffc-input" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" <?php echo $required_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string ?>>
 					<option value=""><?php esc_html_e( 'Select...', 'ffcertificate' ); ?></option>
 					<?php
@@ -395,7 +395,7 @@ class Shortcodes {
 					<?php endforeach; ?>
 				</select>
 
-			<?php elseif ( $type === 'radio' ) : ?>
+			<?php elseif ( 'radio' === $type ) : ?>
 				<div class="ffc-radio-group" role="group" aria-label="<?php echo esc_attr( $label ); ?>">
 					<?php
 					foreach ( $options as $opt ) :
