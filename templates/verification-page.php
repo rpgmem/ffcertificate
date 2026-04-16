@@ -5,6 +5,7 @@
  * Handles both certificate and appointment receipt verification.
  *
  * Variables available:
+ *
  * @var string $security_fields Generated security fields HTML
  *
  * @since 3.1.0
@@ -12,50 +13,50 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 ?>
 
 <div class="ffc-verification-container ffc-verification-auto-check">
-    <!-- Loading (hidden initially, shown by JS if hash token found) -->
-    <div class="ffc-verify-loading" role="status" aria-live="polite" style="display:none;">
-        <div class="ffc-spinner" aria-hidden="true"></div>
-        <p><?php esc_html_e( 'Verifying document...', 'ffcertificate' ); ?></p>
-    </div>
+	<!-- Loading (hidden initially, shown by JS if hash token found) -->
+	<div class="ffc-verify-loading" role="status" aria-live="polite" style="display:none;">
+		<div class="ffc-spinner" aria-hidden="true"></div>
+		<p><?php esc_html_e( 'Verifying document...', 'ffcertificate' ); ?></p>
+	</div>
 
-    <!-- Manual verification form -->
-    <div class="ffc-verification-manual">
-        <div class="ffc-verification-header">
-            <h2><?php esc_html_e( 'Verify Document', 'ffcertificate' ); ?></h2>
-            <p id="ffc-auth-code-desc"><?php esc_html_e( 'Enter the authentication code to verify document authenticity.', 'ffcertificate' ); ?></p>
-        </div>
+	<!-- Manual verification form -->
+	<div class="ffc-verification-manual">
+		<div class="ffc-verification-header">
+			<h2><?php esc_html_e( 'Verify Document', 'ffcertificate' ); ?></h2>
+			<p id="ffc-auth-code-desc"><?php esc_html_e( 'Enter the authentication code to verify document authenticity.', 'ffcertificate' ); ?></p>
+		</div>
 
-        <form method="POST" class="ffc-verification-form">
-            <div class="ffc-form-field">
-                <label for="ffc_auth_code">
-                    <?php esc_html_e( 'Authentication Code', 'ffcertificate' ); ?> <span class="required">*</span>
-                </label>
-                <input
-                    type="text"
-                    name="ffc_auth_code"
-                    id="ffc_auth_code"
-                    class="ffc-input ffc-verify-input"
-                    placeholder="<?php esc_attr_e( 'C-XXXX-XXXX-XXXX', 'ffcertificate' ); ?>"
-                    required
-                    aria-required="true"
-                    aria-describedby="ffc-auth-code-desc"
-                    maxlength="16"
-                    pattern="[A-Za-z0-9\-]+"
-                >
-            </div>
+		<form method="POST" class="ffc-verification-form">
+			<div class="ffc-form-field">
+				<label for="ffc_auth_code">
+					<?php esc_html_e( 'Authentication Code', 'ffcertificate' ); ?> <span class="required">*</span>
+				</label>
+				<input
+					type="text"
+					name="ffc_auth_code"
+					id="ffc_auth_code"
+					class="ffc-input ffc-verify-input"
+					placeholder="<?php esc_attr_e( 'C-XXXX-XXXX-XXXX', 'ffcertificate' ); ?>"
+					required
+					aria-required="true"
+					aria-describedby="ffc-auth-code-desc"
+					maxlength="16"
+					pattern="[A-Za-z0-9\-]+"
+				>
+			</div>
 
             <?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- generate_security_fields() escapes all output internally ?>
-            <div class="ffc-no-js-security"><?php echo $security_fields; ?></div>
+			<div class="ffc-no-js-security"><?php echo $security_fields; ?></div>
 
-            <button type="submit" class="ffc-submit-btn"><?php esc_html_e( 'Verify', 'ffcertificate' ); ?></button>
-        </form>
-    </div>
+			<button type="submit" class="ffc-submit-btn"><?php esc_html_e( 'Verify', 'ffcertificate' ); ?></button>
+		</form>
+	</div>
 
-    <!-- Verification result -->
-    <div class="ffc-verify-result" role="region" aria-live="polite"></div>
+	<!-- Verification result -->
+	<div class="ffc-verify-result" role="region" aria-live="polite"></div>
 </div>

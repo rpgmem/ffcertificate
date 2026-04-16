@@ -59,7 +59,7 @@ class CsvExporter {
 	}
 
 	// ──────────────────────────────────────────────────────────────
-	//  Hook registration (called from Admin __construct)
+	// Hook registration (called from Admin __construct)
 	// ──────────────────────────────────────────────────────────────
 
 	/**
@@ -72,7 +72,7 @@ class CsvExporter {
 	}
 
 	// ──────────────────────────────────────────────────────────────
-	//  AJAX: Start
+	// AJAX: Start
 	// ──────────────────────────────────────────────────────────────
 
 	/**
@@ -153,9 +153,12 @@ class CsvExporter {
 			$this->get_fixed_headers( $include_edit_columns ),
 			$this->get_dynamic_headers( $dynamic_keys )
 		);
-		$headers = array_map( function ( $h ) {
-			return mb_convert_encoding( $h, 'UTF-8', 'UTF-8' );
-		}, $headers );
+		$headers = array_map(
+			function ( $h ) {
+				return mb_convert_encoding( $h, 'UTF-8', 'UTF-8' );
+			},
+			$headers
+		);
 		fputcsv( $fh, $headers, ';' );
 		fclose( $fh );
 
@@ -174,14 +177,16 @@ class CsvExporter {
 		);
 		set_transient( 'ffc_csv_export_' . $job_id, $job, self::JOB_TTL );
 
-		wp_send_json_success( array(
-			'job_id' => $job_id,
-			'total'  => $total,
-		) );
+		wp_send_json_success(
+			array(
+				'job_id' => $job_id,
+				'total'  => $total,
+			)
+		);
 	}
 
 	// ──────────────────────────────────────────────────────────────
-	//  AJAX: Batch
+	// AJAX: Batch
 	// ──────────────────────────────────────────────────────────────
 
 	/**
@@ -213,11 +218,13 @@ class CsvExporter {
 
 		if ( empty( $batch ) ) {
 			// All done.
-			wp_send_json_success( array(
-				'done'      => true,
-				'processed' => $job['processed'],
-				'total'     => $job['total'],
-			) );
+			wp_send_json_success(
+				array(
+					'done'      => true,
+					'processed' => $job['processed'],
+					'total'     => $job['total'],
+				)
+			);
 		}
 
 		/**
@@ -235,9 +242,12 @@ class CsvExporter {
 
 		foreach ( $batch as $row ) {
 			$csv_row = $this->format_csv_row( $row, $job['dynamic_keys'], $job['include_edit_columns'] );
-			$csv_row = array_map( function ( $v ) {
-				return mb_convert_encoding( (string) $v, 'UTF-8', 'UTF-8' );
-			}, $csv_row );
+			$csv_row = array_map(
+				function ( $v ) {
+					return mb_convert_encoding( (string) $v, 'UTF-8', 'UTF-8' );
+				},
+				$csv_row
+			);
 			fputcsv( $fh, $csv_row, ';' );
 		}
 		fclose( $fh );
@@ -249,15 +259,17 @@ class CsvExporter {
 
 		set_transient( 'ffc_csv_export_' . $job_id, $job, self::JOB_TTL );
 
-		wp_send_json_success( array(
-			'done'      => false,
-			'processed' => $job['processed'],
-			'total'     => $job['total'],
-		) );
+		wp_send_json_success(
+			array(
+				'done'      => false,
+				'processed' => $job['processed'],
+				'total'     => $job['total'],
+			)
+		);
 	}
 
 	// ──────────────────────────────────────────────────────────────
-	//  AJAX: Download
+	// AJAX: Download
 	// ──────────────────────────────────────────────────────────────
 
 	/**
@@ -287,7 +299,8 @@ class CsvExporter {
 
 		// Serve file.
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-		while ( @ob_end_clean() ) {} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
+		while ( @ob_end_clean() ) {
+		} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
 
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $job['filename'] );
 		header( 'Content-Type: text/csv; charset=utf-8' );
@@ -308,7 +321,7 @@ class CsvExporter {
 	}
 
 	// ──────────────────────────────────────────────────────────────
-	//  Legacy entry point (kept for backwards compat)
+	// Legacy entry point (kept for backwards compat)
 	// ──────────────────────────────────────────────────────────────
 
 	/**
@@ -326,7 +339,7 @@ class CsvExporter {
 	}
 
 	// ──────────────────────────────────────────────────────────────
-	//  Helpers (private)
+	// Helpers (private)
 	// ──────────────────────────────────────────────────────────────
 
 	/**
@@ -335,7 +348,7 @@ class CsvExporter {
 	 */
 	private function get_form_title_cached( int $form_id ): string {
 		if ( ! isset( $this->form_title_cache[ $form_id ] ) ) {
-			$title = get_the_title( $form_id );
+			$title                              = get_the_title( $form_id );
 			$this->form_title_cache[ $form_id ] = $title ? $title : __( '(Deleted)', 'ffcertificate' );
 		}
 		return $this->form_title_cache[ $form_id ];

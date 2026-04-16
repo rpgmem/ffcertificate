@@ -62,7 +62,7 @@ class PublicCsvDownload {
 	}
 
 	// ──────────────────────────────────────────────────────────────
-	//  Shortcode rendering
+	// Shortcode rendering
 	// ──────────────────────────────────────────────────────────────
 
 	/**
@@ -155,7 +155,7 @@ class PublicCsvDownload {
 	}
 
 	// ──────────────────────────────────────────────────────────────
-	//  Request handling (admin-post.php)
+	// Request handling (admin-post.php)
 	// ──────────────────────────────────────────────────────────────
 
 	/**
@@ -213,7 +213,7 @@ class PublicCsvDownload {
 	}
 
 	// ──────────────────────────────────────────────────────────────
-	//  Shared validation (used by handle_request + PublicCsvExporter)
+	// Shared validation (used by handle_request + PublicCsvExporter)
 	// ──────────────────────────────────────────────────────────────
 
 	/**
@@ -277,7 +277,7 @@ class PublicCsvDownload {
 	}
 
 	// ──────────────────────────────────────────────────────────────
-	//  Flash messages (transient keyed by IP hash)
+	// Flash messages (transient keyed by IP hash)
 	// ──────────────────────────────────────────────────────────────
 
 	/**

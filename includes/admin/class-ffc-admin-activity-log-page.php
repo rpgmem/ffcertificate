@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 // Autoloader handles class loading
@@ -21,238 +21,238 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class AdminActivityLogPage {
 
-    use \FreeFormCertificate\Core\CsvExportTrait;
+	use \FreeFormCertificate\Core\CsvExportTrait;
 
-    /**
-     * Register admin menu and export handler
-     */
-    public function register_menu(): void {
-        add_submenu_page(
-            'edit.php?post_type=ffc_form',
-            __( 'Activity Log', 'ffcertificate' ),
-            __( 'Activity Log', 'ffcertificate' ),
-            'manage_options',
-            'ffc-activity-log',
-            array( $this, 'render_page' )
-        );
+	/**
+	 * Register admin menu and export handler
+	 */
+	public function register_menu(): void {
+		add_submenu_page(
+			'edit.php?post_type=ffc_form',
+			__( 'Activity Log', 'ffcertificate' ),
+			__( 'Activity Log', 'ffcertificate' ),
+			'manage_options',
+			'ffc-activity-log',
+			array( $this, 'render_page' )
+		);
 
-        add_action( 'admin_init', array( $this, 'handle_csv_export' ) );
-    }
+		add_action( 'admin_init', array( $this, 'handle_csv_export' ) );
+	}
 
-    /**
-     * Handle CSV export of activity logs
-     *
-     * @since 5.2.0
-     */
-    public function handle_csv_export(): void {
+	/**
+	 * Handle CSV export of activity logs
+	 *
+	 * @since 5.2.0
+	 */
+	public function handle_csv_export(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce checked below
-        if ( ! isset( $_GET['page'] ) || sanitize_text_field( wp_unslash( $_GET['page'] ) ) !== 'ffc-activity-log' ) {
-            return;
-        }
+		if ( ! isset( $_GET['page'] ) || sanitize_text_field( wp_unslash( $_GET['page'] ) ) !== 'ffc-activity-log' ) {
+			return;
+		}
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        if ( ! isset( $_GET['ffc_export_logs'] ) ) {
-            return;
-        }
+		if ( ! isset( $_GET['ffc_export_logs'] ) ) {
+			return;
+		}
 
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Unauthorized.', 'ffcertificate' ) );
-        }
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Unauthorized.', 'ffcertificate' ) );
+		}
 
-        check_admin_referer( 'ffc_export_activity_log' );
+		check_admin_referer( 'ffc_export_activity_log' );
 
-        // Gather current filters
+		// Gather current filters
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Already verified above
-        $args = array(
-            'limit'   => 999999, // Export all matching rows
-            'offset'  => 0,
-            'orderby' => 'created_at',
-            'order'   => 'DESC',
-        );
+		$args = array(
+			'limit'   => 999999, // Export all matching rows
+			'offset'  => 0,
+			'orderby' => 'created_at',
+			'order'   => 'DESC',
+		);
 
-        $level = isset( $_GET['level'] ) ? sanitize_key( wp_unslash( $_GET['level'] ) ) : '';
-        if ( $level ) {
-            $args['level'] = $level;
-        }
+		$level = isset( $_GET['level'] ) ? sanitize_key( wp_unslash( $_GET['level'] ) ) : '';
+		if ( $level ) {
+			$args['level'] = $level;
+		}
 
-        $action = isset( $_GET['log_action'] ) ? sanitize_text_field( wp_unslash( $_GET['log_action'] ) ) : '';
-        if ( $action ) {
-            $args['action'] = $action;
-        }
+		$action = isset( $_GET['log_action'] ) ? sanitize_text_field( wp_unslash( $_GET['log_action'] ) ) : '';
+		if ( $action ) {
+			$args['action'] = $action;
+		}
 
-        $search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
-        if ( $search ) {
-            $args['search'] = $search;
-        }
+		$search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+		if ( $search ) {
+			$args['search'] = $search;
+		}
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-        $logs = \FreeFormCertificate\Core\ActivityLog::get_activities( $args );
+		$logs = \FreeFormCertificate\Core\ActivityLog::get_activities( $args );
 
-        $headers = array(
-            __( 'Date/Time', 'ffcertificate' ),
-            __( 'Level', 'ffcertificate' ),
-            __( 'Action', 'ffcertificate' ),
-            __( 'User', 'ffcertificate' ),
-            __( 'IP Address', 'ffcertificate' ),
-            __( 'Context', 'ffcertificate' ),
-        );
+		$headers = array(
+			__( 'Date/Time', 'ffcertificate' ),
+			__( 'Level', 'ffcertificate' ),
+			__( 'Action', 'ffcertificate' ),
+			__( 'User', 'ffcertificate' ),
+			__( 'IP Address', 'ffcertificate' ),
+			__( 'Context', 'ffcertificate' ),
+		);
 
-        $rows = array();
-        foreach ( $logs as $log ) {
-            $user_display = __( 'System / Anonymous', 'ffcertificate' );
-            if ( ! empty( $log['user_id'] ) && (int) $log['user_id'] > 0 ) {
-                $user = get_userdata( (int) $log['user_id'] );
-                $user_display = $user ? $user->display_name . ' (' . $user->user_login . ')' : sprintf( 'User #%d', $log['user_id'] );
-            }
+		$rows = array();
+		foreach ( $logs as $log ) {
+			$user_display = __( 'System / Anonymous', 'ffcertificate' );
+			if ( ! empty( $log['user_id'] ) && (int) $log['user_id'] > 0 ) {
+				$user         = get_userdata( (int) $log['user_id'] );
+				$user_display = $user ? $user->display_name . ' (' . $user->user_login . ')' : sprintf( 'User #%d', $log['user_id'] );
+			}
 
-            $context = '';
-            if ( ! empty( $log['context'] ) ) {
-                $context = is_array( $log['context'] )
-                    ? wp_json_encode( $log['context'], JSON_UNESCAPED_UNICODE )
-                    : (string) $log['context'];
-            }
+			$context = '';
+			if ( ! empty( $log['context'] ) ) {
+				$context = is_array( $log['context'] )
+					? wp_json_encode( $log['context'], JSON_UNESCAPED_UNICODE )
+					: (string) $log['context'];
+			}
 
-            $rows[] = array(
-                $log['created_at'] ?? '',
-                strtoupper( $log['level'] ?? '' ),
-                self::get_action_label( $log['action'] ?? '' ),
-                $user_display,
-                $log['user_ip'] ?? '',
-                $context,
-            );
-        }
+			$rows[] = array(
+				$log['created_at'] ?? '',
+				strtoupper( $log['level'] ?? '' ),
+				self::get_action_label( $log['action'] ?? '' ),
+				$user_display,
+				$log['user_ip'] ?? '',
+				$context,
+			);
+		}
 
-        $filename = 'ffc-activity-log-' . gmdate( 'Y-m-d' ) . '.csv';
-        $this->output_csv( $filename, $headers, $rows );
-    }
+		$filename = 'ffc-activity-log-' . gmdate( 'Y-m-d' ) . '.csv';
+		$this->output_csv( $filename, $headers, $rows );
+	}
 
-    /**
-     * Render activity log page
-     */
-    public function render_page(): void {
-        // Check if Activity Log is enabled
-        $settings = get_option( 'ffc_settings', array() );
-        $is_enabled = isset( $settings['enable_activity_log'] ) && $settings['enable_activity_log'] == 1;
+	/**
+	 * Render activity log page
+	 */
+	public function render_page(): void {
+		// Check if Activity Log is enabled
+		$settings   = get_option( 'ffc_settings', array() );
+		$is_enabled = isset( $settings['enable_activity_log'] ) && $settings['enable_activity_log'] == 1;
 
-        if ( ! $is_enabled ) {
-            $this->render_disabled_notice();
-            return;
-        }
+		if ( ! $is_enabled ) {
+			$this->render_disabled_notice();
+			return;
+		}
 
-        // Get filter parameters
+		// Get filter parameters
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- These are standard admin page filter/pagination parameters.
-        $current_page = isset( $_GET['paged'] ) ? max( 1, absint( wp_unslash( $_GET['paged'] ) ) ) : 1;
-        $per_page = 50;
-        $level = isset( $_GET['level'] ) ? sanitize_key( wp_unslash( $_GET['level'] ) ) : '';
-        $action = isset( $_GET['log_action'] ) ? sanitize_text_field( wp_unslash( $_GET['log_action'] ) ) : '';
-        $search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
+		$current_page = isset( $_GET['paged'] ) ? max( 1, absint( wp_unslash( $_GET['paged'] ) ) ) : 1;
+		$per_page     = 50;
+		$level        = isset( $_GET['level'] ) ? sanitize_key( wp_unslash( $_GET['level'] ) ) : '';
+		$action       = isset( $_GET['log_action'] ) ? sanitize_text_field( wp_unslash( $_GET['log_action'] ) ) : '';
+		$search       = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-        // Get logs
-        $args = array(
-            'limit' => $per_page,
-            'offset' => ( $current_page - 1 ) * $per_page,
-            'orderby' => 'created_at',
-            'order' => 'DESC'
-        );
+		// Get logs
+		$args = array(
+			'limit'   => $per_page,
+			'offset'  => ( $current_page - 1 ) * $per_page,
+			'orderby' => 'created_at',
+			'order'   => 'DESC',
+		);
 
-        if ( $level ) {
-            $args['level'] = $level;
-        }
+		if ( $level ) {
+			$args['level'] = $level;
+		}
 
-        if ( $action ) {
-            $args['action'] = $action;
-        }
+		if ( $action ) {
+			$args['action'] = $action;
+		}
 
-        if ( $search ) {
-            $args['search'] = $search;
-        }
+		if ( $search ) {
+			$args['search'] = $search;
+		}
 
-        $logs = \FreeFormCertificate\Core\ActivityLog::get_activities( $args );
-        $total_logs = \FreeFormCertificate\Core\ActivityLog::count_activities( $args );
-        $total_pages = ceil( $total_logs / $per_page );
+		$logs        = \FreeFormCertificate\Core\ActivityLog::get_activities( $args );
+		$total_logs  = \FreeFormCertificate\Core\ActivityLog::count_activities( $args );
+		$total_pages = ceil( $total_logs / $per_page );
 
-        // Get unique actions for filter
-        $unique_actions = $this->get_unique_actions();
+		// Get unique actions for filter
+		$unique_actions = $this->get_unique_actions();
 
-        // Render view
-        $view_file = FFC_PLUGIN_DIR . 'includes/admin/views/ffc-admin-activity-log.php';
+		// Render view
+		$view_file = FFC_PLUGIN_DIR . 'includes/admin/views/ffc-admin-activity-log.php';
 
-        if ( file_exists( $view_file ) ) {
-            include $view_file;
-        } else {
-            echo '<div class="wrap"><h1>' . esc_html__( 'Activity Log', 'ffcertificate' ) . '</h1>';
-            echo '<div class="notice notice-error"><p>' . esc_html__( 'View file not found.', 'ffcertificate' ) . '</p></div></div>';
-        }
-    }
+		if ( file_exists( $view_file ) ) {
+			include $view_file;
+		} else {
+			echo '<div class="wrap"><h1>' . esc_html__( 'Activity Log', 'ffcertificate' ) . '</h1>';
+			echo '<div class="notice notice-error"><p>' . esc_html__( 'View file not found.', 'ffcertificate' ) . '</p></div></div>';
+		}
+	}
 
-    /**
-     * Render disabled notice
-     */
-    private function render_disabled_notice(): void {
-        ?>
-        <div class="wrap">
-            <h1><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h1>
-            <div class="notice notice-warning">
-                <p>
-                    <strong><?php esc_html_e( 'Activity Log is currently disabled.', 'ffcertificate' ); ?></strong>
-                </p>
-                <p>
-                    <?php esc_html_e( 'To enable activity logging, go to:', 'ffcertificate' ); ?>
-                    <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=general' ) ); ?>">
-                        <?php esc_html_e( 'Settings > General > Activity Log Settings', 'ffcertificate' ); ?>
-                    </a>
-                </p>
-            </div>
-        </div>
-        <?php
-    }
+	/**
+	 * Render disabled notice
+	 */
+	private function render_disabled_notice(): void {
+		?>
+		<div class="wrap">
+			<h1><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h1>
+			<div class="notice notice-warning">
+				<p>
+					<strong><?php esc_html_e( 'Activity Log is currently disabled.', 'ffcertificate' ); ?></strong>
+				</p>
+				<p>
+					<?php esc_html_e( 'To enable activity logging, go to:', 'ffcertificate' ); ?>
+					<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=general' ) ); ?>">
+						<?php esc_html_e( 'Settings > General > Activity Log Settings', 'ffcertificate' ); ?>
+					</a>
+				</p>
+			</div>
+		</div>
+		<?php
+	}
 
-    /**
-     * Get unique actions from database
-     *
-     * @return array<int, string>
-     */
-    private function get_unique_actions(): array {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_activity_log';
+	/**
+	 * Get unique actions from database
+	 *
+	 * @return array<int, string>
+	 */
+	private function get_unique_actions(): array {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_activity_log';
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $actions = $wpdb->get_col(
-            $wpdb->prepare( 'SELECT DISTINCT action FROM %i ORDER BY action ASC', $table_name )
-        );
+		$actions = $wpdb->get_col(
+			$wpdb->prepare( 'SELECT DISTINCT action FROM %i ORDER BY action ASC', $table_name )
+		);
 
-        return $actions;
-    }
+		return $actions;
+	}
 
-    /**
-     * Get human-readable action name
-     */
-    public static function get_action_label( string $action ): string {
-        $labels = array(
-            'submission_created' => __( 'Submission Created', 'ffcertificate' ),
-            'submission_updated' => __( 'Submission Updated', 'ffcertificate' ),
-            'submission_deleted' => __( 'Submission Deleted', 'ffcertificate' ),
-            'data_accessed' => __( 'Data Accessed', 'ffcertificate' ),
-            'access_denied' => __( 'Access Denied', 'ffcertificate' ),
-            'settings_changed' => __( 'Settings Changed', 'ffcertificate' )
-        );
+	/**
+	 * Get human-readable action name
+	 */
+	public static function get_action_label( string $action ): string {
+		$labels = array(
+			'submission_created' => __( 'Submission Created', 'ffcertificate' ),
+			'submission_updated' => __( 'Submission Updated', 'ffcertificate' ),
+			'submission_deleted' => __( 'Submission Deleted', 'ffcertificate' ),
+			'data_accessed'      => __( 'Data Accessed', 'ffcertificate' ),
+			'access_denied'      => __( 'Access Denied', 'ffcertificate' ),
+			'settings_changed'   => __( 'Settings Changed', 'ffcertificate' ),
+		);
 
-        return isset( $labels[ $action ] ) ? $labels[ $action ] : ucwords( str_replace( '_', ' ', $action ) );
-    }
+		return isset( $labels[ $action ] ) ? $labels[ $action ] : ucwords( str_replace( '_', ' ', $action ) );
+	}
 
-    /**
-     * Get level badge HTML
-     */
-    public static function get_level_badge( string $level ): string {
-        $classes = array(
-            'info' => 'ffc-badge-info',
-            'warning' => 'ffc-badge-warning',
-            'error' => 'ffc-badge-error',
-            'debug' => 'ffc-badge-debug'
-        );
+	/**
+	 * Get level badge HTML
+	 */
+	public static function get_level_badge( string $level ): string {
+		$classes = array(
+			'info'    => 'ffc-badge-info',
+			'warning' => 'ffc-badge-warning',
+			'error'   => 'ffc-badge-error',
+			'debug'   => 'ffc-badge-debug',
+		);
 
-        $class = isset( $classes[ $level ] ) ? $classes[ $level ] : 'ffc-badge-info';
+		$class = isset( $classes[ $level ] ) ? $classes[ $level ] : 'ffc-badge-info';
 
-        return '<span class="ffc-badge ' . esc_attr( $class ) . '">' . esc_html( strtoupper( $level ) ) . '</span>';
-    }
+		return '<span class="ffc-badge ' . esc_attr( $class ) . '">' . esc_html( strtoupper( $level ) ) . '</span>';
+	}
 }

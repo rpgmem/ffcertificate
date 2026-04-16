@@ -14,7 +14,7 @@ Domain Path:        /languages
 */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 /**
@@ -64,7 +64,7 @@ register_activation_hook( __FILE__, array( '\FreeFormCertificate\Activator', 'ac
  */
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Public API function
 function ffcertificate_run() {
-    new \FreeFormCertificate\Loader();
+	new \FreeFormCertificate\Loader();
 }
 
 ffcertificate_run();

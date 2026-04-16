@@ -15,28 +15,28 @@ namespace FreeFormCertificate\Settings\Tabs;
 use FreeFormCertificate\Settings\SettingsTab;
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 class TabCache extends SettingsTab {
 
-    protected function init(): void {
-        $this->tab_id = 'cache';
-        $this->tab_title = __( 'Cache', 'ffcertificate' );
-        $this->tab_icon = 'ffc-icon-package';
-        $this->tab_order = 30;
-    }
+	protected function init(): void {
+		$this->tab_id    = 'cache';
+		$this->tab_title = __( 'Cache', 'ffcertificate' );
+		$this->tab_icon  = 'ffc-icon-package';
+		$this->tab_order = 30;
+	}
 
-    public function render(): void {
-        $view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-cache.php';
+	public function render(): void {
+		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-cache.php';
 
-        if ( file_exists( $view_file ) ) {
-            $settings = $this;
-            include $view_file;
-        } else {
-            echo '<div class="notice notice-error"><p>';
-            echo esc_html__( 'Cache settings view file not found.', 'ffcertificate' );
-            echo '</p></div>';
-        }
-    }
+		if ( file_exists( $view_file ) ) {
+			$settings = $this;
+			include $view_file;
+		} else {
+			echo '<div class="notice notice-error"><p>';
+			echo esc_html__( 'Cache settings view file not found.', 'ffcertificate' );
+			echo '</p></div>';
+		}
+	}
 }
