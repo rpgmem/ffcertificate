@@ -125,7 +125,7 @@ class SubmissionHandler {
 
         $clean_cpf_rf = null;
         if (isset($submission_data['cpf_rf']) && !empty($submission_data['cpf_rf'])) {
-            $clean_cpf_rf = preg_replace('/[^0-9]/', '', $submission_data['cpf_rf']);
+            $clean_cpf_rf = preg_replace('/[^0-9]/', '', (string) $submission_data['cpf_rf']);
         }
 
         // 2b. Classify identifier as CPF or RF by digit length
@@ -321,7 +321,7 @@ class SubmissionHandler {
             $data_json = wp_json_encode($clean_data, JSON_UNESCAPED_UNICODE);
 
             if (class_exists('\FreeFormCertificate\Core\Encryption') && \FreeFormCertificate\Core\Encryption::is_configured()) {
-                $update_data['data_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($data_json);
+                $update_data['data_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt($data_json ?: '{}');
                 $update_data['data'] = null;
             } else {
                 $update_data['data'] = $data_json;
@@ -590,7 +590,7 @@ class SubmissionHandler {
                 }
             }
 
-            return $result;
+            return (int) $result;
         }
 
         // Delete ALL submissions from ALL forms
@@ -678,7 +678,7 @@ class SubmissionHandler {
             return 0;
         }
 
-        $cutoff_date = gmdate('Y-m-d H:i:s', strtotime("-{$cleanup_days} days"));
+        $cutoff_date = gmdate('Y-m-d H:i:s', strtotime("-{$cleanup_days} days") ?: time());
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $deleted = $wpdb->query($wpdb->prepare(

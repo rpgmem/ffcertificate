@@ -56,6 +56,9 @@ class ReregistrationCsvExporter {
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
         $output = fopen('php://output', 'w');
+        if ($output === false) {
+            exit;
+        }
         // BOM for Excel UTF-8
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
         fwrite($output, "\xEF\xBB\xBF");

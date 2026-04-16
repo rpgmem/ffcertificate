@@ -302,8 +302,8 @@ class FormRestController {
                 if (!$geofence_check['allowed']) {
                     return new \WP_Error(
                         'geofence_blocked',
-                        $geofence_check['message'],
-                        array('status' => 403, 'reason' => $geofence_check['reason'])
+                        $geofence_check['message'] ?? '',
+                        array('status' => 403, 'reason' => $geofence_check['reason'] ?? '')
                     );
                 }
             }

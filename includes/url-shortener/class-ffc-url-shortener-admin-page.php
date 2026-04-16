@@ -180,11 +180,11 @@ class UrlShortenerAdminPage {
         $result = $this->service->create_short_url( $url, $title );
 
         if ( $result['success'] ) {
-            $data = $result['data'];
+            $data = $result['data'] ?? array();
             $data['short_url'] = $this->service->get_short_url( $data['short_code'] );
             wp_send_json_success( $data );
         } else {
-            wp_send_json_error( [ 'message' => $result['error'] ] );
+            wp_send_json_error( [ 'message' => $result['error'] ?? '' ] );
         }
     }
 

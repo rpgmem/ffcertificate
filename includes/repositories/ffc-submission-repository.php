@@ -306,6 +306,7 @@ class SubmissionRepository extends AbstractRepository {
         $query = "SELECT * FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        /** @phpstan-ignore-next-line argument.type */
         $query = $this->wpdb->prepare( $query, ...$prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -339,6 +340,7 @@ class SubmissionRepository extends AbstractRepository {
         $query = "SELECT id, data, data_encrypted FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        /** @phpstan-ignore-next-line argument.type */
         $query = $this->wpdb->prepare( $query, ...$prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -359,6 +361,7 @@ class SubmissionRepository extends AbstractRepository {
         $query = "SELECT COUNT(*) FROM %i {$where_clause}";
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        /** @phpstan-ignore-next-line argument.type */
         $query = $this->wpdb->prepare( $query, ...$prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -463,6 +466,7 @@ class SubmissionRepository extends AbstractRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $items = $this->wpdb->get_results(
             $this->wpdb->prepare(
+                /** @phpstan-ignore-next-line argument.type */
                 "SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
                 $this->table,
                 $args['per_page'],
@@ -472,6 +476,7 @@ class SubmissionRepository extends AbstractRepository {
         );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        /** @phpstan-ignore-next-line argument.type */
         $total = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $this->table ) );
 
         return [
@@ -541,7 +546,7 @@ class SubmissionRepository extends AbstractRepository {
             $this->clear_cache();
         }
 
-        return $result;
+        return $result === false ? false : (int) $result;
     }
 
     /**
@@ -571,7 +576,7 @@ class SubmissionRepository extends AbstractRepository {
             $this->clear_cache();
         }
 
-        return $result;
+        return $result === false ? false : (int) $result;
     }
 
     /**

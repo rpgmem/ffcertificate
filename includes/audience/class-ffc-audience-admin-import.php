@@ -418,6 +418,9 @@ class AudienceAdminImport {
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
         $output = fopen('php://output', 'w');
+        if ($output === false) {
+            exit;
+        }
         fputcsv($output, array('email', 'name', 'audience_name'));
 
         $seen = array(); // Avoid duplicate rows for same user+audience
@@ -464,6 +467,9 @@ class AudienceAdminImport {
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
         $output = fopen('php://output', 'w');
+        if ($output === false) {
+            exit;
+        }
         fputcsv($output, array('name', 'color', 'parent'));
 
         // Parents first, then children (same order as import expects)

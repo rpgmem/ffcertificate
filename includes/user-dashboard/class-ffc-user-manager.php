@@ -304,7 +304,7 @@ class UserManager {
         foreach ( $usermeta_payload as $key => $value ) {
             $meta_key = self::EXTENDED_META_PREFIX . sanitize_key( $key );
 
-            $scalar_value = is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
+            $scalar_value = is_scalar( $value ) ? (string) $value : ( wp_json_encode( $value ) ?: '' );
 
             if ( isset( $sensitive_map[ $key ] ) ) {
                 if ( $scalar_value === '' || $scalar_value === null ) {

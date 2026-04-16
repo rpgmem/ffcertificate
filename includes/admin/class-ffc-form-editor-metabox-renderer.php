@@ -600,6 +600,7 @@ class FormEditorMetaboxRenderer {
      * @param array<string, mixed> $field Field data
      */
     public function render_field_row( $index, array $field ): void {
+        $index = (string) $index;
         $type    = isset( $field['type'] ) ? $field['type'] : 'text';
         $label   = isset( $field['label'] ) ? $field['label'] : '';
         $name    = isset( $field['name'] ) ? $field['name'] : '';

@@ -91,6 +91,7 @@ class AudienceEnvironmentRepository {
 
         $prepare_args = array_merge( array( $table ), $values );
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        /** @phpstan-ignore-next-line argument.type */
         $sql = $wpdb->prepare($sql, $prepare_args);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
@@ -426,7 +427,7 @@ class AudienceEnvironmentRepository {
      * @return int
      */
     public static function count(array $args = array()): int {
-        $cache_key = 'ffcertificate_env_count_' . md5( wp_json_encode( $args ) );
+        $cache_key = 'ffcertificate_env_count_' . md5( wp_json_encode( $args ) ?: '' );
         $cached = wp_cache_get( $cache_key, 'ffcertificate' );
         if ( false !== $cached ) {
             return (int) $cached;

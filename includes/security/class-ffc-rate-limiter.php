@@ -62,28 +62,28 @@ class RateLimiter {
         $s = self::get_settings();
         
         $bl = self::check_blacklist($ip, $email, $cpf);
-        if (!$bl['allowed']) { self::log_attempt('blacklist', $ip, 'blocked', $bl['reason'], $form_id); return $bl; }
-        
+        if (!$bl['allowed']) { self::log_attempt('blacklist', $ip, 'blocked', $bl['reason'] ?? '', $form_id); return $bl; }
+
         if (self::is_whitelisted($ip, $email, $cpf)) { self::log_attempt('whitelist', $ip, 'whitelisted', 'In whitelist', $form_id); return array('allowed' => true); }
-        
+
         if ($s['global']['enabled']) {
             $g = self::check_global_limit();
-            if (!$g['allowed']) { self::log_attempt('global', 'system', 'blocked', $g['reason'], $form_id); return $g; }
+            if (!$g['allowed']) { self::log_attempt('global', 'system', 'blocked', $g['reason'] ?? '', $form_id); return $g; }
         }
-        
+
         if ($s['ip']['enabled'] && self::applies_to_form($s['ip']['apply_to'], $form_id)) {
             $i = self::check_ip_limit($ip, $form_id);
-            if (!$i['allowed']) { self::log_attempt('ip', $ip, 'blocked', $i['reason'], $form_id); return $i; }
+            if (!$i['allowed']) { self::log_attempt('ip', $ip, 'blocked', $i['reason'] ?? '', $form_id); return $i; }
         }
-        
+
         if ($email && $s['email']['enabled'] && self::applies_to_form($s['email']['apply_to'], $form_id)) {
             $e = self::check_email_limit($email, $form_id);
-            if (!$e['allowed']) { self::log_attempt('email', $email, 'blocked', $e['reason'], $form_id); return $e; }
+            if (!$e['allowed']) { self::log_attempt('email', $email, 'blocked', $e['reason'] ?? '', $form_id); return $e; }
         }
-        
+
         if ($cpf && $s['cpf']['enabled'] && self::applies_to_form($s['cpf']['apply_to'], $form_id)) {
             $c = self::check_cpf_limit($cpf, $form_id);
-            if (!$c['allowed']) { self::log_attempt('cpf', $cpf, 'blocked', $c['reason'], $form_id); return $c; }
+            if (!$c['allowed']) { self::log_attempt('cpf', $cpf, 'blocked', $c['reason'] ?? '', $form_id); return $c; }
         }
         
         if ($s['logging']['log_allowed']) self::log_attempt('ip', $ip, 'allowed', 'Passed', $form_id);
@@ -348,7 +348,7 @@ class RateLimiter {
         
         if ($email) {
             if (in_array($email, $bl['emails'])) return array('allowed' => false, 'reason' => 'email_blacklisted', 'message' => __( 'Email blocked.', 'ffcertificate' ));
-            $d = substr(strrchr($email, '@'), 1);
+            $d = substr(strrchr($email, '@') ?: '', 1);
             if (in_array('*@' . $d, $bl['email_domains'])) return array('allowed' => false, 'reason' => 'domain_blacklisted', 'message' => __( 'Domain blocked.', 'ffcertificate' ));
         }
 
@@ -365,7 +365,7 @@ class RateLimiter {
         
         if ($email) {
             if (in_array($email, $wl['emails'])) return true;
-            $d = substr(strrchr($email, '@'), 1);
+            $d = substr(strrchr($email, '@') ?: '', 1);
             if (in_array('*@' . $d, $wl['email_domains'])) return true;
         }
         
@@ -385,7 +385,8 @@ class RateLimiter {
     private static function block_temporarily(string $type, string $identifier, ?int $form_id, int $hours): void {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
-        $wpdb->insert($wpdb->prefix . 'ffc_rate_limits', array('type' => $type, 'identifier' => $identifier, 'form_id' => $form_id, 'count' => 999, 'window_type' => 'hour', 'window_start' => current_time('mysql'), 'window_end' => gmdate('Y-m-d H:i:s', strtotime("+$hours hours")), 'last_attempt' => current_time('mysql'), 'is_blocked' => 1, 'blocked_until' => gmdate('Y-m-d H:i:s', strtotime("+$hours hours")), 'blocked_reason' => 'abuse'), array('%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s'));
+        $blocked_ts = strtotime("+$hours hours") ?: time();
+        $wpdb->insert($wpdb->prefix . 'ffc_rate_limits', array('type' => $type, 'identifier' => $identifier, 'form_id' => $form_id, 'count' => 999, 'window_type' => 'hour', 'window_start' => current_time('mysql'), 'window_end' => gmdate('Y-m-d H:i:s', $blocked_ts), 'last_attempt' => current_time('mysql'), 'is_blocked' => 1, 'blocked_until' => gmdate('Y-m-d H:i:s', $blocked_ts), 'blocked_reason' => 'abuse'), array('%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s'));
     }
     
     public static function log_attempt(string $type, string $identifier, string $action, string $reason, ?int $form_id): void {

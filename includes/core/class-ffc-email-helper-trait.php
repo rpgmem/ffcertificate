@@ -73,7 +73,9 @@ trait EmailHelperTrait {
 
         return array_filter(
             array_map('trim', explode(',', $emails_string)),
-            'is_email'
+            static function (string $email): bool {
+                return is_email($email) !== false;
+            }
         );
     }
 

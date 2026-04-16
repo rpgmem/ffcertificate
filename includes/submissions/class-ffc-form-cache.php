@@ -325,4 +325,4 @@ class FormCache {
 }
 
 // Register hooks on load
-add_action( 'init', array( 'FFC_Form_Cache', 'register_hooks' ), 5 );
+add_action( 'init', array( __NAMESPACE__ . '\\FormCache', 'register_hooks' ), 5 );

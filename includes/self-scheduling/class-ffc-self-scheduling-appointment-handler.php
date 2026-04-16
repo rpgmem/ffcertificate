@@ -164,7 +164,9 @@ class AppointmentHandler {
         $appointment = $this->appointment_repository->findById($appointment_id);
 
         // Schedule email notifications
-        $this->schedule_email_notifications($appointment, $calendar, 'created');
+        if ( is_array( $appointment ) ) {
+            $this->schedule_email_notifications($appointment, $calendar, 'created');
+        }
 
         // Generate receipt URL (magic link to /valid/ page)
         $receipt_url = '';
@@ -219,7 +221,7 @@ class AppointmentHandler {
         }
 
         // Get day of week
-        $day_of_week = (int)gmdate('w', strtotime($date));
+        $day_of_week = (int)gmdate('w', strtotime($date) ?: time());
 
         // Get working hours for this day
         $working_hours = $calendar['working_hours'] ?? array();
@@ -246,8 +248,8 @@ class AppointmentHandler {
         $max_per_slot = (int)$calendar['max_appointments_per_slot'];
 
         foreach ($day_hours as $hours) {
-            $current_time = strtotime($date . ' ' . $hours['start']);
-            $end_time = strtotime($date . ' ' . $hours['end']);
+            $current_time = strtotime($date . ' ' . $hours['start']) ?: time();
+            $end_time = strtotime($date . ' ' . $hours['end']) ?: time();
 
             while ($current_time < $end_time) {
                 $slot_time = gmdate('H:i:s', $current_time);

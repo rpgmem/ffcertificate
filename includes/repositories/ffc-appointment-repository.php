@@ -346,9 +346,10 @@ class AppointmentRepository extends AbstractRepository {
      * @return array<int, array<string, mixed>>
      */
     public function getUpcomingForReminders(int $hours_before = 24): array {
-        $target_datetime = gmdate('Y-m-d H:i:s', strtotime("+{$hours_before} hours"));
-        $target_date = gmdate('Y-m-d', strtotime("+{$hours_before} hours"));
-        $target_time = gmdate('H:i:s', strtotime("+{$hours_before} hours"));
+        $reminder_ts = strtotime("+{$hours_before} hours") ?: time();
+        $target_datetime = gmdate('Y-m-d H:i:s', $reminder_ts);
+        $target_date = gmdate('Y-m-d', $reminder_ts);
+        $target_time = gmdate('H:i:s', $reminder_ts);
 
         $calendars_table = $this->wpdb->prefix . 'ffc_self_scheduling_calendars';
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared

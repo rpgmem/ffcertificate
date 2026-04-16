@@ -77,9 +77,9 @@ class UrlShortenerMetaBox {
 
         if ( ! $record && $post->post_status === 'publish' ) {
             // Auto-create if post is published
-            $permalink = get_permalink( $post->ID );
+            $permalink = get_permalink( $post->ID ) ?: '';
             $result    = $this->service->create_short_url( $permalink, $post->post_title, $post->ID );
-            $record    = $result['success'] ? $result['data'] : null;
+            $record    = $result['success'] && isset( $result['data'] ) ? $result['data'] : null;
         }
 
         if ( ! $record ) {
@@ -243,16 +243,16 @@ class UrlShortenerMetaBox {
         }
 
         // Create new
-        $permalink = get_permalink( $post_id );
+        $permalink = get_permalink( $post_id ) ?: '';
         $post      = get_post( $post_id );
         $result    = $this->service->create_short_url( $permalink, $post->post_title ?? '', $post_id );
 
         if ( $result['success'] ) {
-            $data = $result['data'];
+            $data = $result['data'] ?? array();
             $data['short_url'] = $this->service->get_short_url( $data['short_code'] );
             wp_send_json_success( $data );
         } else {
-            wp_send_json_error( [ 'message' => $result['error'] ] );
+            wp_send_json_error( [ 'message' => $result['error'] ?? '' ] );
         }
     }
 }

@@ -257,6 +257,9 @@ class AppointmentCsvExporter {
         header('Expires: 0');
 
         $output = fopen('php://output', 'w');
+        if ($output === false) {
+            exit;
+        }
 
         // BOM for Excel UTF-8 recognition
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV binary output, not HTML context

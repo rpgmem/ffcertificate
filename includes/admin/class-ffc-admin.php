@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Admin {
 
-    /** @var object */
+    /** @var \FreeFormCertificate\Submissions\SubmissionHandler */
     private $submission_handler;
     /** @var object */
     private $csv_exporter;
@@ -42,7 +42,7 @@ class Admin {
     /** @var AdminActivityLogPage */
     private $activity_log_page;
 
-    public function __construct( object $handler, object $exporter ) {
+    public function __construct( \FreeFormCertificate\Submissions\SubmissionHandler $handler, object $exporter ) {
         $this->submission_handler = $handler;
         $this->csv_exporter = $exporter;
 
@@ -174,7 +174,7 @@ class Admin {
                     type="button"
                     id="ffc-csv-export-btn"
                     class="<?php echo esc_attr( $btn_class ); ?>"
-                    data-form-ids="<?php echo esc_attr( wp_json_encode( $filter_form_ids ) ); ?>"
+                    data-form-ids="<?php echo esc_attr( wp_json_encode( $filter_form_ids ) ?: '' ); ?>"
                     data-status="<?php echo esc_attr( $export_status ); ?>"
                 ><?php echo esc_html( $btn_label ); ?></button>
                 <span id="ffc-csv-export-progress" style="display:none; margin-left:8px; vertical-align:middle;"></span>

@@ -40,7 +40,7 @@ class Settings {
      */
     private $save_handler;
 
-    public function __construct( object $handler ) {
+    public function __construct( \FreeFormCertificate\Submissions\SubmissionHandler $handler ) {
         $this->save_handler = new \FreeFormCertificate\Admin\SettingsSaveHandler( $handler );
 
         // Hooks

@@ -143,6 +143,7 @@ class AudienceBookingRepository {
 
         $prepare_args = array_merge( array( $table, $env_table ), $values );
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        /** @phpstan-ignore-next-line argument.type */
         $sql = $wpdb->prepare($sql, $prepare_args);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
@@ -709,6 +710,7 @@ class AudienceBookingRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         return $wpdb->get_results(
             $wpdb->prepare(
+                /** @phpstan-ignore-next-line argument.type */
                 "SELECT * FROM %i
                 WHERE environment_id = %d
                 AND booking_date = %s
@@ -795,6 +797,7 @@ class AudienceBookingRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $conflicting_bookings = $wpdb->get_results(
             $wpdb->prepare(
+                /** @phpstan-ignore-next-line argument.type */
                 "SELECT DISTINCT b.* FROM %i b
                 LEFT JOIN %i ba ON b.id = ba.booking_id
                 LEFT JOIN %i am ON ba.audience_id = am.audience_id
@@ -881,6 +884,7 @@ class AudienceBookingRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         return $wpdb->get_results(
             $wpdb->prepare(
+                /** @phpstan-ignore-next-line argument.type */
                 "SELECT b.id, b.start_time, b.end_time, b.description, a.name AS audience_name, ba.audience_id
                 FROM %i b
                 INNER JOIN %i ba ON b.id = ba.booking_id

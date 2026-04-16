@@ -262,7 +262,7 @@ class AppointmentAjaxHandler {
             }
 
             $start_date = sprintf('%04d-%02d-01', $year, $month);
-            $end_date = gmdate('Y-m-t', strtotime($start_date));
+            $end_date = gmdate('Y-m-t', strtotime($start_date) ?: time());
 
             $appointment_repo = $this->handler->get_appointment_repository();
             $blocked_repo = $this->handler->get_blocked_date_repository();
@@ -287,7 +287,7 @@ class AppointmentAjaxHandler {
                         if (!isset($holidays[$current])) {
                         $holidays[$current] = $block['reason'] ?: __('Closed', 'ffcertificate');
                         }
-                        $current = gmdate('Y-m-d', strtotime($current . ' +1 day'));
+                        $current = gmdate('Y-m-d', strtotime($current . ' +1 day') ?: time());
                     }
                 }
             }

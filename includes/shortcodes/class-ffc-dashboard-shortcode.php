@@ -122,7 +122,7 @@ class DashboardShortcode {
 
             <?php
             if ($is_admin_viewing) {
-                echo wp_kses_post( DashboardViewMode::render_admin_viewing_banner($view_as_user_id) );
+                echo wp_kses_post( DashboardViewMode::render_admin_viewing_banner((int) $view_as_user_id) );
             }
             echo wp_kses_post( self::render_redirect_message() );
             echo wp_kses_post( self::render_reregistration_banners($user_id) );
@@ -252,7 +252,7 @@ class DashboardShortcode {
         </div>
         <?php
 
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 
     /**
@@ -266,13 +266,13 @@ class DashboardShortcode {
         <div class="ffc-dashboard-notice ffc-notice-warning">
             <p><?php esc_html_e('You must be logged in to view your dashboard.', 'ffcertificate'); ?></p>
             <p>
-                <a href="<?php echo esc_url(wp_login_url(get_permalink())); ?>" class="button">
+                <a href="<?php echo esc_url(wp_login_url(get_permalink() ?: '')); ?>" class="button">
                     <?php esc_html_e('Login', 'ffcertificate'); ?>
                 </a>
             </p>
         </div>
         <?php
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 
     /**
@@ -295,7 +295,7 @@ class DashboardShortcode {
             <p><?php echo esc_html($message); ?></p>
         </div>
         <?php
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 
     /**
@@ -399,7 +399,7 @@ class DashboardShortcode {
             </div>
             <?php
         }
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 
 }

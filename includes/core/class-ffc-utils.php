@@ -300,7 +300,7 @@ class Utils {
         
         $bytes /= pow( 1024, $pow );
         
-        return round( $bytes, $precision ) . ' ' . $units[$pow];
+        return round( $bytes, $precision ) . ' ' . $units[(int) $pow];
     }
     
     // ── Auth code methods delegated to AuthCodeService (Sprint 31) ──
@@ -399,7 +399,8 @@ class Utils {
      * @return true|string True on success, error message string on failure
      */
     public static function validate_security_fields( array $data ) {
-        return SecurityService::validate_security_fields( $data );
+        $result = SecurityService::validate_security_fields( $data );
+        return $result === false ? __( 'Security validation failed.', 'ffcertificate' ) : $result;
     }
 
     // ── Data sanitization methods delegated to DataSanitizer (Sprint 31) ──
@@ -455,6 +456,6 @@ class Utils {
         // Load template
         ob_start();
         include FFC_PLUGIN_DIR . 'templates/submission-success.php';
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 }

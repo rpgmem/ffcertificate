@@ -614,8 +614,8 @@ class ReregistrationAdmin {
             'return_to_draft_submission_' . $sub->id
         );
 
-        $submitted = $sub->submitted_at ? wp_date(get_option('date_format') . ' ' . get_option('time_format'), strtotime($sub->submitted_at)) : '—';
-        $reviewed = $sub->reviewed_at ? wp_date(get_option('date_format') . ' ' . get_option('time_format'), strtotime($sub->reviewed_at)) : '—';
+        $submitted = $sub->submitted_at ? ( wp_date(get_option('date_format') . ' ' . get_option('time_format'), strtotime($sub->submitted_at) ?: time()) ?: '—' ) : '—';
+        $reviewed = $sub->reviewed_at ? ( wp_date(get_option('date_format') . ' ' . get_option('time_format'), strtotime($sub->reviewed_at) ?: time()) ?: '—' ) : '—';
 
         // Statuses that can be sent back to draft for user revision
         $can_return_to_draft = in_array($sub->status, array('submitted', 'approved', 'rejected'), true);
@@ -1046,7 +1046,7 @@ class ReregistrationAdmin {
             }
         }
         ?>
-        <div class="ffc-transfer-list" data-audiences="<?php echo esc_attr(wp_json_encode($flat)); ?>" data-selected="<?php echo esc_attr(wp_json_encode(array_values($selected_ids))); ?>">
+        <div class="ffc-transfer-list" data-audiences="<?php echo esc_attr(wp_json_encode($flat) ?: ''); ?>" data-selected="<?php echo esc_attr(wp_json_encode(array_values($selected_ids)) ?: ''); ?>">
             <div class="ffc-transfer-col ffc-transfer-available">
                 <div class="ffc-transfer-header"><?php esc_html_e('Available', 'ffcertificate'); ?></div>
                 <input type="text" class="ffc-transfer-search" placeholder="<?php esc_attr_e('Filter...', 'ffcertificate'); ?>">
