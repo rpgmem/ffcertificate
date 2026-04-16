@@ -17,686 +17,794 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 class AudienceRestController {
 
-    /**
-     * Namespace for REST routes
-     */
-    private const NAMESPACE = 'ffc/v1';
+	/**
+	 * Namespace for REST routes
+	 */
+	private const NAMESPACE = 'ffc/v1';
 
-    /**
-     * Resource base
-     */
-    private const REST_BASE = 'audience';
+	/**
+	 * Resource base
+	 */
+	private const REST_BASE = 'audience';
 
-    /**
-     * Register REST routes
-     *
-     * @return void
-     */
-    public function register_routes(): void {
-        // Get bookings
-        register_rest_route(self::NAMESPACE, '/' . self::REST_BASE . '/bookings', array(
-            'methods' => \WP_REST_Server::READABLE,
-            'callback' => array($this, 'get_bookings'),
-            'permission_callback' => array($this, 'check_read_permission'),
-            'args' => array(
-                'schedule_id' => array(
-                    'type' => 'integer',
-                    'sanitize_callback' => 'absint',
-                ),
-                'environment_id' => array(
-                    'type' => 'integer',
-                    'sanitize_callback' => 'absint',
-                ),
-                'start_date' => array(
-                    'type' => 'string',
-                    'required' => true,
-                    'sanitize_callback' => 'sanitize_text_field',
-                ),
-                'end_date' => array(
-                    'type' => 'string',
-                    'required' => true,
-                    'sanitize_callback' => 'sanitize_text_field',
-                ),
-            ),
-        ));
+	/**
+	 * Register REST routes
+	 *
+	 * @return void
+	 */
+	public function register_routes(): void {
+		// Get bookings
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/bookings',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_bookings' ),
+				'permission_callback' => array( $this, 'check_read_permission' ),
+				'args'                => array(
+					'schedule_id'    => array(
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+					'environment_id' => array(
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+					'start_date'     => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'end_date'       => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
 
-        // Create booking
-        register_rest_route(self::NAMESPACE, '/' . self::REST_BASE . '/bookings', array(
-            'methods' => \WP_REST_Server::CREATABLE,
-            'callback' => array($this, 'create_booking'),
-            'permission_callback' => array($this, 'check_write_permission'),
-            'args' => array(
-                'environment_id' => array(
-                    'type' => 'integer',
-                    'required' => true,
-                    'sanitize_callback' => 'absint',
-                ),
-                'booking_date' => array(
-                    'type' => 'string',
-                    'required' => true,
-                    'sanitize_callback' => 'sanitize_text_field',
-                ),
-                'start_time' => array(
-                    'type' => 'string',
-                    'required' => true,
-                    'sanitize_callback' => 'sanitize_text_field',
-                ),
-                'end_time' => array(
-                    'type' => 'string',
-                    'required' => true,
-                    'sanitize_callback' => 'sanitize_text_field',
-                ),
-                'booking_type' => array(
-                    'type' => 'string',
-                    'required' => true,
-                    'enum' => array('audience', 'individual'),
-                    'sanitize_callback' => 'sanitize_text_field',
-                ),
-                'description' => array(
-                    'type' => 'string',
-                    'required' => true,
-                    'sanitize_callback' => 'sanitize_textarea_field',
-                ),
-                'audience_ids' => array(
-                    'type' => 'array',
-                    'items' => array('type' => 'integer'),
-                    'default' => array(),
-                ),
-                'user_ids' => array(
-                    'type' => 'array',
-                    'items' => array('type' => 'integer'),
-                    'default' => array(),
-                ),
-            ),
-        ));
+		// Create booking
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/bookings',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'create_booking' ),
+				'permission_callback' => array( $this, 'check_write_permission' ),
+				'args'                => array(
+					'environment_id' => array(
+						'type'              => 'integer',
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
+					'booking_date'   => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'start_time'     => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'end_time'       => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'booking_type'   => array(
+						'type'              => 'string',
+						'required'          => true,
+						'enum'              => array( 'audience', 'individual' ),
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'description'    => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_textarea_field',
+					),
+					'audience_ids'   => array(
+						'type'    => 'array',
+						'items'   => array( 'type' => 'integer' ),
+						'default' => array(),
+					),
+					'user_ids'       => array(
+						'type'    => 'array',
+						'items'   => array( 'type' => 'integer' ),
+						'default' => array(),
+					),
+				),
+			)
+		);
 
-        // Cancel booking
-        register_rest_route(self::NAMESPACE, '/' . self::REST_BASE . '/bookings/(?P<id>\d+)', array(
-            'methods' => \WP_REST_Server::DELETABLE,
-            'callback' => array($this, 'cancel_booking'),
-            'permission_callback' => array($this, 'check_cancel_permission'),
-            'args' => array(
-                'id' => array(
-                    'type' => 'integer',
-                    'required' => true,
-                    'sanitize_callback' => 'absint',
-                ),
-                'reason' => array(
-                    'type' => 'string',
-                    'required' => true,
-                    'sanitize_callback' => 'sanitize_textarea_field',
-                ),
-            ),
-        ));
+		// Cancel booking
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/bookings/(?P<id>\d+)',
+			array(
+				'methods'             => \WP_REST_Server::DELETABLE,
+				'callback'            => array( $this, 'cancel_booking' ),
+				'permission_callback' => array( $this, 'check_cancel_permission' ),
+				'args'                => array(
+					'id'     => array(
+						'type'              => 'integer',
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
+					'reason' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_textarea_field',
+					),
+				),
+			)
+		);
 
-        // Check conflicts
-        register_rest_route(self::NAMESPACE, '/' . self::REST_BASE . '/conflicts', array(
-            'methods' => \WP_REST_Server::CREATABLE,
-            'callback' => array($this, 'check_conflicts'),
-            'permission_callback' => array($this, 'check_read_permission'),
-            'args' => array(
-                'environment_id' => array(
-                    'type' => 'integer',
-                    'required' => true,
-                    'sanitize_callback' => 'absint',
-                ),
-                'booking_date' => array(
-                    'type' => 'string',
-                    'required' => true,
-                    'sanitize_callback' => 'sanitize_text_field',
-                ),
-                'start_time' => array(
-                    'type' => 'string',
-                    'required' => true,
-                    'sanitize_callback' => 'sanitize_text_field',
-                ),
-                'end_time' => array(
-                    'type' => 'string',
-                    'required' => true,
-                    'sanitize_callback' => 'sanitize_text_field',
-                ),
-                'audience_ids' => array(
-                    'type' => 'array',
-                    'items' => array('type' => 'integer'),
-                    'default' => array(),
-                ),
-                'user_ids' => array(
-                    'type' => 'array',
-                    'items' => array('type' => 'integer'),
-                    'default' => array(),
-                ),
-            ),
-        ));
-    }
+		// Check conflicts
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/conflicts',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'check_conflicts' ),
+				'permission_callback' => array( $this, 'check_read_permission' ),
+				'args'                => array(
+					'environment_id' => array(
+						'type'              => 'integer',
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
+					'booking_date'   => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'start_time'     => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'end_time'       => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'audience_ids'   => array(
+						'type'    => 'array',
+						'items'   => array( 'type' => 'integer' ),
+						'default' => array(),
+					),
+					'user_ids'       => array(
+						'type'    => 'array',
+						'items'   => array( 'type' => 'integer' ),
+						'default' => array(),
+					),
+				),
+			)
+		);
+	}
 
-    /**
-     * Check read permission
-     *
-     * Allows non-authenticated users to read bookings for public schedules.
-     *
-     * @since 4.7.0
-     * @return bool
-     */
-    public function check_read_permission(): bool {
-        // Logged-in users can always read
-        if (is_user_logged_in()) {
-            return true;
-        }
+	/**
+	 * Check read permission
+	 *
+	 * Allows non-authenticated users to read bookings for public schedules.
+	 *
+	 * @since 4.7.0
+	 * @return bool
+	 */
+	public function check_read_permission(): bool {
+		// Logged-in users can always read
+		if ( is_user_logged_in() ) {
+			return true;
+		}
 
-        // Non-logged-in users can read public schedules (read-only calendar view)
-        return true;
-    }
+		// Non-logged-in users can read public schedules (read-only calendar view)
+		return true;
+	}
 
-    /**
-     * Check write permission
-     *
-     * @return bool
-     */
-    public function check_write_permission(): bool {
-        if (!is_user_logged_in()) {
-            return false;
-        }
+	/**
+	 * Check write permission
+	 *
+	 * @return bool
+	 */
+	public function check_write_permission(): bool {
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
 
-        // Admin or bypass users can always write
-        if (\FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass()) {
-            return true;
-        }
+		// Admin or bypass users can always write
+		if ( \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() ) {
+			return true;
+		}
 
-        // Check if user has booking permission on at least one schedule
-        // Detailed per-schedule permission is verified inside create_booking()
-        return current_user_can('ffc_view_audience_bookings');
-    }
+		// Check if user has booking permission on at least one schedule
+		// Detailed per-schedule permission is verified inside create_booking()
+		return current_user_can( 'ffc_view_audience_bookings' );
+	}
 
-    /**
-     * Check cancel permission
-     *
-     * @param \WP_REST_Request $request Request object
-     * @return bool
-     */
-    public function check_cancel_permission(\WP_REST_Request $request): bool {
-        if (!is_user_logged_in()) {
-            return false;
-        }
+	/**
+	 * Check cancel permission
+	 *
+	 * @param \WP_REST_Request $request Request object
+	 * @return bool
+	 */
+	public function check_cancel_permission( \WP_REST_Request $request ): bool {
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
 
-        // Admin/bypass can cancel anything
-        if (\FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass()) {
-            return true;
-        }
+		// Admin/bypass can cancel anything
+		if ( \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() ) {
+			return true;
+		}
 
-        $booking_id = $request->get_param('id');
-        $booking = AudienceBookingRepository::get_by_id($booking_id);
+		$booking_id = $request->get_param( 'id' );
+		$booking    = AudienceBookingRepository::get_by_id( $booking_id );
 
-        if (!$booking) {
-            return false;
-        }
+		if ( ! $booking ) {
+			return false;
+		}
 
-        // Creator can cancel their own booking
-        if ((int) $booking->created_by === get_current_user_id()) {
-            return true;
-        }
+		// Creator can cancel their own booking
+		if ( (int) $booking->created_by === get_current_user_id() ) {
+			return true;
+		}
 
-        // Check if user has cancel_others permission on this schedule
-        $environment = AudienceEnvironmentRepository::get_by_id((int) $booking->environment_id);
-        if ($environment) {
-            return AudienceScheduleRepository::user_can_cancel_others((int) $environment->schedule_id, get_current_user_id());
-        }
+		// Check if user has cancel_others permission on this schedule
+		$environment = AudienceEnvironmentRepository::get_by_id( (int) $booking->environment_id );
+		if ( $environment ) {
+			return AudienceScheduleRepository::user_can_cancel_others( (int) $environment->schedule_id, get_current_user_id() );
+		}
 
-        return false;
-    }
+		return false;
+	}
 
-    /**
-     * Get bookings
-     *
-     * @param \WP_REST_Request $request Request object
-     * @return \WP_REST_Response
-     */
-    public function get_bookings(\WP_REST_Request $request): \WP_REST_Response {
-        $start_date = $request->get_param('start_date');
-        $end_date = $request->get_param('end_date');
-        $schedule_id = $request->get_param('schedule_id');
-        $environment_id = $request->get_param('environment_id');
+	/**
+	 * Get bookings
+	 *
+	 * @param \WP_REST_Request $request Request object
+	 * @return \WP_REST_Response
+	 */
+	public function get_bookings( \WP_REST_Request $request ): \WP_REST_Response {
+		$start_date     = $request->get_param( 'start_date' );
+		$end_date       = $request->get_param( 'end_date' );
+		$schedule_id    = $request->get_param( 'schedule_id' );
+		$environment_id = $request->get_param( 'environment_id' );
 
-        // Build query args
-        $args = array(
-            'start_date' => $start_date,
-            'end_date' => $end_date,
-            'status' => null, // Get all statuses
-        );
+		// Build query args
+		$args = array(
+			'start_date' => $start_date,
+			'end_date'   => $end_date,
+			'status'     => null, // Get all statuses
+		);
 
-        if ($schedule_id) {
-            $args['schedule_id'] = $schedule_id;
-        }
+		if ( $schedule_id ) {
+			$args['schedule_id'] = $schedule_id;
+		}
 
-        if ($environment_id) {
-            $args['environment_id'] = $environment_id;
-        }
+		if ( $environment_id ) {
+			$args['environment_id'] = $environment_id;
+		}
 
-        // Get bookings
-        $bookings = AudienceBookingRepository::get_all($args);
+		// Get bookings
+		$bookings = AudienceBookingRepository::get_all( $args );
 
-        // Get user info for each booking
-        $user_id = get_current_user_id();
-        $is_logged_in = is_user_logged_in();
-        $has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
+		// Get user info for each booking
+		$user_id      = get_current_user_id();
+		$is_logged_in = is_user_logged_in();
+		$has_bypass   = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
 
-        // Transform bookings for response
-        $bookings_data = array_map(function($booking) use ($user_id, $is_logged_in, $has_bypass) {
-            $audiences = AudienceBookingRepository::get_booking_audiences((int) $booking->id);
+		// Transform bookings for response
+		$bookings_data = array_map(
+			function ( $booking ) use ( $user_id, $is_logged_in, $has_bypass ) {
+				$audiences = AudienceBookingRepository::get_booking_audiences( (int) $booking->id );
 
-            // Non-logged-in users get public data (no personal details like created_by)
-            if (!$is_logged_in) {
-                return array(
-                    'id' => $booking->id,
-                    'environment_id' => $booking->environment_id,
-                    'environment_name' => $booking->environment_name ?? '',
-                    'booking_date' => $booking->booking_date,
-                    'start_time' => $booking->start_time,
-                    'end_time' => $booking->end_time,
-                    'is_all_day' => $booking->is_all_day ?? 0,
-                    'booking_type' => $booking->booking_type,
-                    'description' => $booking->description,
-                    'status' => $booking->status,
-                    'can_cancel' => false,
-                    'audiences' => array_map(function($a) {
-                        return array(
-                            'id' => $a->id,
-                            'name' => $a->name,
-                            'color' => $a->color,
-                        );
-                    }, $audiences),
-                );
-            }
+				// Non-logged-in users get public data (no personal details like created_by)
+				if ( ! $is_logged_in ) {
+					return array(
+						'id'               => $booking->id,
+						'environment_id'   => $booking->environment_id,
+						'environment_name' => $booking->environment_name ?? '',
+						'booking_date'     => $booking->booking_date,
+						'start_time'       => $booking->start_time,
+						'end_time'         => $booking->end_time,
+						'is_all_day'       => $booking->is_all_day ?? 0,
+						'booking_type'     => $booking->booking_type,
+						'description'      => $booking->description,
+						'status'           => $booking->status,
+						'can_cancel'       => false,
+						'audiences'        => array_map(
+							function ( $a ) {
+								return array(
+									'id'    => $a->id,
+									'name'  => $a->name,
+									'color' => $a->color,
+								);
+							},
+							$audiences
+						),
+					);
+				}
 
-            return array(
-                'id' => $booking->id,
-                'environment_id' => $booking->environment_id,
-                'environment_name' => $booking->environment_name ?? '',
-                'booking_date' => $booking->booking_date,
-                'start_time' => $booking->start_time,
-                'end_time' => $booking->end_time,
-                'is_all_day' => $booking->is_all_day ?? 0,
-                'booking_type' => $booking->booking_type,
-                'description' => $booking->description,
-                'status' => $booking->status,
-                'created_by' => (int) $booking->created_by,
-                'can_cancel' => $has_bypass || (int) $booking->created_by === $user_id,
-                'audiences' => array_map(function($a) {
-                    return array(
-                        'id' => $a->id,
-                        'name' => $a->name,
-                        'color' => $a->color,
-                    );
-                }, $audiences),
-            );
-        }, $bookings);
+				return array(
+					'id'               => $booking->id,
+					'environment_id'   => $booking->environment_id,
+					'environment_name' => $booking->environment_name ?? '',
+					'booking_date'     => $booking->booking_date,
+					'start_time'       => $booking->start_time,
+					'end_time'         => $booking->end_time,
+					'is_all_day'       => $booking->is_all_day ?? 0,
+					'booking_type'     => $booking->booking_type,
+					'description'      => $booking->description,
+					'status'           => $booking->status,
+					'created_by'       => (int) $booking->created_by,
+					'can_cancel'       => $has_bypass || (int) $booking->created_by === $user_id,
+					'audiences'        => array_map(
+						function ( $a ) {
+							return array(
+								'id'    => $a->id,
+								'name'  => $a->name,
+								'color' => $a->color,
+							);
+						},
+						$audiences
+					),
+				);
+			},
+			$bookings
+		);
 
-        // Get schedule-specific holidays for the date range
-        $holidays = array();
-        if ($schedule_id) {
-            $holidays = AudienceEnvironmentRepository::get_holidays((int) $schedule_id, $start_date, $end_date);
-        }
+		// Get schedule-specific holidays for the date range
+		$holidays = array();
+		if ( $schedule_id ) {
+			$holidays = AudienceEnvironmentRepository::get_holidays( (int) $schedule_id, $start_date, $end_date );
+		}
 
-        // Merge global holidays into the response
-        $global_holidays = \FreeFormCertificate\Scheduling\DateBlockingService::get_global_holidays($start_date, $end_date);
-        $holidays_formatted = array_map(function($h) {
-            return array(
-                'holiday_date' => $h->holiday_date,
-                'description' => $h->description,
-            );
-        }, $holidays);
+		// Merge global holidays into the response
+		$global_holidays    = \FreeFormCertificate\Scheduling\DateBlockingService::get_global_holidays( $start_date, $end_date );
+		$holidays_formatted = array_map(
+			function ( $h ) {
+				return array(
+					'holiday_date' => $h->holiday_date,
+					'description'  => $h->description,
+				);
+			},
+			$holidays
+		);
 
-        foreach ($global_holidays as $gh) {
-            $holidays_formatted[] = array(
-                'holiday_date' => $gh['date'],
-                'description' => $gh['description'] ?? __('Holiday', 'ffcertificate'),
-            );
-        }
+		foreach ( $global_holidays as $gh ) {
+			$holidays_formatted[] = array(
+				'holiday_date' => $gh['date'],
+				'description'  => $gh['description'] ?? __( 'Holiday', 'ffcertificate' ),
+			);
+		}
 
-        // Get closed weekdays from environment working hours
-        $closed_weekdays = array();
-        if ($environment_id) {
-            $working_hours = AudienceEnvironmentRepository::get_working_hours((int) $environment_id);
-            if ($working_hours) {
-                $day_map = array('sun' => 0, 'mon' => 1, 'tue' => 2, 'wed' => 3, 'thu' => 4, 'fri' => 5, 'sat' => 6);
-                foreach ($working_hours as $day => $hours) {
-                    if (isset($hours['closed']) && $hours['closed']) {
-                        $closed_weekdays[] = $day_map[$day] ?? -1;
-                    }
-                }
-            }
-        }
+		// Get closed weekdays from environment working hours
+		$closed_weekdays = array();
+		if ( $environment_id ) {
+			$working_hours = AudienceEnvironmentRepository::get_working_hours( (int) $environment_id );
+			if ( $working_hours ) {
+				$day_map = array(
+					'sun' => 0,
+					'mon' => 1,
+					'tue' => 2,
+					'wed' => 3,
+					'thu' => 4,
+					'fri' => 5,
+					'sat' => 6,
+				);
+				foreach ( $working_hours as $day => $hours ) {
+					if ( isset( $hours['closed'] ) && $hours['closed'] ) {
+						$closed_weekdays[] = $day_map[ $day ] ?? -1;
+					}
+				}
+			}
+		}
 
-        return new \WP_REST_Response(array(
-            'success' => true,
-            'bookings' => $bookings_data,
-            'holidays' => $holidays_formatted,
-            'closed_weekdays' => $closed_weekdays,
-        ), 200);
-    }
+		return new \WP_REST_Response(
+			array(
+				'success'         => true,
+				'bookings'        => $bookings_data,
+				'holidays'        => $holidays_formatted,
+				'closed_weekdays' => $closed_weekdays,
+			),
+			200
+		);
+	}
 
-    /**
-     * Create booking
-     *
-     * @param \WP_REST_Request $request Request object
-     * @return \WP_REST_Response
-     */
-    public function create_booking(\WP_REST_Request $request): \WP_REST_Response {
-        $environment_id = $request->get_param('environment_id');
-        $booking_date = $request->get_param('booking_date');
-        $is_all_day = !empty($request->get_param('is_all_day'));
-        $start_time = $is_all_day ? '00:00' : $request->get_param('start_time');
-        $end_time = $is_all_day ? '23:59' : $request->get_param('end_time');
-        $booking_type = $request->get_param('booking_type');
-        $description = $request->get_param('description');
-        $audience_ids = $request->get_param('audience_ids') ?: array();
-        $user_ids = $request->get_param('user_ids') ?: array();
+	/**
+	 * Create booking
+	 *
+	 * @param \WP_REST_Request $request Request object
+	 * @return \WP_REST_Response
+	 */
+	public function create_booking( \WP_REST_Request $request ): \WP_REST_Response {
+		$environment_id = $request->get_param( 'environment_id' );
+		$booking_date   = $request->get_param( 'booking_date' );
+		$is_all_day     = ! empty( $request->get_param( 'is_all_day' ) );
+		$start_time     = $is_all_day ? '00:00' : $request->get_param( 'start_time' );
+		$end_time       = $is_all_day ? '23:59' : $request->get_param( 'end_time' );
+		$booking_type   = $request->get_param( 'booking_type' );
+		$description    = $request->get_param( 'description' );
+		$audience_ids   = $request->get_param( 'audience_ids' ) ?: array();
+		$user_ids       = $request->get_param( 'user_ids' ) ?: array();
 
-        // Validate environment exists
-        $environment = AudienceEnvironmentRepository::get_by_id($environment_id);
-        if (!$environment) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('Invalid environment.', 'ffcertificate'),
-            ), 400);
-        }
+		// Validate environment exists
+		$environment = AudienceEnvironmentRepository::get_by_id( $environment_id );
+		if ( ! $environment ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'Invalid environment.', 'ffcertificate' ),
+				),
+				400
+			);
+		}
 
-        // Check user permission on this schedule
-        $user_id = get_current_user_id();
-        $has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
-        if (!$has_bypass && !AudienceScheduleRepository::user_can_book((int) $environment->schedule_id, $user_id)) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('You do not have permission to book on this calendar.', 'ffcertificate'),
-            ), 403);
-        }
+		// Check user permission on this schedule
+		$user_id    = get_current_user_id();
+		$has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
+		if ( ! $has_bypass && ! AudienceScheduleRepository::user_can_book( (int) $environment->schedule_id, $user_id ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'You do not have permission to book on this calendar.', 'ffcertificate' ),
+				),
+				403
+			);
+		}
 
-        // Validate date is not in the past (bypass allowed for admins)
-        if ($booking_date < current_time('Y-m-d') && !$has_bypass) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('Cannot book dates in the past.', 'ffcertificate'),
-            ), 400);
-        }
+		// Validate date is not in the past (bypass allowed for admins)
+		if ( $booking_date < current_time( 'Y-m-d' ) && ! $has_bypass ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'Cannot book dates in the past.', 'ffcertificate' ),
+				),
+				400
+			);
+		}
 
-        // Validate time range (skip for all-day events)
-        if (!$is_all_day && $start_time >= $end_time) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('End time must be after start time.', 'ffcertificate'),
-            ), 400);
-        }
+		// Validate time range (skip for all-day events)
+		if ( ! $is_all_day && $start_time >= $end_time ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'End time must be after start time.', 'ffcertificate' ),
+				),
+				400
+			);
+		}
 
-        // Validate description length
-        $desc_length = mb_strlen($description);
-        if ($desc_length < 15 || $desc_length > 300) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('Description must be between 15 and 300 characters.', 'ffcertificate'),
-            ), 400);
-        }
+		// Validate description length
+		$desc_length = mb_strlen( $description );
+		if ( $desc_length < 15 || $desc_length > 300 ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'Description must be between 15 and 300 characters.', 'ffcertificate' ),
+				),
+				400
+			);
+		}
 
-        // Validate booking type has required data
-        if ($booking_type === 'audience' && empty($audience_ids)) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('At least one audience must be selected.', 'ffcertificate'),
-            ), 400);
-        }
+		// Validate booking type has required data
+		if ( $booking_type === 'audience' && empty( $audience_ids ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'At least one audience must be selected.', 'ffcertificate' ),
+				),
+				400
+			);
+		}
 
-        if ($booking_type === 'individual' && empty($user_ids)) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('At least one user must be selected.', 'ffcertificate'),
-            ), 400);
-        }
+		if ( $booking_type === 'individual' && empty( $user_ids ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'At least one user must be selected.', 'ffcertificate' ),
+				),
+				400
+			);
+		}
 
-        // Check for future days limit
-        $schedule = AudienceScheduleRepository::get_by_id((int) $environment->schedule_id);
-        if ($schedule && $schedule->future_days_limit && !$has_bypass) {
-            $max_date = gmdate('Y-m-d', strtotime('+' . $schedule->future_days_limit . ' days') ?: time());
-            if ($booking_date > $max_date) {
-                return new \WP_REST_Response(array(
-                    'success' => false,
-                    'message' => sprintf(
-                        /* translators: %d: maximum number of days allowed for advance booking */
-                    __('Cannot book more than %d days in advance.', 'ffcertificate'),
-                        $schedule->future_days_limit
-                    ),
-                ), 400);
-            }
-        }
+		// Check for future days limit
+		$schedule = AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id );
+		if ( $schedule && $schedule->future_days_limit && ! $has_bypass ) {
+			$max_date = gmdate( 'Y-m-d', strtotime( '+' . $schedule->future_days_limit . ' days' ) ?: time() );
+			if ( $booking_date > $max_date ) {
+				return new \WP_REST_Response(
+					array(
+						'success' => false,
+						'message' => sprintf(
+							/* translators: %d: maximum number of days allowed for advance booking */
+							__( 'Cannot book more than %d days in advance.', 'ffcertificate' ),
+							$schedule->future_days_limit
+						),
+					),
+					400
+				);
+			}
+		}
 
-        // Check environment is open on this date/time (bypass can book anytime)
-        if (!$has_bypass && !AudienceEnvironmentRepository::is_open($environment_id, $booking_date, $start_time)) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('The environment is closed at this time.', 'ffcertificate'),
-            ), 400);
-        }
+		// Check environment is open on this date/time (bypass can book anytime)
+		if ( ! $has_bypass && ! AudienceEnvironmentRepository::is_open( $environment_id, $booking_date, $start_time ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'The environment is closed at this time.', 'ffcertificate' ),
+				),
+				400
+			);
+		}
 
-        // Check for time slot conflicts (environment double-booking)
-        $conflicts = AudienceBookingRepository::get_conflicts($environment_id, $booking_date, $start_time, $end_time);
-        if (!empty($conflicts)) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('This time slot is already booked for this environment.', 'ffcertificate'),
-            ), 400);
-        }
+		// Check for time slot conflicts (environment double-booking)
+		$conflicts = AudienceBookingRepository::get_conflicts( $environment_id, $booking_date, $start_time, $end_time );
+		if ( ! empty( $conflicts ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'This time slot is already booked for this environment.', 'ffcertificate' ),
+				),
+				400
+			);
+		}
 
-        $booking_data = array(
-            'environment_id' => $environment_id,
-            'booking_date' => $booking_date,
-            'start_time' => $start_time,
-            'end_time' => $end_time,
-            'is_all_day' => $is_all_day ? 1 : 0,
-            'booking_type' => $booking_type,
-            'description' => $description,
-            'audience_ids' => $audience_ids,
-            'user_ids' => $user_ids,
-        );
+		$booking_data = array(
+			'environment_id' => $environment_id,
+			'booking_date'   => $booking_date,
+			'start_time'     => $start_time,
+			'end_time'       => $end_time,
+			'is_all_day'     => $is_all_day ? 1 : 0,
+			'booking_type'   => $booking_type,
+			'description'    => $description,
+			'audience_ids'   => $audience_ids,
+			'user_ids'       => $user_ids,
+		);
 
-        /**
-         * Fires before an audience booking is created.
-         *
-         * @since 4.6.4
-         * @param array $booking_data Booking data to be inserted.
-         */
-        do_action( 'ffcertificate_before_audience_booking_create', $booking_data );
+		/**
+		 * Fires before an audience booking is created.
+		 *
+		 * @since 4.6.4
+		 * @param array $booking_data Booking data to be inserted.
+		 */
+		do_action( 'ffcertificate_before_audience_booking_create', $booking_data );
 
-        // Create the booking
-        $booking_id = AudienceBookingRepository::create($booking_data);
+		// Create the booking
+		$booking_id = AudienceBookingRepository::create( $booking_data );
 
-        if (!$booking_id) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('Failed to create booking.', 'ffcertificate'),
-            ), 500);
-        }
+		if ( ! $booking_id ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'Failed to create booking.', 'ffcertificate' ),
+				),
+				500
+			);
+		}
 
-        // Trigger notification hook
+		// Trigger notification hook
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix.
-        do_action('ffcertificate_audience_booking_created', $booking_id);
+		do_action( 'ffcertificate_audience_booking_created', $booking_id );
 
-        return new \WP_REST_Response(array(
-            'success' => true,
-            'booking_id' => $booking_id,
-            'message' => __('Booking created successfully.', 'ffcertificate'),
-        ), 201);
-    }
+		return new \WP_REST_Response(
+			array(
+				'success'    => true,
+				'booking_id' => $booking_id,
+				'message'    => __( 'Booking created successfully.', 'ffcertificate' ),
+			),
+			201
+		);
+	}
 
-    /**
-     * Cancel booking
-     *
-     * @param \WP_REST_Request $request Request object
-     * @return \WP_REST_Response
-     */
-    public function cancel_booking(\WP_REST_Request $request): \WP_REST_Response {
-        $booking_id = $request->get_param('id');
-        $reason = $request->get_param('reason');
+	/**
+	 * Cancel booking
+	 *
+	 * @param \WP_REST_Request $request Request object
+	 * @return \WP_REST_Response
+	 */
+	public function cancel_booking( \WP_REST_Request $request ): \WP_REST_Response {
+		$booking_id = $request->get_param( 'id' );
+		$reason     = $request->get_param( 'reason' );
 
-        // Validate reason
-        if (empty($reason) || mb_strlen($reason) < 5) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('Cancellation reason is required.', 'ffcertificate'),
-            ), 400);
-        }
+		// Validate reason
+		if ( empty( $reason ) || mb_strlen( $reason ) < 5 ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'Cancellation reason is required.', 'ffcertificate' ),
+				),
+				400
+			);
+		}
 
-        $booking = AudienceBookingRepository::get_by_id($booking_id);
-        if (!$booking) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('Booking not found.', 'ffcertificate'),
-            ), 404);
-        }
+		$booking = AudienceBookingRepository::get_by_id( $booking_id );
+		if ( ! $booking ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'Booking not found.', 'ffcertificate' ),
+				),
+				404
+			);
+		}
 
-        if ($booking->status === 'cancelled') {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('Booking is already cancelled.', 'ffcertificate'),
-            ), 400);
-        }
+		if ( $booking->status === 'cancelled' ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'Booking is already cancelled.', 'ffcertificate' ),
+				),
+				400
+			);
+		}
 
-        // Cancel the booking
-        $result = AudienceBookingRepository::cancel($booking_id, $reason);
+		// Cancel the booking
+		$result = AudienceBookingRepository::cancel( $booking_id, $reason );
 
-        if (!$result) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('Failed to cancel booking.', 'ffcertificate'),
-            ), 500);
-        }
+		if ( ! $result ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'Failed to cancel booking.', 'ffcertificate' ),
+				),
+				500
+			);
+		}
 
-        // Trigger notification hook
+		// Trigger notification hook
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix.
-        do_action('ffcertificate_audience_booking_cancelled', $booking_id, $reason);
+		do_action( 'ffcertificate_audience_booking_cancelled', $booking_id, $reason );
 
-        return new \WP_REST_Response(array(
-            'success' => true,
-            'message' => __('Booking cancelled successfully.', 'ffcertificate'),
-        ), 200);
-    }
+		return new \WP_REST_Response(
+			array(
+				'success' => true,
+				'message' => __( 'Booking cancelled successfully.', 'ffcertificate' ),
+			),
+			200
+		);
+	}
 
-    /**
-     * Check conflicts
-     *
-     * @param \WP_REST_Request $request Request object
-     * @return \WP_REST_Response
-     */
-    public function check_conflicts(\WP_REST_Request $request): \WP_REST_Response {
-        try {
-            $environment_id = (int) $request->get_param('environment_id');
-            $booking_date = sanitize_text_field($request->get_param('booking_date'));
-            $start_time = sanitize_text_field($request->get_param('start_time'));
-            $end_time = sanitize_text_field($request->get_param('end_time'));
-            $audience_ids = array_map('intval', (array) ($request->get_param('audience_ids') ?: array()));
-            $user_ids = array_map('intval', (array) ($request->get_param('user_ids') ?: array()));
+	/**
+	 * Check conflicts
+	 *
+	 * @param \WP_REST_Request $request Request object
+	 * @return \WP_REST_Response
+	 */
+	public function check_conflicts( \WP_REST_Request $request ): \WP_REST_Response {
+		try {
+			$environment_id = (int) $request->get_param( 'environment_id' );
+			$booking_date   = sanitize_text_field( $request->get_param( 'booking_date' ) );
+			$start_time     = sanitize_text_field( $request->get_param( 'start_time' ) );
+			$end_time       = sanitize_text_field( $request->get_param( 'end_time' ) );
+			$audience_ids   = array_map( 'intval', (array) ( $request->get_param( 'audience_ids' ) ?: array() ) );
+			$user_ids       = array_map( 'intval', (array) ( $request->get_param( 'user_ids' ) ?: array() ) );
 
-            // Validate required parameters
-            if (!$environment_id || !$booking_date || !$start_time || !$end_time) {
-                return new \WP_REST_Response(array(
-                    'success' => false,
-                    'message' => __('Missing required parameters.', 'ffcertificate'),
-                ), 400);
-            }
+			// Validate required parameters
+			if ( ! $environment_id || ! $booking_date || ! $start_time || ! $end_time ) {
+				return new \WP_REST_Response(
+					array(
+						'success' => false,
+						'message' => __( 'Missing required parameters.', 'ffcertificate' ),
+					),
+					400
+				);
+			}
 
-            // Determine if this schedule is isolated (ignores cross-schedule conflicts)
-            $scope_schedule_id = null;
-            $environment = AudienceEnvironmentRepository::get_by_id($environment_id);
-            if ($environment) {
-                $schedule = AudienceScheduleRepository::get_by_id((int) $environment->schedule_id);
-                if ($schedule && !empty($schedule->is_isolated)) {
-                    $scope_schedule_id = (int) $schedule->id;
-                }
-            }
+			// Determine if this schedule is isolated (ignores cross-schedule conflicts)
+			$scope_schedule_id = null;
+			$environment       = AudienceEnvironmentRepository::get_by_id( $environment_id );
+			if ( $environment ) {
+				$schedule = AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id );
+				if ( $schedule && ! empty( $schedule->is_isolated ) ) {
+					$scope_schedule_id = (int) $schedule->id;
+				}
+			}
 
-            $response_data = array(
-                'type' => 'none',
-                'bookings' => array(),
-                'affected_users' => array(),
-                'audience_same_day' => array(),
-            );
+			$response_data = array(
+				'type'              => 'none',
+				'bookings'          => array(),
+				'affected_users'    => array(),
+				'audience_same_day' => array(),
+			);
 
-            $is_hard_conflict = false;
+			$is_hard_conflict = false;
 
-            // 1. Check environment time slot conflicts (hard conflict)
-            $env_conflicts = AudienceBookingRepository::get_conflicts($environment_id, $booking_date, $start_time, $end_time);
-            if (!empty($env_conflicts)) {
-                $response_data['type'] = 'environment';
-                $response_data['message'] = __('Time slot already booked for this environment.', 'ffcertificate');
-                $response_data['bookings'] = array_map(function($b) {
-                    return array(
-                        'id' => $b->id,
-                        'start_time' => $b->start_time,
-                        'end_time' => $b->end_time,
-                    );
-                }, $env_conflicts);
-                $is_hard_conflict = true;
-            }
+			// 1. Check environment time slot conflicts (hard conflict)
+			$env_conflicts = AudienceBookingRepository::get_conflicts( $environment_id, $booking_date, $start_time, $end_time );
+			if ( ! empty( $env_conflicts ) ) {
+				$response_data['type']     = 'environment';
+				$response_data['message']  = __( 'Time slot already booked for this environment.', 'ffcertificate' );
+				$response_data['bookings'] = array_map(
+					function ( $b ) {
+						return array(
+							'id'         => $b->id,
+							'start_time' => $b->start_time,
+							'end_time'   => $b->end_time,
+						);
+					},
+					$env_conflicts
+				);
+				$is_hard_conflict          = true;
+			}
 
-            // 2. Check same audience group on same day (soft conflict)
-            if (!$is_hard_conflict && !empty($audience_ids)) {
-                $same_day = AudienceBookingRepository::get_audience_same_day_bookings($booking_date, $audience_ids, null, $scope_schedule_id);
-                if (!empty($same_day)) {
-                    $response_data['audience_same_day'] = array_map(function($b) {
-                        return array(
-                            'id' => (int) $b->id,
-                            'start_time' => $b->start_time,
-                            'end_time' => $b->end_time,
-                            'description' => $b->description ?? '',
-                            'audience_name' => $b->audience_name,
-                        );
-                    }, $same_day);
-                }
-            }
+			// 2. Check same audience group on same day (soft conflict)
+			if ( ! $is_hard_conflict && ! empty( $audience_ids ) ) {
+				$same_day = AudienceBookingRepository::get_audience_same_day_bookings( $booking_date, $audience_ids, null, $scope_schedule_id );
+				if ( ! empty( $same_day ) ) {
+					$response_data['audience_same_day'] = array_map(
+						function ( $b ) {
+							return array(
+								'id'            => (int) $b->id,
+								'start_time'    => $b->start_time,
+								'end_time'      => $b->end_time,
+								'description'   => $b->description ?? '',
+								'audience_name' => $b->audience_name,
+							);
+						},
+						$same_day
+					);
+				}
+			}
 
-            // 3. Check user conflicts — members with overlapping bookings (soft conflict)
-            // Only check if no hard conflict detected
-            if (!$is_hard_conflict) {
-                $user_conflicts = AudienceBookingRepository::get_user_conflicts(
-                    $booking_date,
-                    $start_time,
-                    $end_time,
-                    $audience_ids,
-                    $user_ids,
-                    null,
-                    $scope_schedule_id
-                );
+			// 3. Check user conflicts — members with overlapping bookings (soft conflict)
+			// Only check if no hard conflict detected
+			if ( ! $is_hard_conflict ) {
+				$user_conflicts = AudienceBookingRepository::get_user_conflicts(
+					$booking_date,
+					$start_time,
+					$end_time,
+					$audience_ids,
+					$user_ids,
+					null,
+					$scope_schedule_id
+				);
 
-                if (!empty($user_conflicts['bookings'])) {
-                    $response_data['type'] = 'user';
-                    $response_data['bookings'] = array_map(function($b) {
-                        return array(
-                            'id' => $b->id,
-                            'start_time' => $b->start_time,
-                            'end_time' => $b->end_time,
-                            'description' => $b->description,
-                        );
-                    }, $user_conflicts['bookings']);
-                    $response_data['affected_users'] = $user_conflicts['affected_users'];
-                }
+				if ( ! empty( $user_conflicts['bookings'] ) ) {
+					$response_data['type']           = 'user';
+					$response_data['bookings']       = array_map(
+						function ( $b ) {
+							return array(
+								'id'          => $b->id,
+								'start_time'  => $b->start_time,
+								'end_time'    => $b->end_time,
+								'description' => $b->description,
+							);
+						},
+						$user_conflicts['bookings']
+					);
+					$response_data['affected_users'] = $user_conflicts['affected_users'];
+				}
 
-                // Audience same-day is also a soft conflict
-                if ($response_data['type'] === 'none' && !empty($response_data['audience_same_day'])) {
-                    $response_data['type'] = 'audience_same_day';
-                }
-            }
+				// Audience same-day is also a soft conflict
+				if ( $response_data['type'] === 'none' && ! empty( $response_data['audience_same_day'] ) ) {
+					$response_data['type'] = 'audience_same_day';
+				}
+			}
 
-            return new \WP_REST_Response(array(
-                'success' => true,
-                'conflicts' => $response_data,
-            ), 200);
-        } catch (\Exception $e) {
-            return new \WP_REST_Response(array(
-                'success' => false,
-                'message' => __('Error checking conflicts.', 'ffcertificate') . ' ' . $e->getMessage(),
-            ), 500);
-        }
-    }
+			return new \WP_REST_Response(
+				array(
+					'success'   => true,
+					'conflicts' => $response_data,
+				),
+				200
+			);
+		} catch ( \Exception $e ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'Error checking conflicts.', 'ffcertificate' ) . ' ' . $e->getMessage(),
+				),
+				500
+			);
+		}
+	}
 }

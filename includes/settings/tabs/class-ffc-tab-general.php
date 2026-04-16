@@ -16,28 +16,28 @@ namespace FreeFormCertificate\Settings\Tabs;
 use FreeFormCertificate\Settings\SettingsTab;
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 class TabGeneral extends SettingsTab {
 
-    protected function init(): void {
-        $this->tab_id = 'general';
-        $this->tab_title = __( 'General', 'ffcertificate' );
-        $this->tab_icon = 'ffc-icon-settings';
-        $this->tab_order = 10;
-    }
+	protected function init(): void {
+		$this->tab_id    = 'general';
+		$this->tab_title = __( 'General', 'ffcertificate' );
+		$this->tab_icon  = 'ffc-icon-settings';
+		$this->tab_order = 10;
+	}
 
-    public function render(): void {
-        $view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-general.php';
+	public function render(): void {
+		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-general.php';
 
-        if ( file_exists( $view_file ) ) {
-            $settings = $this;
-            include $view_file;
-        } else {
-            echo '<div class="notice notice-error"><p>';
-            echo esc_html__( 'General settings view file not found.', 'ffcertificate' );
-            echo '</p></div>';
-        }
-    }
+		if ( file_exists( $view_file ) ) {
+			$settings = $this;
+			include $view_file;
+		} else {
+			echo '<div class="notice notice-error"><p>';
+			echo esc_html__( 'General settings view file not found.', 'ffcertificate' );
+			echo '</p></div>';
+		}
+	}
 }

@@ -11,88 +11,90 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate;
 
-if (!defined('ABSPATH')) exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 class Activator {
 
-    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
-    public static function activate(): void {
-        self::create_submissions_table();
-        self::create_activity_log_table();
-        self::add_columns();
-        self::create_verification_page();
+	public static function activate(): void {
+		self::create_submissions_table();
+		self::create_activity_log_table();
+		self::add_columns();
+		self::create_verification_page();
 
-        if (class_exists('\FreeFormCertificate\Security\RateLimitActivator')) {
-            \FreeFormCertificate\Security\RateLimitActivator::create_tables();
-        }
+		if ( class_exists( '\FreeFormCertificate\Security\RateLimitActivator' ) ) {
+			\FreeFormCertificate\Security\RateLimitActivator::create_tables();
+		}
 
-        self::register_user_role();
-        self::create_dashboard_page();
-        self::create_user_profiles_table();
-        self::create_custom_fields_table();
-        self::create_reregistrations_table();
-        self::create_reregistration_audiences_table();
-        self::create_reregistration_submissions_table();
-        self::add_reregistration_submissions_columns();
-        self::migrate_reregistration_audience_to_junction();
-        self::upgrade_auth_code_unique_constraints();
+		self::register_user_role();
+		self::create_dashboard_page();
+		self::create_user_profiles_table();
+		self::create_custom_fields_table();
+		self::create_reregistrations_table();
+		self::create_reregistration_audiences_table();
+		self::create_reregistration_submissions_table();
+		self::add_reregistration_submissions_columns();
+		self::migrate_reregistration_audience_to_junction();
+		self::upgrade_auth_code_unique_constraints();
 
-        if (class_exists('\FreeFormCertificate\Migrations\MigrationSelfSchedulingTables')) {
-            \FreeFormCertificate\Migrations\MigrationSelfSchedulingTables::run();
-        }
+		if ( class_exists( '\FreeFormCertificate\Migrations\MigrationSelfSchedulingTables' ) ) {
+			\FreeFormCertificate\Migrations\MigrationSelfSchedulingTables::run();
+		}
 
-        if (class_exists('\FreeFormCertificate\Migrations\MigrationRenameCapabilities')) {
-            \FreeFormCertificate\Migrations\MigrationRenameCapabilities::run();
-        }
+		if ( class_exists( '\FreeFormCertificate\Migrations\MigrationRenameCapabilities' ) ) {
+			\FreeFormCertificate\Migrations\MigrationRenameCapabilities::run();
+		}
 
-        if (class_exists('\FreeFormCertificate\Migrations\MigrationCustomFieldsTables')) {
-            \FreeFormCertificate\Migrations\MigrationCustomFieldsTables::run();
-        }
+		if ( class_exists( '\FreeFormCertificate\Migrations\MigrationCustomFieldsTables' ) ) {
+			\FreeFormCertificate\Migrations\MigrationCustomFieldsTables::run();
+		}
 
-        if (class_exists('\FreeFormCertificate\Migrations\MigrationDynamicReregFields')) {
-            \FreeFormCertificate\Migrations\MigrationDynamicReregFields::run();
-        }
+		if ( class_exists( '\FreeFormCertificate\Migrations\MigrationDynamicReregFields' ) ) {
+			\FreeFormCertificate\Migrations\MigrationDynamicReregFields::run();
+		}
 
-        if (class_exists('\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator')) {
-            \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::create_tables();
-        }
+		if ( class_exists( '\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator' ) ) {
+			\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::create_tables();
+		}
 
-        if (class_exists('\FreeFormCertificate\Audience\AudienceActivator')) {
-            \FreeFormCertificate\Audience\AudienceActivator::create_tables();
-        }
+		if ( class_exists( '\FreeFormCertificate\Audience\AudienceActivator' ) ) {
+			\FreeFormCertificate\Audience\AudienceActivator::create_tables();
+		}
 
-        if (class_exists('\FreeFormCertificate\UrlShortener\UrlShortenerActivator')) {
-            \FreeFormCertificate\UrlShortener\UrlShortenerActivator::create_tables();
-        }
+		if ( class_exists( '\FreeFormCertificate\UrlShortener\UrlShortenerActivator' ) ) {
+			\FreeFormCertificate\UrlShortener\UrlShortenerActivator::create_tables();
+		}
 
-        self::add_composite_indexes();
-        self::add_foreign_keys();
-        self::run_migrations();
+		self::add_composite_indexes();
+		self::add_foreign_keys();
+		self::run_migrations();
 
-        // Clean up legacy cron hooks from pre-4.6.15 versions
-        wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
-        wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
-        wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
+		// Clean up legacy cron hooks from pre-4.6.15 versions
+		wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
+		wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
+		wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
 
-        // Schedule daily cleanup cron
-        if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
-            wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
-        }
+		// Schedule daily cleanup cron
+		if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
+			wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
+		}
 
-        flush_rewrite_rules();
-    }
+		flush_rewrite_rules();
+	}
 
-    private static function create_submissions_table(): void {
-        global $wpdb;
-        $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
-        $charset_collate = $wpdb->get_charset_collate();
+	private static function create_submissions_table(): void {
+		global $wpdb;
+		$table_name      = \FreeFormCertificate\Core\Utils::get_submissions_table();
+		$charset_collate = $wpdb->get_charset_collate();
 
-        if (self::table_exists($table_name)) {
-            return;
-        }
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
 
-        $sql = "CREATE TABLE {$table_name} (
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             form_id bigint(20) unsigned NOT NULL,
             submission_date datetime NOT NULL,
@@ -107,178 +109,242 @@ class Activator {
             KEY auth_code (auth_code)
         ) {$charset_collate};";
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
-    }
+		dbDelta( $sql );
+	}
 
-    /**
-     * Ensure submissions table schema is up-to-date on every load.
-     *
-     * Compares stored DB version with plugin version and runs add_columns()
-     * when they differ.  This prevents "column not found" errors after a
-     * plugin update that adds new columns without a full deactivate/activate.
-     *
-     * @since 4.12.26
-     */
-    public static function maybe_add_columns(): void {
-        $stored = get_option( 'ffc_submissions_db_version', '' );
+	/**
+	 * Ensure submissions table schema is up-to-date on every load.
+	 *
+	 * Compares stored DB version with plugin version and runs add_columns()
+	 * when they differ.  This prevents "column not found" errors after a
+	 * plugin update that adds new columns without a full deactivate/activate.
+	 *
+	 * @since 4.12.26
+	 */
+	public static function maybe_add_columns(): void {
+		$stored = get_option( 'ffc_submissions_db_version', '' );
 
-        if ( $stored === FFC_VERSION ) {
-            return;
-        }
+		if ( $stored === FFC_VERSION ) {
+			return;
+		}
 
-        self::add_columns();
-        update_option( 'ffc_submissions_db_version', FFC_VERSION, true );
-    }
+		self::add_columns();
+		update_option( 'ffc_submissions_db_version', FFC_VERSION, true );
+	}
 
-    private static function add_columns(): void {
-        global $wpdb;
-        $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+	private static function add_columns(): void {
+		global $wpdb;
+		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        $columns = array(
-            'user_id' => array('type' => 'BIGINT(20) UNSIGNED DEFAULT NULL', 'after' => 'form_id', 'index' => 'user_id'),
-            'magic_token' => array('type' => 'VARCHAR(32) DEFAULT NULL', 'after' => 'status', 'index' => 'magic_token'),
-            'auth_code' => array('type' => 'VARCHAR(20) DEFAULT NULL', 'after' => 'magic_token', 'index' => 'auth_code'),
-            'email_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'auth_code'),
-            'email_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'email_encrypted', 'index' => 'email_hash'),
-            'cpf_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'email_hash'),
-            'cpf_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'cpf_encrypted', 'index' => 'cpf_hash'),
-            'rf_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'cpf_hash'),
-            'rf_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'rf_encrypted', 'index' => 'rf_hash'),
-            'ticket_hash' => array('type' => 'VARCHAR(64) NULL DEFAULT NULL', 'after' => 'rf_hash', 'index' => 'ticket_hash'),
-            'user_ip_encrypted' => array('type' => 'TEXT NULL DEFAULT NULL', 'after' => 'ticket_hash'),
-            'data_encrypted' => array('type' => 'LONGTEXT NULL DEFAULT NULL', 'after' => 'user_ip_encrypted'),
-            'consent_given' => array('type' => 'TINYINT(1) DEFAULT 0', 'after' => 'data_encrypted'),
-            'consent_date' => array('type' => 'DATETIME DEFAULT NULL', 'after' => 'consent_given'),
-            'consent_text' => array('type' => 'TEXT DEFAULT NULL', 'after' => 'consent_date'),
-            'qr_code_cache' => array('type' => 'LONGTEXT DEFAULT NULL', 'after' => 'consent_text'),
-            'edited_at' => array('type' => 'DATETIME NULL DEFAULT NULL', 'after' => 'qr_code_cache'),
-            'edited_by' => array('type' => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL', 'after' => 'edited_at')
-        );
+		$columns = array(
+			'user_id'           => array(
+				'type'  => 'BIGINT(20) UNSIGNED DEFAULT NULL',
+				'after' => 'form_id',
+				'index' => 'user_id',
+			),
+			'magic_token'       => array(
+				'type'  => 'VARCHAR(32) DEFAULT NULL',
+				'after' => 'status',
+				'index' => 'magic_token',
+			),
+			'auth_code'         => array(
+				'type'  => 'VARCHAR(20) DEFAULT NULL',
+				'after' => 'magic_token',
+				'index' => 'auth_code',
+			),
+			'email_encrypted'   => array(
+				'type'  => 'TEXT NULL DEFAULT NULL',
+				'after' => 'auth_code',
+			),
+			'email_hash'        => array(
+				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
+				'after' => 'email_encrypted',
+				'index' => 'email_hash',
+			),
+			'cpf_encrypted'     => array(
+				'type'  => 'TEXT NULL DEFAULT NULL',
+				'after' => 'email_hash',
+			),
+			'cpf_hash'          => array(
+				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
+				'after' => 'cpf_encrypted',
+				'index' => 'cpf_hash',
+			),
+			'rf_encrypted'      => array(
+				'type'  => 'TEXT NULL DEFAULT NULL',
+				'after' => 'cpf_hash',
+			),
+			'rf_hash'           => array(
+				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
+				'after' => 'rf_encrypted',
+				'index' => 'rf_hash',
+			),
+			'ticket_hash'       => array(
+				'type'  => 'VARCHAR(64) NULL DEFAULT NULL',
+				'after' => 'rf_hash',
+				'index' => 'ticket_hash',
+			),
+			'user_ip_encrypted' => array(
+				'type'  => 'TEXT NULL DEFAULT NULL',
+				'after' => 'ticket_hash',
+			),
+			'data_encrypted'    => array(
+				'type'  => 'LONGTEXT NULL DEFAULT NULL',
+				'after' => 'user_ip_encrypted',
+			),
+			'consent_given'     => array(
+				'type'  => 'TINYINT(1) DEFAULT 0',
+				'after' => 'data_encrypted',
+			),
+			'consent_date'      => array(
+				'type'  => 'DATETIME DEFAULT NULL',
+				'after' => 'consent_given',
+			),
+			'consent_text'      => array(
+				'type'  => 'TEXT DEFAULT NULL',
+				'after' => 'consent_date',
+			),
+			'qr_code_cache'     => array(
+				'type'  => 'LONGTEXT DEFAULT NULL',
+				'after' => 'consent_text',
+			),
+			'edited_at'         => array(
+				'type'  => 'DATETIME NULL DEFAULT NULL',
+				'after' => 'qr_code_cache',
+			),
+			'edited_by'         => array(
+				'type'  => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL',
+				'after' => 'edited_at',
+			),
+		);
 
-        self::add_columns_if_missing($table_name, $columns);
-        self::add_index_if_missing($table_name, 'idx_form_cpf_new', '(form_id, cpf_hash)');
-        self::add_index_if_missing($table_name, 'idx_form_rf', '(form_id, rf_hash)');
-    }
+		self::add_columns_if_missing( $table_name, $columns );
+		self::add_index_if_missing( $table_name, 'idx_form_cpf_new', '(form_id, cpf_hash)' );
+		self::add_index_if_missing( $table_name, 'idx_form_rf', '(form_id, rf_hash)' );
+	}
 
-    /**
-     * Add composite indexes for common query patterns.
-     *
-     * @since 4.6.2
-     */
-    private static function add_composite_indexes(): void {
-        $table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
+	/**
+	 * Add composite indexes for common query patterns.
+	 *
+	 * @since 4.6.2
+	 */
+	private static function add_composite_indexes(): void {
+		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-        self::add_indexes_if_missing($table_name, [
-            'idx_form_status'           => '(form_id, status)',
-            'idx_status_submission_date' => '(status, submission_date)',
-            'idx_email_hash_form_id'    => '(email_hash, form_id)',
-            'idx_form_ticket_hash'      => '(form_id, ticket_hash)',
-        ]);
-    }
+		self::add_indexes_if_missing(
+			$table_name,
+			array(
+				'idx_form_status'            => '(form_id, status)',
+				'idx_status_submission_date' => '(status, submission_date)',
+				'idx_email_hash_form_id'     => '(email_hash, form_id)',
+				'idx_form_ticket_hash'       => '(form_id, ticket_hash)',
+			)
+		);
+	}
 
-    /**
-     * Add FOREIGN KEY constraints for referential integrity
-     *
-     * @since 4.9.7
-     */
-    private static function add_foreign_keys(): void {
-        if (class_exists('\FreeFormCertificate\Migrations\MigrationForeignKeys')) {
-            \FreeFormCertificate\Migrations\MigrationForeignKeys::run();
-        }
-    }
+	/**
+	 * Add FOREIGN KEY constraints for referential integrity
+	 *
+	 * @since 4.9.7
+	 */
+	private static function add_foreign_keys(): void {
+		if ( class_exists( '\FreeFormCertificate\Migrations\MigrationForeignKeys' ) ) {
+			\FreeFormCertificate\Migrations\MigrationForeignKeys::run();
+		}
+	}
 
-    private static function create_activity_log_table(): void {
-        // Delegate to ActivityLog::create_table() to avoid schema mismatch (v4.6.9)
-        if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
-            \FreeFormCertificate\Core\ActivityLog::create_table();
-        }
-    }
+	private static function create_activity_log_table(): void {
+		// Delegate to ActivityLog::create_table() to avoid schema mismatch (v4.6.9)
+		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+			\FreeFormCertificate\Core\ActivityLog::create_table();
+		}
+	}
 
-    private static function create_verification_page(): void {
-        $existing_page = get_page_by_path('valid');
+	private static function create_verification_page(): void {
+		$existing_page = get_page_by_path( 'valid' );
 
-        if ($existing_page) {
-            update_option('ffc_verification_page_id', $existing_page->ID);
-            return;
-        }
+		if ( $existing_page ) {
+			update_option( 'ffc_verification_page_id', $existing_page->ID );
+			return;
+		}
 
-        $page_data = array(
-            'post_title'     => 'Certificate Verification',
-            'post_content'   => '[ffc_verification]',
-            'post_status'    => 'publish',
-            'post_type'      => 'page',
-            'post_name'      => 'valid',
-            'post_author'    => 1,
-            'comment_status' => 'closed',
-            'ping_status'    => 'closed'
-        );
+		$page_data = array(
+			'post_title'     => 'Certificate Verification',
+			'post_content'   => '[ffc_verification]',
+			'post_status'    => 'publish',
+			'post_type'      => 'page',
+			'post_name'      => 'valid',
+			'post_author'    => 1,
+			'comment_status' => 'closed',
+			'ping_status'    => 'closed',
+		);
 
-        $page_id = wp_insert_post($page_data);
+		$page_id = wp_insert_post( $page_data );
 
-        if ($page_id && !is_wp_error($page_id)) {
-            update_option('ffc_verification_page_id', $page_id);
-            update_post_meta($page_id, '_ffc_managed_page', '1');
-        }
-    }
+		if ( $page_id && ! is_wp_error( $page_id ) ) {
+			update_option( 'ffc_verification_page_id', $page_id );
+			update_post_meta( $page_id, '_ffc_managed_page', '1' );
+		}
+	}
 
-    /**
-     * Run batch migrations during activation.
-     *
-     * v5.0.0: Only split_cpf_rf remains and it must be run manually by admin
-     * (requires existing data). No auto-run migrations left.
-     *
-     * @return void
-     */
-    private static function run_migrations(): void {
-        // v5.0.0: All auto-run migrations have been retired.
-        // split_cpf_rf is the only remaining migration and must be run manually.
-    }
+	/**
+	 * Run batch migrations during activation.
+	 *
+	 * v5.0.0: Only split_cpf_rf remains and it must be run manually by admin
+	 * (requires existing data). No auto-run migrations left.
+	 *
+	 * @return void
+	 */
+	private static function run_migrations(): void {
+		// v5.0.0: All auto-run migrations have been retired.
+		// split_cpf_rf is the only remaining migration and must be run manually.
+	}
 
-    /**
-     * Register ffc_user role
-     *
-     * @since 3.1.0
-     */
-    private static function register_user_role(): void {
-        // Load User Manager if not already loaded
-        if (!class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
-            $user_manager_file = FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-user-manager.php';
-            if (file_exists($user_manager_file)) {
-                require_once $user_manager_file;
-            }
-        }
+	/**
+	 * Register ffc_user role
+	 *
+	 * @since 3.1.0
+	 */
+	private static function register_user_role(): void {
+		// Load User Manager if not already loaded
+		if ( ! class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
+			$user_manager_file = FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-user-manager.php';
+			if ( file_exists( $user_manager_file ) ) {
+				require_once $user_manager_file;
+			}
+		}
 
-        if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
-            \FreeFormCertificate\UserDashboard\UserManager::register_role();
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
+			\FreeFormCertificate\UserDashboard\UserManager::register_role();
 
-            // Grant admin-level FFC capabilities to the administrator role
-            $admin_role = get_role('administrator');
-            if ($admin_role) {
-                foreach (\FreeFormCertificate\UserDashboard\UserManager::ADMIN_CAPABILITIES as $cap) {
-                    $admin_role->add_cap($cap, true);
-                }
-            }
-        }
-    }
+			// Grant admin-level FFC capabilities to the administrator role
+			$admin_role = get_role( 'administrator' );
+			if ( $admin_role ) {
+				foreach ( \FreeFormCertificate\UserDashboard\UserManager::ADMIN_CAPABILITIES as $cap ) {
+					$admin_role->add_cap( $cap, true );
+				}
+			}
+		}
+	}
 
-    /**
-     * Create user profiles table
-     *
-     * @since 4.9.4
-     */
-    private static function create_user_profiles_table(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_user_profiles';
-        $charset_collate = $wpdb->get_charset_collate();
+	/**
+	 * Create user profiles table
+	 *
+	 * @since 4.9.4
+	 */
+	private static function create_user_profiles_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_user_profiles';
+		$charset_collate = $wpdb->get_charset_collate();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) == $table_name) {
-            return;
-        }
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name ) {
+			return;
+		}
 
-        $sql = "CREATE TABLE {$table_name} (
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             user_id bigint(20) unsigned NOT NULL,
             display_name varchar(250) DEFAULT '',
@@ -293,30 +359,30 @@ class Activator {
             UNIQUE KEY idx_user_id (user_id)
         ) {$charset_collate};";
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
-    }
+		dbDelta( $sql );
+	}
 
-    /**
-     * Create custom fields table
-     *
-     * Stores field definitions for audience-specific custom fields.
-     * Field data for each user is stored as JSON in wp_usermeta.
-     *
-     * @since 4.11.0
-     */
-    private static function create_custom_fields_table(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_custom_fields';
-        $charset_collate = $wpdb->get_charset_collate();
+	/**
+	 * Create custom fields table
+	 *
+	 * Stores field definitions for audience-specific custom fields.
+	 * Field data for each user is stored as JSON in wp_usermeta.
+	 *
+	 * @since 4.11.0
+	 */
+	private static function create_custom_fields_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_custom_fields';
+		$charset_collate = $wpdb->get_charset_collate();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) == $table_name) {
-            return;
-        }
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name ) {
+			return;
+		}
 
-        $sql = "CREATE TABLE {$table_name} (
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             audience_id bigint(20) unsigned NOT NULL,
             field_key varchar(100) NOT NULL,
@@ -335,29 +401,29 @@ class Activator {
             KEY idx_sort_order (audience_id, sort_order)
         ) {$charset_collate};";
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
-    }
+		dbDelta( $sql );
+	}
 
-    /**
-     * Create reregistrations table
-     *
-     * Stores reregistration campaigns linked to audiences.
-     *
-     * @since 4.11.0
-     */
-    private static function create_reregistrations_table(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_reregistrations';
-        $charset_collate = $wpdb->get_charset_collate();
+	/**
+	 * Create reregistrations table
+	 *
+	 * Stores reregistration campaigns linked to audiences.
+	 *
+	 * @since 4.11.0
+	 */
+	private static function create_reregistrations_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_reregistrations';
+		$charset_collate = $wpdb->get_charset_collate();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) == $table_name) {
-            return;
-        }
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name ) {
+			return;
+		}
 
-        $sql = "CREATE TABLE {$table_name} (
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             title varchar(250) NOT NULL,
             start_date datetime NOT NULL,
@@ -376,93 +442,97 @@ class Activator {
             KEY idx_dates (start_date, end_date)
         ) {$charset_collate};";
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
-    }
+		dbDelta( $sql );
+	}
 
-    /**
-     * Create reregistration ↔ audiences junction table.
-     *
-     * @since 4.13.0
-     */
-    private static function create_reregistration_audiences_table(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_reregistration_audiences';
-        $charset_collate = $wpdb->get_charset_collate();
+	/**
+	 * Create reregistration ↔ audiences junction table.
+	 *
+	 * @since 4.13.0
+	 */
+	private static function create_reregistration_audiences_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_reregistration_audiences';
+		$charset_collate = $wpdb->get_charset_collate();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) == $table_name) {
-            return;
-        }
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name ) {
+			return;
+		}
 
-        $sql = "CREATE TABLE {$table_name} (
+		$sql = "CREATE TABLE {$table_name} (
             reregistration_id bigint(20) unsigned NOT NULL,
             audience_id bigint(20) unsigned NOT NULL,
             PRIMARY KEY (reregistration_id, audience_id),
             KEY idx_audience_id (audience_id)
         ) {$charset_collate};";
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
-    }
+		dbDelta( $sql );
+	}
 
-    /**
-     * Migrate existing audience_id column data into the junction table.
-     *
-     * @since 4.13.0
-     */
-    private static function migrate_reregistration_audience_to_junction(): void {
-        global $wpdb;
-        $rereg_table = $wpdb->prefix . 'ffc_reregistrations';
-        $junction_table = $wpdb->prefix . 'ffc_reregistration_audiences';
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $has_column = $wpdb->get_results($wpdb->prepare(
-            "SHOW COLUMNS FROM %i LIKE %s",
-            $rereg_table,
-            'audience_id'
-        ));
-
-        if (empty($has_column)) {
-            return; // Column already dropped — migration done
-        }
-
-        // Copy audience_id into junction table (skip if already migrated)
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->query($wpdb->prepare(
-            "INSERT IGNORE INTO %i (reregistration_id, audience_id)
-             SELECT id, audience_id FROM %i WHERE audience_id > 0",
-            $junction_table,
-            $rereg_table
-        ));
-
-        // Drop the old column and its index
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->query($wpdb->prepare("ALTER TABLE %i DROP INDEX idx_audience_id", $rereg_table));
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->query($wpdb->prepare("ALTER TABLE %i DROP COLUMN audience_id", $rereg_table));
-    }
-
-    /**
-     * Create reregistration submissions table
-     *
-     * Stores individual user responses to reregistration campaigns.
-     *
-     * @since 4.11.0
-     */
-    private static function create_reregistration_submissions_table(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_reregistration_submissions';
-        $charset_collate = $wpdb->get_charset_collate();
+	/**
+	 * Migrate existing audience_id column data into the junction table.
+	 *
+	 * @since 4.13.0
+	 */
+	private static function migrate_reregistration_audience_to_junction(): void {
+		global $wpdb;
+		$rereg_table    = $wpdb->prefix . 'ffc_reregistrations';
+		$junction_table = $wpdb->prefix . 'ffc_reregistration_audiences';
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) == $table_name) {
-            return;
-        }
+		$has_column = $wpdb->get_results(
+			$wpdb->prepare(
+				'SHOW COLUMNS FROM %i LIKE %s',
+				$rereg_table,
+				'audience_id'
+			)
+		);
 
-        $sql = "CREATE TABLE {$table_name} (
+		if ( empty( $has_column ) ) {
+			return; // Column already dropped — migration done
+		}
+
+		// Copy audience_id into junction table (skip if already migrated)
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query(
+			$wpdb->prepare(
+				'INSERT IGNORE INTO %i (reregistration_id, audience_id)
+             SELECT id, audience_id FROM %i WHERE audience_id > 0',
+				$junction_table,
+				$rereg_table
+			)
+		);
+
+		// Drop the old column and its index
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX idx_audience_id', $rereg_table ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN audience_id', $rereg_table ) );
+	}
+
+	/**
+	 * Create reregistration submissions table
+	 *
+	 * Stores individual user responses to reregistration campaigns.
+	 *
+	 * @since 4.11.0
+	 */
+	private static function create_reregistration_submissions_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_reregistration_submissions';
+		$charset_collate = $wpdb->get_charset_collate();
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             reregistration_id bigint(20) unsigned NOT NULL,
             user_id bigint(20) unsigned NOT NULL,
@@ -480,135 +550,143 @@ class Activator {
             KEY idx_status (status)
         ) {$charset_collate};";
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
-    }
+		dbDelta( $sql );
+	}
 
-    /**
-     * Add auth_code column to reregistration submissions table for existing installs.
-     *
-     * @since 4.12.0
-     */
-    private static function add_reregistration_submissions_columns(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_reregistration_submissions';
+	/**
+	 * Add auth_code column to reregistration submissions table for existing installs.
+	 *
+	 * @since 4.12.0
+	 */
+	private static function add_reregistration_submissions_columns(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_reregistration_submissions';
 
-        if (!self::table_exists($table_name)) {
-            return;
-        }
+		if ( ! self::table_exists( $table_name ) ) {
+			return;
+		}
 
-        self::add_columns_if_missing($table_name, array(
-            'auth_code' => array(
-                'type'  => 'VARCHAR(20) DEFAULT NULL',
-                'after' => 'status',
-                'index' => 'auth_code',
-            ),
-            'magic_token' => array(
-                'type'  => 'VARCHAR(64) DEFAULT NULL',
-                'after' => 'auth_code',
-                'index' => 'magic_token',
-            ),
-        ));
-    }
+		self::add_columns_if_missing(
+			$table_name,
+			array(
+				'auth_code'   => array(
+					'type'  => 'VARCHAR(20) DEFAULT NULL',
+					'after' => 'status',
+					'index' => 'auth_code',
+				),
+				'magic_token' => array(
+					'type'  => 'VARCHAR(64) DEFAULT NULL',
+					'after' => 'auth_code',
+					'index' => 'magic_token',
+				),
+			)
+		);
+	}
 
-    /**
-     * Upgrade auth_code indexes to UNIQUE constraints across all tables.
-     *
-     * Prevents cross-table code collisions by ensuring each auth_code
-     * is unique within its own table. Combined with the centralized
-     * generate_globally_unique_auth_code() this guarantees global uniqueness.
-     *
-     * Safe to run multiple times (idempotent).
-     *
-     * @since 4.12.0
-     */
-    private static function upgrade_auth_code_unique_constraints(): void {
-        global $wpdb;
+	/**
+	 * Upgrade auth_code indexes to UNIQUE constraints across all tables.
+	 *
+	 * Prevents cross-table code collisions by ensuring each auth_code
+	 * is unique within its own table. Combined with the centralized
+	 * generate_globally_unique_auth_code() this guarantees global uniqueness.
+	 *
+	 * Safe to run multiple times (idempotent).
+	 *
+	 * @since 4.12.0
+	 */
+	private static function upgrade_auth_code_unique_constraints(): void {
+		global $wpdb;
 
-        $tables = array(
-            $wpdb->prefix . 'ffc_submissions'                    => 'auth_code',
-            $wpdb->prefix . 'ffc_reregistration_submissions'     => 'auth_code',
-        );
+		$tables = array(
+			$wpdb->prefix . 'ffc_submissions' => 'auth_code',
+			$wpdb->prefix . 'ffc_reregistration_submissions' => 'auth_code',
+		);
 
-        foreach ( $tables as $table => $column ) {
-            if ( ! self::table_exists( $table ) ) {
-                continue;
-            }
+		foreach ( $tables as $table => $column ) {
+			if ( ! self::table_exists( $table ) ) {
+				continue;
+			}
 
-            // Check if a UNIQUE index already exists on this column
+			// Check if a UNIQUE index already exists on this column
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $indexes = $wpdb->get_results( $wpdb->prepare( "SHOW INDEX FROM %i WHERE Column_name = %s", $table, $column ) );
-            $has_unique = false;
-            $old_index_names = array();
+			$indexes         = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Column_name = %s', $table, $column ) );
+			$has_unique      = false;
+			$old_index_names = array();
 
-            foreach ( $indexes as $idx ) {
-                if ( (int) $idx->Non_unique === 0 ) {
-                    $has_unique = true;
-                } else {
-                    $old_index_names[] = $idx->Key_name;
-                }
-            }
+			foreach ( $indexes as $idx ) {
+				if ( (int) $idx->Non_unique === 0 ) {
+					$has_unique = true;
+				} else {
+					$old_index_names[] = $idx->Key_name;
+				}
+			}
 
-            if ( $has_unique ) {
-                continue;
-            }
+			if ( $has_unique ) {
+				continue;
+			}
 
-            // Remove duplicate auth_codes (keep the most recent) before adding constraint
+			// Remove duplicate auth_codes (keep the most recent) before adding constraint
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->query(
-                $wpdb->prepare(
-                    "DELETE t1 FROM %i t1
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE t1 FROM %i t1
                      INNER JOIN %i t2
                      WHERE t1.%i = t2.%i
                        AND t1.%i IS NOT NULL
                        AND t1.%i != ''
                        AND t1.id < t2.id",
-                    $table, $table, $column, $column, $column, $column
-                )
-            );
+					$table,
+					$table,
+					$column,
+					$column,
+					$column,
+					$column
+				)
+			);
 
-            // Drop old non-unique indexes
-            foreach ( array_unique( $old_index_names ) as $name ) {
+			// Drop old non-unique indexes
+			foreach ( array_unique( $old_index_names ) as $name ) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table, $name ) );
-            }
+				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table, $name ) );
+			}
 
-            // Add UNIQUE constraint
+			// Add UNIQUE constraint
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic index name uq_{$column} from trusted internal config.
-            $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD UNIQUE INDEX uq_{$column} (%i)", $table, $column ) );
-        }
-    }
+			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD UNIQUE INDEX uq_{$column} (%i)", $table, $column ) );
+		}
+	}
 
-    /**
-     * Create dashboard page
-     *
-     * @since 3.1.0
-     */
-    private static function create_dashboard_page(): void {
-        $existing_page = get_page_by_path('dashboard');
+	/**
+	 * Create dashboard page
+	 *
+	 * @since 3.1.0
+	 */
+	private static function create_dashboard_page(): void {
+		$existing_page = get_page_by_path( 'dashboard' );
 
-        if ($existing_page) {
-            update_option('ffc_dashboard_page_id', $existing_page->ID);
-            return;
-        }
+		if ( $existing_page ) {
+			update_option( 'ffc_dashboard_page_id', $existing_page->ID );
+			return;
+		}
 
-        $page_data = array(
-            'post_title'     => 'My Dashboard',
-            'post_content'   => '[user_dashboard_personal]',
-            'post_status'    => 'publish',
-            'post_type'      => 'page',
-            'post_name'      => 'dashboard',
-            'post_author'    => 1,
-            'comment_status' => 'closed',
-            'ping_status'    => 'closed'
-        );
+		$page_data = array(
+			'post_title'     => 'My Dashboard',
+			'post_content'   => '[user_dashboard_personal]',
+			'post_status'    => 'publish',
+			'post_type'      => 'page',
+			'post_name'      => 'dashboard',
+			'post_author'    => 1,
+			'comment_status' => 'closed',
+			'ping_status'    => 'closed',
+		);
 
-        $page_id = wp_insert_post($page_data);
+		$page_id = wp_insert_post( $page_data );
 
-        if ($page_id && !is_wp_error($page_id)) {
-            update_option('ffc_dashboard_page_id', $page_id);
-            update_post_meta($page_id, '_ffc_managed_page', '1');
-        }
-    }
+		if ( $page_id && ! is_wp_error( $page_id ) ) {
+			update_option( 'ffc_dashboard_page_id', $page_id );
+			update_post_meta( $page_id, '_ffc_managed_page', '1' );
+		}
+	}
 }

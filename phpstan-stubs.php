@@ -25,7 +25,7 @@ define( 'QR_ECLEVEL_H', 3 );
 
 class QRcode {
 	/**
-	 * @param string      $text
+	 * @param string       $text
 	 * @param string|false $outfile
 	 * @param int          $level
 	 * @param int          $size
@@ -40,5 +40,6 @@ class QRcode {
 	 * @param int          $level
 	 * @return array<int, string>
 	 */
-	public static function raw( $text, $outfile = false, $level = QR_ECLEVEL_L ) { return array(); }
+	public static function raw( $text, $outfile = false, $level = QR_ECLEVEL_L ) {
+		return array(); }
 }

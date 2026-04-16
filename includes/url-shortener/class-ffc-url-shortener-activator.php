@@ -15,37 +15,37 @@ namespace FreeFormCertificate\UrlShortener;
 use FreeFormCertificate\Core\DatabaseHelperTrait;
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 class UrlShortenerActivator {
 
-    use DatabaseHelperTrait;
+	use DatabaseHelperTrait;
 
-    /**
-     * Get the short URLs table name.
-     *
-     * @return string
-     */
-    public static function get_table_name(): string {
-        global $wpdb;
-        return $wpdb->prefix . 'ffc_short_urls';
-    }
+	/**
+	 * Get the short URLs table name.
+	 *
+	 * @return string
+	 */
+	public static function get_table_name(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'ffc_short_urls';
+	}
 
-    /**
-     * Create the short URLs table.
-     */
-    public static function create_tables(): void {
-        global $wpdb;
+	/**
+	 * Create the short URLs table.
+	 */
+	public static function create_tables(): void {
+		global $wpdb;
 
-        $table_name      = self::get_table_name();
-        $charset_collate = $wpdb->get_charset_collate();
+		$table_name      = self::get_table_name();
+		$charset_collate = $wpdb->get_charset_collate();
 
-        if ( self::table_exists( $table_name ) ) {
-            return;
-        }
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
 
-        $sql = "CREATE TABLE {$table_name} (
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             short_code varchar(10) NOT NULL,
             target_url text NOT NULL,
@@ -62,21 +62,21 @@ class UrlShortenerActivator {
             KEY idx_status (status)
         ) {$charset_collate};";
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        dbDelta( $sql );
-    }
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
 
-    /**
-     * Run on plugins_loaded to handle schema updates.
-     */
-    public static function maybe_migrate(): void {
-        $table_name = self::get_table_name();
+	/**
+	 * Run on plugins_loaded to handle schema updates.
+	 */
+	public static function maybe_migrate(): void {
+		$table_name = self::get_table_name();
 
-        if ( ! self::table_exists( $table_name ) ) {
-            self::create_tables();
-        }
+		if ( ! self::table_exists( $table_name ) ) {
+			self::create_tables();
+		}
 
-        // Add qr_cache column for QR code caching (avoids regeneration on every admin load).
-        self::add_column_if_missing( $table_name, 'qr_cache', 'LONGTEXT NULL', 'status' );
-    }
+		// Add qr_cache column for QR code caching (avoids regeneration on every admin load).
+		self::add_column_if_missing( $table_name, 'qr_cache', 'LONGTEXT NULL', 'status' );
+	}
 }

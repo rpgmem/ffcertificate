@@ -332,9 +332,9 @@ class ObsoleteShortcodeCleaner {
 	 * Full pipeline: discover expired forms, scan posts, optionally rewrite
 	 * each affected post, return an aggregated report.
 	 *
-	 * @param int                    $days    Grace window in days.
-	 * @param array{dry_run?:bool}   $options Options. `dry_run=true` skips the
-	 *                                        `wp_update_post()` step.
+	 * @param int                  $days    Grace window in days.
+	 * @param array{dry_run?:bool} $options Options. `dry_run=true` skips the
+	 *                                      `wp_update_post()` step.
 	 * @return array{
 	 *     dry_run: bool,
 	 *     days: int,

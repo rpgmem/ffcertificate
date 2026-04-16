@@ -19,103 +19,103 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations;
 
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 class MigrationCustomFieldsTables {
 
-    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
-    /**
-     * Option key to track migration status
-     */
-    private const MIGRATION_OPTION = 'ffc_migration_custom_fields_tables_completed';
+	/**
+	 * Option key to track migration status
+	 */
+	private const MIGRATION_OPTION = 'ffc_migration_custom_fields_tables_completed';
 
-    /**
-     * Tables that this migration creates (suffix only)
-     *
-     * @var array<string>
-     */
-    private static array $tables = [
-        'ffc_custom_fields',
-        'ffc_reregistrations',
-        'ffc_reregistration_submissions',
-    ];
+	/**
+	 * Tables that this migration creates (suffix only)
+	 *
+	 * @var array<string>
+	 */
+	private static array $tables = array(
+		'ffc_custom_fields',
+		'ffc_reregistrations',
+		'ffc_reregistration_submissions',
+	);
 
-    /**
-     * Check if migration has been completed
-     *
-     * @return bool
-     */
-    public static function is_completed(): bool {
-        return (bool) get_option(self::MIGRATION_OPTION, false);
-    }
+	/**
+	 * Check if migration has been completed
+	 *
+	 * @return bool
+	 */
+	public static function is_completed(): bool {
+		return (bool) get_option( self::MIGRATION_OPTION, false );
+	}
 
-    /**
-     * Run the migration
-     *
-     * @return array<string, mixed>
-     */
-    public static function run(): array {
-        if (self::is_completed()) {
-            return [
-                'success' => true,
-                'message' => __('Migration already completed.', 'ffcertificate'),
-                'details' => [],
-            ];
-        }
+	/**
+	 * Run the migration
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function run(): array {
+		if ( self::is_completed() ) {
+			return array(
+				'success' => true,
+				'message' => __( 'Migration already completed.', 'ffcertificate' ),
+				'details' => array(),
+			);
+		}
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-        $results = [];
-        $all_success = true;
+		$results     = array();
+		$all_success = true;
 
-        $results['ffc_custom_fields'] = self::create_custom_fields_table();
-        $results['ffc_reregistrations'] = self::create_reregistrations_table();
-        $results['ffc_reregistration_submissions'] = self::create_reregistration_submissions_table();
+		$results['ffc_custom_fields']              = self::create_custom_fields_table();
+		$results['ffc_reregistrations']            = self::create_reregistrations_table();
+		$results['ffc_reregistration_submissions'] = self::create_reregistration_submissions_table();
 
-        foreach ($results as $result) {
-            if (!$result['success']) {
-                $all_success = false;
-            }
-        }
+		foreach ( $results as $result ) {
+			if ( ! $result['success'] ) {
+				$all_success = false;
+			}
+		}
 
-        if ($all_success) {
-            update_option(self::MIGRATION_OPTION, true);
-        }
+		if ( $all_success ) {
+			update_option( self::MIGRATION_OPTION, true );
+		}
 
-        return [
-            'success' => $all_success,
-            'message' => $all_success
-                ? __('All tables created successfully.', 'ffcertificate')
-                : __('Some tables could not be created. Check details.', 'ffcertificate'),
-            'details' => $results,
-        ];
-    }
+		return array(
+			'success' => $all_success,
+			'message' => $all_success
+				? __( 'All tables created successfully.', 'ffcertificate' )
+				: __( 'Some tables could not be created. Check details.', 'ffcertificate' ),
+			'details' => $results,
+		);
+	}
 
-    /**
-     * Create ffc_custom_fields table
-     *
-     * @return array{success: bool, message: string}
-     */
-    private static function create_custom_fields_table(): array {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_custom_fields';
-        $charset_collate = $wpdb->get_charset_collate();
+	/**
+	 * Create ffc_custom_fields table
+	 *
+	 * @return array{success: bool, message: string}
+	 */
+	private static function create_custom_fields_table(): array {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_custom_fields';
+		$charset_collate = $wpdb->get_charset_collate();
 
-        if (self::table_exists($table_name)) {
-            return [
-                'success' => true,
-                'message' => sprintf(
-                    /* translators: %s: table name */
-                    __('Table %s already exists, skipping.', 'ffcertificate'),
-                    $table_name
-                ),
-            ];
-        }
+		if ( self::table_exists( $table_name ) ) {
+			return array(
+				'success' => true,
+				'message' => sprintf(
+					/* translators: %s: table name */
+					__( 'Table %s already exists, skipping.', 'ffcertificate' ),
+					$table_name
+				),
+			);
+		}
 
-        $sql = "CREATE TABLE {$table_name} (
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             audience_id bigint(20) unsigned NOT NULL,
             field_key varchar(100) NOT NULL,
@@ -142,51 +142,51 @@ class MigrationCustomFieldsTables {
         ) {$charset_collate};";
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
+		dbDelta( $sql );
 
-        if (self::table_exists($table_name)) { // @phpstan-ignore if.alwaysFalse (dbDelta creates the table)
-            return [
-                'success' => true,
-                'message' => sprintf(
-                    /* translators: %s: table name */
-                    __('Table %s created successfully.', 'ffcertificate'),
-                    $table_name
-                ),
-            ];
-        }
+		if ( self::table_exists( $table_name ) ) { // @phpstan-ignore if.alwaysFalse (dbDelta creates the table)
+			return array(
+				'success' => true,
+				'message' => sprintf(
+					/* translators: %s: table name */
+					__( 'Table %s created successfully.', 'ffcertificate' ),
+					$table_name
+				),
+			);
+		}
 
-        return [
-            'success' => false,
-            'message' => sprintf(
-                /* translators: %s: table name */
-                __('Failed to create table %s.', 'ffcertificate'),
-                $table_name
-            ),
-        ];
-    }
+		return array(
+			'success' => false,
+			'message' => sprintf(
+				/* translators: %s: table name */
+				__( 'Failed to create table %s.', 'ffcertificate' ),
+				$table_name
+			),
+		);
+	}
 
-    /**
-     * Create ffc_reregistrations table
-     *
-     * @return array{success: bool, message: string}
-     */
-    private static function create_reregistrations_table(): array {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_reregistrations';
-        $charset_collate = $wpdb->get_charset_collate();
+	/**
+	 * Create ffc_reregistrations table
+	 *
+	 * @return array{success: bool, message: string}
+	 */
+	private static function create_reregistrations_table(): array {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_reregistrations';
+		$charset_collate = $wpdb->get_charset_collate();
 
-        if (self::table_exists($table_name)) {
-            return [
-                'success' => true,
-                'message' => sprintf(
-                    /* translators: %s: table name */
-                    __('Table %s already exists, skipping.', 'ffcertificate'),
-                    $table_name
-                ),
-            ];
-        }
+		if ( self::table_exists( $table_name ) ) {
+			return array(
+				'success' => true,
+				'message' => sprintf(
+					/* translators: %s: table name */
+					__( 'Table %s already exists, skipping.', 'ffcertificate' ),
+					$table_name
+				),
+			);
+		}
 
-        $sql = "CREATE TABLE {$table_name} (
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             title varchar(250) NOT NULL,
             audience_id bigint(20) unsigned NOT NULL,
@@ -208,51 +208,51 @@ class MigrationCustomFieldsTables {
         ) {$charset_collate};";
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
+		dbDelta( $sql );
 
-        if (self::table_exists($table_name)) { // @phpstan-ignore if.alwaysFalse (dbDelta creates the table)
-            return [
-                'success' => true,
-                'message' => sprintf(
-                    /* translators: %s: table name */
-                    __('Table %s created successfully.', 'ffcertificate'),
-                    $table_name
-                ),
-            ];
-        }
+		if ( self::table_exists( $table_name ) ) { // @phpstan-ignore if.alwaysFalse (dbDelta creates the table)
+			return array(
+				'success' => true,
+				'message' => sprintf(
+					/* translators: %s: table name */
+					__( 'Table %s created successfully.', 'ffcertificate' ),
+					$table_name
+				),
+			);
+		}
 
-        return [
-            'success' => false,
-            'message' => sprintf(
-                /* translators: %s: table name */
-                __('Failed to create table %s.', 'ffcertificate'),
-                $table_name
-            ),
-        ];
-    }
+		return array(
+			'success' => false,
+			'message' => sprintf(
+				/* translators: %s: table name */
+				__( 'Failed to create table %s.', 'ffcertificate' ),
+				$table_name
+			),
+		);
+	}
 
-    /**
-     * Create ffc_reregistration_submissions table
-     *
-     * @return array{success: bool, message: string}
-     */
-    private static function create_reregistration_submissions_table(): array {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_reregistration_submissions';
-        $charset_collate = $wpdb->get_charset_collate();
+	/**
+	 * Create ffc_reregistration_submissions table
+	 *
+	 * @return array{success: bool, message: string}
+	 */
+	private static function create_reregistration_submissions_table(): array {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_reregistration_submissions';
+		$charset_collate = $wpdb->get_charset_collate();
 
-        if (self::table_exists($table_name)) {
-            return [
-                'success' => true,
-                'message' => sprintf(
-                    /* translators: %s: table name */
-                    __('Table %s already exists, skipping.', 'ffcertificate'),
-                    $table_name
-                ),
-            ];
-        }
+		if ( self::table_exists( $table_name ) ) {
+			return array(
+				'success' => true,
+				'message' => sprintf(
+					/* translators: %s: table name */
+					__( 'Table %s already exists, skipping.', 'ffcertificate' ),
+					$table_name
+				),
+			);
+		}
 
-        $sql = "CREATE TABLE {$table_name} (
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             reregistration_id bigint(20) unsigned NOT NULL,
             user_id bigint(20) unsigned NOT NULL,
@@ -275,53 +275,53 @@ class MigrationCustomFieldsTables {
         ) {$charset_collate};";
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
+		dbDelta( $sql );
 
-        if (self::table_exists($table_name)) { // @phpstan-ignore if.alwaysFalse (dbDelta creates the table)
-            return [
-                'success' => true,
-                'message' => sprintf(
-                    /* translators: %s: table name */
-                    __('Table %s created successfully.', 'ffcertificate'),
-                    $table_name
-                ),
-            ];
-        }
+		if ( self::table_exists( $table_name ) ) { // @phpstan-ignore if.alwaysFalse (dbDelta creates the table)
+			return array(
+				'success' => true,
+				'message' => sprintf(
+					/* translators: %s: table name */
+					__( 'Table %s created successfully.', 'ffcertificate' ),
+					$table_name
+				),
+			);
+		}
 
-        return [
-            'success' => false,
-            'message' => sprintf(
-                /* translators: %s: table name */
-                __('Failed to create table %s.', 'ffcertificate'),
-                $table_name
-            ),
-        ];
-    }
+		return array(
+			'success' => false,
+			'message' => sprintf(
+				/* translators: %s: table name */
+				__( 'Failed to create table %s.', 'ffcertificate' ),
+				$table_name
+			),
+		);
+	}
 
-    /**
-     * Get migration status information
-     *
-     * @return array<string, mixed>
-     */
-    public static function get_status(): array {
-        global $wpdb;
+	/**
+	 * Get migration status information
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function get_status(): array {
+		global $wpdb;
 
-        $tables_info = [];
+		$tables_info = array();
 
-        foreach (self::$tables as $table_suffix) {
-            $table_name = $wpdb->prefix . $table_suffix;
+		foreach ( self::$tables as $table_suffix ) {
+			$table_name = $wpdb->prefix . $table_suffix;
 
-            $exists = self::table_exists($table_name);
+			$exists = self::table_exists( $table_name );
 
-            $tables_info[$table_suffix] = [
-                'table' => $table_name,
-                'exists' => $exists,
-            ];
-        }
+			$tables_info[ $table_suffix ] = array(
+				'table'  => $table_name,
+				'exists' => $exists,
+			);
+		}
 
-        return [
-            'completed' => self::is_completed(),
-            'tables' => $tables_info,
-        ];
-    }
+		return array(
+			'completed' => self::is_completed(),
+			'tables'    => $tables_info,
+		);
+	}
 }

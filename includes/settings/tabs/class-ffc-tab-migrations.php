@@ -15,28 +15,28 @@ namespace FreeFormCertificate\Settings\Tabs;
 use FreeFormCertificate\Settings\SettingsTab;
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 class TabMigrations extends SettingsTab {
 
-    protected function init(): void {
-        $this->tab_id = 'migrations';
-        $this->tab_title = __( 'Data Migrations', 'ffcertificate' );
-        $this->tab_icon = 'ffc-icon-sync';
-        $this->tab_order = 80;
-    }
-    
-    public function render(): void {
-        // Include view file
-        $view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-migrations.php';
-        
-        if ( file_exists( $view_file ) ) {
-            include $view_file;
-        } else {
-            echo '<div class="notice notice-error"><p>';
-            echo esc_html__( 'Migrations view file not found.', 'ffcertificate' );
-            echo '</p></div>';
-        }
-    }
+	protected function init(): void {
+		$this->tab_id    = 'migrations';
+		$this->tab_title = __( 'Data Migrations', 'ffcertificate' );
+		$this->tab_icon  = 'ffc-icon-sync';
+		$this->tab_order = 80;
+	}
+
+	public function render(): void {
+		// Include view file
+		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-migrations.php';
+
+		if ( file_exists( $view_file ) ) {
+			include $view_file;
+		} else {
+			echo '<div class="notice notice-error"><p>';
+			echo esc_html__( 'Migrations view file not found.', 'ffcertificate' );
+			echo '</p></div>';
+		}
+	}
 }
