@@ -57,12 +57,12 @@ class SelfSchedulingSaveHandler {
 	 * Save calendar configuration
 	 */
 	private function save_config( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() check only; value unslashed below.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); isset() check only; value unslashed below.
 		if ( ! isset( $_POST['ffc_self_scheduling_config'] ) ) {
 			return;
 		}
 
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); each field sanitized individually below.
 		$config = wp_unslash( $_POST['ffc_self_scheduling_config'] );
 
 		// Sanitize
@@ -99,13 +99,13 @@ class SelfSchedulingSaveHandler {
 	 * Save working hours
 	 */
 	private function save_working_hours( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset()/is_array() check only; value unslashed below.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); isset()/is_array() check only; value unslashed below.
 		if ( ! isset( $_POST['ffc_self_scheduling_working_hours'] ) || ! is_array( $_POST['ffc_self_scheduling_working_hours'] ) ) {
 			return;
 		}
 
 		$working_hours = array();
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); each field sanitized individually below.
 		foreach ( wp_unslash( $_POST['ffc_self_scheduling_working_hours'] ) as $hours ) {
 			$working_hours[] = array(
 				'day'   => absint( $hours['day'] ?? 0 ),
@@ -120,12 +120,12 @@ class SelfSchedulingSaveHandler {
 	 * Save email configuration
 	 */
 	private function save_email_config( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() check only; value unslashed below.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); isset() check only; value unslashed below.
 		if ( ! isset( $_POST['ffc_self_scheduling_email_config'] ) ) {
 			return;
 		}
 
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); each field sanitized individually below.
 		$email_config = wp_unslash( $_POST['ffc_self_scheduling_email_config'] );
 
 		$email_config['send_user_confirmation']         = isset( $email_config['send_user_confirmation'] ) ? 1 : 0;

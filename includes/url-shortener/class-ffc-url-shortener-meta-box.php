@@ -235,6 +235,7 @@ class UrlShortenerMetaBox {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
 		$this->check_ajax_permission();
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$post_id = (int) ( $_POST['post_id'] ?? 0 );
 		if ( $post_id <= 0 ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid post ID.', 'ffcertificate' ) ) );

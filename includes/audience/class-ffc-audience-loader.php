@@ -713,7 +713,7 @@ class AudienceLoader {
 			$this->check_ajax_permission();
 
 			$audience_id = $this->get_post_int( 'audience_id' );
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded and sanitized per-field below.
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in $this->verify_ajax_nonce() above; JSON decoded and sanitized per-field below.
 			$fields_json = isset( $_POST['fields'] ) ? wp_unslash( $_POST['fields'] ) : '[]';
 			$fields      = json_decode( $fields_json, true );
 

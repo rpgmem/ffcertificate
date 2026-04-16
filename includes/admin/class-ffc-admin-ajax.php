@@ -231,6 +231,7 @@ class AdminAjax {
 
 		// Search the specific split column
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Column name from internal config, not user input.
 		$user_id = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT user_id FROM %i WHERE {$hash_column} = %s AND user_id IS NOT NULL LIMIT 1",
@@ -238,6 +239,7 @@ class AdminAjax {
 				$cpf_rf_hash
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		if ( ! $user_id ) {
 			return array();

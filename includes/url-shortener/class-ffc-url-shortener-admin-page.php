@@ -176,7 +176,9 @@ class UrlShortenerAdminPage {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
 		$this->check_ajax_permission();
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$url   = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ) );
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$title = sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) );
 
 		if ( empty( $url ) ) {
@@ -201,6 +203,7 @@ class UrlShortenerAdminPage {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
 		$this->check_ajax_permission();
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$id = (int) ( $_POST['id'] ?? 0 );
 		if ( $id <= 0 ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid ID.', 'ffcertificate' ) ) );
@@ -217,6 +220,7 @@ class UrlShortenerAdminPage {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
 		$this->check_ajax_permission();
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$id = (int) ( $_POST['id'] ?? 0 );
 		if ( $id <= 0 ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid ID.', 'ffcertificate' ) ) );
@@ -233,6 +237,7 @@ class UrlShortenerAdminPage {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
 		$this->check_ajax_permission();
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$id = (int) ( $_POST['id'] ?? 0 );
 		if ( $id <= 0 ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid ID.', 'ffcertificate' ) ) );
@@ -269,6 +274,7 @@ class UrlShortenerAdminPage {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
 		$this->check_ajax_permission();
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
 		$id = (int) ( $_POST['id'] ?? 0 );
 		if ( $id <= 0 ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid ID.', 'ffcertificate' ) ) );

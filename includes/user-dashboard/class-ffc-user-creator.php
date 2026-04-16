@@ -55,6 +55,7 @@ class UserCreator {
 		$hash_params = self::build_hash_params( $identifier_hash, $identifier_type );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_where built from hardcoded column names via build_hash_where_clause().
 		$existing_user_id = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT user_id FROM %i
@@ -65,6 +66,7 @@ class UserCreator {
 				...$hash_params
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		if ( $existing_user_id ) {
 			CapabilityManager::grant_context_capabilities( (int) $existing_user_id, $context );
@@ -201,6 +203,7 @@ class UserCreator {
 
 		$submissions_table = \FreeFormCertificate\Core\Utils::get_submissions_table();
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_where built from hardcoded column names via build_hash_where_clause().
 		$linked_submissions = $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i SET user_id = %d WHERE ({$hash_where}) AND user_id IS NULL",
@@ -209,11 +212,13 @@ class UserCreator {
 				...$hash_params
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$appointments_table  = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		$linked_appointments = 0;
 		if ( self::table_exists( $appointments_table ) ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_where built from hardcoded column names via build_hash_where_clause().
 			$linked_appointments = $wpdb->query(
 				$wpdb->prepare(
 					"UPDATE %i SET user_id = %d WHERE ({$hash_where}) AND user_id IS NULL",
@@ -222,6 +227,7 @@ class UserCreator {
 					...$hash_params
 				)
 			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 			if ( $linked_appointments > 0 ) {
 				CapabilityManager::grant_appointment_capabilities( $user_id );
