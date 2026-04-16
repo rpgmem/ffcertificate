@@ -174,7 +174,7 @@ class ActivityLogQuery {
 
         global $wpdb;
         $table_name = $wpdb->prefix . 'ffc_activity_log';
-        $date_from  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+        $date_from  = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) ?: time() );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $total = $wpdb->get_var( $wpdb->prepare(
@@ -267,7 +267,7 @@ class ActivityLogQuery {
     public static function cleanup( int $days = 90 ): int {
         global $wpdb;
         $table_name  = $wpdb->prefix . 'ffc_activity_log';
-        $cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+        $cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) ?: time() );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $deleted = $wpdb->query( $wpdb->prepare(

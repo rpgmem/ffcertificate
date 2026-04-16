@@ -37,7 +37,7 @@ class SubmissionsList extends \WP_List_Table {
      */
     private array $form_titles_cache = [];
 
-    public function __construct( object $handler ) {
+    public function __construct( \FreeFormCertificate\Submissions\SubmissionHandler $handler ) {
         parent::__construct([
             'singular' => 'submission',
             'plural' => 'submissions',

@@ -1,2 +1,1393 @@
 parameters:
-	ignoreErrors: []
+	ignoreErrors:
+		-
+			message: '#^Access to an undefined property object\:\:\$color\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/admin/class-ffc-admin-user-custom-fields.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_label\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/admin/class-ffc-admin-user-custom-fields.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_options\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/admin/class-ffc-admin-user-custom-fields.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/admin/class-ffc-admin-user-custom-fields.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 11
+			path: includes/admin/class-ffc-admin-user-custom-fields.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/admin/class-ffc-admin-user-custom-fields.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_audience_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/admin/class-ffc-admin-user-custom-fields.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_audience_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/admin/class-ffc-admin-user-custom-fields.php
+
+		-
+			message: '#^Call to an undefined method object\:\:handle_export_request\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/admin/class-ffc-admin.php
+
+		-
+			message: '#^Call to an undefined method object\:\:register_ajax_hooks\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/admin/class-ffc-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$ID\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/admin/class-ffc-cpt.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$post_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/admin/class-ffc-cpt.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_icon\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/admin/class-ffc-settings.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_id\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/admin/class-ffc-settings.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_order\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: includes/admin/class-ffc-settings.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_title\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/admin/class-ffc-settings.php
+
+		-
+			message: '#^Call to an undefined method object\:\:render\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: includes/admin/class-ffc-settings.php
+
+		-
+			message: '#^Call to an undefined method object\:\:change_password\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/api/class-ffc-user-data-rest-controller.php
+
+		-
+			message: '#^Call to an undefined method object\:\:create_privacy_request\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/api/class-ffc-user-data-rest-controller.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_joinable_groups\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/api/class-ffc-user-data-rest-controller.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_user_appointments\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/api/class-ffc-user-data-rest-controller.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_user_audience_bookings\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/api/class-ffc-user-data-rest-controller.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_user_certificates\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/api/class-ffc-user-data-rest-controller.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_user_profile\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/api/class-ffc-user-data-rest-controller.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_user_reregistrations\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/api/class-ffc-user-data-rest-controller.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_user_summary\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/api/class-ffc-user-data-rest-controller.php
+
+		-
+			message: '#^Call to an undefined method object\:\:join_audience_group\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/api/class-ffc-user-data-rest-controller.php
+
+		-
+			message: '#^Call to an undefined method object\:\:leave_audience_group\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/api/class-ffc-user-data-rest-controller.php
+
+		-
+			message: '#^Call to an undefined method object\:\:update_user_profile\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/api/class-ffc-user-data-rest-controller.php
+
+		-
+			message: '#^Cannot access property \$user_email on WP_User\|false\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: includes/api/class-ffc-user-profile-rest-controller.php
+
+		-
+			message: '#^Cannot access property \$user_pass on WP_User\|false\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: includes/api/class-ffc-user-profile-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$end_date\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/api/class-ffc-user-reregistrations-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/api/class-ffc-user-reregistrations-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$reregistration_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/api/class-ffc-user-reregistrations-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$reregistration_status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/api/class-ffc-user-reregistrations-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$start_date\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/api/class-ffc-user-reregistrations-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 5
+			path: includes/api/class-ffc-user-reregistrations-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$color\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/audience/class-ffc-audience-admin-audience.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$depth\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-audience.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_key\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-audience.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_label\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-audience.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_options\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-audience.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-admin-audience.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 14
+			path: includes/audience/class-ffc-audience-admin-audience.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 5
+			path: includes/audience/class-ffc-audience-admin-audience.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-admin-audience.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$validation_rules\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-audience.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$booking_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-bookings.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$booking_type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-admin-bookings.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$created_by\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-admin-bookings.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$description\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-bookings.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$end_time\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-bookings.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$environment_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-bookings.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 7
+			path: includes/audience/class-ffc-audience-admin-bookings.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-admin-bookings.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$start_time\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-bookings.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-bookings.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$can_book\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$can_cancel_others\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$can_override_conflicts\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$description\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$holiday_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 8
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$visibility\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-calendar.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$description\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-environment.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 10
+			path: includes/audience/class-ffc-audience-admin-environment.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 6
+			path: includes/audience/class-ffc-audience-admin-environment.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$schedule_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/audience/class-ffc-audience-admin-environment.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-admin-environment.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$working_hours\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-admin-environment.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 4
+			path: includes/audience/class-ffc-audience-admin-import.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 5
+			path: includes/audience/class-ffc-audience-admin-import.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-booking-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$schedule_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-environment-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-environment-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$working_hours\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-environment-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$booking_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$booking_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$can_book\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$can_cancel_others\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$can_override_conflicts\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$created_by\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$description\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$end_time\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$environment_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$start_time\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-loader.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$booking_date\.$#'
+			identifier: property.notFound
+			count: 4
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$cancelled_by\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$created_by\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$description\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$email_template_booking\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$email_template_cancellation\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$end_time\.$#'
+			identifier: property.notFound
+			count: 4
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$environment_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$include_ics\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 6
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$notify_on_booking\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$notify_on_cancellation\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$schedule_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$start_time\.$#'
+			identifier: property.notFound
+			count: 4
+			path: includes/audience/class-ffc-audience-notification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$children\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$depth\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 9
+			path: includes/audience/class-ffc-audience-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$audience_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$booking_date\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$booking_type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$color\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$created_by\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$description\.$#'
+			identifier: property.notFound
+			count: 4
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$end_time\.$#'
+			identifier: property.notFound
+			count: 5
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$environment_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$future_days_limit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$holiday_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 9
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$schedule_id\.$#'
+			identifier: property.notFound
+			count: 4
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$start_time\.$#'
+			identifier: property.notFound
+			count: 5
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/audience/class-ffc-audience-rest-controller.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$can_book\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-schedule-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$can_cancel_others\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-schedule-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$can_override_conflicts\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-schedule-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-schedule-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-schedule-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$color\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-shortcode.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 10
+			path: includes/audience/class-ffc-audience-shortcode.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 6
+			path: includes/audience/class-ffc-audience-shortcode.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/audience/class-ffc-audience-shortcode.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$visibility\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/audience/class-ffc-audience-shortcode.php
+
+		-
+			message: '#^Argument of an invalid type list\<string\>\|false supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 1
+			path: includes/core/class-ffc-data-sanitizer.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/frontend/class-ffc-form-processor.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/frontend/class-ffc-form-processor.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$submission_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/frontend/class-ffc-form-processor.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/frontend/class-ffc-reprint-detector.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$submission_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/frontend/class-ffc-reprint-detector.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$auth_code\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/frontend/class-ffc-verification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$data\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/frontend/class-ffc-verification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_key\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/frontend/class-ffc-verification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 5
+			path: includes/frontend/class-ffc-verification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$magic_token\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/frontend/class-ffc-verification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$reregistration_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/frontend/class-ffc-verification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 6
+			path: includes/frontend/class-ffc-verification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/frontend/class-ffc-verification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/frontend/class-ffc-verification-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$form_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/frontend/class-ffc-verification-response-renderer.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$submission_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/frontend/class-ffc-verification-response-renderer.php
+
+		-
+			message: '#^Argument of an invalid type list\<string\>\|false supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 1
+			path: includes/generators/class-ffc-pdf-generator.php
+
+		-
+			message: '#^Call to an undefined method object\:\:get_submission\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: includes/generators/class-ffc-pdf-generator.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_key\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-custom-field-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_label\.$#'
+			identifier: property.notFound
+			count: 20
+			path: includes/reregistration/class-ffc-custom-field-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_options\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-custom-field-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-custom-field-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 5
+			path: includes/reregistration/class-ffc-custom-field-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-custom-field-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_audience_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-custom-field-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_audience_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-custom-field-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$validation_rules\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-custom-field-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$data\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-ficha-generator.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_key\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/reregistration/class-ffc-ficha-generator.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_label\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-ficha-generator.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-ficha-generator.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/reregistration/class-ffc-ficha-generator.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$reregistration_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-ficha-generator.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-ficha-generator.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-ficha-generator.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-ficha-generator.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$auto_approve\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$color\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$data\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$end_date\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_key\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_label\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 16
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$reregistration_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$reviewed_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$start_date\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 9
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$submitted_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-reregistration-admin.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$data\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-csv-exporter.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_key\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-reregistration-csv-exporter.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_label\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-csv-exporter.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-csv-exporter.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/reregistration/class-ffc-reregistration-csv-exporter.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-csv-exporter.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-csv-exporter.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-csv-exporter.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_key\.$#'
+			identifier: property.notFound
+			count: 5
+			path: includes/reregistration/class-ffc-reregistration-data-processor.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_label\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-data-processor.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-reregistration-data-processor.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 8
+			path: includes/reregistration/class-ffc-reregistration-data-processor.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$end_date\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-reregistration-email-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$reregistration_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-email-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$start_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-email-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-reregistration-email-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-email-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/reregistration/class-ffc-reregistration-email-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$data\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-form-renderer.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$end_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-form-renderer.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_key\.$#'
+			identifier: property.notFound
+			count: 5
+			path: includes/reregistration/class-ffc-reregistration-form-renderer.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_label\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-reregistration-form-renderer.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/reregistration/class-ffc-reregistration-form-renderer.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 7
+			path: includes/reregistration/class-ffc-reregistration-form-renderer.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-form-renderer.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$end_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-frontend.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 4
+			path: includes/reregistration/class-ffc-reregistration-frontend.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$start_date\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-frontend.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 7
+			path: includes/reregistration/class-ffc-reregistration-frontend.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-frontend.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: includes/reregistration/class-ffc-reregistration-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-submission-actions.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-reregistration-submission-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$ID\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$ID\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/self-scheduling/class-ffc-self-scheduling-cpt.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$post_status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/self-scheduling/class-ffc-self-scheduling-cpt.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$post_title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/self-scheduling/class-ffc-self-scheduling-cpt.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$post_type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/self-scheduling/class-ffc-self-scheduling-cpt.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$ID\.$#'
+			identifier: property.notFound
+			count: 6
+			path: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$post_status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+
+		-
+			message: '#^Cannot access property \$display_name on WP_User\|false\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: includes/shortcodes/class-ffc-dashboard-view-mode.php
+
+		-
+			message: '#^Cannot access property \$user_email on WP_User\|false\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: includes/shortcodes/class-ffc-dashboard-view-mode.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: includes/user-dashboard/class-ffc-user-manager.php

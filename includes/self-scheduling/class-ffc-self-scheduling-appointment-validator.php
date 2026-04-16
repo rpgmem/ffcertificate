@@ -185,8 +185,9 @@ class AppointmentValidator {
             $working_hours = $calendar['working_hours'] ?? array();
             if (!empty($working_hours)) {
                 $now = current_time('mysql');
-                $current_date = gmdate('Y-m-d', strtotime($now));
-                $current_time = gmdate('H:i', strtotime($now));
+                $now_ts = strtotime($now) ?: time();
+                $current_date = gmdate('Y-m-d', $now_ts);
+                $current_time = gmdate('H:i', $now_ts);
 
                 $is_working_day = \FreeFormCertificate\Scheduling\WorkingHoursService::is_working_day($current_date, $working_hours);
                 $is_within_hours = \FreeFormCertificate\Scheduling\WorkingHoursService::is_within_working_hours($current_date, $current_time, $working_hours);

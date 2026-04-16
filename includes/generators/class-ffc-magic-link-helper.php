@@ -151,22 +151,22 @@ class MagicLinkHelper {
         $query = wp_parse_url( $url, PHP_URL_QUERY );
         if ( $query ) {
             parse_str( $query, $params );
-            
-            if ( isset( $params['ffc_magic'] ) ) {
+
+            if ( isset( $params['ffc_magic'] ) && is_string( $params['ffc_magic'] ) ) {
                 return $params['ffc_magic'];
             }
-            
-            if ( isset( $params['token'] ) ) {
+
+            if ( isset( $params['token'] ) && is_string( $params['token'] ) ) {
                 return $params['token'];
             }
         }
-        
+
         // Try hash fragment
         $fragment = wp_parse_url( $url, PHP_URL_FRAGMENT );
         if ( $fragment ) {
             parse_str( $fragment, $params );
-            
-            if ( isset( $params['token'] ) ) {
+
+            if ( isset( $params['token'] ) && is_string( $params['token'] ) ) {
                 return $params['token'];
             }
         }

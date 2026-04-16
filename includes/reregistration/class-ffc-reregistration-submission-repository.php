@@ -268,6 +268,7 @@ class ReregistrationSubmissionRepository {
         $prepare_values = array_merge(array($table, $wpdb->users), $values);
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        /** @phpstan-ignore-next-line argument.type */
         return $wpdb->get_results($wpdb->prepare($sql, $prepare_values));
     }
 

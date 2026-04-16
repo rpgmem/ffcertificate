@@ -233,9 +233,9 @@ class FormProcessor {
 
             if (!$geofence_check['allowed']) {
                 wp_send_json_error(array(
-                    'message' => $geofence_check['message'],
+                    'message' => $geofence_check['message'] ?? '',
                     'geofence_blocked' => true,
-                    'reason' => $geofence_check['reason']
+                    'reason' => $geofence_check['reason'] ?? ''
                 ));
             }
         }

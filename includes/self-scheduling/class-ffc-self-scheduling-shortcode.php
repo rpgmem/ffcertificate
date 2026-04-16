@@ -287,7 +287,7 @@ class SelfSchedulingShortcode {
                 'ffc_ss_scheduling_message',
                 __('To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate')
             );
-            $scheduling_message = str_replace('%login_url%', wp_login_url(get_permalink()), $scheduling_message);
+            $scheduling_message = str_replace('%login_url%', wp_login_url(get_permalink() ?: ''), $scheduling_message);
         }
 
         // Business hours restriction: booking only
@@ -313,7 +313,7 @@ class SelfSchedulingShortcode {
             echo '</div>';
         }
         $this->render_calendar_interface($calendar, $can_book, $scheduling_message);
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 
     /**
@@ -334,7 +334,7 @@ class SelfSchedulingShortcode {
             'ffc_ss_visibility_message',
             __('To view this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate')
         );
-        $message = str_replace('%login_url%', wp_login_url(get_permalink()), $message);
+        $message = str_replace('%login_url%', wp_login_url(get_permalink() ?: ''), $message);
 
         $output = '<div class="ffc-visibility-restricted">';
 
@@ -362,8 +362,9 @@ class SelfSchedulingShortcode {
         }
 
         $now = current_time('mysql');
-        $current_date = gmdate('Y-m-d', strtotime($now));
-        $current_time = gmdate('H:i', strtotime($now));
+        $now_ts = strtotime($now) ?: time();
+        $current_date = gmdate('Y-m-d', $now_ts);
+        $current_time = gmdate('H:i', $now_ts);
 
         // Check if today is a working day
         if (!\FreeFormCertificate\Scheduling\WorkingHoursService::is_working_day($current_date, $working_hours)) {
@@ -388,7 +389,7 @@ class SelfSchedulingShortcode {
         }
 
         $now = current_time('mysql');
-        $current_date = gmdate('Y-m-d', strtotime($now));
+        $current_date = gmdate('Y-m-d', strtotime($now) ?: time());
         $ranges = \FreeFormCertificate\Scheduling\WorkingHoursService::get_day_ranges($current_date, $working_hours);
 
         if (empty($ranges)) {

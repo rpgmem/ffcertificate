@@ -123,7 +123,7 @@ class ReregistrationFormRenderer {
             </form>
         </div>
         <?php
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 
     /**
@@ -427,7 +427,7 @@ class ReregistrationFormRenderer {
         $child   = is_array($decoded) && isset($decoded['child']) ? (string) $decoded['child'] : '';
         ?>
         <input type="hidden" id="<?php echo esc_attr($field_id); ?>" name="<?php echo esc_attr($field_name); ?>"
-               value="<?php echo esc_attr(wp_json_encode(array('parent' => $parent, 'child' => $child))); ?>">
+               value="<?php echo esc_attr(wp_json_encode(array('parent' => $parent, 'child' => $child)) ?: ''); ?>">
         <div class="ffc-dependent-select" data-target="<?php echo esc_attr($field_id); ?>">
             <div class="ffc-rereg-row ffc-rereg-row-2">
                 <div class="ffc-rereg-field">
@@ -493,7 +493,7 @@ class ReregistrationFormRenderer {
             6 => __('Saturday', 'ffcertificate'),
         );
         ?>
-        <input type="hidden" id="<?php echo esc_attr($field_id); ?>" name="<?php echo esc_attr($field_name); ?>" value="<?php echo esc_attr(wp_json_encode($wh_data)); ?>">
+        <input type="hidden" id="<?php echo esc_attr($field_id); ?>" name="<?php echo esc_attr($field_name); ?>" value="<?php echo esc_attr(wp_json_encode($wh_data) ?: ''); ?>">
         <div class="ffc-working-hours" data-target="<?php echo esc_attr($field_id); ?>">
             <table class="ffc-wh-table">
                 <thead>

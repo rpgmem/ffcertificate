@@ -87,7 +87,7 @@ class AudienceShortcode {
                 'ffc_aud_scheduling_message',
                 __('To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate')
             );
-            $scheduling_message = str_replace('%login_url%', wp_login_url(get_permalink()), $scheduling_message);
+            $scheduling_message = str_replace('%login_url%', wp_login_url(get_permalink() ?: ''), $scheduling_message);
 
             $config = array(
                 'scheduleId' => $specific_id,
@@ -189,7 +189,7 @@ class AudienceShortcode {
         ob_start();
         ?>
         <div class="<?php echo esc_attr($wrapper_class); ?>">
-        <div class="ffc-audience-calendar" id="ffc-audience-calendar" data-config="<?php echo esc_attr(wp_json_encode($config)); ?>">
+        <div class="ffc-audience-calendar" id="ffc-audience-calendar" data-config="<?php echo esc_attr(wp_json_encode($config) ?: ''); ?>">
             <!-- Header -->
             <div class="ffc-calendar-header">
                 <div class="ffc-calendar-nav">
@@ -420,7 +420,7 @@ class AudienceShortcode {
         </div>
         <?php
 
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 
     /**
@@ -489,7 +489,7 @@ class AudienceShortcode {
             'ffc_aud_visibility_message',
             __('To view this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate')
         );
-        $message = str_replace('%login_url%', wp_login_url(get_permalink()), $message);
+        $message = str_replace('%login_url%', wp_login_url(get_permalink() ?: ''), $message);
 
         $output = '<div class="ffc-visibility-restricted">';
 
@@ -515,7 +515,7 @@ class AudienceShortcode {
             <p><?php esc_html_e('You do not have access to any calendars.', 'ffcertificate'); ?></p>
         </div>
         <?php
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 
     /**

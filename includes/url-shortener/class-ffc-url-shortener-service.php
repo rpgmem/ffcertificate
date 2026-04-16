@@ -87,6 +87,10 @@ class UrlShortenerService {
 
         $record = $this->repository->findById( (int) $id );
 
+        if ( ! is_array( $record ) ) {
+            return [ 'success' => false, 'error' => __( 'Failed to create short URL.', 'ffcertificate' ) ];
+        }
+
         return [ 'success' => true, 'data' => $record ];
     }
 

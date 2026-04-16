@@ -253,6 +253,7 @@ class ReregistrationRepository {
                 {$limit_clause}";
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        /** @phpstan-ignore-next-line argument.type */
         $sql = $wpdb->prepare($sql, $values);
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared

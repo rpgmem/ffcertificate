@@ -221,7 +221,7 @@ class BlockedDateRepository extends AbstractRepository {
      * @return int|false Number of deleted rows
      */
     public function deleteExpiredBlocks(int $days_old = 30) {
-        $cutoff_date = gmdate('Y-m-d', strtotime("-{$days_old} days"));
+        $cutoff_date = gmdate('Y-m-d', strtotime("-{$days_old} days") ?: time());
 
         $sql = $this->wpdb->prepare(
             "DELETE FROM %i
@@ -233,7 +233,8 @@ class BlockedDateRepository extends AbstractRepository {
         );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        return $this->wpdb->query($sql);
+        $result = $this->wpdb->query($sql);
+        return $result === false ? false : (int) $result;
     }
 
     /**
@@ -249,7 +250,7 @@ class BlockedDateRepository extends AbstractRepository {
             return false;
         }
 
-        $timestamp = strtotime($date);
+        $timestamp = strtotime($date) ?: time();
         $day_of_week = (int)gmdate('w', $timestamp);
 
         switch ($pattern['type']) {
@@ -289,7 +290,7 @@ class BlockedDateRepository extends AbstractRepository {
      */
     public function getUpcomingBlocks(int $calendar_id, int $days = 30): array {
         $start_date = gmdate('Y-m-d');
-        $end_date = gmdate('Y-m-d', strtotime("+{$days} days"));
+        $end_date = gmdate('Y-m-d', strtotime("+{$days} days") ?: time());
 
         return $this->getBlockedDatesInRange($calendar_id, $start_date, $end_date);
     }

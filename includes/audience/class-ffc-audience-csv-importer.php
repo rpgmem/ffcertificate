@@ -63,7 +63,7 @@ class AudienceCsvImporter {
         }
 
         // Normalize header
-        $header = array_map('strtolower', array_map('trim', $header));
+        $header = array_map('strtolower', array_map('trim', array_map('strval', $header)));
         $header = array_map(function($col) {
             return preg_replace('/[^a-z0-9_]/', '_', $col);
         }, $header);
@@ -202,7 +202,7 @@ class AudienceCsvImporter {
         }
 
         // Normalize header
-        $header = array_map('strtolower', array_map('trim', $header));
+        $header = array_map('strtolower', array_map('trim', array_map('strval', $header)));
 
         // Find required columns
         $name_col = array_search('name', $header, true);
@@ -355,7 +355,8 @@ class AudienceCsvImporter {
      */
     private static function create_ffc_user(string $email, string $name = '') {
         // Generate username from email
-        $username = sanitize_user(substr($email, 0, strpos($email, '@')), true);
+        $at_pos = strpos($email, '@');
+        $username = sanitize_user(substr($email, 0, $at_pos !== false ? $at_pos : null), true);
 
         // Ensure unique username
         $original_username = $username;
@@ -428,7 +429,7 @@ class AudienceCsvImporter {
             return $result;
         }
 
-        $header = array_map('strtolower', array_map('trim', $header));
+        $header = array_map('strtolower', array_map('trim', array_map('strval', $header)));
 
         // Check required columns
         if ($type === 'members') {

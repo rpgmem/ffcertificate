@@ -459,7 +459,7 @@ class AudienceRestController {
         // Check for future days limit
         $schedule = AudienceScheduleRepository::get_by_id((int) $environment->schedule_id);
         if ($schedule && $schedule->future_days_limit && !$has_bypass) {
-            $max_date = gmdate('Y-m-d', strtotime('+' . $schedule->future_days_limit . ' days'));
+            $max_date = gmdate('Y-m-d', strtotime('+' . $schedule->future_days_limit . ' days') ?: time());
             if ($booking_date > $max_date) {
                 return new \WP_REST_Response(array(
                     'success' => false,

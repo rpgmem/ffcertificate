@@ -254,7 +254,7 @@ class QRCodeGenerator {
             // Read file and encode
             if ( file_exists( $temp_file ) && filesize( $temp_file ) > 0 ) {
                 $image_data = file_get_contents( $temp_file );
-                $base64 = base64_encode( $image_data );
+                $base64 = base64_encode( $image_data ?: '' );
 
                 // Clean up
                 wp_delete_file( $temp_file );

@@ -293,7 +293,7 @@ class UserProfileRestController {
             if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
                 $rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit($user_id, 'password_change', 3, 5);
                 if (!$rate_check['allowed']) {
-                    return new \WP_Error('rate_limited', $rate_check['message'], array('status' => 429));
+                    return new \WP_Error('rate_limited', $rate_check['message'] ?? '', array('status' => 429));
                 }
             }
 
@@ -366,7 +366,7 @@ class UserProfileRestController {
             if (class_exists('\FreeFormCertificate\Security\RateLimiter')) {
                 $rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit($user_id, 'privacy_request', 2, 3);
                 if (!$rate_check['allowed']) {
-                    return new \WP_Error('rate_limited', $rate_check['message'], array('status' => 429));
+                    return new \WP_Error('rate_limited', $rate_check['message'] ?? '', array('status' => 429));
                 }
             }
 

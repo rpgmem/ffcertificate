@@ -231,7 +231,7 @@ class PdfGenerator {
      * @return string Generated HTML
      */
     public function generate_html( array $data, string $form_title, array $form_config, ?string $submission_date = null ): string {
-        $layout = isset( $form_config['pdf_layout'] ) ? $form_config['pdf_layout'] : '';
+        $layout = isset( $form_config['pdf_layout'] ) && is_string( $form_config['pdf_layout'] ) ? $form_config['pdf_layout'] : '';
         
         // Use default template if none configured
         if ( empty( $layout ) ) {
@@ -253,7 +253,7 @@ class PdfGenerator {
         }
 
         // {{print_date}} - Current date/time of PDF generation/printing
-        $layout = str_replace( '{{print_date}}', wp_date( $date_format ), $layout );
+        $layout = str_replace( '{{print_date}}', wp_date( $date_format ) ?: '', $layout );
 
         $layout = str_replace( '{{form_title}}', $form_title, $layout );
 
@@ -304,18 +304,18 @@ class PdfGenerator {
         
         // Fix relative URLs to absolute
         $site_url = untrailingslashit( get_home_url() );
-        $layout = preg_replace('/(src|href|background)=["\']\/([^"\']+)["\']/i', '$1="' . $site_url . '/$2"', $layout);
-        
+        $layout = preg_replace('/(src|href|background)=["\']\/([^"\']+)["\']/i', '$1="' . $site_url . '/$2"', $layout) ?? $layout;
+
         // Process QR Code placeholders
         if ( strpos( $layout, '{{qr_code' ) !== false ) {
             $layout = $this->process_qrcode_placeholders( $layout, $data, $form_config );
         }
-        
+
         // Process Validation URL placeholders
         if ( strpos( $layout, '{{validation_url' ) !== false ) {
             $layout = $this->process_validation_url_placeholders( $layout, $data );
         }
-        
+
         return $layout;
     }
     

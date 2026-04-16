@@ -65,7 +65,7 @@ class Shortcodes {
             </div>
         </div>
         <?php
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 
     /**
@@ -91,7 +91,7 @@ class Shortcodes {
             <div class="ffc-verify-result" role="region" aria-live="polite"></div>
         </div>
         <?php
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 
     /**
@@ -123,7 +123,7 @@ class Shortcodes {
 
         ob_start();
         include FFC_PLUGIN_DIR . 'templates/verification-page.php';
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 
     /**
@@ -266,7 +266,7 @@ class Shortcodes {
             </form>
         </div>
         <?php
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 
     /**
@@ -298,7 +298,7 @@ class Shortcodes {
                 <?php endif; ?>
             </div>
             <?php
-            return ob_get_clean();
+            return ob_get_clean() ?: '';
         }
 
         // Embed block: display media via oembed or img tag
@@ -330,7 +330,7 @@ class Shortcodes {
                 </div>
             </div>
             <?php
-            return ob_get_clean();
+            return ob_get_clean() ?: '';
         }
 
         if ( empty( $name ) ) return '';
@@ -374,6 +374,6 @@ class Shortcodes {
             <?php endif; ?>
         </div>
         <?php
-        return ob_get_clean();
+        return ob_get_clean() ?: '';
     }
 }

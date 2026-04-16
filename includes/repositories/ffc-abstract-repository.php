@@ -129,6 +129,7 @@ abstract class AbstractRepository {
         if ($limit) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             return $this->wpdb->get_results(
+                /** @phpstan-ignore-next-line argument.type */
                 $this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order} LIMIT %d OFFSET %d", $this->table, $limit, $offset ),
                 ARRAY_A
             );
@@ -136,6 +137,7 @@ abstract class AbstractRepository {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         return $this->wpdb->get_results(
+            /** @phpstan-ignore-next-line argument.type */
             $this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order}", $this->table ),
             ARRAY_A
         );
@@ -150,6 +152,7 @@ abstract class AbstractRepository {
     public function count( array $conditions = [] ): int {
         $where = $this->build_where_clause($conditions);
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        /** @phpstan-ignore-next-line argument.type */
         return (int) $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", $this->table ) );
     }
 
@@ -251,9 +254,11 @@ abstract class AbstractRepository {
             if (is_array($value)) {
                 $placeholders = implode(',', array_fill(0, count($value), '%s'));
                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                /** @phpstan-ignore-next-line argument.type */
                 $where_parts[] = $this->wpdb->prepare("{$key} IN ({$placeholders})", ...$value);
             } else {
                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                /** @phpstan-ignore-next-line argument.type */
                 $where_parts[] = $this->wpdb->prepare("{$key} = %s", $value);
             }
         }
