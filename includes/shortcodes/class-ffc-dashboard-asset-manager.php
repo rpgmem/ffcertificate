@@ -22,7 +22,7 @@ class DashboardAssetManager {
 	 * Check if user belongs to at least one audience group
 	 *
 	 * @since 4.9.7
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return bool
 	 */
 	public static function user_has_audience_groups( int $user_id ): bool {
@@ -30,7 +30,7 @@ class DashboardAssetManager {
 			return false;
 		}
 
-		// Admins always see the audience tab (they can manage all audiences)
+		// Admins always see the audience tab (they can manage all audiences).
 		if ( user_can( $user_id, 'manage_options' ) ) {
 			return true;
 		}
@@ -42,10 +42,10 @@ class DashboardAssetManager {
 	/**
 	 * Enqueue dashboard assets
 	 *
-	 * @param int|false $view_as_user_id User ID in view-as mode
+	 * @param int|false $view_as_user_id User ID in view-as mode.
 	 */
 	public static function enqueue_assets( $view_as_user_id = false ): void {
-		// Get user permissions (based on capabilities, not just role)
+		// Get user permissions (based on capabilities, not just role).
 		$user_id = $view_as_user_id ?: get_current_user_id();
 		$user    = get_user_by( 'id', $user_id );
 
@@ -64,7 +64,7 @@ class DashboardAssetManager {
 			user_can( $user, 'manage_options' )
 		);
 
-		// Only show audience tab if user actually belongs to at least one audience group
+		// Only show audience tab if user actually belongs to at least one audience group.
 		if ( $can_view_audience_bookings ) {
 			$can_view_audience_bookings = self::user_has_audience_groups( $user_id );
 		}
@@ -74,17 +74,17 @@ class DashboardAssetManager {
 
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
-		// Enqueue CSS (ffc-common provides icon classes)
+		// Enqueue CSS (ffc-common provides icon classes).
 		wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
 		wp_enqueue_style( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/css/ffc-user-dashboard{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 
-		// Dark mode
+		// Dark mode.
 		\FreeFormCertificate\Core\Utils::enqueue_dark_mode();
 
-		// Enqueue JavaScript
+		// Enqueue JavaScript.
 		wp_enqueue_script( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 
-		// Working hours field component (shared)
+		// Working hours field component (shared).
 		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array(), FFC_VERSION );
 		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 		wp_localize_script(
@@ -124,7 +124,7 @@ class DashboardAssetManager {
 			)
 		);
 
-		// Reregistration frontend assets
+		// Reregistration frontend assets.
 		wp_enqueue_style( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array( 'ffc-dashboard' ), FFC_VERSION );
 		wp_enqueue_script( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/js/ffc-reregistration-frontend{$s}.js", array( 'jquery', 'ffc-dashboard', 'ffc-working-hours' ), FFC_VERSION, true );
 		wp_localize_script(
@@ -165,7 +165,7 @@ class DashboardAssetManager {
 			)
 		);
 
-		// Localize script
+		// Localize script.
 		wp_localize_script(
 			'ffc-dashboard',
 			'ffcDashboard',
@@ -175,7 +175,7 @@ class DashboardAssetManager {
 				'nonce'                   => wp_create_nonce( 'wp_rest' ),
 				'schedulingNonce'         => wp_create_nonce( 'ffc_self_scheduling_nonce' ),
 				'viewAsUserId'            => $view_as_user_id ? $view_as_user_id : false,
-				'isAdminViewing'          => $view_as_user_id && $view_as_user_id !== get_current_user_id(),
+				'isAdminViewing'          => $view_as_user_id && get_current_user_id() !== $view_as_user_id,
 				'logoutUrl'               => wp_logout_url( home_url() ),
 				'canViewCertificates'     => $can_view_certificates,
 				'canViewAppointments'     => $can_view_appointments,
@@ -193,7 +193,7 @@ class DashboardAssetManager {
 					'downloadPdf'              => __( 'View PDF', 'ffcertificate' ),
 					'yes'                      => __( 'Yes', 'ffcertificate' ),
 					'no'                       => __( 'No', 'ffcertificate' ),
-					// Table headers
+					// Table headers.
 					'eventName'                => __( 'Event Name', 'ffcertificate' ),
 					'calendar'                 => __( 'Calendar', 'ffcertificate' ),
 					'date'                     => __( 'Date', 'ffcertificate' ),
@@ -204,12 +204,12 @@ class DashboardAssetManager {
 					'code'                     => __( 'Code', 'ffcertificate' ),
 					'actions'                  => __( 'Actions', 'ffcertificate' ),
 					'notes'                    => __( 'Notes', 'ffcertificate' ),
-					// Profile fields
+					// Profile fields.
 					'name'                     => __( 'Name:', 'ffcertificate' ),
 					'linkedEmails'             => __( 'Linked Emails:', 'ffcertificate' ),
 					'cpfRf'                    => __( 'CPF/RF:', 'ffcertificate' ),
 					'memberSince'              => __( 'Member Since:', 'ffcertificate' ),
-					// Appointment actions
+					// Appointment actions.
 					'cancelAppointment'        => __( 'Cancel', 'ffcertificate' ),
 					'viewReceipt'              => __( 'View Receipt', 'ffcertificate' ),
 					'viewDetails'              => __( 'View Details', 'ffcertificate' ),
@@ -217,17 +217,17 @@ class DashboardAssetManager {
 					'cancelSuccess'            => __( 'Appointment cancelled successfully', 'ffcertificate' ),
 					'cancelError'              => __( 'Error cancelling appointment', 'ffcertificate' ),
 					'noPermission'             => __( 'You do not have permission to view this content.', 'ffcertificate' ),
-					// Calendar export
+					// Calendar export.
 					'exportToCalendar'         => __( 'Export to Calendar', 'ffcertificate' ),
 					'otherIcs'                 => __( 'Other (.ics)', 'ffcertificate' ),
-					// Audience bookings
+					// Audience bookings.
 					'environment'              => __( 'Environment', 'ffcertificate' ),
 					'description'              => __( 'Description', 'ffcertificate' ),
 					'audiences'                => __( 'Audiences', 'ffcertificate' ),
 					'upcoming'                 => __( 'Upcoming', 'ffcertificate' ),
 					'past'                     => __( 'Past', 'ffcertificate' ),
 					'cancelled'                => __( 'Cancelled', 'ffcertificate' ),
-					// Profile
+					// Profile.
 					'audienceGroups'           => __( 'Groups:', 'ffcertificate' ),
 					'notesLabel'               => __( 'Notes:', 'ffcertificate' ),
 					'notesPlaceholder'         => __( 'Personal notes...', 'ffcertificate' ),
@@ -239,7 +239,7 @@ class DashboardAssetManager {
 					'cancel'                   => __( 'Cancel', 'ffcertificate' ),
 					'saving'                   => __( 'Saving...', 'ffcertificate' ),
 					'saveError'                => __( 'Error saving profile', 'ffcertificate' ),
-					// Password change
+					// Password change.
 					'securitySection'          => __( 'Security', 'ffcertificate' ),
 					'changePassword'           => __( 'Change Password', 'ffcertificate' ),
 					'logout'                   => __( 'Log Out', 'ffcertificate' ),
@@ -250,7 +250,7 @@ class DashboardAssetManager {
 					'passwordMismatch'         => __( 'Passwords do not match', 'ffcertificate' ),
 					'passwordTooShort'         => __( 'Password must be at least 8 characters', 'ffcertificate' ),
 					'passwordError'            => __( 'Error changing password', 'ffcertificate' ),
-					// LGPD
+					// LGPD.
 					'privacySection'           => __( 'Privacy & Data (LGPD)', 'ffcertificate' ),
 					'exportData'               => __( 'Export My Data', 'ffcertificate' ),
 					'requestDeletion'          => __( 'Request Data Deletion', 'ffcertificate' ),
@@ -259,7 +259,7 @@ class DashboardAssetManager {
 					'privacyRequestSent'       => __( 'Request sent! The administrator will review it.', 'ffcertificate' ),
 					'privacyRequestError'      => __( 'Error sending request', 'ffcertificate' ),
 					'confirmDeletion'          => __( 'Are you sure you want to request deletion of your personal data? This will be reviewed by an administrator.', 'ffcertificate' ),
-					// Audience self-join
+					// Audience self-join.
 					'joinGroups'               => __( 'Join Groups', 'ffcertificate' ),
 					'joinGroupsDesc'           => __( 'Select up to {max} groups to participate in collective calendars.', 'ffcertificate' ),
 					'joinGroup'                => __( 'Join', 'ffcertificate' ),
@@ -267,30 +267,30 @@ class DashboardAssetManager {
 					'confirmLeaveGroup'        => __( 'Are you sure you want to leave this group?', 'ffcertificate' ),
 					'leaveAllGroups'           => __( 'Leave all groups', 'ffcertificate' ),
 					'confirmLeaveAllGroups'    => __( 'Are you sure you want to leave all %d group(s)? This action cannot be undone.', 'ffcertificate' ),
-					// Summary
+					// Summary.
 					'summaryTitle'             => __( 'Overview', 'ffcertificate' ),
 					'totalCertificates'        => __( 'Certificates', 'ffcertificate' ),
 					'nextAppointment'          => __( 'Next Appointment', 'ffcertificate' ),
 					'upcomingGroupEvents'      => __( 'Group Events', 'ffcertificate' ),
 					'noUpcoming'               => __( 'None scheduled', 'ffcertificate' ),
-					// Filters
+					// Filters.
 					'filterFrom'               => __( 'From:', 'ffcertificate' ),
 					'filterTo'                 => __( 'To:', 'ffcertificate' ),
 					'filterSearch'             => __( 'Search...', 'ffcertificate' ),
 					'filterApply'              => __( 'Filter', 'ffcertificate' ),
 					'filterClear'              => __( 'Clear', 'ffcertificate' ),
-					// Notification preferences
+					// Notification preferences.
 					'notificationSection'      => __( 'Notification Preferences', 'ffcertificate' ),
 					'notifAppointmentConfirm'  => __( 'Appointment confirmation', 'ffcertificate' ),
 					'notifAppointmentReminder' => __( 'Appointment reminder', 'ffcertificate' ),
 					'notifNewCertificate'      => __( 'New certificate issued', 'ffcertificate' ),
 					'notifSaved'               => __( 'Preferences saved', 'ffcertificate' ),
-					// Pagination
+					// Pagination.
 					'previous'                 => __( 'Previous', 'ffcertificate' ),
 					'next'                     => __( 'Next', 'ffcertificate' ),
 					'pageOf'                   => __( 'Page {current} of {total}', 'ffcertificate' ),
 					'perPage'                  => __( 'Per page:', 'ffcertificate' ),
-					// Reregistrations tab
+					// Reregistrations tab.
 					'noReregistrations'        => __( 'No reregistrations found.', 'ffcertificate' ),
 					'reregistrationTitle'      => __( 'Campaign', 'ffcertificate' ),
 					'period'                   => __( 'Period', 'ffcertificate' ),

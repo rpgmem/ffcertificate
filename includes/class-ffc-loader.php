@@ -92,7 +92,7 @@ class Loader {
 	}
 
 	public function init_plugin(): void {
-		// Ensure submissions table schema is current (runs add_columns on version change)
+		// Ensure submissions table schema is current (runs add_columns on version change).
 		\FreeFormCertificate\Activator::maybe_add_columns();
 
 		if ( class_exists( '\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator' ) ) {
@@ -105,12 +105,12 @@ class Loader {
 			UrlShortenerActivator::maybe_migrate();
 		}
 
-		// Shared classes (needed in both admin and frontend contexts)
+		// Shared classes (needed in both admin and frontend contexts).
 		$this->submission_handler = new SubmissionHandler();
 		$this->email_handler      = new EmailHandler();
 		$this->cpt                = new CPT();
 
-		// Admin-only classes skipped on frontend
+		// Admin-only classes skipped on frontend.
 		if ( is_admin() ) {
 			$this->csv_exporter = new CsvExporter();
 			$this->admin        = new Admin( $this->submission_handler, $this->csv_exporter );
@@ -126,7 +126,7 @@ class Loader {
 			$this->self_scheduling_csv_exporter = new AppointmentCsvExporter();
 		}
 
-		// Frontend + AJAX classes
+		// Frontend + AJAX classes.
 		$this->frontend = new Frontend( $this->submission_handler );
 
 		DashboardShortcode::init();
@@ -148,7 +148,7 @@ class Loader {
 		$this->audience_loader = AudienceLoader::get_instance();
 		$this->audience_loader->init();
 
-		// URL Shortener module (v5.1.0)
+		// URL Shortener module (v5.1.0).
 		if ( class_exists( UrlShortenerLoader::class ) ) {
 			$url_shortener = new UrlShortenerLoader();
 			$url_shortener->init();
@@ -156,12 +156,12 @@ class Loader {
 
 		new ActivityLogSubscriber();
 
-		// Ensure daily cleanup cron is scheduled
+		// Ensure daily cleanup cron is scheduled.
 		if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
 			wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
 		}
 
-		// Ensure reregistration expiry cron is scheduled
+		// Ensure reregistration expiry cron is scheduled.
 		if ( ! wp_next_scheduled( 'ffcertificate_reregistration_expire_hook' ) ) {
 			wp_schedule_event( time(), 'daily', 'ffcertificate_reregistration_expire_hook' );
 		}
@@ -183,7 +183,7 @@ class Loader {
 	}
 
 	private function define_activation_hooks(): void {
-		// Autoloader handles class loading
+		// Autoloader handles class loading.
 		register_activation_hook( FFC_PLUGIN_DIR . 'ffcertificate.php', array( '\\FreeFormCertificate\Activator', 'activate' ) );
 		register_deactivation_hook( FFC_PLUGIN_DIR . 'ffcertificate.php', array( '\\FreeFormCertificate\Deactivator', 'deactivate' ) );
 	}
@@ -202,7 +202,7 @@ class Loader {
 		$version_key = 'ffc_admin_caps_version_v2';
 		$current     = get_option( $version_key, '' );
 
-		if ( $current === FFC_VERSION ) {
+		if ( FFC_VERSION === $current ) {
 			return;
 		}
 
@@ -262,7 +262,7 @@ class Loader {
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 		wp_register_script( 'ffc-rate-limit', FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 
-		// Dynamic fragments: refresh captcha + nonces on cached pages (v4.12.0)
+		// Dynamic fragments: refresh captcha + nonces on cached pages (v4.12.0).
 		wp_register_script( 'ffc-dynamic-fragments', FFC_PLUGIN_URL . "assets/js/ffc-dynamic-fragments{$s}.js", array(), FFC_VERSION, true );
 		wp_localize_script(
 			'ffc-dynamic-fragments',

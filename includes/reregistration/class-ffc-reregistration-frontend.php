@@ -51,7 +51,7 @@ class ReregistrationFrontend {
 		}
 
 		$rereg = ReregistrationRepository::get_by_id( $reregistration_id );
-		if ( ! $rereg || $rereg->status !== 'active' ) {
+		if ( ! $rereg || 'active' !== $rereg->status ) {
 			wp_send_json_error( array( 'message' => __( 'Reregistration not found or not active.', 'ffcertificate' ) ) );
 		}
 
@@ -91,7 +91,7 @@ class ReregistrationFrontend {
 		}
 
 		$rereg = ReregistrationRepository::get_by_id( $reregistration_id );
-		if ( ! $rereg || $rereg->status !== 'active' ) {
+		if ( ! $rereg || 'active' !== $rereg->status ) {
 			wp_send_json_error( array( 'message' => __( 'Reregistration not found or not active.', 'ffcertificate' ) ) );
 		}
 
@@ -104,7 +104,7 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => __( 'This reregistration has already been completed or expired.', 'ffcertificate' ) ) );
 		}
 
-		// Collect and validate fields
+		// Collect and validate fields.
 		$data   = ReregistrationDataProcessor::collect_form_data( $rereg, $user_id );
 		$errors = ReregistrationDataProcessor::validate_submission( $data, $rereg, $user_id );
 
@@ -117,7 +117,7 @@ class ReregistrationFrontend {
 			);
 		}
 
-		// Process submission
+		// Process submission.
 		ReregistrationDataProcessor::process_submission( $submission, $rereg, $data, $user_id );
 
 		wp_send_json_success( array( 'message' => __( 'Reregistration submitted successfully!', 'ffcertificate' ) ) );
@@ -146,7 +146,7 @@ class ReregistrationFrontend {
 		}
 
 		$rereg = ReregistrationRepository::get_by_id( $reregistration_id );
-		if ( ! $rereg || $rereg->status !== 'active' ) {
+		if ( ! $rereg || 'active' !== $rereg->status ) {
 			wp_send_json_error( array( 'message' => __( 'Reregistration not active.', 'ffcertificate' ) ) );
 		}
 
@@ -168,9 +168,9 @@ class ReregistrationFrontend {
 		wp_send_json_success( array( 'message' => __( 'Draft saved.', 'ffcertificate' ) ) );
 	}
 
-	// ------------------------------------------------------------------
-	// Backward-compatible delegate methods
-	// ------------------------------------------------------------------
+	// ------------------------------------------------------------------.
+	// Backward-compatible delegate methods.
+	// ------------------------------------------------------------------.
 
 	/**
 	 * Divisão → Setor mapping (delegates to ReregistrationFieldOptions).
@@ -195,7 +195,7 @@ class ReregistrationFrontend {
 			$submission = ReregistrationSubmissionRepository::get_by_reregistration_and_user( (int) $rereg->id, $user_id );
 			$sub_status = $submission ? $submission->status : 'no_submission';
 
-			// Build magic link for submitted/approved submissions
+			// Build magic link for submitted/approved submissions.
 			$magic_link = '';
 			if ( $submission && in_array( $sub_status, array( 'submitted', 'approved' ), true ) ) {
 				$token      = ReregistrationSubmissionRepository::ensure_magic_token( $submission );

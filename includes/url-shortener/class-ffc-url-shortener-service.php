@@ -59,7 +59,7 @@ class UrlShortenerService {
 			);
 		}
 
-		// If post_id provided, check for existing short URL
+		// If post_id provided, check for existing short URL.
 		if ( $post_id ) {
 			$existing = $this->repository->findByPostId( $post_id );
 			if ( $existing ) {
@@ -135,7 +135,7 @@ class UrlShortenerService {
 			}
 		}
 
-		// Fallback: increase length by 1 on collision
+		// Fallback: increase length by 1 on collision.
 		return $this->generate_unique_code( $length + 1 );
 	}
 
@@ -190,7 +190,7 @@ class UrlShortenerService {
 	 */
 	public function is_enabled(): bool {
 		$settings = $this->get_settings();
-		return ! isset( $settings['url_shortener_enabled'] ) || (int) $settings['url_shortener_enabled'] === 1;
+		return ! isset( $settings['url_shortener_enabled'] ) || (int) 1 === $settings['url_shortener_enabled'];
 	}
 
 	/**
@@ -200,7 +200,7 @@ class UrlShortenerService {
 	 */
 	public function is_auto_create_enabled(): bool {
 		$settings = $this->get_settings();
-		return ! isset( $settings['url_shortener_auto_create'] ) || (int) $settings['url_shortener_auto_create'] === 1;
+		return ! isset( $settings['url_shortener_auto_create'] ) || (int) 1 === $settings['url_shortener_auto_create'];
 	}
 
 	/**
@@ -273,7 +273,7 @@ class UrlShortenerService {
 			return false;
 		}
 
-		$new_status = $record['status'] === 'active' ? 'disabled' : 'active';
+		$new_status = 'active' === $record['status'] ? 'disabled' : 'active';
 
 		return (bool) $this->repository->update(
 			$id,

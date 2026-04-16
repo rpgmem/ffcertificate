@@ -40,7 +40,7 @@ class AudienceLoader {
 	 * @return AudienceLoader
 	 */
 	public static function get_instance(): AudienceLoader {
-		if ( self::$instance === null ) {
+		if ( null === self::$instance ) {
 			self::$instance = new self();
 		}
 		return self::$instance;
@@ -50,7 +50,7 @@ class AudienceLoader {
 	 * Private constructor for singleton
 	 */
 	private function __construct() {
-		// Empty
+		// Empty.
 	}
 
 	/**
@@ -59,21 +59,21 @@ class AudienceLoader {
 	 * @return void
 	 */
 	public function init(): void {
-		// Register hooks
+		// Register hooks.
 		$this->register_hooks();
 
-		// Initialize admin components if in admin
+		// Initialize admin components if in admin.
 		if ( is_admin() ) {
 			$this->init_admin();
 		}
 
-		// Initialize frontend components
+		// Initialize frontend components.
 		$this->init_frontend();
 
-		// Initialize REST API
+		// Initialize REST API.
 		$this->init_api();
 
-		// Initialize notifications (email + ICS)
+		// Initialize notifications (email + ICS).
 		$this->init_notifications();
 	}
 
@@ -83,10 +83,10 @@ class AudienceLoader {
 	 * @return void
 	 */
 	private function register_hooks(): void {
-		// Register custom capabilities
+		// Register custom capabilities.
 		add_action( 'init', array( $this, 'register_capabilities' ) );
 
-		// AJAX handlers
+		// AJAX handlers.
 		add_action( 'wp_ajax_ffc_audience_check_conflicts', array( $this, 'ajax_check_conflicts' ) );
 		add_action( 'wp_ajax_ffc_audience_create_booking', array( $this, 'ajax_create_booking' ) );
 		add_action( 'wp_ajax_ffc_audience_cancel_booking', array( $this, 'ajax_cancel_booking' ) );
@@ -98,7 +98,7 @@ class AudienceLoader {
 		add_action( 'wp_ajax_ffc_audience_update_user_permission', array( $this, 'ajax_update_user_permission' ) );
 		add_action( 'wp_ajax_ffc_audience_remove_user_permission', array( $this, 'ajax_remove_user_permission' ) );
 
-		// Custom fields AJAX
+		// Custom fields AJAX.
 		add_action( 'wp_ajax_ffc_save_custom_fields', array( $this, 'ajax_save_custom_fields' ) );
 		add_action( 'wp_ajax_ffc_delete_custom_field', array( $this, 'ajax_delete_custom_field' ) );
 	}
@@ -109,8 +109,8 @@ class AudienceLoader {
 	 * @return void
 	 */
 	public function register_capabilities(): void {
-		// Capabilities are added per-user via schedule permissions
-		// This hook is for future global capability registration if needed
+		// Capabilities are added per-user via schedule permissions.
+		// This hook is for future global capability registration if needed.
 		do_action( 'ffcertificate_audience_register_capabilities' );
 	}
 
@@ -120,13 +120,13 @@ class AudienceLoader {
 	 * @return void
 	 */
 	private function init_admin(): void {
-		// Load admin page handler
+		// Load admin page handler.
 		if ( class_exists( '\FreeFormCertificate\Audience\AudienceAdminPage' ) ) {
 			$this->admin_page = new AudienceAdminPage();
 			$this->admin_page->init();
 		}
 
-		// Load admin assets
+		// Load admin assets.
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 	}
 
@@ -136,12 +136,12 @@ class AudienceLoader {
 	 * @return void
 	 */
 	private function init_frontend(): void {
-		// Register shortcode
+		// Register shortcode.
 		if ( class_exists( '\FreeFormCertificate\Audience\AudienceShortcode' ) ) {
 			AudienceShortcode::init();
 		}
 
-		// Enqueue frontend assets
+		// Enqueue frontend assets.
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
 	}
 
@@ -180,18 +180,18 @@ class AudienceLoader {
 	/**
 	 * Enqueue admin assets
 	 *
-	 * @param string $hook Current admin page hook
+	 * @param string $hook Current admin page hook.
 	 * @return void
 	 */
 	public function enqueue_admin_assets( string $hook ): void {
-		// Only load on our admin pages
+		// Only load on our admin pages.
 		if ( strpos( $hook, 'ffc-audience' ) === false && strpos( $hook, 'ffc-scheduling' ) === false ) {
 			return;
 		}
 
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
-		// Admin CSS
+		// Admin CSS.
 		wp_enqueue_style(
 			'ffc-audience-admin',
 			FFC_PLUGIN_URL . "assets/css/ffc-audience-admin{$s}.css",
@@ -199,7 +199,7 @@ class AudienceLoader {
 			FFC_VERSION
 		);
 
-		// Admin JS
+		// Admin JS.
 		wp_enqueue_script(
 			'ffc-audience-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-audience-admin{$s}.js",
@@ -208,10 +208,10 @@ class AudienceLoader {
 			true
 		);
 
-		// Custom fields CSS + JS (on audiences page)
+		// Custom fields CSS + JS (on audiences page).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
-		if ( $page === 'ffc-scheduling-audiences' ) {
+		if ( 'ffc-scheduling-audiences' === $page ) {
 			wp_enqueue_script( 'jquery-ui-sortable' );
 
 			wp_enqueue_style(
@@ -230,7 +230,7 @@ class AudienceLoader {
 			);
 		}
 
-		// Localize script
+		// Localize script.
 		wp_localize_script(
 			'ffc-audience-admin',
 			'ffcAudienceAdmin',
@@ -252,7 +252,7 @@ class AudienceLoader {
 	 * @return void
 	 */
 	public function enqueue_frontend_assets(): void {
-		// Only load when shortcode is present
+		// Only load when shortcode is present.
 		global $post;
 		if ( ! $post || ! has_shortcode( $post->post_content, 'ffc_audience' ) ) {
 			return;
@@ -260,7 +260,7 @@ class AudienceLoader {
 
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
-		// Frontend CSS
+		// Frontend CSS.
 		wp_enqueue_style(
 			'ffc-common',
 			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
@@ -274,7 +274,7 @@ class AudienceLoader {
 			FFC_VERSION
 		);
 
-		// Frontend JS
+		// Frontend JS.
 		wp_enqueue_script(
 			'ffc-audience',
 			FFC_PLUGIN_URL . "assets/js/ffc-audience{$s}.js",
@@ -352,7 +352,7 @@ class AudienceLoader {
 				wp_send_json_error( array( 'message' => __( 'Missing required parameters.', 'ffcertificate' ) ) );
 			}
 
-			// Check conflicts using service
+			// Check conflicts using service.
 			if ( class_exists( '\FreeFormCertificate\Audience\AudienceConflictService' ) ) {
 				$service   = new AudienceConflictService();
 				$conflicts = $service->check_conflicts( $environment_id, $booking_date, $start_time, $end_time, $audience_ids, $user_ids );
@@ -374,8 +374,8 @@ class AudienceLoader {
 		$this->verify_ajax_nonce( 'ffc_admin_nonce' );
 		$this->check_ajax_permission();
 
-		// Booking creation is handled by AudienceBookingService
-		// This is a placeholder - actual implementation in Phase 6
+		// Booking creation is handled by AudienceBookingService.
+		// This is a placeholder - actual implementation in Phase 6.
 		wp_send_json_error( array( 'message' => __( 'Not implemented yet.', 'ffcertificate' ) ) );
 	}
 
@@ -402,7 +402,7 @@ class AudienceLoader {
 				wp_send_json_error( array( 'message' => __( 'Booking not found.', 'ffcertificate' ) ) );
 			}
 
-			if ( $booking->status === 'cancelled' ) {
+			if ( 'cancelled' === $booking->status ) {
 				wp_send_json_error( array( 'message' => __( 'Booking is already cancelled.', 'ffcertificate' ) ) );
 			}
 
@@ -439,11 +439,11 @@ class AudienceLoader {
 				wp_send_json_error( array( 'message' => __( 'Booking not found.', 'ffcertificate' ) ) );
 			}
 
-			// Get creator name
+			// Get creator name.
 			$creator      = get_userdata( (int) $booking->created_by );
 			$creator_name = $creator ? $creator->display_name : __( 'Unknown', 'ffcertificate' );
 
-			// Format audiences
+			// Format audiences.
 			$audiences = array();
 			if ( ! empty( $booking->audiences ) ) {
 				foreach ( $booking->audiences as $aud ) {
@@ -454,7 +454,7 @@ class AudienceLoader {
 				}
 			}
 
-			// Format users
+			// Format users.
 			$users = array();
 			if ( ! empty( $booking->users ) ) {
 				foreach ( $booking->users as $u ) {
@@ -501,8 +501,8 @@ class AudienceLoader {
 		$this->verify_ajax_nonce( 'ffc_admin_nonce' );
 		$this->check_ajax_permission();
 
-		// Slot retrieval is handled by AudienceScheduleService
-		// This is a placeholder - actual implementation in Phase 5
+		// Slot retrieval is handled by AudienceScheduleService.
+		// This is a placeholder - actual implementation in Phase 5.
 		wp_send_json_error( array( 'message' => __( 'Not implemented yet.', 'ffcertificate' ) ) );
 	}
 
@@ -753,7 +753,7 @@ class AudienceLoader {
 					continue;
 				}
 
-				// Build field_options JSON
+				// Build field_options JSON.
 				$options = array();
 				if ( ! empty( $field_data['choices'] ) ) {
 					$choices            = array_map( 'sanitize_text_field', $field_data['choices'] );
@@ -761,7 +761,7 @@ class AudienceLoader {
 						array_filter(
 							$choices,
 							function ( $c ) {
-								return $c !== '';
+								return '' !== $c;
 							}
 						)
 					);
@@ -771,13 +771,13 @@ class AudienceLoader {
 					$options['help_text'] = sanitize_text_field( $field_data['help_text'] );
 				}
 
-				// Build validation_rules JSON
+				// Build validation_rules JSON.
 				$rules = array();
 				if ( ! empty( $field_data['format'] ) ) {
 					$format = sanitize_text_field( $field_data['format'] );
 					if ( in_array( $format, \FreeFormCertificate\Reregistration\CustomFieldRepository::VALIDATION_FORMATS, true ) ) {
 						$rules['format'] = $format;
-						if ( $format === 'custom_regex' ) {
+						if ( 'custom_regex' === $format ) {
 							$rules['custom_regex']         = $field_data['custom_regex'] ?? '';
 							$rules['custom_regex_message'] = sanitize_text_field( $field_data['custom_regex_message'] ?? '' );
 						}
@@ -790,10 +790,10 @@ class AudienceLoader {
 					'field_key'         => sanitize_key( $field_data['key'] ?? '' ),
 					'field_type'        => sanitize_text_field( $field_data['type'] ?? 'text' ),
 					'field_group'       => sanitize_text_field( $field_data['group'] ?? '' ),
-					'field_profile_key' => isset( $field_data['profile_key'] ) && $field_data['profile_key'] !== ''
+					'field_profile_key' => isset( $field_data['profile_key'] ) && '' !== $field_data['profile_key']
 						? sanitize_key( (string) $field_data['profile_key'] )
 						: null,
-					'field_mask'        => isset( $field_data['mask'] ) && $field_data['mask'] !== ''
+					'field_mask'        => isset( $field_data['mask'] ) && '' !== $field_data['mask']
 						? sanitize_text_field( (string) $field_data['mask'] )
 						: null,
 					'is_sensitive'      => ! empty( $field_data['is_sensitive'] ) ? 1 : 0,
@@ -808,7 +808,7 @@ class AudienceLoader {
 				// Anything else is stripped before update.
 				if ( ! $is_new ) {
 					$existing = \FreeFormCertificate\Reregistration\CustomFieldRepository::get_by_id( (int) $field_id );
-					if ( $existing && isset( $existing->field_source ) && $existing->field_source === 'standard' ) {
+					if ( $existing && isset( $existing->field_source ) && 'standard' === $existing->field_source ) {
 						$data = array_intersect_key(
 							$data,
 							array_flip(
@@ -825,7 +825,7 @@ class AudienceLoader {
 				}
 
 				if ( $is_new ) {
-					// New fields are always marked as custom; standard fields
+					// New fields are always marked as custom; standard fields.
 					// are only ever created via the seeder.
 					$data['field_source'] = 'custom';
 					$new_id               = \FreeFormCertificate\Reregistration\CustomFieldRepository::create( $data );
@@ -840,7 +840,7 @@ class AudienceLoader {
 					}
 				} else {
 					$result = \FreeFormCertificate\Reregistration\CustomFieldRepository::update( (int) $field_id, $data );
-					if ( $result !== false ) {
+					if ( false !== $result ) {
 						$saved_ids[] = (int) $field_id;
 					} else {
 						$errors[] = sprintf(
@@ -894,7 +894,7 @@ class AudienceLoader {
 			}
 
 			// Standard fields cannot be deleted, only deactivated.
-			if ( isset( $field->field_source ) && $field->field_source === 'standard' ) {
+			if ( isset( $field->field_source ) && 'standard' === $field->field_source ) {
 				wp_send_json_error(
 					array(
 						'message' => __( 'Standard fields cannot be deleted. Deactivate instead.', 'ffcertificate' ),

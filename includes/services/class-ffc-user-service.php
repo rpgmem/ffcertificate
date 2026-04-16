@@ -26,7 +26,7 @@ class UserService {
 	/**
 	 * Get full user profile (WP data + FFC profile + capabilities)
 	 *
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return array<string, mixed>|null Profile data or null if user not found
 	 */
 	public static function get_full_profile( int $user_id ): ?array {
@@ -43,7 +43,7 @@ class UserService {
 			'roles'        => $user->roles,
 		);
 
-		// Merge FFC profile data
+		// Merge FFC profile data.
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 			$ffc_profile             = \FreeFormCertificate\UserDashboard\UserManager::get_profile( $user_id );
 			$profile['phone']        = $ffc_profile['phone'] ?? '';
@@ -52,7 +52,7 @@ class UserService {
 			$profile['notes']        = $ffc_profile['notes'] ?? '';
 		}
 
-		// Capabilities
+		// Capabilities.
 		$profile['capabilities'] = self::get_user_capabilities( $user_id );
 
 		return $profile;
@@ -61,7 +61,7 @@ class UserService {
 	/**
 	 * Get user's FFC capabilities with their grant status
 	 *
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return array<string, bool> Associative array of capability => bool
 	 */
 	public static function get_user_capabilities( int $user_id ): array {
@@ -82,7 +82,7 @@ class UserService {
 	/**
 	 * Get user statistics (certificate count, appointment count, etc.)
 	 *
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return array<string, int> Statistics
 	 */
 	public static function get_user_statistics( int $user_id ): array {
@@ -94,7 +94,7 @@ class UserService {
 			'audience_groups' => 0,
 		);
 
-		// Certificate count
+		// Certificate count.
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
 			$table                 = \FreeFormCertificate\Core\Utils::get_submissions_table();
 			$stats['certificates'] = (int) $wpdb->get_var(
@@ -106,7 +106,7 @@ class UserService {
 			);
 		}
 
-		// Appointment count
+		// Appointment count.
 		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		if ( self::table_exists( $appointments_table ) ) {
 			$stats['appointments'] = (int) $wpdb->get_var(
@@ -118,7 +118,7 @@ class UserService {
 			);
 		}
 
-		// Audience group count
+		// Audience group count.
 		$members_table = $wpdb->prefix . 'ffc_audience_members';
 		if ( self::table_exists( $members_table ) ) {
 			$stats['audience_groups'] = (int) $wpdb->get_var(
@@ -138,19 +138,19 @@ class UserService {
 	 *
 	 * Returns structured data suitable for WordPress Export Personal Data tool.
 	 *
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return array<string, mixed> Grouped personal data
 	 */
 	public static function export_personal_data( int $user_id ): array {
 		$data = array();
 
-		// Profile
+		// Profile.
 		$profile = self::get_full_profile( $user_id );
 		if ( $profile ) {
 			$data['profile'] = $profile;
 		}
 
-		// Statistics
+		// Statistics.
 		$data['statistics'] = self::get_user_statistics( $user_id );
 
 		return $data;
@@ -161,7 +161,7 @@ class UserService {
 	 *
 	 * Useful for determining if a user needs FFC cleanup on deletion.
 	 *
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return bool
 	 */
 	public static function user_has_ffc_data( int $user_id ): bool {

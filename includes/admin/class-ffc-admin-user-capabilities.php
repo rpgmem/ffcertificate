@@ -22,25 +22,25 @@ class AdminUserCapabilities {
 	 * Initialize the class
 	 */
 	public static function init(): void {
-		// Add capability section to user edit page
+		// Add capability section to user edit page.
 		add_action( 'show_user_profile', array( __CLASS__, 'render_capability_fields' ) );
 		add_action( 'edit_user_profile', array( __CLASS__, 'render_capability_fields' ) );
 
-		// Save capability changes
+		// Save capability changes.
 		add_action( 'personal_options_update', array( __CLASS__, 'save_capability_fields' ) );
 		add_action( 'edit_user_profile_update', array( __CLASS__, 'save_capability_fields' ) );
 
-		// Enqueue scripts on user profile pages
+		// Enqueue scripts on user profile pages.
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_scripts' ) );
 	}
 
 	/**
 	 * Enqueue scripts on user profile pages
 	 *
-	 * @param string $hook_suffix Admin page hook suffix
+	 * @param string $hook_suffix Admin page hook suffix.
 	 */
 	public static function enqueue_scripts( string $hook_suffix ): void {
-		if ( $hook_suffix !== 'user-edit.php' && $hook_suffix !== 'profile.php' ) {
+		if ( 'user-edit.php' !== $hook_suffix && 'profile.php' !== $hook_suffix ) {
 			return;
 		}
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
@@ -56,31 +56,31 @@ class AdminUserCapabilities {
 	/**
 	 * Render capability management fields on user profile page
 	 *
-	 * @param \WP_User $user User object
+	 * @param \WP_User $user User object.
 	 * @return void
 	 */
 	public static function render_capability_fields( \WP_User $user ): void {
-		// Only show for admins
+		// Only show for admins.
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
-		// Don't show for users with manage_options (administrators) — they already
-		// have full FFC access via role-level capabilities.  Showing checkboxes for
+		// Don't show for users with manage_options (administrators) — they already.
+		// have full FFC access via role-level capabilities.  Showing checkboxes for.
 		// admins is confusing and saving can accidentally deny role-level grants.
 		if ( user_can( $user->ID, 'manage_options' ) ) {
 			return;
 		}
 
-		// Only show for users with ffc_user role
+		// Only show for users with ffc_user role.
 		if ( ! in_array( 'ffc_user', $user->roles, true ) && ! self::has_any_ffc_capability( $user->ID ) ) {
 			return;
 		}
 
-		// Get current capabilities
+		// Get current capabilities.
 		$capabilities = \FreeFormCertificate\UserDashboard\UserManager::get_user_ffc_capabilities( $user->ID );
 
-		// Add nonce
+		// Add nonce.
 		wp_nonce_field( 'ffc_user_capabilities', 'ffc_capabilities_nonce' );
 
 		?>
@@ -267,46 +267,46 @@ class AdminUserCapabilities {
 	/**
 	 * Save capability field changes
 	 *
-	 * @param int $user_id User ID
+	 * @param int $user_id User ID.
 	 * @return void
 	 */
 	public static function save_capability_fields( int $user_id ): void {
-		// Verify nonce
+		// Verify nonce.
 		if ( ! isset( $_POST['ffc_capabilities_nonce'] ) ||
 			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_capabilities_nonce'] ) ), 'ffc_user_capabilities' ) ) {
 			return;
 		}
 
-		// Only admins can edit
+		// Only admins can edit.
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
-		// Use centralized capability list from UserManager
+		// Use centralized capability list from UserManager.
 		$all_capabilities = \FreeFormCertificate\UserDashboard\UserManager::get_all_capabilities();
 
-		// Get user
+		// Get user.
 		$user = get_userdata( $user_id );
 		if ( ! $user ) {
 			return;
 		}
 
-		// Process each capability
+		// Process each capability.
 		foreach ( $all_capabilities as $cap ) {
 			$field_name = 'ffc_cap_' . $cap;
-			$grant      = isset( $_POST[ $field_name ] ) && $_POST[ $field_name ] === '1';
+			$grant      = isset( $_POST[ $field_name ] ) && '1' === $_POST[ $field_name ];
 
 			if ( $grant ) {
 				$user->add_cap( $cap, true );
 			} else {
-				// remove_cap() removes the user-level override, letting the role's
-				// value prevail.  Using add_cap($cap, false) would explicitly deny
+				// remove_cap() removes the user-level override, letting the role's.
+				// value prevail.  Using add_cap($cap, false) would explicitly deny.
 				// the capability and override role-level grants (e.g. admin role).
 				$user->remove_cap( $cap );
 			}
 		}
 
-		// Log the change
+		// Log the change.
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
 			\FreeFormCertificate\Core\Debug::log_user_manager(
 				'Admin updated user capabilities',
@@ -322,7 +322,7 @@ class AdminUserCapabilities {
 	/**
 	 * Check if user has any FFC capability
 	 *
-	 * @param int $user_id User ID
+	 * @param int $user_id User ID.
 	 * @return bool True if user has any FFC capability
 	 */
 	private static function has_any_ffc_capability( int $user_id ): bool {

@@ -14,10 +14,10 @@ define( 'FFC_DEBUG', false );
 define( 'FFC_PLUGIN_DIR', __DIR__ . '/' );
 define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
 
-// WordPress DB constant
+// WordPress DB constant.
 define( 'DB_NAME', 'wordpress' );
 
-// phpqrcode constants and class stub
+// phpqrcode constants and class stub.
 define( 'QR_ECLEVEL_L', 0 );
 define( 'QR_ECLEVEL_M', 1 );
 define( 'QR_ECLEVEL_Q', 2 );

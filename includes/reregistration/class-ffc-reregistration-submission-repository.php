@@ -79,7 +79,7 @@ class ReregistrationSubmissionRepository {
 	 */
 	public static function get_by_id( int $id ): ?object {
 		$cached = static::cache_get( "id_{$id}" );
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -239,7 +239,7 @@ class ReregistrationSubmissionRepository {
 		$where  = array( 's.reregistration_id = %d' );
 		$values = array( $reregistration_id );
 
-		if ( $filters['status'] !== null ) {
+		if ( null !== $filters['status'] ) {
 			$where[]  = 's.status = %s';
 			$values[] = $filters['status'];
 		}
@@ -301,17 +301,17 @@ class ReregistrationSubmissionRepository {
 		);
 		$insert_format = array( '%d', '%d', '%s' );
 
-		if ( $data['data'] !== null ) {
+		if ( null !== $data['data'] ) {
 			$insert_data['data'] = is_string( $data['data'] ) ? $data['data'] : wp_json_encode( $data['data'] );
 			$insert_format[]     = '%s';
 		}
 
-		if ( $data['submitted_at'] !== null ) {
+		if ( null !== $data['submitted_at'] ) {
 			$insert_data['submitted_at'] = $data['submitted_at'];
 			$insert_format[]             = '%s';
 		}
 
-		if ( $data['notes'] !== null ) {
+		if ( null !== $data['notes'] ) {
 			$insert_data['notes'] = sanitize_textarea_field( $data['notes'] );
 			$insert_format[]      = '%s';
 		}
@@ -357,11 +357,11 @@ class ReregistrationSubmissionRepository {
 				continue;
 			}
 
-			if ( $key === 'data' && ! is_string( $value ) ) {
+			if ( 'data' === $key && ! is_string( $value ) ) {
 				$value = wp_json_encode( $value );
 			}
 
-			if ( $key === 'notes' && $value !== null ) {
+			if ( 'notes' === $key && null !== $value ) {
 				$value = sanitize_textarea_field( $value );
 			}
 
@@ -383,7 +383,7 @@ class ReregistrationSubmissionRepository {
 
 		static::cache_delete( "id_{$id}" );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
@@ -462,7 +462,7 @@ class ReregistrationSubmissionRepository {
 
 		static::cache_delete( "id_{$id}" );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
@@ -563,7 +563,7 @@ class ReregistrationSubmissionRepository {
 		$created  = 0;
 
 		foreach ( $user_ids as $user_id ) {
-			// Check if submission already exists
+			// Check if submission already exists.
 			$existing = self::get_by_reregistration_and_user( $reregistration_id, $user_id );
 			if ( $existing ) {
 				continue;
@@ -599,7 +599,7 @@ class ReregistrationSubmissionRepository {
 		$where  = 'WHERE reregistration_id = %d';
 		$values = array( $reregistration_id );
 
-		if ( $status !== null ) {
+		if ( null !== $status ) {
 			$where   .= ' AND status = %s';
 			$values[] = $status;
 		}

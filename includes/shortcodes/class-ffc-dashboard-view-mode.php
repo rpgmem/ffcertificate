@@ -24,13 +24,13 @@ class DashboardViewMode {
 	 * @return int|false User ID if valid view-as mode, false otherwise
 	 */
 	public static function get_view_as_user_id() {
-		// Check if admin is trying to view as another user
+		// Check if admin is trying to view as another user.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified below via wp_verify_nonce; isset() check only.
 		if ( ! isset( $_GET['ffc_view_as_user'] ) || ! isset( $_GET['ffc_view_nonce'] ) ) {
 			return false;
 		}
 
-		// Only admins can use view-as mode
+		// Only admins can use view-as mode.
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return false;
 		}
@@ -40,12 +40,12 @@ class DashboardViewMode {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- This IS the nonce value being extracted for verification.
 		$nonce = sanitize_text_field( wp_unslash( $_GET['ffc_view_nonce'] ) );
 
-		// Verify nonce
+		// Verify nonce.
 		if ( ! wp_verify_nonce( $nonce, 'ffc_view_as_user_' . $target_user_id ) ) {
 			return false;
 		}
 
-		// Verify user exists
+		// Verify user exists.
 		$user = get_user_by( 'id', $target_user_id );
 		if ( ! $user ) {
 			return false;
@@ -57,14 +57,14 @@ class DashboardViewMode {
 	/**
 	 * Render admin viewing banner
 	 *
-	 * @param int $user_id User ID being viewed
+	 * @param int $user_id User ID being viewed.
 	 * @return string HTML output
 	 */
 	public static function render_admin_viewing_banner( int $user_id ): string {
 		$user  = get_user_by( 'id', $user_id );
 		$admin = wp_get_current_user();
 
-		// Get dashboard URL without view-as parameters
+		// Get dashboard URL without view-as parameters.
 		$dashboard_page_id = get_option( 'ffc_dashboard_page_id' );
 		$exit_url          = $dashboard_page_id ? ( get_permalink( $dashboard_page_id ) ?: home_url( '/dashboard' ) ) : home_url( '/dashboard' );
 

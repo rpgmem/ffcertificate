@@ -73,10 +73,10 @@ class Frontend {
 		if ( $has_form || $has_verification || $has_csv_download ) {
 			$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
-			// Dark mode script (loaded early to prevent flash)
+			// Dark mode script (loaded early to prevent flash).
 			\FreeFormCertificate\Core\Utils::enqueue_dark_mode();
 
-			// CSS - Using centralized version constant
+			// CSS - Using centralized version constant.
 			wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css", array(), FFC_VERSION );
 			wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
 			wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css", array( 'ffc-pdf-core', 'ffc-common' ), FFC_VERSION );
@@ -85,21 +85,21 @@ class Frontend {
 		if ( $has_form || $has_verification ) {
 			$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
-			// PDF Libraries - Using centralized version constants
+			// PDF Libraries - Using centralized version constants.
 			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
 			wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true );
 
-			// PDF Generator (shared module)
+			// PDF Generator (shared module).
 			wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js", array( 'jquery', 'html2canvas', 'jspdf' ), FFC_VERSION, true );
 
 			wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-pdf-generator', 'ffc-rate-limit' ), FFC_VERSION, true );
 
-			// Dynamic fragments: refresh captcha + nonces on cached pages
+			// Dynamic fragments: refresh captcha + nonces on cached pages.
 			wp_enqueue_script( 'ffc-dynamic-fragments' );
 
 			wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . "assets/js/ffc-geofence-frontend{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 
-			// Pass geofence configurations to frontend
+			// Pass geofence configurations to frontend.
 			$this->localize_geofence_config();
 
 			wp_localize_script(
@@ -109,7 +109,7 @@ class Frontend {
 					'ajax_url' => admin_url( 'admin-ajax.php' ),
 					'nonce'    => wp_create_nonce( 'ffc_frontend_nonce' ),
 					'strings'  => array(
-						// Verification
+						// Verification.
 						'verifying'             => __( 'Verifying...', 'ffcertificate' ),
 						'verify'                => __( 'Verify', 'ffcertificate' ),
 						'processing'            => __( 'Processing...', 'ffcertificate' ),
@@ -122,7 +122,7 @@ class Frontend {
 						'generating'            => __( 'Generating...', 'ffcertificate' ),
 						'downloadAgain'         => __( 'Download Again', 'ffcertificate' ),
 
-						// Document Verification Display
+						// Document Verification Display.
 						'certificateValid'      => __( 'Document Valid!', 'ffcertificate' ),
 						'certificateInvalid'    => __( 'Document Invalid', 'ffcertificate' ),
 						'formTitle'             => __( 'Form', 'ffcertificate' ),
@@ -132,22 +132,22 @@ class Frontend {
 						'tryManually'           => __( 'Or try manual verification', 'ffcertificate' ),
 						'enterAuthCode'         => __( 'Enter auth code', 'ffcertificate' ),
 
-						// Validation (CPF/RF)
+						// Validation (CPF/RF).
 						'rfInvalid'             => __( 'Invalid RF', 'ffcertificate' ),
 						'cpfInvalid'            => __( 'Invalid CPF', 'ffcertificate' ),
 						'enterValidCpfRf'       => __( 'Enter a valid CPF (11 digits) or RF (7 digits)', 'ffcertificate' ),
 
-						// Success/Error Messages
+						// Success/Error Messages.
 						'success'               => __( 'Success!', 'ffcertificate' ),
 						'submissionSuccessful'  => __( 'Your submission was successful.', 'ffcertificate' ),
 						'error'                 => __( 'Error occurred', 'ffcertificate' ),
 						'fillRequired'          => __( 'Please fill all required fields', 'ffcertificate' ),
 
-						// Rate Limiting
+						// Rate Limiting.
 						'wait'                  => __( 'Wait...', 'ffcertificate' ),
 						'send'                  => __( 'Send', 'ffcertificate' ),
 
-						// PDF Generation
+						// PDF Generation.
 						'pdfLibrariesFailed'    => __( 'PDF libraries failed to load. Please refresh the page.', 'ffcertificate' ),
 						'pdfGenerationError'    => __( 'Error generating PDF (html2canvas). Please try again.', 'ffcertificate' ),
 						'pleaseWait'            => __( 'Please wait, this may take a few seconds...', 'ffcertificate' ),
@@ -205,7 +205,7 @@ class Frontend {
 			return;
 		}
 
-		// Find all form IDs in post content
+		// Find all form IDs in post content.
 		preg_match_all( '/\[ffc_form\s+id=[\'"](\d+)[\'"]\]/', $post->post_content, $matches );
 
 		if ( empty( $matches[1] ) ) {
@@ -219,22 +219,22 @@ class Frontend {
 			$form_id_int = (int) $form_id;
 			$config      = \FreeFormCertificate\Security\Geofence::get_frontend_config( $form_id_int );
 
-			if ( $config !== null ) {
+			if ( null !== $config ) {
 				$geofence_configs[ $form_id_int ] = $config;
 			}
 		}
 
-		// Add global settings without re-indexing form IDs
+		// Add global settings without re-indexing form IDs.
 		$geofence_configs['_global'] = array(
 			'debug'   => ! empty( $global_settings['debug_enabled'] ),
 			'strings' => array(
-				// Admin bypass messages
+				// Admin bypass messages.
 				'bypassGeneric'             => __( 'Admin Bypass Mode Active - Geofence restrictions are disabled for administrators', 'ffcertificate' ),
 				'bypassDatetime'            => __( 'Admin Bypass: Date/Time restrictions are disabled for administrators', 'ffcertificate' ),
 				'bypassGeo'                 => __( 'Admin Bypass: Geolocation restrictions are disabled for administrators', 'ffcertificate' ),
 				'bypassActive'              => __( 'Admin Bypass Mode Active', 'ffcertificate' ),
 
-				// Geolocation messages
+				// Geolocation messages.
 				'detectingLocation'         => __( 'Detecting your location...', 'ffcertificate' ),
 				'browserNoSupport'          => __( 'Your browser does not support geolocation.', 'ffcertificate' ),
 				'httpsRequired'             => __( 'This form requires a secure connection (HTTPS) to access your location. Please contact the site administrator.', 'ffcertificate' ),
@@ -243,23 +243,23 @@ class Frontend {
 				'positionUnavailable'       => __( 'Location information is unavailable.', 'ffcertificate' ),
 				'timeout'                   => __( 'Location request timed out.', 'ffcertificate' ),
 				'outsideArea'               => __( 'You are outside the allowed area for this form.', 'ffcertificate' ),
-				// Safari/iOS progressive loading phases
+				// Safari/iOS progressive loading phases.
 				'safariPhase1'              => __( 'Requesting your location… If prompted, tap "Allow".', 'ffcertificate' ),
 				'safariPhase2'              => __( 'Waiting for location permission… Check if a browser prompt appeared.', 'ffcertificate' ),
 				'safariPhase3'              => __( 'Still trying to get your location… If it is not working, check that Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate' ),
-				// Safari/iOS specific error messages
+				// Safari/iOS specific error messages.
 				'safariPermissionDenied'    => __( 'Location access was denied. On Safari/iOS, go to Settings > Privacy & Security > Location Services and ensure it is enabled for your browser.', 'ffcertificate' ),
 				'safariPositionUnavailable' => __( 'Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate' ),
 				'safariTimeout'             => __( 'Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate' ),
 
-				// DateTime messages
+				// DateTime messages.
 				'formNotYetAvailable'       => __( 'This form is not yet available.', 'ffcertificate' ),
 				'formNoLongerAvailable'     => __( 'This form is no longer available.', 'ffcertificate' ),
 				'formOnlyDuringHours'       => __( 'This form is only available during specific hours.', 'ffcertificate' ),
 			),
 		);
 
-		// Localize script with preserved array keys
+		// Localize script with preserved array keys.
 		wp_localize_script( 'ffc-geofence-frontend', 'ffcGeofenceConfig', $geofence_configs );
 	}
 }

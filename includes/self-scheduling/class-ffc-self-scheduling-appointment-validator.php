@@ -45,26 +45,26 @@ class AppointmentValidator {
 	/**
 	 * Validate appointment booking
 	 *
-	 * @param array<string, mixed> $data Appointment data
-	 * @param array<string, mixed> $calendar Calendar configuration
-	 * @param bool                 $use_lock Use FOR UPDATE locks on capacity queries (requires active transaction)
+	 * @param array<string, mixed> $data Appointment data.
+	 * @param array<string, mixed> $calendar Calendar configuration.
+	 * @param bool                 $use_lock Use FOR UPDATE locks on capacity queries (requires active transaction).
 	 * @return true|\WP_Error
 	 */
 	public function validate( array $data, array $calendar, bool $use_lock = false ) {
 		$has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
 
-		// 1. Validate required fields
+		// 1. Validate required fields.
 		if ( empty( $data['appointment_date'] ) || empty( $data['start_time'] ) ) {
 			return new \WP_Error( 'missing_fields', __( 'Date and time are required.', 'ffcertificate' ) );
 		}
 
-		// 2. Validate date format
+		// 2. Validate date format.
 		$date_obj = \DateTime::createFromFormat( 'Y-m-d', $data['appointment_date'] );
 		if ( ! $date_obj || $date_obj->format( 'Y-m-d' ) !== $data['appointment_date'] ) {
 			return new \WP_Error( 'invalid_date', __( 'Invalid date format.', 'ffcertificate' ) );
 		}
 
-		// 3. Validate time format
+		// 3. Validate time format.
 		if ( ! preg_match( '/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', $data['start_time'] ) ) {
 			return new \WP_Error( 'invalid_time', __( 'Invalid time format.', 'ffcertificate' ) );
 		}
@@ -78,7 +78,7 @@ class AppointmentValidator {
 			return new \WP_Error( 'past_date', __( 'Cannot book appointments in the past.', 'ffcertificate' ) );
 		}
 
-		// 5. Validate advance booking window (minimum) - bypass skips
+		// 5. Validate advance booking window (minimum) - bypass skips.
 		if ( ! $has_bypass && $calendar['advance_booking_min'] > 0 ) {
 			$min_advance = $now + ( $calendar['advance_booking_min'] * 3600 );
 			if ( $appointment_timestamp < $min_advance ) {
@@ -93,7 +93,7 @@ class AppointmentValidator {
 			}
 		}
 
-		// 6. Validate advance booking window (maximum) - bypass skips
+		// 6. Validate advance booking window (maximum) - bypass skips.
 		if ( ! $has_bypass && $calendar['advance_booking_max'] > 0 ) {
 			$max_advance = $now + ( $calendar['advance_booking_max'] * 86400 );
 			if ( $appointment_timestamp > $max_advance ) {
@@ -136,7 +136,7 @@ class AppointmentValidator {
 			return new \WP_Error( 'slot_full', __( 'This time slot is fully booked.', 'ffcertificate' ) );
 		}
 
-		// 10. Check daily limit — bypass skips
+		// 10. Check daily limit — bypass skips.
 		if ( ! $has_bypass && $calendar['slots_per_day'] > 0 ) {
 			$daily_count = $this->get_daily_appointment_count( $data['calendar_id'], $data['appointment_date'], $use_lock );
 			if ( $daily_count >= $calendar['slots_per_day'] ) {
@@ -144,7 +144,7 @@ class AppointmentValidator {
 			}
 		}
 
-		// 11. Check minimum interval between bookings — bypass skips
+		// 11. Check minimum interval between bookings — bypass skips.
 		if ( ! $has_bypass && ! empty( $calendar['minimum_interval_between_bookings'] ) && $calendar['minimum_interval_between_bookings'] > 0 ) {
 			$user_identifier = null;
 
@@ -176,13 +176,13 @@ class AppointmentValidator {
 			}
 		}
 
-		// Calendar-specific scheduling visibility check
+		// Calendar-specific scheduling visibility check.
 		$scheduling_visibility = $calendar['scheduling_visibility'] ?? 'public';
-		if ( $scheduling_visibility === 'private' && ! is_user_logged_in() && ! $has_bypass ) {
+		if ( 'private' === $scheduling_visibility && ! is_user_logged_in() && ! $has_bypass ) {
 			return new \WP_Error( 'login_required', __( 'You must be logged in to book this calendar.', 'ffcertificate' ) );
 		}
 
-		// Business hours restriction for booking — bypass skips
+		// Business hours restriction for booking — bypass skips.
 		if ( ! $has_bypass && ! empty( $calendar['restrict_booking_to_hours'] ) ) {
 			$working_hours = $calendar['working_hours'] ?? array();
 			if ( ! empty( $working_hours ) ) {
@@ -205,17 +205,17 @@ class AppointmentValidator {
 			return new \WP_Error( 'email_required', __( 'Email address is required.', 'ffcertificate' ) );
 		}
 
-		// 14. Validate CPF/RF
+		// 14. Validate CPF/RF.
 		if ( empty( $data['cpf_rf'] ) ) {
 			return new \WP_Error( 'cpf_rf_required', __( 'CPF/RF is required.', 'ffcertificate' ) );
 		}
 
 		$cpf_rf_clean = preg_replace( '/[^0-9]/', '', $data['cpf_rf'] );
-		if ( strlen( $cpf_rf_clean ) == 7 ) {
+		if ( strlen( $cpf_rf_clean ) === 7 ) {
 			if ( ! preg_match( '/^\d{7}$/', $cpf_rf_clean ) ) {
 				return new \WP_Error( 'invalid_rf', __( 'Invalid RF format.', 'ffcertificate' ) );
 			}
-		} elseif ( strlen( $cpf_rf_clean ) == 11 ) {
+		} elseif ( strlen( $cpf_rf_clean ) === 11 ) {
 			if ( ! \FreeFormCertificate\Core\Utils::validate_cpf( $cpf_rf_clean ) ) {
 				return new \WP_Error( 'invalid_cpf', __( 'Invalid CPF.', 'ffcertificate' ) );
 			}
@@ -229,9 +229,9 @@ class AppointmentValidator {
 	/**
 	 * Check minimum interval between bookings for a user
 	 *
-	 * @param mixed $user_identifier User ID, email, or CPF/RF
-	 * @param int   $calendar_id Calendar ID
-	 * @param int   $interval_hours Minimum hours between bookings
+	 * @param mixed $user_identifier User ID, email, or CPF/RF.
+	 * @param int   $calendar_id Calendar ID.
+	 * @param int   $interval_hours Minimum hours between bookings.
 	 * @return true|\WP_Error
 	 */
 	public function check_booking_interval( $user_identifier, int $calendar_id, int $interval_hours ) {
@@ -249,7 +249,7 @@ class AppointmentValidator {
 		}
 
 		foreach ( $recent_appointments as $appointment ) {
-			if ( $appointment['status'] === 'cancelled' ) {
+			if ( 'cancelled' === $appointment['status'] ) {
 				continue;
 			}
 
@@ -301,7 +301,7 @@ class AppointmentValidator {
 	 *
 	 * @param int    $calendar_id
 	 * @param string $date
-	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction)
+	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
 	 * @return int
 	 */
 	public function get_daily_appointment_count( int $calendar_id, string $date, bool $use_lock = false ): int {

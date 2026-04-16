@@ -58,9 +58,9 @@ class CsvExporter {
 		$this->repository = new SubmissionRepository();
 	}
 
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 	// Hook registration (called from Admin __construct)
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Register AJAX handlers for the three-step export flow.
@@ -71,9 +71,9 @@ class CsvExporter {
 		add_action( 'wp_ajax_ffc_csv_export_download', array( $this, 'ajax_download' ) );
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	// AJAX: Start
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Start.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Start a new export job.
@@ -108,7 +108,7 @@ class CsvExporter {
 		// Count total rows to report progress to JS.
 		$total = $this->count_export_rows( $form_ids, $status );
 
-		if ( $total === 0 ) {
+		if ( 0 === $total ) {
 			wp_send_json_error( __( 'No records available for export.', 'ffcertificate' ) );
 		}
 
@@ -185,9 +185,9 @@ class CsvExporter {
 		);
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	// AJAX: Batch
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Batch.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Process one batch (EXPORT_BATCH_SIZE rows) and append to temp file.
@@ -202,7 +202,7 @@ class CsvExporter {
 		$job_id = isset( $_POST['job_id'] ) ? sanitize_text_field( wp_unslash( $_POST['job_id'] ) ) : '';
 		$job    = get_transient( 'ffc_csv_export_' . $job_id );
 
-		if ( ! $job || (int) $job['user_id'] !== get_current_user_id() ) {
+		if ( ! $job || get_current_user_id() !== (int) $job['user_id'] ) {
 			wp_send_json_error( __( 'Export job not found or expired.', 'ffcertificate' ) );
 		}
 
@@ -268,9 +268,9 @@ class CsvExporter {
 		);
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	// AJAX: Download
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Download.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Serve the completed CSV file and clean up.
@@ -288,7 +288,7 @@ class CsvExporter {
 		$job_id = isset( $_GET['job_id'] ) ? sanitize_text_field( wp_unslash( $_GET['job_id'] ) ) : '';
 		$job    = get_transient( 'ffc_csv_export_' . $job_id );
 
-		if ( ! $job || (int) $job['user_id'] !== get_current_user_id() ) {
+		if ( ! $job || get_current_user_id() !== (int) $job['user_id'] ) {
 			wp_die( esc_html__( 'Export job not found or expired.', 'ffcertificate' ) );
 		}
 
@@ -320,9 +320,9 @@ class CsvExporter {
 		exit;
 	}
 
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 	// Legacy entry point (kept for backwards compat)
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Legacy handler called from admin_post_ffc_export_csv.
@@ -338,9 +338,9 @@ class CsvExporter {
 		exit;
 	}
 
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 	// Helpers (private)
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * @param int $form_id Form post ID.
@@ -419,7 +419,7 @@ class CsvExporter {
 			! empty( $row['magic_token'] ) ? $row['magic_token'] : '',
 			isset( $row['consent_given'] ) ? ( $row['consent_given'] ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ) ) : '',
 			! empty( $row['consent_date'] ) ? $row['consent_date'] : '',
-			$user_ip, // Consent IP
+			$user_ip, // Consent IP.
 			! empty( $row['consent_text'] ) ? $row['consent_text'] : '',
 			! empty( $row['status'] ) ? $row['status'] : 'publish',
 		);

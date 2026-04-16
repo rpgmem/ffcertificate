@@ -133,7 +133,7 @@ class SubmissionsList extends \WP_List_Table {
 		$actions  = '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . __( 'Edit', 'ffcertificate' ) . '</a> ';
 		$actions .= $this->render_pdf_button( $item );
 
-		if ( isset( $item['status'] ) && $item['status'] === 'publish' ) {
+		if ( isset( $item['status'] ) && 'publish' === $item['status'] ) {
 			$trash_url = wp_nonce_url(
 				add_query_arg(
 					array(
@@ -179,11 +179,11 @@ class SubmissionsList extends \WP_List_Table {
 	 * @return string
 	 */
 	private function render_pdf_button( array $item ): string {
-		// Use token directly from item (more efficient, avoids extra DB query)
+		// Use token directly from item (more efficient, avoids extra DB query).
 		if ( ! empty( $item['magic_token'] ) ) {
 			$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $item['magic_token'] );
 		} else {
-			// Fallback: generate token if missing (convert id to int - wpdb returns strings)
+			// Fallback: generate token if missing (convert id to int - wpdb returns strings).
 			$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::get_submission_magic_link( (int) $item['id'], $this->submission_handler );
 		}
 
@@ -206,7 +206,7 @@ class SubmissionsList extends \WP_List_Table {
 	private function render_status_badge( array $item ): string {
 		$status = $item['status'] ?? 'publish';
 
-		// Extract quiz score from data if available
+		// Extract quiz score from data if available.
 		$score_html = '';
 		$data_json  = $item['data'] ?? '';
 		if ( ! empty( $data_json ) ) {
@@ -234,7 +234,7 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	private function format_data_preview( ?string $data_json ): string {
-		if ( $data_json === null || $data_json === 'null' || $data_json === '' ) {
+		if ( null === $data_json || 'null' === $data_json || '' === $data_json ) {
 			return '<em class="ffc-empty-data">' . __( 'Only mandatory fields', 'ffcertificate' ) . '</em>';
 		}
 
@@ -252,7 +252,7 @@ class SubmissionsList extends \WP_List_Table {
 		$count         = 0;
 
 		foreach ( $data as $key => $value ) {
-			if ( in_array( $key, $skip_fields ) || $count >= 3 ) {
+			if ( in_array( $key, $skip_fields, true ) || $count >= 3 ) {
 				continue;
 			}
 
@@ -287,7 +287,7 @@ class SubmissionsList extends \WP_List_Table {
 	protected function get_bulk_actions() {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Status is a display filter parameter.
 		$status = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
-		if ( $status === 'trash' ) {
+		if ( 'trash' === $status ) {
 			return array(
 				'bulk_restore' => __( 'Restore', 'ffcertificate' ),
 				'bulk_delete'  => __( 'Delete Permanently', 'ffcertificate' ),
@@ -355,7 +355,7 @@ class SubmissionsList extends \WP_List_Table {
 			}
 		}
 
-		// Batch load form titles to avoid N+1 queries in column_default()
+		// Batch load form titles to avoid N+1 queries in column_default().
 		$this->preload_form_titles();
 
 		$this->set_pagination_args(
@@ -416,28 +416,28 @@ class SubmissionsList extends \WP_List_Table {
 			'all'              => sprintf(
 				'<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
 				remove_query_arg( 'status' ),
-				( $current == 'publish' ? 'current' : '' ),
+				( 'publish' === $current ? 'current' : '' ),
 				__( 'Published', 'ffcertificate' ),
 				$counts['publish']
 			),
 			'trash'            => sprintf(
 				'<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
 				add_query_arg( 'status', 'trash' ),
-				( $current == 'trash' ? 'current' : '' ),
+				( 'trash' === $current ? 'current' : '' ),
 				__( 'Trash', 'ffcertificate' ),
 				$counts['trash']
 			),
 			'quiz_in_progress' => sprintf(
 				'<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
 				add_query_arg( 'status', 'quiz_in_progress' ),
-				( $current == 'quiz_in_progress' ? 'current' : '' ),
+				( 'quiz_in_progress' === $current ? 'current' : '' ),
 				__( 'Quiz: Retry', 'ffcertificate' ),
 				$counts['quiz_in_progress']
 			),
 			'quiz_failed'      => sprintf(
 				'<a href="%s" class="%s">%s <span class="count">(%d)</span></a>',
 				add_query_arg( 'status', 'quiz_failed' ),
-				( $current == 'quiz_failed' ? 'current' : '' ),
+				( 'quiz_failed' === $current ? 'current' : '' ),
 				__( 'Quiz: Failed', 'ffcertificate' ),
 				$counts['quiz_failed']
 			),
@@ -454,15 +454,15 @@ class SubmissionsList extends \WP_List_Table {
 	/**
 	 * Display filters above the table
 	 *
-	 * @param string $which Position (top or bottom)
+	 * @param string $which Position (top or bottom).
 	 * @return void
 	 */
 	protected function extra_tablenav( $which ) {
-		if ( $which !== 'top' ) {
+		if ( 'top' !== $which ) {
 			return;
 		}
 
-		// Get all forms ordered by ID descending (newest first)
+		// Get all forms ordered by ID descending (newest first).
 		$forms = get_posts(
 			array(
 				'post_type'      => 'ffc_form',
@@ -519,7 +519,7 @@ class SubmissionsList extends \WP_List_Table {
 					<div class="ffc-filter-overlay-body">
 						<?php
 						foreach ( $forms as $form ) :
-							$checked = in_array( $form->ID, $selected_form_ids ) ? 'checked' : '';
+							$checked = in_array( $form->ID, $selected_form_ids, true ) ? 'checked' : '';
 							?>
 							<label class="ffc-filter-form-item">
 								<input type="checkbox" name="filter_form_id[]" value="<?php echo esc_attr( (string) $form->ID ); ?>" <?php echo $checked; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- 'checked' literal ?>>
@@ -537,6 +537,6 @@ class SubmissionsList extends \WP_List_Table {
 		</div>
 
 		<?php
-		// Filter overlay logic in ffc-admin.js
+		// Filter overlay logic in ffc-admin.js.
 	}
 }

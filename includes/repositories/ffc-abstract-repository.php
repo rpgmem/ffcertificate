@@ -49,7 +49,7 @@ abstract class AbstractRepository {
 		$cache_key = "id_{$id}";
 		$cached    = $this->get_cache( $cache_key );
 
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -69,7 +69,7 @@ abstract class AbstractRepository {
 	/**
 	 * Find multiple records by IDs in a single query.
 	 *
-	 * @param array<int, int> $ids Array of integer IDs
+	 * @param array<int, int> $ids Array of integer IDs.
 	 * @return array<int, array<string, mixed>> Associative array keyed by ID => row data
 	 */
 	public function findByIds( array $ids ): array {
@@ -79,19 +79,19 @@ abstract class AbstractRepository {
 			return array();
 		}
 
-		// Check cache first, collect misses
+		// Check cache first, collect misses.
 		$results = array();
 		$missing = array();
 		foreach ( $ids as $id ) {
 			$cached = $this->get_cache( "id_{$id}" );
-			if ( $cached !== false ) {
+			if ( false !== $cached ) {
 				$results[ $id ] = $cached;
 			} else {
 				$missing[] = $id;
 			}
 		}
 
-		// Batch load cache misses
+		// Batch load cache misses.
 		if ( ! empty( $missing ) ) {
 			$safe_ids     = array_map( 'absint', $missing );
 			$placeholders = implode( ',', array_fill( 0, count( $safe_ids ), '%d' ) );
@@ -191,7 +191,7 @@ abstract class AbstractRepository {
 			array( 'id' => $id )
 		);
 
-		if ( $result !== false ) {
+		if ( false !== $result ) {
 			$this->clear_cache( "id_{$id}" );
 		} else {
 			$this->log_db_error( 'update', $id );
@@ -212,7 +212,7 @@ abstract class AbstractRepository {
 
 		if ( $result ) {
 			$this->clear_cache( "id_{$id}" );
-		} elseif ( $result === false ) {
+		} elseif ( false === $result ) {
 			$this->log_db_error( 'delete', $id );
 		}
 
@@ -222,7 +222,7 @@ abstract class AbstractRepository {
 	/**
 	 * Sanitize ORDER BY column name against an allowlist.
 	 *
-	 * @param string $column Requested column name
+	 * @param string $column Requested column name.
 	 * @return string Sanitized column name (defaults to 'id' if not allowed)
 	 */
 	protected function sanitize_order_column( string $column ): string {

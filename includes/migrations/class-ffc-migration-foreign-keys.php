@@ -41,14 +41,14 @@ class MigrationForeignKeys {
 			'errors'  => array(),
 		);
 
-		// Tables that should SET NULL on user deletion (preserve audit trail)
+		// Tables that should SET NULL on user deletion (preserve audit trail).
 		$set_null_tables = array(
 			$wpdb->prefix . 'ffc_submissions'  => 'fk_ffc_submissions_user',
 			$wpdb->prefix . 'ffc_self_scheduling_appointments' => 'fk_ffc_appointments_user',
 			$wpdb->prefix . 'ffc_activity_log' => 'fk_ffc_activity_log_user',
 		);
 
-		// Tables that should CASCADE delete (no audit value)
+		// Tables that should CASCADE delete (no audit value).
 		$cascade_tables = array(
 			$wpdb->prefix . 'ffc_audience_members'       => 'fk_ffc_audience_members_user',
 			$wpdb->prefix . 'ffc_audience_booking_users' => 'fk_ffc_booking_users_user',
@@ -56,9 +56,9 @@ class MigrationForeignKeys {
 			$wpdb->prefix . 'ffc_user_profiles'          => 'fk_ffc_user_profiles_user',
 		);
 
-		// Check wp_users engine first
+		// Check wp_users engine first.
 		$users_engine = self::get_table_engine( $wpdb->users );
-		if ( $users_engine !== 'InnoDB' ) {
+		if ( 'InnoDB' !== $users_engine ) {
 			return array(
 				'success' => false,
 				'added'   => array(),
@@ -70,19 +70,19 @@ class MigrationForeignKeys {
 			);
 		}
 
-		// Process SET NULL constraints
+		// Process SET NULL constraints.
 		foreach ( $set_null_tables as $table => $constraint_name ) {
 			$result = self::add_foreign_key( $table, $constraint_name, 'SET NULL' );
 			self::record_result( $results, $table, $constraint_name, $result );
 		}
 
-		// Process CASCADE constraints
+		// Process CASCADE constraints.
 		foreach ( $cascade_tables as $table => $constraint_name ) {
 			$result = self::add_foreign_key( $table, $constraint_name, 'CASCADE' );
 			self::record_result( $results, $table, $constraint_name, $result );
 		}
 
-		// Log results
+		// Log results.
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
 				'migration_foreign_keys',
@@ -96,7 +96,7 @@ class MigrationForeignKeys {
 		$total_errors  = count( $results['errors'] );
 
 		return array(
-			'success' => $total_errors === 0,
+			'success' => 0 === $total_errors,
 			'added'   => $results['added'],
 			'skipped' => $results['skipped'],
 			'errors'  => $results['errors'],
@@ -113,15 +113,15 @@ class MigrationForeignKeys {
 	/**
 	 * Add a foreign key constraint to a table
 	 *
-	 * @param string $table Full table name
-	 * @param string $constraint_name Constraint name
-	 * @param string $on_delete ON DELETE action ('SET NULL' or 'CASCADE')
+	 * @param string $table Full table name.
+	 * @param string $constraint_name Constraint name.
+	 * @param string $on_delete ON DELETE action ('SET NULL' or 'CASCADE').
 	 * @return array{status: string, message: string}
 	 */
 	private static function add_foreign_key( string $table, string $constraint_name, string $on_delete ): array {
 		global $wpdb;
 
-		// Check if table and column exist
+		// Check if table and column exist.
 		if ( ! self::table_exists( $table ) ) {
 			return array(
 				'status'  => 'skipped',
@@ -135,16 +135,16 @@ class MigrationForeignKeys {
 			);
 		}
 
-		// Check engine
+		// Check engine.
 		$engine = self::get_table_engine( $table );
-		if ( $engine !== 'InnoDB' ) {
+		if ( 'InnoDB' !== $engine ) {
 			return array(
 				'status'  => 'skipped',
 				'message' => "Engine is {$engine}, not InnoDB",
 			);
 		}
 
-		// Check if FK already exists
+		// Check if FK already exists.
 		$existing = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
@@ -163,15 +163,15 @@ class MigrationForeignKeys {
 			);
 		}
 
-		// For SET NULL, ensure user_id allows NULL
-		if ( $on_delete === 'SET NULL' ) {
+		// For SET NULL, ensure user_id allows NULL.
+		if ( 'SET NULL' === $on_delete ) {
 			$col_info = $wpdb->get_row( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'user_id' ) );
 			if ( $col_info && strtoupper( $col_info->Null ) !== 'YES' ) {
 				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i MODIFY user_id BIGINT(20) UNSIGNED DEFAULT NULL', $table ) );
 			}
 		}
 
-		// Clean up orphaned references (user_id values that don't exist in wp_users)
+		// Clean up orphaned references (user_id values that don't exist in wp_users).
 		$wpdb->query(
 			$wpdb->prepare(
 				'UPDATE %i SET user_id = NULL WHERE user_id IS NOT NULL AND user_id NOT IN (SELECT ID FROM %i)',
@@ -180,8 +180,8 @@ class MigrationForeignKeys {
 			)
 		);
 
-		// Add the FK constraint
-		// $on_delete is a validated SQL keyword ('SET NULL' or 'CASCADE') from hardcoded arrays in run()
+		// Add the FK constraint.
+		// $on_delete is a validated SQL keyword ('SET NULL' or 'CASCADE') from hardcoded arrays in run().
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $on_delete is a validated SQL keyword from hardcoded config.
 		$sql = $wpdb->prepare(
 			"ALTER TABLE %i ADD CONSTRAINT %i FOREIGN KEY (user_id) REFERENCES %i(ID) ON DELETE {$on_delete}",
@@ -193,7 +193,7 @@ class MigrationForeignKeys {
 
 		$result = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $on_delete is validated SQL keyword
 
-		if ( $result === false ) {
+		if ( false === $result ) {
 			return array(
 				'status'  => 'error',
 				'message' => $wpdb->last_error ?: 'Unknown error adding FK',
@@ -209,7 +209,7 @@ class MigrationForeignKeys {
 	/**
 	 * Get the storage engine for a table
 	 *
-	 * @param string $table Table name
+	 * @param string $table Table name.
 	 * @return string|null Engine name (e.g. 'InnoDB', 'MyISAM') or null
 	 */
 	private static function get_table_engine( string $table ): ?string {
@@ -229,10 +229,10 @@ class MigrationForeignKeys {
 	/**
 	 * Record a result into the results array
 	 *
-	 * @param array<string, array<int, array<string, string>>> &$results Results accumulator
-	 * @param string                                           $table Table name
-	 * @param string                                           $constraint Constraint name
-	 * @param array<string, string>                            $result Result from add_foreign_key
+	 * @param array<string, array<int, array<string, string>>> &$results Results accumulator.
+	 * @param string                                           $table Table name.
+	 * @param string                                           $constraint Constraint name.
+	 * @param array<string, string>                            $result Result from add_foreign_key.
 	 */
 	private static function record_result( array &$results, string $table, string $constraint, array $result ): void {
 		$entry = array(

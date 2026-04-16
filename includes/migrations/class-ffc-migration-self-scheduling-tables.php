@@ -56,7 +56,7 @@ class MigrationSelfSchedulingTables {
 	public static function run(): array {
 		global $wpdb;
 
-		// Check if already completed
+		// Check if already completed.
 		if ( self::is_completed() ) {
 			return array(
 				'success' => true,
@@ -80,7 +80,7 @@ class MigrationSelfSchedulingTables {
 			}
 		}
 
-		// Mark as completed if all tables were renamed successfully
+		// Mark as completed if all tables were renamed successfully.
 		if ( $all_success ) {
 			update_option( self::MIGRATION_OPTION, true );
 		}
@@ -97,14 +97,14 @@ class MigrationSelfSchedulingTables {
 	/**
 	 * Rename a single table
 	 *
-	 * @param string $old_table Old table name (with prefix)
-	 * @param string $new_table New table name (with prefix)
+	 * @param string $old_table Old table name (with prefix).
+	 * @param string $new_table New table name (with prefix).
 	 * @return array{success: bool, message: string}
 	 */
 	private static function rename_table( string $old_table, string $new_table ): array {
 		global $wpdb;
 
-		// Check if old table exists
+		// Check if old table exists.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$old_exists = $wpdb->get_var(
 			$wpdb->prepare(
@@ -114,7 +114,7 @@ class MigrationSelfSchedulingTables {
 			)
 		);
 
-		// Check if new table already exists
+		// Check if new table already exists.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$new_exists = $wpdb->get_var(
 			$wpdb->prepare(
@@ -124,7 +124,7 @@ class MigrationSelfSchedulingTables {
 			)
 		);
 
-		// If new table already exists, skip
+		// If new table already exists, skip.
 		if ( $new_exists ) {
 			return array(
 				'success' => true,
@@ -136,7 +136,7 @@ class MigrationSelfSchedulingTables {
 			);
 		}
 
-		// If old table doesn't exist, nothing to do
+		// If old table doesn't exist, nothing to do.
 		if ( ! $old_exists ) {
 			return array(
 				'success' => true,
@@ -148,11 +148,11 @@ class MigrationSelfSchedulingTables {
 			);
 		}
 
-		// Rename the table
+		// Rename the table.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->query( $wpdb->prepare( 'RENAME TABLE %i TO %i', $old_table, $new_table ) );
 
-		if ( $result === false ) {
+		if ( false === $result ) {
 			return array(
 				'success' => false,
 				'message' => sprintf(
@@ -187,7 +187,7 @@ class MigrationSelfSchedulingTables {
 		$results     = array();
 		$all_success = true;
 
-		// Reverse the mappings
+		// Reverse the mappings.
 		foreach ( self::$table_mappings as $old_suffix => $new_suffix ) {
 			$current_table  = $wpdb->prefix . $new_suffix;
 			$original_table = $wpdb->prefix . $old_suffix;
@@ -200,7 +200,7 @@ class MigrationSelfSchedulingTables {
 			}
 		}
 
-		// Remove migration flag
+		// Remove migration flag.
 		if ( $all_success ) {
 			delete_option( self::MIGRATION_OPTION );
 		}

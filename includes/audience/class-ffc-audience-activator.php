@@ -63,19 +63,19 @@ class AudienceActivator {
 	 * @return void
 	 */
 	public static function register_capabilities(): void {
-		// Get the ffc_user role
+		// Get the ffc_user role.
 		$ffc_user_role = get_role( 'ffc_user' );
 		if ( $ffc_user_role ) {
 			$ffc_user_role->add_cap( 'ffc_view_audience_bookings' );
 		}
 
-		// Also add to subscriber role
+		// Also add to subscriber role.
 		$subscriber_role = get_role( 'subscriber' );
 		if ( $subscriber_role ) {
 			$subscriber_role->add_cap( 'ffc_view_audience_bookings' );
 		}
 
-		// Administrator already has all caps via manage_options
+		// Administrator already has all caps via manage_options.
 	}
 
 	/**
@@ -428,7 +428,7 @@ class AudienceActivator {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'ffc_audience_schedules';
 
-		// Add environment_label column after description
+		// Add environment_label column after description.
 		self::add_column_if_missing(
 			$table_name,
 			'environment_label',
@@ -595,7 +595,7 @@ class AudienceActivator {
 	public static function drop_tables(): void {
 		global $wpdb;
 
-		// Drop in reverse order of dependencies
+		// Drop in reverse order of dependencies.
 		$tables = array(
 			$wpdb->prefix . 'ffc_audience_booking_users',
 			$wpdb->prefix . 'ffc_audience_booking_audiences',

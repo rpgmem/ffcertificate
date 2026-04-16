@@ -51,7 +51,7 @@ class AudienceScheduleRepository {
 	/**
 	 * Get all schedules
 	 *
-	 * @param array<string, mixed> $args Query arguments
+	 * @param array<string, mixed> $args Query arguments.
 	 * @return array<int, object>
 	 */
 	public static function get_all( array $args = array() ): array {
@@ -101,12 +101,12 @@ class AudienceScheduleRepository {
 	/**
 	 * Get schedule by ID
 	 *
-	 * @param int $id Schedule ID
+	 * @param int $id Schedule ID.
 	 * @return object|null
 	 */
 	public static function get_by_id( int $id ): ?object {
 		$cached = static::cache_get( "id_{$id}" );
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -130,7 +130,7 @@ class AudienceScheduleRepository {
 	 *
 	 * Returns schedules where user has permission or schedule is public.
 	 *
-	 * @param int $user_id User ID
+	 * @param int $user_id User ID.
 	 * @return array<object>
 	 */
 	public static function get_by_user_access( int $user_id ): array {
@@ -156,7 +156,7 @@ class AudienceScheduleRepository {
 	/**
 	 * Create a schedule
 	 *
-	 * @param array<string, mixed> $data Schedule data
+	 * @param array<string, mixed> $data Schedule data.
 	 * @return int|false Schedule ID or false on failure
 	 */
 	public static function create( array $data ) {
@@ -206,22 +206,22 @@ class AudienceScheduleRepository {
 	/**
 	 * Update a schedule
 	 *
-	 * @param int                  $id Schedule ID
-	 * @param array<string, mixed> $data Update data
+	 * @param int                  $id Schedule ID.
+	 * @param array<string, mixed> $data Update data.
 	 * @return bool
 	 */
 	public static function update( int $id, array $data ): bool {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// Remove fields that shouldn't be updated
+		// Remove fields that shouldn't be updated.
 		unset( $data['id'], $data['created_by'], $data['created_at'] );
 
 		if ( empty( $data ) ) {
 			return false;
 		}
 
-		// Build update data and format arrays
+		// Build update data and format arrays.
 		$update_data = array();
 		$format      = array();
 
@@ -263,13 +263,13 @@ class AudienceScheduleRepository {
 
 		static::cache_delete( "id_{$id}" );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Delete a schedule
 	 *
-	 * @param int $id Schedule ID
+	 * @param int $id Schedule ID.
 	 * @return bool
 	 */
 	public static function delete( int $id ): bool {
@@ -281,14 +281,14 @@ class AudienceScheduleRepository {
 
 		static::cache_delete( "id_{$id}" );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Get user permissions for a schedule
 	 *
-	 * @param int $schedule_id Schedule ID
-	 * @param int $user_id User ID
+	 * @param int $schedule_id Schedule ID.
+	 * @param int $user_id User ID.
 	 * @return object|null
 	 */
 	public static function get_user_permissions( int $schedule_id, int $user_id ): ?object {
@@ -309,7 +309,7 @@ class AudienceScheduleRepository {
 	/**
 	 * Get all permissions for a schedule
 	 *
-	 * @param int $schedule_id Schedule ID
+	 * @param int $schedule_id Schedule ID.
 	 * @return array<object>
 	 */
 	public static function get_all_permissions( int $schedule_id ): array {
@@ -325,9 +325,9 @@ class AudienceScheduleRepository {
 	/**
 	 * Set user permissions for a schedule
 	 *
-	 * @param int                  $schedule_id Schedule ID
-	 * @param int                  $user_id User ID
-	 * @param array<string, mixed> $permissions Permission flags
+	 * @param int                  $schedule_id Schedule ID.
+	 * @param int                  $user_id User ID.
+	 * @param array<string, mixed> $permissions Permission flags.
 	 * @return bool
 	 */
 	public static function set_user_permissions( int $schedule_id, int $user_id, array $permissions ): bool {
@@ -341,7 +341,7 @@ class AudienceScheduleRepository {
 		);
 		$permissions = wp_parse_args( $permissions, $defaults );
 
-		// Check if permission exists
+		// Check if permission exists.
 		$existing = self::get_user_permissions( $schedule_id, $user_id );
 
 		if ( $existing ) {
@@ -372,14 +372,14 @@ class AudienceScheduleRepository {
 			);
 		}
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Remove user permissions from a schedule
 	 *
-	 * @param int $schedule_id Schedule ID
-	 * @param int $user_id User ID
+	 * @param int $schedule_id Schedule ID.
+	 * @param int $user_id User ID.
 	 * @return bool
 	 */
 	public static function remove_user_permissions( int $schedule_id, int $user_id ): bool {
@@ -396,28 +396,28 @@ class AudienceScheduleRepository {
 			array( '%d', '%d' )
 		);
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Check if user can book on a schedule
 	 *
-	 * @param int $schedule_id Schedule ID
-	 * @param int $user_id User ID
+	 * @param int $schedule_id Schedule ID.
+	 * @param int $user_id User ID.
 	 * @return bool
 	 */
 	public static function user_can_book( int $schedule_id, int $user_id ): bool {
-		// Admins can always book
+		// Admins can always book.
 		if ( user_can( $user_id, 'manage_options' ) ) {
 			return true;
 		}
 
 		$schedule = self::get_by_id( $schedule_id );
-		if ( ! $schedule || $schedule->status !== 'active' ) {
+		if ( ! $schedule || 'active' !== $schedule->status ) {
 			return false;
 		}
 
-		// Check user permissions
+		// Check user permissions.
 		$permissions = self::get_user_permissions( $schedule_id, $user_id );
 
 		return $permissions && (bool) $permissions->can_book;
@@ -426,12 +426,12 @@ class AudienceScheduleRepository {
 	/**
 	 * Check if user can cancel others' bookings
 	 *
-	 * @param int $schedule_id Schedule ID
-	 * @param int $user_id User ID
+	 * @param int $schedule_id Schedule ID.
+	 * @param int $user_id User ID.
 	 * @return bool
 	 */
 	public static function user_can_cancel_others( int $schedule_id, int $user_id ): bool {
-		// Admins can always cancel
+		// Admins can always cancel.
 		if ( user_can( $user_id, 'manage_options' ) ) {
 			return true;
 		}
@@ -444,12 +444,12 @@ class AudienceScheduleRepository {
 	/**
 	 * Check if user can override conflicts
 	 *
-	 * @param int $schedule_id Schedule ID
-	 * @param int $user_id User ID
+	 * @param int $schedule_id Schedule ID.
+	 * @param int $user_id User ID.
 	 * @return bool
 	 */
 	public static function user_can_override_conflicts( int $schedule_id, int $user_id ): bool {
-		// Admins can always override
+		// Admins can always override.
 		if ( user_can( $user_id, 'manage_options' ) ) {
 			return true;
 		}
@@ -465,8 +465,8 @@ class AudienceScheduleRepository {
 	 * Returns the custom label if set, otherwise the default translatable "Environments".
 	 *
 	 * @since 4.7.0
-	 * @param object|int|null $schedule Schedule object, ID, or null for default
-	 * @param bool            $singular Whether to return singular form
+	 * @param object|int|null $schedule Schedule object, ID, or null for default.
+	 * @param bool            $singular Whether to return singular form.
 	 * @return string
 	 */
 	public static function get_environment_label( $schedule = null, bool $singular = false ): string {
@@ -488,7 +488,7 @@ class AudienceScheduleRepository {
 	/**
 	 * Count schedules
 	 *
-	 * @param array<string, mixed> $args Query arguments (status, visibility)
+	 * @param array<string, mixed> $args Query arguments (status, visibility).
 	 * @return int
 	 */
 	public static function count( array $args = array() ): int {

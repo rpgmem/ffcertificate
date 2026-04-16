@@ -46,7 +46,7 @@ class Admin {
 		$this->submission_handler = $handler;
 		$this->csv_exporter       = $exporter;
 
-		// Autoloader handles class loading
+		// Autoloader handles class loading.
 		$this->form_editor   = new FormEditor();
 		$this->settings_page = new Settings( $handler );
 
@@ -57,7 +57,7 @@ class Admin {
 
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 
-		// Priority 999 to run AFTER other plugins
+		// Priority 999 to run AFTER other plugins.
 		add_filter( 'tiny_mce_before_init', array( $this, 'configure_tinymce_placeholders' ), 999 );
 
 		add_action( 'admin_init', array( $this, 'handle_submission_actions' ) );
@@ -97,15 +97,15 @@ class Admin {
 			$nonce                = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
 			$manipulation_actions = array( 'trash', 'restore', 'delete' );
 
-			if ( in_array( $action, $manipulation_actions ) ) {
+			if ( in_array( $action, $manipulation_actions, true ) ) {
 				if ( wp_verify_nonce( $nonce, 'ffc_action_' . $id ) ) {
-					if ( $action === 'trash' ) {
+					if ( 'trash' === $action ) {
 						$this->submission_handler->trash_submission( $id );
 					}
-					if ( $action === 'restore' ) {
+					if ( 'restore' === $action ) {
 						$this->submission_handler->restore_submission( $id );
 					}
-					if ( $action === 'delete' ) {
+					if ( 'delete' === $action ) {
 						$this->submission_handler->delete_submission( $id );
 					}
 					$this->redirect_with_msg( $action );
@@ -116,21 +116,21 @@ class Admin {
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset()/is_array() existence and type checks only.
 		if ( isset( $_GET['action'] ) && isset( $_GET['submission'] ) && is_array( $_GET['submission'] ) ) {
 			$bulk_action = sanitize_key( wp_unslash( $_GET['action'] ) );
-			if ( $bulk_action === '-1' && isset( $_GET['action2'] ) ) {
+			if ( '-1' === $bulk_action && isset( $_GET['action2'] ) ) {
 				$bulk_action = sanitize_key( wp_unslash( $_GET['action2'] ) );
 			}
 
 			$allowed_bulk = array( 'bulk_trash', 'bulk_restore', 'bulk_delete' );
-			if ( in_array( $bulk_action, $allowed_bulk ) ) {
+			if ( in_array( $bulk_action, $allowed_bulk, true ) ) {
 				check_admin_referer( 'bulk-submissions' );
 				$ids = array_map( 'absint', wp_unslash( $_GET['submission'] ) );
 
-				// Use optimized bulk methods (single query + single log)
-				if ( $bulk_action === 'bulk_trash' ) {
+				// Use optimized bulk methods (single query + single log).
+				if ( 'bulk_trash' === $bulk_action ) {
 					$this->submission_handler->bulk_trash_submissions( $ids );
-				} elseif ( $bulk_action === 'bulk_restore' ) {
+				} elseif ( 'bulk_restore' === $bulk_action ) {
 					$this->submission_handler->bulk_restore_submissions( $ids );
-				} elseif ( $bulk_action === 'bulk_delete' ) {
+				} elseif ( 'bulk_delete' === $bulk_action ) {
 					$this->submission_handler->bulk_delete_submissions( $ids );
 				}
 
@@ -143,7 +143,7 @@ class Admin {
 	public function display_submissions_page(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing parameter for page display.
 		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : 'list';
-		if ( $action === 'edit' ) {
+		if ( 'edit' === $action ) {
 			$this->render_edit_page();
 		} else {
 			$this->render_list_page();
@@ -151,7 +151,7 @@ class Admin {
 	}
 
 	private function render_list_page(): void {
-		// Autoloader handles class loading
+		// Autoloader handles class loading.
 		$table = new \FreeFormCertificate\Admin\SubmissionsList( $this->submission_handler );
 		$this->display_admin_notices();
 		$table->prepare_items();
@@ -174,7 +174,7 @@ class Admin {
 				}
                 // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-				$has_filters = ! empty( $filter_form_ids ) || $export_status !== 'publish';
+				$has_filters = ! empty( $filter_form_ids ) || 'publish' !== $export_status;
 				$btn_class   = $has_filters ? 'button button-primary' : 'button';
 				$btn_label   = $has_filters
 					? __( 'Export Filtered CSV', 'ffcertificate' )
@@ -291,21 +291,21 @@ class Admin {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below via check_admin_referer.
 		$migration_key = sanitize_key( wp_unslash( $_GET['ffc_migration'] ) );
 
-		// Verify nonce
+		// Verify nonce.
 		check_admin_referer( 'ffc_migration_' . $migration_key );
 
-		// Lazy-load MigrationManager (avoids early translation calls)
+		// Lazy-load MigrationManager (avoids early translation calls).
 		if ( ! $this->migration_manager ) {
 			$this->migration_manager = new MigrationManager();
 		}
 
-		// Get migration info
+		// Get migration info.
 		$migration = $this->migration_manager->get_migration( $migration_key );
 		if ( ! $migration ) {
 			wp_die( esc_html__( 'Invalid migration key', 'ffcertificate' ) );
 		}
 
-		// Run migration
+		// Run migration.
 		$result = $this->migration_manager->run_migration( $migration_key );
 
 		if ( is_wp_error( $result ) ) {
@@ -345,11 +345,11 @@ class Admin {
 	 * instead of being converted to {{validation_url link:m&gt;v}}
 	 *
 	 * @since 2.9.3
-	 * @param array<string, mixed> $init TinyMCE initialization settings
+	 * @param array<string, mixed> $init TinyMCE initialization settings.
 	 * @return array<string, mixed> Modified settings
 	 */
 	public function configure_tinymce_placeholders( array $init ): array {
-		// Protect all content between {{ and }} from entity encoding
+		// Protect all content between {{ and }} from entity encoding.
 		$init['noneditable_regexp'] = '/{{[^}]+}}/g';
 		$init['noneditable_class']  = 'ffc-placeholder';
 		$init['entity_encoding']    = 'raw';

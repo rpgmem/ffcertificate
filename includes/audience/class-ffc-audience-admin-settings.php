@@ -50,15 +50,15 @@ class AudienceAdminSettings {
 
 			<h2 class="nav-tab-wrapper">
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general' ) ); ?>"
-					class="nav-tab <?php echo $active_tab === 'general' ? 'nav-tab-active' : ''; ?>">
+					class="nav-tab <?php echo 'general' === $active_tab ? 'nav-tab-active' : ''; ?>">
 					<?php esc_html_e( 'General', 'ffcertificate' ); ?>
 				</a>
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=self-scheduling' ) ); ?>"
-					class="nav-tab <?php echo $active_tab === 'self-scheduling' ? 'nav-tab-active' : ''; ?>">
+					class="nav-tab <?php echo 'self-scheduling' === $active_tab ? 'nav-tab-active' : ''; ?>">
 					<?php esc_html_e( 'Self-Scheduling', 'ffcertificate' ); ?>
 				</a>
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=audience' ) ); ?>"
-					class="nav-tab <?php echo $active_tab === 'audience' ? 'nav-tab-active' : ''; ?>">
+					class="nav-tab <?php echo 'audience' === $active_tab ? 'nav-tab-active' : ''; ?>">
 					<?php esc_html_e( 'Audience', 'ffcertificate' ); ?>
 				</a>
 			</h2>
@@ -89,7 +89,7 @@ class AudienceAdminSettings {
 	 */
 	private function render_general_tab(): void {
 		$holidays = get_option( 'ffc_global_holidays', array() );
-		// Sort by date ascending
+		// Sort by date ascending.
 		usort(
 			$holidays,
 			function ( $a, $b ) {
@@ -230,7 +230,7 @@ class AudienceAdminSettings {
 	 * @return void
 	 */
 	private function render_self_scheduling_tab(): void {
-		// Get current settings
+		// Get current settings.
 		$display_mode = get_option( 'ffc_ss_private_display_mode', 'show_message' );
 		/* translators: %login_url% is replaced with the WordPress login page URL */
 		$visibility_message = get_option( 'ffc_ss_visibility_message', __( 'To view this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate' ) );
@@ -303,7 +303,7 @@ class AudienceAdminSettings {
 								<p class="description"><?php esc_html_e( 'What to show when a private calendar is accessed by a non-logged-in user.', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>
-						<tr class="ffc-ss-message-row" <?php echo $display_mode === 'hide' ? 'style="display:none;"' : ''; ?>>
+						<tr class="ffc-ss-message-row" <?php echo 'hide' === $display_mode ? 'style="display:none;"' : ''; ?>>
 							<th scope="row">
 								<label for="ffc_ss_visibility_message"><?php esc_html_e( 'Visibility Message', 'ffcertificate' ); ?></label>
 							</th>
@@ -314,7 +314,7 @@ class AudienceAdminSettings {
 								</p>
 							</td>
 						</tr>
-						<tr class="ffc-ss-message-row" <?php echo $display_mode === 'hide' ? 'style="display:none;"' : ''; ?>>
+						<tr class="ffc-ss-message-row" <?php echo 'hide' === $display_mode ? 'style="display:none;"' : ''; ?>>
 							<th scope="row">
 								<label for="ffc_ss_scheduling_message"><?php esc_html_e( 'Scheduling Message', 'ffcertificate' ); ?></label>
 							</th>
@@ -385,7 +385,7 @@ class AudienceAdminSettings {
 	 * @return void
 	 */
 	private function render_audience_tab(): void {
-		// Get current settings
+		// Get current settings.
 		$display_mode             = get_option( 'ffc_aud_private_display_mode', 'show_message' );
 		$visibility_message       = get_option( 'ffc_aud_visibility_message', __( 'To view this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate' ) );
 		$scheduling_message       = get_option( 'ffc_aud_scheduling_message', __( 'To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate' ) );
@@ -448,7 +448,7 @@ class AudienceAdminSettings {
 								<p class="description"><?php esc_html_e( 'What to show when a private calendar is accessed by a non-logged-in user.', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>
-						<tr class="ffc-aud-message-row" <?php echo $display_mode === 'hide' ? 'style="display:none;"' : ''; ?>>
+						<tr class="ffc-aud-message-row" <?php echo 'hide' === $display_mode ? 'style="display:none;"' : ''; ?>>
 							<th scope="row">
 								<label for="ffc_aud_visibility_message"><?php esc_html_e( 'Visibility Message', 'ffcertificate' ); ?></label>
 							</th>
@@ -459,7 +459,7 @@ class AudienceAdminSettings {
 								</p>
 							</td>
 						</tr>
-						<tr class="ffc-aud-message-row" <?php echo $display_mode === 'hide' ? 'style="display:none;"' : ''; ?>>
+						<tr class="ffc-aud-message-row" <?php echo 'hide' === $display_mode ? 'style="display:none;"' : ''; ?>>
 							<th scope="row">
 								<label for="ffc_aud_scheduling_message"><?php esc_html_e( 'Scheduling Message', 'ffcertificate' ); ?></label>
 							</th>
@@ -503,9 +503,9 @@ class AudienceAdminSettings {
 			return;
 		}
 
-		// Save Self-Scheduling visibility settings
+		// Save Self-Scheduling visibility settings.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
-		if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'save_ss_visibility_settings' ) {
+		if ( isset( $_POST['ffc_action'] ) && 'save_ss_visibility_settings' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_ss_visibility_nonce'] ) ||
 				! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_ss_visibility_nonce'] ) ), 'ffc_ss_visibility_settings' ) ) {
 				return;
@@ -527,9 +527,9 @@ class AudienceAdminSettings {
 			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Self-scheduling visibility settings saved.', 'ffcertificate' ), 'success' );
 		}
 
-		// Save Self-Scheduling business hours restriction messages
+		// Save Self-Scheduling business hours restriction messages.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
-		if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'save_ss_business_hours_settings' ) {
+		if ( isset( $_POST['ffc_action'] ) && 'save_ss_business_hours_settings' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_ss_business_hours_nonce'] ) ||
 				! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_ss_business_hours_nonce'] ) ), 'ffc_ss_business_hours_settings' ) ) {
 				return;
@@ -543,9 +543,9 @@ class AudienceAdminSettings {
 			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Business hours restriction messages saved.', 'ffcertificate' ), 'success' );
 		}
 
-		// Save Audience visibility settings
+		// Save Audience visibility settings.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
-		if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'save_aud_visibility_settings' ) {
+		if ( isset( $_POST['ffc_action'] ) && 'save_aud_visibility_settings' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_aud_visibility_nonce'] ) ||
 				! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_aud_visibility_nonce'] ) ), 'ffc_aud_visibility_settings' ) ) {
 				return;
@@ -579,9 +579,9 @@ class AudienceAdminSettings {
 	 * @return void
 	 */
 	public function handle_global_holiday_actions(): void {
-		// Add global holiday (POST)
+		// Add global holiday (POST).
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
-		if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'add_global_holiday' ) {
+		if ( isset( $_POST['ffc_action'] ) && 'add_global_holiday' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_global_holiday_nonce'] ) ||
 				! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_global_holiday_nonce'] ) ), 'ffc_global_holiday_action' ) ) {
 				return;
@@ -599,7 +599,7 @@ class AudienceAdminSettings {
 			if ( ! empty( $date ) ) {
 				$holidays = get_option( 'ffc_global_holidays', array() );
 
-				// Avoid duplicates
+				// Avoid duplicates.
 				$exists = false;
 				foreach ( $holidays as $h ) {
 					if ( $h['date'] === $date ) {
@@ -621,9 +621,9 @@ class AudienceAdminSettings {
 			exit;
 		}
 
-		// Delete global holiday (GET)
+		// Delete global holiday (GET).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( isset( $_GET['ffc_action'] ) && $_GET['ffc_action'] === 'delete_global_holiday' ) {
+		if ( isset( $_GET['ffc_action'] ) && 'delete_global_holiday' === $_GET['ffc_action'] ) {
 			$index = isset( $_GET['holiday_index'] ) ? absint( $_GET['holiday_index'] ) : -1;
 
 			if ( ! isset( $_GET['ffc_global_holiday_nonce'] ) ||

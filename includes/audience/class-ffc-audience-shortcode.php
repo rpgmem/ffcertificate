@@ -36,48 +36,48 @@ class AudienceShortcode {
 	/**
 	 * Render the shortcode
 	 *
-	 * @param array<string, mixed>|string $atts Shortcode attributes
+	 * @param array<string, mixed>|string $atts Shortcode attributes.
 	 * @return string HTML output
 	 */
 	public static function render( $atts = array() ): string {
-		// Ensure $atts is an array
+		// Ensure $atts is an array.
 		if ( ! is_array( $atts ) ) {
 			$atts = array();
 		}
 
-		// Parse attributes
+		// Parse attributes.
 		$atts = shortcode_atts(
 			array(
 				'schedule_id'    => 0,
 				'environment_id' => 0,
-				'view'           => 'month', // month, week
+				'view'           => 'month', // month, week.
 			),
 			$atts,
 			'ffc_audience'
 		);
 
-		// Always enqueue CSS so styles are consistent regardless of login state
+		// Always enqueue CSS so styles are consistent regardless of login state.
 		self::enqueue_styles();
 
 		$is_logged_in = is_user_logged_in();
 		$has_bypass   = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
 		$specific_id  = absint( $atts['schedule_id'] );
 
-		// Handle non-logged-in users
+		// Handle non-logged-in users.
 		if ( ! $is_logged_in && ! $has_bypass ) {
-			// Check if specific schedule requested
+			// Check if specific schedule requested.
 			if ( $specific_id > 0 ) {
 				$schedule = AudienceScheduleRepository::get_by_id( $specific_id );
-				if ( ! $schedule || $schedule->status !== 'active' ) {
+				if ( ! $schedule || 'active' !== $schedule->status ) {
 					return '';
 				}
-				if ( $schedule->visibility === 'private' ) {
+				if ( 'private' === $schedule->visibility ) {
 					return self::render_private_visibility_message( $schedule->name );
 				}
-				// Public schedule: show read-only calendar
+				// Public schedule: show read-only calendar.
 				$schedules = array( $schedule );
 			} else {
-				// Get only public active schedules
+				// Get only public active schedules.
 				$schedules = AudienceScheduleRepository::get_all(
 					array(
 						'status'     => 'active',
@@ -89,7 +89,7 @@ class AudienceShortcode {
 				}
 			}
 
-			// Enqueue assets for read-only view
+			// Enqueue assets for read-only view.
 			self::enqueue_assets( $schedules );
 
 			$scheduling_message = get_option(
@@ -131,23 +131,23 @@ class AudienceShortcode {
 
 		$user_id = get_current_user_id();
 
-		// Get schedules user can access
+		// Get schedules user can access.
 		$schedules = self::get_user_schedules( $user_id, $specific_id );
 
 		if ( empty( $schedules ) ) {
 			return self::render_no_access();
 		}
 
-		// Enqueue JS and localization (only for logged-in users who have access)
+		// Enqueue JS and localization (only for logged-in users who have access).
 		self::enqueue_assets( $schedules );
 
-		// Admin bypass notice
+		// Admin bypass notice.
 		$bypass_notice = '';
 		if ( $has_bypass ) {
 			$private_schedules = array_filter(
 				$schedules,
 				function ( $s ) {
-					return $s->visibility === 'private';
+					return 'private' === $s->visibility;
 				}
 			);
 			if ( ! empty( $private_schedules ) ) {
@@ -158,7 +158,7 @@ class AudienceShortcode {
 			}
 		}
 
-		// Build configuration for JavaScript
+		// Build configuration for JavaScript.
 		$config = array(
 			'scheduleId'          => $specific_id,
 			'environmentId'       => absint( $atts['environment_id'] ),
@@ -192,10 +192,10 @@ class AudienceShortcode {
 	 * Render the calendar HTML (shared between logged-in and public views)
 	 *
 	 * @since 4.7.0
-	 * @param array<int, object>   $schedules Array of schedule objects
-	 * @param array<string, mixed> $config JS configuration
-	 * @param array<string, mixed> $atts Shortcode attributes
-	 * @param bool                 $show_booking_modal Whether to show the booking modal
+	 * @param array<int, object>   $schedules Array of schedule objects.
+	 * @param array<string, mixed> $config JS configuration.
+	 * @param array<string, mixed> $atts Shortcode attributes.
+	 * @param bool                 $show_booking_modal Whether to show the booking modal.
 	 * @return string HTML output
 	 */
 	private static function render_calendar_html( array $schedules, array $config, array $atts, bool $show_booking_modal ): string {
@@ -447,7 +447,7 @@ class AudienceShortcode {
 	 * Determine if event list should be shown based on schedules
 	 *
 	 * @since 4.8.0
-	 * @param array<int, object> $schedules Array of schedule objects
+	 * @param array<int, object> $schedules Array of schedule objects.
 	 * @return bool
 	 */
 	private static function should_show_event_list( array $schedules ): bool {
@@ -463,7 +463,7 @@ class AudienceShortcode {
 	 * Get event list position from schedules (first one that has it enabled)
 	 *
 	 * @since 4.8.0
-	 * @param array<int, object> $schedules Array of schedule objects
+	 * @param array<int, object> $schedules Array of schedule objects.
 	 * @return string 'side' or 'below'
 	 */
 	private static function get_event_list_position( array $schedules ): string {
@@ -479,7 +479,7 @@ class AudienceShortcode {
 	 * Get audience badge format from schedules (first one with a value)
 	 *
 	 * @since 4.9.0
-	 * @param array<int, object> $schedules Array of schedule objects
+	 * @param array<int, object> $schedules Array of schedule objects.
 	 * @return string 'name' or 'parent_name'
 	 */
 	private static function get_audience_badge_format( array $schedules ): string {
@@ -495,13 +495,13 @@ class AudienceShortcode {
 	 * Render private visibility message based on settings
 	 *
 	 * @since 4.7.0
-	 * @param string|null $schedule_name Optional schedule name for title display
+	 * @param string|null $schedule_name Optional schedule name for title display.
 	 * @return string HTML output
 	 */
 	private static function render_private_visibility_message( ?string $schedule_name = null ): string {
 		$display_mode = get_option( 'ffc_aud_private_display_mode', 'show_message' );
 
-		if ( $display_mode === 'hide' ) {
+		if ( 'hide' === $display_mode ) {
 			return '';
 		}
 
@@ -513,7 +513,7 @@ class AudienceShortcode {
 
 		$output = '<div class="ffc-visibility-restricted">';
 
-		if ( $display_mode === 'show_title_message' && $schedule_name ) {
+		if ( 'show_title_message' === $display_mode && $schedule_name ) {
 			$output .= '<h3 class="ffc-calendar-title">' . esc_html( $schedule_name ) . '</h3>';
 		}
 
@@ -541,12 +541,12 @@ class AudienceShortcode {
 	/**
 	 * Get schedules user can access
 	 *
-	 * @param int $user_id User ID
-	 * @param int $specific_id Specific schedule ID (0 for all)
+	 * @param int $user_id User ID.
+	 * @param int $specific_id Specific schedule ID (0 for all).
 	 * @return array<int, object>
 	 */
 	private static function get_user_schedules( int $user_id, int $specific_id = 0 ): array {
-		// Admin can access all
+		// Admin can access all.
 		if ( user_can( $user_id, 'manage_options' ) ) {
 			if ( $specific_id > 0 ) {
 				$schedule = AudienceScheduleRepository::get_by_id( $specific_id );
@@ -555,7 +555,7 @@ class AudienceShortcode {
 			return AudienceScheduleRepository::get_all( array( 'status' => 'active' ) );
 		}
 
-		// Get schedules user has explicit access to
+		// Get schedules user has explicit access to.
 		$schedules = AudienceScheduleRepository::get_by_user_access( $user_id );
 
 		if ( $specific_id > 0 ) {
@@ -573,7 +573,7 @@ class AudienceShortcode {
 	/**
 	 * Get environments for a schedule
 	 *
-	 * @param int $schedule_id Schedule ID
+	 * @param int $schedule_id Schedule ID.
 	 * @return array<array{id: int, name: string}>
 	 */
 	private static function get_schedule_environments( int $schedule_id ): array {
@@ -594,8 +594,8 @@ class AudienceShortcode {
 	/**
 	 * Check if user can book on any of the schedules
 	 *
-	 * @param int                $user_id User ID
-	 * @param array<int, object> $schedules Schedules
+	 * @param int                $user_id User ID.
+	 * @param array<int, object> $schedules Schedules.
 	 * @return bool
 	 */
 	private static function can_user_book( int $user_id, array $schedules ): bool {
@@ -644,15 +644,15 @@ class AudienceShortcode {
 	/**
 	 * Get audiences the user belongs to or all audiences for admins
 	 *
-	 * @param int $user_id User ID
+	 * @param int $user_id User ID.
 	 * @return array<int, array<string, mixed>>
 	 */
 	private static function get_user_audiences( int $user_id ): array {
-		// Admin can book any audience
+		// Admin can book any audience.
 		if ( user_can( $user_id, 'manage_options' ) ) {
 			$audiences = AudienceRepository::get_hierarchical( 'active' );
 		} else {
-			// Regular users can only book for audiences they belong to
+			// Regular users can only book for audiences they belong to.
 			$audiences = AudienceRepository::get_user_audiences( $user_id, true );
 		}
 
@@ -686,14 +686,14 @@ class AudienceShortcode {
 	/**
 	 * Enqueue JavaScript assets and localize script
 	 *
-	 * @param array<int, object> $schedules Array of schedule objects
+	 * @param array<int, object> $schedules Array of schedule objects.
 	 * @return void
 	 */
 	private static function enqueue_assets( array $schedules = array() ): void {
-		// CSS (in case enqueue_styles wasn't called yet)
+		// CSS (in case enqueue_styles wasn't called yet).
 		self::enqueue_styles();
 
-		// JavaScript
+		// JavaScript.
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 		wp_enqueue_script(
 			'ffc-audience',
@@ -703,7 +703,7 @@ class AudienceShortcode {
 			true
 		);
 
-		// Resolve custom booking labels from schedule config (first non-empty wins)
+		// Resolve custom booking labels from schedule config (first non-empty wins).
 		$booking_singular = __( 'booking', 'ffcertificate' );
 		$booking_plural   = __( 'bookings', 'ffcertificate' );
 		foreach ( $schedules as $sch ) {
@@ -718,7 +718,7 @@ class AudienceShortcode {
 			}
 		}
 
-		// Localize script
+		// Localize script.
 		wp_localize_script(
 			'ffc-audience',
 			'ffcAudience',

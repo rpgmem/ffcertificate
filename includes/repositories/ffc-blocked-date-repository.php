@@ -73,12 +73,12 @@ class BlockedDateRepository extends AbstractRepository {
 	 * Check if date is blocked for calendar
 	 *
 	 * @param int         $calendar_id
-	 * @param string      $date Date in Y-m-d format
-	 * @param string|null $time Optional time to check for partial blocks
+	 * @param string      $date Date in Y-m-d format.
+	 * @param string|null $time Optional time to check for partial blocks.
 	 * @return bool
 	 */
 	public function isDateBlocked( int $calendar_id, string $date, ?string $time = null ): bool {
-		// Check calendar-specific and global blocks
+		// Check calendar-specific and global blocks.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$blocks = $this->wpdb->get_results(
 			$this->wpdb->prepare(
@@ -95,20 +95,20 @@ class BlockedDateRepository extends AbstractRepository {
 		);
 
 		foreach ( $blocks as $block ) {
-			// Full day block
-			if ( $block['block_type'] === 'full_day' ) {
+			// Full day block.
+			if ( 'full_day' === $block['block_type'] ) {
 				return true;
 			}
 
-			// Time range block - only if time is provided
-			if ( $block['block_type'] === 'time_range' && $time !== null ) {
+			// Time range block - only if time is provided.
+			if ( 'time_range' === $block['block_type'] && null !== $time ) {
 				if ( $time >= $block['start_time'] && $time < $block['end_time'] ) {
 					return true;
 				}
 			}
 
-			// Recurring block
-			if ( $block['block_type'] === 'recurring' && ! empty( $block['recurring_pattern'] ) ) {
+			// Recurring block.
+			if ( 'recurring' === $block['block_type'] && ! empty( $block['recurring_pattern'] ) ) {
 				if ( $this->matchesRecurringPattern( $date, $time, json_decode( $block['recurring_pattern'], true ) ) ) {
 					return true;
 				}
@@ -153,9 +153,9 @@ class BlockedDateRepository extends AbstractRepository {
 	/**
 	 * Create full day block
 	 *
-	 * @param int|null    $calendar_id NULL for global block
+	 * @param int|null    $calendar_id NULL for global block.
 	 * @param string      $start_date
-	 * @param string|null $end_date For multi-day blocks
+	 * @param string|null $end_date For multi-day blocks.
 	 * @param string|null $reason
 	 * @return int|false
 	 */
@@ -215,7 +215,7 @@ class BlockedDateRepository extends AbstractRepository {
 				'calendar_id'       => $calendar_id,
 				'block_type'        => 'recurring',
 				'start_date'        => $start_date,
-				'recurring_pattern' => json_encode( $pattern ),
+				'recurring_pattern' => wp_json_encode( $pattern ),
 				'reason'            => $reason,
 				'created_at'        => current_time( 'mysql' ),
 				'created_by'        => get_current_user_id(),
@@ -228,7 +228,7 @@ class BlockedDateRepository extends AbstractRepository {
 	 *
 	 * Cleanup blocks that have ended.
 	 *
-	 * @param int $days_old Number of days past end date
+	 * @param int $days_old Number of days past end date.
 	 * @return int|false Number of deleted rows
 	 */
 	public function deleteExpiredBlocks( int $days_old = 30 ) {
@@ -245,7 +245,7 @@ class BlockedDateRepository extends AbstractRepository {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->query( $sql );
-		return $result === false ? false : (int) $result;
+		return false === $result ? false : (int) $result;
 	}
 
 	/**
@@ -266,25 +266,25 @@ class BlockedDateRepository extends AbstractRepository {
 
 		switch ( $pattern['type'] ) {
 			case 'weekly':
-				// Check if day of week is in blocked days
+				// Check if day of week is in blocked days.
 				if ( ! empty( $pattern['days'] ) && is_array( $pattern['days'] ) ) {
-					return in_array( $day_of_week, $pattern['days'] );
+					return in_array( $day_of_week, $pattern['days'], true );
 				}
 				break;
 
 			case 'monthly':
-				// Block specific day of month (e.g., 1st, 15th)
+				// Block specific day of month (e.g., 1st, 15th).
 				if ( ! empty( $pattern['days'] ) && is_array( $pattern['days'] ) ) {
 					$day_of_month = (int) gmdate( 'j', $timestamp );
-					return in_array( $day_of_month, $pattern['days'] );
+					return in_array( $day_of_month, $pattern['days'], true );
 				}
 				break;
 
 			case 'yearly':
-				// Block specific dates annually (e.g., holidays)
+				// Block specific dates annually (e.g., holidays).
 				if ( ! empty( $pattern['dates'] ) && is_array( $pattern['dates'] ) ) {
 					$month_day = gmdate( 'm-d', $timestamp );
-					return in_array( $month_day, $pattern['dates'] );
+					return in_array( $month_day, $pattern['dates'], true );
 				}
 				break;
 		}
@@ -296,7 +296,7 @@ class BlockedDateRepository extends AbstractRepository {
 	 * Get upcoming blocks for a calendar
 	 *
 	 * @param int $calendar_id
-	 * @param int $days Number of days to look ahead
+	 * @param int $days Number of days to look ahead.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getUpcomingBlocks( int $calendar_id, int $days = 30 ): array {

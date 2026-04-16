@@ -38,22 +38,22 @@ class AdminAssetsManager {
 	 * Main enqueue method
 	 * Delegates to specialized methods based on context.
 	 *
-	 * @param string $hook Hook suffix for the current admin page
+	 * @param string $hook Hook suffix for the current admin page.
 	 */
 	public function enqueue_admin_assets( string $hook ): void {
 		global $post_type;
 
 		$this->post_type = $post_type;
 
-		// Only load on FFC pages
+		// Only load on FFC pages.
 		if ( ! $this->is_ffc_page() ) {
 			return;
 		}
 
-		// Load WordPress media library
+		// Load WordPress media library.
 		wp_enqueue_media();
 
-		// Enqueue assets in proper order
+		// Enqueue assets in proper order.
 		$this->enqueue_dark_mode_script();
 		$this->enqueue_core_module();
 		$this->enqueue_css_assets();
@@ -67,7 +67,7 @@ class AdminAssetsManager {
 	 * @return bool True if FFC page, false otherwise
 	 */
 	private function is_ffc_page(): bool {
-		$is_ffc_post_type = ( $this->post_type === 'ffc_form' );
+		$is_ffc_post_type = ( 'ffc_form' === $this->post_type );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Page routing check, no nonce needed.
 		$is_ffc_menu = ( isset( $_GET['page'] ) && strpos( sanitize_text_field( wp_unslash( $_GET['page'] ) ), 'ffc-' ) !== false );
 
@@ -176,7 +176,7 @@ class AdminAssetsManager {
 	private function enqueue_javascript_modules(): void {
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
-		// 1. Field Builder module
+		// 1. Field Builder module.
 		wp_enqueue_script(
 			'ffc-admin-field-builder',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-field-builder{$s}.js",
@@ -185,7 +185,7 @@ class AdminAssetsManager {
 			true
 		);
 
-		// 2. PDF Management module
+		// 2. PDF Management module.
 		wp_enqueue_script(
 			'ffc-admin-pdf',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-pdf{$s}.js",
@@ -203,7 +203,7 @@ class AdminAssetsManager {
 			true
 		);
 
-		// 4. Localize — attach to field-builder so strings are available to all dependent scripts
+		// 4. Localize — attach to field-builder so strings are available to all dependent scripts.
 		wp_localize_script( 'ffc-admin-field-builder', 'ffc_ajax', $this->get_localization_data() );
 	}
 
@@ -216,7 +216,7 @@ class AdminAssetsManager {
 	private function enqueue_conditional_assets(): void {
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
-		// Settings page styles + scripts
+		// Settings page styles + scripts.
 		if ( $this->is_settings_page() ) {
 			wp_enqueue_style(
 				'ffc-admin-settings',
@@ -250,7 +250,7 @@ class AdminAssetsManager {
 			);
 		}
 
-		// Submission edit page assets
+		// Submission edit page assets.
 		if ( $this->is_submission_edit_page() ) {
 			$this->enqueue_submission_edit_assets();
 		}
@@ -262,7 +262,7 @@ class AdminAssetsManager {
 	private function enqueue_submission_edit_assets(): void {
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
-		// Edit page CSS
+		// Edit page CSS.
 		wp_enqueue_style(
 			'ffc-admin-submission-edit',
 			FFC_PLUGIN_URL . "assets/css/ffc-admin-submission-edit{$s}.css",
@@ -270,7 +270,7 @@ class AdminAssetsManager {
 			FFC_VERSION
 		);
 
-		// Edit page JS
+		// Edit page JS.
 		wp_enqueue_script(
 			'ffc-admin-submission-edit',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-submission-edit{$s}.js",
@@ -279,7 +279,7 @@ class AdminAssetsManager {
 			true
 		);
 
-		// Localize edit script
+		// Localize edit script.
 		wp_localize_script(
 			'ffc-admin-submission-edit',
 			'ffc_submission_edit',
@@ -305,7 +305,7 @@ class AdminAssetsManager {
 		}
 		$page = sanitize_key( wp_unslash( $_GET['page'] ) );
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
-		return $page === 'ffc-settings' || $page === 'ffc-scheduling-settings';
+		return 'ffc-settings' === $page || 'ffc-scheduling-settings' === $page;
 	}
 
 	/**
@@ -333,7 +333,7 @@ class AdminAssetsManager {
 			'nonce'        => wp_create_nonce( 'ffc_admin_pdf_nonce' ),
 			'export_nonce' => wp_create_nonce( 'ffc_csv_export' ),
 			'strings'      => array(
-				// General
+				// General.
 				'generating'              => __( 'Generating...', 'ffcertificate' ),
 				'error'                   => __( 'Error: ', 'ffcertificate' ),
 				'connectionError'         => __( 'Connection error.', 'ffcertificate' ),
@@ -362,13 +362,13 @@ class AdminAssetsManager {
 				'confirmLoadTemplate'     => __( 'Load "%s"? This will replace your current certificate HTML.', 'ffcertificate' ),
 				'dismiss'                 => __( 'Dismiss', 'ffcertificate' ),
 
-				// CSV Export
+				// CSV Export.
 				'exportPreparing'         => __( 'Preparing…', 'ffcertificate' ),
 				/* translators: %1$d: processed count, %2$d: total count */
 				'exportProgress'          => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
 				'exportDone'              => __( 'Done!', 'ffcertificate' ),
 
-				// Ticket Generation
+				// Ticket Generation.
 				'enterValidNumber'        => __( 'Please enter a valid number.', 'ffcertificate' ),
 				'generatingTickets'       => __( 'Generating tickets...', 'ffcertificate' ),
 				'ticketsGeneratedSuccess' => __( 'tickets generated successfully!', 'ffcertificate' ),
@@ -378,7 +378,7 @@ class AdminAssetsManager {
 				/* translators: %d: number */
 				'serverError'             => __( 'Server error (Status: %d)', 'ffcertificate' ),
 
-				// Field Builder
+				// Field Builder.
 				'chooseFieldType'         => __( 'Choose Field Type:', 'ffcertificate' ),
 				'remove'                  => __( 'Remove', 'ffcertificate' ),
 				'fieldType'               => __( 'Field Type:', 'ffcertificate' ),
@@ -390,7 +390,7 @@ class AdminAssetsManager {
 				'options'                 => __( 'Options:', 'ffcertificate' ),
 				'separateWithCommas'      => __( 'Separate with commas', 'ffcertificate' ),
 
-				// Field Types
+				// Field Types.
 				'textField'               => __( 'Text Field', 'ffcertificate' ),
 				'email'                   => __( 'Email', 'ffcertificate' ),
 				'number'                  => __( 'Number', 'ffcertificate' ),
@@ -402,21 +402,21 @@ class AdminAssetsManager {
 				'infoBlock'               => __( 'Info Block', 'ffcertificate' ),
 				'embedMedia'              => __( 'Embed (Media)', 'ffcertificate' ),
 
-				// Info Block Field
+				// Info Block Field.
 				'content'                 => __( 'Content:', 'ffcertificate' ),
 				'contentPlaceholder'      => __( 'Text to display. Supports <b>, <i>, <a>.', 'ffcertificate' ),
 				'titleOptional'           => __( 'Title (optional):', 'ffcertificate' ),
 
-				// Embed Field
+				// Embed Field.
 				'embedUrl'                => __( 'Media URL:', 'ffcertificate' ),
 				'embedUrlPlaceholder'     => __( 'https://www.youtube.com/watch?v=... or image URL', 'ffcertificate' ),
 				'captionOptional'         => __( 'Caption (optional):', 'ffcertificate' ),
 
-				// Quiz Mode
+				// Quiz Mode.
 				'quizPoints'              => __( 'Points per option:', 'ffcertificate' ),
 				'quizPointsPlaceholder'   => __( 'Ex: 0, 10, 0', 'ffcertificate' ),
 
-				// Template Manager
+				// Template Manager.
 				'selectTemplate'          => __( 'Select a Template', 'ffcertificate' ),
 				'cancel'                  => __( 'Cancel', 'ffcertificate' ),
 				'loadingTemplate'         => __( 'Loading template...', 'ffcertificate' ),
@@ -436,7 +436,7 @@ class AdminAssetsManager {
 				'wpMediaNotAvailable'     => __( 'WordPress Media Library is not available. Please reload the page.', 'ffcertificate' ),
 				'backgroundImageSelected' => __( 'Background image selected!', 'ffcertificate' ),
 
-				// Certificate Preview
+				// Certificate Preview.
 				'previewTitle'            => __( 'Certificate Preview', 'ffcertificate' ),
 				'previewEmpty'            => __( 'The HTML editor is empty. Add a template first.', 'ffcertificate' ),
 				'previewSampleNote'       => __( 'Placeholders replaced with sample data. QR code shown as placeholder.', 'ffcertificate' ),

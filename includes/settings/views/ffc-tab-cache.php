@@ -232,7 +232,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 	</p>
 
 	<?php
-	// Detect active page cache plugins
+	// Detect active page cache plugins.
 	$ffcertificate_cache_plugins = array();
 	if ( defined( 'LSCWP_V' ) ) {
 		$ffcertificate_cache_plugins[] = 'LiteSpeed Cache v' . LSCWP_V;

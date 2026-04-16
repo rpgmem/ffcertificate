@@ -53,9 +53,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<?php if ( is_array( $data ) ) : ?>
 			<?php
-			// Show priority fields first
+			// Show priority fields first.
 			foreach ( $priority_fields as $ffcertificate_field ) {
-				if ( ! isset( $data[ $ffcertificate_field ] ) || in_array( $ffcertificate_field, $skip_fields ) ) {
+				if ( ! isset( $data[ $ffcertificate_field ] ) || in_array( $ffcertificate_field, $skip_fields, true ) ) {
 					continue;
 				}
 
@@ -70,10 +70,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php
 			}
 
-			// Then show remaining fields
+			// Then show remaining fields.
 			foreach ( $data as $ffcertificate_key => $ffcertificate_value ) {
-				// Skip if already shown or in skip list
-				if ( in_array( $ffcertificate_key, $priority_fields ) || in_array( $ffcertificate_key, $skip_fields, true ) ) {
+				// Skip if already shown or in skip list.
+				if ( in_array( $ffcertificate_key, $priority_fields, true ) || in_array( $ffcertificate_key, $skip_fields, true ) ) {
 					continue;
 				}
 

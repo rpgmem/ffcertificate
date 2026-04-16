@@ -46,17 +46,17 @@ class RestController {
 	 * Constructor
 	 */
 	public function __construct() {
-		// Initialize repositories
+		// Initialize repositories.
 		$this->form_repository       = new FormRepository();
 		$this->submission_repository = new SubmissionRepository();
 
-		// Register REST routes
+		// Register REST routes.
 		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
 
-		// Suppress PHP notices/warnings in REST API responses to prevent JSON corruption
+		// Suppress PHP notices/warnings in REST API responses to prevent JSON corruption.
 		add_action( 'rest_api_init', array( $this, 'suppress_rest_api_notices' ) );
 
-		// Add rate-limit headers to REST API responses
+		// Add rate-limit headers to REST API responses.
 		add_filter( 'rest_post_dispatch', array( $this, 'add_rate_limit_headers' ), 10, 3 );
 	}
 
@@ -91,7 +91,7 @@ class RestController {
 		$max_per_hour = (int) ( $ip_settings['max_per_hour'] ?? 5 );
 		$cache_key    = 'ffc_rate_ip_' . md5( $ip ) . '_hour';
 		$current      = wp_cache_get( $cache_key, \FreeFormCertificate\Security\RateLimiter::CACHE_GROUP );
-		$current      = $current !== false ? (int) $current : 0;
+		$current      = false !== $current ? (int) $current : 0;
 		$remaining    = max( 0, $max_per_hour - $current );
 
 		$response->header( 'X-RateLimit-Limit', (string) $max_per_hour );

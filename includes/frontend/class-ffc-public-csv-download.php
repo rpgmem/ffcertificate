@@ -61,9 +61,9 @@ class PublicCsvDownload {
 		add_action( 'wp_ajax_nopriv_ffc_public_csv_download', array( $exporter, 'ajax_download' ) );
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	// Shortcode rendering
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// Shortcode rendering.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Render the public download form.
@@ -97,7 +97,7 @@ class PublicCsvDownload {
 
 			<?php if ( $flash ) : ?>
 				<div class="ffc-verify-result ffc-pcd-message">
-					<div class="<?php echo esc_attr( $flash['type'] === 'error' ? 'ffc-verify-error' : 'ffc-verify-success' ); ?>">
+					<div class="<?php echo esc_attr( 'error' === $flash['type'] ? 'ffc-verify-error' : 'ffc-verify-success' ); ?>">
 						<?php echo esc_html( $flash['message'] ); ?>
 					</div>
 				</div>
@@ -139,7 +139,7 @@ class PublicCsvDownload {
 				</div>
 
 				<?php
-				// generate_security_fields() emits honeypot + captcha — both are
+				// generate_security_fields() emits honeypot + captcha — both are.
 				// already escaped inside that helper.
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				?>
@@ -154,9 +154,9 @@ class PublicCsvDownload {
 		return (string) ob_get_clean();
 	}
 
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 	// Request handling (admin-post.php)
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Process a CSV download request (synchronous fallback for no-JS).
@@ -183,7 +183,7 @@ class PublicCsvDownload {
 		// 3. Honeypot + CAPTCHA.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$security_check = \FreeFormCertificate\Core\Utils::validate_security_fields( $_POST );
-		if ( $security_check !== true ) {
+		if ( true !== $security_check ) {
 			$this->fail_redirect( (string) $security_check );
 		}
 
@@ -193,13 +193,13 @@ class PublicCsvDownload {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$posted_hash = isset( $_POST['hash'] ) ? sanitize_text_field( wp_unslash( $_POST['hash'] ) ) : '';
 
-		if ( $form_id <= 0 || $posted_hash === '' ) {
+		if ( $form_id <= 0 || '' === $posted_hash ) {
 			$this->fail_redirect( __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) );
 		}
 
 		// 5–9. Business-logic validation.
 		$error = $this->validate_form_access( $form_id, $posted_hash );
-		if ( $error !== null ) {
+		if ( null !== $error ) {
 			$this->fail_redirect( $error );
 		}
 
@@ -212,9 +212,9 @@ class PublicCsvDownload {
 		$exporter->stream_form_csv( $form_id, 'publish' );
 	}
 
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 	// Shared validation (used by handle_request + PublicCsvExporter)
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Validate form access for CSV download (steps 5–9).
@@ -234,19 +234,19 @@ class PublicCsvDownload {
 
 		// 6. Feature enabled on this form.
 		$enabled = (string) get_post_meta( $form_id, self::META_ENABLED, true );
-		if ( $enabled !== '1' ) {
+		if ( '1' !== $enabled ) {
 			return __( 'Public CSV download is not enabled for this form.', 'ffcertificate' );
 		}
 
 		// 7. Hash match (constant-time).
 		$stored_hash = (string) get_post_meta( $form_id, self::META_HASH, true );
-		if ( $stored_hash === '' || ! hash_equals( $stored_hash, $posted_hash ) ) {
+		if ( '' === $stored_hash || ! hash_equals( $stored_hash, $posted_hash ) ) {
 			return __( 'Invalid access hash.', 'ffcertificate' );
 		}
 
 		// 8. Form must have ended.
 		$end_ts = Geofence::get_form_end_timestamp( $form_id );
-		if ( $end_ts === null ) {
+		if ( null === $end_ts ) {
 			return __( 'This form has no end date configured. The administrator must set a Geolocation "End Date" to enable public downloads.', 'ffcertificate' );
 		}
 		if ( time() <= $end_ts ) {
@@ -276,9 +276,9 @@ class PublicCsvDownload {
 		return null;
 	}
 
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 	// Flash messages (transient keyed by IP hash)
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Build a transient key scoped to the current visitor's IP.

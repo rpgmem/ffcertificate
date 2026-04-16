@@ -65,12 +65,12 @@ class UserDataRestController {
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Backward-compatible delegate methods
+	// ------------------------------------------------------------------.
+	// Backward-compatible delegate methods.
 	//
-	// External code (or tests) may call these directly. Each method
+	// External code (or tests) may call these directly. Each method.
 	// delegates to the appropriate sub-controller.
-	// ------------------------------------------------------------------
+	// ------------------------------------------------------------------.
 
 	/**
 	 * @param \WP_REST_Request $request
@@ -176,7 +176,7 @@ class UserDataRestController {
 	 */
 	private function get_sub( string $key ): object {
 		if ( empty( $this->sub_controllers[ $key ] ) ) {
-			// Lazy-init if register_routes() hasn't been called yet
+			// Lazy-init if register_routes() hasn't been called yet.
 			$map                           = array(
 				'certificates'    => UserCertificatesRestController::class,
 				'profile'         => UserProfileRestController::class,

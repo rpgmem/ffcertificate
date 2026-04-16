@@ -48,7 +48,7 @@ class FormRestController {
 	 * Register routes
 	 */
 	public function register_routes(): void {
-		// GET /forms - List all published forms
+		// GET /forms - List all published forms.
 		register_rest_route(
 			$this->namespace,
 			'/forms',
@@ -65,7 +65,7 @@ class FormRestController {
 			)
 		);
 
-		// GET /forms/{id} - Get single form
+		// GET /forms/{id} - Get single form.
 		register_rest_route(
 			$this->namespace,
 			'/forms/(?P<id>\d+)',
@@ -83,7 +83,7 @@ class FormRestController {
 			)
 		);
 
-		// POST /forms/{id}/submit - Submit a form
+		// POST /forms/{id}/submit - Submit a form.
 		register_rest_route(
 			$this->namespace,
 			'/forms/(?P<id>\d+)/submit',
@@ -162,7 +162,7 @@ class FormRestController {
 
 			$form = get_post( $form_id );
 
-			if ( ! $form || $form->post_type !== 'ffc_form' ) {
+			if ( ! $form || 'ffc_form' !== $form->post_type ) {
 				return new \WP_Error(
 					'form_not_found',
 					__( 'Form not found', 'ffcertificate' ),
@@ -170,7 +170,7 @@ class FormRestController {
 				);
 			}
 
-			if ( $form->post_status !== 'publish' ) {
+			if ( 'publish' !== $form->post_status ) {
 				return new \WP_Error(
 					'form_not_published',
 					__( 'Form is not published', 'ffcertificate' ),
@@ -221,10 +221,10 @@ class FormRestController {
 				);
 			}
 
-			// Verify form exists and is published
+			// Verify form exists and is published.
 			$form = get_post( $form_id );
 
-			if ( ! $form || $form->post_type !== 'ffc_form' ) {
+			if ( ! $form || 'ffc_form' !== $form->post_type ) {
 				return new \WP_Error(
 					'form_not_found',
 					'Form not found',
@@ -232,7 +232,7 @@ class FormRestController {
 				);
 			}
 
-			if ( $form->post_status !== 'publish' ) {
+			if ( 'publish' !== $form->post_status ) {
 				return new \WP_Error(
 					'form_not_published',
 					'Form is not published',
@@ -240,14 +240,14 @@ class FormRestController {
 				);
 			}
 
-			// Get form configuration and fields
+			// Get form configuration and fields.
 			$form_config = $this->form_repository->getConfig( $form_id );
 			$form_fields = $this->form_repository->getFields( $form_id );
 
-			// Sanitize submission data
+			// Sanitize submission data.
 			$submission_data = \FreeFormCertificate\Core\Utils::recursive_sanitize( $params );
 
-			// Validate required fields
+			// Validate required fields.
 			$validation_errors = $this->validate_required_fields( $submission_data, $form_fields );
 			if ( ! empty( $validation_errors ) ) {
 				return new \WP_Error(
@@ -260,7 +260,7 @@ class FormRestController {
 				);
 			}
 
-			// Validate CPF if present
+			// Validate CPF if present.
 			if ( ! empty( $submission_data['cpf_rf'] ) ) {
 				$cpf = preg_replace( '/[^0-9]/', '', $submission_data['cpf_rf'] );
 
@@ -291,7 +291,7 @@ class FormRestController {
 				$submission_data['cpf_rf'] = $cpf;
 			}
 
-			// Validate email if present
+			// Validate email if present.
 			if ( ! empty( $submission_data['email'] ) ) {
 				if ( ! is_email( $submission_data['email'] ) ) {
 					return new \WP_Error(
@@ -302,7 +302,7 @@ class FormRestController {
 				}
 			}
 
-			// Geofence validation (date/time + IP geolocation)
+			// Geofence validation (date/time + IP geolocation).
 			if ( class_exists( '\FreeFormCertificate\Security\Geofence' ) ) {
 				$geofence_config    = \FreeFormCertificate\Security\Geofence::get_form_config( $form_id );
 				$should_validate_ip = false;
@@ -331,7 +331,7 @@ class FormRestController {
 				}
 			}
 
-			// Rate limiting check
+			// Rate limiting check.
 			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 				$ip       = \FreeFormCertificate\Core\Utils::get_user_ip();
 				$ip_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit( $ip );
@@ -366,7 +366,7 @@ class FormRestController {
 				}
 			}
 
-			// Use SubmissionHandler to process submission
+			// Use SubmissionHandler to process submission.
 			if ( ! class_exists( '\FreeFormCertificate\Submissions\SubmissionHandler' ) ) {
 				return new \WP_Error(
 					'handler_not_found',
@@ -410,8 +410,8 @@ class FormRestController {
 	/**
 	 * Validate required fields
 	 *
-	 * @param array<string, mixed>             $data Submission data
-	 * @param array<int, array<string, mixed>> $fields Form fields configuration
+	 * @param array<string, mixed>             $data Submission data.
+	 * @param array<int, array<string, mixed>> $fields Form fields configuration.
 	 * @return array<int, string> Array of validation errors
 	 */
 	private function validate_required_fields( array $data, array $fields ): array {

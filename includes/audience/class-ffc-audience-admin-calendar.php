@@ -93,7 +93,7 @@ class AudienceAdminCalendar {
 						<?php
 						$env_count = AudienceEnvironmentRepository::count( array( 'schedule_id' => $schedule->id ) );
 						$edit_url  = admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&action=edit&id=' . $schedule->id );
-						$is_active = ( $schedule->status === 'active' );
+						$is_active = ( 'active' === $schedule->status );
 
 						$deactivate_url = '';
 						$delete_url     = '';
@@ -117,7 +117,7 @@ class AudienceAdminCalendar {
 								<?php endif; ?>
 							</td>
 							<td class="column-visibility">
-								<?php echo $schedule->visibility === 'public' ? esc_html__( 'Public', 'ffcertificate' ) : esc_html__( 'Private', 'ffcertificate' ); ?>
+								<?php echo 'public' === $schedule->visibility ? esc_html__( 'Public', 'ffcertificate' ) : esc_html__( 'Private', 'ffcertificate' ); ?>
 							</td>
 							<td class="column-environments"><?php echo esc_html( (string) $env_count ); ?></td>
 							<td class="column-status">
@@ -150,7 +150,7 @@ class AudienceAdminCalendar {
 	/**
 	 * Render calendar form
 	 *
-	 * @param int $id Schedule ID (0 for new)
+	 * @param int $id Schedule ID (0 for new).
 	 * @return void
 	 */
 	private function render_form( int $id ): void {
@@ -452,7 +452,7 @@ class AudienceAdminCalendar {
 				</tbody>
 			</table>
 
-			<?php // Calendar permissions logic in ffc-audience-admin.js ?>
+			<?php // Calendar permissions logic in ffc-audience-admin.js. ?>
 
 			<!-- Holidays Section -->
 			<hr>
@@ -530,7 +530,7 @@ class AudienceAdminCalendar {
 			return;
 		}
 
-		// Show feedback for redirect-based actions
+		// Show feedback for redirect-based actions.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['message'] ) ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -546,8 +546,8 @@ class AudienceAdminCalendar {
 			}
 		}
 
-		// Handle save
-		if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'save_schedule' ) {
+		// Handle save.
+		if ( isset( $_POST['ffc_action'] ) && 'save_schedule' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_schedule_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_schedule_nonce'] ) ), 'save_schedule' ) ) {
 				return;
 			}
@@ -558,7 +558,7 @@ class AudienceAdminCalendar {
 				'description'            => isset( $_POST['schedule_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['schedule_description'] ) ) : '',
 				'environment_label'      => isset( $_POST['schedule_environment_label'] ) ? sanitize_text_field( wp_unslash( $_POST['schedule_environment_label'] ) ) : null,
 				'visibility'             => isset( $_POST['schedule_visibility'] ) ? sanitize_text_field( wp_unslash( $_POST['schedule_visibility'] ) ) : 'private',
-				'future_days_limit'      => isset( $_POST['schedule_future_days'] ) && $_POST['schedule_future_days'] !== '' ? absint( $_POST['schedule_future_days'] ) : null,
+				'future_days_limit'      => isset( $_POST['schedule_future_days'] ) && '' !== $_POST['schedule_future_days'] ? absint( $_POST['schedule_future_days'] ) : null,
 				'notify_on_booking'      => isset( $_POST['schedule_notify_booking'] ) ? 1 : 0,
 				'notify_on_cancellation' => isset( $_POST['schedule_notify_cancel'] ) ? 1 : 0,
 				'include_ics'            => isset( $_POST['schedule_include_ics'] ) ? 1 : 0,
@@ -591,9 +591,9 @@ class AudienceAdminCalendar {
 			}
 		}
 
-		// Handle deactivate (active items get deactivated instead of deleted)
+		// Handle deactivate (active items get deactivated instead of deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( isset( $_GET['action'] ) && $_GET['action'] === 'deactivate' && isset( $_GET['id'] ) ) {
+		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) ) {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'deactivate_schedule_' . $id ) ) {
 				AudienceScheduleRepository::update( $id, array( 'status' => 'inactive' ) );
@@ -602,13 +602,13 @@ class AudienceAdminCalendar {
 			}
 		}
 
-		// Handle delete (only inactive items can be permanently deleted)
+		// Handle delete (only inactive items can be permanently deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete' && isset( $_GET['id'] ) ) {
+		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) ) {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'delete_schedule_' . $id ) ) {
 				$schedule = AudienceScheduleRepository::get_by_id( $id );
-				if ( $schedule && $schedule->status !== 'active' ) {
+				if ( $schedule && 'active' !== $schedule->status ) {
 					AudienceScheduleRepository::delete( $id );
 					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&message=deleted' ) );
 					exit;
@@ -616,8 +616,8 @@ class AudienceAdminCalendar {
 			}
 		}
 
-		// Handle add holiday
-		if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'add_holiday' ) {
+		// Handle add holiday.
+		if ( isset( $_POST['ffc_action'] ) && 'add_holiday' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_holiday_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_holiday_nonce'] ) ), 'add_holiday' ) ) {
 				return;
 			}
@@ -632,7 +632,7 @@ class AudienceAdminCalendar {
 			}
 		}
 
-		// Handle delete holiday
+		// Handle delete holiday.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['delete_holiday'] ) && isset( $_GET['id'] ) ) {
 			$holiday_id  = absint( $_GET['delete_holiday'] );

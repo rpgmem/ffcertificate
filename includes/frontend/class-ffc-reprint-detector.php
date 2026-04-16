@@ -23,11 +23,11 @@ class ReprintDetector {
 	/**
 	 * Check for existing submission (reprint detection)
 	 *
-	 * v2.9.13: OPTIMIZED - Uses dedicated cpf_rf column with fallback to JSON
+	 * V2.9.13: OPTIMIZED - Uses dedicated cpf_rf column with fallback to JSON
 	 *
-	 * @param int    $form_id Form ID
-	 * @param string $val_cpf CPF/RF value
-	 * @param string $val_ticket Ticket value
+	 * @param int    $form_id Form ID.
+	 * @param string $val_cpf CPF/RF value.
+	 * @param string $val_ticket Ticket value.
 	 * @return array<string, mixed>
 	 */
 	public static function detect( int $form_id, string $val_cpf, string $val_ticket ): array {
@@ -35,9 +35,9 @@ class ReprintDetector {
 		$table_name          = \FreeFormCertificate\Core\Utils::get_submissions_table();
 		$existing_submission = null;
 
-		// Check by ticket first (if provided)
+		// Check by ticket first (if provided).
 		if ( ! empty( $val_ticket ) ) {
-			// Hash-based lookup (works with encrypted data)
+			// Hash-based lookup (works with encrypted data).
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
 				$ticket_hash = \FreeFormCertificate\Core\Encryption::hash( strtoupper( trim( $val_ticket ) ) );
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -51,7 +51,7 @@ class ReprintDetector {
 				);
 			}
 
-			// Fallback: LIKE on plaintext data (legacy / non-encrypted)
+			// Fallback: LIKE on plaintext data (legacy / non-encrypted).
 			if ( ! $existing_submission ) {
 				$like_query = '%' . $wpdb->esc_like( '"ticket":"' . $val_ticket . '"' ) . '%';
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -64,16 +64,14 @@ class ReprintDetector {
 					)
 				);
 			}
-		}
-
-		// Check by CPF/RF (if ticket not provided)
-		elseif ( ! empty( $val_cpf ) ) {
-			// Remove formatting for comparison
+		} elseif ( ! empty( $val_cpf ) ) {
+			// Check by CPF/RF (if ticket not provided).
+			// Remove formatting for comparison.
 			$clean_cpf = preg_replace( '/[^0-9]/', '', $val_cpf );
 
-			// Check if encryption is enabled
+			// Check if encryption is enabled.
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-				// Classify by digit count and search the specific split column
+				// Classify by digit count and search the specific split column.
 				$id_hash     = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
 				$hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
 
@@ -122,14 +120,14 @@ class ReprintDetector {
 	/**
 	 * Build reprint result from a database row
 	 *
-	 * @param object $existing_submission Database row
+	 * @param object $existing_submission Database row.
 	 * @return array<string, mixed> Reprint result array
 	 */
 	private static function build_reprint_result( object $existing_submission ): array {
-		// Ensure data is not null before json_decode (strict types requirement)
+		// Ensure data is not null before json_decode (strict types requirement).
 		$data_json = $existing_submission->data ?? '';
 
-		// Only decode if we have actual data (not null, not empty string)
+		// Only decode if we have actual data (not null, not empty string).
 		if ( ! empty( $data_json ) && is_string( $data_json ) ) {
 			$decoded_data = json_decode( $data_json, true );
 			if ( ! is_array( $decoded_data ) ) {
@@ -139,17 +137,17 @@ class ReprintDetector {
 			$decoded_data = null;
 		}
 
-		// If still not an array, initialize empty
+		// If still not an array, initialize empty.
 		if ( ! is_array( $decoded_data ) ) {
 			$decoded_data = array();
 		}
 
-		// Ensure required column fields are included
+		// Ensure required column fields are included.
 		if ( ! isset( $decoded_data['auth_code'] ) && ! empty( $existing_submission->auth_code ) ) {
 			$decoded_data['auth_code'] = $existing_submission->auth_code;
 		}
 
-		// Populate email from encrypted column
+		// Populate email from encrypted column.
 		$email = '';
 		if ( ! empty( $existing_submission->email_encrypted ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
 			$email = \FreeFormCertificate\Core\Encryption::decrypt( $existing_submission->email_encrypted ) ?? '';

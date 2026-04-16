@@ -70,7 +70,7 @@ class UserSummaryRestController {
 				'pending_reregistrations' => 0,
 			);
 
-			// Count certificates
+			// Count certificates.
 			if ( $this->user_has_capability( 'view_own_certificates', $user_id, $ctx['is_view_as'] ) ) {
 				$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -83,7 +83,7 @@ class UserSummaryRestController {
 				);
 			}
 
-			// Next appointment
+			// Next appointment.
 			if ( $this->user_has_capability( 'ffc_view_self_scheduling', $user_id, $ctx['is_view_as'] ) ) {
 				$apt_table       = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 				$calendars_table = $wpdb->prefix . 'ffc_self_scheduling_calendars';
@@ -113,18 +113,18 @@ class UserSummaryRestController {
 					$time_formatted = '';
 					if ( ! empty( $next['start_time'] ) ) {
 						$time_ts        = strtotime( $next['start_time'] );
-						$time_formatted = ( $time_ts !== false ) ? date_i18n( 'H:i', $time_ts ) : '';
+						$time_formatted = ( false !== $time_ts ) ? date_i18n( 'H:i', $time_ts ) : '';
 					}
 
 					$summary['next_appointment'] = array(
-						'date'  => ( $timestamp !== false ) ? date_i18n( $date_format, $timestamp ) : $next['appointment_date'],
+						'date'  => ( false !== $timestamp ) ? date_i18n( $date_format, $timestamp ) : $next['appointment_date'],
 						'time'  => $time_formatted,
 						'title' => $next['calendar_title'] ?? '',
 					);
 				}
 			}
 
-			// Upcoming group events
+			// Upcoming group events.
 			if ( $this->user_has_capability( 'ffc_view_audience_bookings', $user_id, $ctx['is_view_as'] ) ) {
 				$bookings_table          = $wpdb->prefix . 'ffc_audience_bookings';
 				$users_table             = $wpdb->prefix . 'ffc_audience_booking_users';
@@ -154,7 +154,7 @@ class UserSummaryRestController {
 				}
 			}
 
-			// Pending reregistrations
+			// Pending reregistrations.
 			if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationFrontend' ) ) {
 				$rereg_items                        = \FreeFormCertificate\Reregistration\ReregistrationFrontend::get_user_reregistrations( $user_id );
 				$summary['pending_reregistrations'] = count(

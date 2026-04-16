@@ -72,12 +72,12 @@ class Activator {
 		self::add_foreign_keys();
 		self::run_migrations();
 
-		// Clean up legacy cron hooks from pre-4.6.15 versions
+		// Clean up legacy cron hooks from pre-4.6.15 versions.
 		wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
 		wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
 		wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
 
-		// Schedule daily cleanup cron
+		// Schedule daily cleanup cron.
 		if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
 			wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
 		}
@@ -126,7 +126,7 @@ class Activator {
 	public static function maybe_add_columns(): void {
 		$stored = get_option( 'ffc_submissions_db_version', '' );
 
-		if ( $stored === FFC_VERSION ) {
+		if ( FFC_VERSION === $stored ) {
 			return;
 		}
 
@@ -256,7 +256,7 @@ class Activator {
 	}
 
 	private static function create_activity_log_table(): void {
-		// Delegate to ActivityLog::create_table() to avoid schema mismatch (v4.6.9)
+		// Delegate to ActivityLog::create_table() to avoid schema mismatch (v4.6.9).
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::create_table();
 		}
@@ -292,7 +292,7 @@ class Activator {
 	/**
 	 * Run batch migrations during activation.
 	 *
-	 * v5.0.0: Only split_cpf_rf remains and it must be run manually by admin
+	 * V5.0.0: Only split_cpf_rf remains and it must be run manually by admin
 	 * (requires existing data). No auto-run migrations left.
 	 *
 	 * @return void
@@ -308,7 +308,7 @@ class Activator {
 	 * @since 3.1.0
 	 */
 	private static function register_user_role(): void {
-		// Load User Manager if not already loaded
+		// Load User Manager if not already loaded.
 		if ( ! class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 			$user_manager_file = FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-user-manager.php';
 			if ( file_exists( $user_manager_file ) ) {
@@ -319,7 +319,7 @@ class Activator {
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 			\FreeFormCertificate\UserDashboard\UserManager::register_role();
 
-			// Grant admin-level FFC capabilities to the administrator role
+			// Grant admin-level FFC capabilities to the administrator role.
 			$admin_role = get_role( 'administrator' );
 			if ( $admin_role ) {
 				foreach ( \FreeFormCertificate\UserDashboard\UserManager::ADMIN_CAPABILITIES as $cap ) {
@@ -340,7 +340,7 @@ class Activator {
 		$charset_collate = $wpdb->get_charset_collate();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name ) {
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
 			return;
 		}
 
@@ -378,7 +378,7 @@ class Activator {
 		$charset_collate = $wpdb->get_charset_collate();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name ) {
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
 			return;
 		}
 
@@ -419,7 +419,7 @@ class Activator {
 		$charset_collate = $wpdb->get_charset_collate();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name ) {
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
 			return;
 		}
 
@@ -458,7 +458,7 @@ class Activator {
 		$charset_collate = $wpdb->get_charset_collate();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name ) {
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
 			return;
 		}
 
@@ -494,10 +494,10 @@ class Activator {
 		);
 
 		if ( empty( $has_column ) ) {
-			return; // Column already dropped — migration done
+			return; // Column already dropped — migration done.
 		}
 
-		// Copy audience_id into junction table (skip if already migrated)
+		// Copy audience_id into junction table (skip if already migrated).
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query(
 			$wpdb->prepare(
@@ -508,7 +508,7 @@ class Activator {
 			)
 		);
 
-		// Drop the old column and its index
+		// Drop the old column and its index.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX idx_audience_id', $rereg_table ) );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -528,7 +528,7 @@ class Activator {
 		$charset_collate = $wpdb->get_charset_collate();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) == $table_name ) {
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
 			return;
 		}
 
@@ -609,14 +609,14 @@ class Activator {
 				continue;
 			}
 
-			// Check if a UNIQUE index already exists on this column
+			// Check if a UNIQUE index already exists on this column.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$indexes         = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Column_name = %s', $table, $column ) );
 			$has_unique      = false;
 			$old_index_names = array();
 
 			foreach ( $indexes as $idx ) {
-				if ( (int) $idx->Non_unique === 0 ) {
+				if ( (int) 0 === $idx->Non_unique ) {
 					$has_unique = true;
 				} else {
 					$old_index_names[] = $idx->Key_name;
@@ -627,7 +627,7 @@ class Activator {
 				continue;
 			}
 
-			// Remove duplicate auth_codes (keep the most recent) before adding constraint
+			// Remove duplicate auth_codes (keep the most recent) before adding constraint.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query(
 				$wpdb->prepare(
@@ -646,13 +646,13 @@ class Activator {
 				)
 			);
 
-			// Drop old non-unique indexes
+			// Drop old non-unique indexes.
 			foreach ( array_unique( $old_index_names ) as $name ) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table, $name ) );
 			}
 
-			// Add UNIQUE constraint
+			// Add UNIQUE constraint.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic index name uq_{$column} from trusted internal config.
 			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD UNIQUE INDEX uq_{$column} (%i)", $table, $column ) );
 		}

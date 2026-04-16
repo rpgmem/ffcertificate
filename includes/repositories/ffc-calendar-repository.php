@@ -41,14 +41,14 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Find calendar by post ID
 	 *
-	 * @param int $post_id WordPress post ID
+	 * @param int $post_id WordPress post ID.
 	 * @return array<string, mixed>|null
 	 */
 	public function findByPostId( int $post_id ): ?array {
 		$cache_key = "post_{$post_id}";
 		$cached    = $this->get_cache( $cache_key );
 
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -113,7 +113,7 @@ class CalendarRepository extends AbstractRepository {
 		return $this->update(
 			$id,
 			array(
-				'working_hours' => json_encode( $working_hours ),
+				'working_hours' => wp_json_encode( $working_hours ),
 				'updated_at'    => current_time( 'mysql' ),
 				'updated_by'    => get_current_user_id(),
 			)
@@ -131,7 +131,7 @@ class CalendarRepository extends AbstractRepository {
 		return $this->update(
 			$id,
 			array(
-				'email_config' => json_encode( $email_config ),
+				'email_config' => wp_json_encode( $email_config ),
 				'updated_at'   => current_time( 'mysql' ),
 				'updated_by'   => get_current_user_id(),
 			)
@@ -142,7 +142,7 @@ class CalendarRepository extends AbstractRepository {
 	 * Update calendar status
 	 *
 	 * @param int    $id
-	 * @param string $status (active, inactive, archived)
+	 * @param string $status (active, inactive, archived).
 	 * @return int|false
 	 */
 	public function updateStatus( int $id, string $status ) {
@@ -184,11 +184,11 @@ class CalendarRepository extends AbstractRepository {
 	 * Check if user has scheduling bypass capability
 	 *
 	 * @since 4.7.0
-	 * @param int|null $user_id User ID (null for current user)
+	 * @param int|null $user_id User ID (null for current user).
 	 * @return bool
 	 */
 	public static function userHasSchedulingBypass( ?int $user_id = null ): bool {
-		if ( $user_id === null ) {
+		if ( null === $user_id ) {
 			return current_user_can( 'manage_options' ) || current_user_can( 'ffc_scheduling_bypass' );
 		}
 		return user_can( $user_id, 'manage_options' ) || user_can( $user_id, 'ffc_scheduling_bypass' );
@@ -211,7 +211,7 @@ class CalendarRepository extends AbstractRepository {
 			'slot_duration'             => 30,
 			'slot_interval'             => 0,
 			'slots_per_day'             => 0,
-			'working_hours'             => json_encode( array() ),
+			'working_hours'             => wp_json_encode( array() ),
 			'advance_booking_min'       => 0,
 			'advance_booking_max'       => 30,
 			'allow_cancellation'        => 1,
@@ -222,7 +222,7 @@ class CalendarRepository extends AbstractRepository {
 			'scheduling_visibility'     => 'public',
 			'restrict_viewing_to_hours' => 0,
 			'restrict_booking_to_hours' => 0,
-			'email_config'              => json_encode(
+			'email_config'              => wp_json_encode(
 				array(
 					'send_user_confirmation'         => 0,
 					'send_admin_notification'        => 0,

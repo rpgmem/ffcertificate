@@ -40,7 +40,7 @@ class AudienceAdminBookings {
 	 * @return void
 	 */
 	public function render_page(): void {
-		// Get filter parameters
+		// Get filter parameters.
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters on admin page
 		$schedule_id    = isset( $_GET['schedule_id'] ) ? absint( $_GET['schedule_id'] ) : 0;
 		$environment_id = isset( $_GET['environment_id'] ) ? absint( $_GET['environment_id'] ) : 0;
@@ -49,7 +49,7 @@ class AudienceAdminBookings {
 		$date_to        = isset( $_GET['date_to'] ) ? sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) : '';
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-		// Build query args
+		// Build query args.
 		$args = array(
 			'orderby' => 'booking_date',
 			'order'   => 'DESC',
@@ -71,13 +71,13 @@ class AudienceAdminBookings {
 			$args['end_date'] = $date_to;
 		}
 
-		// Get bookings
+		// Get bookings.
 		$bookings = AudienceBookingRepository::get_all( $args );
 
-		// Get schedules for filter
+		// Get schedules for filter.
 		$schedules = AudienceScheduleRepository::get_all();
 
-		// Get environments for filter
+		// Get environments for filter.
 		$environments = array();
 		if ( $schedule_id > 0 ) {
 			$environments = AudienceEnvironmentRepository::get_by_schedule( $schedule_id );
@@ -158,7 +158,7 @@ class AudienceAdminBookings {
 						</tr>
 					<?php else : ?>
 						<?php
-						// Batch load creator names to avoid N+1 get_userdata() calls
+						// Batch load creator names to avoid N+1 get_userdata() calls.
 						$creator_ids  = array_unique(
 							array_filter(
 								array_map(
@@ -185,7 +185,7 @@ class AudienceAdminBookings {
 						<?php foreach ( $bookings as $booking ) : ?>
 							<?php
 							$creator_name = $creators_map[ (int) $booking->created_by ] ?? __( 'Unknown', 'ffcertificate' );
-							$status_class = $booking->status === 'active' ? 'status-active' : 'status-cancelled';
+							$status_class = 'active' === $booking->status ? 'status-active' : 'status-cancelled';
 							?>
 							<tr>
 								<td><?php echo esc_html( $booking->id ); ?></td>
@@ -204,7 +204,7 @@ class AudienceAdminBookings {
 								</td>
 								<td>
 									<span class="<?php echo esc_attr( $status_class ); ?>">
-										<?php echo $booking->status === 'active' ? esc_html__( 'Active', 'ffcertificate' ) : esc_html__( 'Cancelled', 'ffcertificate' ); ?>
+										<?php echo 'active' === $booking->status ? esc_html__( 'Active', 'ffcertificate' ) : esc_html__( 'Cancelled', 'ffcertificate' ); ?>
 									</span>
 								</td>
 								<td><?php echo esc_html( $creator_name ); ?></td>
@@ -212,7 +212,7 @@ class AudienceAdminBookings {
 									<a href="#" class="ffc-view-booking" data-booking-id="<?php echo esc_attr( $booking->id ); ?>">
 										<?php esc_html_e( 'View', 'ffcertificate' ); ?>
 									</a>
-									<?php if ( $booking->status === 'active' ) : ?>
+									<?php if ( 'active' === $booking->status ) : ?>
 										|
 										<a href="#" class="ffc-cancel-booking" data-booking-id="<?php echo esc_attr( $booking->id ); ?>" style="color: #a00;">
 											<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>

@@ -46,12 +46,12 @@ class QRCodeGenerator {
 	 * Constructor
 	 */
 	public function __construct() {
-		// Load phpqrcode library
+		// Load phpqrcode library.
 		if ( ! class_exists( '\\QRcode' ) ) {
 			require_once FFC_PLUGIN_DIR . 'libs/phpqrcode/qrlib.php';
 		}
 
-		// Load defaults from settings
+		// Load defaults from settings.
 		$this->load_defaults_from_settings();
 	}
 
@@ -83,13 +83,13 @@ class QRCodeGenerator {
 	 * - {{qr_code:size=200:margin=0}}
 	 * - {{qr_code:size=250:margin=3:error=H}}
 	 *
-	 * @param string $placeholder Full placeholder string
-	 * @param string $url Target URL for QR Code
-	 * @param int    $submission_id Optional submission ID for cache
+	 * @param string $placeholder Full placeholder string.
+	 * @param string $url Target URL for QR Code.
+	 * @param int    $submission_id Optional submission ID for cache.
 	 * @return string HTML img tag with base64 QR Code
 	 */
 	public function parse_and_generate( string $placeholder, string $url, int $submission_id = 0 ): string {
-		// Parse parameters from placeholder
+		// Parse parameters from placeholder.
 		$params = $this->parse_placeholder_params( $placeholder );
 
 		\FreeFormCertificate\Core\Utils::debug_log(
@@ -101,7 +101,7 @@ class QRCodeGenerator {
 			)
 		);
 
-		// Check cache if enabled and submission_id provided
+		// Check cache if enabled and submission_id provided.
 		if ( $submission_id > 0 && $this->is_cache_enabled() ) {
 			$cached = $this->get_from_cache( $submission_id );
 			if ( $cached ) {
@@ -125,7 +125,7 @@ class QRCodeGenerator {
 		 */
 		$url = apply_filters( 'ffcertificate_qrcode_url', $url, $submission_id, $params );
 
-		// Generate QR Code
+		// Generate QR Code.
 		$qr_base64 = $this->generate( $url, $params );
 
 		if ( empty( $qr_base64 ) ) {
@@ -139,7 +139,7 @@ class QRCodeGenerator {
 			return '';
 		}
 
-		// Cache if enabled
+		// Cache if enabled.
 		if ( $submission_id > 0 && $this->is_cache_enabled() ) {
 			$this->save_to_cache( $submission_id, $qr_base64 );
 			\FreeFormCertificate\Core\Utils::debug_log(
@@ -177,16 +177,16 @@ class QRCodeGenerator {
 	private function parse_placeholder_params( string $placeholder ): array {
 		$params = $this->defaults;
 
-		// Remove {{ and }}
+		// Remove {{ and }}.
 		$content = trim( str_replace( array( '{{', '}}' ), '', $placeholder ) );
 
-		// Split by colon
+		// Split by colon.
 		$parts = explode( ':', $content );
 
-		// Skip first part (qr_code)
+		// Skip first part (qr_code).
 		array_shift( $parts );
 
-		// Parse each parameter
+		// Parse each parameter.
 		foreach ( $parts as $part ) {
 			if ( strpos( $part, '=' ) === false ) {
 				continue;
@@ -209,11 +209,11 @@ class QRCodeGenerator {
 			}
 		}
 
-		// Validate ranges
+		// Validate ranges.
 		$params['size']   = max( 50, min( 1000, $params['size'] ) );
 		$params['margin'] = max( 0, min( 10, $params['margin'] ) );
 
-		if ( ! in_array( $params['error_level'], array( 'L', 'M', 'Q', 'H' ) ) ) {
+		if ( ! in_array( $params['error_level'], array( 'L', 'M', 'Q', 'H' ), true ) ) {
 			$params['error_level'] = 'M';
 		}
 
@@ -223,22 +223,22 @@ class QRCodeGenerator {
 	/**
 	 * Generate QR Code as base64 PNG
 	 *
-	 * @param string               $url Target URL
-	 * @param array<string, mixed> $params Generation parameters
+	 * @param string               $url Target URL.
+	 * @param array<string, mixed> $params Generation parameters.
 	 * @return string Base64 encoded PNG
 	 */
 	public function generate( string $url, array $params = array() ): string {
-		// Merge with defaults
+		// Merge with defaults.
 		$params = array_merge( $this->defaults, $params );
 
-		// Validate URL
+		// Validate URL.
 		if ( empty( $url ) ) {
 			\FreeFormCertificate\Core\Utils::debug_log( 'QR Code: empty URL provided' );
 			return '';
 		}
 
 		try {
-			// Create temporary file - prefer wp_tempnam for better hosting compatibility
+			// Create temporary file - prefer wp_tempnam for better hosting compatibility.
 			$temp_file = function_exists( 'wp_tempnam' )
 				? wp_tempnam( 'ffc_qr_' )
 				: tempnam( sys_get_temp_dir(), 'ffc_qr_' );
@@ -253,11 +253,11 @@ class QRCodeGenerator {
 				return '';
 			}
 
-			// Cast size to int to prevent PHP 8.1+ deprecation warnings
+			// Cast size to int to prevent PHP 8.1+ deprecation warnings.
 			$point_size = max( 1, (int) ( $params['size'] / 10 ) );
 			$margin     = (int) $params['margin'];
 
-			// Generate QR Code
+			// Generate QR Code.
 			\QRcode::png(
 				$url,
 				$temp_file,
@@ -266,12 +266,12 @@ class QRCodeGenerator {
 				$margin
 			);
 
-			// Read file and encode
+			// Read file and encode.
 			if ( file_exists( $temp_file ) && filesize( $temp_file ) > 0 ) {
 				$image_data = file_get_contents( $temp_file );
 				$base64     = base64_encode( $image_data ?: '' );
 
-				// Clean up
+				// Clean up.
 				wp_delete_file( $temp_file );
 
 				\FreeFormCertificate\Core\Utils::debug_log(
@@ -286,7 +286,7 @@ class QRCodeGenerator {
 				return $base64;
 			}
 
-			// Clean up the empty/missing temp file
+			// Clean up the empty/missing temp file.
 			if ( file_exists( $temp_file ) ) {
 				wp_delete_file( $temp_file );
 			}
@@ -326,7 +326,7 @@ class QRCodeGenerator {
 	/**
 	 * Get error correction constant for phpqrcode library
 	 *
-	 * @param string $level L, M, Q, or H
+	 * @param string $level L, M, Q, or H.
 	 * @return int QR_ECLEVEL constant
 	 */
 	private function get_error_correction_constant( string $level ): int {
@@ -346,8 +346,8 @@ class QRCodeGenerator {
 	/**
 	 * Format base64 QR Code as HTML img tag
 	 *
-	 * @param string $base64 Base64 encoded PNG
-	 * @param int    $size Display size in pixels
+	 * @param string $base64 Base64 encoded PNG.
+	 * @param int    $size Display size in pixels.
 	 * @return string HTML img tag
 	 */
 	private function format_as_img_tag( string $base64, int $size ): string {
@@ -370,7 +370,7 @@ class QRCodeGenerator {
 	 */
 	private function is_cache_enabled(): bool {
 		$settings = get_option( 'ffc_settings', array() );
-		return isset( $settings['qr_cache_enabled'] ) && $settings['qr_cache_enabled'] == 1;
+		return isset( $settings['qr_cache_enabled'] ) && 1 === $settings['qr_cache_enabled'];
 	}
 
 	/**
@@ -383,7 +383,7 @@ class QRCodeGenerator {
 		global $wpdb;
 		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-		// Check if column exists
+		// Check if column exists.
 		if ( ! $this->cache_column_exists() ) {
 			return false;
 		}
@@ -404,14 +404,14 @@ class QRCodeGenerator {
 	 * Save QR Code to cache
 	 *
 	 * @param int    $submission_id
-	 * @param string $qr_base64 Base64 encoded QR Code
+	 * @param string $qr_base64 Base64 encoded QR Code.
 	 * @return bool Success
 	 */
 	private function save_to_cache( int $submission_id, string $qr_base64 ): bool {
 		global $wpdb;
 		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-		// Check if column exists, create if needed
+		// Check if column exists, create if needed.
 		if ( ! $this->cache_column_exists() ) {
 			$this->create_cache_column();
 		}
@@ -425,7 +425,7 @@ class QRCodeGenerator {
 			array( '%d' )
 		);
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
@@ -451,7 +451,7 @@ class QRCodeGenerator {
 	/**
 	 * Clear QR Code cache
 	 *
-	 * @param int $submission_id Optional specific submission (0 = all)
+	 * @param int $submission_id Optional specific submission (0 = all).
 	 * @return bool True if cache was cleared, false otherwise
 	 */
 	public function clear_cache( int $submission_id = 0 ): bool {
@@ -479,7 +479,7 @@ class QRCodeGenerator {
 				array( '%s' ),
 				array( '%d' )
 			);
-			$cleared = $result !== false ? 1 : 0;
+			$cleared = false !== $result ? 1 : 0;
 		} else {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result  = $wpdb->query(
@@ -495,7 +495,7 @@ class QRCodeGenerator {
 			)
 		);
 
-		return $cleared !== 0;
+		return 0 !== $cleared;
 	}
 
 	/**
@@ -504,15 +504,15 @@ class QRCodeGenerator {
 	 * Uses FFC_Magic_Link_Helper to generate the link
 	 *
 	 * @since 2.9.16
-	 * @param int $submission_id Submission ID
-	 * @param int $size QR code size (default: 200)
+	 * @param int $submission_id Submission ID.
+	 * @param int $size QR code size (default: 200).
 	 * @return string Base64 QR code or empty string
 	 */
 	public function generate_magic_link_qr( int $submission_id, int $size = 200 ): string {
 		global $wpdb;
 		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-		// Get submission magic token
+		// Get submission magic token.
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$submission = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT magic_token FROM %i WHERE id = %d', $table_name, $submission_id ),
@@ -550,7 +550,7 @@ class QRCodeGenerator {
 			)
 		);
 
-		// Generate QR code with magic link
+		// Generate QR code with magic link.
 		$params = array(
 			'size'        => $size,
 			'margin'      => $this->defaults['margin'],

@@ -32,10 +32,10 @@ class SelfSchedulingShortcode {
 	public function __construct() {
 		$this->calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
 
-		// Register shortcode
+		// Register shortcode.
 		add_shortcode( 'ffc_self_scheduling', array( $this, 'render_calendar' ) );
 
-		// Enqueue assets
+		// Enqueue assets.
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 	}
 
@@ -45,7 +45,7 @@ class SelfSchedulingShortcode {
 	 * @return void
 	 */
 	public function enqueue_assets(): void {
-		// Only enqueue if shortcode is present in content
+		// Only enqueue if shortcode is present in content.
 		if ( ! is_singular() && ! is_page() ) {
 			return;
 		}
@@ -57,7 +57,7 @@ class SelfSchedulingShortcode {
 
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
-		// Enqueue FFC common styles (includes CSS variables, honeypot, captcha, etc.)
+		// Enqueue FFC common styles (includes CSS variables, honeypot, captcha, etc.).
 		wp_enqueue_style(
 			'ffc-common',
 			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
@@ -65,7 +65,7 @@ class SelfSchedulingShortcode {
 			FFC_VERSION
 		);
 
-		// Enqueue FFC frontend styles
+		// Enqueue FFC frontend styles.
 		wp_enqueue_style(
 			'ffc-frontend',
 			FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css",
@@ -73,7 +73,7 @@ class SelfSchedulingShortcode {
 			FFC_VERSION
 		);
 
-		// Enqueue shared calendar styles (same as ffc-audience)
+		// Enqueue shared calendar styles (same as ffc-audience).
 		wp_enqueue_style(
 			'ffc-audience',
 			FFC_PLUGIN_URL . "assets/css/ffc-audience{$s}.css",
@@ -81,7 +81,7 @@ class SelfSchedulingShortcode {
 			FFC_VERSION
 		);
 
-		// Enqueue calendar frontend styles (timeslots, form, confirmation)
+		// Enqueue calendar frontend styles (timeslots, form, confirmation).
 		wp_enqueue_style(
 			'ffc-calendar-frontend',
 			FFC_PLUGIN_URL . "assets/css/ffc-calendar-frontend{$s}.css",
@@ -89,7 +89,7 @@ class SelfSchedulingShortcode {
 			FFC_VERSION
 		);
 
-		// Enqueue FFC frontend helpers (for CPF/RF mask)
+		// Enqueue FFC frontend helpers (for CPF/RF mask).
 		wp_enqueue_script(
 			'ffc-frontend-helpers',
 			FFC_PLUGIN_URL . "assets/js/ffc-frontend-helpers{$s}.js",
@@ -98,7 +98,7 @@ class SelfSchedulingShortcode {
 			true
 		);
 
-		// Enqueue shared calendar core component
+		// Enqueue shared calendar core component.
 		wp_enqueue_script(
 			'ffc-calendar-core',
 			FFC_PLUGIN_URL . "assets/js/ffc-calendar-core{$s}.js",
@@ -107,7 +107,7 @@ class SelfSchedulingShortcode {
 			true
 		);
 
-		// PDF Libraries for auto-download receipt on booking
+		// PDF Libraries for auto-download receipt on booking.
 		wp_enqueue_script(
 			'html2canvas',
 			FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js',
@@ -132,7 +132,7 @@ class SelfSchedulingShortcode {
 			true
 		);
 
-		// Enqueue calendar frontend scripts
+		// Enqueue calendar frontend scripts.
 		wp_enqueue_script(
 			'ffc-calendar-frontend',
 			FFC_PLUGIN_URL . "assets/js/ffc-calendar-frontend{$s}.js",
@@ -141,10 +141,10 @@ class SelfSchedulingShortcode {
 			true
 		);
 
-		// Dynamic fragments: refresh captcha + nonces on cached pages
+		// Dynamic fragments: refresh captcha + nonces on cached pages.
 		wp_enqueue_script( 'ffc-dynamic-fragments' );
 
-		// Localize script
+		// Localize script.
 		wp_localize_script(
 			'ffc-calendar-frontend',
 			'ffcCalendar',
@@ -162,7 +162,7 @@ class SelfSchedulingShortcode {
 					'noSlots'              => __( 'No available slots for this date', 'ffcertificate' ),
 					'success'              => __( 'Appointment booked successfully!', 'ffcertificate' ),
 					'error'                => __( 'An error occurred. Please try again.', 'ffcertificate' ),
-					// Calendar strings
+					// Calendar strings.
 					'months'               => array(
 						__( 'January', 'ffcertificate' ),
 						__( 'February', 'ffcertificate' ),
@@ -193,7 +193,7 @@ class SelfSchedulingShortcode {
 					'booked'               => __( 'Booked', 'ffcertificate' ),
 					'booking'              => __( 'booking', 'ffcertificate' ),
 					'bookings'             => __( 'bookings', 'ffcertificate' ),
-					// Confirmation screen
+					// Confirmation screen.
 					'date'                 => __( 'Date', 'ffcertificate' ),
 					'time'                 => __( 'Time', 'ffcertificate' ),
 					'name'                 => __( 'Name', 'ffcertificate' ),
@@ -209,7 +209,7 @@ class SelfSchedulingShortcode {
 					'submit'               => __( 'Book Appointment', 'ffcertificate' ),
 					'timeout'              => __( 'Connection timeout. Please try again.', 'ffcertificate' ),
 					'networkError'         => __( 'Network error. Please check your connection and try again.', 'ffcertificate' ),
-					// PDF overlay
+					// PDF overlay.
 					'generatingPdf'        => __( 'Generating PDF...', 'ffcertificate' ),
 					'pleaseWait'           => __( 'Please wait, this may take a few seconds...', 'ffcertificate' ),
 				),
@@ -220,7 +220,7 @@ class SelfSchedulingShortcode {
 	/**
 	 * Render calendar shortcode
 	 *
-	 * @param array<string, mixed> $atts Shortcode attributes
+	 * @param array<string, mixed> $atts Shortcode attributes.
 	 * @return string HTML output
 	 */
 	public function render_calendar( array $atts ): string {
@@ -238,15 +238,15 @@ class SelfSchedulingShortcode {
 			return '<p class="ffc-error">' . __( 'Calendar ID is required.', 'ffcertificate' ) . '</p>';
 		}
 
-		// Try to get calendar by Post ID first (most common usage)
+		// Try to get calendar by Post ID first (most common usage).
 		$calendar = $this->calendar_repository->findByPostId( $calendar_id );
 
-		// If not found, try by table ID
+		// If not found, try by table ID.
 		if ( ! $calendar ) {
 			$calendar = $this->calendar_repository->findById( $calendar_id );
 		}
 
-		// Decode working hours if found
+		// Decode working hours if found.
 		if ( $calendar ) {
 			if ( ! empty( $calendar['working_hours'] ) ) {
 				$calendar['working_hours'] = json_decode( $calendar['working_hours'], true );
@@ -257,11 +257,11 @@ class SelfSchedulingShortcode {
 			return '<p class="ffc-error">' . __( 'Calendar not found.', 'ffcertificate' ) . '</p>';
 		}
 
-		if ( $calendar['status'] !== 'active' ) {
+		if ( 'active' !== $calendar['status'] ) {
 			return '<p class="ffc-error">' . __( 'This calendar is not accepting bookings.', 'ffcertificate' ) . '</p>';
 		}
 
-		// Ensure working_hours is an array
+		// Ensure working_hours is an array.
 		if ( empty( $calendar['working_hours'] ) || ! is_array( $calendar['working_hours'] ) ) {
 			return '<p class="ffc-error">' . __( 'Calendar has no working hours configured. Please contact the administrator.', 'ffcertificate' ) . '</p>';
 		}
@@ -271,12 +271,12 @@ class SelfSchedulingShortcode {
 		$visibility            = $calendar['visibility'] ?? 'public';
 		$scheduling_visibility = $calendar['scheduling_visibility'] ?? 'public';
 
-		// Visibility check: Private calendar + not logged in (and no bypass)
-		if ( $visibility === 'private' && ! $is_logged_in && ! $has_bypass ) {
+		// Visibility check: Private calendar + not logged in (and no bypass).
+		if ( 'private' === $visibility && ! $is_logged_in && ! $has_bypass ) {
 			return $this->render_private_visibility_message( $calendar );
 		}
 
-		// Business hours restriction: viewing
+		// Business hours restriction: viewing.
 		$restrict_viewing = ! empty( $calendar['restrict_viewing_to_hours'] );
 		$restrict_booking = ! empty( $calendar['restrict_booking_to_hours'] );
 
@@ -287,11 +287,11 @@ class SelfSchedulingShortcode {
 			}
 		}
 
-		// Render calendar interface with scheduling restriction flag
+		// Render calendar interface with scheduling restriction flag.
 		$can_book           = true;
 		$scheduling_message = '';
 
-		if ( $scheduling_visibility === 'private' && ! $is_logged_in && ! $has_bypass ) {
+		if ( 'private' === $scheduling_visibility && ! $is_logged_in && ! $has_bypass ) {
 			$can_book           = false;
 			$scheduling_message = get_option(
 				'ffc_ss_scheduling_message',
@@ -300,7 +300,7 @@ class SelfSchedulingShortcode {
 			$scheduling_message = str_replace( '%login_url%', wp_login_url( get_permalink() ?: '' ), $scheduling_message );
 		}
 
-		// Business hours restriction: booking only
+		// Business hours restriction: booking only.
 		if ( $can_book && $restrict_booking && ! $has_bypass ) {
 			$outside_hours = $this->is_outside_business_hours( $calendar );
 			if ( $outside_hours ) {
@@ -310,10 +310,10 @@ class SelfSchedulingShortcode {
 		}
 
 		ob_start();
-		// Admin bypass badge
-		if ( $has_bypass && ( $visibility === 'private' || $restrict_viewing || $restrict_booking ) ) {
+		// Admin bypass badge.
+		if ( $has_bypass && ( 'private' === $visibility || $restrict_viewing || $restrict_booking ) ) {
 			echo '<div class="ffc-admin-bypass-notice">';
-			if ( $visibility === 'private' ) {
+			if ( 'private' === $visibility ) {
 				echo '<span class="ffc-badge ffc-badge-private">' . esc_html__( 'Private', 'ffcertificate' ) . '</span> ';
 			}
 			if ( $restrict_viewing || $restrict_booking ) {
@@ -330,13 +330,13 @@ class SelfSchedulingShortcode {
 	 * Render message for private visibility restriction
 	 *
 	 * @since 4.7.0
-	 * @param array<string, mixed> $calendar Calendar data
+	 * @param array<string, mixed> $calendar Calendar data.
 	 * @return string HTML output
 	 */
 	private function render_private_visibility_message( array $calendar ): string {
 		$display_mode = get_option( 'ffc_ss_private_display_mode', 'show_message' );
 
-		if ( $display_mode === 'hide' ) {
+		if ( 'hide' === $display_mode ) {
 			return '';
 		}
 
@@ -348,7 +348,7 @@ class SelfSchedulingShortcode {
 
 		$output = '<div class="ffc-visibility-restricted">';
 
-		if ( $display_mode === 'show_title_message' ) {
+		if ( 'show_title_message' === $display_mode ) {
 			$output .= '<h3 class="ffc-calendar-title">' . esc_html( $calendar['title'] ) . '</h3>';
 		}
 
@@ -362,7 +362,7 @@ class SelfSchedulingShortcode {
 	 * Check if the current time is outside the calendar's working hours
 	 *
 	 * @since 4.7.0
-	 * @param array<string, mixed> $calendar Calendar data with working_hours
+	 * @param array<string, mixed> $calendar Calendar data with working_hours.
 	 * @return bool True if currently outside business hours
 	 */
 	private function is_outside_business_hours( array $calendar ): bool {
@@ -376,12 +376,12 @@ class SelfSchedulingShortcode {
 		$current_date = gmdate( 'Y-m-d', $now_ts );
 		$current_time = gmdate( 'H:i', $now_ts );
 
-		// Check if today is a working day
+		// Check if today is a working day.
 		if ( ! \FreeFormCertificate\Scheduling\WorkingHoursService::is_working_day( $current_date, $working_hours ) ) {
 			return true;
 		}
 
-		// Check if current time is within working hours
+		// Check if current time is within working hours.
 		return ! \FreeFormCertificate\Scheduling\WorkingHoursService::is_within_working_hours( $current_date, $current_time, $working_hours );
 	}
 
@@ -389,7 +389,7 @@ class SelfSchedulingShortcode {
 	 * Get today's working hours range formatted for display
 	 *
 	 * @since 4.7.0
-	 * @param array<string, mixed> $calendar Calendar data with working_hours
+	 * @param array<string, mixed> $calendar Calendar data with working_hours.
 	 * @return string Formatted hours range (e.g. "09:00 - 17:00") or empty if closed
 	 */
 	private function get_today_hours_display( array $calendar ): string {
@@ -418,16 +418,16 @@ class SelfSchedulingShortcode {
 	 * Get the business hours restriction message
 	 *
 	 * @since 4.7.0
-	 * @param array<string, mixed> $calendar Calendar data
-	 * @param string               $type 'viewing' or 'booking'
+	 * @param array<string, mixed> $calendar Calendar data.
+	 * @param string               $type 'viewing' or 'booking'.
 	 * @return string Message HTML
 	 */
 	private function get_business_hours_message( array $calendar, string $type ): string {
-		$option_key = $type === 'viewing'
+		$option_key = 'viewing' === $type
 			? 'ffc_ss_business_hours_viewing_message'
 			: 'ffc_ss_business_hours_booking_message';
 
-		$default = $type === 'viewing'
+		$default = 'viewing' === $type
 			/* translators: %hours% is replaced with today's working hours range */
 			? __( 'This calendar is available for viewing only during business hours (%hours%).', 'ffcertificate' )
 			/* translators: %hours% is replaced with today's working hours range */
@@ -444,8 +444,8 @@ class SelfSchedulingShortcode {
 	 * Render message for business hours viewing restriction
 	 *
 	 * @since 4.7.0
-	 * @param array<string, mixed> $calendar Calendar data
-	 * @param string               $type 'viewing' or 'booking'
+	 * @param array<string, mixed> $calendar Calendar data.
+	 * @param string               $type 'viewing' or 'booking'.
 	 * @return string HTML output
 	 */
 	private function render_business_hours_message( array $calendar, string $type ): string {
@@ -463,15 +463,15 @@ class SelfSchedulingShortcode {
 	 * Render calendar booking interface
 	 *
 	 * @param array<string, mixed> $calendar
-	 * @param bool                 $can_book Whether the user can book (false when scheduling is restricted)
-	 * @param string               $scheduling_message Message to show when booking is restricted
+	 * @param bool                 $can_book Whether the user can book (false when scheduling is restricted).
+	 * @param string               $scheduling_message Message to show when booking is restricted.
 	 * @return void
 	 */
 	private function render_calendar_interface( array $calendar, bool $can_book = true, string $scheduling_message = '' ): void {
 		$user         = wp_get_current_user();
 		$is_logged_in = is_user_logged_in();
 
-		// Calculate disabled weekdays (non-working days)
+		// Calculate disabled weekdays (non-working days).
 		$working_days  = ! empty( $calendar['working_hours'] ) && is_array( $calendar['working_hours'] )
 			? array_column( $calendar['working_hours'], 'day' )
 			: array();
@@ -658,8 +658,8 @@ class SelfSchedulingShortcode {
 		</div>
 
 		<?php
-		// Build calendar config as data attribute (avoids wp_localize_script timing issues
-		// and WordPress content filter mangling of inline JS)
+		// Build calendar config as data attribute (avoids wp_localize_script timing issues.
+		// and WordPress content filter mangling of inline JS).
 		$working_days_js = array();
 		if ( ! empty( $calendar['working_hours'] ) && is_array( $calendar['working_hours'] ) ) {
 			foreach ( $calendar['working_hours'] as $wh ) {

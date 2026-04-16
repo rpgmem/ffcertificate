@@ -35,15 +35,15 @@ class SecurityService {
 			/* translators: 1: first number, 2: second number */
 			'label'  => sprintf( esc_html__( 'Security: How much is %1$d + %2$d?', 'ffcertificate' ), $n1, $n2 ),
 			'hash'   => wp_hash( $answer . 'ffc_math_salt' ),
-			'answer' => $answer,  // For internal use only
+			'answer' => $answer,  // For internal use only.
 		);
 	}
 
 	/**
 	 * Verify simple captcha answer
 	 *
-	 * @param string $answer User's answer
-	 * @param string $hash Expected hash
+	 * @param string $answer User's answer.
+	 * @param string $hash Expected hash.
 	 * @return bool True if correct, false otherwise
 	 */
 	public static function verify_simple_captcha( string $answer, string $hash ): bool {
@@ -59,21 +59,21 @@ class SecurityService {
 	 * Validate security fields (honeypot + captcha)
 	 *
 	 * @since 2.9.11
-	 * @param array<string, mixed> $data Form data containing security fields
+	 * @param array<string, mixed> $data Form data containing security fields.
 	 * @return bool|string True if valid, error message string if invalid
 	 */
 	public static function validate_security_fields( array $data ) {
-		// Check honeypot
+		// Check honeypot.
 		if ( ! empty( $data['ffc_honeypot_trap'] ) ) {
 			return __( 'Security Error: Request blocked (Honeypot).', 'ffcertificate' );
 		}
 
-		// Check captcha presence
+		// Check captcha presence.
 		if ( ! isset( $data['ffc_captcha_ans'] ) || ! isset( $data['ffc_captcha_hash'] ) ) {
 			return __( 'Error: Please answer the security question.', 'ffcertificate' );
 		}
 
-		// Validate captcha answer
+		// Validate captcha answer.
 		if ( ! self::verify_simple_captcha( $data['ffc_captcha_ans'], $data['ffc_captcha_hash'] ) ) {
 			return __( 'Error: The math answer is incorrect.', 'ffcertificate' );
 		}

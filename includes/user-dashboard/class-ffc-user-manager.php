@@ -26,9 +26,9 @@ class UserManager {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
-	// =====================================================================
-	// Backward-compatible constant aliases → CapabilityManager
-	// =====================================================================
+	// =====================================================================.
+	// Backward-compatible constant aliases → CapabilityManager.
+	// =====================================================================.
 
 	public const CONTEXT_CERTIFICATE = CapabilityManager::CONTEXT_CERTIFICATE;
 	public const CONTEXT_APPOINTMENT = CapabilityManager::CONTEXT_APPOINTMENT;
@@ -40,15 +40,15 @@ class UserManager {
 	public const ADMIN_CAPABILITIES       = CapabilityManager::ADMIN_CAPABILITIES;
 	public const FUTURE_CAPABILITIES      = CapabilityManager::FUTURE_CAPABILITIES;
 
-	// =====================================================================
-	// Backward-compatible delegation → UserCreator
-	// =====================================================================
+	// =====================================================================.
+	// Backward-compatible delegation → UserCreator.
+	// =====================================================================.
 
 	/**
 	 * Get or create a WordPress user for the given credentials.
 	 *
 	 * @see UserCreator::get_or_create_user()
-	 * @param array<string, mixed> $submission_data Submission data
+	 * @param array<string, mixed> $submission_data Submission data.
 	 * @return int|\WP_Error User ID on success, WP_Error on failure
 	 */
 	public static function get_or_create_user( string $cpf_rf_hash, string $email, array $submission_data = array(), string $context = self::CONTEXT_CERTIFICATE, string $identifier_type = UserCreator::TYPE_AUTO ) {
@@ -59,15 +59,15 @@ class UserManager {
 	 * Generate a username from email and submission data.
 	 *
 	 * @see UserCreator::generate_username()
-	 * @param array<string, mixed> $submission_data Submission data
+	 * @param array<string, mixed> $submission_data Submission data.
 	 */
 	public static function generate_username( string $email, array $submission_data = array() ): string {
 		return UserCreator::generate_username( $email, $submission_data );
 	}
 
-	// =====================================================================
-	// Backward-compatible delegation → CapabilityManager
-	// =====================================================================
+	// =====================================================================.
+	// Backward-compatible delegation → CapabilityManager.
+	// =====================================================================.
 
 	/**
 	 * Get all FFC capabilities.
@@ -129,15 +129,15 @@ class UserManager {
 		return CapabilityManager::set_user_capability( $user_id, $capability, $grant );
 	}
 
-	// =====================================================================
+	// =====================================================================.
 	// Profile & Data Retrieval (remain in UserManager)
-	// =====================================================================
+	// =====================================================================.
 
 	/**
 	 * Get user profile from ffc_user_profiles
 	 *
 	 * @since 4.9.4
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return array<string, mixed> Profile data
 	 */
 	public static function get_profile( int $user_id ): array {
@@ -182,8 +182,8 @@ class UserManager {
 	 * Update user profile in ffc_user_profiles
 	 *
 	 * @since 4.9.4
-	 * @param int                  $user_id WordPress user ID
-	 * @param array<string, mixed> $data    Profile fields to update
+	 * @param int                  $user_id WordPress user ID.
+	 * @param array<string, mixed> $data    Profile fields to update.
 	 * @return bool True on success
 	 */
 	public static function update_profile( int $user_id, array $data ): bool {
@@ -244,7 +244,7 @@ class UserManager {
 			);
 		}
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
@@ -288,7 +288,7 @@ class UserManager {
 		$usermeta_payload = array();
 
 		foreach ( $data as $key => $value ) {
-			if ( ! is_string( $key ) || $key === '' ) {
+			if ( ! is_string( $key ) || '' === $key ) {
 				continue;
 			}
 
@@ -314,7 +314,7 @@ class UserManager {
 			$scalar_value = is_scalar( $value ) ? (string) $value : ( wp_json_encode( $value ) ?: '' );
 
 			if ( isset( $sensitive_map[ $key ] ) ) {
-				if ( $scalar_value === '' || $scalar_value === null ) {
+				if ( '' === $scalar_value || null === $scalar_value ) {
 					delete_user_meta( $user_id, $meta_key );
 					continue;
 				}
@@ -324,7 +324,7 @@ class UserManager {
 				}
 
 				$encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $scalar_value );
-				if ( $encrypted === null ) {
+				if ( null === $encrypted ) {
 					continue;
 				}
 
@@ -332,7 +332,7 @@ class UserManager {
 
 				// Store a lookup hash for indexed searches (e.g. find user by CPF).
 				$hash = \FreeFormCertificate\Core\Encryption::hash( $scalar_value );
-				if ( $hash !== null ) {
+				if ( null !== $hash ) {
 					update_user_meta( $user_id, $meta_key . '_hash', $hash );
 				}
 
@@ -366,7 +366,7 @@ class UserManager {
 		$sensitive_map = array_flip( $sensitive_keys );
 
 		foreach ( $extra_keys as $key ) {
-			if ( ! is_string( $key ) || $key === '' ) {
+			if ( ! is_string( $key ) || '' === $key ) {
 				continue;
 			}
 			if ( in_array( $key, self::PROFILE_TABLE_KEYS, true ) ) {
@@ -376,14 +376,14 @@ class UserManager {
 			$meta_key = self::EXTENDED_META_PREFIX . sanitize_key( $key );
 			$raw      = get_user_meta( $user_id, $meta_key, true );
 
-			if ( $raw === '' || $raw === null ) {
+			if ( '' === $raw || null === $raw ) {
 				$profile[ $key ] = '';
 				continue;
 			}
 
 			if ( isset( $sensitive_map[ $key ] ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
 				$decrypted       = \FreeFormCertificate\Core\Encryption::decrypt( (string) $raw );
-				$profile[ $key ] = $decrypted !== null ? $decrypted : '';
+				$profile[ $key ] = null !== $decrypted ? $decrypted : '';
 			} else {
 				$profile[ $key ] = $raw;
 			}
@@ -395,7 +395,7 @@ class UserManager {
 	/**
 	 * Get user's CPF/RF (masked) — first found
 	 *
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return string|null Masked CPF/RF or null
 	 */
 	public static function get_user_cpf_masked( int $user_id ): ?string {
@@ -407,7 +407,7 @@ class UserManager {
 	 * Get all user's CPF/RF values (masked)
 	 *
 	 * @since 4.3.0
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return array<int, string> Array of masked CPF/RF values
 	 */
 	public static function get_user_cpfs_masked( int $user_id ): array {
@@ -415,7 +415,7 @@ class UserManager {
 		$submissions_table  = \FreeFormCertificate\Core\Utils::get_submissions_table();
 		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-		// Query both submissions and appointments tables so users who only
+		// Query both submissions and appointments tables so users who only.
 		// have self-scheduling appointments still get their CPF/RF displayed.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results(
@@ -443,7 +443,7 @@ class UserManager {
 
 		foreach ( $rows as $row ) {
 			try {
-				// Prefer split columns
+				// Prefer split columns.
 				$plain = null;
 				if ( ! empty( $row['cpf_encrypted'] ) ) {
 					$plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_encrypted'] );
@@ -478,7 +478,7 @@ class UserManager {
 	 * Get user's identifiers (CPFs and RFs) masked and typed
 	 *
 	 * @since 4.13.0
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return array{cpfs: array<int, string>, rfs: array<int, string>}
 	 */
 	public static function get_user_identifiers_masked( int $user_id ): array {
@@ -548,7 +548,7 @@ class UserManager {
 	/**
 	 * Get all emails used by a user in submissions
 	 *
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return array<int, string> Array of emails
 	 */
 	public static function get_user_emails( int $user_id ): array {
@@ -606,7 +606,7 @@ class UserManager {
 	 * Get all distinct names used by a user in submissions
 	 *
 	 * @since 4.3.0
-	 * @param int $user_id WordPress user ID
+	 * @param int $user_id WordPress user ID.
 	 * @return array<int, string> Array of names
 	 */
 	public static function get_user_names( int $user_id ): array {

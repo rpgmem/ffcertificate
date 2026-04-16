@@ -52,10 +52,10 @@ class UrlShortenerQrHandler {
 	 * @return string Base64-encoded PNG data.
 	 */
 	public function generate_qr_base64( string $url, int $size = 200, string $short_code = '' ): string {
-		// Try cache first
-		if ( $short_code !== '' ) {
+		// Try cache first.
+		if ( '' !== $short_code ) {
 			$cached = $this->get_qr_cache( $short_code );
-			if ( $cached !== '' ) {
+			if ( '' !== $cached ) {
 				return $cached;
 			}
 		}
@@ -71,8 +71,8 @@ class UrlShortenerQrHandler {
 			)
 		);
 
-		// Persist to cache
-		if ( $short_code !== '' && $base64 !== '' ) {
+		// Persist to cache.
+		if ( '' !== $short_code && '' !== $base64 ) {
 			$this->set_qr_cache( $short_code, $base64 );
 		}
 
@@ -94,7 +94,7 @@ class UrlShortenerQrHandler {
 			$wpdb->prepare( 'SELECT qr_cache FROM %i WHERE short_code = %s', $table, $short_code )
 		);
 
-		return is_string( $value ) && $value !== '' ? $value : '';
+		return is_string( $value ) && '' !== $value ? $value : '';
 	}
 
 	/**
@@ -130,7 +130,7 @@ class UrlShortenerQrHandler {
 	 * @return string SVG markup.
 	 */
 	public function generate_svg( string $url, int $size = 200 ): string {
-		// Ensure phpqrcode is loaded
+		// Ensure phpqrcode is loaded.
 		if ( ! class_exists( '\\QRcode' ) ) {
 			require_once FFC_PLUGIN_DIR . 'libs/phpqrcode/qrlib.php';
 		}

@@ -238,7 +238,7 @@ class AudienceAdminImport {
 				$('.ffc-tab-content').hide();
 				$('#' + tab).show();
 			});
-			// Restore tab from URL hash
+			// Restore tab from URL hash.
 			if (window.location.hash) {
 				var hash = window.location.hash.substring(1);
 				var $tab = $('.nav-tab[data-tab="' + hash + '"]');
@@ -261,12 +261,12 @@ class AudienceAdminImport {
 			return;
 		}
 
-		// Handle sample download
+		// Handle sample download.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['download_sample'] ) && isset( $_GET['_wpnonce'] ) ) {
 			$type = sanitize_text_field( wp_unslash( $_GET['download_sample'] ) );
 			if ( wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'download_sample' ) ) {
-				$filename = $type === 'audiences' ? 'audiences-sample.csv' : 'members-sample.csv';
+				$filename = 'audiences' === $type ? 'audiences-sample.csv' : 'members-sample.csv';
 				header( 'Content-Type: text/csv' );
 				header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
                 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -275,35 +275,35 @@ class AudienceAdminImport {
 			}
 		}
 
-		// Handle members export
-		if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'export_members' ) {
+		// Handle members export.
+		if ( isset( $_POST['ffc_action'] ) && 'export_members' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_export_members_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_export_members_nonce'] ) ), 'ffc_export_members' ) ) {
 				return;
 			}
 			$this->export_members_csv();
 		}
 
-		// Handle audiences export
-		if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'export_audiences' ) {
+		// Handle audiences export.
+		if ( isset( $_POST['ffc_action'] ) && 'export_audiences' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_export_audiences_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_export_audiences_nonce'] ) ), 'ffc_export_audiences' ) ) {
 				return;
 			}
 			$this->export_audiences_csv();
 		}
 
-		// Handle members import
-		if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'import_members' ) {
+		// Handle members import.
+		if ( isset( $_POST['ffc_action'] ) && 'import_members' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_import_members_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_import_members_nonce'] ) ), 'ffc_import_members' ) ) {
 				return;
 			}
 
-			if ( ! isset( $_FILES['members_csv'], $_FILES['members_csv']['error'] ) || $_FILES['members_csv']['error'] !== UPLOAD_ERR_OK ) {
+			if ( ! isset( $_FILES['members_csv'], $_FILES['members_csv']['error'] ) || UPLOAD_ERR_OK !== $_FILES['members_csv']['error'] ) {
 				add_settings_error( 'ffc_audience', 'ffc_message', __( 'File upload failed.', 'ffcertificate' ), 'error' );
 				return;
 			}
 
 			$audience_id  = isset( $_POST['import_audience_id'] ) ? absint( $_POST['import_audience_id'] ) : 0;
-			$create_users = isset( $_POST['create_users'] ) && $_POST['create_users'] === '1';
+			$create_users = isset( $_POST['create_users'] ) && '1' === $_POST['create_users'];
 
 			$tmp_name = isset( $_FILES['members_csv']['tmp_name'] ) ? $_FILES['members_csv']['tmp_name'] : '';
 			if ( ! $tmp_name || ! is_uploaded_file( $tmp_name ) ) {
@@ -332,7 +332,7 @@ class AudienceAdminImport {
 				}
 				add_settings_error( 'ffc_audience', 'ffc_message', $message, 'success' );
 
-				// Show first 5 errors
+				// Show first 5 errors.
 				foreach ( array_slice( $result['errors'], 0, 5 ) as $error ) {
 					add_settings_error( 'ffc_audience', 'ffc_message', $error, 'warning' );
 				}
@@ -341,13 +341,13 @@ class AudienceAdminImport {
 			}
 		}
 
-		// Handle audiences import
-		if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'import_audiences' ) {
+		// Handle audiences import.
+		if ( isset( $_POST['ffc_action'] ) && 'import_audiences' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_import_audiences_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_import_audiences_nonce'] ) ), 'ffc_import_audiences' ) ) {
 				return;
 			}
 
-			if ( ! isset( $_FILES['audiences_csv'], $_FILES['audiences_csv']['error'] ) || $_FILES['audiences_csv']['error'] !== UPLOAD_ERR_OK ) {
+			if ( ! isset( $_FILES['audiences_csv'], $_FILES['audiences_csv']['error'] ) || UPLOAD_ERR_OK !== $_FILES['audiences_csv']['error'] ) {
 				add_settings_error( 'ffc_audience', 'ffc_message', __( 'File upload failed.', 'ffcertificate' ), 'error' );
 				return;
 			}
@@ -375,7 +375,7 @@ class AudienceAdminImport {
 				}
 				add_settings_error( 'ffc_audience', 'ffc_message', $message, 'success' );
 
-				// Show first 5 errors
+				// Show first 5 errors.
 				foreach ( array_slice( $result['errors'], 0, 5 ) as $error ) {
 					add_settings_error( 'ffc_audience', 'ffc_message', $error, 'warning' );
 				}
@@ -394,7 +394,7 @@ class AudienceAdminImport {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in caller handle_actions().
 		$audience_id = isset( $_POST['export_audience_id'] ) ? absint( $_POST['export_audience_id'] ) : 0;
 
-		// Collect audience IDs to export
+		// Collect audience IDs to export.
 		$audience_ids = array();
 		if ( $audience_id > 0 ) {
 			$audience_ids[] = $audience_id;
@@ -405,7 +405,7 @@ class AudienceAdminImport {
 			}
 		}
 
-		// Build audience name map
+		// Build audience name map.
 		$audience_map  = array();
 		$all_audiences = AudienceRepository::get_all();
 		foreach ( $all_audiences as $aud ) {
@@ -418,12 +418,12 @@ class AudienceAdminImport {
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		$output = fopen( 'php://output', 'w' );
-		if ( $output === false ) {
+		if ( false === $output ) {
 			exit;
 		}
 		fputcsv( $output, array( 'email', 'name', 'audience_name' ) );
 
-		$seen = array(); // Avoid duplicate rows for same user+audience
+		$seen = array(); // Avoid duplicate rows for same user+audience.
 		foreach ( $audience_ids as $aid ) {
 			$member_ids    = AudienceRepository::get_members( $aid );
 			$audience_name = isset( $audience_map[ $aid ] ) ? $audience_map[ $aid ] : '';
@@ -470,19 +470,19 @@ class AudienceAdminImport {
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		$output = fopen( 'php://output', 'w' );
-		if ( $output === false ) {
+		if ( false === $output ) {
 			exit;
 		}
 		fputcsv( $output, array( 'name', 'color', 'parent' ) );
 
-		// Parents first, then children (same order as import expects)
+		// Parents first, then children (same order as import expects).
 		foreach ( $audiences as $audience ) {
 			fputcsv(
 				$output,
 				array(
 					$audience->name,
 					$audience->color ?? '#3788d8',
-					'', // Parents have no parent
+					'', // Parents have no parent.
 				)
 			);
 

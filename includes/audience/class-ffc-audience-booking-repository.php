@@ -61,7 +61,7 @@ class AudienceBookingRepository {
 	/**
 	 * Get all bookings
 	 *
-	 * @param array<string, mixed> $args Query arguments
+	 * @param array<string, mixed> $args Query arguments.
 	 * @return array<int, object>
 	 */
 	public static function get_all( array $args = array() ): array {
@@ -153,12 +153,12 @@ class AudienceBookingRepository {
 	/**
 	 * Get booking by ID
 	 *
-	 * @param int $id Booking ID
+	 * @param int $id Booking ID.
 	 * @return object|null
 	 */
 	public static function get_by_id( int $id ): ?object {
 		$cached = static::cache_get( "id_{$id}" );
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -180,7 +180,7 @@ class AudienceBookingRepository {
 		);
 
 		if ( $booking ) {
-			// Load related audiences and users
+			// Load related audiences and users.
 			$booking->audiences = self::get_booking_audiences( $id );
 			$booking->users     = self::get_booking_users( $id );
 			static::cache_set( "id_{$id}", $booking );
@@ -192,9 +192,9 @@ class AudienceBookingRepository {
 	/**
 	 * Get bookings for a specific date and environment
 	 *
-	 * @param int         $environment_id Environment ID
-	 * @param string      $date Date (Y-m-d)
-	 * @param string|null $status Optional status filter
+	 * @param int         $environment_id Environment ID.
+	 * @param string      $date Date (Y-m-d).
+	 * @param string|null $status Optional status filter.
 	 * @return array<int, object>
 	 */
 	public static function get_by_date( int $environment_id, string $date, ?string $status = null ): array {
@@ -210,10 +210,10 @@ class AudienceBookingRepository {
 	/**
 	 * Get bookings for a date range
 	 *
-	 * @param int         $environment_id Environment ID
-	 * @param string      $start_date Start date (Y-m-d)
-	 * @param string      $end_date End date (Y-m-d)
-	 * @param string|null $status Optional status filter
+	 * @param int         $environment_id Environment ID.
+	 * @param string      $start_date Start date (Y-m-d).
+	 * @param string      $end_date End date (Y-m-d).
+	 * @param string|null $status Optional status filter.
 	 * @return array<int, object>
 	 */
 	public static function get_by_date_range( int $environment_id, string $start_date, string $end_date, ?string $status = null ): array {
@@ -230,8 +230,8 @@ class AudienceBookingRepository {
 	/**
 	 * Get bookings created by a user
 	 *
-	 * @param int                  $user_id User ID
-	 * @param array<string, mixed> $args Additional query arguments
+	 * @param int                  $user_id User ID.
+	 * @param array<string, mixed> $args Additional query arguments.
 	 * @return array<int, object>
 	 */
 	public static function get_by_creator( int $user_id, array $args = array() ): array {
@@ -242,8 +242,8 @@ class AudienceBookingRepository {
 	/**
 	 * Get bookings for a user (as participant, not creator)
 	 *
-	 * @param int                  $user_id User ID
-	 * @param array<string, mixed> $args Additional query arguments
+	 * @param int                  $user_id User ID.
+	 * @param array<string, mixed> $args Additional query arguments.
 	 * @return array<int, object>
 	 */
 	public static function get_by_participant( int $user_id, array $args = array() ): array {
@@ -301,7 +301,7 @@ class AudienceBookingRepository {
 	/**
 	 * Create a booking
 	 *
-	 * @param array<string, mixed> $data Booking data
+	 * @param array<string, mixed> $data Booking data.
 	 * @return int|false Booking ID or false on failure
 	 */
 	public static function create( array $data ) {
@@ -321,7 +321,7 @@ class AudienceBookingRepository {
 		);
 		$data     = wp_parse_args( $data, $defaults );
 
-		// Validate required fields
+		// Validate required fields.
 		if ( ! $data['environment_id'] || ! $data['booking_date'] || ! $data['start_time'] || ! $data['end_time'] || ! $data['description'] ) {
 			return false;
 		}
@@ -348,14 +348,14 @@ class AudienceBookingRepository {
 
 		$booking_id = $wpdb->insert_id;
 
-		// Add audience associations if provided
+		// Add audience associations if provided.
 		if ( isset( $data['audience_ids'] ) && is_array( $data['audience_ids'] ) ) {
 			foreach ( $data['audience_ids'] as $audience_id ) {
 				self::add_booking_audience( $booking_id, (int) $audience_id );
 			}
 		}
 
-		// Add user associations if provided
+		// Add user associations if provided.
 		if ( isset( $data['user_ids'] ) && is_array( $data['user_ids'] ) ) {
 			foreach ( $data['user_ids'] as $user_id ) {
 				self::add_booking_user( $booking_id, (int) $user_id );
@@ -368,32 +368,32 @@ class AudienceBookingRepository {
 	/**
 	 * Update a booking
 	 *
-	 * @param int                  $id Booking ID
-	 * @param array<string, mixed> $data Update data
+	 * @param int                  $id Booking ID.
+	 * @param array<string, mixed> $data Update data.
 	 * @return bool
 	 */
 	public static function update( int $id, array $data ): bool {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// Remove fields that shouldn't be updated
+		// Remove fields that shouldn't be updated.
 		unset( $data['id'], $data['created_by'], $data['created_at'] );
 
-		// Handle audience_ids separately
+		// Handle audience_ids separately.
 		$audience_ids = null;
 		if ( isset( $data['audience_ids'] ) ) {
 			$audience_ids = $data['audience_ids'];
 			unset( $data['audience_ids'] );
 		}
 
-		// Handle user_ids separately
+		// Handle user_ids separately.
 		$user_ids = null;
 		if ( isset( $data['user_ids'] ) ) {
 			$user_ids = $data['user_ids'];
 			unset( $data['user_ids'] );
 		}
 
-		// Update main booking record
+		// Update main booking record.
 		if ( ! empty( $data ) ) {
 			$update_data = array();
 			$format      = array();
@@ -430,13 +430,13 @@ class AudienceBookingRepository {
 			}
 		}
 
-		// Update audience associations
-		if ( $audience_ids !== null ) {
+		// Update audience associations.
+		if ( null !== $audience_ids ) {
 			self::set_booking_audiences( $id, $audience_ids );
 		}
 
-		// Update user associations
-		if ( $user_ids !== null ) {
+		// Update user associations.
+		if ( null !== $user_ids ) {
 			self::set_booking_users( $id, $user_ids );
 		}
 
@@ -448,8 +448,8 @@ class AudienceBookingRepository {
 	/**
 	 * Cancel a booking
 	 *
-	 * @param int    $id Booking ID
-	 * @param string $reason Cancellation reason (required)
+	 * @param int    $id Booking ID.
+	 * @param string $reason Cancellation reason (required).
 	 * @return bool
 	 */
 	public static function cancel( int $id, string $reason ): bool {
@@ -475,7 +475,7 @@ class AudienceBookingRepository {
 	/**
 	 * Delete a booking
 	 *
-	 * @param int $id Booking ID
+	 * @param int $id Booking ID.
 	 * @return bool
 	 */
 	public static function delete( int $id ): bool {
@@ -484,26 +484,26 @@ class AudienceBookingRepository {
 		$audiences_table = self::get_booking_audiences_table_name();
 		$users_table     = self::get_booking_users_table_name();
 
-		// Delete associations first
+		// Delete associations first.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $audiences_table, array( 'booking_id' => $id ), array( '%d' ) );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $users_table, array( 'booking_id' => $id ), array( '%d' ) );
 
-		// Delete the booking
+		// Delete the booking.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Add an audience to a booking
 	 *
-	 * @param int $booking_id Booking ID
-	 * @param int $audience_id Audience ID
+	 * @param int $booking_id Booking ID.
+	 * @param int $audience_id Audience ID.
 	 * @return bool
 	 */
 	public static function add_booking_audience( int $booking_id, int $audience_id ): bool {
@@ -519,14 +519,14 @@ class AudienceBookingRepository {
 			array( '%d', '%d' )
 		);
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Remove an audience from a booking
 	 *
-	 * @param int $booking_id Booking ID
-	 * @param int $audience_id Audience ID
+	 * @param int $booking_id Booking ID.
+	 * @param int $audience_id Audience ID.
 	 * @return bool
 	 */
 	public static function remove_booking_audience( int $booking_id, int $audience_id ): bool {
@@ -543,13 +543,13 @@ class AudienceBookingRepository {
 			array( '%d', '%d' )
 		);
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Get audiences for a booking
 	 *
-	 * @param int $booking_id Booking ID
+	 * @param int $booking_id Booking ID.
 	 * @return array<object>
 	 */
 	public static function get_booking_audiences( int $booking_id ): array {
@@ -574,19 +574,19 @@ class AudienceBookingRepository {
 	/**
 	 * Set audiences for a booking (replace all)
 	 *
-	 * @param int        $booking_id Booking ID
-	 * @param array<int> $audience_ids Audience IDs
+	 * @param int        $booking_id Booking ID.
+	 * @param array<int> $audience_ids Audience IDs.
 	 * @return bool
 	 */
 	public static function set_booking_audiences( int $booking_id, array $audience_ids ): bool {
 		$wpdb  = self::db();
 		$table = self::get_booking_audiences_table_name();
 
-		// Remove all existing
+		// Remove all existing.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $table, array( 'booking_id' => $booking_id ), array( '%d' ) );
 
-		// Add new ones
+		// Add new ones.
 		foreach ( $audience_ids as $audience_id ) {
 			self::add_booking_audience( $booking_id, (int) $audience_id );
 		}
@@ -597,8 +597,8 @@ class AudienceBookingRepository {
 	/**
 	 * Add a user to a booking
 	 *
-	 * @param int $booking_id Booking ID
-	 * @param int $user_id User ID
+	 * @param int $booking_id Booking ID.
+	 * @param int $user_id User ID.
 	 * @return bool
 	 */
 	public static function add_booking_user( int $booking_id, int $user_id ): bool {
@@ -614,14 +614,14 @@ class AudienceBookingRepository {
 			array( '%d', '%d' )
 		);
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Remove a user from a booking
 	 *
-	 * @param int $booking_id Booking ID
-	 * @param int $user_id User ID
+	 * @param int $booking_id Booking ID.
+	 * @param int $user_id User ID.
 	 * @return bool
 	 */
 	public static function remove_booking_user( int $booking_id, int $user_id ): bool {
@@ -638,13 +638,13 @@ class AudienceBookingRepository {
 			array( '%d', '%d' )
 		);
 
-		return $result !== false;
+		return false !== $result;
 	}
 
 	/**
 	 * Get users for a booking
 	 *
-	 * @param int $booking_id Booking ID
+	 * @param int $booking_id Booking ID.
 	 * @return array<int> User IDs
 	 */
 	public static function get_booking_users( int $booking_id ): array {
@@ -666,19 +666,19 @@ class AudienceBookingRepository {
 	/**
 	 * Set users for a booking (replace all)
 	 *
-	 * @param int        $booking_id Booking ID
-	 * @param array<int> $user_ids User IDs
+	 * @param int        $booking_id Booking ID.
+	 * @param array<int> $user_ids User IDs.
 	 * @return bool
 	 */
 	public static function set_booking_users( int $booking_id, array $user_ids ): bool {
 		$wpdb  = self::db();
 		$table = self::get_booking_users_table_name();
 
-		// Remove all existing
+		// Remove all existing.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $table, array( 'booking_id' => $booking_id ), array( '%d' ) );
 
-		// Add new ones
+		// Add new ones.
 		foreach ( $user_ids as $user_id ) {
 			self::add_booking_user( $booking_id, (int) $user_id );
 		}
@@ -689,35 +689,35 @@ class AudienceBookingRepository {
 	/**
 	 * Get all affected users for a booking (from audiences + individual users)
 	 *
-	 * @param int $booking_id Booking ID
+	 * @param int $booking_id Booking ID.
 	 * @return array<int> Unique user IDs
 	 */
 	public static function get_all_affected_users( int $booking_id ): array {
 		$users = array();
 
-		// Get directly added users
+		// Get directly added users.
 		$direct_users = self::get_booking_users( $booking_id );
 		$users        = array_merge( $users, $direct_users );
 
-		// Get users from audiences
+		// Get users from audiences.
 		$audiences = self::get_booking_audiences( $booking_id );
 		foreach ( $audiences as $audience ) {
 			$audience_users = AudienceRepository::get_members( (int) $audience->id, true );
 			$users          = array_merge( $users, $audience_users );
 		}
 
-		// Return unique user IDs
+		// Return unique user IDs.
 		return array_unique( $users );
 	}
 
 	/**
 	 * Check for time conflicts
 	 *
-	 * @param int      $environment_id Environment ID
-	 * @param string   $date Date (Y-m-d)
-	 * @param string   $start_time Start time (H:i)
-	 * @param string   $end_time End time (H:i)
-	 * @param int|null $exclude_booking_id Booking ID to exclude (for updates)
+	 * @param int      $environment_id Environment ID.
+	 * @param string   $date Date (Y-m-d).
+	 * @param string   $start_time Start time (H:i).
+	 * @param string   $end_time End time (H:i).
+	 * @param int|null $exclude_booking_id Booking ID to exclude (for updates).
 	 * @return array<object> Conflicting bookings
 	 */
 	public static function get_conflicts( int $environment_id, string $date, string $start_time, string $end_time, ?int $exclude_booking_id = null ): array {
@@ -761,13 +761,13 @@ class AudienceBookingRepository {
 	 * When $scope_schedule_id is provided, only bookings in that schedule
 	 * are considered (isolated-calendar mode).
 	 *
-	 * @param string     $date Date (Y-m-d)
-	 * @param string     $start_time Start time (H:i)
-	 * @param string     $end_time End time (H:i)
-	 * @param array<int> $audience_ids Audience IDs to check
-	 * @param array<int> $user_ids Individual user IDs to check
-	 * @param int|null   $exclude_booking_id Booking ID to exclude
-	 * @param int|null   $scope_schedule_id When set, restrict to this schedule only
+	 * @param string     $date Date (Y-m-d).
+	 * @param string     $start_time Start time (H:i).
+	 * @param string     $end_time End time (H:i).
+	 * @param array<int> $audience_ids Audience IDs to check.
+	 * @param array<int> $user_ids Individual user IDs to check.
+	 * @param int|null   $exclude_booking_id Booking ID to exclude.
+	 * @param int|null   $scope_schedule_id When set, restrict to this schedule only.
 	 * @return array{bookings: array<object>, affected_users: array<int>}
 	 */
 	public static function get_user_conflicts(
@@ -785,7 +785,7 @@ class AudienceBookingRepository {
 		$bu_table      = self::get_booking_users_table_name();
 		$members_table = AudienceRepository::get_members_table_name();
 
-		// Get all users that would be affected by this booking
+		// Get all users that would be affected by this booking.
 		$all_user_ids = $user_ids;
 		foreach ( $audience_ids as $audience_id ) {
 			$audience_users = AudienceRepository::get_members( (int) $audience_id, true );
@@ -803,7 +803,7 @@ class AudienceBookingRepository {
 		$placeholders   = implode( ',', array_fill( 0, count( $all_user_ids ), '%d' ) );
 		$exclude_clause = $exclude_booking_id ? $wpdb->prepare( 'AND b.id != %d', $exclude_booking_id ) : '';
 
-		// Isolated schedule: JOIN environments and restrict to schedule
+		// Isolated schedule: JOIN environments and restrict to schedule.
 		$env_join         = '';
 		$env_where        = '';
 		$env_join_tables  = array(); // %i table name for JOIN
@@ -843,7 +843,7 @@ class AudienceBookingRepository {
 			)
 		);
 
-		// Find which specific users have conflicts
+		// Find which specific users have conflicts.
 		$affected_users = array();
 		foreach ( $conflicting_bookings as $booking ) {
 			$booking_users  = self::get_all_affected_users( (int) $booking->id );
@@ -866,10 +866,10 @@ class AudienceBookingRepository {
 	 * When $scope_schedule_id is provided, only bookings in that schedule
 	 * are considered (isolated-calendar mode).
 	 *
-	 * @param string     $date Date (Y-m-d)
-	 * @param array<int> $audience_ids Audience IDs to check
-	 * @param int|null   $exclude_booking_id Booking ID to exclude (for updates)
-	 * @param int|null   $scope_schedule_id When set, restrict to this schedule only
+	 * @param string     $date Date (Y-m-d).
+	 * @param array<int> $audience_ids Audience IDs to check.
+	 * @param int|null   $exclude_booking_id Booking ID to exclude (for updates).
+	 * @param int|null   $scope_schedule_id When set, restrict to this schedule only.
 	 * @return array<object> Bookings with matched audience info
 	 */
 	public static function get_audience_same_day_bookings(
@@ -890,7 +890,7 @@ class AudienceBookingRepository {
 		$placeholders   = implode( ',', array_fill( 0, count( $audience_ids ), '%d' ) );
 		$exclude_clause = $exclude_booking_id ? $wpdb->prepare( 'AND b.id != %d', $exclude_booking_id ) : '';
 
-		// Isolated schedule: JOIN environments and restrict to schedule
+		// Isolated schedule: JOIN environments and restrict to schedule.
 		$env_join         = '';
 		$env_where        = '';
 		$env_join_tables  = array(); // %i table name for JOIN
@@ -929,7 +929,7 @@ class AudienceBookingRepository {
 	/**
 	 * Count bookings
 	 *
-	 * @param array<string, mixed> $args Query arguments
+	 * @param array<string, mixed> $args Query arguments.
 	 * @return int
 	 */
 	public static function count( array $args = array() ): int {

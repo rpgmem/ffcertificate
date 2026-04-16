@@ -23,22 +23,22 @@ class AccessRestrictionChecker {
 	 *
 	 * Validation order: Password → Denylist (priority) → Allowlist → Ticket (consumed)
 	 *
-	 * @param array<string, mixed> $form_config Form configuration
-	 * @param string               $val_cpf CPF/RF from form (already cleaned)
-	 * @param string               $val_ticket Ticket from form
-	 * @param int                  $form_id Form ID (needed for ticket consumption)
+	 * @param array<string, mixed> $form_config Form configuration.
+	 * @param string               $val_cpf CPF/RF from form (already cleaned).
+	 * @param string               $val_ticket Ticket from form.
+	 * @param int                  $form_id Form ID (needed for ticket consumption).
 	 * @return array<string, mixed> ['allowed' => bool, 'message' => string, 'is_ticket' => bool]
 	 */
 	public static function check( array $form_config, string $val_cpf, string $val_ticket, int $form_id ): array {
 		$restrictions = isset( $form_config['restrictions'] ) ? $form_config['restrictions'] : array();
 
-		// Clean CPF/RF (remove any mask)
+		// Clean CPF/RF (remove any mask).
 		$clean_cpf = preg_replace( '/\D/', '', $val_cpf );
 
-		// ========================================
+		// ========================================.
 		// 1. PASSWORD CHECK (if active)
-		// ========================================
-		if ( ! empty( $restrictions['password'] ) && $restrictions['password'] == '1' ) {
+		// ========================================.
+		if ( ! empty( $restrictions['password'] ) && '1' === $restrictions['password'] ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_submission_ajax() caller.
 			$password       = isset( $_POST['ffc_password'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['ffc_password'] ) ) ) : '';
 			$valid_password = isset( $form_config['validation_code'] ) ? $form_config['validation_code'] : '';
@@ -60,14 +60,14 @@ class AccessRestrictionChecker {
 			}
 		}
 
-		// ========================================
+		// ========================================.
 		// 2. DENYLIST CHECK (if active - HAS PRIORITY)
-		// ========================================
-		if ( ! empty( $restrictions['denylist'] ) && $restrictions['denylist'] == '1' ) {
+		// ========================================.
+		if ( ! empty( $restrictions['denylist'] ) && '1' === $restrictions['denylist'] ) {
 			$denied_raw  = isset( $form_config['denied_users_list'] ) ? $form_config['denied_users_list'] : '';
 			$denied_list = array_filter( array_map( 'trim', explode( "\n", $denied_raw ) ) );
 
-			// Clean masks from denylist before comparing
+			// Clean masks from denylist before comparing.
 			$denied_clean = array_map(
 				function ( $d ) {
 					return preg_replace( '/\D/', '', $d );
@@ -75,7 +75,7 @@ class AccessRestrictionChecker {
 				$denied_list
 			);
 
-			if ( in_array( $clean_cpf, $denied_clean ) ) {
+			if ( in_array( $clean_cpf, $denied_clean, true ) ) {
 				return array(
 					'allowed'   => false,
 					'message'   => __( 'Your CPF/RF is blocked.', 'ffcertificate' ),
@@ -84,14 +84,14 @@ class AccessRestrictionChecker {
 			}
 		}
 
-		// ========================================
+		// ========================================.
 		// 3. ALLOWLIST CHECK (if active)
-		// ========================================
-		if ( ! empty( $restrictions['allowlist'] ) && $restrictions['allowlist'] == '1' ) {
+		// ========================================.
+		if ( ! empty( $restrictions['allowlist'] ) && '1' === $restrictions['allowlist'] ) {
 			$allowed_raw  = isset( $form_config['allowed_users_list'] ) ? $form_config['allowed_users_list'] : '';
 			$allowed_list = array_filter( array_map( 'trim', explode( "\n", $allowed_raw ) ) );
 
-			// Clean masks from allowlist before comparing
+			// Clean masks from allowlist before comparing.
 			$allowed_clean = array_map(
 				function ( $a ) {
 					return preg_replace( '/\D/', '', $a );
@@ -99,7 +99,7 @@ class AccessRestrictionChecker {
 				$allowed_list
 			);
 
-			if ( ! in_array( $clean_cpf, $allowed_clean ) ) {
+			if ( ! in_array( $clean_cpf, $allowed_clean, true ) ) {
 				return array(
 					'allowed'   => false,
 					'message'   => __( 'Your CPF/RF is not authorized.', 'ffcertificate' ),
@@ -108,10 +108,10 @@ class AccessRestrictionChecker {
 			}
 		}
 
-		// ========================================
+		// ========================================.
 		// 4. TICKET CHECK (if active - CONSUMED)
-		// ========================================
-		if ( ! empty( $restrictions['ticket'] ) && $restrictions['ticket'] == '1' ) {
+		// ========================================.
+		if ( ! empty( $restrictions['ticket'] ) && '1' === $restrictions['ticket'] ) {
 			$ticket = strtoupper( trim( $val_ticket ) );
 
 			if ( empty( $ticket ) ) {
@@ -132,7 +132,7 @@ class AccessRestrictionChecker {
 				)
 			);
 
-			if ( ! in_array( $ticket, $tickets ) ) {
+			if ( ! in_array( $ticket, $tickets, true ) ) {
 				return array(
 					'allowed'   => false,
 					'message'   => __( 'Invalid or already used ticket.', 'ffcertificate' ),
@@ -140,7 +140,7 @@ class AccessRestrictionChecker {
 				);
 			}
 
-			// Consume ticket (remove from list)
+			// Consume ticket (remove from list).
 			$tickets                             = array_diff( $tickets, array( $ticket ) );
 			$form_config['generated_codes_list'] = implode( "\n", $tickets );
 			update_post_meta( $form_id, '_ffc_form_config', $form_config );
@@ -152,9 +152,9 @@ class AccessRestrictionChecker {
 			);
 		}
 
-		// ========================================
-		// NO RESTRICTIONS ACTIVE - ALLOW
-		// ========================================
+		// ========================================.
+		// NO RESTRICTIONS ACTIVE - ALLOW.
+		// ========================================.
 		return array(
 			'allowed'   => true,
 			'message'   => '',
@@ -165,8 +165,8 @@ class AccessRestrictionChecker {
 	/**
 	 * Remove used ticket from form configuration
 	 *
-	 * @param int    $form_id Form ID
-	 * @param string $ticket Ticket code to consume
+	 * @param int    $form_id Form ID.
+	 * @param string $ticket Ticket code to consume.
 	 */
 	public static function consume_ticket( int $form_id, string $ticket ): void {
 		$current_config                         = get_post_meta( $form_id, '_ffc_form_config', true );

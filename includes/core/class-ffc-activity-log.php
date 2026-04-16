@@ -87,15 +87,15 @@ class ActivityLog {
 	/**
 	 * Log an activity
 	 *
-	 * @param string               $action Action performed (e.g., 'submission_created', 'pdf_generated')
-	 * @param string               $level Log level (info, warning, error, debug)
-	 * @param array<string, mixed> $context Additional context data
-	 * @param int                  $user_id User ID (0 for anonymous/system)
-	 * @param int                  $submission_id Submission ID (0 if not related to submission) - v2.10.0
+	 * @param string               $action Action performed (e.g., 'submission_created', 'pdf_generated').
+	 * @param string               $level Log level (info, warning, error, debug).
+	 * @param array<string, mixed> $context Additional context data.
+	 * @param int                  $user_id User ID (0 for anonymous/system).
+	 * @param int                  $submission_id Submission ID (0 if not related to submission) - v2.10.0.
 	 * @return bool Success
 	 */
 	public static function log( string $action, string $level = self::LEVEL_INFO, array $context = array(), int $user_id = 0, int $submission_id = 0 ): bool {
-		// CRITICAL: Check admin settings FIRST (before temporary flag)
+		// CRITICAL: Check admin settings FIRST (before temporary flag).
 		$settings   = get_option( 'ffc_settings', array() );
 		$is_enabled = isset( $settings['enable_activity_log'] ) && absint( $settings['enable_activity_log'] ) === 1;
 
@@ -103,18 +103,18 @@ class ActivityLog {
 			return false;
 		}
 
-		// Check if logging is temporarily disabled (bulk operations)
+		// Check if logging is temporarily disabled (bulk operations).
 		if ( self::$logging_disabled ) {
 			return false;
 		}
 
-		// Validate level
+		// Validate level.
 		$valid_levels = array( self::LEVEL_INFO, self::LEVEL_WARNING, self::LEVEL_ERROR, self::LEVEL_DEBUG );
-		if ( ! in_array( $level, $valid_levels ) ) {
+		if ( ! in_array( $level, $valid_levels, true ) ) {
 			$level = self::LEVEL_INFO;
 		}
 
-		// Encrypt context if contains sensitive data
+		// Encrypt context if contains sensitive data.
 		$context_json      = wp_json_encode( $context ) ?: '';
 		$context_encrypted = null;
 
@@ -127,12 +127,12 @@ class ActivityLog {
 				'encryption_migration_batch',
 			);
 
-			if ( in_array( $action, $sensitive_actions ) ) {
+			if ( in_array( $action, $sensitive_actions, true ) ) {
 				$context_encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $context_json );
 			}
 		}
 
-		// Prepare log entry for buffer
+		// Prepare log entry for buffer.
 		$log_data = array(
 			'action'            => sanitize_text_field( $action ),
 			'level'             => sanitize_key( $level ),
@@ -144,10 +144,10 @@ class ActivityLog {
 			'created_at'        => current_time( 'mysql' ),
 		);
 
-		// Add to write buffer
+		// Add to write buffer.
 		self::$write_buffer[] = $log_data;
 
-		// Register shutdown hook on first buffered entry
+		// Register shutdown hook on first buffered entry.
 		if ( ! self::$shutdown_registered ) {
 			add_action(
 				'shutdown',
@@ -158,12 +158,12 @@ class ActivityLog {
 			self::$shutdown_registered = true;
 		}
 
-		// Auto-flush when buffer reaches threshold
+		// Auto-flush when buffer reaches threshold.
 		if ( count( self::$write_buffer ) >= self::BUFFER_THRESHOLD ) {
 			self::flush_buffer();
 		}
 
-		// Debug system logging (immediate, lightweight)
+		// Debug system logging (immediate, lightweight).
 		if ( class_exists( '\\FreeFormCertificate\\Core\\Debug' ) ) {
 			\FreeFormCertificate\Core\Debug::log_activity_log(
 				$action,
@@ -193,7 +193,7 @@ class ActivityLog {
 			return 0;
 		}
 
-		// Re-check admin setting before flushing — entries may have been
+		// Re-check admin setting before flushing — entries may have been.
 		// buffered while logging was enabled, then disabled before shutdown.
 		if ( ! self::is_enabled() ) {
 			self::$write_buffer = array();
@@ -203,10 +203,10 @@ class ActivityLog {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'ffc_activity_log';
 
-		// Get available columns (cached)
+		// Get available columns (cached).
 		$columns               = self::get_table_columns_cached( $table_name );
-		$has_submission_id     = in_array( 'submission_id', $columns );
-		$has_context_encrypted = in_array( 'context_encrypted', $columns );
+		$has_submission_id     = in_array( 'submission_id', $columns, true );
+		$has_context_encrypted = in_array( 'context_encrypted', $columns, true );
 
 		$count              = count( self::$write_buffer );
 		$entries            = self::$write_buffer;
@@ -251,7 +251,7 @@ class ActivityLog {
 		$table_name      = $wpdb->prefix . 'ffc_activity_log';
 		$charset_collate = $wpdb->get_charset_collate();
 
-		// Check if table already exists
+		// Check if table already exists.
 		if ( self::table_exists( $table_name ) ) {
 			return true;
 		}
@@ -279,9 +279,9 @@ class ActivityLog {
 		return true;
 	}
 
-	// =====================================================================
+	// =====================================================================.
 	// Backward-compatible delegation → ActivityLogQuery (v4.12.2)
-	// =====================================================================
+	// =====================================================================.
 
 	/**
 	 * @see ActivityLogQuery::get_activities()
@@ -321,8 +321,8 @@ class ActivityLog {
 	/**
 	 * Log submission created
 	 *
-	 * @param int                  $submission_id Submission ID
-	 * @param array<string, mixed> $data Additional data (form_id, encrypted status, etc)
+	 * @param int                  $submission_id Submission ID.
+	 * @param array<string, mixed> $data Additional data (form_id, encrypted status, etc).
 	 * @return bool Success
 	 */
 	public static function log_submission_created( int $submission_id, array $data = array() ): bool {
@@ -366,7 +366,7 @@ class ActivityLog {
 	/**
 	 * Log submission trashed
 	 *
-	 * @param int $submission_id Submission ID
+	 * @param int $submission_id Submission ID.
 	 * @return bool Success
 	 */
 	public static function log_submission_trashed( int $submission_id ): bool {
@@ -382,7 +382,7 @@ class ActivityLog {
 	/**
 	 * Log submission restored
 	 *
-	 * @param int $submission_id Submission ID
+	 * @param int $submission_id Submission ID.
 	 * @return bool Success
 	 */
 	public static function log_submission_restored( int $submission_id ): bool {
@@ -398,8 +398,8 @@ class ActivityLog {
 	/**
 	 * Log data access (LGPD audit trail)
 	 *
-	 * @param int                  $submission_id Submission ID
-	 * @param array<string, mixed> $context Access context (method, IP, etc)
+	 * @param int                  $submission_id Submission ID.
+	 * @param array<string, mixed> $context Access context (method, IP, etc).
 	 * @return bool Success
 	 */
 	public static function log_data_accessed( int $submission_id, array $context = array() ): bool {
@@ -444,7 +444,7 @@ class ActivityLog {
 	 * Log password changed
 	 *
 	 * @since 4.9.9
-	 * @param int $user_id User who changed their password
+	 * @param int $user_id User who changed their password.
 	 * @return bool
 	 */
 	public static function log_password_changed( int $user_id ): bool {
@@ -455,8 +455,8 @@ class ActivityLog {
 	 * Log user profile updated
 	 *
 	 * @since 4.9.9
-	 * @param int                $user_id User whose profile was updated
-	 * @param array<int, string> $fields  Fields that were changed
+	 * @param int                $user_id User whose profile was updated.
+	 * @param array<int, string> $fields  Fields that were changed.
 	 * @return bool
 	 */
 	public static function log_profile_updated( int $user_id, array $fields = array() ): bool {
@@ -474,9 +474,9 @@ class ActivityLog {
 	 * Log capabilities granted to a user
 	 *
 	 * @since 4.9.9
-	 * @param int                $user_id      Target user
-	 * @param string             $context      Context: 'certificate', 'appointment', 'audience'
-	 * @param array<int, string> $capabilities Capabilities granted
+	 * @param int                $user_id      Target user.
+	 * @param string             $context      Context: 'certificate', 'appointment', 'audience'.
+	 * @param array<int, string> $capabilities Capabilities granted.
 	 * @return bool
 	 */
 	public static function log_capabilities_granted( int $user_id, string $context, array $capabilities = array() ): bool {
@@ -496,8 +496,8 @@ class ActivityLog {
 	 * Log privacy request created
 	 *
 	 * @since 4.9.9
-	 * @param int    $user_id User who requested
-	 * @param string $type    Request type (export_personal_data | remove_personal_data)
+	 * @param int    $user_id User who requested.
+	 * @param string $type    Request type (export_personal_data | remove_personal_data).
 	 * @return bool
 	 */
 	public static function log_privacy_request( int $user_id, string $type ): bool {
@@ -522,18 +522,18 @@ class ActivityLog {
 	/**
 	 * Get table columns with caching (public since v4.12.2 for ActivityLogQuery)
 	 *
-	 * @param string $table_name Table name
+	 * @param string $table_name Table name.
 	 * @return array<int, string> Column names
 	 */
 	public static function get_table_columns_cached( string $table_name ): array {
 		global $wpdb;
 
-		// Return cached value if available
-		if ( self::$table_columns_cache !== null ) {
+		// Return cached value if available.
+		if ( null !== self::$table_columns_cache ) {
 			return self::$table_columns_cache;
 		}
 
-		// Query columns and cache result
+		// Query columns and cache result.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		self::$table_columns_cache = $wpdb->get_col( $wpdb->prepare( 'DESCRIBE %i', $table_name ), 0 );
 

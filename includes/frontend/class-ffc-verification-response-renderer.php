@@ -24,9 +24,9 @@ class VerificationResponseRenderer {
 	/**
 	 * Format certificate verification response HTML
 	 *
-	 * @param object               $submission Submission object
-	 * @param array<string, mixed> $data Submission data fields
-	 * @param bool                 $show_download_button Whether to show PDF download button
+	 * @param object               $submission Submission object.
+	 * @param array<string, mixed> $data Submission data fields.
+	 * @param bool                 $show_download_button Whether to show PDF download button.
 	 * @return string HTML output
 	 */
 	public function format_verification_response( object $submission, array $data, bool $show_download_button = false ): string {
@@ -40,7 +40,7 @@ class VerificationResponseRenderer {
 			? \FreeFormCertificate\Core\Utils::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
 			: '';
 
-		// Fields to skip (internal/technical)
+		// Fields to skip (internal/technical).
 		$skip_fields = array(
 			'auth_code',
 			'ticket',
@@ -52,14 +52,14 @@ class VerificationResponseRenderer {
 			'magic_token',
 		);
 
-		// Priority fields to show first (in order)
+		// Priority fields to show first (in order).
 		$priority_fields = array( 'name', 'cpf_rf', 'email', 'program', 'date' );
 
-		// Callbacks for template
+		// Callbacks for template.
 		$get_field_label_callback    = array( $this, 'get_field_label' );
 		$format_field_value_callback = array( $this, 'format_field_value' );
 
-		// Render template
+		// Render template.
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/certificate-preview.php';
 		return ob_get_clean() ?: '';
@@ -68,7 +68,7 @@ class VerificationResponseRenderer {
 	/**
 	 * Format appointment verification response HTML
 	 *
-	 * @param array<string, mixed> $result Appointment search result
+	 * @param array<string, mixed> $result Appointment search result.
 	 * @return string HTML output
 	 */
 	public function format_appointment_verification_response( array $result ): string {
@@ -78,40 +78,40 @@ class VerificationResponseRenderer {
 		$date_format = get_option( 'date_format' );
 		$time_format = get_option( 'time_format' );
 
-		// Format date
+		// Format date.
 		$formatted_date = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['appointment_date'] ) ) {
 			$ts = strtotime( $appointment['appointment_date'] );
-			if ( $ts !== false ) {
+			if ( false !== $ts ) {
 				$formatted_date = date_i18n( $date_format, $ts );
 			}
 		}
 
-		// Format time
+		// Format time.
 		$formatted_time = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['start_time'] ) ) {
 			$ts = strtotime( $appointment['start_time'] );
-			if ( $ts !== false ) {
+			if ( false !== $ts ) {
 				$formatted_time = date_i18n( $time_format, $ts );
 			}
 			if ( ! empty( $appointment['end_time'] ) ) {
 				$ts2 = strtotime( $appointment['end_time'] );
-				if ( $ts2 !== false ) {
+				if ( false !== $ts2 ) {
 					$formatted_time .= ' - ' . date_i18n( $time_format, $ts2 );
 				}
 			}
 		}
 
-		// Format created_at
+		// Format created_at.
 		$formatted_created = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['created_at'] ) ) {
 			$ts = strtotime( $appointment['created_at'] );
-			if ( $ts !== false ) {
+			if ( false !== $ts ) {
 				$formatted_created = date_i18n( $date_format . ' ' . $time_format, $ts );
 			}
 		}
 
-		// Status labels
+		// Status labels.
 		$status_labels = array(
 			'pending'   => __( 'Pending Approval', 'ffcertificate' ),
 			'confirmed' => __( 'Confirmed', 'ffcertificate' ),
@@ -122,19 +122,19 @@ class VerificationResponseRenderer {
 		$status        = $appointment['status'] ?? 'pending';
 		$status_label  = $status_labels[ $status ] ?? $status;
 
-		// Format validation code
+		// Format validation code.
 		$display_code = '';
 		if ( ! empty( $appointment['validation_code'] ) ) {
 			$display_code = \FreeFormCertificate\Core\Utils::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT );
 		}
 
-		// Format CPF/RF
+		// Format CPF/RF.
 		$cpf_rf_display = '';
 		if ( ! empty( $data['cpf_rf'] ) ) {
 			$cpf_rf_display = \FreeFormCertificate\Core\Utils::format_document( $data['cpf_rf'] );
 		}
 
-		// Build HTML
+		// Build HTML.
 		$html = '<div class="ffc-certificate-preview ffc-appointment-verification">';
 
 		$html .= '<div class="ffc-preview-header">';
@@ -205,8 +205,8 @@ class VerificationResponseRenderer {
 	/**
 	 * Generate appointment PDF data for verification context
 	 *
-	 * @param array<string, mixed>                         $result Search result array
-	 * @param \FreeFormCertificate\Generators\PdfGenerator $pdf_generator PDF generator instance
+	 * @param array<string, mixed>                         $result Search result array.
+	 * @param \FreeFormCertificate\Generators\PdfGenerator $pdf_generator PDF generator instance.
 	 * @return array<string, mixed> PDF data array
 	 */
 	public function generate_appointment_verification_pdf( array $result, \FreeFormCertificate\Generators\PdfGenerator $pdf_generator ): array {
@@ -240,7 +240,7 @@ class VerificationResponseRenderer {
 		$submitted_at = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $rereg['submitted_at'] ) ) {
 			$ts = strtotime( $rereg['submitted_at'] );
-			if ( $ts !== false ) {
+			if ( false !== $ts ) {
 				$submitted_at = date_i18n( $date_format . ' ' . $time_format, $ts );
 			}
 		}
@@ -249,17 +249,17 @@ class VerificationResponseRenderer {
 			? \FreeFormCertificate\Core\Utils::format_auth_code( $rereg['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
 			: '';
 
-		// Format CPF
+		// Format CPF.
 		$cpf_display = '';
 		if ( ! empty( $rereg['cpf'] ) && class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
 			$cpf_display = \FreeFormCertificate\Core\Utils::format_document( $rereg['cpf'] );
 		}
 
-		// Status badge class
+		// Status badge class.
 		$status_class = 'info';
-		if ( $rereg['status'] === 'approved' ) {
+		if ( 'approved' === $rereg['status'] ) {
 			$status_class = 'success';
-		} elseif ( $rereg['status'] === 'rejected' ) {
+		} elseif ( 'rejected' === $rereg['status'] ) {
 			$status_class = 'error';
 		}
 
@@ -320,7 +320,7 @@ class VerificationResponseRenderer {
 	/**
 	 * Get human-readable field label
 	 *
-	 * @param string $field_key Field key
+	 * @param string $field_key Field key.
 	 * @return string Formatted label
 	 */
 	public function get_field_label( string $field_key ): string {
@@ -354,8 +354,8 @@ class VerificationResponseRenderer {
 	/**
 	 * Format field value for display
 	 *
-	 * @param string $field_key Field key
-	 * @param mixed  $value Field value
+	 * @param string $field_key Field key.
+	 * @param mixed  $value Field value.
 	 * @return string Formatted value
 	 */
 	public function format_field_value( string $field_key, $value ): string {
@@ -363,7 +363,7 @@ class VerificationResponseRenderer {
 			return implode( ', ', $value );
 		}
 
-		if ( in_array( $field_key, array( 'cpf', 'cpf_rf', 'rg' ) ) && ! empty( $value ) ) {
+		if ( in_array( $field_key, array( 'cpf', 'cpf_rf', 'rg' ), true ) && ! empty( $value ) ) {
 			return \FreeFormCertificate\Core\Utils::format_document( $value, 'auto' );
 		}
 

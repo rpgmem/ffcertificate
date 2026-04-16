@@ -54,9 +54,9 @@ trait UserContextTrait {
 	 * Otherwise, checks the current user's capabilities.
 	 *
 	 * @since 4.9.7
-	 * @param string $capability Capability name
-	 * @param int    $user_id Target user ID
-	 * @param bool   $is_view_as Whether view-as mode is active
+	 * @param string $capability Capability name.
+	 * @param int    $user_id Target user ID.
+	 * @param bool   $is_view_as Whether view-as mode is active.
 	 * @return bool
 	 */
 	private function user_has_capability( string $capability, int $user_id, bool $is_view_as ): bool {

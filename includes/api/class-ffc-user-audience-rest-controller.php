@@ -163,7 +163,7 @@ class UserAudienceRestController {
 				$bookings = array();
 			}
 
-			// Batch load audiences for all bookings to avoid N+1 queries
+			// Batch load audiences for all bookings to avoid N+1 queries.
 			$audiences_map = array();
 			$booking_ids   = array_filter(
 				array_map(
@@ -208,19 +208,19 @@ class UserAudienceRestController {
 				$date_formatted = '';
 				if ( ! empty( $booking['booking_date'] ) ) {
 					$timestamp      = strtotime( $booking['booking_date'] );
-					$date_formatted = ( $timestamp !== false ) ? date_i18n( $date_format, $timestamp ) : $booking['booking_date'];
+					$date_formatted = ( false !== $timestamp ) ? date_i18n( $date_format, $timestamp ) : $booking['booking_date'];
 				}
 
 				$time_formatted = '';
 				if ( ! empty( $booking['start_time'] ) ) {
 					$time_timestamp = strtotime( $booking['start_time'] );
-					$time_formatted = ( $time_timestamp !== false ) ? date_i18n( 'H:i', $time_timestamp ) : $booking['start_time'];
+					$time_formatted = ( false !== $time_timestamp ) ? date_i18n( 'H:i', $time_timestamp ) : $booking['start_time'];
 				}
 
 				$end_time_formatted = '';
 				if ( ! empty( $booking['end_time'] ) ) {
 					$end_timestamp      = strtotime( $booking['end_time'] );
-					$end_time_formatted = ( $end_timestamp !== false ) ? date_i18n( 'H:i', $end_timestamp ) : '';
+					$end_time_formatted = ( false !== $end_timestamp ) ? date_i18n( 'H:i', $end_timestamp ) : '';
 				}
 
 				$status_labels = array(
@@ -299,7 +299,7 @@ class UserAudienceRestController {
 			$audiences_table = $wpdb->prefix . 'ffc_audiences';
 			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
-			// Check tables and columns exist
+			// Check tables and columns exist.
 			if ( ! self::table_exists( $audiences_table ) || ! self::column_exists( $audiences_table, 'allow_self_join' ) ) {
 				return rest_ensure_response(
 					array(
@@ -310,7 +310,7 @@ class UserAudienceRestController {
 				);
 			}
 
-			// Fetch all joinable audiences at once (with membership status)
+			// Fetch all joinable audiences at once (with membership status).
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$all = $wpdb->get_results(
 				$wpdb->prepare(
@@ -337,7 +337,7 @@ class UserAudienceRestController {
 				);
 			}
 
-			// Build tree in PHP
+			// Build tree in PHP.
 			$by_id        = array();
 			$joined_count = 0;
 			foreach ( $all as &$row ) {
@@ -359,7 +359,7 @@ class UserAudienceRestController {
 			}
 			unset( $item );
 
-			// Count joined leaf audiences and strip parent_id from output
+			// Count joined leaf audiences and strip parent_id from output.
 			$result = array();
 			foreach ( $roots as $root ) {
 				$node = $this->build_joinable_node( $root, $joined_count );
@@ -397,7 +397,7 @@ class UserAudienceRestController {
 			}
 		}
 
-		// Leaf node: include if joinable
+		// Leaf node: include if joinable.
 		if ( empty( $children ) && empty( $node['children'] ) ) {
 			if ( $node['is_member'] ) {
 				++$count;
@@ -410,7 +410,7 @@ class UserAudienceRestController {
 			);
 		}
 
-		// Branch node: only include if it has joinable descendants
+		// Branch node: only include if it has joinable descendants.
 		if ( ! empty( $children ) ) {
 			$out = array(
 				'id'       => $node['id'],
@@ -451,7 +451,7 @@ class UserAudienceRestController {
 			$audiences_table = $wpdb->prefix . 'ffc_audiences';
 			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
-			// Verify group is a child, active, and allows self-join (only children can be joined)
+			// Verify group is a child, active, and allows self-join (only children can be joined).
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$group = $wpdb->get_row(
 				$wpdb->prepare(
@@ -465,7 +465,7 @@ class UserAudienceRestController {
 				return new \WP_Error( 'invalid_group', __( 'Group not found or does not allow self-join', 'ffcertificate' ), array( 'status' => 404 ) );
 			}
 
-			// Check already member
+			// Check already member.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$already = $wpdb->get_var(
 				$wpdb->prepare(
@@ -480,7 +480,7 @@ class UserAudienceRestController {
 				return new \WP_Error( 'already_member', __( 'You are already a member of this group', 'ffcertificate' ), array( 'status' => 409 ) );
 			}
 
-			// Count current self-join memberships (only children count)
+			// Count current self-join memberships (only children count).
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$current_count = (int) $wpdb->get_var(
 				$wpdb->prepare(
@@ -502,7 +502,7 @@ class UserAudienceRestController {
 				);
 			}
 
-			// Join the group
+			// Join the group.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->insert(
 				$members_table,
@@ -513,7 +513,7 @@ class UserAudienceRestController {
 				array( '%d', '%d' )
 			);
 
-			// Grant audience capabilities if needed
+			// Grant audience capabilities if needed.
 			if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 				\FreeFormCertificate\UserDashboard\UserManager::grant_audience_capabilities( $user_id );
 			}
@@ -558,7 +558,7 @@ class UserAudienceRestController {
 			$audiences_table = $wpdb->prefix . 'ffc_audiences';
 			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
-			// Verify group is a self-joinable child (can only leave children)
+			// Verify group is a self-joinable child (can only leave children).
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$group = $wpdb->get_row(
 				$wpdb->prepare(
@@ -621,7 +621,7 @@ class UserAudienceRestController {
 			$audiences_table = $wpdb->prefix . 'ffc_audiences';
 			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
-			// Delete all memberships where the audience allows self-join
+			// Delete all memberships where the audience allows self-join.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$deleted = $wpdb->query(
 				$wpdb->prepare(

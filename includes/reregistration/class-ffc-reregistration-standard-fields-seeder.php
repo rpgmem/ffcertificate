@@ -49,7 +49,7 @@ class ReregistrationStandardFieldsSeeder {
 	 * @return void
 	 */
 	public static function on_audience_created( int $audience_id, array $data = array() ): void {
-		unset( $data ); // unused
+		unset( $data ); // unused.
 		if ( $audience_id <= 0 ) {
 			return;
 		}
@@ -103,7 +103,7 @@ class ReregistrationStandardFieldsSeeder {
 		$divisao_map = ReregistrationFieldOptions::get_divisao_setor_map();
 
 		return array(
-			// ───── Personal Data ─────
+			// ───── Personal Data ─────.
 			array(
 				'field_key'    => 'display_name',
 				'field_label'  => __( 'Name', 'ffcertificate' ),
@@ -241,7 +241,7 @@ class ReregistrationStandardFieldsSeeder {
 				'validation'   => null,
 			),
 
-			// ───── Contact Information ─────
+			// ───── Contact Information ─────.
 			array(
 				'field_key'    => 'endereco',
 				'field_label'  => __( 'Address', 'ffcertificate' ),
@@ -402,7 +402,7 @@ class ReregistrationStandardFieldsSeeder {
 				'validation'   => array( 'format' => 'email' ),
 			),
 
-			// ───── Schedule ─────
+			// ───── Schedule ─────.
 			array(
 				'field_key'    => 'jornada',
 				'field_label'  => __( 'Work Schedule', 'ffcertificate' ),
@@ -428,7 +428,7 @@ class ReregistrationStandardFieldsSeeder {
 				'validation'   => null,
 			),
 
-			// ───── Union ─────
+			// ───── Union ─────.
 			array(
 				'field_key'    => 'sindicato',
 				'field_label'  => __( 'Union', 'ffcertificate' ),
@@ -442,7 +442,7 @@ class ReregistrationStandardFieldsSeeder {
 				'validation'   => null,
 			),
 
-			// ───── Position Accumulation ─────
+			// ───── Position Accumulation ─────.
 			array(
 				'field_key'    => 'acumulo_cargos',
 				'field_label'  => __( 'Position Accumulation', 'ffcertificate' ),
@@ -541,8 +541,8 @@ class ReregistrationStandardFieldsSeeder {
 				'field_profile_key' => $def['profile_key'],
 				'field_mask'        => $def['mask'],
 				'is_sensitive'      => (int) ( $def['is_sensitive'] ?? 0 ),
-				'field_options'     => $def['options'] !== null ? wp_json_encode( $def['options'] ) : null,
-				'validation_rules'  => $def['validation'] !== null ? wp_json_encode( $def['validation'] ) : null,
+				'field_options'     => null !== $def['options'] ? wp_json_encode( $def['options'] ) : null,
+				'validation_rules'  => null !== $def['validation'] ? wp_json_encode( $def['validation'] ) : null,
 				'sort_order'        => $index,
 				'is_required'       => (int) ( $def['required'] ?? 0 ),
 				'is_active'         => 1,

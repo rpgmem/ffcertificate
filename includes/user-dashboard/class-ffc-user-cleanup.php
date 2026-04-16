@@ -40,7 +40,7 @@ class UserCleanup {
 	 * - Submissions/Appointments/Activity log: SET user_id = NULL (preserve audit trail)
 	 * - Audience members/booking users/permissions/profiles: DELETE (no audit value)
 	 *
-	 * @param int $user_id Deleted WordPress user ID
+	 * @param int $user_id Deleted WordPress user ID.
 	 * @return void
 	 */
 	public static function anonymize_user_data( int $user_id ): void {
@@ -61,7 +61,7 @@ class UserCleanup {
 			$anonymized['submissions'] = $rows;
 		}
 
-		// 2. Self-scheduling appointments: SET user_id = NULL
+		// 2. Self-scheduling appointments: SET user_id = NULL.
 		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		if ( self::table_exists( $appointments_table ) ) {
 			$rows = $wpdb->query(
@@ -91,7 +91,7 @@ class UserCleanup {
 			}
 		}
 
-		// 4. Audience members: DELETE
+		// 4. Audience members: DELETE.
 		$members_table = $wpdb->prefix . 'ffc_audience_members';
 		if ( self::table_exists( $members_table ) ) {
 			$rows = $wpdb->delete( $members_table, array( 'user_id' => $user_id ), array( '%d' ) );
@@ -100,7 +100,7 @@ class UserCleanup {
 			}
 		}
 
-		// 5. Audience booking users: DELETE
+		// 5. Audience booking users: DELETE.
 		$booking_users_table = $wpdb->prefix . 'ffc_audience_booking_users';
 		if ( self::table_exists( $booking_users_table ) ) {
 			$rows = $wpdb->delete( $booking_users_table, array( 'user_id' => $user_id ), array( '%d' ) );
@@ -109,7 +109,7 @@ class UserCleanup {
 			}
 		}
 
-		// 6. Audience schedule permissions: DELETE
+		// 6. Audience schedule permissions: DELETE.
 		$permissions_table = $wpdb->prefix . 'ffc_audience_schedule_permissions';
 		if ( self::table_exists( $permissions_table ) ) {
 			$rows = $wpdb->delete( $permissions_table, array( 'user_id' => $user_id ), array( '%d' ) );
@@ -118,14 +118,14 @@ class UserCleanup {
 			}
 		}
 
-		// 7. User profiles: DELETE
+		// 7. User profiles: DELETE.
 		$profiles_table = $wpdb->prefix . 'ffc_user_profiles';
 		if ( self::table_exists( $profiles_table ) ) {
 			$wpdb->delete( $profiles_table, array( 'user_id' => $user_id ), array( '%d' ) );
 			$anonymized['profile'] = 1;
 		}
 
-		// Log the anonymization
+		// Log the anonymization.
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
 				'user_data_anonymized',
@@ -146,8 +146,8 @@ class UserCleanup {
 	 *
 	 * Does NOT alter email_encrypted (historical record of email at submission time).
 	 *
-	 * @param int      $user_id Updated user ID
-	 * @param \WP_User $old_user_data User data before the update
+	 * @param int      $user_id Updated user ID.
+	 * @param \WP_User $old_user_data User data before the update.
 	 * @return void
 	 */
 	public static function handle_email_change( int $user_id, \WP_User $old_user_data ): void {
@@ -166,7 +166,7 @@ class UserCleanup {
 		global $wpdb;
 		$submissions_table = $wpdb->prefix . 'ffc_submissions';
 
-		// Reindex email_hash for submissions linked to this user_id
+		// Reindex email_hash for submissions linked to this user_id.
 		$new_email_hash = hash( 'sha256', strtolower( trim( $new_email ) ) );
 
 		$wpdb->query(
@@ -178,7 +178,7 @@ class UserCleanup {
 			)
 		);
 
-		// Update profile timestamp
+		// Update profile timestamp.
 		$profiles_table = $wpdb->prefix . 'ffc_user_profiles';
 		if ( self::table_exists( $profiles_table ) ) {
 			$wpdb->update(
@@ -190,7 +190,7 @@ class UserCleanup {
 			);
 		}
 
-		// Log the change
+		// Log the change.
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			$old_masked = class_exists( '\FreeFormCertificate\Core\Utils' )
 				? \FreeFormCertificate\Core\Utils::mask_email( $old_email )
@@ -211,5 +211,5 @@ class UserCleanup {
 		}
 	}
 
-	// table_exists() provided by DatabaseHelperTrait
+	// table_exists() provided by DatabaseHelperTrait.
 }

@@ -32,7 +32,7 @@ class SelfSchedulingEditor {
 		add_action( 'admin_notices', array( $this, 'display_save_errors' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
-		// Delegated handlers
+		// Delegated handlers.
 		new SelfSchedulingSaveHandler();
 		$this->cleanup_handler = new SelfSchedulingCleanupHandler();
 	}
@@ -44,12 +44,12 @@ class SelfSchedulingEditor {
 	 * @return void
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ) ) ) {
+		if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
 			return;
 		}
 
 		$screen = get_current_screen();
-		if ( ! $screen || $screen->post_type !== 'ffc_self_scheduling' ) {
+		if ( ! $screen || 'ffc_self_scheduling' !== $screen->post_type ) {
 			return;
 		}
 
@@ -96,7 +96,7 @@ class SelfSchedulingEditor {
 	 * @return void
 	 */
 	public function add_custom_metaboxes(): void {
-		// Main configuration
+		// Main configuration.
 		add_meta_box(
 			'ffc_self_scheduling_box_config',
 			__( '1. Calendar Configuration', 'ffcertificate' ),
@@ -106,7 +106,7 @@ class SelfSchedulingEditor {
 			'high'
 		);
 
-		// Working hours
+		// Working hours.
 		add_meta_box(
 			'ffc_self_scheduling_box_hours',
 			__( '2. Working Hours & Availability', 'ffcertificate' ),
@@ -116,7 +116,7 @@ class SelfSchedulingEditor {
 			'high'
 		);
 
-		// Booking rules
+		// Booking rules.
 		add_meta_box(
 			'ffc_self_scheduling_box_rules',
 			__( '3. Booking Rules & Restrictions', 'ffcertificate' ),
@@ -126,7 +126,7 @@ class SelfSchedulingEditor {
 			'high'
 		);
 
-		// Email notifications
+		// Email notifications.
 		add_meta_box(
 			'ffc_self_scheduling_box_email',
 			__( '4. Email Notifications', 'ffcertificate' ),
@@ -136,7 +136,7 @@ class SelfSchedulingEditor {
 			'high'
 		);
 
-		// Shortcode (sidebar)
+		// Shortcode (sidebar).
 		add_meta_box(
 			'ffc_self_scheduling_shortcode',
 			__( 'How to Use / Shortcode', 'ffcertificate' ),
@@ -146,7 +146,7 @@ class SelfSchedulingEditor {
 			'high'
 		);
 
-		// Cleanup appointments (sidebar) - Only show for existing calendars
+		// Cleanup appointments (sidebar) - Only show for existing calendars.
 		$post_id = get_the_ID();
 		if ( $post_id ) {
 			add_meta_box(
@@ -250,27 +250,27 @@ class SelfSchedulingEditor {
 					'day'   => 1,
 					'start' => '09:00',
 					'end'   => '17:00',
-				), // Monday
+				), // Monday.
 				array(
 					'day'   => 2,
 					'start' => '09:00',
 					'end'   => '17:00',
-				), // Tuesday
+				), // Tuesday.
 				array(
 					'day'   => 3,
 					'start' => '09:00',
 					'end'   => '17:00',
-				), // Wednesday
+				), // Wednesday.
 				array(
 					'day'   => 4,
 					'start' => '09:00',
 					'end'   => '17:00',
-				), // Thursday
+				), // Thursday.
 				array(
 					'day'   => 5,
 					'start' => '09:00',
 					'end'   => '17:00',
-				), // Friday
+				), // Friday.
 			);
 		}
 
@@ -415,15 +415,15 @@ class SelfSchedulingEditor {
 			<tr>
 				<th><label for="ffc_scheduling_visibility"><?php esc_html_e( 'Scheduling', 'ffcertificate' ); ?></label></th>
 				<td>
-					<select id="ffc_scheduling_visibility" name="ffc_self_scheduling_config[scheduling_visibility]" <?php echo $config['visibility'] === 'private' ? 'disabled' : ''; ?>>
+					<select id="ffc_scheduling_visibility" name="ffc_self_scheduling_config[scheduling_visibility]" <?php echo 'private' === $config['visibility'] ? 'disabled' : ''; ?>>
 						<option value="public" <?php selected( $config['scheduling_visibility'], 'public' ); ?>><?php esc_html_e( 'Public', 'ffcertificate' ); ?></option>
 						<option value="private" <?php selected( $config['scheduling_visibility'], 'private' ); ?>><?php esc_html_e( 'Private', 'ffcertificate' ); ?></option>
 					</select>
-					<?php if ( $config['visibility'] === 'private' ) : ?>
+					<?php if ( 'private' === $config['visibility'] ) : ?>
 						<input type="hidden" name="ffc_self_scheduling_config[scheduling_visibility]" value="private" />
 					<?php endif; ?>
 					<p class="description" id="ffc-scheduling-desc">
-						<?php if ( $config['visibility'] === 'private' ) : ?>
+						<?php if ( 'private' === $config['visibility'] ) : ?>
 							<?php esc_html_e( 'Forced to Private because Visibility is Private.', 'ffcertificate' ); ?>
 						<?php else : ?>
 							<?php esc_html_e( 'Public: anyone can book. Private: only logged-in users can book.', 'ffcertificate' ); ?>
@@ -561,7 +561,7 @@ class SelfSchedulingEditor {
 		<div class="ffc-shortcode-box">
 			<p><strong><?php esc_html_e( 'Use this shortcode to display the calendar:', 'ffcertificate' ); ?></strong></p>
 
-			<?php if ( $post->post_status === 'publish' ) : ?>
+			<?php if ( 'publish' === $post->post_status ) : ?>
 				<input type="text" readonly value='[ffc_self_scheduling id="<?php echo esc_attr( (string) $post->ID ); ?>"]' onclick="this.select();" class="ffc-shortcode-input" />
 
 				<p class="ffc-shortcode-preview-label"><strong><?php esc_html_e( 'Preview:', 'ffcertificate' ); ?></strong></p>
@@ -579,7 +579,7 @@ class SelfSchedulingEditor {
 	 * @return void
 	 */
 	public function display_save_errors(): void {
-		// Placeholder for error display
-		// Can be expanded as needed
+		// Placeholder for error display.
+		// Can be expanded as needed.
 	}
 }

@@ -40,26 +40,26 @@ class MigrationStatusCalculator {
 	/**
 	 * Constructor
 	 *
-	 * @param MigrationRegistry $registry Migration registry instance
+	 * @param MigrationRegistry $registry Migration registry instance.
 	 */
 	public function __construct( MigrationRegistry $registry ) {
 		$this->registry = $registry;
 
-		// Initialize strategies
+		// Initialize strategies.
 		$this->initialize_strategies();
 	}
 
 	/**
 	 * Initialize all migration strategies
 	 *
-	 * v5.0.0: Only split_cpf_rf remains after retiring 10 completed migrations.
+	 * V5.0.0: Only split_cpf_rf remains after retiring 10 completed migrations.
 	 *
 	 * @return void
 	 */
 	private function initialize_strategies(): void {
 		$this->try_create_strategy( 'split_cpf_rf' );
 
-		// Allow plugins to register custom strategies
+		// Allow plugins to register custom strategies.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
 		$this->strategies = apply_filters( 'ffcertificate_migration_strategies', $this->strategies );
 	}
@@ -70,7 +70,7 @@ class MigrationStatusCalculator {
 	 * If the strategy already exists, does nothing.
 	 * If creation fails, logs the error for later reporting.
 	 *
-	 * @param string $migration_key Migration identifier
+	 * @param string $migration_key Migration identifier.
 	 * @return void
 	 */
 	private function try_create_strategy( string $migration_key ): void {
@@ -81,9 +81,9 @@ class MigrationStatusCalculator {
 		try {
 			switch ( $migration_key ) {
 				case 'split_cpf_rf':
-					// Explicit include fallback — if the autoloader already attempted
-					// to load the file and failed (e.g. OPcache served stale bytecode
-					// with a syntax error), require_once won't retry. Using include
+					// Explicit include fallback — if the autoloader already attempted.
+					// to load the file and failed (e.g. OPcache served stale bytecode.
+					// with a syntax error), require_once won't retry. Using include.
 					// with class_exists guards ensures the file is always loaded.
 					$strategy_dir = __DIR__ . '/strategies/';
 					$core_dir     = dirname( __DIR__ ) . '/core/';
@@ -121,37 +121,37 @@ class MigrationStatusCalculator {
 	/**
 	 * Calculate migration status
 	 *
-	 * @param string $migration_key Migration identifier
+	 * @param string $migration_key Migration identifier.
 	 * @return array<string, mixed>|WP_Error Status array or error
 	 */
 	public function calculate( string $migration_key ) {
-		// Validate migration exists
+		// Validate migration exists.
 		if ( ! $this->registry->exists( $migration_key ) ) {
 			return new WP_Error( 'invalid_migration', __( 'Migration not found', 'ffcertificate' ) );
 		}
 
-		// Get strategy for this migration
+		// Get strategy for this migration.
 		$strategy = $this->get_strategy_for_migration( $migration_key );
 
 		if ( is_wp_error( $strategy ) ) {
 			return $strategy;
 		}
 
-		// Get migration configuration
+		// Get migration configuration.
 		$migration_config = $this->registry->get_migration( $migration_key );
 
-		// Delegate to strategy
+		// Delegate to strategy.
 		return $strategy->calculate_status( $migration_key, $migration_config );
 	}
 
 	/**
 	 * Get strategy instance for a specific migration
 	 *
-	 * @param string $migration_key Migration identifier
+	 * @param string $migration_key Migration identifier.
 	 * @return \FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface|WP_Error Strategy instance or error
 	 */
 	private function get_strategy_for_migration( string $migration_key ) {
-		// Lazy retry: if strategy wasn't loaded during init, try again now
+		// Lazy retry: if strategy wasn't loaded during init, try again now.
 		if ( ! isset( $this->strategies[ $migration_key ] ) ) {
 			$this->try_create_strategy( $migration_key );
 		}
@@ -175,21 +175,21 @@ class MigrationStatusCalculator {
 	 *
 	 * Delegates to strategy's can_run() method.
 	 *
-	 * @param string $migration_key Migration identifier
+	 * @param string $migration_key Migration identifier.
 	 * @return bool|WP_Error True if can run, WP_Error if cannot
 	 */
 	public function can_run( string $migration_key ) {
-		// Get strategy
+		// Get strategy.
 		$strategy = $this->get_strategy_for_migration( $migration_key );
 
 		if ( is_wp_error( $strategy ) ) {
 			return $strategy;
 		}
 
-		// Get migration configuration
+		// Get migration configuration.
 		$migration_config = $this->registry->get_migration( $migration_key );
 
-		// Delegate to strategy
+		// Delegate to strategy.
 		return $strategy->can_run( $migration_key, $migration_config );
 	}
 
@@ -198,29 +198,29 @@ class MigrationStatusCalculator {
 	 *
 	 * Delegates to strategy's execute() method.
 	 *
-	 * @param string $migration_key Migration identifier
-	 * @param int    $batch_number Batch number to process
+	 * @param string $migration_key Migration identifier.
+	 * @param int    $batch_number Batch number to process.
 	 * @return array<string, mixed>|WP_Error Execution result
 	 */
 	public function execute( string $migration_key, int $batch_number = 0 ) {
-		// Check if can run
+		// Check if can run.
 		$can_run = $this->can_run( $migration_key );
 
 		if ( is_wp_error( $can_run ) ) {
 			return $can_run;
 		}
 
-		// Get strategy
+		// Get strategy.
 		$strategy = $this->get_strategy_for_migration( $migration_key );
 
 		if ( is_wp_error( $strategy ) ) {
 			return $strategy;
 		}
 
-		// Get migration configuration
+		// Get migration configuration.
 		$migration_config = $this->registry->get_migration( $migration_key );
 
-		// Delegate to strategy
+		// Delegate to strategy.
 		return $strategy->execute( $migration_key, $migration_config, $batch_number );
 	}
 

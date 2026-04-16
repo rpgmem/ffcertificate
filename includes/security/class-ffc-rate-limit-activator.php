@@ -5,7 +5,7 @@ declare(strict_types=1);
  * RateLimitActivator v3.3.0
  * Creates database tables - dbDelta compatible
  *
- * v3.3.0 - Added strict types and type hints
+ * V3.3.0 - Added strict types and type hints
  * v3.2.0 - Migrated to namespace (Phase 2)
  */
 
@@ -28,7 +28,7 @@ class RateLimitActivator {
 		$table_limits = $wpdb->prefix . 'ffc_rate_limits';
 		$table_logs   = $wpdb->prefix . 'ffc_rate_limit_logs';
 
-		// Check if tables exist (using prepared statements via trait)
+		// Check if tables exist (using prepared statements via trait).
 		if ( ! self::table_exists( $table_limits ) ) {
 			$sql_limits = "CREATE TABLE $table_limits (
                 id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -58,7 +58,7 @@ class RateLimitActivator {
 			dbDelta( $sql_limits );
 		}
 
-		// TABLE 2: Logs
+		// TABLE 2: Logs.
 		if ( ! self::table_exists( $table_logs ) ) {
 			$sql_logs = "CREATE TABLE $table_logs (
                 id bigint(20) unsigned NOT NULL AUTO_INCREMENT,

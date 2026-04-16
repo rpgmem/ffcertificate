@@ -25,7 +25,7 @@ class FormEditorMetaboxRenderer {
 	/**
 	 * Render the shortcode sidebar metabox
 	 *
-	 * @param WP_Post $post The post object
+	 * @param WP_Post $post The post object.
 	 */
 	public function render_shortcode_metabox( object $post ): void {
 		?>
@@ -50,7 +50,7 @@ class FormEditorMetaboxRenderer {
 	/**
 	 * Section 1: Certificate Layout Editor
 	 *
-	 * @param WP_Post $post The post object
+	 * @param WP_Post $post The post object.
 	 */
 	public function render_box_layout( object $post ): void {
 		$config   = get_post_meta( $post->ID, '_ffc_form_config', true );
@@ -119,13 +119,13 @@ class FormEditorMetaboxRenderer {
 	/**
 	 * Section 2: Form Builder (Fields)
 	 *
-	 * @param WP_Post $post The post object
+	 * @param WP_Post $post The post object.
 	 */
 	public function render_box_builder( object $post ): void {
 		$fields = get_post_meta( $post->ID, '_ffc_form_fields', true );
 
-		// Default fields for brand new forms
-		if ( empty( $fields ) && $post->post_status === 'auto-draft' ) {
+		// Default fields for brand new forms.
+		if ( empty( $fields ) && 'auto-draft' === $post->post_status ) {
 			$fields = array(
 				array(
 					'type'     => 'text',
@@ -181,19 +181,19 @@ class FormEditorMetaboxRenderer {
 	/**
 	 * Section 3: Restrictions and Tickets
 	 *
-	 * @param WP_Post $post The post object
+	 * @param WP_Post $post The post object.
 	 */
 	public function render_box_restriction( object $post ): void {
 		$config = get_post_meta( $post->ID, '_ffc_form_config', true );
 
-		// Get restrictions (new structure)
+		// Get restrictions (new structure).
 		$restrictions     = isset( $config['restrictions'] ) ? $config['restrictions'] : array();
-		$password_active  = ! empty( $restrictions['password'] ) && $restrictions['password'] == '1';
-		$allowlist_active = ! empty( $restrictions['allowlist'] ) && $restrictions['allowlist'] == '1';
-		$denylist_active  = ! empty( $restrictions['denylist'] ) && $restrictions['denylist'] == '1';
-		$ticket_active    = ! empty( $restrictions['ticket'] ) && $restrictions['ticket'] == '1';
+		$password_active  = ! empty( $restrictions['password'] ) && '1' === $restrictions['password'];
+		$allowlist_active = ! empty( $restrictions['allowlist'] ) && '1' === $restrictions['allowlist'];
+		$denylist_active  = ! empty( $restrictions['denylist'] ) && '1' === $restrictions['denylist'];
+		$ticket_active    = ! empty( $restrictions['ticket'] ) && '1' === $restrictions['ticket'];
 
-		// Legacy fields
+		// Legacy fields.
 		$vcode     = isset( $config['validation_code'] ) ? $config['validation_code'] : '';
 		$allow     = isset( $config['allowed_users_list'] ) ? $config['allowed_users_list'] : '';
 		$deny      = isset( $config['denied_users_list'] ) ? $config['denied_users_list'] : '';
@@ -306,7 +306,7 @@ class FormEditorMetaboxRenderer {
 	/**
 	 * Section 4: Email Settings
 	 *
-	 * @param WP_Post $post The post object
+	 * @param WP_Post $post The post object.
 	 */
 	public function render_box_email( object $post ): void {
 		$config     = get_post_meta( $post->ID, '_ffc_form_config', true );
@@ -348,7 +348,7 @@ class FormEditorMetaboxRenderer {
 	 * Render Geofence & DateTime Restrictions Meta Box
 	 *
 	 * @since 3.0.0
-	 * @param WP_Post $post The post object
+	 * @param WP_Post $post The post object.
 	 */
 	public function render_box_geofence( object $post ): void {
 		$config = get_post_meta( $post->ID, '_ffc_geofence_config', true );
@@ -356,8 +356,8 @@ class FormEditorMetaboxRenderer {
 			$config = array();
 		}
 
-		// Defaults
-		$datetime_enabled   = ( $config['datetime_enabled'] ?? '0' ) == '1' ? '1' : '0';
+		// Defaults.
+		$datetime_enabled   = ( $config['datetime_enabled'] ?? '0' ) === '1' ? '1' : '0';
 		$date_start         = $config['date_start'] ?? '';
 		$date_end           = $config['date_end'] ?? '';
 		$time_start         = $config['time_start'] ?? '';
@@ -366,16 +366,16 @@ class FormEditorMetaboxRenderer {
 		$datetime_hide_mode = $config['datetime_hide_mode'] ?? 'message';
 		$msg_datetime       = $config['msg_datetime'] ?? __( 'This form is not available at this time.', 'ffcertificate' );
 
-		$geo_enabled       = ( $config['geo_enabled'] ?? '0' ) == '1' ? '1' : '0';
-		$geo_gps_enabled   = ( $config['geo_gps_enabled'] ?? '0' ) == '1' ? '1' : '0';
-		$geo_ip_enabled    = ( $config['geo_ip_enabled'] ?? '0' ) == '1' ? '1' : '0';
+		$geo_enabled       = ( $config['geo_enabled'] ?? '0' ) === '1' ? '1' : '0';
+		$geo_gps_enabled   = ( $config['geo_gps_enabled'] ?? '0' ) === '1' ? '1' : '0';
+		$geo_ip_enabled    = ( $config['geo_ip_enabled'] ?? '0' ) === '1' ? '1' : '0';
 		$geo_areas_default = '';
-		if ( $post->post_status === 'auto-draft' ) {
+		if ( 'auto-draft' === $post->post_status ) {
 			$ffc_global        = get_option( 'ffc_settings', array() );
 			$geo_areas_default = $ffc_global['main_geo_areas'] ?? '';
 		}
 		$geo_areas               = $config['geo_areas'] ?? $geo_areas_default;
-		$geo_ip_areas_permissive = ( $config['geo_ip_areas_permissive'] ?? '0' ) == '1' ? '1' : '0';
+		$geo_ip_areas_permissive = ( $config['geo_ip_areas_permissive'] ?? '0' ) === '1' ? '1' : '0';
 		$geo_ip_areas            = $config['geo_ip_areas'] ?? '';
 		$geo_gps_ip_logic        = $config['geo_gps_ip_logic'] ?? 'or';
 		$geo_hide_mode           = $config['geo_hide_mode'] ?? 'message';
@@ -561,7 +561,7 @@ class FormEditorMetaboxRenderer {
 	/**
 	 * Section 6: Quiz / Evaluation Mode
 	 *
-	 * @param WP_Post $post The post object
+	 * @param WP_Post $post The post object.
 	 */
 	public function render_box_quiz( object $post ): void {
 		$config = get_post_meta( $post->ID, '_ffc_form_config', true );
@@ -615,14 +615,14 @@ class FormEditorMetaboxRenderer {
 			</tr>
 		</table>
 		<?php
-		// Quiz toggle logic in ffc-admin.js
+		// Quiz toggle logic in ffc-admin.js.
 	}
 
 	/**
 	 * Helper: Renders a field row in the builder
 	 *
-	 * @param int|string           $index Field index
-	 * @param array<string, mixed> $field Field data
+	 * @param int|string           $index Field index.
+	 * @param array<string, mixed> $field Field data.
 	 */
 	public function render_field_row( $index, array $field ): void {
 		$index     = (string) $index;
@@ -635,10 +635,10 @@ class FormEditorMetaboxRenderer {
 		$embed_url = isset( $field['embed_url'] ) ? $field['embed_url'] : '';
 		$points    = isset( $field['points'] ) ? $field['points'] : '';
 
-		$is_info               = $type === 'info';
-		$is_embed              = $type === 'embed';
+		$is_info               = 'info' === $type;
+		$is_embed              = 'embed' === $type;
 		$is_display_only       = $is_info || $is_embed;
-		$options_visible_class = ( $type === 'select' || $type === 'radio' ) ? '' : 'ffc-hidden';
+		$options_visible_class = ( 'select' === $type || 'radio' === $type ) ? '' : 'ffc-hidden';
 		?>
 		<div class="ffc-field-row" data-index="<?php echo esc_attr( $index ); ?>">
 			<div class="ffc-field-row-header">
@@ -739,7 +739,7 @@ class FormEditorMetaboxRenderer {
 	 * {@see \FreeFormCertificate\Frontend\PublicCsvDownload}.
 	 *
 	 * @since 5.1.0
-	 * @param WP_Post $post The post object
+	 * @param WP_Post $post The post object.
 	 */
 	public function render_box_public_csv_download( object $post ): void {
 		$enabled = (string) get_post_meta( $post->ID, '_ffc_csv_public_enabled', true );
@@ -784,7 +784,7 @@ class FormEditorMetaboxRenderer {
 						<?php esc_html_e( 'Allow visitors with the hash to download this form\'s CSV.', 'ffcertificate' ); ?>
 					</label>
 
-					<?php if ( $date_end === '' ) : ?>
+					<?php if ( '' === $date_end ) : ?>
 						<p class="description" style="color:#a00;">
 							<strong><?php esc_html_e( 'Warning:', 'ffcertificate' ); ?></strong>
 							<?php esc_html_e( 'This form has no end date configured in the "Geolocation & Date/Time Restrictions" metabox. You must set an end date before public downloads will work — downloads are only released after the form has ended.', 'ffcertificate' ); ?>
@@ -849,7 +849,7 @@ class FormEditorMetaboxRenderer {
 						<?php esc_html_e( 'Share the Form ID and this hash with the person who should download the CSV. If no hash exists yet, one will be generated automatically when you enable the feature and save.', 'ffcertificate' ); ?>
 					</p>
 
-					<?php if ( $enabled === '1' && $hash !== '' ) : ?>
+					<?php if ( '1' === $enabled && '' !== $hash ) : ?>
 						<p class="description">
 							<?php esc_html_e( 'Example pre-filled link (append this as a query string to the page that contains the [ffc_csv_download] shortcode):', 'ffcertificate' ); ?>
 							<br>

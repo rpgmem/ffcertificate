@@ -117,7 +117,7 @@ class AudienceAdminAudience {
 
 		$edit_url    = admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=edit&id=' . $audience->id );
 		$members_url = admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=members&id=' . $audience->id );
-		$is_active   = ( $audience->status === 'active' );
+		$is_active   = ( 'active' === $audience->status );
 
 		if ( $is_active ) {
 			$deactivate_url = wp_nonce_url(
@@ -134,7 +134,7 @@ class AudienceAdminAudience {
 		$indent_class = $level > 0 ? 'ffc-hierarchy-child ffc-hierarchy-level-' . $level : '';
 
 		?>
-		<tr class="<?php echo $level === 0 ? 'ffc-hierarchy-parent' : ''; ?>">
+		<tr class="<?php echo 0 === $level ? 'ffc-hierarchy-parent' : ''; ?>">
 			<td class="column-name <?php echo esc_attr( $indent_class ); ?>">
 				<strong><a href="<?php echo esc_url( $edit_url ); ?>"><?php echo esc_html( $audience->name ); ?></a></strong>
 			</td>
@@ -170,7 +170,7 @@ class AudienceAdminAudience {
 		</tr>
 		<?php
 
-		// Recursively render children
+		// Recursively render children.
 		if ( $has_children ) {
 			foreach ( $audience->children as $child ) {
 				$this->render_row_recursive( $child, $level + 1 );
@@ -181,7 +181,7 @@ class AudienceAdminAudience {
 	/**
 	 * Render audience form
 	 *
-	 * @param int $id Audience ID (0 for new)
+	 * @param int $id Audience ID (0 for new).
 	 * @return void
 	 */
 	private function render_form( int $id ): void {
@@ -453,11 +453,11 @@ class AudienceAdminAudience {
 		$regex     = $rules['custom_regex'] ?? '';
 		$regex_msg = $rules['custom_regex_message'] ?? '';
 		$help_text = $options['help_text'] ?? '';
-		$is_select = ( $field->field_type === 'select' );
-		$is_regex  = ( $format === 'custom_regex' );
+		$is_select = ( 'select' === $field->field_type );
+		$is_regex  = ( 'custom_regex' === $format );
 
-		$source       = isset( $field->field_source ) && $field->field_source === 'standard' ? 'standard' : 'custom';
-		$is_standard  = ( $source === 'standard' );
+		$source       = isset( $field->field_source ) && 'standard' === $field->field_source ? 'standard' : 'custom';
+		$is_standard  = ( 'standard' === $source );
 		$locked_attr  = $is_standard ? ' disabled' : '';
 		$field_group  = (string) ( $field->field_group ?? '' );
 		$profile_key  = (string) ( $field->field_profile_key ?? '' );
@@ -469,9 +469,9 @@ class AudienceAdminAudience {
 			: __( 'Custom', 'ffcertificate' );
 		$badge_class = $is_standard ? 'ffc-field-source-standard' : 'ffc-field-source-custom';
 
-		// Ensure the field's current group appears in the select even if it
+		// Ensure the field's current group appears in the select even if it.
 		// is not one of the canonical seeder groups (custom field groups).
-		if ( $field_group !== '' && ! isset( $group_labels[ $field_group ] ) ) {
+		if ( '' !== $field_group && ! isset( $group_labels[ $field_group ] ) ) {
 			$group_labels[ $field_group ] = $field_group;
 		}
 
@@ -541,7 +541,7 @@ class AudienceAdminAudience {
 	/**
 	 * Render audience members page
 	 *
-	 * @param int $id Audience ID
+	 * @param int $id Audience ID.
 	 * @return void
 	 */
 	private function render_members( int $id ): void {
@@ -632,7 +632,7 @@ class AudienceAdminAudience {
 			return;
 		}
 
-		// Show feedback for redirect-based actions
+		// Show feedback for redirect-based actions.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['message'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -648,8 +648,8 @@ class AudienceAdminAudience {
 			}
 		}
 
-		// Handle save
-		if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'save_audience' ) {
+		// Handle save.
+		if ( isset( $_POST['ffc_action'] ) && 'save_audience' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_audience_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_audience_nonce'] ) ), 'save_audience' ) ) {
 				return;
 			}
@@ -658,7 +658,7 @@ class AudienceAdminAudience {
 			$data = array(
 				'name'            => isset( $_POST['audience_name'] ) ? sanitize_text_field( wp_unslash( $_POST['audience_name'] ) ) : '',
 				'color'           => isset( $_POST['audience_color'] ) ? sanitize_hex_color( wp_unslash( $_POST['audience_color'] ) ) : '#3788d8',
-				'parent_id'       => isset( $_POST['audience_parent'] ) && $_POST['audience_parent'] !== '' ? absint( $_POST['audience_parent'] ) : null,
+				'parent_id'       => isset( $_POST['audience_parent'] ) && '' !== $_POST['audience_parent'] ? absint( $_POST['audience_parent'] ) : null,
 				'status'          => isset( $_POST['audience_status'] ) ? sanitize_text_field( wp_unslash( $_POST['audience_status'] ) ) : 'active',
 				'allow_self_join' => ! empty( $_POST['audience_self_join'] ) ? 1 : 0,
 			);
@@ -666,7 +666,7 @@ class AudienceAdminAudience {
 			if ( $id > 0 ) {
 				AudienceRepository::update( $id, $data );
 
-				// Cascade allow_self_join to children if this is a parent
+				// Cascade allow_self_join to children if this is a parent.
 				if ( empty( $data['parent_id'] ) ) {
 					AudienceRepository::cascade_self_join( $id, (int) $data['allow_self_join'] );
 				}
@@ -675,7 +675,7 @@ class AudienceAdminAudience {
 			} else {
 				$new_id = AudienceRepository::create( $data );
 				if ( $new_id ) {
-					// Cascade to children (if creating a parent from template/import)
+					// Cascade to children (if creating a parent from template/import).
 					if ( empty( $data['parent_id'] ) ) {
 						AudienceRepository::cascade_self_join( $new_id, (int) $data['allow_self_join'] );
 					}
@@ -685,8 +685,8 @@ class AudienceAdminAudience {
 			}
 		}
 
-		// Handle add members
-		if ( isset( $_POST['ffc_action'] ) && $_POST['ffc_action'] === 'add_members' ) {
+		// Handle add members.
+		if ( isset( $_POST['ffc_action'] ) && 'add_members' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_add_members_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ffc_add_members_nonce'] ) ), 'add_members' ) ) {
 				return;
 			}
@@ -702,7 +702,7 @@ class AudienceAdminAudience {
 			}
 		}
 
-		// Handle remove member
+		// Handle remove member.
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['remove_user'] ) && isset( $_GET['id'] ) ) {
 			$user_id     = absint( $_GET['remove_user'] );
@@ -714,9 +714,9 @@ class AudienceAdminAudience {
 			}
 		}
 
-		// Handle deactivate (active items get deactivated instead of deleted)
+		// Handle deactivate (active items get deactivated instead of deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( isset( $_GET['action'] ) && $_GET['action'] === 'deactivate' && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
+		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'deactivate_audience_' . $id ) ) {
 				AudienceRepository::update( $id, array( 'status' => 'inactive' ) );
@@ -725,13 +725,13 @@ class AudienceAdminAudience {
 			}
 		}
 
-		// Handle delete (only inactive items can be permanently deleted)
+		// Handle delete (only inactive items can be permanently deleted).
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete' && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
+		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'delete_audience_' . $id ) ) {
 				$aud = AudienceRepository::get_by_id( $id );
-				if ( $aud && $aud->status !== 'active' ) {
+				if ( $aud && 'active' !== $aud->status ) {
 					AudienceRepository::delete( $id );
 					wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&message=deleted' ) );
 					exit;

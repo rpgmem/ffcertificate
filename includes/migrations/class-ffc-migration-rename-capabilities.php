@@ -48,7 +48,7 @@ class MigrationRenameCapabilities {
 	 * @return array{success: bool, message: string, updated_users: int}
 	 */
 	public static function run(): array {
-		// Check if already completed
+		// Check if already completed.
 		if ( self::is_completed() ) {
 			return array(
 				'success'       => true,
@@ -59,7 +59,7 @@ class MigrationRenameCapabilities {
 
 		$updated_users = 0;
 
-		// Get all users
+		// Get all users.
 		$users = get_users( array( 'fields' => 'ID' ) );
 
 		foreach ( $users as $user_id ) {
@@ -67,11 +67,11 @@ class MigrationRenameCapabilities {
 			$user_updated = false;
 
 			foreach ( self::$capability_mappings as $old_cap => $new_cap ) {
-				// Check if user has old capability
+				// Check if user has old capability.
 				if ( $user->has_cap( $old_cap ) ) {
-					// Add new capability
+					// Add new capability.
 					$user->add_cap( $new_cap );
-					// Remove old capability
+					// Remove old capability.
 					$user->remove_cap( $old_cap );
 					$user_updated = true;
 				}
@@ -82,7 +82,7 @@ class MigrationRenameCapabilities {
 			}
 		}
 
-		// Also update the ffc_user role if it exists
+		// Also update the ffc_user role if it exists.
 		$role = get_role( 'ffc_user' );
 		if ( $role ) {
 			foreach ( self::$capability_mappings as $old_cap => $new_cap ) {
@@ -93,7 +93,7 @@ class MigrationRenameCapabilities {
 			}
 		}
 
-		// Mark as completed
+		// Mark as completed.
 		update_option( self::MIGRATION_OPTION, true );
 
 		return array(

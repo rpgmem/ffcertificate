@@ -5,7 +5,7 @@ declare(strict_types=1);
  * CPT
  * Manages the Custom Post Type for forms, including registration and duplication logic.
  *
- * v2.9.2: OPTIMIZED to use FFC_Utils functions
+ * V2.9.2: OPTIMIZED to use FFC_Utils functions
  *
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
@@ -66,12 +66,12 @@ class CPT {
 	/**
 	 * Adds a "Duplicate" link to the post row actions
 	 *
-	 * @param array<string, string> $actions Row action links
-	 * @param object                $post Post object
+	 * @param array<string, string> $actions Row action links.
+	 * @param object                $post Post object.
 	 * @return array<string, string>
 	 */
 	public function add_duplicate_link( array $actions, object $post ): array {
-		if ( $post->post_type !== 'ffc_form' ) {
+		if ( 'ffc_form' !== $post->post_type ) {
 			return $actions;
 		}
 
@@ -111,7 +111,7 @@ class CPT {
 
 		$post = get_post( $post_id );
 
-		if ( ! $post || $post->post_type !== 'ffc_form' ) {
+		if ( ! $post || 'ffc_form' !== $post->post_type ) {
 			\FreeFormCertificate\Core\Utils::debug_log(
 				'Invalid form duplication request',
 				array(
@@ -126,7 +126,7 @@ class CPT {
 		/* translators: %s: original post title */
 		$new_title = sprintf( __( '%s (Copy)', 'ffcertificate' ), $original_title );
 
-		// Create new post
+		// Create new post.
 		$new_post_args = array(
 			'post_title'  => $new_title,
 			'post_status' => 'draft',
@@ -147,7 +147,7 @@ class CPT {
 			wp_die( esc_html( $new_post_id->get_error_message() ) );
 		}
 
-		// Copy all metadata
+		// Copy all metadata.
 		$fields          = get_post_meta( $post_id, '_ffc_form_fields', true );
 		$config          = get_post_meta( $post_id, '_ffc_form_config', true );
 		$bg_image        = get_post_meta( $post_id, '_ffc_form_bg', true );
@@ -187,7 +187,7 @@ class CPT {
 			)
 		);
 
-		// Redirect to forms list
+		// Redirect to forms list.
 		wp_safe_redirect( admin_url( 'edit.php?post_type=ffc_form' ) );
 		exit;
 	}
@@ -195,7 +195,7 @@ class CPT {
 	/**
 	 * Translate view links that WordPress core may not translate
 	 *
-	 * @param array<string, string> $views View links
+	 * @param array<string, string> $views View links.
 	 * @return array<string, string>
 	 */
 	public function translate_views( array $views ): array {
@@ -209,7 +209,7 @@ class CPT {
 
 		foreach ( $views as $key => &$html ) {
 			if ( isset( $map[ $key ] ) ) {
-				// Replace the English label while keeping the HTML structure (<a>, <span class="count">)
+				// Replace the English label while keeping the HTML structure (<a>, <span class="count">).
 				$html = preg_replace(
 					'/(<a[^>]*>)\s*[^<]+(<span)/',
 					'$1' . esc_html( $map[ $key ] ) . ' $2',

@@ -55,7 +55,7 @@ try {
 	</div>
 
 	<?php
-	// Show initialization error if MigrationManager failed
+	// Show initialization error if MigrationManager failed.
 	if ( ! empty( $ffcertificate_init_error ) ) :
 		?>
 		<div class="notice notice-error inline">
@@ -74,7 +74,7 @@ try {
 		<?php
 	else :
 		foreach ( $ffcertificate_migrations as $ffcertificate_key => $ffcertificate_migration ) :
-			// Check if migration is available
+			// Check if migration is available.
 			if ( ! $ffcertificate_migration_manager->is_migration_available( $ffcertificate_key ) ) {
 				continue;
 			}
@@ -87,7 +87,7 @@ try {
 			}
 
 			if ( is_wp_error( $ffcertificate_status ) ) {
-				// Status calculation failed — show error state, keep migration available
+				// Status calculation failed — show error state, keep migration available.
 				$ffcertificate_percent      = 0;
 				$ffcertificate_is_complete  = false;
 				$ffcertificate_pending      = '?';
@@ -103,7 +103,7 @@ try {
 				$ffcertificate_migrated     = number_format( $ffcertificate_status['migrated'] );
 			}
 
-			// Generate migration URL
+			// Generate migration URL.
 			$ffcertificate_migrate_url = wp_nonce_url(
 				add_query_arg(
 					array(
@@ -243,9 +243,9 @@ try {
 	?>
 
 	<?php
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 	// Obsolete Shortcode Cleanup (v5.1.0)
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
 	$ffcertificate_settings     = get_option( 'ffc_settings', array() );
 	$ffcertificate_cleanup_days = is_array( $ffcertificate_settings ) && isset( $ffcertificate_settings['obsolete_shortcode_days'] )
 		? max( 1, (int) $ffcertificate_settings['obsolete_shortcode_days'] )
@@ -430,7 +430,7 @@ try {
 								$ffcertificate_item_type      = isset( $ffcertificate_item['post_type'] ) ? (string) $ffcertificate_item['post_type'] : '';
 								$ffcertificate_item_count     = isset( $ffcertificate_item['removed_count'] ) ? (int) $ffcertificate_item['removed_count'] : 0;
 								$ffcertificate_item_edit_link = $ffcertificate_item_post_id > 0 ? (string) get_edit_post_link( $ffcertificate_item_post_id ) : '';
-								if ( $ffcertificate_item_title === '' ) {
+								if ( '' === $ffcertificate_item_title ) {
 									$ffcertificate_item_title = sprintf(
 										/* translators: %d: post id */
 										__( '(no title, ID %d)', 'ffcertificate' ),
@@ -466,7 +466,7 @@ try {
 							?>
 						</p>
 					<?php endif; ?>
-				<?php elseif ( $ffcertificate_report_affected === 0 ) : ?>
+				<?php elseif ( 0 === $ffcertificate_report_affected ) : ?>
 					<p class="description">
 						<?php esc_html_e( 'No obsolete shortcodes found. Nothing to clean up.', 'ffcertificate' ); ?>
 					</p>

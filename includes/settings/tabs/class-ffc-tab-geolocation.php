@@ -37,27 +37,27 @@ class TabGeolocation extends SettingsTab {
 	 */
 	private function get_default_settings(): array {
 		return array(
-			// IP Geolocation API Settings
+			// IP Geolocation API Settings.
 			'ip_api_enabled'        => false,
 			'ip_api_service'        => 'ip-api', // 'ip-api' or 'ipinfo'
-			'ip_api_cascade'        => false, // Use both with fallback
+			'ip_api_cascade'        => false, // Use both with fallback.
 			'ipinfo_api_key'        => '',
 			'ip_cache_enabled'      => true,
 			'ip_cache_ttl'          => 600, // 10 minutes in seconds (300-3600)
 
-			// GPS Cache Settings
+			// GPS Cache Settings.
 			'gps_cache_ttl'         => 600, // 10 minutes in seconds (60-3600)
 
-			// Fallback behavior when API fails
+			// Fallback behavior when API fails.
 			'api_fallback'          => 'gps_only', // 'allow', 'block', 'gps_only'
-			'gps_fallback'          => 'allow', // When GPS fails: 'allow' or 'block'
-			'both_fail_fallback'    => 'block', // When GPS + IP both fail: 'allow' or 'block'
+			'gps_fallback'          => 'allow', // When GPS fails: 'allow' or 'block'.
+			'both_fail_fallback'    => 'block', // When GPS + IP both fail: 'allow' or 'block'.
 
-			// Admin Bypass (independent of debug mode)
-			'admin_bypass_datetime' => false, // Admins bypass datetime restrictions
-			'admin_bypass_geo'      => false, // Admins bypass geolocation restrictions
+			// Admin Bypass (independent of debug mode).
+			'admin_bypass_datetime' => false, // Admins bypass datetime restrictions.
+			'admin_bypass_geo'      => false, // Admins bypass geolocation restrictions.
 
-			// Debug Mode
+			// Debug Mode.
 			'debug_enabled'         => false,
 		);
 	}
@@ -78,7 +78,7 @@ class TabGeolocation extends SettingsTab {
 	 * Render tab content
 	 */
 	public function render(): void {
-		// Handle form submission
+		// Handle form submission.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below via check_admin_referer.
 		if ( $_POST && isset( $_POST['ffc_save_geolocation'] ) ) {
 			check_admin_referer( 'ffc_geolocation_nonce' );
@@ -102,7 +102,7 @@ class TabGeolocation extends SettingsTab {
 
 		$settings = array(
 			'ip_api_enabled'        => isset( $_POST['ip_api_enabled'] ),
-			'ip_api_service'        => in_array( $ffc_ip_api_service, array( 'ip-api', 'ipinfo' ) )
+			'ip_api_service'        => in_array( $ffc_ip_api_service, array( 'ip-api', 'ipinfo' ), true )
 				? $ffc_ip_api_service
 				: 'ip-api',
 			'ip_api_cascade'        => isset( $_POST['ip_api_cascade'] ),
@@ -112,13 +112,13 @@ class TabGeolocation extends SettingsTab {
 
 			'gps_cache_ttl'         => max( 60, min( 3600, absint( wp_unslash( $_POST['gps_cache_ttl'] ?? 600 ) ) ) ),
 
-			'api_fallback'          => in_array( $ffc_api_fallback, array( 'allow', 'block', 'gps_only' ) )
+			'api_fallback'          => in_array( $ffc_api_fallback, array( 'allow', 'block', 'gps_only' ), true )
 				? $ffc_api_fallback
 				: 'gps_only',
-			'gps_fallback'          => in_array( $ffc_gps_fallback, array( 'allow', 'block' ) )
+			'gps_fallback'          => in_array( $ffc_gps_fallback, array( 'allow', 'block' ), true )
 				? $ffc_gps_fallback
 				: 'allow',
-			'both_fail_fallback'    => in_array( $ffc_both_fail_fallback, array( 'allow', 'block' ) )
+			'both_fail_fallback'    => in_array( $ffc_both_fail_fallback, array( 'allow', 'block' ), true )
 				? $ffc_both_fail_fallback
 				: 'block',
 
@@ -131,7 +131,7 @@ class TabGeolocation extends SettingsTab {
 
 		update_option( 'ffc_geolocation_settings', $settings );
 
-		// Save main_geo_areas to ffc_settings (v4.6.16 - moved from General tab)
+		// Save main_geo_areas to ffc_settings (v4.6.16 - moved from General tab).
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
 		if ( isset( $_POST['main_geo_areas'] ) ) {
 			$ffc_settings                   = get_option( 'ffc_settings', array() );
@@ -140,7 +140,7 @@ class TabGeolocation extends SettingsTab {
 		}
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
-		// Log settings change
+		// Log settings change.
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log_settings_changed( 'geolocation', get_current_user_id() );
 		}

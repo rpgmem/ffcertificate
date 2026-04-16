@@ -24,7 +24,7 @@ class ActivityLogQuery {
 	/**
 	 * Get recent activities with filters
 	 *
-	 * @param array<string, mixed> $args Query arguments
+	 * @param array<string, mixed> $args Query arguments.
 	 * @return array<int, array<string, mixed>> Activities
 	 */
 	public static function get_activities( array $args = array() ): array {
@@ -75,7 +75,7 @@ class ActivityLogQuery {
 		$where_clause = implode( ' AND ', $where );
 
 		$allowed_orderby = array( 'id', 'action', 'level', 'user_id', 'user_ip', 'created_at' );
-		$orderby         = in_array( $args['orderby'], $allowed_orderby ) ? $args['orderby'] : 'created_at';
+		$orderby         = in_array( $args['orderby'], $allowed_orderby, true ) ? $args['orderby'] : 'created_at';
 		$order           = strtoupper( $args['order'] ) === 'ASC' ? 'ASC' : 'DESC';
 		$offset          = absint( $args['offset'] );
 		$limit           = absint( $args['limit'] );
@@ -104,7 +104,7 @@ class ActivityLogQuery {
 	/**
 	 * Get activity count with filters
 	 *
-	 * @param array<string, mixed> $args Same as get_activities()
+	 * @param array<string, mixed> $args Same as get_activities().
 	 * @return int Count
 	 */
 	public static function count_activities( array $args = array() ): int {
@@ -162,13 +162,13 @@ class ActivityLogQuery {
 	/**
 	 * Get statistics
 	 *
-	 * @param int $days Number of days to analyze (default: 30)
+	 * @param int $days Number of days to analyze (default: 30).
 	 * @return array<string, mixed> Statistics
 	 */
 	public static function get_stats( int $days = 30 ): array {
 		$cache_key = 'ffc_activity_stats_' . $days;
 		$cached    = get_transient( $cache_key );
-		if ( $cached !== false ) {
+		if ( false !== $cached ) {
 			return $cached;
 		}
 
@@ -231,8 +231,8 @@ class ActivityLogQuery {
 	/**
 	 * Get logs for specific submission (LGPD audit trail)
 	 *
-	 * @param int $submission_id Submission ID
-	 * @param int $limit         Maximum number of logs
+	 * @param int $submission_id Submission ID.
+	 * @param int $limit         Maximum number of logs.
 	 * @return array<int, array<string, mixed>> Logs
 	 */
 	public static function get_submission_logs( int $submission_id, int $limit = 100 ): array {
@@ -240,7 +240,7 @@ class ActivityLogQuery {
 		$table_name = $wpdb->prefix . 'ffc_activity_log';
 
 		$columns = ActivityLog::get_table_columns_cached( $table_name );
-		if ( ! in_array( 'submission_id', $columns ) ) {
+		if ( ! in_array( 'submission_id', $columns, true ) ) {
 			return array();
 		}
 
@@ -259,7 +259,7 @@ class ActivityLogQuery {
 			foreach ( $logs as &$log ) {
 				if ( ! empty( $log['context_encrypted'] ) ) {
 					$decrypted = \FreeFormCertificate\Core\Encryption::decrypt( $log['context_encrypted'] );
-					if ( $decrypted !== null ) {
+					if ( null !== $decrypted ) {
 						$log['context_decrypted'] = $decrypted;
 					}
 				}
@@ -272,7 +272,7 @@ class ActivityLogQuery {
 	/**
 	 * Clean old logs
 	 *
-	 * @param int $days Keep logs from last N days (default: 90)
+	 * @param int $days Keep logs from last N days (default: 90).
 	 * @return int Number of deleted rows
 	 */
 	public static function cleanup( int $days = 90 ): int {

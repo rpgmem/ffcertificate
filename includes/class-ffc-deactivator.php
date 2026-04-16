@@ -22,10 +22,10 @@ class Deactivator {
 	 * Usually, we only flush rewrite rules here to avoid breaking permalinks.
 	 */
 	public static function deactivate(): void {
-		// Clear scheduled cron tasks
+		// Clear scheduled cron tasks.
 		wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 
-		// Clear legacy cron hooks from pre-4.6.15 versions
+		// Clear legacy cron hooks from pre-4.6.15 versions.
 		wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
 		wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
 		wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
@@ -43,7 +43,7 @@ class Deactivator {
 			return;
 		}
 
-		// Security check: Ensure this was a conscious post action with a nonce
+		// Security check: Ensure this was a conscious post action with a nonce.
 		// Note: WordPress deactivation via the "Plugins" page doesn't send POST data by default.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Deactivation hook; nonce handled by WordPress plugin deactivation flow.
 		if ( ! isset( $_POST['confirm_uninstall'] ) || sanitize_text_field( wp_unslash( $_POST['confirm_uninstall'] ) ) !== 'yes' ) {
@@ -53,24 +53,24 @@ class Deactivator {
 		global $wpdb;
 		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
-		// 1. Drop the submissions table
+		// 1. Drop the submissions table.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_name ) );
 
-		// 2. Delete plugin options
+		// 2. Delete plugin options.
 		delete_option( 'ffc_db_version' );
 		delete_option( 'ffc_settings' );
 
-		// 3. Clear scheduled CRON tasks
+		// 3. Clear scheduled CRON tasks.
 		wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 		wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 
-		// Clear legacy cron hooks from pre-4.6.15 versions
+		// Clear legacy cron hooks from pre-4.6.15 versions.
 		wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
 		wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
 		wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
 
-		// 4. Delete all Custom Post Type 'ffc_form' entries
+		// 4. Delete all Custom Post Type 'ffc_form' entries.
 		$args = array(
 			'post_type'      => 'ffc_form',
 			'posts_per_page' => -1,
@@ -82,12 +82,12 @@ class Deactivator {
 
 		if ( ! empty( $forms ) ) {
 			foreach ( $forms as $form_id ) {
-				// Set second parameter to true to bypass trash and delete permanently
+				// Set second parameter to true to bypass trash and delete permanently.
 				wp_delete_post( $form_id, true );
 			}
 		}
 
-		// Flush rewrite rules after removing the CPT
+		// Flush rewrite rules after removing the CPT.
 		flush_rewrite_rules();
 	}
 }
