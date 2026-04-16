@@ -585,6 +585,7 @@ class FormProcessor {
 
 			// Search the specific split column based on digit count
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_column is derived from strlen() check, not user input.
 			$result = $wpdb->get_row(
 				$wpdb->prepare(
 					"SELECT * FROM %i WHERE form_id = %d AND {$hash_column} = %s ORDER BY id DESC LIMIT 1",
@@ -593,6 +594,7 @@ class FormProcessor {
 					$id_hash
 				)
 			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 			return $result;
 		}

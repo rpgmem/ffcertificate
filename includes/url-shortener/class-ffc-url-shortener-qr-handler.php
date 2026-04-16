@@ -202,6 +202,7 @@ class UrlShortenerQrHandler {
 			);
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by the calling method (ajax_download_qr/ajax_generate_qr).
 		$code = sanitize_text_field( wp_unslash( $_POST['code'] ?? '' ) );
 		if ( empty( $code ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid code.', 'ffcertificate' ) ) );

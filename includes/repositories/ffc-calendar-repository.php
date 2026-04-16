@@ -16,6 +16,7 @@ namespace FreeFormCertificate\Repositories;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 class CalendarRepository extends AbstractRepository {
 

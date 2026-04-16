@@ -357,9 +357,9 @@ class AppointmentCsvExporter {
 		$sql = "SELECT * FROM %i {$where_sql} ORDER BY appointment_date DESC, start_time DESC";
 
 		if ( ! empty( $where_values ) ) {
-			$sql = $wpdb->prepare( $sql, array_merge( array( $table ), $where_values ) );
+			$sql = $wpdb->prepare( $sql, array_merge( array( $table ), $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is a query template with placeholders built above.
 		} else {
-			$sql = $wpdb->prepare( $sql, $table );
+			$sql = $wpdb->prepare( $sql, $table ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is a query template with placeholders built above.
 		}
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $where_sql is built from validated placeholders above; $sql is pre-prepared.

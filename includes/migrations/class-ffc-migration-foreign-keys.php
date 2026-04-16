@@ -182,12 +182,14 @@ class MigrationForeignKeys {
 
 		// Add the FK constraint
 		// $on_delete is a validated SQL keyword ('SET NULL' or 'CASCADE') from hardcoded arrays in run()
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $on_delete is a validated SQL keyword from hardcoded config.
 		$sql = $wpdb->prepare(
 			"ALTER TABLE %i ADD CONSTRAINT %i FOREIGN KEY (user_id) REFERENCES %i(ID) ON DELETE {$on_delete}",
 			$table,
 			$constraint_name,
 			$wpdb->users
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$result = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $on_delete is validated SQL keyword
 

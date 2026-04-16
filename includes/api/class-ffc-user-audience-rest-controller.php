@@ -177,7 +177,8 @@ class UserAudienceRestController {
 			if ( ! empty( $booking_ids ) ) {
 				$safe_ids = array_map( 'absint', $booking_ids );
 				$id_list  = implode( ',', $safe_ids );
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ID list built from absint() values.
 				$all_audiences = $wpdb->get_results(
 					$wpdb->prepare(
 						"SELECT ba.booking_id, a.name, a.color
@@ -189,6 +190,7 @@ class UserAudienceRestController {
 					),
 					ARRAY_A
 				);
+				// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 				if ( is_array( $all_audiences ) ) {
 					foreach ( $all_audiences as $aud ) {
