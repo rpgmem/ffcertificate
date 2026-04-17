@@ -152,11 +152,8 @@ class GeofenceFrontendConfigTest extends TestCase {
         $this->assertSame( 7, $result['formId'] );
         $this->assertTrue( $result['adminBypass'] );
 
-        // In the full-bypass path the boolean fields have already been cast
-        // to true/false, so the comparison '1' === $config['datetime_enabled']
-        // evaluates to false.
-        $this->assertFalse( $result['bypassInfo']['hasDatetime'] );
-        $this->assertFalse( $result['bypassInfo']['hasGeo'] );
+        $this->assertTrue( $result['bypassInfo']['hasDatetime'] );
+        $this->assertTrue( $result['bypassInfo']['hasGeo'] );
 
         $this->assertFalse( $result['datetime']['enabled'] );
         $this->assertFalse( $result['geo']['enabled'] );
@@ -212,15 +209,7 @@ class GeofenceFrontendConfigTest extends TestCase {
         $this->assertFalse( $result['adminBypass'] );
         $this->assertNull( $result['bypassInfo'] );
 
-        // Datetime section: boolean fields were cast by get_form_config, so
-        // '1' === true evaluates to false. However the source code compares
-        // '1' === $config['datetime_enabled'] AFTER get_form_config has cast
-        // it to a boolean. So 'enabled' will be false here.
-        // Actually re-reading the source: get_form_config casts to bool, and
-        // get_frontend_config does '1' === $config['datetime_enabled'] which
-        // is '1' === true → false in PHP strict comparison.
-        // The test should reflect the actual behavior.
-        $this->assertFalse( $result['datetime']['enabled'] );
+        $this->assertTrue( $result['datetime']['enabled'] );
         $this->assertSame( '2026-01-01', $result['datetime']['dateStart'] );
         $this->assertSame( '2026-12-31', $result['datetime']['dateEnd'] );
         $this->assertSame( '09:00', $result['datetime']['timeStart'] );
@@ -229,10 +218,9 @@ class GeofenceFrontendConfigTest extends TestCase {
         $this->assertSame( 'Not available now.', $result['datetime']['message'] );
         $this->assertSame( 'hide', $result['datetime']['hideMode'] );
 
-        // Geo section: same strict-comparison note applies.
-        $this->assertFalse( $result['geo']['enabled'] );
-        $this->assertFalse( $result['geo']['gpsEnabled'] );
-        $this->assertFalse( $result['geo']['ipEnabled'] );
+        $this->assertTrue( $result['geo']['enabled'] );
+        $this->assertTrue( $result['geo']['gpsEnabled'] );
+        $this->assertTrue( $result['geo']['ipEnabled'] );
         $this->assertSame( 'and', $result['geo']['gpsIpLogic'] );
         $this->assertSame( 'Blocked by location.', $result['geo']['messageBlocked'] );
         $this->assertSame( 'Location error.', $result['geo']['messageError'] );
@@ -304,8 +292,7 @@ class GeofenceFrontendConfigTest extends TestCase {
         // Datetime should be disabled due to bypass.
         $this->assertFalse( $result['datetime']['enabled'] );
 
-        // Geo should NOT be bypassed — but '1' === true is false in PHP strict.
-        $this->assertFalse( $result['geo']['enabled'] );
+        $this->assertTrue( $result['geo']['enabled'] );
 
         $this->assertSame( 'allow', $result['geo']['gpsFallback'] );
         $this->assertSame( 900, $result['geo']['cacheTtl'] );
