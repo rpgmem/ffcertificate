@@ -1,25 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
- * SettingsSaveHandler
- * Handles saving and validation of all settings types
+ * Settings Save Handler
  *
- * Extracted from FFC_Settings (v3.1.1) following Single Responsibility Principle
+ * Handles saving and validation of all settings types.
+ * Extracted from FFC_Settings (v3.1.1) following Single Responsibility Principle.
  *
- * Responsibilities:
- * - Validate and sanitize all settings types
- * - Handle General, SMTP, QR Code, Date Format, User Access settings
- * - Handle Danger Zone (data deletion)
- * - Display success/error messages
- *
- * @package FFC
- * @since 3.1.1
- * @version 4.6.16 - Updated tab checks for reorganized settings (advanced, cache tabs)
- * @version 4.0.0 - Fixed type hint (Phase 4 Hotfix 8)
- * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @since   3.1.1
+ * @package FreeFormCertificate\Admin
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
@@ -29,9 +19,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Validates, sanitizes, and persists plugin settings.
+ *
+ * @since 3.1.1
+ */
 class SettingsSaveHandler {
 
-	/** @var SubmissionHandler */
+	/**
+	 * Submission handler for danger zone operations.
+	 *
+	 * @var SubmissionHandler
+	 */
 	private $submission_handler;
 
 	/**

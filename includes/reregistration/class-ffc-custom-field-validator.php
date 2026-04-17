@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Custom Field Validator
  *
@@ -11,9 +9,11 @@ declare(strict_types=1);
  * Extracted from CustomFieldRepository to separate validation concerns
  * from data persistence.
  *
- * @since 5.2.0
+ * @since   5.2.0
  * @package FreeFormCertificate\Reregistration
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
@@ -21,6 +21,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Validates custom field values against their definitions.
+ *
+ * @since 5.2.0
+ */
 class CustomFieldValidator {
 
 	/**

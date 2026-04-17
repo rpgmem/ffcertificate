@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Custom Field Repository
  *
  * Handles database operations for audience-specific custom field definitions.
  * Field data for users is stored in wp_usermeta as JSON (key: ffc_custom_fields_data).
  *
- * @since 4.11.0
+ * @since   4.11.0
  * @package FreeFormCertificate\Reregistration
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
@@ -21,6 +21,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
+/**
+ * Handles CRUD operations for audience-specific custom field definitions.
+ *
+ * @since 4.11.0
+ */
 class CustomFieldRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
@@ -614,7 +619,7 @@ class CustomFieldRepository {
 			)
 		);
 
-		return $result ?: null;
+		return $result ? $result : null;
 	}
 
 	// ─────────────────────────────────────────────.
@@ -720,10 +725,11 @@ class CustomFieldRepository {
 	 * @return string
 	 */
 	private static function generate_field_key( string $label ): string {
-		$key = sanitize_title( $label );
-		$key = str_replace( '-', '_', $key );
-		$key = preg_replace( '/[^a-z0-9_]/', '', $key );
-		return substr( $key, 0, 100 ) ?: 'field';
+		$key       = sanitize_title( $label );
+		$key       = str_replace( '-', '_', $key );
+		$key       = preg_replace( '/[^a-z0-9_]/', '', $key );
+		$truncated = substr( $key, 0, 100 );
+		return '' !== $truncated ? $truncated : 'field';
 	}
 
 	/**
@@ -792,5 +798,4 @@ class CustomFieldRepository {
 		}
 		return is_array( $rules ) ? $rules : array();
 	}
-
 }

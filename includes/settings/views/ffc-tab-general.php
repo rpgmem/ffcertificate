@@ -2,7 +2,7 @@
 /**
  * General Settings Tab
  *
- * @version 4.6.16 - Simplified: moved debug/activity log/danger zone to Advanced, cache to Cache tab
+ * @package FreeFormCertificate\Settings
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
