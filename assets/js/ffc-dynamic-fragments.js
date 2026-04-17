@@ -172,6 +172,10 @@
 					ffcGeofenceConfig[formId] = data.geofence[formId];
 				}
 			}
+
+			if (typeof window.FFCGeofence !== 'undefined' && typeof window.FFCGeofence.recheck === 'function') {
+				window.FFCGeofence.recheck();
+			}
 		}
 	}
 
