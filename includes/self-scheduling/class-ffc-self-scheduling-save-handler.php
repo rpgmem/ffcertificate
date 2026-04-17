@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Self-Scheduling Editor — Save Handler
  *
@@ -8,8 +6,11 @@ declare(strict_types=1);
  * Handles saving calendar configuration, working hours, and email
  * settings when the admin saves a ffc_self_scheduling post.
  *
- * @since 4.12.16
+ * @since   4.12.16
+ * @package FreeFormCertificate\SelfScheduling
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
@@ -17,21 +18,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handles saving calendar configuration, working hours, and email settings.
+ *
+ * @since 4.12.16
+ */
 class SelfSchedulingSaveHandler {
 
 	/**
-	 * Register save hook
+	 * Register save hook.
 	 */
 	public function __construct() {
 		add_action( 'save_post_ffc_self_scheduling', array( $this, 'save_calendar_data' ), 10, 3 );
 	}
 
 	/**
-	 * Save calendar data
+	 * Save calendar data.
 	 *
-	 * @param int    $post_id
-	 * @param object $post
-	 * @param bool   $update
+	 * @param int    $post_id Post ID.
+	 * @param object $post    Post object.
+	 * @param bool   $update  Whether this is an update.
 	 * @return void
 	 */
 	public function save_calendar_data( int $post_id, object $post, bool $update ): void {
@@ -51,10 +57,14 @@ class SelfSchedulingSaveHandler {
 		$this->save_config( $post_id );
 		$this->save_working_hours( $post_id );
 		$this->save_email_config( $post_id );
+
+		\FreeFormCertificate\Submissions\FormCache::purge_page_cache( $post_id, 'ffc_self_scheduling' );
 	}
 
 	/**
-	 * Save calendar configuration
+	 * Save calendar configuration.
+	 *
+	 * @param int $post_id Post ID.
 	 */
 	private function save_config( int $post_id ): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); isset() check only; value unslashed below.
@@ -96,7 +106,9 @@ class SelfSchedulingSaveHandler {
 	}
 
 	/**
-	 * Save working hours
+	 * Save working hours.
+	 *
+	 * @param int $post_id Post ID.
 	 */
 	private function save_working_hours( int $post_id ): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); isset()/is_array() check only; value unslashed below.
@@ -117,7 +129,9 @@ class SelfSchedulingSaveHandler {
 	}
 
 	/**
-	 * Save email configuration
+	 * Save email configuration.
+	 *
+	 * @param int $post_id Post ID.
 	 */
 	private function save_email_config( int $post_id ): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); isset() check only; value unslashed below.

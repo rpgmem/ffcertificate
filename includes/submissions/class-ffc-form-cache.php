@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * FormCache
  * Caching layer for form configurations to improve performance
  *
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
- * @since 2.9.1
+ * @since   2.9.1
+ * @package FreeFormCertificate\Submissions
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Submissions;
 
@@ -16,6 +17,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Caching layer for form configurations to improve performance.
+ *
+ * @since 2.9.1
+ */
 class FormCache {
 
 	const CACHE_GROUP = 'ffc_forms';
@@ -81,7 +87,10 @@ class FormCache {
 	}
 
 	/**
-	 * Get form background image with caching
+	 * Get form background image with caching.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return string Background image URL or empty string.
 	 */
 	public static function get_form_background( int $form_id ): string {
 		$cache_key = 'bg_' . $form_id;
@@ -145,7 +154,10 @@ class FormCache {
 	}
 
 	/**
-	 * Clear cache for specific form
+	 * Clear cache for specific form.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return bool True if any cache keys were cleared.
 	 */
 	public static function clear_form_cache( int $form_id ): bool {
 		$keys = array(
@@ -178,7 +190,10 @@ class FormCache {
 	}
 
 	/**
-	 * Warm up cache for a form
+	 * Warm up cache for a form.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return bool Always true.
 	 */
 	public static function warm_cache( int $form_id ): bool {
 		self::get_form_complete( $form_id );
@@ -186,7 +201,10 @@ class FormCache {
 	}
 
 	/**
-	 * Warm up cache for all forms
+	 * Warm up cache for all forms.
+	 *
+	 * @param int $limit Maximum number of forms to warm.
+	 * @return int Number of forms warmed.
 	 */
 	public static function warm_all_forms( int $limit = 50 ): int {
 		$args = array(
@@ -249,7 +267,11 @@ class FormCache {
 	}
 
 	/**
-	 * Get cache key for debugging
+	 * Get cache key for debugging.
+	 *
+	 * @param int    $form_id Form ID.
+	 * @param string $type    Cache type (config, fields, bg, complete, post).
+	 * @return string Cache key string.
 	 */
 	public static function get_cache_key( int $form_id, string $type = 'config' ): string {
 		$keys = array(
@@ -295,6 +317,8 @@ class FormCache {
 		if ( 'publish' === $post->post_status ) {
 			self::warm_cache( $post_id );
 		}
+
+		self::purge_page_cache( $post_id, 'ffc_form' );
 	}
 
 	/**
@@ -325,6 +349,58 @@ class FormCache {
 		$timestamp = wp_next_scheduled( 'ffcertificate_warm_cache_hook' );
 		if ( $timestamp ) {
 			wp_unschedule_event( $timestamp, 'ffcertificate_warm_cache_hook' );
+		}
+	}
+
+	/**
+	 * Purge page cache (LiteSpeed, WP Rocket, etc.) when a form or calendar
+	 * is saved so that cached pages don't serve stale geofence/schedule data.
+	 *
+	 * @param int    $post_id   Post ID that was saved.
+	 * @param string $post_type Post type slug.
+	 */
+	public static function purge_page_cache( int $post_id, string $post_type ): void {
+		$shortcode_tag = 'ffc_form' === $post_type ? 'ffc_form' : 'ffc_self_scheduling';
+
+		// Find pages that embed this form/calendar via shortcode.
+		$pages = get_posts(
+			array(
+				'post_type'      => array( 'page', 'post' ),
+				'post_status'    => 'publish',
+				's'              => '[' . $shortcode_tag . ' id="' . $post_id . '"',
+				'posts_per_page' => 20,
+				'fields'         => 'ids',
+			)
+		);
+
+		// LiteSpeed Cache — purge specific URLs.
+		if ( defined( 'LSCWP_V' ) ) {
+			foreach ( $pages as $page_id ) {
+				$url = get_permalink( $page_id );
+				if ( $url ) {
+					do_action( 'litespeed_purge_url', $url );
+				}
+			}
+			if ( empty( $pages ) ) {
+				do_action( 'litespeed_purge_all' );
+			}
+		}
+
+		// WP Rocket — clean specific URLs.
+		if ( function_exists( 'rocket_clean_post' ) ) {
+			foreach ( $pages as $page_id ) {
+				rocket_clean_post( $page_id );
+			}
+		}
+
+		// W3 Total Cache.
+		if ( function_exists( 'w3tc_flush_posts' ) ) {
+			w3tc_flush_posts();
+		}
+
+		// WP Super Cache.
+		if ( function_exists( 'wp_cache_clear_cache' ) ) {
+			wp_cache_clear_cache();
 		}
 	}
 }
