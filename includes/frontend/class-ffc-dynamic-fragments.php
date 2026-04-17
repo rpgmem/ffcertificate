@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * DynamicFragments
  * AJAX endpoint for refreshing cache-sensitive page fragments.
@@ -9,8 +7,11 @@ declare(strict_types=1);
  * captchas and nonces become stale.  This lightweight endpoint returns fresh
  * values so JavaScript can patch the DOM immediately after page load.
  *
- * @since 4.12.0
+ * @since   4.12.0
+ * @package FreeFormCertificate\Frontend
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
@@ -18,8 +19,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * AJAX endpoint for refreshing cache-sensitive page fragments.
+ *
+ * @since 4.12.0
+ */
 class DynamicFragments {
 
+	/**
+	 * Register AJAX handlers for dynamic fragments.
+	 */
 	public function __construct() {
 		add_action( 'wp_ajax_ffc_get_dynamic_fragments', array( $this, 'handle' ) );
 		add_action( 'wp_ajax_nopriv_ffc_get_dynamic_fragments', array( $this, 'handle' ) );
@@ -54,6 +63,25 @@ class DynamicFragments {
 				'name'  => $user->display_name,
 				'email' => $user->user_email,
 			);
+		}
+
+		// Include fresh geofence configs so cached pages get up-to-date
+		// date/time windows if the admin changed them after the page was cached.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Intentionally nonce-free; see class docblock.
+		$form_ids = isset( $_POST['form_ids'] ) ? array_map( 'absint', (array) $_POST['form_ids'] ) : array();
+		if ( ! empty( $form_ids ) ) {
+			$geofence = array();
+			foreach ( $form_ids as $fid ) {
+				if ( $fid > 0 ) {
+					$config = \FreeFormCertificate\Security\Geofence::get_frontend_config( $fid );
+					if ( null !== $config ) {
+						$geofence[ $fid ] = $config;
+					}
+				}
+			}
+			if ( ! empty( $geofence ) ) {
+				$fragments['geofence'] = $geofence;
+			}
 		}
 
 		wp_send_json_success( $fragments );

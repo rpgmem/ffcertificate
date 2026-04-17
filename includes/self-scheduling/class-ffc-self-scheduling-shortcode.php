@@ -1,15 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Self-Scheduling Shortcode
  *
  * Handles [ffc_self_scheduling id="X"] shortcode rendering.
  * Displays calendar booking interface with date picker and slot selection.
  *
- * @since 4.1.0
+ * @since   4.1.0
  * @version 4.1.0
+ * @package FreeFormCertificate\SelfScheduling
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
@@ -17,6 +18,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handles [ffc_self_scheduling] shortcode rendering.
+ *
+ * @since 4.1.0
+ */
 class SelfSchedulingShortcode {
 
 	/**
@@ -280,6 +286,13 @@ class SelfSchedulingShortcode {
 		$restrict_viewing = ! empty( $calendar['restrict_viewing_to_hours'] );
 		$restrict_booking = ! empty( $calendar['restrict_booking_to_hours'] );
 
+		// Prevent page cache when time-based restrictions are active — the
+		// server-side is_outside_business_hours() result would otherwise be
+		// frozen in the cached HTML, showing stale "closed" messages.
+		if ( ( $restrict_viewing || $restrict_booking ) && ! $has_bypass ) {
+			self::send_nocache_headers( 'calendar with business hours restriction' );
+		}
+
 		if ( $restrict_viewing && ! $has_bypass ) {
 			$outside_hours = $this->is_outside_business_hours( $calendar );
 			if ( $outside_hours ) {
@@ -297,7 +310,8 @@ class SelfSchedulingShortcode {
 				'ffc_ss_scheduling_message',
 				__( 'To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate' )
 			);
-			$scheduling_message = str_replace( '%login_url%', wp_login_url( get_permalink() ?: '' ), $scheduling_message );
+			$current_permalink  = get_permalink();
+			$scheduling_message = str_replace( '%login_url%', wp_login_url( $current_permalink ? $current_permalink : '' ), $scheduling_message );
 		}
 
 		// Business hours restriction: booking only.
@@ -323,7 +337,8 @@ class SelfSchedulingShortcode {
 			echo '</div>';
 		}
 		$this->render_calendar_interface( $calendar, $can_book, $scheduling_message );
-		return ob_get_clean() ?: '';
+		$output = ob_get_clean();
+		return $output ? $output : '';
 	}
 
 	/**
@@ -340,11 +355,12 @@ class SelfSchedulingShortcode {
 			return '';
 		}
 
-		$message = get_option(
+		$message           = get_option(
 			'ffc_ss_visibility_message',
 			__( 'To view this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate' )
 		);
-		$message = str_replace( '%login_url%', wp_login_url( get_permalink() ?: '' ), $message );
+		$current_permalink = get_permalink();
+		$message           = str_replace( '%login_url%', wp_login_url( $current_permalink ? $current_permalink : '' ), $message );
 
 		$output = '<div class="ffc-visibility-restricted">';
 
@@ -372,7 +388,8 @@ class SelfSchedulingShortcode {
 		}
 
 		$now          = current_time( 'mysql' );
-		$now_ts       = strtotime( $now ) ?: time();
+		$now_ts       = strtotime( $now );
+		$now_ts       = $now_ts ? $now_ts : time();
 		$current_date = gmdate( 'Y-m-d', $now_ts );
 		$current_time = gmdate( 'H:i', $now_ts );
 
@@ -399,7 +416,8 @@ class SelfSchedulingShortcode {
 		}
 
 		$now          = current_time( 'mysql' );
-		$current_date = gmdate( 'Y-m-d', strtotime( $now ) ?: time() );
+		$now_strtime  = strtotime( $now );
+		$current_date = gmdate( 'Y-m-d', $now_strtime ? $now_strtime : time() );
 		$ranges       = \FreeFormCertificate\Scheduling\WorkingHoursService::get_day_ranges( $current_date, $working_hours );
 
 		if ( empty( $ranges ) ) {
@@ -460,11 +478,24 @@ class SelfSchedulingShortcode {
 	}
 
 	/**
+	 * Send no-cache headers to prevent page caching of dynamic content.
+	 *
+	 * @param string $reason Short description for debugging.
+	 */
+	private static function send_nocache_headers( string $reason ): void {
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		nocache_headers();
+		do_action( 'litespeed_control_set_nocache', 'FFC ' . $reason );
+	}
+
+	/**
 	 * Render calendar booking interface
 	 *
-	 * @param array<string, mixed> $calendar
-	 * @param bool                 $can_book Whether the user can book (false when scheduling is restricted).
-	 * @param string               $scheduling_message Message to show when booking is restricted.
+	 * @param array<string, mixed> $calendar           Calendar data.
+	 * @param bool                 $can_book            Whether the user can book (false when scheduling is restricted).
+	 * @param string               $scheduling_message  Message to show when booking is restricted.
 	 * @return void
 	 */
 	private function render_calendar_interface( array $calendar, bool $can_book = true, string $scheduling_message = '' ): void {

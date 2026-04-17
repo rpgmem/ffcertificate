@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Shortcode
  *
@@ -16,12 +14,19 @@ declare(strict_types=1);
  * @package FreeFormCertificate\Audience
  */
 
+declare(strict_types=1);
+
 namespace FreeFormCertificate\Audience;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Renders the audience booking calendar via [ffc_audience] shortcode.
+ *
+ * @since 4.5.0
+ */
 class AudienceShortcode {
 
 	/**
@@ -96,7 +101,7 @@ class AudienceShortcode {
 				'ffc_aud_scheduling_message',
 				__( 'To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate' )
 			);
-			$scheduling_message = str_replace( '%login_url%', wp_login_url( get_permalink() ?: '' ), $scheduling_message );
+			$scheduling_message = str_replace( '%login_url%', wp_login_url( get_permalink() ? get_permalink() : '' ), $scheduling_message );
 
 			$config = array(
 				'scheduleId'          => $specific_id,
@@ -130,6 +135,14 @@ class AudienceShortcode {
 		}
 
 		$user_id = get_current_user_id();
+
+		// Logged-in users see user-specific content (permissions, booking
+		// abilities) — prevent page cache from serving another user's view.
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		nocache_headers();
+		do_action( 'litespeed_control_set_nocache', 'FFC audience calendar with user-specific content' );
 
 		// Get schedules user can access.
 		$schedules = self::get_user_schedules( $user_id, $specific_id );
@@ -207,9 +220,10 @@ class AudienceShortcode {
 		}
 
 		ob_start();
+		$config_json = wp_json_encode( $config );
 		?>
 		<div class="<?php echo esc_attr( $wrapper_class ); ?>">
-		<div class="ffc-audience-calendar" id="ffc-audience-calendar" data-config="<?php echo esc_attr( wp_json_encode( $config ) ?: '' ); ?>">
+		<div class="ffc-audience-calendar" id="ffc-audience-calendar" data-config="<?php echo esc_attr( $config_json ? $config_json : '' ); ?>">
 			<!-- Header -->
 			<div class="ffc-calendar-header">
 				<div class="ffc-calendar-nav">
@@ -440,7 +454,8 @@ class AudienceShortcode {
 		</div>
 		<?php
 
-		return ob_get_clean() ?: '';
+		$output = ob_get_clean();
+		return is_string( $output ) ? $output : '';
 	}
 
 	/**
@@ -509,7 +524,7 @@ class AudienceShortcode {
 			'ffc_aud_visibility_message',
 			__( 'To view this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate' )
 		);
-		$message = str_replace( '%login_url%', wp_login_url( get_permalink() ?: '' ), $message );
+		$message = str_replace( '%login_url%', wp_login_url( get_permalink() ? get_permalink() : '' ), $message );
 
 		$output = '<div class="ffc-visibility-restricted">';
 
@@ -535,7 +550,8 @@ class AudienceShortcode {
 			<p><?php esc_html_e( 'You do not have access to any calendars.', 'ffcertificate' ); ?></p>
 		</div>
 		<?php
-		return ob_get_clean() ?: '';
+		$output = ob_get_clean();
+		return is_string( $output ) ? $output : '';
 	}
 
 	/**

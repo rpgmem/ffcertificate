@@ -34,6 +34,22 @@
 			return;
 		}
 
+		// Collect form IDs from the page so the backend can return fresh
+		// geofence configs for each form (cached pages may have stale data).
+		var formIds = [];
+		var formWrappers = document.querySelectorAll('.ffc-form-wrapper[id^="ffc-form-"]');
+		for (var f = 0; f < formWrappers.length; f++) {
+			var wId = formWrappers[f].id.replace('ffc-form-', '');
+			if (wId) {
+				formIds.push(wId);
+			}
+		}
+
+		var payload = 'action=ffc_get_dynamic_fragments';
+		for (var fi = 0; fi < formIds.length; fi++) {
+			payload += '&form_ids%5B%5D=' + encodeURIComponent(formIds[fi]);
+		}
+
 		var xhr = new XMLHttpRequest();
 		xhr.open('POST', ajaxUrl, true);
 		xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -54,7 +70,7 @@
 			}
 		};
 
-		xhr.send('action=ffc_get_dynamic_fragments');
+		xhr.send(payload);
 	}
 
 	/**
@@ -115,6 +131,16 @@
 			if (emailField && data.user.email) {
 				emailField.value = data.user.email;
 				emailField.setAttribute('readonly', 'readonly');
+			}
+		}
+
+		// --- Geofence configs (refresh stale cached data) ---
+		if (data.geofence && typeof ffcGeofenceConfig !== 'undefined') {
+			var formId;
+			for (formId in data.geofence) {
+				if (data.geofence.hasOwnProperty(formId)) {
+					ffcGeofenceConfig[formId] = data.geofence[formId];
+				}
 			}
 		}
 	}
