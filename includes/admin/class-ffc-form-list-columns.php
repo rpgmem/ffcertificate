@@ -56,8 +56,9 @@ class FormListColumns {
 			}
 
 			if ( 'title' === $key ) {
-				$new['ffc_shortcode']   = __( 'Shortcode', 'ffcertificate' );
-				$new['ffc_submissions'] = __( 'Submissions', 'ffcertificate' );
+				$new['ffc_shortcode']      = __( 'Shortcode', 'ffcertificate' );
+				$new['ffc_submissions']    = __( 'Submissions', 'ffcertificate' );
+				$new['ffc_csv_downloads']  = __( 'CSV Downloads', 'ffcertificate' );
 			}
 		}
 
@@ -97,12 +98,31 @@ class FormListColumns {
 				if ( 0 === $count ) {
 					echo '<span class="ffc-empty-value">&mdash;</span>';
 				} else {
-					$url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions&form_id=' . $post_id );
+					$url = admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions&filter_form_id=' . $post_id );
 					printf(
 						'<a href="%s"><strong>%s</strong></a>',
 						esc_url( $url ),
 						esc_html( number_format_i18n( $count ) )
 					);
+				}
+				break;
+
+			case 'ffc_csv_downloads':
+				$csv_enabled = (string) get_post_meta( $post_id, '_ffc_csv_public_enabled', true );
+				if ( '1' !== $csv_enabled ) {
+					echo '<span class="ffc-empty-value">&mdash;</span>';
+				} else {
+					$dl_count = (int) get_post_meta( $post_id, '_ffc_csv_public_count', true );
+					$limit    = (int) get_post_meta( $post_id, '_ffc_csv_public_limit', true );
+					if ( $limit > 0 ) {
+						printf(
+							'%s / %s',
+							esc_html( number_format_i18n( $dl_count ) ),
+							esc_html( number_format_i18n( $limit ) )
+						);
+					} else {
+						echo esc_html( number_format_i18n( $dl_count ) );
+					}
 				}
 				break;
 		}

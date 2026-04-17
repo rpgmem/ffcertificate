@@ -532,8 +532,8 @@ class Geofence {
 				'formId'      => $form_id,
 				'adminBypass' => true,
 				'bypassInfo'  => array(
-					'hasDatetime' => '1' === $config['datetime_enabled'],
-					'hasGeo'      => '1' === $config['geo_enabled'],
+					'hasDatetime' => $config['datetime_enabled'],
+					'hasGeo'      => $config['geo_enabled'],
 				),
 				'datetime'    => array( 'enabled' => false ),
 				'geo'         => array( 'enabled' => false ),
@@ -558,11 +558,11 @@ class Geofence {
 			'formId'      => $form_id,
 			'adminBypass' => $has_partial_bypass,
 			'bypassInfo'  => $has_partial_bypass ? array(
-				'hasDatetime' => $bypass_datetime && '1' === $config['datetime_enabled'],
-				'hasGeo'      => $bypass_geo && '1' === $config['geo_enabled'],
+				'hasDatetime' => $bypass_datetime && $config['datetime_enabled'],
+				'hasGeo'      => $bypass_geo && $config['geo_enabled'],
 			) : null,
 			'datetime'    => array(
-				'enabled'   => ! $bypass_datetime && '1' === $config['datetime_enabled'],
+				'enabled'   => ! $bypass_datetime && $config['datetime_enabled'],
 				'dateStart' => $config['date_start'] ?? '',
 				'dateEnd'   => $config['date_end'] ?? '',
 				'timeStart' => $config['time_start'] ?? '',
@@ -572,9 +572,9 @@ class Geofence {
 				'hideMode'  => $config['datetime_hide_mode'] ?? 'message', // 'hide' or 'message'
 			),
 			'geo'         => array(
-				'enabled'        => ! $bypass_geo && '1' === $config['geo_enabled'],
-				'gpsEnabled'     => ! $bypass_geo && '1' === $config['geo_gps_enabled'],
-				'ipEnabled'      => ! $bypass_geo && '1' === $config['geo_ip_enabled'],
+				'enabled'        => ! $bypass_geo && $config['geo_enabled'],
+				'gpsEnabled'     => ! $bypass_geo && $config['geo_gps_enabled'],
+				'ipEnabled'      => ! $bypass_geo && $config['geo_ip_enabled'],
 				'areas'          => self::parse_areas( $config['geo_areas'] ?? '' ),
 				'gpsIpLogic'     => $config['geo_gps_ip_logic'] ?? 'or', // 'and' or 'or'
 				'messageBlocked' => $config['msg_geo_blocked'] ?? '',
