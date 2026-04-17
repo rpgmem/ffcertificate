@@ -25,8 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'FFC_VERSION', '5.3.0' );                // Plugin version (WordPress Plugin Check compliance)
 // External libraries versions.
 define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );   // html2canvas - https://html2canvas.hertzen.com/.
-define( 'FFC_JSPDF_VERSION', '2.5.1' );         // jsPDF - https://github.com/parallax/jsPDF.
-define( 'FFC_JQUERY_UI_VERSION', '1.12.1' );    // jQuery UI theme (CDN) - https://code.jquery.com/ui/.
+define( 'FFC_JSPDF_VERSION', '4.2.1' );         // jsPDF - https://github.com/parallax/jsPDF.
+define( 'FFC_JQUERY_UI_VERSION', '1.14.1' );    // jQuery UI theme (CDN) - https://code.jquery.com/ui/.
 
 define( 'FFC_MIN_WP_VERSION', '6.2' );          // Minimum WordPress (required for %i identifier placeholder).
 define( 'FFC_MIN_PHP_VERSION', '8.1' );         // Minimum PHP.
