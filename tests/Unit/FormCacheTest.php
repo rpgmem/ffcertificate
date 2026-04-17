@@ -798,6 +798,9 @@ class FormCacheTest extends TestCase {
             array( 'config' => array(), 'fields' => array(), 'background' => '' )
         );
 
+        // purge_page_cache calls get_posts to find pages embedding this form.
+        Functions\when( 'get_posts' )->justReturn( array() );
+
         FormCache::on_form_saved( 200, $post, true );
 
         // Verify cache was cleared for all 5 keys.
@@ -829,6 +832,9 @@ class FormCacheTest extends TestCase {
 
         // warm_cache should NOT be called for draft, so wp_cache_get should not be called.
         Functions\expect( 'wp_cache_get' )->never();
+
+        // purge_page_cache calls get_posts to find pages embedding this form.
+        Functions\when( 'get_posts' )->justReturn( array() );
 
         FormCache::on_form_saved( 201, $post, false );
     }
