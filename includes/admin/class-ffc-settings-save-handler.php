@@ -136,6 +136,11 @@ class SettingsSaveHandler {
 			$clean['main_address'] = sanitize_text_field( $new['main_address'] );
 		}
 
+		// CSV Download Page URL.
+		if ( isset( $new['csv_download_page_url'] ) ) {
+			$clean['csv_download_page_url'] = esc_url_raw( $new['csv_download_page_url'] );
+		}
+
 		// v4.6.16: Activity Log + Debug moved to Advanced tab.
 		$ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
 
