@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * PublicCsvDownload
  *
@@ -18,18 +16,27 @@ declare(strict_types=1);
  *  The form submits normally via admin-post.php to {@see handle_request()},
  *  which streams the CSV synchronously (legacy path).
  *
- * @since 5.1.0
+ * @package FreeFormCertificate
+ * @since   5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Security\Geofence;
+use FreeFormCertificate\Security\GeofenceLocationRegistry;
 use FreeFormCertificate\Security\RateLimiter;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Public-facing CSV download handler with intermediate info screen.
+ *
+ * @since 5.1.0
+ */
 class PublicCsvDownload {
 
 	const SHORTCODE           = 'ffc_csv_download';
@@ -51,6 +58,14 @@ class PublicCsvDownload {
 		add_action( 'admin_post_' . self::ACTION, array( $this, 'handle_request' ) );
 		add_action( 'admin_post_nopriv_' . self::ACTION, array( $this, 'handle_request' ) );
 
+		// AJAX: form info (intermediate screen).
+		add_action( 'wp_ajax_ffc_public_csv_info', array( $this, 'ajax_info' ) );
+		add_action( 'wp_ajax_nopriv_ffc_public_csv_info', array( $this, 'ajax_info' ) );
+
+		// AJAX: certificate preview.
+		add_action( 'wp_ajax_ffc_public_cert_preview', array( $this, 'ajax_cert_preview' ) );
+		add_action( 'wp_ajax_nopriv_ffc_public_cert_preview', array( $this, 'ajax_cert_preview' ) );
+
 		// AJAX batched export (JS path).
 		$exporter = new PublicCsvExporter();
 		add_action( 'wp_ajax_ffc_public_csv_start', array( $exporter, 'ajax_start' ) );
@@ -68,7 +83,7 @@ class PublicCsvDownload {
 	/**
 	 * Render the public download form.
 	 *
-	 * @param array<string, mixed>|string $atts
+	 * @param array<string, mixed>|string $atts Shortcode attributes.
 	 * @return string
 	 */
 	public function render_shortcode( $atts = array() ): string {
@@ -138,15 +153,15 @@ class PublicCsvDownload {
 						value="<?php echo esc_attr( $prefill_hash ); ?>">
 				</div>
 
-				<?php
-				// generate_security_fields() emits honeypot + captcha — both are.
-				// already escaped inside that helper.
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-				?>
-				<div class="ffc-no-js-security"><?php echo $security_html; ?></div>
+				<div class="ffc-no-js-security">
+					<?php
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside generate_security_fields().
+					echo $security_html;
+					?>
+				</div>
 
 				<button type="submit" class="ffc-submit-btn">
-					<?php esc_html_e( 'Download CSV', 'ffcertificate' ); ?>
+					<?php esc_html_e( 'View form details', 'ffcertificate' ); ?>
 				</button>
 			</form>
 		</div>
@@ -213,6 +228,107 @@ class PublicCsvDownload {
 	}
 
 	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Form info (intermediate screen).
+	// ──────────────────────────────────────────────────────────────.
+
+	/**
+	 * Return form metadata for the intermediate preview screen.
+	 *
+	 * Validates rate-limit, nonce, honeypot/captcha, and hash only
+	 * (does NOT require the form to be ended or quota available).
+	 */
+	public function ajax_info(): void {
+		// 1. Rate limit.
+		if ( class_exists( RateLimiter::class ) ) {
+			$ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
+			$rate_check = RateLimiter::check_ip_limit( $ip );
+			if ( empty( $rate_check['allowed'] ) ) {
+				wp_send_json_error( array( 'message' => $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ) ) );
+			}
+		}
+
+		// 2. Nonce.
+		if ( ! isset( $_POST['_ffc_pcd_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_ffc_pcd_nonce'] ) ), self::NONCE_ACTION ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page and try again.', 'ffcertificate' ) ) );
+		}
+
+		// 3. Honeypot + CAPTCHA.
+		$security_check = \FreeFormCertificate\Core\Utils::validate_security_fields( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( true !== $security_check ) {
+			wp_send_json_error( array( 'message' => (string) $security_check ) );
+		}
+
+		// 4. Sanitize input.
+		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$posted_hash = isset( $_POST['hash'] ) ? sanitize_text_field( wp_unslash( $_POST['hash'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		if ( $form_id <= 0 || '' === $posted_hash ) {
+			wp_send_json_error( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) );
+		}
+
+		// 5–7. Hash-only validation (form exists, feature enabled, hash matches).
+		$error = $this->validate_hash_only( $form_id, $posted_hash );
+		if ( null !== $error ) {
+			wp_send_json_error( array( 'message' => $error ) );
+		}
+
+		wp_send_json_success( $this->build_form_info( $form_id ) );
+	}
+
+	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Certificate preview.
+	// ──────────────────────────────────────────────────────────────.
+
+	/**
+	 * Return certificate template data for public preview.
+	 *
+	 * Only available before the form start date (before collection begins).
+	 */
+	public function ajax_cert_preview(): void {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		if ( ! isset( $_POST['_ffc_pcd_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_ffc_pcd_nonce'] ) ), self::NONCE_ACTION ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ) );
+		}
+
+		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$posted_hash = isset( $_POST['hash'] ) ? sanitize_text_field( wp_unslash( $_POST['hash'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		$error = $this->validate_hash_only( $form_id, $posted_hash );
+		if ( null !== $error ) {
+			wp_send_json_error( array( 'message' => $error ) );
+		}
+
+		// Only available before collection starts.
+		$start_ts = Geofence::get_form_start_timestamp( $form_id );
+		if ( null === $start_ts || time() >= $start_ts ) {
+			wp_send_json_error( array( 'message' => __( 'Certificate preview is only available before the form collection period begins.', 'ffcertificate' ) ) );
+		}
+
+		$config = get_post_meta( $form_id, '_ffc_form_config', true );
+		$config = is_array( $config ) ? $config : array();
+		$fields = get_post_meta( $form_id, '_ffc_form_fields', true );
+		$fields = is_array( $fields ) ? $fields : array();
+
+		$field_names = array();
+		foreach ( $fields as $field ) {
+			if ( ! empty( $field['name'] ) && ! in_array( ( $field['type'] ?? '' ), array( 'info', 'embed' ), true ) ) {
+				$field_names[] = array(
+					'name'  => sanitize_text_field( $field['name'] ),
+					'label' => sanitize_text_field( $field['label'] ?? $field['name'] ),
+				);
+			}
+		}
+
+		wp_send_json_success(
+			array(
+				'html'     => wp_kses_post( $config['pdf_layout'] ?? '' ),
+				'bg_image' => esc_url( $config['bg_image'] ?? '' ),
+				'fields'   => $field_names,
+			)
+		);
+	}
+
+	// ──────────────────────────────────────────────────────────────.
 	// Shared validation (used by handle_request + PublicCsvExporter)
 	// ──────────────────────────────────────────────────────────────.
 
@@ -274,6 +390,262 @@ class PublicCsvDownload {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Validate only steps 5–7 (form exists, feature enabled, hash match).
+	 *
+	 * Used by the info endpoint which must succeed even when the form is
+	 * still active or the download quota is exhausted.
+	 *
+	 * @param int    $form_id     Sanitized form ID.
+	 * @param string $posted_hash Sanitized access hash.
+	 * @return string|null Error message on failure, null on success.
+	 */
+	public function validate_hash_only( int $form_id, string $posted_hash ): ?string {
+		if ( $form_id <= 0 ) {
+			return __( 'Form not found.', 'ffcertificate' );
+		}
+		if ( get_post_type( $form_id ) !== 'ffc_form' ) {
+			return __( 'Form not found.', 'ffcertificate' );
+		}
+
+		$enabled = (string) get_post_meta( $form_id, self::META_ENABLED, true );
+		if ( '1' !== $enabled ) {
+			return __( 'Public CSV download is not enabled for this form.', 'ffcertificate' );
+		}
+
+		$stored_hash = (string) get_post_meta( $form_id, self::META_HASH, true );
+		if ( '' === $stored_hash || ! hash_equals( $stored_hash, $posted_hash ) ) {
+			return __( 'Invalid access hash.', 'ffcertificate' );
+		}
+
+		return null;
+	}
+
+	// ──────────────────────────────────────────────────────────────.
+	// Form info builder (intermediate screen data).
+	// ──────────────────────────────────────────────────────────────.
+
+	/**
+	 * Build the form metadata payload for the intermediate preview screen.
+	 *
+	 * @param int $form_id Validated form ID.
+	 * @return array<string, mixed>
+	 */
+	private function build_form_info( int $form_id ): array {
+		$form_config     = get_post_meta( $form_id, '_ffc_form_config', true );
+		$form_config     = is_array( $form_config ) ? $form_config : array();
+		$geofence_config = get_post_meta( $form_id, '_ffc_geofence_config', true );
+		$geofence_config = is_array( $geofence_config ) ? $geofence_config : array();
+
+		$now      = time();
+		$start_ts = Geofence::get_form_start_timestamp( $form_id );
+		$end_ts   = Geofence::get_form_end_timestamp( $form_id );
+
+		$before_start = null !== $start_ts && $now < $start_ts;
+		$form_ended   = null !== $end_ts && $now > $end_ts;
+		$has_end_date = null !== $end_ts;
+
+		// Quota.
+		$limit = (int) get_post_meta( $form_id, self::META_LIMIT, true );
+		if ( $limit <= 0 ) {
+			$settings = get_option( 'ffc_settings', array() );
+			$default  = is_array( $settings ) && isset( $settings['public_csv_default_limit'] )
+				? (int) $settings['public_csv_default_limit']
+				: 0;
+			$limit    = $default > 0 ? $default : 1;
+		}
+		$count           = (int) get_post_meta( $form_id, self::META_COUNT, true );
+		$quota_exhausted = $count >= $limit;
+
+		// Download blocked reason.
+		$download_reason = null;
+		if ( ! $has_end_date ) {
+			$download_reason = 'no_end_date';
+		} elseif ( ! $form_ended ) {
+			$download_reason = 'active';
+		} elseif ( $quota_exhausted ) {
+			$download_reason = 'quota_exhausted';
+		}
+
+		// Submission count.
+		$repo             = new \FreeFormCertificate\Repositories\SubmissionRepository();
+		$submission_count = $repo->countForExport( array( $form_id ), 'publish' );
+
+		$tz = wp_timezone();
+
+		return array(
+			'form_title'       => get_the_title( $form_id ),
+			'submission_count' => $submission_count,
+			'restrictions'     => $this->build_restrictions_info( $form_config ),
+			'datetime'         => $this->build_datetime_info( $geofence_config, $tz ),
+			'geolocation'      => $this->build_geolocation_info( $geofence_config ),
+			'quiz'             => $this->build_quiz_info( $form_config ),
+			'csv'              => array(
+				'limit'     => $limit,
+				'count'     => $count,
+				'remaining' => max( 0, $limit - $count ),
+			),
+			'status'           => array(
+				'has_start_date'          => null !== $start_ts,
+				'has_end_date'            => $has_end_date,
+				'before_start'            => $before_start,
+				'form_ended'              => $form_ended,
+				'can_download'            => $form_ended && ! $quota_exhausted,
+				'can_preview_cert'        => $before_start,
+				'download_blocked_reason' => $download_reason,
+				'start_date_formatted'    => null !== $start_ts
+					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $start_ts, $tz )
+					: null,
+				'end_date_formatted'      => null !== $end_ts
+					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $end_ts, $tz )
+					: null,
+			),
+		);
+	}
+
+	/**
+	 * Build access restrictions data for the info response.
+	 *
+	 * @param array<string, mixed> $config Form config.
+	 * @return array<string, bool>
+	 */
+	private function build_restrictions_info( array $config ): array {
+		$restrictions = $config['restrictions'] ?? array();
+		$result       = array();
+
+		if ( ! empty( $restrictions['password'] ) && '1' === (string) $restrictions['password'] ) {
+			$result['password'] = true;
+		}
+		if ( ! empty( $restrictions['allowlist'] ) && '1' === (string) $restrictions['allowlist'] ) {
+			$result['allowlist'] = true;
+		}
+		if ( ! empty( $restrictions['denylist'] ) && '1' === (string) $restrictions['denylist'] ) {
+			$result['denylist'] = true;
+		}
+		if ( ! empty( $restrictions['ticket'] ) && '1' === (string) $restrictions['ticket'] ) {
+			$result['ticket'] = true;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Build date/time availability data for the info response.
+	 *
+	 * @param array<string, mixed> $config   Geofence config.
+	 * @param \DateTimeZone        $tz       Site timezone.
+	 * @return array<string, mixed>
+	 */
+	private function build_datetime_info( array $config, \DateTimeZone $tz ): array {
+		$date_start = isset( $config['date_start'] ) ? trim( (string) $config['date_start'] ) : '';
+		$date_end   = isset( $config['date_end'] ) ? trim( (string) $config['date_end'] ) : '';
+		$time_start = isset( $config['time_start'] ) ? trim( (string) $config['time_start'] ) : '';
+		$time_end   = isset( $config['time_end'] ) ? trim( (string) $config['time_end'] ) : '';
+		$time_mode  = isset( $config['time_mode'] ) ? (string) $config['time_mode'] : 'daily';
+
+		$has_dates = '' !== $date_start || '' !== $date_end;
+		$has_times = '' !== $time_start || '' !== $time_end;
+
+		$date_format = get_option( 'date_format' );
+
+		return array(
+			'has_dates'      => $has_dates,
+			'date_start'     => '' !== $date_start ? wp_date( $date_format, (int) strtotime( $date_start ), $tz ) : null,
+			'date_start_raw' => '' !== $date_start ? $date_start : null,
+			'date_end'       => '' !== $date_end ? wp_date( $date_format, (int) strtotime( $date_end ), $tz ) : null,
+			'date_end_raw'   => '' !== $date_end ? $date_end : null,
+			'has_times'      => $has_times,
+			'time_start'     => '' !== $time_start ? $time_start : null,
+			'time_end'       => '' !== $time_end ? $time_end : null,
+			'time_mode'      => $time_mode,
+		);
+	}
+
+	/**
+	 * Build geolocation data for the info response.
+	 *
+	 * @param array<string, mixed> $config Geofence config.
+	 * @return array<string, mixed>
+	 */
+	private function build_geolocation_info( array $config ): array {
+		$geo_enabled = ! empty( $config['geo_enabled'] );
+		if ( ! $geo_enabled ) {
+			return array( 'enabled' => false );
+		}
+
+		$gps_enabled = ! empty( $config['geo_gps_enabled'] );
+		$ip_enabled  = ! empty( $config['geo_ip_enabled'] );
+
+		$result = array(
+			'enabled'     => true,
+			'gps_enabled' => $gps_enabled,
+			'ip_enabled'  => $ip_enabled,
+		);
+
+		// GPS locations.
+		if ( $gps_enabled ) {
+			$gps_source = $config['geo_area_source'] ?? 'locations';
+			if ( 'locations' === $gps_source && ! empty( $config['geo_area_location_ids'] ) ) {
+				$locations               = GeofenceLocationRegistry::get_by_ids( (array) $config['geo_area_location_ids'] );
+				$result['gps_locations'] = $this->format_locations_for_info( $locations );
+			} else {
+				$result['gps_custom'] = true;
+			}
+		}
+
+		// IP locations (only when separate areas are configured).
+		if ( $ip_enabled && ! empty( $config['geo_ip_areas_permissive'] ) ) {
+			$ip_source = $config['geo_ip_area_source'] ?? 'locations';
+			if ( 'locations' === $ip_source && ! empty( $config['geo_ip_area_location_ids'] ) ) {
+				$locations              = GeofenceLocationRegistry::get_by_ids( (array) $config['geo_ip_area_location_ids'] );
+				$result['ip_locations'] = $this->format_locations_for_info( $locations );
+			} else {
+				$result['ip_custom'] = true;
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Format registered locations for the info response.
+	 *
+	 * @param array<int, array<string, mixed>> $locations Raw location data.
+	 * @return list<array<string, float|string>>
+	 */
+	private function format_locations_for_info( array $locations ): array {
+		$formatted = array();
+		foreach ( $locations as $loc ) {
+			$formatted[] = array(
+				'name'     => sanitize_text_field( $loc['name'] ?? '' ),
+				'lat'      => (float) ( $loc['lat'] ?? 0 ),
+				'lng'      => (float) ( $loc['lng'] ?? 0 ),
+				'radius'   => (float) ( $loc['radius'] ?? 0 ),
+				'maps_url' => 'https://www.google.com/maps/search/?api=1&query=' . (float) $loc['lat'] . ',' . (float) $loc['lng'],
+			);
+		}
+		return $formatted;
+	}
+
+	/**
+	 * Build quiz/evaluation data for the info response.
+	 *
+	 * @param array<string, mixed> $config Form config.
+	 * @return array<string, mixed>
+	 */
+	private function build_quiz_info( array $config ): array {
+		$enabled = ! empty( $config['quiz_enabled'] ) && '1' === (string) $config['quiz_enabled'];
+		if ( ! $enabled ) {
+			return array( 'enabled' => false );
+		}
+
+		return array(
+			'enabled'       => true,
+			'passing_score' => (int) ( $config['quiz_passing_score'] ?? 0 ),
+			'max_attempts'  => (int) ( $config['quiz_max_attempts'] ?? 0 ),
+		);
 	}
 
 	// ──────────────────────────────────────────────────────────────.
