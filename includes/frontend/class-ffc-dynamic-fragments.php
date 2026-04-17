@@ -65,10 +65,29 @@ class DynamicFragments {
 			);
 		}
 
-		// Include fresh geofence configs so cached pages get up-to-date
-		// date/time windows if the admin changed them after the page was cached.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Intentionally nonce-free; see class docblock.
 		$form_ids = isset( $_POST['form_ids'] ) ? array_map( 'absint', (array) $_POST['form_ids'] ) : array();
+
+		// Generate a unique captcha per form so multiple forms on the same
+		// page each show a different math question after cache refresh.
+		if ( count( $form_ids ) > 1 ) {
+			$per_form = array();
+			foreach ( $form_ids as $fid ) {
+				if ( $fid > 0 ) {
+					$c                = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
+					$per_form[ $fid ] = array(
+						'label' => $c['label'],
+						'hash'  => $c['hash'],
+					);
+				}
+			}
+			if ( ! empty( $per_form ) ) {
+				$fragments['captchas'] = $per_form;
+			}
+		}
+
+		// Include fresh geofence configs so cached pages get up-to-date
+		// date/time windows if the admin changed them after the page was cached.
 		if ( ! empty( $form_ids ) ) {
 			$geofence = array();
 			foreach ( $form_ids as $fid ) {

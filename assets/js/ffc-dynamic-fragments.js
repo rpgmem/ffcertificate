@@ -79,20 +79,50 @@
 	function applyFragments(data) {
 		var i;
 
-		// --- Captcha ---
+		// --- Per-form captchas (multiple forms on one page) ---
+		var handledWrappers = {};
+		if (data.captchas) {
+			var formId;
+			for (formId in data.captchas) {
+				if (data.captchas.hasOwnProperty(formId)) {
+					var wrapper = document.getElementById('ffc-form-' + formId);
+					if (wrapper) {
+						var fc = data.captchas[formId];
+						var wLabel = wrapper.querySelector('.ffc-captcha-row .ffc-captcha-label-text');
+						var wHash  = wrapper.querySelector('input[name="ffc_captcha_hash"]');
+						var wAns   = wrapper.querySelector('input[name="ffc_captcha_ans"]');
+						if (wLabel) { wLabel.textContent = fc.label; }
+						if (wHash)  { wHash.value = fc.hash; }
+						if (wAns)   { wAns.value = ''; }
+						handledWrappers['ffc-form-' + formId] = true;
+					}
+				}
+			}
+		}
+
+		// --- Default captcha (single form or self-scheduling) ---
 		if (data.captcha) {
 			var labelTexts = document.querySelectorAll('.ffc-captcha-row .ffc-captcha-label-text');
 			var hashes     = document.querySelectorAll('input[name="ffc_captcha_hash"]');
 			var answers    = document.querySelectorAll('input[name="ffc_captcha_ans"]');
 
 			for (i = 0; i < labelTexts.length; i++) {
-				labelTexts[i].textContent = data.captcha.label;
+				var el = labelTexts[i];
+				var parent = el.closest('.ffc-form-wrapper');
+				if (parent && handledWrappers[parent.id]) { continue; }
+				el.textContent = data.captcha.label;
 			}
 			for (i = 0; i < hashes.length; i++) {
-				hashes[i].value = data.captcha.hash;
+				var hEl = hashes[i];
+				var hParent = hEl.closest('.ffc-form-wrapper');
+				if (hParent && handledWrappers[hParent.id]) { continue; }
+				hEl.value = data.captcha.hash;
 			}
 			for (i = 0; i < answers.length; i++) {
-				answers[i].value = '';
+				var aEl = answers[i];
+				var aParent = aEl.closest('.ffc-form-wrapper');
+				if (aParent && handledWrappers[aParent.id]) { continue; }
+				aEl.value = '';
 			}
 		}
 
