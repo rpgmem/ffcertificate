@@ -120,7 +120,18 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 						</p>
 					</td>
 				</tr>
-			</tbody>
+				<tr>
+					<th scope="row">
+						<label for="csv_download_page_url"><?php esc_html_e( 'CSV Download Page URL', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="url" name="ffc_settings[csv_download_page_url]" id="csv_download_page_url" value="<?php echo esc_attr( $ffcertificate_get_option( 'csv_download_page_url', '' ) ); ?>" class="large-text" placeholder="https://example.com/csv-download/">
+						<p class="description">
+							<?php esc_html_e( 'URL of the page containing the [ffc_csv_download] shortcode. When set, the form editor will display the full download link instead of just the query string.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+				</tbody>
 		</table>
 
 		<!-- QR Code Defaults Section -->

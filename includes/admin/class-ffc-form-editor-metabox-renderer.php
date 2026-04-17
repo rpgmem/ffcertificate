@@ -938,11 +938,24 @@ class FormEditorMetaboxRenderer {
 					</p>
 
 					<?php if ( '1' === $enabled && '' !== $hash ) : ?>
-						<p class="description">
-							<?php esc_html_e( 'Example pre-filled link (append this as a query string to the page that contains the [ffc_csv_download] shortcode):', 'ffcertificate' ); ?>
-							<br>
-							<code>?form_id=<?php echo esc_html( (string) $post->ID ); ?>&amp;hash=<?php echo esc_html( $hash ); ?></code>
-						</p>
+						<?php
+						$ffc_settings          = get_option( 'ffc_settings', array() );
+						$csv_download_page_url = $ffc_settings['csv_download_page_url'] ?? '';
+						$ffc_query_string      = 'form_id=' . $post->ID . '&hash=' . $hash;
+						?>
+						<?php if ( '' !== $csv_download_page_url ) : ?>
+							<p class="description">
+								<?php esc_html_e( 'Download link:', 'ffcertificate' ); ?>
+								<br>
+								<code><?php echo esc_html( $csv_download_page_url . ( str_contains( $csv_download_page_url, '?' ) ? '&' : '?' ) . $ffc_query_string ); ?></code>
+							</p>
+						<?php else : ?>
+							<p class="description">
+								<?php esc_html_e( 'Example pre-filled link (append this as a query string to the page that contains the [ffc_csv_download] shortcode):', 'ffcertificate' ); ?>
+								<br>
+								<code>?<?php echo esc_html( $ffc_query_string ); ?></code>
+							</p>
+						<?php endif; ?>
 					<?php endif; ?>
 				</td>
 			</tr>
