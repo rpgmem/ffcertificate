@@ -6,6 +6,48 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## 5.3.0 (2026-04-17)
+
+Full-page cache compatibility, per-form captcha isolation, and CI pipeline improvements.
+
+### New Features
+
+- Feat: **Full-page cache compatibility** — forms and calendars now work correctly with LiteSpeed Cache, WP Rocket, W3 Total Cache, and WP Super Cache. Self-scheduling shortcodes with business-hours restrictions send `DONOTCACHEPAGE` + `nocache_headers()` to prevent stale "closed" messages. Audience shortcodes for logged-in users prevent cached cross-user content leakage (#37)
+- Feat: **Dynamic Fragments geofence refresh** — the AJAX endpoint now accepts `form_ids[]` and returns fresh geofence date/time configs, so cached pages always display up-to-date availability windows after admin changes (#37)
+- Feat: **Automatic cache purge on save** — `FormCache::purge_page_cache()` finds pages embedding a saved form or calendar and purges them from LiteSpeed, WP Rocket, W3TC, and WP Super Cache. Called on both `save_post_ffc_form` and `save_post_ffc_self_scheduling` (#37)
+- Feat: **CSV Download Page URL setting** — new field on the General settings tab for configuring the public CSV download page URL (#34)
+- Feat: **Search forms by ID** — the admin forms list table (`edit.php?post_type=ffc_form`) now supports searching by numeric post ID (#39)
+
+### Bug Fixes
+
+- Fix: **Same captcha on all forms** — when multiple forms exist on a cached page, Dynamic Fragments now generates a unique math captcha per form instead of applying a single captcha to all forms (#38)
+- Fix: **PHPUnit test failures** — added missing mocks for `nocache_headers()` and `get_posts()` in `AudienceShortcodeTest` and `FormCacheTest` after cache compatibility changes (#39)
+- Fix: **Minified assets out of sync** — regenerated `ffc-dynamic-fragments.min.js` with `--source-map` to match the `npm run build` output (#39)
+
+### Refactoring
+
+- Refactor: **CustomFieldValidator extraction** — validation logic extracted from `CustomFieldRepository` into a dedicated `CustomFieldValidator` class for single-responsibility and testability (#35)
+- Refactor: **In-plugin documentation expansion** — expanded the Documentation settings tab with additional sections covering all shortcodes, settings, and features (#35)
+
+### Infrastructure
+
+- CI: Remove duplicate `push: main` trigger from CI and Assets workflows — each PR merge no longer runs the full suite twice (#39)
+- CI: Extract reusable composite action `.github/actions/setup-composer` for PHP + Composer setup (#30, #31)
+- CI: Remove CodeQL workflow (not applicable to PHP plugin) (#30)
+- CI: Add Dependabot auto-merge for patch and minor dependency updates (#29)
+- CI: Promote PHPCS from advisory to gating — PRs must pass WPCS on changed files (#28)
+- CI: Promote PHPStan from level 6 to **level 7** (#24)
+- CI: Re-introduce coverage with pcov, scoped to `includes/`, uploaded to Coveralls (#22)
+
+### Code Quality
+
+- Chore: Auto-fix ~83k PHPCS violations via PHPCBF (#25)
+- Chore: Annotate 223 PreparedSQL + NonceVerification false positives (#26)
+- Chore: Phase 3 PHPCS mechanical fixes + PSR-4 suppressions (#27)
+- Chore: Resolve remaining WPCS errors in cache-related files (file docblocks, class docblocks, short ternary operators, missing `@param` tags) (#36)
+
+---
+
 ## 5.2.0 (2026-04-15)
 
 Raise minimum PHP requirement from 7.4 to 8.1. PHP 7.4 reached end-of-life on 2022-11-28 and PHP 8.0 on 2023-11-26; both are unsupported. The previous lockfile was also resolving `doctrine/instantiator` 2.1.0 — which requires PHP 8.4 — silently breaking `composer install` on PHP 7.4/8.1/8.3 runners.

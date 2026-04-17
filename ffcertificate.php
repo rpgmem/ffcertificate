@@ -1,17 +1,19 @@
 <?php
-/*
-Plugin Name:        Free Form Certificate
-Plugin URI:         https://github.com/rpgmem/ffcertificate
-Description:        Allows creation of dynamic forms, saves submissions, generates a PDF certificate, and enables CSV export.
-Version:            5.2.0
-Requires PHP:       8.1
-Author:             Alex Meusburger
-Author URI:         https://github.com/rpgmem
-License:             GPLv3 or later
-License URI:         https://www.gnu.org/licenses/gpl-3.0.html
-Text Domain:        ffcertificate
-Domain Path:        /languages
-*/
+/**
+ * Plugin Name:        Free Form Certificate
+ * Plugin URI:         https://github.com/rpgmem/ffcertificate
+ * Description:        Allows creation of dynamic forms, saves submissions, generates a PDF certificate, and enables CSV export.
+ * Version:            5.3.0
+ * Requires PHP:       8.1
+ * Author:             Alex Meusburger
+ * Author URI:         https://github.com/rpgmem
+ * License:             GPLv3 or later
+ * License URI:         https://www.gnu.org/licenses/gpl-3.0.html
+ * Text Domain:        ffcertificate
+ * Domain Path:        /languages
+ *
+ * @package FreeFormCertificate
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -20,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Centralized version management
  */
-define( 'FFC_VERSION', '5.2.0' );                // Plugin version (WordPress Plugin Check compliance)
+define( 'FFC_VERSION', '5.3.0' );                // Plugin version (WordPress Plugin Check compliance)
 // External libraries versions.
 define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );   // html2canvas - https://html2canvas.hertzen.com/.
 define( 'FFC_JSPDF_VERSION', '2.5.1' );         // jsPDF - https://github.com/parallax/jsPDF.
@@ -60,10 +62,13 @@ $ffc_autoloader->register();
 register_activation_hook( __FILE__, array( '\FreeFormCertificate\Activator', 'activate' ) );
 
 /**
- * Run the plugin
+ * Bootstrap the plugin by instantiating the main Loader class.
+ *
+ * @return void
+ *
+ * phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Public API function
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Public API function
-function ffcertificate_run() {
+function ffcertificate_run(): void {
 	new \FreeFormCertificate\Loader();
 }
 
