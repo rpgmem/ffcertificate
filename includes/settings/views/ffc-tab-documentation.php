@@ -1,9 +1,8 @@
 <?php
 /**
- * Documentation Tab - COMPLETE VERSION
+ * Documentation Tab
  *
- * @version 5.2.0 - Added quiz, appointment, geofence locations, hooks sections; expanded ficha fields
- * @version 3.0.0 - All original content + improved structure
+ * @package FreeFormCertificate\Settings
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

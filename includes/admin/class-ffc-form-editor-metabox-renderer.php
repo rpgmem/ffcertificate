@@ -1,16 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
- * FormEditorMetaboxRenderer
+ * Form Editor Metabox Renderer
  *
  * Handles rendering of all metaboxes for the Form Editor.
  * Extracted from FFC_Form_Editor class to follow Single Responsibility Principle.
  *
- * @since 3.1.1 (Extracted from FFC_Form_Editor)
- * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @since   3.1.1
+ * @package FreeFormCertificate\Admin
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
@@ -21,6 +20,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Renders all metaboxes for the Form Editor screen.
+ *
+ * @since 3.1.1
+ */
 class FormEditorMetaboxRenderer {
 
 	/**
@@ -28,7 +32,7 @@ class FormEditorMetaboxRenderer {
 	 *
 	 * @param WP_Post $post The post object.
 	 */
-	public function render_shortcode_metabox( object $post ): void {
+	public function render_shortcode_metabox( WP_Post $post ): void {
 		?>
 		<div class="ffc-shortcode-box">
 			<p><strong><?php esc_html_e( 'Copy this Shortcode:', 'ffcertificate' ); ?></strong></p>
@@ -53,7 +57,7 @@ class FormEditorMetaboxRenderer {
 	 *
 	 * @param WP_Post $post The post object.
 	 */
-	public function render_box_layout( object $post ): void {
+	public function render_box_layout( WP_Post $post ): void {
 		$config   = get_post_meta( $post->ID, '_ffc_form_config', true );
 		$layout   = isset( $config['pdf_layout'] ) ? $config['pdf_layout'] : '';
 		$bg_image = isset( $config['bg_image'] ) ? $config['bg_image'] : '';
@@ -122,7 +126,7 @@ class FormEditorMetaboxRenderer {
 	 *
 	 * @param WP_Post $post The post object.
 	 */
-	public function render_box_builder( object $post ): void {
+	public function render_box_builder( WP_Post $post ): void {
 		$fields = get_post_meta( $post->ID, '_ffc_form_fields', true );
 
 		// Default fields for brand new forms.
@@ -184,7 +188,7 @@ class FormEditorMetaboxRenderer {
 	 *
 	 * @param WP_Post $post The post object.
 	 */
-	public function render_box_restriction( object $post ): void {
+	public function render_box_restriction( WP_Post $post ): void {
 		$config = get_post_meta( $post->ID, '_ffc_form_config', true );
 
 		// Get restrictions (new structure).
@@ -309,7 +313,7 @@ class FormEditorMetaboxRenderer {
 	 *
 	 * @param WP_Post $post The post object.
 	 */
-	public function render_box_email( object $post ): void {
+	public function render_box_email( WP_Post $post ): void {
 		$config     = get_post_meta( $post->ID, '_ffc_form_config', true );
 		$send_email = isset( $config['send_user_email'] ) ? $config['send_user_email'] : '0';
 		$subject    = isset( $config['email_subject'] ) ? $config['email_subject'] : __( 'Your Certificate', 'ffcertificate' );
@@ -351,7 +355,7 @@ class FormEditorMetaboxRenderer {
 	 * @since 3.0.0
 	 * @param WP_Post $post The post object.
 	 */
-	public function render_box_geofence( object $post ): void {
+	public function render_box_geofence( WP_Post $post ): void {
 		$config = get_post_meta( $post->ID, '_ffc_geofence_config', true );
 		if ( ! is_array( $config ) ) {
 			$config = array();
@@ -391,7 +395,7 @@ class FormEditorMetaboxRenderer {
 			}
 		}
 
-		$all_locations   = GeofenceLocationRegistry::get_all();
+		$all_locations    = GeofenceLocationRegistry::get_all();
 		$geo_gps_ip_logic = $config['geo_gps_ip_logic'] ?? 'or';
 		$geo_hide_mode    = $config['geo_hide_mode'] ?? 'message';
 		$msg_geo_blocked  = $config['msg_geo_blocked'] ?? __( 'This form is not available in your location.', 'ffcertificate' );
@@ -651,7 +655,7 @@ class FormEditorMetaboxRenderer {
 	 *
 	 * @param WP_Post $post The post object.
 	 */
-	public function render_box_quiz( object $post ): void {
+	public function render_box_quiz( WP_Post $post ): void {
 		$config = get_post_meta( $post->ID, '_ffc_form_config', true );
 		if ( ! is_array( $config ) ) {
 			$config = array();
@@ -829,7 +833,7 @@ class FormEditorMetaboxRenderer {
 	 * @since 5.1.0
 	 * @param WP_Post $post The post object.
 	 */
-	public function render_box_public_csv_download( object $post ): void {
+	public function render_box_public_csv_download( WP_Post $post ): void {
 		$enabled = (string) get_post_meta( $post->ID, '_ffc_csv_public_enabled', true );
 		$hash    = (string) get_post_meta( $post->ID, '_ffc_csv_public_hash', true );
 		$limit   = (int) get_post_meta( $post->ID, '_ffc_csv_public_limit', true );
