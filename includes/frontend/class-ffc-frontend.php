@@ -177,6 +177,7 @@ class Frontend {
 					'ajax_url'       => admin_url( 'admin-ajax.php' ),
 					'min_display_ms' => 1500,
 					'strings'        => array(
+						// Progress overlay.
 						'validating'  => __( 'Validating access…', 'ffcertificate' ),
 						'generating'  => __( 'Generating CSV — %d records…', 'ffcertificate' ),
 						'exporting'   => __( 'Exporting %1$d / %2$d…', 'ffcertificate' ),
@@ -187,6 +188,58 @@ class Frontend {
 						'timeout'     => __( 'Export timed out. Please try again.', 'ffcertificate' ),
 						'noRecords'   => __( 'No records found to export.', 'ffcertificate' ),
 						'connError'   => __( 'Connection error. Please try again.', 'ffcertificate' ),
+
+						// Info screen: headers.
+						'formDetails'           => __( 'Form Details', 'ffcertificate' ),
+						'backToForm'            => __( 'Back', 'ffcertificate' ),
+						'formTitle'             => __( 'Form', 'ffcertificate' ),
+						'totalSubmissions'      => __( 'Total submissions', 'ffcertificate' ),
+
+						// Info screen: restrictions.
+						'accessRestrictions'    => __( 'Access Restrictions', 'ffcertificate' ),
+						'passwordRequired'      => __( 'Password required', 'ffcertificate' ),
+						'approvedUsersOnly'     => __( 'Restricted to approved users', 'ffcertificate' ),
+						'blockedUsers'          => __( 'Blocked users list active', 'ffcertificate' ),
+						'accessCodeRequired'    => __( 'Access code (ticket) required', 'ffcertificate' ),
+
+						// Info screen: availability.
+						'availability'          => __( 'Availability Period', 'ffcertificate' ),
+						'dateStart'             => __( 'Start date', 'ffcertificate' ),
+						'dateEnd'               => __( 'End date', 'ffcertificate' ),
+						'timeStart'             => __( 'Start time', 'ffcertificate' ),
+						'timeEnd'               => __( 'End time', 'ffcertificate' ),
+						'infinity'              => '∞',
+						'noEndDateAlert'        => __( 'This form has no end date configured. The CSV download will only be available after the administrator sets an end date.', 'ffcertificate' ),
+
+						// Info screen: geolocation.
+						'geolocation'           => __( 'Geolocation', 'ffcertificate' ),
+						'gpsLocations'          => __( 'GPS Locations', 'ffcertificate' ),
+						'ipLocations'           => __( 'IP Locations', 'ffcertificate' ),
+						'geolocationEnabled'    => __( 'Geolocation enabled', 'ffcertificate' ),
+
+						// Info screen: quiz.
+						'quizEvaluation'        => __( 'Quiz / Evaluation', 'ffcertificate' ),
+						'passingScore'          => __( 'Minimum passing score', 'ffcertificate' ),
+						'maxAttempts'           => __( 'Maximum attempts', 'ffcertificate' ),
+						'unlimited'             => __( 'Unlimited', 'ffcertificate' ),
+
+						// Info screen: download.
+						'csvDownload'           => __( 'CSV Download', 'ffcertificate' ),
+						'downloadQuota'         => __( 'Download quota', 'ffcertificate' ),
+						'quotaUsed'             => __( '%1$d of %2$d used', 'ffcertificate' ),
+
+						// Info screen: status messages.
+						'formActiveUntil'       => __( 'This form is still active until %s. The download will be available after the end date.', 'ffcertificate' ),
+						'quotaExhausted'        => __( 'The download quota for this form has been exhausted.', 'ffcertificate' ),
+						'downloadReady'         => __( 'The form collection period has ended. The CSV is ready for download.', 'ffcertificate' ),
+						'beforeStartMsg'        => __( 'The form collection has not started yet. It will begin on %s.', 'ffcertificate' ),
+
+						// Info screen: cert preview.
+						'previewCertificate'    => __( 'Preview Certificate', 'ffcertificate' ),
+						'certPreviewTitle'      => __( 'Certificate Preview', 'ffcertificate' ),
+						'certPreviewNote'       => __( 'Placeholders replaced with sample data. QR code shown as placeholder.', 'ffcertificate' ),
+						'close'                 => __( 'Close', 'ffcertificate' ),
+						'loadingPreview'        => __( 'Loading preview…', 'ffcertificate' ),
 					),
 				)
 			);

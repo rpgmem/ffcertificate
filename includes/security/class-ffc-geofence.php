@@ -369,6 +369,39 @@ class Geofence {
 	}
 
 	/**
+	 * Return the absolute start timestamp for a form, regardless of geofence state.
+	 *
+	 * Mirrors {@see get_form_end_timestamp()} but for the start boundary.
+	 *
+	 * @param int $form_id Form post ID.
+	 * @return int|null Unix timestamp of the start moment, or null if `date_start` is missing.
+	 */
+	public static function get_form_start_timestamp( int $form_id ): ?int {
+		$config = get_post_meta( $form_id, '_ffc_geofence_config', true );
+		if ( empty( $config ) || ! is_array( $config ) ) {
+			return null;
+		}
+
+		$date_start = isset( $config['date_start'] ) ? trim( (string) $config['date_start'] ) : '';
+		if ( '' === $date_start ) {
+			return null;
+		}
+
+		$time_start = isset( $config['time_start'] ) ? trim( (string) $config['time_start'] ) : '';
+		if ( '' === $time_start ) {
+			$time_start = '00:00:00';
+		}
+
+		try {
+			$dt = new \DateTimeImmutable( $date_start . ' ' . $time_start, wp_timezone() );
+		} catch ( \Exception $e ) {
+			return null;
+		}
+
+		return $dt->getTimestamp();
+	}
+
+	/**
 	 * Check whether a form has already ended.
 	 *
 	 * Returns true only when `get_form_end_timestamp()` returns a valid
