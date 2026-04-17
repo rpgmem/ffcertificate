@@ -52,14 +52,14 @@ Run these before opening a PR — CI runs the same commands.
 vendor/bin/phpstan analyze        # static analysis
 vendor/bin/phpunit                # unit tests
 composer audit --locked           # security advisories
-vendor/bin/phpcs                  # WordPress Coding Standards (advisory)
+vendor/bin/phpcs                  # WordPress Coding Standards (gating)
 vendor/bin/phpcbf                 # auto-fix many WPCS violations
 ```
 
-PHPCS runs in CI on changed PHP files only and is currently advisory:
-the legacy codebase has thousands of pre-existing violations. New code
-should be WPCS-clean; a dedicated cleanup sprint will promote PHPCS to
-gating once the baseline shrinks.
+PHPCS runs in CI on changed PHP files and **gates merges**. If your PR
+touches a file with pre-existing violations, you must fix them (or run
+`vendor/bin/phpcbf` to auto-fix most). Run `vendor/bin/phpcs <file>`
+locally before pushing to catch issues early.
 
 If you edit anything under `assets/css/` or `assets/js/`, rebuild the
 minified bundles:
