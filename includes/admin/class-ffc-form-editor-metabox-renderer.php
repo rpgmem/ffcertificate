@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Security\GeofenceLocationRegistry;
 use WP_Post;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -346,14 +347,28 @@ class FormEditorMetaboxRenderer {
         $geo_enabled = ($config['geo_enabled'] ?? '0') == '1' ? '1' : '0';
         $geo_gps_enabled = ($config['geo_gps_enabled'] ?? '0') == '1' ? '1' : '0';
         $geo_ip_enabled = ($config['geo_ip_enabled'] ?? '0') == '1' ? '1' : '0';
-        $geo_areas_default = '';
-        if ( $post->post_status === 'auto-draft' ) {
-            $ffc_global = get_option( 'ffc_settings', array() );
-            $geo_areas_default = $ffc_global['main_geo_areas'] ?? '';
-        }
-        $geo_areas = $config['geo_areas'] ?? $geo_areas_default;
+        $geo_areas = $config['geo_areas'] ?? '';
+        $geo_area_source = $config['geo_area_source'] ?? 'custom';
+        $geo_area_location_ids = $config['geo_area_location_ids'] ?? array();
         $geo_ip_areas_permissive = ($config['geo_ip_areas_permissive'] ?? '0') == '1' ? '1' : '0';
         $geo_ip_areas = $config['geo_ip_areas'] ?? '';
+        $geo_ip_area_source = $config['geo_ip_area_source'] ?? 'custom';
+        $geo_ip_area_location_ids = $config['geo_ip_area_location_ids'] ?? array();
+
+        if ( 'auto-draft' === $post->post_status ) {
+            $default_gps = GeofenceLocationRegistry::get_default_gps();
+            if ( $default_gps ) {
+                $geo_area_source = 'locations';
+                $geo_area_location_ids = array( $default_gps['id'] );
+            }
+            $default_ip = GeofenceLocationRegistry::get_default_ip();
+            if ( $default_ip ) {
+                $geo_ip_area_source = 'locations';
+                $geo_ip_area_location_ids = array( $default_ip['id'] );
+            }
+        }
+
+        $all_locations = GeofenceLocationRegistry::get_all();
         $geo_gps_ip_logic = $config['geo_gps_ip_logic'] ?? 'or';
         $geo_hide_mode = $config['geo_hide_mode'] ?? 'message';
         $msg_geo_blocked = $config['msg_geo_blocked'] ?? __('This form is not available in your location.', 'ffcertificate');
@@ -479,8 +494,33 @@ class FormEditorMetaboxRenderer {
                     <tr>
                         <th><label><?php esc_html_e('Allowed Areas (GPS)', 'ffcertificate'); ?></label></th>
                         <td>
-                            <textarea name="ffc_geofence[geo_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 5000&#10;-22.9068, -43.1729, 10000"><?php echo esc_textarea($geo_areas); ?></textarea>
-                            <p class="description"><?php esc_html_e('Format: latitude, longitude, radius(meters) - One per line. Example: -23.5505, -46.6333, 5000', 'ffcertificate'); ?></p>
+                            <fieldset>
+                                <label>
+                                    <input type="radio" name="ffc_geofence[geo_area_source]" value="locations" <?php checked($geo_area_source, 'locations'); ?>>
+                                    <?php esc_html_e('Registered locations', 'ffcertificate'); ?>
+                                </label>
+                                &nbsp;&nbsp;
+                                <label>
+                                    <input type="radio" name="ffc_geofence[geo_area_source]" value="custom" <?php checked($geo_area_source, 'custom'); ?>>
+                                    <?php esc_html_e('Custom coordinates', 'ffcertificate'); ?>
+                                </label>
+                            </fieldset>
+
+                            <div class="ffc-geo-source-locations" <?php echo 'locations' !== $geo_area_source ? 'style="display:none;"' : ''; ?>>
+                                <select multiple name="ffc_geofence[geo_area_location_ids][]" class="ffc-w100" size="5">
+                                    <?php foreach ( $all_locations as $loc ) : ?>
+                                        <option value="<?php echo esc_attr($loc['id']); ?>" <?php echo in_array($loc['id'], $geo_area_location_ids, true) ? 'selected' : ''; ?>>
+                                            <?php echo esc_html($loc['name'] . ' (' . $loc['lat'] . ', ' . $loc['lng'] . ', ' . $loc['radius'] . 'm)'); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="description"><?php esc_html_e('Hold Ctrl/Cmd to select multiple locations.', 'ffcertificate'); ?></p>
+                            </div>
+
+                            <div class="ffc-geo-source-custom" <?php echo 'custom' !== $geo_area_source ? 'style="display:none;"' : ''; ?>>
+                                <textarea name="ffc_geofence[geo_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 5000&#10;-22.9068, -43.1729, 10000"><?php echo esc_textarea($geo_areas); ?></textarea>
+                                <p class="description"><?php esc_html_e('Format: latitude, longitude, radius(meters) - One per line. Example: -23.5505, -46.6333, 5000', 'ffcertificate'); ?></p>
+                            </div>
                         </td>
                     </tr>
                     <tr>
@@ -488,10 +528,40 @@ class FormEditorMetaboxRenderer {
                         <td>
                             <label>
                                 <input type="checkbox" name="ffc_geofence[geo_ip_areas_permissive]" value="1" <?php checked($geo_ip_areas_permissive, '1'); ?>>
-                                <?php esc_html_e('Use different (more permissive) areas for IP validation', 'ffcertificate'); ?>
-                            </label><br><br>
-                            <textarea name="ffc_geofence[geo_ip_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 50000&#10;-22.9068, -43.1729, 100000"><?php echo esc_textarea($geo_ip_areas); ?></textarea>
-                            <p class="description"><?php esc_html_e('IP geolocation is less precise (1-50km). Use larger radius (in meters). Leave empty to use same areas as GPS.', 'ffcertificate'); ?></p>
+                                <?php esc_html_e('Use different areas for IP validation', 'ffcertificate'); ?>
+                            </label>
+                            <p class="description"><?php esc_html_e('When unchecked, IP validation uses the same areas as GPS.', 'ffcertificate'); ?></p>
+
+                            <div class="ffc-ip-areas-container" <?php echo '1' !== $geo_ip_areas_permissive ? 'style="display:none;"' : ''; ?>>
+                                <br>
+                                <fieldset>
+                                    <label>
+                                        <input type="radio" name="ffc_geofence[geo_ip_area_source]" value="locations" <?php checked($geo_ip_area_source, 'locations'); ?>>
+                                        <?php esc_html_e('Registered locations', 'ffcertificate'); ?>
+                                    </label>
+                                    &nbsp;&nbsp;
+                                    <label>
+                                        <input type="radio" name="ffc_geofence[geo_ip_area_source]" value="custom" <?php checked($geo_ip_area_source, 'custom'); ?>>
+                                        <?php esc_html_e('Custom coordinates', 'ffcertificate'); ?>
+                                    </label>
+                                </fieldset>
+
+                                <div class="ffc-geo-source-locations" <?php echo 'locations' !== $geo_ip_area_source ? 'style="display:none;"' : ''; ?>>
+                                    <select multiple name="ffc_geofence[geo_ip_area_location_ids][]" class="ffc-w100" size="5">
+                                        <?php foreach ( $all_locations as $loc ) : ?>
+                                            <option value="<?php echo esc_attr($loc['id']); ?>" <?php echo in_array($loc['id'], $geo_ip_area_location_ids, true) ? 'selected' : ''; ?>>
+                                                <?php echo esc_html($loc['name'] . ' (' . $loc['lat'] . ', ' . $loc['lng'] . ', ' . $loc['radius'] . 'm)'); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <p class="description"><?php esc_html_e('Hold Ctrl/Cmd to select multiple locations.', 'ffcertificate'); ?></p>
+                                </div>
+
+                                <div class="ffc-geo-source-custom" <?php echo 'custom' !== $geo_ip_area_source ? 'style="display:none;"' : ''; ?>>
+                                    <textarea name="ffc_geofence[geo_ip_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 50000&#10;-22.9068, -43.1729, 100000"><?php echo esc_textarea($geo_ip_areas); ?></textarea>
+                                    <p class="description"><?php esc_html_e('IP geolocation is less precise (1-50km). Use larger radius (in meters).', 'ffcertificate'); ?></p>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                     <tr>
@@ -532,6 +602,24 @@ class FormEditorMetaboxRenderer {
                 </table>
             </div>
         </div>
+        <script>
+        jQuery(function($) {
+            function toggleGeoSource(prefix) {
+                var source = $('input[name="ffc_geofence[' + prefix + '_source]"]:checked').val();
+                var container = $('input[name="ffc_geofence[' + prefix + '_source]"]').closest('td');
+                container.find('.ffc-geo-source-locations')[source === 'locations' ? 'show' : 'hide']();
+                container.find('.ffc-geo-source-custom')[source === 'custom' ? 'show' : 'hide']();
+            }
+            $('input[name="ffc_geofence[geo_area_source]"]').on('change', function() { toggleGeoSource('geo_area'); });
+            $('input[name="ffc_geofence[geo_ip_area_source]"]').on('change', function() { toggleGeoSource('geo_ip_area'); });
+            toggleGeoSource('geo_area');
+            toggleGeoSource('geo_ip_area');
+
+            $('input[name="ffc_geofence[geo_ip_areas_permissive]"]').on('change', function() {
+                $('.ffc-ip-areas-container')[$(this).is(':checked') ? 'show' : 'hide']();
+            });
+        });
+        </script>
         <?php
     }
 

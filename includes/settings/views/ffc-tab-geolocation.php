@@ -15,32 +15,154 @@ if (!defined('ABSPATH')) exit;
     <form method="POST" action="">
         <?php wp_nonce_field('ffc_geolocation_nonce'); ?>
 
-        <!-- Default Geofencing Areas -->
+        <!-- Geofence Locations -->
         <div class="card">
-            <h2><?php esc_html_e('Default Geofencing Areas', 'ffcertificate'); ?></h2>
+            <h2><?php esc_html_e('Geofence Locations', 'ffcertificate'); ?></h2>
             <p class="description">
-                <?php esc_html_e('Define default geographic areas used when creating new forms with geolocation restrictions.', 'ffcertificate'); ?>
+                <?php esc_html_e('Manage named geofence locations. These locations can be assigned to forms for geolocation restrictions.', 'ffcertificate'); ?>
             </p>
 
-            <table class="form-table" role="presentation"><tbody>
-                <tr>
-                    <th scope="row">
-                        <label for="main_geo_areas"><?php esc_html_e('Address Georeferencing', 'ffcertificate'); ?></label>
-                    </th>
-                    <td>
-                        <?php
-                        $ffcertificate_ffc_settings = get_option('ffc_settings', array());
-                        $ffcertificate_main_geo_areas = isset($ffcertificate_ffc_settings['main_geo_areas']) ? $ffcertificate_ffc_settings['main_geo_areas'] : '';
-                        ?>
-                        <textarea name="main_geo_areas" id="main_geo_areas" rows="4" class="large-text" placeholder="-23.5505, -46.6333, 5000"><?php echo esc_textarea($ffcertificate_main_geo_areas); ?></textarea>
-                        <p class="description">
-                            <?php esc_html_e('Format: latitude, longitude, radius (meters) — one per line.', 'ffcertificate'); ?><br>
-                            <?php esc_html_e('Example: -23.5505, -46.6333, 5000', 'ffcertificate'); ?><br>
-                            <span class="ffc-text-info ffc-icon-info"><?php esc_html_e('Used as default geofencing area when creating new forms.', 'ffcertificate'); ?></span>
-                        </p>
-                    </td>
-                </tr>
-            </tbody></table>
+            <?php
+            $ffc_locations      = \FreeFormCertificate\Security\GeofenceLocationRegistry::get_all();
+            $ffc_default_gps    = \FreeFormCertificate\Security\GeofenceLocationRegistry::get_default_gps();
+            $ffc_default_gps_id = $ffc_default_gps ? $ffc_default_gps['id'] : '';
+            $ffc_default_ip     = \FreeFormCertificate\Security\GeofenceLocationRegistry::get_default_ip();
+            $ffc_default_ip_id  = $ffc_default_ip ? $ffc_default_ip['id'] : '';
+            ?>
+
+            <table class="widefat striped" role="presentation">
+                <thead>
+                    <tr>
+                        <th><?php esc_html_e('Name', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Latitude', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Longitude', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Radius (m)', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Default GPS', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Default IP', 'ffcertificate'); ?></th>
+                        <th><?php esc_html_e('Actions', 'ffcertificate'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if ( ! empty( $ffc_locations ) ) : ?>
+                        <?php foreach ( $ffc_locations as $ffc_loc ) : ?>
+                            <tr>
+                                <td>
+                                    <input type="text"
+                                            name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][name]"
+                                            value="<?php echo esc_attr( $ffc_loc['name'] ); ?>"
+                                            class="regular-text"
+                                            required>
+                                    <?php if ( $ffc_loc['id'] === $ffc_default_gps_id ) : ?>
+                                        <span class="description">(GPS)</span>
+                                    <?php endif; ?>
+                                    <?php if ( $ffc_loc['id'] === $ffc_default_ip_id ) : ?>
+                                        <span class="description">(IP)</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <input type="number"
+                                            name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][lat]"
+                                            value="<?php echo esc_attr( $ffc_loc['lat'] ); ?>"
+                                            step="any" min="-90" max="90"
+                                            style="width: 120px;" required>
+                                </td>
+                                <td>
+                                    <input type="number"
+                                            name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][lng]"
+                                            value="<?php echo esc_attr( $ffc_loc['lng'] ); ?>"
+                                            step="any" min="-180" max="180"
+                                            style="width: 120px;" required>
+                                </td>
+                                <td>
+                                    <input type="number"
+                                            name="ffc_locations[<?php echo esc_attr( $ffc_loc['id'] ); ?>][radius]"
+                                            value="<?php echo esc_attr( $ffc_loc['radius'] ); ?>"
+                                            step="any" min="1"
+                                            style="width: 100px;" required>
+                                </td>
+                                <td>
+                                    <input type="radio"
+                                            name="ffc_location_default_gps"
+                                            value="<?php echo esc_attr( $ffc_loc['id'] ); ?>"
+                                            <?php checked( $ffc_loc['id'], $ffc_default_gps_id ); ?>>
+                                </td>
+                                <td>
+                                    <input type="radio"
+                                            name="ffc_location_default_ip"
+                                            value="<?php echo esc_attr( $ffc_loc['id'] ); ?>"
+                                            <?php checked( $ffc_loc['id'], $ffc_default_ip_id ); ?>>
+                                </td>
+                                <td>
+                                    <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'ffc_delete_location', $ffc_loc['id'] ), 'ffc_delete_location_' . $ffc_loc['id'] ) ); ?>"
+                                        class="button button-small"
+                                        onclick="return confirm('<?php echo esc_js( __( 'Are you sure you want to delete this location?', 'ffcertificate' ) ); ?>');">
+                                        <?php esc_html_e('Delete', 'ffcertificate'); ?>
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else : ?>
+                        <tr>
+                            <td colspan="7"><em><?php esc_html_e('No locations registered yet.', 'ffcertificate'); ?></em></td>
+                        </tr>
+                    <?php endif; ?>
+
+                    <!-- "None" radio options row -->
+                    <tr class="ffc-locations-none-row">
+                        <td colspan="4">
+                            <em><?php esc_html_e('None (no default)', 'ffcertificate'); ?></em>
+                        </td>
+                        <td>
+                            <input type="radio"
+                                    name="ffc_location_default_gps"
+                                    value=""
+                                    <?php checked( '', $ffc_default_gps_id ); ?>>
+                        </td>
+                        <td>
+                            <input type="radio"
+                                    name="ffc_location_default_ip"
+                                    value=""
+                                    <?php checked( '', $ffc_default_ip_id ); ?>>
+                        </td>
+                        <td></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="7"><?php esc_html_e('Add New Location', 'ffcertificate'); ?></th>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input type="text" name="ffc_location_new[name]" value=""
+                                    class="regular-text"
+                                    placeholder="<?php esc_attr_e('Location name', 'ffcertificate'); ?>">
+                        </td>
+                        <td>
+                            <input type="number" name="ffc_location_new[lat]" value=""
+                                    step="any" min="-90" max="90"
+                                    style="width: 120px;"
+                                    placeholder="<?php esc_attr_e('Latitude', 'ffcertificate'); ?>">
+                        </td>
+                        <td>
+                            <input type="number" name="ffc_location_new[lng]" value=""
+                                    step="any" min="-180" max="180"
+                                    style="width: 120px;"
+                                    placeholder="<?php esc_attr_e('Longitude', 'ffcertificate'); ?>">
+                        </td>
+                        <td>
+                            <input type="number" name="ffc_location_new[radius]" value=""
+                                    step="any" min="1"
+                                    style="width: 100px;"
+                                    placeholder="1000">
+                        </td>
+                        <td colspan="3">
+                            <p class="description">
+                                <?php esc_html_e('Fill in the fields and click "Save" to add.', 'ffcertificate'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
 
         <hr>

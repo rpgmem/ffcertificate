@@ -127,8 +127,12 @@ class FormEditorSaveHandler {
                 'geo_enabled' => isset($geofence['geo_enabled']) ? '1' : '0',
                 'geo_gps_enabled' => isset($geofence['geo_gps_enabled']) ? '1' : '0',
                 'geo_ip_enabled' => isset($geofence['geo_ip_enabled']) ? '1' : '0',
+                'geo_area_source' => in_array(($geofence['geo_area_source'] ?? 'custom'), array('locations', 'custom'), true) ? $geofence['geo_area_source'] : 'custom',
+                'geo_area_location_ids' => array_map('sanitize_key', (array) ($geofence['geo_area_location_ids'] ?? array())),
                 'geo_areas' => sanitize_textarea_field($geofence['geo_areas'] ?? ''),
                 'geo_ip_areas_permissive' => isset($geofence['geo_ip_areas_permissive']) ? '1' : '0',
+                'geo_ip_area_source' => in_array(($geofence['geo_ip_area_source'] ?? 'custom'), array('locations', 'custom'), true) ? $geofence['geo_ip_area_source'] : 'custom',
+                'geo_ip_area_location_ids' => array_map('sanitize_key', (array) ($geofence['geo_ip_area_location_ids'] ?? array())),
                 'geo_ip_areas' => sanitize_textarea_field($geofence['geo_ip_areas'] ?? ''),
                 'geo_gps_ip_logic' => sanitize_key($geofence['geo_gps_ip_logic'] ?? 'or'),
                 'geo_hide_mode' => sanitize_key($geofence['geo_hide_mode'] ?? 'message'),
@@ -196,24 +200,35 @@ class FormEditorSaveHandler {
     private function validate_geofence_config( array $config ): array {
         $errors = array();
 
-        // Check if GPS is enabled but areas are empty
-        if ( $config['geo_gps_enabled'] === '1' && trim( $config['geo_areas'] ) === '' ) {
-            $errors[] = __( 'GPS Geolocation is enabled but no allowed areas are defined.', 'ffcertificate' );
+        $gps_source = $config['geo_area_source'] ?? 'custom';
+        $ip_source  = $config['geo_ip_area_source'] ?? 'custom';
+
+        if ( $config['geo_gps_enabled'] === '1' ) {
+            if ( 'locations' === $gps_source ) {
+                if ( empty( $config['geo_area_location_ids'] ) ) {
+                    $errors[] = __( 'GPS Geolocation is enabled but no locations are selected.', 'ffcertificate' );
+                }
+            } elseif ( trim( $config['geo_areas'] ) === '' ) {
+                $errors[] = __( 'GPS Geolocation is enabled but no allowed areas are defined.', 'ffcertificate' );
+            }
         }
 
-        // Check if IP is enabled with independent areas but areas are empty
-        if ( $config['geo_ip_enabled'] === '1' && $config['geo_ip_areas_permissive'] === '1' && trim( $config['geo_ip_areas'] ) === '' ) {
-            $errors[] = __( 'IP Geolocation is enabled with independent areas but no IP areas are defined.', 'ffcertificate' );
+        if ( $config['geo_ip_enabled'] === '1' && $config['geo_ip_areas_permissive'] === '1' ) {
+            if ( 'locations' === $ip_source ) {
+                if ( empty( $config['geo_ip_area_location_ids'] ) ) {
+                    $errors[] = __( 'IP Geolocation is enabled with independent areas but no locations are selected.', 'ffcertificate' );
+                }
+            } elseif ( trim( $config['geo_ip_areas'] ) === '' ) {
+                $errors[] = __( 'IP Geolocation is enabled with independent areas but no IP areas are defined.', 'ffcertificate' );
+            }
         }
 
-        // Validate GPS areas format
-        if ( $config['geo_gps_enabled'] === '1' && trim( $config['geo_areas'] ) !== '' ) {
+        if ( $config['geo_gps_enabled'] === '1' && 'custom' === $gps_source && trim( $config['geo_areas'] ) !== '' ) {
             $gps_errors = $this->validate_areas_format( $config['geo_areas'], 'GPS' );
             $errors = array_merge( $errors, $gps_errors );
         }
 
-        // Validate IP areas format (if using independent areas)
-        if ( $config['geo_ip_enabled'] === '1' && $config['geo_ip_areas_permissive'] === '1' && trim( $config['geo_ip_areas'] ) !== '' ) {
+        if ( $config['geo_ip_enabled'] === '1' && $config['geo_ip_areas_permissive'] === '1' && 'custom' === $ip_source && trim( $config['geo_ip_areas'] ) !== '' ) {
             $ip_errors = $this->validate_areas_format( $config['geo_ip_areas'], 'IP' );
             $errors = array_merge( $errors, $ip_errors );
         }

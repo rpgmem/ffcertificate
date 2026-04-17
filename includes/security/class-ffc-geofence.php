@@ -211,7 +211,7 @@ class Geofence {
 	 */
 	public static function validate_geolocation( array $config, ?array $user_location = null ): array {
 		// Parse areas.
-		$areas = self::parse_areas( $config['geo_areas'] ?? '' );
+		$areas = self::parse_areas( self::resolve_areas_text( $config, 'geo_area_source', 'geo_area_location_ids', 'geo_areas' ) );
 
 		if ( empty( $areas ) ) {
 			return array(
@@ -244,7 +244,7 @@ class Geofence {
 
 		if ( ! empty( $config['geo_ip_enabled'] ) && ! empty( $config['geo_ip_areas_permissive'] ) ) {
 			// Use more permissive IP-specific areas if configured.
-			$ip_areas = self::parse_areas( $config['geo_ip_areas'] ?? '' );
+			$ip_areas = self::parse_areas( self::resolve_areas_text( $config, 'geo_ip_area_source', 'geo_ip_area_location_ids', 'geo_ip_areas' ) );
 			if ( ! empty( $ip_areas ) ) {
 				$check_areas = $ip_areas;
 			}
@@ -575,7 +575,7 @@ class Geofence {
 				'enabled'        => ! $bypass_geo && $config['geo_enabled'],
 				'gpsEnabled'     => ! $bypass_geo && $config['geo_gps_enabled'],
 				'ipEnabled'      => ! $bypass_geo && $config['geo_ip_enabled'],
-				'areas'          => self::parse_areas( $config['geo_areas'] ?? '' ),
+				'areas'          => self::parse_areas( self::resolve_areas_text( $config, 'geo_area_source', 'geo_area_location_ids', 'geo_areas' ) ),
 				'gpsIpLogic'     => $config['geo_gps_ip_logic'] ?? 'or', // 'and' or 'or'
 				'messageBlocked' => $config['msg_geo_blocked'] ?? '',
 				'messageError'   => $config['msg_geo_error'] ?? '',
@@ -590,6 +590,25 @@ class Geofence {
 		);
 
 		return $frontend_config;
+	}
+
+	/**
+	 * Resolve area text from config, supporting both named locations and custom text.
+	 *
+	 * @param array<string, mixed> $config     Form geofence configuration.
+	 * @param string               $source_key Config key for the source type.
+	 * @param string               $ids_key    Config key for location IDs array.
+	 * @param string               $text_key   Config key for raw text fallback.
+	 * @return string Areas in "lat, lng, radius" format (one per line).
+	 */
+	private static function resolve_areas_text( array $config, string $source_key, string $ids_key, string $text_key ): string {
+		$source = $config[ $source_key ] ?? 'custom';
+
+		if ( 'locations' === $source && ! empty( $config[ $ids_key ] ) && is_array( $config[ $ids_key ] ) ) {
+			return GeofenceLocationRegistry::resolve_to_areas_text( $config[ $ids_key ] );
+		}
+
+		return $config[ $text_key ] ?? '';
 	}
 
 	/**
