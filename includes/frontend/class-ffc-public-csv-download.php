@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * PublicCsvDownload
  *
@@ -18,8 +16,11 @@ declare(strict_types=1);
  *  The form submits normally via admin-post.php to {@see handle_request()},
  *  which streams the CSV synchronously (legacy path).
  *
- * @since 5.1.0
+ * @package FreeFormCertificate
+ * @since   5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
@@ -31,6 +32,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Public-facing CSV download handler with intermediate info screen.
+ *
+ * @since 5.1.0
+ */
 class PublicCsvDownload {
 
 	const SHORTCODE           = 'ffc_csv_download';
@@ -77,7 +83,7 @@ class PublicCsvDownload {
 	/**
 	 * Render the public download form.
 	 *
-	 * @param array<string, mixed>|string $atts
+	 * @param array<string, mixed>|string $atts Shortcode attributes.
 	 * @return string
 	 */
 	public function render_shortcode( $atts = array() ): string {
@@ -147,12 +153,12 @@ class PublicCsvDownload {
 						value="<?php echo esc_attr( $prefill_hash ); ?>">
 				</div>
 
-				<?php
-				// generate_security_fields() emits honeypot + captcha — both are.
-				// already escaped inside that helper.
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-				?>
-				<div class="ffc-no-js-security"><?php echo $security_html; ?></div>
+				<div class="ffc-no-js-security">
+					<?php
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside generate_security_fields().
+					echo $security_html;
+					?>
+				</div>
 
 				<button type="submit" class="ffc-submit-btn">
 					<?php esc_html_e( 'View form details', 'ffcertificate' ); ?>
@@ -298,10 +304,10 @@ class PublicCsvDownload {
 			wp_send_json_error( array( 'message' => __( 'Certificate preview is only available before the form collection period begins.', 'ffcertificate' ) ) );
 		}
 
-		$config  = get_post_meta( $form_id, '_ffc_form_config', true );
-		$config  = is_array( $config ) ? $config : array();
-		$fields  = get_post_meta( $form_id, '_ffc_form_fields', true );
-		$fields  = is_array( $fields ) ? $fields : array();
+		$config = get_post_meta( $form_id, '_ffc_form_config', true );
+		$config = is_array( $config ) ? $config : array();
+		$fields = get_post_meta( $form_id, '_ffc_form_fields', true );
+		$fields = is_array( $fields ) ? $fields : array();
 
 		$field_names = array();
 		foreach ( $fields as $field ) {
@@ -448,7 +454,7 @@ class PublicCsvDownload {
 			$default  = is_array( $settings ) && isset( $settings['public_csv_default_limit'] )
 				? (int) $settings['public_csv_default_limit']
 				: 0;
-			$limit = $default > 0 ? $default : 1;
+			$limit    = $default > 0 ? $default : 1;
 		}
 		$count           = (int) get_post_meta( $form_id, self::META_COUNT, true );
 		$quota_exhausted = $count >= $limit;
@@ -482,17 +488,17 @@ class PublicCsvDownload {
 				'remaining' => max( 0, $limit - $count ),
 			),
 			'status'           => array(
-				'has_start_date'       => null !== $start_ts,
-				'has_end_date'         => $has_end_date,
-				'before_start'         => $before_start,
-				'form_ended'           => $form_ended,
-				'can_download'         => $form_ended && ! $quota_exhausted,
-				'can_preview_cert'     => $before_start,
+				'has_start_date'          => null !== $start_ts,
+				'has_end_date'            => $has_end_date,
+				'before_start'            => $before_start,
+				'form_ended'              => $form_ended,
+				'can_download'            => $form_ended && ! $quota_exhausted,
+				'can_preview_cert'        => $before_start,
 				'download_blocked_reason' => $download_reason,
-				'start_date_formatted' => null !== $start_ts
+				'start_date_formatted'    => null !== $start_ts
 					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $start_ts, $tz )
 					: null,
-				'end_date_formatted'   => null !== $end_ts
+				'end_date_formatted'      => null !== $end_ts
 					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $end_ts, $tz )
 					: null,
 			),
@@ -500,6 +506,8 @@ class PublicCsvDownload {
 	}
 
 	/**
+	 * Build access restrictions data for the info response.
+	 *
 	 * @param array<string, mixed> $config Form config.
 	 * @return array<string, bool>
 	 */
@@ -524,6 +532,8 @@ class PublicCsvDownload {
 	}
 
 	/**
+	 * Build date/time availability data for the info response.
+	 *
 	 * @param array<string, mixed> $config   Geofence config.
 	 * @param \DateTimeZone        $tz       Site timezone.
 	 * @return array<string, mixed>
@@ -541,19 +551,21 @@ class PublicCsvDownload {
 		$date_format = get_option( 'date_format' );
 
 		return array(
-			'has_dates'            => $has_dates,
-			'date_start'           => '' !== $date_start ? wp_date( $date_format, strtotime( $date_start ), $tz ) : null,
-			'date_start_raw'       => '' !== $date_start ? $date_start : null,
-			'date_end'             => '' !== $date_end ? wp_date( $date_format, strtotime( $date_end ), $tz ) : null,
-			'date_end_raw'         => '' !== $date_end ? $date_end : null,
-			'has_times'            => $has_times,
-			'time_start'           => '' !== $time_start ? $time_start : null,
-			'time_end'             => '' !== $time_end ? $time_end : null,
-			'time_mode'            => $time_mode,
+			'has_dates'      => $has_dates,
+			'date_start'     => '' !== $date_start ? wp_date( $date_format, (int) strtotime( $date_start ), $tz ) : null,
+			'date_start_raw' => '' !== $date_start ? $date_start : null,
+			'date_end'       => '' !== $date_end ? wp_date( $date_format, (int) strtotime( $date_end ), $tz ) : null,
+			'date_end_raw'   => '' !== $date_end ? $date_end : null,
+			'has_times'      => $has_times,
+			'time_start'     => '' !== $time_start ? $time_start : null,
+			'time_end'       => '' !== $time_end ? $time_end : null,
+			'time_mode'      => $time_mode,
 		);
 	}
 
 	/**
+	 * Build geolocation data for the info response.
+	 *
 	 * @param array<string, mixed> $config Geofence config.
 	 * @return array<string, mixed>
 	 */
@@ -576,7 +588,7 @@ class PublicCsvDownload {
 		if ( $gps_enabled ) {
 			$gps_source = $config['geo_area_source'] ?? 'locations';
 			if ( 'locations' === $gps_source && ! empty( $config['geo_area_location_ids'] ) ) {
-				$locations            = GeofenceLocationRegistry::get_by_ids( (array) $config['geo_area_location_ids'] );
+				$locations               = GeofenceLocationRegistry::get_by_ids( (array) $config['geo_area_location_ids'] );
 				$result['gps_locations'] = $this->format_locations_for_info( $locations );
 			} else {
 				$result['gps_custom'] = true;
@@ -587,7 +599,7 @@ class PublicCsvDownload {
 		if ( $ip_enabled && ! empty( $config['geo_ip_areas_permissive'] ) ) {
 			$ip_source = $config['geo_ip_area_source'] ?? 'locations';
 			if ( 'locations' === $ip_source && ! empty( $config['geo_ip_area_location_ids'] ) ) {
-				$locations           = GeofenceLocationRegistry::get_by_ids( (array) $config['geo_ip_area_location_ids'] );
+				$locations              = GeofenceLocationRegistry::get_by_ids( (array) $config['geo_ip_area_location_ids'] );
 				$result['ip_locations'] = $this->format_locations_for_info( $locations );
 			} else {
 				$result['ip_custom'] = true;
@@ -601,7 +613,7 @@ class PublicCsvDownload {
 	 * Format registered locations for the info response.
 	 *
 	 * @param array<int, array<string, mixed>> $locations Raw location data.
-	 * @return array<int, array<string, string>>
+	 * @return list<array<string, float|string>>
 	 */
 	private function format_locations_for_info( array $locations ): array {
 		$formatted = array();
@@ -618,6 +630,8 @@ class PublicCsvDownload {
 	}
 
 	/**
+	 * Build quiz/evaluation data for the info response.
+	 *
 	 * @param array<string, mixed> $config Form config.
 	 * @return array<string, mixed>
 	 */

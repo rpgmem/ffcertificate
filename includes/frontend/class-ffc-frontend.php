@@ -1,12 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
- * Frontend
+ * Frontend orchestrator.
  *
+ * Registers shortcodes, AJAX handlers, and enqueues frontend assets.
+ *
+ * @package FreeFormCertificate
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
@@ -16,21 +19,52 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Frontend entry point that wires up all public-facing functionality.
+ *
+ * @since 1.0.0
+ */
 class Frontend {
 
-	/** @var Shortcodes */
+	/**
+	 * Shortcode renderer.
+	 *
+	 * @var Shortcodes
+	 */
 	private $shortcodes;
-	/** @var FormProcessor */
+
+	/**
+	 * Form submission processor.
+	 *
+	 * @var FormProcessor
+	 */
 	private $form_processor;
-	/** @var VerificationHandler */
+
+	/**
+	 * Certificate verification handler.
+	 *
+	 * @var VerificationHandler
+	 */
 	private $verification_handler;
-	/** @var DynamicFragments */
+
+	/**
+	 * Fragment refresher for cached pages.
+	 *
+	 * @var DynamicFragments
+	 */
 	private $dynamic_fragments; // @phpstan-ignore property.onlyWritten
-	/** @var PublicCsvDownload */
+
+	/**
+	 * Public CSV download handler.
+	 *
+	 * @var PublicCsvDownload
+	 */
 	private $public_csv_download;
 
 	/**
-	 * @param SubmissionHandler $submission_handler
+	 * Constructor.
+	 *
+	 * @param SubmissionHandler $submission_handler Submission handler instance.
 	 */
 	public function __construct( SubmissionHandler $submission_handler ) {
 		$this->verification_handler = new VerificationHandler( $submission_handler );
@@ -43,6 +77,9 @@ class Frontend {
 		$this->public_csv_download->register_hooks();
 	}
 
+	/**
+	 * Register WordPress hooks for frontend functionality.
+	 */
 	private function register_hooks(): void {
 		add_action( 'wp_enqueue_scripts', array( $this, 'frontend_assets' ) );
 
@@ -59,6 +96,9 @@ class Frontend {
 		add_action( 'wp_ajax_nopriv_ffc_verify_magic_token', array( $this->verification_handler, 'handle_magic_verification_ajax' ) );
 	}
 
+	/**
+	 * Enqueue frontend CSS and JavaScript assets.
+	 */
 	public function frontend_assets(): void {
 		global $post;
 
@@ -178,68 +218,73 @@ class Frontend {
 					'min_display_ms' => 1500,
 					'strings'        => array(
 						// Progress overlay.
-						'validating'  => __( 'Validating access…', 'ffcertificate' ),
-						'generating'  => __( 'Generating CSV — %d records…', 'ffcertificate' ),
-						'exporting'   => __( 'Exporting %1$d / %2$d…', 'ffcertificate' ),
-						'downloading' => __( 'Starting download…', 'ffcertificate' ),
-						'complete'    => __( 'Download complete!', 'ffcertificate' ),
-						'error'       => __( 'Error', 'ffcertificate' ),
-						'downloadCsv' => __( 'Download CSV', 'ffcertificate' ),
-						'timeout'     => __( 'Export timed out. Please try again.', 'ffcertificate' ),
-						'noRecords'   => __( 'No records found to export.', 'ffcertificate' ),
-						'connError'   => __( 'Connection error. Please try again.', 'ffcertificate' ),
+						'validating'         => __( 'Validating access…', 'ffcertificate' ),
+						/* translators: %d is the total number of records */
+						'generating'         => __( 'Generating CSV — %d records…', 'ffcertificate' ),
+						/* translators: %1$d is processed count, %2$d is total count */
+						'exporting'          => __( 'Exporting %1$d / %2$d…', 'ffcertificate' ),
+						'downloading'        => __( 'Starting download…', 'ffcertificate' ),
+						'complete'           => __( 'Download complete!', 'ffcertificate' ),
+						'error'              => __( 'Error', 'ffcertificate' ),
+						'downloadCsv'        => __( 'Download CSV', 'ffcertificate' ),
+						'timeout'            => __( 'Export timed out. Please try again.', 'ffcertificate' ),
+						'noRecords'          => __( 'No records found to export.', 'ffcertificate' ),
+						'connError'          => __( 'Connection error. Please try again.', 'ffcertificate' ),
 
 						// Info screen: headers.
-						'formDetails'           => __( 'Form Details', 'ffcertificate' ),
-						'backToForm'            => __( 'Back', 'ffcertificate' ),
-						'formTitle'             => __( 'Form', 'ffcertificate' ),
-						'totalSubmissions'      => __( 'Total submissions', 'ffcertificate' ),
+						'formDetails'        => __( 'Form Details', 'ffcertificate' ),
+						'backToForm'         => __( 'Back', 'ffcertificate' ),
+						'formTitle'          => __( 'Form', 'ffcertificate' ),
+						'totalSubmissions'   => __( 'Total submissions', 'ffcertificate' ),
 
 						// Info screen: restrictions.
-						'accessRestrictions'    => __( 'Access Restrictions', 'ffcertificate' ),
-						'passwordRequired'      => __( 'Password required', 'ffcertificate' ),
-						'approvedUsersOnly'     => __( 'Restricted to approved users', 'ffcertificate' ),
-						'blockedUsers'          => __( 'Blocked users list active', 'ffcertificate' ),
-						'accessCodeRequired'    => __( 'Access code (ticket) required', 'ffcertificate' ),
+						'accessRestrictions' => __( 'Access Restrictions', 'ffcertificate' ),
+						'passwordRequired'   => __( 'Password required', 'ffcertificate' ),
+						'approvedUsersOnly'  => __( 'Restricted to approved users', 'ffcertificate' ),
+						'blockedUsers'       => __( 'Blocked users list active', 'ffcertificate' ),
+						'accessCodeRequired' => __( 'Access code (ticket) required', 'ffcertificate' ),
 
 						// Info screen: availability.
-						'availability'          => __( 'Availability Period', 'ffcertificate' ),
-						'dateStart'             => __( 'Start date', 'ffcertificate' ),
-						'dateEnd'               => __( 'End date', 'ffcertificate' ),
-						'timeStart'             => __( 'Start time', 'ffcertificate' ),
-						'timeEnd'               => __( 'End time', 'ffcertificate' ),
-						'infinity'              => '∞',
-						'noEndDateAlert'        => __( 'This form has no end date configured. The CSV download will only be available after the administrator sets an end date.', 'ffcertificate' ),
+						'availability'       => __( 'Availability Period', 'ffcertificate' ),
+						'dateStart'          => __( 'Start date', 'ffcertificate' ),
+						'dateEnd'            => __( 'End date', 'ffcertificate' ),
+						'timeStart'          => __( 'Start time', 'ffcertificate' ),
+						'timeEnd'            => __( 'End time', 'ffcertificate' ),
+						'infinity'           => '∞',
+						'noEndDateAlert'     => __( 'This form has no end date configured. The CSV download will only be available after the administrator sets an end date.', 'ffcertificate' ),
 
 						// Info screen: geolocation.
-						'geolocation'           => __( 'Geolocation', 'ffcertificate' ),
-						'gpsLocations'          => __( 'GPS Locations', 'ffcertificate' ),
-						'ipLocations'           => __( 'IP Locations', 'ffcertificate' ),
-						'geolocationEnabled'    => __( 'Geolocation enabled', 'ffcertificate' ),
+						'geolocation'        => __( 'Geolocation', 'ffcertificate' ),
+						'gpsLocations'       => __( 'GPS Locations', 'ffcertificate' ),
+						'ipLocations'        => __( 'IP Locations', 'ffcertificate' ),
+						'geolocationEnabled' => __( 'Geolocation enabled', 'ffcertificate' ),
 
 						// Info screen: quiz.
-						'quizEvaluation'        => __( 'Quiz / Evaluation', 'ffcertificate' ),
-						'passingScore'          => __( 'Minimum passing score', 'ffcertificate' ),
-						'maxAttempts'           => __( 'Maximum attempts', 'ffcertificate' ),
-						'unlimited'             => __( 'Unlimited', 'ffcertificate' ),
+						'quizEvaluation'     => __( 'Quiz / Evaluation', 'ffcertificate' ),
+						'passingScore'       => __( 'Minimum passing score', 'ffcertificate' ),
+						'maxAttempts'        => __( 'Maximum attempts', 'ffcertificate' ),
+						'unlimited'          => __( 'Unlimited', 'ffcertificate' ),
 
 						// Info screen: download.
-						'csvDownload'           => __( 'CSV Download', 'ffcertificate' ),
-						'downloadQuota'         => __( 'Download quota', 'ffcertificate' ),
-						'quotaUsed'             => __( '%1$d of %2$d used', 'ffcertificate' ),
+						'csvDownload'        => __( 'CSV Download', 'ffcertificate' ),
+						'downloadQuota'      => __( 'Download quota', 'ffcertificate' ),
+						/* translators: %1$d is current download count, %2$d is download limit */
+						'quotaUsed'          => __( '%1$d of %2$d used', 'ffcertificate' ),
 
 						// Info screen: status messages.
-						'formActiveUntil'       => __( 'This form is still active until %s. The download will be available after the end date.', 'ffcertificate' ),
-						'quotaExhausted'        => __( 'The download quota for this form has been exhausted.', 'ffcertificate' ),
-						'downloadReady'         => __( 'The form collection period has ended. The CSV is ready for download.', 'ffcertificate' ),
-						'beforeStartMsg'        => __( 'The form collection has not started yet. It will begin on %s.', 'ffcertificate' ),
+						/* translators: %s is the formatted end date */
+						'formActiveUntil'    => __( 'This form is still active until %s. The download will be available after the end date.', 'ffcertificate' ),
+						'quotaExhausted'     => __( 'The download quota for this form has been exhausted.', 'ffcertificate' ),
+						'downloadReady'      => __( 'The form collection period has ended. The CSV is ready for download.', 'ffcertificate' ),
+						/* translators: %s is the formatted start date */
+						'beforeStartMsg'     => __( 'The form collection has not started yet. It will begin on %s.', 'ffcertificate' ),
 
 						// Info screen: cert preview.
-						'previewCertificate'    => __( 'Preview Certificate', 'ffcertificate' ),
-						'certPreviewTitle'      => __( 'Certificate Preview', 'ffcertificate' ),
-						'certPreviewNote'       => __( 'Placeholders replaced with sample data. QR code shown as placeholder.', 'ffcertificate' ),
-						'close'                 => __( 'Close', 'ffcertificate' ),
-						'loadingPreview'        => __( 'Loading preview…', 'ffcertificate' ),
+						'previewCertificate' => __( 'Preview Certificate', 'ffcertificate' ),
+						'certPreviewTitle'   => __( 'Certificate Preview', 'ffcertificate' ),
+						'certPreviewNote'    => __( 'Placeholders replaced with sample data. QR code shown as placeholder.', 'ffcertificate' ),
+						'close'              => __( 'Close', 'ffcertificate' ),
+						'loadingPreview'     => __( 'Loading preview…', 'ffcertificate' ),
 					),
 				)
 			);
