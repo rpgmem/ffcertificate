@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Self-Scheduling Admin
  *
@@ -9,7 +7,10 @@ declare(strict_types=1);
  *
  * @since 4.1.0
  * @version 4.6.0 - Migrated to unified Scheduling menu
+ * @package FreeFormCertificate\SelfScheduling
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
@@ -17,6 +18,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin interface for self-scheduling appointments.
+ *
+ * @since 4.1.0
+ */
 class SelfSchedulingAdmin {
 
 	/**
@@ -89,7 +95,7 @@ class SelfSchedulingAdmin {
 	/**
 	 * Enqueue admin assets
 	 *
-	 * @param string $hook
+	 * @param string $hook Current admin page hook suffix.
 	 * @return void
 	 */
 	public function enqueue_admin_assets( string $hook ): void {
@@ -141,30 +147,6 @@ class SelfSchedulingAdmin {
 			)
 		);
 
-		$jquery_ui_v = FFC_JQUERY_UI_VERSION;
-        // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent -- jQuery UI CSS from official CDN, standard practice.
-		wp_enqueue_style( 'jquery-ui-theme', "https://code.jquery.com/ui/{$jquery_ui_v}/themes/smoothness/jquery-ui.css", array(), $jquery_ui_v );
-
-		// Add SRI + crossorigin attributes for CDN security.
-		add_filter(
-			'style_loader_tag',
-			static function ( string $html, string $handle ): string {
-				if ( 'jquery-ui-theme' !== $handle ) {
-					return $html;
-				}
-				// SRI hash for jQuery UI 1.12.1 smoothness theme.
-				$integrity = 'sha256-vpM9VGtmPBFETDYEGHRoVfMBl3nmK3WRAO6z5+bUYC4=';
-				if ( strpos( $html, 'integrity' ) !== false ) {
-					return $html;
-				}
-				return str_replace(
-					" rel='stylesheet'",
-					" rel='stylesheet' integrity='{$integrity}' crossorigin='anonymous'",
-					$html
-				);
-			},
-			10,
-			2
-		);
+		wp_enqueue_style( 'jquery-ui-theme', FFC_PLUGIN_URL . 'libs/css/jquery-ui-smoothness.css', array(), FFC_JQUERY_UI_VERSION );
 	}
 }
