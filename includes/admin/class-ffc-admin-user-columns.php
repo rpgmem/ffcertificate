@@ -17,280 +17,285 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
-if (!defined('ABSPATH')) exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 
 class AdminUserColumns {
 
-    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
-    /**
-     * Cached flag for appointments table existence
-     *
-     * @since 4.6.13
-     * @var bool|null
-     */
-    private static ?bool $appointments_table_exists = null;
+	/**
+	 * Cached flag for appointments table existence
+	 *
+	 * @since 4.6.13
+	 * @var bool|null
+	 */
+	private static ?bool $appointments_table_exists = null;
 
-    /**
-     * Cached dashboard URL for user actions column
-     *
-     * @since 4.6.13
-     * @var string|null
-     */
-    private static ?string $dashboard_url_cache = null;
+	/**
+	 * Cached dashboard URL for user actions column
+	 *
+	 * @since 4.6.13
+	 * @var string|null
+	 */
+	private static ?string $dashboard_url_cache = null;
 
-    /**
-     * Batch-cached certificate counts (user_id => count)
-     *
-     * @since 4.9.7
-     * @var array<int, int>|null
-     */
-    private static ?array $certificate_counts_cache = null;
+	/**
+	 * Batch-cached certificate counts (user_id => count)
+	 *
+	 * @since 4.9.7
+	 * @var array<int, int>|null
+	 */
+	private static ?array $certificate_counts_cache = null;
 
-    /**
-     * Batch-cached appointment counts (user_id => count)
-     *
-     * @since 4.9.7
-     * @var array<int, int>|null
-     */
-    private static ?array $appointment_counts_cache = null;
+	/**
+	 * Batch-cached appointment counts (user_id => count)
+	 *
+	 * @since 4.9.7
+	 * @var array<int, int>|null
+	 */
+	private static ?array $appointment_counts_cache = null;
 
-    /**
-     * Initialize user columns
-     */
-    public static function init(): void {
-        // Add custom columns to users list
-        add_filter('manage_users_columns', array(__CLASS__, 'add_custom_columns'));
-        add_filter('manage_users_custom_column', array(__CLASS__, 'render_custom_column'), 10, 3);
+	/**
+	 * Initialize user columns
+	 */
+	public static function init(): void {
+		// Add custom columns to users list.
+		add_filter( 'manage_users_columns', array( __CLASS__, 'add_custom_columns' ) );
+		add_filter( 'manage_users_custom_column', array( __CLASS__, 'render_custom_column' ), 10, 3 );
 
-        // Enqueue styles for the column
-        add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue_styles'));
-    }
+		// Enqueue styles for the column.
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_styles' ) );
+	}
 
-    /**
-     * Add custom columns to users table
-     *
-     * @param array<string, string> $columns Existing columns
-     * @return array<string, string> Modified columns
-     */
-    public static function add_custom_columns( array $columns ): array {
-        // Add after "Posts" column
-        $new_columns = array();
+	/**
+	 * Add custom columns to users table
+	 *
+	 * @param array<string, string> $columns Existing columns.
+	 * @return array<string, string> Modified columns
+	 */
+	public static function add_custom_columns( array $columns ): array {
+		// Add after "Posts" column.
+		$new_columns = array();
 
-        foreach ($columns as $key => $value) {
-            $new_columns[$key] = $value;
+		foreach ( $columns as $key => $value ) {
+			$new_columns[ $key ] = $value;
 
-            if ($key === 'posts') {
-                $new_columns['ffc_certificates'] = __('Certificates', 'ffcertificate');
-                $new_columns['ffc_appointments'] = __('Appointments', 'ffcertificate');
-                $new_columns['ffc_user_actions'] = __('User Actions', 'ffcertificate');
-            }
-        }
+			if ( 'posts' === $key ) {
+				$new_columns['ffc_certificates'] = __( 'Certificates', 'ffcertificate' );
+				$new_columns['ffc_appointments'] = __( 'Appointments', 'ffcertificate' );
+				$new_columns['ffc_user_actions'] = __( 'User Actions', 'ffcertificate' );
+			}
+		}
 
-        return $new_columns;
-    }
+		return $new_columns;
+	}
 
-    /**
-     * Render content for custom columns
-     *
-     * @param string $output Custom column output
-     * @param string $column_name Column name
-     * @param int $user_id User ID
-     * @return string Column HTML
-     */
-    public static function render_custom_column( string $output, string $column_name, int $user_id ): string {
-        switch ($column_name) {
-            case 'ffc_certificates':
-                return self::render_certificates_count($user_id);
+	/**
+	 * Render content for custom columns
+	 *
+	 * @param string $output Custom column output.
+	 * @param string $column_name Column name.
+	 * @param int    $user_id User ID.
+	 * @return string Column HTML
+	 */
+	public static function render_custom_column( string $output, string $column_name, int $user_id ): string {
+		switch ( $column_name ) {
+			case 'ffc_certificates':
+				return self::render_certificates_count( $user_id );
 
-            case 'ffc_appointments':
-                return self::render_appointments_count($user_id);
+			case 'ffc_appointments':
+				return self::render_appointments_count( $user_id );
 
-            case 'ffc_user_actions':
-                return self::render_user_actions($user_id);
+			case 'ffc_user_actions':
+				return self::render_user_actions( $user_id );
 
-            default:
-                return $output;
-        }
-    }
+			default:
+				return $output;
+		}
+	}
 
-    /**
-     * Render certificates count
-     *
-     * @param int $user_id User ID
-     * @return string Column HTML
-     */
-    private static function render_certificates_count( int $user_id ): string {
-        $count = self::get_user_certificate_count($user_id);
+	/**
+	 * Render certificates count
+	 *
+	 * @param int $user_id User ID.
+	 * @return string Column HTML
+	 */
+	private static function render_certificates_count( int $user_id ): string {
+		$count = self::get_user_certificate_count( $user_id );
 
-        if ($count === 0) {
-            return '<span class="ffc-empty-value">—</span>';
-        }
+		if ( 0 === $count ) {
+			return '<span class="ffc-empty-value">—</span>';
+		}
 
-        return sprintf(
-            '<strong>%d</strong> %s',
-            $count,
-            _n('certificate', 'certificates', $count, 'ffcertificate')
-        );
-    }
+		return sprintf(
+			'<strong>%d</strong> %s',
+			$count,
+			_n( 'certificate', 'certificates', $count, 'ffcertificate' )
+		);
+	}
 
-    /**
-     * Render appointments count
-     *
-     * @param int $user_id User ID
-     * @return string Column HTML
-     */
-    private static function render_appointments_count( int $user_id ): string {
-        $count = self::get_user_appointment_count($user_id);
+	/**
+	 * Render appointments count
+	 *
+	 * @param int $user_id User ID.
+	 * @return string Column HTML
+	 */
+	private static function render_appointments_count( int $user_id ): string {
+		$count = self::get_user_appointment_count( $user_id );
 
-        if ($count === 0) {
-            return '<span class="ffc-empty-value">—</span>';
-        }
+		if ( 0 === $count ) {
+			return '<span class="ffc-empty-value">—</span>';
+		}
 
-        return sprintf(
-            '<strong>%d</strong> %s',
-            $count,
-            _n('appointment', 'appointments', $count, 'ffcertificate')
-        );
-    }
+		return sprintf(
+			'<strong>%d</strong> %s',
+			$count,
+			_n( 'appointment', 'appointments', $count, 'ffcertificate' )
+		);
+	}
 
-    /**
-     * Render user actions (login as user link)
-     *
-     * @param int $user_id User ID
-     * @return string Column HTML
-     */
-    private static function render_user_actions( int $user_id ): string {
-        // Get dashboard URL from User Access Settings (cached per request)
-        if ( self::$dashboard_url_cache === null ) {
-            $user_access_settings = get_option('ffc_user_access_settings', array());
-            self::$dashboard_url_cache = isset($user_access_settings['redirect_url']) && !empty($user_access_settings['redirect_url'])
-                ? $user_access_settings['redirect_url']
-                : home_url('/dashboard');
-        }
-        $dashboard_url = self::$dashboard_url_cache;
+	/**
+	 * Render user actions (login as user link)
+	 *
+	 * @param int $user_id User ID.
+	 * @return string Column HTML
+	 */
+	private static function render_user_actions( int $user_id ): string {
+		// Get dashboard URL from User Access Settings (cached per request).
+		if ( null === self::$dashboard_url_cache ) {
+			$user_access_settings      = get_option( 'ffc_user_access_settings', array() );
+			self::$dashboard_url_cache = isset( $user_access_settings['redirect_url'] ) && ! empty( $user_access_settings['redirect_url'] )
+				? $user_access_settings['redirect_url']
+				: home_url( '/dashboard' );
+		}
+		$dashboard_url = self::$dashboard_url_cache;
 
-        // Create view-as link with nonce
-        $view_as_url = add_query_arg(array(
-            'ffc_view_as_user' => $user_id,
-            'ffc_view_nonce' => wp_create_nonce('ffc_view_as_user_' . $user_id)
-        ), $dashboard_url);
+		// Create view-as link with nonce.
+		$view_as_url = add_query_arg(
+			array(
+				'ffc_view_as_user' => $user_id,
+				'ffc_view_nonce'   => wp_create_nonce( 'ffc_view_as_user_' . $user_id ),
+			),
+			$dashboard_url
+		);
 
-        return sprintf(
-            '<a href="%s" class="ffc-view-as-user button button-small" target="_blank" title="%s">%s</a>',
-            esc_url($view_as_url),
-            esc_attr__('View dashboard as this user', 'ffcertificate'),
-            __('Login as User', 'ffcertificate')
-        );
-    }
+		return sprintf(
+			'<a href="%s" class="ffc-view-as-user button button-small" target="_blank" title="%s">%s</a>',
+			esc_url( $view_as_url ),
+			esc_attr__( 'View dashboard as this user', 'ffcertificate' ),
+			__( 'Login as User', 'ffcertificate' )
+		);
+	}
 
-    /**
-     * Get certificate count for user (batch-loaded)
-     *
-     * First call loads counts for ALL users in a single query,
-     * subsequent calls return from cache. Eliminates N+1 queries.
-     *
-     * @since 4.9.7 - Batch query replaces per-user COUNT
-     * @param int $user_id User ID
-     * @return int Certificate count
-     */
-    private static function get_user_certificate_count( int $user_id ): int {
-        if ( self::$certificate_counts_cache === null ) {
-            self::load_certificate_counts();
-        }
+	/**
+	 * Get certificate count for user (batch-loaded)
+	 *
+	 * First call loads counts for ALL users in a single query,
+	 * subsequent calls return from cache. Eliminates N+1 queries.
+	 *
+	 * @since 4.9.7 - Batch query replaces per-user COUNT
+	 * @param int $user_id User ID.
+	 * @return int Certificate count
+	 */
+	private static function get_user_certificate_count( int $user_id ): int {
+		if ( null === self::$certificate_counts_cache ) {
+			self::load_certificate_counts();
+		}
 
-        return self::$certificate_counts_cache[$user_id] ?? 0;
-    }
+		return self::$certificate_counts_cache[ $user_id ] ?? 0;
+	}
 
-    /**
-     * Get appointment count for user (batch-loaded)
-     *
-     * @since 4.9.7 - Batch query replaces per-user COUNT
-     * @param int $user_id User ID
-     * @return int Appointment count
-     */
-    private static function get_user_appointment_count( int $user_id ): int {
-        if ( self::$appointment_counts_cache === null ) {
-            self::load_appointment_counts();
-        }
+	/**
+	 * Get appointment count for user (batch-loaded)
+	 *
+	 * @since 4.9.7 - Batch query replaces per-user COUNT
+	 * @param int $user_id User ID.
+	 * @return int Appointment count
+	 */
+	private static function get_user_appointment_count( int $user_id ): int {
+		if ( null === self::$appointment_counts_cache ) {
+			self::load_appointment_counts();
+		}
 
-        return self::$appointment_counts_cache[$user_id] ?? 0;
-    }
+		return self::$appointment_counts_cache[ $user_id ] ?? 0;
+	}
 
-    /**
-     * Load certificate counts for all users in a single batch query
-     *
-     * @since 4.9.7
-     * @return void
-     */
-    private static function load_certificate_counts(): void {
-        global $wpdb;
-        $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $results = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT user_id, COUNT(*) AS cnt FROM %i WHERE user_id IS NOT NULL AND status != 'trash' GROUP BY user_id",
-                $table
-            ),
-            ARRAY_A
-        );
-
-        self::$certificate_counts_cache = array();
-        if ( $results ) {
-            foreach ( $results as $row ) {
-                self::$certificate_counts_cache[ (int) $row['user_id'] ] = (int) $row['cnt'];
-            }
-        }
-    }
-
-    /**
-     * Load appointment counts for all users in a single batch query
-     *
-     * @since 4.9.7
-     * @return void
-     */
-    private static function load_appointment_counts(): void {
-        global $wpdb;
-        $table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-
-        // Check if table exists (cached per request)
-        if ( self::$appointments_table_exists === null ) {
-            self::$appointments_table_exists = self::table_exists( $table );
-        }
-
-        self::$appointment_counts_cache = array();
-        if ( ! self::$appointments_table_exists ) {
-            return;
-        }
+	/**
+	 * Load certificate counts for all users in a single batch query
+	 *
+	 * @since 4.9.7
+	 * @return void
+	 */
+	private static function load_certificate_counts(): void {
+		global $wpdb;
+		$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $results = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT user_id, COUNT(*) AS cnt FROM %i WHERE user_id IS NOT NULL AND status != 'cancelled' GROUP BY user_id",
-                $table
-            ),
-            ARRAY_A
-        );
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT user_id, COUNT(*) AS cnt FROM %i WHERE user_id IS NOT NULL AND status != 'trash' GROUP BY user_id",
+				$table
+			),
+			ARRAY_A
+		);
 
-        if ( $results ) {
-            foreach ( $results as $row ) {
-                self::$appointment_counts_cache[ (int) $row['user_id'] ] = (int) $row['cnt'];
-            }
-        }
-    }
+		self::$certificate_counts_cache = array();
+		if ( $results ) {
+			foreach ( $results as $row ) {
+				self::$certificate_counts_cache[ (int) $row['user_id'] ] = (int) $row['cnt'];
+			}
+		}
+	}
 
-    /**
-     * Enqueue CSS for certificates column
-     */
-    public static function enqueue_styles( string $hook ): void {
-        // Only load on users.php page
-        if ($hook !== 'users.php') {
-            return;
-        }
+	/**
+	 * Load appointment counts for all users in a single batch query
+	 *
+	 * @since 4.9.7
+	 * @return void
+	 */
+	private static function load_appointment_counts(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
-        wp_enqueue_style( 'ffc-admin', FFC_PLUGIN_URL . "assets/css/ffc-admin{$s}.css", array(), FFC_VERSION );
-    }
+		// Check if table exists (cached per request).
+		if ( null === self::$appointments_table_exists ) {
+			self::$appointments_table_exists = self::table_exists( $table );
+		}
+
+		self::$appointment_counts_cache = array();
+		if ( ! self::$appointments_table_exists ) {
+			return;
+		}
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT user_id, COUNT(*) AS cnt FROM %i WHERE user_id IS NOT NULL AND status != 'cancelled' GROUP BY user_id",
+				$table
+			),
+			ARRAY_A
+		);
+
+		if ( $results ) {
+			foreach ( $results as $row ) {
+				self::$appointment_counts_cache[ (int) $row['user_id'] ] = (int) $row['cnt'];
+			}
+		}
+	}
+
+	/**
+	 * Enqueue CSS for certificates column
+	 */
+	public static function enqueue_styles( string $hook ): void {
+		// Only load on users.php page.
+		if ( 'users.php' !== $hook ) {
+			return;
+		}
+
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		wp_enqueue_style( 'ffc-admin', FFC_PLUGIN_URL . "assets/css/ffc-admin{$s}.css", array(), FFC_VERSION );
+	}
 }

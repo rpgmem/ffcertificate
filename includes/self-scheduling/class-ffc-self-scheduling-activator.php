@@ -18,47 +18,49 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
-if (!defined('ABSPATH')) exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.SchemaChange
 
 class SelfSchedulingActivator {
 
-    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
-    /**
-     * Create all self-scheduling-related tables
-     *
-     * Called during plugin activation.
-     *
-     * @return void
-     */
-    public static function create_tables(): void {
-        self::create_calendars_table();
-        self::create_appointments_table();
-        self::create_blocked_dates_table();
-        self::add_composite_indexes();
-        self::ensure_unique_validation_code_index();
-    }
+	/**
+	 * Create all self-scheduling-related tables
+	 *
+	 * Called during plugin activation.
+	 *
+	 * @return void
+	 */
+	public static function create_tables(): void {
+		self::create_calendars_table();
+		self::create_appointments_table();
+		self::create_blocked_dates_table();
+		self::add_composite_indexes();
+		self::ensure_unique_validation_code_index();
+	}
 
-    /**
-     * Create calendars table
-     *
-     * Stores calendar configurations with time slots and settings.
-     *
-     * @return void
-     */
-    private static function create_calendars_table(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
-        $charset_collate = $wpdb->get_charset_collate();
+	/**
+	 * Create calendars table
+	 *
+	 * Stores calendar configurations with time slots and settings.
+	 *
+	 * @return void
+	 */
+	private static function create_calendars_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+		$charset_collate = $wpdb->get_charset_collate();
 
-        // Check if table already exists
-        if (self::table_exists($table_name)) {
-            return;
-        }
+		// Check if table already exists.
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
 
-        $sql = "CREATE TABLE {$table_name} (
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             post_id bigint(20) unsigned NOT NULL COMMENT 'Reference to wp_posts (CPT)',
             title varchar(255) NOT NULL,
@@ -111,31 +113,31 @@ class SelfSchedulingActivator {
             KEY created_at (created_at)
         ) {$charset_collate};";
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
-    }
+		dbDelta( $sql );
+	}
 
-    /**
-     * Create appointments table
-     *
-     * Stores individual appointment bookings.
-     *
-     * @return void
-     */
-    private static function create_appointments_table(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-        $charset_collate = $wpdb->get_charset_collate();
+	/**
+	 * Create appointments table
+	 *
+	 * Stores individual appointment bookings.
+	 *
+	 * @return void
+	 */
+	private static function create_appointments_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+		$charset_collate = $wpdb->get_charset_collate();
 
-        // Check if table already exists
-        if (self::table_exists($table_name)) {
-            // Run migration to add cpf_rf columns if they don't exist
-            self::migrate_appointments_table();
-            return;
-        }
+		// Check if table already exists.
+		if ( self::table_exists( $table_name ) ) {
+			// Run migration to add cpf_rf columns if they don't exist.
+			self::migrate_appointments_table();
+			return;
+		}
 
-        $sql = "CREATE TABLE {$table_name} (
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             calendar_id bigint(20) unsigned NOT NULL,
             user_id bigint(20) unsigned DEFAULT NULL COMMENT 'WordPress user (if logged in)',
@@ -209,276 +211,276 @@ class SelfSchedulingActivator {
             KEY idx_calendar_datetime (calendar_id, appointment_date, start_time)
         ) {$charset_collate};";
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
-    }
+		dbDelta( $sql );
+	}
 
-    /**
-     * Migrate appointments table to add split cpf/rf columns
-     *
-     * @return void
-     */
-    private static function migrate_appointments_table(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+	/**
+	 * Migrate appointments table to add split cpf/rf columns
+	 *
+	 * @return void
+	 */
+	private static function migrate_appointments_table(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-        // Determine position for new columns
-        $after_column = 'email_hash';
-        if ( ! self::column_exists( $table_name, 'email_hash' ) ) {
-            $after_column = 'name';
-        }
+		// Determine position for new columns.
+		$after_column = 'email_hash';
+		if ( ! self::column_exists( $table_name, 'email_hash' ) ) {
+			$after_column = 'name';
+		}
 
-        // Add split cpf/rf encrypted columns
-        self::add_column_if_missing($table_name, 'cpf_encrypted', "text DEFAULT NULL", $after_column);
-        self::add_column_if_missing($table_name, 'cpf_hash', "varchar(64) DEFAULT NULL", 'cpf_encrypted', 'cpf_hash');
-        self::add_column_if_missing($table_name, 'rf_encrypted', "text DEFAULT NULL", 'cpf_hash');
-        self::add_column_if_missing($table_name, 'rf_hash', "varchar(64) DEFAULT NULL", 'rf_encrypted', 'rf_hash');
-    }
+		// Add split cpf/rf encrypted columns.
+		self::add_column_if_missing( $table_name, 'cpf_encrypted', 'text DEFAULT NULL', $after_column );
+		self::add_column_if_missing( $table_name, 'cpf_hash', 'varchar(64) DEFAULT NULL', 'cpf_encrypted', 'cpf_hash' );
+		self::add_column_if_missing( $table_name, 'rf_encrypted', 'text DEFAULT NULL', 'cpf_hash' );
+		self::add_column_if_missing( $table_name, 'rf_hash', 'varchar(64) DEFAULT NULL', 'rf_encrypted', 'rf_hash' );
+	}
 
-    /**
-     * Migrate appointments table to add validation_code column
-     *
-     * @return void
-     */
-    private static function migrate_appointments_validation_code(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+	/**
+	 * Migrate appointments table to add validation_code column
+	 *
+	 * @return void
+	 */
+	private static function migrate_appointments_validation_code(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-        // Check if validation_code column exists
-        if (!self::column_exists($table_name, 'validation_code')) {
-            // Add validation_code column after confirmation_token
-            self::add_column_if_missing($table_name, 'validation_code', "varchar(20) DEFAULT NULL", 'confirmation_token', 'validation_code');
+		// Check if validation_code column exists.
+		if ( ! self::column_exists( $table_name, 'validation_code' ) ) {
+			// Add validation_code column after confirmation_token.
+			self::add_column_if_missing( $table_name, 'validation_code', 'varchar(20) DEFAULT NULL', 'confirmation_token', 'validation_code' );
 
-            // Generate validation codes for existing appointments
-            self::generate_validation_codes_for_existing_appointments();
-        }
-    }
+			// Generate validation codes for existing appointments.
+			self::generate_validation_codes_for_existing_appointments();
+		}
+	}
 
-    /**
-     * Generate validation codes for existing appointments that don't have one
-     *
-     * @return void
-     */
-    private static function generate_validation_codes_for_existing_appointments(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+	/**
+	 * Generate validation codes for existing appointments that don't have one
+	 *
+	 * @return void
+	 */
+	private static function generate_validation_codes_for_existing_appointments(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-        // Get appointments without validation codes
+		// Get appointments without validation codes.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $appointments = $wpdb->get_results(
-            $wpdb->prepare( "SELECT id FROM %i WHERE validation_code IS NULL OR validation_code = ''", $table_name )
-        );
+		$appointments = $wpdb->get_results(
+			$wpdb->prepare( "SELECT id FROM %i WHERE validation_code IS NULL OR validation_code = ''", $table_name )
+		);
 
-        foreach ($appointments as $appointment) {
-            // Generate unique validation code
-            $validation_code = self::generate_unique_validation_code();
+		foreach ( $appointments as $appointment ) {
+			// Generate unique validation code.
+			$validation_code = self::generate_unique_validation_code();
 
-            // Update appointment
+			// Update appointment.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->update(
-                $table_name,
-                array('validation_code' => $validation_code),
-                array('id' => $appointment->id),
-                array('%s'),
-                array('%d')
-            );
-        }
-    }
+			$wpdb->update(
+				$table_name,
+				array( 'validation_code' => $validation_code ),
+				array( 'id' => $appointment->id ),
+				array( '%s' ),
+				array( '%d' )
+			);
+		}
+	}
 
-    /**
-     * Generate unique validation code
-     *
-     * Generates a 12-character alphanumeric code (stored without hyphens).
-     * Use Utils::format_auth_code() to display with hyphens (XXXX-XXXX-XXXX).
-     *
-     * @return string 12-character code without hyphens
-     */
-    private static function generate_unique_validation_code(): string {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+	/**
+	 * Generate unique validation code
+	 *
+	 * Generates a 12-character alphanumeric code (stored without hyphens).
+	 * Use Utils::format_auth_code() to display with hyphens (XXXX-XXXX-XXXX).
+	 *
+	 * @return string 12-character code without hyphens
+	 */
+	private static function generate_unique_validation_code(): string {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-        do {
-            // Generate 12 alphanumeric characters (stored clean, without hyphens)
-            $code = \FreeFormCertificate\Core\Utils::generate_random_string(12);
+		do {
+			// Generate 12 alphanumeric characters (stored clean, without hyphens).
+			$code = \FreeFormCertificate\Core\Utils::generate_random_string( 12 );
 
-            // Check if code already exists
+			// Check if code already exists.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $existing = $wpdb->get_var(
-                $wpdb->prepare(
-                    "SELECT id FROM %i WHERE validation_code = %s",
-                    $table_name,
-                    $code
-                )
-            );
-        } while ($existing);
+			$existing = $wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT id FROM %i WHERE validation_code = %s',
+					$table_name,
+					$code
+				)
+			);
+		} while ( $existing );
 
-        return $code;
-    }
+		return $code;
+	}
 
 
-    /**
-     * Run migrations on plugin load
-     * This ensures migrations run even if plugin wasn't re-activated
-     *
-     * @return void
-     */
-    public static function maybe_migrate(): void {
-        global $wpdb;
+	/**
+	 * Run migrations on plugin load
+	 * This ensures migrations run even if plugin wasn't re-activated
+	 *
+	 * @return void
+	 */
+	public static function maybe_migrate(): void {
+		global $wpdb;
 
-        // Migrate appointments table
-        $appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+		// Migrate appointments table.
+		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-        if (self::table_exists($appointments_table)) {
-            // Run migration to ensure cpf/rf split columns exist
-            self::migrate_appointments_table();
-            // Run migration to ensure validation_code column exists
-            self::migrate_appointments_validation_code();
-        }
+		if ( self::table_exists( $appointments_table ) ) {
+			// Run migration to ensure cpf/rf split columns exist.
+			self::migrate_appointments_table();
+			// Run migration to ensure validation_code column exists.
+			self::migrate_appointments_validation_code();
+		}
 
-        // Migrate calendars table
-        $calendars_table = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+		// Migrate calendars table.
+		$calendars_table = $wpdb->prefix . 'ffc_self_scheduling_calendars';
 
-        if (self::table_exists($calendars_table)) {
-            // Run migration to ensure minimum_interval_between_bookings column exists
-            self::migrate_calendars_table();
-            // Run migration to add visibility columns (replacing require_login/allowed_roles)
-            self::migrate_visibility_columns();
-            // Run migration to add business hours restriction columns
-            self::migrate_business_hours_restriction_columns();
-        }
-    }
+		if ( self::table_exists( $calendars_table ) ) {
+			// Run migration to ensure minimum_interval_between_bookings column exists.
+			self::migrate_calendars_table();
+			// Run migration to add visibility columns (replacing require_login/allowed_roles).
+			self::migrate_visibility_columns();
+			// Run migration to add business hours restriction columns.
+			self::migrate_business_hours_restriction_columns();
+		}
+	}
 
-    /**
-     * Migrate calendars table to add minimum_interval_between_bookings column
-     *
-     * @return void
-     */
-    private static function migrate_calendars_table(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+	/**
+	 * Migrate calendars table to add minimum_interval_between_bookings column
+	 *
+	 * @return void
+	 */
+	private static function migrate_calendars_table(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
 
-        // Add minimum_interval_between_bookings column after cancellation_min_hours
-        self::add_column_if_missing(
-            $table_name,
-            'minimum_interval_between_bookings',
-            "int unsigned DEFAULT 24 COMMENT 'Minimum hours between user bookings (0 = disabled)'",
-            'cancellation_min_hours'
-        );
-    }
+		// Add minimum_interval_between_bookings column after cancellation_min_hours.
+		self::add_column_if_missing(
+			$table_name,
+			'minimum_interval_between_bookings',
+			"int unsigned DEFAULT 24 COMMENT 'Minimum hours between user bookings (0 = disabled)'",
+			'cancellation_min_hours'
+		);
+	}
 
-    /**
-     * Migrate calendars table to add visibility columns
-     *
-     * Replaces require_login and allowed_roles with visibility and scheduling_visibility.
-     * Migration: require_login=1 → private/private, require_login=0 → public/public.
-     *
-     * @since 4.7.0
-     * @return void
-     */
-    private static function migrate_visibility_columns(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+	/**
+	 * Migrate calendars table to add visibility columns
+	 *
+	 * Replaces require_login and allowed_roles with visibility and scheduling_visibility.
+	 * Migration: require_login=1 → private/private, require_login=0 → public/public.
+	 *
+	 * @since 4.7.0
+	 * @return void
+	 */
+	private static function migrate_visibility_columns(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
 
-        // Check if visibility column already exists
-        if (self::column_exists($table_name, 'visibility')) {
-            return;
-        }
+		// Check if visibility column already exists.
+		if ( self::column_exists( $table_name, 'visibility' ) ) {
+			return;
+		}
 
-        // Check if require_login column exists (old schema)
-        $require_login_exists = self::column_exists($table_name, 'require_login');
+		// Check if require_login column exists (old schema).
+		$require_login_exists = self::column_exists( $table_name, 'require_login' );
 
-        // Add new columns
-        self::add_column_if_missing(
-            $table_name,
-            'visibility',
-            "enum('public','private') DEFAULT 'public' COMMENT 'Calendar visibility: public or private'",
-            'max_appointments_per_slot'
-        );
-        self::add_column_if_missing(
-            $table_name,
-            'scheduling_visibility',
-            "enum('public','private') DEFAULT 'public' COMMENT 'Booking access: public or private'",
-            'visibility'
-        );
+		// Add new columns.
+		self::add_column_if_missing(
+			$table_name,
+			'visibility',
+			"enum('public','private') DEFAULT 'public' COMMENT 'Calendar visibility: public or private'",
+			'max_appointments_per_slot'
+		);
+		self::add_column_if_missing(
+			$table_name,
+			'scheduling_visibility',
+			"enum('public','private') DEFAULT 'public' COMMENT 'Booking access: public or private'",
+			'visibility'
+		);
 
-        // Migrate data from require_login if the old column exists
-        if ($require_login_exists) {
-            // require_login=1 → private/private
+		// Migrate data from require_login if the old column exists.
+		if ( $require_login_exists ) {
+			// require_login=1 → private/private.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->query(
-                $wpdb->prepare(
-                    "UPDATE %i SET visibility = 'private', scheduling_visibility = 'private' WHERE require_login = 1",
-                    $table_name
-                )
-            );
+			$wpdb->query(
+				$wpdb->prepare(
+					"UPDATE %i SET visibility = 'private', scheduling_visibility = 'private' WHERE require_login = 1",
+					$table_name
+				)
+			);
 
-            // require_login=0 → public/public (already default, but be explicit)
+			// require_login=0 → public/public (already default, but be explicit).
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->query(
-                $wpdb->prepare(
-                    "UPDATE %i SET visibility = 'public', scheduling_visibility = 'public' WHERE require_login = 0",
-                    $table_name
-                )
-            );
+			$wpdb->query(
+				$wpdb->prepare(
+					"UPDATE %i SET visibility = 'public', scheduling_visibility = 'public' WHERE require_login = 0",
+					$table_name
+				)
+			);
 
-            // Drop old columns
+			// Drop old columns.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->query(
-                $wpdb->prepare(
-                    "ALTER TABLE %i DROP COLUMN require_login, DROP COLUMN allowed_roles",
-                    $table_name
-                )
-            );
-        }
-    }
+			$wpdb->query(
+				$wpdb->prepare(
+					'ALTER TABLE %i DROP COLUMN require_login, DROP COLUMN allowed_roles',
+					$table_name
+				)
+			);
+		}
+	}
 
-    /**
-     * Migrate calendars table to add business hours restriction columns
-     *
-     * Adds restrict_viewing_to_hours and restrict_booking_to_hours toggles
-     * that allow restricting calendar access to configured working hours only.
-     *
-     * @since 4.7.0
-     * @return void
-     */
-    private static function migrate_business_hours_restriction_columns(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+	/**
+	 * Migrate calendars table to add business hours restriction columns
+	 *
+	 * Adds restrict_viewing_to_hours and restrict_booking_to_hours toggles
+	 * that allow restricting calendar access to configured working hours only.
+	 *
+	 * @since 4.7.0
+	 * @return void
+	 */
+	private static function migrate_business_hours_restriction_columns(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
 
-        // Add business hours restriction columns after scheduling_visibility
-        self::add_column_if_missing(
-            $table_name,
-            'restrict_viewing_to_hours',
-            "tinyint(1) DEFAULT 0 COMMENT 'Restrict viewing to working hours only'",
-            'scheduling_visibility'
-        );
-        self::add_column_if_missing(
-            $table_name,
-            'restrict_booking_to_hours',
-            "tinyint(1) DEFAULT 0 COMMENT 'Restrict booking to working hours only'",
-            'restrict_viewing_to_hours'
-        );
-    }
+		// Add business hours restriction columns after scheduling_visibility.
+		self::add_column_if_missing(
+			$table_name,
+			'restrict_viewing_to_hours',
+			"tinyint(1) DEFAULT 0 COMMENT 'Restrict viewing to working hours only'",
+			'scheduling_visibility'
+		);
+		self::add_column_if_missing(
+			$table_name,
+			'restrict_booking_to_hours',
+			"tinyint(1) DEFAULT 0 COMMENT 'Restrict booking to working hours only'",
+			'restrict_viewing_to_hours'
+		);
+	}
 
-    /**
-     * Create blocked dates table
-     *
-     * Stores holidays and specific date/time blocks per calendar.
-     *
-     * @return void
-     */
-    private static function create_blocked_dates_table(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_blocked_dates';
-        $charset_collate = $wpdb->get_charset_collate();
+	/**
+	 * Create blocked dates table
+	 *
+	 * Stores holidays and specific date/time blocks per calendar.
+	 *
+	 * @return void
+	 */
+	private static function create_blocked_dates_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_self_scheduling_blocked_dates';
+		$charset_collate = $wpdb->get_charset_collate();
 
-        // Check if table already exists
-        if (self::table_exists($table_name)) {
-            return;
-        }
+		// Check if table already exists.
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
 
-        $sql = "CREATE TABLE {$table_name} (
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             calendar_id bigint(20) unsigned DEFAULT NULL COMMENT 'NULL = applies to all calendars',
 
@@ -510,74 +512,77 @@ class SelfSchedulingActivator {
             KEY idx_calendar_daterange (calendar_id, start_date, end_date)
         ) {$charset_collate};";
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
-    }
+		dbDelta( $sql );
+	}
 
-    /**
-     * Drop all self-scheduling tables (for uninstall)
-     *
-     * @return void
-     */
-    public static function drop_tables(): void {
-        global $wpdb;
+	/**
+	 * Drop all self-scheduling tables (for uninstall)
+	 *
+	 * @return void
+	 */
+	public static function drop_tables(): void {
+		global $wpdb;
 
-        $tables = array(
-            $wpdb->prefix . 'ffc_self_scheduling_calendars',
-            $wpdb->prefix . 'ffc_self_scheduling_appointments',
-            $wpdb->prefix . 'ffc_self_scheduling_blocked_dates'
-        );
+		$tables = array(
+			$wpdb->prefix . 'ffc_self_scheduling_calendars',
+			$wpdb->prefix . 'ffc_self_scheduling_appointments',
+			$wpdb->prefix . 'ffc_self_scheduling_blocked_dates',
+		);
 
-        foreach ($tables as $table) {
+		foreach ( $tables as $table ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );
-        }
-    }
+			$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );
+		}
+	}
 
-    /**
-     * Add composite indexes for common query patterns.
-     *
-     * @since 4.6.2
-     */
-    private static function add_composite_indexes(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+	/**
+	 * Add composite indexes for common query patterns.
+	 *
+	 * @since 4.6.2
+	 */
+	private static function add_composite_indexes(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-        self::add_indexes_if_missing($table_name, [
-            'idx_calendar_status_date' => '(calendar_id, status, appointment_date)',
-            'idx_user_status'          => '(user_id, status)',
-        ]);
-    }
+		self::add_indexes_if_missing(
+			$table_name,
+			array(
+				'idx_calendar_status_date' => '(calendar_id, status, appointment_date)',
+				'idx_user_status'          => '(user_id, status)',
+			)
+		);
+	}
 
-    /**
-     * Ensure validation_code has a UNIQUE index (prevents race condition duplicates).
-     *
-     * Upgrades the existing non-unique KEY to UNIQUE KEY.
-     *
-     * @since 4.6.10
-     */
-    private static function ensure_unique_validation_code_index(): void {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+	/**
+	 * Ensure validation_code has a UNIQUE index (prevents race condition duplicates).
+	 *
+	 * Upgrades the existing non-unique KEY to UNIQUE KEY.
+	 *
+	 * @since 4.6.10
+	 */
+	private static function ensure_unique_validation_code_index(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
-        // Check if validation_code index exists and whether it's already unique
-        if (self::index_exists($table_name, 'validation_code')) {
+		// Check if validation_code index exists and whether it's already unique.
+		if ( self::index_exists( $table_name, 'validation_code' ) ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $indexes = $wpdb->get_results( $wpdb->prepare( "SHOW INDEX FROM %i WHERE Key_name = %s", $table_name, 'validation_code' ) );
+			$indexes = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $table_name, 'validation_code' ) );
 
-            // Check if Non_unique = 0 (already unique)
-            if ( (int) $indexes[0]->Non_unique === 0 ) {
-                return; // Already unique
-            }
+			// Check if Non_unique = 0 (already unique).
+			if ( (int) 0 === $indexes[0]->Non_unique ) {
+				return; // Already unique.
+			}
 
-            // Drop the non-unique index first
+			// Drop the non-unique index first.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table_name, 'validation_code' ) );
-        }
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table_name, 'validation_code' ) );
+		}
 
-        // Add UNIQUE index
+		// Add UNIQUE index.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD UNIQUE KEY validation_code (validation_code)', $table_name ) );
-    }
+		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD UNIQUE KEY validation_code (validation_code)', $table_name ) );
+	}
 }

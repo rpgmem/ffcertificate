@@ -58,9 +58,9 @@ class CsvExporter {
 		$this->repository = new SubmissionRepository();
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	//  Hook registration (called from Admin __construct)
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// Hook registration (called from Admin __construct)
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Register AJAX handlers for the three-step export flow.
@@ -71,9 +71,9 @@ class CsvExporter {
 		add_action( 'wp_ajax_ffc_csv_export_download', array( $this, 'ajax_download' ) );
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	//  AJAX: Start
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Start.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Start a new export job.
@@ -108,7 +108,7 @@ class CsvExporter {
 		// Count total rows to report progress to JS.
 		$total = $this->count_export_rows( $form_ids, $status );
 
-		if ( $total === 0 ) {
+		if ( 0 === $total ) {
 			wp_send_json_error( __( 'No records available for export.', 'ffcertificate' ) );
 		}
 
@@ -153,9 +153,12 @@ class CsvExporter {
 			$this->get_fixed_headers( $include_edit_columns ),
 			$this->get_dynamic_headers( $dynamic_keys )
 		);
-		$headers = array_map( function ( $h ) {
-			return mb_convert_encoding( $h, 'UTF-8', 'UTF-8' );
-		}, $headers );
+		$headers = array_map(
+			function ( $h ) {
+				return mb_convert_encoding( $h, 'UTF-8', 'UTF-8' );
+			},
+			$headers
+		);
 		fputcsv( $fh, $headers, ';' );
 		fclose( $fh );
 
@@ -174,15 +177,17 @@ class CsvExporter {
 		);
 		set_transient( 'ffc_csv_export_' . $job_id, $job, self::JOB_TTL );
 
-		wp_send_json_success( array(
-			'job_id' => $job_id,
-			'total'  => $total,
-		) );
+		wp_send_json_success(
+			array(
+				'job_id' => $job_id,
+				'total'  => $total,
+			)
+		);
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	//  AJAX: Batch
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Batch.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Process one batch (EXPORT_BATCH_SIZE rows) and append to temp file.
@@ -197,7 +202,7 @@ class CsvExporter {
 		$job_id = isset( $_POST['job_id'] ) ? sanitize_text_field( wp_unslash( $_POST['job_id'] ) ) : '';
 		$job    = get_transient( 'ffc_csv_export_' . $job_id );
 
-		if ( ! $job || (int) $job['user_id'] !== get_current_user_id() ) {
+		if ( ! $job || get_current_user_id() !== (int) $job['user_id'] ) {
 			wp_send_json_error( __( 'Export job not found or expired.', 'ffcertificate' ) );
 		}
 
@@ -213,11 +218,13 @@ class CsvExporter {
 
 		if ( empty( $batch ) ) {
 			// All done.
-			wp_send_json_success( array(
-				'done'      => true,
-				'processed' => $job['processed'],
-				'total'     => $job['total'],
-			) );
+			wp_send_json_success(
+				array(
+					'done'      => true,
+					'processed' => $job['processed'],
+					'total'     => $job['total'],
+				)
+			);
 		}
 
 		/**
@@ -235,9 +242,12 @@ class CsvExporter {
 
 		foreach ( $batch as $row ) {
 			$csv_row = $this->format_csv_row( $row, $job['dynamic_keys'], $job['include_edit_columns'] );
-			$csv_row = array_map( function ( $v ) {
-				return mb_convert_encoding( (string) $v, 'UTF-8', 'UTF-8' );
-			}, $csv_row );
+			$csv_row = array_map(
+				function ( $v ) {
+					return mb_convert_encoding( (string) $v, 'UTF-8', 'UTF-8' );
+				},
+				$csv_row
+			);
 			fputcsv( $fh, $csv_row, ';' );
 		}
 		fclose( $fh );
@@ -249,16 +259,18 @@ class CsvExporter {
 
 		set_transient( 'ffc_csv_export_' . $job_id, $job, self::JOB_TTL );
 
-		wp_send_json_success( array(
-			'done'      => false,
-			'processed' => $job['processed'],
-			'total'     => $job['total'],
-		) );
+		wp_send_json_success(
+			array(
+				'done'      => false,
+				'processed' => $job['processed'],
+				'total'     => $job['total'],
+			)
+		);
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	//  AJAX: Download
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Download.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Serve the completed CSV file and clean up.
@@ -276,7 +288,7 @@ class CsvExporter {
 		$job_id = isset( $_GET['job_id'] ) ? sanitize_text_field( wp_unslash( $_GET['job_id'] ) ) : '';
 		$job    = get_transient( 'ffc_csv_export_' . $job_id );
 
-		if ( ! $job || (int) $job['user_id'] !== get_current_user_id() ) {
+		if ( ! $job || get_current_user_id() !== (int) $job['user_id'] ) {
 			wp_die( esc_html__( 'Export job not found or expired.', 'ffcertificate' ) );
 		}
 
@@ -287,7 +299,8 @@ class CsvExporter {
 
 		// Serve file.
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-		while ( @ob_end_clean() ) {} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
+		while ( @ob_end_clean() ) {
+		} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
 
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $job['filename'] );
 		header( 'Content-Type: text/csv; charset=utf-8' );
@@ -307,9 +320,9 @@ class CsvExporter {
 		exit;
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	//  Legacy entry point (kept for backwards compat)
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// Legacy entry point (kept for backwards compat)
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Legacy handler called from admin_post_ffc_export_csv.
@@ -325,9 +338,9 @@ class CsvExporter {
 		exit;
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	//  Helpers (private)
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// Helpers (private)
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * @param int $form_id Form post ID.
@@ -335,7 +348,7 @@ class CsvExporter {
 	 */
 	private function get_form_title_cached( int $form_id ): string {
 		if ( ! isset( $this->form_title_cache[ $form_id ] ) ) {
-			$title = get_the_title( $form_id );
+			$title                              = get_the_title( $form_id );
 			$this->form_title_cache[ $form_id ] = $title ? $title : __( '(Deleted)', 'ffcertificate' );
 		}
 		return $this->form_title_cache[ $form_id ];
@@ -406,7 +419,7 @@ class CsvExporter {
 			! empty( $row['magic_token'] ) ? $row['magic_token'] : '',
 			isset( $row['consent_given'] ) ? ( $row['consent_given'] ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ) ) : '',
 			! empty( $row['consent_date'] ) ? $row['consent_date'] : '',
-			$user_ip, // Consent IP
+			$user_ip, // Consent IP.
 			! empty( $row['consent_text'] ) ? $row['consent_text'] : '',
 			! empty( $row['status'] ) ? $row['status'] : 'publish',
 		);

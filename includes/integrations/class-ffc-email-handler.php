@@ -27,330 +27,342 @@ namespace FreeFormCertificate\Integrations;
 use PHPMailer\PHPMailer\PHPMailer;
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 class EmailHandler {
 
-    use \FreeFormCertificate\Core\EmailHelperTrait;
+	use \FreeFormCertificate\Core\EmailHelperTrait;
 
-    public function __construct() {
-        add_action( 'ffcertificate_process_submission_hook', array( $this, 'async_process_submission' ), 10, 8 );
-        add_action( 'phpmailer_init', array( $this, 'configure_custom_smtp' ) );
-    }
+	public function __construct() {
+		add_action( 'ffcertificate_process_submission_hook', array( $this, 'async_process_submission' ), 10, 8 );
+		add_action( 'phpmailer_init', array( $this, 'configure_custom_smtp' ) );
+	}
 
-    /**
-     * Configure custom SMTP settings
-     *
-     * @param PHPMailer $phpmailer PHPMailer instance
-     */
-    public function configure_custom_smtp( $phpmailer ): void {
-        $settings = get_option( 'ffc_settings', array() );
+	/**
+	 * Configure custom SMTP settings
+	 *
+	 * @param PHPMailer $phpmailer PHPMailer instance.
+	 */
+	public function configure_custom_smtp( $phpmailer ): void {
+		$settings = get_option( 'ffc_settings', array() );
 
-        if ( isset($settings['smtp_mode']) && $settings['smtp_mode'] === 'custom' ) {
-            $phpmailer->isSMTP();
-            $phpmailer->Host       = isset($settings['smtp_host']) ? $settings['smtp_host'] : '';
-            $phpmailer->SMTPAuth   = true;
-            $phpmailer->Port       = isset($settings['smtp_port']) ? (int) $settings['smtp_port'] : 587;
-            $phpmailer->Username   = isset($settings['smtp_user']) ? $settings['smtp_user'] : '';
-            $phpmailer->Password   = isset($settings['smtp_pass']) ? $settings['smtp_pass'] : '';
-            $phpmailer->SMTPSecure = isset($settings['smtp_secure']) ? $settings['smtp_secure'] : 'tls';
+		if ( isset( $settings['smtp_mode'] ) && 'custom' === $settings['smtp_mode'] ) {
+			$phpmailer->isSMTP();
+			$phpmailer->Host       = isset( $settings['smtp_host'] ) ? $settings['smtp_host'] : '';
+			$phpmailer->SMTPAuth   = true;
+			$phpmailer->Port       = isset( $settings['smtp_port'] ) ? (int) $settings['smtp_port'] : 587;
+			$phpmailer->Username   = isset( $settings['smtp_user'] ) ? $settings['smtp_user'] : '';
+			$phpmailer->Password   = isset( $settings['smtp_pass'] ) ? $settings['smtp_pass'] : '';
+			$phpmailer->SMTPSecure = isset( $settings['smtp_secure'] ) ? $settings['smtp_secure'] : 'tls';
 
-            if ( ! empty( $settings['smtp_from_email'] ) ) {
-                $phpmailer->From     = $settings['smtp_from_email'];
-                $phpmailer->FromName = isset($settings['smtp_from_name']) ? $settings['smtp_from_name'] : get_bloginfo( 'name' );
-            }
-        }
-    }
+			if ( ! empty( $settings['smtp_from_email'] ) ) {
+				$phpmailer->From     = $settings['smtp_from_email'];
+				$phpmailer->FromName = isset( $settings['smtp_from_name'] ) ? $settings['smtp_from_name'] : get_bloginfo( 'name' );
+			}
+		}
+	}
 
-    /**
-     * Process submission and send emails asynchronously
-     *
-     * Called via WP-Cron hook 'ffcertificate_process_submission_hook'
-     *
-     * @param int $submission_id Submission ID
-     * @param int $form_id Form ID
-     * @param string $form_title Form title
-     * @param array<string, mixed> $submission_data Submission data
-     * @param string               $user_email User email
-     * @param array<string, mixed> $fields_config Field configuration
-     * @param array<string, mixed> $form_config Form configuration
-     * @param string               $magic_token Magic token for verification
-     */
-    public function async_process_submission( int $submission_id, int $form_id, string $form_title, array $submission_data, string $user_email, array $fields_config, array $form_config, string $magic_token = '' ): void {
-        /**
-         * Fires before email processing for a submission.
-         *
-         * @since 4.6.4
-         * @param int    $submission_id  Submission ID.
-         * @param string $user_email     User email.
-         * @param int    $form_id        Form ID.
-         * @param array  $form_config    Form configuration.
-         */
-        do_action( 'ffcertificate_before_email_send', $submission_id, $user_email, $form_id, $form_config );
+	/**
+	 * Process submission and send emails asynchronously
+	 *
+	 * Called via WP-Cron hook 'ffcertificate_process_submission_hook'
+	 *
+	 * @param int                  $submission_id Submission ID.
+	 * @param int                  $form_id Form ID.
+	 * @param string               $form_title Form title.
+	 * @param array<string, mixed> $submission_data Submission data.
+	 * @param string               $user_email User email.
+	 * @param array<string, mixed> $fields_config Field configuration.
+	 * @param array<string, mixed> $form_config Form configuration.
+	 * @param string               $magic_token Magic token for verification.
+	 */
+	public function async_process_submission( int $submission_id, int $form_id, string $form_title, array $submission_data, string $user_email, array $fields_config, array $form_config, string $magic_token = '' ): void {
+		/**
+		 * Fires before email processing for a submission.
+		 *
+		 * @since 4.6.4
+		 * @param int    $submission_id  Submission ID.
+		 * @param string $user_email     User email.
+		 * @param int    $form_id        Form ID.
+		 * @param array  $form_config    Form configuration.
+		 */
+		do_action( 'ffcertificate_before_email_send', $submission_id, $user_email, $form_id, $form_config );
 
-        // Send user email if enabled
-        if ( isset( $form_config['send_user_email'] ) && $form_config['send_user_email'] == 1 ) {
-            $this->send_user_email( $user_email, $form_title, $form_config, $submission_data, $magic_token );
-        }
+		// Send user email if enabled.
+		if ( isset( $form_config['send_user_email'] ) && 1 === $form_config['send_user_email'] ) {
+			$this->send_user_email( $user_email, $form_title, $form_config, $submission_data, $magic_token );
+		}
 
-        // Send admin notification
-        $this->send_admin_notification( $form_title, $submission_data, $form_config );
-    }
+		// Send admin notification.
+		$this->send_admin_notification( $form_title, $submission_data, $form_config );
+	}
 
-    /**
-     * Send email to user with magic link
-     *
-     * Email contains:
-     * - Success message
-     * - Auth code
-     * - Magic link button (to view/download certificate)
-     * - Manual verification link
-     *
-     * NO LONGER INCLUDES: Certificate preview/HTML (use magic link instead)
-     *
-     * @param string               $to Recipient email
-     * @param string               $form_title Form title
-     * @param array<string, mixed> $form_config Form configuration
-     * @param array<string, mixed> $submission_data Submission data
-     * @param string               $magic_token Magic token
-     */
-    private function send_user_email( string $to, string $form_title, array $form_config, array $submission_data, string $magic_token = '' ): void {
-        if ( self::ffc_emails_disabled() ) {
-            return;
-        }
+	/**
+	 * Send email to user with magic link
+	 *
+	 * Email contains:
+	 * - Success message
+	 * - Auth code
+	 * - Magic link button (to view/download certificate)
+	 * - Manual verification link
+	 *
+	 * NO LONGER INCLUDES: Certificate preview/HTML (use magic link instead)
+	 *
+	 * @param string               $to Recipient email.
+	 * @param string               $form_title Form title.
+	 * @param array<string, mixed> $form_config Form configuration.
+	 * @param array<string, mixed> $submission_data Submission data.
+	 * @param string               $magic_token Magic token.
+	 */
+	private function send_user_email( string $to, string $form_title, array $form_config, array $submission_data, string $magic_token = '' ): void {
+		if ( self::ffc_emails_disabled() ) {
+			return;
+		}
 
-        // Email subject
-        $subject = ! empty( $form_config['email_subject'] )
-            ? $form_config['email_subject']
-            /* translators: %s: form title */
-            : sprintf( __( 'Your Certificate: %s', 'ffcertificate' ), $form_title );
+		// Email subject.
+		$subject = ! empty( $form_config['email_subject'] )
+			? $form_config['email_subject']
+			/* translators: %s: form title */
+			: sprintf( __( 'Your Certificate: %s', 'ffcertificate' ), $form_title );
 
-        /**
-         * Filters the user email subject.
-         *
-         * @since 4.6.4
-         * @param string $subject    Email subject.
-         * @param string $form_title Form title.
-         * @param array  $form_config Form configuration.
-         */
-        $subject = apply_filters( 'ffcertificate_user_email_subject', $subject, $form_title, $form_config );
+		/**
+		 * Filters the user email subject.
+		 *
+		 * @since 4.6.4
+		 * @param string $subject    Email subject.
+		 * @param string $form_title Form title.
+		 * @param array  $form_config Form configuration.
+		 */
+		$subject = apply_filters( 'ffcertificate_user_email_subject', $subject, $form_title, $form_config );
 
-        /**
-         * Filters the user email recipient.
-         *
-         * @since 4.6.4
-         * @param string $to          Recipient email address.
-         * @param string $form_title  Form title.
-         * @param array  $submission_data Submission data.
-         */
-        $to = apply_filters( 'ffcertificate_user_email_recipients', $to, $form_title, $submission_data );
+		/**
+		 * Filters the user email recipient.
+		 *
+		 * @since 4.6.4
+		 * @param string $to          Recipient email address.
+		 * @param string $form_title  Form title.
+		 * @param array  $submission_data Submission data.
+		 */
+		$to = apply_filters( 'ffcertificate_user_email_recipients', $to, $form_title, $submission_data );
 
-        // Generate magic link URL
-        $magic_link_url = '';
-        if ( ! empty( $magic_token ) ) {
-            $magic_link_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $magic_token );
-        }
+		// Generate magic link URL.
+		$magic_link_url = '';
+		if ( ! empty( $magic_token ) ) {
+			$magic_link_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $magic_token );
+		}
 
-        // Format auth code with certificate prefix
-        $raw_code = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
-        $auth_code = ! empty( $raw_code )
-            ? \FreeFormCertificate\Core\Utils::format_auth_code( $raw_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
-            : '';
+		// Format auth code with certificate prefix.
+		$raw_code  = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
+		$auth_code = ! empty( $raw_code )
+			? \FreeFormCertificate\Core\Utils::format_auth_code( $raw_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
+			: '';
 
-        // Custom body text from form config
-        $body_text = isset( $form_config['email_body'] ) ? wpautop( $form_config['email_body'] ) : '';
+		// Custom body text from form config.
+		$body_text = isset( $form_config['email_body'] ) ? wpautop( $form_config['email_body'] ) : '';
 
-        // Build email HTML (simple, clean, no certificate preview)
-        $body  = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 20px;">';
+		// Build email HTML (simple, clean, no certificate preview).
+		$body = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 20px;">';
 
-        // Main content card
-        $body .= '<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-        $body .= '<h2 style="margin: 0 0 20px 0; color: #0073aa; font-size: 24px;">' . esc_html__( 'Your Certificate has been Issued!', 'ffcertificate' ) . '</h2>';
+		// Main content card.
+		$body .= '<div style="background: white; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+		$body .= '<h2 style="margin: 0 0 20px 0; color: #0073aa; font-size: 24px;">' . esc_html__( 'Your Certificate has been Issued!', 'ffcertificate' ) . '</h2>';
 
-        // Custom message (if configured)
-        if ( ! empty( $body_text ) ) {
-            $body .= $body_text;
-        }
+		// Custom message (if configured).
+		if ( ! empty( $body_text ) ) {
+			$body .= $body_text;
+		}
 
-        // Auth code display
-        if ( ! empty( $auth_code ) ) {
-            $body .= '<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">';
-            $body .= '<p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">' . esc_html__( 'Authentication Code:', 'ffcertificate' ) . '</p>';
-            $body .= '<p style="font-size: 24px; font-weight: bold; margin: 0; font-family: monospace; color: #0073aa; letter-spacing: 2px;">' . esc_html( $auth_code ) . '</p>';
-            $body .= '</div>';
-        }
+		// Auth code display.
+		if ( ! empty( $auth_code ) ) {
+			$body .= '<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">';
+			$body .= '<p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">' . esc_html__( 'Authentication Code:', 'ffcertificate' ) . '</p>';
+			$body .= '<p style="font-size: 24px; font-weight: bold; margin: 0; font-family: monospace; color: #0073aa; letter-spacing: 2px;">' . esc_html( $auth_code ) . '</p>';
+			$body .= '</div>';
+		}
 
-        // Magic link button (primary CTA)
-        if ( ! empty( $magic_link_url ) ) {
-            $body .= '<div style="text-align: center; margin: 30px 0;">';
-            $body .= '<a href="' . esc_url( $magic_link_url ) . '" style="display: inline-block; background: #0073aa; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,115,170,0.3);">';
-            $body .= '🔗 ' . esc_html__( 'View and Download Certificate', 'ffcertificate' );
-            $body .= '</a>';
-            $body .= '<p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">' . esc_html__( 'Click the button above to access your certificate online', 'ffcertificate' ) . '</p>';
-            $body .= '</div>';
-        }
+		// Magic link button (primary CTA).
+		if ( ! empty( $magic_link_url ) ) {
+			$body .= '<div style="text-align: center; margin: 30px 0;">';
+			$body .= '<a href="' . esc_url( $magic_link_url ) . '" style="display: inline-block; background: #0073aa; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,115,170,0.3);">';
+			$body .= '🔗 ' . esc_html__( 'View and Download Certificate', 'ffcertificate' );
+			$body .= '</a>';
+			$body .= '<p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">' . esc_html__( 'Click the button above to access your certificate online', 'ffcertificate' ) . '</p>';
+			$body .= '</div>';
+		}
 
-        $body .= '</div>';
+		$body .= '</div>';
 
-        // Footer with manual verification link
-        $body .= '<div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-        $body .= '<p style="margin: 0; font-size: 12px; color: #999; text-align: center;">';
-        $body .= esc_html__( 'You can also verify this certificate manually at', 'ffcertificate' ) . ' ';
-        $body .= '<a href="' . esc_url( untrailingslashit( site_url( 'valid' ) ) ) . '" style="color: #0073aa;">' . esc_url( untrailingslashit( site_url( 'valid' ) ) ) . '</a>';
-        $body .= '</p></div>';
+		// Footer with manual verification link.
+		$body .= '<div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+		$body .= '<p style="margin: 0; font-size: 12px; color: #999; text-align: center;">';
+		$body .= esc_html__( 'You can also verify this certificate manually at', 'ffcertificate' ) . ' ';
+		$body .= '<a href="' . esc_url( untrailingslashit( site_url( 'valid' ) ) ) . '" style="color: #0073aa;">' . esc_url( untrailingslashit( site_url( 'valid' ) ) ) . '</a>';
+		$body .= '</p></div>';
 
-        $body .= '</div>';
+		$body .= '</div>';
 
-        /**
-         * Filters the user email body HTML.
-         *
-         * @since 4.6.4
-         * @param string $body       Email body HTML.
-         * @param string $to         Recipient email.
-         * @param string $form_title Form title.
-         * @param array  $submission_data Submission data.
-         */
-        $body = apply_filters( 'ffcertificate_user_email_body', $body, $to, $form_title, $submission_data );
+		/**
+		 * Filters the user email body HTML.
+		 *
+		 * @since 4.6.4
+		 * @param string $body       Email body HTML.
+		 * @param string $to         Recipient email.
+		 * @param string $form_title Form title.
+		 * @param array  $submission_data Submission data.
+		 */
+		$body = apply_filters( 'ffcertificate_user_email_body', $body, $to, $form_title, $submission_data );
 
-        // Send email
-        self::ffc_send_mail( $to, $subject, $body );
-    }
+		// Send email.
+		self::ffc_send_mail( $to, $subject, $body );
+	}
 
-    /**
-     * Send admin notification email
-     *
-     * Contains submission data in table format
-     *
-     * @param string               $form_title Form title
-     * @param array<string, mixed> $data Submission data
-     * @param array<string, mixed> $form_config Form configuration
-     */
-    private function send_admin_notification( string $form_title, array $data, array $form_config ): void {
-        if ( self::ffc_emails_disabled() ) {
-            return;
-        }
+	/**
+	 * Send admin notification email
+	 *
+	 * Contains submission data in table format
+	 *
+	 * @param string               $form_title Form title.
+	 * @param array<string, mixed> $data Submission data.
+	 * @param array<string, mixed> $form_config Form configuration.
+	 */
+	private function send_admin_notification( string $form_title, array $data, array $form_config ): void {
+		if ( self::ffc_emails_disabled() ) {
+			return;
+		}
 
-        // Get admin emails (comma-separated list or default admin_email)
-        $admins = self::ffc_parse_admin_emails( $form_config['email_admin'] ?? '' );
+		// Get admin emails (comma-separated list or default admin_email).
+		$admins = self::ffc_parse_admin_emails( $form_config['email_admin'] ?? '' );
 
-        /**
-         * Filters the admin notification email recipients.
-         *
-         * @since 4.6.4
-         * @param array  $admins     Array of admin email addresses.
-         * @param string $form_title Form title.
-         * @param array  $data       Submission data.
-         */
-        $admins = apply_filters( 'ffcertificate_admin_email_recipients', $admins, $form_title, $data );
+		/**
+		 * Filters the admin notification email recipients.
+		 *
+		 * @since 4.6.4
+		 * @param array  $admins     Array of admin email addresses.
+		 * @param string $form_title Form title.
+		 * @param array  $data       Submission data.
+		 */
+		$admins = apply_filters( 'ffcertificate_admin_email_recipients', $admins, $form_title, $data );
 
-        // Email subject
-        /* translators: %s: form title */
-        $subject = sprintf( __( 'New Issuance: %s', 'ffcertificate' ), $form_title );
+		// Email subject.
+		/* translators: %s: form title */
+		$subject = sprintf( __( 'New Issuance: %s', 'ffcertificate' ), $form_title );
 
-        // Build email body with data table
-        $body    = '<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">';
-        $body   .= '<h3 style="color: #0073aa;">' . __( 'Submission Details:', 'ffcertificate' ) . '</h3>';
-        $body   .= '<table border="1" cellpadding="10" style="border-collapse:collapse; width:100%; font-family: sans-serif; border: 1px solid #ddd;">';
+		// Build email body with data table.
+		$body  = '<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">';
+		$body .= '<h3 style="color: #0073aa;">' . __( 'Submission Details:', 'ffcertificate' ) . '</h3>';
+		$body .= '<table border="1" cellpadding="10" style="border-collapse:collapse; width:100%; font-family: sans-serif; border: 1px solid #ddd;">';
 
-        foreach ( $data as $k => $v ) {
-            $display_v = is_array($v) ? implode(', ', $v) : $v;
+		foreach ( $data as $k => $v ) {
+			$display_v = is_array( $v ) ? implode( ', ', $v ) : $v;
 
-            // Format documents (CPF, RF, RG)
-            if ( in_array( $k, array( 'cpf', 'cpf_rf', 'rg' ) ) ) {
-                $display_v = \FreeFormCertificate\Core\Utils::format_document( $display_v );
-            }
+			// Format documents (CPF, RF, RG).
+			if ( in_array( $k, array( 'cpf', 'cpf_rf', 'rg' ), true ) ) {
+				$display_v = \FreeFormCertificate\Core\Utils::format_document( $display_v );
+			}
 
-            // Format auth code with certificate prefix
-            if ( $k === 'auth_code' ) {
-                $display_v = \FreeFormCertificate\Core\Utils::format_auth_code( $display_v, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
-            }
+			// Format auth code with certificate prefix.
+			if ( 'auth_code' === $k ) {
+				$display_v = \FreeFormCertificate\Core\Utils::format_auth_code( $display_v, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
+			}
 
-            $label = ucwords( str_replace('_', ' ', $k) );
-            $body .= '<tr>';
-            $body .= '<td style="background:#f9f9f9; width:30%; font-weight: bold; border: 1px solid #ddd;">' . esc_html( $label ) . '</td>';
-            $body .= '<td style="border: 1px solid #ddd;">' . wp_kses( $display_v, \FreeFormCertificate\Core\Utils::get_allowed_html_tags() ) . '</td>';
-            $body .= '</tr>';
-        }
-        $body .= '</table></div>';
+			$label = ucwords( str_replace( '_', ' ', $k ) );
+			$body .= '<tr>';
+			$body .= '<td style="background:#f9f9f9; width:30%; font-weight: bold; border: 1px solid #ddd;">' . esc_html( $label ) . '</td>';
+			$body .= '<td style="border: 1px solid #ddd;">' . wp_kses( $display_v, \FreeFormCertificate\Core\Utils::get_allowed_html_tags() ) . '</td>';
+			$body .= '</tr>';
+		}
+		$body .= '</table></div>';
 
-        // Send to all admin emails (already validated by ffc_parse_admin_emails)
-        foreach ( $admins as $email ) {
-            self::ffc_send_mail( $email, $subject, $body );
-        }
-    }
+		// Send to all admin emails (already validated by ffc_parse_admin_emails).
+		foreach ( $admins as $email ) {
+			self::ffc_send_mail( $email, $subject, $body );
+		}
+	}
 
-    /**
-     * Send WordPress user notification email
-     *
-     * Sends welcome email to new WordPress users created by FFC.
-     * Respects context-specific settings (submission vs migration).
-     *
-     * @since 3.1.0
-     * @param int $user_id WordPress user ID
-     * @param string $context Context: 'submission', 'appointment', 'csv_import', or 'migration'
-     * @return bool True if email was sent, false otherwise
-     */
-    public function send_wp_user_notification( int $user_id, string $context = 'submission' ): bool {
-        $settings = get_option( 'ffc_settings', array() );
+	/**
+	 * Send WordPress user notification email
+	 *
+	 * Sends welcome email to new WordPress users created by FFC.
+	 * Respects context-specific settings (submission vs migration).
+	 *
+	 * @since 3.1.0
+	 * @param int    $user_id WordPress user ID.
+	 * @param string $context Context: 'submission', 'appointment', 'csv_import', or 'migration'.
+	 * @return bool True if email was sent, false otherwise
+	 */
+	public function send_wp_user_notification( int $user_id, string $context = 'submission' ): bool {
+		$settings = get_option( 'ffc_settings', array() );
 
-        // Debug logging
-        if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
-            \FreeFormCertificate\Core\Debug::log_user_manager(
-                'send_wp_user_notification called',
-                array(
-                    'user_id' => $user_id,
-                    'context' => $context,
-                    'disable_all_emails' => isset( $settings['disable_all_emails'] ) ? $settings['disable_all_emails'] : 'NOT SET',
-                )
-            );
-        }
+		// Debug logging.
+		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
+			\FreeFormCertificate\Core\Debug::log_user_manager(
+				'send_wp_user_notification called',
+				array(
+					'user_id'            => $user_id,
+					'context'            => $context,
+					'disable_all_emails' => isset( $settings['disable_all_emails'] ) ? $settings['disable_all_emails'] : 'NOT SET',
+				)
+			);
+		}
 
-        // Check global disable
-        if ( self::ffc_emails_disabled() ) {
-            return false;
-        }
+		// Check global disable.
+		if ( self::ffc_emails_disabled() ) {
+			return false;
+		}
 
-        // Check context-specific setting
-        // Each context has its own setting key and default value
-        $context_settings = array(
-            'submission'  => array( 'key' => 'send_wp_user_email_submission',  'default' => true ),
-            'appointment' => array( 'key' => 'send_wp_user_email_appointment', 'default' => true ),
-            'csv_import'  => array( 'key' => 'send_wp_user_email_csv_import',  'default' => false ),
-            'migration'   => array( 'key' => 'send_wp_user_email_migration',   'default' => false ),
-        );
+		// Check context-specific setting.
+		// Each context has its own setting key and default value.
+		$context_settings = array(
+			'submission'  => array(
+				'key'     => 'send_wp_user_email_submission',
+				'default' => true,
+			),
+			'appointment' => array(
+				'key'     => 'send_wp_user_email_appointment',
+				'default' => true,
+			),
+			'csv_import'  => array(
+				'key'     => 'send_wp_user_email_csv_import',
+				'default' => false,
+			),
+			'migration'   => array(
+				'key'     => 'send_wp_user_email_migration',
+				'default' => false,
+			),
+		);
 
-        $ctx = $context_settings[ $context ] ?? $context_settings['submission'];
-        $enabled = isset( $settings[ $ctx['key'] ] )
-            ? absint( $settings[ $ctx['key'] ] ) === 1
-            : $ctx['default'];
+		$ctx     = $context_settings[ $context ] ?? $context_settings['submission'];
+		$enabled = isset( $settings[ $ctx['key'] ] )
+			? absint( $settings[ $ctx['key'] ] ) === 1
+			: $ctx['default'];
 
-        // Debug logging
-        if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
-            \FreeFormCertificate\Core\Debug::log_user_manager(
-                'send_wp_user_notification enabled check',
-                array(
-                    'enabled' => $enabled ? 'YES' : 'NO',
-                    'will_send' => $enabled ? 'YES' : 'NO',
-                )
-            );
-        }
+		// Debug logging.
+		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
+			\FreeFormCertificate\Core\Debug::log_user_manager(
+				'send_wp_user_notification enabled check',
+				array(
+					'enabled'   => $enabled ? 'YES' : 'NO',
+					'will_send' => $enabled ? 'YES' : 'NO',
+				)
+			);
+		}
 
-        if ( ! $enabled ) {
-            return false;
-        }
+		if ( ! $enabled ) {
+			return false;
+		}
 
-        // Send WordPress notification (welcome email with password reset link)
-        wp_new_user_notification( $user_id, null, 'user' );
+		// Send WordPress notification (welcome email with password reset link).
+		wp_new_user_notification( $user_id, null, 'user' );
 
-        // Debug logging
-        if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
-            \FreeFormCertificate\Core\Debug::log_user_manager(
-                'wp_new_user_notification called',
-                array( 'user_id' => $user_id )
-            );
-        }
+		// Debug logging.
+		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
+			\FreeFormCertificate\Core\Debug::log_user_manager(
+				'wp_new_user_notification called',
+				array( 'user_id' => $user_id )
+			);
+		}
 
-        return true;
-    }
+		return true;
+	}
 }

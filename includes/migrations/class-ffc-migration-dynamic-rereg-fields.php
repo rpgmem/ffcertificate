@@ -21,83 +21,83 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations;
 
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 class MigrationDynamicReregFields {
 
-    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
-    /**
-     * Option key to track migration status.
-     */
-    private const MIGRATION_OPTION = 'ffc_migration_dynamic_rereg_fields_completed';
+	/**
+	 * Option key to track migration status.
+	 */
+	private const MIGRATION_OPTION = 'ffc_migration_dynamic_rereg_fields_completed';
 
-    /**
-     * Check if migration has been completed.
-     */
-    public static function is_completed(): bool {
-        return (bool) get_option(self::MIGRATION_OPTION, false);
-    }
+	/**
+	 * Check if migration has been completed.
+	 */
+	public static function is_completed(): bool {
+		return (bool) get_option( self::MIGRATION_OPTION, false );
+	}
 
-    /**
-     * Run the migration.
-     *
-     * @return array<string, mixed>
-     */
-    public static function run(): array {
-        if (self::is_completed()) {
-            return array(
-                'success' => true,
-                'message' => __('Migration already completed.', 'ffcertificate'),
-                'details' => array(),
-            );
-        }
+	/**
+	 * Run the migration.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function run(): array {
+		if ( self::is_completed() ) {
+			return array(
+				'success' => true,
+				'message' => __( 'Migration already completed.', 'ffcertificate' ),
+				'details' => array(),
+			);
+		}
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-        $details = array();
-        $all_success = true;
+		$details     = array();
+		$all_success = true;
 
-        $details['ffc_custom_fields']               = self::upgrade_custom_fields_table();
-        $details['ffc_reregistration_submissions']  = self::upgrade_reregistration_submissions_table();
-        $details['seed_standard_fields']            = self::seed_standard_fields_all_audiences();
+		$details['ffc_custom_fields']              = self::upgrade_custom_fields_table();
+		$details['ffc_reregistration_submissions'] = self::upgrade_reregistration_submissions_table();
+		$details['seed_standard_fields']           = self::seed_standard_fields_all_audiences();
 
-        foreach ($details as $result) {
-            if (isset($result['success']) && !$result['success']) {
-                $all_success = false;
-            }
-        }
+		foreach ( $details as $result ) {
+			if ( isset( $result['success'] ) && ! $result['success'] ) {
+				$all_success = false;
+			}
+		}
 
-        if ($all_success) {
-            update_option(self::MIGRATION_OPTION, true);
-        }
+		if ( $all_success ) {
+			update_option( self::MIGRATION_OPTION, true );
+		}
 
-        return array(
-            'success' => $all_success,
-            'message' => $all_success
-                ? __('Dynamic reregistration fields migration completed successfully.', 'ffcertificate')
-                : __('Dynamic reregistration fields migration encountered issues. Check details.', 'ffcertificate'),
-            'details' => $details,
-        );
-    }
+		return array(
+			'success' => $all_success,
+			'message' => $all_success
+				? __( 'Dynamic reregistration fields migration completed successfully.', 'ffcertificate' )
+				: __( 'Dynamic reregistration fields migration encountered issues. Check details.', 'ffcertificate' ),
+			'details' => $details,
+		);
+	}
 
-    /**
-     * Upgrade ffc_custom_fields table: adds new columns via dbDelta.
-     *
-     * dbDelta compares the existing schema with the desired CREATE TABLE and
-     * issues only the necessary ALTERs.
-     *
-     * @return array{success: bool, message: string}
-     */
-    private static function upgrade_custom_fields_table(): array {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_custom_fields';
-        $charset_collate = $wpdb->get_charset_collate();
+	/**
+	 * Upgrade ffc_custom_fields table: adds new columns via dbDelta.
+	 *
+	 * DbDelta compares the existing schema with the desired CREATE TABLE and
+	 * issues only the necessary ALTERs.
+	 *
+	 * @return array{success: bool, message: string}
+	 */
+	private static function upgrade_custom_fields_table(): array {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_custom_fields';
+		$charset_collate = $wpdb->get_charset_collate();
 
-        // Full desired schema (same as MigrationCustomFieldsTables, plus new columns).
-        $sql = "CREATE TABLE {$table_name} (
+		// Full desired schema (same as MigrationCustomFieldsTables, plus new columns).
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             audience_id bigint(20) unsigned NOT NULL,
             field_key varchar(100) NOT NULL,
@@ -124,41 +124,41 @@ class MigrationDynamicReregFields {
         ) {$charset_collate};";
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
+		dbDelta( $sql );
 
-        // Verify at least one of the new columns was added.
-        if (self::column_exists($table_name, 'field_group')) {
-            return array(
-                'success' => true,
-                'message' => sprintf(
-                    /* translators: %s: table name */
-                    __('Table %s upgraded with dynamic field columns.', 'ffcertificate'),
-                    $table_name
-                ),
-            );
-        }
+		// Verify at least one of the new columns was added.
+		if ( self::column_exists( $table_name, 'field_group' ) ) {
+			return array(
+				'success' => true,
+				'message' => sprintf(
+					/* translators: %s: table name */
+					__( 'Table %s upgraded with dynamic field columns.', 'ffcertificate' ),
+					$table_name
+				),
+			);
+		}
 
-        return array(
-            'success' => false,
-            'message' => sprintf(
-                /* translators: %s: table name */
-                __('Failed to upgrade table %s.', 'ffcertificate'),
-                $table_name
-            ),
-        );
-    }
+		return array(
+			'success' => false,
+			'message' => sprintf(
+				/* translators: %s: table name */
+				__( 'Failed to upgrade table %s.', 'ffcertificate' ),
+				$table_name
+			),
+		);
+	}
 
-    /**
-     * Upgrade ffc_reregistration_submissions table: adds auth_code and magic_token.
-     *
-     * @return array{success: bool, message: string}
-     */
-    private static function upgrade_reregistration_submissions_table(): array {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'ffc_reregistration_submissions';
-        $charset_collate = $wpdb->get_charset_collate();
+	/**
+	 * Upgrade ffc_reregistration_submissions table: adds auth_code and magic_token.
+	 *
+	 * @return array{success: bool, message: string}
+	 */
+	private static function upgrade_reregistration_submissions_table(): array {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_reregistration_submissions';
+		$charset_collate = $wpdb->get_charset_collate();
 
-        $sql = "CREATE TABLE {$table_name} (
+		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             reregistration_id bigint(20) unsigned NOT NULL,
             user_id bigint(20) unsigned NOT NULL,
@@ -181,98 +181,98 @@ class MigrationDynamicReregFields {
         ) {$charset_collate};";
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
-        dbDelta($sql);
+		dbDelta( $sql );
 
-        if (self::column_exists($table_name, 'auth_code') && self::column_exists($table_name, 'magic_token')) {
-            return array(
-                'success' => true,
-                'message' => sprintf(
-                    /* translators: %s: table name */
-                    __('Table %s upgraded with auth_code/magic_token columns.', 'ffcertificate'),
-                    $table_name
-                ),
-            );
-        }
+		if ( self::column_exists( $table_name, 'auth_code' ) && self::column_exists( $table_name, 'magic_token' ) ) {
+			return array(
+				'success' => true,
+				'message' => sprintf(
+					/* translators: %s: table name */
+					__( 'Table %s upgraded with auth_code/magic_token columns.', 'ffcertificate' ),
+					$table_name
+				),
+			);
+		}
 
-        return array(
-            'success' => false,
-            'message' => sprintf(
-                /* translators: %s: table name */
-                __('Failed to add auth_code/magic_token to table %s.', 'ffcertificate'),
-                $table_name
-            ),
-        );
-    }
+		return array(
+			'success' => false,
+			'message' => sprintf(
+				/* translators: %s: table name */
+				__( 'Failed to add auth_code/magic_token to table %s.', 'ffcertificate' ),
+				$table_name
+			),
+		);
+	}
 
-    /**
-     * Seed standard reregistration fields for all existing audiences.
-     *
-     * @return array{success: bool, message: string, seeded: int}
-     */
-    private static function seed_standard_fields_all_audiences(): array {
-        if (!class_exists('\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder')) {
-            return array(
-                'success' => true,
-                'message' => __('Seeder class not available (will seed on next run).', 'ffcertificate'),
-                'seeded'  => 0,
-            );
-        }
+	/**
+	 * Seed standard reregistration fields for all existing audiences.
+	 *
+	 * @return array{success: bool, message: string, seeded: int}
+	 */
+	private static function seed_standard_fields_all_audiences(): array {
+		if ( ! class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
+			return array(
+				'success' => true,
+				'message' => __( 'Seeder class not available (will seed on next run).', 'ffcertificate' ),
+				'seeded'  => 0,
+			);
+		}
 
-        $seeded = \FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::seed_all_existing_audiences();
+		$seeded = \FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::seed_all_existing_audiences();
 
-        return array(
-            'success' => true,
-            'message' => sprintf(
-                /* translators: %d: number of seeded fields */
-                __('Seeded %d standard fields.', 'ffcertificate'),
-                $seeded
-            ),
-            'seeded' => $seeded,
-        );
-    }
+		return array(
+			'success' => true,
+			'message' => sprintf(
+				/* translators: %d: number of seeded fields */
+				__( 'Seeded %d standard fields.', 'ffcertificate' ),
+				$seeded
+			),
+			'seeded'  => $seeded,
+		);
+	}
 
-    /**
-     * Check if a column exists in a table.
-     *
-     * @param string $table_name Fully-qualified table name.
-     * @param string $column     Column to check.
-     * @return bool
-     */
-    private static function column_exists(string $table_name, string $column): bool {
-        global $wpdb;
+	/**
+	 * Check if a column exists in a table.
+	 *
+	 * @param string $table_name Fully-qualified table name.
+	 * @param string $column     Column to check.
+	 * @return bool
+	 */
+	private static function column_exists( string $table_name, string $column ): bool {
+		global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        $result = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s",
-                DB_NAME,
-                $table_name,
-                $column
-            )
-        );
-        return !empty($result);
-    }
+		$result = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s',
+				DB_NAME,
+				$table_name,
+				$column
+			)
+		);
+		return ! empty( $result );
+	}
 
-    /**
-     * Get migration status information.
-     *
-     * @return array<string, mixed>
-     */
-    public static function get_status(): array {
-        global $wpdb;
-        $custom_fields_table = $wpdb->prefix . 'ffc_custom_fields';
-        $subs_table          = $wpdb->prefix . 'ffc_reregistration_submissions';
+	/**
+	 * Get migration status information.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function get_status(): array {
+		global $wpdb;
+		$custom_fields_table = $wpdb->prefix . 'ffc_custom_fields';
+		$subs_table          = $wpdb->prefix . 'ffc_reregistration_submissions';
 
-        return array(
-            'completed' => self::is_completed(),
-            'columns'   => array(
-                'custom_fields.field_group'       => self::column_exists($custom_fields_table, 'field_group'),
-                'custom_fields.field_source'      => self::column_exists($custom_fields_table, 'field_source'),
-                'custom_fields.field_profile_key' => self::column_exists($custom_fields_table, 'field_profile_key'),
-                'custom_fields.field_mask'        => self::column_exists($custom_fields_table, 'field_mask'),
-                'custom_fields.is_sensitive'      => self::column_exists($custom_fields_table, 'is_sensitive'),
-                'submissions.auth_code'           => self::column_exists($subs_table, 'auth_code'),
-                'submissions.magic_token'         => self::column_exists($subs_table, 'magic_token'),
-            ),
-        );
-    }
+		return array(
+			'completed' => self::is_completed(),
+			'columns'   => array(
+				'custom_fields.field_group'       => self::column_exists( $custom_fields_table, 'field_group' ),
+				'custom_fields.field_source'      => self::column_exists( $custom_fields_table, 'field_source' ),
+				'custom_fields.field_profile_key' => self::column_exists( $custom_fields_table, 'field_profile_key' ),
+				'custom_fields.field_mask'        => self::column_exists( $custom_fields_table, 'field_mask' ),
+				'custom_fields.is_sensitive'      => self::column_exists( $custom_fields_table, 'is_sensitive' ),
+				'submissions.auth_code'           => self::column_exists( $subs_table, 'auth_code' ),
+				'submissions.magic_token'         => self::column_exists( $subs_table, 'magic_token' ),
+			),
+		);
+	}
 }

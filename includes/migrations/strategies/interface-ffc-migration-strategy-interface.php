@@ -13,48 +13,48 @@
 namespace FreeFormCertificate\Migrations\Strategies;
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 interface MigrationStrategyInterface {
 
-    /**
-     * Calculate migration status
-     *
-     * Returns information about total records, migrated count, pending count,
-     * completion percentage, and whether migration is complete.
-     *
-     * @param string $migration_key Migration identifier
-     * @param array<string, mixed> $migration_config Migration configuration from registry
-     * @return array<string, mixed> Status array with keys: total, migrated, pending, percent, is_complete
-     */
-    public function calculate_status( string $migration_key, array $migration_config ): array;
+	/**
+	 * Calculate migration status
+	 *
+	 * Returns information about total records, migrated count, pending count,
+	 * completion percentage, and whether migration is complete.
+	 *
+	 * @param string               $migration_key Migration identifier.
+	 * @param array<string, mixed> $migration_config Migration configuration from registry.
+	 * @return array<string, mixed> Status array with keys: total, migrated, pending, percent, is_complete
+	 */
+	public function calculate_status( string $migration_key, array $migration_config ): array;
 
-    /**
-     * Execute the migration for a batch of records
-     *
-     * @param string $migration_key Migration identifier
-     * @param array<string, mixed> $migration_config Migration configuration from registry
-     * @param int $batch_number Batch number to process (0-indexed)
-     * @return array<string, mixed> Result array with keys: success, processed, message
-     */
-    public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array;
+	/**
+	 * Execute the migration for a batch of records
+	 *
+	 * @param string               $migration_key Migration identifier.
+	 * @param array<string, mixed> $migration_config Migration configuration from registry.
+	 * @param int                  $batch_number Batch number to process (0-indexed).
+	 * @return array<string, mixed> Result array with keys: success, processed, message
+	 */
+	public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array;
 
-    /**
-     * Check if migration can be executed
-     *
-     * Validates prerequisites like required database columns, class availability, etc.
-     *
-     * @param string $migration_key Migration identifier
-     * @param array<string, mixed> $migration_config Migration configuration from registry
-     * @return bool|\WP_Error True if can run, WP_Error with reason if cannot
-     */
-    public function can_run( string $migration_key, array $migration_config );
+	/**
+	 * Check if migration can be executed
+	 *
+	 * Validates prerequisites like required database columns, class availability, etc.
+	 *
+	 * @param string               $migration_key Migration identifier.
+	 * @param array<string, mixed> $migration_config Migration configuration from registry.
+	 * @return bool|\WP_Error True if can run, WP_Error with reason if cannot
+	 */
+	public function can_run( string $migration_key, array $migration_config );
 
-    /**
-     * Get human-readable name for this strategy
-     *
-     * @return string Strategy name
-     */
-    public function get_name(): string;
+	/**
+	 * Get human-readable name for this strategy
+	 *
+	 * @return string Strategy name
+	 */
+	public function get_name(): string;
 }

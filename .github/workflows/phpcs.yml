@@ -1,0 +1,47 @@
+name: PHPCS
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changed:
+    name: WPCS on changed PHP files
+    runs-on: ubuntu-latest
+    # Promoted to gating after cleanup sprints #25-#27 reduced violations
+    # from 88k to ~1.3k. Remaining violations only surface when a PR
+    # touches a file that still has legacy issues.
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-composer
+        with:
+          php-version: '8.1'
+          tools: composer:v2, cs2pr
+
+      - name: Resolve changed PHP files
+        id: changed
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          # Only files that still exist (skip deletions) and end in .php.
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$base" "$head" -- '*.php')
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No PHP changes; skipping."
+            echo "files=" >> "$GITHUB_OUTPUT"
+          else
+            printf '%s\n' "${files[@]}"
+            # Space-join for phpcs CLI.
+            printf -v joined '%s ' "${files[@]}"
+            echo "files=${joined% }" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run PHPCS on changed files
+        if: steps.changed.outputs.files != ''
+        run: |
+          vendor/bin/phpcs -q --report=checkstyle ${{ steps.changed.outputs.files }} | cs2pr

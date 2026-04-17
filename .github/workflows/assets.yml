@@ -2,30 +2,30 @@ name: Asset Build Verification
 
 on:
   push:
-    branches: [main, 'claude/**']
-    paths:
-      - 'assets/**'
-      - 'package.json'
+    branches: [main]
   pull_request:
-    paths:
-      - 'assets/**'
-      - 'package.json'
+    branches: [main]
+# Path filters were removed because branch protection requires this
+# check on every PR. Skipped runs (path-filtered) never report status
+# and leave PRs in mergeable_state: blocked. With npm cache + npm ci
+# the job finishes in well under a minute.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   verify:
     name: Verify minified assets are up to date
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
+          cache: 'npm'
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: Build assets
         run: npm run build
       - name: Check for uncommitted changes

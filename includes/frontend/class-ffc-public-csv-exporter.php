@@ -97,7 +97,8 @@ class PublicCsvExporter {
 
 		// Discard any buffered output so the CSV is the only payload on the wire.
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-		while ( @ob_end_clean() ) {} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
+		while ( @ob_end_clean() ) {
+		} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
 
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
 		header( 'Content-Type: text/csv; charset=utf-8' );
@@ -170,9 +171,9 @@ class PublicCsvExporter {
 		exit;
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	//  AJAX: Start
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Start.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Start a new AJAX export job.
@@ -189,10 +190,12 @@ class PublicCsvExporter {
 			$ip         = \FreeFormCertificate\Core\Utils::get_user_ip();
 			$rate_check = RateLimiter::check_ip_limit( $ip );
 			if ( empty( $rate_check['allowed'] ) ) {
-				wp_send_json_error( array(
-					'message'    => $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ),
-					'rate_limit' => true,
-				) );
+				wp_send_json_error(
+					array(
+						'message'    => $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ),
+						'rate_limit' => true,
+					)
+				);
 			}
 		}
 
@@ -205,24 +208,24 @@ class PublicCsvExporter {
 		// 3. Honeypot + CAPTCHA.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$security_check = \FreeFormCertificate\Core\Utils::validate_security_fields( $_POST );
-		if ( $security_check !== true ) {
+		if ( true !== $security_check ) {
 			wp_send_json_error( array( 'message' => (string) $security_check ) );
 		}
 
 		// 4. Sanitize input.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$posted_hash = isset( $_POST['hash'] ) ? sanitize_text_field( wp_unslash( $_POST['hash'] ) ) : '';
 
-		if ( $form_id <= 0 || $posted_hash === '' ) {
+		if ( $form_id <= 0 || '' === $posted_hash ) {
 			wp_send_json_error( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) );
 		}
 
 		// 5–9. Business-logic validation via PublicCsvDownload.
 		$validator = new PublicCsvDownload();
 		$error     = $validator->validate_form_access( $form_id, $posted_hash );
-		if ( $error !== null ) {
+		if ( null !== $error ) {
 			wp_send_json_error( array( 'message' => $error ) );
 		}
 
@@ -239,12 +242,14 @@ class PublicCsvExporter {
 		$dynamic_keys         = $this->scan_dynamic_keys( $form_ids, $status );
 		$include_edit_columns = $this->repository->hasEditInfo();
 
-		$total = $this->repository->count( array(
-			'form_id' => $form_id,
-			'status'  => $status,
-		) );
+		$total = $this->repository->count(
+			array(
+				'form_id' => $form_id,
+				'status'  => $status,
+			)
+		);
 
-		if ( $total === 0 ) {
+		if ( 0 === $total ) {
 			wp_send_json_error( array( 'message' => __( 'No records found to export.', 'ffcertificate' ) ) );
 		}
 
@@ -280,9 +285,12 @@ class PublicCsvExporter {
 			$this->get_fixed_headers( $include_edit_columns ),
 			$this->build_dynamic_headers( $dynamic_keys )
 		);
-		$headers = array_map( function ( $h ) {
-			return mb_convert_encoding( (string) $h, 'UTF-8', 'UTF-8' );
-		}, $headers );
+		$headers = array_map(
+			function ( $h ) {
+				return mb_convert_encoding( (string) $h, 'UTF-8', 'UTF-8' );
+			},
+			$headers
+		);
 		fputcsv( $fh, $headers, ';' );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		fclose( $fh );
@@ -305,16 +313,18 @@ class PublicCsvExporter {
 		);
 		set_transient( 'ffc_public_csv_' . $job_id, $job, self::JOB_TTL );
 
-		wp_send_json_success( array(
-			'job_id'      => $job_id,
-			'total'       => $total,
-			'nonce_batch' => $nonce_batch,
-		) );
+		wp_send_json_success(
+			array(
+				'job_id'      => $job_id,
+				'total'       => $total,
+				'nonce_batch' => $nonce_batch,
+			)
+		);
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	//  AJAX: Batch
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Batch.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Process one batch and append rows to the temp file.
@@ -354,11 +364,13 @@ class PublicCsvExporter {
 		);
 
 		if ( empty( $batch ) ) {
-			wp_send_json_success( array(
-				'done'      => true,
-				'processed' => $job['processed'],
-				'total'     => $job['total'],
-			) );
+			wp_send_json_success(
+				array(
+					'done'      => true,
+					'processed' => $job['processed'],
+					'total'     => $job['total'],
+				)
+			);
 		}
 
 		/** @since 5.1.0 Same filter as admin CSV + synchronous public export. */
@@ -372,9 +384,12 @@ class PublicCsvExporter {
 
 		foreach ( $batch as $row ) {
 			$csv_row = $this->format_csv_row( $row, $job['dynamic_keys'], $job['include_edit_columns'] );
-			$csv_row = array_map( function ( $v ) {
-				return mb_convert_encoding( (string) $v, 'UTF-8', 'UTF-8' );
-			}, $csv_row );
+			$csv_row = array_map(
+				function ( $v ) {
+					return mb_convert_encoding( (string) $v, 'UTF-8', 'UTF-8' );
+				},
+				$csv_row
+			);
 			fputcsv( $fh, $csv_row, ';' );
 		}
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
@@ -386,16 +401,18 @@ class PublicCsvExporter {
 
 		set_transient( 'ffc_public_csv_' . $job_id, $job, self::JOB_TTL );
 
-		wp_send_json_success( array(
-			'done'      => false,
-			'processed' => $job['processed'],
-			'total'     => $job['total'],
-		) );
+		wp_send_json_success(
+			array(
+				'done'      => false,
+				'processed' => $job['processed'],
+				'total'     => $job['total'],
+			)
+		);
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	//  AJAX: Download
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// AJAX: Download.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Serve the completed CSV file and clean up.
@@ -428,7 +445,8 @@ class PublicCsvExporter {
 		}
 
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-		while ( @ob_end_clean() ) {} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
+		while ( @ob_end_clean() ) {
+		} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
 
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $job['filename'] );
 		header( 'Content-Type: text/csv; charset=utf-8' );
@@ -448,9 +466,9 @@ class PublicCsvExporter {
 		exit;
 	}
 
-	// ──────────────────────────────────────────────────────────────
-	//  Synchronous fallback (no-JS)
-	// ──────────────────────────────────────────────────────────────
+	// ──────────────────────────────────────────────────────────────.
+	// Synchronous fallback (no-JS)
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Fixed CSV headers — mirrors `CsvExporter::get_fixed_headers()`.
@@ -580,8 +598,8 @@ class PublicCsvExporter {
 	 */
 	private function get_form_title_cached( int $form_id ): string {
 		if ( ! isset( $this->form_title_cache[ $form_id ] ) ) {
-			$title                                 = get_the_title( $form_id );
-			$this->form_title_cache[ $form_id ]    = $title ? $title : __( '(Deleted)', 'ffcertificate' );
+			$title                              = get_the_title( $form_id );
+			$this->form_title_cache[ $form_id ] = $title ? $title : __( '(Deleted)', 'ffcertificate' );
 		}
 		return $this->form_title_cache[ $form_id ];
 	}

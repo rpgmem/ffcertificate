@@ -13,142 +13,158 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
-if (!defined('ABSPATH')) exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 class SelfSchedulingAdmin {
 
-    /**
-     * Constructor
-     */
-    public function __construct() {
-        add_action('admin_menu', array($this, 'add_submenu_pages'), 25);
-        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
-    }
+	/**
+	 * Constructor
+	 */
+	public function __construct() {
+		add_action( 'admin_menu', array( $this, 'add_submenu_pages' ), 25 );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+	}
 
-    /**
-     * Add submenu pages to unified Scheduling menu
-     *
-     * @return void
-     */
-    public function add_submenu_pages(): void {
-        // Add Appointments submenu under unified Scheduling menu
-        add_submenu_page(
-            'ffc-scheduling',
-            __('Appointments', 'ffcertificate'),
-            __('Appointments', 'ffcertificate'),
-            'edit_posts',
-            'ffc-appointments',
-            array($this, 'render_appointments_page')
-        );
-    }
+	/**
+	 * Add submenu pages to unified Scheduling menu
+	 *
+	 * @return void
+	 */
+	public function add_submenu_pages(): void {
+		// Add Appointments submenu under unified Scheduling menu.
+		add_submenu_page(
+			'ffc-scheduling',
+			__( 'Appointments', 'ffcertificate' ),
+			__( 'Appointments', 'ffcertificate' ),
+			'edit_posts',
+			'ffc-appointments',
+			array( $this, 'render_appointments_page' )
+		);
+	}
 
-    /**
-     * Render Appointments page
-     *
-     * @return void
-     */
-    public function render_appointments_page(): void {
-        if (!\FreeFormCertificate\Core\Utils::current_user_can_manage()) {
-            wp_die(esc_html__('You do not have permission to access this page.', 'ffcertificate'));
-        }
+	/**
+	 * Render Appointments page
+	 *
+	 * @return void
+	 */
+	public function render_appointments_page(): void {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ) );
+		}
 
-        // Capture fatal errors that bypass try-catch (E_COMPILE_ERROR, E_PARSE, etc.)
-        register_shutdown_function(static function (): void {
-            $error = error_get_last();
-            if ($error && in_array($error['type'], array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR), true)) {
-                if (class_exists('\\FreeFormCertificate\\Core\\Utils', false)) {
-                    \FreeFormCertificate\Core\Utils::debug_log('Appointments page FATAL error (shutdown)', $error);
-                }
-            }
-        });
+		// Capture fatal errors that bypass try-catch (E_COMPILE_ERROR, E_PARSE, etc.).
+		register_shutdown_function(
+			static function (): void {
+				$error = error_get_last();
+				if ( $error && in_array( $error['type'], array( E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR ), true ) ) {
+					if ( class_exists( '\\FreeFormCertificate\\Core\\Utils', false ) ) {
+						\FreeFormCertificate\Core\Utils::debug_log( 'Appointments page FATAL error (shutdown)', $error );
+					}
+				}
+			}
+		);
 
-        try {
-            require_once plugin_dir_path(__FILE__) . 'views/appointments-list.php';
-        } catch (\Throwable $e) {
-            echo '<div class="wrap"><div class="notice notice-error"><p><strong>'
-                . esc_html__('Error:', 'ffcertificate') . '</strong> '
-                . esc_html($e->getMessage())
-                . ' <em>(' . esc_html(basename($e->getFile())) . ':' . esc_html((string) $e->getLine()) . ')</em>'
-                . '</p></div></div>';
-            \FreeFormCertificate\Core\Utils::debug_log('Appointments page error', array(
-                'error' => $e->getMessage(),
-                'file'  => $e->getFile(),
-                'line'  => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ));
-        }
-    }
+		try {
+			require_once plugin_dir_path( __FILE__ ) . 'views/appointments-list.php';
+		} catch ( \Throwable $e ) {
+			echo '<div class="wrap"><div class="notice notice-error"><p><strong>'
+				. esc_html__( 'Error:', 'ffcertificate' ) . '</strong> '
+				. esc_html( $e->getMessage() )
+				. ' <em>(' . esc_html( basename( $e->getFile() ) ) . ':' . esc_html( (string) $e->getLine() ) . ')</em>'
+				. '</p></div></div>';
+			\FreeFormCertificate\Core\Utils::debug_log(
+				'Appointments page error',
+				array(
+					'error' => $e->getMessage(),
+					'file'  => $e->getFile(),
+					'line'  => $e->getLine(),
+					'trace' => $e->getTraceAsString(),
+				)
+			);
+		}
+	}
 
-    /**
-     * Enqueue admin assets
-     *
-     * @param string $hook
-     * @return void
-     */
-    public function enqueue_admin_assets(string $hook): void {
-        $screen = get_current_screen();
-        if (!$screen) {
-            return;
-        }
+	/**
+	 * Enqueue admin assets
+	 *
+	 * @param string $hook
+	 * @return void
+	 */
+	public function enqueue_admin_assets( string $hook ): void {
+		$screen = get_current_screen();
+		if ( ! $screen ) {
+			return;
+		}
 
-        // Match self-scheduling screens (CPT edit/list + appointments page)
-        $is_self_scheduling = (
-            $screen->post_type === 'ffc_self_scheduling' ||
-            strpos($screen->id, 'ffc-appointments') !== false
-        );
+		// Match self-scheduling screens (CPT edit/list + appointments page).
+		$is_self_scheduling = (
+			'ffc_self_scheduling' === $screen->post_type ||
+			strpos( $screen->id, 'ffc-appointments' ) !== false
+		);
 
-        if (!$is_self_scheduling) {
-            return;
-        }
+		if ( ! $is_self_scheduling ) {
+			return;
+		}
 
-        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 
-        wp_enqueue_style(
-            'ffc-calendar-admin',
-            plugins_url("assets/css/ffc-calendar-admin{$s}.css", dirname(__FILE__, 2)),
-            array(),
-            FFC_VERSION
-        );
+		wp_enqueue_style(
+			'ffc-calendar-admin',
+			plugins_url( "assets/css/ffc-calendar-admin{$s}.css", dirname( __DIR__, 1 ) ),
+			array(),
+			FFC_VERSION
+		);
 
-        wp_enqueue_script(
-            'ffc-calendar-admin',
-            plugins_url("assets/js/ffc-calendar-admin{$s}.js", dirname(__FILE__, 2)),
-            array('jquery', 'jquery-ui-sortable', 'jquery-ui-datepicker'),
-            FFC_VERSION,
-            true
-        );
+		wp_enqueue_script(
+			'ffc-calendar-admin',
+			plugins_url( "assets/js/ffc-calendar-admin{$s}.js", dirname( __DIR__, 1 ) ),
+			array( 'jquery', 'jquery-ui-sortable', 'jquery-ui-datepicker' ),
+			FFC_VERSION,
+			true
+		);
 
-        wp_localize_script('ffc-calendar-admin', 'ffcSelfSchedulingAdmin', array(
-            'ajaxurl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('ffc_self_scheduling_admin_nonce'),
-            'strings' => array(
-                'confirmDelete' => __('Are you sure you want to delete this?', 'ffcertificate'),
-                'confirmCancel' => __('Are you sure you want to cancel this appointment?', 'ffcertificate'),
-                'selectCalendar' => __('Please select a calendar', 'ffcertificate'),
-                'selectDate' => __('Please select a date', 'ffcertificate'),
-                'selectTime' => __('Please select a time', 'ffcertificate'),
-            )
-        ));
+		wp_localize_script(
+			'ffc-calendar-admin',
+			'ffcSelfSchedulingAdmin',
+			array(
+				'ajaxurl' => admin_url( 'admin-ajax.php' ),
+				'nonce'   => wp_create_nonce( 'ffc_self_scheduling_admin_nonce' ),
+				'strings' => array(
+					'confirmDelete'  => __( 'Are you sure you want to delete this?', 'ffcertificate' ),
+					'confirmCancel'  => __( 'Are you sure you want to cancel this appointment?', 'ffcertificate' ),
+					'selectCalendar' => __( 'Please select a calendar', 'ffcertificate' ),
+					'selectDate'     => __( 'Please select a date', 'ffcertificate' ),
+					'selectTime'     => __( 'Please select a time', 'ffcertificate' ),
+				),
+			)
+		);
 
-        $jquery_ui_v = FFC_JQUERY_UI_VERSION;
+		$jquery_ui_v = FFC_JQUERY_UI_VERSION;
         // phpcs:ignore PluginCheck.CodeAnalysis.EnqueuedResourceOffloading.OffloadedContent -- jQuery UI CSS from official CDN, standard practice.
-        wp_enqueue_style( 'jquery-ui-theme', "https://code.jquery.com/ui/{$jquery_ui_v}/themes/smoothness/jquery-ui.css", array(), $jquery_ui_v );
+		wp_enqueue_style( 'jquery-ui-theme', "https://code.jquery.com/ui/{$jquery_ui_v}/themes/smoothness/jquery-ui.css", array(), $jquery_ui_v );
 
-        // Add SRI + crossorigin attributes for CDN security.
-        add_filter( 'style_loader_tag', static function ( string $html, string $handle ) : string {
-            if ( $handle !== 'jquery-ui-theme' ) {
-                return $html;
-            }
-            // SRI hash for jQuery UI 1.12.1 smoothness theme.
-            $integrity = 'sha256-vpM9VGtmPBFETDYEGHRoVfMBl3nmK3WRAO6z5+bUYC4=';
-            if ( strpos( $html, 'integrity' ) !== false ) {
-                return $html;
-            }
-            return str_replace(
-                " rel='stylesheet'",
-                " rel='stylesheet' integrity='{$integrity}' crossorigin='anonymous'",
-                $html
-            );
-        }, 10, 2 );
-    }
+		// Add SRI + crossorigin attributes for CDN security.
+		add_filter(
+			'style_loader_tag',
+			static function ( string $html, string $handle ): string {
+				if ( 'jquery-ui-theme' !== $handle ) {
+					return $html;
+				}
+				// SRI hash for jQuery UI 1.12.1 smoothness theme.
+				$integrity = 'sha256-vpM9VGtmPBFETDYEGHRoVfMBl3nmK3WRAO6z5+bUYC4=';
+				if ( strpos( $html, 'integrity' ) !== false ) {
+					return $html;
+				}
+				return str_replace(
+					" rel='stylesheet'",
+					" rel='stylesheet' integrity='{$integrity}' crossorigin='anonymous'",
+					$html
+				);
+			},
+			10,
+			2
+		);
+	}
 }

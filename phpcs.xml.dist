@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<ruleset name="ffcertificate">
+    <description>WordPress Coding Standards for Free Form Certificate.</description>
+
+    <!-- Default to scanning the project root. CI passes specific paths. -->
+    <file>.</file>
+
+    <!-- Exclusions -->
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/build/*</exclude-pattern>
+    <exclude-pattern>*/dist/*</exclude-pattern>
+    <exclude-pattern>*/languages/*</exclude-pattern>
+    <exclude-pattern>*/html/*</exclude-pattern>
+    <exclude-pattern>*/includes/libraries/*</exclude-pattern>
+    <exclude-pattern>*/libs/*</exclude-pattern>
+    <exclude-pattern>*/tests/*</exclude-pattern>
+    <exclude-pattern>*.min.js</exclude-pattern>
+    <exclude-pattern>*.min.css</exclude-pattern>
+
+    <arg name="basepath" value="."/>
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg name="parallel" value="8"/>
+    <arg value="ps"/>
+
+    <!-- Rules -->
+    <rule ref="WordPress-Extra">
+        <exclude name="Generic.PHP.LowerCaseConstant"/>
+    </rule>
+    <rule ref="WordPress-Docs"/>
+
+    <!-- PHP version compatibility -->
+    <config name="testVersion" value="8.1-"/>
+    <rule ref="PHPCompatibilityWP"/>
+
+    <config name="minimum_wp_version" value="6.2"/>
+
+    <rule ref="WordPress.WP.I18n">
+        <properties>
+            <property name="text_domain" type="array">
+                <element value="ffcertificate"/>
+            </property>
+        </properties>
+    </rule>
+
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <properties>
+            <property name="prefixes" type="array">
+                <element value="ffc"/>
+                <element value="FFC"/>
+                <element value="FreeFormCertificate"/>
+                <element value="ffcertificate"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- PSR-4 autoloading: class filenames don't follow WP naming. -->
+    <rule ref="WordPress.Files.FileName">
+        <exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+    </rule>
+
+    <!-- PSR-4 naming conventions: camelCase methods and properties are intentional. -->
+    <rule ref="WordPress.NamingConventions.ValidFunctionName">
+        <exclude name="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid"/>
+    </rule>
+    <rule ref="WordPress.NamingConventions.ValidVariableName">
+        <exclude name="WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase"/>
+    </rule>
+
+    <!-- Prefix "ffc"/"FFC" is the established convention for this plugin.
+         PHPCS requires 4+ char prefixes, but ffc/FFC is already the project standard. -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.ShortPrefixPassed"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound"/>
+        <exclude name="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound"/>
+    </rule>
+
+    <!-- Custom capabilities used by the plugin. -->
+    <rule ref="WordPress.WP.Capabilities">
+        <properties>
+            <property name="custom_capabilities" type="array">
+                <element value="ffc_book_appointments"/>
+                <element value="ffc_cancel_own_appointments"/>
+                <element value="ffc_scheduling_bypass"/>
+                <element value="ffc_view_audience_bookings"/>
+                <element value="ffc_view_self_scheduling"/>
+                <element value="view_own_certificates"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Common parameter names that happen to be PHP reserved keywords. -->
+    <rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.namespaceFound"/>
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.newFound"/>
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.classFound"/>
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.matchFound"/>
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.stringFound"/>
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound"/>
+    </rule>
+
+    <!-- Hook callbacks have fixed signatures; unused trailing params are expected. -->
+    <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+        <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed"/>
+        <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter.Found"/>
+    </rule>
+
+    <!-- False positives: inline comments with code-like syntax (e.g. option values). -->
+    <rule ref="Squiz.PHP.CommentedOutCode">
+        <exclude name="Squiz.PHP.CommentedOutCode.Found"/>
+    </rule>
+</ruleset>

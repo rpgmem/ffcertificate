@@ -12,180 +12,188 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 class FormEditor {
 
-    /** @var \FreeFormCertificate\Admin\FormEditorMetaboxRenderer */
-    private $metabox_renderer;
-    /** @var \FreeFormCertificate\Admin\FormEditorSaveHandler */
-    private $save_handler;
+	/** @var \FreeFormCertificate\Admin\FormEditorMetaboxRenderer */
+	private $metabox_renderer;
+	/** @var \FreeFormCertificate\Admin\FormEditorSaveHandler */
+	private $save_handler;
 
-    public function __construct() {
-        $this->metabox_renderer = new \FreeFormCertificate\Admin\FormEditorMetaboxRenderer();
-        $this->save_handler = new \FreeFormCertificate\Admin\FormEditorSaveHandler();
+	public function __construct() {
+		$this->metabox_renderer = new \FreeFormCertificate\Admin\FormEditorMetaboxRenderer();
+		$this->save_handler     = new \FreeFormCertificate\Admin\FormEditorSaveHandler();
 
-        add_action( 'add_meta_boxes', array( $this, 'add_custom_metaboxes' ), 20 );
-        add_action( 'save_post', array( $this->save_handler, 'save_form_data' ) );
-        add_action( 'admin_notices', array( $this->save_handler, 'display_save_errors' ) );
-        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		add_action( 'add_meta_boxes', array( $this, 'add_custom_metaboxes' ), 20 );
+		add_action( 'save_post', array( $this->save_handler, 'save_form_data' ) );
+		add_action( 'admin_notices', array( $this->save_handler, 'display_save_errors' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
-        // AJAX handlers for the editor
-        add_action( 'wp_ajax_ffc_generate_codes', array( $this, 'ajax_generate_random_codes' ) );
-        add_action( 'wp_ajax_ffc_load_template', array( $this, 'ajax_load_template' ) );
-    }
+		// AJAX handlers for the editor.
+		add_action( 'wp_ajax_ffc_generate_codes', array( $this, 'ajax_generate_random_codes' ) );
+		add_action( 'wp_ajax_ffc_load_template', array( $this, 'ajax_load_template' ) );
+	}
 
-    /**
-     * Enqueue scripts and styles for form editor
-     */
-    public function enqueue_scripts( string $hook ): void {
-        // Only load on form edit page
-        if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ) ) ) {
-            return;
-        }
+	/**
+	 * Enqueue scripts and styles for form editor
+	 */
+	public function enqueue_scripts( string $hook ): void {
+		// Only load on form edit page.
+		if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
+			return;
+		}
 
-        $screen = get_current_screen();
-        if ( ! $screen || $screen->post_type !== 'ffc_form' ) {
-            return;
-        }
+		$screen = get_current_screen();
+		if ( ! $screen || 'ffc_form' !== $screen->post_type ) {
+			return;
+		}
 
-        $s = \FreeFormCertificate\Core\Utils::asset_suffix();
-        wp_enqueue_script(
-            'ffc-geofence-admin',
-            FFC_PLUGIN_URL . "assets/js/ffc-geofence-admin{$s}.js",
-            array( 'jquery' ),
-            FFC_VERSION,
-            true
-        );
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		wp_enqueue_script(
+			'ffc-geofence-admin',
+			FFC_PLUGIN_URL . "assets/js/ffc-geofence-admin{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
 
-        wp_localize_script(
-            'ffc-geofence-admin',
-            'ffc_geofence_admin',
-            array(
-                'alert_message' => __( 'At least one geolocation method (GPS or IP) must be enabled when geolocation is active.', 'ffcertificate' )
-            )
-        );
-    }
+		wp_localize_script(
+			'ffc-geofence-admin',
+			'ffc_geofence_admin',
+			array(
+				'alert_message' => __( 'At least one geolocation method (GPS or IP) must be enabled when geolocation is active.', 'ffcertificate' ),
+			)
+		);
+	}
 
-    /**
-     * Registers all metaboxes for the Form CPT
-     *
-     * ✅ v3.1.1: Delegates rendering to FFC_Form_Editor_Metabox_Renderer
-     */
-    public function add_custom_metaboxes(): void {
-        // Remove any potential duplicates
-        remove_meta_box( 'ffc_form_builder', 'ffc_form', 'normal' );
-        remove_meta_box( 'ffc_form_config', 'ffc_form', 'normal' );
-        remove_meta_box( 'ffc_builder_box', 'ffc_form', 'normal' );
+	/**
+	 * Registers all metaboxes for the Form CPT
+	 *
+	 * ✅ v3.1.1: Delegates rendering to FFC_Form_Editor_Metabox_Renderer
+	 */
+	public function add_custom_metaboxes(): void {
+		// Remove any potential duplicates.
+		remove_meta_box( 'ffc_form_builder', 'ffc_form', 'normal' );
+		remove_meta_box( 'ffc_form_config', 'ffc_form', 'normal' );
+		remove_meta_box( 'ffc_builder_box', 'ffc_form', 'normal' );
 
-        // Main metaboxes (content area) - Delegated to Metabox Renderer
-        add_meta_box(
-            'ffc_box_layout',
-            __( '1. Certificate Layout', 'ffcertificate' ),
-            array( $this->metabox_renderer, 'render_box_layout' ),
-            'ffc_form',
-            'normal',
-            'high'
-        );
+		// Main metaboxes (content area) - Delegated to Metabox Renderer.
+		add_meta_box(
+			'ffc_box_layout',
+			__( '1. Certificate Layout', 'ffcertificate' ),
+			array( $this->metabox_renderer, 'render_box_layout' ),
+			'ffc_form',
+			'normal',
+			'high'
+		);
 
-        add_meta_box(
-            'ffc_box_builder',
-            __( '2. Form Builder (Fields)', 'ffcertificate' ),
-            array( $this->metabox_renderer, 'render_box_builder' ),
-            'ffc_form',
-            'normal',
-            'high'
-        );
+		add_meta_box(
+			'ffc_box_builder',
+			__( '2. Form Builder (Fields)', 'ffcertificate' ),
+			array( $this->metabox_renderer, 'render_box_builder' ),
+			'ffc_form',
+			'normal',
+			'high'
+		);
 
-        add_meta_box(
-            'ffc_box_restriction',
-            __( '3. Restriction & Security', 'ffcertificate' ),
-            array( $this->metabox_renderer, 'render_box_restriction' ),
-            'ffc_form',
-            'normal',
-            'high'
-        );
+		add_meta_box(
+			'ffc_box_restriction',
+			__( '3. Restriction & Security', 'ffcertificate' ),
+			array( $this->metabox_renderer, 'render_box_restriction' ),
+			'ffc_form',
+			'normal',
+			'high'
+		);
 
-        add_meta_box(
-            'ffc_box_email',
-            __( '4. Email Configuration', 'ffcertificate' ),
-            array( $this->metabox_renderer, 'render_box_email' ),
-            'ffc_form',
-            'normal',
-            'high'
-        );
+		add_meta_box(
+			'ffc_box_email',
+			__( '4. Email Configuration', 'ffcertificate' ),
+			array( $this->metabox_renderer, 'render_box_email' ),
+			'ffc_form',
+			'normal',
+			'high'
+		);
 
-        add_meta_box(
-            'ffc_box_geofence',
-            __( '5. Geolocation & Date/Time Restrictions', 'ffcertificate' ),
-            array( $this->metabox_renderer, 'render_box_geofence' ),
-            'ffc_form',
-            'normal',
-            'high'
-        );
+		add_meta_box(
+			'ffc_box_geofence',
+			__( '5. Geolocation & Date/Time Restrictions', 'ffcertificate' ),
+			array( $this->metabox_renderer, 'render_box_geofence' ),
+			'ffc_form',
+			'normal',
+			'high'
+		);
 
-        add_meta_box(
-            'ffc_box_quiz',
-            __( '6. Quiz / Evaluation Mode', 'ffcertificate' ),
-            array( $this->metabox_renderer, 'render_box_quiz' ),
-            'ffc_form',
-            'normal',
-            'high'
-        );
+		add_meta_box(
+			'ffc_box_quiz',
+			__( '6. Quiz / Evaluation Mode', 'ffcertificate' ),
+			array( $this->metabox_renderer, 'render_box_quiz' ),
+			'ffc_form',
+			'normal',
+			'high'
+		);
 
-        add_meta_box(
-            'ffc_box_public_csv_download',
-            __( '7. Public CSV Download', 'ffcertificate' ),
-            array( $this->metabox_renderer, 'render_box_public_csv_download' ),
-            'ffc_form',
-            'normal',
-            'default'
-        );
+		add_meta_box(
+			'ffc_box_public_csv_download',
+			__( '7. Public CSV Download', 'ffcertificate' ),
+			array( $this->metabox_renderer, 'render_box_public_csv_download' ),
+			'ffc_form',
+			'normal',
+			'default'
+		);
 
-        // Sidebar metabox (shortcode + instructions) - Delegated to Metabox Renderer
-        add_meta_box(
-            'ffc_form_shortcode',
-            __( 'How to Use / Shortcode', 'ffcertificate' ),
-            array( $this->metabox_renderer, 'render_shortcode_metabox' ),
-            'ffc_form',
-            'side',
-            'high'
-        );
-    }
+		// Sidebar metabox (shortcode + instructions) - Delegated to Metabox Renderer.
+		add_meta_box(
+			'ffc_form_shortcode',
+			__( 'How to Use / Shortcode', 'ffcertificate' ),
+			array( $this->metabox_renderer, 'render_shortcode_metabox' ),
+			'ffc_form',
+			'side',
+			'high'
+		);
+	}
 
-    /**
-     * AJAX: Generates a list of unique ticket codes
-     */
-    public function ajax_generate_random_codes(): void {
-        check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
-        
-        if ( ! current_user_can( 'edit_posts' ) ) wp_send_json_error();
+	/**
+	 * AJAX: Generates a list of unique ticket codes
+	 */
+	public function ajax_generate_random_codes(): void {
+		check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
 
-        $qty = isset( $_POST['qty'] ) ? absint( wp_unslash( $_POST['qty'] ) ) : 10;
-        $codes = array();
-        for($i = 0; $i < $qty; $i++) {
-            $rnd = strtoupper(bin2hex(random_bytes(4))); 
-            $codes[] = substr($rnd, 0, 4) . '-' . substr($rnd, 4, 4);
-        }
-        wp_send_json_success( array( 'codes' => implode("\n", $codes) ) );
-    }
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error();
+		}
 
-    /**
-     * AJAX: Loads a local HTML template from the plugin directory
-     */
-    public function ajax_load_template(): void {
-        check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
-        
-        if ( ! current_user_can( 'edit_posts' ) ) wp_send_json_error();
+		$qty   = isset( $_POST['qty'] ) ? absint( wp_unslash( $_POST['qty'] ) ) : 10;
+		$codes = array();
+		for ( $i = 0; $i < $qty; $i++ ) {
+			$rnd     = strtoupper( bin2hex( random_bytes( 4 ) ) );
+			$codes[] = substr( $rnd, 0, 4 ) . '-' . substr( $rnd, 4, 4 );
+		}
+		wp_send_json_success( array( 'codes' => implode( "\n", $codes ) ) );
+	}
 
-        $filename = isset( $_POST['filename'] ) ? sanitize_file_name( wp_unslash( $_POST['filename'] ) ) : '';
-        if ( empty($filename) ) wp_send_json_error();
+	/**
+	 * AJAX: Loads a local HTML template from the plugin directory
+	 */
+	public function ajax_load_template(): void {
+		check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
 
-        $filepath = FFC_PLUGIN_DIR . 'html/' . $filename;
-        if ( ! file_exists( $filepath ) ) wp_send_json_error();
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error();
+		}
 
-        $content = file_get_contents( $filepath );
-        wp_send_json_success( $content );
-    }
+		$filename = isset( $_POST['filename'] ) ? sanitize_file_name( wp_unslash( $_POST['filename'] ) ) : '';
+		if ( empty( $filename ) ) {
+			wp_send_json_error();
+		}
+
+		$filepath = FFC_PLUGIN_DIR . 'html/' . $filename;
+		if ( ! file_exists( $filepath ) ) {
+			wp_send_json_error();
+		}
+
+		$content = file_get_contents( $filepath );
+		wp_send_json_success( $content );
+	}
 }

@@ -14,10 +14,10 @@ define( 'FFC_DEBUG', false );
 define( 'FFC_PLUGIN_DIR', __DIR__ . '/' );
 define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
 
-// WordPress DB constant
+// WordPress DB constant.
 define( 'DB_NAME', 'wordpress' );
 
-// phpqrcode constants and class stub
+// phpqrcode constants and class stub.
 define( 'QR_ECLEVEL_L', 0 );
 define( 'QR_ECLEVEL_M', 1 );
 define( 'QR_ECLEVEL_Q', 2 );
@@ -25,7 +25,7 @@ define( 'QR_ECLEVEL_H', 3 );
 
 class QRcode {
 	/**
-	 * @param string      $text
+	 * @param string       $text
 	 * @param string|false $outfile
 	 * @param int          $level
 	 * @param int          $size
@@ -40,5 +40,6 @@ class QRcode {
 	 * @param int          $level
 	 * @return array<int, string>
 	 */
-	public static function raw( $text, $outfile = false, $level = QR_ECLEVEL_L ) { return array(); }
+	public static function raw( $text, $outfile = false, $level = QR_ECLEVEL_L ) {
+		return array(); }
 }

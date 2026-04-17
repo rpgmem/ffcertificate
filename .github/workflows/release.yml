@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build plugin zip and create release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Need full history for auto-generated release notes.
+          fetch-depth: 0
+
+      - name: Derive version
+        id: version
+        run: |
+          # Strip leading 'v' from tag (v5.2.0 -> 5.2.0)
+          tag="${GITHUB_REF#refs/tags/}"
+          version="${tag#v}"
+          echo "tag=$tag"           >> "$GITHUB_OUTPUT"
+          echo "version=$version"   >> "$GITHUB_OUTPUT"
+          echo "slug=ffcertificate" >> "$GITHUB_OUTPUT"
+
+      - name: Sanity check version matches plugin header
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          header_version=$(grep -E '^\s*\*?\s*Version:' ffcertificate.php | head -1 | sed -E 's/.*Version:\s*//')
+          # Plugin header in this repo uses block-style comment, not docblock.
+          if [ -z "$header_version" ]; then
+            header_version=$(grep -E 'Version:\s*' ffcertificate.php | head -1 | sed -E 's/.*Version:\s*//')
+          fi
+          if [ "$header_version" != "$version" ]; then
+            echo "::error::Tag $version does not match plugin header version $header_version. Bump the header before tagging."
+            exit 1
+          fi
+          echo "Header version $header_version matches tag $version."
+
+      - name: Stage plugin files
+        run: |
+          slug="${{ steps.version.outputs.slug }}"
+          mkdir -p "build/$slug"
+          # rsync everything except .distignore patterns.
+          rsync -a \
+            --exclude-from=.distignore \
+            ./ "build/$slug/"
+
+      - name: Create zip
+        run: |
+          slug="${{ steps.version.outputs.slug }}"
+          version="${{ steps.version.outputs.version }}"
+          cd build
+          zip -rq "${slug}-${version}.zip" "$slug"
+          ls -lh "${slug}-${version}.zip"
+
+      - name: Generate release notes from CHANGELOG
+        id: notes
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          # Try to extract the section for this version from CHANGELOG.md.
+          # Expects sections like "## [5.2.0] - 2026-04-15" or "## 5.2.0".
+          notes=$(awk -v ver="$version" '
+            $0 ~ "^##[[:space:]]*\\[?"ver"\\]?" {flag=1; next}
+            flag && /^##[[:space:]]/ {exit}
+            flag {print}
+          ' CHANGELOG.md)
+          if [ -z "$notes" ]; then
+            notes="Release ${version}. See CHANGELOG.md for details."
+          fi
+          {
+            echo "notes<<NOTES_EOF"
+            echo "$notes"
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body: ${{ steps.notes.outputs.notes }}
+          files: build/${{ steps.version.outputs.slug }}-${{ steps.version.outputs.version }}.zip
+          fail_on_unmatched_files: true
+          generate_release_notes: false

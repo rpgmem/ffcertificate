@@ -166,7 +166,7 @@ class ObsoleteShortcodeCleaner {
 			}
 
 			$content = (string) $post->post_content;
-			if ( $content === '' ) {
+			if ( '' === $content ) {
 				continue;
 			}
 
@@ -213,7 +213,7 @@ class ObsoleteShortcodeCleaner {
 	 * @return array<int, int> Zero-indexed list of form IDs (may contain duplicates).
 	 */
 	public function extract_form_ids( string $content ): array {
-		if ( $content === '' ) {
+		if ( '' === $content ) {
 			return array();
 		}
 
@@ -240,7 +240,7 @@ class ObsoleteShortcodeCleaner {
 	 * @return array{content: string, removed: int}
 	 */
 	public function strip_shortcodes_from_content( string $content, array $form_ids_to_remove ): array {
-		if ( $content === '' || empty( $form_ids_to_remove ) ) {
+		if ( '' === $content || empty( $form_ids_to_remove ) ) {
 			return array(
 				'content' => $content,
 				'removed' => 0,
@@ -309,7 +309,7 @@ class ObsoleteShortcodeCleaner {
 		}
 
 		$result = $this->strip_shortcodes_from_content( (string) $post->post_content, $form_ids_to_remove );
-		if ( $result['removed'] === 0 ) {
+		if ( 0 === $result['removed'] ) {
 			return 0;
 		}
 
@@ -321,7 +321,7 @@ class ObsoleteShortcodeCleaner {
 			true
 		);
 
-		if ( is_wp_error( $update ) || $update === 0 ) {
+		if ( is_wp_error( $update ) || 0 === $update ) {
 			return 0;
 		}
 
@@ -332,9 +332,9 @@ class ObsoleteShortcodeCleaner {
 	 * Full pipeline: discover expired forms, scan posts, optionally rewrite
 	 * each affected post, return an aggregated report.
 	 *
-	 * @param int                    $days    Grace window in days.
-	 * @param array{dry_run?:bool}   $options Options. `dry_run=true` skips the
-	 *                                        `wp_update_post()` step.
+	 * @param int                  $days    Grace window in days.
+	 * @param array{dry_run?:bool} $options Options. `dry_run=true` skips the
+	 *                                      `wp_update_post()` step.
 	 * @return array{
 	 *     dry_run: bool,
 	 *     days: int,
@@ -366,7 +366,7 @@ class ObsoleteShortcodeCleaner {
 					$entry['post_id'],
 					$entry['matched_form_ids']
 				);
-				if ( $removed_here === 0 ) {
+				if ( 0 === $removed_here ) {
 					// Actual removal failed or already clean — skip.
 					continue;
 				}

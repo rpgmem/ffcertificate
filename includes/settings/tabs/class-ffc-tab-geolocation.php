@@ -18,213 +18,215 @@ namespace FreeFormCertificate\Settings\Tabs;
 use FreeFormCertificate\Settings\SettingsTab;
 use FreeFormCertificate\Security\GeofenceLocationRegistry;
 
-if (!defined('ABSPATH')) exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 class TabGeolocation extends SettingsTab {
 
-    protected function init(): void {
-        $this->tab_id = 'geolocation';
-        $this->tab_title = __('Geolocation', 'ffcertificate');
-        $this->tab_icon = 'ffc-icon-globe';
-        $this->tab_order = 50;
-    }
+	protected function init(): void {
+		$this->tab_id    = 'geolocation';
+		$this->tab_title = __( 'Geolocation', 'ffcertificate' );
+		$this->tab_icon  = 'ffc-icon-globe';
+		$this->tab_order = 50;
+	}
 
-    /**
-     * Get default settings
-     *
-     * @return array<string, mixed>
-     */
-    private function get_default_settings(): array {
-        return array(
-            // IP Geolocation API Settings
-            'ip_api_enabled' => false,
-            'ip_api_service' => 'ip-api', // 'ip-api' or 'ipinfo'
-            'ip_api_cascade' => false, // Use both with fallback
-            'ipinfo_api_key' => '',
-            'ip_cache_enabled' => true,
-            'ip_cache_ttl' => 600, // 10 minutes in seconds (300-3600)
+	/**
+	 * Get default settings
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function get_default_settings(): array {
+		return array(
+			// IP Geolocation API Settings.
+			'ip_api_enabled'        => false,
+			'ip_api_service'        => 'ip-api', // 'ip-api' or 'ipinfo'
+			'ip_api_cascade'        => false, // Use both with fallback.
+			'ipinfo_api_key'        => '',
+			'ip_cache_enabled'      => true,
+			'ip_cache_ttl'          => 600, // 10 minutes in seconds (300-3600)
 
-            // GPS Cache Settings
-            'gps_cache_ttl' => 600, // 10 minutes in seconds (60-3600)
+			// GPS Cache Settings.
+			'gps_cache_ttl'         => 600, // 10 minutes in seconds (60-3600)
 
-            // Fallback behavior when API fails
-            'api_fallback' => 'gps_only', // 'allow', 'block', 'gps_only'
-            'gps_fallback' => 'allow', // When GPS fails: 'allow' or 'block'
-            'both_fail_fallback' => 'block', // When GPS + IP both fail: 'allow' or 'block'
+			// Fallback behavior when API fails.
+			'api_fallback'          => 'gps_only', // 'allow', 'block', 'gps_only'
+			'gps_fallback'          => 'allow', // When GPS fails: 'allow' or 'block'.
+			'both_fail_fallback'    => 'block', // When GPS + IP both fail: 'allow' or 'block'.
 
-            // Admin Bypass (independent of debug mode)
-            'admin_bypass_datetime' => false, // Admins bypass datetime restrictions
-            'admin_bypass_geo' => false, // Admins bypass geolocation restrictions
+			// Admin Bypass (independent of debug mode).
+			'admin_bypass_datetime' => false, // Admins bypass datetime restrictions.
+			'admin_bypass_geo'      => false, // Admins bypass geolocation restrictions.
 
-            // Debug Mode
-            'debug_enabled' => false,
-        );
-    }
+			// Debug Mode.
+			'debug_enabled'         => false,
+		);
+	}
 
-    /**
-     * Get current settings
-     *
-     * @return array<string, mixed>
-     */
-    private function get_settings(): array {
-        return wp_parse_args(
-            get_option('ffc_geolocation_settings', array()),
-            $this->get_default_settings()
-        );
-    }
+	/**
+	 * Get current settings
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function get_settings(): array {
+		return wp_parse_args(
+			get_option( 'ffc_geolocation_settings', array() ),
+			$this->get_default_settings()
+		);
+	}
 
-    /**
-     * Render tab content
-     */
-    public function render(): void {
-        // Handle location delete via GET link (before POST check).
-        $this->handle_location_delete();
+	/**
+	 * Render tab content
+	 */
+	public function render(): void {
+		// Handle location delete via GET link (before POST check).
+		$this->handle_location_delete();
 
-        // Handle form submission
+		// Handle form submission.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below via check_admin_referer.
-        if ($_POST && isset($_POST['ffc_save_geolocation'])) {
-            check_admin_referer('ffc_geolocation_nonce');
-            $this->save_settings();
-            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Geolocation settings saved successfully!', 'ffcertificate') . '</p></div>';
-        }
+		if ( $_POST && isset( $_POST['ffc_save_geolocation'] ) ) {
+			check_admin_referer( 'ffc_geolocation_nonce' );
+			$this->save_settings();
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Geolocation settings saved successfully!', 'ffcertificate' ) . '</p></div>';
+		}
 
-        $settings = $this->get_settings();
-        include FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-geolocation.php';
-    }
+		$settings = $this->get_settings();
+		include FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-geolocation.php';
+	}
 
-    /**
-     * Save settings
-     */
-    private function save_settings(): void {
+	/**
+	 * Save settings
+	 */
+	private function save_settings(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
-        $ffc_ip_api_service = sanitize_key(wp_unslash($_POST['ip_api_service'] ?? ''));
-        $ffc_api_fallback = sanitize_key(wp_unslash($_POST['api_fallback'] ?? ''));
-        $ffc_gps_fallback = sanitize_key(wp_unslash($_POST['gps_fallback'] ?? ''));
-        $ffc_both_fail_fallback = sanitize_key(wp_unslash($_POST['both_fail_fallback'] ?? ''));
+		$ffc_ip_api_service     = sanitize_key( wp_unslash( $_POST['ip_api_service'] ?? '' ) );
+		$ffc_api_fallback       = sanitize_key( wp_unslash( $_POST['api_fallback'] ?? '' ) );
+		$ffc_gps_fallback       = sanitize_key( wp_unslash( $_POST['gps_fallback'] ?? '' ) );
+		$ffc_both_fail_fallback = sanitize_key( wp_unslash( $_POST['both_fail_fallback'] ?? '' ) );
 
-        $settings = array(
-            'ip_api_enabled' => isset($_POST['ip_api_enabled']),
-            'ip_api_service' => in_array($ffc_ip_api_service, array('ip-api', 'ipinfo'))
-                ? $ffc_ip_api_service
-                : 'ip-api',
-            'ip_api_cascade' => isset($_POST['ip_api_cascade']),
-            'ipinfo_api_key' => sanitize_text_field(wp_unslash($_POST['ipinfo_api_key'] ?? '')),
-            'ip_cache_enabled' => isset($_POST['ip_cache_enabled']),
-            'ip_cache_ttl' => max(300, min(3600, absint(wp_unslash($_POST['ip_cache_ttl'] ?? 600)))),
+		$settings = array(
+			'ip_api_enabled'        => isset( $_POST['ip_api_enabled'] ),
+			'ip_api_service'        => in_array( $ffc_ip_api_service, array( 'ip-api', 'ipinfo' ), true )
+				? $ffc_ip_api_service
+				: 'ip-api',
+			'ip_api_cascade'        => isset( $_POST['ip_api_cascade'] ),
+			'ipinfo_api_key'        => sanitize_text_field( wp_unslash( $_POST['ipinfo_api_key'] ?? '' ) ),
+			'ip_cache_enabled'      => isset( $_POST['ip_cache_enabled'] ),
+			'ip_cache_ttl'          => max( 300, min( 3600, absint( wp_unslash( $_POST['ip_cache_ttl'] ?? 600 ) ) ) ),
 
-            'gps_cache_ttl' => max(60, min(3600, absint(wp_unslash($_POST['gps_cache_ttl'] ?? 600)))),
+			'gps_cache_ttl'         => max( 60, min( 3600, absint( wp_unslash( $_POST['gps_cache_ttl'] ?? 600 ) ) ) ),
 
-            'api_fallback' => in_array($ffc_api_fallback, array('allow', 'block', 'gps_only'))
-                ? $ffc_api_fallback
-                : 'gps_only',
-            'gps_fallback' => in_array($ffc_gps_fallback, array('allow', 'block'))
-                ? $ffc_gps_fallback
-                : 'allow',
-            'both_fail_fallback' => in_array($ffc_both_fail_fallback, array('allow', 'block'))
-                ? $ffc_both_fail_fallback
-                : 'block',
+			'api_fallback'          => in_array( $ffc_api_fallback, array( 'allow', 'block', 'gps_only' ), true )
+				? $ffc_api_fallback
+				: 'gps_only',
+			'gps_fallback'          => in_array( $ffc_gps_fallback, array( 'allow', 'block' ), true )
+				? $ffc_gps_fallback
+				: 'allow',
+			'both_fail_fallback'    => in_array( $ffc_both_fail_fallback, array( 'allow', 'block' ), true )
+				? $ffc_both_fail_fallback
+				: 'block',
 
-            'admin_bypass_datetime' => isset($_POST['admin_bypass_datetime']),
-            'admin_bypass_geo' => isset($_POST['admin_bypass_geo']),
+			'admin_bypass_datetime' => isset( $_POST['admin_bypass_datetime'] ),
+			'admin_bypass_geo'      => isset( $_POST['admin_bypass_geo'] ),
 
-            'debug_enabled' => isset($_POST['debug_enabled']),
-        );
+			'debug_enabled'         => isset( $_POST['debug_enabled'] ),
+		);
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
-        update_option('ffc_geolocation_settings', $settings);
+		update_option( 'ffc_geolocation_settings', $settings );
 
-        // Handle location CRUD operations.
-        $this->save_locations();
+		// Handle location CRUD operations.
+		$this->save_locations();
 
-        // Log settings change
-        if (class_exists('\FreeFormCertificate\Core\ActivityLog')) {
-            \FreeFormCertificate\Core\ActivityLog::log_settings_changed('geolocation', get_current_user_id());
-        }
-    }
+		// Log settings change.
+		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+			\FreeFormCertificate\Core\ActivityLog::log_settings_changed( 'geolocation', get_current_user_id() );
+		}
+	}
 
-    /**
-     * Handle location CRUD operations from POST data.
-     *
-     * Processes new locations, updates to existing locations, and default flag changes.
-     * Nonce is already verified in render() via check_admin_referer.
-     */
-    private function save_locations(): void {
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
+	/**
+	 * Handle location CRUD operations from POST data.
+	 *
+	 * Processes new locations, updates to existing locations, and default flag changes.
+	 * Nonce is already verified in render() via check_admin_referer.
+	 */
+	private function save_locations(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
 
-        // Add new location if provided.
-        if ( ! empty( $_POST['ffc_location_new'] ) && is_array( $_POST['ffc_location_new'] ) ) {
-            $new = wp_unslash( $_POST['ffc_location_new'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by GeofenceLocationRegistry::save().
-            $new_name = trim( sanitize_text_field( $new['name'] ?? '' ) );
+		// Add new location if provided.
+		if ( ! empty( $_POST['ffc_location_new'] ) && is_array( $_POST['ffc_location_new'] ) ) {
+			$new      = wp_unslash( $_POST['ffc_location_new'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by GeofenceLocationRegistry::save().
+			$new_name = trim( sanitize_text_field( $new['name'] ?? '' ) );
 
-            if ( '' !== $new_name ) {
-                GeofenceLocationRegistry::save(
-                    array(
-                        'name'        => $new_name,
-                        'lat'         => floatval( $new['lat'] ?? 0 ),
-                        'lng'         => floatval( $new['lng'] ?? 0 ),
-                        'radius'      => floatval( $new['radius'] ?? 1000 ),
-                        'default_gps' => false,
-                        'default_ip'  => false,
-                    )
-                );
-            }
-        }
+			if ( '' !== $new_name ) {
+				GeofenceLocationRegistry::save(
+					array(
+						'name'        => $new_name,
+						'lat'         => floatval( $new['lat'] ?? 0 ),
+						'lng'         => floatval( $new['lng'] ?? 0 ),
+						'radius'      => floatval( $new['radius'] ?? 1000 ),
+						'default_gps' => false,
+						'default_ip'  => false,
+					)
+				);
+			}
+		}
 
-        // Update existing locations.
-        if ( ! empty( $_POST['ffc_locations'] ) && is_array( $_POST['ffc_locations'] ) ) {
-            $locations = wp_unslash( $_POST['ffc_locations'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by GeofenceLocationRegistry::save().
-            $default_gps_id = sanitize_key( wp_unslash( $_POST['ffc_location_default_gps'] ?? '' ) );
-            $default_ip_id  = sanitize_key( wp_unslash( $_POST['ffc_location_default_ip'] ?? '' ) );
+		// Update existing locations.
+		if ( ! empty( $_POST['ffc_locations'] ) && is_array( $_POST['ffc_locations'] ) ) {
+			$locations      = wp_unslash( $_POST['ffc_locations'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by GeofenceLocationRegistry::save().
+			$default_gps_id = sanitize_key( wp_unslash( $_POST['ffc_location_default_gps'] ?? '' ) );
+			$default_ip_id  = sanitize_key( wp_unslash( $_POST['ffc_location_default_ip'] ?? '' ) );
 
-            foreach ( $locations as $id => $data ) {
-                $id = sanitize_key( $id );
+			foreach ( $locations as $id => $data ) {
+				$id = sanitize_key( $id );
 
-                if ( null === GeofenceLocationRegistry::get_by_id( $id ) ) {
-                    continue;
-                }
+				if ( null === GeofenceLocationRegistry::get_by_id( $id ) ) {
+					continue;
+				}
 
-                GeofenceLocationRegistry::save(
-                    array(
-                        'id'          => $id,
-                        'name'        => sanitize_text_field( $data['name'] ?? '' ),
-                        'lat'         => floatval( $data['lat'] ?? 0 ),
-                        'lng'         => floatval( $data['lng'] ?? 0 ),
-                        'radius'      => floatval( $data['radius'] ?? 1000 ),
-                        'default_gps' => ( $id === $default_gps_id ),
-                        'default_ip'  => ( $id === $default_ip_id ),
-                    )
-                );
-            }
-        }
+				GeofenceLocationRegistry::save(
+					array(
+						'id'          => $id,
+						'name'        => sanitize_text_field( $data['name'] ?? '' ),
+						'lat'         => floatval( $data['lat'] ?? 0 ),
+						'lng'         => floatval( $data['lng'] ?? 0 ),
+						'radius'      => floatval( $data['radius'] ?? 1000 ),
+						'default_gps' => ( $id === $default_gps_id ),
+						'default_ip'  => ( $id === $default_ip_id ),
+					)
+				);
+			}
+		}
 
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
-    }
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+	}
 
-    /**
-     * Handle location deletion via GET link.
-     *
-     * Checks for ffc_delete_location GET parameter with a matching nonce,
-     * deletes the location, and redirects back to the settings page.
-     */
-    private function handle_location_delete(): void {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified below via wp_verify_nonce.
-        if ( empty( $_GET['ffc_delete_location'] ) ) {
-            return;
-        }
+	/**
+	 * Handle location deletion via GET link.
+	 *
+	 * Checks for ffc_delete_location GET parameter with a matching nonce,
+	 * deletes the location, and redirects back to the settings page.
+	 */
+	private function handle_location_delete(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified below via wp_verify_nonce.
+		if ( empty( $_GET['ffc_delete_location'] ) ) {
+			return;
+		}
 
-        $id    = sanitize_key( wp_unslash( $_GET['ffc_delete_location'] ) );
-        $nonce = sanitize_key( wp_unslash( $_GET['_wpnonce'] ?? '' ) );
+		$id    = sanitize_key( wp_unslash( $_GET['ffc_delete_location'] ) );
+		$nonce = sanitize_key( wp_unslash( $_GET['_wpnonce'] ?? '' ) );
 
-        if ( ! wp_verify_nonce( $nonce, 'ffc_delete_location_' . $id ) ) {
-            wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
-        }
+		if ( ! wp_verify_nonce( $nonce, 'ffc_delete_location_' . $id ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
+		}
 
-        GeofenceLocationRegistry::delete( $id );
+		GeofenceLocationRegistry::delete( $id );
 
-        // Redirect back to remove the query parameters.
-        $redirect_url = remove_query_arg( array( 'ffc_delete_location', '_wpnonce' ) );
-        wp_safe_redirect( $redirect_url );
-        exit;
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
-    }
+		// Redirect back to remove the query parameters.
+		$redirect_url = remove_query_arg( array( 'ffc_delete_location', '_wpnonce' ) );
+		wp_safe_redirect( $redirect_url );
+		exit;
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
 }

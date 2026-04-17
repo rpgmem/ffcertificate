@@ -13,151 +13,159 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Services;
 
-if (!defined('ABSPATH')) exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 class UserService {
 
-    use \FreeFormCertificate\Core\DatabaseHelperTrait;
+	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
-    /**
-     * Get full user profile (WP data + FFC profile + capabilities)
-     *
-     * @param int $user_id WordPress user ID
-     * @return array<string, mixed>|null Profile data or null if user not found
-     */
-    public static function get_full_profile(int $user_id): ?array {
-        $user = get_userdata($user_id);
-        if (!$user) {
-            return null;
-        }
+	/**
+	 * Get full user profile (WP data + FFC profile + capabilities)
+	 *
+	 * @param int $user_id WordPress user ID.
+	 * @return array<string, mixed>|null Profile data or null if user not found
+	 */
+	public static function get_full_profile( int $user_id ): ?array {
+		$user = get_userdata( $user_id );
+		if ( ! $user ) {
+			return null;
+		}
 
-        $profile = array(
-            'user_id' => $user_id,
-            'display_name' => $user->display_name,
-            'email' => $user->user_email,
-            'member_since' => $user->user_registered,
-            'roles' => $user->roles,
-        );
+		$profile = array(
+			'user_id'      => $user_id,
+			'display_name' => $user->display_name,
+			'email'        => $user->user_email,
+			'member_since' => $user->user_registered,
+			'roles'        => $user->roles,
+		);
 
-        // Merge FFC profile data
-        if (class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
-            $ffc_profile = \FreeFormCertificate\UserDashboard\UserManager::get_profile($user_id);
-            $profile['phone'] = $ffc_profile['phone'] ?? '';
-            $profile['department'] = $ffc_profile['department'] ?? '';
-            $profile['organization'] = $ffc_profile['organization'] ?? '';
-            $profile['notes'] = $ffc_profile['notes'] ?? '';
-        }
+		// Merge FFC profile data.
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
+			$ffc_profile             = \FreeFormCertificate\UserDashboard\UserManager::get_profile( $user_id );
+			$profile['phone']        = $ffc_profile['phone'] ?? '';
+			$profile['department']   = $ffc_profile['department'] ?? '';
+			$profile['organization'] = $ffc_profile['organization'] ?? '';
+			$profile['notes']        = $ffc_profile['notes'] ?? '';
+		}
 
-        // Capabilities
-        $profile['capabilities'] = self::get_user_capabilities($user_id);
+		// Capabilities.
+		$profile['capabilities'] = self::get_user_capabilities( $user_id );
 
-        return $profile;
-    }
+		return $profile;
+	}
 
-    /**
-     * Get user's FFC capabilities with their grant status
-     *
-     * @param int $user_id WordPress user ID
-     * @return array<string, bool> Associative array of capability => bool
-     */
-    public static function get_user_capabilities(int $user_id): array {
-        if (!class_exists('\FreeFormCertificate\UserDashboard\UserManager')) {
-            return array();
-        }
+	/**
+	 * Get user's FFC capabilities with their grant status
+	 *
+	 * @param int $user_id WordPress user ID.
+	 * @return array<string, bool> Associative array of capability => bool
+	 */
+	public static function get_user_capabilities( int $user_id ): array {
+		if ( ! class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
+			return array();
+		}
 
-        $all_caps = \FreeFormCertificate\UserDashboard\UserManager::get_all_capabilities();
-        $result = array();
+		$all_caps = \FreeFormCertificate\UserDashboard\UserManager::get_all_capabilities();
+		$result   = array();
 
-        foreach ($all_caps as $cap) {
-            $result[$cap] = user_can($user_id, $cap);
-        }
+		foreach ( $all_caps as $cap ) {
+			$result[ $cap ] = user_can( $user_id, $cap );
+		}
 
-        return $result;
-    }
+		return $result;
+	}
 
-    /**
-     * Get user statistics (certificate count, appointment count, etc.)
-     *
-     * @param int $user_id WordPress user ID
-     * @return array<string, int> Statistics
-     */
-    public static function get_user_statistics(int $user_id): array {
-        global $wpdb;
+	/**
+	 * Get user statistics (certificate count, appointment count, etc.)
+	 *
+	 * @param int $user_id WordPress user ID.
+	 * @return array<string, int> Statistics
+	 */
+	public static function get_user_statistics( int $user_id ): array {
+		global $wpdb;
 
-        $stats = array(
-            'certificates' => 0,
-            'appointments' => 0,
-            'audience_groups' => 0,
-        );
+		$stats = array(
+			'certificates'    => 0,
+			'appointments'    => 0,
+			'audience_groups' => 0,
+		);
 
-        // Certificate count
-        if (class_exists('\FreeFormCertificate\Core\Utils')) {
-            $table = \FreeFormCertificate\Core\Utils::get_submissions_table();
-            $stats['certificates'] = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'trash'",
-                $table,
-                $user_id
-            ));
-        }
+		// Certificate count.
+		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+			$table                 = \FreeFormCertificate\Core\Utils::get_submissions_table();
+			$stats['certificates'] = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'trash'",
+					$table,
+					$user_id
+				)
+			);
+		}
 
-        // Appointment count
-        $appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-        if (self::table_exists($appointments_table)) {
-            $stats['appointments'] = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'cancelled'",
-                $appointments_table,
-                $user_id
-            ));
-        }
+		// Appointment count.
+		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+		if ( self::table_exists( $appointments_table ) ) {
+			$stats['appointments'] = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'cancelled'",
+					$appointments_table,
+					$user_id
+				)
+			);
+		}
 
-        // Audience group count
-        $members_table = $wpdb->prefix . 'ffc_audience_members';
-        if (self::table_exists($members_table)) {
-            $stats['audience_groups'] = (int) $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM %i WHERE user_id = %d",
-                $members_table,
-                $user_id
-            ));
-        }
+		// Audience group count.
+		$members_table = $wpdb->prefix . 'ffc_audience_members';
+		if ( self::table_exists( $members_table ) ) {
+			$stats['audience_groups'] = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT COUNT(*) FROM %i WHERE user_id = %d',
+					$members_table,
+					$user_id
+				)
+			);
+		}
 
-        return $stats;
-    }
+		return $stats;
+	}
 
-    /**
-     * Export all personal data for a user (used by PrivacyHandler)
-     *
-     * Returns structured data suitable for WordPress Export Personal Data tool.
-     *
-     * @param int $user_id WordPress user ID
-     * @return array<string, mixed> Grouped personal data
-     */
-    public static function export_personal_data(int $user_id): array {
-        $data = array();
+	/**
+	 * Export all personal data for a user (used by PrivacyHandler)
+	 *
+	 * Returns structured data suitable for WordPress Export Personal Data tool.
+	 *
+	 * @param int $user_id WordPress user ID.
+	 * @return array<string, mixed> Grouped personal data
+	 */
+	public static function export_personal_data( int $user_id ): array {
+		$data = array();
 
-        // Profile
-        $profile = self::get_full_profile($user_id);
-        if ($profile) {
-            $data['profile'] = $profile;
-        }
+		// Profile.
+		$profile = self::get_full_profile( $user_id );
+		if ( $profile ) {
+			$data['profile'] = $profile;
+		}
 
-        // Statistics
-        $data['statistics'] = self::get_user_statistics($user_id);
+		// Statistics.
+		$data['statistics'] = self::get_user_statistics( $user_id );
 
-        return $data;
-    }
+		return $data;
+	}
 
-    /**
-     * Check if a user has any FFC data
-     *
-     * Useful for determining if a user needs FFC cleanup on deletion.
-     *
-     * @param int $user_id WordPress user ID
-     * @return bool
-     */
-    public static function user_has_ffc_data(int $user_id): bool {
-        $stats = self::get_user_statistics($user_id);
-        return ($stats['certificates'] + $stats['appointments'] + $stats['audience_groups']) > 0;
-    }
+	/**
+	 * Check if a user has any FFC data
+	 *
+	 * Useful for determining if a user needs FFC cleanup on deletion.
+	 *
+	 * @param int $user_id WordPress user ID.
+	 * @return bool
+	 */
+	public static function user_has_ffc_data( int $user_id ): bool {
+		$stats = self::get_user_statistics( $user_id );
+		return ( $stats['certificates'] + $stats['appointments'] + $stats['audience_groups'] ) > 0;
+	}
 }
