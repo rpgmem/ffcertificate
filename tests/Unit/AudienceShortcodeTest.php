@@ -213,6 +213,8 @@ class AudienceShortcodeTest extends TestCase {
         Functions\when('is_user_logged_in')->justReturn(true);
         Functions\when('get_current_user_id')->justReturn(42);
         Functions\when('user_can')->justReturn(false);
+        Functions\when('nocache_headers')->justReturn(null);
+        Functions\when('do_action')->justReturn(null);
 
         $calRepoMock = Mockery::mock('alias:FreeFormCertificate\Repositories\CalendarRepository');
         $calRepoMock->shouldReceive('userHasSchedulingBypass')->andReturn(false);
