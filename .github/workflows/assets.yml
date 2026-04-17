@@ -1,8 +1,6 @@
 name: Asset Build Verification
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 # Path filters were removed because branch protection requires this
@@ -12,7 +10,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: true
 
 jobs:
   verify:
