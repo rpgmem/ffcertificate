@@ -931,21 +931,9 @@ parameters:
 			path: includes/reregistration/class-ffc-custom-field-repository.php
 
 		-
-			message: '#^Access to an undefined property object\:\:\$field_label\.$#'
-			identifier: property.notFound
-			count: 20
-			path: includes/reregistration/class-ffc-custom-field-repository.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$field_options\.$#'
 			identifier: property.notFound
 			count: 2
-			path: includes/reregistration/class-ffc-custom-field-repository.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$field_type\.$#'
-			identifier: property.notFound
-			count: 1
 			path: includes/reregistration/class-ffc-custom-field-repository.php
 
 		-
@@ -977,6 +965,18 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: includes/reregistration/class-ffc-custom-field-repository.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_label\.$#'
+			identifier: property.notFound
+			count: 20
+			path: includes/reregistration/class-ffc-custom-field-validator.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$field_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/reregistration/class-ffc-custom-field-validator.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$data\.$#'
