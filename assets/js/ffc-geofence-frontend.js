@@ -298,7 +298,7 @@
                 self.debug('Safety timeout reached — geolocation never responded');
                 self.hideLoadingMessage(formWrapper);
                 formWrapper.removeClass('ffc-geofence-loading');
-                self.applyGpsFallback(formWrapper, config);
+                self.applyGpsFallback(formWrapper, self.getFreshGeoConfig(formWrapper, config));
             }, isSafariBrowser ? 40000 : 25000);
 
             function done() {
@@ -327,8 +327,8 @@
                     self.setLocationCache(formWrapper.attr('id'), loc, config.cacheTtl || 600);
                 }
 
-                // Check if within areas (will show form if valid)
-                self.checkLocation(formWrapper, loc, config);
+                var activeConfig = self.getFreshGeoConfig(formWrapper, config);
+                self.checkLocation(formWrapper, loc, activeConfig);
             }
 
             function onError(error) {
@@ -357,9 +357,8 @@
                 self.hideLoadingMessage(formWrapper);
                 formWrapper.removeClass('ffc-geofence-loading');
 
-                // Build a browser-specific error message. This ALWAYS takes
-                // priority over the generic admin messageError so the user
-                // receives actionable guidance (especially on Safari/iOS).
+                var activeConfig = self.getFreshGeoConfig(formWrapper, config);
+
                 var errorMessage;
 
                 switch (error.code) {
@@ -384,17 +383,16 @@
                         // of a generic message.
                         errorMessage = isSafariBrowser
                             ? self.getString('safariPositionUnavailable', 'Unable to determine your location. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.')
-                            : (config.messageError || self.getString('locationError', 'Unable to determine your location.'));
+                            : (activeConfig.messageError || self.getString('locationError', 'Unable to determine your location.'));
                 }
 
-                // Honor gps_fallback = 'allow': show the form instead of blocking.
-                if (config.gpsFallback === 'allow') {
+                if (activeConfig.gpsFallback === 'allow') {
                     self.debug('GPS failed but gps_fallback=allow, showing form');
                     self.showForm(formWrapper);
                     return;
                 }
 
-                self.handleBlocked(formWrapper, config.hideMode, errorMessage);
+                self.handleBlocked(formWrapper, activeConfig.hideMode, errorMessage);
             }
 
             // Request geolocation
@@ -421,6 +419,14 @@
                     : this.getString('timeout', 'Location request timed out.');
                 this.handleBlocked(formWrapper, config.hideMode, msg);
             }
+        },
+
+        getFreshGeoConfig: function(formWrapper, fallback) {
+            var formId = formWrapper.attr('id').replace('ffc-form-', '');
+            if (window.ffcGeofenceConfig && window.ffcGeofenceConfig[formId] && window.ffcGeofenceConfig[formId].geo) {
+                return window.ffcGeofenceConfig[formId].geo;
+            }
+            return fallback;
         },
 
         /**
@@ -515,6 +521,42 @@
         showForm: function(formWrapper) {
             formWrapper.addClass('ffc-validated');
             this.debug('Form validation passed, showing form');
+        },
+
+        resetForm: function(formWrapper) {
+            formWrapper.removeClass('ffc-validated');
+            formWrapper.find('.ffc-geofence-blocked').remove();
+            formWrapper.find('.ffc-geofence-admin-bypass').remove();
+            formWrapper.find('.ffc-submission-form').show();
+            formWrapper.find('.ffc-form-title').show();
+            formWrapper.show();
+        },
+
+        recheck: function() {
+            if (typeof window.ffcGeofenceConfig === 'undefined') {
+                return;
+            }
+
+            var self = this;
+            Object.keys(window.ffcGeofenceConfig).forEach(function(formId) {
+                if (isNaN(formId) || formId.indexOf('_') === 0) {
+                    return;
+                }
+
+                var formWrapper = jQuery('#ffc-form-' + formId);
+                if (formWrapper.length === 0) {
+                    return;
+                }
+
+                if (formWrapper.hasClass('ffc-geofence-loading')) {
+                    self.debug('Skipping recheck for form ' + formId + ' (GPS loading)');
+                    return;
+                }
+
+                self.debug('Rechecking form ' + formId + ' with fresh config');
+                self.resetForm(formWrapper);
+                self.processForm(formId, window.ffcGeofenceConfig[formId]);
+            });
         },
 
         /**
@@ -715,7 +757,8 @@
         }
     };
 
-    // Initialize on document ready
+    window.FFCGeofence = FFCGeofence;
+
     $(document).ready(function() {
         FFCGeofence.init();
     });
