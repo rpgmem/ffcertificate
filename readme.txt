@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 5.2.0
+Stable tag: 5.3.0
 Requires PHP: 8.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -174,6 +174,21 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 5.3.0 (2026-04-17) =
+
+Full-page cache compatibility, per-form captcha isolation, and CI pipeline improvements.
+
+* Feat: **Full-page cache compatibility** — forms and calendars now work correctly with LiteSpeed Cache, WP Rocket, W3 Total Cache, and WP Super Cache. Business-hours restricted calendars send no-cache headers to prevent stale content; audience shortcodes prevent cross-user cache leakage for logged-in users.
+* Feat: **Dynamic Fragments geofence refresh** — AJAX endpoint returns fresh geofence configs per form so cached pages always show up-to-date availability windows.
+* Feat: **Automatic cache purge on save** — saving a form or calendar automatically purges cached pages that embed it (LiteSpeed, WP Rocket, W3TC, WP Super Cache).
+* Feat: **CSV Download Page URL setting** — new field on General settings tab.
+* Feat: **Search forms by ID** — admin forms list now supports searching by numeric post ID.
+* Fix: **Same captcha on all forms** — multiple forms on a cached page now each get a unique math captcha.
+* Refactor: **CustomFieldValidator extraction** from CustomFieldRepository for single-responsibility.
+* Refactor: Expanded in-plugin Documentation tab with additional sections.
+* CI: Remove duplicate push triggers, extract composite action, add Dependabot auto-merge, promote PHPCS to gating, promote PHPStan to level 7.
+* Chore: Auto-fix ~83k PHPCS violations, annotate 223 false positives, Phase 3 mechanical fixes.
 
 = 5.2.0 (2026-04-15) =
 
