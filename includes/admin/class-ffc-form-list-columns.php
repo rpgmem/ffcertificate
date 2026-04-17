@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * FormListColumns
  *
@@ -13,12 +11,19 @@ declare(strict_types=1);
  * @package FreeFormCertificate\Admin
  */
 
+declare(strict_types=1);
+
 namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Custom columns and search-by-ID for the ffc_form admin list table.
+ *
+ * @since 5.1.0
+ */
 class FormListColumns {
 
 	/**
@@ -36,6 +41,7 @@ class FormListColumns {
 		add_action( 'manage_ffc_form_posts_custom_column', array( __CLASS__, 'render_column' ), 10, 2 );
 		add_filter( 'manage_edit-ffc_form_sortable_columns', array( __CLASS__, 'sortable_columns' ) );
 		add_action( 'admin_head-edit.php', array( __CLASS__, 'inline_styles' ) );
+		add_action( 'pre_get_posts', array( __CLASS__, 'search_by_id' ) );
 	}
 
 	/**
@@ -56,9 +62,9 @@ class FormListColumns {
 			}
 
 			if ( 'title' === $key ) {
-				$new['ffc_shortcode']      = __( 'Shortcode', 'ffcertificate' );
-				$new['ffc_submissions']    = __( 'Submissions', 'ffcertificate' );
-				$new['ffc_csv_downloads']  = __( 'CSV Downloads', 'ffcertificate' );
+				$new['ffc_shortcode']     = __( 'Shortcode', 'ffcertificate' );
+				$new['ffc_submissions']   = __( 'Submissions', 'ffcertificate' );
+				$new['ffc_csv_downloads'] = __( 'CSV Downloads', 'ffcertificate' );
 			}
 		}
 
@@ -178,6 +184,29 @@ class FormListColumns {
 				self::$submission_counts_cache[ (int) $row['form_id'] ] = (int) $row['cnt'];
 			}
 		}
+	}
+
+	/**
+	 * Allow searching forms by numeric post ID in the admin list table.
+	 *
+	 * @param \WP_Query $query The current query.
+	 */
+	public static function search_by_id( \WP_Query $query ): void {
+		if ( ! is_admin() || ! $query->is_main_query() ) {
+			return;
+		}
+
+		if ( 'ffc_form' !== $query->get( 'post_type' ) ) {
+			return;
+		}
+
+		$search = $query->get( 's' );
+		if ( '' === $search || ! ctype_digit( trim( $search ) ) ) {
+			return;
+		}
+
+		$query->set( 'post__in', array( absint( trim( $search ) ) ) );
+		$query->set( 's', '' );
 	}
 
 	/**
