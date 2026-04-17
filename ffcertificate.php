@@ -1,17 +1,19 @@
 <?php
-/*
-Plugin Name:        Free Form Certificate
-Plugin URI:         https://github.com/rpgmem/ffcertificate
-Description:        Allows creation of dynamic forms, saves submissions, generates a PDF certificate, and enables CSV export.
-Version:            5.3.0
-Requires PHP:       8.1
-Author:             Alex Meusburger
-Author URI:         https://github.com/rpgmem
-License:             GPLv3 or later
-License URI:         https://www.gnu.org/licenses/gpl-3.0.html
-Text Domain:        ffcertificate
-Domain Path:        /languages
-*/
+/**
+ * Plugin Name:        Free Form Certificate
+ * Plugin URI:         https://github.com/rpgmem/ffcertificate
+ * Description:        Allows creation of dynamic forms, saves submissions, generates a PDF certificate, and enables CSV export.
+ * Version:            5.3.0
+ * Requires PHP:       8.1
+ * Author:             Alex Meusburger
+ * Author URI:         https://github.com/rpgmem
+ * License:             GPLv3 or later
+ * License URI:         https://www.gnu.org/licenses/gpl-3.0.html
+ * Text Domain:        ffcertificate
+ * Domain Path:        /languages
+ *
+ * @package FreeFormCertificate
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -60,10 +62,13 @@ $ffc_autoloader->register();
 register_activation_hook( __FILE__, array( '\FreeFormCertificate\Activator', 'activate' ) );
 
 /**
- * Run the plugin
+ * Bootstrap the plugin by instantiating the main Loader class.
+ *
+ * @return void
+ *
+ * phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Public API function
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Public API function
-function ffcertificate_run() {
+function ffcertificate_run(): void {
 	new \FreeFormCertificate\Loader();
 }
 
