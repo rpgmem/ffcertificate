@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Settings\Tabs;
 
 use FreeFormCertificate\Settings\SettingsTab;
+use FreeFormCertificate\Security\GeofenceLocationRegistry;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -78,6 +79,9 @@ class TabGeolocation extends SettingsTab {
 	 * Render tab content
 	 */
 	public function render(): void {
+		// Handle location delete via GET link (before POST check).
+		$this->handle_location_delete();
+
 		// Handle form submission.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below via check_admin_referer.
 		if ( $_POST && isset( $_POST['ffc_save_geolocation'] ) ) {
@@ -131,18 +135,98 @@ class TabGeolocation extends SettingsTab {
 
 		update_option( 'ffc_geolocation_settings', $settings );
 
-		// Save main_geo_areas to ffc_settings (v4.6.16 - moved from General tab).
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
-		if ( isset( $_POST['main_geo_areas'] ) ) {
-			$ffc_settings                   = get_option( 'ffc_settings', array() );
-			$ffc_settings['main_geo_areas'] = sanitize_textarea_field( wp_unslash( $_POST['main_geo_areas'] ) );
-			update_option( 'ffc_settings', $ffc_settings );
-		}
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
+		// Handle location CRUD operations.
+		$this->save_locations();
 
 		// Log settings change.
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log_settings_changed( 'geolocation', get_current_user_id() );
 		}
+	}
+
+	/**
+	 * Handle location CRUD operations from POST data.
+	 *
+	 * Processes new locations, updates to existing locations, and default flag changes.
+	 * Nonce is already verified in render() via check_admin_referer.
+	 */
+	private function save_locations(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
+
+		// Add new location if provided.
+		if ( ! empty( $_POST['ffc_location_new'] ) && is_array( $_POST['ffc_location_new'] ) ) {
+			$new      = wp_unslash( $_POST['ffc_location_new'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by GeofenceLocationRegistry::save().
+			$new_name = trim( sanitize_text_field( $new['name'] ?? '' ) );
+
+			if ( '' !== $new_name ) {
+				GeofenceLocationRegistry::save(
+					array(
+						'name'        => $new_name,
+						'lat'         => floatval( $new['lat'] ?? 0 ),
+						'lng'         => floatval( $new['lng'] ?? 0 ),
+						'radius'      => floatval( $new['radius'] ?? 1000 ),
+						'default_gps' => false,
+						'default_ip'  => false,
+					)
+				);
+			}
+		}
+
+		// Update existing locations.
+		if ( ! empty( $_POST['ffc_locations'] ) && is_array( $_POST['ffc_locations'] ) ) {
+			$locations      = wp_unslash( $_POST['ffc_locations'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized by GeofenceLocationRegistry::save().
+			$default_gps_id = sanitize_key( wp_unslash( $_POST['ffc_location_default_gps'] ?? '' ) );
+			$default_ip_id  = sanitize_key( wp_unslash( $_POST['ffc_location_default_ip'] ?? '' ) );
+
+			foreach ( $locations as $id => $data ) {
+				$id = sanitize_key( $id );
+
+				if ( null === GeofenceLocationRegistry::get_by_id( $id ) ) {
+					continue;
+				}
+
+				GeofenceLocationRegistry::save(
+					array(
+						'id'          => $id,
+						'name'        => sanitize_text_field( $data['name'] ?? '' ),
+						'lat'         => floatval( $data['lat'] ?? 0 ),
+						'lng'         => floatval( $data['lng'] ?? 0 ),
+						'radius'      => floatval( $data['radius'] ?? 1000 ),
+						'default_gps' => ( $id === $default_gps_id ),
+						'default_ip'  => ( $id === $default_ip_id ),
+					)
+				);
+			}
+		}
+
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+	}
+
+	/**
+	 * Handle location deletion via GET link.
+	 *
+	 * Checks for ffc_delete_location GET parameter with a matching nonce,
+	 * deletes the location, and redirects back to the settings page.
+	 */
+	private function handle_location_delete(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified below via wp_verify_nonce.
+		if ( empty( $_GET['ffc_delete_location'] ) ) {
+			return;
+		}
+
+		$id    = sanitize_key( wp_unslash( $_GET['ffc_delete_location'] ) );
+		$nonce = sanitize_key( wp_unslash( $_GET['_wpnonce'] ?? '' ) );
+
+		if ( ! wp_verify_nonce( $nonce, 'ffc_delete_location_' . $id ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
+		}
+
+		GeofenceLocationRegistry::delete( $id );
+
+		// Redirect back to remove the query parameters.
+		$redirect_url = remove_query_arg( array( 'ffc_delete_location', '_wpnonce' ) );
+		wp_safe_redirect( $redirect_url );
+		exit;
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 }
