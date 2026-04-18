@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Self-Scheduling CPT
  *
@@ -11,16 +9,18 @@ declare(strict_types=1);
  *   - Add New
  *   - Appointments
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.1.0
  * @version 4.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
 
 class SelfSchedulingCPT {
 

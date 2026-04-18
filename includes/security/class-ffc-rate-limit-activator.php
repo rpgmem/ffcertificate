@@ -1,13 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * RateLimitActivator v3.3.0
  * Creates database tables - dbDelta compatible
  *
  * V3.3.0 - Added strict types and type hints
  * v3.2.0 - Migrated to namespace (Phase 2)
+ *
+ * @package FreeFormCertificate\Security
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Security;
 

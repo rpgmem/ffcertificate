@@ -1,12 +1,12 @@
 <?php
-declare(strict_types=1);
-
 /**
  * URL Shortener Settings Tab
  *
- * @since 5.1.0
  * @package FreeFormCertificate\Settings\Tabs
+ * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings\Tabs;
 

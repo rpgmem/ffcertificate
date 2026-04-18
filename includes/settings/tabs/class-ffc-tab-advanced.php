@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Advanced Settings Tab
  *
  * Contains Activity Log, Debug Settings, and Danger Zone
  *
- * @package FFC
+ * @package FreeFormCertificate\Settings\Tabs
  * @since 4.6.16
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings\Tabs;
 

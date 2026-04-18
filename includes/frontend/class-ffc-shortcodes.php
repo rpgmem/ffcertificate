@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Shortcodes
  * Handles shortcode rendering for forms and verification pages.
@@ -10,7 +8,11 @@ declare(strict_types=1);
  * v2.9.2: OPTIMIZED to use FFC_Utils functions
  * v3.3.0: Added strict types and type hints
  * v3.2.0: Migrated to namespace (Phase 2)
+ *
+ * @package FreeFormCertificate\Frontend
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 

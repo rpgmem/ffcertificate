@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * FormProcessor
  * Handles form submission processing, validation, and restriction checks.
@@ -12,7 +10,11 @@ declare(strict_types=1);
  * v3.3.0: Added strict types and type hints
  * v3.2.0: Migrated to namespace (Phase 2)
  * v4.12.17: Extracted AccessRestrictionChecker and ReprintDetector for SRP compliance.
+ *
+ * @package FreeFormCertificate\Frontend
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
@@ -21,7 +23,6 @@ use FreeFormCertificate\Submissions\SubmissionHandler;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
 
 class FormProcessor {
 

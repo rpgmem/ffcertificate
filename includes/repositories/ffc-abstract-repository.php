@@ -3,6 +3,7 @@
  * Abstract Repository
  * Base class for all repositories
  *
+ * @package FreeFormCertificate\Repositories
  * @since 3.0.0
  * @version 4.6.10 - Added transaction support (begin/commit/rollback)
  * @version 3.3.0 - Added strict types and type hints for better code safety

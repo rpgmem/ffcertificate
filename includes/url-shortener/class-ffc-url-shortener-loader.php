@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * URL Shortener Loader
  *
  * Module coordinator: registers rewrite rules, handles redirects,
  * and initializes admin components (meta box, admin page).
  *
- * @since 5.1.0
  * @package FreeFormCertificate\UrlShortener
+ * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UrlShortener;
 

@@ -1,4 +1,10 @@
 <?php
+/**
+ * Tab rate limit
+ *
+ * @package FreeFormCertificate\Settings\Views
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }

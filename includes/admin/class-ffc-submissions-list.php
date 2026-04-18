@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * SubmissionsList v3.0.0
  * Uses Repository Pattern
  * Fixed: PDF button now uses token directly from item
  *
+ * @package FreeFormCertificate\Admin
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 

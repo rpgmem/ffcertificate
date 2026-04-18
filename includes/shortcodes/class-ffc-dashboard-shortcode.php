@@ -1,16 +1,17 @@
 <?php
-declare(strict_types=1);
-
 /**
  * DashboardShortcode
  *
  * Renders the user dashboard via [user_dashboard_personal] shortcode
  *
+ * @package FreeFormCertificate\Shortcodes
  * @since 3.1.0
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @version 4.12.19 - Extracted DashboardAssetManager and DashboardViewMode for SRP compliance.
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Shortcodes;
 

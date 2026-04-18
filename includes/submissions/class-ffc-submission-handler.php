@@ -1,16 +1,17 @@
 <?php
-declare(strict_types=1);
-
 /**
  * SubmissionHandler v3.3.0
  * Complete refactored version with Repository Pattern
  *
+ * @package FreeFormCertificate\Submissions
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 3.0.1 Optimized bulk operations (single query + suspended logging)
  * @since 3.0.0 Repository Pattern integration
  * @since 2.10.0 Encryption & LGPD support
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Submissions;
 
@@ -19,7 +20,6 @@ use FreeFormCertificate\Repositories\SubmissionRepository;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
 
 class SubmissionHandler {
 

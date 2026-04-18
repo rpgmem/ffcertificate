@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Migration: Rename Calendar tables to Self-Scheduling
  *
@@ -9,9 +7,11 @@ declare(strict_types=1);
  * - wp_ffc_appointments → wp_ffc_self_scheduling_appointments
  * - wp_ffc_blocked_dates → wp_ffc_self_scheduling_blocked_dates
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Migrations
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations;
 

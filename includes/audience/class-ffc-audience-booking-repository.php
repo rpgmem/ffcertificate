@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Booking Repository
  *
  * Handles database operations for audience bookings.
  * Manages the booking records and N:N relationships with audiences and users.
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Audience
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
@@ -131,8 +131,8 @@ class AudienceBookingRepository {
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
 		$orderby_sanitized = sanitize_sql_orderby( 'b.' . $args['orderby'] . ' ' . $args['order'] );
-		$orderby      = $orderby_sanitized ? $orderby_sanitized : 'b.booking_date ASC';
-		$limit_clause = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
+		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'b.booking_date ASC';
+		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT b.*, e.name as environment_name, e.schedule_id

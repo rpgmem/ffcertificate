@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * PdfGenerator
  *
@@ -15,7 +13,11 @@ declare(strict_types=1);
  * v3.2.0: Migrated to namespace (Phase 2)
  * v2.9.2: Single source of truth for PDF generation
  * v2.9.14: REFACTORED - Moved generate_html logic from FFC_Email_Handler
+ *
+ * @package FreeFormCertificate\Generators
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Generators;
 
@@ -24,7 +26,6 @@ use WP_Error;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
 
 class PdfGenerator {
 

@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment Receipt Handler
  *
  * Handles displaying and printing appointment receipts/confirmations
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.1.1
  * @version 4.1.1
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 

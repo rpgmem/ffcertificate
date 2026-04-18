@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * RateLimiter v3.3.0
  * Advanced rate limiting system with WordPress Object Cache API
@@ -11,7 +9,11 @@ declare(strict_types=1);
  *         - Automatically uses Redis/Memcached if available (via LiteSpeed Cache, etc.)
  *         - Falls back to transients if no object cache plugin is installed
  *         - Significant performance improvement for high-traffic sites
+ *
+ * @package FreeFormCertificate\Security
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Security;
 

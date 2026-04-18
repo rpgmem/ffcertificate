@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * URL Shortener Meta Box
  *
  * Adds a meta box to post/page editors showing the short URL,
  * QR Code preview, and download options (PNG/SVG).
  *
- * @since 5.1.0
  * @package FreeFormCertificate\UrlShortener
+ * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UrlShortener;
 
@@ -80,7 +80,7 @@ class UrlShortenerMetaBox {
 			$permalink_raw = get_permalink( $post->ID );
 			$permalink     = $permalink_raw ? $permalink_raw : '';
 			$result        = $this->service->create_short_url( $permalink, $post->post_title, $post->ID );
-			$record    = $result['success'] && isset( $result['data'] ) ? $result['data'] : null;
+			$record        = $result['success'] && isset( $result['data'] ) ? $result['data'] : null;
 		}
 
 		if ( ! $record ) {
@@ -252,7 +252,7 @@ class UrlShortenerMetaBox {
 		$permalink_raw = get_permalink( $post_id );
 		$permalink     = $permalink_raw ? $permalink_raw : '';
 		$post          = get_post( $post_id );
-		$result    = $this->service->create_short_url( $permalink, $post->post_title ?? '', $post_id );
+		$result        = $this->service->create_short_url( $permalink, $post->post_title ?? '', $post_id );
 
 		if ( $result['success'] ) {
 			$data              = $result['data'] ?? array();

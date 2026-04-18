@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Static Repository Trait
  *
@@ -8,9 +6,11 @@ declare(strict_types=1);
  * Replaces repeated `global $wpdb` declarations with a single `db()` method,
  * enabling easier testing via method override in subclasses.
  *
- * @since 4.12.27
  * @package FreeFormCertificate\Core
+ * @since 4.12.27
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 

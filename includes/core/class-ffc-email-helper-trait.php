@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Email Helper Trait
  *
@@ -13,9 +11,11 @@ declare(strict_types=1);
  * - Admin email parsing (comma-separated string → array)
  * - Consistent HTML email template header/footer
  *
- * @since 4.11.2
  * @package FreeFormCertificate\Core
+ * @since 4.11.2
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 

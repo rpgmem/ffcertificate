@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Reregistrations REST Controller
  *
  * Handles:
  *   GET /user/reregistrations – Current user's reregistration submissions
  *
- * @since 4.12.7  Extracted from UserDataRestController
  * @package FreeFormCertificate\API
+ * @since 4.12.7  Extracted from UserDataRestController
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 

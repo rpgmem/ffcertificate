@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * VerificationHandler
  * Handles certificate verification and authenticity checks.
@@ -12,7 +10,11 @@ declare(strict_types=1);
  * v3.3.0: Added strict types and type hints
  * v3.2.0: Migrated to namespace (Phase 2)
  * v4.6.8: Extracted rendering to VerificationResponseRenderer (M7 refactoring)
+ *
+ * @package FreeFormCertificate\Frontend
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 

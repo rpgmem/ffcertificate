@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * AuthCodeService
  *
@@ -9,9 +7,11 @@ declare(strict_types=1);
  *
  * Extracted from Utils.php (Sprint 31) for single-responsibility compliance.
  *
- * @since 4.12.27
  * @package FreeFormCertificate\Core
+ * @since 4.12.27
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 

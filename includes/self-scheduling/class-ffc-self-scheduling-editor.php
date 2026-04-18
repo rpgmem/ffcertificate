@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Self-Scheduling Editor
  *
@@ -9,9 +7,12 @@ declare(strict_types=1);
  * v4.12.16: Extracted SelfSchedulingCleanupHandler (AJAX + cleanup metabox)
  *           and SelfSchedulingSaveHandler (save_post handler) for SRP compliance.
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.1.0
  * @version 4.12.16
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 

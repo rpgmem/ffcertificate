@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration CSV Exporter
  *
  * Handles CSV export of reregistration submissions.
  *
- * @since 4.12.13  Extracted from ReregistrationAdmin
  * @package FreeFormCertificate\Reregistration
+ * @since 4.12.13  Extracted from ReregistrationAdmin
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 

@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * MigrationUserProfiles
  *
@@ -10,8 +8,11 @@ declare(strict_types=1);
  *
  * Safe to run multiple times — skips users that already have a profile.
  *
+ * @package FreeFormCertificate\Migrations
  * @since 4.9.4
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations;
 

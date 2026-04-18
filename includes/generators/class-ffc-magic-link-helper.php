@@ -1,15 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * MagicLinkHelper
  *
  * Centralizes magic link generation and validation logic
  *
+ * @package FreeFormCertificate\Generators
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 2.9.16
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Generators;
 

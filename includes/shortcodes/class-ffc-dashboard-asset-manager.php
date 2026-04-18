@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * DashboardAssetManager
  *
  * Extracted from DashboardShortcode (Sprint 18 refactoring).
  * Enqueues CSS/JS assets and localizes JavaScript for the user dashboard.
  *
+ * @package FreeFormCertificate\Shortcodes
  * @since 4.12.19
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Shortcodes;
 

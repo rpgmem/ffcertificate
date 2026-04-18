@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Data REST Controller (Coordinator)
  *
@@ -13,10 +11,12 @@ declare(strict_types=1);
  *   UserSummaryRestController          – GET  /user/summary
  *   UserReregistrationsRestController  – GET  /user/reregistrations
  *
+ * @package FreeFormCertificate\API
  * @since 4.6.1
  * @version 4.12.7 - Refactored into coordinator + 6 sub-controllers
- * @package FreeFormCertificate\API
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 

@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * AdminUserCapabilities
  *
  * Adds FFC capability management to WordPress user edit page.
  * Allows admins to toggle certificate and appointment capabilities per user.
  *
+ * @package FreeFormCertificate\Admin
  * @since 4.4.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 

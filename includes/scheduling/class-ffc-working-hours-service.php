@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Working Hours Service
  *
@@ -11,9 +9,11 @@ declare(strict_types=1);
  * - Self-Scheduling: [{day: 0-6, start: "09:00", end: "17:00"}, ...]
  * - Audience: {mon: {start: "08:00", end: "18:00", closed: false}, ...}
  *
- * @since 4.6.0
  * @package FreeFormCertificate\Scheduling
+ * @since 4.6.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Scheduling;
 

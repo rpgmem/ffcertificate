@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * CSV Export Trait
  *
@@ -12,9 +10,11 @@ declare(strict_types=1);
  * - CSV output (BOM, UTF-8, semicolon separator, HTTP headers)
  * - Encrypted JSON data decryption with fallback
  *
- * @since 4.11.2
  * @package FreeFormCertificate\Core
+ * @since 4.11.2
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 

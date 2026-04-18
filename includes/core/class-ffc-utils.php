@@ -7,6 +7,8 @@
  * v3.2.0: Migrated to namespace (Phase 2) + Added mask_email() for privacy masking
  * v2.9.1: Added CPF validation, document formatting, and helper functions
  * v2.9.11: Added validate_security_fields() and recursive_sanitize()
+ *
+ * @package FreeFormCertificate\Core
  */
 
 declare(strict_types=1);

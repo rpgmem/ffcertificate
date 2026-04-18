@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Admin
  * v2.10.0: ENCRYPTION - Shows LGPD consent status, data auto-decrypted by Submission Handler
  *
+ * @package FreeFormCertificate\Admin
  * @version 4.0.0 - Removed alias usage (Phase 4 Hotfix 7)
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 

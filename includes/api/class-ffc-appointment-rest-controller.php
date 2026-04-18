@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment REST Controller
  *
@@ -9,9 +7,11 @@ declare(strict_types=1);
  *   GET    /appointments/{id}           – Get appointment details
  *   DELETE /appointments/{id}           – Cancel appointment
  *
- * @since 4.6.1
  * @package FreeFormCertificate\API
+ * @since 4.6.1
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 

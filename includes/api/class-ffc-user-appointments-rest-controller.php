@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Appointments REST Controller
  *
  * Handles:
  *   GET /user/appointments – Current user's self-scheduling appointments
  *
- * @since 4.12.7  Extracted from UserDataRestController
  * @package FreeFormCertificate\API
+ * @since 4.12.7  Extracted from UserDataRestController
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 

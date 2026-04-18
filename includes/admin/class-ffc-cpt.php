@@ -1,15 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * CPT
  * Manages the Custom Post Type for forms, including registration and duplication logic.
  *
  * V2.9.2: OPTIMIZED to use FFC_Utils functions
  *
+ * @package FreeFormCertificate\Admin
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 

@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * EmailHandler
  * Handles email configuration and sending with magic links.
@@ -20,7 +18,11 @@ declare(strict_types=1);
  * v2.9.0: Added QR Code placeholder support with hash-based URLs
  * v2.8.0: Added magic link support in emails
  * v2.9.11: Using FFC_Utils for document formatting
+ *
+ * @package FreeFormCertificate\Integrations
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Integrations;
 

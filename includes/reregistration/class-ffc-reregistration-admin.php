@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Admin
  *
@@ -14,10 +12,12 @@ declare(strict_types=1);
  * - ReregistrationCsvExporter (CSV export)
  * - ReregistrationCustomFieldsPage (custom fields submenu)
  *
+ * @package FreeFormCertificate\Reregistration
  * @since 4.11.0
  * @since 4.12.13  Extracted action handlers and custom fields page
- * @package FreeFormCertificate\Reregistration
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
@@ -1065,7 +1065,7 @@ class ReregistrationAdmin {
 		<?php
 			$flat_json     = wp_json_encode( $flat );
 			$selected_json = wp_json_encode( array_values( $selected_ids ) );
-			?>
+		?>
 		<div class="ffc-transfer-list" data-audiences="<?php echo esc_attr( $flat_json ? $flat_json : '' ); ?>" data-selected="<?php echo esc_attr( $selected_json ? $selected_json : '' ); ?>">
 			<div class="ffc-transfer-col ffc-transfer-available">
 				<div class="ffc-transfer-header"><?php esc_html_e( 'Available', 'ffcertificate' ); ?></div>

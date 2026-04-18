@@ -18,6 +18,7 @@
  * Intentionally NOT registered in `MigrationRegistry` — this is a one-shot
  * admin action, not a batched row migration with per-record progress.
  *
+ * @package FreeFormCertificate\Migrations
  * @since 5.1.0
  */
 

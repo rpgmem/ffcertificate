@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Calendar REST Controller
  *
@@ -9,9 +7,11 @@ declare(strict_types=1);
  *   GET /calendars/{id}       – Get calendar details
  *   GET /calendars/{id}/slots – Get available time slots
  *
- * @since 4.6.1
  * @package FreeFormCertificate\API
+ * @since 4.6.1
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 

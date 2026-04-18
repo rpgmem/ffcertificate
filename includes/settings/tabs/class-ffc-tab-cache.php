@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Cache & Performance Settings Tab
  *
  * Contains Form Cache and QR Code Cache settings
  *
- * @package FFC
+ * @package FreeFormCertificate\Settings\Tabs
  * @since 4.6.16
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings\Tabs;
 

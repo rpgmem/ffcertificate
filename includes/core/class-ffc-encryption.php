@@ -11,6 +11,7 @@
  * - Unique IV per record
  * - Batch operations support
  *
+ * @package FreeFormCertificate\Core
  * @since 2.10.0
  * @version 3.3.0 - Added strict types and type hints for better code safety
  * @version 3.2.0 - Migrated to namespace (Phase 2)

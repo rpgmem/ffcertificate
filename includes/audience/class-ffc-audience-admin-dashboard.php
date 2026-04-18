@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Admin Dashboard
  *
  * Renders the Scheduling Dashboard page with statistics for both
  * self-scheduling and audience scheduling systems.
  *
- * @since 4.6.0
  * @package FreeFormCertificate\Audience
+ * @since 4.6.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 

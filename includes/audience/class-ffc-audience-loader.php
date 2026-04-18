@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Loader
  *
  * Initializes and loads all components of the audience booking system.
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Audience
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 

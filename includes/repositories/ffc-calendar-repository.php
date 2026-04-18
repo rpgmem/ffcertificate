@@ -1,15 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Calendar Repository
  *
  * Data access layer for calendar operations.
  * Follows Repository pattern for separation of concerns.
  *
+ * @package FreeFormCertificate\Repositories
  * @since 4.1.0
  * @version 4.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Repositories;
 

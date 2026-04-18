@@ -1,16 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Repository
  *
  * Handles database operations for reregistration campaigns.
  * Audiences are stored in a junction table (wp_ffc_reregistration_audiences).
  *
+ * @package FreeFormCertificate\Reregistration
  * @since 4.11.0
  * @since 4.13.0 Multi-audience support via junction table.
- * @package FreeFormCertificate\Reregistration
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 

@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Date Blocking Service
  *
@@ -9,9 +7,11 @@ declare(strict_types=1);
  *
  * Provides a unified API while delegating to system-specific repositories.
  *
- * @since 4.6.0
  * @package FreeFormCertificate\Scheduling
+ * @since 4.6.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Scheduling;
 

@@ -4,6 +4,7 @@
  *
  * Template for the Data Migrations settings tab
  *
+ * @package FreeFormCertificate\Settings\Views
  * @since 2.9.16
  */
 

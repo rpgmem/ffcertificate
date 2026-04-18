@@ -8,6 +8,7 @@
  * v3.0.2: Fixed search to work with encrypted data (removed data_encrypted LIKE, added auth_code/magic_token search)
  * v3.0.1: Added methods for CSV export
  *
+ * @package FreeFormCertificate\Repositories
  * @since 3.0.0
  */
 

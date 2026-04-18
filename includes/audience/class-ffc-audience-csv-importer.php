@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience CSV Importer
  *
@@ -13,9 +11,11 @@ declare(strict_types=1);
  * Expected CSV format for audiences:
  * name,color,parent_name
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Audience
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 

@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Database Helper Trait
  *
@@ -14,9 +12,11 @@ declare(strict_types=1);
  * - Index existence checks
  * - Composite index creation
  *
- * @since 4.11.2
  * @package FreeFormCertificate\Core
+ * @since 4.11.2
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 

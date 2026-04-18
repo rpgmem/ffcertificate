@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Self-Scheduling Editor — Appointment Cleanup AJAX + Metabox
  *
@@ -8,15 +6,17 @@ declare(strict_types=1);
  * Handles the AJAX endpoint for bulk-deleting appointments
  * and renders the sidebar cleanup metabox with appointment counts.
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.12.16
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
 
 class SelfSchedulingCleanupHandler {
 

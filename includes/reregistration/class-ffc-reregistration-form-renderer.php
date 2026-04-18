@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Form Renderer
  *
@@ -22,10 +20,12 @@ declare(strict_types=1);
  * Sensitive values (is_sensitive=1) are transparently decrypted via the
  * Encryption helper before being rendered back into the form.
  *
+ * @package FreeFormCertificate\Reregistration
  * @since 4.13.0 Fully dynamic field system
  * @since 4.12.8 Extracted from ReregistrationFrontend
- * @package FreeFormCertificate\Reregistration
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 

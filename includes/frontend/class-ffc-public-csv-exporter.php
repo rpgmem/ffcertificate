@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * PublicCsvExporter
  *
@@ -22,8 +20,11 @@ declare(strict_types=1);
  * and `CsvExporter::format_csv_row()` so that admins can compare/download
  * the two sources interchangeably.
  *
+ * @package FreeFormCertificate\Frontend
  * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 

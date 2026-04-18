@@ -4,6 +4,7 @@
  *
  * Displays all appointments with filters and export options.
  *
+ * @package FreeFormCertificate\SelfScheduling\Views
  * @since 4.1.0
  * @version 5.0.0 - Fixed URLs to use absolute paths and removed action=view to prevent 500 errors
  */

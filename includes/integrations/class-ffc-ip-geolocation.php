@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * IpGeolocation
  *
@@ -10,11 +8,13 @@ declare(strict_types=1);
  * - ip-api.com (free, 45 req/min, no API key)
  * - ipinfo.io (50k/month free, requires API key)
  *
- * @package FFC
+ * @package FreeFormCertificate\Integrations
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 3.0.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Integrations;
 

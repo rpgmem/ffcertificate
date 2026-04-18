@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * PrivacyHandler
  *
@@ -11,9 +9,11 @@ declare(strict_types=1);
  * - Personal Data Exporters: exports user data from all FFC tables
  * - Personal Data Erasers: anonymizes/deletes user data from all FFC tables
  *
- * @since 4.9.5
  * @package FreeFormCertificate\Privacy
+ * @since 4.9.5
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Privacy;
 

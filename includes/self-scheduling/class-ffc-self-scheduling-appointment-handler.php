@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment Handler
  *
@@ -8,10 +6,13 @@ declare(strict_types=1);
  * AJAX handling extracted to AppointmentAjaxHandler (v4.6.8).
  * Validation logic extracted to AppointmentValidator (v4.6.8).
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.1.0
  * @version 4.6.10 - Transaction-based booking with row-level locking (race condition fix)
  * @version 4.6.8 - Refactored: extracted AJAX + validation into separate classes
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 

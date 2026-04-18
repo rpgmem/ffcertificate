@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * UserCleanup
  *
  * Handles user deletion (anonymization) and email change events.
  * Integrates with WordPress hooks to keep FFC data consistent.
  *
- * @since 4.9.4
  * @package FreeFormCertificate\UserDashboard
+ * @since 4.9.4
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UserDashboard;
 

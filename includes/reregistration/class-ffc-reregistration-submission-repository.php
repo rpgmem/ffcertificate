@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Submission Repository
  *
  * Handles database operations for individual user responses to reregistration campaigns.
  *
- * @since 4.11.0
  * @package FreeFormCertificate\Reregistration
+ * @since 4.11.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 

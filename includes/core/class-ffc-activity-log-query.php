@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * ActivityLogQuery
  *
  * Handles querying, statistics, and cleanup for the activity log.
  * Extracted from ActivityLog (v4.12.2) for single-responsibility.
  *
- * @since 4.12.2
  * @package FreeFormCertificate\Core
+ * @since 4.12.2
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 
@@ -173,9 +173,9 @@ class ActivityLogQuery {
 		}
 
 		global $wpdb;
-		$table_name    = $wpdb->prefix . 'ffc_activity_log';
-		$date_from_ts  = strtotime( "-{$days} days" );
-		$date_from     = gmdate( 'Y-m-d H:i:s', $date_from_ts ? $date_from_ts : time() );
+		$table_name   = $wpdb->prefix . 'ffc_activity_log';
+		$date_from_ts = strtotime( "-{$days} days" );
+		$date_from    = gmdate( 'Y-m-d H:i:s', $date_from_ts ? $date_from_ts : time() );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$total = $wpdb->get_var(

@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Environment Repository
  *
  * Handles database operations for audience environments (rooms/locations).
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Audience
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
@@ -84,8 +84,8 @@ class AudienceEnvironmentRepository {
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
 		$orderby_sanitized = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] );
-		$orderby      = $orderby_sanitized ? $orderby_sanitized : 'name ASC';
-		$limit_clause = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
+		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'name ASC';
+		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$limit_clause}";

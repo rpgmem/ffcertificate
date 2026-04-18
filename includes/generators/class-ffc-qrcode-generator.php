@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * QRCodeGenerator
  * Generates dynamic QR Codes for certificate verification
@@ -11,11 +9,14 @@ declare(strict_types=1);
  * - Optional database caching
  * - Placeholder parsing ({{qr_code:param=value}})
  *
+ * @package FreeFormCertificate\Generators
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 2.9.0
  * @since 2.9.2 OPTIMIZED to use FFC_Utils functions
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Generators;
 

@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Standard Fields Seeder
  *
@@ -14,9 +12,11 @@ declare(strict_types=1);
  * Source marker: field_source = 'standard' (cannot be deleted, only
  * deactivated). Fields created by admins have field_source = 'custom'.
  *
- * @since 4.13.0
  * @package FreeFormCertificate\Reregistration
+ * @since 4.13.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 

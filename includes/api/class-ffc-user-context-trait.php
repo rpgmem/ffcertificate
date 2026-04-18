@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Context Trait
  *
@@ -9,9 +7,11 @@ declare(strict_types=1);
  *   - resolve_user_context()  – resolves effective user_id (supports admin view-as)
  *   - user_has_capability()   – capability check against the effective user
  *
- * @since 4.12.7
  * @package FreeFormCertificate\API
+ * @since 4.12.7
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 

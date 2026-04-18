@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment AJAX Handler
  *
@@ -12,9 +10,11 @@ declare(strict_types=1);
  *
  * Extracted from AppointmentHandler (M7 refactoring).
  *
- * @since 4.6.8
  * @package FreeFormCertificate\SelfScheduling
+ * @since 4.6.8
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 

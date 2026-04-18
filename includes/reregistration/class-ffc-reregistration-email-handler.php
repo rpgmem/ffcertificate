@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Email Handler
  *
  * Sends invitation, reminder, and confirmation emails for reregistration campaigns.
  * Uses EmailTemplateService for rendering and sending.
  *
- * @since 4.11.0
  * @package FreeFormCertificate\Reregistration
+ * @since 4.11.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 

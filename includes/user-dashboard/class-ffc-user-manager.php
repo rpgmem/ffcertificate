@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * UserManager
  *
@@ -10,11 +8,14 @@ declare(strict_types=1);
  * Refactored in v4.12.2: user creation logic moved to UserCreator,
  * capability management moved to CapabilityManager.
  *
+ * @package FreeFormCertificate\UserDashboard
  * @version 4.12.2 - Split into UserManager + CapabilityManager + UserCreator
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 3.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UserDashboard;
 

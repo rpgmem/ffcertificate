@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * AdminUserColumns
  *
@@ -9,18 +7,20 @@ declare(strict_types=1);
  * - Appointments count
  * - Login as User action link
  *
+ * @package FreeFormCertificate\Admin
  * @since 3.1.0
  * @version 4.2.0 - Added appointments column and separate user actions column
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
 
+declare(strict_types=1);
+
 namespace FreeFormCertificate\Admin;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
 
 class AdminUserColumns {
 

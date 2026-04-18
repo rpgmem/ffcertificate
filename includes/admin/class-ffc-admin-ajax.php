@@ -1,13 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * AdminAjax Handlers
  * Handles AJAX requests from admin interface
  *
+ * @package FreeFormCertificate\Admin
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 

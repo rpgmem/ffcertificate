@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * CsvExporter
  *
@@ -11,9 +9,12 @@ declare(strict_types=1);
  *  2. JS  → wp_ajax_ffc_csv_export_batch   → processes N rows, appends to temp file (repeat)
  *  3. JS  → wp_ajax_ffc_csv_export_download → serves completed file and deletes it
  *
+ * @package FreeFormCertificate\Admin
  * @since 5.0.0  Rewritten as AJAX-driven batched export.
  * @since 4.0.0  Multi-form ID support.
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 

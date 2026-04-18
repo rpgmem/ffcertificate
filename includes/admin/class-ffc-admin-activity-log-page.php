@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * AdminActivityLogPage
  * Displays activity logs with filtering and pagination
  *
+ * @package FreeFormCertificate\Admin
  * @since 3.1.1
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
@@ -17,7 +18,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Autoloader handles class loading.
-
 
 class AdminActivityLogPage {
 

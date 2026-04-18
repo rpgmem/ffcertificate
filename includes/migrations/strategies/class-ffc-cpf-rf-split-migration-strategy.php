@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * CpfRfSplitMigrationStrategy
  *
@@ -13,8 +11,11 @@ declare(strict_types=1);
  * and NULLs out the legacy cpf_rf_* columns after migration.
  * Processes both submissions and appointments tables.
  *
+ * @package FreeFormCertificate\Migrations\Strategies
  * @since 4.13.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations\Strategies;
 

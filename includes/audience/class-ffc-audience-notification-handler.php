@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Notification Handler
  *
@@ -12,9 +10,11 @@ declare(strict_types=1);
  * - Email to booking creator
  * - Optional .ics calendar file attachment
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Audience
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 

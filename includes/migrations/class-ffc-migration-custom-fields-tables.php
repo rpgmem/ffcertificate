@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Migration: Create Custom Fields & Reregistration Tables
  *
@@ -13,9 +11,11 @@ declare(strict_types=1);
  * - wp_ffc_reregistrations
  * - wp_ffc_reregistration_submissions
  *
- * @since 4.11.0
  * @package FreeFormCertificate\Migrations
+ * @since 4.11.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations;
 

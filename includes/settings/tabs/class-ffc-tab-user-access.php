@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Access Settings Tab
  *
- * @package FFC
+ * @package FreeFormCertificate\Settings\Tabs
  * @since 3.1.0
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings\Tabs;
 

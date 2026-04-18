@@ -1,16 +1,17 @@
 <?php
-declare(strict_types=1);
-
 /**
  * FormEditorSaveHandler
  *
  * Handles saving and validation of form data.
  * Extracted from FFC_Form_Editor class to follow Single Responsibility Principle.
  *
+ * @package FreeFormCertificate\Admin
  * @since 3.1.1 (Extracted from FFC_Form_Editor)
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 

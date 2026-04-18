@@ -1,15 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment Email Handler
  *
  * Handles email notifications for calendar appointments.
  * Supports: booking confirmation, admin notifications, approval, cancellation, reminders.
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.1.0
  * @version 4.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 

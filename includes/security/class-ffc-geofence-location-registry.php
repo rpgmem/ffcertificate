@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * GeofenceLocationRegistry
  *
@@ -8,9 +6,11 @@ declare(strict_types=1);
  * Provides CRUD operations, default-flag management, and conversion to the
  * area-text format consumed by Geofence::parse_areas().
  *
- * @package FFC
+ * @package FreeFormCertificate\Security
  * @since   4.10.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Security;
 

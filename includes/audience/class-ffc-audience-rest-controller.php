@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience REST Controller
  *
@@ -11,9 +9,11 @@ declare(strict_types=1);
  * - POST /ffc/v1/audience/bookings       - Create a new booking
  * - DELETE /ffc/v1/audience/bookings/{id} - Cancel a booking
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Audience
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
@@ -426,13 +426,13 @@ class AudienceRestController {
 	 * @return \WP_REST_Response
 	 */
 	public function create_booking( \WP_REST_Request $request ): \WP_REST_Response {
-		$environment_id = $request->get_param( 'environment_id' );
-		$booking_date   = $request->get_param( 'booking_date' );
-		$is_all_day     = ! empty( $request->get_param( 'is_all_day' ) );
-		$start_time     = $is_all_day ? '00:00' : $request->get_param( 'start_time' );
-		$end_time       = $is_all_day ? '23:59' : $request->get_param( 'end_time' );
-		$booking_type   = $request->get_param( 'booking_type' );
-		$description    = $request->get_param( 'description' );
+		$environment_id     = $request->get_param( 'environment_id' );
+		$booking_date       = $request->get_param( 'booking_date' );
+		$is_all_day         = ! empty( $request->get_param( 'is_all_day' ) );
+		$start_time         = $is_all_day ? '00:00' : $request->get_param( 'start_time' );
+		$end_time           = $is_all_day ? '23:59' : $request->get_param( 'end_time' );
+		$booking_type       = $request->get_param( 'booking_type' );
+		$description        = $request->get_param( 'description' );
 		$audience_ids_param = $request->get_param( 'audience_ids' );
 		$audience_ids       = $audience_ids_param ? $audience_ids_param : array();
 		$user_ids_param     = $request->get_param( 'user_ids' );
@@ -684,10 +684,10 @@ class AudienceRestController {
 	 */
 	public function check_conflicts( \WP_REST_Request $request ): \WP_REST_Response {
 		try {
-			$environment_id = (int) $request->get_param( 'environment_id' );
-			$booking_date   = sanitize_text_field( $request->get_param( 'booking_date' ) );
-			$start_time     = sanitize_text_field( $request->get_param( 'start_time' ) );
-			$end_time       = sanitize_text_field( $request->get_param( 'end_time' ) );
+			$environment_id     = (int) $request->get_param( 'environment_id' );
+			$booking_date       = sanitize_text_field( $request->get_param( 'booking_date' ) );
+			$start_time         = sanitize_text_field( $request->get_param( 'start_time' ) );
+			$end_time           = sanitize_text_field( $request->get_param( 'end_time' ) );
 			$audience_ids_param = $request->get_param( 'audience_ids' );
 			$audience_ids       = array_map( 'intval', (array) ( $audience_ids_param ? $audience_ids_param : array() ) );
 			$user_ids_param     = $request->get_param( 'user_ids' );

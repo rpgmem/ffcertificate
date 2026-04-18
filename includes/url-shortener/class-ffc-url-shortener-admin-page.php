@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * URL Shortener Admin Page
  *
  * Admin submenu page listing all short URLs with CRUD operations.
  *
- * @since 5.1.0
  * @package FreeFormCertificate\UrlShortener
+ * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UrlShortener;
 

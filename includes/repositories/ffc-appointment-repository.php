@@ -1,15 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment Repository
  *
  * Data access layer for appointment operations.
  * Follows Repository pattern for separation of concerns.
  *
+ * @package FreeFormCertificate\Repositories
  * @since 4.1.0
  * @version 4.6.10 - Added FOR UPDATE lock support for concurrent booking safety
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Repositories;
 

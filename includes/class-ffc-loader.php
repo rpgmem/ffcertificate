@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Loader v3.0.0
  * Fixed textdomain loading + REST API integration
  *
+ * @package FreeFormCertificate
  * @version 4.0.0 - Removed alias usage (Phase 4)
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2) - Removed require_once (autoloader handles)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate;
 

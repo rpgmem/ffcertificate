@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Audience REST Controller
  *
@@ -10,16 +8,17 @@ declare(strict_types=1);
  *   POST /user/audience-group/join  – Join a self-joinable group
  *   POST /user/audience-group/leave – Leave a self-joinable group
  *
- * @since 4.12.7  Extracted from UserDataRestController
  * @package FreeFormCertificate\API
+ * @since 4.12.7  Extracted from UserDataRestController
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
 
 class UserAudienceRestController {
 

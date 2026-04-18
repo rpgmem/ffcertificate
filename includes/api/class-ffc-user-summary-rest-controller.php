@@ -1,22 +1,21 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Summary REST Controller
  *
  * Handles:
  *   GET /user/summary – Dashboard summary (certificates count, next appointment, etc.)
  *
- * @since 4.12.7  Extracted from UserDataRestController
  * @package FreeFormCertificate\API
+ * @since 4.12.7  Extracted from UserDataRestController
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
 
 class UserSummaryRestController {
 

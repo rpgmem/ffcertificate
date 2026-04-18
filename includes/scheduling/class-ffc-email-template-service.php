@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Email Template Service
  *
  * Shared email template rendering for both self-scheduling and audience systems.
  * Provides consistent email layout, date/time formatting, and wp_mail() wrapper.
  *
- * @since 4.6.0
  * @package FreeFormCertificate\Scheduling
+ * @since 4.6.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Scheduling;
 

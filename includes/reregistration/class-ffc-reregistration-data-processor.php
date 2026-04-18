@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Data Processor
  *
@@ -23,10 +21,12 @@ declare(strict_types=1);
  * transparently decrypted when read back by the form renderer / PDF /
  * admin review UI.
  *
+ * @package FreeFormCertificate\Reregistration
  * @since 4.13.0  Unified dynamic field system
  * @since 4.12.8  Extracted from ReregistrationFrontend
- * @package FreeFormCertificate\Reregistration
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 

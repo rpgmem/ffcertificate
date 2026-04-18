@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * PSR-4 Autoloader for Free Form Certificate
  *
  * Maps the namespace FreeFormCertificate\* to includes/* directory structure
  * while maintaining backward compatibility with old class names.
  *
- * @since 3.2.0
  * @package FreeFormCertificate
+ * @since 3.2.0
  */
+
+declare(strict_types=1);
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Settings
  *
@@ -15,11 +13,13 @@ declare(strict_types=1);
  * - Handle migration execution
  * - AJAX handlers
  *
- * @package FFC
+ * @package FreeFormCertificate\Admin
  * @since 1.0.0
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 

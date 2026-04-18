@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Verification Response Renderer
  *
@@ -9,9 +7,11 @@ declare(strict_types=1);
  *
  * Extracted from VerificationHandler (M7 refactoring).
  *
- * @since 4.6.8
  * @package FreeFormCertificate\Frontend
+ * @since 4.6.8
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 

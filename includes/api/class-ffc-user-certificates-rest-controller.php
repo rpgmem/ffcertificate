@@ -1,22 +1,21 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Certificates REST Controller
  *
  * Handles:
  *   GET /user/certificates – Current user's certificates
  *
- * @since 4.12.7  Extracted from UserDataRestController
  * @package FreeFormCertificate\API
+ * @since 4.12.7  Extracted from UserDataRestController
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
 
 class UserCertificatesRestController {
 

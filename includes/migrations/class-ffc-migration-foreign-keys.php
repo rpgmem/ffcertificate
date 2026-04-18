@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * MigrationForeignKeys
  *
@@ -11,9 +9,11 @@ declare(strict_types=1);
  * Requires InnoDB engine on all involved tables. If any table uses MyISAM,
  * that specific FK is skipped with a warning.
  *
- * @since 4.9.7
  * @package FreeFormCertificate\Migrations
+ * @since 4.9.7
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations;
 

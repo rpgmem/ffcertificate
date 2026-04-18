@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Form REST Controller
  *
@@ -9,9 +7,11 @@ declare(strict_types=1);
  *   GET  /forms/{id}     – Get single form
  *   POST /forms/{id}/submit – Submit a form
  *
- * @since 4.6.1
  * @package FreeFormCertificate\API
+ * @since 4.6.1
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 

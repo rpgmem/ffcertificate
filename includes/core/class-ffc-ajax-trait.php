@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * AJAX Helper Trait
  *
@@ -12,9 +10,11 @@ declare(strict_types=1);
  * - Permission checks with JSON error responses
  * - POST parameter sanitization helpers
  *
- * @since 4.11.2
  * @package FreeFormCertificate\Core
+ * @since 4.11.2
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 

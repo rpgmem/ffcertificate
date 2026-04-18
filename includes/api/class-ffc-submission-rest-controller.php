@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Submission REST Controller
  *
@@ -9,9 +7,11 @@ declare(strict_types=1);
  *   GET  /submissions/{id} – Get single submission (admin)
  *   POST /verify           – Verify certificate by auth code
  *
- * @since 4.6.1
  * @package FreeFormCertificate\API
+ * @since 4.6.1
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 

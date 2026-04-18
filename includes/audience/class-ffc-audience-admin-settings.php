@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Admin Settings
  *
  * Handles the settings page and global holiday management for the
  * unified scheduling system.
  *
- * @since 4.6.0
  * @package FreeFormCertificate\Audience
+ * @since 4.6.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
@@ -476,9 +476,9 @@ class AudienceAdminSettings {
 							</th>
 							<td>
 								<input type="color" name="ffc_aud_multiple_audiences_color" id="ffc_aud_multiple_audiences_color"
-										value="<?php echo esc_attr( $multiple_audiences_color ?: '#666666' ); ?>"
+										value="<?php echo esc_attr( $multiple_audiences_color ? $multiple_audiences_color : '#666666' ); ?>"
 										style="width: 50px; height: 30px; padding: 0; border: 1px solid #ccc; cursor: pointer;">
-								<span style="margin-left: 8px; color: #666;"><?php echo esc_html( $multiple_audiences_color ?: '#666666' ); ?></span>
+								<span style="margin-left: 8px; color: #666;"><?php echo esc_html( $multiple_audiences_color ? $multiple_audiences_color : '#666666' ); ?></span>
 								<p class="description">
 									<?php esc_html_e( 'Color for the "Multiple audiences" badge shown in the event list when an event has more than 2 audiences.', 'ffcertificate' ); ?>
 								</p>
@@ -567,7 +567,7 @@ class AudienceAdminSettings {
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 			$ma_color = isset( $_POST['ffc_aud_multiple_audiences_color'] )
 				? sanitize_hex_color( wp_unslash( $_POST['ffc_aud_multiple_audiences_color'] ) ) : '';
-			update_option( 'ffc_aud_multiple_audiences_color', $ma_color ?: '' );
+			update_option( 'ffc_aud_multiple_audiences_color', $ma_color ? $ma_color : '' );
 
 			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Audience visibility settings saved.', 'ffcertificate' ), 'success' );
 		}

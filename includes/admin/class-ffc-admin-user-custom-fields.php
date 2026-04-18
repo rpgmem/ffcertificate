@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Admin User Custom Fields
  *
  * Adds a "Custom Data" section to the WordPress user edit screen showing
  * custom fields from all audiences the user belongs to.
  *
- * @since 4.11.0
  * @package FreeFormCertificate\Admin
+ * @since 4.11.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 

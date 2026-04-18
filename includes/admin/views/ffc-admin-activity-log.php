@@ -2,6 +2,7 @@
 /**
  * Activity Log Page View
  *
+ * @package FreeFormCertificate\Admin\Views
  * @version 3.1.1
  */
 

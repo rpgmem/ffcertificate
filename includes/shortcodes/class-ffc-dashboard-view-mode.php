@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * DashboardViewMode
  *
  * Extracted from DashboardShortcode (Sprint 18 refactoring).
  * Handles admin "view as user" mode: validates the request and renders the banner.
  *
+ * @package FreeFormCertificate\Shortcodes
  * @since 4.12.19
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Shortcodes;
 

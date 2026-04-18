@@ -1,12 +1,13 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Rate Limit Settings Tab
  *
+ * @package FreeFormCertificate\Settings\Tabs
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings\Tabs;
 

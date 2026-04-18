@@ -1,15 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment CSV Exporter
  *
  * Handles CSV export functionality for calendar appointments.
  * Exports appointment data with dynamic columns and filtering.
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.1.0
  * @version 4.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
@@ -19,7 +20,6 @@ use FreeFormCertificate\Repositories\CalendarRepository;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
 
 class AppointmentCsvExporter {
 

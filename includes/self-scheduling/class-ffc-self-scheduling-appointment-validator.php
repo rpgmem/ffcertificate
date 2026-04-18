@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment Validator
  *
@@ -10,10 +8,12 @@ declare(strict_types=1);
  *
  * Extracted from AppointmentHandler (M7 refactoring).
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.6.8
  * @version 4.6.10 - Added lock-aware validation for concurrent booking safety
- * @package FreeFormCertificate\SelfScheduling
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 

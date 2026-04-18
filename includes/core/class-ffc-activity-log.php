@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * ActivityLog
  * Tracks important activities for audit and debugging
@@ -23,12 +21,15 @@ declare(strict_types=1);
  * - Stats caching with transient (v4.6.9)
  * - Refactored: query/stats/cleanup moved to ActivityLogQuery (v4.12.2)
  *
+ * @package FreeFormCertificate\Core
  * @version 4.12.2 - Split query/stats/cleanup to ActivityLogQuery
  * @version 4.6.9 - Batch writes, auto-cleanup, stats caching
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 2.9.1
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 

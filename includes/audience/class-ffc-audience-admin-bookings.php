@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Admin Bookings
  *
  * Handles the bookings listing page for the audience scheduling system.
  *
- * @since 4.6.0
  * @package FreeFormCertificate\Audience
+ * @since 4.6.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 

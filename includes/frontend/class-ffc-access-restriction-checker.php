@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * AccessRestrictionChecker
  *
  * Extracted from FormProcessor (Sprint 16 refactoring).
  * Validates form access rules: password, denylist, allowlist, and ticket.
  *
+ * @package FreeFormCertificate\Frontend
  * @since 4.12.17
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 

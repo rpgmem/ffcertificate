@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * ReprintDetector
  *
@@ -8,15 +6,17 @@ declare(strict_types=1);
  * Detects existing submissions for reprint by ticket or CPF/RF,
  * supporting both encrypted and plaintext storage with JSON fallback.
  *
+ * @package FreeFormCertificate\Frontend
  * @since 4.12.17
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
 
 class ReprintDetector {
 
