@@ -52,29 +52,127 @@ class AudienceAdminPage {
 	 */
 	public const MENU_SLUG = 'ffc-scheduling';
 
-	/** @var AudienceAdminDashboard */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminDashboard
+	 */
 	private AudienceAdminDashboard $dashboard;
 
-	/** @var AudienceAdminCalendar */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminCalendar
+	 */
 	private AudienceAdminCalendar $calendar;
 
-	/** @var AudienceAdminEnvironment */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminEnvironment
+	 */
 	private AudienceAdminEnvironment $environment;
 
-	/** @var AudienceAdminAudience */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminAudience
+	 */
 	private AudienceAdminAudience $audience;
 
-	/** @var AudienceAdminBookings */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminBookings
+	 */
 	private AudienceAdminBookings $bookings;
 
-	/** @var AudienceAdminSettings */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminSettings
+	 */
 	private AudienceAdminSettings $settings;
 
-	/** @var AudienceAdminImport */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminImport
+	 */
 	private AudienceAdminImport $import;
 
 	/**
 	 * Initialize admin page
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
 	 *
 	 * @return void
 	 */

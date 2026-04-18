@@ -291,6 +291,8 @@ class AdminUserColumns {
 
 	/**
 	 * Enqueue CSS for certificates column
+	 *
+	 * @param string $hook Hook name.
 	 */
 	public static function enqueue_styles( string $hook ): void {
 		// Only load on users.php page.

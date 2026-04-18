@@ -30,6 +30,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FormProcessor {
 
 	/**
+	 * Submission handler.
+	 *
 	 * @var SubmissionHandler
 	 */
 	private $submission_handler;
@@ -37,7 +39,7 @@ class FormProcessor {
 	/**
 	 * Constructor
 	 *
-	 * @param SubmissionHandler $submission_handler
+	 * @param SubmissionHandler $submission_handler Submission handler.
 	 */
 	public function __construct( SubmissionHandler $submission_handler ) {
 		$this->submission_handler = $submission_handler;

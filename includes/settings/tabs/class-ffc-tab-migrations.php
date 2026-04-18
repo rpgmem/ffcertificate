@@ -23,6 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class TabMigrations extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'migrations';
 		$this->tab_title = __( 'Data Migrations', 'ffcertificate' );
@@ -30,6 +33,9 @@ class TabMigrations extends SettingsTab {
 		$this->tab_order = 80;
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		// Include view file.
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-migrations.php';

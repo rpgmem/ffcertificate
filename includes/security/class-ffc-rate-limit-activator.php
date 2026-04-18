@@ -24,6 +24,11 @@ class RateLimitActivator {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
+	/**
+	 * Create tables.
+	 *
+	 * @return bool
+	 */
 	public static function create_tables(): bool {
 		global $wpdb;
 
@@ -94,6 +99,11 @@ class RateLimitActivator {
 		return true;
 	}
 
+	/**
+	 * Tables exist.
+	 *
+	 * @return bool
+	 */
 	public static function tables_exist(): bool {
 		global $wpdb;
 
@@ -101,6 +111,11 @@ class RateLimitActivator {
 			&& self::table_exists( $wpdb->prefix . 'ffc_rate_limit_logs' );
 	}
 
+	/**
+	 * Drop tables.
+	 *
+	 * @return bool
+	 */
 	public static function drop_tables(): bool {
 		global $wpdb;
 

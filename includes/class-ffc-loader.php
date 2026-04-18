@@ -56,45 +56,115 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Loader {
 
-	/** @var \FreeFormCertificate\Submissions\SubmissionHandler */
+	/**
+	 * Submission handler.
+	 *
+	 * @var \FreeFormCertificate\Submissions\SubmissionHandler
+	 */
 	protected $submission_handler;
-	/** @var \FreeFormCertificate\Integrations\EmailHandler */
+	/**
+	 * Email handler.
+	 *
+	 * @var \FreeFormCertificate\Integrations\EmailHandler
+	 */
 	protected $email_handler;
-	/** @var \FreeFormCertificate\Admin\CsvExporter|null */
+	/**
+	 * Csv exporter.
+	 *
+	 * @var \FreeFormCertificate\Admin\CsvExporter|null
+	 */
 	protected $csv_exporter;
-	/** @var \FreeFormCertificate\Admin\CPT */
+	/**
+	 * Cpt.
+	 *
+	 * @var \FreeFormCertificate\Admin\CPT
+	 */
 	protected $cpt;
-	/** @var \FreeFormCertificate\Admin\Admin|null */
+	/**
+	 * Admin.
+	 *
+	 * @var \FreeFormCertificate\Admin\Admin|null
+	 */
 	protected $admin;
-	/** @var \FreeFormCertificate\Frontend\Frontend */
+	/**
+	 * Frontend.
+	 *
+	 * @var \FreeFormCertificate\Frontend\Frontend
+	 */
 	protected $frontend;
-	/** @var \FreeFormCertificate\Admin\AdminAjax|null */
+	/**
+	 * Admin ajax.
+	 *
+	 * @var \FreeFormCertificate\Admin\AdminAjax|null
+	 */
 	protected $admin_ajax;
-	/** @var \FreeFormCertificate\SelfScheduling\SelfSchedulingCPT */
+	/**
+	 * Self scheduling cpt.
+	 *
+	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingCPT
+	 */
 	protected $self_scheduling_cpt;
-	/** @var \FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin|null */
+	/**
+	 * Self scheduling admin.
+	 *
+	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin|null
+	 */
 	protected $self_scheduling_admin;
-	/** @var \FreeFormCertificate\SelfScheduling\SelfSchedulingEditor|null */
+	/**
+	 * Self scheduling editor.
+	 *
+	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingEditor|null
+	 */
 	protected $self_scheduling_editor;
-	/** @var \FreeFormCertificate\SelfScheduling\AppointmentHandler */
+	/**
+	 * Self scheduling appointment handler.
+	 *
+	 * @var \FreeFormCertificate\SelfScheduling\AppointmentHandler
+	 */
 	protected $self_scheduling_appointment_handler;
-	/** @var \FreeFormCertificate\SelfScheduling\AppointmentEmailHandler */
+	/**
+	 * Self scheduling email handler.
+	 *
+	 * @var \FreeFormCertificate\SelfScheduling\AppointmentEmailHandler
+	 */
 	protected $self_scheduling_email_handler;
-	/** @var \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler */
+	/**
+	 * Self scheduling receipt handler.
+	 *
+	 * @var \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler
+	 */
 	protected $self_scheduling_receipt_handler;
-	/** @var \FreeFormCertificate\SelfScheduling\AppointmentCsvExporter|null */
+	/**
+	 * Self scheduling csv exporter.
+	 *
+	 * @var \FreeFormCertificate\SelfScheduling\AppointmentCsvExporter|null
+	 */
 	protected $self_scheduling_csv_exporter;
-	/** @var \FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode */
+	/**
+	 * Self scheduling shortcode.
+	 *
+	 * @var \FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode
+	 */
 	protected $self_scheduling_shortcode;
-	/** @var \FreeFormCertificate\Audience\AudienceLoader */
+	/**
+	 * Audience loader.
+	 *
+	 * @var \FreeFormCertificate\Audience\AudienceLoader
+	 */
 	protected $audience_loader;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		add_action( 'plugins_loaded', array( $this, 'init_plugin' ), 10 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'register_frontend_assets' ) );
 		$this->define_activation_hooks();
 	}
 
+	/**
+	 * Initialize plugin.
+	 */
 	public function init_plugin(): void {
 		// Ensure submissions table schema is current (runs add_columns on version change).
 		\FreeFormCertificate\Activator::maybe_add_columns();
@@ -186,6 +256,9 @@ class Loader {
 		}
 	}
 
+	/**
+	 * Define activation hooks.
+	 */
 	private function define_activation_hooks(): void {
 		// Autoloader handles class loading.
 		register_activation_hook( FFC_PLUGIN_DIR . 'ffcertificate.php', array( '\\FreeFormCertificate\Activator', 'activate' ) );
@@ -247,6 +320,9 @@ class Loader {
 		update_option( $version_key, FFC_VERSION );
 	}
 
+	/**
+	 * Define admin hooks.
+	 */
 	private function define_admin_hooks(): void {
 		add_action(
 			'ffcertificate_daily_cleanup_hook',

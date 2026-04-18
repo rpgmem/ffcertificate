@@ -288,8 +288,10 @@ class ActivityLog {
 	// =====================================================================.
 
 	/**
+	 * Get activities.
+	 *
 	 * @see ActivityLogQuery::get_activities()
-	 * @param array<string, mixed> $args
+	 * @param array<string, mixed> $args Query arguments.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_activities( array $args = array() ): array {
@@ -297,25 +299,59 @@ class ActivityLog {
 	}
 
 	/**
+	 * Count activities.
+	 *
 	 * @see ActivityLogQuery::count_activities()
-	 * @param array<string, mixed> $args
+	 * @param array<string, mixed> $args Query arguments.
 	 */
 	public static function count_activities( array $args = array() ): int {
 		return ActivityLogQuery::count_activities( $args );
 	}
 
-	/** @see ActivityLogQuery::cleanup() */
+	/**
+	 * Cleanup.
+	 *
+	 * @see ActivityLogQuery::cleanup()
+	 * @param int $days Days.
+	 */
 	public static function cleanup( int $days = 90 ): int {
 		return ActivityLogQuery::cleanup( $days );
 	}
 
-	/** @see ActivityLogQuery::run_cleanup() */
+	/**
+	 * Run cleanup.
+	 *
+	 * @see ActivityLogQuery::run_cleanup()
+	 */
 	public static function run_cleanup(): int {
 		return ActivityLogQuery::run_cleanup();
 	}
 
 	/**
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
 	 * @see ActivityLogQuery::get_stats()
+	 * @param int $days Days.
 	 * @return array<string, mixed>
 	 */
 	public static function get_stats( int $days = 30 ): array {
@@ -341,6 +377,9 @@ class ActivityLog {
 
 	/**
 	 * Log submission updated
+	 *
+	 * @param int $submission_id Submission ID.
+	 * @param int $admin_user_id Admin User ID.
 	 */
 	public static function log_submission_updated( int $submission_id, int $admin_user_id ): bool {
 		return self::log(
@@ -355,6 +394,9 @@ class ActivityLog {
 
 	/**
 	 * Log submission deleted
+	 *
+	 * @param int $submission_id Submission ID.
+	 * @param int $admin_user_id Admin User ID.
 	 */
 	public static function log_submission_deleted( int $submission_id, int $admin_user_id = 0 ): bool {
 		return self::log(
@@ -418,6 +460,9 @@ class ActivityLog {
 
 	/**
 	 * Log access denied
+	 *
+	 * @param string $reason Reason.
+	 * @param string $identifier Identifier.
 	 */
 	public static function log_access_denied( string $reason, string $identifier ): bool {
 		return self::log(
@@ -432,6 +477,9 @@ class ActivityLog {
 
 	/**
 	 * Log settings changed
+	 *
+	 * @param string $setting_key Setting key.
+	 * @param int    $admin_user_id Admin User ID.
 	 */
 	public static function log_settings_changed( string $setting_key, int $admin_user_id ): bool {
 		return self::log(
@@ -516,7 +564,11 @@ class ActivityLog {
 	}
 
 	/**
+	 * Get submission logs.
+	 *
 	 * @see ActivityLogQuery::get_submission_logs()
+	 * @param int $submission_id Submission ID.
+	 * @param int $limit Limit.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_submission_logs( int $submission_id, int $limit = 100 ): array {

@@ -12,6 +12,8 @@
  *   https://yoursite.com/wp-content/plugins/ffcertificate/force-split-migration.php
  *
  * DELETE THIS FILE AFTER RUNNING.
+ *
+ * @package FreeFormCertificate
  */
 
 // ── Bootstrap WordPress ──────────────────────────────────────────
@@ -21,6 +23,7 @@ $wp_load_paths = array(
 );
 
 $loaded = false;
+// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- local $path, not global.
 foreach ( $wp_load_paths as $path ) {
 	if ( file_exists( $path ) ) {
 		require_once $path;
@@ -48,7 +51,13 @@ if ( ! $is_cli ) {
 }
 
 // ── Helper: output ──────────────────────────────────────────────
+/**
+ * Output a message to stdout, flushing when running in a browser.
+ *
+ * @param string $msg Message to output.
+ */
 function ffc_out( string $msg ): void {
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CLI/admin-only script; messages are controlled strings.
 	echo $msg . "\n";
 	if ( php_sapi_name() !== 'cli' && ! defined( 'WP_CLI' ) ) {
 		ob_flush();

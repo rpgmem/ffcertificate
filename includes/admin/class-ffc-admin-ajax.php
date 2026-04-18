@@ -23,6 +23,9 @@ class AdminAjax {
 
 	use \FreeFormCertificate\Core\AjaxTrait;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		// Register AJAX handlers (ffc_load_template is handled by FormEditor).
 		add_action( 'wp_ajax_ffc_generate_tickets', array( $this, 'generate_tickets' ) );
@@ -77,6 +80,7 @@ class AdminAjax {
 	/**
 	 * Get existing codes for a form
 	 *
+	 * @param int $form_id Form ID.
 	 * @return array<int, string>
 	 */
 	private function get_existing_codes( int $form_id ): array {
@@ -106,6 +110,8 @@ class AdminAjax {
 
 	/**
 	 * Generate random letters
+	 *
+	 * @param int $length Length.
 	 */
 	private function random_letters( int $length ): string {
 		$letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Removed I and O to avoid confusion.
@@ -120,6 +126,8 @@ class AdminAjax {
 
 	/**
 	 * Generate random numbers
+	 *
+	 * @param int $length Length.
 	 */
 	private function random_numbers( int $length ): string {
 		$result = '';

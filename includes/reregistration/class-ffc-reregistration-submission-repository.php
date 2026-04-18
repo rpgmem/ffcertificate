@@ -212,8 +212,7 @@ class ReregistrationSubmissionRepository {
 	 * Get submissions for a reregistration with optional filters.
 	 *
 	 * @param int                  $reregistration_id Reregistration ID.
-	 * @param array                $filters {
-	 *                    Optional. Query filters.
+	 * @param array<string, mixed> $filters { Optional. Query filters.
 	 *     @type string $status  Filter by status.
 	 *     @type string $search  Search in user display_name or email.
 	 *     @type string $orderby Column to order by. Default 'created_at'.
@@ -221,7 +220,6 @@ class ReregistrationSubmissionRepository {
 	 *     @type int    $limit   Max results. Default 0.
 	 *     @type int    $offset  Offset. Default 0.
 	 * }
-	 * @param array<string, mixed> $filters
 	 * @return array<object>
 	 */
 	public static function get_by_reregistration( int $reregistration_id, array $filters = array() ): array {
@@ -270,12 +268,26 @@ class ReregistrationSubmissionRepository {
 		$prepare_values = array_merge( array( $table, $wpdb->users ), $values );
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		/** @phpstan-ignore-next-line argument.type */
+		/**
+		 * Description.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
 		return $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) );
 	}
 
 	/**
 	 * Create a submission record.
+	 *
+	 * Create.
+	 *
+	 * Create.
+	 *
+	 * Create.
+	 *
+	 * Create.
+	 *
+	 * Create.
 	 *
 	 * @param array<string, mixed> $data Submission data.
 	 * @return int|false Submission ID or false.

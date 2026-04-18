@@ -22,10 +22,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class FormRepository extends AbstractRepository {
 
+	/**
+	 * Get table name.
+	 *
+	 * @return string
+	 */
 	protected function get_table_name(): string {
 		return $this->wpdb->posts;
 	}
 
+	/**
+	 * Get cache group.
+	 *
+	 * @return string
+	 */
 	protected function get_cache_group(): string {
 		return 'ffc_forms';
 	}
@@ -33,7 +43,7 @@ class FormRepository extends AbstractRepository {
 	/**
 	 * Find published forms
 	 *
-	 * @param int $limit
+	 * @param int $limit Limit.
 	 * @return array<int, mixed>
 	 */
 	public function findPublished( int $limit = -1 ): array {
@@ -51,7 +61,7 @@ class FormRepository extends AbstractRepository {
 	/**
 	 * Get form config
 	 *
-	 * @param int $form_id
+	 * @param int $form_id Form ID.
 	 * @return mixed
 	 */
 	public function getConfig( int $form_id ) {
@@ -65,7 +75,7 @@ class FormRepository extends AbstractRepository {
 	/**
 	 * Get form fields
 	 *
-	 * @param int $form_id
+	 * @param int $form_id Form ID.
 	 * @return mixed
 	 */
 	public function getFields( int $form_id ) {
@@ -79,7 +89,7 @@ class FormRepository extends AbstractRepository {
 	/**
 	 * Get form background
 	 *
-	 * @param int $form_id
+	 * @param int $form_id Form ID.
 	 * @return mixed
 	 */
 	public function getBackground( int $form_id ) {

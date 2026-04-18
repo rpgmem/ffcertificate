@@ -59,6 +59,8 @@ class PublicCsvExporter {
 	const JOB_TTL = 3600;
 
 	/**
+	 * Repository.
+	 *
 	 * @var SubmissionRepository
 	 */
 	protected $repository;
@@ -70,6 +72,9 @@ class PublicCsvExporter {
 	 */
 	private array $form_title_cache = array();
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		$this->repository = new SubmissionRepository();
 	}
@@ -380,7 +385,11 @@ class PublicCsvExporter {
 			);
 		}
 
-		/** @since 5.1.0 Same filter as admin CSV + synchronous public export. */
+		/**
+		 * Description.
+		 *
+		 * @since 5.1.0 Same filter as admin CSV + synchronous public export.
+		 */
 		$batch = apply_filters( 'ffcertificate_csv_export_data', $batch, $job['form_ids'], $job['status'] );
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
@@ -423,6 +432,16 @@ class PublicCsvExporter {
 
 	/**
 	 * Serve the completed CSV file and clean up.
+	 *
+	 * AJAX handler for download.
+	 *
+	 * AJAX handler for download.
+	 *
+	 * AJAX handler for download.
+	 *
+	 * AJAX handler for download.
+	 *
+	 * AJAX handler for download.
 	 *
 	 * @since 5.1.0
 	 */
@@ -518,9 +537,9 @@ class PublicCsvExporter {
 	 * Format one submission row as a CSV line — mirrors
 	 * `CsvExporter::format_csv_row()`.
 	 *
-	 * @param array<string, mixed> $row
-	 * @param array<int, string>   $dynamic_keys
-	 * @param bool                 $include_edit_columns
+	 * @param array<string, mixed> $row Row.
+	 * @param array<int, string> $dynamic_keys Dynamic keys.
+	 * @param bool  $include_edit_columns Include edit columns.
 	 * @return array<int, mixed>
 	 */
 	private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {
@@ -578,8 +597,8 @@ class PublicCsvExporter {
 	/**
 	 * Scan all matching records to discover dynamic JSON keys.
 	 *
-	 * @param array<int, int> $form_ids
-	 * @param string          $status
+	 * @param array<int, int> $form_ids Form IDs.
+	 * @param string          $status   Status.
 	 * @return array<int, string>
 	 */
 	private function scan_dynamic_keys( array $form_ids, string $status ): array {
@@ -601,6 +620,8 @@ class PublicCsvExporter {
 	}
 
 	/**
+	 * Get form title cached.
+	 *
 	 * @param int $form_id Form post ID.
 	 * @return string Form title or "(Deleted)" placeholder.
 	 */

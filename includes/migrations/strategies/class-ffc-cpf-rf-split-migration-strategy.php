@@ -44,11 +44,15 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	private const RF_LENGTH = 7;
 
 	/**
+	 * Submissions table.
+	 *
 	 * @var string Submissions table name
 	 */
 	private string $submissions_table;
 
 	/**
+	 * Appointments table.
+	 *
 	 * @var string Appointments table name
 	 */
 	private string $appointments_table;

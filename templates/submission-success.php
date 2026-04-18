@@ -9,6 +9,7 @@
  * @var string $date_formatted Formatted submission date
  * @var string $auth_code Authentication code (optional)
  *
+ * @package FreeFormCertificate
  * @since 3.1.0
  */
 

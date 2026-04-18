@@ -146,7 +146,11 @@ class AudienceBookingRepository {
 
 		$prepare_args = array_merge( array( $table, $env_table ), $values );
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		/** @phpstan-ignore-next-line argument.type */
+		/**
+		 * Description.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
@@ -155,6 +159,16 @@ class AudienceBookingRepository {
 
 	/**
 	 * Get booking by ID
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
 	 *
 	 * @param int $id Booking ID.
 	 * @return object|null
@@ -732,7 +746,11 @@ class AudienceBookingRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				/** @phpstan-ignore-next-line argument.type */
+				/**
+				 * Description.
+				 *
+				 * @phpstan-ignore-next-line argument.type
+				 */
 				"SELECT * FROM %i
                 WHERE environment_id = %d
                 AND booking_date = %s
@@ -763,6 +781,16 @@ class AudienceBookingRepository {
 	 * Returns bookings that would affect the same users at the same time.
 	 * When $scope_schedule_id is provided, only bookings in that schedule
 	 * are considered (isolated-calendar mode).
+	 *
+	 * Get user conflicts.
+	 *
+	 * Get user conflicts.
+	 *
+	 * Get user conflicts.
+	 *
+	 * Get user conflicts.
+	 *
+	 * Get user conflicts.
 	 *
 	 * @param string     $date Date (Y-m-d).
 	 * @param string     $start_time Start time (H:i).
@@ -825,7 +853,11 @@ class AudienceBookingRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$conflicting_bookings = $wpdb->get_results(
 			$wpdb->prepare(
-				/** @phpstan-ignore-next-line argument.type */
+				/**
+				 * Description.
+				 *
+				 * @phpstan-ignore-next-line argument.type
+				 */
 				"SELECT DISTINCT b.* FROM %i b
                 LEFT JOIN %i ba ON b.id = ba.booking_id
                 LEFT JOIN %i am ON ba.audience_id = am.audience_id
@@ -868,6 +900,16 @@ class AudienceBookingRepository {
 	 * on the same day (regardless of time overlap).
 	 * When $scope_schedule_id is provided, only bookings in that schedule
 	 * are considered (isolated-calendar mode).
+	 *
+	 * Get audience same day bookings.
+	 *
+	 * Get audience same day bookings.
+	 *
+	 * Get audience same day bookings.
+	 *
+	 * Get audience same day bookings.
+	 *
+	 * Get audience same day bookings.
 	 *
 	 * @param string     $date Date (Y-m-d).
 	 * @param array<int> $audience_ids Audience IDs to check.
@@ -912,7 +954,11 @@ class AudienceBookingRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				/** @phpstan-ignore-next-line argument.type */
+				/**
+				 * Description.
+				 *
+				 * @phpstan-ignore-next-line argument.type
+				 */
 				"SELECT b.id, b.start_time, b.end_time, b.description, a.name AS audience_name, ba.audience_id
                 FROM %i b
                 INNER JOIN %i ba ON b.id = ba.booking_id
@@ -931,6 +977,16 @@ class AudienceBookingRepository {
 
 	/**
 	 * Count bookings
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
 	 *
 	 * @param array<string, mixed> $args Query arguments.
 	 * @return int

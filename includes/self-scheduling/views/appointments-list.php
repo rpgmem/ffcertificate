@@ -31,12 +31,23 @@ if ( ! class_exists( 'FFC_Appointments_List_Table' ) ) :
 	 */
 	class FFC_Appointments_List_Table extends WP_List_Table {
 
-		/** @var \FreeFormCertificate\Repositories\AppointmentRepository */
+		/**
+		 * Appointment repository.
+		 *
+		 * @var \FreeFormCertificate\Repositories\AppointmentRepository
+		 */
 		private $appointment_repository;
 
-		/** @var \FreeFormCertificate\Repositories\CalendarRepository */
+		/**
+		 * Calendar repository.
+		 *
+		 * @var \FreeFormCertificate\Repositories\CalendarRepository
+		 */
 		private $calendar_repository;
 
+		/**
+		 * Constructor.
+		 */
 		public function __construct() {
 			parent::__construct(
 				array(
@@ -301,6 +312,8 @@ if ( ! class_exists( 'FFC_Appointments_List_Table' ) ) :
 
 		/**
 		 * Display filters
+		 *
+		 * @param mixed $which Which.
 		 */
 		protected function extra_tablenav( $which ): void {
 			if ( 'top' !== $which ) {

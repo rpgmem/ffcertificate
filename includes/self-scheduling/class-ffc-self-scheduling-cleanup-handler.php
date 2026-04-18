@@ -188,7 +188,7 @@ class SelfSchedulingCleanupHandler {
 	 * - Future appointments
 	 * - Cancelled appointments
 	 *
-	 * @param object $post
+	 * @param object $post Post object.
 	 * @return void
 	 */
 	public function render_cleanup_metabox( object $post ): void {

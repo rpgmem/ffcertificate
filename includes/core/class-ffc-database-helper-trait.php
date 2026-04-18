@@ -125,8 +125,8 @@ trait DatabaseHelperTrait {
 	 *
 	 * Each column config must have a 'type' key, and optionally 'after' and 'index'.
 	 *
-	 * @param string                                                             $table_name Full table name.
-	 * @param array<string, array{type: string, after?: string, index?: string}> $columns
+	 * @param string $table_name Full table name.
+	 * @param array<string, mixed>  $columns Columns.
 	 * @return int Number of columns added.
 	 */
 	protected static function add_columns_if_missing( string $table_name, array $columns ): int {

@@ -51,7 +51,7 @@ class Encryption {
 	const HMAC_LENGTH = 32;
 
 	/**
-	 * v2 ciphertext prefix. Anything encrypted before this version is decoded by the legacy path.
+	 * V2 ciphertext prefix. Anything encrypted before this version is decoded by the legacy path.
 	 */
 	const V2_PREFIX = 'v2:';
 

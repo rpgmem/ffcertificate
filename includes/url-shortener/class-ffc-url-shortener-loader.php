@@ -22,12 +22,23 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class UrlShortenerLoader {
 
-	/** @var UrlShortenerService */
+	/**
+	 * Description.
+	 *
+	 * @var UrlShortenerService
+	 */
 	private UrlShortenerService $service;
 
-	/** @var bool Whether a redirect was already handled in this request. */
+	/**
+	 * Description.
+	 *
+	 * @var bool Whether a redirect was already handled in this request.
+	 */
 	private bool $redirected = false;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		$this->service = new UrlShortenerService();
 	}

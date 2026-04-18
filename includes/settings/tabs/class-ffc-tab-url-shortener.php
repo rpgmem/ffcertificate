@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class TabUrlShortener extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'url_shortener';
 		$this->tab_title = __( 'URL Shortener', 'ffcertificate' );
@@ -28,6 +31,9 @@ class TabUrlShortener extends SettingsTab {
 		$this->tab_order = 35;
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-url-shortener.php';
 

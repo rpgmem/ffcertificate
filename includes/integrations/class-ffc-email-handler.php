@@ -39,6 +39,9 @@ class EmailHandler {
 
 	use \FreeFormCertificate\Core\EmailHelperTrait;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		add_action( 'ffcertificate_process_submission_hook', array( $this, 'async_process_submission' ), 10, 8 );
 		add_action( 'phpmailer_init', array( $this, 'configure_custom_smtp' ) );

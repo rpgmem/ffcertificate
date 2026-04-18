@@ -23,6 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class TabSMTP extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'smtp';
 		$this->tab_title = __( 'SMTP', 'ffcertificate' );
@@ -35,6 +38,8 @@ class TabSMTP extends SettingsTab {
 
 	/**
 	 * Enqueue scripts for SMTP settings page
+	 *
+	 * @param string $hook Hook name.
 	 */
 	public function enqueue_scripts( string $hook ): void {
 		// Only load on settings page with this tab active.
@@ -55,6 +60,9 @@ class TabSMTP extends SettingsTab {
 		}
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		// Include view file.
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-smtp.php';

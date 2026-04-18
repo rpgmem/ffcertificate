@@ -23,6 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class TabCache extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'cache';
 		$this->tab_title = __( 'Cache', 'ffcertificate' );
@@ -30,6 +33,9 @@ class TabCache extends SettingsTab {
 		$this->tab_order = 30;
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-cache.php';
 

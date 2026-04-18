@@ -26,9 +26,16 @@ class UserAppointmentsRestController {
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param string $namespace Namespace.
+	 */
 	public function __construct( string $namespace ) {
 		$this->namespace = $namespace;
 	}
@@ -52,7 +59,7 @@ class UserAppointmentsRestController {
 	 * GET /user/appointments
 	 *
 	 * @since 4.1.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_user_appointments( $request ) {

@@ -35,14 +35,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Settings {
 
 	/**
+	 * Tabs.
+	 *
 	 * @var array<string, object>
 	 */
 	private $tabs = array();
 	/**
+	 * Save handler.
+	 *
 	 * @var \FreeFormCertificate\Admin\SettingsSaveHandler
 	 */
 	private $save_handler;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Handler.
+	 */
 	public function __construct( \FreeFormCertificate\Submissions\SubmissionHandler $handler ) {
 		$this->save_handler = new \FreeFormCertificate\Admin\SettingsSaveHandler( $handler );
 
@@ -99,6 +108,9 @@ class Settings {
 		$this->tabs = apply_filters( 'ffcertificate_settings_tabs', $this->tabs );
 	}
 
+	/**
+	 * Add settings page.
+	 */
 	public function add_settings_page(): void {
 		add_submenu_page(
 			'edit.php?post_type=ffc_form',
@@ -531,6 +543,9 @@ class Settings {
 		}
 	}
 
+	/**
+	 * Handle cache actions.
+	 */
 	public function handle_cache_actions(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;

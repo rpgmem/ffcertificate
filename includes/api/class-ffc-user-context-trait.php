@@ -28,7 +28,7 @@ trait UserContextTrait {
 	 * user's capabilities so the admin sees exactly what the user would see.
 	 *
 	 * @since 4.9.7
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return array{user_id: int, is_view_as: bool}
 	 */
 	private function resolve_user_context( $request ): array {

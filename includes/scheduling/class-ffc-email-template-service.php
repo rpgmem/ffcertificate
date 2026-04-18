@@ -148,16 +148,7 @@ class EmailTemplateService {
 	/**
 	 * Generate an ICS calendar file content.
 	 *
-	 * @param array{
-	 *     uid: string,
-	 *     summary: string,
-	 *     description: string,
-	 *     location: string,
-	 *     date: string,
-	 *     start_time: string,
-	 *     end_time: string,
-	 *     status?: string
-	 * } $event Event data
+	 * @param array<string, mixed>  $event Event.
 	 * @param string $method ICS method (REQUEST or CANCEL).
 	 * @return string ICS file content
 	 */
@@ -206,7 +197,7 @@ class EmailTemplateService {
 	/**
 	 * Escape text for ICS format.
 	 *
-	 * @param string $text
+	 * @param string $text Text.
 	 * @return string
 	 */
 	private static function escape_ics_text( string $text ): string {

@@ -27,9 +27,28 @@ class UrlShortenerQrHandler {
 
 	use AjaxTrait;
 
-	/** @var UrlShortenerService */
+	/**
+	 * Description.
+	 *
+	 * @var UrlShortenerService
+	 */
 	private UrlShortenerService $service;
 
+	/**
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * @param UrlShortenerService $service Service.
+	 */
 	public function __construct( UrlShortenerService $service ) {
 		$this->service = $service;
 	}

@@ -36,7 +36,7 @@ class AppointmentReceiptHandler {
 	/**
 	 * Add custom query vars
 	 *
-	 * @param array<int, string> $vars
+	 * @param array<int, string> $vars Vars.
 	 * @return array<int, string>
 	 */
 	public function add_query_vars( array $vars ): array {
@@ -151,8 +151,8 @@ class AppointmentReceiptHandler {
 	/**
 	 * Display receipt HTML
 	 *
-	 * @param array<string, mixed> $appointment
-	 * @param array<string, mixed> $calendar
+	 * @param array<string, mixed> $appointment Appointment.
+	 * @param array<string, mixed> $calendar Calendar.
 	 * @return void
 	 */
 	private function display_receipt( array $appointment, array $calendar ): void {
@@ -545,7 +545,7 @@ class AppointmentReceiptHandler {
 	/**
 	 * Generate receipt URL for an appointment
 	 *
-	 * @param int    $appointment_id
+	 * @param int    $appointment_id Appointment ID.
 	 * @param string $token Optional confirmation token for guest access.
 	 * @return string
 	 */

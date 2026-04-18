@@ -27,10 +27,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SubmissionHandler {
 
 	/**
+	 * Repository.
+	 *
 	 * @var SubmissionRepository
 	 */
 	private $repository;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		$this->repository = new SubmissionRepository();
 	}
@@ -63,6 +68,7 @@ class SubmissionHandler {
 	 *
 	 * @uses Repository::findById()
 	 *
+	 * @param int $id ID.
 	 * @return array<string, mixed>|null
 	 */
 	public function get_submission( int $id ) {
@@ -80,6 +86,7 @@ class SubmissionHandler {
 	 *
 	 * @uses Repository::findByToken()
 	 *
+	 * @param string $token Token.
 	 * @return array<string, mixed>|null
 	 */
 	public function get_submission_by_token( string $token ) {
@@ -103,12 +110,12 @@ class SubmissionHandler {
 	 *
 	 * @uses Repository::insert()
 	 *
-	 * @param int                  $form_id
-	 * @param string               $form_title
-	 * @param array<string, mixed> $submission_data
-	 * @param string               $user_email
-	 * @param array<string, mixed> $fields_config
-	 * @param array<string, mixed> $form_config
+	 * @param int    $form_id         Form ID.
+	 * @param string $form_title      Form title.
+	 * @param array<string, mixed>  $submission_data Submission data (passed by reference).
+	 * @param string $user_email      User email.
+	 * @param array<string, mixed>  $fields_config   Fields configuration.
+	 * @param array<string, mixed>  $form_config     Form configuration.
 	 * @return int|\WP_Error
 	 */
 	public function process_submission( int $form_id, string $form_title, array &$submission_data, string $user_email, array $fields_config, array $form_config ) {
@@ -117,9 +124,9 @@ class SubmissionHandler {
 		 *
 		 * @since 4.6.4
 		 * @param int    $form_id         Form ID.
-		 * @param array  $submission_data Submission data (passed by reference via the method).
+		 * @param array<string, mixed>  $submission_data Submission data (passed by reference via the method).
 		 * @param string $user_email      User email.
-		 * @param array  $form_config     Form configuration.
+		 * @param array<string, mixed>  $form_config     Form configuration.
 		 */
 		do_action( 'ffcertificate_before_submission_save', $form_id, $submission_data, $user_email, $form_config );
 
@@ -285,7 +292,7 @@ class SubmissionHandler {
 		 * @since 4.6.4
 		 * @param int    $submission_id   Newly created submission ID.
 		 * @param int    $form_id         Form ID.
-		 * @param array  $submission_data Original submission data.
+		 * @param array<string, mixed>  $submission_data Original submission data.
 		 * @param string $user_email      User email.
 		 */
 		do_action( 'ffcertificate_after_submission_save', $submission_id, $form_id, $submission_data, $user_email );
@@ -298,7 +305,9 @@ class SubmissionHandler {
 	 *
 	 * @uses Repository::updateWithEditTracking()
 	 *
-	 * @param array<string, mixed> $clean_data
+	 * @param int    $id         Submission ID.
+	 * @param string $new_email  New email.
+	 * @param array<string, mixed>  $clean_data Clean data.
 	 */
 	public function update_submission( int $id, string $new_email, array $clean_data ): bool {
 		/**
@@ -307,7 +316,7 @@ class SubmissionHandler {
 		 * @since 4.6.4
 		 * @param int    $id         Submission ID.
 		 * @param string $new_email  New email value.
-		 * @param array  $clean_data Sanitized submission data.
+		 * @param array<string, mixed>  $clean_data Sanitized submission data.
 		 */
 		do_action( 'ffcertificate_before_submission_update', $id, $new_email, $clean_data );
 
@@ -397,7 +406,7 @@ class SubmissionHandler {
 	 * Decrypt submission data.
 	 * Uses Encryption::decrypt_field() for each sensitive field.
 	 *
-	 * @param array<string, mixed> $submission
+	 * @param mixed $submission Submission.
 	 * @return array<string, mixed>
 	 */
 	public function decrypt_submission_data( $submission ): array {
@@ -434,12 +443,17 @@ class SubmissionHandler {
 	 * Trash submission
 	 *
 	 * @uses Repository::updateStatus()
+	 * @param int $id ID.
 	 */
 	public function trash_submission( int $id ): bool {
 		$result = $this->repository->updateStatus( $id, 'trash' );
 
 		if ( $result ) {
-			/** @since 4.6.4 */
+			/**
+			 * Description.
+			 *
+			 * @since 4.6.4
+			 */
 			do_action( 'ffcertificate_submission_trashed', $id );
 		}
 
@@ -449,13 +463,28 @@ class SubmissionHandler {
 	/**
 	 * Restore submission
 	 *
+	 * Restore submission.
+	 *
+	 * Restore submission.
+	 *
+	 * Restore submission.
+	 *
+	 * Restore submission.
+	 *
+	 * Restore submission.
+	 *
 	 * @uses Repository::updateStatus()
+	 * @param int $id ID.
 	 */
 	public function restore_submission( int $id ): bool {
 		$result = $this->repository->updateStatus( $id, 'publish' );
 
 		if ( $result ) {
-			/** @since 4.6.4 */
+			/**
+			 * Description.
+			 *
+			 * @since 4.6.4
+			 */
 			do_action( 'ffcertificate_submission_restored', $id );
 		}
 
@@ -465,16 +494,35 @@ class SubmissionHandler {
 	/**
 	 * Permanently delete submission
 	 *
+	 * Delete submission.
+	 *
+	 * Delete submission.
+	 *
+	 * Delete submission.
+	 *
+	 * Delete submission.
+	 *
+	 * Delete submission.
+	 *
 	 * @uses Repository::delete()
+	 * @param int $id ID.
 	 */
 	public function delete_submission( int $id ): bool {
-		/** @since 4.6.4 */
+		/**
+		 * Description.
+		 *
+		 * @since 4.6.4
+		 */
 		do_action( 'ffcertificate_before_submission_delete', $id );
 
 		$result = $this->repository->delete( $id );
 
 		if ( $result ) {
-			/** @since 4.6.4 */
+			/**
+			 * Description.
+			 *
+			 * @since 4.6.4
+			 */
 			do_action( 'ffcertificate_after_submission_delete', $id );
 		}
 
@@ -483,6 +531,26 @@ class SubmissionHandler {
 
 	/**
 	 * Bulk trash submissions (optimized)
+	 *
+	 * Bulk trash submissions.
+	 *
+	 * Bulk trash submissions.
+	 *
+	 * Bulk trash submissions.
+	 *
+	 * Bulk trash submissions.
+	 *
+	 * Bulk trash submissions.
+	 *
+	 * Bulk trash submissions.
+	 *
+	 * Bulk trash submissions.
+	 *
+	 * Bulk trash submissions.
+	 *
+	 * Bulk trash submissions.
+	 *
+	 * Bulk trash submissions.
 	 *
 	 * @uses Repository::bulkUpdateStatus()
 	 *
@@ -738,6 +806,8 @@ class SubmissionHandler {
 
 	/**
 	 * Ensure magic token exists
+	 *
+	 * @param int $submission_id Submission ID.
 	 */
 	public function ensure_magic_token( int $submission_id ): string {
 		$submission = $this->repository->findById( $submission_id );

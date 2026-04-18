@@ -36,13 +36,23 @@ class RestController {
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace = 'ffc/v1';
 
 	/**
-	 * Repositories
+	 * Form repository.
+	 *
+	 * @var FormRepository|null
 	 */
-	private ?FormRepository $form_repository             = null;
+	private ?FormRepository $form_repository = null;
+
+	/**
+	 * Submission repository.
+	 *
+	 * @var SubmissionRepository|null
+	 */
 	private ?SubmissionRepository $submission_repository = null;
 
 	/**

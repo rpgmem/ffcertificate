@@ -52,7 +52,11 @@ class UserManager {
 	 * Get or create a WordPress user for the given credentials.
 	 *
 	 * @see UserCreator::get_or_create_user()
-	 * @param array<string, mixed> $submission_data Submission data.
+	 * @param string $cpf_rf_hash     CPF/RF hash.
+	 * @param string $email           Email address.
+	 * @param array<string, mixed>  $submission_data Submission data.
+	 * @param string $context         Context.
+	 * @param string $identifier_type Identifier type.
 	 * @return int|\WP_Error User ID on success, WP_Error on failure
 	 */
 	public static function get_or_create_user( string $cpf_rf_hash, string $email, array $submission_data = array(), string $context = self::CONTEXT_CERTIFICATE, string $identifier_type = UserCreator::TYPE_AUTO ) {
@@ -63,7 +67,8 @@ class UserManager {
 	 * Generate a username from email and submission data.
 	 *
 	 * @see UserCreator::generate_username()
-	 * @param array<string, mixed> $submission_data Submission data.
+	 * @param string $email           Email address.
+	 * @param array<string, mixed>  $submission_data Submission data.
 	 */
 	public static function generate_username( string $email, array $submission_data = array() ): string {
 		return UserCreator::generate_username( $email, $submission_data );
@@ -83,37 +88,70 @@ class UserManager {
 		return CapabilityManager::get_all_capabilities();
 	}
 
-	/** @see CapabilityManager::register_role() */
+	/**
+	 * Register role.
+	 *
+	 * @see CapabilityManager::register_role()
+	 */
 	public static function register_role(): void {
 		CapabilityManager::register_role();
 	}
 
-	/** @see CapabilityManager::remove_role() */
+	/**
+	 * Remove role.
+	 *
+	 * @see CapabilityManager::remove_role()
+	 */
 	public static function remove_role(): void {
 		CapabilityManager::remove_role();
 	}
 
-	/** @see CapabilityManager::grant_certificate_capabilities() */
+	/**
+	 * Grant certificate capabilities.
+	 *
+	 * @see CapabilityManager::grant_certificate_capabilities()
+	 * @param int $user_id User ID.
+	 */
 	public static function grant_certificate_capabilities( int $user_id ): void {
 		CapabilityManager::grant_certificate_capabilities( $user_id );
 	}
 
-	/** @see CapabilityManager::grant_appointment_capabilities() */
+	/**
+	 * Grant appointment capabilities.
+	 *
+	 * @see CapabilityManager::grant_appointment_capabilities()
+	 * @param int $user_id User ID.
+	 */
 	public static function grant_appointment_capabilities( int $user_id ): void {
 		CapabilityManager::grant_appointment_capabilities( $user_id );
 	}
 
-	/** @see CapabilityManager::grant_audience_capabilities() */
+	/**
+	 * Grant audience capabilities.
+	 *
+	 * @see CapabilityManager::grant_audience_capabilities()
+	 * @param int $user_id User ID.
+	 */
 	public static function grant_audience_capabilities( int $user_id ): void {
 		CapabilityManager::grant_audience_capabilities( $user_id );
 	}
 
-	/** @see CapabilityManager::has_certificate_access() */
+	/**
+	 * Check if has certificate access.
+	 *
+	 * @see CapabilityManager::has_certificate_access()
+	 * @param int $user_id User ID.
+	 */
 	public static function has_certificate_access( int $user_id ): bool {
 		return CapabilityManager::has_certificate_access( $user_id );
 	}
 
-	/** @see CapabilityManager::has_appointment_access() */
+	/**
+	 * Check if has appointment access.
+	 *
+	 * @see CapabilityManager::has_appointment_access()
+	 * @param int $user_id User ID.
+	 */
 	public static function has_appointment_access( int $user_id ): bool {
 		return CapabilityManager::has_appointment_access( $user_id );
 	}
@@ -121,14 +159,92 @@ class UserManager {
 	/**
 	 * Get FFC capabilities assigned to a specific user.
 	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
+	 * Get user ffc capabilities.
+	 *
 	 * @see CapabilityManager::get_user_ffc_capabilities()
+	 * @param int $user_id User ID.
 	 * @return array<string, bool>
 	 */
 	public static function get_user_ffc_capabilities( int $user_id ): array {
 		return CapabilityManager::get_user_ffc_capabilities( $user_id );
 	}
 
-	/** @see CapabilityManager::set_user_capability() */
+	/**
+	 * Set user capability.
+	 *
+	 * @see CapabilityManager::set_user_capability()
+	 * @param int    $user_id User ID.
+	 * @param string $capability Capability.
+	 * @param bool   $grant Grant.
+	 */
 	public static function set_user_capability( int $user_id, string $capability, bool $grant ): bool {
 		return CapabilityManager::set_user_capability( $user_id, $capability, $grant );
 	}
@@ -139,6 +255,16 @@ class UserManager {
 
 	/**
 	 * Get user profile from ffc_user_profiles
+	 *
+	 * Get profile.
+	 *
+	 * Get profile.
+	 *
+	 * Get profile.
+	 *
+	 * Get profile.
+	 *
+	 * Get profile.
 	 *
 	 * @since 4.9.4
 	 * @param int $user_id WordPress user ID.

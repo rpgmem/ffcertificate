@@ -28,11 +28,15 @@ class FormRestController {
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace;
 
 	/**
 	 * Form repository
+	 *
+	 * @var FormRepository|null
 	 */
 	private ?FormRepository $form_repository;
 
@@ -110,7 +114,7 @@ class FormRestController {
 	 * GET /forms
 	 * List all published forms
 	 *
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_forms( $request ) {
@@ -156,7 +160,7 @@ class FormRestController {
 	 * GET /forms/{id}
 	 * Get single form details
 	 *
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_form( $request ) {
@@ -208,7 +212,7 @@ class FormRestController {
 	 * POST /forms/{id}/submit
 	 * Submit a form via API
 	 *
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function submit_form( $request ) {

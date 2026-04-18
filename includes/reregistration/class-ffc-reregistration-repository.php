@@ -255,7 +255,11 @@ class ReregistrationRepository {
                 {$limit_clause}";
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		/** @phpstan-ignore-next-line argument.type */
+		/**
+		 * Description.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
 		$sql = $wpdb->prepare( $sql, $values );
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
@@ -264,6 +268,16 @@ class ReregistrationRepository {
 
 	/**
 	 * Count reregistrations with filters.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
 	 *
 	 * @param array<string, mixed> $filters Same filters as get_all.
 	 * @return int

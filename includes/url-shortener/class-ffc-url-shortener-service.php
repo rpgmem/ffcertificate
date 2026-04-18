@@ -21,7 +21,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class UrlShortenerService {
 
-	/** @var UrlShortenerRepository */
+	/**
+	 * Description.
+	 *
+	 * @var UrlShortenerRepository
+	 */
 	private UrlShortenerRepository $repository;
 
 	/**
@@ -29,6 +33,11 @@ class UrlShortenerService {
 	 */
 	private const CHARSET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
+	/**
+	 * Constructor.
+	 *
+	 * @param UrlShortenerRepository|null $repository Repository.
+	 */
 	public function __construct( ?UrlShortenerRepository $repository = null ) {
 		$this->repository = $repository ?? new UrlShortenerRepository();
 	}

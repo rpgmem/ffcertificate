@@ -27,16 +27,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 class MigrationStatusCalculator {
 
 	/**
+	 * Registry.
+	 *
 	 * @var MigrationRegistry
 	 */
 	private $registry;
 
 	/**
+	 * Strategies.
+	 *
 	 * @var array<string, \FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface> Strategy instances mapped by migration key
 	 */
 	private $strategies = array();
 
 	/**
+	 * Strategy errors.
+	 *
 	 * @var array<string, string> Initialization errors per strategy key
 	 */
 	private $strategy_errors = array();

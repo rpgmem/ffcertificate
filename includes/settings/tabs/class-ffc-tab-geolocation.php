@@ -27,6 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class TabGeolocation extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'geolocation';
 		$this->tab_title = __( 'Geolocation', 'ffcertificate' );

@@ -35,9 +35,16 @@ class UserAudienceRestController {
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param string $namespace Namespace.
+	 */
 	public function __construct( string $namespace ) {
 		$this->namespace = $namespace;
 	}
@@ -101,7 +108,7 @@ class UserAudienceRestController {
 	 * GET /user/audience-bookings
 	 *
 	 * @since 4.5.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_user_audience_bookings( $request ) {
@@ -285,7 +292,7 @@ class UserAudienceRestController {
 	 * Lists audience groups that allow self-join, with the user's current membership status.
 	 *
 	 * @since 4.9.9
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_joinable_groups( $request ) {
@@ -432,7 +439,7 @@ class UserAudienceRestController {
 	 * Join a self-joinable audience group. Max 2 self-join groups per user.
 	 *
 	 * @since 4.9.9
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function join_audience_group( $request ) {
@@ -539,7 +546,7 @@ class UserAudienceRestController {
 	 * Leave a self-joinable audience group.
 	 *
 	 * @since 4.9.9
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function leave_audience_group( $request ) {
@@ -607,7 +614,7 @@ class UserAudienceRestController {
 	 * Leave all self-joinable audience groups at once.
 	 *
 	 * @since 5.1.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function leave_all_audience_groups( $request ) {

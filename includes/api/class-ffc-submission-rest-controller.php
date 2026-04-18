@@ -28,11 +28,15 @@ class SubmissionRestController {
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace;
 
 	/**
 	 * Submission repository
+	 *
+	 * @var SubmissionRepository|null
 	 */
 	private ?SubmissionRepository $submission_repository;
 
@@ -123,7 +127,7 @@ class SubmissionRestController {
 	 * GET /submissions
 	 * List submissions with pagination (admin only)
 	 *
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_submissions( $request ) {
@@ -205,7 +209,7 @@ class SubmissionRestController {
 	 * GET /submissions/{id}
 	 * Get single submission (admin only)
 	 *
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_submission( $request ) {
@@ -277,7 +281,7 @@ class SubmissionRestController {
 	 * POST /verify
 	 * Verify certificate by auth code
 	 *
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function verify_certificate( $request ) {

@@ -174,7 +174,7 @@ class QRCodeGenerator {
 	 * - "{{qr_code:size=150}}" → size=150
 	 * - "{{qr_code:size=200:margin=0:error=H}}" → all custom
 	 *
-	 * @param string $placeholder
+	 * @param string $placeholder Placeholder.
 	 * @return array<string, mixed> Parameters with keys: size, margin, error_level
 	 */
 	private function parse_placeholder_params( string $placeholder ): array {
@@ -381,7 +381,7 @@ class QRCodeGenerator {
 	/**
 	 * Get QR Code from cache
 	 *
-	 * @param int $submission_id
+	 * @param int $submission_id Submission ID.
 	 * @return string|false Base64 QR Code or false if not found
 	 */
 	private function get_from_cache( int $submission_id ) {
@@ -408,7 +408,7 @@ class QRCodeGenerator {
 	/**
 	 * Save QR Code to cache
 	 *
-	 * @param int    $submission_id
+	 * @param int    $submission_id Submission ID.
 	 * @param string $qr_base64 Base64 encoded QR Code.
 	 * @return bool Success
 	 */

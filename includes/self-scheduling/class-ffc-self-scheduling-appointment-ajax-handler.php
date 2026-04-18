@@ -29,6 +29,11 @@ class AppointmentAjaxHandler {
 
 	use \FreeFormCertificate\Core\AjaxTrait;
 
+	/**
+	 * Handler.
+	 *
+	 * @var AppointmentHandler
+	 */
 	private AppointmentHandler $handler;
 
 	/**

@@ -109,7 +109,11 @@ class ObsoleteShortcodeCleaner {
 		);
 
 		$expired = array();
-		/** @var array<int, int> $post_ids */
+		/**
+		 * Description.
+		 *
+		 * @var array<int, int> $post_ids
+		 */
 		$post_ids = $query->posts;
 		foreach ( $post_ids as $form_id ) {
 			$form_id = (int) $form_id;
@@ -126,6 +130,16 @@ class ObsoleteShortcodeCleaner {
 	 * of the given expired form IDs.
 	 *
 	 * Does NOT write to the database — safe to call in preview/dry-run mode.
+	 *
+	 * Scan posts for expired forms.
+	 *
+	 * Scan posts for expired forms.
+	 *
+	 * Scan posts for expired forms.
+	 *
+	 * Scan posts for expired forms.
+	 *
+	 * Scan posts for expired forms.
 	 *
 	 * @param array<int, int> $expired_ids List of form IDs to look for.
 	 * @return array{
@@ -157,7 +171,11 @@ class ObsoleteShortcodeCleaner {
 			)
 		);
 
-		/** @var array<int, int> $post_ids */
+		/**
+		 * Description.
+		 *
+		 * @var array<int, int> $post_ids
+		 */
 		$post_ids      = $query->posts;
 		$affected      = array();
 		$posts_scanned = count( $post_ids );
@@ -212,6 +230,16 @@ class ObsoleteShortcodeCleaner {
 	 *
 	 * Only the classic regex is used here because every Gutenberg-wrapped
 	 * shortcode also contains the bare shortcode inside it.
+	 *
+	 * Extract form ids.
+	 *
+	 * Extract form ids.
+	 *
+	 * Extract form ids.
+	 *
+	 * Extract form ids.
+	 *
+	 * Extract form ids.
 	 *
 	 * @param string $content Raw post_content.
 	 * @return array<int, int> Zero-indexed list of form IDs (may contain duplicates).

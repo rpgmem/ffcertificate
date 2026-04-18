@@ -71,8 +71,8 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Get active calendars
 	 *
-	 * @param int|null $limit
-	 * @param int      $offset
+	 * @param int|null $limit Limit.
+	 * @param int      $offset Offset.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getActiveCalendars( ?int $limit = null, int $offset = 0 ): array {
@@ -88,7 +88,7 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Get calendar with working hours decoded
 	 *
-	 * @param int $id
+	 * @param int $id Record ID.
 	 * @return array<string, mixed>|null
 	 */
 	public function getWithWorkingHours( int $id ): ?array {
@@ -108,8 +108,8 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Update working hours
 	 *
-	 * @param int                  $id
-	 * @param array<string, mixed> $working_hours
+	 * @param int   $id Record ID.
+	 * @param array<string, mixed> $working_hours Working hours.
 	 * @return int|false
 	 */
 	public function updateWorkingHours( int $id, array $working_hours ) {
@@ -126,8 +126,8 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Update email configuration
 	 *
-	 * @param int                  $id
-	 * @param array<string, mixed> $email_config
+	 * @param int   $id Record ID.
+	 * @param array<string, mixed> $email_config Email config.
 	 * @return int|false
 	 */
 	public function updateEmailConfig( int $id, array $email_config ) {
@@ -144,7 +144,7 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Update calendar status
 	 *
-	 * @param int    $id
+	 * @param int    $id Record ID.
 	 * @param string $status (active, inactive, archived).
 	 * @return int|false
 	 */
@@ -166,8 +166,8 @@ class CalendarRepository extends AbstractRepository {
 	 * Used for non-authenticated users.
 	 *
 	 * @since 4.7.0
-	 * @param int|null $limit
-	 * @param int      $offset
+	 * @param int|null $limit Limit.
+	 * @param int      $offset Offset.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getPublicActiveCalendars( ?int $limit = null, int $offset = 0 ): array {
@@ -202,8 +202,8 @@ class CalendarRepository extends AbstractRepository {
 	 *
 	 * Called when a calendar post is created.
 	 *
-	 * @param int                  $post_id
-	 * @param array<string, mixed> $data
+	 * @param int   $post_id Post ID.
+	 * @param array<string, mixed> $data Data.
 	 * @return int|false
 	 */
 	public function createFromPost( int $post_id, array $data = array() ) {

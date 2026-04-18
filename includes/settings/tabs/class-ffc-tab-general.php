@@ -24,6 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class TabGeneral extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'general';
 		$this->tab_title = __( 'General', 'ffcertificate' );
@@ -31,6 +34,9 @@ class TabGeneral extends SettingsTab {
 		$this->tab_order = 10;
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-general.php';
 

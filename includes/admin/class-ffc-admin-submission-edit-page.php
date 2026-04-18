@@ -15,6 +15,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Submissions\SubmissionHandler;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -55,9 +57,9 @@ class AdminSubmissionEditPage {
 	/**
 	 * Constructor
 	 *
-	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler instance.
+	 * @param SubmissionHandler $handler Submission handler instance.
 	 */
-	public function __construct( object $handler ) {
+	public function __construct( SubmissionHandler $handler ) {
 		$this->submission_handler = $handler;
 	}
 

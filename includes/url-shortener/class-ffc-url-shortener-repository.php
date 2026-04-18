@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class UrlShortenerRepository extends AbstractRepository {
 
 	/**
+	 * Get table name.
+	 *
 	 * @return string
 	 */
 	protected function get_table_name(): string {
@@ -32,6 +34,8 @@ class UrlShortenerRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Get cache group.
+	 *
 	 * @return string
 	 */
 	protected function get_cache_group(): string {

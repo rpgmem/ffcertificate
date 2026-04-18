@@ -409,6 +409,8 @@ class AudienceNotificationHandler {
 	/**
 	 * Format date for display.
 	 * Delegates to EmailTemplateService::format_date().
+	 *
+	 * @param string $date Date.
 	 */
 	private static function format_date( string $date ): string {
 		return \FreeFormCertificate\Scheduling\EmailTemplateService::format_date( $date );
@@ -417,6 +419,8 @@ class AudienceNotificationHandler {
 	/**
 	 * Format time for display.
 	 * Delegates to EmailTemplateService::format_time().
+	 *
+	 * @param string $time Time.
 	 */
 	private static function format_time( string $time ): string {
 		return \FreeFormCertificate\Scheduling\EmailTemplateService::format_time( $time );

@@ -23,6 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class TabDocumentation extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'documentation';
 		$this->tab_title = __( 'Documentation', 'ffcertificate' );
@@ -30,6 +33,9 @@ class TabDocumentation extends SettingsTab {
 		$this->tab_order = 90;
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		// Include view file.
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-documentation.php';

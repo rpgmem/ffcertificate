@@ -23,6 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class CPT {
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		add_action( 'init', array( $this, 'register_form_cpt' ) );
 		add_filter( 'post_row_actions', array( $this, 'add_duplicate_link' ), 10, 2 );

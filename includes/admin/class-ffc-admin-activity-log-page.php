@@ -227,6 +227,8 @@ class AdminActivityLogPage {
 
 	/**
 	 * Get human-readable action name
+	 *
+	 * @param string $action Action.
 	 */
 	public static function get_action_label( string $action ): string {
 		$labels = array(
@@ -243,6 +245,8 @@ class AdminActivityLogPage {
 
 	/**
 	 * Get level badge HTML
+	 *
+	 * @param string $level Level.
 	 */
 	public static function get_level_badge( string $level ): string {
 		$classes = array(

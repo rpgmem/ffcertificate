@@ -30,9 +30,16 @@ class UserProfileRestController {
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param string $namespace Namespace.
+	 */
 	public function __construct( string $namespace ) {
 		$this->namespace = $namespace;
 	}
@@ -83,7 +90,7 @@ class UserProfileRestController {
 	 * GET /user/profile
 	 *
 	 * @since 3.1.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_user_profile( $request ) {
@@ -232,7 +239,7 @@ class UserProfileRestController {
 	 * display_name, phone, department, organization, notes.
 	 *
 	 * @since 4.9.6
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function update_user_profile( $request ) {
@@ -321,7 +328,7 @@ class UserProfileRestController {
 	 * POST /user/change-password
 	 *
 	 * @since 4.9.8
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function change_password( $request ) {
@@ -396,7 +403,7 @@ class UserProfileRestController {
 	 * Erasure requests require admin approval.
 	 *
 	 * @since 4.9.8
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function create_privacy_request( $request ) {

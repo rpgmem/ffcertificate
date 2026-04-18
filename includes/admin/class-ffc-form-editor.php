@@ -21,11 +21,22 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class FormEditor {
 
-	/** @var \FreeFormCertificate\Admin\FormEditorMetaboxRenderer */
+	/**
+	 * Metabox renderer.
+	 *
+	 * @var \FreeFormCertificate\Admin\FormEditorMetaboxRenderer
+	 */
 	private $metabox_renderer;
-	/** @var \FreeFormCertificate\Admin\FormEditorSaveHandler */
+	/**
+	 * Save handler.
+	 *
+	 * @var \FreeFormCertificate\Admin\FormEditorSaveHandler
+	 */
 	private $save_handler;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		$this->metabox_renderer = new \FreeFormCertificate\Admin\FormEditorMetaboxRenderer();
 		$this->save_handler     = new \FreeFormCertificate\Admin\FormEditorSaveHandler();
@@ -42,6 +53,8 @@ class FormEditor {
 
 	/**
 	 * Enqueue scripts and styles for form editor
+	 *
+	 * @param string $hook Hook name.
 	 */
 	public function enqueue_scripts( string $hook ): void {
 		// Only load on form edit page.

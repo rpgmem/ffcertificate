@@ -29,23 +29,141 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Admin {
 
-	/** @var \FreeFormCertificate\Submissions\SubmissionHandler */
+	/**
+	 * Submission handler.
+	 *
+	 * @var \FreeFormCertificate\Submissions\SubmissionHandler
+	 */
 	private $submission_handler;
-	/** @var object */
+	/**
+	 * Csv exporter.
+	 *
+	 * @var object
+	 */
 	private $csv_exporter;
-	/** @var FormEditor */
+	/**
+	 * Form editor.
+	 *
+	 * @var FormEditor
+	 */
 	private $form_editor; // @phpstan-ignore property.onlyWritten
-	/** @var Settings */
+	/**
+	 * Settings page.
+	 *
+	 * @var Settings
+	 */
 	private $settings_page; // @phpstan-ignore property.onlyWritten
-	/** @var MigrationManager|null */
+	/**
+	 * Migration manager.
+	 *
+	 * @var MigrationManager|null
+	 */
 	private $migration_manager;
-	/** @var AdminAssetsManager */
+	/**
+	 * Assets manager.
+	 *
+	 * @var AdminAssetsManager
+	 */
 	private $assets_manager;
-	/** @var AdminSubmissionEditPage */
+	/**
+	 * Edit page.
+	 *
+	 * @var AdminSubmissionEditPage
+	 */
 	private $edit_page;
-	/** @var AdminActivityLogPage */
+	/**
+	 * Activity log page.
+	 *
+	 * @var AdminActivityLogPage
+	 */
 	private $activity_log_page;
 
+	/**
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Handler.
+	 * @param object                                             $exporter Exporter.
+	 */
 	public function __construct( \FreeFormCertificate\Submissions\SubmissionHandler $handler, object $exporter ) {
 		$this->submission_handler = $handler;
 		$this->csv_exporter       = $exporter;
@@ -75,6 +193,9 @@ class Admin {
 		$this->csv_exporter->register_ajax_hooks();
 	}
 
+	/**
+	 * Register admin menu.
+	 */
 	public function register_admin_menu(): void {
 		add_submenu_page(
 			'edit.php?post_type=ffc_form',
@@ -88,6 +209,9 @@ class Admin {
 		$this->activity_log_page->register_menu();
 	}
 
+	/**
+	 * Handle submission actions.
+	 */
 	public function handle_submission_actions(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified per-action below via wp_verify_nonce and check_admin_referer.
 		if ( ! isset( $_GET['page'] ) || sanitize_text_field( wp_unslash( $_GET['page'] ) ) !== 'ffc-submissions' ) {
@@ -144,6 +268,9 @@ class Admin {
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 
+	/**
+	 * Display submissions page.
+	 */
 	public function display_submissions_page(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing parameter for page display.
 		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : 'list';
@@ -154,6 +281,9 @@ class Admin {
 		}
 	}
 
+	/**
+	 * Render list page.
+	 */
 	private function render_list_page(): void {
 		// Autoloader handles class loading.
 		$table = new \FreeFormCertificate\Admin\SubmissionsList( $this->submission_handler );
@@ -210,6 +340,11 @@ class Admin {
 		<?php
 	}
 
+	/**
+	 * Redirect with msg.
+	 *
+	 * @param string $msg Msg.
+	 */
 	private function redirect_with_msg( string $msg ): void {
 		// Build the redirect target from the current admin screen instead of REQUEST_URI, so the URL
 		// path cannot be influenced by request-level input. Preserve the page and post_type context.
@@ -229,6 +364,9 @@ class Admin {
 		exit;
 	}
 
+	/**
+	 * Display admin notices.
+	 */
 	private function display_admin_notices(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display-only URL parameters from admin redirects.
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
@@ -275,15 +413,24 @@ class Admin {
 	}
 
 
+	/**
+	 * Render edit page.
+	 */
 	private function render_edit_page(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing parameter for edit page display.
 		$submission_id = isset( $_GET['submission_id'] ) ? absint( wp_unslash( $_GET['submission_id'] ) ) : 0;
 		$this->edit_page->render( $submission_id );
 	}
 
+	/**
+	 * Handle submission edit save.
+	 */
 	public function handle_submission_edit_save(): void {
 		$this->edit_page->handle_save();
 	}
+	/**
+	 * Handle csv export request.
+	 */
 	public function handle_csv_export_request(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in csv_exporter->handle_export_request().
 		if ( isset( $_POST['ffc_action'] ) && sanitize_text_field( wp_unslash( $_POST['ffc_action'] ) ) === 'export_csv_smart' ) {

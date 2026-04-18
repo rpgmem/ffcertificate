@@ -42,6 +42,8 @@ class RateLimiter {
 	private static ?array $settings_cache = null;
 
 	/**
+	 * Get settings.
+	 *
 	 * @return array<string, mixed>
 	 */
 	private static function get_settings(): array {
@@ -114,6 +116,12 @@ class RateLimiter {
 	}
 
 	/**
+	 * Check all.
+	 *
+	 * @param string      $ip IP address.
+	 * @param string|null $email Email address.
+	 * @param string|null $cpf CPF document.
+	 * @param int|null    $form_id Form ID.
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public static function check_all( string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null ): array {
@@ -164,6 +172,10 @@ class RateLimiter {
 	}
 
 	/**
+	 * Check ip limit.
+	 *
+	 * @param string   $ip IP address.
+	 * @param int|null $form_id Form ID.
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public static function check_ip_limit( string $ip, ?int $form_id = null ): array {
@@ -210,6 +222,10 @@ class RateLimiter {
 	}
 
 	/**
+	 * Check email limit.
+	 *
+	 * @param string   $email Email address.
+	 * @param int|null $form_id Form ID.
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public static function check_email_limit( string $email, ?int $form_id = null ): array {
@@ -270,6 +286,10 @@ class RateLimiter {
 	}
 
 	/**
+	 * Check cpf limit.
+	 *
+	 * @param string   $cpf CPF document.
+	 * @param int|null $form_id Form ID.
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public static function check_cpf_limit( string $cpf, ?int $form_id = null ): array {
@@ -322,6 +342,8 @@ class RateLimiter {
 	}
 
 	/**
+	 * Check global limit.
+	 *
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
 	public static function check_global_limit(): array {
@@ -356,6 +378,8 @@ class RateLimiter {
 	/**
 	 * Check rate limit for verification requests (magic links)
 	 *
+	 * @param string      $ip IP address.
+	 * @param string|null $token Token.
 	 * @return array{allowed: bool, message?: string, wait_seconds?: int}
 	 */
 	public static function check_verification( string $ip, ?string $token = null ): array {
@@ -414,6 +438,12 @@ class RateLimiter {
 		return array( 'allowed' => true );
 	}
 
+	/**
+	 * Format wait time.
+	 *
+	 * @param int $seconds Seconds.
+	 * @return string
+	 */
 	private static function format_wait_time( int $seconds ): string {
 		if ( $seconds < 60 ) {
 			/* translators: %d: number of seconds */
@@ -430,6 +460,13 @@ class RateLimiter {
 		/* translators: %d: number of hours */
 		return sprintf( _n( '%d hour', '%d hours', $hours, 'ffcertificate' ), $hours );
 	}
+	/**
+	 * Record attempt.
+	 *
+	 * @param string   $type Type.
+	 * @param string   $identifier Identifier.
+	 * @param int|null $form_id Form ID.
+	 */
 	public static function record_attempt( string $type, string $identifier, ?int $form_id = null ): void {
 		$s = self::get_settings();
 
@@ -460,6 +497,15 @@ class RateLimiter {
 		}
 	}
 
+	/**
+	 * Get count from db.
+	 *
+	 * @param string   $type Type.
+	 * @param string   $identifier Identifier.
+	 * @param string   $window Window.
+	 * @param int|null $form_id Form ID.
+	 * @return int
+	 */
 	private static function get_count_from_db( string $type, string $identifier, string $window, ?int $form_id ): int {
 		global $wpdb;
 		$t           = $wpdb->prefix . 'ffc_rate_limits';
@@ -470,6 +516,14 @@ class RateLimiter {
 		return $c ? intval( $c ) : 0;
 	}
 
+	/**
+	 * Increment counter.
+	 *
+	 * @param string   $type Type.
+	 * @param string   $identifier Identifier.
+	 * @param string   $window Window.
+	 * @param int|null $form_id Form ID.
+	 */
 	private static function increment_counter( string $type, string $identifier, string $window, ?int $form_id ): void {
 		global $wpdb;
 		$t  = $wpdb->prefix . 'ffc_rate_limits';
@@ -511,6 +565,15 @@ class RateLimiter {
 		}
 	}
 
+	/**
+	 * Get submission count.
+	 *
+	 * @param string   $field Field definition.
+	 * @param string   $value Value.
+	 * @param string   $period Period.
+	 * @param int|null $form_id Form ID.
+	 * @return int
+	 */
 	private static function get_submission_count( string $field, string $value, string $period, ?int $form_id ): int {
 		global $wpdb;
 		$t  = $wpdb->prefix . 'ffc_submissions';
@@ -537,6 +600,11 @@ class RateLimiter {
 	}
 
 	/**
+	 * Check blacklist.
+	 *
+	 * @param string      $ip IP address.
+	 * @param string|null $email Email address.
+	 * @param string|null $cpf CPF document.
 	 * @return array{allowed: bool, message?: string, reason?: string}
 	 */
 	private static function check_blacklist( string $ip, ?string $email, ?string $cpf ): array {
@@ -581,6 +649,14 @@ class RateLimiter {
 		return array( 'allowed' => true );
 	}
 
+	/**
+	 * Check whether whitelisted.
+	 *
+	 * @param string      $ip Ip.
+	 * @param string|null $email Email address.
+	 * @param string|null $cpf Cpf.
+	 * @return bool
+	 */
 	private static function is_whitelisted( string $ip, ?string $email, ?string $cpf ): bool {
 		$s  = self::get_settings();
 		$wl = $s['whitelist'];
@@ -607,6 +683,14 @@ class RateLimiter {
 		return false;
 	}
 
+	/**
+	 * Check whether temporarily blocked.
+	 *
+	 * @param string   $type Type.
+	 * @param string   $identifier Identifier.
+	 * @param int|null $form_id Form ID.
+	 * @return bool
+	 */
 	private static function is_temporarily_blocked( string $type, string $identifier, ?int $form_id ): bool {
 		global $wpdb;
 		$t           = $wpdb->prefix . 'ffc_rate_limits';
@@ -615,6 +699,14 @@ class RateLimiter {
 		return ! empty( $wpdb->get_var( $wpdb->prepare( "SELECT blocked_until FROM %i WHERE type=%s AND identifier=%s $form_clause AND is_blocked=1 AND blocked_until>NOW() ORDER BY id DESC LIMIT 1", $t, $type, $identifier ) ) );
 	}
 
+	/**
+	 * Block temporarily.
+	 *
+	 * @param string   $type Type.
+	 * @param string   $identifier Identifier.
+	 * @param int|null $form_id Form ID.
+	 * @param int      $hours Hours.
+	 */
 	private static function block_temporarily( string $type, string $identifier, ?int $form_id, int $hours ): void {
 		global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
@@ -639,6 +731,15 @@ class RateLimiter {
 		);
 	}
 
+	/**
+	 * Log attempt.
+	 *
+	 * @param string   $type Type.
+	 * @param string   $identifier Identifier.
+	 * @param string   $action Action name.
+	 * @param string   $reason Reason.
+	 * @param int|null $form_id Form ID.
+	 */
 	public static function log_attempt( string $type, string $identifier, string $action, string $reason, ?int $form_id ): void {
 		$s = self::get_settings();
 		if ( ! $s['logging']['enabled'] || ( ! $s['logging']['log_allowed'] && 'allowed' === $action ) ) {
@@ -669,6 +770,9 @@ class RateLimiter {
 		self::cleanup_old_logs();
 	}
 
+	/**
+	 * Cleanup old logs.
+	 */
 	private static function cleanup_old_logs(): void {
 		global $wpdb;
 		$s = self::get_settings();
@@ -684,6 +788,8 @@ class RateLimiter {
 	}
 
 	/**
+	 * Get stats.
+	 *
 	 * @return array<string, mixed>
 	 */
 	public static function get_stats(): array {
@@ -702,19 +808,31 @@ class RateLimiter {
 	}
 
 	/**
-	 * @param array<string, mixed> $data
+	 * Format message.
+	 *
+	 * @param string $template Template.
+	 * @param array<string, mixed>  $data Data.
 	 */
 	private static function format_message( string $template, array $data ): string {
 		return str_replace( array( '{time}', '{count}', '{max}', '{remaining}' ), array( (string) ( $data['time'] ?? '' ), (string) ( $data['count'] ?? 0 ), (string) ( $data['max'] ?? 0 ), (string) ( ( $data['max'] ?? 0 ) - ( $data['count'] ?? 0 ) ) ), $template );
 	}
 
 	/**
-	 * @param mixed $apply_to
+	 * Applies to form.
+	 *
+	 * @param mixed    $apply_to Apply to.
+	 * @param int|null $form_id Form ID.
 	 */
 	private static function applies_to_form( $apply_to, ?int $form_id ): bool {
 		return 'all' === $apply_to || ( is_array( $apply_to ) && in_array( $form_id, $apply_to, true ) );
 	}
 
+	/**
+	 * Get window start.
+	 *
+	 * @param string $window Window.
+	 * @return string
+	 */
 	private static function get_window_start( string $window ): string {
 		switch ( $window ) {
 			case 'minute':
@@ -734,6 +852,12 @@ class RateLimiter {
 		}
 	}
 
+	/**
+	 * Get window end.
+	 *
+	 * @param string $window Window.
+	 * @return string
+	 */
 	private static function get_window_end( string $window ): string {
 		switch ( $window ) {
 			case 'minute':
@@ -753,6 +877,11 @@ class RateLimiter {
 		}
 	}
 
+	/**
+	 * Get user ip.
+	 *
+	 * @return string
+	 */
 	private static function get_user_ip(): string {
 		// By default we only trust REMOTE_ADDR, which is set by the web server and cannot be spoofed by clients.
 		// When the site sits behind a known reverse proxy (Cloudflare, AWS ALB, nginx), administrators can opt in
@@ -827,6 +956,11 @@ class RateLimiter {
 		return array( 'allowed' => true );
 	}
 
+	/**
+	 * Cleanup expired.
+	 *
+	 * @return int
+	 */
 	public static function cleanup_expired(): int {
 		global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

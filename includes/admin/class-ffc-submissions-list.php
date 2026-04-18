@@ -29,20 +29,31 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 class SubmissionsList extends \WP_List_Table {
 
 	/**
+	 * Submission handler.
+	 *
 	 * @var \FreeFormCertificate\Submissions\SubmissionHandler
 	 */
 	private $submission_handler;
 
 	/**
+	 * Repository.
+	 *
 	 * @var \FreeFormCertificate\Repositories\SubmissionRepository
 	 */
 	private $repository;
 
 	/**
+	 * Form titles cache.
+	 *
 	 * @var array<int, string>
 	 */
 	private array $form_titles_cache = array();
 
+	/**
+	 * Constructor.
+	 *
+	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Handler.
+	 */
 	public function __construct( \FreeFormCertificate\Submissions\SubmissionHandler $handler ) {
 		parent::__construct(
 			array(
@@ -56,6 +67,8 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
+	 * Get columns.
+	 *
 	 * @return array<string, string>
 	 */
 	public function get_columns() {
@@ -72,6 +85,8 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
+	 * Get sortable columns.
+	 *
 	 * @return array<string, array<int, bool|string>>
 	 */
 	protected function get_sortable_columns() {
@@ -83,8 +98,10 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
-	 * @param array<string, mixed> $item
-	 * @param string               $column_name
+	 * Column default.
+	 *
+	 * @param mixed $item Item.
+	 * @param mixed $column_name Column name.
 	 * @return string
 	 */
 	protected function column_default( $item, $column_name ) {
@@ -121,7 +138,9 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
-	 * @param array<string, mixed> $item
+	 * Render actions.
+	 *
+	 * @param array<string, mixed> $item Item.
 	 * @return string
 	 */
 	private function render_actions( array $item ): string {
@@ -179,7 +198,9 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
-	 * @param array<string, mixed> $item
+	 * Render pdf button.
+	 *
+	 * @param array<string, mixed> $item Item.
 	 * @return string
 	 */
 	private function render_pdf_button( array $item ): string {
@@ -204,7 +225,9 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
-	 * @param array<string, mixed> $item
+	 * Render status badge.
+	 *
+	 * @param array<string, mixed> $item Item.
 	 * @return string
 	 */
 	private function render_status_badge( array $item ): string {
@@ -237,6 +260,12 @@ class SubmissionsList extends \WP_List_Table {
 		}
 	}
 
+	/**
+	 * Format data preview.
+	 *
+	 * @param string|null $data_json Data json.
+	 * @return string
+	 */
 	private function format_data_preview( ?string $data_json ): string {
 		if ( null === $data_json || 'null' === $data_json || '' === $data_json ) {
 			return '<em class="ffc-empty-data">' . __( 'Only mandatory fields', 'ffcertificate' ) . '</em>';
@@ -278,7 +307,9 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
-	 * @param array<string, mixed> $item
+	 * Column cb.
+	 *
+	 * @param mixed $item Item.
 	 * @return string
 	 */
 	protected function column_cb( $item ) {
@@ -286,6 +317,8 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
+	 * Get bulk actions.
+	 *
 	 * @return array<string, string>
 	 */
 	protected function get_bulk_actions() {
@@ -310,6 +343,8 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
+	 * Prepare items.
+	 *
 	 * @return void
 	 */
 	public function prepare_items() {
@@ -409,6 +444,8 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
+	 * Get views.
+	 *
 	 * @return array<string, string>
 	 */
 	protected function get_views() {
@@ -449,6 +486,8 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
+	 * No items.
+	 *
 	 * @return void
 	 */
 	public function no_items() {

@@ -31,6 +31,8 @@ class UserDataRestController {
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace;
 
@@ -76,7 +78,9 @@ class UserDataRestController {
 	// ------------------------------------------------------------------.
 
 	/**
-	 * @param \WP_REST_Request $request
+	 * Get user certificates.
+	 *
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_user_certificates( $request ) {
@@ -84,7 +88,9 @@ class UserDataRestController {
 	}
 
 	/**
-	 * @param \WP_REST_Request $request
+	 * Get user profile.
+	 *
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_user_profile( $request ) {
@@ -92,7 +98,9 @@ class UserDataRestController {
 	}
 
 	/**
-	 * @param \WP_REST_Request $request
+	 * Update user profile.
+	 *
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function update_user_profile( $request ) {
@@ -100,7 +108,9 @@ class UserDataRestController {
 	}
 
 	/**
-	 * @param \WP_REST_Request $request
+	 * Get user appointments.
+	 *
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_user_appointments( $request ) {
@@ -108,7 +118,9 @@ class UserDataRestController {
 	}
 
 	/**
-	 * @param \WP_REST_Request $request
+	 * Get user audience bookings.
+	 *
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_user_audience_bookings( $request ) {
@@ -116,7 +128,9 @@ class UserDataRestController {
 	}
 
 	/**
-	 * @param \WP_REST_Request $request
+	 * Change password.
+	 *
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function change_password( $request ) {
@@ -124,7 +138,9 @@ class UserDataRestController {
 	}
 
 	/**
-	 * @param \WP_REST_Request $request
+	 * Create privacy request.
+	 *
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function create_privacy_request( $request ) {
@@ -132,7 +148,9 @@ class UserDataRestController {
 	}
 
 	/**
-	 * @param \WP_REST_Request $request
+	 * Get user summary.
+	 *
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_user_summary( $request ) {
@@ -140,7 +158,9 @@ class UserDataRestController {
 	}
 
 	/**
-	 * @param \WP_REST_Request $request
+	 * Get joinable groups.
+	 *
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_joinable_groups( $request ) {
@@ -148,7 +168,9 @@ class UserDataRestController {
 	}
 
 	/**
-	 * @param \WP_REST_Request $request
+	 * Join audience group.
+	 *
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function join_audience_group( $request ) {
@@ -156,7 +178,9 @@ class UserDataRestController {
 	}
 
 	/**
-	 * @param \WP_REST_Request $request
+	 * Leave audience group.
+	 *
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function leave_audience_group( $request ) {
@@ -164,7 +188,9 @@ class UserDataRestController {
 	}
 
 	/**
-	 * @param \WP_REST_Request $request
+	 * Get user reregistrations.
+	 *
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_user_reregistrations( $request ) {

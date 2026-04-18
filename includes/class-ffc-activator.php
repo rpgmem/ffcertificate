@@ -23,6 +23,9 @@ class Activator {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
+	/**
+	 * Activate.
+	 */
 	public static function activate(): void {
 		self::create_submissions_table();
 		self::create_activity_log_table();
@@ -89,6 +92,9 @@ class Activator {
 		flush_rewrite_rules();
 	}
 
+	/**
+	 * Create submissions table.
+	 */
 	private static function create_submissions_table(): void {
 		global $wpdb;
 		$table_name      = \FreeFormCertificate\Core\Utils::get_submissions_table();
@@ -138,6 +144,9 @@ class Activator {
 		update_option( 'ffc_submissions_db_version', FFC_VERSION, true );
 	}
 
+	/**
+	 * Add columns.
+	 */
 	private static function add_columns(): void {
 		global $wpdb;
 		$table_name = \FreeFormCertificate\Core\Utils::get_submissions_table();
@@ -259,6 +268,9 @@ class Activator {
 		}
 	}
 
+	/**
+	 * Create activity log table.
+	 */
 	private static function create_activity_log_table(): void {
 		// Delegate to ActivityLog::create_table() to avoid schema mismatch (v4.6.9).
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
@@ -266,6 +278,9 @@ class Activator {
 		}
 	}
 
+	/**
+	 * Create verification page.
+	 */
 	private static function create_verification_page(): void {
 		$existing_page = get_page_by_path( 'valid' );
 

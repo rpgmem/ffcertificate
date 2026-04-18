@@ -26,16 +26,44 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class AppointmentValidator {
 
-	/** @var \FreeFormCertificate\Repositories\AppointmentRepository */
+	/**
+	 * Appointment repository.
+	 *
+	 * @var \FreeFormCertificate\Repositories\AppointmentRepository
+	 */
 	private $appointment_repository;
-	/** @var \FreeFormCertificate\Repositories\BlockedDateRepository */
+	/**
+	 * Blocked date repository.
+	 *
+	 * @var \FreeFormCertificate\Repositories\BlockedDateRepository
+	 */
 	private $blocked_date_repository;
 
 	/**
 	 * Constructor
 	 *
-	 * @param \FreeFormCertificate\Repositories\AppointmentRepository $appointment_repository
-	 * @param \FreeFormCertificate\Repositories\BlockedDateRepository $blocked_date_repository
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * @param \FreeFormCertificate\Repositories\AppointmentRepository $appointment_repository Appointment repository.
+	 * @param \FreeFormCertificate\Repositories\BlockedDateRepository $blocked_date_repository Blocked date repository.
 	 */
 	public function __construct(
 		\FreeFormCertificate\Repositories\AppointmentRepository $appointment_repository,
@@ -287,9 +315,9 @@ class AppointmentValidator {
 	/**
 	 * Check if time is within working hours
 	 *
-	 * @param string               $date
-	 * @param string               $time
-	 * @param array<string, mixed> $calendar
+	 * @param string $date Date.
+	 * @param string $time Time.
+	 * @param array<string, mixed>  $calendar Calendar.
 	 * @return bool
 	 */
 	public function is_within_working_hours( string $date, string $time, array $calendar ): bool {
@@ -303,8 +331,8 @@ class AppointmentValidator {
 	/**
 	 * Get daily appointment count
 	 *
-	 * @param int    $calendar_id
-	 * @param string $date
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date Date.
 	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
 	 * @return int
 	 */

@@ -167,7 +167,7 @@ class WorkingHoursService {
 	/**
 	 * Normalize working hours input to a decoded array.
 	 *
-	 * @param string|array<mixed>|null $working_hours
+	 * @param string|array<mixed>|null $working_hours Working hours.
 	 * @return array<mixed>
 	 */
 	private static function normalize( $working_hours ): array {

@@ -1,7 +1,10 @@
 <?php
 /**
  * PHPStan stubs for plugin constants.
+ *
  * These are defined in ffcertificate.php at runtime.
+ *
+ * @package FreeFormCertificate
  */
 
 define( 'FFC_VERSION', '4.12.26' );
@@ -23,21 +26,28 @@ define( 'QR_ECLEVEL_M', 1 );
 define( 'QR_ECLEVEL_Q', 2 );
 define( 'QR_ECLEVEL_H', 3 );
 
+/**
+ * Stub for phpqrcode QRcode class.
+ */
 class QRcode {
 	/**
-	 * @param string       $text
-	 * @param string|false $outfile
-	 * @param int          $level
-	 * @param int          $size
-	 * @param int          $margin
+	 * Png.
+	 *
+	 * @param string       $text Text.
+	 * @param string|false $outfile Outfile.
+	 * @param int          $level Level.
+	 * @param int          $size Size.
+	 * @param int          $margin Margin.
 	 * @return void
 	 */
 	public static function png( $text, $outfile = false, $level = QR_ECLEVEL_L, $size = 3, $margin = 4 ) {}
 
 	/**
-	 * @param string       $text
-	 * @param string|false $outfile
-	 * @param int          $level
+	 * Raw.
+	 *
+	 * @param string       $text Text.
+	 * @param string|false $outfile Outfile.
+	 * @param int          $level Level.
 	 * @return array<int, string>
 	 */
 	public static function raw( $text, $outfile = false, $level = QR_ECLEVEL_L ) {

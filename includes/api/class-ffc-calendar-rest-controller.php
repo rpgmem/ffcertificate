@@ -26,6 +26,8 @@ class CalendarRestController {
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace;
 
@@ -101,7 +103,7 @@ class CalendarRestController {
 	 * List all active calendars
 	 *
 	 * @since 4.1.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_calendars( $request ) {
@@ -166,7 +168,7 @@ class CalendarRestController {
 	 * Get calendar details
 	 *
 	 * @since 4.1.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_calendar( $request ) {
@@ -246,7 +248,7 @@ class CalendarRestController {
 	 * Get available time slots for a date
 	 *
 	 * @since 4.1.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_calendar_slots( $request ) {
