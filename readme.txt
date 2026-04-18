@@ -175,6 +175,24 @@ In the certificate layout editor, use these dynamic tags:
 
 == Changelog ==
 
+= Unreleased =
+
+CSV download intermediate screen, full security audit (Phases 1–2), new test suites (Phase 3), and a full WPCS / PHPStan clean-up (Phases 4–5).
+
+* Feat: **CSV download intermediate screen** — info screen showing form restrictions, dates, geolocation, quiz, and quota between hash validation and download. Download button only enabled after the form has ended; certificate preview available before the collection period begins.
+* Security (HIGH): column-name SQL injection hardening in `AbstractRepository::build_where_clause()` via `%i` identifier placeholder and allowlist.
+* Security (HIGH): timing-safe token comparison via `hash_equals()` in appointment receipt handler; escape user-supplied values in audience email templates to prevent stored XSS.
+* Security (HIGH / crypto): encryption now produces **authenticated v2 ciphertexts** (encrypt-then-MAC, HMAC-SHA256 with a separately-derived MAC key); legacy v1 ciphertexts remain decryptable.
+* Security (MEDIUM): `SubmissionRestController` admin endpoints restricted to `manage_options`; `UserProfileRestController` sanitizes user input; `AudienceRepository` replaces inline `IN()` interpolation with parameterized placeholders.
+* Security (MEDIUM / XSS): escape output in `SubmissionsList`, frontend field renderer, PDF layout `{{form_title}}` substitution, and admin-configured email bodies.
+* Security (MEDIUM / transport): `IpGeolocation` HTTPS opt-in via `ffc_ipapi_use_https` filter with `sslverify` following scheme; `RateLimiter` only trusts `REMOTE_ADDR` unless `ffc_trust_forwarded_headers` is enabled (prevents IP spoofing); magic-link QR codes now generated locally (no more `chart.googleapis.com` leak).
+* Security (MEDIUM / path traversal): validate receipt template path inside plugin/theme dirs; allowlist reregistration email templates; move ICS temp files out of public uploads dir with try/finally cleanup.
+* Security (LOW): remove `$e->getMessage()` from 5 client-facing error responses; `Admin::redirect_with_msg()` builds target from `page`/`post_type` instead of `REQUEST_URI`; various minor output-escaping fixes.
+* Security (privacy): hash PII identifiers before logging (RateLimiter, IpGeolocation) for LGPD compliance.
+* Test: 3234 → **3396 tests** / 8140 assertions — new suites for CustomFieldValidator, Autoloader, UserContextTrait, MigrationDynamicReregFields, ReregistrationStandardFieldsSeeder, AbstractRepository, Geofence, FormListColumns.
+* Chore: WPCS **1232 → 0 errors** across 161 files — file headers, class docblocks, function `@param` tags, short-description fixes, short-ternary replacement (105×), `urlencode` → `rawurlencode` (5×), and 172 `phpcbf` auto-fixes.
+* Chore: PHPStan level 7 **3 → 0 errors** — removed stale ignores, corrected `array<T, U>` generics (`array<int, int>` for ID lists, `array<int, string>` for status lists).
+
 = 5.3.0 (2026-04-17) =
 
 Full-page cache compatibility, per-form captcha isolation, and CI pipeline improvements.

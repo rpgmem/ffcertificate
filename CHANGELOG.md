@@ -6,6 +6,75 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+CSV download intermediate screen, full security audit (Phases 1–2), new test suites (Phase 3), and a full WPCS / PHPStan clean-up (Phases 4–5).
+
+### New Features
+
+- Feat: **CSV download intermediate screen** — after hash validation and before the actual download, an info screen shows form configuration (restrictions, dates, geolocation, quiz, quota) so the operator understands the form context. The download button is only enabled after the form has ended; a certificate preview button is available before the collection period begins.
+
+### Security
+
+Phase 1 — Tier 1 hardening:
+
+- Security (HIGH): `AbstractRepository::build_where_clause()` now uses the `%i` identifier placeholder and a `get_allowed_where_columns()` allowlist to prevent column-name SQL injection.
+- Security (MEDIUM): `SubmissionRestController` admin endpoints restricted to `manage_options` (was `edit_posts`, accessible to Authors who shouldn't see PII).
+- Security (MEDIUM): `UserProfileRestController::update_user_profile()` sanitizes user input via `sanitize_text_field` + `wp_unslash`.
+- Security (MEDIUM): `AudienceRepository::get_user_audiences()` replaces inline `$id_list` interpolation with parameterized placeholders.
+- Security (LOW): removed `$e->getMessage()` from 5 client-facing error responses across 4 REST controllers to prevent information disclosure.
+
+Phase 2 — Tier 2 hardening:
+
+- Security (HIGH): timing-safe token comparison via `hash_equals()` in the appointment receipt handler.
+- Security (HIGH): escape user-supplied values (description, cancellation reason, etc.) in audience email templates to prevent stored XSS in recipient mail clients.
+- Security (MEDIUM / XSS): escape `id`, form title, and action labels in `SubmissionsList::column_default()` / `render_actions()`; inline-literal output for `$required_attr` in the frontend field renderer; escape `{{form_title}}` before `str_replace` into PDF layouts; wrap admin-configured email body text with `wp_kses_post()`.
+- Security (MEDIUM / crypto): encryption now produces **authenticated v2 ciphertexts** (encrypt-then-MAC, HMAC-SHA256 with a separately-derived MAC key); legacy v1 ciphertexts remain decryptable.
+- Security (MEDIUM / transport): `IpGeolocation` HTTPS opt-in via `ffc_ipapi_use_https` filter; `sslverify` now follows the scheme.
+- Security (MEDIUM / IP spoofing): `RateLimiter` only trusts `REMOTE_ADDR` by default; forwarded headers are gated behind `ffc_trust_forwarded_headers`.
+- Security (MEDIUM / data leak): `MagicLinkHelper` replaces `chart.googleapis.com` QR URL with the local `QRCodeGenerator` so magic tokens never reach a third-party service.
+- Security (MEDIUM / path traversal): `PdfGenerator` validates the receipt template path is inside the plugin or theme directories; `ReregistrationEmailHandler` allowlists template names; `AudienceNotificationHandler` moves temp ICS files from the public uploads dir to the system temp dir with try/finally cleanup.
+- Security (LOW): `Admin::redirect_with_msg()` builds the redirect target from `page`/`post_type` instead of `REQUEST_URI`; removed duplicate `wp_nonce_field()` in `FormEditorMetaboxRenderer`; escaped return values in `VerificationResponseRenderer::format_field_value`; `ReprintDetector` hash-column query uses `%i`; `receipt-handler` escapes `bloginfo` with `esc_html` / `esc_url`.
+- Security (privacy / LGPD): hash PII identifiers before logging in `RateLimiter`; hash IP in `IpGeolocation` debug logs.
+
+### Test Coverage
+
+- New: **CustomFieldValidatorTest** (51 tests) — required-field, number, date, select, dependent_select, working_hours, min/max length, CPF, email, phone, and custom_regex validation.
+- New: **AutoloaderTest** (25 tests) — kebab-case conversion, filename generation, namespace map, class file resolution, and debug helpers.
+- New: **UserContextTraitTest** (8 tests) — view-as resolution for admins vs non-admins and capability checks in normal / view-as modes.
+- New: **MigrationDynamicReregFieldsTest** (6 tests) — status tracking, early return on completed, full execution, and status reporting.
+- New: **ReregistrationStandardFieldsSeederTest** (15 tests) — field definition integrity, unique keys, valid groups/types, CPF field properties, idempotent seeding, hook registration.
+- New: **AbstractRepositoryTest** (22 tests) — `build_where_clause`, `sanitize_order_column`, CRUD and transaction methods.
+- New: **GeofenceTest** (22 tests), **FormListColumnsTest** (15 tests).
+- Updated: `ReregistrationDataProcessorTest` — added `is_wp_error` and `is_email` mocks required after `CustomFieldValidator` entered the validation chain; `AudienceNotificationHandlerTest` mocks the new escape helpers; `MagicLinkHelperTest` asserts the QR code no longer leaks to an external service.
+- Test suite: **3234 → 3396 tests** (+162) with **8140 assertions**, 0 failures.
+
+### Code Quality
+
+Phase 4 — correctness & style violations (1232 → 1141 violations, 61 → 0 warnings):
+
+- Fix: `OutputNotEscaped` (8) across url-shortener admin page, reregistration form renderer, self-scheduling appointment view, and migrations tab.
+- Fix: 7 false-positive `PreparedSQL` violations documented with precise `phpcs:disable` blocks for dynamic `IN()` clauses where placeholders are built with `array_fill('%d')`.
+- Fix: documented intentional `$submenu` override with `phpcs:ignore` and rationale.
+- Chore: `urlencode` → `rawurlencode` (5×) per RFC 3986 in admin, settings, and ip-geolocation.
+- Chore: documented legitimate `AlternativeFunctions` usage (PNG temp file, plugin template, `fopen`/`fclose` CSV streaming) and `base64_encode`/`base64_decode` benign uses in the encryption envelope, QR data URI, and client download payload.
+- Chore: 5× Yoda condition flips in `geofence-location-registry`; 2× i18n translator comments; 4× `while (@ob_end_clean()) {}` → `{/* no-op */}`; 3× canonical `fgetcsv()` streaming pattern documented; 1× `else{if}` → `elseif`.
+- Chore: `phpcbf` auto-fixes (43 violations across 8 files).
+- Chore: removed 3 stale `@phpstan-ignore-next-line` pragmas — PHPStan level 7 now clean.
+
+Phase 5 — documentation & style cleanup (1141 → **0 violations**):
+
+- Chore: `Universal.Operators.DisallowShortTernary` (105 → 0) — replaced `$a ?: $b` with explicit `$a ? $a : $b` across 43 files, using temp-variable extraction for function-call left operands to avoid double-calling side effects.
+- Chore: file-level headers normalized across 152 PHP files — added missing docblocks (139), reorganized PSR12 order (138), added `@package` tags from the namespace (13).
+- Chore: class-level documentation — added `/** Short description. */` docblocks to 142 previously undocumented classes/traits/interfaces via a pattern-based mapping (`Repository` → "Database repository for X", `Service` → "Service class for X", etc.).
+- Chore: final 299 docblock violations resolved — `MissingShort` (102), `MissingParamTag` (90), `MissingParamComment` (64), `VariableComment.MissingVar` (16), `IncorrectTypeHint` / `ParamNameNoMatch` / `ExtraParamComment`, `MissingPackageTag` (5), and misc.
+- Chore: corrected `array<T, U>` generics that were over-generalized during docblock regeneration (`array<int, int>` for ID lists, `array<int, string>` for status/key lists), restoring PHPStan level 7 to 0 errors with WordPress stubs.
+- Chore: `phpcbf` auto-fixes (129 spacing violations in 29 files + 63 alignment fixes).
+
+Final verification: `phpcs` → 0 errors, `phpstan analyse` → 0 errors, `phpunit` → 3396 tests / 8140 assertions passing.
+
+---
+
 ## 5.3.0 (2026-04-17)
 
 Full-page cache compatibility, per-form captcha isolation, and CI pipeline improvements.
