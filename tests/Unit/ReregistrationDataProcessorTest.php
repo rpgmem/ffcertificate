@@ -48,6 +48,15 @@ class ReregistrationDataProcessorTest extends TestCase {
         Functions\when( 'wp_cache_get' )->justReturn( false );
         Functions\when( 'wp_cache_set' )->justReturn( true );
         Functions\when( 'wp_cache_delete' )->justReturn( true );
+        Functions\when( 'is_wp_error' )->alias( function ( $thing ) {
+            return $thing instanceof \WP_Error;
+        });
+        Functions\when( 'FreeFormCertificate\Reregistration\is_wp_error' )->alias( function ( $thing ) {
+            return $thing instanceof \WP_Error;
+        });
+        Functions\when( 'FreeFormCertificate\Reregistration\is_email' )->alias( function ( $email ) {
+            return (bool) filter_var( $email, FILTER_VALIDATE_EMAIL );
+        });
 
         // Default $wpdb mock — no fields returned.
         $this->setup_wpdb_with_fields( array() );
