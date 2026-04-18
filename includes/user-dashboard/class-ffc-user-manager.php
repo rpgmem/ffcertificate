@@ -52,11 +52,11 @@ class UserManager {
 	 * Get or create a WordPress user for the given credentials.
 	 *
 	 * @see UserCreator::get_or_create_user()
-	 * @param string $cpf_rf_hash     CPF/RF hash.
-	 * @param string $email           Email address.
-	 * @param array<string, mixed>  $submission_data Submission data.
-	 * @param string $context         Context.
-	 * @param string $identifier_type Identifier type.
+	 * @param string               $cpf_rf_hash     CPF/RF hash.
+	 * @param string               $email           Email address.
+	 * @param array<string, mixed> $submission_data Submission data.
+	 * @param string               $context         Context.
+	 * @param string               $identifier_type Identifier type.
 	 * @return int|\WP_Error User ID on success, WP_Error on failure
 	 */
 	public static function get_or_create_user( string $cpf_rf_hash, string $email, array $submission_data = array(), string $context = self::CONTEXT_CERTIFICATE, string $identifier_type = UserCreator::TYPE_AUTO ) {
@@ -67,8 +67,8 @@ class UserManager {
 	 * Generate a username from email and submission data.
 	 *
 	 * @see UserCreator::generate_username()
-	 * @param string $email           Email address.
-	 * @param array<string, mixed>  $submission_data Submission data.
+	 * @param string               $email           Email address.
+	 * @param array<string, mixed> $submission_data Submission data.
 	 */
 	public static function generate_username( string $email, array $submission_data = array() ): string {
 		return UserCreator::generate_username( $email, $submission_data );

@@ -810,8 +810,8 @@ class RateLimiter {
 	/**
 	 * Format message.
 	 *
-	 * @param string $template Template.
-	 * @param array<string, mixed>  $data Data.
+	 * @param string               $template Template.
+	 * @param array<string, mixed> $data Data.
 	 */
 	private static function format_message( string $template, array $data ): string {
 		return str_replace( array( '{time}', '{count}', '{max}', '{remaining}' ), array( (string) ( $data['time'] ?? '' ), (string) ( $data['count'] ?? 0 ), (string) ( $data['max'] ?? 0 ), (string) ( ( $data['max'] ?? 0 ) - ( $data['count'] ?? 0 ) ) ), $template );

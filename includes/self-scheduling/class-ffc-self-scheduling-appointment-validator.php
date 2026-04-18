@@ -315,9 +315,9 @@ class AppointmentValidator {
 	/**
 	 * Check if time is within working hours
 	 *
-	 * @param string $date Date.
-	 * @param string $time Time.
-	 * @param array<string, mixed>  $calendar Calendar.
+	 * @param string               $date Date.
+	 * @param string               $time Time.
+	 * @param array<string, mixed> $calendar Calendar.
 	 * @return bool
 	 */
 	public function is_within_working_hours( string $date, string $time, array $calendar ): bool {

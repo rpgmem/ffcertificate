@@ -108,7 +108,7 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Update working hours
 	 *
-	 * @param int   $id Record ID.
+	 * @param int                  $id Record ID.
 	 * @param array<string, mixed> $working_hours Working hours.
 	 * @return int|false
 	 */
@@ -126,7 +126,7 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Update email configuration
 	 *
-	 * @param int   $id Record ID.
+	 * @param int                  $id Record ID.
 	 * @param array<string, mixed> $email_config Email config.
 	 * @return int|false
 	 */
@@ -202,7 +202,7 @@ class CalendarRepository extends AbstractRepository {
 	 *
 	 * Called when a calendar post is created.
 	 *
-	 * @param int   $post_id Post ID.
+	 * @param int                  $post_id Post ID.
 	 * @param array<string, mixed> $data Data.
 	 * @return int|false
 	 */

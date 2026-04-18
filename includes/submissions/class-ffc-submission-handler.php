@@ -110,12 +110,12 @@ class SubmissionHandler {
 	 *
 	 * @uses Repository::insert()
 	 *
-	 * @param int    $form_id         Form ID.
-	 * @param string $form_title      Form title.
-	 * @param array<string, mixed>  $submission_data Submission data (passed by reference).
-	 * @param string $user_email      User email.
-	 * @param array<string, mixed>  $fields_config   Fields configuration.
-	 * @param array<string, mixed>  $form_config     Form configuration.
+	 * @param int                  $form_id         Form ID.
+	 * @param string               $form_title      Form title.
+	 * @param array<string, mixed> $submission_data Submission data (passed by reference).
+	 * @param string               $user_email      User email.
+	 * @param array<string, mixed> $fields_config   Fields configuration.
+	 * @param array<string, mixed> $form_config     Form configuration.
 	 * @return int|\WP_Error
 	 */
 	public function process_submission( int $form_id, string $form_title, array &$submission_data, string $user_email, array $fields_config, array $form_config ) {
@@ -305,9 +305,9 @@ class SubmissionHandler {
 	 *
 	 * @uses Repository::updateWithEditTracking()
 	 *
-	 * @param int    $id         Submission ID.
-	 * @param string $new_email  New email.
-	 * @param array<string, mixed>  $clean_data Clean data.
+	 * @param int                  $id         Submission ID.
+	 * @param string               $new_email  New email.
+	 * @param array<string, mixed> $clean_data Clean data.
 	 */
 	public function update_submission( int $id, string $new_email, array $clean_data ): bool {
 		/**

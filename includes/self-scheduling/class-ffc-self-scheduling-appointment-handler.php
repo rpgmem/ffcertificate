@@ -427,9 +427,9 @@ class AppointmentHandler {
 	/**
 	 * Schedule email notifications
 	 *
-	 * @param array<string, mixed>  $appointment Appointment.
-	 * @param array<string, mixed>  $calendar Calendar.
-	 * @param string $event (created, confirmed, cancelled, reminder).
+	 * @param array<string, mixed> $appointment Appointment.
+	 * @param array<string, mixed> $calendar Calendar.
+	 * @param string               $event (created, confirmed, cancelled, reminder).
 	 */
 	private function schedule_email_notifications( array $appointment, array $calendar, string $event ): void {
 		$email_config = json_decode( $calendar['email_config'], true );

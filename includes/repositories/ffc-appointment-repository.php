@@ -237,9 +237,9 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Get appointments for a date range
 	 *
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $start_date Start date.
-	 * @param string $end_date End date.
+	 * @param int                $calendar_id Calendar ID.
+	 * @param string             $start_date Start date.
+	 * @param string             $end_date End date.
 	 * @param array<int, string> $statuses Statuses.
 	 * @return array<int, array<string, mixed>>
 	 */

@@ -148,8 +148,8 @@ class EmailTemplateService {
 	/**
 	 * Generate an ICS calendar file content.
 	 *
-	 * @param array<string, mixed>  $event Event.
-	 * @param string $method ICS method (REQUEST or CANCEL).
+	 * @param array<string, mixed> $event Event.
+	 * @param string               $method ICS method (REQUEST or CANCEL).
 	 * @return string ICS file content
 	 */
 	public static function generate_ics( array $event, string $method = 'REQUEST' ): string {

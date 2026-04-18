@@ -127,7 +127,7 @@ class AppointmentCsvExporter {
 	 * Format a single CSV row
 	 *
 	 * @param array<string, mixed> $row Row.
-	 * @param array<int, string> $dynamic_keys Dynamic keys.
+	 * @param array<int, string>   $dynamic_keys Dynamic keys.
 	 * @return array<int, string>
 	 */
 	private function format_csv_row( array $row, array $dynamic_keys ): array {
@@ -319,10 +319,10 @@ class AppointmentCsvExporter {
 	/**
 	 * Get appointments for export with filters
 	 *
-	 * @param mixed       $calendar_ids Calendar ids.
-	 * @param array<int, string>         $statuses Statuses.
-	 * @param string|null $start_date Start date.
-	 * @param string|null $end_date End date.
+	 * @param mixed              $calendar_ids Calendar ids.
+	 * @param array<int, string> $statuses Statuses.
+	 * @param string|null        $start_date Start date.
+	 * @param string|null        $end_date End date.
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function get_appointments_for_export( $calendar_ids, array $statuses, ?string $start_date, ?string $end_date ): array {

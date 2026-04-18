@@ -149,11 +149,11 @@ abstract class AbstractRepository {
 	/**
 	 * Find all with conditions
 	 *
-	 * @param array<string, mixed>    $conditions Conditions.
-	 * @param string   $order_by   Column to order by.
-	 * @param string   $order      Order direction (ASC or DESC).
-	 * @param int|null $limit      Maximum number of results.
-	 * @param int      $offset     Query offset.
+	 * @param array<string, mixed> $conditions Conditions.
+	 * @param string               $order_by   Column to order by.
+	 * @param string               $order      Order direction (ASC or DESC).
+	 * @param int|null             $limit      Maximum number of results.
+	 * @param int                  $offset     Query offset.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findAll( array $conditions = array(), string $order_by = 'id', string $order = 'DESC', ?int $limit = null, int $offset = 0 ): array {
@@ -254,7 +254,7 @@ abstract class AbstractRepository {
 	/**
 	 * Update
 	 *
-	 * @param int   $id Record ID.
+	 * @param int                  $id Record ID.
 	 * @param array<string, mixed> $data Data.
 	 * @return int|false Number of rows updated, or false on error
 	 */

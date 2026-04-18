@@ -538,8 +538,8 @@ class PublicCsvExporter {
 	 * `CsvExporter::format_csv_row()`.
 	 *
 	 * @param array<string, mixed> $row Row.
-	 * @param array<int, string> $dynamic_keys Dynamic keys.
-	 * @param bool  $include_edit_columns Include edit columns.
+	 * @param array<int, string>   $dynamic_keys Dynamic keys.
+	 * @param bool                 $include_edit_columns Include edit columns.
 	 * @return array<int, mixed>
 	 */
 	private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {

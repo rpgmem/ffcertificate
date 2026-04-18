@@ -206,10 +206,10 @@ class BlockedDateRepository extends AbstractRepository {
 	 *
 	 * Example pattern: {type: 'weekly', days: [0,6]} = weekends
 	 *
-	 * @param int|null    $calendar_id Calendar ID.
-	 * @param string      $start_date Start date.
-	 * @param array<string, mixed>       $pattern Pattern.
-	 * @param string|null $reason Reason.
+	 * @param int|null             $calendar_id Calendar ID.
+	 * @param string               $start_date Start date.
+	 * @param array<string, mixed> $pattern Pattern.
+	 * @param string|null          $reason Reason.
 	 * @return int|false
 	 */
 	public function createRecurringBlock( ?int $calendar_id, string $start_date, array $pattern, ?string $reason = null ) {
@@ -255,9 +255,9 @@ class BlockedDateRepository extends AbstractRepository {
 	/**
 	 * Check if date/time matches recurring pattern
 	 *
-	 * @param string      $date Date.
-	 * @param string|null $time Time.
-	 * @param array<string, mixed>       $pattern Pattern.
+	 * @param string               $date Date.
+	 * @param string|null          $time Time.
+	 * @param array<string, mixed> $pattern Pattern.
 	 * @return bool
 	 */
 	private function matchesRecurringPattern( string $date, ?string $time, array $pattern ): bool {

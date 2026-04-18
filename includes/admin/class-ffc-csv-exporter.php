@@ -416,8 +416,8 @@ class CsvExporter {
 	 * Format csv row.
 	 *
 	 * @param array<string, mixed> $row Row.
-	 * @param array<int, string> $dynamic_keys Dynamic keys.
-	 * @param bool  $include_edit_columns Include edit columns.
+	 * @param array<int, string>   $dynamic_keys Dynamic keys.
+	 * @param bool                 $include_edit_columns Include edit columns.
 	 * @return array<int, mixed>
 	 */
 	private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {
@@ -476,7 +476,7 @@ class CsvExporter {
 	 * Scan all matching records to discover dynamic JSON keys.
 	 *
 	 * @param array<int, int>|null $form_ids Form ids.
-	 * @param string     $status Status.
+	 * @param string               $status Status.
 	 * @return array<int, string>
 	 */
 	private function scan_dynamic_keys( ?array $form_ids, string $status ): array {
@@ -501,7 +501,7 @@ class CsvExporter {
 	 * Count total matching rows for progress reporting.
 	 *
 	 * @param array<int, int>|null $form_ids Form ids.
-	 * @param string     $status Status.
+	 * @param string               $status Status.
 	 */
 	private function count_export_rows( ?array $form_ids, string $status ): int {
 		return $this->repository->countForExport( $form_ids, $status );

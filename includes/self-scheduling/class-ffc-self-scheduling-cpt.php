@@ -103,8 +103,8 @@ class SelfSchedulingCPT {
 	/**
 	 * Add duplicate link to calendar row actions
 	 *
-	 * @param array<string, mixed>  $actions Actions.
-	 * @param object $post Post object.
+	 * @param array<string, mixed> $actions Actions.
+	 * @param object               $post Post object.
 	 * @return array<string, string>
 	 */
 	public function add_duplicate_link( array $actions, object $post ): array {
