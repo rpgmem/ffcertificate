@@ -450,7 +450,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 				try {
 					$ffcertificate_decrypted = \FreeFormCertificate\Core\Encryption::decrypt_appointment( $ffcertificate_appointment );
 				} catch ( \Throwable $decrypt_err ) {
-					// Decryption failed — continue with raw data.
+					unset( $decrypt_err ); // Decryption failed — continue with raw (still-encrypted) data.
 				}
 			}
 
@@ -499,7 +499,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 					printf(
 						/* translators: %d: appointment ID */
 						esc_html__( 'Appointment #%d', 'ffcertificate' ),
-						$ffc_self_scheduling_appointment_id
+						(int) $ffc_self_scheduling_appointment_id
 					);
 					?>
 				</h1>

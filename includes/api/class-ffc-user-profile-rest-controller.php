@@ -208,7 +208,11 @@ class UserProfileRestController {
 			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
 				\FreeFormCertificate\Core\Utils::debug_log(
 					'get_user_profile error',
-					array( 'message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine() )
+					array(
+						'message' => $e->getMessage(),
+						'file'    => $e->getFile(),
+						'line'    => $e->getLine(),
+					)
 				);
 			}
 			return new \WP_Error(
@@ -296,7 +300,11 @@ class UserProfileRestController {
 			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
 				\FreeFormCertificate\Core\Utils::debug_log(
 					'update_user_profile error',
-					array( 'message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine() )
+					array(
+						'message' => $e->getMessage(),
+						'file'    => $e->getFile(),
+						'line'    => $e->getLine(),
+					)
 				);
 			}
 			return new \WP_Error(

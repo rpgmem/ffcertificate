@@ -193,6 +193,7 @@ class FormEditor {
 			wp_send_json_error();
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading bundled plugin HTML template; no remote URL.
 		$content = file_get_contents( $filepath );
 		wp_send_json_success( $content );
 	}

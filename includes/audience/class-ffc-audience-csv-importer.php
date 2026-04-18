@@ -95,6 +95,7 @@ class AudienceCsvImporter {
 
 		// Process rows.
 		$row_num = 1;
+		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- canonical fgetcsv() streaming pattern.
 		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
 			++$row_num;
 
@@ -225,6 +226,7 @@ class AudienceCsvImporter {
 		// First pass: create all parent audiences.
 		$audiences_to_create = array();
 		$row_num             = 1;
+		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- canonical fgetcsv() streaming pattern.
 		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
 			++$row_num;
 
@@ -450,6 +452,7 @@ class AudienceCsvImporter {
 		}
 
 		// Count rows.
+		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- canonical fgetcsv() streaming pattern.
 		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
 			if ( ! empty( array_filter( $data ) ) ) {
 				++$result['rows'];

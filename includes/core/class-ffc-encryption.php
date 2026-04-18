@@ -67,8 +67,8 @@ class Encryption {
 		}
 
 		try {
-			$enc_key  = self::get_encryption_key();
-			$mac_key  = self::get_hmac_key();
+			$enc_key = self::get_encryption_key();
+			$mac_key = self::get_hmac_key();
 
 			// Generate unique IV.
 			$iv = random_bytes( self::IV_LENGTH );
@@ -95,6 +95,7 @@ class Encryption {
 			// Authenticate IV + ciphertext with HMAC (encrypt-then-MAC).
 			$hmac = hash_hmac( self::HMAC_ALGO, $iv . $encrypted, $mac_key, true );
 
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- benign: binary ciphertext encoding for safe string transport.
 			return self::V2_PREFIX . base64_encode( $hmac . $iv . $encrypted );
 
 		} catch ( \Exception $e ) {
@@ -126,6 +127,7 @@ class Encryption {
 			$enc_key = self::get_encryption_key();
 
 			if ( 0 === strpos( $encrypted, self::V2_PREFIX ) ) {
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- benign: decoding our own ciphertext envelope.
 				$data = base64_decode( substr( $encrypted, strlen( self::V2_PREFIX ) ), true );
 				if ( false === $data || strlen( $data ) < self::HMAC_LENGTH + self::IV_LENGTH ) {
 					\FreeFormCertificate\Core\Utils::debug_log( 'v2 decode failed' );
@@ -143,6 +145,7 @@ class Encryption {
 				}
 			} else {
 				// Legacy (v1) path: base64( IV || CIPHERTEXT ), no authentication.
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- benign: decoding our own legacy ciphertext envelope.
 				$data = base64_decode( $encrypted, true );
 				if ( false === $data || strlen( $data ) < self::IV_LENGTH ) {
 					\FreeFormCertificate\Core\Utils::debug_log( 'Base64 decode failed' );
@@ -393,7 +396,7 @@ class Encryption {
 			defined( 'LOGGED_IN_KEY' ) ? LOGGED_IN_KEY : '',
 			defined( 'NONCE_KEY' ) ? NONCE_KEY : '',
 		);
-		$combined = implode( '|', $base_keys );
+		$combined  = implode( '|', $base_keys );
 
 		return hash_pbkdf2( 'sha256', $combined, 'ffc-hmac-salt', 10000, 32, true );
 	}

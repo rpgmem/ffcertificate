@@ -96,9 +96,10 @@ class PublicCsvExporter {
 		) . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
 
 		// Discard any buffered output so the CSV is the only payload on the wire.
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
 		while ( @ob_end_clean() ) {
-		} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
+			/* no-op */
+		}
 
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
 		header( 'Content-Type: text/csv; charset=utf-8' );
@@ -444,9 +445,10 @@ class PublicCsvExporter {
 			wp_die( esc_html__( 'Export file not found.', 'ffcertificate' ) );
 		}
 
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
 		while ( @ob_end_clean() ) {
-		} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
+			/* no-op */
+		}
 
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $job['filename'] );
 		header( 'Content-Type: text/csv; charset=utf-8' );

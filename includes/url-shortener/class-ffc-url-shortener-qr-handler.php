@@ -259,6 +259,7 @@ class UrlShortenerQrHandler {
 
 		wp_send_json_success(
 			array(
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- benign: encoding SVG for client-side download payload.
 				'data'     => base64_encode( $svg ),
 				'filename' => $target['prefix'] . '.svg',
 				'mime'     => 'image/svg+xml',

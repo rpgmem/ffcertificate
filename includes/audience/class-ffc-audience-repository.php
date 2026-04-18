@@ -527,12 +527,11 @@ class AudienceRepository {
 				$ancestor_ids = array_unique( array_map( 'absint', $ancestor_ids ) );
 				$placeholders = implode( ',', array_fill( 0, count( $ancestor_ids ), '%d' ) );
 
-                // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic IN() placeholders built from array_fill; cached below.
+                // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN() placeholders built from array_fill; cached below.
 				$parents = $wpdb->get_results(
-					/** @phpstan-ignore-next-line argument.type */
 					$wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$placeholders}) AND status = 'active'", array_merge( array( $table ), $ancestor_ids ) )
 				);
-                // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 				// Merge and remove duplicates.
 				$existing_ids = array_column( $audiences, 'id' );

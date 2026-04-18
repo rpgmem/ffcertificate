@@ -327,7 +327,7 @@ class Admin {
 					'post_type' => 'ffc_form',
 					'page'      => 'ffc-submissions',
 					'msg'       => 'migration_error',
-					'error_msg' => urlencode( $result->get_error_message() ),
+					'error_msg' => rawurlencode( $result->get_error_message() ),
 				),
 				admin_url( 'edit.php' )
 			);
@@ -339,7 +339,7 @@ class Admin {
 					'post_type'      => 'ffc_form',
 					'page'           => 'ffc-submissions',
 					'msg'            => 'migration_success',
-					'migration_name' => urlencode( $migration['name'] ),
+					'migration_name' => rawurlencode( $migration['name'] ),
 					'migrated'       => $migrated,
 				),
 				admin_url( 'edit.php' )

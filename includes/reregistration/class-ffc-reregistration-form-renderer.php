@@ -331,6 +331,7 @@ class ReregistrationFormRenderer {
 					'<textarea id="%s" name="%s" rows="3"%s>%s</textarea>',
 					esc_attr( $field_id ),
 					esc_attr( $field_name ),
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- hardcoded safe attribute string.
 					$req_attr,
 					esc_textarea( is_scalar( $value ) ? (string) $value : '' )
 				);
@@ -342,6 +343,7 @@ class ReregistrationFormRenderer {
 					'<select id="%s" name="%s"%s>',
 					esc_attr( $field_id ),
 					esc_attr( $field_name ),
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- hardcoded safe attribute string.
 					$req_attr
 				);
 				echo '<option value="">' . esc_html__( 'Select', 'ffcertificate' ) . '</option>';
@@ -377,6 +379,7 @@ class ReregistrationFormRenderer {
 					esc_attr( $field_id ),
 					esc_attr( $field_name ),
 					esc_attr( is_scalar( $value ) ? (string) $value : '' ),
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- hardcoded safe attribute string.
 					$req_attr,
 					$mask_attr // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above
 				);
@@ -388,6 +391,7 @@ class ReregistrationFormRenderer {
 					esc_attr( $field_id ),
 					esc_attr( $field_name ),
 					esc_attr( is_scalar( $value ) ? (string) $value : '' ),
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- hardcoded safe attribute string.
 					$req_attr
 				);
 				break;
@@ -402,6 +406,7 @@ class ReregistrationFormRenderer {
 					esc_attr( $field_id ),
 					esc_attr( $field_name ),
 					esc_attr( is_scalar( $value ) ? (string) $value : '' ),
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- hardcoded safe attribute string.
 					$req_attr,
 					$mask_attr // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above
 				);

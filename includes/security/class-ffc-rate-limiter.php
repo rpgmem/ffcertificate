@@ -189,11 +189,14 @@ class RateLimiter {
 		$last = wp_cache_get( 'ffc_rate_ip_' . md5( $ip . $form_id ) . '_last', self::CACHE_GROUP );
 		if ( $last && ( time() - $last ) < $s['cooldown_seconds'] ) {
 			$w = $s['cooldown_seconds'] - ( time() - $last );
-			/* translators: %d: number of seconds to wait */
 			return array(
 				'allowed'      => false,
 				'reason'       => 'ip_cooldown',
-				'message'      => sprintf( __( 'Please wait %d seconds.', 'ffcertificate' ), $w ),
+				'message'      => sprintf(
+					/* translators: %d: number of seconds to wait */
+					__( 'Please wait %d seconds.', 'ffcertificate' ),
+					$w
+				),
 				'wait_seconds' => $w,
 			);
 		}

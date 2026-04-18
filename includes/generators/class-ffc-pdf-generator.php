@@ -817,7 +817,7 @@ class PdfGenerator {
 	 * @return string HTML template with placeholders
 	 */
 	private function get_appointment_receipt_template(): string {
-		$default_file  = FFC_PLUGIN_DIR . 'html/default_appointment_receipt_1.html';
+		$default_file = FFC_PLUGIN_DIR . 'html/default_appointment_receipt_1.html';
 
 		// Allow override via filter.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix

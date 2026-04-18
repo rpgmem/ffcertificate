@@ -95,11 +95,12 @@ abstract class AbstractRepository {
 		if ( ! empty( $missing ) ) {
 			$safe_ids     = array_map( 'absint', $missing );
 			$placeholders = implode( ',', array_fill( 0, count( $safe_ids ), '%d' ) );
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %d repeated to match count($safe_ids); Interpolated* is file-disabled above.
 			$rows = $this->wpdb->get_results(
 				$this->wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$placeholders})", $this->table, ...$safe_ids ),
 				ARRAY_A
 			);
+            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 			if ( is_array( $rows ) ) {
 				foreach ( $rows as $row ) {
@@ -259,11 +260,11 @@ abstract class AbstractRepository {
 			}
 
 			if ( is_array( $value ) ) {
-				$placeholders  = implode( ',', array_fill( 0, count( $value ), '%s' ) );
-				/** @phpstan-ignore-next-line argument.type */
+				$placeholders = implode( ',', array_fill( 0, count( $value ), '%s' ) );
+				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %s repeated to match count($value).
 				$where_parts[] = $this->wpdb->prepare( "%i IN ({$placeholders})", $key, ...$value );
+				// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 			} else {
-				/** @phpstan-ignore-next-line argument.type */
 				$where_parts[] = $this->wpdb->prepare( '%i = %s', $key, $value );
 			}
 		}

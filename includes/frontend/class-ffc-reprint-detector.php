@@ -73,9 +73,9 @@ class ReprintDetector {
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
 				// Classify by digit count and search the specific split column. Using %i instead of
 				// raw interpolation ensures wpdb quotes the identifier even if this allowlist ever changes.
-				$id_hash            = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
-				$allowed_hash_cols  = array( 'cpf_hash', 'rf_hash' );
-				$hash_column        = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
+				$id_hash           = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
+				$allowed_hash_cols = array( 'cpf_hash', 'rf_hash' );
+				$hash_column       = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
 				if ( ! in_array( $hash_column, $allowed_hash_cols, true ) ) {
 					$hash_column = 'cpf_hash';
 				}

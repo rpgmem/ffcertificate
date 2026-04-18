@@ -255,6 +255,7 @@ class AudienceAdminPage {
 			}
 		}
 
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentionally reordering WP's own $submenu array to control admin menu appearance.
 		$submenu[ self::MENU_SLUG ] = $new_items;
 	}
 

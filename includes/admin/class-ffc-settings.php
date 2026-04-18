@@ -289,13 +289,11 @@ class Settings {
 				<?php
 				if ( isset( $this->tabs[ $active_tab ] ) ) {
 					$this->tabs[ $active_tab ]->render();
-				} else {
+				} elseif ( ! empty( $this->tabs ) ) {
 					// Fallback: render first tab.
-					if ( ! empty( $this->tabs ) ) {
-						reset( $this->tabs );
-						$first_tab = current( $this->tabs );
-						$first_tab->render();
-					}
+					reset( $this->tabs );
+					$first_tab = current( $this->tabs );
+					$first_tab->render();
 				}
 				?>
 			</div>
@@ -343,14 +341,14 @@ class Settings {
 
 		// Add result message.
 		if ( is_wp_error( $result ) ) {
-			$redirect_url = add_query_arg( 'migration_error', urlencode( $result->get_error_message() ), $redirect_url );
+			$redirect_url = add_query_arg( 'migration_error', rawurlencode( $result->get_error_message() ), $redirect_url );
 		} else {
 			$message = sprintf(
 				/* translators: %d: number of records processed */
 				__( 'Migration executed: %d records processed.', 'ffcertificate' ),
 				isset( $result['processed'] ) ? $result['processed'] : 0
 			);
-			$redirect_url = add_query_arg( 'migration_success', urlencode( $message ), $redirect_url );
+			$redirect_url = add_query_arg( 'migration_success', rawurlencode( $message ), $redirect_url );
 		}
 
 		wp_safe_redirect( $redirect_url );

@@ -463,8 +463,8 @@ class ReregistrationRepository {
 
 		$placeholders = implode( ',', array_fill( 0, count( $audience_ids ), '%d' ) );
 
-        // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-		return $wpdb->get_results(
+        // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %d repeated to match count($audience_ids); $wpdb->prepare accepts a single array of args. Interpolated* and UnfinishedPrepare are file-disabled above.
+		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT DISTINCT r.* FROM %i r
                  JOIN %i ra ON r.id = ra.reregistration_id
@@ -474,6 +474,9 @@ class ReregistrationRepository {
 				array_merge( array( $table, $junction ), $audience_ids )
 			)
 		);
+        // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		return $results;
 	}
 
 	/**

@@ -415,11 +415,12 @@ class SubmissionRepository extends AbstractRepository {
 		if ( ! empty( $args['form_ids'] ) && is_array( $args['form_ids'] ) ) {
 			$form_ids_int          = array_map( 'absint', $args['form_ids'] );
 			$form_ids_placeholders = implode( ', ', array_fill( 0, count( $form_ids_int ), '%d' ) );
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $form_ids_placeholders is %d repeated to match count($form_ids_int); Interpolated* is file-disabled above.
 			$where[] = $this->wpdb->prepare(
 				"form_id IN ({$form_ids_placeholders})",
 				...$form_ids_int
 			);
+            // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		}
 
 		if ( ! empty( $args['search'] ) ) {

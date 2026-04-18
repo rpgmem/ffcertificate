@@ -185,7 +185,7 @@ class IpGeolocation {
 		$url = sprintf( 'https://ipinfo.io/%s/json', $ip );
 
 		if ( ! empty( $api_key ) ) {
-			$url .= '?token=' . urlencode( $api_key );
+			$url .= '?token=' . rawurlencode( $api_key );
 		}
 
 		$response = wp_remote_get(

@@ -160,6 +160,7 @@ class CsvExporter {
 			$headers
 		);
 		fputcsv( $fh, $headers, ';' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing handle from fopen() for CSV streaming; WP_Filesystem has no streaming equivalent.
 		fclose( $fh );
 
 		// Store job state in a transient.
@@ -250,6 +251,7 @@ class CsvExporter {
 			);
 			fputcsv( $fh, $csv_row, ';' );
 		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing handle from fopen() for CSV streaming; WP_Filesystem has no streaming equivalent.
 		fclose( $fh );
 
 		// Advance cursor.
@@ -298,9 +300,10 @@ class CsvExporter {
 		}
 
 		// Serve file.
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
 		while ( @ob_end_clean() ) {
-		} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
+			/* no-op */
+		}
 
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $job['filename'] );
 		header( 'Content-Type: text/csv; charset=utf-8' );

@@ -41,7 +41,7 @@ class GeofenceLocationRegistry {
 	 */
 	public static function get_by_id( string $id ): ?array {
 		foreach ( self::get_all() as $location ) {
-			if ( $id === ( $location['id'] ?? '' ) ) {
+			if ( ( $location['id'] ?? '' ) === $id ) {
 				return $location;
 			}
 		}
@@ -58,8 +58,8 @@ class GeofenceLocationRegistry {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_by_ids( array $ids ): array {
-		$ids_flip  = array_flip( $ids );
-		$matched   = array();
+		$ids_flip = array_flip( $ids );
+		$matched  = array();
 
 		foreach ( self::get_all() as $location ) {
 			if ( isset( $ids_flip[ $location['id'] ?? '' ] ) ) {
@@ -90,7 +90,7 @@ class GeofenceLocationRegistry {
 		$found     = false;
 
 		foreach ( $locations as $index => $existing ) {
-			if ( $location['id'] === ( $existing['id'] ?? '' ) ) {
+			if ( ( $existing['id'] ?? '' ) === $location['id'] ) {
 				$locations[ $index ] = $location;
 				$found               = true;
 				break;
@@ -103,7 +103,7 @@ class GeofenceLocationRegistry {
 
 		if ( ! empty( $location['default_gps'] ) ) {
 			foreach ( $locations as $index => $item ) {
-				if ( $location['id'] !== ( $item['id'] ?? '' ) ) {
+				if ( ( $item['id'] ?? '' ) !== $location['id'] ) {
 					$locations[ $index ]['default_gps'] = false;
 				}
 			}
@@ -111,7 +111,7 @@ class GeofenceLocationRegistry {
 
 		if ( ! empty( $location['default_ip'] ) ) {
 			foreach ( $locations as $index => $item ) {
-				if ( $location['id'] !== ( $item['id'] ?? '' ) ) {
+				if ( ( $item['id'] ?? '' ) !== $location['id'] ) {
 					$locations[ $index ]['default_ip'] = false;
 				}
 			}
@@ -134,7 +134,7 @@ class GeofenceLocationRegistry {
 		$deleted   = false;
 
 		foreach ( $locations as $location ) {
-			if ( $id === ( $location['id'] ?? '' ) ) {
+			if ( ( $location['id'] ?? '' ) === $id ) {
 				$deleted = true;
 				continue;
 			}

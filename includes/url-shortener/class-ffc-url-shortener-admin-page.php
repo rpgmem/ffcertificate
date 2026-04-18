@@ -387,7 +387,7 @@ class UrlShortenerAdminPage {
 						<option value="trashed" <?php selected( $status, 'trashed' ); ?>>
 							<?php
 							/* translators: %d: number of trashed links */
-							printf( esc_html__( 'Trash (%d)', 'ffcertificate' ), $stats['trashed_links'] );
+							printf( esc_html__( 'Trash (%d)', 'ffcertificate' ), (int) $stats['trashed_links'] );
 							?>
 						</option>
 					</select>
