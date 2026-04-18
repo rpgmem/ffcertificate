@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for calendar endpoints.
+ */
 class CalendarRestController {
 
 	/**

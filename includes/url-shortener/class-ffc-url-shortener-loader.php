@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Loader for url shortener module.
+ */
 class UrlShortenerLoader {
 
 	/** @var UrlShortenerService */

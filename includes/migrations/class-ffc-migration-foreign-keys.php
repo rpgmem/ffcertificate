@@ -22,7 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-
+/**
+ * Migration Foreign Keys.
+ */
 class MigrationForeignKeys {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

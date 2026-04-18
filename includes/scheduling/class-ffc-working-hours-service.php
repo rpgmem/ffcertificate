@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Service class for working hours operations.
+ */
 class WorkingHoursService {
 
 	/**

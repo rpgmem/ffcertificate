@@ -26,6 +26,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reregistration Standard Fields Seeder.
+ */
 class ReregistrationStandardFieldsSeeder {
 
 	/**

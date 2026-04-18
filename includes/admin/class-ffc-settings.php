@@ -29,6 +29,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Settings.
+ */
 class Settings {
 
 	/**

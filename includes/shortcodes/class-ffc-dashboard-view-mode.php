@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Dashboard View Mode.
+ */
 class DashboardViewMode {
 
 	/**

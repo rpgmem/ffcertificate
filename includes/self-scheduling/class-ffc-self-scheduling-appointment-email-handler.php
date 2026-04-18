@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for appointment email operations.
+ */
 class AppointmentEmailHandler {
 
 	use \FreeFormCertificate\Core\EmailHelperTrait;

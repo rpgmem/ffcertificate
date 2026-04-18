@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Manager for dashboard asset operations.
+ */
 class DashboardAssetManager {
 
 	/**

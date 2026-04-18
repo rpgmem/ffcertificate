@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Audience Admin Settings.
+ */
 class AudienceAdminSettings {
 
 	/**

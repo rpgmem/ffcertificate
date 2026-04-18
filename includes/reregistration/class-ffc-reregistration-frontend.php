@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reregistration Frontend.
+ */
 class ReregistrationFrontend {
 
 	/**

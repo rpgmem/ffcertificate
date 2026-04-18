@@ -24,7 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.SchemaChange
-
+/**
+ * Plugin activation tasks for self scheduling.
+ */
 class SelfSchedulingActivator {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

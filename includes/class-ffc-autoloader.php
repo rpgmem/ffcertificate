@@ -15,6 +15,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * F F C_ Autoloader.
+ */
 class FFC_Autoloader {
 
 	/**

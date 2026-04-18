@@ -32,6 +32,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for email operations.
+ */
 class EmailHandler {
 
 	use \FreeFormCertificate\Core\EmailHelperTrait;

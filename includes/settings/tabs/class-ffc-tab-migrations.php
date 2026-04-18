@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab Migrations settings tab.
+ */
 class TabMigrations extends SettingsTab {
 
 	protected function init(): void {

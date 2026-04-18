@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reregistration Submission Actions.
+ */
 class ReregistrationSubmissionActions {
 
 	/**

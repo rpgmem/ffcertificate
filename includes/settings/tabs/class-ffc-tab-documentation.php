@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab Documentation settings tab.
+ */
 class TabDocumentation extends SettingsTab {
 
 	protected function init(): void {

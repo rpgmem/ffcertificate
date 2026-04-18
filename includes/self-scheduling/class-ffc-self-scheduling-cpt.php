@@ -22,6 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Self Scheduling C P T.
+ */
 class SelfSchedulingCPT {
 
 	/**

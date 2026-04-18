@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin User Custom Fields.
+ */
 class AdminUserCustomFields {
 
 	/**

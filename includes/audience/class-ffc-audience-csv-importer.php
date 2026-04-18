@@ -23,6 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Importer for audience csv data.
+ */
 class AudienceCsvImporter {
 
 	/**

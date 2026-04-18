@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for appointment endpoints.
+ */
 class AppointmentRestController {
 
 	/**

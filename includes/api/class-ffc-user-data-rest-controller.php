@@ -24,6 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for user data endpoints.
+ */
 class UserDataRestController {
 
 	/**

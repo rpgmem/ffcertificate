@@ -25,6 +25,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for verification operations.
+ */
 class VerificationHandler {
 
 	/** @var SubmissionHandler|null */

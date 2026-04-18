@@ -36,6 +36,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Exporter for public csv data.
+ */
 class PublicCsvExporter {
 
 	use CsvExportTrait;

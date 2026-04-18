@@ -27,6 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Generator for pdf output.
+ */
 class PdfGenerator {
 
 	/**

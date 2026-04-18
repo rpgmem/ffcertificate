@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin User Capabilities.
+ */
 class AdminUserCapabilities {
 
 	/**

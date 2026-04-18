@@ -29,7 +29,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
-
+/**
+ * Plugin activation tasks for audience.
+ */
 class AudienceActivator {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

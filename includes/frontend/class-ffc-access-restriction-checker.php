@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Checker for access restriction conditions.
+ */
 class AccessRestrictionChecker {
 
 	/**

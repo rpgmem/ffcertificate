@@ -20,7 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-
+/**
+ * Database repository for submission records.
+ */
 class SubmissionRepository extends AbstractRepository {
 
 	/**

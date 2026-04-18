@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for appointment receipt operations.
+ */
 class AppointmentReceiptHandler {
 
 	/**

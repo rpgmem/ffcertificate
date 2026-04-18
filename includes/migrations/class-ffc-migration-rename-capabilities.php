@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Migration Rename Capabilities.
+ */
 class MigrationRenameCapabilities {
 
 	/**

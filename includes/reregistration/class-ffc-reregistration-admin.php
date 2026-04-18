@@ -27,6 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reregistration Admin.
+ */
 class ReregistrationAdmin {
 
 	/**

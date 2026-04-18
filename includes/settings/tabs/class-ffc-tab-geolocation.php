@@ -22,6 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab Geolocation settings tab.
+ */
 class TabGeolocation extends SettingsTab {
 
 	protected function init(): void {

@@ -36,6 +36,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Processor for reregistration data operations.
+ */
 class ReregistrationDataProcessor {
 
 	/**

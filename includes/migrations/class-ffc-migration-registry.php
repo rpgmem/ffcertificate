@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Registry of migration entries.
+ */
 class MigrationRegistry {
 
 	/**

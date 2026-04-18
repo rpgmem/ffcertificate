@@ -16,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Plugin activation tasks for plugin.
+ */
 class Activator {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

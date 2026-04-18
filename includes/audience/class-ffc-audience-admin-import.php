@@ -16,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Audience Admin Import.
+ */
 class AudienceAdminImport {
 
 	/**

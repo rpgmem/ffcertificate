@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Service class for email template operations.
+ */
 class EmailTemplateService {
 
 	/**

@@ -35,6 +35,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Renderer for reregistration form output.
+ */
 class ReregistrationFormRenderer {
 
 	/**

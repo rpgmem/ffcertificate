@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab Advanced settings tab.
+ */
 class TabAdvanced extends SettingsTab {
 
 	protected function init(): void {

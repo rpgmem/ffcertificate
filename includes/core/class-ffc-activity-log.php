@@ -38,7 +38,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
+/**
+ * Activity Log.
+ */
 class ActivityLog {
 
 	use DatabaseHelperTrait;

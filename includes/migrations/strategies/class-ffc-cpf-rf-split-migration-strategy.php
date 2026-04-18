@@ -26,6 +26,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Strategy implementation for cpf rf split migration.
+ */
 class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

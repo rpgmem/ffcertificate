@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Database repository for form records.
+ */
 class FormRepository extends AbstractRepository {
 
 	protected function get_table_name(): string {

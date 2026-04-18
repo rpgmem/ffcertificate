@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reprint Detector.
+ */
 class ReprintDetector {
 
 	/**

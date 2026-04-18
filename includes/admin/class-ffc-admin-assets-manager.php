@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Manager for admin assets operations.
+ */
 class AdminAssetsManager {
 
 	/**

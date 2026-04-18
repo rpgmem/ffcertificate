@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab Rate Limit settings tab.
+ */
 class TabRateLimit extends SettingsTab {
 
 	protected function init(): void {

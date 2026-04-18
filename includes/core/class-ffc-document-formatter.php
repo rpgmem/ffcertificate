@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Document Formatter.
+ */
 class DocumentFormatter {
 
 	/**

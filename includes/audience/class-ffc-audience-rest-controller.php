@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for audience endpoints.
+ */
 class AudienceRestController {
 
 	/**

@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Manager for capability operations.
+ */
 class CapabilityManager {
 
 	/**

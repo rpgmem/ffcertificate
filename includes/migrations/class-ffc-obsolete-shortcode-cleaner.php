@@ -33,6 +33,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Cleanup utility for obsolete shortcode.
+ */
 class ObsoleteShortcodeCleaner {
 
 	/**

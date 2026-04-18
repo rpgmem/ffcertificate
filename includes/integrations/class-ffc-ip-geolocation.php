@@ -24,6 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Ip Geolocation.
+ */
 class IpGeolocation {
 
 	/**

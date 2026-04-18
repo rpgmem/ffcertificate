@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Event subscriber for activity log.
+ */
 class ActivityLogSubscriber {
 
 	/**

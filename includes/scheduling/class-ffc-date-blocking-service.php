@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Service class for date blocking operations.
+ */
 class DateBlockingService {
 
 	/**

@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Validator for appointment input.
+ */
 class AppointmentValidator {
 
 	/** @var \FreeFormCertificate\Repositories\AppointmentRepository */

@@ -18,7 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
+/**
+ * User Cleanup.
+ */
 class UserCleanup {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

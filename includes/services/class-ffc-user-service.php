@@ -18,7 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
+/**
+ * Service class for user operations.
+ */
 class UserService {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Rate Limiter.
+ */
 class RateLimiter {
 
 	/**

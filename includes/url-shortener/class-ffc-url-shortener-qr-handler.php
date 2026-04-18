@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for url shortener qr operations.
+ */
 class UrlShortenerQrHandler {
 
 	use AjaxTrait;

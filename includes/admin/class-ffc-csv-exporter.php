@@ -24,6 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Exporter for csv data.
+ */
 class CsvExporter {
 
 	use \FreeFormCertificate\Core\CsvExportTrait;

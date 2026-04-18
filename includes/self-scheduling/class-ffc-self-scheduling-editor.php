@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Self Scheduling Editor.
+ */
 class SelfSchedulingEditor {
 
 	/** @var SelfSchedulingCleanupHandler */

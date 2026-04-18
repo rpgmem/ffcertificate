@@ -22,6 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin User Columns.
+ */
 class AdminUserColumns {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

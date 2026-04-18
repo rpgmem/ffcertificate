@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Dashboard Shortcode.
+ */
 class DashboardShortcode {
 
 	/**

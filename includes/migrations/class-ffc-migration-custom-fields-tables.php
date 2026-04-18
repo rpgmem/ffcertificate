@@ -23,6 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Migration Custom Fields Tables.
+ */
 class MigrationCustomFieldsTables {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

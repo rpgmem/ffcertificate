@@ -23,6 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Manager for user operations.
+ */
 class UserManager {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

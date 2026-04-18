@@ -22,6 +22,9 @@ if ( ! function_exists( 'wp_kses_post' ) ) {
 	require_once ABSPATH . 'wp-includes/formatting.php';
 }
 
+/**
+ * Settings Tab.
+ */
 abstract class SettingsTab {
 
 	/**

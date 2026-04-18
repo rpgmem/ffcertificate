@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for self scheduling cleanup operations.
+ */
 class SelfSchedulingCleanupHandler {
 
 	/**

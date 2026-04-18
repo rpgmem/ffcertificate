@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin page for url shortener admin.
+ */
 class UrlShortenerAdminPage {
 
 	use AjaxTrait;

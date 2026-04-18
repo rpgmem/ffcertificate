@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Exporter for appointment csv data.
+ */
 class AppointmentCsvExporter {
 
 	use \FreeFormCertificate\Core\CsvExportTrait;

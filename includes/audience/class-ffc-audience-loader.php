@@ -16,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Loader for audience module.
+ */
 class AudienceLoader {
 
 	use \FreeFormCertificate\Core\AjaxTrait;

@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab General settings tab.
+ */
 class TabGeneral extends SettingsTab {
 
 	protected function init(): void {

@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * C P T.
+ */
 class CPT {
 
 	public function __construct() {

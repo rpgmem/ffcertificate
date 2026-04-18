@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for form editor save operations.
+ */
 class FormEditorSaveHandler {
 
 	/**

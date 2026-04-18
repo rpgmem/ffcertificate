@@ -24,6 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Processor for form operations.
+ */
 class FormProcessor {
 
 	/**

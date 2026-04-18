@@ -25,6 +25,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Encryption.
+ */
 class Encryption {
 
 	/**

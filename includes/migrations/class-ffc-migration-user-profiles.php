@@ -21,7 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
+/**
+ * Migration User Profiles.
+ */
 class MigrationUserProfiles {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

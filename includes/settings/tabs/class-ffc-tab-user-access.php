@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab User Access settings tab.
+ */
 class TabUserAccess extends SettingsTab {
 
 	protected function init(): void {

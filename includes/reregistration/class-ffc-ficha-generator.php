@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Generator for ficha output.
+ */
 class FichaGenerator {
 
 	/**

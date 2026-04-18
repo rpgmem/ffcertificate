@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reregistration Field Options.
+ */
 class ReregistrationFieldOptions {
 
 	/**

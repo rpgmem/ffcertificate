@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for user certificates endpoints.
+ */
 class UserCertificatesRestController {
 
 	use UserContextTrait;

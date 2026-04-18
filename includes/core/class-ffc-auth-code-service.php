@@ -20,7 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
+/**
+ * Service class for auth code operations.
+ */
 class AuthCodeService {
 
 	/**

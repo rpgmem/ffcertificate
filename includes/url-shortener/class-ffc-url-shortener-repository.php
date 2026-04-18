@@ -19,7 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
+/**
+ * Database repository for url shortener records.
+ */
 class UrlShortenerRepository extends AbstractRepository {
 
 	/**

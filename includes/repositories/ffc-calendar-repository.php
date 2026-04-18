@@ -18,7 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
+/**
+ * Database repository for calendar records.
+ */
 class CalendarRepository extends AbstractRepository {
 
 	/**

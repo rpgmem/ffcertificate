@@ -22,6 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for appointment ajax operations.
+ */
 class AppointmentAjaxHandler {
 
 	use \FreeFormCertificate\Core\AjaxTrait;

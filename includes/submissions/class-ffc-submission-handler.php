@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for submission operations.
+ */
 class SubmissionHandler {
 
 	/**

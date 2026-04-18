@@ -25,6 +25,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Migration Dynamic Rereg Fields.
+ */
 class MigrationDynamicReregFields {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

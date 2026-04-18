@@ -27,7 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.SchemaChange
-
+/**
+ * Generator for q r code output.
+ */
 class QRCodeGenerator {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

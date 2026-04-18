@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for reregistration email operations.
+ */
 class ReregistrationEmailHandler {
 
 	use \FreeFormCertificate\Core\EmailHelperTrait;

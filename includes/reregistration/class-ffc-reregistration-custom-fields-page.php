@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin page for reregistration custom fields.
+ */
 class ReregistrationCustomFieldsPage {
 
 	/**

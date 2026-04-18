@@ -16,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Service class for url shortener operations.
+ */
 class UrlShortenerService {
 
 	/** @var UrlShortenerRepository */

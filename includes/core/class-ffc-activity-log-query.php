@@ -18,7 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
+/**
+ * Activity Log Query.
+ */
 class ActivityLogQuery {
 
 	/**

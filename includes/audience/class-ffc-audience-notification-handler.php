@@ -22,6 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for audience notification operations.
+ */
 class AudienceNotificationHandler {
 
 	/**

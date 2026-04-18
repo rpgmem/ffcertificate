@@ -16,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab Url Shortener settings tab.
+ */
 class TabUrlShortener extends SettingsTab {
 
 	protected function init(): void {

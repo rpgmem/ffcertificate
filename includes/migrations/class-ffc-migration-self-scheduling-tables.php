@@ -20,7 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.SchemaChange
-
+/**
+ * Migration Self Scheduling Tables.
+ */
 class MigrationSelfSchedulingTables {
 
 	/**

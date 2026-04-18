@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab S M T P settings tab.
+ */
 class TabSMTP extends SettingsTab {
 
 	protected function init(): void {

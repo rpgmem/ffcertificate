@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Data Sanitizer.
+ */
 class DataSanitizer {
 
 	/**

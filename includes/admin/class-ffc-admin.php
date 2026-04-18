@@ -24,6 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin.
+ */
 class Admin {
 
 	/** @var \FreeFormCertificate\Submissions\SubmissionHandler */

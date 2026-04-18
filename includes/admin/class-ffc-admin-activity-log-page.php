@@ -17,8 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Autoloader handles class loading.
-
+/**
+ * Admin page for the Activity Log screen.
+ */
 class AdminActivityLogPage {
 
 	use \FreeFormCertificate\Core\CsvExportTrait;

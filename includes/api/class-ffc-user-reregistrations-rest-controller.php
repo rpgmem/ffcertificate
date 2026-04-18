@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for user reregistrations endpoints.
+ */
 class UserReregistrationsRestController {
 
 	use UserContextTrait;

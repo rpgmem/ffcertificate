@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin page for admin submission edit.
+ */
 class AdminSubmissionEditPage {
 
 	/**

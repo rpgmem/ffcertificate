@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for user audience endpoints.
+ */
 class UserAudienceRestController {
 
 	use UserContextTrait;

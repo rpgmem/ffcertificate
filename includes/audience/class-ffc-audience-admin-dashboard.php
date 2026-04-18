@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Audience Admin Dashboard.
+ */
 class AudienceAdminDashboard {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

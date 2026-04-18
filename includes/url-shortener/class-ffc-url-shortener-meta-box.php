@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Metabox UI for url shortener.
+ */
 class UrlShortenerMetaBox {
 
 	use AjaxTrait;

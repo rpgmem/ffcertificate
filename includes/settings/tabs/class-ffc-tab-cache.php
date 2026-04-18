@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Cache layer for tab data.
+ */
 class TabCache extends SettingsTab {
 
 	protected function init(): void {

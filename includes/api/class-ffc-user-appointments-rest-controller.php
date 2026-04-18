@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for user appointments endpoints.
+ */
 class UserAppointmentsRestController {
 
 	use UserContextTrait;

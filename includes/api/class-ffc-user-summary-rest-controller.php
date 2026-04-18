@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for user summary endpoints.
+ */
 class UserSummaryRestController {
 
 	use UserContextTrait;

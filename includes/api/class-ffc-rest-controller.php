@@ -29,6 +29,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for plugin endpoints.
+ */
 class RestController {
 
 	/**

@@ -26,6 +26,9 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Internal class, not part of public API.
 if ( ! class_exists( 'FFC_Appointments_List_Table' ) ) :
 
+	/**
+	 * F F C_ Appointments_ List_ Table.
+	 */
 	class FFC_Appointments_List_Table extends WP_List_Table {
 
 		/** @var \FreeFormCertificate\Repositories\AppointmentRepository */

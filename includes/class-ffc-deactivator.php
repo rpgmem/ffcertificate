@@ -16,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Deactivator.
+ */
 class Deactivator {
 
 	/**

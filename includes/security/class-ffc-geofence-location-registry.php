@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Registry of geofence location entries.
+ */
 class GeofenceLocationRegistry {
 
 	const OPTION_KEY = 'ffc_geofence_locations';

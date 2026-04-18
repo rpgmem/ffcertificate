@@ -51,6 +51,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Loader for plugin module.
+ */
 class Loader {
 
 	/** @var \FreeFormCertificate\Submissions\SubmissionHandler */

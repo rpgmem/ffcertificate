@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Renderer for verification response output.
+ */
 class VerificationResponseRenderer {
 
 	/**

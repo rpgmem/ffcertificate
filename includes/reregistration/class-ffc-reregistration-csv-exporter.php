@@ -16,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Exporter for reregistration csv data.
+ */
 class ReregistrationCsvExporter {
 
 	/**

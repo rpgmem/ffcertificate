@@ -16,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Form Editor.
+ */
 class FormEditor {
 
 	/** @var \FreeFormCertificate\Admin\FormEditorMetaboxRenderer */

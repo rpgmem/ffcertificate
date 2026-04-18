@@ -24,6 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Manager for migration operations.
+ */
 class MigrationManager {
 
 	/**

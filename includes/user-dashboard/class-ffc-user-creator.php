@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * User Creator.
+ */
 class UserCreator {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

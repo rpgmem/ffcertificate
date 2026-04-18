@@ -22,6 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Shortcodes.
+ */
 class Shortcodes {
 
 	/**

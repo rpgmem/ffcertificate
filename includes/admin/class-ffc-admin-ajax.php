@@ -16,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin Ajax.
+ */
 class AdminAjax {
 
 	use \FreeFormCertificate\Core\AjaxTrait;

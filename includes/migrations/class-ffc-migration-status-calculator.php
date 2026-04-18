@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Migration Status Calculator.
+ */
 class MigrationStatusCalculator {
 
 	/**

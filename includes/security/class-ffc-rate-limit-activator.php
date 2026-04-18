@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Plugin activation tasks for rate limit.
+ */
 class RateLimitActivator {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Helper utilities for magic link.
+ */
 class MagicLinkHelper {
 
 	/**

@@ -42,6 +42,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin page for audience admin.
+ */
 class AudienceAdminPage {
 
 	/**

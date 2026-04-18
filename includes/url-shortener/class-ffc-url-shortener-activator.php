@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Plugin activation tasks for url shortener.
+ */
 class UrlShortenerActivator {
 
 	use DatabaseHelperTrait;

@@ -18,7 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-
+/**
+ * Database repository for abstract records.
+ */
 abstract class AbstractRepository {
 
 	/** @var \wpdb */

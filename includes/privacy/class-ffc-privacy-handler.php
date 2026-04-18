@@ -22,7 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
+/**
+ * Handler for privacy operations.
+ */
 class PrivacyHandler {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
