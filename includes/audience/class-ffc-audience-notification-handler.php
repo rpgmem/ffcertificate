@@ -100,7 +100,7 @@ class AudienceNotificationHandler {
 		}
 
 		// Get email template or use default.
-		$template = $schedule->email_template_booking ?: self::get_default_booking_template();
+		$template = $schedule->email_template_booking ? $schedule->email_template_booking : self::get_default_booking_template();
 
 		// Send email to each affected user.
 		foreach ( $affected_users as $user_id ) {
@@ -196,7 +196,7 @@ class AudienceNotificationHandler {
 		}
 
 		// Get email template or use default.
-		$template = $schedule->email_template_cancellation ?: self::get_default_cancellation_template();
+		$template = $schedule->email_template_cancellation ? $schedule->email_template_cancellation : self::get_default_cancellation_template();
 
 		// Send email to each affected user.
 		foreach ( $affected_users as $user_id ) {

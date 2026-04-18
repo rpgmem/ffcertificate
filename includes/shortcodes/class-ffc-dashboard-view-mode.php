@@ -66,7 +66,12 @@ class DashboardViewMode {
 
 		// Get dashboard URL without view-as parameters.
 		$dashboard_page_id = get_option( 'ffc_dashboard_page_id' );
-		$exit_url          = $dashboard_page_id ? ( get_permalink( $dashboard_page_id ) ?: home_url( '/dashboard' ) ) : home_url( '/dashboard' );
+		if ( $dashboard_page_id ) {
+			$dashboard_permalink = get_permalink( $dashboard_page_id );
+			$exit_url            = $dashboard_permalink ? $dashboard_permalink : home_url( '/dashboard' );
+		} else {
+			$exit_url = home_url( '/dashboard' );
+		}
 
 		ob_start();
 		?>
@@ -95,6 +100,7 @@ class DashboardViewMode {
 			</div>
 		</div>
 		<?php
-		return ob_get_clean() ?: '';
+		$banner_html = ob_get_clean();
+		return $banner_html ? $banner_html : '';
 	}
 }

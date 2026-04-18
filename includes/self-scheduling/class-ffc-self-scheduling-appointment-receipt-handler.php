@@ -493,7 +493,7 @@ class AppointmentReceiptHandler {
 				'ffc-pdf-generator',
 				'ffcReceiptData',
 				array(
-					'pdfData'        => $pdf_data ?: null,
+					'pdfData'        => $pdf_data ? $pdf_data : null,
 					'appointmentId'  => $appointment['id'] ?? '0',
 					'validationCode' => $validation_code,
 					'errorMsg'       => __( 'Error: PDF generator not loaded. Please refresh the page.', 'ffcertificate' ),

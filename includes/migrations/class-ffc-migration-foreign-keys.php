@@ -64,7 +64,7 @@ class MigrationForeignKeys {
 				'added'   => array(),
 				'skipped' => array(),
 				'errors'  => array(
-					sprintf( 'wp_users uses %s engine (InnoDB required for FK). Migration skipped.', $users_engine ?: 'unknown' ),
+					sprintf( 'wp_users uses %s engine (InnoDB required for FK). Migration skipped.', $users_engine ? $users_engine : 'unknown' ),
 				),
 				'message' => __( 'Foreign keys require InnoDB engine. Migration skipped.', 'ffcertificate' ),
 			);
@@ -196,7 +196,7 @@ class MigrationForeignKeys {
 		if ( false === $result ) {
 			return array(
 				'status'  => 'error',
-				'message' => $wpdb->last_error ?: 'Unknown error adding FK',
+				'message' => $wpdb->last_error ? $wpdb->last_error : 'Unknown error adding FK',
 			);
 		}
 
@@ -223,7 +223,7 @@ class MigrationForeignKeys {
 			)
 		);
 
-		return $engine ?: null;
+		return $engine ? $engine : null;
 	}
 
 	/**

@@ -70,7 +70,7 @@ trait StaticRepositoryTrait {
 	 * @return bool
 	 */
 	protected static function cache_set( string $key, $value, int $ttl = 0 ): bool {
-		return wp_cache_set( $key, $value, static::cache_group(), $ttl ?: static::cache_ttl() );
+		return wp_cache_set( $key, $value, static::cache_group(), $ttl ? $ttl : static::cache_ttl() );
 	}
 
 	/**

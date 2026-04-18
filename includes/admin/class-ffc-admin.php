@@ -184,7 +184,8 @@ class Admin {
 					type="button"
 					id="ffc-csv-export-btn"
 					class="<?php echo esc_attr( $btn_class ); ?>"
-					data-form-ids="<?php echo esc_attr( wp_json_encode( $filter_form_ids ) ?: '' ); ?>"
+					<?php $form_ids_json = wp_json_encode( $filter_form_ids ); ?>
+					data-form-ids="<?php echo esc_attr( $form_ids_json ? $form_ids_json : '' ); ?>"
 					data-status="<?php echo esc_attr( $export_status ); ?>"
 				><?php echo esc_html( $btn_label ); ?></button>
 				<span id="ffc-csv-export-progress" style="display:none; margin-left:8px; vertical-align:middle;"></span>

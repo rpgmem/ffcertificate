@@ -271,7 +271,7 @@ class QRCodeGenerator {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading local temp file written by PHPQRCode lib; no remote URL.
 				$image_data = file_get_contents( $temp_file );
 				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- benign: encoding PNG bytes for data URI.
-				$base64 = base64_encode( $image_data ?: '' );
+				$base64 = base64_encode( $image_data ? $image_data : '' );
 
 				// Clean up.
 				wp_delete_file( $temp_file );

@@ -65,7 +65,8 @@ class Shortcodes {
 			</div>
 		</div>
 		<?php
-		return ob_get_clean() ?: '';
+		$captcha_html = ob_get_clean();
+		return $captcha_html ? $captcha_html : '';
 	}
 
 	/**
@@ -94,7 +95,8 @@ class Shortcodes {
 			<div class="ffc-verify-result" role="region" aria-live="polite"></div>
 		</div>
 		<?php
-		return ob_get_clean() ?: '';
+		$verify_html = ob_get_clean();
+		return $verify_html ? $verify_html : '';
 	}
 
 	/**
@@ -129,7 +131,8 @@ class Shortcodes {
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/verification-page.php';
-		return ob_get_clean() ?: '';
+		$verification_page_html = ob_get_clean();
+		return $verification_page_html ? $verification_page_html : '';
 	}
 
 	/**
@@ -285,7 +288,8 @@ class Shortcodes {
 			</form>
 		</div>
 		<?php
-		return ob_get_clean() ?: '';
+		$form_html = ob_get_clean();
+		return $form_html ? $form_html : '';
 	}
 
 	/**
@@ -318,7 +322,8 @@ class Shortcodes {
 				<?php endif; ?>
 			</div>
 			<?php
-			return ob_get_clean() ?: '';
+			$info_block_html = ob_get_clean();
+			return $info_block_html ? $info_block_html : '';
 		}
 
 		// Embed block: display media via oembed or img tag.
@@ -352,7 +357,8 @@ class Shortcodes {
 				</div>
 			</div>
 			<?php
-			return ob_get_clean() ?: '';
+			$embed_html_out = ob_get_clean();
+			return $embed_html_out ? $embed_html_out : '';
 		}
 
 		if ( empty( $name ) ) {
@@ -429,6 +435,7 @@ class Shortcodes {
 			<?php endif; ?>
 		</div>
 		<?php
-		return ob_get_clean() ?: '';
+		$field_html = ob_get_clean();
+		return $field_html ? $field_html : '';
 	}
 }

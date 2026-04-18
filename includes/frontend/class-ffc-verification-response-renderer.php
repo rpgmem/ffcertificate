@@ -62,7 +62,8 @@ class VerificationResponseRenderer {
 		// Render template.
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/certificate-preview.php';
-		return ob_get_clean() ?: '';
+		$preview_html = ob_get_clean();
+		return $preview_html ? $preview_html : '';
 	}
 
 	/**

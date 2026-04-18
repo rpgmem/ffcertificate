@@ -209,7 +209,7 @@ class UrlShortenerRepository extends AbstractRepository {
 		);
 
 		return array(
-			'items' => $items ?: array(),
+			'items' => $items ? $items : array(),
 			'total' => $total,
 		);
 	}

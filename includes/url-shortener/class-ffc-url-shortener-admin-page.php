@@ -462,7 +462,7 @@ class UrlShortenerAdminPage {
 							?>
 							<tr>
 								<td>
-									<strong><?php echo esc_html( $item['title'] ?: '(' . __( 'no title', 'ffcertificate' ) . ')' ); ?></strong>
+									<strong><?php echo esc_html( $item['title'] ? $item['title'] : '(' . __( 'no title', 'ffcertificate' ) . ')' ); ?></strong>
 									<?php if ( $item['post_id'] ) : ?>
 										<br><small><?php echo esc_html( get_the_title( (int) $item['post_id'] ) ); ?></small>
 									<?php endif; ?>
@@ -511,7 +511,7 @@ class UrlShortenerAdminPage {
 										<button type="button" class="button button-small ffc-show-qr-modal"
 												data-code="<?php echo esc_attr( $item['short_code'] ); ?>"
 												data-url="<?php echo esc_attr( $short_url ); ?>"
-												data-title="<?php echo esc_attr( $item['title'] ?: $item['short_code'] ); ?>">
+												data-title="<?php echo esc_attr( $item['title'] ? $item['title'] : $item['short_code'] ); ?>">
 											<span class="dashicons dashicons-screenoptions ffc-dashicon-sm-inline"></span>
 											QR
 										</button>

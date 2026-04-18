@@ -44,7 +44,8 @@ class WorkingHoursService {
 			return true; // No restrictions.
 		}
 
-		$day_of_week = (int) gmdate( 'w', strtotime( $date ) ?: time() );
+		$date_ts     = strtotime( $date );
+		$day_of_week = (int) gmdate( 'w', $date_ts ? $date_ts : time() );
 		$day_name    = self::DAY_NAMES[ $day_of_week ];
 
 		// Keyed format: {mon: {start, end, closed}, ...}.
@@ -93,7 +94,8 @@ class WorkingHoursService {
 			return true;
 		}
 
-		$day_of_week = (int) gmdate( 'w', strtotime( $date ) ?: time() );
+		$date_ts     = strtotime( $date );
+		$day_of_week = (int) gmdate( 'w', $date_ts ? $date_ts : time() );
 		$day_name    = self::DAY_NAMES[ $day_of_week ];
 
 		// Keyed format.
@@ -127,7 +129,8 @@ class WorkingHoursService {
 			return array();
 		}
 
-		$day_of_week = (int) gmdate( 'w', strtotime( $date ) ?: time() );
+		$date_ts     = strtotime( $date );
+		$day_of_week = (int) gmdate( 'w', $date_ts ? $date_ts : time() );
 		$day_name    = self::DAY_NAMES[ $day_of_week ];
 		$ranges      = array();
 

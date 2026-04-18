@@ -256,7 +256,8 @@ class PdfGenerator {
 		}
 
 		// {{print_date}} - Current date/time of PDF generation/printing.
-		$layout = str_replace( '{{print_date}}', wp_date( $date_format ) ?: '', $layout );
+		$print_date_raw = wp_date( $date_format );
+		$layout         = str_replace( '{{print_date}}', $print_date_raw ? $print_date_raw : '', $layout );
 
 		$layout = str_replace( '{{form_title}}', esc_html( (string) $form_title ), $layout );
 

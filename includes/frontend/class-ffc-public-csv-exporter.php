@@ -91,8 +91,9 @@ class PublicCsvExporter {
 		$dynamic_keys         = $this->scan_dynamic_keys( $form_ids, $status );
 		$include_edit_columns = $this->repository->hasEditInfo();
 
-		$filename = \FreeFormCertificate\Core\Utils::sanitize_filename(
-			get_the_title( $form_id ) ?: ( 'form-' . $form_id )
+		$form_title_raw = get_the_title( $form_id );
+		$filename       = \FreeFormCertificate\Core\Utils::sanitize_filename(
+			$form_title_raw ? $form_title_raw : ( 'form-' . $form_id )
 		) . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
 
 		// Discard any buffered output so the CSV is the only payload on the wire.
@@ -254,8 +255,9 @@ class PublicCsvExporter {
 			wp_send_json_error( array( 'message' => __( 'No records found to export.', 'ffcertificate' ) ) );
 		}
 
-		$filename = \FreeFormCertificate\Core\Utils::sanitize_filename(
-			get_the_title( $form_id ) ?: ( 'form-' . $form_id )
+		$form_title_raw = get_the_title( $form_id );
+		$filename       = \FreeFormCertificate\Core\Utils::sanitize_filename(
+			$form_title_raw ? $form_title_raw : ( 'form-' . $form_id )
 		) . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
 
 		// Create temp file.

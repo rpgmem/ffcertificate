@@ -289,15 +289,18 @@ class AppointmentAjaxHandler {
 			check_ajax_referer( 'ffc_self_scheduling_nonce', 'nonce' );
 
 			$calendar_id = $this->get_post_int( 'calendar_id' );
-			$year        = $this->get_post_int( 'year' ) ?: (int) gmdate( 'Y' );
-			$month       = $this->get_post_int( 'month' ) ?: (int) gmdate( 'n' );
+			$year_raw    = $this->get_post_int( 'year' );
+			$year        = $year_raw ? $year_raw : (int) gmdate( 'Y' );
+			$month_raw   = $this->get_post_int( 'month' );
+			$month       = $month_raw ? $month_raw : (int) gmdate( 'n' );
 
 			if ( ! $calendar_id ) {
 				wp_send_json_error( array( 'message' => __( 'Invalid calendar.', 'ffcertificate' ) ) );
 			}
 
 			$start_date = sprintf( '%04d-%02d-01', $year, $month );
-			$end_date   = gmdate( 'Y-m-t', strtotime( $start_date ) ?: time() );
+			$start_ts   = strtotime( $start_date );
+			$end_date   = gmdate( 'Y-m-t', $start_ts ? $start_ts : time() );
 
 			$appointment_repo = $this->handler->get_appointment_repository();
 			$blocked_repo     = $this->handler->get_blocked_date_repository();
@@ -309,7 +312,7 @@ class AppointmentAjaxHandler {
 
 			$global_holidays = \FreeFormCertificate\Scheduling\DateBlockingService::get_global_holidays( $start_date, $end_date );
 			foreach ( $global_holidays as $gh ) {
-				$holidays[ $gh['date'] ] = $gh['description'] ?: __( 'Holiday', 'ffcertificate' );
+				$holidays[ $gh['date'] ] = $gh['description'] ? $gh['description'] : __( 'Holiday', 'ffcertificate' );
 			}
 
 			$blocked = $blocked_repo->getBlockedDatesInRange( $calendar_id, $start_date, $end_date );
@@ -320,9 +323,10 @@ class AppointmentAjaxHandler {
 					$current     = $block_start;
 					while ( $current <= $block_end ) {
 						if ( ! isset( $holidays[ $current ] ) ) {
-							$holidays[ $current ] = $block['reason'] ?: __( 'Closed', 'ffcertificate' );
+							$holidays[ $current ] = $block['reason'] ? $block['reason'] : __( 'Closed', 'ffcertificate' );
 						}
-						$current = gmdate( 'Y-m-d', strtotime( $current . ' +1 day' ) ?: time() );
+						$next_ts = strtotime( $current . ' +1 day' );
+						$current = gmdate( 'Y-m-d', $next_ts ? $next_ts : time() );
 					}
 				}
 			}

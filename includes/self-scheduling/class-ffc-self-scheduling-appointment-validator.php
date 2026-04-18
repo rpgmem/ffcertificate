@@ -187,7 +187,8 @@ class AppointmentValidator {
 			$working_hours = $calendar['working_hours'] ?? array();
 			if ( ! empty( $working_hours ) ) {
 				$now          = current_time( 'mysql' );
-				$now_ts       = strtotime( $now ) ?: time();
+				$now_ts_raw   = strtotime( $now );
+				$now_ts       = $now_ts_raw ? $now_ts_raw : time();
 				$current_date = gmdate( 'Y-m-d', $now_ts );
 				$current_time = gmdate( 'H:i', $now_ts );
 

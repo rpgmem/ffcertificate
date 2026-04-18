@@ -88,7 +88,8 @@ class AudienceRepository {
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
-		$orderby      = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] ) ?: 'name ASC';
+		$orderby_sanitized = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] );
+		$orderby      = $orderby_sanitized ? $orderby_sanitized : 'name ASC';
 		$limit_clause = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -637,7 +638,8 @@ class AudienceRepository {
 	 * @return int
 	 */
 	public static function count( array $args = array() ): int {
-		$cache_key = 'ffcertificate_aud_count_' . md5( wp_json_encode( $args ) ?: '' );
+		$args_json = wp_json_encode( $args );
+		$cache_key = 'ffcertificate_aud_count_' . md5( $args_json ? $args_json : '' );
 		$cached    = wp_cache_get( $cache_key, 'ffcertificate' );
 		if ( false !== $cached ) {
 			return (int) $cached;

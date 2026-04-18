@@ -248,7 +248,7 @@ class AudienceCsvImporter {
 			$audiences_to_create[] = array(
 				'row'         => $row_num,
 				'name'        => $name,
-				'color'       => $color ?: '#3788d8',
+				'color'       => $color ? $color : '#3788d8',
 				'parent_name' => $parent_name,
 			);
 		}
@@ -384,7 +384,7 @@ class AudienceCsvImporter {
 				'user_login'   => $username,
 				'user_email'   => $email,
 				'user_pass'    => $password,
-				'display_name' => $name ?: $username,
+				'display_name' => $name ? $name : $username,
 				'role'         => 'ffc_user',
 			)
 		);

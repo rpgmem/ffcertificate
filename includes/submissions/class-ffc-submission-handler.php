@@ -327,7 +327,7 @@ class SubmissionHandler {
 			$data_json = wp_json_encode( $clean_data, JSON_UNESCAPED_UNICODE );
 
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-				$update_data['data_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data_json ?: '{}' );
+				$update_data['data_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data_json ? $data_json : '{}' );
 				$update_data['data']           = null;
 			} else {
 				$update_data['data'] = $data_json;
@@ -707,7 +707,8 @@ class SubmissionHandler {
 			return 0;
 		}
 
-		$cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$cleanup_days} days" ) ?: time() );
+		$cutoff_ts   = strtotime( "-{$cleanup_days} days" );
+		$cutoff_date = gmdate( 'Y-m-d H:i:s', $cutoff_ts ? $cutoff_ts : time() );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$deleted = $wpdb->query(

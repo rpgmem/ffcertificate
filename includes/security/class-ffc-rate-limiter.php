@@ -554,7 +554,8 @@ class RateLimiter {
 					'message' => __( 'Email blocked.', 'ffcertificate' ),
 				);
 			}
-			$d = substr( strrchr( $email, '@' ) ?: '', 1 );
+			$at_part = strrchr( $email, '@' );
+			$d       = substr( $at_part ? $at_part : '', 1 );
 			if ( in_array( '*@' . $d, $bl['email_domains'], true ) ) {
 				return array(
 					'allowed' => false,
@@ -587,7 +588,8 @@ class RateLimiter {
 			if ( in_array( $email, $wl['emails'], true ) ) {
 				return true;
 			}
-			$d = substr( strrchr( $email, '@' ) ?: '', 1 );
+			$at_part = strrchr( $email, '@' );
+			$d       = substr( $at_part ? $at_part : '', 1 );
 			if ( in_array( '*@' . $d, $wl['email_domains'], true ) ) {
 				return true;
 			}
@@ -611,7 +613,8 @@ class RateLimiter {
 	private static function block_temporarily( string $type, string $identifier, ?int $form_id, int $hours ): void {
 		global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
-		$blocked_ts = strtotime( "+$hours hours" ) ?: time();
+		$blocked_ts_raw = strtotime( "+$hours hours" );
+		$blocked_ts     = $blocked_ts_raw ? $blocked_ts_raw : time();
 		$wpdb->insert(
 			$wpdb->prefix . 'ffc_rate_limits',
 			array(

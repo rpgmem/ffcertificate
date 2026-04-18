@@ -474,11 +474,15 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 			// Decode custom data.
 			$ffcertificate_custom_data = array();
 			if ( ! empty( $ffcertificate_decrypted['custom_data'] ) ) {
-				$ffcertificate_custom_data = is_array( $ffcertificate_decrypted['custom_data'] )
-					? $ffcertificate_decrypted['custom_data']
-					: ( json_decode( $ffcertificate_decrypted['custom_data'], true ) ?: array() );
+				if ( is_array( $ffcertificate_decrypted['custom_data'] ) ) {
+					$ffcertificate_custom_data = $ffcertificate_decrypted['custom_data'];
+				} else {
+					$ffcertificate_decoded_custom = json_decode( $ffcertificate_decrypted['custom_data'], true );
+					$ffcertificate_custom_data    = $ffcertificate_decoded_custom ? $ffcertificate_decoded_custom : array();
+				}
 			} elseif ( ! empty( $ffcertificate_appointment['custom_data'] ) ) {
-				$ffcertificate_custom_data = json_decode( $ffcertificate_appointment['custom_data'], true ) ?: array();
+				$ffcertificate_decoded_appt_custom = json_decode( $ffcertificate_appointment['custom_data'], true );
+				$ffcertificate_custom_data         = $ffcertificate_decoded_appt_custom ? $ffcertificate_decoded_appt_custom : array();
 			}
 
 			// Status labels.
@@ -518,8 +522,8 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 										<tr><th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['appointment_date'] ?? '-' ); ?></td></tr>
 										<tr><th><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th><td><?php echo esc_html( ( $ffcertificate_appointment['start_time'] ?? '' ) . ' - ' . ( $ffcertificate_appointment['end_time'] ?? '' ) ); ?></td></tr>
 										<tr><th><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_name ); ?></td></tr>
-										<tr><th><?php esc_html_e( 'E-mail', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_email ?: '-' ); ?></td></tr>
-										<tr><th><?php esc_html_e( 'Phone', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_phone ?: '-' ); ?></td></tr>
+										<tr><th><?php esc_html_e( 'E-mail', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_email ? $ffcertificate_email : '-' ); ?></td></tr>
+										<tr><th><?php esc_html_e( 'Phone', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_phone ? $ffcertificate_phone : '-' ); ?></td></tr>
 										<?php if ( ! empty( $ffcertificate_cpf ) ) : ?>
 										<tr><th><?php esc_html_e( 'CPF', 'ffcertificate' ); ?></th><td><?php echo esc_html( \FreeFormCertificate\Core\Utils::format_document( $ffcertificate_cpf ) ); ?></td></tr>
 										<?php endif; ?>

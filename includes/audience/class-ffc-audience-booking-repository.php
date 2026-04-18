@@ -130,7 +130,8 @@ class AudienceBookingRepository {
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
-		$orderby      = sanitize_sql_orderby( 'b.' . $args['orderby'] . ' ' . $args['order'] ) ?: 'b.booking_date ASC';
+		$orderby_sanitized = sanitize_sql_orderby( 'b.' . $args['orderby'] . ' ' . $args['order'] );
+		$orderby      = $orderby_sanitized ? $orderby_sanitized : 'b.booking_date ASC';
 		$limit_clause = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared

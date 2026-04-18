@@ -131,7 +131,7 @@ class UserCertificatesRestController {
 					'id'                  => (int) ( $submission['id'] ?? 0 ),
 					'form_id'             => (int) ( $submission['form_id'] ?? 0 ),
 					'form_title'          => $submission['form_title'] ?? __( 'Unknown Form', 'ffcertificate' ),
-					'submission_date'     => $date_formatted ?: '',
+					'submission_date'     => $date_formatted ? $date_formatted : '',
 					'submission_date_raw' => $submission['submission_date'] ?? '',
 					'consent_given'       => ! empty( $submission['consent_given'] ),
 					'email'               => $email_display,

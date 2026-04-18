@@ -330,7 +330,8 @@ class FormProcessor {
 					// Build updated data JSON.
 					$mandatory_keys = array( 'email', 'cpf_rf', 'auth_code', 'ffc_lgpd_consent' );
 					$extra_data     = array_diff_key( $submission_data, array_flip( $mandatory_keys ) );
-					$data_json      = wp_json_encode( $extra_data ) ?: '{}';
+					$data_json_raw  = wp_json_encode( $extra_data );
+					$data_json      = $data_json_raw ? $data_json_raw : '{}';
 
 					$update_fields = array(
 						'status'          => $quiz_status,

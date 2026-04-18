@@ -181,7 +181,7 @@ class AppointmentRepository extends AbstractRepository {
 			ARRAY_A
 		);
 
-		return $result ?: null;
+		return $result ? $result : null;
 	}
 
 	/**
@@ -201,7 +201,7 @@ class AppointmentRepository extends AbstractRepository {
 			ARRAY_A
 		);
 
-		return $result ?: null;
+		return $result ? $result : null;
 	}
 
 	/**
@@ -367,7 +367,8 @@ class AppointmentRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getUpcomingForReminders( int $hours_before = 24 ): array {
-		$reminder_ts     = strtotime( "+{$hours_before} hours" ) ?: time();
+		$reminder_ts_raw = strtotime( "+{$hours_before} hours" );
+		$reminder_ts     = $reminder_ts_raw ? $reminder_ts_raw : time();
 		$target_datetime = gmdate( 'Y-m-d H:i:s', $reminder_ts );
 		$target_date     = gmdate( 'Y-m-d', $reminder_ts );
 		$target_time     = gmdate( 'H:i:s', $reminder_ts );
@@ -445,7 +446,7 @@ class AppointmentRepository extends AbstractRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$stats = $this->wpdb->get_row( $sql, ARRAY_A );
 
-		return $stats ?: array(
+		return $stats ? $stats : array(
 			'total'     => 0,
 			'confirmed' => 0,
 			'pending'   => 0,

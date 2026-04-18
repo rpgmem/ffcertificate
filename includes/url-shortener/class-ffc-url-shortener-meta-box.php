@@ -77,8 +77,9 @@ class UrlShortenerMetaBox {
 
 		if ( ! $record && 'publish' === $post->post_status ) {
 			// Auto-create if post is published.
-			$permalink = get_permalink( $post->ID ) ?: '';
-			$result    = $this->service->create_short_url( $permalink, $post->post_title, $post->ID );
+			$permalink_raw = get_permalink( $post->ID );
+			$permalink     = $permalink_raw ? $permalink_raw : '';
+			$result        = $this->service->create_short_url( $permalink, $post->post_title, $post->ID );
 			$record    = $result['success'] && isset( $result['data'] ) ? $result['data'] : null;
 		}
 
@@ -248,8 +249,9 @@ class UrlShortenerMetaBox {
 		}
 
 		// Create new.
-		$permalink = get_permalink( $post_id ) ?: '';
-		$post      = get_post( $post_id );
+		$permalink_raw = get_permalink( $post_id );
+		$permalink     = $permalink_raw ? $permalink_raw : '';
+		$post          = get_post( $post_id );
 		$result    = $this->service->create_short_url( $permalink, $post->post_title ?? '', $post_id );
 
 		if ( $result['success'] ) {

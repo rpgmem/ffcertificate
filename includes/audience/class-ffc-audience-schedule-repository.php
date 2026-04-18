@@ -83,7 +83,8 @@ class AudienceScheduleRepository {
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
-		$orderby      = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] ) ?: 'name ASC';
+		$orderby_sanitized = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] );
+		$orderby      = $orderby_sanitized ? $orderby_sanitized : 'name ASC';
 		$limit_clause = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared

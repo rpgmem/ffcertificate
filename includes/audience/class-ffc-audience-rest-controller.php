@@ -433,8 +433,10 @@ class AudienceRestController {
 		$end_time       = $is_all_day ? '23:59' : $request->get_param( 'end_time' );
 		$booking_type   = $request->get_param( 'booking_type' );
 		$description    = $request->get_param( 'description' );
-		$audience_ids   = $request->get_param( 'audience_ids' ) ?: array();
-		$user_ids       = $request->get_param( 'user_ids' ) ?: array();
+		$audience_ids_param = $request->get_param( 'audience_ids' );
+		$audience_ids       = $audience_ids_param ? $audience_ids_param : array();
+		$user_ids_param     = $request->get_param( 'user_ids' );
+		$user_ids           = $user_ids_param ? $user_ids_param : array();
 
 		// Validate environment exists.
 		$environment = AudienceEnvironmentRepository::get_by_id( $environment_id );
@@ -519,7 +521,8 @@ class AudienceRestController {
 		// Check for future days limit.
 		$schedule = AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id );
 		if ( $schedule && $schedule->future_days_limit && ! $has_bypass ) {
-			$max_date = gmdate( 'Y-m-d', strtotime( '+' . $schedule->future_days_limit . ' days' ) ?: time() );
+			$max_date_ts = strtotime( '+' . $schedule->future_days_limit . ' days' );
+			$max_date    = gmdate( 'Y-m-d', $max_date_ts ? $max_date_ts : time() );
 			if ( $booking_date > $max_date ) {
 				return new \WP_REST_Response(
 					array(
@@ -685,8 +688,10 @@ class AudienceRestController {
 			$booking_date   = sanitize_text_field( $request->get_param( 'booking_date' ) );
 			$start_time     = sanitize_text_field( $request->get_param( 'start_time' ) );
 			$end_time       = sanitize_text_field( $request->get_param( 'end_time' ) );
-			$audience_ids   = array_map( 'intval', (array) ( $request->get_param( 'audience_ids' ) ?: array() ) );
-			$user_ids       = array_map( 'intval', (array) ( $request->get_param( 'user_ids' ) ?: array() ) );
+			$audience_ids_param = $request->get_param( 'audience_ids' );
+			$audience_ids       = array_map( 'intval', (array) ( $audience_ids_param ? $audience_ids_param : array() ) );
+			$user_ids_param     = $request->get_param( 'user_ids' );
+			$user_ids           = array_map( 'intval', (array) ( $user_ids_param ? $user_ids_param : array() ) );
 
 			// Validate required parameters.
 			if ( ! $environment_id || ! $booking_date || ! $start_time || ! $end_time ) {

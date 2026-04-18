@@ -481,6 +481,7 @@ class Utils {
 		// Load template.
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/submission-success.php';
-		return ob_get_clean() ?: '';
+		$rendered = ob_get_clean();
+		return $rendered ? $rendered : '';
 	}
 }

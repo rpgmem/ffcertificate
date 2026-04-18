@@ -99,7 +99,7 @@ class CalendarRepository extends AbstractRepository {
 			$calendar['email_config'] = json_decode( $calendar['email_config'], true );
 		}
 
-		return $calendar ?: null;
+		return $calendar ? $calendar : null;
 	}
 
 	/**

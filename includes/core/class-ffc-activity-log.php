@@ -115,7 +115,8 @@ class ActivityLog {
 		}
 
 		// Encrypt context if contains sensitive data.
-		$context_json      = wp_json_encode( $context ) ?: '';
+		$context_json_raw  = wp_json_encode( $context );
+		$context_json      = $context_json_raw ? $context_json_raw : '';
 		$context_encrypted = null;
 
 		if ( class_exists( '\\FreeFormCertificate\\Core\\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {

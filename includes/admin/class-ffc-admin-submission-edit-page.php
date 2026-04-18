@@ -91,7 +91,8 @@ class AdminSubmissionEditPage {
 
 		// Prepare data (convert form_id to int - wpdb returns strings).
 		$this->sub_array = (array) $sub;
-		$this->data      = json_decode( $this->sub_array['data'], true ) ?: array();
+		$decoded_data    = json_decode( $this->sub_array['data'], true );
+		$this->data      = $decoded_data ? $decoded_data : array();
 		$this->fields    = get_post_meta( (int) $this->sub_array['form_id'], '_ffc_form_fields', true );
 
 		// Render page.
