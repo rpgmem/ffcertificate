@@ -525,12 +525,12 @@ class AudienceRepository {
 
 			if ( ! empty( $ancestor_ids ) ) {
 				$ancestor_ids = array_unique( array_map( 'absint', $ancestor_ids ) );
-				$id_list      = implode( ',', $ancestor_ids );
+				$placeholders = implode( ',', array_fill( 0, count( $ancestor_ids ), '%d' ) );
 
-                // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $id_list is sanitized via absint(); cached below.
+                // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic IN() placeholders built from array_fill; cached below.
 				$parents = $wpdb->get_results(
 					/** @phpstan-ignore-next-line argument.type */
-					$wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$id_list}) AND status = 'active'", $table )
+					$wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$placeholders}) AND status = 'active'", array_merge( array( $table ), $ancestor_ids ) )
 				);
                 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 

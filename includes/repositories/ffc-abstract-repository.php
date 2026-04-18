@@ -250,21 +250,34 @@ abstract class AbstractRepository {
 			return '';
 		}
 
+		$allowed_columns = $this->get_allowed_where_columns();
+
 		$where_parts = array();
 		foreach ( $conditions as $key => $value ) {
+			if ( ! empty( $allowed_columns ) && ! in_array( $key, $allowed_columns, true ) ) {
+				continue;
+			}
+
 			if ( is_array( $value ) ) {
-				$placeholders = implode( ',', array_fill( 0, count( $value ), '%s' ) );
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$placeholders  = implode( ',', array_fill( 0, count( $value ), '%s' ) );
 				/** @phpstan-ignore-next-line argument.type */
-				$where_parts[] = $this->wpdb->prepare( "{$key} IN ({$placeholders})", ...$value );
+				$where_parts[] = $this->wpdb->prepare( "%i IN ({$placeholders})", $key, ...$value );
 			} else {
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				/** @phpstan-ignore-next-line argument.type */
-				$where_parts[] = $this->wpdb->prepare( "{$key} = %s", $value );
+				$where_parts[] = $this->wpdb->prepare( '%i = %s', $key, $value );
 			}
 		}
 
-		return 'WHERE ' . implode( ' AND ', $where_parts );
+		return ! empty( $where_parts ) ? 'WHERE ' . implode( ' AND ', $where_parts ) : '';
+	}
+
+	/**
+	 * Get allowed WHERE clause columns. Override in child classes.
+	 *
+	 * @return array<int, string> Empty array means allow all (for backwards compat).
+	 */
+	protected function get_allowed_where_columns(): array {
+		return array();
 	}
 
 	/**

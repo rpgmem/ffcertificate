@@ -232,8 +232,7 @@ class UserAppointmentsRestController {
 
 			return new \WP_Error(
 				'get_appointments_error',
-				/* translators: %s: error message */
-				sprintf( __( 'Error loading appointments: %s', 'ffcertificate' ), $e->getMessage() ),
+				__( 'An unexpected error occurred.', 'ffcertificate' ),
 				array( 'status' => 500 )
 			);
 		}

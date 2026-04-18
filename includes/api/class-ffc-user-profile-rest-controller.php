@@ -205,9 +205,15 @@ class UserProfileRestController {
 			);
 
 		} catch ( \Exception $e ) {
+			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+				\FreeFormCertificate\Core\Utils::debug_log(
+					'get_user_profile error',
+					array( 'message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine() )
+				);
+			}
 			return new \WP_Error(
 				'get_profile_error',
-				$e->getMessage(),
+				__( 'An unexpected error occurred.', 'ffcertificate' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -250,7 +256,7 @@ class UserProfileRestController {
 			foreach ( $allowed_fields as $field ) {
 				$value = $request->get_param( $field );
 				if ( null !== $value ) {
-					$data[ $field ] = $value;
+					$data[ $field ] = \sanitize_text_field( \wp_unslash( $value ) );
 				}
 			}
 
@@ -287,9 +293,15 @@ class UserProfileRestController {
 			return $this->get_user_profile( $request );
 
 		} catch ( \Exception $e ) {
+			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+				\FreeFormCertificate\Core\Utils::debug_log(
+					'update_user_profile error',
+					array( 'message' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine() )
+				);
+			}
 			return new \WP_Error(
 				'update_profile_error',
-				$e->getMessage(),
+				__( 'An unexpected error occurred.', 'ffcertificate' ),
 				array( 'status' => 500 )
 			);
 		}

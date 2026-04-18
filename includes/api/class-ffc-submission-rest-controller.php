@@ -377,7 +377,7 @@ class SubmissionRestController {
 	 * Check admin permission
 	 */
 	public function check_admin_permission(): bool {
-		return current_user_can( 'edit_posts' );
+		return current_user_can( 'manage_options' );
 	}
 
 	/**

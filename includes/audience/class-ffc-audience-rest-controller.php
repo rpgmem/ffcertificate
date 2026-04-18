@@ -801,7 +801,7 @@ class AudienceRestController {
 			return new \WP_REST_Response(
 				array(
 					'success' => false,
-					'message' => __( 'Error checking conflicts.', 'ffcertificate' ) . ' ' . $e->getMessage(),
+					'message' => __( 'Error checking conflicts.', 'ffcertificate' ),
 				),
 				500
 			);

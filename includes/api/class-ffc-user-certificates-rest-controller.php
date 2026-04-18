@@ -175,7 +175,7 @@ class UserCertificatesRestController {
 			}
 			return new \WP_Error(
 				'get_certificates_error',
-				$e->getMessage(),
+				__( 'An unexpected error occurred.', 'ffcertificate' ),
 				array( 'status' => 500 )
 			);
 		}
