@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * CsvExporter
  *
@@ -11,9 +9,12 @@ declare(strict_types=1);
  *  2. JS  → wp_ajax_ffc_csv_export_batch   → processes N rows, appends to temp file (repeat)
  *  3. JS  → wp_ajax_ffc_csv_export_download → serves completed file and deletes it
  *
+ * @package FreeFormCertificate\Admin
  * @since 5.0.0  Rewritten as AJAX-driven batched export.
  * @since 4.0.0  Multi-form ID support.
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
@@ -23,6 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Exporter for csv data.
+ */
 class CsvExporter {
 
 	use \FreeFormCertificate\Core\CsvExportTrait;
@@ -43,6 +47,8 @@ class CsvExporter {
 	const JOB_TTL = 3600;
 
 	/**
+	 * Repository.
+	 *
 	 * @var SubmissionRepository
 	 */
 	protected $repository;
@@ -54,6 +60,9 @@ class CsvExporter {
 	 */
 	private array $form_title_cache = array();
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		$this->repository = new SubmissionRepository();
 	}
@@ -160,6 +169,7 @@ class CsvExporter {
 			$headers
 		);
 		fputcsv( $fh, $headers, ';' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing handle from fopen() for CSV streaming; WP_Filesystem has no streaming equivalent.
 		fclose( $fh );
 
 		// Store job state in a transient.
@@ -250,6 +260,7 @@ class CsvExporter {
 			);
 			fputcsv( $fh, $csv_row, ';' );
 		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing handle from fopen() for CSV streaming; WP_Filesystem has no streaming equivalent.
 		fclose( $fh );
 
 		// Advance cursor.
@@ -298,9 +309,10 @@ class CsvExporter {
 		}
 
 		// Serve file.
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
 		while ( @ob_end_clean() ) {
-		} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
+			/* no-op */
+		}
 
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $job['filename'] );
 		header( 'Content-Type: text/csv; charset=utf-8' );
@@ -343,6 +355,8 @@ class CsvExporter {
 	// ──────────────────────────────────────────────────────────────.
 
 	/**
+	 * Get form title cached.
+	 *
 	 * @param int $form_id Form post ID.
 	 * @return string Form title or "(Deleted)".
 	 */
@@ -355,6 +369,9 @@ class CsvExporter {
 	}
 
 	/**
+	 * Get fixed headers.
+	 *
+	 * @param bool $include_edit_columns Include edit columns.
 	 * @return array<int, string>
 	 */
 	private function get_fixed_headers( bool $include_edit_columns = false ): array {
@@ -386,7 +403,9 @@ class CsvExporter {
 	}
 
 	/**
-	 * @param array<int, string> $dynamic_keys
+	 * Get dynamic headers.
+	 *
+	 * @param array<int, string> $dynamic_keys Dynamic keys.
 	 * @return array<int, string>
 	 */
 	private function get_dynamic_headers( array $dynamic_keys ): array {
@@ -394,8 +413,11 @@ class CsvExporter {
 	}
 
 	/**
-	 * @param array<string, mixed> $row
-	 * @param array<int, string>   $dynamic_keys
+	 * Format csv row.
+	 *
+	 * @param array<string, mixed> $row Row.
+	 * @param array<int, string>   $dynamic_keys Dynamic keys.
+	 * @param bool                 $include_edit_columns Include edit columns.
 	 * @return array<int, mixed>
 	 */
 	private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {
@@ -453,7 +475,8 @@ class CsvExporter {
 	/**
 	 * Scan all matching records to discover dynamic JSON keys.
 	 *
-	 * @param array<int, int>|null $form_ids
+	 * @param array<int, int>|null $form_ids Form ids.
+	 * @param string               $status Status.
 	 * @return array<int, string>
 	 */
 	private function scan_dynamic_keys( ?array $form_ids, string $status ): array {
@@ -477,7 +500,8 @@ class CsvExporter {
 	/**
 	 * Count total matching rows for progress reporting.
 	 *
-	 * @param array<int, int>|null $form_ids
+	 * @param array<int, int>|null $form_ids Form ids.
+	 * @param string               $status Status.
 	 */
 	private function count_export_rows( ?array $form_ids, string $status ): int {
 		return $this->repository->countForExport( $form_ids, $status );

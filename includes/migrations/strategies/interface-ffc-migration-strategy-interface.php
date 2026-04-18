@@ -5,6 +5,7 @@
  * Defines the contract that all migration strategies must follow.
  * Part of the Strategy Pattern implementation for migration system refactoring.
  *
+ * @package FreeFormCertificate\Migrations\Strategies
  * @since 3.1.0 (Migration Manager refactor)
  * @version 3.3.0 - Added type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)

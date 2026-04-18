@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Self-Scheduling Activator
  *
@@ -12,9 +10,12 @@ declare(strict_types=1);
  * - wp_ffc_self_scheduling_appointments: Individual appointments/bookings
  * - wp_ffc_self_scheduling_blocked_dates: Holidays and specific date blocks
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.1.0
  * @version 4.5.0 - Renamed from CalendarActivator to SelfSchedulingActivator
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
@@ -23,7 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.SchemaChange
-
+/**
+ * Plugin activation tasks for self scheduling.
+ */
 class SelfSchedulingActivator {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Activator
  *
@@ -18,9 +16,11 @@ declare(strict_types=1);
  * - wp_ffc_audience_booking_audiences: N:N booking to audiences
  * - wp_ffc_audience_booking_users: N:N booking to individual users
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Audience
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
@@ -29,7 +29,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
-
+/**
+ * Plugin activation tasks for audience.
+ */
 class AudienceActivator {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

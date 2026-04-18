@@ -1,15 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment Repository
  *
  * Data access layer for appointment operations.
  * Follows Repository pattern for separation of concerns.
  *
+ * @package FreeFormCertificate\Repositories
  * @since 4.1.0
  * @version 4.6.10 - Added FOR UPDATE lock support for concurrent booking safety
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Repositories;
 
@@ -17,7 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-
+/**
+ * Database repository for appointment records.
+ */
 class AppointmentRepository extends AbstractRepository {
 
 	/**
@@ -41,9 +44,9 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Find appointments by calendar ID
 	 *
-	 * @param int      $calendar_id
-	 * @param int|null $limit
-	 * @param int      $offset
+	 * @param int      $calendar_id Calendar ID.
+	 * @param int|null $limit Limit.
+	 * @param int      $offset Offset.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByCalendar( int $calendar_id, ?int $limit = null, int $offset = 0 ): array {
@@ -59,10 +62,10 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Find appointments by user ID
 	 *
-	 * @param int                $user_id
+	 * @param int                $user_id User ID.
 	 * @param array<int, string> $statuses Optional status filter.
-	 * @param int|null           $limit
-	 * @param int                $offset
+	 * @param int|null           $limit Limit.
+	 * @param int                $offset Offset.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByUserId( int $user_id, array $statuses = array(), ?int $limit = null, int $offset = 0 ): array {
@@ -96,9 +99,9 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Find appointments by email
 	 *
-	 * @param string   $email
-	 * @param int|null $limit
-	 * @param int      $offset
+	 * @param string   $email Email address.
+	 * @param int|null $limit Limit.
+	 * @param int      $offset Offset.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByEmail( string $email, ?int $limit = null, int $offset = 0 ): array {
@@ -127,9 +130,9 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Find appointments by CPF/RF
 	 *
-	 * @param string   $cpf_rf
-	 * @param int|null $limit
-	 * @param int      $offset
+	 * @param string   $cpf_rf Cpf rf.
+	 * @param int|null $limit Limit.
+	 * @param int      $offset Offset.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByCpfRf( string $cpf_rf, ?int $limit = null, int $offset = 0 ): array {
@@ -167,7 +170,7 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Find appointment by confirmation token
 	 *
-	 * @param string $token
+	 * @param string $token Token.
 	 * @return array<string, mixed>|null
 	 */
 	public function findByConfirmationToken( string $token ): ?array {
@@ -181,13 +184,13 @@ class AppointmentRepository extends AbstractRepository {
 			ARRAY_A
 		);
 
-		return $result ?: null;
+		return $result ? $result : null;
 	}
 
 	/**
 	 * Find appointment by validation code
 	 *
-	 * @param string $validation_code
+	 * @param string $validation_code Validation code.
 	 * @return array<string, mixed>|null
 	 */
 	public function findByValidationCode( string $validation_code ): ?array {
@@ -201,13 +204,13 @@ class AppointmentRepository extends AbstractRepository {
 			ARRAY_A
 		);
 
-		return $result ?: null;
+		return $result ? $result : null;
 	}
 
 	/**
 	 * Get appointments for a specific date and calendar
 	 *
-	 * @param int                $calendar_id
+	 * @param int                $calendar_id Calendar ID.
 	 * @param string             $date Date in Y-m-d format.
 	 * @param array<int, string> $statuses Optional status filter (default: confirmed appointments).
 	 * @param bool               $use_lock Use FOR UPDATE lock (requires active transaction).
@@ -234,10 +237,10 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Get appointments for a date range
 	 *
-	 * @param int                $calendar_id
-	 * @param string             $start_date
-	 * @param string             $end_date
-	 * @param array<int, string> $statuses
+	 * @param int                $calendar_id Calendar ID.
+	 * @param string             $start_date Start date.
+	 * @param string             $end_date End date.
+	 * @param array<int, string> $statuses Statuses.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getAppointmentsByDateRange( int $calendar_id, string $start_date, string $end_date, array $statuses = array( 'confirmed', 'pending' ) ): array {
@@ -260,10 +263,10 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Check if slot is available
 	 *
-	 * @param int    $calendar_id
-	 * @param string $date
-	 * @param string $start_time
-	 * @param int    $max_per_slot
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date Date.
+	 * @param string $start_time Start time.
+	 * @param int    $max_per_slot Max per slot.
 	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
 	 * @return bool
 	 */
@@ -291,7 +294,7 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Cancel appointment
 	 *
-	 * @param int         $id
+	 * @param int         $id Record ID.
 	 * @param int|null    $cancelled_by User ID who cancelled.
 	 * @param string|null $reason Cancellation reason.
 	 * @return int|false
@@ -312,7 +315,7 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Confirm appointment (admin approval)
 	 *
-	 * @param int      $id
+	 * @param int      $id Record ID.
 	 * @param int|null $approved_by User ID who approved.
 	 * @return int|false
 	 */
@@ -331,7 +334,7 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Mark as completed
 	 *
-	 * @param int $id
+	 * @param int $id Record ID.
 	 * @return int|false
 	 */
 	public function markCompleted( int $id ) {
@@ -347,7 +350,7 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Mark as no-show
 	 *
-	 * @param int $id
+	 * @param int $id Record ID.
 	 * @return int|false
 	 */
 	public function markNoShow( int $id ) {
@@ -367,7 +370,8 @@ class AppointmentRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getUpcomingForReminders( int $hours_before = 24 ): array {
-		$reminder_ts     = strtotime( "+{$hours_before} hours" ) ?: time();
+		$reminder_ts_raw = strtotime( "+{$hours_before} hours" );
+		$reminder_ts     = $reminder_ts_raw ? $reminder_ts_raw : time();
 		$target_datetime = gmdate( 'Y-m-d H:i:s', $reminder_ts );
 		$target_date     = gmdate( 'Y-m-d', $reminder_ts );
 		$target_time     = gmdate( 'H:i:s', $reminder_ts );
@@ -397,7 +401,7 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Mark reminder as sent
 	 *
-	 * @param int $id
+	 * @param int $id Record ID.
 	 * @return int|false
 	 */
 	public function markReminderSent( int $id ) {
@@ -412,9 +416,9 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Get appointment statistics for calendar
 	 *
-	 * @param int         $calendar_id
-	 * @param string|null $start_date
-	 * @param string|null $end_date
+	 * @param int         $calendar_id Calendar ID.
+	 * @param string|null $start_date Start date.
+	 * @param string|null $end_date End date.
 	 * @return array<string, mixed>
 	 */
 	public function getStatistics( int $calendar_id, ?string $start_date = null, ?string $end_date = null ): array {
@@ -445,7 +449,7 @@ class AppointmentRepository extends AbstractRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$stats = $this->wpdb->get_row( $sql, ARRAY_A );
 
-		return $stats ?: array(
+		return $stats ? $stats : array(
 			'total'     => 0,
 			'confirmed' => 0,
 			'pending'   => 0,
@@ -458,7 +462,7 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Create appointment with encryption support
 	 *
-	 * @param array<string, mixed> $data
+	 * @param array<string, mixed> $data Data.
 	 * @return int|false
 	 */
 	public function createAppointment( array $data ) {
@@ -550,7 +554,7 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Get booking counts by date range
 	 *
-	 * @param int    $calendar_id
+	 * @param int    $calendar_id Calendar ID.
 	 * @param string $start_date YYYY-MM-DD.
 	 * @param string $end_date YYYY-MM-DD.
 	 * @return array<string, int> Array with date => count

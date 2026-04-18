@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * DocumentFormatter
  *
@@ -9,9 +7,11 @@ declare(strict_types=1);
  *
  * Extracted from Utils.php (Sprint 30) for single-responsibility compliance.
  *
- * @since 4.12.26
  * @package FreeFormCertificate\Core
+ * @since 4.12.26
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 
@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Document Formatter.
+ */
 class DocumentFormatter {
 
 	/**

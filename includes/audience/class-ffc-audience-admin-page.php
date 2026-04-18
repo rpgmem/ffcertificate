@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Admin Page (Coordinator)
  *
@@ -30,11 +28,13 @@ declare(strict_types=1);
  * - Import & Export
  * - Settings
  *
+ * @package FreeFormCertificate\Audience
  * @since 4.5.0
  * @version 4.6.0 - Unified scheduling menu with self-scheduling integration
  * @version 4.6.1 - Refactored into coordinator + 7 focused sub-page classes
- * @package FreeFormCertificate\Audience
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
@@ -42,6 +42,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin page for audience admin.
+ */
 class AudienceAdminPage {
 
 	/**
@@ -49,29 +52,127 @@ class AudienceAdminPage {
 	 */
 	public const MENU_SLUG = 'ffc-scheduling';
 
-	/** @var AudienceAdminDashboard */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminDashboard
+	 */
 	private AudienceAdminDashboard $dashboard;
 
-	/** @var AudienceAdminCalendar */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminCalendar
+	 */
 	private AudienceAdminCalendar $calendar;
 
-	/** @var AudienceAdminEnvironment */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminEnvironment
+	 */
 	private AudienceAdminEnvironment $environment;
 
-	/** @var AudienceAdminAudience */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminAudience
+	 */
 	private AudienceAdminAudience $audience;
 
-	/** @var AudienceAdminBookings */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminBookings
+	 */
 	private AudienceAdminBookings $bookings;
 
-	/** @var AudienceAdminSettings */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminSettings
+	 */
 	private AudienceAdminSettings $settings;
 
-	/** @var AudienceAdminImport */
+	/**
+	 * Description.
+	 *
+	 * @var AudienceAdminImport
+	 */
 	private AudienceAdminImport $import;
 
 	/**
 	 * Initialize admin page
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
+	 *
+	 * Init.
 	 *
 	 * @return void
 	 */
@@ -255,6 +356,7 @@ class AudienceAdminPage {
 			}
 		}
 
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Intentionally reordering WP's own $submenu array to control admin menu appearance.
 		$submenu[ self::MENU_SLUG ] = $new_items;
 	}
 

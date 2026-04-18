@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * EmailHandler
  * Handles email configuration and sending with magic links.
@@ -20,7 +18,11 @@ declare(strict_types=1);
  * v2.9.0: Added QR Code placeholder support with hash-based URLs
  * v2.8.0: Added magic link support in emails
  * v2.9.11: Using FFC_Utils for document formatting
+ *
+ * @package FreeFormCertificate\Integrations
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Integrations;
 
@@ -30,10 +32,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for email operations.
+ */
 class EmailHandler {
 
 	use \FreeFormCertificate\Core\EmailHelperTrait;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		add_action( 'ffcertificate_process_submission_hook', array( $this, 'async_process_submission' ), 10, 8 );
 		add_action( 'phpmailer_init', array( $this, 'configure_custom_smtp' ) );
@@ -158,8 +166,8 @@ class EmailHandler {
 			? \FreeFormCertificate\Core\Utils::format_auth_code( $raw_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
 			: '';
 
-		// Custom body text from form config.
-		$body_text = isset( $form_config['email_body'] ) ? wpautop( $form_config['email_body'] ) : '';
+		// Custom body text from form config. wp_kses_post() prevents inadvertent script/unsafe-tag injection.
+		$body_text = isset( $form_config['email_body'] ) ? wpautop( wp_kses_post( $form_config['email_body'] ) ) : '';
 
 		// Build email HTML (simple, clean, no certificate preview).
 		$body = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 20px;">';

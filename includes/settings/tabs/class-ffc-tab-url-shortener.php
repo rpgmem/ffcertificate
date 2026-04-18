@@ -1,12 +1,12 @@
 <?php
-declare(strict_types=1);
-
 /**
  * URL Shortener Settings Tab
  *
- * @since 5.1.0
  * @package FreeFormCertificate\Settings\Tabs
+ * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings\Tabs;
 
@@ -16,8 +16,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab Url Shortener settings tab.
+ */
 class TabUrlShortener extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'url_shortener';
 		$this->tab_title = __( 'URL Shortener', 'ffcertificate' );
@@ -25,6 +31,9 @@ class TabUrlShortener extends SettingsTab {
 		$this->tab_order = 35;
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-url-shortener.php';
 

@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * CapabilityManager
  *
  * Manages FFC user capabilities, roles, and permission granting.
  * Extracted from UserManager (v4.12.2) for single-responsibility.
  *
- * @since 4.12.2
  * @package FreeFormCertificate\UserDashboard
+ * @since 4.12.2
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UserDashboard;
 
@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Manager for capability operations.
+ */
 class CapabilityManager {
 
 	/**

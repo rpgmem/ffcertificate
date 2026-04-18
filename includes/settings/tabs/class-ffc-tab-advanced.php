@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Advanced Settings Tab
  *
  * Contains Activity Log, Debug Settings, and Danger Zone
  *
- * @package FFC
+ * @package FreeFormCertificate\Settings\Tabs
  * @since 4.6.16
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings\Tabs;
 
@@ -18,8 +18,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab Advanced settings tab.
+ */
 class TabAdvanced extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'advanced';
 		$this->tab_title = __( 'Advanced', 'ffcertificate' );
@@ -27,6 +33,9 @@ class TabAdvanced extends SettingsTab {
 		$this->tab_order = 70;
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-advanced.php';
 

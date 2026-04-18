@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * ActivityLog
  * Tracks important activities for audit and debugging
@@ -23,12 +21,15 @@ declare(strict_types=1);
  * - Stats caching with transient (v4.6.9)
  * - Refactored: query/stats/cleanup moved to ActivityLogQuery (v4.12.2)
  *
+ * @package FreeFormCertificate\Core
  * @version 4.12.2 - Split query/stats/cleanup to ActivityLogQuery
  * @version 4.6.9 - Batch writes, auto-cleanup, stats caching
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 2.9.1
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 
@@ -37,7 +38,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
+/**
+ * Activity Log.
+ */
 class ActivityLog {
 
 	use DatabaseHelperTrait;
@@ -115,7 +118,8 @@ class ActivityLog {
 		}
 
 		// Encrypt context if contains sensitive data.
-		$context_json      = wp_json_encode( $context ) ?: '';
+		$context_json_raw  = wp_json_encode( $context );
+		$context_json      = $context_json_raw ? $context_json_raw : '';
 		$context_encrypted = null;
 
 		if ( class_exists( '\\FreeFormCertificate\\Core\\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
@@ -284,8 +288,10 @@ class ActivityLog {
 	// =====================================================================.
 
 	/**
+	 * Get activities.
+	 *
 	 * @see ActivityLogQuery::get_activities()
-	 * @param array<string, mixed> $args
+	 * @param array<string, mixed> $args Query arguments.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_activities( array $args = array() ): array {
@@ -293,25 +299,59 @@ class ActivityLog {
 	}
 
 	/**
+	 * Count activities.
+	 *
 	 * @see ActivityLogQuery::count_activities()
-	 * @param array<string, mixed> $args
+	 * @param array<string, mixed> $args Query arguments.
 	 */
 	public static function count_activities( array $args = array() ): int {
 		return ActivityLogQuery::count_activities( $args );
 	}
 
-	/** @see ActivityLogQuery::cleanup() */
+	/**
+	 * Cleanup.
+	 *
+	 * @see ActivityLogQuery::cleanup()
+	 * @param int $days Days.
+	 */
 	public static function cleanup( int $days = 90 ): int {
 		return ActivityLogQuery::cleanup( $days );
 	}
 
-	/** @see ActivityLogQuery::run_cleanup() */
+	/**
+	 * Run cleanup.
+	 *
+	 * @see ActivityLogQuery::run_cleanup()
+	 */
 	public static function run_cleanup(): int {
 		return ActivityLogQuery::run_cleanup();
 	}
 
 	/**
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
+	 * Get stats.
+	 *
 	 * @see ActivityLogQuery::get_stats()
+	 * @param int $days Days.
 	 * @return array<string, mixed>
 	 */
 	public static function get_stats( int $days = 30 ): array {
@@ -337,6 +377,9 @@ class ActivityLog {
 
 	/**
 	 * Log submission updated
+	 *
+	 * @param int $submission_id Submission ID.
+	 * @param int $admin_user_id Admin User ID.
 	 */
 	public static function log_submission_updated( int $submission_id, int $admin_user_id ): bool {
 		return self::log(
@@ -351,6 +394,9 @@ class ActivityLog {
 
 	/**
 	 * Log submission deleted
+	 *
+	 * @param int $submission_id Submission ID.
+	 * @param int $admin_user_id Admin User ID.
 	 */
 	public static function log_submission_deleted( int $submission_id, int $admin_user_id = 0 ): bool {
 		return self::log(
@@ -414,6 +460,9 @@ class ActivityLog {
 
 	/**
 	 * Log access denied
+	 *
+	 * @param string $reason Reason.
+	 * @param string $identifier Identifier.
 	 */
 	public static function log_access_denied( string $reason, string $identifier ): bool {
 		return self::log(
@@ -428,6 +477,9 @@ class ActivityLog {
 
 	/**
 	 * Log settings changed
+	 *
+	 * @param string $setting_key Setting key.
+	 * @param int    $admin_user_id Admin User ID.
 	 */
 	public static function log_settings_changed( string $setting_key, int $admin_user_id ): bool {
 		return self::log(
@@ -512,7 +564,11 @@ class ActivityLog {
 	}
 
 	/**
+	 * Get submission logs.
+	 *
 	 * @see ActivityLogQuery::get_submission_logs()
+	 * @param int $submission_id Submission ID.
+	 * @param int $limit Limit.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_submission_logs( int $submission_id, int $limit = 100 ): array {

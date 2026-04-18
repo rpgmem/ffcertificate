@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Summary REST Controller
  *
  * Handles:
  *   GET /user/summary – Dashboard summary (certificates count, next appointment, etc.)
  *
- * @since 4.12.7  Extracted from UserDataRestController
  * @package FreeFormCertificate\API
+ * @since 4.12.7  Extracted from UserDataRestController
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
@@ -17,7 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-
+/**
+ * REST API controller for user summary endpoints.
+ */
 class UserSummaryRestController {
 
 	use UserContextTrait;
@@ -25,9 +27,16 @@ class UserSummaryRestController {
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param string $namespace Namespace.
+	 */
 	public function __construct( string $namespace ) {
 		$this->namespace = $namespace;
 	}
@@ -53,7 +62,7 @@ class UserSummaryRestController {
 	 * Returns dashboard summary: total certificates, next appointment, upcoming group events.
 	 *
 	 * @since 4.9.8
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_user_summary( $request ) {

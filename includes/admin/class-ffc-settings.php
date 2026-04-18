@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Settings
  *
@@ -15,11 +13,13 @@ declare(strict_types=1);
  * - Handle migration execution
  * - AJAX handlers
  *
- * @package FFC
+ * @package FreeFormCertificate\Admin
  * @since 1.0.0
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
@@ -29,17 +29,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Settings.
+ */
 class Settings {
 
 	/**
+	 * Tabs.
+	 *
 	 * @var array<string, object>
 	 */
 	private $tabs = array();
 	/**
+	 * Save handler.
+	 *
 	 * @var \FreeFormCertificate\Admin\SettingsSaveHandler
 	 */
 	private $save_handler;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Handler.
+	 */
 	public function __construct( \FreeFormCertificate\Submissions\SubmissionHandler $handler ) {
 		$this->save_handler = new \FreeFormCertificate\Admin\SettingsSaveHandler( $handler );
 
@@ -96,6 +108,9 @@ class Settings {
 		$this->tabs = apply_filters( 'ffcertificate_settings_tabs', $this->tabs );
 	}
 
+	/**
+	 * Add settings page.
+	 */
 	public function add_settings_page(): void {
 		add_submenu_page(
 			'edit.php?post_type=ffc_form',
@@ -289,13 +304,11 @@ class Settings {
 				<?php
 				if ( isset( $this->tabs[ $active_tab ] ) ) {
 					$this->tabs[ $active_tab ]->render();
-				} else {
+				} elseif ( ! empty( $this->tabs ) ) {
 					// Fallback: render first tab.
-					if ( ! empty( $this->tabs ) ) {
-						reset( $this->tabs );
-						$first_tab = current( $this->tabs );
-						$first_tab->render();
-					}
+					reset( $this->tabs );
+					$first_tab = current( $this->tabs );
+					$first_tab->render();
 				}
 				?>
 			</div>
@@ -343,14 +356,14 @@ class Settings {
 
 		// Add result message.
 		if ( is_wp_error( $result ) ) {
-			$redirect_url = add_query_arg( 'migration_error', urlencode( $result->get_error_message() ), $redirect_url );
+			$redirect_url = add_query_arg( 'migration_error', rawurlencode( $result->get_error_message() ), $redirect_url );
 		} else {
 			$message = sprintf(
 				/* translators: %d: number of records processed */
 				__( 'Migration executed: %d records processed.', 'ffcertificate' ),
 				isset( $result['processed'] ) ? $result['processed'] : 0
 			);
-			$redirect_url = add_query_arg( 'migration_success', urlencode( $message ), $redirect_url );
+			$redirect_url = add_query_arg( 'migration_success', rawurlencode( $message ), $redirect_url );
 		}
 
 		wp_safe_redirect( $redirect_url );
@@ -530,6 +543,9 @@ class Settings {
 		}
 	}
 
+	/**
+	 * Handle cache actions.
+	 */
 	public function handle_cache_actions(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;

@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Self-Scheduling CPT
  *
@@ -11,9 +9,12 @@ declare(strict_types=1);
  *   - Add New
  *   - Appointments
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.1.0
  * @version 4.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
@@ -21,7 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-
+/**
+ * Self Scheduling C P T.
+ */
 class SelfSchedulingCPT {
 
 	/**
@@ -100,8 +103,8 @@ class SelfSchedulingCPT {
 	/**
 	 * Add duplicate link to calendar row actions
 	 *
-	 * @param array<string, string> $actions
-	 * @param object                $post
+	 * @param array<string, mixed> $actions Actions.
+	 * @param object               $post Post object.
 	 * @return array<string, string>
 	 */
 	public function add_duplicate_link( array $actions, object $post ): array {
@@ -224,9 +227,9 @@ class SelfSchedulingCPT {
 	 *
 	 * When a calendar post is saved, update the calendar record in wp_ffc_self_scheduling_calendars table.
 	 *
-	 * @param int    $post_id
-	 * @param object $post
-	 * @param bool   $update
+	 * @param int    $post_id Post ID.
+	 * @param object $post Post object.
+	 * @param bool   $update Update.
 	 * @return void
 	 */
 	public function sync_calendar_data( int $post_id, object $post, bool $update ): void {
@@ -277,7 +280,7 @@ class SelfSchedulingCPT {
 	/**
 	 * Parse calendar config into database fields
 	 *
-	 * @param array<string, mixed>|string $config
+	 * @param mixed $config Configuration.
 	 * @return array<string, mixed>
 	 */
 	private function parse_calendar_config( $config ): array {
@@ -315,8 +318,8 @@ class SelfSchedulingCPT {
 	 * Deletes the calendar record and optionally cancels all future appointments.
 	 * The cancellation behavior can be controlled via the 'ffc_self_scheduling_cancel_appointments_on_delete' filter.
 	 *
-	 * @param int    $post_id
-	 * @param object $post
+	 * @param int    $post_id Post ID.
+	 * @param object $post Post object.
 	 * @return void
 	 */
 	public function cleanup_calendar_data( int $post_id, object $post ): void {

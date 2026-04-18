@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Admin User Custom Fields
  *
  * Adds a "Custom Data" section to the WordPress user edit screen showing
  * custom fields from all audiences the user belongs to.
  *
- * @since 4.11.0
  * @package FreeFormCertificate\Admin
+ * @since 4.11.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin User Custom Fields.
+ */
 class AdminUserCustomFields {
 
 	/**
@@ -269,7 +272,8 @@ class AdminUserCustomFields {
 					6 => __( 'Saturday', 'ffcertificate' ),
 				);
 				?>
-				<input type="hidden" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( wp_json_encode( $wh_data ) ?: '' ); ?>">
+				<?php $wh_data_json = wp_json_encode( $wh_data ); ?>
+				<input type="hidden" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( $wh_data_json ? $wh_data_json : '' ); ?>">
 				<div class="ffc-working-hours" data-target="<?php echo esc_attr( $input_name ); ?>">
 					<table class="widefat ffc-wh-table" style="max-width:800px">
 						<thead>

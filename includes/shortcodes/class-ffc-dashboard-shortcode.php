@@ -1,16 +1,17 @@
 <?php
-declare(strict_types=1);
-
 /**
  * DashboardShortcode
  *
  * Renders the user dashboard via [user_dashboard_personal] shortcode
  *
+ * @package FreeFormCertificate\Shortcodes
  * @since 3.1.0
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @version 4.12.19 - Extracted DashboardAssetManager and DashboardViewMode for SRP compliance.
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Shortcodes;
 
@@ -18,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Dashboard Shortcode.
+ */
 class DashboardShortcode {
 
 	/**
@@ -84,7 +88,7 @@ class DashboardShortcode {
 		DashboardAssetManager::enqueue_assets( $view_as_user_id );
 
 		// Check user permissions.
-		$user_id = $view_as_user_id ?: get_current_user_id();
+		$user_id = $view_as_user_id ? $view_as_user_id : get_current_user_id();
 		$user    = get_user_by( 'id', $user_id );
 
 		// Check if user has FFC permissions (based on capabilities, not just role).
@@ -254,7 +258,8 @@ class DashboardShortcode {
 		</div>
 		<?php
 
-		return ob_get_clean() ?: '';
+		$dashboard_html = ob_get_clean();
+		return $dashboard_html ? $dashboard_html : '';
 	}
 
 	/**
@@ -268,13 +273,15 @@ class DashboardShortcode {
 		<div class="ffc-dashboard-notice ffc-notice-warning">
 			<p><?php esc_html_e( 'You must be logged in to view your dashboard.', 'ffcertificate' ); ?></p>
 			<p>
-				<a href="<?php echo esc_url( wp_login_url( get_permalink() ?: '' ) ); ?>" class="button">
+				<?php $permalink = get_permalink(); ?>
+				<a href="<?php echo esc_url( wp_login_url( $permalink ? $permalink : '' ) ); ?>" class="button">
 					<?php esc_html_e( 'Login', 'ffcertificate' ); ?>
 				</a>
 			</p>
 		</div>
 		<?php
-		return ob_get_clean() ?: '';
+		$login_required_html = ob_get_clean();
+		return $login_required_html ? $login_required_html : '';
 	}
 
 	/**
@@ -297,7 +304,8 @@ class DashboardShortcode {
 			<p><?php echo esc_html( $message ); ?></p>
 		</div>
 		<?php
-		return ob_get_clean() ?: '';
+		$redirect_html = ob_get_clean();
+		return $redirect_html ? $redirect_html : '';
 	}
 
 	/**
@@ -401,6 +409,7 @@ class DashboardShortcode {
 			</div>
 			<?php
 		}
-		return ob_get_clean() ?: '';
+		$rereg_banner_html = ob_get_clean();
+		return $rereg_banner_html ? $rereg_banner_html : '';
 	}
 }

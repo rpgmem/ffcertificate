@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * UserCreator
  *
  * Handles WordPress user creation, linking, and username generation for FFC.
  * Extracted from UserManager (v4.12.2) for single-responsibility.
  *
- * @since 4.12.2
  * @package FreeFormCertificate\UserDashboard
+ * @since 4.12.2
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UserDashboard;
 
@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * User Creator.
+ */
 class UserCreator {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
@@ -55,7 +58,7 @@ class UserCreator {
 		$hash_params = self::build_hash_params( $identifier_hash, $identifier_type );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_where built from hardcoded column names via build_hash_where_clause().
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $hash_where and $hash_params built together in build_hash_* helpers with matching placeholder count.
 		$existing_user_id = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT user_id FROM %i
@@ -66,7 +69,7 @@ class UserCreator {
 				...$hash_params
 			)
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		if ( $existing_user_id ) {
 			CapabilityManager::grant_context_capabilities( (int) $existing_user_id, $context );
@@ -203,7 +206,7 @@ class UserCreator {
 
 		$submissions_table = \FreeFormCertificate\Core\Utils::get_submissions_table();
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_where built from hardcoded column names via build_hash_where_clause().
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $hash_where and $hash_params built together in build_hash_* helpers with matching placeholder count.
 		$linked_submissions = $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i SET user_id = %d WHERE ({$hash_where}) AND user_id IS NULL",
@@ -212,13 +215,13 @@ class UserCreator {
 				...$hash_params
 			)
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		$appointments_table  = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		$linked_appointments = 0;
 		if ( self::table_exists( $appointments_table ) ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_where built from hardcoded column names via build_hash_where_clause().
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $hash_where and $hash_params built together in build_hash_* helpers with matching placeholder count.
 			$linked_appointments = $wpdb->query(
 				$wpdb->prepare(
 					"UPDATE %i SET user_id = %d WHERE ({$hash_where}) AND user_id IS NULL",
@@ -227,7 +230,7 @@ class UserCreator {
 					...$hash_params
 				)
 			);
-			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 			if ( $linked_appointments > 0 ) {
 				CapabilityManager::grant_appointment_capabilities( $user_id );

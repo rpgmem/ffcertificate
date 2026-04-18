@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * URL Shortener Service
  *
  * Business logic for creating and managing short URLs.
  *
- * @since 5.1.0
  * @package FreeFormCertificate\UrlShortener
+ * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UrlShortener;
 
@@ -16,9 +16,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Service class for url shortener operations.
+ */
 class UrlShortenerService {
 
-	/** @var UrlShortenerRepository */
+	/**
+	 * Description.
+	 *
+	 * @var UrlShortenerRepository
+	 */
 	private UrlShortenerRepository $repository;
 
 	/**
@@ -26,6 +33,11 @@ class UrlShortenerService {
 	 */
 	private const CHARSET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
+	/**
+	 * Constructor.
+	 *
+	 * @param UrlShortenerRepository|null $repository Repository.
+	 */
 	public function __construct( ?UrlShortenerRepository $repository = null ) {
 		$this->repository = $repository ?? new UrlShortenerRepository();
 	}

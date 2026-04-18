@@ -1,15 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Calendar Repository
  *
  * Data access layer for calendar operations.
  * Follows Repository pattern for separation of concerns.
  *
+ * @package FreeFormCertificate\Repositories
  * @since 4.1.0
  * @version 4.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Repositories;
 
@@ -17,7 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
+/**
+ * Database repository for calendar records.
+ */
 class CalendarRepository extends AbstractRepository {
 
 	/**
@@ -68,8 +71,8 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Get active calendars
 	 *
-	 * @param int|null $limit
-	 * @param int      $offset
+	 * @param int|null $limit Limit.
+	 * @param int      $offset Offset.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getActiveCalendars( ?int $limit = null, int $offset = 0 ): array {
@@ -85,7 +88,7 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Get calendar with working hours decoded
 	 *
-	 * @param int $id
+	 * @param int $id Record ID.
 	 * @return array<string, mixed>|null
 	 */
 	public function getWithWorkingHours( int $id ): ?array {
@@ -99,14 +102,14 @@ class CalendarRepository extends AbstractRepository {
 			$calendar['email_config'] = json_decode( $calendar['email_config'], true );
 		}
 
-		return $calendar ?: null;
+		return $calendar ? $calendar : null;
 	}
 
 	/**
 	 * Update working hours
 	 *
-	 * @param int                  $id
-	 * @param array<string, mixed> $working_hours
+	 * @param int                  $id Record ID.
+	 * @param array<string, mixed> $working_hours Working hours.
 	 * @return int|false
 	 */
 	public function updateWorkingHours( int $id, array $working_hours ) {
@@ -123,8 +126,8 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Update email configuration
 	 *
-	 * @param int                  $id
-	 * @param array<string, mixed> $email_config
+	 * @param int                  $id Record ID.
+	 * @param array<string, mixed> $email_config Email config.
 	 * @return int|false
 	 */
 	public function updateEmailConfig( int $id, array $email_config ) {
@@ -141,7 +144,7 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Update calendar status
 	 *
-	 * @param int    $id
+	 * @param int    $id Record ID.
 	 * @param string $status (active, inactive, archived).
 	 * @return int|false
 	 */
@@ -163,8 +166,8 @@ class CalendarRepository extends AbstractRepository {
 	 * Used for non-authenticated users.
 	 *
 	 * @since 4.7.0
-	 * @param int|null $limit
-	 * @param int      $offset
+	 * @param int|null $limit Limit.
+	 * @param int      $offset Offset.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getPublicActiveCalendars( ?int $limit = null, int $offset = 0 ): array {
@@ -199,8 +202,8 @@ class CalendarRepository extends AbstractRepository {
 	 *
 	 * Called when a calendar post is created.
 	 *
-	 * @param int                  $post_id
-	 * @param array<string, mixed> $data
+	 * @param int                  $post_id Post ID.
+	 * @param array<string, mixed> $data Data.
 	 * @return int|false
 	 */
 	public function createFromPost( int $post_id, array $data = array() ) {

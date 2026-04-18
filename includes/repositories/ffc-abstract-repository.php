@@ -3,6 +3,7 @@
  * Abstract Repository
  * Base class for all repositories
  *
+ * @package FreeFormCertificate\Repositories
  * @since 3.0.0
  * @version 4.6.10 - Added transaction support (begin/commit/rollback)
  * @version 3.3.0 - Added strict types and type hints for better code safety
@@ -17,18 +18,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-
+/**
+ * Database repository for abstract records.
+ */
 abstract class AbstractRepository {
 
-	/** @var \wpdb */
+	/**
+	 * Wpdb.
+	 *
+	 * @var \wpdb
+	 */
 	protected $wpdb;
-	/** @var string */
+	/**
+	 * Table.
+	 *
+	 * @var string
+	 */
 	protected $table;
-	/** @var string */
+	/**
+	 * Cache group.
+	 *
+	 * @var string
+	 */
 	protected $cache_group;
-	/** @var int */
+	/**
+	 * Cache expiration.
+	 *
+	 * @var int
+	 */
 	protected $cache_expiration = 3600;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		global $wpdb;
 		$this->wpdb        = $wpdb;
@@ -36,13 +58,23 @@ abstract class AbstractRepository {
 		$this->cache_group = $this->get_cache_group();
 	}
 
+	/**
+	 * Get table name.
+	 *
+	 * @return string
+	 */
 	abstract protected function get_table_name(): string;
+	/**
+	 * Get cache group.
+	 *
+	 * @return string
+	 */
 	abstract protected function get_cache_group(): string;
 
 	/**
 	 * Find by ID
 	 *
-	 * @param int $id
+	 * @param int $id Record ID.
 	 * @return array<string, mixed>|null|false
 	 */
 	public function findById( int $id ) {
@@ -95,11 +127,12 @@ abstract class AbstractRepository {
 		if ( ! empty( $missing ) ) {
 			$safe_ids     = array_map( 'absint', $missing );
 			$placeholders = implode( ',', array_fill( 0, count( $safe_ids ), '%d' ) );
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %d repeated to match count($safe_ids); Interpolated* is file-disabled above.
 			$rows = $this->wpdb->get_results(
 				$this->wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$placeholders})", $this->table, ...$safe_ids ),
 				ARRAY_A
 			);
+            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 			if ( is_array( $rows ) ) {
 				foreach ( $rows as $row ) {
@@ -116,11 +149,11 @@ abstract class AbstractRepository {
 	/**
 	 * Find all with conditions
 	 *
-	 * @param array<string, mixed> $conditions
-	 * @param string               $order_by
-	 * @param string               $order
-	 * @param int|null             $limit
-	 * @param int                  $offset
+	 * @param array<string, mixed> $conditions Conditions.
+	 * @param string               $order_by   Column to order by.
+	 * @param string               $order      Order direction (ASC or DESC).
+	 * @param int|null             $limit      Maximum number of results.
+	 * @param int                  $offset     Query offset.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findAll( array $conditions = array(), string $order_by = 'id', string $order = 'DESC', ?int $limit = null, int $offset = 0 ): array {
@@ -130,7 +163,11 @@ abstract class AbstractRepository {
 		if ( $limit ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			return $this->wpdb->get_results(
-				/** @phpstan-ignore-next-line argument.type */
+				/**
+				 * Description.
+				 *
+				 * @phpstan-ignore-next-line argument.type
+				 */
 				$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order} LIMIT %d OFFSET %d", $this->table, $limit, $offset ),
 				ARRAY_A
 			);
@@ -138,7 +175,11 @@ abstract class AbstractRepository {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return $this->wpdb->get_results(
-			/** @phpstan-ignore-next-line argument.type */
+			/**
+			 * Description.
+			 *
+			 * @phpstan-ignore-next-line argument.type
+			 */
 			$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order}", $this->table ),
 			ARRAY_A
 		);
@@ -147,20 +188,54 @@ abstract class AbstractRepository {
 	/**
 	 * Count rows
 	 *
-	 * @param array<string, mixed> $conditions
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * @param array<string, mixed> $conditions Conditions.
 	 * @return int
 	 */
 	public function count( array $conditions = array() ): int {
 		$where = $this->build_where_clause( $conditions );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		/** @phpstan-ignore-next-line argument.type */
+		/**
+		 * Description.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
 		return (int) $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", $this->table ) );
 	}
 
 	/**
 	 * Insert
 	 *
-	 * @param array<string, mixed> $data
+	 * Insert.
+	 *
+	 * Insert.
+	 *
+	 * Insert.
+	 *
+	 * Insert.
+	 *
+	 * Insert.
+	 *
+	 * @param array<string, mixed> $data Data.
 	 * @return int|false Insert ID on success, false on failure
 	 */
 	public function insert( array $data ) {
@@ -179,8 +254,8 @@ abstract class AbstractRepository {
 	/**
 	 * Update
 	 *
-	 * @param int                  $id
-	 * @param array<string, mixed> $data
+	 * @param int                  $id Record ID.
+	 * @param array<string, mixed> $data Data.
 	 * @return int|false Number of rows updated, or false on error
 	 */
 	public function update( int $id, array $data ) {
@@ -203,7 +278,7 @@ abstract class AbstractRepository {
 	/**
 	 * Delete
 	 *
-	 * @param int $id
+	 * @param int $id Record ID.
 	 * @return int|false Number of rows deleted, or false on error
 	 */
 	public function delete( int $id ) {
@@ -242,7 +317,7 @@ abstract class AbstractRepository {
 	/**
 	 * Build WHERE clause
 	 *
-	 * @param array<string, mixed> $conditions
+	 * @param array<string, mixed> $conditions Conditions.
 	 * @return string
 	 */
 	protected function build_where_clause( array $conditions ): string {
@@ -250,27 +325,40 @@ abstract class AbstractRepository {
 			return '';
 		}
 
+		$allowed_columns = $this->get_allowed_where_columns();
+
 		$where_parts = array();
 		foreach ( $conditions as $key => $value ) {
+			if ( ! empty( $allowed_columns ) && ! in_array( $key, $allowed_columns, true ) ) {
+				continue;
+			}
+
 			if ( is_array( $value ) ) {
 				$placeholders = implode( ',', array_fill( 0, count( $value ), '%s' ) );
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				/** @phpstan-ignore-next-line argument.type */
-				$where_parts[] = $this->wpdb->prepare( "{$key} IN ({$placeholders})", ...$value );
+				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %s repeated to match count($value).
+				$where_parts[] = $this->wpdb->prepare( "%i IN ({$placeholders})", $key, ...$value );
+				// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 			} else {
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				/** @phpstan-ignore-next-line argument.type */
-				$where_parts[] = $this->wpdb->prepare( "{$key} = %s", $value );
+				$where_parts[] = $this->wpdb->prepare( '%i = %s', $key, $value );
 			}
 		}
 
-		return 'WHERE ' . implode( ' AND ', $where_parts );
+		return ! empty( $where_parts ) ? 'WHERE ' . implode( ' AND ', $where_parts ) : '';
+	}
+
+	/**
+	 * Get allowed WHERE clause columns. Override in child classes.
+	 *
+	 * @return array<int, string> Empty array means allow all (for backwards compat).
+	 */
+	protected function get_allowed_where_columns(): array {
+		return array();
 	}
 
 	/**
 	 * Cache methods
 	 *
-	 * @param string $key
+	 * @param string $key Key.
 	 * @return mixed
 	 */
 	protected function get_cache( string $key ) {
@@ -278,8 +366,10 @@ abstract class AbstractRepository {
 	}
 
 	/**
-	 * @param string $key
-	 * @param mixed  $value
+	 * Set cache.
+	 *
+	 * @param string $key Key.
+	 * @param mixed  $value Value.
 	 * @return bool
 	 */
 	protected function set_cache( string $key, $value ): bool {
@@ -287,7 +377,9 @@ abstract class AbstractRepository {
 	}
 
 	/**
-	 * @param string|null $key
+	 * Clear cache.
+	 *
+	 * @param string|null $key Key.
 	 * @return void
 	 */
 	protected function clear_cache( ?string $key = null ): void {

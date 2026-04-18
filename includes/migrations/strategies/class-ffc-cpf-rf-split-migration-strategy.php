@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * CpfRfSplitMigrationStrategy
  *
@@ -13,8 +11,11 @@ declare(strict_types=1);
  * and NULLs out the legacy cpf_rf_* columns after migration.
  * Processes both submissions and appointments tables.
  *
+ * @package FreeFormCertificate\Migrations\Strategies
  * @since 4.13.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations\Strategies;
 
@@ -25,6 +26,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Strategy implementation for cpf rf split migration.
+ */
 class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
@@ -40,11 +44,15 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	private const RF_LENGTH = 7;
 
 	/**
+	 * Submissions table.
+	 *
 	 * @var string Submissions table name
 	 */
 	private string $submissions_table;
 
 	/**
+	 * Appointments table.
+	 *
 	 * @var string Appointments table name
 	 */
 	private string $appointments_table;

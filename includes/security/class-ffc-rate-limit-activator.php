@@ -1,13 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * RateLimitActivator v3.3.0
  * Creates database tables - dbDelta compatible
  *
  * V3.3.0 - Added strict types and type hints
  * v3.2.0 - Migrated to namespace (Phase 2)
+ *
+ * @package FreeFormCertificate\Security
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Security;
 
@@ -15,10 +17,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Plugin activation tasks for rate limit.
+ */
 class RateLimitActivator {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
+	/**
+	 * Create tables.
+	 *
+	 * @return bool
+	 */
 	public static function create_tables(): bool {
 		global $wpdb;
 
@@ -89,6 +99,11 @@ class RateLimitActivator {
 		return true;
 	}
 
+	/**
+	 * Tables exist.
+	 *
+	 * @return bool
+	 */
 	public static function tables_exist(): bool {
 		global $wpdb;
 
@@ -96,6 +111,11 @@ class RateLimitActivator {
 			&& self::table_exists( $wpdb->prefix . 'ffc_rate_limit_logs' );
 	}
 
+	/**
+	 * Drop tables.
+	 *
+	 * @return bool
+	 */
 	public static function drop_tables(): bool {
 		global $wpdb;
 

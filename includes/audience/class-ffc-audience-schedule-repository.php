@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Schedule Repository
  *
  * Handles database operations for audience schedules (calendars).
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Audience
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
@@ -17,7 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-
+/**
+ * Database repository for audience schedule records.
+ */
 class AudienceScheduleRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
@@ -83,15 +85,20 @@ class AudienceScheduleRepository {
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
-		$orderby      = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] ) ?: 'name ASC';
-		$limit_clause = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
+		$orderby_sanitized = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] );
+		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'name ASC';
+		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$limit_clause}";
 
 		$prepare_args = array_merge( array( $table ), $values );
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		/** @phpstan-ignore-next-line argument.type */
+		/**
+		 * Description.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
@@ -100,6 +107,16 @@ class AudienceScheduleRepository {
 
 	/**
 	 * Get schedule by ID
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
 	 *
 	 * @param int $id Schedule ID.
 	 * @return object|null

@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Database Helper Trait
  *
@@ -14,9 +12,11 @@ declare(strict_types=1);
  * - Index existence checks
  * - Composite index creation
  *
- * @since 4.11.2
  * @package FreeFormCertificate\Core
+ * @since 4.11.2
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 
@@ -125,8 +125,8 @@ trait DatabaseHelperTrait {
 	 *
 	 * Each column config must have a 'type' key, and optionally 'after' and 'index'.
 	 *
-	 * @param string                                                             $table_name Full table name.
-	 * @param array<string, array{type: string, after?: string, index?: string}> $columns
+	 * @param string               $table_name Full table name.
+	 * @param array<string, mixed> $columns Columns.
 	 * @return int Number of columns added.
 	 */
 	protected static function add_columns_if_missing( string $table_name, array $columns ): int {

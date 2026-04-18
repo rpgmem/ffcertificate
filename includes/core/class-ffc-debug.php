@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Debug.
+ */
 class Debug {
 
 	/**

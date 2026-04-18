@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Self-Scheduling Editor
  *
@@ -9,9 +7,12 @@ declare(strict_types=1);
  * v4.12.16: Extracted SelfSchedulingCleanupHandler (AJAX + cleanup metabox)
  *           and SelfSchedulingSaveHandler (save_post handler) for SRP compliance.
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.1.0
  * @version 4.12.16
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
@@ -19,9 +20,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Self Scheduling Editor.
+ */
 class SelfSchedulingEditor {
 
-	/** @var SelfSchedulingCleanupHandler */
+	/**
+	 * Cleanup handler.
+	 *
+	 * @var SelfSchedulingCleanupHandler
+	 */
 	private $cleanup_handler;
 
 	/**
@@ -40,7 +48,7 @@ class SelfSchedulingEditor {
 	/**
 	 * Enqueue scripts and styles for calendar editor
 	 *
-	 * @param string $hook
+	 * @param string $hook Hook name.
 	 * @return void
 	 */
 	public function enqueue_scripts( string $hook ): void {
@@ -163,7 +171,7 @@ class SelfSchedulingEditor {
 	/**
 	 * Render calendar configuration metabox
 	 *
-	 * @param object $post
+	 * @param object $post Post object.
 	 * @return void
 	 */
 	public function render_box_config( object $post ): void {
@@ -239,7 +247,7 @@ class SelfSchedulingEditor {
 	/**
 	 * Render working hours metabox
 	 *
-	 * @param object $post
+	 * @param object $post Post object.
 	 * @return void
 	 */
 	public function render_box_hours( object $post ): void {
@@ -331,7 +339,7 @@ class SelfSchedulingEditor {
 	/**
 	 * Render booking rules metabox
 	 *
-	 * @param object $post
+	 * @param object $post Post object.
 	 * @return void
 	 */
 	public function render_box_rules( object $post ): void {
@@ -460,7 +468,7 @@ class SelfSchedulingEditor {
 	/**
 	 * Render email configuration metabox
 	 *
-	 * @param object $post
+	 * @param object $post Post object.
 	 * @return void
 	 */
 	public function render_box_email( object $post ): void {
@@ -553,7 +561,7 @@ class SelfSchedulingEditor {
 	/**
 	 * Render shortcode metabox (sidebar)
 	 *
-	 * @param object $post
+	 * @param object $post Post object.
 	 * @return void
 	 */
 	public function render_shortcode_metabox( object $post ): void {

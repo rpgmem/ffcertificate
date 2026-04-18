@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Migration: Rename capabilities from old to new naming convention
  *
  * Renames:
  * - ffc_view_own_appointments -> ffc_view_self_scheduling
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Migrations
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations;
 
@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Migration Rename Capabilities.
+ */
 class MigrationRenameCapabilities {
 
 	/**

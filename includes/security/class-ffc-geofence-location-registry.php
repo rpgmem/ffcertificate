@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * GeofenceLocationRegistry
  *
@@ -8,9 +6,11 @@ declare(strict_types=1);
  * Provides CRUD operations, default-flag management, and conversion to the
  * area-text format consumed by Geofence::parse_areas().
  *
- * @package FFC
+ * @package FreeFormCertificate\Security
  * @since   4.10.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Security;
 
@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Registry of geofence location entries.
+ */
 class GeofenceLocationRegistry {
 
 	const OPTION_KEY = 'ffc_geofence_locations';
@@ -41,7 +44,7 @@ class GeofenceLocationRegistry {
 	 */
 	public static function get_by_id( string $id ): ?array {
 		foreach ( self::get_all() as $location ) {
-			if ( $id === ( $location['id'] ?? '' ) ) {
+			if ( ( $location['id'] ?? '' ) === $id ) {
 				return $location;
 			}
 		}
@@ -58,8 +61,8 @@ class GeofenceLocationRegistry {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_by_ids( array $ids ): array {
-		$ids_flip  = array_flip( $ids );
-		$matched   = array();
+		$ids_flip = array_flip( $ids );
+		$matched  = array();
 
 		foreach ( self::get_all() as $location ) {
 			if ( isset( $ids_flip[ $location['id'] ?? '' ] ) ) {
@@ -90,7 +93,7 @@ class GeofenceLocationRegistry {
 		$found     = false;
 
 		foreach ( $locations as $index => $existing ) {
-			if ( $location['id'] === ( $existing['id'] ?? '' ) ) {
+			if ( ( $existing['id'] ?? '' ) === $location['id'] ) {
 				$locations[ $index ] = $location;
 				$found               = true;
 				break;
@@ -103,7 +106,7 @@ class GeofenceLocationRegistry {
 
 		if ( ! empty( $location['default_gps'] ) ) {
 			foreach ( $locations as $index => $item ) {
-				if ( $location['id'] !== ( $item['id'] ?? '' ) ) {
+				if ( ( $item['id'] ?? '' ) !== $location['id'] ) {
 					$locations[ $index ]['default_gps'] = false;
 				}
 			}
@@ -111,7 +114,7 @@ class GeofenceLocationRegistry {
 
 		if ( ! empty( $location['default_ip'] ) ) {
 			foreach ( $locations as $index => $item ) {
-				if ( $location['id'] !== ( $item['id'] ?? '' ) ) {
+				if ( ( $item['id'] ?? '' ) !== $location['id'] ) {
 					$locations[ $index ]['default_ip'] = false;
 				}
 			}
@@ -134,7 +137,7 @@ class GeofenceLocationRegistry {
 		$deleted   = false;
 
 		foreach ( $locations as $location ) {
-			if ( $id === ( $location['id'] ?? '' ) ) {
+			if ( ( $location['id'] ?? '' ) === $id ) {
 				$deleted = true;
 				continue;
 			}

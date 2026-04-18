@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * IpGeolocation
  *
@@ -10,11 +8,13 @@ declare(strict_types=1);
  * - ip-api.com (free, 45 req/min, no API key)
  * - ipinfo.io (50k/month free, requires API key)
  *
- * @package FFC
+ * @package FreeFormCertificate\Integrations
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 3.0.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Integrations;
 
@@ -24,6 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Ip Geolocation.
+ */
 class IpGeolocation {
 
 	/**
@@ -101,11 +104,12 @@ class IpGeolocation {
 	 * @return array<string, mixed>|\WP_Error Location data or WP_Error on failure
 	 */
 	private static function fetch_from_service( string $ip, string $service, array $settings ) {
+		// Hash the IP in debug logs so that debug-mode logging never stores raw PII per LGPD/GDPR.
 		self::debug_log(
 			'Fetching from service',
 			array(
 				'service' => $service,
-				'ip'      => $ip,
+				'ip_hash' => substr( hash( 'sha256', $ip ), 0, 16 ),
 			)
 		);
 
@@ -126,13 +130,16 @@ class IpGeolocation {
 	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function fetch_from_ipapi( string $ip ) {
-		$url = sprintf( 'http://ip-api.com/json/%s?fields=status,message,country,countryCode,region,regionName,city,lat,lon', $ip );
+		// Use HTTPS: ip-api free tier only supports HTTP, but site owners can enable Pro (with API key via filter)
+		// to upgrade to HTTPS. The 'ffc_ipapi_use_https' filter allows admins to force HTTPS when appropriate.
+		$scheme = apply_filters( 'ffc_ipapi_use_https', false ) ? 'https' : 'http';
+		$url    = sprintf( '%s://ip-api.com/json/%s?fields=status,message,country,countryCode,region,regionName,city,lat,lon', $scheme, $ip );
 
 		$response = wp_remote_get(
 			$url,
 			array(
 				'timeout'   => 5,
-				'sslverify' => false, // ip-api uses HTTP.
+				'sslverify' => 'https' === $scheme,
 			)
 		);
 
@@ -181,7 +188,7 @@ class IpGeolocation {
 		$url = sprintf( 'https://ipinfo.io/%s/json', $ip );
 
 		if ( ! empty( $api_key ) ) {
-			$url .= '?token=' . urlencode( $api_key );
+			$url .= '?token=' . rawurlencode( $api_key );
 		}
 
 		$response = wp_remote_get(

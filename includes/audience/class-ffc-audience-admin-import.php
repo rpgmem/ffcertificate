@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Admin Import & Export
  *
  * Handles CSV import and export functionality for members and audiences.
  *
- * @since 4.6.0
  * @package FreeFormCertificate\Audience
+ * @since 4.6.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
@@ -16,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Audience Admin Import.
+ */
 class AudienceAdminImport {
 
 	/**

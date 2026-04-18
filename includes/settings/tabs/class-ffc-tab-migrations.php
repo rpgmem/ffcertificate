@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Data Migrations Tab
  *
- * @package FFC
+ * @package FreeFormCertificate\Settings\Tabs
  * @since 2.10.0
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings\Tabs;
 
@@ -18,8 +18,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab Migrations settings tab.
+ */
 class TabMigrations extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'migrations';
 		$this->tab_title = __( 'Data Migrations', 'ffcertificate' );
@@ -27,6 +33,9 @@ class TabMigrations extends SettingsTab {
 		$this->tab_order = 80;
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		// Include view file.
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-migrations.php';

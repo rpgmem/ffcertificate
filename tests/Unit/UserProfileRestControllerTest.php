@@ -45,6 +45,8 @@ class UserProfileRestControllerTest extends TestCase {
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
+        Functions\when( 'sanitize_text_field' )->alias( function( $str ) { return trim( strip_tags( (string) $str ) ); } );
+        Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'rest_ensure_response' )->alias( function( $data ) { return $data; } );
         Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
         Functions\when( 'get_current_user_id' )->justReturn( 0 );

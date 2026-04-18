@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * AdminActivityLogPage
  * Displays activity logs with filtering and pagination
  *
+ * @package FreeFormCertificate\Admin
  * @since 3.1.1
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
@@ -16,9 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Autoloader handles class loading.
-
-
+/**
+ * Admin page for the Activity Log screen.
+ */
 class AdminActivityLogPage {
 
 	use \FreeFormCertificate\Core\CsvExportTrait;
@@ -226,6 +227,8 @@ class AdminActivityLogPage {
 
 	/**
 	 * Get human-readable action name
+	 *
+	 * @param string $action Action.
 	 */
 	public static function get_action_label( string $action ): string {
 		$labels = array(
@@ -242,6 +245,8 @@ class AdminActivityLogPage {
 
 	/**
 	 * Get level badge HTML
+	 *
+	 * @param string $level Level.
 	 */
 	public static function get_level_badge( string $level ): string {
 		$classes = array(

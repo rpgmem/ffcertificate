@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * QRCodeGenerator
  * Generates dynamic QR Codes for certificate verification
@@ -11,11 +9,14 @@ declare(strict_types=1);
  * - Optional database caching
  * - Placeholder parsing ({{qr_code:param=value}})
  *
+ * @package FreeFormCertificate\Generators
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 2.9.0
  * @since 2.9.2 OPTIMIZED to use FFC_Utils functions
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Generators;
 
@@ -26,7 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.SchemaChange
-
+/**
+ * Generator for q r code output.
+ */
 class QRCodeGenerator {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
@@ -171,7 +174,7 @@ class QRCodeGenerator {
 	 * - "{{qr_code:size=150}}" → size=150
 	 * - "{{qr_code:size=200:margin=0:error=H}}" → all custom
 	 *
-	 * @param string $placeholder
+	 * @param string $placeholder Placeholder.
 	 * @return array<string, mixed> Parameters with keys: size, margin, error_level
 	 */
 	private function parse_placeholder_params( string $placeholder ): array {
@@ -268,8 +271,10 @@ class QRCodeGenerator {
 
 			// Read file and encode.
 			if ( file_exists( $temp_file ) && filesize( $temp_file ) > 0 ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading local temp file written by PHPQRCode lib; no remote URL.
 				$image_data = file_get_contents( $temp_file );
-				$base64     = base64_encode( $image_data ?: '' );
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- benign: encoding PNG bytes for data URI.
+				$base64 = base64_encode( $image_data ? $image_data : '' );
 
 				// Clean up.
 				wp_delete_file( $temp_file );
@@ -376,7 +381,7 @@ class QRCodeGenerator {
 	/**
 	 * Get QR Code from cache
 	 *
-	 * @param int $submission_id
+	 * @param int $submission_id Submission ID.
 	 * @return string|false Base64 QR Code or false if not found
 	 */
 	private function get_from_cache( int $submission_id ) {
@@ -403,7 +408,7 @@ class QRCodeGenerator {
 	/**
 	 * Save QR Code to cache
 	 *
-	 * @param int    $submission_id
+	 * @param int    $submission_id Submission ID.
 	 * @param string $qr_base64 Base64 encoded QR Code.
 	 * @return bool Success
 	 */

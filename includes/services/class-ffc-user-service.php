@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * UserService
  *
  * Centralized service for user data retrieval and operations.
  * Single point of truth used by REST controller, PrivacyHandler, and UserCleanup.
  *
- * @since 4.9.7
  * @package FreeFormCertificate\Services
+ * @since 4.9.7
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Services;
 
@@ -18,7 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
+/**
+ * Service class for user operations.
+ */
 class UserService {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

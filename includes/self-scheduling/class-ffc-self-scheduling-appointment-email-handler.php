@@ -1,15 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment Email Handler
  *
  * Handles email notifications for calendar appointments.
  * Supports: booking confirmation, admin notifications, approval, cancellation, reminders.
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.1.0
  * @version 4.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
@@ -17,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for appointment email operations.
+ */
 class AppointmentEmailHandler {
 
 	use \FreeFormCertificate\Core\EmailHelperTrait;
@@ -45,7 +49,7 @@ class AppointmentEmailHandler {
 	/**
 	 * Get decrypted email
 	 *
-	 * @param array<string, mixed> $appointment
+	 * @param array<string, mixed> $appointment Appointment.
 	 * @return string
 	 */
 	private function get_appointment_email( array $appointment ): string {
@@ -172,6 +176,8 @@ class AppointmentEmailHandler {
 		$body  = '<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">';
 		$body .= '<h3 style="color: #0073aa;">' . __( 'New Appointment Booking', 'ffcertificate' ) . '</h3>';
 
+		$decrypted_phone = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'phone' );
+
 		$body .= self::ffc_admin_notification_table(
 			array(
 				__( 'Calendar', 'ffcertificate' ) => $calendar['title'],
@@ -180,7 +186,7 @@ class AppointmentEmailHandler {
 				__( 'Status', 'ffcertificate' )   => $this->get_status_label( $appointment['status'] ),
 				__( 'Name', 'ffcertificate' )     => $appointment['name'] ?? '-',
 				__( 'Email', 'ffcertificate' )    => $this->get_appointment_email( $appointment ),
-				__( 'Phone', 'ffcertificate' )    => \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'phone' ) ?: '-',
+				__( 'Phone', 'ffcertificate' )    => $decrypted_phone ? $decrypted_phone : '-',
 				__( 'Notes', 'ffcertificate' )    => $appointment['user_notes'] ?? '-',
 			)
 		);
@@ -420,7 +426,7 @@ class AppointmentEmailHandler {
 	/**
 	 * Get status label
 	 *
-	 * @param string $status
+	 * @param string $status Status.
 	 * @return string
 	 */
 	private function get_status_label( string $status ): string {
@@ -438,7 +444,7 @@ class AppointmentEmailHandler {
 	/**
 	 * Get cancellation URL
 	 *
-	 * @param array<string, mixed> $appointment
+	 * @param array<string, mixed> $appointment Appointment.
 	 * @return string
 	 */
 	private function get_cancellation_url( array $appointment ): string {

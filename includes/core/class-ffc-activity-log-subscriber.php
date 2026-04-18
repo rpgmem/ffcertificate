@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * ActivityLogSubscriber
  *
@@ -9,9 +7,12 @@ declare(strict_types=1);
  * AppointmentHandler) — the plugin "eats its own dog food" by consuming
  * its own hooks internally.
  *
+ * @package FreeFormCertificate\Core
  * @since 4.6.5
  * @version 4.6.9 - Added daily log cleanup hook
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 
@@ -19,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Event subscriber for activity log.
+ */
 class ActivityLogSubscriber {
 
 	/**

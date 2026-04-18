@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Submission Actions
  *
  * Handles admin actions on reregistration submissions:
  * approve, reject, return to draft, and bulk operations.
  *
- * @since 4.12.13  Extracted from ReregistrationAdmin
  * @package FreeFormCertificate\Reregistration
+ * @since 4.12.13  Extracted from ReregistrationAdmin
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reregistration Submission Actions.
+ */
 class ReregistrationSubmissionActions {
 
 	/**

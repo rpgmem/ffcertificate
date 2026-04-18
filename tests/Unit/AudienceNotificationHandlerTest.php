@@ -25,6 +25,8 @@ class AudienceNotificationHandlerTest extends TestCase {
 
         Functions\when( '__' )->returnArg();
         Functions\when( 'esc_html__' )->returnArg();
+        Functions\when( 'esc_html' )->returnArg();
+        Functions\when( 'esc_url' )->returnArg();
         Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
         Functions\when( 'home_url' )->justReturn( 'https://example.com' );
     }

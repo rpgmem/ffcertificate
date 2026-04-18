@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * URL Shortener QR Handler
  *
  * Generates QR Codes for short URLs and handles download requests (PNG/SVG).
  * Reuses the existing QRCodeGenerator for PNG output.
  *
- * @since 5.1.0
  * @package FreeFormCertificate\UrlShortener
+ * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UrlShortener;
 
@@ -20,13 +20,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for url shortener qr operations.
+ */
 class UrlShortenerQrHandler {
 
 	use AjaxTrait;
 
-	/** @var UrlShortenerService */
+	/**
+	 * Description.
+	 *
+	 * @var UrlShortenerService
+	 */
 	private UrlShortenerService $service;
 
+	/**
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * @param UrlShortenerService $service Service.
+	 */
 	public function __construct( UrlShortenerService $service ) {
 		$this->service = $service;
 	}
@@ -259,6 +281,7 @@ class UrlShortenerQrHandler {
 
 		wp_send_json_success(
 			array(
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- benign: encoding SVG for client-side download payload.
 				'data'     => base64_encode( $svg ),
 				'filename' => $target['prefix'] . '.svg',
 				'mime'     => 'image/svg+xml',

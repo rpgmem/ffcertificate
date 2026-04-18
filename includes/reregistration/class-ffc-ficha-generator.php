@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Ficha Generator
  *
  * Generates reregistration ficha (data sheet) PDF data.
  * Uses the same HTML→canvas→PDF pipeline as certificates.
  *
- * @since 4.11.0
  * @package FreeFormCertificate\Reregistration
+ * @since 4.11.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Generator for ficha output.
+ */
 class FichaGenerator {
 
 	/**

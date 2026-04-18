@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Shortcodes
  * Handles shortcode rendering for forms and verification pages.
@@ -10,7 +8,11 @@ declare(strict_types=1);
  * v2.9.2: OPTIMIZED to use FFC_Utils functions
  * v3.3.0: Added strict types and type hints
  * v3.2.0: Migrated to namespace (Phase 2)
+ *
+ * @package FreeFormCertificate\Frontend
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
@@ -20,6 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Shortcodes.
+ */
 class Shortcodes {
 
 	/**
@@ -65,7 +70,8 @@ class Shortcodes {
 			</div>
 		</div>
 		<?php
-		return ob_get_clean() ?: '';
+		$captcha_html = ob_get_clean();
+		return $captcha_html ? $captcha_html : '';
 	}
 
 	/**
@@ -94,7 +100,8 @@ class Shortcodes {
 			<div class="ffc-verify-result" role="region" aria-live="polite"></div>
 		</div>
 		<?php
-		return ob_get_clean() ?: '';
+		$verify_html = ob_get_clean();
+		return $verify_html ? $verify_html : '';
 	}
 
 	/**
@@ -129,7 +136,8 @@ class Shortcodes {
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/verification-page.php';
-		return ob_get_clean() ?: '';
+		$verification_page_html = ob_get_clean();
+		return $verification_page_html ? $verification_page_html : '';
 	}
 
 	/**
@@ -285,7 +293,8 @@ class Shortcodes {
 			</form>
 		</div>
 		<?php
-		return ob_get_clean() ?: '';
+		$form_html = ob_get_clean();
+		return $form_html ? $form_html : '';
 	}
 
 	/**
@@ -294,13 +303,12 @@ class Shortcodes {
 	 * @param array<string, mixed> $field Field configuration.
 	 */
 	private function render_field( array $field ): string {
-		$type          = isset( $field['type'] ) ? $field['type'] : 'text';
-		$name          = isset( $field['name'] ) ? $field['name'] : '';
-		$label         = isset( $field['label'] ) ? $field['label'] : '';
-		$default       = isset( $field['default_value'] ) ? $field['default_value'] : '';
-		$is_req        = ! empty( $field['required'] );
-		$required_attr = $is_req ? 'required aria-required="true"' : '';
-		$options       = ! empty( $field['options'] ) ? explode( ',', $field['options'] ) : array();
+		$type    = isset( $field['type'] ) ? $field['type'] : 'text';
+		$name    = isset( $field['name'] ) ? $field['name'] : '';
+		$label   = isset( $field['label'] ) ? $field['label'] : '';
+		$default = isset( $field['default_value'] ) ? $field['default_value'] : '';
+		$is_req  = ! empty( $field['required'] );
+		$options = ! empty( $field['options'] ) ? explode( ',', $field['options'] ) : array();
 
 		// Info block: display-only, no input.
 		if ( 'info' === $type ) {
@@ -319,7 +327,8 @@ class Shortcodes {
 				<?php endif; ?>
 			</div>
 			<?php
-			return ob_get_clean() ?: '';
+			$info_block_html = ob_get_clean();
+			return $info_block_html ? $info_block_html : '';
 		}
 
 		// Embed block: display media via oembed or img tag.
@@ -353,7 +362,8 @@ class Shortcodes {
 				</div>
 			</div>
 			<?php
-			return ob_get_clean() ?: '';
+			$embed_html_out = ob_get_clean();
+			return $embed_html_out ? $embed_html_out : '';
 		}
 
 		if ( empty( $name ) ) {
@@ -382,10 +392,20 @@ class Shortcodes {
 			</label>
 			
 			<?php if ( 'textarea' === $type ) : ?>
-				<textarea class="ffc-input ffc-textarea" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" <?php echo $required_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string: 'required aria-required="true"' ?> rows="1"><?php echo esc_textarea( $default ); ?></textarea>
+				<textarea class="ffc-input ffc-textarea" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" 
+				<?php
+				if ( $is_req ) {
+					echo 'required aria-required="true"'; }
+				?>
+				rows="1"><?php echo esc_textarea( $default ); ?></textarea>
 
 			<?php elseif ( 'select' === $type ) : ?>
-				<select class="ffc-input" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" <?php echo $required_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string ?>>
+				<select class="ffc-input" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" 
+				<?php
+				if ( $is_req ) {
+					echo 'required aria-required="true"'; }
+				?>
+				>
 					<option value=""><?php esc_html_e( 'Select...', 'ffcertificate' ); ?></option>
 					<?php
 					foreach ( $options as $opt ) :
@@ -401,15 +421,26 @@ class Shortcodes {
 					foreach ( $options as $opt ) :
 						$opt_val = trim( $opt );
 						?>
-						<label><input type="radio" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $opt_val ); ?>" <?php echo $required_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string ?> <?php checked( $default, $opt_val ); ?>> <?php echo esc_html( $opt_val ); ?></label>
+						<label><input type="radio" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $opt_val ); ?>" 
+						<?php
+						if ( $is_req ) {
+							echo 'required aria-required="true"'; }
+						?>
+						<?php checked( $default, $opt_val ); ?>> <?php echo esc_html( $opt_val ); ?></label>
 					<?php endforeach; ?>
 				</div>
 
 			<?php else : ?>
-				<input class="ffc-input" type="<?php echo esc_attr( $type ); ?>" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $default ); ?>" <?php echo $required_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static string ?>>
+				<input class="ffc-input" type="<?php echo esc_attr( $type ); ?>" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $default ); ?>" 
+				<?php
+				if ( $is_req ) {
+					echo 'required aria-required="true"'; }
+				?>
+				>
 			<?php endif; ?>
 		</div>
 		<?php
-		return ob_get_clean() ?: '';
+		$field_html = ob_get_clean();
+		return $field_html ? $field_html : '';
 	}
 }

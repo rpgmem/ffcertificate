@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Form Renderer
  *
@@ -22,10 +20,12 @@ declare(strict_types=1);
  * Sensitive values (is_sensitive=1) are transparently decrypted via the
  * Encryption helper before being rendered back into the form.
  *
+ * @package FreeFormCertificate\Reregistration
  * @since 4.13.0 Fully dynamic field system
  * @since 4.12.8 Extracted from ReregistrationFrontend
- * @package FreeFormCertificate\Reregistration
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
@@ -35,6 +35,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Renderer for reregistration form output.
+ */
 class ReregistrationFormRenderer {
 
 	/**
@@ -121,7 +124,8 @@ class ReregistrationFormRenderer {
 			</form>
 		</div>
 		<?php
-		return ob_get_clean() ?: '';
+		$output = ob_get_clean();
+		return $output ? $output : '';
 	}
 
 	/**
@@ -331,6 +335,7 @@ class ReregistrationFormRenderer {
 					'<textarea id="%s" name="%s" rows="3"%s>%s</textarea>',
 					esc_attr( $field_id ),
 					esc_attr( $field_name ),
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- hardcoded safe attribute string.
 					$req_attr,
 					esc_textarea( is_scalar( $value ) ? (string) $value : '' )
 				);
@@ -342,6 +347,7 @@ class ReregistrationFormRenderer {
 					'<select id="%s" name="%s"%s>',
 					esc_attr( $field_id ),
 					esc_attr( $field_name ),
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- hardcoded safe attribute string.
 					$req_attr
 				);
 				echo '<option value="">' . esc_html__( 'Select', 'ffcertificate' ) . '</option>';
@@ -377,6 +383,7 @@ class ReregistrationFormRenderer {
 					esc_attr( $field_id ),
 					esc_attr( $field_name ),
 					esc_attr( is_scalar( $value ) ? (string) $value : '' ),
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- hardcoded safe attribute string.
 					$req_attr,
 					$mask_attr // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above
 				);
@@ -388,6 +395,7 @@ class ReregistrationFormRenderer {
 					esc_attr( $field_id ),
 					esc_attr( $field_name ),
 					esc_attr( is_scalar( $value ) ? (string) $value : '' ),
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- hardcoded safe attribute string.
 					$req_attr
 				);
 				break;
@@ -402,6 +410,7 @@ class ReregistrationFormRenderer {
 					esc_attr( $field_id ),
 					esc_attr( $field_name ),
 					esc_attr( is_scalar( $value ) ? (string) $value : '' ),
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- hardcoded safe attribute string.
 					$req_attr,
 					$mask_attr // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above
 				);
@@ -430,14 +439,13 @@ class ReregistrationFormRenderer {
 		<input type="hidden" id="<?php echo esc_attr( $field_id ); ?>" name="<?php echo esc_attr( $field_name ); ?>"
 				value="
 				<?php
-				echo esc_attr(
-					wp_json_encode(
-						array(
-							'parent' => $parent,
-							'child'  => $child,
-						)
-					) ?: ''
+				$dep_json = wp_json_encode(
+					array(
+						'parent' => $parent,
+						'child'  => $child,
+					)
 				);
+				echo esc_attr( $dep_json ? $dep_json : '' );
 				?>
 						">
 		<div class="ffc-dependent-select" data-target="<?php echo esc_attr( $field_id ); ?>">
@@ -505,7 +513,8 @@ class ReregistrationFormRenderer {
 			6 => __( 'Saturday', 'ffcertificate' ),
 		);
 		?>
-		<input type="hidden" id="<?php echo esc_attr( $field_id ); ?>" name="<?php echo esc_attr( $field_name ); ?>" value="<?php echo esc_attr( wp_json_encode( $wh_data ) ?: '' ); ?>">
+		<?php $wh_json = wp_json_encode( $wh_data ); ?>
+		<input type="hidden" id="<?php echo esc_attr( $field_id ); ?>" name="<?php echo esc_attr( $field_name ); ?>" value="<?php echo esc_attr( $wh_json ? $wh_json : '' ); ?>">
 		<div class="ffc-working-hours" data-target="<?php echo esc_attr( $field_id ); ?>">
 			<table class="ffc-wh-table">
 				<thead>

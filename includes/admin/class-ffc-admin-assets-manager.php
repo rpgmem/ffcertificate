@@ -1,16 +1,17 @@
 <?php
-declare(strict_types=1);
-
 /**
  * AdminAssetsManager
  *
  * Manages CSS and JavaScript asset loading for admin pages.
  * Extracted from FFC_Admin class to follow Single Responsibility Principle.
  *
+ * @package FreeFormCertificate\Admin
  * @since 3.1.1 (Extracted from FFC_Admin)
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
@@ -18,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Manager for admin assets operations.
+ */
 class AdminAssetsManager {
 
 	/**

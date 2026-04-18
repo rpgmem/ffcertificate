@@ -1,16 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Repository
  *
  * Handles database operations for reregistration campaigns.
  * Audiences are stored in a junction table (wp_ffc_reregistration_audiences).
  *
+ * @package FreeFormCertificate\Reregistration
  * @since 4.11.0
  * @since 4.13.0 Multi-audience support via junction table.
- * @package FreeFormCertificate\Reregistration
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
@@ -21,7 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-
+/**
+ * Database repository for reregistration records.
+ */
 class ReregistrationRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
@@ -253,7 +255,11 @@ class ReregistrationRepository {
                 {$limit_clause}";
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		/** @phpstan-ignore-next-line argument.type */
+		/**
+		 * Description.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
 		$sql = $wpdb->prepare( $sql, $values );
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
@@ -262,6 +268,16 @@ class ReregistrationRepository {
 
 	/**
 	 * Count reregistrations with filters.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
+	 *
+	 * Count.
 	 *
 	 * @param array<string, mixed> $filters Same filters as get_all.
 	 * @return int
@@ -463,8 +479,8 @@ class ReregistrationRepository {
 
 		$placeholders = implode( ',', array_fill( 0, count( $audience_ids ), '%d' ) );
 
-        // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-		return $wpdb->get_results(
+        // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %d repeated to match count($audience_ids); $wpdb->prepare accepts a single array of args. Interpolated* and UnfinishedPrepare are file-disabled above.
+		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT DISTINCT r.* FROM %i r
                  JOIN %i ra ON r.id = ra.reregistration_id
@@ -474,6 +490,9 @@ class ReregistrationRepository {
 				array_merge( array( $table, $junction ), $audience_ids )
 			)
 		);
+        // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		return $results;
 	}
 
 	/**

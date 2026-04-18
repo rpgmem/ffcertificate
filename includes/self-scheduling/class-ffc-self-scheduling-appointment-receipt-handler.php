@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment Receipt Handler
  *
  * Handles displaying and printing appointment receipts/confirmations
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.1.1
  * @version 4.1.1
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
@@ -16,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for appointment receipt operations.
+ */
 class AppointmentReceiptHandler {
 
 	/**
@@ -32,7 +36,7 @@ class AppointmentReceiptHandler {
 	/**
 	 * Add custom query vars
 	 *
-	 * @param array<int, string> $vars
+	 * @param array<int, string> $vars Vars.
 	 * @return array<int, string>
 	 */
 	public function add_query_vars( array $vars ): array {
@@ -76,7 +80,7 @@ class AppointmentReceiptHandler {
 			$has_access = true;
 		} elseif ( is_user_logged_in() && get_current_user_id() === $appointment['user_id'] ) {
 			$has_access = true;
-		} elseif ( ! empty( $token ) && ! empty( $appointment['confirmation_token'] ) && $token === $appointment['confirmation_token'] ) {
+		} elseif ( ! empty( $token ) && ! empty( $appointment['confirmation_token'] ) && hash_equals( (string) $appointment['confirmation_token'], (string) $token ) ) {
 			$has_access = true;
 		}
 
@@ -147,8 +151,8 @@ class AppointmentReceiptHandler {
 	/**
 	 * Display receipt HTML
 	 *
-	 * @param array<string, mixed> $appointment
-	 * @param array<string, mixed> $calendar
+	 * @param array<string, mixed> $appointment Appointment.
+	 * @param array<string, mixed> $calendar Calendar.
 	 * @return void
 	 */
 	private function display_receipt( array $appointment, array $calendar ): void {
@@ -477,7 +481,7 @@ class AppointmentReceiptHandler {
 					echo esc_html( sprintf( __( 'Generated on %s', 'ffcertificate' ), date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) ) );
 					?>
 					</p>
-					<p><?php bloginfo( 'name' ); ?> - <?php bloginfo( 'url' ); ?></p>
+					<p><?php echo esc_html( get_bloginfo( 'name' ) ); ?> - <?php echo esc_url( home_url() ); ?></p>
 				</div>
 			</div>
 
@@ -493,7 +497,7 @@ class AppointmentReceiptHandler {
 				'ffc-pdf-generator',
 				'ffcReceiptData',
 				array(
-					'pdfData'        => $pdf_data ?: null,
+					'pdfData'        => $pdf_data ? $pdf_data : null,
 					'appointmentId'  => $appointment['id'] ?? '0',
 					'validationCode' => $validation_code,
 					'errorMsg'       => __( 'Error: PDF generator not loaded. Please refresh the page.', 'ffcertificate' ),
@@ -541,7 +545,7 @@ class AppointmentReceiptHandler {
 	/**
 	 * Generate receipt URL for an appointment
 	 *
-	 * @param int    $appointment_id
+	 * @param int    $appointment_id Appointment ID.
 	 * @param string $token Optional confirmation token for guest access.
 	 * @return string
 	 */

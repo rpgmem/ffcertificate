@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * URL Shortener Activator
  *
  * Creates and migrates the ffc_short_urls database table.
  *
- * @since 5.1.0
  * @package FreeFormCertificate\UrlShortener
+ * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UrlShortener;
 
@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Plugin activation tasks for url shortener.
+ */
 class UrlShortenerActivator {
 
 	use DatabaseHelperTrait;

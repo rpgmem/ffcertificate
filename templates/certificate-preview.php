@@ -15,6 +15,7 @@
  * @var callable $get_field_label_callback Callback to get field label
  * @var callable $format_field_value_callback Callback to format field value
  *
+ * @package FreeFormCertificate
  * @since 3.1.0
  */
 

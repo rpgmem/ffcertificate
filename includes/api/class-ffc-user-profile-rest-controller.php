@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Profile REST Controller
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *   POST /user/change-password  – Change password
  *   POST /user/privacy-request  – Create GDPR/LGPD privacy request
  *
- * @since 4.12.7  Extracted from UserDataRestController
  * @package FreeFormCertificate\API
+ * @since 4.12.7  Extracted from UserDataRestController
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
@@ -20,7 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-
+/**
+ * REST API controller for user profile endpoints.
+ */
 class UserProfileRestController {
 
 	use UserContextTrait;
@@ -28,9 +30,16 @@ class UserProfileRestController {
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param string $namespace Namespace.
+	 */
 	public function __construct( string $namespace ) {
 		$this->namespace = $namespace;
 	}
@@ -81,7 +90,7 @@ class UserProfileRestController {
 	 * GET /user/profile
 	 *
 	 * @since 3.1.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_user_profile( $request ) {
@@ -205,9 +214,19 @@ class UserProfileRestController {
 			);
 
 		} catch ( \Exception $e ) {
+			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+				\FreeFormCertificate\Core\Utils::debug_log(
+					'get_user_profile error',
+					array(
+						'message' => $e->getMessage(),
+						'file'    => $e->getFile(),
+						'line'    => $e->getLine(),
+					)
+				);
+			}
 			return new \WP_Error(
 				'get_profile_error',
-				$e->getMessage(),
+				__( 'An unexpected error occurred.', 'ffcertificate' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -220,7 +239,7 @@ class UserProfileRestController {
 	 * display_name, phone, department, organization, notes.
 	 *
 	 * @since 4.9.6
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function update_user_profile( $request ) {
@@ -250,7 +269,7 @@ class UserProfileRestController {
 			foreach ( $allowed_fields as $field ) {
 				$value = $request->get_param( $field );
 				if ( null !== $value ) {
-					$data[ $field ] = $value;
+					$data[ $field ] = \sanitize_text_field( \wp_unslash( $value ) );
 				}
 			}
 
@@ -287,9 +306,19 @@ class UserProfileRestController {
 			return $this->get_user_profile( $request );
 
 		} catch ( \Exception $e ) {
+			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+				\FreeFormCertificate\Core\Utils::debug_log(
+					'update_user_profile error',
+					array(
+						'message' => $e->getMessage(),
+						'file'    => $e->getFile(),
+						'line'    => $e->getLine(),
+					)
+				);
+			}
 			return new \WP_Error(
 				'update_profile_error',
-				$e->getMessage(),
+				__( 'An unexpected error occurred.', 'ffcertificate' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -299,7 +328,7 @@ class UserProfileRestController {
 	 * POST /user/change-password
 	 *
 	 * @since 4.9.8
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function change_password( $request ) {
@@ -374,7 +403,7 @@ class UserProfileRestController {
 	 * Erasure requests require admin approval.
 	 *
 	 * @since 4.9.8
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function create_privacy_request( $request ) {

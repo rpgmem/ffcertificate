@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Cache & Performance Settings Tab
  *
  * Contains Form Cache and QR Code Cache settings
  *
- * @package FFC
+ * @package FreeFormCertificate\Settings\Tabs
  * @since 4.6.16
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings\Tabs;
 
@@ -18,8 +18,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Cache layer for tab data.
+ */
 class TabCache extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'cache';
 		$this->tab_title = __( 'Cache', 'ffcertificate' );
@@ -27,6 +33,9 @@ class TabCache extends SettingsTab {
 		$this->tab_order = 30;
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-cache.php';
 

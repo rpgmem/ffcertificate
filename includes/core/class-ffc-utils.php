@@ -7,6 +7,8 @@
  * v3.2.0: Migrated to namespace (Phase 2) + Added mask_email() for privacy masking
  * v2.9.1: Added CPF validation, document formatting, and helper functions
  * v2.9.11: Added validate_security_fields() and recursive_sanitize()
+ *
+ * @package FreeFormCertificate\Core
  */
 
 declare(strict_types=1);
@@ -17,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Utils.
+ */
 class Utils {
 
 	/**
@@ -196,50 +201,101 @@ class Utils {
 
 	// ── Document methods delegated to DocumentFormatter (Sprint 30) ──.
 
-	/** @deprecated Use DocumentFormatter::validate_cpf() */
+	/**
+	 * Validate cpf.
+	 *
+	 * @deprecated Use DocumentFormatter::validate_cpf()
+	 * @param string $cpf CPF document.
+	 */
 	public static function validate_cpf( string $cpf ): bool {
 		return DocumentFormatter::validate_cpf( $cpf );
 	}
 
-	/** @deprecated Use DocumentFormatter::validate_phone() */
+	/**
+	 * Validate phone.
+	 *
+	 * @deprecated Use DocumentFormatter::validate_phone()
+	 * @param string $phone Phone number.
+	 */
 	public static function validate_phone( string $phone ): bool {
 		return DocumentFormatter::validate_phone( $phone );
 	}
 
-	/** @deprecated Use DocumentFormatter::PHONE_REGEX */
+	/**
+	 * Description.
+	 *
+	 * @deprecated Use DocumentFormatter::PHONE_REGEX
+	 */
 	public const PHONE_REGEX = '^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$';
 
-	/** @deprecated Use DocumentFormatter::format_cpf() */
+	/**
+	 * Format cpf.
+	 *
+	 * @deprecated Use DocumentFormatter::format_cpf()
+	 * @param string $cpf CPF document.
+	 */
 	public static function format_cpf( string $cpf ): string {
 		return DocumentFormatter::format_cpf( $cpf );
 	}
 
-	/** @deprecated Use DocumentFormatter::validate_rf() */
+	/**
+	 * Validate rf.
+	 *
+	 * @deprecated Use DocumentFormatter::validate_rf()
+	 * @param string $rf Rf.
+	 */
 	public static function validate_rf( string $rf ): bool {
 		return DocumentFormatter::validate_rf( $rf );
 	}
 
-	/** @deprecated Use DocumentFormatter::format_rf() */
+	/**
+	 * Format rf.
+	 *
+	 * @deprecated Use DocumentFormatter::format_rf()
+	 * @param string $rf Rf.
+	 */
 	public static function format_rf( string $rf ): string {
 		return DocumentFormatter::format_rf( $rf );
 	}
 
-	/** @deprecated Use DocumentFormatter::mask_cpf() */
+	/**
+	 * Mask cpf.
+	 *
+	 * @deprecated Use DocumentFormatter::mask_cpf()
+	 * @param string $value Value.
+	 */
 	public static function mask_cpf( string $value ): string {
 		return DocumentFormatter::mask_cpf( $value );
 	}
 
-	/** @deprecated Use DocumentFormatter::mask_email() */
+	/**
+	 * Mask email.
+	 *
+	 * @deprecated Use DocumentFormatter::mask_email()
+	 * @param string $email Email address.
+	 */
 	public static function mask_email( string $email ): string {
 		return DocumentFormatter::mask_email( $email );
 	}
 
-	/** @deprecated Use DocumentFormatter::format_auth_code() */
+	/**
+	 * Format auth code.
+	 *
+	 * @deprecated Use DocumentFormatter::format_auth_code()
+	 * @param string $code Code.
+	 * @param string $prefix Prefix.
+	 */
 	public static function format_auth_code( string $code, string $prefix = '' ): string {
 		return DocumentFormatter::format_auth_code( $code, $prefix );
 	}
 
-	/** @deprecated Use DocumentFormatter::format_document() */
+	/**
+	 * Format document.
+	 *
+	 * @deprecated Use DocumentFormatter::format_document()
+	 * @param string $value Value.
+	 * @param string $type Type.
+	 */
 	public static function format_document( string $value, string $type = 'auto' ): string {
 		return DocumentFormatter::format_document( $value, $type );
 	}
@@ -248,6 +304,106 @@ class Utils {
 	 * Get user IP address with proxy support
 	 *
 	 * Checks multiple headers to get real IP even behind proxies/CDNs
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
+	 *
+	 * Get user ip.
 	 *
 	 * @return string IP address
 	 */
@@ -330,23 +486,67 @@ class Utils {
 
 	// ── Auth code methods delegated to AuthCodeService (Sprint 31) ──.
 
-	/** @deprecated Use AuthCodeService::generate_random_string() */
+	/**
+	 * Generate random string.
+	 *
+	 * @deprecated Use AuthCodeService::generate_random_string()
+	 * @param int    $length Length.
+	 * @param string $chars Chars.
+	 */
 	public static function generate_random_string( int $length = 12, string $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' ): string {
 		return AuthCodeService::generate_random_string( $length, $chars );
 	}
 
-	/** @deprecated Use AuthCodeService::generate_auth_code() */
+	/**
+	 * Generate auth code.
+	 *
+	 * @deprecated Use AuthCodeService::generate_auth_code()
+	 */
 	public static function generate_auth_code(): string {
 		return AuthCodeService::generate_auth_code();
 	}
 
-	/** @deprecated Use AuthCodeService::generate_globally_unique_auth_code() */
+	/**
+	 * Generate globally unique auth code.
+	 *
+	 * @deprecated Use AuthCodeService::generate_globally_unique_auth_code()
+	 */
 	public static function generate_globally_unique_auth_code(): string {
 		return AuthCodeService::generate_globally_unique_auth_code();
 	}
 
 	/**
 	 * Truncate string to specific length
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
+	 *
+	 * Truncate.
 	 *
 	 * @param string $text Text to truncate.
 	 * @param int    $length Maximum length.
@@ -370,18 +570,48 @@ class Utils {
 		return current_user_can( 'manage_options' );
 	}
 
-	/** @deprecated Use DocumentFormatter::clean_auth_code() */
+	/**
+	 * Clean auth code.
+	 *
+	 * @deprecated Use DocumentFormatter::clean_auth_code()
+	 * @param string $code Code.
+	 */
 	public static function clean_auth_code( string $code ): string {
 		return DocumentFormatter::clean_auth_code( $code );
 	}
 
-	/** @deprecated Use DocumentFormatter::clean_identifier() */
+	/**
+	 * Clean identifier.
+	 *
+	 * @deprecated Use DocumentFormatter::clean_identifier()
+	 * @param string $value Value.
+	 */
 	public static function clean_identifier( string $value ): string {
 		return DocumentFormatter::clean_identifier( $value );
 	}
 
 	/**
 	 * Log debug message (only if WP_DEBUG is enabled)
+	 *
+	 * Debug log.
+	 *
+	 * Debug log.
+	 *
+	 * Debug log.
+	 *
+	 * Debug log.
+	 *
+	 * Debug log.
+	 *
+	 * Debug log.
+	 *
+	 * Debug log.
+	 *
+	 * Debug log.
+	 *
+	 * Debug log.
+	 *
+	 * Debug log.
 	 *
 	 * @param string $message Message to log.
 	 * @param mixed  $data Optional data to log.
@@ -406,6 +636,8 @@ class Utils {
 	// ── Security methods delegated to SecurityService (Sprint 31) ──.
 
 	/**
+	 * Generate simple captcha.
+	 *
 	 * @deprecated Use SecurityService::generate_simple_captcha()
 	 * @return array<string, mixed>
 	 */
@@ -413,12 +645,30 @@ class Utils {
 		return SecurityService::generate_simple_captcha();
 	}
 
-	/** @deprecated Use SecurityService::verify_simple_captcha() */
+	/**
+	 * Verify simple captcha.
+	 *
+	 * @deprecated Use SecurityService::verify_simple_captcha()
+	 * @param string $answer Answer.
+	 * @param string $hash Hash.
+	 */
 	public static function verify_simple_captcha( string $answer, string $hash ): bool {
 		return SecurityService::verify_simple_captcha( $answer, $hash );
 	}
 
 	/**
+	 * Validate security fields.
+	 *
+	 * Validate security fields.
+	 *
+	 * Validate security fields.
+	 *
+	 * Validate security fields.
+	 *
+	 * Validate security fields.
+	 *
+	 * Validate security fields.
+	 *
 	 * @deprecated Use SecurityService::validate_security_fields()
 	 * @param array<string, mixed> $data POST data to validate.
 	 * @return true|string True on success, error message string on failure
@@ -431,6 +681,8 @@ class Utils {
 	// ── Data sanitization methods delegated to DataSanitizer (Sprint 31) ──.
 
 	/**
+	 * Recursive sanitize.
+	 *
 	 * @deprecated Use DataSanitizer::recursive_sanitize()
 	 * @param mixed $data Data to sanitize.
 	 * @return mixed Sanitized data
@@ -439,13 +691,28 @@ class Utils {
 		return DataSanitizer::recursive_sanitize( $data );
 	}
 
-	/** @deprecated Use DataSanitizer::normalize_brazilian_name() */
+	/**
+	 * Normalize brazilian name.
+	 *
+	 * @deprecated Use DataSanitizer::normalize_brazilian_name()
+	 * @param string $name Name.
+	 */
 	public static function normalize_brazilian_name( string $name ): string {
 		return DataSanitizer::normalize_brazilian_name( $name );
 	}
 
 	/**
 	 * Generate success HTML response for frontend form submission
+	 *
+	 * Generate success html.
+	 *
+	 * Generate success html.
+	 *
+	 * Generate success html.
+	 *
+	 * Generate success html.
+	 *
+	 * Generate success html.
 	 *
 	 * @since 2.9.16
 	 * @param array<string, mixed> $submission_data Submission data.
@@ -481,6 +748,7 @@ class Utils {
 		// Load template.
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/submission-success.php';
-		return ob_get_clean() ?: '';
+		$rendered = ob_get_clean();
+		return $rendered ? $rendered : '';
 	}
 }

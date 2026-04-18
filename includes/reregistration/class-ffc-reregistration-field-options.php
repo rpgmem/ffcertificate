@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Field Options
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  * - Brazilian state abbreviations (UF)
  * - Default working hours template
  *
- * @since 4.12.8  Extracted from ReregistrationFrontend
  * @package FreeFormCertificate\Reregistration
+ * @since 4.12.8  Extracted from ReregistrationFrontend
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reregistration Field Options.
+ */
 class ReregistrationFieldOptions {
 
 	/**

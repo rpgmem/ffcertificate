@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Appointments REST Controller
  *
  * Handles:
  *   GET /user/appointments – Current user's self-scheduling appointments
  *
- * @since 4.12.7  Extracted from UserDataRestController
  * @package FreeFormCertificate\API
+ * @since 4.12.7  Extracted from UserDataRestController
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
@@ -17,15 +17,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for user appointments endpoints.
+ */
 class UserAppointmentsRestController {
 
 	use UserContextTrait;
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param string $namespace Namespace.
+	 */
 	public function __construct( string $namespace ) {
 		$this->namespace = $namespace;
 	}
@@ -49,7 +59,7 @@ class UserAppointmentsRestController {
 	 * GET /user/appointments
 	 *
 	 * @since 4.1.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_user_appointments( $request ) {
@@ -232,8 +242,7 @@ class UserAppointmentsRestController {
 
 			return new \WP_Error(
 				'get_appointments_error',
-				/* translators: %s: error message */
-				sprintf( __( 'Error loading appointments: %s', 'ffcertificate' ), $e->getMessage() ),
+				__( 'An unexpected error occurred.', 'ffcertificate' ),
 				array( 'status' => 500 )
 			);
 		}

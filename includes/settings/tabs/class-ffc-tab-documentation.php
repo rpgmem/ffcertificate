@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Documentation Tab
  *
- * @package FFC
+ * @package FreeFormCertificate\Settings\Tabs
  * @since 2.10.0
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings\Tabs;
 
@@ -18,8 +18,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab Documentation settings tab.
+ */
 class TabDocumentation extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'documentation';
 		$this->tab_title = __( 'Documentation', 'ffcertificate' );
@@ -27,6 +33,9 @@ class TabDocumentation extends SettingsTab {
 		$this->tab_order = 90;
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		// Include view file.
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-documentation.php';

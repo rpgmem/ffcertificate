@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * MigrationForeignKeys
  *
@@ -11,9 +9,11 @@ declare(strict_types=1);
  * Requires InnoDB engine on all involved tables. If any table uses MyISAM,
  * that specific FK is skipped with a warning.
  *
- * @since 4.9.7
  * @package FreeFormCertificate\Migrations
+ * @since 4.9.7
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations;
 
@@ -22,7 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-
+/**
+ * Migration Foreign Keys.
+ */
 class MigrationForeignKeys {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
@@ -64,7 +66,7 @@ class MigrationForeignKeys {
 				'added'   => array(),
 				'skipped' => array(),
 				'errors'  => array(
-					sprintf( 'wp_users uses %s engine (InnoDB required for FK). Migration skipped.', $users_engine ?: 'unknown' ),
+					sprintf( 'wp_users uses %s engine (InnoDB required for FK). Migration skipped.', $users_engine ? $users_engine : 'unknown' ),
 				),
 				'message' => __( 'Foreign keys require InnoDB engine. Migration skipped.', 'ffcertificate' ),
 			);
@@ -196,7 +198,7 @@ class MigrationForeignKeys {
 		if ( false === $result ) {
 			return array(
 				'status'  => 'error',
-				'message' => $wpdb->last_error ?: 'Unknown error adding FK',
+				'message' => $wpdb->last_error ? $wpdb->last_error : 'Unknown error adding FK',
 			);
 		}
 
@@ -223,7 +225,7 @@ class MigrationForeignKeys {
 			)
 		);
 
-		return $engine ?: null;
+		return $engine ? $engine : null;
 	}
 
 	/**

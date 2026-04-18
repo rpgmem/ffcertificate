@@ -2,8 +2,8 @@
 /**
  * URL Shortener Settings Tab View
  *
+ * @package FreeFormCertificate\Settings\Views
  * @since 5.1.0
- * @var \FreeFormCertificate\Settings\Tabs\TabUrlShortener $settings
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

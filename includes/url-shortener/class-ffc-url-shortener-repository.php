@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * URL Shortener Repository
  *
  * Data access layer for ffc_short_urls table.
  *
- * @since 5.1.0
  * @package FreeFormCertificate\UrlShortener
+ * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UrlShortener;
 
@@ -19,10 +19,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
+/**
+ * Database repository for url shortener records.
+ */
 class UrlShortenerRepository extends AbstractRepository {
 
 	/**
+	 * Get table name.
+	 *
 	 * @return string
 	 */
 	protected function get_table_name(): string {
@@ -30,6 +34,8 @@ class UrlShortenerRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Get cache group.
+	 *
 	 * @return string
 	 */
 	protected function get_cache_group(): string {
@@ -209,7 +215,7 @@ class UrlShortenerRepository extends AbstractRepository {
 		);
 
 		return array(
-			'items' => $items ?: array(),
+			'items' => $items ? $items : array(),
 			'total' => $total,
 		);
 	}

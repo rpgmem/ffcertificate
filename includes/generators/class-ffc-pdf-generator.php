@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * PdfGenerator
  *
@@ -15,7 +13,11 @@ declare(strict_types=1);
  * v3.2.0: Migrated to namespace (Phase 2)
  * v2.9.2: Single source of truth for PDF generation
  * v2.9.14: REFACTORED - Moved generate_html logic from FFC_Email_Handler
+ *
+ * @package FreeFormCertificate\Generators
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Generators;
 
@@ -25,7 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-
+/**
+ * Generator for pdf output.
+ */
 class PdfGenerator {
 
 	/**
@@ -256,9 +260,10 @@ class PdfGenerator {
 		}
 
 		// {{print_date}} - Current date/time of PDF generation/printing.
-		$layout = str_replace( '{{print_date}}', wp_date( $date_format ) ?: '', $layout );
+		$print_date_raw = wp_date( $date_format );
+		$layout         = str_replace( '{{print_date}}', $print_date_raw ? $print_date_raw : '', $layout );
 
-		$layout = str_replace( '{{form_title}}', $form_title, $layout );
+		$layout = str_replace( '{{form_title}}', esc_html( (string) $form_title ), $layout );
 
 		// Inject settings-based placeholders into data (v4.6.10).
 		if ( ! isset( $data['main_address'] ) && ! empty( $settings['main_address'] ) ) {
@@ -817,11 +822,29 @@ class PdfGenerator {
 	 * @return string HTML template with placeholders
 	 */
 	private function get_appointment_receipt_template(): string {
-		$template_file = FFC_PLUGIN_DIR . 'html/default_appointment_receipt_1.html';
+		$default_file = FFC_PLUGIN_DIR . 'html/default_appointment_receipt_1.html';
 
 		// Allow override via filter.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
-		$template_file = apply_filters( 'ffcertificate_appointment_receipt_template_file', $template_file );
+		$template_file = apply_filters( 'ffcertificate_appointment_receipt_template_file', $default_file );
+
+		// Validate: only allow paths inside the plugin or theme directories to prevent path traversal.
+		$normalized = wp_normalize_path( (string) $template_file );
+		$allowed    = array(
+			wp_normalize_path( FFC_PLUGIN_DIR ),
+			wp_normalize_path( get_template_directory() ),
+			wp_normalize_path( get_stylesheet_directory() ),
+		);
+		$in_allowed = false;
+		foreach ( $allowed as $base ) {
+			if ( 0 === strpos( $normalized, $base ) ) {
+				$in_allowed = true;
+				break;
+			}
+		}
+		if ( ! $in_allowed ) {
+			$template_file = $default_file;
+		}
 
 		if ( file_exists( $template_file ) ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local template file.

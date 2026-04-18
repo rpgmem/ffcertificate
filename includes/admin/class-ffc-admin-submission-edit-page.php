@@ -1,23 +1,29 @@
 <?php
-declare(strict_types=1);
-
 /**
  * AdminSubmissionEditPage
  *
  * Manages the submission edit page rendering and saving.
  * Extracted from FFC_Admin class to follow Single Responsibility Principle.
  *
+ * @package FreeFormCertificate\Admin
  * @since 3.1.1 (Extracted from FFC_Admin)
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
 
+declare(strict_types=1);
+
 namespace FreeFormCertificate\Admin;
+
+use FreeFormCertificate\Submissions\SubmissionHandler;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin page for admin submission edit.
+ */
 class AdminSubmissionEditPage {
 
 	/**
@@ -51,9 +57,9 @@ class AdminSubmissionEditPage {
 	/**
 	 * Constructor
 	 *
-	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler instance.
+	 * @param SubmissionHandler $handler Submission handler instance.
 	 */
-	public function __construct( object $handler ) {
+	public function __construct( SubmissionHandler $handler ) {
 		$this->submission_handler = $handler;
 	}
 
@@ -91,7 +97,8 @@ class AdminSubmissionEditPage {
 
 		// Prepare data (convert form_id to int - wpdb returns strings).
 		$this->sub_array = (array) $sub;
-		$this->data      = json_decode( $this->sub_array['data'], true ) ?: array();
+		$decoded_data    = json_decode( $this->sub_array['data'], true );
+		$this->data      = $decoded_data ? $decoded_data : array();
 		$this->fields    = get_post_meta( (int) $this->sub_array['form_id'], '_ffc_form_fields', true );
 
 		// Render page.

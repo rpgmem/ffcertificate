@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Access Settings Tab
  *
- * @package FFC
+ * @package FreeFormCertificate\Settings\Tabs
  * @since 3.1.0
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings\Tabs;
 
@@ -18,8 +18,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab User Access settings tab.
+ */
 class TabUserAccess extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'user_access';
 		$this->tab_title = __( 'User Access', 'ffcertificate' );
@@ -32,6 +38,8 @@ class TabUserAccess extends SettingsTab {
 
 	/**
 	 * Enqueue styles for User Access settings page
+	 *
+	 * @param string $hook Hook name.
 	 */
 	public function enqueue_styles( string $hook ): void {
 		// Only load on settings page with this tab active.
@@ -42,6 +50,9 @@ class TabUserAccess extends SettingsTab {
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for conditional script loading.
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		// Include view file.
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-user-access.php';
@@ -60,6 +71,9 @@ class TabUserAccess extends SettingsTab {
 
 	/**
 	 * Get option value
+	 *
+	 * @param string $key Key.
+	 * @param string $default Default.
 	 */
 	public function get_option( string $key, string $default = '' ): string {
 		$settings = get_option( 'ffc_user_access_settings', array() );

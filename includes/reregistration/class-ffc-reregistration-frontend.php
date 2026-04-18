@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Frontend (Coordinator)
  *
@@ -10,10 +8,12 @@ declare(strict_types=1);
  *   ReregistrationFormRenderer   – Form HTML rendering
  *   ReregistrationDataProcessor  – Data collection, validation, and submission processing
  *
+ * @package FreeFormCertificate\Reregistration
  * @since 4.11.0
  * @version 4.12.8 - Refactored into coordinator + 3 sub-classes
- * @package FreeFormCertificate\Reregistration
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reregistration Frontend.
+ */
 class ReregistrationFrontend {
 
 	/**

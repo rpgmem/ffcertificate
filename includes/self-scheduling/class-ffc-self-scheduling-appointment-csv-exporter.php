@@ -1,15 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment CSV Exporter
  *
  * Handles CSV export functionality for calendar appointments.
  * Exports appointment data with dynamic columns and filtering.
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.1.0
  * @version 4.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
@@ -20,17 +21,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-
+/**
+ * Exporter for appointment csv data.
+ */
 class AppointmentCsvExporter {
 
 	use \FreeFormCertificate\Core\CsvExportTrait;
 
 	/**
+	 * Appointment repository.
+	 *
 	 * @var AppointmentRepository
 	 */
 	protected $appointment_repository;
 
 	/**
+	 * Calendar repository.
+	 *
 	 * @var CalendarRepository
 	 */
 	protected $calendar_repository;
@@ -87,7 +94,7 @@ class AppointmentCsvExporter {
 	 * Get all unique custom data keys from appointments.
 	 * Delegates to CsvExportTrait::extract_dynamic_keys().
 	 *
-	 * @param array<int, array<string, mixed>> $rows
+	 * @param array<int, array<string, mixed>> $rows Rows.
 	 * @return array<int, string>
 	 */
 	private function get_dynamic_columns( array $rows ): array {
@@ -98,7 +105,7 @@ class AppointmentCsvExporter {
 	 * Get custom data from a row, handling encryption.
 	 * Delegates to CsvExportTrait::decode_json_field().
 	 *
-	 * @param array<string, mixed> $row
+	 * @param array<string, mixed> $row Row.
 	 * @return array<string, mixed>
 	 */
 	private function get_custom_data( array $row ): array {
@@ -109,7 +116,7 @@ class AppointmentCsvExporter {
 	 * Generate translatable headers for dynamic columns.
 	 * Delegates to CsvExportTrait::build_dynamic_headers().
 	 *
-	 * @param array<int, string> $dynamic_keys
+	 * @param array<int, string> $dynamic_keys Dynamic keys.
 	 * @return array<string, string>
 	 */
 	private function get_dynamic_headers( array $dynamic_keys ): array {
@@ -119,8 +126,8 @@ class AppointmentCsvExporter {
 	/**
 	 * Format a single CSV row
 	 *
-	 * @param array<string, mixed> $row
-	 * @param array<int, string>   $dynamic_keys
+	 * @param array<string, mixed> $row Row.
+	 * @param array<int, string>   $dynamic_keys Dynamic keys.
 	 * @return array<int, string>
 	 */
 	private function format_csv_row( array $row, array $dynamic_keys ): array {
@@ -312,10 +319,10 @@ class AppointmentCsvExporter {
 	/**
 	 * Get appointments for export with filters
 	 *
-	 * @param array<int, int>|null $calendar_ids
-	 * @param array<int, string>   $statuses
-	 * @param string|null          $start_date
-	 * @param string|null          $end_date
+	 * @param mixed              $calendar_ids Calendar ids.
+	 * @param array<int, string> $statuses Statuses.
+	 * @param string|null        $start_date Start date.
+	 * @param string|null        $end_date End date.
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function get_appointments_for_export( $calendar_ids, array $statuses, ?string $start_date, ?string $end_date ): array {

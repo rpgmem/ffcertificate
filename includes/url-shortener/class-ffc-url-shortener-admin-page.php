@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * URL Shortener Admin Page
  *
  * Admin submenu page listing all short URLs with CRUD operations.
  *
- * @since 5.1.0
  * @package FreeFormCertificate\UrlShortener
+ * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UrlShortener;
 
@@ -18,13 +18,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin page for url shortener admin.
+ */
 class UrlShortenerAdminPage {
 
 	use AjaxTrait;
 
-	/** @var UrlShortenerService */
+	/**
+	 * Description.
+	 *
+	 * @var UrlShortenerService
+	 */
 	private UrlShortenerService $service;
 
+	/**
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * @param UrlShortenerService $service Service.
+	 */
 	public function __construct( UrlShortenerService $service ) {
 		$this->service = $service;
 	}
@@ -387,7 +409,7 @@ class UrlShortenerAdminPage {
 						<option value="trashed" <?php selected( $status, 'trashed' ); ?>>
 							<?php
 							/* translators: %d: number of trashed links */
-							printf( esc_html__( 'Trash (%d)', 'ffcertificate' ), $stats['trashed_links'] );
+							printf( esc_html__( 'Trash (%d)', 'ffcertificate' ), (int) $stats['trashed_links'] );
 							?>
 						</option>
 					</select>
@@ -462,7 +484,7 @@ class UrlShortenerAdminPage {
 							?>
 							<tr>
 								<td>
-									<strong><?php echo esc_html( $item['title'] ?: '(' . __( 'no title', 'ffcertificate' ) . ')' ); ?></strong>
+									<strong><?php echo esc_html( $item['title'] ? $item['title'] : '(' . __( 'no title', 'ffcertificate' ) . ')' ); ?></strong>
 									<?php if ( $item['post_id'] ) : ?>
 										<br><small><?php echo esc_html( get_the_title( (int) $item['post_id'] ) ); ?></small>
 									<?php endif; ?>
@@ -511,7 +533,7 @@ class UrlShortenerAdminPage {
 										<button type="button" class="button button-small ffc-show-qr-modal"
 												data-code="<?php echo esc_attr( $item['short_code'] ); ?>"
 												data-url="<?php echo esc_attr( $short_url ); ?>"
-												data-title="<?php echo esc_attr( $item['title'] ?: $item['short_code'] ); ?>">
+												data-title="<?php echo esc_attr( $item['title'] ? $item['title'] : $item['short_code'] ); ?>">
 											<span class="dashicons dashicons-screenoptions ffc-dashicon-sm-inline"></span>
 											QR
 										</button>

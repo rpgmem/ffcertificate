@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * URL Shortener Meta Box
  *
  * Adds a meta box to post/page editors showing the short URL,
  * QR Code preview, and download options (PNG/SVG).
  *
- * @since 5.1.0
  * @package FreeFormCertificate\UrlShortener
+ * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UrlShortener;
 
@@ -19,13 +19,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Metabox UI for url shortener.
+ */
 class UrlShortenerMetaBox {
 
 	use AjaxTrait;
 
-	/** @var UrlShortenerService */
+	/**
+	 * Description.
+	 *
+	 * @var UrlShortenerService
+	 */
 	private UrlShortenerService $service;
 
+	/**
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * @param UrlShortenerService $service Service.
+	 */
 	public function __construct( UrlShortenerService $service ) {
 		$this->service = $service;
 	}
@@ -77,9 +99,10 @@ class UrlShortenerMetaBox {
 
 		if ( ! $record && 'publish' === $post->post_status ) {
 			// Auto-create if post is published.
-			$permalink = get_permalink( $post->ID ) ?: '';
-			$result    = $this->service->create_short_url( $permalink, $post->post_title, $post->ID );
-			$record    = $result['success'] && isset( $result['data'] ) ? $result['data'] : null;
+			$permalink_raw = get_permalink( $post->ID );
+			$permalink     = $permalink_raw ? $permalink_raw : '';
+			$result        = $this->service->create_short_url( $permalink, $post->post_title, $post->ID );
+			$record        = $result['success'] && isset( $result['data'] ) ? $result['data'] : null;
 		}
 
 		if ( ! $record ) {
@@ -248,9 +271,10 @@ class UrlShortenerMetaBox {
 		}
 
 		// Create new.
-		$permalink = get_permalink( $post_id ) ?: '';
-		$post      = get_post( $post_id );
-		$result    = $this->service->create_short_url( $permalink, $post->post_title ?? '', $post_id );
+		$permalink_raw = get_permalink( $post_id );
+		$permalink     = $permalink_raw ? $permalink_raw : '';
+		$post          = get_post( $post_id );
+		$result        = $this->service->create_short_url( $permalink, $post->post_title ?? '', $post_id );
 
 		if ( $result['success'] ) {
 			$data              = $result['data'] ?? array();

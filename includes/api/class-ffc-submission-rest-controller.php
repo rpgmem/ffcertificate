@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Submission REST Controller
  *
@@ -9,9 +7,11 @@ declare(strict_types=1);
  *   GET  /submissions/{id} – Get single submission (admin)
  *   POST /verify           – Verify certificate by auth code
  *
- * @since 4.6.1
  * @package FreeFormCertificate\API
+ * @since 4.6.1
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
@@ -21,15 +21,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for submission endpoints.
+ */
 class SubmissionRestController {
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace;
 
 	/**
 	 * Submission repository
+	 *
+	 * @var SubmissionRepository|null
 	 */
 	private ?SubmissionRepository $submission_repository;
 
@@ -120,7 +127,7 @@ class SubmissionRestController {
 	 * GET /submissions
 	 * List submissions with pagination (admin only)
 	 *
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_submissions( $request ) {
@@ -202,7 +209,7 @@ class SubmissionRestController {
 	 * GET /submissions/{id}
 	 * Get single submission (admin only)
 	 *
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_submission( $request ) {
@@ -274,7 +281,7 @@ class SubmissionRestController {
 	 * POST /verify
 	 * Verify certificate by auth code
 	 *
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function verify_certificate( $request ) {
@@ -377,7 +384,7 @@ class SubmissionRestController {
 	 * Check admin permission
 	 */
 	public function check_admin_permission(): bool {
-		return current_user_can( 'edit_posts' );
+		return current_user_can( 'manage_options' );
 	}
 
 	/**

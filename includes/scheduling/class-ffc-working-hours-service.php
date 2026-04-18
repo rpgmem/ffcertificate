@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Working Hours Service
  *
@@ -11,9 +9,11 @@ declare(strict_types=1);
  * - Self-Scheduling: [{day: 0-6, start: "09:00", end: "17:00"}, ...]
  * - Audience: {mon: {start: "08:00", end: "18:00", closed: false}, ...}
  *
- * @since 4.6.0
  * @package FreeFormCertificate\Scheduling
+ * @since 4.6.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Scheduling;
 
@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Service class for working hours operations.
+ */
 class WorkingHoursService {
 
 	/**
@@ -44,7 +47,8 @@ class WorkingHoursService {
 			return true; // No restrictions.
 		}
 
-		$day_of_week = (int) gmdate( 'w', strtotime( $date ) ?: time() );
+		$date_ts     = strtotime( $date );
+		$day_of_week = (int) gmdate( 'w', $date_ts ? $date_ts : time() );
 		$day_name    = self::DAY_NAMES[ $day_of_week ];
 
 		// Keyed format: {mon: {start, end, closed}, ...}.
@@ -93,7 +97,8 @@ class WorkingHoursService {
 			return true;
 		}
 
-		$day_of_week = (int) gmdate( 'w', strtotime( $date ) ?: time() );
+		$date_ts     = strtotime( $date );
+		$day_of_week = (int) gmdate( 'w', $date_ts ? $date_ts : time() );
 		$day_name    = self::DAY_NAMES[ $day_of_week ];
 
 		// Keyed format.
@@ -127,7 +132,8 @@ class WorkingHoursService {
 			return array();
 		}
 
-		$day_of_week = (int) gmdate( 'w', strtotime( $date ) ?: time() );
+		$date_ts     = strtotime( $date );
+		$day_of_week = (int) gmdate( 'w', $date_ts ? $date_ts : time() );
 		$day_name    = self::DAY_NAMES[ $day_of_week ];
 		$ranges      = array();
 
@@ -161,7 +167,7 @@ class WorkingHoursService {
 	/**
 	 * Normalize working hours input to a decoded array.
 	 *
-	 * @param string|array<mixed>|null $working_hours
+	 * @param string|array<mixed>|null $working_hours Working hours.
 	 * @return array<mixed>
 	 */
 	private static function normalize( $working_hours ): array {

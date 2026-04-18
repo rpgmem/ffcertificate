@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * PublicCsvExporter
  *
@@ -22,8 +20,11 @@ declare(strict_types=1);
  * and `CsvExporter::format_csv_row()` so that admins can compare/download
  * the two sources interchangeably.
  *
+ * @package FreeFormCertificate\Frontend
  * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
@@ -35,6 +36,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Exporter for public csv data.
+ */
 class PublicCsvExporter {
 
 	use CsvExportTrait;
@@ -55,6 +59,8 @@ class PublicCsvExporter {
 	const JOB_TTL = 3600;
 
 	/**
+	 * Repository.
+	 *
 	 * @var SubmissionRepository
 	 */
 	protected $repository;
@@ -66,6 +72,9 @@ class PublicCsvExporter {
 	 */
 	private array $form_title_cache = array();
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		$this->repository = new SubmissionRepository();
 	}
@@ -91,14 +100,16 @@ class PublicCsvExporter {
 		$dynamic_keys         = $this->scan_dynamic_keys( $form_ids, $status );
 		$include_edit_columns = $this->repository->hasEditInfo();
 
-		$filename = \FreeFormCertificate\Core\Utils::sanitize_filename(
-			get_the_title( $form_id ) ?: ( 'form-' . $form_id )
+		$form_title_raw = get_the_title( $form_id );
+		$filename       = \FreeFormCertificate\Core\Utils::sanitize_filename(
+			$form_title_raw ? $form_title_raw : ( 'form-' . $form_id )
 		) . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
 
 		// Discard any buffered output so the CSV is the only payload on the wire.
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
 		while ( @ob_end_clean() ) {
-		} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
+			/* no-op */
+		}
 
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
 		header( 'Content-Type: text/csv; charset=utf-8' );
@@ -253,8 +264,9 @@ class PublicCsvExporter {
 			wp_send_json_error( array( 'message' => __( 'No records found to export.', 'ffcertificate' ) ) );
 		}
 
-		$filename = \FreeFormCertificate\Core\Utils::sanitize_filename(
-			get_the_title( $form_id ) ?: ( 'form-' . $form_id )
+		$form_title_raw = get_the_title( $form_id );
+		$filename       = \FreeFormCertificate\Core\Utils::sanitize_filename(
+			$form_title_raw ? $form_title_raw : ( 'form-' . $form_id )
 		) . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
 
 		// Create temp file.
@@ -373,7 +385,11 @@ class PublicCsvExporter {
 			);
 		}
 
-		/** @since 5.1.0 Same filter as admin CSV + synchronous public export. */
+		/**
+		 * Description.
+		 *
+		 * @since 5.1.0 Same filter as admin CSV + synchronous public export.
+		 */
 		$batch = apply_filters( 'ffcertificate_csv_export_data', $batch, $job['form_ids'], $job['status'] );
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
@@ -417,6 +433,16 @@ class PublicCsvExporter {
 	/**
 	 * Serve the completed CSV file and clean up.
 	 *
+	 * AJAX handler for download.
+	 *
+	 * AJAX handler for download.
+	 *
+	 * AJAX handler for download.
+	 *
+	 * AJAX handler for download.
+	 *
+	 * AJAX handler for download.
+	 *
 	 * @since 5.1.0
 	 */
 	public function ajax_download(): void {
@@ -444,9 +470,10 @@ class PublicCsvExporter {
 			wp_die( esc_html__( 'Export file not found.', 'ffcertificate' ) );
 		}
 
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
 		while ( @ob_end_clean() ) {
-		} // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedWhile
+			/* no-op */
+		}
 
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $job['filename'] );
 		header( 'Content-Type: text/csv; charset=utf-8' );
@@ -510,9 +537,9 @@ class PublicCsvExporter {
 	 * Format one submission row as a CSV line — mirrors
 	 * `CsvExporter::format_csv_row()`.
 	 *
-	 * @param array<string, mixed> $row
-	 * @param array<int, string>   $dynamic_keys
-	 * @param bool                 $include_edit_columns
+	 * @param array<string, mixed> $row Row.
+	 * @param array<int, string>   $dynamic_keys Dynamic keys.
+	 * @param bool                 $include_edit_columns Include edit columns.
 	 * @return array<int, mixed>
 	 */
 	private function format_csv_row( array $row, array $dynamic_keys, bool $include_edit_columns = false ): array {
@@ -570,8 +597,8 @@ class PublicCsvExporter {
 	/**
 	 * Scan all matching records to discover dynamic JSON keys.
 	 *
-	 * @param array<int, int> $form_ids
-	 * @param string          $status
+	 * @param array<int, int> $form_ids Form IDs.
+	 * @param string          $status   Status.
 	 * @return array<int, string>
 	 */
 	private function scan_dynamic_keys( array $form_ids, string $status ): array {
@@ -593,6 +620,8 @@ class PublicCsvExporter {
 	}
 
 	/**
+	 * Get form title cached.
+	 *
 	 * @param int $form_id Form post ID.
 	 * @return string Form title or "(Deleted)" placeholder.
 	 */

@@ -231,8 +231,9 @@ class AudienceAdminEnvironment {
 			$schedule_id = (int) ( $environment->schedule_id ?? 0 );
 		}
 
-		$env_label_singular = AudienceScheduleRepository::get_environment_label( $schedule_id ?: null, true );
-		$env_label_plural   = AudienceScheduleRepository::get_environment_label( $schedule_id ?: null );
+		$schedule_id_or_null = $schedule_id ? $schedule_id : null;
+		$env_label_singular  = AudienceScheduleRepository::get_environment_label( $schedule_id_or_null, true );
+		$env_label_plural    = AudienceScheduleRepository::get_environment_label( $schedule_id_or_null );
 
 		$page_title = $id > 0
 			/* translators: %s: environment label (singular, e.g. "Room") */
@@ -246,7 +247,8 @@ class AudienceAdminEnvironment {
 		// Parse working hours.
 		$working_hours = array();
 		if ( $environment && $environment->working_hours ) {
-			$working_hours = json_decode( $environment->working_hours, true ) ?: array();
+			$working_hours_decoded = json_decode( $environment->working_hours, true );
+			$working_hours         = $working_hours_decoded ? $working_hours_decoded : array();
 		}
 
 		?>
@@ -437,7 +439,7 @@ class AudienceAdminEnvironment {
 			$data = array(
 				'schedule_id'   => isset( $_POST['environment_schedule'] ) ? absint( $_POST['environment_schedule'] ) : 0,
 				'name'          => isset( $_POST['environment_name'] ) ? sanitize_text_field( wp_unslash( $_POST['environment_name'] ) ) : '',
-				'color'         => $color ?: '#3788d8',
+				'color'         => $color ? $color : '#3788d8',
 				'description'   => isset( $_POST['environment_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['environment_description'] ) ) : '',
 				'working_hours' => $working_hours,
 				'status'        => isset( $_POST['environment_status'] ) ? sanitize_text_field( wp_unslash( $_POST['environment_status'] ) ) : 'active',

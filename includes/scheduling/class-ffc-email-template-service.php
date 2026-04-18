@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Email Template Service
  *
  * Shared email template rendering for both self-scheduling and audience systems.
  * Provides consistent email layout, date/time formatting, and wp_mail() wrapper.
  *
- * @since 4.6.0
  * @package FreeFormCertificate\Scheduling
+ * @since 4.6.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Scheduling;
 
@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Service class for email template operations.
+ */
 class EmailTemplateService {
 
 	/**
@@ -145,17 +148,8 @@ class EmailTemplateService {
 	/**
 	 * Generate an ICS calendar file content.
 	 *
-	 * @param array{
-	 *     uid: string,
-	 *     summary: string,
-	 *     description: string,
-	 *     location: string,
-	 *     date: string,
-	 *     start_time: string,
-	 *     end_time: string,
-	 *     status?: string
-	 * } $event Event data
-	 * @param string $method ICS method (REQUEST or CANCEL).
+	 * @param array<string, mixed> $event Event.
+	 * @param string               $method ICS method (REQUEST or CANCEL).
 	 * @return string ICS file content
 	 */
 	public static function generate_ics( array $event, string $method = 'REQUEST' ): string {
@@ -203,7 +197,7 @@ class EmailTemplateService {
 	/**
 	 * Escape text for ICS format.
 	 *
-	 * @param string $text
+	 * @param string $text Text.
 	 * @return string
 	 */
 	private static function escape_ics_text( string $text ): string {

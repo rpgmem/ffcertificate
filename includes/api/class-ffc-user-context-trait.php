@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Context Trait
  *
@@ -9,9 +7,11 @@ declare(strict_types=1);
  *   - resolve_user_context()  – resolves effective user_id (supports admin view-as)
  *   - user_has_capability()   – capability check against the effective user
  *
- * @since 4.12.7
  * @package FreeFormCertificate\API
+ * @since 4.12.7
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
@@ -28,7 +28,7 @@ trait UserContextTrait {
 	 * user's capabilities so the admin sees exactly what the user would see.
 	 *
 	 * @since 4.9.7
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return array{user_id: int, is_view_as: bool}
 	 */
 	private function resolve_user_context( $request ): array {

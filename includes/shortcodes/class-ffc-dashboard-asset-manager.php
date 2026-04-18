@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * DashboardAssetManager
  *
  * Extracted from DashboardShortcode (Sprint 18 refactoring).
  * Enqueues CSS/JS assets and localizes JavaScript for the user dashboard.
  *
+ * @package FreeFormCertificate\Shortcodes
  * @since 4.12.19
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Shortcodes;
 
@@ -16,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Manager for dashboard asset operations.
+ */
 class DashboardAssetManager {
 
 	/**
@@ -46,7 +50,7 @@ class DashboardAssetManager {
 	 */
 	public static function enqueue_assets( $view_as_user_id = false ): void {
 		// Get user permissions (based on capabilities, not just role).
-		$user_id = $view_as_user_id ?: get_current_user_id();
+		$user_id = $view_as_user_id ? $view_as_user_id : get_current_user_id();
 		$user    = get_user_by( 'id', $user_id );
 
 		$can_view_certificates = $user && (
@@ -266,6 +270,7 @@ class DashboardAssetManager {
 					'leaveGroup'               => __( 'Leave', 'ffcertificate' ),
 					'confirmLeaveGroup'        => __( 'Are you sure you want to leave this group?', 'ffcertificate' ),
 					'leaveAllGroups'           => __( 'Leave all groups', 'ffcertificate' ),
+					/* translators: %d: number of groups the user will leave */
 					'confirmLeaveAllGroups'    => __( 'Are you sure you want to leave all %d group(s)? This action cannot be undone.', 'ffcertificate' ),
 					// Summary.
 					'summaryTitle'             => __( 'Overview', 'ffcertificate' ),

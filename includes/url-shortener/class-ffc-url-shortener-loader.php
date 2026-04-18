@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * URL Shortener Loader
  *
  * Module coordinator: registers rewrite rules, handles redirects,
  * and initializes admin components (meta box, admin page).
  *
- * @since 5.1.0
  * @package FreeFormCertificate\UrlShortener
+ * @since 5.1.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\UrlShortener;
 
@@ -17,14 +17,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Loader for url shortener module.
+ */
 class UrlShortenerLoader {
 
-	/** @var UrlShortenerService */
+	/**
+	 * Description.
+	 *
+	 * @var UrlShortenerService
+	 */
 	private UrlShortenerService $service;
 
-	/** @var bool Whether a redirect was already handled in this request. */
+	/**
+	 * Description.
+	 *
+	 * @var bool Whether a redirect was already handled in this request.
+	 */
 	private bool $redirected = false;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		$this->service = new UrlShortenerService();
 	}

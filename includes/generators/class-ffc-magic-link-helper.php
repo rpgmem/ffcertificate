@@ -1,15 +1,16 @@
 <?php
-declare(strict_types=1);
-
 /**
  * MagicLinkHelper
  *
  * Centralizes magic link generation and validation logic
  *
+ * @package FreeFormCertificate\Generators
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 2.9.16
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Generators;
 
@@ -17,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Helper utilities for magic link.
+ */
 class MagicLinkHelper {
 
 	/**
@@ -65,8 +69,8 @@ class MagicLinkHelper {
 	 *
 	 * Generates token if missing and returns it
 	 *
-	 * @param int                                                $submission_id Submission ID.
-	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler instance.
+	 * @param int    $submission_id Submission ID.
+	 * @param object $handler Submission handler instance.
 	 * @return string Magic token (32 hex characters)
 	 */
 	public static function ensure_token( int $submission_id, object $handler ): string {
@@ -90,8 +94,8 @@ class MagicLinkHelper {
 	 *
 	 * Combines ensure_token + generate_magic_link
 	 *
-	 * @param int                                                $submission_id Submission ID.
-	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler instance.
+	 * @param int    $submission_id Submission ID.
+	 * @param object $handler Submission handler instance.
 	 * @return string Complete magic link URL
 	 */
 	public static function get_submission_magic_link( int $submission_id, object $handler ): string {
@@ -109,8 +113,8 @@ class MagicLinkHelper {
 	 *
 	 * Useful when you already have the submission data
 	 *
-	 * @param array<string, mixed>                               $submission Submission array with 'magic_token' key.
-	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler (optional, for generating if missing).
+	 * @param mixed       $submission Submission array with 'magic_token' key.
+	 * @param object|null $handler Submission handler (optional, for generating if missing).
 	 * @return string Complete magic link URL
 	 */
 	public static function get_magic_link_from_submission( $submission, ?object $handler = null ): string {
@@ -211,14 +215,23 @@ class MagicLinkHelper {
 	 * @return string QR code image URL
 	 */
 	public static function get_magic_link_qr_code( string $token, int $size = 200 ): string {
-		if ( empty( $token ) ) {
+		if ( empty( $token ) || ! self::is_valid_token( $token ) ) {
 			return '';
 		}
 
 		$magic_link = self::generate_magic_link( $token );
 
-		// Use Google Charts API (or your preferred QR service).
-		return 'https://chart.googleapis.com/chart?chs=' . $size . 'x' . $size . '&cht=qr&chl=' . urlencode( $magic_link );
+		// Use the local QR code generator to avoid leaking magic tokens to an external service.
+		if ( class_exists( '\FreeFormCertificate\Generators\QRCodeGenerator' ) ) {
+			try {
+				$qr = new \FreeFormCertificate\Generators\QRCodeGenerator();
+				return $qr->generate( $magic_link, array( 'size' => $size ) );
+			} catch ( \Throwable $e ) {
+				return '';
+			}
+		}
+
+		return '';
 	}
 
 	/**

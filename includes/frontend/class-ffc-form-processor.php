@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * FormProcessor
  * Handles form submission processing, validation, and restriction checks.
@@ -12,7 +10,11 @@ declare(strict_types=1);
  * v3.3.0: Added strict types and type hints
  * v3.2.0: Migrated to namespace (Phase 2)
  * v4.12.17: Extracted AccessRestrictionChecker and ReprintDetector for SRP compliance.
+ *
+ * @package FreeFormCertificate\Frontend
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
@@ -22,10 +24,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-
+/**
+ * Processor for form operations.
+ */
 class FormProcessor {
 
 	/**
+	 * Submission handler.
+	 *
 	 * @var SubmissionHandler
 	 */
 	private $submission_handler;
@@ -33,7 +39,7 @@ class FormProcessor {
 	/**
 	 * Constructor
 	 *
-	 * @param SubmissionHandler $submission_handler
+	 * @param SubmissionHandler $submission_handler Submission handler.
 	 */
 	public function __construct( SubmissionHandler $submission_handler ) {
 		$this->submission_handler = $submission_handler;
@@ -330,7 +336,8 @@ class FormProcessor {
 					// Build updated data JSON.
 					$mandatory_keys = array( 'email', 'cpf_rf', 'auth_code', 'ffc_lgpd_consent' );
 					$extra_data     = array_diff_key( $submission_data, array_flip( $mandatory_keys ) );
-					$data_json      = wp_json_encode( $extra_data ) ?: '{}';
+					$data_json_raw  = wp_json_encode( $extra_data );
+					$data_json      = $data_json_raw ? $data_json_raw : '{}';
 
 					$update_fields = array(
 						'status'          => $quiz_status,

@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience REST Controller
  *
@@ -11,9 +9,11 @@ declare(strict_types=1);
  * - POST /ffc/v1/audience/bookings       - Create a new booking
  * - DELETE /ffc/v1/audience/bookings/{id} - Cancel a booking
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Audience
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for audience endpoints.
+ */
 class AudienceRestController {
 
 	/**
@@ -426,15 +429,17 @@ class AudienceRestController {
 	 * @return \WP_REST_Response
 	 */
 	public function create_booking( \WP_REST_Request $request ): \WP_REST_Response {
-		$environment_id = $request->get_param( 'environment_id' );
-		$booking_date   = $request->get_param( 'booking_date' );
-		$is_all_day     = ! empty( $request->get_param( 'is_all_day' ) );
-		$start_time     = $is_all_day ? '00:00' : $request->get_param( 'start_time' );
-		$end_time       = $is_all_day ? '23:59' : $request->get_param( 'end_time' );
-		$booking_type   = $request->get_param( 'booking_type' );
-		$description    = $request->get_param( 'description' );
-		$audience_ids   = $request->get_param( 'audience_ids' ) ?: array();
-		$user_ids       = $request->get_param( 'user_ids' ) ?: array();
+		$environment_id     = $request->get_param( 'environment_id' );
+		$booking_date       = $request->get_param( 'booking_date' );
+		$is_all_day         = ! empty( $request->get_param( 'is_all_day' ) );
+		$start_time         = $is_all_day ? '00:00' : $request->get_param( 'start_time' );
+		$end_time           = $is_all_day ? '23:59' : $request->get_param( 'end_time' );
+		$booking_type       = $request->get_param( 'booking_type' );
+		$description        = $request->get_param( 'description' );
+		$audience_ids_param = $request->get_param( 'audience_ids' );
+		$audience_ids       = $audience_ids_param ? $audience_ids_param : array();
+		$user_ids_param     = $request->get_param( 'user_ids' );
+		$user_ids           = $user_ids_param ? $user_ids_param : array();
 
 		// Validate environment exists.
 		$environment = AudienceEnvironmentRepository::get_by_id( $environment_id );
@@ -519,7 +524,8 @@ class AudienceRestController {
 		// Check for future days limit.
 		$schedule = AudienceScheduleRepository::get_by_id( (int) $environment->schedule_id );
 		if ( $schedule && $schedule->future_days_limit && ! $has_bypass ) {
-			$max_date = gmdate( 'Y-m-d', strtotime( '+' . $schedule->future_days_limit . ' days' ) ?: time() );
+			$max_date_ts = strtotime( '+' . $schedule->future_days_limit . ' days' );
+			$max_date    = gmdate( 'Y-m-d', $max_date_ts ? $max_date_ts : time() );
 			if ( $booking_date > $max_date ) {
 				return new \WP_REST_Response(
 					array(
@@ -681,12 +687,14 @@ class AudienceRestController {
 	 */
 	public function check_conflicts( \WP_REST_Request $request ): \WP_REST_Response {
 		try {
-			$environment_id = (int) $request->get_param( 'environment_id' );
-			$booking_date   = sanitize_text_field( $request->get_param( 'booking_date' ) );
-			$start_time     = sanitize_text_field( $request->get_param( 'start_time' ) );
-			$end_time       = sanitize_text_field( $request->get_param( 'end_time' ) );
-			$audience_ids   = array_map( 'intval', (array) ( $request->get_param( 'audience_ids' ) ?: array() ) );
-			$user_ids       = array_map( 'intval', (array) ( $request->get_param( 'user_ids' ) ?: array() ) );
+			$environment_id     = (int) $request->get_param( 'environment_id' );
+			$booking_date       = sanitize_text_field( $request->get_param( 'booking_date' ) );
+			$start_time         = sanitize_text_field( $request->get_param( 'start_time' ) );
+			$end_time           = sanitize_text_field( $request->get_param( 'end_time' ) );
+			$audience_ids_param = $request->get_param( 'audience_ids' );
+			$audience_ids       = array_map( 'intval', (array) ( $audience_ids_param ? $audience_ids_param : array() ) );
+			$user_ids_param     = $request->get_param( 'user_ids' );
+			$user_ids           = array_map( 'intval', (array) ( $user_ids_param ? $user_ids_param : array() ) );
 
 			// Validate required parameters.
 			if ( ! $environment_id || ! $booking_date || ! $start_time || ! $end_time ) {
@@ -801,7 +809,7 @@ class AudienceRestController {
 			return new \WP_REST_Response(
 				array(
 					'success' => false,
-					'message' => __( 'Error checking conflicts.', 'ffcertificate' ) . ' ' . $e->getMessage(),
+					'message' => __( 'Error checking conflicts.', 'ffcertificate' ),
 				),
 				500
 			);

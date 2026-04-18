@@ -1,13 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * FormEditor
  * Handles the advanced UI for the Form Builder, including AJAX and layout management.
  *
+ * @package FreeFormCertificate\Admin
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
@@ -15,13 +16,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Form Editor.
+ */
 class FormEditor {
 
-	/** @var \FreeFormCertificate\Admin\FormEditorMetaboxRenderer */
+	/**
+	 * Metabox renderer.
+	 *
+	 * @var \FreeFormCertificate\Admin\FormEditorMetaboxRenderer
+	 */
 	private $metabox_renderer;
-	/** @var \FreeFormCertificate\Admin\FormEditorSaveHandler */
+	/**
+	 * Save handler.
+	 *
+	 * @var \FreeFormCertificate\Admin\FormEditorSaveHandler
+	 */
 	private $save_handler;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		$this->metabox_renderer = new \FreeFormCertificate\Admin\FormEditorMetaboxRenderer();
 		$this->save_handler     = new \FreeFormCertificate\Admin\FormEditorSaveHandler();
@@ -38,6 +53,8 @@ class FormEditor {
 
 	/**
 	 * Enqueue scripts and styles for form editor
+	 *
+	 * @param string $hook Hook name.
 	 */
 	public function enqueue_scripts( string $hook ): void {
 		// Only load on form edit page.
@@ -193,6 +210,7 @@ class FormEditor {
 			wp_send_json_error();
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading bundled plugin HTML template; no remote URL.
 		$content = file_get_contents( $filepath );
 		wp_send_json_success( $content );
 	}

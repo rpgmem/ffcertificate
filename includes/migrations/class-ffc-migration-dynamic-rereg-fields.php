@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Migration: Dynamic Reregistration Fields
  *
@@ -15,9 +13,11 @@ declare(strict_types=1);
  *
  * Uses dbDelta so it is idempotent and safe to run multiple times.
  *
- * @since 4.13.0
  * @package FreeFormCertificate\Migrations
+ * @since 4.13.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations;
 
@@ -25,6 +25,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Migration Dynamic Rereg Fields.
+ */
 class MigrationDynamicReregFields {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;

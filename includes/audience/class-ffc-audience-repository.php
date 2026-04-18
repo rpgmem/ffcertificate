@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Repository
  *
  * Handles database operations for audience groups (públicos-alvo).
  * Supports 3-level hierarchy (parent / child / grandchild).
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Audience
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
@@ -18,7 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-
+/**
+ * Database repository for audience records.
+ */
 class AudienceRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
@@ -88,15 +90,20 @@ class AudienceRepository {
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
-		$orderby      = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] ) ?: 'name ASC';
-		$limit_clause = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
+		$orderby_sanitized = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] );
+		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'name ASC';
+		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$limit_clause}";
 
 		$prepare_args = array_merge( array( $table ), $values );
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		/** @phpstan-ignore-next-line argument.type */
+		/**
+		 * Description.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
@@ -105,6 +112,16 @@ class AudienceRepository {
 
 	/**
 	 * Get audience by ID
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
 	 *
 	 * @param int $id Audience ID.
 	 * @return object|null
@@ -525,14 +542,13 @@ class AudienceRepository {
 
 			if ( ! empty( $ancestor_ids ) ) {
 				$ancestor_ids = array_unique( array_map( 'absint', $ancestor_ids ) );
-				$id_list      = implode( ',', $ancestor_ids );
+				$placeholders = implode( ',', array_fill( 0, count( $ancestor_ids ), '%d' ) );
 
-                // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $id_list is sanitized via absint(); cached below.
+                // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN() placeholders built from array_fill; cached below.
 				$parents = $wpdb->get_results(
-					/** @phpstan-ignore-next-line argument.type */
-					$wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$id_list}) AND status = 'active'", $table )
+					$wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$placeholders}) AND status = 'active'", array_merge( array( $table ), $ancestor_ids ) )
 				);
-                // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 				// Merge and remove duplicates.
 				$existing_ids = array_column( $audiences, 'id' );
@@ -638,7 +654,8 @@ class AudienceRepository {
 	 * @return int
 	 */
 	public static function count( array $args = array() ): int {
-		$cache_key = 'ffcertificate_aud_count_' . md5( wp_json_encode( $args ) ?: '' );
+		$args_json = wp_json_encode( $args );
+		$cache_key = 'ffcertificate_aud_count_' . md5( $args_json ? $args_json : '' );
 		$cached    = wp_cache_get( $cache_key, 'ffcertificate' );
 		if ( false !== $cached ) {
 			return (int) $cached;

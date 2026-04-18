@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment Handler
  *
@@ -8,10 +6,13 @@ declare(strict_types=1);
  * AJAX handling extracted to AppointmentAjaxHandler (v4.6.8).
  * Validation logic extracted to AppointmentValidator (v4.6.8).
  *
+ * @package FreeFormCertificate\SelfScheduling
  * @since 4.1.0
  * @version 4.6.10 - Transaction-based booking with row-level locking (race condition fix)
  * @version 4.6.8 - Refactored: extracted AJAX + validation into separate classes
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
@@ -19,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for appointment operations.
+ */
 class AppointmentHandler {
 
 	use \FreeFormCertificate\Core\EmailHelperTrait;
@@ -31,17 +35,23 @@ class AppointmentHandler {
 	private $calendar_repository;
 
 	/**
+	 * Appointment repository.
+	 *
 	 * @var \FreeFormCertificate\Repositories\AppointmentRepository
 	 */
 	private $appointment_repository;
 
 	/**
+	 * Blocked date repository.
+	 *
 	 * @var \FreeFormCertificate\Repositories\BlockedDateRepository
 	 */
 	private $blocked_date_repository;
 
 	/**
 	 * Validator
+	 *
+	 * @var AppointmentValidator
 	 */
 	private AppointmentValidator $validator;
 
@@ -66,10 +76,20 @@ class AppointmentHandler {
 		return $this->calendar_repository;
 	}
 
+	/**
+	 * Get appointment repository.
+	 *
+	 * @return \FreeFormCertificate\Repositories\AppointmentRepository
+	 */
 	public function get_appointment_repository(): \FreeFormCertificate\Repositories\AppointmentRepository {
 		return $this->appointment_repository;
 	}
 
+	/**
+	 * Get blocked date repository.
+	 *
+	 * @return \FreeFormCertificate\Repositories\BlockedDateRepository
+	 */
 	public function get_blocked_date_repository(): \FreeFormCertificate\Repositories\BlockedDateRepository {
 		return $this->blocked_date_repository;
 	}
@@ -133,7 +153,7 @@ class AppointmentHandler {
 			 *
 			 * @since 4.6.4
 			 * @param array $data     Appointment data.
-			 * @param array $calendar Calendar configuration.
+			 * @param array<string, mixed> $calendar Calendar configuration.
 			 */
 			do_action( 'ffcertificate_before_appointment_create', $data, $calendar );
 
@@ -158,7 +178,7 @@ class AppointmentHandler {
 		 * @since 4.6.4
 		 * @param int   $appointment_id New appointment ID.
 		 * @param array $data           Appointment data.
-		 * @param array $calendar       Calendar configuration.
+		 * @param array<string, mixed> $calendar       Calendar configuration.
 		 */
 		do_action( 'ffcertificate_after_appointment_create', $appointment_id, $data, $calendar );
 
@@ -194,8 +214,8 @@ class AppointmentHandler {
 	/**
 	 * Get available time slots for a date
 	 *
-	 * @param int    $calendar_id
-	 * @param string $date
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date Date.
 	 * @return array<int, array<string, mixed>>|\WP_Error
 	 */
 	public function get_available_slots( int $calendar_id, string $date ) {
@@ -223,7 +243,8 @@ class AppointmentHandler {
 		}
 
 		// Get day of week.
-		$day_of_week = (int) gmdate( 'w', strtotime( $date ) ?: time() );
+		$date_ts     = strtotime( $date );
+		$day_of_week = (int) gmdate( 'w', $date_ts ? $date_ts : time() );
 
 		// Get working hours for this day.
 		$working_hours = $calendar['working_hours'] ?? array();
@@ -259,8 +280,10 @@ class AppointmentHandler {
 		$max_per_slot  = (int) $calendar['max_appointments_per_slot'];
 
 		foreach ( $day_hours as $hours ) {
-			$current_time = strtotime( $date . ' ' . $hours['start'] ) ?: time();
-			$end_time     = strtotime( $date . ' ' . $hours['end'] ) ?: time();
+			$start_ts     = strtotime( $date . ' ' . $hours['start'] );
+			$current_time = $start_ts ? $start_ts : time();
+			$end_ts       = strtotime( $date . ' ' . $hours['end'] );
+			$end_time     = $end_ts ? $end_ts : time();
 
 			while ( $current_time < $end_time ) {
 				$slot_time = gmdate( 'H:i:s', $current_time );
@@ -298,7 +321,7 @@ class AppointmentHandler {
 		 * @param array  $slots       Array of available slot data.
 		 * @param int    $calendar_id  Calendar ID.
 		 * @param string $date         Date string (Y-m-d).
-		 * @param array  $calendar     Calendar configuration.
+		 * @param array<string, mixed>  $calendar     Calendar configuration.
 		 */
 		return apply_filters( 'ffcertificate_available_slots', $slots, $calendar_id, $date, $calendar );
 	}
@@ -306,7 +329,7 @@ class AppointmentHandler {
 	/**
 	 * Cancel appointment
 	 *
-	 * @param int    $appointment_id
+	 * @param int    $appointment_id Appointment ID.
 	 * @param string $token Confirmation token for guest users.
 	 * @param string $reason Cancellation reason.
 	 * @return true|\WP_Error
@@ -389,7 +412,7 @@ class AppointmentHandler {
 		 *
 		 * @since 4.6.4
 		 * @param int    $appointment_id Appointment ID.
-		 * @param array  $appointment    Original appointment data.
+		 * @param array<string, mixed>  $appointment    Original appointment data.
 		 * @param string $reason         Cancellation reason.
 		 * @param int|null $cancelled_by User ID who cancelled (null for guest).
 		 */
@@ -404,8 +427,8 @@ class AppointmentHandler {
 	/**
 	 * Schedule email notifications
 	 *
-	 * @param array<string, mixed> $appointment
-	 * @param array<string, mixed> $calendar
+	 * @param array<string, mixed> $appointment Appointment.
+	 * @param array<string, mixed> $calendar Calendar.
 	 * @param string               $event (created, confirmed, cancelled, reminder).
 	 */
 	private function schedule_email_notifications( array $appointment, array $calendar, string $event ): void {

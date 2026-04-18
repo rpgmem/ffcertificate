@@ -1,12 +1,13 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Rate Limit Settings Tab
  *
+ * @package FreeFormCertificate\Settings\Tabs
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings\Tabs;
 
@@ -16,8 +17,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab Rate Limit settings tab.
+ */
 class TabRateLimit extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'rate_limit';
 		$this->tab_title = __( 'Rate Limit', 'ffcertificate' );
@@ -26,6 +33,8 @@ class TabRateLimit extends SettingsTab {
 	}
 
 	/**
+	 * Get settings.
+	 *
 	 * @return array<string, mixed>
 	 */
 	private function get_settings(): array {
@@ -93,6 +102,9 @@ class TabRateLimit extends SettingsTab {
 		return wp_parse_args( get_option( 'ffc_rate_limit_settings', array() ), $defaults );
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below via check_admin_referer.
 		if ( $_POST && isset( $_POST['ffc_save_rate_limit'] ) ) {
@@ -105,6 +117,9 @@ class TabRateLimit extends SettingsTab {
 		include FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-rate-limit.php';
 	}
 
+	/**
+	 * Save settings.
+	 */
 	private function save_settings(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
 		$settings = array(

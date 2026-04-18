@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * User Certificates REST Controller
  *
  * Handles:
  *   GET /user/certificates – Current user's certificates
  *
- * @since 4.12.7  Extracted from UserDataRestController
  * @package FreeFormCertificate\API
+ * @since 4.12.7  Extracted from UserDataRestController
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
@@ -17,16 +17,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-
+/**
+ * REST API controller for user certificates endpoints.
+ */
 class UserCertificatesRestController {
 
 	use UserContextTrait;
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param string $namespace Namespace.
+	 */
 	public function __construct( string $namespace ) {
 		$this->namespace = $namespace;
 	}
@@ -50,7 +59,7 @@ class UserCertificatesRestController {
 	 * GET /user/certificates
 	 *
 	 * @since 3.1.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_user_certificates( $request ) {
@@ -131,7 +140,7 @@ class UserCertificatesRestController {
 					'id'                  => (int) ( $submission['id'] ?? 0 ),
 					'form_id'             => (int) ( $submission['form_id'] ?? 0 ),
 					'form_title'          => $submission['form_title'] ?? __( 'Unknown Form', 'ffcertificate' ),
-					'submission_date'     => $date_formatted ?: '',
+					'submission_date'     => $date_formatted ? $date_formatted : '',
 					'submission_date_raw' => $submission['submission_date'] ?? '',
 					'consent_given'       => ! empty( $submission['consent_given'] ),
 					'email'               => $email_display,
@@ -175,7 +184,7 @@ class UserCertificatesRestController {
 			}
 			return new \WP_Error(
 				'get_certificates_error',
-				$e->getMessage(),
+				__( 'An unexpected error occurred.', 'ffcertificate' ),
 				array( 'status' => 500 )
 			);
 		}

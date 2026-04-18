@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * General Settings Tab
  *
- * @package FFC
+ * @package FreeFormCertificate\Settings\Tabs
  * @since 2.10.0
  * @version 4.6.16 - Simplified: debug/activity/danger/cache moved to dedicated tabs
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings\Tabs;
 
@@ -19,8 +19,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tab General settings tab.
+ */
 class TabGeneral extends SettingsTab {
 
+	/**
+	 * Init.
+	 */
 	protected function init(): void {
 		$this->tab_id    = 'general';
 		$this->tab_title = __( 'General', 'ffcertificate' );
@@ -28,6 +34,9 @@ class TabGeneral extends SettingsTab {
 		$this->tab_order = 10;
 	}
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		$view_file = FFC_PLUGIN_DIR . 'includes/settings/views/ffc-tab-general.php';
 

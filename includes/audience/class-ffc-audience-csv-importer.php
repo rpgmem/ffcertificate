@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience CSV Importer
  *
@@ -13,9 +11,11 @@ declare(strict_types=1);
  * Expected CSV format for audiences:
  * name,color,parent_name
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Audience
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
@@ -23,6 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Importer for audience csv data.
+ */
 class AudienceCsvImporter {
 
 	/**
@@ -95,6 +98,7 @@ class AudienceCsvImporter {
 
 		// Process rows.
 		$row_num = 1;
+		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- canonical fgetcsv() streaming pattern.
 		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
 			++$row_num;
 
@@ -225,6 +229,7 @@ class AudienceCsvImporter {
 		// First pass: create all parent audiences.
 		$audiences_to_create = array();
 		$row_num             = 1;
+		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- canonical fgetcsv() streaming pattern.
 		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
 			++$row_num;
 
@@ -246,7 +251,7 @@ class AudienceCsvImporter {
 			$audiences_to_create[] = array(
 				'row'         => $row_num,
 				'name'        => $name,
-				'color'       => $color ?: '#3788d8',
+				'color'       => $color ? $color : '#3788d8',
 				'parent_name' => $parent_name,
 			);
 		}
@@ -382,7 +387,7 @@ class AudienceCsvImporter {
 				'user_login'   => $username,
 				'user_email'   => $email,
 				'user_pass'    => $password,
-				'display_name' => $name ?: $username,
+				'display_name' => $name ? $name : $username,
 				'role'         => 'ffc_user',
 			)
 		);
@@ -450,6 +455,7 @@ class AudienceCsvImporter {
 		}
 
 		// Count rows.
+		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- canonical fgetcsv() streaming pattern.
 		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
 			if ( ! empty( array_filter( $data ) ) ) {
 				++$result['rows'];

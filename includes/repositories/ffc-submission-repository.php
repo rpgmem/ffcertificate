@@ -8,6 +8,7 @@
  * v3.0.2: Fixed search to work with encrypted data (removed data_encrypted LIKE, added auth_code/magic_token search)
  * v3.0.1: Added methods for CSV export
  *
+ * @package FreeFormCertificate\Repositories
  * @since 3.0.0
  */
 
@@ -19,7 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-
+/**
+ * Database repository for submission records.
+ */
 class SubmissionRepository extends AbstractRepository {
 
 	/**
@@ -60,15 +63,27 @@ class SubmissionRepository extends AbstractRepository {
 		return $result;
 	}
 
+	/**
+	 * Get table name.
+	 *
+	 * @return string
+	 */
 	protected function get_table_name(): string {
 		return $this->wpdb->prefix . 'ffc_submissions';
 	}
 
+	/**
+	 * Get cache group.
+	 *
+	 * @return string
+	 */
 	protected function get_cache_group(): string {
 		return 'ffc_submissions';
 	}
 
 	/**
+	 * Get allowed order columns.
+	 *
 	 * @return array<int, string>
 	 */
 	protected function get_allowed_order_columns(): array {
@@ -78,7 +93,7 @@ class SubmissionRepository extends AbstractRepository {
 	/**
 	 * Find by auth code
 	 *
-	 * @param string $auth_code
+	 * @param string $auth_code Auth code.
 	 * @return array<string, mixed>|null
 	 */
 	public function findByAuthCode( string $auth_code ) {
@@ -105,7 +120,7 @@ class SubmissionRepository extends AbstractRepository {
 	/**
 	 * Find by magic token
 	 *
-	 * @param string $token
+	 * @param string $token Token.
 	 * @return array<string, mixed>|null
 	 */
 	public function findByToken( string $token ) {
@@ -132,8 +147,8 @@ class SubmissionRepository extends AbstractRepository {
 	/**
 	 * Find by email
 	 *
-	 * @param string $email
-	 * @param int    $limit
+	 * @param string $email Email address.
+	 * @param int    $limit Limit.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByEmail( string $email, int $limit = 10 ): array {
@@ -152,8 +167,8 @@ class SubmissionRepository extends AbstractRepository {
 	/**
 	 * Find by CPF/RF
 	 *
-	 * @param string $cpf
-	 * @param int    $limit
+	 * @param string $cpf Cpf.
+	 * @param int    $limit Limit.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByCpfRf( string $cpf, int $limit = 10 ): array {
@@ -179,9 +194,9 @@ class SubmissionRepository extends AbstractRepository {
 	/**
 	 * Find by form ID
 	 *
-	 * @param int $form_id
-	 * @param int $limit
-	 * @param int $offset
+	 * @param int $form_id Form ID.
+	 * @param int $limit Limit.
+	 * @param int $offset Offset.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByFormId( int $form_id, int $limit = 100, int $offset = 0 ): array {
@@ -308,7 +323,11 @@ class SubmissionRepository extends AbstractRepository {
 		$query = "SELECT * FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		/** @phpstan-ignore-next-line argument.type */
+		/**
+		 * Description.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
 		$query = $this->wpdb->prepare( $query, ...$prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -319,6 +338,16 @@ class SubmissionRepository extends AbstractRepository {
 	 * Get only JSON data columns in batches for dynamic-key discovery.
 	 *
 	 * Much lighter than SELECT * — skips all encrypted/heavy columns.
+	 *
+	 * Get export keys batch.
+	 *
+	 * Get export keys batch.
+	 *
+	 * Get export keys batch.
+	 *
+	 * Get export keys batch.
+	 *
+	 * Get export keys batch.
 	 *
 	 * @since 5.0.0
 	 * @param array<int, int>|null $form_ids  Form IDs filter.
@@ -342,7 +371,11 @@ class SubmissionRepository extends AbstractRepository {
 		$query = "SELECT id, data, data_encrypted FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		/** @phpstan-ignore-next-line argument.type */
+		/**
+		 * Description.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
 		$query = $this->wpdb->prepare( $query, ...$prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -351,6 +384,16 @@ class SubmissionRepository extends AbstractRepository {
 
 	/**
 	 * Count total matching rows for export progress reporting.
+	 *
+	 * Count for export.
+	 *
+	 * Count for export.
+	 *
+	 * Count for export.
+	 *
+	 * Count for export.
+	 *
+	 * Count for export.
 	 *
 	 * @since 5.0.0
 	 * @param array<int, int>|null $form_ids Form IDs filter.
@@ -363,7 +406,11 @@ class SubmissionRepository extends AbstractRepository {
 		$query = "SELECT COUNT(*) FROM %i {$where_clause}";
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		/** @phpstan-ignore-next-line argument.type */
+		/**
+		 * Description.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
 		$query = $this->wpdb->prepare( $query, ...$prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -372,6 +419,16 @@ class SubmissionRepository extends AbstractRepository {
 
 	/**
 	 * ✅ NEW v3.0.1: Check if any submission has edit information
+	 *
+	 * Check whether the record has edit info.
+	 *
+	 * Check whether the record has edit info.
+	 *
+	 * Check whether the record has edit info.
+	 *
+	 * Check whether the record has edit info.
+	 *
+	 * Check whether the record has edit info.
 	 *
 	 * @return bool True if edited_at column exists and has data
 	 */
@@ -394,7 +451,7 @@ class SubmissionRepository extends AbstractRepository {
 	 * Find with pagination and filters
 	 * Optimized search for encrypted data (v3.0.2)
 	 *
-	 * @param array<string, mixed> $args
+	 * @param array<string, mixed> $args Arguments.
 	 * @return array<string, mixed>
 	 */
 	public function findPaginated( array $args = array() ): array {
@@ -415,11 +472,12 @@ class SubmissionRepository extends AbstractRepository {
 		if ( ! empty( $args['form_ids'] ) && is_array( $args['form_ids'] ) ) {
 			$form_ids_int          = array_map( 'absint', $args['form_ids'] );
 			$form_ids_placeholders = implode( ', ', array_fill( 0, count( $form_ids_int ), '%d' ) );
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $form_ids_placeholders is %d repeated to match count($form_ids_int); Interpolated* is file-disabled above.
 			$where[] = $this->wpdb->prepare(
 				"form_id IN ({$form_ids_placeholders})",
 				...$form_ids_int
 			);
+            // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		}
 
 		if ( ! empty( $args['search'] ) ) {
@@ -468,7 +526,11 @@ class SubmissionRepository extends AbstractRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$items = $this->wpdb->get_results(
 			$this->wpdb->prepare(
-				/** @phpstan-ignore-next-line argument.type */
+				/**
+				 * Description.
+				 *
+				 * @phpstan-ignore-next-line argument.type
+				 */
 				"SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
 				$this->table,
 				$args['per_page'],
@@ -478,7 +540,11 @@ class SubmissionRepository extends AbstractRepository {
 		);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		/** @phpstan-ignore-next-line argument.type */
+		/**
+		 * Description.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
 		$total = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $this->table ) );
 
 		return array(
@@ -490,6 +556,26 @@ class SubmissionRepository extends AbstractRepository {
 
 	/**
 	 * Count by status
+	 *
+	 * Count by status.
+	 *
+	 * Count by status.
+	 *
+	 * Count by status.
+	 *
+	 * Count by status.
+	 *
+	 * Count by status.
+	 *
+	 * Count by status.
+	 *
+	 * Count by status.
+	 *
+	 * Count by status.
+	 *
+	 * Count by status.
+	 *
+	 * Count by status.
 	 *
 	 * @return array<string, int>
 	 */
@@ -511,8 +597,8 @@ class SubmissionRepository extends AbstractRepository {
 	/**
 	 * Update status
 	 *
-	 * @param int    $id
-	 * @param string $status
+	 * @param int    $id Record ID.
+	 * @param string $status Status.
 	 * @return int|false
 	 */
 	public function updateStatus( int $id, string $status ) {
@@ -522,8 +608,8 @@ class SubmissionRepository extends AbstractRepository {
 	/**
 	 * Bulk update status
 	 *
-	 * @param array<int, int> $ids
-	 * @param string          $status
+	 * @param array<int, int> $ids    Submission IDs.
+	 * @param string          $status Status.
 	 * @return int|false
 	 */
 	public function bulkUpdateStatus( array $ids, string $status ) {
@@ -554,7 +640,7 @@ class SubmissionRepository extends AbstractRepository {
 	/**
 	 * Bulk delete
 	 *
-	 * @param array<int, int> $ids
+	 * @param array<int, int> $ids Submission IDs.
 	 * @return int|false
 	 */
 	public function bulkDelete( array $ids ) {
@@ -584,7 +670,7 @@ class SubmissionRepository extends AbstractRepository {
 	/**
 	 * Delete by form ID
 	 *
-	 * @param int $form_id
+	 * @param int $form_id Form ID.
 	 * @return int|false
 	 */
 	public function deleteByFormId( int $form_id ) {
@@ -622,7 +708,7 @@ class SubmissionRepository extends AbstractRepository {
 	/**
 	 * Hash helper
 	 *
-	 * @param string $value
+	 * @param string $value Value.
 	 * @return string|null
 	 */
 	private function hash( string $value ): ?string {

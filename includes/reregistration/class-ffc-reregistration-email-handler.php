@@ -1,15 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Email Handler
  *
  * Sends invitation, reminder, and confirmation emails for reregistration campaigns.
  * Uses EmailTemplateService for rendering and sending.
  *
- * @since 4.11.0
  * @package FreeFormCertificate\Reregistration
+ * @since 4.11.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for reregistration email operations.
+ */
 class ReregistrationEmailHandler {
 
 	use \FreeFormCertificate\Core\EmailHelperTrait;
@@ -263,6 +266,15 @@ class ReregistrationEmailHandler {
 	 * @return array<string, string>|null Array with 'subject' and 'body', or null.
 	 */
 	private static function load_template( string $template_name ): ?array {
+		$allowed = array(
+			'reregistration-invitation',
+			'reregistration-reminder',
+			'reregistration-confirmation',
+		);
+		if ( ! in_array( $template_name, $allowed, true ) ) {
+			return null;
+		}
+
 		$file = FFC_PLUGIN_DIR . "templates/emails/{$template_name}.php";
 		if ( ! file_exists( $file ) ) {
 			return null;

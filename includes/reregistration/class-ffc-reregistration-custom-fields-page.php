@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Reregistration Custom Fields Page
  *
  * Renders the admin submenu page for managing per-audience custom fields.
  *
- * @since 4.12.13  Extracted from ReregistrationAdmin
  * @package FreeFormCertificate\Reregistration
+ * @since 4.12.13  Extracted from ReregistrationAdmin
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
@@ -18,6 +18,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin page for reregistration custom fields.
+ */
 class ReregistrationCustomFieldsPage {
 
 	/**

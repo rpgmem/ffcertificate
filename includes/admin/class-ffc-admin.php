@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Admin
  * v2.10.0: ENCRYPTION - Shows LGPD consent status, data auto-decrypted by Submission Handler
  *
+ * @package FreeFormCertificate\Admin
  * @version 4.0.0 - Removed alias usage (Phase 4 Hotfix 7)
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
@@ -23,25 +24,146 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin.
+ */
 class Admin {
 
-	/** @var \FreeFormCertificate\Submissions\SubmissionHandler */
+	/**
+	 * Submission handler.
+	 *
+	 * @var \FreeFormCertificate\Submissions\SubmissionHandler
+	 */
 	private $submission_handler;
-	/** @var object */
+	/**
+	 * Csv exporter.
+	 *
+	 * @var object
+	 */
 	private $csv_exporter;
-	/** @var FormEditor */
+	/**
+	 * Form editor.
+	 *
+	 * @var FormEditor
+	 */
 	private $form_editor; // @phpstan-ignore property.onlyWritten
-	/** @var Settings */
+	/**
+	 * Settings page.
+	 *
+	 * @var Settings
+	 */
 	private $settings_page; // @phpstan-ignore property.onlyWritten
-	/** @var MigrationManager|null */
+	/**
+	 * Migration manager.
+	 *
+	 * @var MigrationManager|null
+	 */
 	private $migration_manager;
-	/** @var AdminAssetsManager */
+	/**
+	 * Assets manager.
+	 *
+	 * @var AdminAssetsManager
+	 */
 	private $assets_manager;
-	/** @var AdminSubmissionEditPage */
+	/**
+	 * Edit page.
+	 *
+	 * @var AdminSubmissionEditPage
+	 */
 	private $edit_page;
-	/** @var AdminActivityLogPage */
+	/**
+	 * Activity log page.
+	 *
+	 * @var AdminActivityLogPage
+	 */
 	private $activity_log_page;
 
+	/**
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Handler.
+	 * @param object                                             $exporter Exporter.
+	 */
 	public function __construct( \FreeFormCertificate\Submissions\SubmissionHandler $handler, object $exporter ) {
 		$this->submission_handler = $handler;
 		$this->csv_exporter       = $exporter;
@@ -71,6 +193,9 @@ class Admin {
 		$this->csv_exporter->register_ajax_hooks();
 	}
 
+	/**
+	 * Register admin menu.
+	 */
 	public function register_admin_menu(): void {
 		add_submenu_page(
 			'edit.php?post_type=ffc_form',
@@ -84,6 +209,9 @@ class Admin {
 		$this->activity_log_page->register_menu();
 	}
 
+	/**
+	 * Handle submission actions.
+	 */
 	public function handle_submission_actions(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified per-action below via wp_verify_nonce and check_admin_referer.
 		if ( ! isset( $_GET['page'] ) || sanitize_text_field( wp_unslash( $_GET['page'] ) ) !== 'ffc-submissions' ) {
@@ -140,6 +268,9 @@ class Admin {
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 
+	/**
+	 * Display submissions page.
+	 */
 	public function display_submissions_page(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing parameter for page display.
 		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : 'list';
@@ -150,6 +281,9 @@ class Admin {
 		}
 	}
 
+	/**
+	 * Render list page.
+	 */
 	private function render_list_page(): void {
 		// Autoloader handles class loading.
 		$table = new \FreeFormCertificate\Admin\SubmissionsList( $this->submission_handler );
@@ -184,7 +318,8 @@ class Admin {
 					type="button"
 					id="ffc-csv-export-btn"
 					class="<?php echo esc_attr( $btn_class ); ?>"
-					data-form-ids="<?php echo esc_attr( wp_json_encode( $filter_form_ids ) ?: '' ); ?>"
+					<?php $form_ids_json = wp_json_encode( $filter_form_ids ); ?>
+					data-form-ids="<?php echo esc_attr( $form_ids_json ? $form_ids_json : '' ); ?>"
 					data-status="<?php echo esc_attr( $export_status ); ?>"
 				><?php echo esc_html( $btn_label ); ?></button>
 				<span id="ffc-csv-export-progress" style="display:none; margin-left:8px; vertical-align:middle;"></span>
@@ -205,12 +340,33 @@ class Admin {
 		<?php
 	}
 
+	/**
+	 * Redirect with msg.
+	 *
+	 * @param string $msg Msg.
+	 */
 	private function redirect_with_msg( string $msg ): void {
-		$url = remove_query_arg( array( 'action', 'action2', 'submission_id', 'submission', '_wpnonce' ), isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '' );
-		wp_safe_redirect( add_query_arg( 'msg', $msg, $url ) );
+		// Build the redirect target from the current admin screen instead of REQUEST_URI, so the URL
+		// path cannot be influenced by request-level input. Preserve the page and post_type context.
+		$page      = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$post_type = isset( $_GET['post_type'] ) ? sanitize_key( wp_unslash( $_GET['post_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		$args = array( 'msg' => $msg );
+		if ( $page ) {
+			$args['page'] = $page;
+		}
+		if ( $post_type ) {
+			$args['post_type'] = $post_type;
+		}
+
+		$url = add_query_arg( $args, admin_url( 'edit.php' ) );
+		wp_safe_redirect( $url );
 		exit;
 	}
 
+	/**
+	 * Display admin notices.
+	 */
 	private function display_admin_notices(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display-only URL parameters from admin redirects.
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
@@ -257,15 +413,24 @@ class Admin {
 	}
 
 
+	/**
+	 * Render edit page.
+	 */
 	private function render_edit_page(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Routing parameter for edit page display.
 		$submission_id = isset( $_GET['submission_id'] ) ? absint( wp_unslash( $_GET['submission_id'] ) ) : 0;
 		$this->edit_page->render( $submission_id );
 	}
 
+	/**
+	 * Handle submission edit save.
+	 */
 	public function handle_submission_edit_save(): void {
 		$this->edit_page->handle_save();
 	}
+	/**
+	 * Handle csv export request.
+	 */
 	public function handle_csv_export_request(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in csv_exporter->handle_export_request().
 		if ( isset( $_POST['ffc_action'] ) && sanitize_text_field( wp_unslash( $_POST['ffc_action'] ) ) === 'export_csv_smart' ) {
@@ -314,7 +479,7 @@ class Admin {
 					'post_type' => 'ffc_form',
 					'page'      => 'ffc-submissions',
 					'msg'       => 'migration_error',
-					'error_msg' => urlencode( $result->get_error_message() ),
+					'error_msg' => rawurlencode( $result->get_error_message() ),
 				),
 				admin_url( 'edit.php' )
 			);
@@ -326,7 +491,7 @@ class Admin {
 					'post_type'      => 'ffc_form',
 					'page'           => 'ffc-submissions',
 					'msg'            => 'migration_success',
-					'migration_name' => urlencode( $migration['name'] ),
+					'migration_name' => rawurlencode( $migration['name'] ),
 					'migrated'       => $migrated,
 				),
 				admin_url( 'edit.php' )

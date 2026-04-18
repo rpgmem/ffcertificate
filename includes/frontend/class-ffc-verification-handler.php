@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * VerificationHandler
  * Handles certificate verification and authenticity checks.
@@ -12,7 +10,11 @@ declare(strict_types=1);
  * v3.3.0: Added strict types and type hints
  * v3.2.0: Migrated to namespace (Phase 2)
  * v4.6.8: Extracted rendering to VerificationResponseRenderer (M7 refactoring)
+ *
+ * @package FreeFormCertificate\Frontend
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
@@ -23,14 +25,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for verification operations.
+ */
 class VerificationHandler {
 
-	/** @var SubmissionHandler|null */
+	/**
+	 * Submission handler.
+	 *
+	 * @var SubmissionHandler|null
+	 */
 	private $submission_handler;
+	/**
+	 * Renderer.
+	 *
+	 * @var VerificationResponseRenderer
+	 */
 	private VerificationResponseRenderer $renderer;
 
 	/**
 	 * Constructor
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
+	 *
+	 * Constructor.
 	 *
 	 * @param SubmissionHandler|null $submission_handler Submission handler dependency.
 	 */
@@ -42,7 +66,8 @@ class VerificationHandler {
 	/**
 	 * Search for certificate by authentication code
 	 *
-	 * V2.9.15: RECONSTRUÇÃO - Combina colunas + JSON
+	 * @param string $auth_code Auth code.
+	 * @return array
 	 */
 	/**
 	 * Search for certificate - uses Repository.
@@ -52,6 +77,7 @@ class VerificationHandler {
 	 * with fallback to other tables. Without prefix, all tables are searched
 	 * sequentially (backwards compatible).
 	 *
+	 * @param string $auth_code Auth code.
 	 * @since 4.13.0 Added prefix-based routing.
 	 * @return array<string, mixed>
 	 */
@@ -564,6 +590,7 @@ class VerificationHandler {
 	 * Verify certificate (used by shortcode fallback - non-AJAX)
 	 * Returns array with 'success' (bool), 'html' (string), 'message' (string)
 	 *
+	 * @param string $auth_code Auth code.
 	 * @return array<string, mixed>
 	 */
 	public function verify_certificate( string $auth_code ): array {

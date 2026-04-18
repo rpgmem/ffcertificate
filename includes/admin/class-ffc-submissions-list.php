@@ -1,14 +1,15 @@
 <?php
-declare(strict_types=1);
-
 /**
  * SubmissionsList v3.0.0
  * Uses Repository Pattern
  * Fixed: PDF button now uses token directly from item
  *
+ * @package FreeFormCertificate\Admin
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
@@ -22,23 +23,37 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
 }
 
+/**
+ * Submissions List.
+ */
 class SubmissionsList extends \WP_List_Table {
 
 	/**
+	 * Submission handler.
+	 *
 	 * @var \FreeFormCertificate\Submissions\SubmissionHandler
 	 */
 	private $submission_handler;
 
 	/**
+	 * Repository.
+	 *
 	 * @var \FreeFormCertificate\Repositories\SubmissionRepository
 	 */
 	private $repository;
 
 	/**
+	 * Form titles cache.
+	 *
 	 * @var array<int, string>
 	 */
 	private array $form_titles_cache = array();
 
+	/**
+	 * Constructor.
+	 *
+	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Handler.
+	 */
 	public function __construct( \FreeFormCertificate\Submissions\SubmissionHandler $handler ) {
 		parent::__construct(
 			array(
@@ -52,6 +67,8 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
+	 * Get columns.
+	 *
 	 * @return array<string, string>
 	 */
 	public function get_columns() {
@@ -68,6 +85,8 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
+	 * Get sortable columns.
+	 *
 	 * @return array<string, array<int, bool|string>>
 	 */
 	protected function get_sortable_columns() {
@@ -79,19 +98,21 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
-	 * @param array<string, mixed> $item
-	 * @param string               $column_name
+	 * Column default.
+	 *
+	 * @param mixed $item Item.
+	 * @param mixed $column_name Column name.
 	 * @return string
 	 */
 	protected function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
 			case 'id':
-				return $item['id'];
+				return esc_html( (string) $item['id'] );
 
 			case 'form':
 				$form_id    = (int) $item['form_id'];
 				$form_title = $this->form_titles_cache[ $form_id ] ?? '';
-				return $form_title ? \FreeFormCertificate\Core\Utils::truncate( $form_title, 30 ) : __( '(Deleted)', 'ffcertificate' );
+				return $form_title ? esc_html( \FreeFormCertificate\Core\Utils::truncate( $form_title, 30 ) ) : esc_html__( '(Deleted)', 'ffcertificate' );
 
 			case 'email':
 				return esc_html( $item['email'] );
@@ -117,7 +138,9 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
-	 * @param array<string, mixed> $item
+	 * Render actions.
+	 *
+	 * @param array<string, mixed> $item Item.
 	 * @return string
 	 */
 	private function render_actions( array $item ): string {
@@ -130,7 +153,7 @@ class SubmissionsList extends \WP_List_Table {
 			$base_url
 		);
 
-		$actions  = '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . __( 'Edit', 'ffcertificate' ) . '</a> ';
+		$actions  = '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Edit', 'ffcertificate' ) . '</a> ';
 		$actions .= $this->render_pdf_button( $item );
 
 		if ( isset( $item['status'] ) && 'publish' === $item['status'] ) {
@@ -144,7 +167,7 @@ class SubmissionsList extends \WP_List_Table {
 				),
 				'ffc_action_' . $item['id']
 			);
-			$actions  .= '<a href="' . esc_url( $trash_url ) . '" class="button button-small">' . __( 'Trash', 'ffcertificate' ) . '</a>';
+			$actions  .= '<a href="' . esc_url( $trash_url ) . '" class="button button-small">' . esc_html__( 'Trash', 'ffcertificate' ) . '</a>';
 		} else {
 			$restore_url = wp_nonce_url(
 				add_query_arg(
@@ -167,15 +190,17 @@ class SubmissionsList extends \WP_List_Table {
 				'ffc_action_' . $item['id']
 			);
 
-			$actions .= '<a href="' . esc_url( $restore_url ) . '" class="button button-small">' . __( 'Restore', 'ffcertificate' ) . '</a> ';
-			$actions .= '<a href="' . esc_url( $delete_url ) . '" class="button button-small ffc-delete-btn" data-confirm="' . esc_attr( __( 'Permanently delete?', 'ffcertificate' ) ) . '">' . __( 'Delete', 'ffcertificate' ) . '</a>';
+			$actions .= '<a href="' . esc_url( $restore_url ) . '" class="button button-small">' . esc_html__( 'Restore', 'ffcertificate' ) . '</a> ';
+			$actions .= '<a href="' . esc_url( $delete_url ) . '" class="button button-small ffc-delete-btn" data-confirm="' . esc_attr__( 'Permanently delete?', 'ffcertificate' ) . '">' . esc_html__( 'Delete', 'ffcertificate' ) . '</a>';
 		}
 
 		return $actions;
 	}
 
 	/**
-	 * @param array<string, mixed> $item
+	 * Render pdf button.
+	 *
+	 * @param array<string, mixed> $item Item.
 	 * @return string
 	 */
 	private function render_pdf_button( array $item ): string {
@@ -200,7 +225,9 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
-	 * @param array<string, mixed> $item
+	 * Render status badge.
+	 *
+	 * @param array<string, mixed> $item Item.
 	 * @return string
 	 */
 	private function render_status_badge( array $item ): string {
@@ -233,6 +260,12 @@ class SubmissionsList extends \WP_List_Table {
 		}
 	}
 
+	/**
+	 * Format data preview.
+	 *
+	 * @param string|null $data_json Data json.
+	 * @return string
+	 */
 	private function format_data_preview( ?string $data_json ): string {
 		if ( null === $data_json || 'null' === $data_json || '' === $data_json ) {
 			return '<em class="ffc-empty-data">' . __( 'Only mandatory fields', 'ffcertificate' ) . '</em>';
@@ -274,7 +307,9 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
-	 * @param array<string, mixed> $item
+	 * Column cb.
+	 *
+	 * @param mixed $item Item.
 	 * @return string
 	 */
 	protected function column_cb( $item ) {
@@ -282,6 +317,8 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
+	 * Get bulk actions.
+	 *
 	 * @return array<string, string>
 	 */
 	protected function get_bulk_actions() {
@@ -306,6 +343,8 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
+	 * Prepare items.
+	 *
 	 * @return void
 	 */
 	public function prepare_items() {
@@ -405,6 +444,8 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
+	 * Get views.
+	 *
 	 * @return array<string, string>
 	 */
 	protected function get_views() {
@@ -445,6 +486,8 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
+	 * No items.
+	 *
 	 * @return void
 	 */
 	public function no_items() {

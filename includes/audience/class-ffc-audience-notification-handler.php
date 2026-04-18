@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Notification Handler
  *
@@ -12,9 +10,11 @@ declare(strict_types=1);
  * - Email to booking creator
  * - Optional .ics calendar file attachment
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Audience
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
@@ -22,6 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handler for audience notification operations.
+ */
 class AudienceNotificationHandler {
 
 	/**
@@ -100,7 +103,7 @@ class AudienceNotificationHandler {
 		}
 
 		// Get email template or use default.
-		$template = $schedule->email_template_booking ?: self::get_default_booking_template();
+		$template = $schedule->email_template_booking ? $schedule->email_template_booking : self::get_default_booking_template();
 
 		// Send email to each affected user.
 		foreach ( $affected_users as $user_id ) {
@@ -196,7 +199,7 @@ class AudienceNotificationHandler {
 		}
 
 		// Get email template or use default.
-		$template = $schedule->email_template_cancellation ?: self::get_default_cancellation_template();
+		$template = $schedule->email_template_cancellation ? $schedule->email_template_cancellation : self::get_default_cancellation_template();
 
 		// Send email to each affected user.
 		foreach ( $affected_users as $user_id ) {
@@ -227,26 +230,29 @@ class AudienceNotificationHandler {
 		$attachments = array();
 		$temp_files  = array();
 
-		// Create temporary ICS file if content provided.
+		// Create temporary ICS file in the system temp dir (not the publicly-accessible uploads dir).
 		if ( $ics_content ) {
-			$upload_dir = wp_upload_dir();
-			$ics_file   = $upload_dir['basedir'] . '/ffc-temp-' . wp_generate_password( 12, false ) . '.ics';
+			$ics_file = function_exists( 'wp_tempnam' )
+				? wp_tempnam( 'ffc-ics-' )
+				: tempnam( sys_get_temp_dir(), 'ffc-ics-' );
 
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			if ( file_put_contents( $ics_file, $ics_content ) ) {
+			if ( $ics_file && false !== file_put_contents( $ics_file, $ics_content ) ) {
 				$attachments[] = $ics_file;
 				$temp_files[]  = $ics_file;
 			}
 		}
 
-		// Delegate to shared email service.
-		$result = \FreeFormCertificate\Scheduling\EmailTemplateService::send( $to, $subject, $body, $attachments );
-
-		// Clean up temporary ICS file.
-		foreach ( $temp_files as $file ) {
-			if ( file_exists( $file ) ) {
-                // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
-				unlink( $file );
+		// Delegate to shared email service. Use try/finally so temp files are always cleaned up,
+		// even if the email service throws.
+		try {
+			$result = \FreeFormCertificate\Scheduling\EmailTemplateService::send( $to, $subject, $body, $attachments );
+		} finally {
+			foreach ( $temp_files as $file ) {
+				if ( file_exists( $file ) ) {
+                    // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+					unlink( $file );
+				}
 			}
 		}
 
@@ -294,21 +300,21 @@ class AudienceNotificationHandler {
 	 */
 	private static function render_template( string $template, array $booking_data, \WP_User $user ): string {
 		$replacements = array(
-			'{user_name}'           => $user->display_name,
-			'{user_email}'          => $user->user_email,
-			'{environment_name}'    => $booking_data['environment_name'],
-			'{environment_label}'   => $booking_data['environment_label'] ?? __( 'Environment', 'ffcertificate' ),
-			'{schedule_name}'       => $booking_data['schedule_name'],
-			'{booking_date}'        => $booking_data['booking_date'],
-			'{start_time}'          => $booking_data['start_time'],
-			'{end_time}'            => $booking_data['end_time'],
-			'{description}'         => $booking_data['description'],
-			'{audiences}'           => $booking_data['audiences'] ?? '',
-			'{creator_name}'        => $booking_data['creator_name'] ?? '',
-			'{cancelled_by_name}'   => $booking_data['cancelled_by_name'] ?? '',
-			'{cancellation_reason}' => $booking_data['cancellation_reason'] ?? '',
-			'{site_name}'           => get_bloginfo( 'name' ),
-			'{site_url}'            => home_url(),
+			'{user_name}'           => \esc_html( (string) $user->display_name ),
+			'{user_email}'          => \esc_html( (string) $user->user_email ),
+			'{environment_name}'    => \esc_html( (string) $booking_data['environment_name'] ),
+			'{environment_label}'   => \esc_html( (string) ( $booking_data['environment_label'] ?? __( 'Environment', 'ffcertificate' ) ) ),
+			'{schedule_name}'       => \esc_html( (string) $booking_data['schedule_name'] ),
+			'{booking_date}'        => \esc_html( (string) $booking_data['booking_date'] ),
+			'{start_time}'          => \esc_html( (string) $booking_data['start_time'] ),
+			'{end_time}'            => \esc_html( (string) $booking_data['end_time'] ),
+			'{description}'         => \esc_html( (string) $booking_data['description'] ),
+			'{audiences}'           => \esc_html( (string) ( $booking_data['audiences'] ?? '' ) ),
+			'{creator_name}'        => \esc_html( (string) ( $booking_data['creator_name'] ?? '' ) ),
+			'{cancelled_by_name}'   => \esc_html( (string) ( $booking_data['cancelled_by_name'] ?? '' ) ),
+			'{cancellation_reason}' => \esc_html( (string) ( $booking_data['cancellation_reason'] ?? '' ) ),
+			'{site_name}'           => \esc_html( (string) get_bloginfo( 'name' ) ),
+			'{site_url}'            => esc_url( home_url() ),
 		);
 
 		return str_replace( array_keys( $replacements ), array_values( $replacements ), $template );
@@ -403,6 +409,8 @@ class AudienceNotificationHandler {
 	/**
 	 * Format date for display.
 	 * Delegates to EmailTemplateService::format_date().
+	 *
+	 * @param string $date Date.
 	 */
 	private static function format_date( string $date ): string {
 		return \FreeFormCertificate\Scheduling\EmailTemplateService::format_date( $date );
@@ -411,6 +419,8 @@ class AudienceNotificationHandler {
 	/**
 	 * Format time for display.
 	 * Delegates to EmailTemplateService::format_time().
+	 *
+	 * @param string $time Time.
 	 */
 	private static function format_time( string $time ): string {
 		return \FreeFormCertificate\Scheduling\EmailTemplateService::format_time( $time );

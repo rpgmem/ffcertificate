@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Appointment REST Controller
  *
@@ -9,9 +7,11 @@ declare(strict_types=1);
  *   GET    /appointments/{id}           – Get appointment details
  *   DELETE /appointments/{id}           – Cancel appointment
  *
- * @since 4.6.1
  * @package FreeFormCertificate\API
+ * @since 4.6.1
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
@@ -19,10 +19,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for appointment endpoints.
+ */
 class AppointmentRestController {
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace;
 
@@ -100,7 +105,7 @@ class AppointmentRestController {
 	 * Create a new appointment
 	 *
 	 * @since 4.1.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function create_appointment( $request ) {
@@ -231,7 +236,7 @@ class AppointmentRestController {
 	 * Get appointment details
 	 *
 	 * @since 4.1.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_appointment( $request ) {
@@ -295,7 +300,7 @@ class AppointmentRestController {
 	 * Cancel an appointment
 	 *
 	 * @since 4.1.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function cancel_appointment( $request ) {
@@ -340,7 +345,7 @@ class AppointmentRestController {
 	 * Check appointment access permission
 	 *
 	 * @since 4.1.0
-	 * @param \WP_REST_Request $request
+	 * @param \WP_REST_Request $request REST request.
 	 * @return bool
 	 */
 	public function check_appointment_access( $request ): bool {

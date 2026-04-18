@@ -4,6 +4,7 @@
  *
  * Template for the Data Migrations settings tab
  *
+ * @package FreeFormCertificate\Settings\Views
  * @since 2.9.16
  */
 
@@ -458,10 +459,10 @@ try {
 						<p class="description">
 							<?php
 							printf(
-								/* translators: %d: total posts affected */
+								/* translators: 1: visible posts shown, 2: total posts affected */
 								esc_html__( 'Showing first %1$d of %2$d affected posts. The rest will still be processed on Apply.', 'ffcertificate' ),
 								(int) \FreeFormCertificate\Migrations\ObsoleteShortcodeCleaner::REPORT_LIMIT,
-								$ffcertificate_report_affected
+								(int) $ffcertificate_report_affected
 							);
 							?>
 						</p>

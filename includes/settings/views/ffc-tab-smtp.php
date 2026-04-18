@@ -2,6 +2,7 @@
 /**
  * SMTP Settings Tab
  *
+ * @package FreeFormCertificate\Settings\Views
  * @version 3.1.0 - Added user creation email controls (submission & migration)
  */
 

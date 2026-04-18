@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * RestController (Coordinator)
  *
@@ -14,11 +12,13 @@ declare(strict_types=1);
  *
  * Namespace: /wp-json/ffc/v1/
  *
+ * @package FreeFormCertificate\API
  * @since 3.0.0
  * @version 3.3.0 - Added strict types and type hints
  * @version 4.6.1 - Refactored into coordinator + 5 sub-controllers
- * @package FreeFormCertificate\API
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
@@ -29,17 +29,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API controller for plugin endpoints.
+ */
 class RestController {
 
 	/**
 	 * API namespace
+	 *
+	 * @var string
 	 */
 	private string $namespace = 'ffc/v1';
 
 	/**
-	 * Repositories
+	 * Form repository.
+	 *
+	 * @var FormRepository|null
 	 */
-	private ?FormRepository $form_repository             = null;
+	private ?FormRepository $form_repository = null;
+
+	/**
+	 * Submission repository.
+	 *
+	 * @var SubmissionRepository|null
+	 */
 	private ?SubmissionRepository $submission_repository = null;
 
 	/**

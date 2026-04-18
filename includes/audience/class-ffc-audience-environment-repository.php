@@ -1,14 +1,14 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Audience Environment Repository
  *
  * Handles database operations for audience environments (rooms/locations).
  *
- * @since 4.5.0
  * @package FreeFormCertificate\Audience
+ * @since 4.5.0
  */
+
+declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
@@ -17,7 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-
+/**
+ * Database repository for audience environment records.
+ */
 class AudienceEnvironmentRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
@@ -83,15 +85,20 @@ class AudienceEnvironmentRepository {
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
-		$orderby      = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] ) ?: 'name ASC';
-		$limit_clause = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
+		$orderby_sanitized = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] );
+		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'name ASC';
+		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$limit_clause}";
 
 		$prepare_args = array_merge( array( $table ), $values );
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		/** @phpstan-ignore-next-line argument.type */
+		/**
+		 * Description.
+		 *
+		 * @phpstan-ignore-next-line argument.type
+		 */
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
@@ -100,6 +107,16 @@ class AudienceEnvironmentRepository {
 
 	/**
 	 * Get environment by ID
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
+	 *
+	 * Get by id.
 	 *
 	 * @param int $id Environment ID.
 	 * @return object|null
@@ -429,7 +446,8 @@ class AudienceEnvironmentRepository {
 	 * @return int
 	 */
 	public static function count( array $args = array() ): int {
-		$cache_key = 'ffcertificate_env_count_' . md5( wp_json_encode( $args ) ?: '' );
+		$args_json = wp_json_encode( $args );
+		$cache_key = 'ffcertificate_env_count_' . md5( $args_json ? $args_json : '' );
 		$cached    = wp_cache_get( $cache_key, 'ffcertificate' );
 		if ( false !== $cached ) {
 			return (int) $cached;
