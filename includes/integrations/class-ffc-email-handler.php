@@ -158,8 +158,8 @@ class EmailHandler {
 			? \FreeFormCertificate\Core\Utils::format_auth_code( $raw_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
 			: '';
 
-		// Custom body text from form config.
-		$body_text = isset( $form_config['email_body'] ) ? wpautop( $form_config['email_body'] ) : '';
+		// Custom body text from form config. wp_kses_post() prevents inadvertent script/unsafe-tag injection.
+		$body_text = isset( $form_config['email_body'] ) ? wpautop( wp_kses_post( $form_config['email_body'] ) ) : '';
 
 		// Build email HTML (simple, clean, no certificate preview).
 		$body = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 20px;">';

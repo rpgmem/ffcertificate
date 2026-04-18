@@ -211,14 +211,23 @@ class MagicLinkHelper {
 	 * @return string QR code image URL
 	 */
 	public static function get_magic_link_qr_code( string $token, int $size = 200 ): string {
-		if ( empty( $token ) ) {
+		if ( empty( $token ) || ! self::is_valid_token( $token ) ) {
 			return '';
 		}
 
 		$magic_link = self::generate_magic_link( $token );
 
-		// Use Google Charts API (or your preferred QR service).
-		return 'https://chart.googleapis.com/chart?chs=' . $size . 'x' . $size . '&cht=qr&chl=' . urlencode( $magic_link );
+		// Use the local QR code generator to avoid leaking magic tokens to an external service.
+		if ( class_exists( '\FreeFormCertificate\Generators\QRCodeGenerator' ) ) {
+			try {
+				$qr = new \FreeFormCertificate\Generators\QRCodeGenerator();
+				return $qr->generate( $magic_link, array( 'size' => $size ) );
+			} catch ( \Throwable $e ) {
+				return '';
+			}
+		}
+
+		return '';
 	}
 
 	/**

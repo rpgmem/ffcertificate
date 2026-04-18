@@ -206,8 +206,21 @@ class Admin {
 	}
 
 	private function redirect_with_msg( string $msg ): void {
-		$url = remove_query_arg( array( 'action', 'action2', 'submission_id', 'submission', '_wpnonce' ), isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '' );
-		wp_safe_redirect( add_query_arg( 'msg', $msg, $url ) );
+		// Build the redirect target from the current admin screen instead of REQUEST_URI, so the URL
+		// path cannot be influenced by request-level input. Preserve the page and post_type context.
+		$page      = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$post_type = isset( $_GET['post_type'] ) ? sanitize_key( wp_unslash( $_GET['post_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		$args = array( 'msg' => $msg );
+		if ( $page ) {
+			$args['page'] = $page;
+		}
+		if ( $post_type ) {
+			$args['post_type'] = $post_type;
+		}
+
+		$url = add_query_arg( $args, admin_url( 'edit.php' ) );
+		wp_safe_redirect( $url );
 		exit;
 	}
 

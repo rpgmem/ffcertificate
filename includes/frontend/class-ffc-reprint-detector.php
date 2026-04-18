@@ -71,21 +71,25 @@ class ReprintDetector {
 
 			// Check if encryption is enabled.
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-				// Classify by digit count and search the specific split column.
-				$id_hash     = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
-				$hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
+				// Classify by digit count and search the specific split column. Using %i instead of
+				// raw interpolation ensures wpdb quotes the identifier even if this allowlist ever changes.
+				$id_hash            = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
+				$allowed_hash_cols  = array( 'cpf_hash', 'rf_hash' );
+				$hash_column        = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
+				if ( ! in_array( $hash_column, $allowed_hash_cols, true ) ) {
+					$hash_column = 'cpf_hash';
+				}
 
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_column is derived from strlen() check, not user input.
 				$existing_submission = $wpdb->get_row(
 					$wpdb->prepare(
-						"SELECT * FROM %i WHERE form_id = %d AND {$hash_column} = %s ORDER BY id DESC LIMIT 1",
+						'SELECT * FROM %i WHERE form_id = %d AND %i = %s ORDER BY id DESC LIMIT 1',
 						$table_name,
 						$form_id,
+						$hash_column,
 						$id_hash
 					)
 				);
-				// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 			}
 

@@ -360,13 +360,13 @@ class VerificationResponseRenderer {
 	 */
 	public function format_field_value( string $field_key, $value ): string {
 		if ( is_array( $value ) ) {
-			return implode( ', ', $value );
+			return esc_html( implode( ', ', $value ) );
 		}
 
 		if ( in_array( $field_key, array( 'cpf', 'cpf_rf', 'rg' ), true ) && ! empty( $value ) ) {
-			return \FreeFormCertificate\Core\Utils::format_document( $value, 'auto' );
+			return esc_html( \FreeFormCertificate\Core\Utils::format_document( $value, 'auto' ) );
 		}
 
-		return $value;
+		return esc_html( (string) $value );
 	}
 }

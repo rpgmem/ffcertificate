@@ -178,22 +178,28 @@ class MagicLinkHelperTest extends TestCase {
     // get_magic_link_qr_code()
     // ==================================================================
 
-    public function test_qr_code_returns_google_charts_url(): void {
-        $token = 'abcdef1234567890abcdef1234567890';
-        $url = MagicLinkHelper::get_magic_link_qr_code( $token );
-        $this->assertStringContainsString( 'chart.googleapis.com', $url );
-        $this->assertStringContainsString( '200x200', $url );
-        $this->assertStringContainsString( 'cht=qr', $url );
-    }
+    public function test_qr_code_uses_local_generator_or_empty(): void {
+        // The local QR generator depends on the bundled phpqrcode lib, which is not
+        // available in unit-test bootstrap. When that's the case, get_magic_link_qr_code()
+        // should return an empty string (rather than leaking the token to a third-party service).
+        $token  = 'abcdef1234567890abcdef1234567890';
+        $result = MagicLinkHelper::get_magic_link_qr_code( $token );
 
-    public function test_qr_code_custom_size(): void {
-        $token = 'abcdef1234567890abcdef1234567890';
-        $url = MagicLinkHelper::get_magic_link_qr_code( $token, 400 );
-        $this->assertStringContainsString( '400x400', $url );
+        // Must NOT leak to chart.googleapis.com; and must not be a raw magic link.
+        $this->assertStringNotContainsString( 'chart.googleapis.com', $result );
+
+        // Either empty (no generator available) or a data: URI produced locally.
+        if ( '' !== $result ) {
+            $this->assertStringStartsWith( 'data:', $result );
+        }
     }
 
     public function test_qr_code_empty_token_returns_empty(): void {
         $this->assertSame( '', MagicLinkHelper::get_magic_link_qr_code( '' ) );
+    }
+
+    public function test_qr_code_invalid_token_returns_empty(): void {
+        $this->assertSame( '', MagicLinkHelper::get_magic_link_qr_code( 'not-hex' ) );
     }
 
     // ==================================================================
@@ -330,19 +336,19 @@ class MagicLinkHelperTest extends TestCase {
     // QR code encodes canonical magic link
     // ==================================================================
 
-    public function test_qr_code_url_encodes_canonical_magic_link(): void {
+    public function test_qr_code_never_leaks_magic_link_to_third_party(): void {
         $token = 'abcdef1234567890abcdef1234567890';
-        $magic_link = MagicLinkHelper::generate_magic_link( $token );
         $qr_url = MagicLinkHelper::get_magic_link_qr_code( $token );
-        // QR code URL should contain the URL-encoded magic link
-        $this->assertStringContainsString( urlencode( $magic_link ), $qr_url );
+        // The magic link token must never appear in an outbound URL to a third-party service.
+        $this->assertStringNotContainsString( 'chart.googleapis.com', $qr_url );
+        $this->assertStringNotContainsString( 'googleapis', $qr_url );
     }
 
-    public function test_qr_code_encodes_hash_fragment_format(): void {
+    public function test_qr_code_does_not_expose_raw_token_via_external_url(): void {
         $token = 'abcdef1234567890abcdef1234567890';
         $qr_url = MagicLinkHelper::get_magic_link_qr_code( $token );
-        // The encoded URL must contain the hash fragment format
-        $this->assertStringContainsString( urlencode( '#token=' . $token ), $qr_url );
+        // The raw token must not appear in any URL to a third-party QR service.
+        $this->assertStringNotContainsString( urlencode( '#token=' . $token ), $qr_url );
     }
 
     // ==================================================================

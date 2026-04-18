@@ -76,7 +76,7 @@ class AppointmentReceiptHandler {
 			$has_access = true;
 		} elseif ( is_user_logged_in() && get_current_user_id() === $appointment['user_id'] ) {
 			$has_access = true;
-		} elseif ( ! empty( $token ) && ! empty( $appointment['confirmation_token'] ) && $token === $appointment['confirmation_token'] ) {
+		} elseif ( ! empty( $token ) && ! empty( $appointment['confirmation_token'] ) && hash_equals( (string) $appointment['confirmation_token'], (string) $token ) ) {
 			$has_access = true;
 		}
 
@@ -477,7 +477,7 @@ class AppointmentReceiptHandler {
 					echo esc_html( sprintf( __( 'Generated on %s', 'ffcertificate' ), date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) ) );
 					?>
 					</p>
-					<p><?php bloginfo( 'name' ); ?> - <?php bloginfo( 'url' ); ?></p>
+					<p><?php echo esc_html( get_bloginfo( 'name' ) ); ?> - <?php echo esc_url( home_url() ); ?></p>
 				</div>
 			</div>
 

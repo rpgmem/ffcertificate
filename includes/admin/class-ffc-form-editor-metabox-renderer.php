@@ -853,7 +853,7 @@ class FormEditorMetaboxRenderer {
 			? (string) $geofence_config['date_end']
 			: '';
 
-		wp_nonce_field( 'ffc_save_form_data', 'ffc_form_nonce' );
+		// Nonce is emitted by render_box_layout(), which always renders before this metabox.
 		?>
 		<p class="description">
 			<?php esc_html_e( 'Allow a person without WordPress access to download the submissions CSV for this form by providing the Form ID + a hash on a public page that contains the [ffc_csv_download] shortcode.', 'ffcertificate' ); ?>

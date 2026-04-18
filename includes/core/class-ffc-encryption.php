@@ -37,7 +37,26 @@ class Encryption {
 	const IV_LENGTH = 16;
 
 	/**
+	 * HMAC algorithm used to authenticate ciphertexts (v2+).
+	 */
+	const HMAC_ALGO = 'sha256';
+
+	/**
+	 * HMAC length in bytes for the configured algorithm.
+	 */
+	const HMAC_LENGTH = 32;
+
+	/**
+	 * v2 ciphertext prefix. Anything encrypted before this version is decoded by the legacy path.
+	 */
+	const V2_PREFIX = 'v2:';
+
+	/**
 	 * Encrypt a value
+	 *
+	 * Produces an authenticated (encrypt-then-MAC) ciphertext in the format
+	 * "v2:" . base64( HMAC || IV || CIPHERTEXT ). Legacy "v1" ciphertexts
+	 * (base64( IV || CIPHERTEXT ), without HMAC) remain decryptable by decrypt().
 	 *
 	 * @param string $value Plain text value.
 	 * @return string|null Encrypted value (base64) or null on failure
@@ -48,8 +67,8 @@ class Encryption {
 		}
 
 		try {
-			// Get encryption key.
-			$key = self::get_encryption_key();
+			$enc_key  = self::get_encryption_key();
+			$mac_key  = self::get_hmac_key();
 
 			// Generate unique IV.
 			$iv = random_bytes( self::IV_LENGTH );
@@ -58,7 +77,7 @@ class Encryption {
 			$encrypted = openssl_encrypt(
 				$value,
 				self::CIPHER,
-				$key,
+				$enc_key,
 				OPENSSL_RAW_DATA,
 				$iv
 			);
@@ -73,8 +92,10 @@ class Encryption {
 				return null;
 			}
 
-			// Prepend IV to encrypted data and encode.
-			return base64_encode( $iv . $encrypted );
+			// Authenticate IV + ciphertext with HMAC (encrypt-then-MAC).
+			$hmac = hash_hmac( self::HMAC_ALGO, $iv . $encrypted, $mac_key, true );
+
+			return self::V2_PREFIX . base64_encode( $hmac . $iv . $encrypted );
 
 		} catch ( \Exception $e ) {
 			\FreeFormCertificate\Core\Utils::debug_log(
@@ -90,7 +111,10 @@ class Encryption {
 	/**
 	 * Decrypt a value
 	 *
-	 * @param string $encrypted Encrypted value (base64).
+	 * Accepts both v2 authenticated ciphertexts ("v2:base64(HMAC||IV||CT)")
+	 * and legacy v1 ciphertexts ("base64(IV||CT)", without HMAC).
+	 *
+	 * @param string $encrypted Encrypted value.
 	 * @return string|null Decrypted value or null on failure
 	 */
 	public static function decrypt( string $encrypted ): ?string {
@@ -99,28 +123,40 @@ class Encryption {
 		}
 
 		try {
-			// Get encryption key.
-			$key = self::get_encryption_key();
+			$enc_key = self::get_encryption_key();
 
-			// Decode from base64.
-			$data = base64_decode( $encrypted, true );
+			if ( 0 === strpos( $encrypted, self::V2_PREFIX ) ) {
+				$data = base64_decode( substr( $encrypted, strlen( self::V2_PREFIX ) ), true );
+				if ( false === $data || strlen( $data ) < self::HMAC_LENGTH + self::IV_LENGTH ) {
+					\FreeFormCertificate\Core\Utils::debug_log( 'v2 decode failed' );
+					return null;
+				}
 
-			if ( false === $data ) {
-				\FreeFormCertificate\Core\Utils::debug_log( 'Base64 decode failed' );
-				return null;
+				$hmac           = substr( $data, 0, self::HMAC_LENGTH );
+				$iv             = substr( $data, self::HMAC_LENGTH, self::IV_LENGTH );
+				$encrypted_data = substr( $data, self::HMAC_LENGTH + self::IV_LENGTH );
+
+				$expected_hmac = hash_hmac( self::HMAC_ALGO, $iv . $encrypted_data, self::get_hmac_key(), true );
+				if ( ! hash_equals( $expected_hmac, $hmac ) ) {
+					\FreeFormCertificate\Core\Utils::debug_log( 'v2 HMAC mismatch' );
+					return null;
+				}
+			} else {
+				// Legacy (v1) path: base64( IV || CIPHERTEXT ), no authentication.
+				$data = base64_decode( $encrypted, true );
+				if ( false === $data || strlen( $data ) < self::IV_LENGTH ) {
+					\FreeFormCertificate\Core\Utils::debug_log( 'Base64 decode failed' );
+					return null;
+				}
+				$iv             = substr( $data, 0, self::IV_LENGTH );
+				$encrypted_data = substr( $data, self::IV_LENGTH );
 			}
-
-			// Extract IV (first 16 bytes).
-			$iv = substr( $data, 0, self::IV_LENGTH );
-
-			// Extract encrypted data (rest).
-			$encrypted_data = substr( $data, self::IV_LENGTH );
 
 			// Decrypt.
 			$decrypted = openssl_decrypt(
 				$encrypted_data,
 				self::CIPHER,
-				$key,
+				$enc_key,
 				OPENSSL_RAW_DATA,
 				$iv
 			);
@@ -330,10 +366,36 @@ class Encryption {
 		// Combine and hash.
 		$combined = implode( '|', $base_keys );
 
-		// Use PBKDF2 for key derivation.
+		// Use PBKDF2 for key derivation. The static salt and 10k iteration count are retained
+		// to keep existing ciphertexts decryptable without a data-migration step. Entropy is
+		// already provided by the underlying WordPress secret keys, so the PBKDF2 workload
+		// here is only a defense against accidental entropy loss rather than password cracking.
 		$key = hash_pbkdf2( 'sha256', $combined, 'ffc-encryption-salt', 10000, 32, true );
 
 		return $key;
+	}
+
+	/**
+	 * Get HMAC key for ciphertext authentication.
+	 *
+	 * Derived from the same material as the encryption key but through a distinct PBKDF2
+	 * salt so that the MAC key is cryptographically independent from the encryption key.
+	 *
+	 * @return string 32-byte HMAC key
+	 */
+	private static function get_hmac_key(): string {
+		if ( defined( 'FFC_ENCRYPTION_KEY' ) && strlen( FFC_ENCRYPTION_KEY ) >= 32 ) {
+			return hash_hmac( 'sha256', 'ffc-hmac-key', FFC_ENCRYPTION_KEY, true );
+		}
+
+		$base_keys = array(
+			defined( 'SECURE_AUTH_KEY' ) ? SECURE_AUTH_KEY : '',
+			defined( 'LOGGED_IN_KEY' ) ? LOGGED_IN_KEY : '',
+			defined( 'NONCE_KEY' ) ? NONCE_KEY : '',
+		);
+		$combined = implode( '|', $base_keys );
+
+		return hash_pbkdf2( 'sha256', $combined, 'ffc-hmac-salt', 10000, 32, true );
 	}
 
 	/**
@@ -415,6 +477,7 @@ class Encryption {
 			'key_source'     => defined( 'FFC_ENCRYPTION_KEY' ) ? 'Custom (FFC_ENCRYPTION_KEY)' : 'WordPress Keys (SECURE_AUTH_KEY + LOGGED_IN_KEY + NONCE_KEY)',
 			'hash_algorithm' => 'SHA-256',
 			'key_derivation' => 'PBKDF2 (10000 iterations)',
+			'authentication' => 'HMAC-SHA256 (v2 ciphertexts; legacy v1 still decryptable)',
 		);
 	}
 }

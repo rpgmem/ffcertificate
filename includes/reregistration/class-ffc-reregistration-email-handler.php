@@ -263,6 +263,15 @@ class ReregistrationEmailHandler {
 	 * @return array<string, string>|null Array with 'subject' and 'body', or null.
 	 */
 	private static function load_template( string $template_name ): ?array {
+		$allowed = array(
+			'reregistration-invitation',
+			'reregistration-reminder',
+			'reregistration-confirmation',
+		);
+		if ( ! in_array( $template_name, $allowed, true ) ) {
+			return null;
+		}
+
 		$file = FFC_PLUGIN_DIR . "templates/emails/{$template_name}.php";
 		if ( ! file_exists( $file ) ) {
 			return null;

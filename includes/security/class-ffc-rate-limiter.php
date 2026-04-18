@@ -634,13 +634,16 @@ class RateLimiter {
 			return;
 		}
 
+		// Hash identifier before storage for LGPD/GDPR compliance. IP types remain plaintext for operator troubleshooting.
+		$stored_identifier = ( 'ip' === $type ) ? $identifier : hash( 'sha256', (string) $identifier );
+
 		global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
 		$wpdb->insert(
 			$wpdb->prefix . 'ffc_rate_limit_logs',
 			array(
 				'type'          => $type,
-				'identifier'    => $identifier,
+				'identifier'    => $stored_identifier,
 				'form_id'       => $form_id,
 				'action'        => $action,
 				'reason'        => $reason,
@@ -740,7 +743,17 @@ class RateLimiter {
 	}
 
 	private static function get_user_ip(): string {
-		foreach ( array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR' ) as $key ) {
+		// By default we only trust REMOTE_ADDR, which is set by the web server and cannot be spoofed by clients.
+		// When the site sits behind a known reverse proxy (Cloudflare, AWS ALB, nginx), administrators can opt in
+		// to forwarded headers via the 'ffc_trust_forwarded_headers' filter. Returning true enables the legacy
+		// behavior that consults HTTP_X_FORWARDED_FOR and friends.
+		$trust_forwarded = (bool) apply_filters( 'ffc_trust_forwarded_headers', false );
+
+		$candidates = $trust_forwarded
+			? array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR' )
+			: array( 'REMOTE_ADDR' );
+
+		foreach ( $candidates as $key ) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Value unslashed and sanitized on next line.
 			if ( ! empty( $_SERVER[ $key ] ) ) {
 				$ip = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );

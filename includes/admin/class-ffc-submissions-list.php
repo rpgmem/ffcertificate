@@ -86,12 +86,12 @@ class SubmissionsList extends \WP_List_Table {
 	protected function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
 			case 'id':
-				return $item['id'];
+				return esc_html( (string) $item['id'] );
 
 			case 'form':
 				$form_id    = (int) $item['form_id'];
 				$form_title = $this->form_titles_cache[ $form_id ] ?? '';
-				return $form_title ? \FreeFormCertificate\Core\Utils::truncate( $form_title, 30 ) : __( '(Deleted)', 'ffcertificate' );
+				return $form_title ? esc_html( \FreeFormCertificate\Core\Utils::truncate( $form_title, 30 ) ) : esc_html__( '(Deleted)', 'ffcertificate' );
 
 			case 'email':
 				return esc_html( $item['email'] );
@@ -130,7 +130,7 @@ class SubmissionsList extends \WP_List_Table {
 			$base_url
 		);
 
-		$actions  = '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . __( 'Edit', 'ffcertificate' ) . '</a> ';
+		$actions  = '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Edit', 'ffcertificate' ) . '</a> ';
 		$actions .= $this->render_pdf_button( $item );
 
 		if ( isset( $item['status'] ) && 'publish' === $item['status'] ) {
@@ -144,7 +144,7 @@ class SubmissionsList extends \WP_List_Table {
 				),
 				'ffc_action_' . $item['id']
 			);
-			$actions  .= '<a href="' . esc_url( $trash_url ) . '" class="button button-small">' . __( 'Trash', 'ffcertificate' ) . '</a>';
+			$actions  .= '<a href="' . esc_url( $trash_url ) . '" class="button button-small">' . esc_html__( 'Trash', 'ffcertificate' ) . '</a>';
 		} else {
 			$restore_url = wp_nonce_url(
 				add_query_arg(
@@ -167,8 +167,8 @@ class SubmissionsList extends \WP_List_Table {
 				'ffc_action_' . $item['id']
 			);
 
-			$actions .= '<a href="' . esc_url( $restore_url ) . '" class="button button-small">' . __( 'Restore', 'ffcertificate' ) . '</a> ';
-			$actions .= '<a href="' . esc_url( $delete_url ) . '" class="button button-small ffc-delete-btn" data-confirm="' . esc_attr( __( 'Permanently delete?', 'ffcertificate' ) ) . '">' . __( 'Delete', 'ffcertificate' ) . '</a>';
+			$actions .= '<a href="' . esc_url( $restore_url ) . '" class="button button-small">' . esc_html__( 'Restore', 'ffcertificate' ) . '</a> ';
+			$actions .= '<a href="' . esc_url( $delete_url ) . '" class="button button-small ffc-delete-btn" data-confirm="' . esc_attr__( 'Permanently delete?', 'ffcertificate' ) . '">' . esc_html__( 'Delete', 'ffcertificate' ) . '</a>';
 		}
 
 		return $actions;
