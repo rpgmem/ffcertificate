@@ -34,17 +34,17 @@ class SecurityService {
 	 * @return array<string, mixed> Array with 'label', 'hash', and 'answer'
 	 */
 	public static function generate_simple_captcha(): array {
-		$n1     = wp_rand( 1, 9 );
-		$n2     = wp_rand( 1, 9 );
+		$n1     = \wp_rand( 1, 9 );
+		$n2     = \wp_rand( 1, 9 );
 		$answer = $n1 + $n2;
 
-		$display1 = wp_rand( 0, 1 ) ? self::number_to_word( $n1 ) : (string) $n1;
-		$display2 = wp_rand( 0, 1 ) ? self::number_to_word( $n2 ) : (string) $n2;
+		$display1 = \wp_rand( 0, 1 ) ? self::number_to_word( $n1 ) : (string) $n1;
+		$display2 = \wp_rand( 0, 1 ) ? self::number_to_word( $n2 ) : (string) $n2;
 
 		return array(
 			/* translators: 1: first operand (digit or word), 2: second operand (digit or word) */
-			'label'  => sprintf( esc_html__( 'Security: How much is %1$s + %2$s?', 'ffcertificate' ), $display1, $display2 ),
-			'hash'   => wp_hash( $answer . 'ffc_math_salt' ),
+			'label'  => sprintf( \esc_html__( 'Security: How much is %1$s + %2$s?', 'ffcertificate' ), $display1, $display2 ),
+			'hash'   => \wp_hash( $answer . 'ffc_math_salt' ),
 			'answer' => $answer,
 		);
 	}
@@ -57,15 +57,15 @@ class SecurityService {
 	 */
 	private static function number_to_word( int $number ): string {
 		$words = array(
-			1 => __( 'one', 'ffcertificate' ),
-			2 => __( 'two', 'ffcertificate' ),
-			3 => __( 'three', 'ffcertificate' ),
-			4 => __( 'four', 'ffcertificate' ),
-			5 => __( 'five', 'ffcertificate' ),
-			6 => __( 'six', 'ffcertificate' ),
-			7 => __( 'seven', 'ffcertificate' ),
-			8 => __( 'eight', 'ffcertificate' ),
-			9 => __( 'nine', 'ffcertificate' ),
+			1 => \__( 'one', 'ffcertificate' ),
+			2 => \__( 'two', 'ffcertificate' ),
+			3 => \__( 'three', 'ffcertificate' ),
+			4 => \__( 'four', 'ffcertificate' ),
+			5 => \__( 'five', 'ffcertificate' ),
+			6 => \__( 'six', 'ffcertificate' ),
+			7 => \__( 'seven', 'ffcertificate' ),
+			8 => \__( 'eight', 'ffcertificate' ),
+			9 => \__( 'nine', 'ffcertificate' ),
 		);
 
 		return $words[ $number ] ?? (string) $number;
@@ -83,7 +83,7 @@ class SecurityService {
 			return false;
 		}
 
-		$check_hash = wp_hash( trim( $answer ) . 'ffc_math_salt' );
+		$check_hash = \wp_hash( trim( $answer ) . 'ffc_math_salt' );
 		return $check_hash === $hash;
 	}
 
@@ -97,17 +97,17 @@ class SecurityService {
 	public static function validate_security_fields( array $data ) {
 		// Check honeypot.
 		if ( ! empty( $data['ffc_honeypot_trap'] ) ) {
-			return __( 'Security Error: Request blocked (Honeypot).', 'ffcertificate' );
+			return \__( 'Security Error: Request blocked (Honeypot).', 'ffcertificate' );
 		}
 
 		// Check captcha presence.
 		if ( ! isset( $data['ffc_captcha_ans'] ) || ! isset( $data['ffc_captcha_hash'] ) ) {
-			return __( 'Error: Please answer the security question.', 'ffcertificate' );
+			return \__( 'Error: Please answer the security question.', 'ffcertificate' );
 		}
 
 		// Validate captcha answer.
 		if ( ! self::verify_simple_captcha( $data['ffc_captcha_ans'], $data['ffc_captcha_hash'] ) ) {
-			return __( 'Error: The math answer is incorrect.', 'ffcertificate' );
+			return \__( 'Error: The math answer is incorrect.', 'ffcertificate' );
 		}
 
 		return true;

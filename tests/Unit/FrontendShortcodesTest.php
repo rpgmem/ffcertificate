@@ -39,6 +39,8 @@ class FrontendShortcodesTest extends TestCase {
         Functions\when( 'absint' )->alias( function ( $val ) { return abs( (int) $val ); } );
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'wp_rand' )->alias( function ( int $min = 0, int $max = 0 ) { return random_int( $min, $max ); } );
+        Functions\when( 'wp_hash' )->alias( function ( $data ) { return hash( 'sha256', $data ); } );
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );
