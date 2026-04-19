@@ -26,6 +26,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SubmissionRepository extends AbstractRepository {
 
 	/**
+	 * Transient key for the cached status-count map.
+	 *
+	 * Kept intentionally short: the count is a handful of integers and the
+	 * tabs above the submissions list render it on every admin request, so
+	 * even 5 minutes of staleness eliminates a full GROUP BY scan across
+	 * potentially hundreds of thousands of rows.
+	 */
+	private const COUNT_CACHE_KEY = 'ffc_submission_count_by_status';
+
+	/**
+	 * How long the count cache lives before being recomputed.
+	 */
+	private const COUNT_CACHE_TTL = 5 * MINUTE_IN_SECONDS;
+
+	/**
 	 * Cached column existence checks to avoid repeated INFORMATION_SCHEMA queries
 	 *
 	 * @since 4.6.13
@@ -577,21 +592,74 @@ class SubmissionRepository extends AbstractRepository {
 	 *
 	 * Count by status.
 	 *
+	 * Backed by a short-lived transient so the tabs above the submissions
+	 * list don't trigger a full `COUNT(*) ... GROUP BY status` scan on
+	 * every admin page load. Writers call `invalidate_count_cache()` to
+	 * drop the transient as soon as any row moves between statuses.
+	 *
 	 * @return array<string, int>
 	 */
 	public function countByStatus(): array {
+		$cached = \get_transient( self::COUNT_CACHE_KEY );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare( 'SELECT status, COUNT(*) as count FROM %i GROUP BY status', $this->table ),
 			OBJECT_K
 		);
 
-		return array(
+		$counts = array(
 			'publish'          => isset( $results['publish'] ) ? (int) $results['publish']->count : 0,
 			'trash'            => isset( $results['trash'] ) ? (int) $results['trash']->count : 0,
 			'quiz_in_progress' => isset( $results['quiz_in_progress'] ) ? (int) $results['quiz_in_progress']->count : 0,
 			'quiz_failed'      => isset( $results['quiz_failed'] ) ? (int) $results['quiz_failed']->count : 0,
 		);
+
+		\set_transient( self::COUNT_CACHE_KEY, $counts, self::COUNT_CACHE_TTL );
+
+		return $counts;
+	}
+
+	/**
+	 * Drop the cached status-count map.
+	 *
+	 * Called from every write path that can change how many rows fall into
+	 * each status (insert, status update, bulk ops, delete).
+	 */
+	private function invalidate_count_cache(): void {
+		\delete_transient( self::COUNT_CACHE_KEY );
+	}
+
+	/**
+	 * Insert a submission row and drop the status-count cache.
+	 *
+	 * @param array<string, mixed> $data Data.
+	 * @return int|false Insert ID on success, false on failure.
+	 */
+	public function insert( array $data ) {
+		$result = parent::insert( $data );
+		if ( $result ) {
+			$this->invalidate_count_cache();
+		}
+		return $result;
+	}
+
+	/**
+	 * Update a submission and drop the status-count cache when status changes.
+	 *
+	 * @param int                  $id   Record ID.
+	 * @param array<string, mixed> $data Data.
+	 * @return int|false Rows updated, or false on error.
+	 */
+	public function update( int $id, array $data ) {
+		$result = parent::update( $id, $data );
+		if ( $result && array_key_exists( 'status', $data ) ) {
+			$this->invalidate_count_cache();
+		}
+		return $result;
 	}
 
 	/**
@@ -632,6 +700,7 @@ class SubmissionRepository extends AbstractRepository {
 
 		if ( $result ) {
 			$this->clear_cache();
+			$this->invalidate_count_cache();
 		}
 
 		return false === $result ? false : (int) $result;
@@ -662,6 +731,7 @@ class SubmissionRepository extends AbstractRepository {
 
 		if ( $result ) {
 			$this->clear_cache();
+			$this->invalidate_count_cache();
 		}
 
 		return false === $result ? false : (int) $result;
@@ -679,6 +749,7 @@ class SubmissionRepository extends AbstractRepository {
 
 		if ( $result ) {
 			$this->clear_cache();
+			$this->invalidate_count_cache();
 		}
 
 		return $result;
