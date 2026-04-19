@@ -177,9 +177,16 @@ In the certificate layout editor, use these dynamic tags:
 
 = Unreleased =
 
-CSV download intermediate screen, full security audit (Phases 1–2), new test suites (Phase 3), and a full WPCS / PHPStan clean-up (Phases 4–5).
+CSV download intermediate screen, full security audit (Phases 1–2), new test suites (Phase 3), full WPCS / PHPStan clean-up (Phases 4–5), and a performance pass for admin submissions at scale.
 
 * Feat: **CSV download intermediate screen** — info screen showing form restrictions, dates, geolocation, quiz, and quota between hash validation and download. Download button only enabled after the form has ended; certificate preview available before the collection period begins.
+* Feat: **Public CSV sync-export row cap** — new `public_csv_sync_max_rows` setting (Advanced tab, default 2000, range 100–10000). Public CSV downloads exceeding the cap are refused on the synchronous no-JS path and must use the AJAX batched flow, protecting shared hosting from execution-time timeouts on large exports.
+* Perf: **`SubmissionRepository::countByStatus()` cached in a 5-minute transient** — eliminates the `COUNT(*) … GROUP BY status` scan on every admin submissions page load; cache invalidated on every write that can move a row between statuses (`insert`, status `update`, `bulkUpdateStatus`, `bulkDelete`, `deleteByFormId`).
+* Perf: **Composite index `(form_id, status, submission_date)` on `ffc_submissions`** — covers the common admin list pattern (filter by form + status, sort by submission_date DESC).
+* Perf: **Activity log cleanup fallback on `admin_init`** — WP-Cron on low-traffic shared hosting often misses scheduled runs; a transient-gated admin-visit fallback (`ffc_last_log_cleanup`, 24h) ensures cleanup runs at most once per day even if the cron event never fires.
+* Perf: **`findPaginated()` search optimizations** — `magic_token` uses prefix match (`'term%'`) so the B-tree index can accelerate lookups; the unencrypted-`data` LIKE fallback is skipped for terms shorter than 4 characters to avoid full-table scans.
+* Perf: No `SQL_CALC_FOUND_ROWS` usage in the codebase (verified during the audit); pagination continues to use dedicated `COUNT(*)` queries, which MySQL 8 optimises far better than the deprecated calc flag.
+* Fix: Activity log disabled-notice link pointed to `Settings > General` — the activity-log toggle and retention live in `Settings > Advanced`. Link and label updated to match.
 * Security (HIGH): column-name SQL injection hardening in `AbstractRepository::build_where_clause()` via `%i` identifier placeholder and allowlist.
 * Security (HIGH): timing-safe token comparison via `hash_equals()` in appointment receipt handler; escape user-supplied values in audience email templates to prevent stored XSS.
 * Security (HIGH / crypto): encryption now produces **authenticated v2 ciphertexts** (encrypt-then-MAC, HMAC-SHA256 with a separately-derived MAC key); legacy v1 ciphertexts remain decryptable.
@@ -189,7 +196,7 @@ CSV download intermediate screen, full security audit (Phases 1–2), new test s
 * Security (MEDIUM / path traversal): validate receipt template path inside plugin/theme dirs; allowlist reregistration email templates; move ICS temp files out of public uploads dir with try/finally cleanup.
 * Security (LOW): remove `$e->getMessage()` from 5 client-facing error responses; `Admin::redirect_with_msg()` builds target from `page`/`post_type` instead of `REQUEST_URI`; various minor output-escaping fixes.
 * Security (privacy): hash PII identifiers before logging (RateLimiter, IpGeolocation) for LGPD compliance.
-* Test: 3234 → **3396 tests** / 8140 assertions — new suites for CustomFieldValidator, Autoloader, UserContextTrait, MigrationDynamicReregFields, ReregistrationStandardFieldsSeeder, AbstractRepository, Geofence, FormListColumns.
+* Test: 3234 → **3405 tests** / 8150 assertions — new suites for CustomFieldValidator, Autoloader, UserContextTrait, MigrationDynamicReregFields, ReregistrationStandardFieldsSeeder, AbstractRepository, Geofence, FormListColumns, plus new coverage for the performance pass (countByStatus cache invalidation, sync-export cap clamping, cleanup fallback).
 * Chore: WPCS **1232 → 0 errors** across 161 files — file headers, class docblocks, function `@param` tags, short-description fixes, short-ternary replacement (105×), `urlencode` → `rawurlencode` (5×), and 172 `phpcbf` auto-fixes.
 * Chore: PHPStan level 7 **3 → 0 errors** — removed stale ignores, corrected `array<T, U>` generics (`array<int, int>` for ID lists, `array<int, string>` for status lists).
 

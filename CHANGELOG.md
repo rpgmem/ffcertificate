@@ -84,7 +84,7 @@ Phase 5 — documentation & style cleanup (1141 → **0 violations**):
 - Chore: corrected `array<T, U>` generics that were over-generalized during docblock regeneration (`array<int, int>` for ID lists, `array<int, string>` for status/key lists), restoring PHPStan level 7 to 0 errors with WordPress stubs.
 - Chore: `phpcbf` auto-fixes (129 spacing violations in 29 files + 63 alignment fixes).
 
-Final verification: `phpcs` → 0 errors, `phpstan analyse` → 0 errors, `phpunit` → 3396 tests / 8140 assertions passing.
+Final verification: `phpcs` → 0 errors, `phpstan analyse` → 0 errors, `phpunit` → 3405 tests / 8150 assertions passing (includes +9 tests added during the performance pass for `get_sync_max_rows` clamping, `public_csv_sync_max_rows` sanitization, and activity-log cleanup fallback).
 
 ---
 
