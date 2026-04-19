@@ -59,6 +59,24 @@ class PublicCsvExporter {
 	const JOB_TTL = 3600;
 
 	/**
+	 * Default cap for the synchronous (no-JS) export path. Larger forms
+	 * must use the AJAX batched flow, which stays well within the 30–60s
+	 * execution-time budget of typical shared hosting. Admins can override
+	 * via the `public_csv_sync_max_rows` setting (100–10000).
+	 */
+	const DEFAULT_SYNC_MAX_ROWS = 2000;
+
+	/**
+	 * Minimum user-configurable value for the sync-export cap.
+	 */
+	const SYNC_MAX_ROWS_MIN = 100;
+
+	/**
+	 * Maximum user-configurable value for the sync-export cap.
+	 */
+	const SYNC_MAX_ROWS_MAX = 10000;
+
+	/**
 	 * Repository.
 	 *
 	 * @var SubmissionRepository
@@ -91,11 +109,21 @@ class PublicCsvExporter {
 	 * @return void Exits after output.
 	 */
 	public function stream_form_csv( int $form_id, string $status = 'publish' ): void {
+		$form_ids = array( $form_id );
+
+		// Refuse synchronous export when the row count exceeds the admin
+		// threshold. Large exports must use the AJAX batched flow to avoid
+		// hitting the execution-time limit of shared hosting.
+		$row_count  = $this->repository->countForExport( $form_ids, $status );
+		$sync_limit = self::get_sync_max_rows();
+		if ( $row_count > $sync_limit ) {
+			$this->render_sync_limit_exceeded( $row_count, $sync_limit );
+			return;
+		}
+
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- set_time_limit may be disabled.
 		@set_time_limit( 0 );
 		wp_raise_memory_limit( 'admin' );
-
-		$form_ids = array( $form_id );
 
 		$dynamic_keys         = $this->scan_dynamic_keys( $form_ids, $status );
 		$include_edit_columns = $this->repository->hasEditInfo();
@@ -180,6 +208,49 @@ class PublicCsvExporter {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		fclose( $output );
 		exit;
+	}
+
+	/**
+	 * Resolve the configured sync-export row cap, clamped to the min/max.
+	 */
+	public static function get_sync_max_rows(): int {
+		$settings = get_option( 'ffc_settings', array() );
+		$value    = isset( $settings['public_csv_sync_max_rows'] )
+			? absint( $settings['public_csv_sync_max_rows'] )
+			: self::DEFAULT_SYNC_MAX_ROWS;
+
+		if ( $value < self::SYNC_MAX_ROWS_MIN ) {
+			$value = self::SYNC_MAX_ROWS_MIN;
+		}
+		if ( $value > self::SYNC_MAX_ROWS_MAX ) {
+			$value = self::SYNC_MAX_ROWS_MAX;
+		}
+		return $value;
+	}
+
+	/**
+	 * Render a 413-style error page when the sync path is refused.
+	 *
+	 * @param int $row_count Actual row count for the form.
+	 * @param int $limit     Configured sync-export cap.
+	 */
+	private function render_sync_limit_exceeded( int $row_count, int $limit ): void {
+		status_header( 413 );
+		nocache_headers();
+		header( 'Content-Type: text/html; charset=utf-8' );
+
+		$title   = __( 'Export too large', 'ffcertificate' );
+		$message = sprintf(
+			/* translators: 1: actual row count, 2: configured max rows */
+			__( 'This form has %1$d submissions, which exceeds the synchronous download limit of %2$d rows. Please enable JavaScript in your browser so the export can run as a batched download, or ask an administrator to raise the limit.', 'ffcertificate' ),
+			$row_count,
+			$limit
+		);
+
+		echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . esc_html( $title ) . '</title></head><body>';
+		echo '<h1>' . esc_html( $title ) . '</h1>';
+		echo '<p>' . esc_html( $message ) . '</p>';
+		echo '</body></html>';
 	}
 
 	// ──────────────────────────────────────────────────────────────.

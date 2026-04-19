@@ -253,6 +253,12 @@ class Activator {
 				'idx_status_submission_date' => '(status, submission_date)',
 				'idx_email_hash_form_id'     => '(email_hash, form_id)',
 				'idx_form_ticket_hash'       => '(form_id, ticket_hash)',
+				// Covers the common admin list pattern: filter by form + status,
+				// then sort by submission_date DESC for pagination. Without this
+				// composite, MySQL either fans out via idx_form_status and then
+				// sorts on a temporary file, or uses idx_status_submission_date
+				// but still filters by form_id row-by-row.
+				'idx_form_status_date'       => '(form_id, status, submission_date)',
 			)
 		);
 	}

@@ -45,6 +45,9 @@ class ActivityLogSubscriber {
 
 		// Daily cron: automatic log cleanup (v4.6.9).
 		add_action( 'ffcertificate_daily_cleanup_hook', array( $this, 'on_daily_cleanup' ) );
+
+		// Fallback: run cleanup on admin visit when WP-Cron misses the schedule.
+		add_action( 'admin_init', array( $this, 'maybe_run_cleanup_fallback' ) );
 	}
 
 	/**
@@ -215,5 +218,27 @@ class ActivityLogSubscriber {
 		}
 
 		ActivityLog::run_cleanup();
+		\set_transient( 'ffc_last_log_cleanup', time(), DAY_IN_SECONDS );
+	}
+
+	/**
+	 * Fallback cleanup when WP-Cron misses the daily schedule.
+	 *
+	 * On shared hosting WP-Cron only fires on site visits. If no visit
+	 * happens for days the cleanup never runs. This method piggybacks on
+	 * any admin page load — a cheap transient check gates execution so it
+	 * runs at most once per day.
+	 */
+	public function maybe_run_cleanup_fallback(): void {
+		if ( \get_transient( 'ffc_last_log_cleanup' ) ) {
+			return;
+		}
+
+		if ( ! class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+			return;
+		}
+
+		ActivityLog::run_cleanup();
+		\set_transient( 'ffc_last_log_cleanup', time(), DAY_IN_SECONDS );
 	}
 }

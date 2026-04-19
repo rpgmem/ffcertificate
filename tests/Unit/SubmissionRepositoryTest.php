@@ -37,6 +37,11 @@ class SubmissionRepositoryTest extends TestCase {
         Functions\when( 'wp_cache_delete' )->justReturn( true );
         Functions\when( 'wp_cache_flush' )->justReturn( true );
 
+        // Stub WP transient functions
+        Functions\when( 'get_transient' )->justReturn( false );
+        Functions\when( 'set_transient' )->justReturn( true );
+        Functions\when( 'delete_transient' )->justReturn( true );
+
         $this->repo = new SubmissionRepository();
     }
 

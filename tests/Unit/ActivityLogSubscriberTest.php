@@ -38,6 +38,8 @@ class ActivityLogSubscriberTest extends TestCase {
         } );
         Functions\when( 'get_current_user_id' )->justReturn( 1 );
         Functions\when( 'wp_cache_delete' )->justReturn( true );
+        Functions\when( 'get_transient' )->justReturn( false );
+        Functions\when( 'set_transient' )->justReturn( true );
         Functions\when( 'delete_transient' )->justReturn( true );
     }
 
@@ -69,7 +71,7 @@ class ActivityLogSubscriberTest extends TestCase {
 
         // Allow remaining hooks
         Functions\expect( 'add_action' )
-            ->with( \Mockery::pattern( '/^ffcertificate_after_appointment|ffcertificate_appointment|ffcertificate_settings|ffcertificate_daily/' ), \Mockery::any(), \Mockery::any(), \Mockery::any() )
+            ->with( \Mockery::pattern( '/^ffcertificate_after_appointment|ffcertificate_appointment|ffcertificate_settings|ffcertificate_daily|admin_init/' ), \Mockery::any(), \Mockery::any(), \Mockery::any() )
             ->zeroOrMoreTimes();
         Functions\expect( 'add_action' )
             ->with( 'ffcertificate_daily_cleanup_hook', \Mockery::any() )
@@ -257,5 +259,36 @@ class ActivityLogSubscriberTest extends TestCase {
         $subscriber = new ActivityLogSubscriber();
 
         $subscriber->on_daily_cleanup();
+    }
+
+    public function test_cleanup_fallback_skips_when_transient_exists(): void {
+        global $wpdb;
+        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldNotReceive( 'query' );
+
+        Functions\when( 'add_action' )->justReturn( true );
+        Functions\when( 'get_transient' )->alias( function ( $key ) {
+            if ( $key === 'ffc_last_log_cleanup' ) {
+                return time();
+            }
+            return false;
+        } );
+
+        $subscriber = new ActivityLogSubscriber();
+        $subscriber->maybe_run_cleanup_fallback();
+    }
+
+    public function test_cleanup_fallback_runs_when_transient_missing(): void {
+        global $wpdb;
+        $wpdb = \Mockery::mock( 'wpdb' );
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldReceive( 'prepare' )->atLeast()->once()->andReturn( '' );
+        $wpdb->shouldReceive( 'query' )->atLeast()->once()->andReturn( 5 );
+
+        Functions\when( 'add_action' )->justReturn( true );
+
+        $subscriber = new ActivityLogSubscriber();
+        $subscriber->maybe_run_cleanup_fallback();
     }
 }

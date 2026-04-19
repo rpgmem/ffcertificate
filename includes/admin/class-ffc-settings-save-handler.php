@@ -150,6 +150,17 @@ class SettingsSaveHandler {
 				$clean['activity_log_retention_days'] = min( 365, absint( $new['activity_log_retention_days'] ) );
 			}
 
+			if ( isset( $new['public_csv_sync_max_rows'] ) ) {
+				$value = absint( $new['public_csv_sync_max_rows'] );
+				if ( $value < \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MIN ) {
+					$value = \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MIN;
+				}
+				if ( $value > \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MAX ) {
+					$value = \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MAX;
+				}
+				$clean['public_csv_sync_max_rows'] = $value;
+			}
+
 			// Debug Settings.
 			$debug_flags = array(
 				'debug_pdf_generator',
