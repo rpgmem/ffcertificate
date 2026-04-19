@@ -133,6 +133,20 @@ class PublicCsvExporter {
 			$form_title_raw ? $form_title_raw : ( 'form-' . $form_id )
 		) . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
 
+		/**
+		 * Filters the filename used for public CSV export downloads.
+		 *
+		 * Mirrors the admin hook so integrations can register a single
+		 * callback and cover both paths.
+		 *
+		 * @since 5.4.0
+		 *
+		 * @param string         $filename Default filename (sanitized, ends in .csv).
+		 * @param array<int,int> $form_ids Array with the single form ID being exported.
+		 * @param string         $status   Submission status filter.
+		 */
+		$filename = (string) apply_filters( 'ffcertificate_csv_export_filename', $filename, $form_ids, $status );
+
 		// Discard any buffered output so the CSV is the only payload on the wire.
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
 		while ( @ob_end_clean() ) {
@@ -159,6 +173,21 @@ class PublicCsvExporter {
 			$this->get_fixed_headers( $include_edit_columns ),
 			$this->build_dynamic_headers( $dynamic_keys )
 		);
+
+		/**
+		 * Filters the header row of the public CSV export.
+		 *
+		 * Use this to add custom columns (must match extra values injected
+		 * via `ffcertificate_csv_export_data`) or relabel existing ones.
+		 *
+		 * @since 5.4.0
+		 *
+		 * @param array<int, string> $headers              Column headers in order.
+		 * @param bool               $include_edit_columns Whether edit-tracking columns are included.
+		 * @param array<int, int>    $form_ids             Array with the single form ID.
+		 */
+		$headers = (array) apply_filters( 'ffcertificate_csv_export_headers', $headers, $include_edit_columns, $form_ids );
+
 		$headers = array_map(
 			function ( $h ) {
 				return mb_convert_encoding( (string) $h, 'UTF-8', 'UTF-8' );
@@ -207,6 +236,33 @@ class PublicCsvExporter {
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		fclose( $output );
+
+		/**
+		 * Fires after a public CSV export has finished streaming to the
+		 * browser. On the sync path no file persists on disk, so the `$file`
+		 * argument is an empty string — use the `$job` payload to identify
+		 * the export.
+		 *
+		 * @since 5.4.0
+		 *
+		 * @param string              $job_id    Job identifier ('' on the sync path).
+		 * @param string              $file      Absolute file path, or '' on the sync path.
+		 * @param int                 $processed Number of data rows written.
+		 * @param array<string, mixed> $job      Export context (form_ids, status, filename, mode).
+		 */
+		do_action(
+			'ffcertificate_csv_export_completed',
+			'',
+			'',
+			(int) $row_count,
+			array(
+				'form_ids' => $form_ids,
+				'status'   => $status,
+				'filename' => $filename,
+				'mode'     => 'public-sync',
+			)
+		);
+
 		exit;
 	}
 
@@ -340,6 +396,9 @@ class PublicCsvExporter {
 			$form_title_raw ? $form_title_raw : ( 'form-' . $form_id )
 		) . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
 
+		/** This filter is documented in the sync stream path above. */
+		$filename = (string) apply_filters( 'ffcertificate_csv_export_filename', $filename, $form_ids, $status );
+
 		// Create temp file.
 		$upload_dir = wp_upload_dir();
 		$tmp_dir    = trailingslashit( $upload_dir['basedir'] ) . 'ffc-tmp';
@@ -368,6 +427,10 @@ class PublicCsvExporter {
 			$this->get_fixed_headers( $include_edit_columns ),
 			$this->build_dynamic_headers( $dynamic_keys )
 		);
+
+		/** This filter is documented in the sync stream path above. */
+		$headers = (array) apply_filters( 'ffcertificate_csv_export_headers', $headers, $include_edit_columns, $form_ids );
+
 		$headers = array_map(
 			function ( $h ) {
 				return mb_convert_encoding( (string) $h, 'UTF-8', 'UTF-8' );
@@ -447,6 +510,15 @@ class PublicCsvExporter {
 		);
 
 		if ( empty( $batch ) ) {
+			/** This action is documented in the sync stream path above. */
+			do_action(
+				'ffcertificate_csv_export_completed',
+				$job_id,
+				isset( $job['file'] ) ? (string) $job['file'] : '',
+				(int) $job['processed'],
+				array_merge( $job, array( 'mode' => 'public-batch' ) )
+			);
+
 			wp_send_json_success(
 				array(
 					'done'      => true,
