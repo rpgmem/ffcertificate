@@ -58,63 +58,99 @@ class SecurityServiceTest extends TestCase {
         $this->assertArrayHasKey('answer', $result);
     }
 
-    public function test_generate_simple_captcha_answer_is_sum_between_2_and_18(): void {
-        // Run multiple times to increase confidence in the range
-        for ($i = 0; $i < 50; $i++) {
+    public function test_generate_simple_captcha_answer_is_non_negative_and_bounded(): void {
+        for ($i = 0; $i < 100; $i++) {
             $result = SecurityService::generate_simple_captcha();
 
             $this->assertIsInt($result['answer']);
-            $this->assertGreaterThanOrEqual(2, $result['answer']);
-            $this->assertLessThanOrEqual(18, $result['answer']);
+            $this->assertGreaterThanOrEqual(0, $result['answer'], 'Answer must never be negative');
+            $this->assertLessThanOrEqual(45, $result['answer'], 'Max multiplication: 9×5=45');
         }
     }
 
     public function test_generate_simple_captcha_hash_matches_answer_with_salt(): void {
-        $result = SecurityService::generate_simple_captcha();
-
-        $expected_hash = hash('sha256', $result['answer'] . 'ffc_math_salt');
-        $this->assertSame($expected_hash, $result['hash']);
+        for ($i = 0; $i < 20; $i++) {
+            $result = SecurityService::generate_simple_captcha();
+            $expected_hash = hash('sha256', $result['answer'] . 'ffc_math_salt');
+            $this->assertSame($expected_hash, $result['hash']);
+        }
     }
 
-    public function test_generate_simple_captcha_label_contains_valid_operands(): void {
-        $digit   = '[1-9]';
-        $word    = '(?:one|two|three|four|five|six|seven|eight|nine)';
-        $operand = "(?:$digit|$word)";
-        $pattern = "/$operand\s*\+\s*$operand/i";
+    public function test_generate_simple_captcha_label_contains_valid_operands_and_operator(): void {
+        $digit    = '[0-9]';
+        $word     = '(?:one|two|three|four|five|six|seven|eight|nine)';
+        $operand  = "(?:$digit|$word)";
+        $operator = '(?:\+|-|×|plus|minus|times)';
+        $pattern  = "/$operand\s+$operator\s+$operand/i";
 
-        for ($i = 0; $i < 50; $i++) {
+        for ($i = 0; $i < 100; $i++) {
             $result = SecurityService::generate_simple_captcha();
             $this->assertMatchesRegularExpression(
                 $pattern,
                 $result['label'],
-                'Label should contain two operands (digit or word) separated by +'
+                "Label should match pattern: '$result[label]'"
             );
         }
     }
 
-    public function test_generate_simple_captcha_mixes_digits_and_words(): void {
-        $has_digit = false;
-        $has_word  = false;
-        $words     = array('one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine');
+    public function test_generate_simple_captcha_uses_all_three_operators(): void {
+        $has_add = false;
+        $has_sub = false;
+        $has_mul = false;
 
-        for ($i = 0; $i < 200; $i++) {
-            $result = SecurityService::generate_simple_captcha();
-            foreach ($words as $w) {
-                if (stripos($result['label'], $w) !== false) {
-                    $has_word = true;
-                    break;
-                }
+        for ($i = 0; $i < 300; $i++) {
+            $label = SecurityService::generate_simple_captcha()['label'];
+            if (strpos($label, '+') !== false || stripos($label, 'plus') !== false) {
+                $has_add = true;
             }
-            if (preg_match('/\d\s*\+|\+\s*\d/', $result['label'])) {
-                $has_digit = true;
+            if (strpos($label, '-') !== false || stripos($label, 'minus') !== false) {
+                $has_sub = true;
             }
-            if ($has_digit && $has_word) {
+            if (strpos($label, '×') !== false || stripos($label, 'times') !== false) {
+                $has_mul = true;
+            }
+            if ($has_add && $has_sub && $has_mul) {
                 break;
             }
         }
 
-        $this->assertTrue($has_digit, 'At least one captcha should use a digit operand in 200 iterations');
-        $this->assertTrue($has_word, 'At least one captcha should use a word operand in 200 iterations');
+        $this->assertTrue($has_add, 'Addition should appear in 300 iterations');
+        $this->assertTrue($has_sub, 'Subtraction should appear in 300 iterations');
+        $this->assertTrue($has_mul, 'Multiplication should appear in 300 iterations');
+    }
+
+    public function test_generate_simple_captcha_mixes_digits_words_and_operator_words(): void {
+        $has_digit    = false;
+        $has_word     = false;
+        $has_op_word  = false;
+        $number_words = array('one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine');
+        $op_words     = array('plus', 'minus', 'times');
+
+        for ($i = 0; $i < 300; $i++) {
+            $label = SecurityService::generate_simple_captcha()['label'];
+            if (preg_match('/\d/', $label)) {
+                $has_digit = true;
+            }
+            foreach ($number_words as $w) {
+                if (stripos($label, $w) !== false) {
+                    $has_word = true;
+                    break;
+                }
+            }
+            foreach ($op_words as $w) {
+                if (stripos($label, $w) !== false) {
+                    $has_op_word = true;
+                    break;
+                }
+            }
+            if ($has_digit && $has_word && $has_op_word) {
+                break;
+            }
+        }
+
+        $this->assertTrue($has_digit, 'At least one captcha should use a digit operand');
+        $this->assertTrue($has_word, 'At least one captcha should use a word operand');
+        $this->assertTrue($has_op_word, 'At least one captcha should use an operator word');
     }
 
     // ==================================================================

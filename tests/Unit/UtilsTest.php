@@ -598,8 +598,8 @@ class UtilsTest extends TestCase {
         $this->assertArrayHasKey( 'label', $captcha );
         $this->assertArrayHasKey( 'hash', $captcha );
         $this->assertArrayHasKey( 'answer', $captcha );
-        $this->assertGreaterThanOrEqual( 2, $captcha['answer'] );
-        $this->assertLessThanOrEqual( 18, $captcha['answer'] );
+        $this->assertGreaterThanOrEqual( 0, $captcha['answer'] );
+        $this->assertLessThanOrEqual( 45, $captcha['answer'] );
     }
 
     // ==================================================================

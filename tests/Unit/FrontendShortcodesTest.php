@@ -60,17 +60,17 @@ class FrontendShortcodesTest extends TestCase {
     // ==================================================================
 
     public function test_get_new_captcha_data_returns_label_and_hash(): void {
-        Functions\when( 'wp_rand' )->alias( function () { return 5; } );
-        Functions\when( 'wp_hash' )->alias( function ( $data ) { return md5( $data ); } );
-
         $captcha = $this->shortcodes->get_new_captcha_data();
 
         $this->assertArrayHasKey( 'label', $captcha );
         $this->assertArrayHasKey( 'hash', $captcha );
         $this->assertArrayHasKey( 'answer', $captcha );
-        $this->assertSame( 10, $captcha['answer'] );
-        $this->assertMatchesRegularExpression( '/five|5/', $captcha['label'] );
-        $this->assertSame( md5( '10ffc_math_salt' ), $captcha['hash'] );
+        $this->assertIsInt( $captcha['answer'] );
+        $this->assertGreaterThanOrEqual( 0, $captcha['answer'] );
+        $this->assertSame(
+            hash( 'sha256', $captcha['answer'] . 'ffc_math_salt' ),
+            $captcha['hash']
+        );
     }
 
     // ==================================================================
