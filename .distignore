@@ -16,6 +16,7 @@
 /package-lock.json
 /node_modules
 /vendor
+/phpcs.xml.dist
 /phpstan.neon.dist
 /phpstan-baseline.neon
 /phpstan-stubs.php
@@ -28,6 +29,9 @@
 /CHANGELOG.md
 /CONTRIBUTING.md
 /SECURITY.md
+
+# Manual support scripts (not part of the plugin runtime)
+/force-split-migration.php
 
 # Editor/OS junk
 *.swp
