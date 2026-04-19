@@ -697,3 +697,100 @@ pre code {
 .ffc-settings-tab-content {
     max-width: 1500px;
 }
+
+/* ==========================================================================
+   NAV TABS - v5.4.0 Visual Refresh
+   Modern underline-style tabs, active indicator, smooth transitions.
+   ========================================================================== */
+.ffc-settings-wrap .nav-tab-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    margin: 20px 0 0 0;
+    padding: 0;
+    border-bottom: 1px solid var(--ffc-border);
+    background: transparent;
+}
+
+.ffc-settings-wrap .nav-tab {
+    position: relative;
+    top: 0;
+    margin: 0;
+    padding: 10px 14px;
+    border: none;
+    background: transparent;
+    color: var(--ffc-text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    border-radius: 4px 4px 0 0;
+    box-shadow: none;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.ffc-settings-wrap .nav-tab:hover,
+.ffc-settings-wrap .nav-tab:focus {
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-primary);
+    box-shadow: none;
+}
+
+.ffc-settings-wrap .nav-tab:focus-visible {
+    outline: 2px solid var(--ffc-primary);
+    outline-offset: -2px;
+}
+
+.ffc-settings-wrap .nav-tab-active,
+.ffc-settings-wrap .nav-tab-active:hover,
+.ffc-settings-wrap .nav-tab-active:focus {
+    background: transparent;
+    color: var(--ffc-primary);
+    font-weight: 600;
+    box-shadow: none;
+}
+
+.ffc-settings-wrap .nav-tab-active::after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: -1px;
+    height: 2px;
+    background: var(--ffc-primary);
+    border-radius: 2px 2px 0 0;
+}
+
+.ffc-settings-wrap .nav-tab[class*="ffc-icon-"]::before {
+    margin-right: 4px;
+}
+
+.ffc-settings-wrap .ffc-tab-content {
+    padding: 20px 0;
+    animation: ffc-tab-fade-in 0.2s ease-out;
+}
+
+@keyframes ffc-tab-fade-in {
+    from { opacity: 0; transform: translateY(-2px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media screen and (max-width: 782px) {
+    .ffc-settings-wrap .nav-tab-wrapper {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+    .ffc-settings-wrap .nav-tab {
+        padding: 8px 12px;
+        font-size: 12px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-settings-wrap .nav-tab,
+    .ffc-settings-wrap .ffc-tab-content {
+        transition: none;
+        animation: none;
+    }
+}
