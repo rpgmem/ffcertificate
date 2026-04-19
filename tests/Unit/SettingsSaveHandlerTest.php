@@ -115,6 +115,24 @@ class SettingsSaveHandlerTest extends TestCase {
         $this->assertSame( 180, $result['activity_log_retention_days'] );
     }
 
+    public function test_general_advanced_tab_sync_max_rows_clamped_below_minimum(): void {
+        $_POST['_ffc_tab'] = 'advanced';
+        $result = $this->invoke( 'save_general_settings', array( array(), array( 'public_csv_sync_max_rows' => '10' ) ) );
+        $this->assertSame( 100, $result['public_csv_sync_max_rows'] );
+    }
+
+    public function test_general_advanced_tab_sync_max_rows_clamped_above_maximum(): void {
+        $_POST['_ffc_tab'] = 'advanced';
+        $result = $this->invoke( 'save_general_settings', array( array(), array( 'public_csv_sync_max_rows' => '99999' ) ) );
+        $this->assertSame( 10000, $result['public_csv_sync_max_rows'] );
+    }
+
+    public function test_general_advanced_tab_sync_max_rows_accepts_in_range(): void {
+        $_POST['_ffc_tab'] = 'advanced';
+        $result = $this->invoke( 'save_general_settings', array( array(), array( 'public_csv_sync_max_rows' => '2500' ) ) );
+        $this->assertSame( 2500, $result['public_csv_sync_max_rows'] );
+    }
+
     public function test_general_advanced_tab_debug_flags_set_and_unset(): void {
         $_POST['_ffc_tab'] = 'advanced';
         $new = array( 'debug_pdf_generator' => '1', 'debug_encryption' => '1' );

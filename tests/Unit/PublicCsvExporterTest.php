@@ -260,4 +260,45 @@ class PublicCsvExporterTest extends TestCase {
     public function test_job_ttl_constant_is_one_hour(): void {
         $this->assertSame( 3600, PublicCsvExporter::JOB_TTL );
     }
+
+    // ==================================================================
+    //  get_sync_max_rows() — clamping and default
+    // ==================================================================
+
+    public function test_sync_max_rows_default_when_setting_missing(): void {
+        Functions\when( 'get_option' )->justReturn( array() );
+        Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
+
+        $this->assertSame(
+            PublicCsvExporter::DEFAULT_SYNC_MAX_ROWS,
+            PublicCsvExporter::get_sync_max_rows()
+        );
+    }
+
+    public function test_sync_max_rows_clamps_below_minimum(): void {
+        Functions\when( 'get_option' )->justReturn( array( 'public_csv_sync_max_rows' => 10 ) );
+        Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
+
+        $this->assertSame(
+            PublicCsvExporter::SYNC_MAX_ROWS_MIN,
+            PublicCsvExporter::get_sync_max_rows()
+        );
+    }
+
+    public function test_sync_max_rows_clamps_above_maximum(): void {
+        Functions\when( 'get_option' )->justReturn( array( 'public_csv_sync_max_rows' => 99999 ) );
+        Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
+
+        $this->assertSame(
+            PublicCsvExporter::SYNC_MAX_ROWS_MAX,
+            PublicCsvExporter::get_sync_max_rows()
+        );
+    }
+
+    public function test_sync_max_rows_returns_configured_value_in_range(): void {
+        Functions\when( 'get_option' )->justReturn( array( 'public_csv_sync_max_rows' => 3500 ) );
+        Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
+
+        $this->assertSame( 3500, PublicCsvExporter::get_sync_max_rows() );
+    }
 }

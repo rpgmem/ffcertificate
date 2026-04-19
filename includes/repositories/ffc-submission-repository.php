@@ -516,17 +516,23 @@ class SubmissionRepository extends AbstractRepository {
 			$search_conditions[] = $this->wpdb->prepare( 'cpf_hash = %s', $search_hash );
 			$search_conditions[] = $this->wpdb->prepare( 'rf_hash = %s', $search_hash );
 
-			// 4. Search in unencrypted data field (legacy/fallback)
-			// Only search if data column has content (not NULL, not empty)
-			$search_conditions[] = $this->wpdb->prepare(
-				"(data IS NOT NULL AND data != '' AND data LIKE %s)",
-				'%' . $this->wpdb->esc_like( $search_term ) . '%'
-			);
+			// 4. Search in unencrypted data field (legacy/fallback).
+			// Skipped for terms shorter than 4 chars: a leading-wildcard LIKE
+			// on a TEXT column triggers a full-table scan and cannot use any
+			// index, so short terms would scan millions of rows for little gain.
+			if ( strlen( $search_term ) >= 4 ) {
+				$search_conditions[] = $this->wpdb->prepare(
+					"(data IS NOT NULL AND data != '' AND data LIKE %s)",
+					'%' . $this->wpdb->esc_like( $search_term ) . '%'
+				);
+			}
 
-			// 5. Search by magic_token (partial match for admin convenience)
+			// 5. Search by magic_token prefix. The KEY magic_token index is
+			// B-tree and can only accelerate leading-anchored LIKE patterns
+			// ('term%'), so we never use a leading wildcard here.
 			$search_conditions[] = $this->wpdb->prepare(
 				'magic_token LIKE %s',
-				'%' . $this->wpdb->esc_like( $search_term ) . '%'
+				$this->wpdb->esc_like( $search_term ) . '%'
 			);
 
 			// Combine all search conditions with OR.

@@ -68,6 +68,21 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						</p>
 					</td>
 				</tr>
+				<tr>
+					<th scope="row">
+						<label for="public_csv_sync_max_rows"><?php esc_html_e( 'Public CSV Sync Export Limit', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="number" name="ffc_settings[public_csv_sync_max_rows]" id="public_csv_sync_max_rows" value="<?php echo esc_attr( $ffcertificate_get_option( 'public_csv_sync_max_rows', \FreeFormCertificate\Frontend\PublicCsvExporter::DEFAULT_SYNC_MAX_ROWS ) ); ?>" min="<?php echo esc_attr( (string) \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MIN ); ?>" max="<?php echo esc_attr( (string) \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MAX ); ?>" class="small-text">
+						<p class="description">
+							<?php esc_html_e( 'Maximum rows allowed for the synchronous (no-JS) public CSV download. Exports above this limit must use the JavaScript batched flow.', 'ffcertificate' ); ?><br>
+							<?php esc_html_e( 'Typical shared hosting has a 30–60s execution timeout. Estimates:', 'ffcertificate' ); ?>
+							<br>&nbsp;&nbsp;• 500 <?php esc_html_e( 'rows ≈ 2–5s — very safe, blocks some legitimate cases', 'ffcertificate' ); ?>
+							<br>&nbsp;&nbsp;• 2000 <?php esc_html_e( 'rows ≈ 8–15s — recommended default', 'ffcertificate' ); ?>
+							<br>&nbsp;&nbsp;• 5000 <?php esc_html_e( 'rows ≈ 20–50s — risky on slow hosts', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
 			</tbody>
 		</table>
 

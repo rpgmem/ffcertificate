@@ -8,11 +8,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-CSV download intermediate screen, full security audit (Phases 1–2), new test suites (Phase 3), and a full WPCS / PHPStan clean-up (Phases 4–5).
+CSV download intermediate screen, full security audit (Phases 1–2), new test suites (Phase 3), full WPCS / PHPStan clean-up (Phases 4–5), and a performance pass for admin submissions at scale.
 
 ### New Features
 
 - Feat: **CSV download intermediate screen** — after hash validation and before the actual download, an info screen shows form configuration (restrictions, dates, geolocation, quiz, quota) so the operator understands the form context. The download button is only enabled after the form has ended; a certificate preview button is available before the collection period begins.
+- Feat: **Public CSV sync-export row cap** — new `public_csv_sync_max_rows` setting (Advanced tab, default 2000, range 100–10000). Public CSV downloads exceeding the cap are refused on the synchronous no-JS path and must use the AJAX batched flow, protecting shared hosting from execution-time timeouts on large exports.
+
+### Performance
+
+- Perf: **`SubmissionRepository::countByStatus()` cached in a 5-minute transient** — eliminates the `COUNT(*) … GROUP BY status` scan on every admin submissions page load; cache invalidated on every write that can move a row between statuses (`insert`, status `update`, `bulkUpdateStatus`, `bulkDelete`, `deleteByFormId`).
+- Perf: **Composite index `(form_id, status, submission_date)` on `ffc_submissions`** — covers the common admin list pattern (filter by form + status, sort by submission_date DESC).
+- Perf: **Activity log cleanup fallback on `admin_init`** — WP-Cron on low-traffic shared hosting often misses scheduled runs; a transient-gated admin-visit fallback (`ffc_last_log_cleanup`, 24h) ensures cleanup runs at most once per day even if the cron event never fires.
+- Perf: **`findPaginated()` search optimizations** — `magic_token` now uses prefix match (`'term%'`) so the `KEY magic_token` B-tree index can accelerate lookups instead of being bypassed by a leading wildcard; the unencrypted-`data` LIKE fallback is skipped for search terms shorter than 4 characters, avoiding full-table scans on trivial inputs.
+- Perf: No `SQL_CALC_FOUND_ROWS` usage in the codebase (verified during the audit); pagination continues to use dedicated `COUNT(*)` queries, which MySQL 8 optimises far better than the deprecated calc flag.
+
+### Fixed
+
+- Fix: Activity log disabled-notice link pointed to `Settings > General` — the activity-log toggle and retention live in `Settings > Advanced`. Link and label updated to match.
 
 ### Security
 
