@@ -27,6 +27,10 @@ class SecurityService {
 	/**
 	 * Generate simple math captcha
 	 *
+	 * Each operand is randomly displayed as a digit or a translatable
+	 * word (e.g. "5 + three"), making automated parsing harder for bots
+	 * while keeping the challenge trivial for humans.
+	 *
 	 * @return array<string, mixed> Array with 'label', 'hash', and 'answer'
 	 */
 	public static function generate_simple_captcha(): array {
@@ -34,12 +38,37 @@ class SecurityService {
 		$n2     = wp_rand( 1, 9 );
 		$answer = $n1 + $n2;
 
+		$display1 = wp_rand( 0, 1 ) ? self::number_to_word( $n1 ) : (string) $n1;
+		$display2 = wp_rand( 0, 1 ) ? self::number_to_word( $n2 ) : (string) $n2;
+
 		return array(
-			/* translators: 1: first number, 2: second number */
-			'label'  => sprintf( esc_html__( 'Security: How much is %1$d + %2$d?', 'ffcertificate' ), $n1, $n2 ),
+			/* translators: 1: first operand (digit or word), 2: second operand (digit or word) */
+			'label'  => sprintf( esc_html__( 'Security: How much is %1$s + %2$s?', 'ffcertificate' ), $display1, $display2 ),
 			'hash'   => wp_hash( $answer . 'ffc_math_salt' ),
-			'answer' => $answer,  // For internal use only.
+			'answer' => $answer,
 		);
+	}
+
+	/**
+	 * Return a translatable word for a single-digit number.
+	 *
+	 * @param int $number Number between 1 and 9.
+	 * @return string Translated word.
+	 */
+	private static function number_to_word( int $number ): string {
+		$words = array(
+			1 => __( 'one', 'ffcertificate' ),
+			2 => __( 'two', 'ffcertificate' ),
+			3 => __( 'three', 'ffcertificate' ),
+			4 => __( 'four', 'ffcertificate' ),
+			5 => __( 'five', 'ffcertificate' ),
+			6 => __( 'six', 'ffcertificate' ),
+			7 => __( 'seven', 'ffcertificate' ),
+			8 => __( 'eight', 'ffcertificate' ),
+			9 => __( 'nine', 'ffcertificate' ),
+		);
+
+		return $words[ $number ] ?? (string) $number;
 	}
 
 	/**

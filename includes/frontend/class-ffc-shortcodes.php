@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
+use FreeFormCertificate\Core\SecurityService;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -39,13 +40,7 @@ class Shortcodes {
 	 * @return array<string, mixed>
 	 */
 	public function get_new_captcha_data(): array {
-		$n1 = wp_rand( 1, 9 );
-		$n2 = wp_rand( 1, 9 );
-		return array(
-			/* translators: 1: first number, 2: second number */
-			'label' => sprintf( esc_html__( 'Security: How much is %1$d + %2$d?', 'ffcertificate' ), $n1, $n2 ),
-			'hash'  => wp_hash( ( $n1 + $n2 ) . 'ffc_math_salt' ),
-		);
+		return SecurityService::generate_simple_captcha();
 	}
 
 	/**

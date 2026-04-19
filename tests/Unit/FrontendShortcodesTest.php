@@ -65,8 +65,9 @@ class FrontendShortcodesTest extends TestCase {
 
         $this->assertArrayHasKey( 'label', $captcha );
         $this->assertArrayHasKey( 'hash', $captcha );
-        $this->assertStringContainsString( '5', $captcha['label'] );
-        // Hash of (5+5) . 'ffc_math_salt' = hash of '10ffc_math_salt'
+        $this->assertArrayHasKey( 'answer', $captcha );
+        $this->assertSame( 10, $captcha['answer'] );
+        $this->assertMatchesRegularExpression( '/five|5/', $captcha['label'] );
         $this->assertSame( md5( '10ffc_math_salt' ), $captcha['hash'] );
     }
 

@@ -76,22 +76,45 @@ class SecurityServiceTest extends TestCase {
         $this->assertSame($expected_hash, $result['hash']);
     }
 
-    public function test_generate_simple_captcha_label_contains_both_numbers(): void {
-        $result = SecurityService::generate_simple_captcha();
+    public function test_generate_simple_captcha_label_contains_valid_operands(): void {
+        $digit   = '[1-9]';
+        $word    = '(?:one|two|three|four|five|six|seven|eight|nine)';
+        $operand = "(?:$digit|$word)";
+        $pattern = "/$operand\s*\+\s*$operand/i";
 
-        // The label format is "Security: How much is %d + %d?"
-        // Extract the two numbers from the label
-        preg_match('/(\d+)\s*\+\s*(\d+)/', $result['label'], $matches);
+        for ($i = 0; $i < 50; $i++) {
+            $result = SecurityService::generate_simple_captcha();
+            $this->assertMatchesRegularExpression(
+                $pattern,
+                $result['label'],
+                'Label should contain two operands (digit or word) separated by +'
+            );
+        }
+    }
 
-        $this->assertNotEmpty($matches, 'Label should contain two numbers separated by +');
-        $n1 = (int) $matches[1];
-        $n2 = (int) $matches[2];
+    public function test_generate_simple_captcha_mixes_digits_and_words(): void {
+        $has_digit = false;
+        $has_word  = false;
+        $words     = array('one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine');
 
-        $this->assertGreaterThanOrEqual(1, $n1);
-        $this->assertLessThanOrEqual(9, $n1);
-        $this->assertGreaterThanOrEqual(1, $n2);
-        $this->assertLessThanOrEqual(9, $n2);
-        $this->assertSame($result['answer'], $n1 + $n2);
+        for ($i = 0; $i < 200; $i++) {
+            $result = SecurityService::generate_simple_captcha();
+            foreach ($words as $w) {
+                if (stripos($result['label'], $w) !== false) {
+                    $has_word = true;
+                    break;
+                }
+            }
+            if (preg_match('/\d\s*\+|\+\s*\d/', $result['label'])) {
+                $has_digit = true;
+            }
+            if ($has_digit && $has_word) {
+                break;
+            }
+        }
+
+        $this->assertTrue($has_digit, 'At least one captcha should use a digit operand in 200 iterations');
+        $this->assertTrue($has_word, 'At least one captcha should use a word operand in 200 iterations');
     }
 
     // ==================================================================
