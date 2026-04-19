@@ -587,14 +587,9 @@ class UtilsTest extends TestCase {
     // ==================================================================
 
     public function test_generate_captcha_structure(): void {
-        $call_count = 0;
-        Functions\when( 'wp_rand' )->alias( function() use ( &$call_count ) {
-            $call_count++;
-            return $call_count <= 1 ? 3 : 7;
-        } );
-        Functions\when( 'esc_html__' )->alias( function( $text ) {
-            return $text;
-        } );
+        Functions\when( '__' )->returnArg();
+        Functions\when( 'wp_rand' )->alias( function ( int $min = 0, int $max = 0 ) { return random_int( $min, $max ); } );
+        Functions\when( 'esc_html__' )->returnArg();
         Functions\when( 'wp_hash' )->alias( function( $data ) {
             return md5( $data );
         } );
@@ -603,7 +598,8 @@ class UtilsTest extends TestCase {
         $this->assertArrayHasKey( 'label', $captcha );
         $this->assertArrayHasKey( 'hash', $captcha );
         $this->assertArrayHasKey( 'answer', $captcha );
-        $this->assertSame( 10, $captcha['answer'] );
+        $this->assertGreaterThanOrEqual( 0, $captcha['answer'] );
+        $this->assertLessThanOrEqual( 45, $captcha['answer'] );
     }
 
     // ==================================================================

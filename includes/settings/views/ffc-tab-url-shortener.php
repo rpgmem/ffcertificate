@@ -25,19 +25,21 @@ if ( is_string( $post_types ) ) {
 $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 ?>
 
-<div class="ffc-section-header">
-	<h2><?php esc_html_e( 'URL Shortener', 'ffcertificate' ); ?></h2>
+<div class="ffc-settings-wrap">
+
+<div class="card">
+	<h2 class="ffc-icon-link"><?php esc_html_e( 'URL Shortener', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'Configure the built-in URL shortener. Short URLs redirect visitors and generate QR Codes.', 'ffcertificate' ); ?>
 	</p>
-</div>
 
-<form method="post">
-	<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
-	<input type="hidden" name="_ffc_tab" value="url_shortener">
+	<form method="post">
+		<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
+		<input type="hidden" name="_ffc_tab" value="url_shortener">
 
-<table class="form-table">
-	<tr>
+	<table class="form-table" role="presentation">
+		<tbody>
+		<tr>
 		<th scope="row">
 			<label for="url_shortener_enabled"><?php esc_html_e( 'Enable URL Shortener', 'ffcertificate' ); ?></label>
 		</th>
@@ -57,7 +59,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 			<code><?php echo esc_html( home_url( '/' ) ); ?></code>
 			<input type="text" name="ffc_settings[url_shortener_prefix]" id="url_shortener_prefix"
 					value="<?php echo esc_attr( $prefix ); ?>"
-					class="regular-text" style="width: 100px;" />
+					class="small-text" />
 			<code>/abc123</code>
 			<p class="description">
 				<?php esc_html_e( 'The URL prefix for short links (e.g. "go", "r", "l"). Only letters, numbers, and hyphens.', 'ffcertificate' ); ?>
@@ -110,12 +112,14 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 	<tr>
 		<th scope="row"><?php esc_html_e( 'Post Types', 'ffcertificate' ); ?></th>
 		<td>
+			<div class="ffc-checkbox-group">
 			<?php foreach ( $all_post_types as $pt ) : ?>
 				<?php
 				if ( in_array( $pt->name, array( 'attachment', 'ffc_form', 'ffc_calendar' ), true ) ) {
-					continue;}
+					continue;
+				}
 				?>
-				<label style="display: block; margin-bottom: 4px;">
+				<label>
 					<input type="checkbox"
 							name="ffc_settings[url_shortener_post_types][]"
 							value="<?php echo esc_attr( $pt->name ); ?>"
@@ -123,12 +127,17 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 					<?php echo esc_html( $pt->labels->singular_name ); ?> <code>(<?php echo esc_html( $pt->name ); ?>)</code>
 				</label>
 			<?php endforeach; ?>
+			</div>
 			<p class="description">
 				<?php esc_html_e( 'Select which post types will show the URL Shortener meta box.', 'ffcertificate' ); ?>
 			</p>
 		</td>
 	</tr>
-</table>
+		</tbody>
+	</table>
 
-	<?php submit_button(); ?>
-</form>
+		<?php submit_button(); ?>
+	</form>
+</div>
+
+</div><!-- .ffc-settings-wrap -->
