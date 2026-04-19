@@ -120,6 +120,12 @@ class Frontend {
 			wp_enqueue_style( 'ffc-pdf-core', FFC_PLUGIN_URL . "assets/css/ffc-pdf-core{$s}.css", array(), FFC_VERSION );
 			wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css", array(), FFC_VERSION );
 			wp_enqueue_style( 'ffc-frontend-css', FFC_PLUGIN_URL . "assets/css/ffc-frontend{$s}.css", array( 'ffc-pdf-core', 'ffc-common' ), FFC_VERSION );
+
+			// Dynamic fragments: refresh captcha + nonces on cached pages so
+			// LiteSpeed/Varnish visitors don't submit with a stale nonce. The
+			// CSV download shortcode also renders a WP nonce + captcha, so it
+			// needs this refresh too.
+			wp_enqueue_script( 'ffc-dynamic-fragments' );
 		}
 
 		if ( $has_form || $has_verification ) {
@@ -133,9 +139,6 @@ class Frontend {
 			wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js", array( 'jquery', 'html2canvas', 'jspdf' ), FFC_VERSION, true );
 
 			wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-pdf-generator', 'ffc-rate-limit' ), FFC_VERSION, true );
-
-			// Dynamic fragments: refresh captcha + nonces on cached pages.
-			wp_enqueue_script( 'ffc-dynamic-fragments' );
 
 			wp_enqueue_script( 'ffc-geofence-frontend', FFC_PLUGIN_URL . "assets/js/ffc-geofence-frontend{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 
