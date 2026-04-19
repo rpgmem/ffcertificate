@@ -159,6 +159,19 @@
 					pcdFields[i].value = data.nonces.ffc_public_csv_download;
 				}
 			}
+
+			// ffc_audience shortcode: patch the two nonces localised on the
+			// `ffcAudience` global. Each REST/AJAX call in ffc-audience.js
+			// reads the current value of the global, so updating it here
+			// in-place is enough — no per-call patching needed.
+			if (typeof ffcAudience !== 'undefined') {
+				if (data.nonces.wp_rest) {
+					ffcAudience.nonce = data.nonces.wp_rest;
+				}
+				if (data.nonces.ffc_search_users) {
+					ffcAudience.searchUsersNonce = data.nonces.ffc_search_users;
+				}
+			}
 		}
 
 		// --- User pre-fill (booking form) ---

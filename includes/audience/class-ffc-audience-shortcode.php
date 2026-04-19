@@ -719,6 +719,11 @@ class AudienceShortcode {
 			true
 		);
 
+		// Dynamic fragments: refresh the wp_rest + ffc_search_users nonces
+		// localised on `ffcAudience` so cached (per-user) pages don't keep
+		// serving the nonce of whoever the cache entry was generated for.
+		wp_enqueue_script( 'ffc-dynamic-fragments' );
+
 		// Resolve custom booking labels from schedule config (first non-empty wins).
 		$booking_singular = __( 'booking', 'ffcertificate' );
 		$booking_plural   = __( 'bookings', 'ffcertificate' );
