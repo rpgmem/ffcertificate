@@ -3,8 +3,9 @@
  * Form REST Controller
  *
  * Handles form-related REST API endpoints:
- *   GET  /forms          – List published forms
- *   GET  /forms/{id}     – Get single form
+ *   GET  /forms             – List published forms
+ *   GET  /forms/{id}        – Get single form (full payload incl. background)
+ *   GET  /forms/{id}/schema – Lightweight read-only form metadata for integrations
  *   POST /forms/{id}/submit – Submit a form
  *
  * @package FreeFormCertificate\API
@@ -79,6 +80,24 @@ class FormRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_form' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'id' => array(
+						'validate_callback' => function ( $param ) {
+							return is_numeric( $param );
+						},
+					),
+				),
+			)
+		);
+
+		// GET /forms/{id}/schema - Lightweight read-only form metadata.
+		register_rest_route(
+			$this->namespace,
+			'/forms/(?P<id>\d+)/schema',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_form_schema' ),
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'id' => array(
@@ -200,6 +219,102 @@ class FormRestController {
 
 		} catch ( \Exception $e ) {
 			$this->log_rest_error( 'get_form', $e );
+			return new \WP_Error(
+				'ffc_internal_error',
+				__( 'An unexpected error occurred.', 'ffcertificate' ),
+				array( 'status' => 500 )
+			);
+		}
+	}
+
+	/**
+	 * GET /forms/{id}/schema
+	 *
+	 * Returns a lightweight, read-only metadata payload describing the
+	 * form — id, title, and the trimmed list of fields with only the
+	 * keys that client integrations actually need to render a form
+	 * (name, label, type, required, options).
+	 *
+	 * This is cheaper than /forms/{id}: it does not include the
+	 * background image, full config blob, or post dates. Integrators
+	 * can filter the payload via `ffcertificate_rest_form_schema`.
+	 *
+	 * @since 5.4.0
+	 * @param \WP_REST_Request $request REST request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function get_form_schema( $request ) {
+		try {
+			$form_id = (int) $request->get_param( 'id' );
+
+			$form = get_post( $form_id );
+
+			if ( ! $form || 'ffc_form' !== $form->post_type ) {
+				return new \WP_Error(
+					'form_not_found',
+					__( 'Form not found', 'ffcertificate' ),
+					array( 'status' => 404 )
+				);
+			}
+
+			if ( 'publish' !== $form->post_status ) {
+				return new \WP_Error(
+					'form_not_published',
+					__( 'Form is not published', 'ffcertificate' ),
+					array( 'status' => 403 )
+				);
+			}
+
+			if ( ! $this->form_repository ) {
+				return new \WP_Error(
+					'repository_not_found',
+					__( 'Form repository not available', 'ffcertificate' ),
+					array( 'status' => 500 )
+				);
+			}
+
+			$raw_fields = $this->form_repository->getFields( $form_id );
+			if ( ! is_array( $raw_fields ) ) {
+				$raw_fields = array();
+			}
+
+			$fields = array();
+			foreach ( $raw_fields as $field ) {
+				if ( ! is_array( $field ) ) {
+					continue;
+				}
+				$fields[] = array(
+					'name'     => isset( $field['name'] ) ? (string) $field['name'] : '',
+					'label'    => isset( $field['label'] ) ? (string) $field['label'] : '',
+					'type'     => isset( $field['type'] ) ? (string) $field['type'] : 'text',
+					'required' => ! empty( $field['required'] ),
+					'options'  => ( isset( $field['options'] ) && is_array( $field['options'] ) ) ? array_values( $field['options'] ) : array(),
+				);
+			}
+
+			$schema = array(
+				'id'     => $form->ID,
+				'title'  => $form->post_title,
+				'fields' => $fields,
+			);
+
+			/**
+			 * Filters the lightweight form schema returned by the REST
+			 * metadata endpoint. Integrators can add/remove keys or inject
+			 * custom computed values.
+			 *
+			 * @since 5.4.0
+			 *
+			 * @param array<string, mixed> $schema  Default schema (id, title, fields).
+			 * @param int                  $form_id Form post ID.
+			 * @param \WP_Post             $form    Form post object.
+			 */
+			$schema = (array) apply_filters( 'ffcertificate_rest_form_schema', $schema, $form_id, $form );
+
+			return rest_ensure_response( $schema );
+
+		} catch ( \Exception $e ) {
+			$this->log_rest_error( 'get_form_schema', $e );
 			return new \WP_Error(
 				'ffc_internal_error',
 				__( 'An unexpected error occurred.', 'ffcertificate' ),

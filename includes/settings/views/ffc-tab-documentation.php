@@ -621,6 +621,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tbody>
 				<tr>
 					<td><code>GET</code></td>
+					<td><code>/wp-json/ffc/v1/forms/{id}/schema</code></td>
+					<td><?php esc_html_e( 'Read-only form metadata (id, title, fields) for integrations', 'ffcertificate' ); ?></td>
+				</tr>
+				<tr>
+					<td><code>GET</code></td>
 					<td><code>/wp-json/ffc/v1/user/reregistrations</code></td>
 					<td><?php esc_html_e( 'List active reregistrations for the current user', 'ffcertificate' ); ?></td>
 				</tr>
@@ -1269,6 +1274,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</thead>
 			<tbody>
 				<tr><td><code>ffcertificate_csv_export_data</code></td><td><?php esc_html_e( 'Filter exported CSV data before writing', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_csv_export_filename</code></td><td><?php esc_html_e( 'Filter the filename of the CSV download (admin + public)', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_csv_export_headers</code></td><td><?php esc_html_e( 'Filter the CSV header row to add/rename columns', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_csv_export_completed</code></td><td><?php esc_html_e( 'Action fired when a CSV export finishes writing', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_rest_form_schema</code></td><td><?php esc_html_e( 'Filter the REST form schema payload (fields, labels, types)', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_settings_tabs</code></td><td><?php esc_html_e( 'Register custom settings tabs', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_settings_before_save</code></td><td><?php esc_html_e( 'Filter settings data before saving', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_settings_saved</code></td><td><?php esc_html_e( 'Action fired after settings are saved', 'ffcertificate' ); ?></td></tr>

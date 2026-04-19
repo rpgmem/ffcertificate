@@ -39,6 +39,8 @@ class FrontendShortcodesTest extends TestCase {
         Functions\when( 'absint' )->alias( function ( $val ) { return abs( (int) $val ); } );
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'wp_rand' )->alias( function ( int $min = 0, int $max = 0 ) { return random_int( $min, $max ); } );
+        Functions\when( 'wp_hash' )->alias( function ( $data ) { return hash( 'sha256', $data ); } );
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );
@@ -58,16 +60,17 @@ class FrontendShortcodesTest extends TestCase {
     // ==================================================================
 
     public function test_get_new_captcha_data_returns_label_and_hash(): void {
-        Functions\when( 'wp_rand' )->alias( function () { return 5; } );
-        Functions\when( 'wp_hash' )->alias( function ( $data ) { return md5( $data ); } );
-
         $captcha = $this->shortcodes->get_new_captcha_data();
 
         $this->assertArrayHasKey( 'label', $captcha );
         $this->assertArrayHasKey( 'hash', $captcha );
-        $this->assertStringContainsString( '5', $captcha['label'] );
-        // Hash of (5+5) . 'ffc_math_salt' = hash of '10ffc_math_salt'
-        $this->assertSame( md5( '10ffc_math_salt' ), $captcha['hash'] );
+        $this->assertArrayHasKey( 'answer', $captcha );
+        $this->assertIsInt( $captcha['answer'] );
+        $this->assertGreaterThanOrEqual( 0, $captcha['answer'] );
+        $this->assertSame(
+            hash( 'sha256', $captcha['answer'] . 'ffc_math_salt' ),
+            $captcha['hash']
+        );
     }
 
     // ==================================================================

@@ -133,6 +133,17 @@ class CsvExporter {
 		}
 		$filename = \FreeFormCertificate\Core\Utils::sanitize_filename( $form_title ) . '-' . gmdate( 'Y-m-d' ) . '.csv';
 
+		/**
+		 * Filters the filename used for admin CSV export downloads.
+		 *
+		 * @since 5.4.0
+		 *
+		 * @param string              $filename Default filename (already sanitized, ends in .csv).
+		 * @param array<int, int>|null $form_ids Array of form IDs being exported, or null for "all".
+		 * @param string              $status   Submission status filter (e.g. 'publish', 'trash').
+		 */
+		$filename = (string) apply_filters( 'ffcertificate_csv_export_filename', $filename, $form_ids, $status );
+
 		// Create temp file.
 		$upload_dir = wp_upload_dir();
 		$tmp_dir    = trailingslashit( $upload_dir['basedir'] ) . 'ffc-tmp';
@@ -162,9 +173,24 @@ class CsvExporter {
 			$this->get_fixed_headers( $include_edit_columns ),
 			$this->get_dynamic_headers( $dynamic_keys )
 		);
+
+		/**
+		 * Filters the header row of the admin CSV export.
+		 *
+		 * Use this to add custom columns (must match extra values injected
+		 * via `ffcertificate_csv_export_data`) or relabel existing ones.
+		 *
+		 * @since 5.4.0
+		 *
+		 * @param array<int, string>  $headers              Column headers in order.
+		 * @param bool                $include_edit_columns Whether edit-tracking columns are included.
+		 * @param array<int, int>|null $form_ids            Array of form IDs, or null for "all".
+		 */
+		$headers = (array) apply_filters( 'ffcertificate_csv_export_headers', $headers, $include_edit_columns, $form_ids );
+
 		$headers = array_map(
 			function ( $h ) {
-				return mb_convert_encoding( $h, 'UTF-8', 'UTF-8' );
+				return mb_convert_encoding( (string) $h, 'UTF-8', 'UTF-8' );
 			},
 			$headers
 		);
@@ -227,6 +253,21 @@ class CsvExporter {
 		);
 
 		if ( empty( $batch ) ) {
+			/**
+			 * Fires when an admin CSV export has processed all rows and the
+			 * temp file is ready to be served. The file still exists on disk
+			 * at this point — integrators can copy it to external storage,
+			 * send a notification, etc.
+			 *
+			 * @since 5.4.0
+			 *
+			 * @param string              $job_id    Export job identifier.
+			 * @param string              $file      Absolute path to the generated CSV file.
+			 * @param int                 $processed Number of rows written.
+			 * @param array<string, mixed> $job      Full job state (form_ids, status, filename, ...).
+			 */
+			do_action( 'ffcertificate_csv_export_completed', $job_id, $job['file'], (int) $job['processed'], $job );
+
 			// All done.
 			wp_send_json_success(
 				array(

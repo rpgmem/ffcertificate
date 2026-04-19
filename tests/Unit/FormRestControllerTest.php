@@ -121,11 +121,11 @@ class FormRestControllerTest extends TestCase {
     // Route registration
     // ------------------------------------------------------------------
 
-    public function test_register_routes_creates_three_endpoints(): void {
+    public function test_register_routes_creates_four_endpoints(): void {
         $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
         $ctrl->register_routes();
 
-        $this->assertCount( 3, $this->registered_routes );
+        $this->assertCount( 4, $this->registered_routes );
     }
 
     public function test_forms_list_route_is_public(): void {
@@ -146,11 +146,20 @@ class FormRestControllerTest extends TestCase {
         $this->assertSame( '__return_true', $route['args']['permission_callback'] );
     }
 
-    public function test_form_submit_route_is_public(): void {
+    public function test_form_schema_route_is_public(): void {
         $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
         $ctrl->register_routes();
 
         $route = $this->registered_routes[2];
+        $this->assertStringContainsString( 'schema', $route['route'] );
+        $this->assertSame( '__return_true', $route['args']['permission_callback'] );
+    }
+
+    public function test_form_submit_route_is_public(): void {
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $ctrl->register_routes();
+
+        $route = $this->registered_routes[3];
         $this->assertStringContainsString( 'submit', $route['route'] );
         $this->assertSame( '__return_true', $route['args']['permission_callback'] );
     }
@@ -249,6 +258,112 @@ class FormRestControllerTest extends TestCase {
         $this->assertArrayHasKey( 'config', $result );
         $this->assertArrayHasKey( 'fields', $result );
         $this->assertArrayHasKey( 'background', $result );
+    }
+
+    // ------------------------------------------------------------------
+    // get_form_schema()
+    // ------------------------------------------------------------------
+
+    public function test_get_form_schema_returns_error_when_not_found(): void {
+        Functions\when( 'get_post' )->justReturn( null );
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $request = $this->make_request( array( 'id' => 99 ) );
+        $result = $ctrl->get_form_schema( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'form_not_found', $result->get_error_code() );
+    }
+
+    public function test_get_form_schema_returns_error_when_not_published(): void {
+        $post = $this->make_post( 5, 'ffc_form', 'draft' );
+        Functions\when( 'get_post' )->justReturn( $post );
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $request = $this->make_request( array( 'id' => 5 ) );
+        $result = $ctrl->get_form_schema( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'form_not_published', $result->get_error_code() );
+    }
+
+    public function test_get_form_schema_returns_error_when_repository_null(): void {
+        $post = $this->make_post( 5 );
+        Functions\when( 'get_post' )->justReturn( $post );
+
+        $ctrl = new FormRestController( 'ffc/v1', null );
+        $request = $this->make_request( array( 'id' => 5 ) );
+        $result = $ctrl->get_form_schema( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'repository_not_found', $result->get_error_code() );
+    }
+
+    public function test_get_form_schema_trims_fields_to_public_keys(): void {
+        $post = $this->make_post( 7 );
+        $post->post_title = 'Schema Form';
+        Functions\when( 'get_post' )->justReturn( $post );
+
+        $this->form_repo_mock->shouldReceive( 'getFields' )->with( 7 )->andReturn( array(
+            array(
+                'name'             => 'email',
+                'label'            => 'E-mail',
+                'type'             => 'email',
+                'required'         => true,
+                'options'          => array(),
+                'internal_secret'  => 'should-not-leak',
+            ),
+            array(
+                'name'     => 'city',
+                'label'    => 'City',
+                'type'     => 'select',
+                'required' => false,
+                'options'  => array( 'SP', 'RJ' ),
+            ),
+        ));
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $request = $this->make_request( array( 'id' => 7 ) );
+        $result = $ctrl->get_form_schema( $request );
+
+        $this->assertIsArray( $result );
+        $this->assertSame( 7, $result['id'] );
+        $this->assertSame( 'Schema Form', $result['title'] );
+        $this->assertArrayHasKey( 'fields', $result );
+        $this->assertCount( 2, $result['fields'] );
+
+        $this->assertSame(
+            array( 'name', 'label', 'type', 'required', 'options' ),
+            array_keys( $result['fields'][0] )
+        );
+        $this->assertSame( 'email', $result['fields'][0]['name'] );
+        $this->assertTrue( $result['fields'][0]['required'] );
+        $this->assertSame( array( 'SP', 'RJ' ), $result['fields'][1]['options'] );
+
+        // Background and config must NOT be part of the trimmed schema.
+        $this->assertArrayNotHasKey( 'background', $result );
+        $this->assertArrayNotHasKey( 'config', $result );
+    }
+
+    public function test_get_form_schema_normalises_missing_field_keys(): void {
+        $post = $this->make_post( 8 );
+        Functions\when( 'get_post' )->justReturn( $post );
+
+        $this->form_repo_mock->shouldReceive( 'getFields' )->with( 8 )->andReturn( array(
+            array( 'name' => 'only_name' ),
+            'not-an-array',
+        ));
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $request = $this->make_request( array( 'id' => 8 ) );
+        $result = $ctrl->get_form_schema( $request );
+
+        $this->assertCount( 1, $result['fields'] );
+        $this->assertSame( 'only_name', $result['fields'][0]['name'] );
+        $this->assertSame( '', $result['fields'][0]['label'] );
+        $this->assertSame( 'text', $result['fields'][0]['type'] );
+        $this->assertFalse( $result['fields'][0]['required'] );
+        $this->assertSame( array(), $result['fields'][0]['options'] );
     }
 
     // ------------------------------------------------------------------
