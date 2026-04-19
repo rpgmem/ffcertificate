@@ -1092,21 +1092,27 @@ textarea.ffc-input,
 
 /* ============================================
    CSV DOWNLOAD — INFO SCREEN
+   Scoped under .ffc-public-csv-download to raise specificity
+   from (0,1,0) to (0,2,0) so host-theme rules like
+   `.entry-content div { ... }` cannot collapse the layout.
    ============================================ */
-.ffc-info-screen {
+.ffc-public-csv-download .ffc-info-screen {
     width: 100%;
+    box-sizing: border-box;
 }
 
-.ffc-info-header {
+.ffc-public-csv-download .ffc-info-header {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 24px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--ffc-border, #e0e0e0);
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.ffc-info-header h2 {
+.ffc-public-csv-download .ffc-info-header h2 {
     margin: 0;
     font-size: 22px;
     font-weight: 600;
@@ -1114,7 +1120,7 @@ textarea.ffc-input,
     flex: 1;
 }
 
-.ffc-info-back {
+.ffc-public-csv-download .ffc-info-back {
     background: none;
     border: 1px solid var(--ffc-border, #e0e0e0);
     border-radius: var(--ffc-radius-sm, 4px);
@@ -1123,31 +1129,33 @@ textarea.ffc-input,
     color: var(--ffc-text-muted, #666);
     cursor: pointer;
     transition: all 0.2s ease;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 4px;
     white-space: nowrap;
 }
 
-.ffc-info-back:hover {
+.ffc-public-csv-download .ffc-info-back:hover {
     border-color: var(--ffc-primary, #0073aa);
     color: var(--ffc-primary, #0073aa);
 }
 
-.ffc-info-back-arrow {
+.ffc-public-csv-download .ffc-info-back-arrow {
     font-size: 16px;
     line-height: 1;
 }
 
-.ffc-info-section {
+.ffc-public-csv-download .ffc-info-section {
     margin-bottom: 20px;
     padding: 16px;
     background: var(--ffc-bg-subtle, #f8f9fa);
     border-radius: var(--ffc-radius-sm, 6px);
     border: 1px solid var(--ffc-border, #e0e0e0);
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.ffc-info-section h3 {
+.ffc-public-csv-download .ffc-info-section h3 {
     margin: 0 0 12px 0;
     font-size: 14px;
     font-weight: 600;
@@ -1156,43 +1164,47 @@ textarea.ffc-input,
     letter-spacing: 0.5px;
 }
 
-.ffc-info-section.ffc-info-summary {
+.ffc-public-csv-download .ffc-info-section.ffc-info-summary {
     background: var(--ffc-bg-card, #fff);
     border-color: var(--ffc-primary, #0073aa);
     border-left: 3px solid var(--ffc-primary, #0073aa);
 }
 
-.ffc-info-row {
+.ffc-public-csv-download .ffc-info-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     padding: 6px 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.ffc-info-row + .ffc-info-row {
+.ffc-public-csv-download .ffc-info-row + .ffc-info-row {
     border-top: 1px solid var(--ffc-border, #e0e0e0);
 }
 
-.ffc-info-label {
+.ffc-public-csv-download .ffc-info-label {
     font-size: 14px;
     color: var(--ffc-text-muted, #666);
 }
 
-.ffc-info-value {
+.ffc-public-csv-download .ffc-info-value {
     font-size: 14px;
     font-weight: 500;
     color: var(--ffc-text, #333);
+    text-align: right;
 }
 
-.ffc-info-subsection {
+.ffc-public-csv-download .ffc-info-subsection {
     margin-bottom: 8px;
 }
 
-.ffc-info-subsection:last-child {
+.ffc-public-csv-download .ffc-info-subsection:last-child {
     margin-bottom: 0;
 }
 
-.ffc-info-sublabel {
+.ffc-public-csv-download .ffc-info-sublabel {
     font-size: 13px;
     font-weight: 500;
     color: var(--ffc-text-muted, #666);
@@ -1200,33 +1212,33 @@ textarea.ffc-input,
     margin-bottom: 4px;
 }
 
-.ffc-info-list {
+.ffc-public-csv-download .ffc-info-list {
     margin: 0;
     padding: 0 0 0 20px;
     list-style: disc;
 }
 
-.ffc-info-list li {
+.ffc-public-csv-download .ffc-info-list li {
     font-size: 14px;
     color: var(--ffc-text, #333);
     padding: 2px 0;
 }
 
-.ffc-info-list-restrictions li {
+.ffc-public-csv-download .ffc-info-list-restrictions li {
     color: var(--ffc-text-muted, #666);
 }
 
-.ffc-info-list-locations li a {
+.ffc-public-csv-download .ffc-info-list-locations li a {
     color: var(--ffc-primary, #0073aa);
     text-decoration: none;
 }
 
-.ffc-info-list-locations li a:hover {
+.ffc-public-csv-download .ffc-info-list-locations li a:hover {
     text-decoration: underline;
 }
 
 /* Alerts */
-.ffc-info-alert {
+.ffc-public-csv-download .ffc-info-alert {
     padding: 12px 16px;
     border-radius: var(--ffc-radius-sm, 6px);
     font-size: 14px;
@@ -1234,33 +1246,35 @@ textarea.ffc-input,
     margin-top: 12px;
 }
 
-.ffc-info-alert-warning {
+.ffc-public-csv-download .ffc-info-alert-warning {
     background: #fff3cd;
     border: 1px solid #ffc107;
     color: #856404;
 }
 
-.ffc-info-alert-info {
+.ffc-public-csv-download .ffc-info-alert-info {
     background: #d1ecf1;
     border: 1px solid #bee5eb;
     color: #0c5460;
 }
 
-.ffc-info-alert-success {
+.ffc-public-csv-download .ffc-info-alert-success {
     background: #d4edda;
     border: 1px solid #c3e6cb;
     color: #155724;
 }
 
 /* Action buttons */
-.ffc-info-actions {
+.ffc-public-csv-download .ffc-info-actions {
     display: flex;
     gap: 12px;
     margin-top: 24px;
     flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.ffc-info-btn {
+.ffc-public-csv-download .ffc-info-btn {
     flex: 1;
     min-width: 160px;
     padding: 12px 20px;
@@ -1273,31 +1287,31 @@ textarea.ffc-input,
     text-align: center;
 }
 
-.ffc-info-btn-primary {
+.ffc-public-csv-download .ffc-info-btn-primary {
     background: var(--ffc-primary, #0073aa);
     color: #fff;
 }
 
-.ffc-info-btn-primary:hover:not([disabled]) {
+.ffc-public-csv-download .ffc-info-btn-primary:hover:not([disabled]) {
     background: var(--ffc-primary-hover, #005d8c);
 }
 
-.ffc-info-btn-primary[disabled] {
+.ffc-public-csv-download .ffc-info-btn-primary[disabled] {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.ffc-info-btn-secondary {
+.ffc-public-csv-download .ffc-info-btn-secondary {
     background: var(--ffc-bg-subtle, #f0f0f0);
     color: var(--ffc-text, #333);
     border: 1px solid var(--ffc-border, #e0e0e0);
 }
 
-.ffc-info-btn-secondary:hover:not([disabled]) {
+.ffc-public-csv-download .ffc-info-btn-secondary:hover:not([disabled]) {
     background: var(--ffc-border, #e0e0e0);
 }
 
-.ffc-info-btn-secondary[disabled] {
+.ffc-public-csv-download .ffc-info-btn-secondary[disabled] {
     opacity: 0.5;
     cursor: not-allowed;
 }

@@ -53,6 +53,20 @@ class DynamicFragments {
 			'nonces'  => array(
 				'ffc_frontend_nonce'        => wp_create_nonce( 'ffc_frontend_nonce' ),
 				'ffc_self_scheduling_nonce' => wp_create_nonce( 'ffc_self_scheduling_nonce' ),
+				// Public CSV download: refresh the per-visitor nonce baked
+				// into the cached HTML by wp_nonce_field() inside the
+				// [ffc_csv_download] shortcode. Without this, cached pages
+				// submit with a stale nonce and the AJAX info endpoint
+				// responds with "Security check failed".
+				'ffc_public_csv_download'   => wp_create_nonce( 'ffc_public_csv_download' ),
+				// ffc_audience shortcode: the two nonces localised into the
+				// `ffcAudience` JS global. Cached HTML for logged-in users
+				// on hosts that cache per-user pages (LiteSpeed user-tier,
+				// WP Rocket) would otherwise serve the nonces of whoever
+				// the cache entry was generated for, and REST calls reject
+				// the other visitor with 401.
+				'wp_rest'                   => wp_create_nonce( 'wp_rest' ),
+				'ffc_search_users'          => wp_create_nonce( 'ffc_search_users' ),
 			),
 		);
 

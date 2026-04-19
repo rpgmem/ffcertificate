@@ -157,4 +157,50 @@ class DynamicFragmentsTest extends TestCase {
         $this->assertArrayHasKey( 'ffc_frontend_nonce', $nonces );
         $this->assertArrayHasKey( 'ffc_self_scheduling_nonce', $nonces );
     }
+
+    // ==================================================================
+    // handle() — public CSV download nonce
+    // ==================================================================
+
+    public function test_handle_includes_public_csv_download_nonce(): void {
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock->shouldReceive( 'generate_simple_captcha' )
+            ->andReturn( array( 'label' => 'x', 'hash' => 'y' ) );
+
+        Functions\when( 'wp_create_nonce' )->alias( function ( $action ) {
+            return 'nonce_' . $action;
+        } );
+        Functions\when( 'is_user_logged_in' )->justReturn( false );
+
+        $fragments = new DynamicFragments();
+        $this->callHandle( $fragments );
+
+        $nonces = $this->json_responses[0]['data']['nonces'];
+        $this->assertArrayHasKey( 'ffc_public_csv_download', $nonces );
+        $this->assertSame( 'nonce_ffc_public_csv_download', $nonces['ffc_public_csv_download'] );
+    }
+
+    // ==================================================================
+    // handle() — ffc_audience nonces (wp_rest + ffc_search_users)
+    // ==================================================================
+
+    public function test_handle_includes_audience_nonces(): void {
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock->shouldReceive( 'generate_simple_captcha' )
+            ->andReturn( array( 'label' => 'x', 'hash' => 'y' ) );
+
+        Functions\when( 'wp_create_nonce' )->alias( function ( $action ) {
+            return 'nonce_' . $action;
+        } );
+        Functions\when( 'is_user_logged_in' )->justReturn( false );
+
+        $fragments = new DynamicFragments();
+        $this->callHandle( $fragments );
+
+        $nonces = $this->json_responses[0]['data']['nonces'];
+        $this->assertArrayHasKey( 'wp_rest', $nonces );
+        $this->assertArrayHasKey( 'ffc_search_users', $nonces );
+        $this->assertSame( 'nonce_wp_rest', $nonces['wp_rest'] );
+        $this->assertSame( 'nonce_ffc_search_users', $nonces['ffc_search_users'] );
+    }
 }
