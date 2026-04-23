@@ -311,70 +311,33 @@ class UserManager {
 	/**
 	 * Update user profile in ffc_user_profiles
 	 *
+	 * Delegates persistence to UserProfileService, keeping the legacy
+	 * sanitize_text_field + wp_json_encode pre-processing at this layer.
+	 *
 	 * @since 4.9.4
 	 * @param int                  $user_id WordPress user ID.
 	 * @param array<string, mixed> $data    Profile fields to update.
 	 * @return bool True on success
 	 */
 	public static function update_profile( int $user_id, array $data ): bool {
-		global $wpdb;
-		$table = $wpdb->prefix . 'ffc_user_profiles';
+		$patch = array();
 
-		if ( ! self::table_exists( $table ) ) {
-			return false;
-		}
-
-		$allowed     = array( 'display_name', 'phone', 'department', 'organization', 'notes' );
-		$update_data = array();
-		$formats     = array();
-
-		foreach ( $allowed as $field ) {
-			if ( isset( $data[ $field ] ) ) {
-				$update_data[ $field ] = sanitize_text_field( $data[ $field ] );
-				$formats[]             = '%s';
+		foreach ( array( 'display_name', 'phone', 'department', 'organization', 'notes' ) as $field ) {
+			if ( array_key_exists( $field, $data ) ) {
+				$patch[ $field ] = sanitize_text_field( (string) $data[ $field ] );
 			}
 		}
 
 		if ( isset( $data['preferences'] ) && is_array( $data['preferences'] ) ) {
-			$update_data['preferences'] = wp_json_encode( $data['preferences'] );
-			$formats[]                  = '%s';
+			$encoded              = wp_json_encode( $data['preferences'] );
+			$patch['preferences'] = false === $encoded ? '{}' : $encoded;
 		}
 
-		if ( empty( $update_data ) ) {
+		if ( empty( $patch ) ) {
 			return false;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$exists = $wpdb->get_var(
-			$wpdb->prepare(
-				'SELECT id FROM %i WHERE user_id = %d',
-				$table,
-				$user_id
-			)
-		);
-
-		if ( $exists ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$result = $wpdb->update( $table, $update_data, array( 'user_id' => $user_id ), $formats, array( '%d' ) );
-		} else {
-			$update_data['user_id']    = $user_id;
-			$update_data['created_at'] = current_time( 'mysql' );
-			$formats[]                 = '%d';
-			$formats[]                 = '%s';
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-			$result = $wpdb->insert( $table, $update_data, $formats );
-		}
-
-		if ( isset( $data['display_name'] ) ) {
-			wp_update_user(
-				array(
-					'ID'           => $user_id,
-					'display_name' => sanitize_text_field( $data['display_name'] ),
-				)
-			);
-		}
-
-		return false !== $result;
+		return UserProfileService::write( $user_id, $patch );
 	}
 
 	/**
@@ -414,31 +377,39 @@ class UserManager {
 			return false;
 		}
 
-		$table_payload    = array();
-		$usermeta_payload = array();
+		// Split incoming data into "known" (registered in the field map) and
+		// "dynamic" (arbitrary reregistration keys that the map doesn't yet
+		// model). Known keys go through UserProfileService so encryption,
+		// hashing and mirroring are consistent across call sites. Dynamic
+		// keys keep the legacy inline path until Phase 3 introduces the
+		// reregistration adapter.
+		$known_patch  = array();
+		$dynamic_data = array();
 
 		foreach ( $data as $key => $value ) {
 			if ( ! is_string( $key ) || '' === $key ) {
 				continue;
 			}
-
-			if ( in_array( $key, self::PROFILE_TABLE_KEYS, true ) ) {
-				$table_payload[ $key ] = $value;
+			if ( UserProfileFieldMap::has( $key ) ) {
+				$known_patch[ $key ] = $value;
 			} else {
-				$usermeta_payload[ $key ] = $value;
+				$dynamic_data[ $key ] = $value;
 			}
 		}
 
-		$success = false;
+		$success = ! empty( $known_patch )
+			? UserProfileService::write( $user_id, $known_patch )
+			: false;
 
-		// 1. Profile table columns → delegate to update_profile().
-		if ( ! empty( $table_payload ) ) {
-			$success = self::update_profile( $user_id, $table_payload );
+		if ( empty( $dynamic_data ) ) {
+			return $success;
 		}
 
-		// 2. Extended keys → wp_usermeta (encrypted when sensitive).
+		// Legacy inline write for dynamic keys. Mirrors UserProfileService's
+		// usermeta path: encrypts + hashes when the caller flags a key
+		// sensitive, stores plain otherwise, deletes on empty values.
 		$sensitive_map = array_flip( $sensitive_keys );
-		foreach ( $usermeta_payload as $key => $value ) {
+		foreach ( $dynamic_data as $key => $value ) {
 			$meta_key = self::EXTENDED_META_PREFIX . sanitize_key( $key );
 
 			if ( is_scalar( $value ) ) {

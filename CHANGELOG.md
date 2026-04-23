@@ -13,9 +13,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`UserProfileFieldMap`** — declarative per-field descriptor for user-profile fields. Each entry names its storage layer (`wp_users`, `ffc_user_profiles`, `wp_usermeta`), whether the value is sensitive, whether it is hashable for lookup, and optional mirror targets (e.g. `display_name` writes back to `wp_users.display_name` after the profile-table write). Sibling of `SensitiveFieldRegistry`; the registry is per write context (submission vs appointment), the map is per user field.
 - **`ViewPolicy` enum** — `FULL`, `MASKED`, `HASHED_ONLY`. Declares how a caller wants sensitive fields rendered on read. The service does not elevate privileges; callers validate capability (`current_user_can('manage_options')` or similar) before asking for `FULL`.
 - **`UserProfileService::read()` / `::write()`** — single entry point consolidating reads and writes across the three storage layers, with transparent encryption and hashing for sensitive fields. `read()` honours `ViewPolicy`, returns empty arrays for unknown users or empty field lists, and silently drops unregistered field keys. `write()` routes each field to its declared storage, encrypts + hashes sensitive values, and applies mirror targets last. A `FULL` read that touches a sensitive field emits one `user_profile_read_full` audit entry carrying only the requester, the target user id, and the field list — never the values.
-- Test coverage: **+38 tests** across `UserProfileFieldMapTest` (11, pure data class) and `UserProfileServiceTest` (27, exercises routing, masking, encryption + hash write, mirror, and the audit entry). Full suite now at **3482 tests / 8786 assertions**.
+- Test coverage: **+38 tests** across `UserProfileFieldMapTest` (11, pure data class) and `UserProfileServiceTest` (27, exercises routing, masking, encryption + hash write, mirror, and the audit entry).
 
 ### Changed
+
+- **`UserManager::update_profile()`** is now a thin facade over `UserProfileService::write()`. The legacy `sanitize_text_field` + `wp_json_encode('preferences')` pre-processing stays at the facade layer for backward compatibility; routing, upsert and the `display_name → wp_users` mirror move into the service. The `SHOW TABLES LIKE` short-circuit is gone — callers land in the service even when the plugin is mid-activation, which matches every install reachable from admin screens.
+- **`UserManager::update_extended_profile()`** splits incoming keys into "known" (registered in `UserProfileFieldMap`) and "dynamic" (arbitrary reregistration keys). Known keys route through `UserProfileService::write()`; dynamic keys keep the legacy inline usermeta path until Phase 3 introduces the reregistration adapter. Behavior improvement: clearing a sensitive field now also deletes the sibling `*_hash` meta row so a stale hash never outlives the ciphertext.
+- **`UserProfileService::write_profile_table()`** adjusted (via the PHPStan fix in the same pass) so `hash_meta_key()` no longer carries dead `??` fallbacks — the field map's `FIELDS` constant already guarantees `storage` / `meta_key` presence where relevant.
+
+### Fixed
+
+_Nothing yet._
+
+### Security
 
 _Nothing yet._
 
