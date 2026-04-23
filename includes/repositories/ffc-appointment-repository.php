@@ -473,61 +473,41 @@ class AppointmentRepository extends AbstractRepository {
 	 * @return int|false
 	 */
 	public function createAppointment( array $data ) {
-		// Handle encryption if configured.
-		if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) &&
-			\FreeFormCertificate\Core\Encryption::is_configured() ) {
-
-			if ( ! empty( $data['email'] ) ) {
-				// Match SubmissionHandler: hash the same value that gets encrypted (no normalization).
-				$data['email_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data['email'] );
-				$data['email_hash']      = \FreeFormCertificate\Core\Encryption::hash( $data['email'] );
-				// Clear plain text - do not store unencrypted (LGPD compliance).
-				unset( $data['email'] );
-			}
-
-			if ( ! empty( $data['cpf_rf'] ) ) {
-				$clean_id = preg_replace( '/[^0-9]/', '', $data['cpf_rf'] );
-
-				// Write to split columns only — no legacy cpf_rf_* dual-write.
-				$id_len = strlen( $clean_id );
-				if ( 7 === $id_len ) {
-					$data['rf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $clean_id );
-					$data['rf_hash']      = \FreeFormCertificate\Core\Encryption::hash( $clean_id );
+		// Normalize cpf_rf → split cpf/rf before the registry sees it; the
+		// registry knows about the split columns, not the combined input.
+		if ( ! empty( $data['cpf_rf'] ) ) {
+			$clean_id = preg_replace( '/[^0-9]/', '', (string) $data['cpf_rf'] );
+			if ( '' !== $clean_id ) {
+				if ( 7 === strlen( $clean_id ) ) {
+					$data['rf'] = $clean_id;
 				} else {
 					// 11 digits (CPF) or unknown length — default to CPF.
-					$data['cpf_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $clean_id );
-					$data['cpf_hash']      = \FreeFormCertificate\Core\Encryption::hash( $clean_id );
+					$data['cpf'] = $clean_id;
 				}
-
-				// Clear plain text - do not store unencrypted (LGPD compliance).
-				unset( $data['cpf_rf'] );
-			}
-
-			if ( ! empty( $data['phone'] ) ) {
-				$data['phone_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data['phone'] );
-				// Clear plain text - do not store unencrypted (LGPD compliance).
-				unset( $data['phone'] );
-			}
-
-			if ( ! empty( $data['custom_data'] ) ) {
-				$custom_json                   = is_array( $data['custom_data'] ) ? wp_json_encode( $data['custom_data'] ) : $data['custom_data'];
-				$data['custom_data_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $custom_json );
-				// Clear plain text - do not store unencrypted (LGPD compliance).
-				unset( $data['custom_data'] );
-			}
-
-			if ( ! empty( $data['user_ip'] ) ) {
-				$data['user_ip_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data['user_ip'] );
-				// Clear plain text - do not store unencrypted (LGPD compliance).
-				unset( $data['user_ip'] );
 			}
 		}
 
-		// Always remove non-column keys that only exist in encrypted form in the DB.
-		// When encryption is configured, these are unset inside the !empty() blocks above,.
-		// but if a value is empty the key stays in the array and causes wpdb->insert()
-		// to fail with "Unknown column". Remove them unconditionally.
-		unset( $data['email'], $data['cpf_rf'], $data['phone'], $data['custom_data'], $data['user_ip'] );
+		// custom_data may arrive as an array; the registry expects a scalar.
+		if ( isset( $data['custom_data'] ) && is_array( $data['custom_data'] ) ) {
+			$data['custom_data'] = wp_json_encode( $data['custom_data'] );
+		}
+
+		$encrypted_columns = \FreeFormCertificate\Core\SensitiveFieldRegistry::encrypt_fields(
+			\FreeFormCertificate\Core\SensitiveFieldRegistry::CONTEXT_APPOINTMENT,
+			$data
+		);
+		$data              = array_merge( $data, $encrypted_columns );
+
+		// Always strip plaintext from the row (whether encrypted above or
+		// left in place because encryption is disabled). wpdb->insert would
+		// fail with "Unknown column" otherwise, and storing plaintext breaks
+		// LGPD when keys are present.
+		foreach ( \FreeFormCertificate\Core\SensitiveFieldRegistry::plaintext_keys(
+			\FreeFormCertificate\Core\SensitiveFieldRegistry::CONTEXT_APPOINTMENT
+		) as $plain_key ) {
+			unset( $data[ $plain_key ] );
+		}
+		unset( $data['cpf_rf'] );
 
 		// Generate confirmation token for all appointments (allows receipt access without login).
 		if ( empty( $data['confirmation_token'] ) ) {

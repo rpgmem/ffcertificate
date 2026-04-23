@@ -176,46 +176,31 @@ class SubmissionHandler {
 		// 5b. Extract ticket value (for hash-based lookup)
 		$ticket_value = isset( $extra_data['ticket'] ) ? strtoupper( trim( (string) $extra_data['ticket'] ) ) : null;
 
-		// 6. Encryption.
-		$email_encrypted   = null;
-		$email_hash        = null;
-		$cpf_encrypted_val = null;
-		$cpf_hash_val      = null;
-		$rf_encrypted_val  = null;
-		$rf_hash_val       = null;
-		$ticket_hash       = null;
-		$ip_encrypted      = null;
-		$data_encrypted    = null;
+		// 6. Encryption via SensitiveFieldRegistry — single policy source for
+		// every field this handler treats as sensitive.
+		$encrypted = \FreeFormCertificate\Core\SensitiveFieldRegistry::encrypt_fields(
+			\FreeFormCertificate\Core\SensitiveFieldRegistry::CONTEXT_SUBMISSION,
+			array(
+				'email'   => $user_email,
+				'cpf'     => $clean_cpf,
+				'rf'      => $clean_rf,
+				'user_ip' => $user_ip,
+				'ticket'  => $ticket_value,
+				// The JSON "{}" means no extra data — skip encryption instead
+				// of writing a ciphertext for an empty payload.
+				'data'    => '{}' === $data_json ? null : $data_json,
+			)
+		);
 
-		if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-			if ( ! empty( $user_email ) ) {
-				$email_encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $user_email );
-				$email_hash      = \FreeFormCertificate\Core\Encryption::hash( $user_email );
-			}
-
-			// Split columns only — no legacy cpf_rf_* dual-write.
-			if ( ! empty( $clean_cpf ) ) {
-				$cpf_encrypted_val = \FreeFormCertificate\Core\Encryption::encrypt( $clean_cpf );
-				$cpf_hash_val      = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
-			}
-
-			if ( ! empty( $clean_rf ) ) {
-				$rf_encrypted_val = \FreeFormCertificate\Core\Encryption::encrypt( $clean_rf );
-				$rf_hash_val      = \FreeFormCertificate\Core\Encryption::hash( $clean_rf );
-			}
-
-			if ( ! empty( $user_ip ) ) {
-				$ip_encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $user_ip );
-			}
-
-			if ( ! empty( $ticket_value ) ) {
-				$ticket_hash = \FreeFormCertificate\Core\Encryption::hash( $ticket_value );
-			}
-
-			if ( '{}' !== $data_json ) {
-				$data_encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $data_json );
-			}
-		}
+		$email_encrypted   = $encrypted['email_encrypted'] ?? null;
+		$email_hash        = $encrypted['email_hash'] ?? null;
+		$cpf_encrypted_val = $encrypted['cpf_encrypted'] ?? null;
+		$cpf_hash_val      = $encrypted['cpf_hash'] ?? null;
+		$rf_encrypted_val  = $encrypted['rf_encrypted'] ?? null;
+		$rf_hash_val       = $encrypted['rf_hash'] ?? null;
+		$ticket_hash       = $encrypted['ticket_hash'] ?? null;
+		$ip_encrypted      = $encrypted['user_ip_encrypted'] ?? null;
+		$data_encrypted    = $encrypted['data_encrypted'] ?? null;
 
 		// 7. LGPD Consent.
 		$consent_given = isset( $submission_data['ffc_lgpd_consent'] ) && '1' === $submission_data['ffc_lgpd_consent'] ? 1 : 0;
@@ -321,26 +306,30 @@ class SubmissionHandler {
 		do_action( 'ffcertificate_before_submission_update', $id, $new_email, $clean_data );
 
 		$update_data = array();
+		$has_data    = ! empty( $clean_data );
+		$data_json   = null;
 
-		// Update email if provided (always encrypted).
-		if ( '' !== $new_email ) {
-			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-				$update_data['email_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $new_email );
-				$update_data['email_hash']      = \FreeFormCertificate\Core\Encryption::hash( $new_email );
-			}
+		if ( $has_data ) {
+			// Remove edit tracking from JSON data (should be in columns).
+			unset( $clean_data['is_edited'], $clean_data['edited_at'] );
+			$data_json = wp_json_encode( $clean_data, JSON_UNESCAPED_UNICODE );
 		}
 
-		// Update data if provided.
-		if ( ! empty( $clean_data ) ) {
-			// Remove edit tracking from JSON data (should be in columns).
-			unset( $clean_data['is_edited'] );
-			unset( $clean_data['edited_at'] );
+		// Route sensitive fields through the registry.
+		$encrypted   = \FreeFormCertificate\Core\SensitiveFieldRegistry::encrypt_fields(
+			\FreeFormCertificate\Core\SensitiveFieldRegistry::CONTEXT_SUBMISSION,
+			array(
+				'email' => '' !== $new_email ? $new_email : null,
+				'data'  => $has_data ? ( $data_json ? $data_json : '{}' ) : null,
+			)
+		);
+		$update_data = array_merge( $update_data, $encrypted );
 
-			$data_json = wp_json_encode( $clean_data, JSON_UNESCAPED_UNICODE );
-
-			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-				$update_data['data_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data_json ? $data_json : '{}' );
-				$update_data['data']           = null;
+		// When data is updated and encryption is active, the plaintext column
+		// must be NULLed out; otherwise store the plaintext json.
+		if ( $has_data ) {
+			if ( isset( $encrypted['data_encrypted'] ) ) {
+				$update_data['data'] = null;
 			} else {
 				$update_data['data'] = $data_json;
 			}
