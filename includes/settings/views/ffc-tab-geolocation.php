@@ -434,32 +434,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div>
 
 
-		<!-- Debug Mode Section -->
-		<div class="card">
-			<h2 class="ffc-icon-debug"><?php esc_html_e( 'Debug Mode', 'ffcertificate' ); ?></h2>
-			<p class="description">
-				<?php esc_html_e( 'Enable debug mode for testing and troubleshooting geolocation features.', 'ffcertificate' ); ?>
-			</p>
-
-			<table class="form-table" role="presentation"><tbody>
-				<!-- Enable Debug -->
-				<tr>
-					<th scope="row">
-						<label><?php esc_html_e( 'Enable Debug', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<label>
-							<input type="checkbox" name="debug_enabled" value="1" <?php checked( $settings['debug_enabled'], true ); ?>>
-							<?php esc_html_e( 'Enable geolocation debug mode', 'ffcertificate' ); ?>
-						</label>
-						<p class="description">
-							<?php esc_html_e( 'Shows detailed geolocation information in browser console (F12) for troubleshooting.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
-			</tbody></table>
-		</div>
-
 		<p class="submit">
 			<button type="submit" name="ffc_save_geolocation" class="button button-primary">
 				<?php esc_html_e( 'Save Changes', 'ffcertificate' ); ?>

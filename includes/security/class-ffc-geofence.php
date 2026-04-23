@@ -576,7 +576,8 @@ class Geofence {
 				'datetime'    => array( 'enabled' => false ),
 				'geo'         => array( 'enabled' => false ),
 				'global'      => array(
-					'debug' => ! empty( get_option( 'ffc_geolocation_settings' )['debug_enabled'] ),
+					'debug' => class_exists( '\FreeFormCertificate\Core\Debug' )
+					&& \FreeFormCertificate\Core\Debug::is_enabled( \FreeFormCertificate\Core\Debug::AREA_GEOFENCE ),
 				),
 			);
 		}
@@ -623,7 +624,8 @@ class Geofence {
 				'cacheTtl'       => $gps_cache_ttl, // From global settings.
 			),
 			'global'      => array(
-				'debug' => ! empty( get_option( 'ffc_geolocation_settings' )['debug_enabled'] ),
+				'debug' => class_exists( '\FreeFormCertificate\Core\Debug' )
+					&& \FreeFormCertificate\Core\Debug::is_enabled( \FreeFormCertificate\Core\Debug::AREA_GEOFENCE ),
 			),
 		);
 

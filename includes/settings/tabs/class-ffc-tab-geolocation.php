@@ -63,9 +63,6 @@ class TabGeolocation extends SettingsTab {
 			// Admin Bypass (independent of debug mode).
 			'admin_bypass_datetime' => false, // Admins bypass datetime restrictions.
 			'admin_bypass_geo'      => false, // Admins bypass geolocation restrictions.
-
-			// Debug Mode.
-			'debug_enabled'         => false,
 		);
 	}
 
@@ -134,8 +131,6 @@ class TabGeolocation extends SettingsTab {
 
 			'admin_bypass_datetime' => isset( $_POST['admin_bypass_datetime'] ),
 			'admin_bypass_geo'      => isset( $_POST['admin_bypass_geo'] ),
-
-			'debug_enabled'         => isset( $_POST['debug_enabled'] ),
 		);
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 

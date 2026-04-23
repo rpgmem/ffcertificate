@@ -356,13 +356,7 @@ class IpGeolocation {
 	 * @param array<string, mixed> $context Additional context.
 	 */
 	private static function debug_log( string $message, array $context = array() ): void {
-		$settings = get_option( 'ffc_geolocation_settings', array() );
-
-		if ( empty( $settings['debug_enabled'] ) ) {
-			return;
-		}
-
-		// Log via centralized debug system.
+		// Log via centralized debug system (gated on ffc_settings['debug_geofence']).
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
 			\FreeFormCertificate\Core\Debug::log_geofence( $message, $context );
 		}

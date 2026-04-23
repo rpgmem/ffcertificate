@@ -168,7 +168,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 							<?php esc_html_e( 'Enable debug logging for geofence validation', 'ffcertificate' ); ?>
 						</label>
 						<p class="description">
-							<?php esc_html_e( 'Logs date/time restrictions, GPS validation, IP geolocation, and access denied events.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Logs date/time restrictions, GPS validation, IP geolocation, and access denied events to the PHP error log, and emits geofence diagnostics to the browser console (F12) on the frontend.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>
