@@ -24,7 +24,9 @@ generated `*.min.*` files.
 ## Branches
 
 - `main` is protected; all changes land via pull request.
-- Feature branches use the `claude/<short-description>` prefix.
+- Feature branches use a short descriptive name (e.g. `fix/email-hash`
+  or `feat/user-profile-service`). AI-assisted branches opened via the
+  Claude Code session use the `claude/<short-description>` prefix.
 - CI runs on `pull_request` (and on `push` to `main` post-merge), so open
   the PR — even as a draft — to get a green/red signal. Pushing to a
   feature branch without a PR will not trigger CI.
@@ -81,15 +83,28 @@ The `Asset Build Verification` workflow fails the PR if the committed
 
 ## Releasing
 
-1. Bump `Version:` in `ffcertificate.php` and `FFC_VERSION` in the same
-   file. Update `CHANGELOG.md` with a section for the new version.
-2. Commit, merge to `main`.
-3. Tag `main` with `vX.Y.Z` and push the tag:
+Between releases, every PR adds entries under `## [Unreleased]` in
+`CHANGELOG.md` and leaves the version constants alone. The version only
+bumps once, at release time, absorbing everything that accumulated in
+`[Unreleased]`.
+
+To cut a release:
+
+1. Rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` in
+   `CHANGELOG.md` and insert a fresh empty `## [Unreleased]` above it
+   (use the standard Keep a Changelog subsections: `Added`, `Changed`,
+   `Deprecated`, `Removed`, `Fixed`, `Security`).
+2. Bump `Version:` in `ffcertificate.php` **and** the `FFC_VERSION`
+   constant in the same file. Update `Stable tag` in `readme.txt` and
+   mirror the release notes under `== Changelog ==` in the WordPress
+   plugin format.
+3. Commit, merge to `main`.
+4. Tag `main` with `vX.Y.Z` and push the tag:
    ```bash
    git tag -a vX.Y.Z -m "vX.Y.Z"
    git push origin vX.Y.Z
    ```
-4. The `Release` workflow builds `ffcertificate-X.Y.Z.zip` (excluding dev
+5. The `Release` workflow builds `ffcertificate-X.Y.Z.zip` (excluding dev
    files via `.distignore`), creates a GitHub Release, and attaches the
    zip. Notes are pulled from the matching `CHANGELOG.md` section.
 
