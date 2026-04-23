@@ -1222,4 +1222,228 @@ class UserManagerTest extends TestCase {
         $this->assertCount( 1, $ref->getParameters() );
         $this->assertSame( 'array', $ref->getReturnType()->getName() );
     }
+
+    // ==================================================================
+    // update_extended_profile() — splits between ffc_user_profiles table
+    // and wp_usermeta['ffc_user_*'], encrypts sensitive keys, stores a
+    // lookup hash alongside. Pins the contract that the future
+    // UserProfileService must preserve.
+    // ==================================================================
+
+    public function test_update_extended_profile_returns_false_on_empty_payload(): void {
+        $this->assertFalse( UserManager::update_extended_profile( 42, array() ) );
+    }
+
+    public function test_update_extended_profile_routes_table_keys_to_update_profile(): void {
+        // display_name and phone are table-backed (PROFILE_TABLE_KEYS).
+        // The extended method must delegate them to update_profile so the
+        // ffc_user_profiles row is updated — not dropped into usermeta.
+        $this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( function ( $sql ) {
+            if ( is_string( $sql ) && false !== strpos( $sql, 'SHOW TABLES' ) ) {
+                return 'wp_ffc_user_profiles';
+            }
+            return 1; // pretend the user row already exists
+        } );
+        $captured_update = null;
+        $this->wpdb->shouldReceive( 'update' )
+            ->once()
+            ->andReturnUsing( function ( $table, $data ) use ( &$captured_update ) {
+                $captured_update = $data;
+                return 1;
+            } );
+
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'update_user_meta' )->justReturn( true );
+        Functions\when( 'wp_update_user' )->justReturn( 42 );
+
+        $result = UserManager::update_extended_profile( 42, array(
+            'display_name' => 'Alice',
+            'phone'        => '555-0100',
+        ) );
+
+        $this->assertTrue( $result );
+        $this->assertIsArray( $captured_update );
+        $this->assertSame( 'Alice', $captured_update['display_name'] );
+        $this->assertSame( '555-0100', $captured_update['phone'] );
+    }
+
+    public function test_update_extended_profile_stores_non_sensitive_key_as_plain_usermeta(): void {
+        $this->mock_table_exists( 'wp_ffc_user_profiles', false );
+
+        Functions\when( 'sanitize_key' )->returnArg();
+
+        $captured = array();
+        Functions\when( 'update_user_meta' )->alias( function ( $uid, $key, $value ) use ( &$captured ) {
+            $captured[ $key ] = $value;
+            return true;
+        } );
+
+        $result = UserManager::update_extended_profile( 42, array(
+            'custom_color' => 'blue',
+        ) );
+
+        $this->assertTrue( $result );
+        // Non-sensitive key lands verbatim under the ffc_user_ prefix.
+        $this->assertArrayHasKey( 'ffc_user_custom_color', $captured );
+        $this->assertSame( 'blue', $captured['ffc_user_custom_color'] );
+        // No encrypted variant and no hash column for non-sensitive keys.
+        $this->assertArrayNotHasKey( 'ffc_user_custom_color_hash', $captured );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_update_extended_profile_encrypts_sensitive_key_and_stores_hash(): void {
+        $enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+        $enc->shouldReceive( 'encrypt' )->with( '12345678901' )->once()->andReturn( 'ENC' );
+        $enc->shouldReceive( 'hash' )->with( '12345678901' )->once()->andReturn( 'HASH' );
+
+        $this->mock_table_exists( 'wp_ffc_user_profiles', false );
+        Functions\when( 'sanitize_key' )->returnArg();
+
+        $captured = array();
+        Functions\when( 'update_user_meta' )->alias( function ( $uid, $key, $value ) use ( &$captured ) {
+            $captured[ $key ] = $value;
+            return true;
+        } );
+
+        $result = UserManager::update_extended_profile(
+            42,
+            array( 'cpf' => '12345678901' ),
+            array( 'cpf' )
+        );
+
+        $this->assertTrue( $result );
+        // Sensitive key: ciphertext stored under ffc_user_<key>, hash under ffc_user_<key>_hash.
+        $this->assertSame( 'ENC', $captured['ffc_user_cpf'] );
+        $this->assertSame( 'HASH', $captured['ffc_user_cpf_hash'] );
+    }
+
+    public function test_update_extended_profile_deletes_usermeta_when_sensitive_value_empty(): void {
+        $this->mock_table_exists( 'wp_ffc_user_profiles', false );
+        Functions\when( 'sanitize_key' )->returnArg();
+
+        $delete_called_with = null;
+        Functions\when( 'delete_user_meta' )->alias( function ( $uid, $key ) use ( &$delete_called_with ) {
+            $delete_called_with = $key;
+            return true;
+        } );
+        Functions\when( 'update_user_meta' )->justReturn( true );
+
+        UserManager::update_extended_profile(
+            42,
+            array( 'cpf' => '' ),
+            array( 'cpf' )
+        );
+
+        // Empty sensitive value must delete the meta — never store ''.
+        $this->assertSame( 'ffc_user_cpf', $delete_called_with );
+    }
+
+    // ==================================================================
+    // get_extended_profile() — merges table columns and extra usermeta
+    // entries, decrypting values flagged sensitive.
+    // ==================================================================
+
+    public function test_get_extended_profile_reads_table_keys_and_plain_extra_meta(): void {
+        $this->mock_table_exists( 'wp_ffc_user_profiles', true );
+        $this->wpdb->shouldReceive( 'get_row' )
+            ->andReturn( array(
+                'display_name' => 'Alice',
+                'phone'        => '555-0100',
+                'department'   => 'Sales',
+                'organization' => 'Acme',
+                'notes'        => '',
+            ) );
+
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) {
+            return 'blue' === 'blue' && 'ffc_user_custom_color' === $key ? 'blue' : '';
+        } );
+
+        $profile = UserManager::get_extended_profile(
+            42,
+            array( 'custom_color' ),
+            array() // none sensitive
+        );
+
+        // Table-backed profile keys come back.
+        $this->assertSame( 'Alice', $profile['display_name'] );
+        $this->assertSame( '555-0100', $profile['phone'] );
+        // Extra non-sensitive key is merged in as-is.
+        $this->assertSame( 'blue', $profile['custom_color'] );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_get_extended_profile_decrypts_sensitive_extra_meta(): void {
+        $enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+        $enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '12345678901' );
+
+        $this->mock_table_exists( 'wp_ffc_user_profiles', true );
+        // get_row returning a non-empty row keeps get_profile on the fast
+        // path and avoids its get_userdata() fallback (not mocked here).
+        $this->wpdb->shouldReceive( 'get_row' )->andReturn( array(
+            'display_name' => 'Alice',
+            'phone'        => '',
+            'department'   => '',
+            'organization' => '',
+            'notes'        => '',
+        ) );
+
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) {
+            return 'ffc_user_cpf' === $key ? 'ENC_CPF' : '';
+        } );
+
+        $profile = UserManager::get_extended_profile(
+            42,
+            array( 'cpf' ),
+            array( 'cpf' )
+        );
+
+        $this->assertSame( '12345678901', $profile['cpf'] );
+    }
+
+    public function test_get_extended_profile_ignores_profile_table_keys_listed_in_extras(): void {
+        // display_name is already in the table-backed profile; passing it as
+        // an extra key must be a no-op, not a duplicate meta read.
+        $this->mock_table_exists( 'wp_ffc_user_profiles', true );
+        $this->wpdb->shouldReceive( 'get_row' )
+            ->andReturn( array(
+                'display_name' => 'Alice',
+                'phone'        => '',
+                'department'   => '',
+                'organization' => '',
+                'notes'        => '',
+            ) );
+
+        Functions\when( 'sanitize_key' )->returnArg();
+        Functions\when( 'get_user_meta' )->justReturn( 'WRONG' );
+
+        $profile = UserManager::get_extended_profile( 42, array( 'display_name' ) );
+
+        $this->assertSame( 'Alice', $profile['display_name'] );
+        // Should NOT have been overwritten by the get_user_meta stub.
+        $this->assertNotSame( 'WRONG', $profile['display_name'] );
+    }
+
+    public function test_update_extended_profile_signature(): void {
+        $ref = new \ReflectionMethod( UserManager::class, 'update_extended_profile' );
+        $this->assertTrue( $ref->isStatic() );
+        $this->assertTrue( $ref->isPublic() );
+        $this->assertCount( 3, $ref->getParameters() );
+        $this->assertSame( 'bool', $ref->getReturnType()->getName() );
+    }
+
+    public function test_get_extended_profile_signature(): void {
+        $ref = new \ReflectionMethod( UserManager::class, 'get_extended_profile' );
+        $this->assertTrue( $ref->isStatic() );
+        $this->assertTrue( $ref->isPublic() );
+        $this->assertCount( 3, $ref->getParameters() );
+        $this->assertSame( 'array', $ref->getReturnType()->getName() );
+    }
 }
