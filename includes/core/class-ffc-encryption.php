@@ -119,14 +119,41 @@ class Encryption {
 	 * Accepts both v2 authenticated ciphertexts ("v2:base64(HMAC||IV||CT)")
 	 * and legacy v1 ciphertexts ("base64(IV||CT)", without HMAC).
 	 *
+	 * Any failure to decrypt a non-empty ciphertext (malformed envelope,
+	 * HMAC mismatch, openssl error, exception) is reported to ActivityLog
+	 * as a "decrypt_failure" warning so that silent callers — many use
+	 * `decrypt(...) ?? ''` or filter null silently — do not hide tampering
+	 * or key-rotation breakage. The log carries only metadata, never the
+	 * ciphertext or plaintext.
+	 *
 	 * @param string $encrypted Encrypted value.
 	 * @return string|null Decrypted value or null on failure
 	 */
 	public static function decrypt( string $encrypted ): ?string {
 		if ( empty( $encrypted ) ) {
+			// Empty input is not a failure; skip audit entry.
 			return null;
 		}
 
+		$result = self::decrypt_internal( $encrypted );
+
+		if ( null === $result ) {
+			self::log_decrypt_failure( $encrypted );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Internal decrypt implementation.
+	 *
+	 * Extracted so the public entry point can uniformly audit failures
+	 * without threading an ActivityLog call through five return-null paths.
+	 *
+	 * @param string $encrypted Encrypted value.
+	 * @return string|null
+	 */
+	private static function decrypt_internal( string $encrypted ): ?string {
 		try {
 			$enc_key = self::get_encryption_key();
 
@@ -183,6 +210,47 @@ class Encryption {
 				)
 			);
 			return null;
+		}
+	}
+
+	/**
+	 * Record a decrypt_failure audit entry. No-op when the WordPress
+	 * runtime is unavailable (unit tests, early bootstrap) or when
+	 * ActivityLog is disabled in settings.
+	 *
+	 * The context is intentionally metadata-only (length + v2 flag) so
+	 * this logging can never leak plaintext, and the payload contains no
+	 * keys classified as sensitive, so it will never recurse back into
+	 * Encryption::encrypt via the ActivityLog sensitivity gate.
+	 *
+	 * @param string $ciphertext Original ciphertext (inspected for metadata only).
+	 * @return void
+	 */
+	private static function log_decrypt_failure( string $ciphertext ): void {
+		if ( ! function_exists( 'get_option' ) ) {
+			return;
+		}
+		if ( ! class_exists( ActivityLog::class ) ) {
+			return;
+		}
+
+		try {
+			if ( ! ActivityLog::is_enabled() ) {
+				return;
+			}
+			ActivityLog::log(
+				'decrypt_failure',
+				ActivityLog::LEVEL_WARNING,
+				array(
+					'ciphertext_length' => strlen( $ciphertext ),
+					'v2_prefix'         => 0 === strpos( $ciphertext, self::V2_PREFIX ),
+				),
+				0,
+				0
+			);
+		} catch ( \Throwable $e ) {
+			// Never let logging failure propagate up into decryption callers.
+			unset( $e );
 		}
 	}
 

@@ -404,17 +404,18 @@ class SubmissionRestController {
 			return $data;
 		}
 
-		try {
-			$decrypted      = \FreeFormCertificate\Core\Encryption::decrypt( $submission['data_encrypted'] );
-			$decrypted_data = json_decode( $decrypted, true );
+		// Encryption::decrypt never throws; it returns null on failure and
+		// already logs the failure via ActivityLog. An explicit null-check
+		// keeps json_decode from receiving null (deprecated in PHP 8.1+)
+		// and makes the fallback-to-$data path obvious.
+		$decrypted = \FreeFormCertificate\Core\Encryption::decrypt( $submission['data_encrypted'] );
+		if ( null === $decrypted ) {
+			return $data;
+		}
 
-			if ( is_array( $decrypted_data ) ) {
-				return array_merge( $data, $decrypted_data );
-			}
-		} catch ( \Exception $e ) {
-			if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
-				\FreeFormCertificate\Core\Debug::log_rest_api( 'Decryption failed', $e->getMessage() );
-			}
+		$decrypted_data = json_decode( $decrypted, true );
+		if ( is_array( $decrypted_data ) ) {
+			return array_merge( $data, $decrypted_data );
 		}
 
 		return $data;
