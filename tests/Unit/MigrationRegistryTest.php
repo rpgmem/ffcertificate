@@ -61,9 +61,26 @@ class MigrationRegistryTest extends TestCase {
         $all = $registry->get_all_migrations();
 
         $this->assertIsArray( $all );
-        $this->assertCount( 2, $all );
+        $this->assertCount( 3, $all );
         $this->assertArrayHasKey( 'split_cpf_rf', $all );
         $this->assertArrayHasKey( 'email_hash_rehash', $all );
+        $this->assertArrayHasKey( 'activity_log_clear_plaintext', $all );
+    }
+
+    public function test_activity_log_clear_plaintext_migration_has_expected_keys(): void {
+        $registry  = new MigrationRegistry();
+        $migration = $registry->get_all_migrations()['activity_log_clear_plaintext'];
+
+        $expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order', 'requires_column' );
+
+        foreach ( $expected_keys as $key ) {
+            $this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
+        }
+
+        $this->assertSame( 'ffc-icon-shield', $migration['icon'] );
+        $this->assertSame( 200, $migration['batch_size'] );
+        $this->assertSame( 3, $migration['order'] );
+        $this->assertFalse( $migration['requires_column'] );
     }
 
     public function test_split_cpf_rf_migration_has_expected_keys(): void {

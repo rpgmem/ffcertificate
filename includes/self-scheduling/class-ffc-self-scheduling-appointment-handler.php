@@ -481,12 +481,12 @@ class AppointmentHandler {
 			return;
 		}
 
-		// Use Encryption::hash() when available for consistency with SubmissionHandler.
-		if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-			$cpf_rf_hash = \FreeFormCertificate\Core\Encryption::hash( $cpf_rf_clean );
-		} else {
-			$cpf_rf_hash = hash( 'sha256', $cpf_rf_clean );
-		}
+		// Always salted SHA-256 via Encryption::hash so the lookup matches
+		// the hash SubmissionHandler/AppointmentRepository write. The plugin
+		// requires Encryption to be configured at runtime; the older raw
+		// hash() fallback only ran in synthetic environments and produced a
+		// hash that no other call site could match.
+		$cpf_rf_hash = \FreeFormCertificate\Core\Encryption::hash( $cpf_rf_clean );
 
 		// Determine identifier type by digit count: 11 = CPF, 7 = RF.
 		$identifier_type = strlen( $cpf_rf_clean ) === 7 ? 'rf' : 'cpf';

@@ -33,6 +33,7 @@ class ActivityLogQueryTest extends TestCase {
         Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
             return array_merge( $defaults, $args );
         } );
+        Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
         Functions\when( 'get_transient' )->justReturn( false );
         Functions\when( 'set_transient' )->justReturn( true );
         Functions\when( 'delete_transient' )->justReturn( true );
@@ -99,6 +100,47 @@ class ActivityLogQueryTest extends TestCase {
 
         $result = ActivityLogQuery::get_activities();
         $this->assertSame( array(), $result[0]['context'] );
+    }
+
+    public function test_get_activities_decrypts_when_only_ciphertext_present(): void {
+        // Sensitive rows store the JSON in context_encrypted with a NULL
+        // plaintext column. resolve_context() must restore the JSON on read.
+        $payload   = array( 'email' => 'alice@example.com' );
+        $encrypted = \FreeFormCertificate\Core\Encryption::encrypt( wp_json_encode( $payload ) );
+        $this->assertNotNull( $encrypted, 'Sanity: Encryption must be configured by bootstrap.' );
+
+        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SELECT ...' );
+        $this->wpdb->shouldReceive( 'get_results' )
+            ->andReturn( array(
+                array(
+                    'id'                => 1,
+                    'action'            => 'sensitive_event',
+                    'context'           => null,
+                    'context_encrypted' => $encrypted,
+                ),
+            ) );
+
+        $result = ActivityLogQuery::get_activities();
+        $this->assertSame( $payload, $result[0]['context'] );
+    }
+
+    public function test_get_activities_prefers_plaintext_when_both_columns_present(): void {
+        // Defensive: pre-migration rows still have both columns populated.
+        // The plaintext column wins to avoid an unnecessary decrypt and to
+        // preserve byte-for-byte legacy behavior.
+        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SELECT ...' );
+        $this->wpdb->shouldReceive( 'get_results' )
+            ->andReturn( array(
+                array(
+                    'id'                => 1,
+                    'action'            => 'sensitive_event',
+                    'context'           => '{"plain":true}',
+                    'context_encrypted' => 'v2:irrelevant',
+                ),
+            ) );
+
+        $result = ActivityLogQuery::get_activities();
+        $this->assertSame( array( 'plain' => true ), $result[0]['context'] );
     }
 
     public function test_get_activities_with_level_filter(): void {

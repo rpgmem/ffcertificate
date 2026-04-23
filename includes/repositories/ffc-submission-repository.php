@@ -783,12 +783,18 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
-	 * Hash helper
+	 * Hash helper.
+	 *
+	 * Always defers to the salted Encryption::hash so lookups stay
+	 * consistent with the values written by SubmissionHandler and
+	 * AppointmentRepository. Encryption is a runtime dependency of the
+	 * plugin; the older raw hash() fallback was unreachable in any
+	 * working install.
 	 *
 	 * @param string $value Value.
 	 * @return string|null
 	 */
 	private function hash( string $value ): ?string {
-		return class_exists( '\FreeFormCertificate\Core\Encryption' ) ? \FreeFormCertificate\Core\Encryption::hash( $value ) : hash( 'sha256', $value );
+		return \FreeFormCertificate\Core\Encryption::hash( $value );
 	}
 }

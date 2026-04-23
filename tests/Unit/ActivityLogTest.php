@@ -344,6 +344,31 @@ class ActivityLogTest extends TestCase {
         $this->assertNull($buffer[0]['context_encrypted']);
     }
 
+    public function test_log_nulls_plaintext_context_when_payload_is_sensitive(): void {
+        $this->enableActivityLog();
+
+        // No-leak invariant: when the payload is encrypted, the plaintext
+        // column must not be written alongside the ciphertext. Reads
+        // recover the JSON via ActivityLogQuery::resolve_context().
+        ActivityLog::log('any_action', ActivityLog::LEVEL_INFO, ['email' => 'leak@example.com']);
+
+        $buffer = $this->getWriteBuffer();
+        $this->assertNotNull($buffer[0]['context_encrypted'], 'Sensitive payload must be encrypted.');
+        $this->assertNull($buffer[0]['context'], 'Plaintext context must be NULL when context_encrypted is set.');
+    }
+
+    public function test_log_keeps_plaintext_context_when_payload_is_not_sensitive(): void {
+        $this->enableActivityLog();
+
+        // Non-sensitive payloads continue to live in the plaintext column —
+        // searchable and human-readable in the admin UI.
+        ActivityLog::log('settings_changed', ActivityLog::LEVEL_INFO, ['key' => 'site_title']);
+
+        $buffer = $this->getWriteBuffer();
+        $this->assertNull($buffer[0]['context_encrypted']);
+        $this->assertSame(json_encode(['key' => 'site_title']), $buffer[0]['context']);
+    }
+
     public function test_log_sensitive_action_without_sensitive_payload_is_not_encrypted(): void {
         $this->enableActivityLog();
 

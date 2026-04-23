@@ -124,13 +124,22 @@ class ActivityLog {
 		// reregistration fields. A log call with no sensitive data stays
 		// unencrypted regardless of action; conversely, any action carrying
 		// a sensitive field in its context now gets encrypted automatically.
+		//
+		// When the context is encrypted, the plaintext column is NULLed so
+		// the row stops dual-storing PII alongside its ciphertext. The read
+		// path in ActivityLogQuery decrypts back into `context` on demand.
 		$context_json_raw  = wp_json_encode( $context );
 		$context_json      = $context_json_raw ? $context_json_raw : '';
 		$context_encrypted = null;
+		$context_for_db    = $context_json;
 
 		if ( class_exists( '\\FreeFormCertificate\\Core\\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
 			if ( SensitiveFieldRegistry::contains_sensitive( $context ) ) {
 				$context_encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $context_json );
+				if ( null !== $context_encrypted ) {
+					// Successful encrypt: drop plaintext to avoid the leak.
+					$context_for_db = null;
+				}
 			}
 		}
 
@@ -138,7 +147,7 @@ class ActivityLog {
 		$log_data = array(
 			'action'            => sanitize_text_field( $action ),
 			'level'             => sanitize_key( $level ),
-			'context'           => $context_json,
+			'context'           => $context_for_db,
 			'context_encrypted' => $context_encrypted,
 			'user_id'           => absint( $user_id ),
 			'user_ip'           => \FreeFormCertificate\Core\Utils::get_user_ip(),
