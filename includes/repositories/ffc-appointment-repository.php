@@ -478,8 +478,8 @@ class AppointmentRepository extends AbstractRepository {
 			\FreeFormCertificate\Core\Encryption::is_configured() ) {
 
 			if ( ! empty( $data['email'] ) ) {
-				$data['email_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data['email'] );
 				// Match SubmissionHandler: hash the same value that gets encrypted (no normalization).
+				$data['email_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data['email'] );
 				$data['email_hash']      = \FreeFormCertificate\Core\Encryption::hash( $data['email'] );
 				// Clear plain text - do not store unencrypted (LGPD compliance).
 				unset( $data['email'] );
