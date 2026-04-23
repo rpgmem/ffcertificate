@@ -125,12 +125,14 @@ class SecurityService {
 	 * @return bool True if correct, false otherwise
 	 */
 	public static function verify_simple_captcha( string $answer, string $hash ): bool {
-		if ( empty( $answer ) || empty( $hash ) ) {
+		// Note: '' === trim() handles both empty and whitespace-only, and — unlike empty() —
+		// does not reject a valid answer of "0" (which can happen for n - n subtraction).
+		if ( '' === trim( $answer ) || '' === $hash ) {
 			return false;
 		}
 
 		$check_hash = \wp_hash( trim( $answer ) . 'ffc_math_salt' );
-		return $check_hash === $hash;
+		return hash_equals( $hash, $check_hash );
 	}
 
 	/**
