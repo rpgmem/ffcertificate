@@ -271,6 +271,10 @@ class CustomFieldRepository {
 			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%d', '%d' )
 		);
 
+		if ( $result ) {
+			self::invalidate_sensitive_registry_cache();
+		}
+
 		return $result ? $wpdb->insert_id : false;
 	}
 
@@ -357,6 +361,12 @@ class CustomFieldRepository {
 
 		static::cache_delete( "id_{$field_id}" );
 
+		// Changes to is_sensitive or is_active must reset the registry's
+		// dynamic cache so ActivityLog picks the new set on next call.
+		if ( false !== $result && ( array_key_exists( 'is_sensitive', $update_data ) || array_key_exists( 'is_active', $update_data ) || array_key_exists( 'field_key', $update_data ) ) ) {
+			self::invalidate_sensitive_registry_cache();
+		}
+
 		return false !== $result;
 	}
 
@@ -385,6 +395,10 @@ class CustomFieldRepository {
 		$result = $wpdb->delete( $table, array( 'id' => $field_id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$field_id}" );
+
+		if ( false !== $result && $field && ! empty( $field->is_sensitive ) ) {
+			self::invalidate_sensitive_registry_cache();
+		}
 
 		return false !== $result;
 	}
@@ -717,6 +731,21 @@ class CustomFieldRepository {
 	// ─────────────────────────────────────────────.
 	// Helpers.
 	// ─────────────────────────────────────────────.
+
+	/**
+	 * Invalidate SensitiveFieldRegistry's dynamic cache.
+	 *
+	 * Called whenever a row in wp_ffc_custom_fields is created, changed or
+	 * deleted in a way that may alter the set of is_sensitive=1 keys, so
+	 * ActivityLog's payload inspection sees the latest state on next call.
+	 *
+	 * @return void
+	 */
+	private static function invalidate_sensitive_registry_cache(): void {
+		if ( class_exists( \FreeFormCertificate\Core\SensitiveFieldRegistry::class ) ) {
+			\FreeFormCertificate\Core\SensitiveFieldRegistry::invalidate_dynamic_cache();
+		}
+	}
 
 	/**
 	 * Generate a field key from a label.

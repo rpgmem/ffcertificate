@@ -48,6 +48,20 @@ class ActivityLogTest extends TestCase {
         Functions\when('current_time')->justReturn('2026-03-01 10:00:00');
         Functions\when('get_current_user_id')->justReturn(1);
         Functions\when('add_action')->justReturn(true);
+
+        // SensitiveFieldRegistry::contains_sensitive() is invoked from the
+        // encryption gate in ActivityLog::log(). Keep its cache miss path
+        // cheap by returning false from wp_cache_get (always) and making
+        // the ffc_custom_fields table appear absent. Tests that exercise
+        // dynamic keys override these stubs locally.
+        Functions\when('wp_cache_get')->justReturn(false);
+        Functions\when('wp_cache_set')->justReturn(true);
+        Functions\when('wp_cache_delete')->justReturn(true);
+        $this->wpdb->shouldReceive('prepare')->andReturnUsing(function () {
+            return func_get_args()[0];
+        })->byDefault();
+        $this->wpdb->shouldReceive('get_var')->andReturn(null)->byDefault();
+        $this->wpdb->shouldReceive('get_col')->andReturn(array())->byDefault();
     }
 
     protected function tearDown(): void {
@@ -282,25 +296,61 @@ class ActivityLogTest extends TestCase {
         $this->assertSame(json_encode($context), $buffer[0]['context']);
     }
 
-    public function test_log_context_encrypted_is_set_for_sensitive_actions_when_encryption_available(): void {
+    public function test_log_context_encrypted_when_payload_contains_sensitive_key(): void {
         $this->enableActivityLog();
 
-        // The Encryption class is autoloaded and configured (via bootstrap constants),
-        // so sensitive actions like 'submission_created' get their context encrypted.
-        ActivityLog::log('submission_created', ActivityLog::LEVEL_INFO, ['sensitive' => 'data']);
+        // 'email' is a static sensitive key in SensitiveFieldRegistry; its presence
+        // in the context triggers encryption regardless of the action name.
+        ActivityLog::log('any_custom_action', ActivityLog::LEVEL_INFO, ['email' => 'alice@example.com']);
 
         $buffer = $this->getWriteBuffer();
-        // context_encrypted should be a non-null string (encrypted blob).
         $this->assertNotNull($buffer[0]['context_encrypted']);
         $this->assertIsString($buffer[0]['context_encrypted']);
         $this->assertNotEmpty($buffer[0]['context_encrypted']);
     }
 
-    public function test_log_context_encrypted_is_null_for_non_sensitive_actions(): void {
+    public function test_log_context_encrypted_when_nested_payload_contains_sensitive_key(): void {
         $this->enableActivityLog();
 
-        // Non-sensitive actions should NOT get encrypted context.
+        // Nested sensitive keys must trigger encryption — the registry walks
+        // arrays recursively so wrappers like {fields: {cpf: ...}} don't slip
+        // through.
+        ActivityLog::log('reregistration_submitted', ActivityLog::LEVEL_INFO, [
+            'audience_id' => 3,
+            'fields'      => ['cpf' => '12345678901'],
+        ]);
+
+        $buffer = $this->getWriteBuffer();
+        $this->assertNotNull($buffer[0]['context_encrypted']);
+        $this->assertIsString($buffer[0]['context_encrypted']);
+    }
+
+    public function test_log_context_not_encrypted_without_sensitive_keys(): void {
+        $this->enableActivityLog();
+
+        // Non-sensitive context carries no PII — skip encryption.
         ActivityLog::log('settings_changed', ActivityLog::LEVEL_INFO, ['key' => 'value']);
+
+        $buffer = $this->getWriteBuffer();
+        $this->assertNull($buffer[0]['context_encrypted']);
+    }
+
+    public function test_log_context_not_encrypted_for_empty_payload(): void {
+        $this->enableActivityLog();
+
+        ActivityLog::log('password_changed', ActivityLog::LEVEL_INFO, []);
+
+        $buffer = $this->getWriteBuffer();
+        $this->assertNull($buffer[0]['context_encrypted']);
+    }
+
+    public function test_log_sensitive_action_without_sensitive_payload_is_not_encrypted(): void {
+        $this->enableActivityLog();
+
+        // Previously the action name "submission_created" unconditionally triggered
+        // encryption; under the payload-inspection gate, a trivial payload no longer
+        // does so. This locks in the new contract: the decision is by data, not action.
+        ActivityLog::log('submission_created', ActivityLog::LEVEL_INFO, ['form_id' => 5, 'encrypted' => false]);
 
         $buffer = $this->getWriteBuffer();
         $this->assertNull($buffer[0]['context_encrypted']);

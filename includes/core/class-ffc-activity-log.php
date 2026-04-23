@@ -117,21 +117,19 @@ class ActivityLog {
 			$level = self::LEVEL_INFO;
 		}
 
-		// Encrypt context if contains sensitive data.
+		// Encrypt context if the payload carries a field we classify as
+		// sensitive. This replaces the older action-whitelist gate with a
+		// payload-inspection gate backed by SensitiveFieldRegistry, which
+		// unifies the static per-site lists with the dynamic is_sensitive=1
+		// reregistration fields. A log call with no sensitive data stays
+		// unencrypted regardless of action; conversely, any action carrying
+		// a sensitive field in its context now gets encrypted automatically.
 		$context_json_raw  = wp_json_encode( $context );
 		$context_json      = $context_json_raw ? $context_json_raw : '';
 		$context_encrypted = null;
 
 		if ( class_exists( '\\FreeFormCertificate\\Core\\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-			$sensitive_actions = array(
-				'submission_created',
-				'data_accessed',
-				'data_modified',
-				'admin_searched',
-				'encryption_migration_batch',
-			);
-
-			if ( in_array( $action, $sensitive_actions, true ) ) {
+			if ( SensitiveFieldRegistry::contains_sensitive( $context ) ) {
 				$context_encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $context_json );
 			}
 		}
