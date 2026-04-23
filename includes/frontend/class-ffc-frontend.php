@@ -314,7 +314,6 @@ class Frontend {
 		}
 
 		$geofence_configs = array();
-		$global_settings  = get_option( 'ffc_geolocation_settings', array() );
 
 		foreach ( $matches[1] as $form_id ) {
 			$form_id_int = (int) $form_id;
@@ -326,8 +325,10 @@ class Frontend {
 		}
 
 		// Add global settings without re-indexing form IDs.
+		$ffc_global_debug            = class_exists( '\FreeFormCertificate\Core\Debug' )
+			&& \FreeFormCertificate\Core\Debug::is_enabled( \FreeFormCertificate\Core\Debug::AREA_GEOFENCE );
 		$geofence_configs['_global'] = array(
-			'debug'   => ! empty( $global_settings['debug_enabled'] ),
+			'debug'   => $ffc_global_debug,
 			'strings' => array(
 				// Admin bypass messages.
 				'bypassGeneric'             => __( 'Admin Bypass Mode Active - Geofence restrictions are disabled for administrators', 'ffcertificate' ),

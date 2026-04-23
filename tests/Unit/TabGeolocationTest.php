@@ -53,7 +53,7 @@ class TabGeolocationTest extends TestCase {
         unset( $_POST['both_fail_fallback'], $_POST['ip_api_enabled'], $_POST['ip_api_cascade'] );
         unset( $_POST['ipinfo_api_key'], $_POST['ip_cache_enabled'], $_POST['ip_cache_ttl'] );
         unset( $_POST['gps_cache_ttl'], $_POST['admin_bypass_datetime'], $_POST['admin_bypass_geo'] );
-        unset( $_POST['debug_enabled'], $_POST['main_geo_areas'] );
+        unset( $_POST['main_geo_areas'] );
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -111,7 +111,7 @@ class TabGeolocationTest extends TestCase {
         $this->assertArrayHasKey( 'both_fail_fallback', $defaults );
         $this->assertArrayHasKey( 'admin_bypass_datetime', $defaults );
         $this->assertArrayHasKey( 'admin_bypass_geo', $defaults );
-        $this->assertArrayHasKey( 'debug_enabled', $defaults );
+        $this->assertArrayNotHasKey( 'debug_enabled', $defaults );
     }
 
     public function test_get_default_settings_has_correct_default_values(): void {
@@ -131,7 +131,6 @@ class TabGeolocationTest extends TestCase {
         $this->assertSame( 'block', $defaults['both_fail_fallback'] );
         $this->assertFalse( $defaults['admin_bypass_datetime'] );
         $this->assertFalse( $defaults['admin_bypass_geo'] );
-        $this->assertFalse( $defaults['debug_enabled'] );
     }
 
     // ==================================================================
@@ -184,7 +183,6 @@ class TabGeolocationTest extends TestCase {
         $_POST['both_fail_fallback']  = 'allow';
         $_POST['admin_bypass_datetime'] = '1';
         $_POST['admin_bypass_geo']    = '1';
-        $_POST['debug_enabled']       = '1';
 
         $captured_settings = null;
         Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
@@ -212,7 +210,7 @@ class TabGeolocationTest extends TestCase {
         $this->assertSame( 'allow', $captured_settings['both_fail_fallback'] );
         $this->assertTrue( $captured_settings['admin_bypass_datetime'] );
         $this->assertTrue( $captured_settings['admin_bypass_geo'] );
-        $this->assertTrue( $captured_settings['debug_enabled'] );
+        $this->assertArrayNotHasKey( 'debug_enabled', $captured_settings );
     }
 
     public function test_save_settings_defaults_invalid_service_to_ip_api(): void {

@@ -140,8 +140,10 @@ class GeofenceFrontendConfigTest extends TestCase {
                 return array(
                     'admin_bypass_datetime' => true,
                     'admin_bypass_geo'      => true,
-                    'debug_enabled'         => true,
                 );
+            }
+            if ( 'ffc_settings' === $key ) {
+                return array( 'debug_geofence' => 1 );
             }
             return $default;
         } );
@@ -193,7 +195,6 @@ class GeofenceFrontendConfigTest extends TestCase {
                 return array(
                     'gps_cache_ttl' => 300,
                     'gps_fallback'  => 'block',
-                    'debug_enabled' => false,
                 );
             }
             return $default;
@@ -269,7 +270,6 @@ class GeofenceFrontendConfigTest extends TestCase {
                     'admin_bypass_geo'      => false,
                     'gps_cache_ttl'         => 900,
                     'gps_fallback'          => 'allow',
-                    'debug_enabled'         => false,
                 );
             }
             return $default;
@@ -319,7 +319,6 @@ class GeofenceFrontendConfigTest extends TestCase {
                 return array(
                     'gps_cache_ttl' => 1200,
                     'gps_fallback'  => 'allow',
-                    'debug_enabled' => false,
                 );
             }
             return $default;
@@ -353,7 +352,6 @@ class GeofenceFrontendConfigTest extends TestCase {
                 // No gps_cache_ttl key at all.
                 return array(
                     'gps_fallback'  => 'allow',
-                    'debug_enabled' => false,
                 );
             }
             return $default;

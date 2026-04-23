@@ -660,14 +660,6 @@
     white-space: nowrap;
 }
 
-.ffc-reregistrations-table .ffc-download-ficha-btn {
-    display: inline-block;
-    padding: 4px 12px;
-    font-size: 12px;
-    line-height: 1.4;
-    min-height: 0;
-}
-
 .appointment-status.status-submitted {
     background: #cfe2ff;
     color: #084298;
