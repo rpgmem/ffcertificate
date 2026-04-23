@@ -60,6 +60,16 @@ class MigrationRegistry {
 			'requires_column' => true,
 		);
 
+		// v5.3.1: Rehash legacy unsalted email_hash values in submissions and appointments.
+		$this->migrations['email_hash_rehash'] = array(
+			'name'            => __( 'Rehash Email Lookup Hashes', 'ffcertificate' ),
+			'description'     => __( 'Recompute email_hash with the salted Encryption::hash() so lookups match cross-table writes.', 'ffcertificate' ),
+			'icon'            => 'ffc-icon-shield',
+			'batch_size'      => 100,
+			'order'           => 2,
+			'requires_column' => false,
+		);
+
 		// Allow plugins to add custom migrations.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
 		$this->migrations = apply_filters( 'ffcertificate_migrations_registry', $this->migrations );
