@@ -55,14 +55,15 @@ class MigrationRegistryTest extends TestCase {
     // get_all_migrations
     // ==================================================================
 
-    public function test_get_all_migrations_returns_array_with_split_cpf_rf(): void {
+    public function test_get_all_migrations_returns_default_migrations(): void {
         $registry = new MigrationRegistry();
 
         $all = $registry->get_all_migrations();
 
         $this->assertIsArray( $all );
-        $this->assertCount( 1, $all );
+        $this->assertCount( 2, $all );
         $this->assertArrayHasKey( 'split_cpf_rf', $all );
+        $this->assertArrayHasKey( 'email_hash_rehash', $all );
     }
 
     public function test_split_cpf_rf_migration_has_expected_keys(): void {
@@ -81,6 +82,23 @@ class MigrationRegistryTest extends TestCase {
         $this->assertSame( 50, $migration['batch_size'] );
         $this->assertSame( 1, $migration['order'] );
         $this->assertTrue( $migration['requires_column'] );
+    }
+
+    public function test_email_hash_rehash_migration_has_expected_keys(): void {
+        $registry  = new MigrationRegistry();
+        $migration = $registry->get_all_migrations()['email_hash_rehash'];
+
+        $expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order', 'requires_column' );
+
+        foreach ( $expected_keys as $key ) {
+            $this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
+        }
+
+        $this->assertSame( 'Rehash Email Lookup Hashes', $migration['name'] );
+        $this->assertSame( 'ffc-icon-shield', $migration['icon'] );
+        $this->assertSame( 100, $migration['batch_size'] );
+        $this->assertSame( 2, $migration['order'] );
+        $this->assertFalse( $migration['requires_column'] );
     }
 
     // ==================================================================

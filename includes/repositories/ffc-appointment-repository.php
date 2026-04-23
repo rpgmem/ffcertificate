@@ -105,7 +105,11 @@ class AppointmentRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByEmail( string $email, ?int $limit = null, int $offset = 0 ): array {
-		$email_hash = hash( 'sha256', strtolower( trim( $email ) ) );
+		// Use Encryption::hash without normalization to match SubmissionHandler convention.
+		$email_hash = \FreeFormCertificate\Core\Encryption::hash( $email );
+		if ( null === $email_hash ) {
+			return array();
+		}
 
 		if ( $limit ) {
 			$sql = $this->wpdb->prepare(
@@ -137,7 +141,10 @@ class AppointmentRepository extends AbstractRepository {
 	 */
 	public function findByCpfRf( string $cpf_rf, ?int $limit = null, int $offset = 0 ): array {
 		$cpf_rf_clean = preg_replace( '/[^0-9]/', '', $cpf_rf );
-		$cpf_rf_hash  = hash( 'sha256', $cpf_rf_clean );
+		$cpf_rf_hash  = \FreeFormCertificate\Core\Encryption::hash( (string) $cpf_rf_clean );
+		if ( null === $cpf_rf_hash ) {
+			return array();
+		}
 
 		// Classify by digit count: 7 digits = RF, else CPF.
 		$hash_column = strlen( $cpf_rf_clean ) === 7 ? 'rf_hash' : 'cpf_hash';
@@ -471,8 +478,9 @@ class AppointmentRepository extends AbstractRepository {
 			\FreeFormCertificate\Core\Encryption::is_configured() ) {
 
 			if ( ! empty( $data['email'] ) ) {
+				// Match SubmissionHandler: hash the same value that gets encrypted (no normalization).
 				$data['email_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data['email'] );
-				$data['email_hash']      = hash( 'sha256', strtolower( trim( $data['email'] ) ) );
+				$data['email_hash']      = \FreeFormCertificate\Core\Encryption::hash( $data['email'] );
 				// Clear plain text - do not store unencrypted (LGPD compliance).
 				unset( $data['email'] );
 			}

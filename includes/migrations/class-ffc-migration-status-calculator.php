@@ -68,6 +68,7 @@ class MigrationStatusCalculator {
 	 */
 	private function initialize_strategies(): void {
 		$this->try_create_strategy( 'split_cpf_rf' );
+		$this->try_create_strategy( 'email_hash_rehash' );
 
 		// Allow plugins to register custom strategies.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
@@ -110,6 +111,24 @@ class MigrationStatusCalculator {
 
 					$this->strategies['split_cpf_rf'] = new \FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy();
 					unset( $this->strategy_errors['split_cpf_rf'] );
+					break;
+
+				case 'email_hash_rehash':
+					$strategy_dir = __DIR__ . '/strategies/';
+					$core_dir     = dirname( __DIR__ ) . '/core/';
+
+					if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
+						include $core_dir . 'class-ffc-database-helper-trait.php';
+					}
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\EmailHashRehashMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-email-hash-rehash-migration-strategy.php';
+					}
+
+					$this->strategies['email_hash_rehash'] = new \FreeFormCertificate\Migrations\Strategies\EmailHashRehashMigrationStrategy();
+					unset( $this->strategy_errors['email_hash_rehash'] );
 					break;
 			}
 		} catch ( \Throwable $e ) {

@@ -169,16 +169,19 @@ class UserCleanup {
 		$submissions_table = $wpdb->prefix . 'ffc_submissions';
 
 		// Reindex email_hash for submissions linked to this user_id.
-		$new_email_hash = hash( 'sha256', strtolower( trim( $new_email ) ) );
+		// Must mirror SubmissionHandler exactly: Encryption::hash without normalization.
+		$new_email_hash = \FreeFormCertificate\Core\Encryption::hash( $new_email );
 
-		$wpdb->query(
-			$wpdb->prepare(
-				'UPDATE %i SET email_hash = %s WHERE user_id = %d',
-				$submissions_table,
-				$new_email_hash,
-				$user_id
-			)
-		);
+		if ( null !== $new_email_hash ) {
+			$wpdb->query(
+				$wpdb->prepare(
+					'UPDATE %i SET email_hash = %s WHERE user_id = %d',
+					$submissions_table,
+					$new_email_hash,
+					$user_id
+				)
+			);
+		}
 
 		// Update profile timestamp.
 		$profiles_table = $wpdb->prefix . 'ffc_user_profiles';
