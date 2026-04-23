@@ -192,45 +192,16 @@ class UserManagerTest extends TestCase {
     // update_profile()
     // ==================================================================
 
-    public function test_update_profile_returns_false_when_table_not_exists(): void {
-        // table_exists returns false
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( 'SHOW TABLES LIKE %s' )
-            ->once()
-            ->andReturn( null );
-
-        $result = UserManager::update_profile( 42, array( 'display_name' => 'New Name' ) );
-
-        $this->assertFalse( $result );
-    }
-
     public function test_update_profile_returns_false_when_no_allowed_fields(): void {
-        // table_exists returns true
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( 'SHOW TABLES LIKE %s' )
-            ->once()
-            ->andReturn( 'wp_ffc_user_profiles' );
-
-        // No allowed fields in data
+        // The facade drops unknown keys before delegating to the service.
         $result = UserManager::update_profile( 42, array( 'unknown_field' => 'value' ) );
 
         $this->assertFalse( $result );
     }
 
     public function test_update_profile_updates_existing_row(): void {
-        // table_exists returns true
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( 'SHOW TABLES LIKE %s' )
-            ->once()
-            ->andReturn( 'wp_ffc_user_profiles' );
-
-        // Profile exists (get_var for SELECT id check returns an id)
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( "SELECT id FROM %i WHERE user_id = %d" )
-            ->once()
-            ->andReturn( '5' );
-
-        // update call succeeds
+        // Row already exists — service takes the UPDATE branch.
+        $this->wpdb->shouldReceive( 'get_var' )->andReturn( '5' );
         $this->wpdb->shouldReceive( 'update' )
             ->once()
             ->andReturn( 1 );
@@ -248,19 +219,8 @@ class UserManagerTest extends TestCase {
     }
 
     public function test_update_profile_inserts_new_row_when_not_exists(): void {
-        // table_exists returns true
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( 'SHOW TABLES LIKE %s' )
-            ->once()
-            ->andReturn( 'wp_ffc_user_profiles' );
-
-        // Profile does NOT exist
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( "SELECT id FROM %i WHERE user_id = %d" )
-            ->once()
-            ->andReturn( null );
-
-        // insert call succeeds
+        // Row does NOT exist — service takes the INSERT branch.
+        $this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
         $this->wpdb->shouldReceive( 'insert' )
             ->once()
             ->andReturn( 1 );
@@ -274,23 +234,10 @@ class UserManagerTest extends TestCase {
     }
 
     public function test_update_profile_handles_preferences_json(): void {
-        // table_exists returns true
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( 'SHOW TABLES LIKE %s' )
-            ->once()
-            ->andReturn( 'wp_ffc_user_profiles' );
-
-        // Profile exists
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( "SELECT id FROM %i WHERE user_id = %d" )
-            ->once()
-            ->andReturn( '3' );
-
-        // update call
+        $this->wpdb->shouldReceive( 'get_var' )->andReturn( '3' );
         $this->wpdb->shouldReceive( 'update' )
             ->once()
-            ->withArgs( function ( $table, $data, $where, $formats, $where_formats ) {
-                // preferences should be JSON-encoded
+            ->withArgs( function ( $table, $data ) {
                 return isset( $data['preferences'] )
                     && is_string( $data['preferences'] )
                     && json_decode( $data['preferences'], true ) === array( 'theme' => 'dark', 'lang' => 'pt-BR' );
@@ -305,49 +252,31 @@ class UserManagerTest extends TestCase {
     }
 
     public function test_update_profile_also_calls_wp_update_user_for_display_name(): void {
-        // table_exists returns true
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( 'SHOW TABLES LIKE %s' )
-            ->once()
-            ->andReturn( 'wp_ffc_user_profiles' );
+        $this->wpdb->shouldReceive( 'get_var' )->andReturn( '1' );
+        $this->wpdb->shouldReceive( 'update' )->andReturn( 1 );
 
-        // Profile exists
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( "SELECT id FROM %i WHERE user_id = %d" )
-            ->once()
-            ->andReturn( '1' );
-
-        $this->wpdb->shouldReceive( 'update' )
-            ->once()
-            ->andReturn( 1 );
-
-        Functions\expect( 'wp_update_user' )
-            ->once()
-            ->with( Mockery::on( function ( $args ) {
-                return $args['ID'] === 42
-                    && $args['display_name'] === 'New Display Name';
-            } ) )
-            ->andReturn( 42 );
+        // display_name mirrors to wp_users via the UserProfileService
+        // mirror mechanism. We only assert the mirror call fires with
+        // the expected value — the field map wiring is covered separately.
+        $captured_args = null;
+        Functions\when( 'wp_update_user' )->alias( function ( $args ) use ( &$captured_args ) {
+            if ( isset( $args['display_name'] ) ) {
+                $captured_args = $args;
+            }
+            return 42;
+        } );
 
         $result = UserManager::update_profile( 42, array( 'display_name' => 'New Display Name' ) );
 
         $this->assertTrue( $result );
+        $this->assertIsArray( $captured_args );
+        $this->assertSame( 42, $captured_args['ID'] );
+        $this->assertSame( 'New Display Name', $captured_args['display_name'] );
     }
 
     public function test_update_profile_returns_false_on_db_failure(): void {
-        // table_exists returns true
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( 'SHOW TABLES LIKE %s' )
-            ->once()
-            ->andReturn( 'wp_ffc_user_profiles' );
-
-        // Profile exists
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( "SELECT id FROM %i WHERE user_id = %d" )
-            ->once()
-            ->andReturn( '1' );
-
-        // update returns false (failure)
+        $this->wpdb->shouldReceive( 'get_var' )->andReturn( '1' );
+        // Service's wpdb->update returns false → write() returns false → facade returns false.
         $this->wpdb->shouldReceive( 'update' )
             ->once()
             ->andReturn( false );
@@ -358,23 +287,14 @@ class UserManagerTest extends TestCase {
     }
 
     public function test_update_profile_sanitizes_allowed_fields_only(): void {
-        // table_exists returns true
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( 'SHOW TABLES LIKE %s' )
-            ->once()
-            ->andReturn( 'wp_ffc_user_profiles' );
-
-        // Profile does NOT exist → insert path
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( "SELECT id FROM %i WHERE user_id = %d" )
-            ->once()
-            ->andReturn( null );
+        // Row does not exist → service takes the INSERT branch.
+        $this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
 
         $this->wpdb->shouldReceive( 'insert' )
             ->once()
-            ->withArgs( function ( $table, $data, $formats ) {
-                // Should only contain allowed fields + user_id + created_at
-                // 'evil_field' must be stripped
+            ->withArgs( function ( $table, $data ) {
+                // Only the allowed 'notes' field plus the service's user_id
+                // should reach the insert; 'evil_field' must be stripped.
                 return ! isset( $data['evil_field'] )
                     && isset( $data['notes'] )
                     && $data['notes'] === 'Some notes'
@@ -1324,9 +1244,9 @@ class UserManagerTest extends TestCase {
         $this->mock_table_exists( 'wp_ffc_user_profiles', false );
         Functions\when( 'sanitize_key' )->returnArg();
 
-        $delete_called_with = null;
-        Functions\when( 'delete_user_meta' )->alias( function ( $uid, $key ) use ( &$delete_called_with ) {
-            $delete_called_with = $key;
+        $deleted_keys = array();
+        Functions\when( 'delete_user_meta' )->alias( function ( $uid, $key ) use ( &$deleted_keys ) {
+            $deleted_keys[] = $key;
             return true;
         } );
         Functions\when( 'update_user_meta' )->justReturn( true );
@@ -1337,8 +1257,11 @@ class UserManagerTest extends TestCase {
             array( 'cpf' )
         );
 
-        // Empty sensitive value must delete the meta — never store ''.
-        $this->assertSame( 'ffc_user_cpf', $delete_called_with );
+        // Empty sensitive value must delete BOTH the ciphertext meta and
+        // its lookup hash so a stale hash never survives the field being
+        // cleared.
+        $this->assertContains( 'ffc_user_cpf', $deleted_keys );
+        $this->assertContains( 'ffc_user_cpf_hash', $deleted_keys );
     }
 
     // ==================================================================
