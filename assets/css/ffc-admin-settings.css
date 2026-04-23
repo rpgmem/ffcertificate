@@ -32,7 +32,9 @@
 }
 
 .ffc-settings-wrap .card h2,
-.ffc-settings-page .card h2 {
+.ffc-settings-page .card h2,
+.ffc-settings-wrap .card > h3[id],
+.ffc-settings-page .card > h3[id] {
     margin-top: 0;
     margin-bottom: 15px;
     padding-bottom: 10px;
@@ -634,7 +636,6 @@ pre code {
 /* Section Spacing */
 .ffc-settings-wrap .card h3[id] {
     scroll-margin-top: 20px;
-    padding-top: 5px;
 }
 
 /* Responsive */
@@ -743,7 +744,7 @@ pre code {
 .ffc-settings-wrap .nav-tab-active,
 .ffc-settings-wrap .nav-tab-active:hover,
 .ffc-settings-wrap .nav-tab-active:focus {
-    background: transparent;
+    background: var(--ffc-bg-card);
     color: var(--ffc-primary);
     font-weight: 600;
     box-shadow: none;

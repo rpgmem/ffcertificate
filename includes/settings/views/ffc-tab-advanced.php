@@ -19,6 +19,10 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 
 <div class="ffc-settings-wrap">
 
+<form method="post">
+	<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
+	<input type="hidden" name="_ffc_tab" value="advanced">
+
 <!-- Activity Log Settings Card -->
 <div class="card">
 	<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h2>
@@ -28,10 +32,6 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 		<span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e( 'If this option is disabled, debug logging will also be disabled.', 'ffcertificate' ); ?></span><br>
 		<span class="ffc-text-info ffc-icon-info"><?php esc_html_e( 'When enabled, actions like submission creation, data access, and settings changes are logged.', 'ffcertificate' ); ?></span>
 	</p>
-
-	<form method="post">
-		<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
-		<input type="hidden" name="_ffc_tab" value="advanced">
 
 		<table class="form-table" role="presentation">
 			<tbody>
@@ -85,12 +85,15 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 				</tr>
 			</tbody>
 		</table>
+</div>
 
-		<h3 class="ffc-icon-debug"><?php esc_html_e( 'Debug Settings', 'ffcertificate' ); ?></h3>
-		<p class="description">
-			<?php esc_html_e( 'Enable debug logging for specific areas. Debug logs are written to the PHP error log.', 'ffcertificate' ); ?><br>
-			<span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e( 'Only enable in development or when troubleshooting issues.', 'ffcertificate' ); ?></span>
-		</p>
+<!-- Debug Settings Card -->
+<div class="card">
+	<h2 class="ffc-icon-debug"><?php esc_html_e( 'Debug Settings', 'ffcertificate' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Enable debug logging for specific areas. Debug logs are written to the PHP error log.', 'ffcertificate' ); ?><br>
+		<span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e( 'Only enable in development or when troubleshooting issues.', 'ffcertificate' ); ?></span>
+	</p>
 
 		<table class="form-table" role="presentation">
 			<tbody>
@@ -231,11 +234,14 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 				</tr>
 			</tbody>
 		</table>
+</div>
 
-		<h3 class="ffc-icon-download"><?php esc_html_e( 'Public CSV Download', 'ffcertificate' ); ?></h3>
-		<p class="description">
-			<?php esc_html_e( 'Default limit suggested when enabling the public CSV download feature on a form. Each form can override this value in its editor.', 'ffcertificate' ); ?>
-		</p>
+<!-- Public CSV Download Card -->
+<div class="card">
+	<h2 class="ffc-icon-download"><?php esc_html_e( 'Public CSV Download', 'ffcertificate' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Default limit suggested when enabling the public CSV download feature on a form. Each form can override this value in its editor.', 'ffcertificate' ); ?>
+	</p>
 
 		<table class="form-table" role="presentation">
 			<tbody>
@@ -252,10 +258,10 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 				</tr>
 			</tbody>
 		</table>
-
-		<?php submit_button(); ?>
-	</form>
 </div>
+
+	<?php submit_button(); ?>
+</form>
 
 <!-- Danger Zone Card -->
 <div class="card ffc-danger-zone">

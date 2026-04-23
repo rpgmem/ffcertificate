@@ -34,13 +34,13 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 
 <div class="ffc-settings-wrap">
 
+<form method="post">
+	<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
+	<input type="hidden" name="_ffc_tab" value="general">
+
 <!-- General Settings Card -->
 <div class="card">
 	<h2 class="ffc-icon-settings"><?php esc_html_e( 'General Settings', 'ffcertificate' ); ?></h2>
-
-	<form method="post">
-		<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
-		<input type="hidden" name="_ffc_tab" value="general">
 
 		<table class="form-table" role="presentation">
 			<tbody>
@@ -133,12 +133,14 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 				</tr>
 				</tbody>
 		</table>
+</div>
 
-		<!-- QR Code Defaults Section -->
-		<h3 class="ffc-icon-phone"><?php esc_html_e( 'QR Code Defaults', 'ffcertificate' ); ?></h3>
-		<p class="description">
-			<?php esc_html_e( 'Default settings for QR Code generation in certificates.', 'ffcertificate' ); ?>
-		</p>
+<!-- QR Code Defaults Card -->
+<div class="card">
+	<h2 class="ffc-icon-phone"><?php esc_html_e( 'QR Code Defaults', 'ffcertificate' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Default settings for QR Code generation in certificates.', 'ffcertificate' ); ?>
+	</p>
 
 		<table class="form-table" role="presentation">
 			<tbody>
@@ -192,9 +194,10 @@ $ffcertificate_main_address   = $ffcertificate_get_option( 'main_address', '' );
 				</tr>
 			</tbody>
 		</table>
-
-		<?php submit_button(); ?>
-	</form>
 </div>
+
+	<?php submit_button(); ?>
+
+</form>
 
 </div><!-- .ffc-settings-wrap -->

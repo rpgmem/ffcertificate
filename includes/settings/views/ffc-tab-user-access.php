@@ -42,7 +42,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 
 		<!-- wp-admin Blocking -->
 		<div class="card">
-			<h2><?php esc_html_e( 'WP-Admin Access Control', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-lock"><?php esc_html_e( 'WP-Admin Access Control', 'ffcertificate' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row">
@@ -117,7 +117,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 
 		<!-- Redirect Settings -->
 		<div class="card">
-			<h2><?php esc_html_e( 'Redirect Settings', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-link"><?php esc_html_e( 'Redirect Settings', 'ffcertificate' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row">
@@ -165,7 +165,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 
 		<!-- Admin Bar -->
 		<div class="card">
-			<h2><?php esc_html_e( 'Admin Bar', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-settings"><?php esc_html_e( 'Admin Bar', 'ffcertificate' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row">
@@ -226,7 +226,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 
 		<p class="submit">
 			<button type="submit" name="save_settings" class="button button-primary">
-				<?php esc_html_e( 'Save Settings', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'Save Changes', 'ffcertificate' ); ?>
 			</button>
 		</p>
 	</form>

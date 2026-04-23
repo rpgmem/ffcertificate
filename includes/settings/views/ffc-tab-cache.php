@@ -19,6 +19,10 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 
 <div class="ffc-settings-wrap">
 
+<form method="post">
+	<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
+	<input type="hidden" name="_ffc_tab" value="cache">
+
 <!-- Form Cache Card -->
 <div class="card">
 	<h2 class="ffc-icon-package"><?php esc_html_e( 'Form Cache', 'ffcertificate' ); ?></h2>
@@ -30,10 +34,6 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 			<span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e( 'Using default WordPress cache (database)', 'ffcertificate' ); ?></span>
 		<?php endif; ?>
 	</p>
-
-	<form method="post">
-		<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
-		<input type="hidden" name="_ffc_tab" value="cache">
 
 		<table class="form-table" role="presentation">
 			<tbody>
@@ -128,12 +128,14 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 				<?php endif; ?>
 			</tbody>
 		</table>
+</div>
 
-		<!-- QR Code Cache Section -->
-		<h3 class="ffc-icon-phone"><?php esc_html_e( 'QR Code Cache', 'ffcertificate' ); ?></h3>
-		<p class="description">
-			<?php esc_html_e( 'Store generated QR Codes in database to avoid regenerating them on each request.', 'ffcertificate' ); ?>
-		</p>
+<!-- QR Code Cache Card -->
+<div class="card">
+	<h2 class="ffc-icon-phone"><?php esc_html_e( 'QR Code Cache', 'ffcertificate' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Store generated QR Codes in database to avoid regenerating them on each request.', 'ffcertificate' ); ?>
+	</p>
 
 		<table class="form-table" role="presentation">
 			<tbody>
@@ -219,10 +221,10 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 				<?php endif; ?>
 			</tbody>
 		</table>
-
-		<?php submit_button(); ?>
-	</form>
 </div>
+
+	<?php submit_button(); ?>
+</form>
 
 <!-- Page Cache Compatibility Card -->
 <div class="card">
