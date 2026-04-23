@@ -47,6 +47,17 @@ final class UserProfileService {
 	private static ?string $profile_table = null;
 
 	/**
+	 * Per-call overrides for fields that are not registered in the
+	 * static UserProfileFieldMap. Populated by write() and consumed by
+	 * resolve_spec() / resolve_hash_meta_key() inside the helpers.
+	 * Cleared at the end of the write() call via try/finally so it
+	 * never leaks between requests.
+	 *
+	 * @var array<string, array<string, mixed>>
+	 */
+	private static array $runtime_overrides = array();
+
+	/**
 	 * Read a subset of a user's profile applying a view policy.
 	 *
 	 * Returns an associative array keyed by requested field. Unknown keys
@@ -110,55 +121,114 @@ final class UserProfileService {
 	/**
 	 * Apply a partial patch to a user's profile.
 	 *
-	 * Unknown keys are silently dropped. Sensitive values are encrypted
-	 * and their lookup hash is written when the field is hashable.
+	 * Unknown keys are silently dropped unless $extra_descriptors
+	 * supplies an inline spec. Sensitive values are encrypted and their
+	 * lookup hash is written when the resolved descriptor is hashable.
 	 * Mirror targets (e.g. wp_users.display_name) are synced last.
+	 *
+	 * $extra_descriptors lets callers write fields that are not part of
+	 * the static UserProfileFieldMap — notably dynamic reregistration
+	 * custom fields, where is_sensitive and meta_key are only known at
+	 * runtime. Each descriptor must follow the same shape as FIELDS in
+	 * UserProfileFieldMap (storage, meta_key/column, sensitive, etc.).
 	 *
 	 * Returns true if at least one field was persisted successfully.
 	 *
-	 * @param int                  $user_id WordPress user ID.
-	 * @param array<string, mixed> $patch   Field key => new value.
+	 * @param int                                 $user_id          WordPress user ID.
+	 * @param array<string, mixed>                $patch            Field key => new value.
+	 * @param array<string, array<string, mixed>> $extra_descriptors Inline descriptors for unregistered fields.
 	 * @return bool
 	 */
-	public static function write( int $user_id, array $patch ): bool {
+	public static function write( int $user_id, array $patch, array $extra_descriptors = array() ): bool {
 		if ( $user_id <= 0 || empty( $patch ) ) {
 			return false;
 		}
 
-		$filtered = array();
-		foreach ( $patch as $key => $value ) {
-			if ( is_string( $key ) && UserProfileFieldMap::has( $key ) ) {
-				$filtered[ $key ] = $value;
+		self::$runtime_overrides = $extra_descriptors;
+
+		try {
+			$filtered = array();
+			foreach ( $patch as $key => $value ) {
+				if ( is_string( $key ) && null !== self::resolve_spec( $key ) ) {
+					$filtered[ $key ] = $value;
+				}
 			}
-		}
-		if ( empty( $filtered ) ) {
-			return false;
-		}
-
-		$success = false;
-
-		foreach ( UserProfileFieldMap::group_by_storage( array_keys( $filtered ) ) as $storage => $keys ) {
-			$slice = array();
-			foreach ( $keys as $k ) {
-				$slice[ $k ] = $filtered[ $k ];
+			if ( empty( $filtered ) ) {
+				return false;
 			}
-			switch ( $storage ) {
-				case UserProfileFieldMap::STORAGE_WP_USER:
-					$success = self::write_wp_user( $user_id, $slice ) || $success;
-					break;
-				case UserProfileFieldMap::STORAGE_PROFILE_TABLE:
-					$success = self::write_profile_table( $user_id, $slice ) || $success;
-					break;
-				case UserProfileFieldMap::STORAGE_USERMETA:
-					$success = self::write_usermeta( $user_id, $slice ) || $success;
-					break;
+
+			// Group by storage using the resolved spec (which may come
+			// from the static map or from $extra_descriptors).
+			$by_storage = array();
+			foreach ( array_keys( $filtered ) as $field_key ) {
+				$spec = self::resolve_spec( $field_key );
+				if ( null === $spec || empty( $spec['storage'] ) ) {
+					continue;
+				}
+				$by_storage[ $spec['storage'] ][] = $field_key;
 			}
+
+			$success = false;
+
+			foreach ( $by_storage as $storage => $keys ) {
+				$slice = array();
+				foreach ( $keys as $k ) {
+					$slice[ $k ] = $filtered[ $k ];
+				}
+				switch ( $storage ) {
+					case UserProfileFieldMap::STORAGE_WP_USER:
+						$success = self::write_wp_user( $user_id, $slice ) || $success;
+						break;
+					case UserProfileFieldMap::STORAGE_PROFILE_TABLE:
+						$success = self::write_profile_table( $user_id, $slice ) || $success;
+						break;
+					case UserProfileFieldMap::STORAGE_USERMETA:
+						$success = self::write_usermeta( $user_id, $slice ) || $success;
+						break;
+				}
+			}
+
+			// Mirrors: wp_users.display_name follows profile_table.display_name.
+			self::apply_mirrors( $user_id, $filtered );
+
+			return $success;
+		} finally {
+			self::$runtime_overrides = array();
 		}
+	}
 
-		// Mirrors: wp_users.display_name follows profile_table.display_name.
-		self::apply_mirrors( $user_id, $filtered );
+	/**
+	 * Resolve a field descriptor, preferring per-call overrides over the
+	 * static UserProfileFieldMap.
+	 *
+	 * @param string $field_key Logical field key.
+	 * @return array<string, mixed>|null
+	 */
+	private static function resolve_spec( string $field_key ): ?array {
+		if ( isset( self::$runtime_overrides[ $field_key ] ) && is_array( self::$runtime_overrides[ $field_key ] ) ) {
+			return self::$runtime_overrides[ $field_key ];
+		}
+		return UserProfileFieldMap::get( $field_key );
+	}
 
-		return $success;
+	/**
+	 * Resolve the hash meta key for a hashable usermeta field under the
+	 * current override context. Mirrors UserProfileFieldMap::hash_meta_key
+	 * but respects runtime overrides.
+	 *
+	 * @param string $field_key Logical field key.
+	 * @return string|null
+	 */
+	private static function resolve_hash_meta_key( string $field_key ): ?string {
+		$spec = self::resolve_spec( $field_key );
+		if ( null === $spec
+			|| UserProfileFieldMap::STORAGE_USERMETA !== ( $spec['storage'] ?? null )
+			|| empty( $spec['hashable'] )
+			|| empty( $spec['meta_key'] )
+		) {
+			return null;
+		}
+		return $spec['meta_key'] . '_hash';
 	}
 
 	// ==================================================================
@@ -287,7 +357,7 @@ final class UserProfileService {
 	private static function write_wp_user( int $user_id, array $slice ): bool {
 		$payload = array( 'ID' => $user_id );
 		foreach ( $slice as $field => $value ) {
-			$spec = UserProfileFieldMap::get( $field );
+			$spec = self::resolve_spec( $field );
 			if ( null === $spec || empty( $spec['column'] ) ) {
 				continue;
 			}
@@ -313,7 +383,7 @@ final class UserProfileService {
 
 		$data = array();
 		foreach ( $slice as $field => $value ) {
-			$spec = UserProfileFieldMap::get( $field );
+			$spec = self::resolve_spec( $field );
 			if ( null === $spec || empty( $spec['column'] ) ) {
 				continue;
 			}
@@ -351,7 +421,7 @@ final class UserProfileService {
 	private static function write_usermeta( int $user_id, array $slice ): bool {
 		$any = false;
 		foreach ( $slice as $field => $value ) {
-			$spec = UserProfileFieldMap::get( $field );
+			$spec = self::resolve_spec( $field );
 			if ( null === $spec || empty( $spec['meta_key'] ) ) {
 				continue;
 			}
@@ -367,7 +437,7 @@ final class UserProfileService {
 			if ( '' === $scalar ) {
 				delete_user_meta( $user_id, $meta_key );
 				if ( $sensitive ) {
-					$hash_key = UserProfileFieldMap::hash_meta_key( $field );
+					$hash_key = self::resolve_hash_meta_key( $field );
 					if ( null !== $hash_key ) {
 						delete_user_meta( $user_id, $hash_key );
 					}
@@ -392,7 +462,7 @@ final class UserProfileService {
 			}
 			update_user_meta( $user_id, $meta_key, $encrypted );
 
-			$hash_key = UserProfileFieldMap::hash_meta_key( $field );
+			$hash_key = self::resolve_hash_meta_key( $field );
 			if ( null !== $hash_key ) {
 				$hash = Encryption::hash( $scalar );
 				if ( null !== $hash ) {
@@ -418,7 +488,7 @@ final class UserProfileService {
 	 */
 	private static function apply_mirrors( int $user_id, array $filtered ): void {
 		foreach ( $filtered as $field => $value ) {
-			$spec = UserProfileFieldMap::get( $field );
+			$spec = self::resolve_spec( $field );
 			if ( null === $spec || empty( $spec['mirrors'] ) || ! is_array( $spec['mirrors'] ) ) {
 				continue;
 			}

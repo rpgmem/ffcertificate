@@ -377,80 +377,42 @@ class UserManager {
 			return false;
 		}
 
-		// Split incoming data into "known" (registered in the field map) and
-		// "dynamic" (arbitrary reregistration keys that the map doesn't yet
-		// model). Known keys go through UserProfileService so encryption,
-		// hashing and mirroring are consistent across call sites. Dynamic
-		// keys keep the legacy inline path until Phase 3 introduces the
-		// reregistration adapter.
-		$known_patch  = array();
-		$dynamic_data = array();
+		// Route every key through UserProfileService::write(). Keys that
+		// are registered in UserProfileFieldMap carry their own spec;
+		// dynamic reregistration keys get an inline descriptor built on
+		// the fly here so the service treats them like any other
+		// usermeta-backed field. The legacy inline encrypt/hash path
+		// that used to live here is gone.
+		$patch             = array();
+		$extra_descriptors = array();
+		$sensitive_map     = array_flip( $sensitive_keys );
 
 		foreach ( $data as $key => $value ) {
 			if ( ! is_string( $key ) || '' === $key ) {
 				continue;
 			}
+
+			$patch[ $key ] = $value;
+
 			if ( UserProfileFieldMap::has( $key ) ) {
-				$known_patch[ $key ] = $value;
-			} else {
-				$dynamic_data[ $key ] = $value;
-			}
-		}
-
-		$success = ! empty( $known_patch )
-			? UserProfileService::write( $user_id, $known_patch )
-			: false;
-
-		if ( empty( $dynamic_data ) ) {
-			return $success;
-		}
-
-		// Legacy inline write for dynamic keys. Mirrors UserProfileService's
-		// usermeta path: encrypts + hashes when the caller flags a key
-		// sensitive, stores plain otherwise, deletes on empty values.
-		$sensitive_map = array_flip( $sensitive_keys );
-		foreach ( $dynamic_data as $key => $value ) {
-			$meta_key = self::EXTENDED_META_PREFIX . sanitize_key( $key );
-
-			if ( is_scalar( $value ) ) {
-				$scalar_value = (string) $value;
-			} else {
-				$value_json   = wp_json_encode( $value );
-				$scalar_value = $value_json ? $value_json : '';
-			}
-
-			if ( isset( $sensitive_map[ $key ] ) ) {
-				if ( '' === $scalar_value || null === $scalar_value ) {
-					delete_user_meta( $user_id, $meta_key );
-					continue;
-				}
-
-				if ( ! class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
-					continue;
-				}
-
-				$encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $scalar_value );
-				if ( null === $encrypted ) {
-					continue;
-				}
-
-				update_user_meta( $user_id, $meta_key, $encrypted );
-
-				// Store a lookup hash for indexed searches (e.g. find user by CPF).
-				$hash = \FreeFormCertificate\Core\Encryption::hash( $scalar_value );
-				if ( null !== $hash ) {
-					update_user_meta( $user_id, $meta_key . '_hash', $hash );
-				}
-
-				$success = true;
 				continue;
 			}
 
-			update_user_meta( $user_id, $meta_key, sanitize_text_field( $scalar_value ) );
-			$success = true;
+			$extra_descriptors[ $key ] = array(
+				'storage'   => UserProfileFieldMap::STORAGE_USERMETA,
+				'meta_key'  => self::EXTENDED_META_PREFIX . sanitize_key( $key ),
+				'sensitive' => isset( $sensitive_map[ $key ] ),
+				// Dynamic reregistration fields are not queried by hash
+				// today; bump to true here if a future call site needs it.
+				'hashable'  => false,
+			);
 		}
 
-		return $success;
+		if ( empty( $patch ) ) {
+			return false;
+		}
+
+		return UserProfileService::write( $user_id, $patch, $extra_descriptors );
 	}
 
 	/**

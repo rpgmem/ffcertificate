@@ -314,4 +314,89 @@ class UserProfileServiceTest extends TestCase {
         $this->assertTrue( $result );
         $this->assertSame( '8h_daily', $this->usermeta_store[42]['ffc_user_jornada'] );
     }
+
+    // ==================================================================
+    // write() with $extra_descriptors (Phase 3)
+    // ==================================================================
+
+    public function test_write_with_extra_descriptor_routes_dynamic_field_to_usermeta(): void {
+        // A dynamic reregistration key (not in UserProfileFieldMap) becomes
+        // writable when the caller supplies its descriptor inline. Writes
+        // land in wp_usermeta at the declared meta_key.
+        $result = UserProfileService::write(
+            42,
+            array( 'custom_dynamic_field' => 'hello' ),
+            array(
+                'custom_dynamic_field' => array(
+                    'storage'   => \FreeFormCertificate\UserDashboard\UserProfileFieldMap::STORAGE_USERMETA,
+                    'meta_key'  => 'ffc_user_custom_dynamic_field',
+                    'sensitive' => false,
+                ),
+            )
+        );
+
+        $this->assertTrue( $result );
+        $this->assertSame( 'hello', $this->usermeta_store[42]['ffc_user_custom_dynamic_field'] );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_write_with_extra_descriptor_encrypts_sensitive_dynamic_field(): void {
+        $enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+        $enc->shouldReceive( 'encrypt' )->with( 'secret' )->once()->andReturn( 'ENC_DYNAMIC' );
+        // hashable=false, so no hash() call is expected at all.
+        $enc->shouldReceive( 'hash' )->never();
+
+        UserProfileService::write(
+            42,
+            array( 'custom_secret' => 'secret' ),
+            array(
+                'custom_secret' => array(
+                    'storage'   => \FreeFormCertificate\UserDashboard\UserProfileFieldMap::STORAGE_USERMETA,
+                    'meta_key'  => 'ffc_user_custom_secret',
+                    'sensitive' => true,
+                    'hashable'  => false,
+                ),
+            )
+        );
+
+        $this->assertSame( 'ENC_DYNAMIC', $this->usermeta_store[42]['ffc_user_custom_secret'] );
+        $this->assertArrayNotHasKey( 'ffc_user_custom_secret_hash', $this->usermeta_store[42] );
+    }
+
+    public function test_write_without_overrides_still_drops_unregistered_keys(): void {
+        // Baseline invariant: unregistered keys with no extra_descriptor
+        // are silently dropped, matching the pre-Phase-3 contract.
+        $result = UserProfileService::write( 42, array( 'not_in_map' => 'x' ) );
+        $this->assertFalse( $result );
+        $this->assertArrayNotHasKey( 42, $this->usermeta_store );
+    }
+
+    public function test_write_clears_runtime_overrides_after_call(): void {
+        // Overrides must not leak between calls: the second write uses
+        // only the field map, so passing the dynamic key without a
+        // descriptor again produces no write.
+        $ref = new \ReflectionClass( UserProfileService::class );
+        $prop = $ref->getProperty( 'runtime_overrides' );
+        $prop->setAccessible( true );
+
+        UserProfileService::write(
+            42,
+            array( 'leaky_key' => 'one' ),
+            array(
+                'leaky_key' => array(
+                    'storage'   => \FreeFormCertificate\UserDashboard\UserProfileFieldMap::STORAGE_USERMETA,
+                    'meta_key'  => 'ffc_user_leaky_key',
+                    'sensitive' => false,
+                ),
+            )
+        );
+
+        $this->assertSame( array(), $prop->getValue(), 'runtime_overrides must reset after write.' );
+
+        $result = UserProfileService::write( 42, array( 'leaky_key' => 'two' ) );
+        $this->assertFalse( $result, 'second write without descriptors must ignore the dynamic key.' );
+    }
 }

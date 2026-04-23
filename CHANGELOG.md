@@ -18,8 +18,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **`UserManager::update_profile()`** is now a thin facade over `UserProfileService::write()`. The legacy `sanitize_text_field` + `wp_json_encode('preferences')` pre-processing stays at the facade layer for backward compatibility; routing, upsert and the `display_name → wp_users` mirror move into the service. The `SHOW TABLES LIKE` short-circuit is gone — callers land in the service even when the plugin is mid-activation, which matches every install reachable from admin screens.
-- **`UserManager::update_extended_profile()`** splits incoming keys into "known" (registered in `UserProfileFieldMap`) and "dynamic" (arbitrary reregistration keys). Known keys route through `UserProfileService::write()`; dynamic keys keep the legacy inline usermeta path until Phase 3 introduces the reregistration adapter. Behavior improvement: clearing a sensitive field now also deletes the sibling `*_hash` meta row so a stale hash never outlives the ciphertext.
+- **`UserManager::update_extended_profile()`** now routes every key through `UserProfileService::write()`. Keys registered in `UserProfileFieldMap` carry their own descriptor; arbitrary reregistration keys get an inline descriptor built at the facade layer (`$extra_descriptors`) and are treated by the service like any other usermeta-backed field. The legacy inline encrypt/hash path that used to live here is gone. Behavior improvement: clearing a sensitive field now also deletes the sibling `*_hash` meta row so a stale hash never outlives the ciphertext.
+- **`UserProfileService::write()`** accepts an optional `$extra_descriptors` parameter: a map of `field_key => descriptor` for fields outside the static `UserProfileFieldMap`. The descriptor shape matches a `FIELDS` entry (storage, meta_key/column, sensitive, hashable). Used by the reregistration flow; per-call scope, cleared via try/finally so overrides never leak between requests.
 - **`UserProfileService::write_profile_table()`** adjusted (via the PHPStan fix in the same pass) so `hash_meta_key()` no longer carries dead `??` fallbacks — the field map's `FIELDS` constant already guarantees `storage` / `meta_key` presence where relevant.
+
+### Deferred
+
+- **`UserProfileService::stream()`** — originally scoped for Phase 3 to back bulk CSV / LGPD exports. Survey found no bulk-profile consumers (CSV exporters iterate submissions, not user profiles; `PrivacyHandler::export` operates per user). Shipping a `stream()` without a real customer would be premature infrastructure; the method is deferred until a concrete use case appears.
 
 ### Fixed
 

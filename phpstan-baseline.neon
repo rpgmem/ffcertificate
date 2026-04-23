@@ -1385,9 +1385,3 @@ parameters:
 			identifier: property.nonObject
 			count: 1
 			path: includes/shortcodes/class-ffc-dashboard-view-mode.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between null and mixed will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: includes/user-dashboard/class-ffc-user-manager.php
