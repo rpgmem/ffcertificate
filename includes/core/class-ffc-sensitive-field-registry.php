@@ -181,4 +181,139 @@ final class SensitiveFieldRegistry {
 	public static function plaintext_keys( string $context ): array {
 		return array_keys( self::fields_for( $context ) );
 	}
+
+	/**
+	 * In-memory cache of the union of all static sensitive keys.
+	 *
+	 * @var array<string, bool>|null
+	 */
+	private static $universal_static_cache = null;
+
+	/**
+	 * Cache object key used for the dynamic (is_sensitive=1) set.
+	 */
+	private const DYNAMIC_CACHE_KEY = 'ffc_sensitive_field_keys_dynamic';
+
+	/**
+	 * Cache group for wp_cache_* of the dynamic set.
+	 */
+	private const DYNAMIC_CACHE_GROUP = 'ffc_sensitive_fields';
+
+	/**
+	 * Union of all static sensitive field keys across every context.
+	 *
+	 * Unlike fields_for(), this collapses per-context entries into a single
+	 * flat set useful for payload inspection ("does this blob contain any
+	 * field we consider sensitive?"). Cached in-memory per request.
+	 *
+	 * @return array<string, bool> Map of field_key => true for O(1) lookup.
+	 */
+	public static function universal_sensitive_keys(): array {
+		if ( null !== self::$universal_static_cache ) {
+			return self::$universal_static_cache;
+		}
+
+		$keys = array();
+		foreach ( self::FIELDS as $fields ) {
+			foreach ( array_keys( $fields ) as $key ) {
+				$keys[ $key ] = true;
+			}
+		}
+		self::$universal_static_cache = $keys;
+		return $keys;
+	}
+
+	/**
+	 * Dynamic sensitive field keys configured by admins via
+	 * wp_ffc_custom_fields.is_sensitive = 1.
+	 *
+	 * Cached via the WP object cache. Invalidate with
+	 * invalidate_dynamic_cache() when the custom fields table changes.
+	 *
+	 * @return array<string, bool> Map of field_key => true.
+	 */
+	public static function dynamic_sensitive_keys(): array {
+		$cached = wp_cache_get( self::DYNAMIC_CACHE_KEY, self::DYNAMIC_CACHE_GROUP );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_custom_fields';
+		$keys  = array();
+
+		// The table may not exist (fresh install, tests), so guard the query.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+		if ( $exists === $table ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$rows = $wpdb->get_col(
+				$wpdb->prepare(
+					'SELECT DISTINCT field_key FROM %i WHERE is_sensitive = 1 AND is_active = 1',
+					$table
+				)
+			);
+			foreach ( (array) $rows as $field_key ) {
+				if ( is_string( $field_key ) && '' !== $field_key ) {
+					$keys[ $field_key ] = true;
+				}
+			}
+		}
+
+		wp_cache_set( self::DYNAMIC_CACHE_KEY, $keys, self::DYNAMIC_CACHE_GROUP );
+		return $keys;
+	}
+
+	/**
+	 * Drop the dynamic key cache. Call whenever wp_ffc_custom_fields is
+	 * created, updated or deleted so the next read reflects the change.
+	 *
+	 * @return void
+	 */
+	public static function invalidate_dynamic_cache(): void {
+		wp_cache_delete( self::DYNAMIC_CACHE_KEY, self::DYNAMIC_CACHE_GROUP );
+	}
+
+	/**
+	 * Whether the payload contains any key classified as sensitive.
+	 *
+	 * Recursively descends into nested arrays so a wrapper like
+	 * [ 'fields' => [ 'cpf' => '...' ] ] is correctly flagged. Matching is
+	 * exact on the key name — callers are expected to log using canonical
+	 * field keys ('cpf', not 'cpf_aluno') or risk a false negative.
+	 *
+	 * @param array<int|string, mixed> $payload Payload to inspect.
+	 * @return bool
+	 */
+	public static function contains_sensitive( array $payload ): bool {
+		if ( empty( $payload ) ) {
+			return false;
+		}
+
+		$sensitive = self::universal_sensitive_keys() + self::dynamic_sensitive_keys();
+		if ( empty( $sensitive ) ) {
+			return false;
+		}
+
+		return self::walk_for_sensitive( $payload, $sensitive );
+	}
+
+	/**
+	 * Depth-first scan for any array key that belongs to the sensitive set.
+	 *
+	 * @param array<int|string, mixed> $node Current node.
+	 * @param array<string, bool>      $sensitive Lookup table.
+	 * @return bool
+	 */
+	private static function walk_for_sensitive( array $node, array $sensitive ): bool {
+		foreach ( $node as $key => $value ) {
+			if ( is_string( $key ) && isset( $sensitive[ $key ] ) ) {
+				return true;
+			}
+			if ( is_array( $value ) && self::walk_for_sensitive( $value, $sensitive ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
 }
