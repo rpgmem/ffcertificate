@@ -329,8 +329,8 @@ class UserManager {
 		}
 
 		if ( isset( $data['preferences'] ) && is_array( $data['preferences'] ) ) {
-			$encoded               = wp_json_encode( $data['preferences'] );
-			$patch['preferences']  = false === $encoded ? '{}' : $encoded;
+			$encoded              = wp_json_encode( $data['preferences'] );
+			$patch['preferences'] = false === $encoded ? '{}' : $encoded;
 		}
 
 		if ( empty( $patch ) ) {
@@ -383,8 +383,8 @@ class UserManager {
 		// hashing and mirroring are consistent across call sites. Dynamic
 		// keys keep the legacy inline path until Phase 3 introduces the
 		// reregistration adapter.
-		$known_patch    = array();
-		$dynamic_data   = array();
+		$known_patch  = array();
+		$dynamic_data = array();
 
 		foreach ( $data as $key => $value ) {
 			if ( ! is_string( $key ) || '' === $key ) {
