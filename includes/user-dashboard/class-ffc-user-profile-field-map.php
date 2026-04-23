@@ -217,10 +217,12 @@ final class UserProfileFieldMap {
 	 */
 	public static function hash_meta_key( string $field_key ): ?string {
 		$spec = self::FIELDS[ $field_key ] ?? null;
+		// Every registered descriptor carries 'storage'; usermeta entries
+		// always carry 'meta_key'. Only 'hashable' is optional, so that is
+		// the single gate we test here on top of the basics.
 		if ( null === $spec
-			|| self::STORAGE_USERMETA !== ( $spec['storage'] ?? null )
+			|| self::STORAGE_USERMETA !== $spec['storage']
 			|| empty( $spec['hashable'] )
-			|| empty( $spec['meta_key'] )
 		) {
 			return null;
 		}

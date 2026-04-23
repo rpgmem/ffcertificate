@@ -456,8 +456,12 @@ final class UserProfileService {
 			return '';
 		}
 		if ( 'cpf' === $masker && class_exists( DocumentFormatter::class ) ) {
+			// mask_cpf returns string; empty output means the input was
+			// not a CPF-shaped value — fall through to the generic mask.
 			$masked = DocumentFormatter::mask_cpf( $plain );
-			return is_string( $masked ) && '' !== $masked ? $masked : '';
+			if ( '' !== $masked ) {
+				return $masked;
+			}
 		}
 		// Fallback mask: keep the first and last characters, replace the
 		// middle with asterisks. Never returns the plaintext.
