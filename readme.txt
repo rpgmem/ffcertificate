@@ -177,15 +177,19 @@ In the certificate layout editor, use these dynamic tags:
 
 = 5.4.0 (2026-04-23) =
 
-Encryption and privacy hardening across the user-data surface, the accumulated security audit (Tier 1 + Tier 2), CSV download intermediate screen, and a performance pass for admin submissions at scale.
+Encryption and privacy hardening across the user-data surface, the accumulated security audit (Tier 1 + Tier 2), CSV download intermediate screen, a performance pass for admin submissions at scale, and the `UserProfileService` refactor consolidating profile reads and writes through a single entry point.
 
 * Feat: **Centralized sensitive-field policy** via `FreeFormCertificate\Core\SensitiveFieldRegistry` — single declarative map replacing three hard-coded lists. Consumed by `SubmissionHandler` and `AppointmentRepository`.
+* Feat: **`UserProfileFieldMap`** — per-field descriptor declaring storage layer (`wp_users`, `ffc_user_profiles`, `wp_usermeta`), sensitivity, hashability, and optional mirror targets (e.g. `display_name` → `wp_users.display_name`).
+* Feat: **`ViewPolicy` enum** (`FULL`, `MASKED`, `HASHED_ONLY`) declaring how sensitive fields are rendered on read. The service audits but does not elevate privileges; callers validate capability.
+* Feat: **`UserProfileService::read()` / `::write()`** — single entry point consolidating profile reads and writes across the three storage layers with transparent encryption, hashing, and mirror syncing. `FULL` reads that touch sensitive fields emit a metadata-only audit entry. `write()` accepts `$extra_descriptors` for dynamic reregistration keys outside the static map; overrides are per-call and cleared via try/finally.
 * Feat: **`email_hash_rehash` migration** — batched, idempotent, cursor-based. Rewrites legacy unsalted `email_hash` values in `wp_ffc_submissions` and `wp_ffc_self_scheduling_appointments`.
 * Feat: **`activity_log_clear_plaintext` migration** — NULLs the `context` plaintext column on activity log rows that already hold a ciphertext, closing the dual-storage leak on historical data.
 * Feat: **CSV download intermediate screen** — info screen showing form restrictions, dates, geolocation, quiz, and quota between hash validation and download. Download button only enabled after the form has ended; certificate preview available before the collection period begins.
 * Feat: **Public CSV sync-export row cap** — new `public_csv_sync_max_rows` setting (Advanced tab, default 2000, range 100–10000).
 * Change: **Activity log encryption gate** switched from a hard-coded action whitelist to payload inspection via `SensitiveFieldRegistry::contains_sensitive()`. Actions carrying sensitive fields (including nested payloads) are encrypted automatically; actions with trivial payloads are no longer wrapped in a meaningless ciphertext.
 * Change: **`ActivityLog::log()`** no longer dual-stores `context` plaintext alongside its ciphertext. Sensitive rows NULL the plaintext column; reads decrypt transparently via `ActivityLogQuery::resolve_context()`.
+* Change: **`UserManager::update_profile()` and `::update_extended_profile()`** are now thin facades over `UserProfileService::write()`. Legacy inline encrypt/hash paths are gone. Behavior improvement: clearing a sensitive field now also deletes the sibling `*_hash` meta row.
 * Change: **`Encryption::decrypt()`** split into a public wrapper and a private helper; emits a `decrypt_failure` WARNING to `ActivityLog` whenever a non-empty ciphertext resolves to null.
 * Change: Residual `class_exists ? Encryption::hash : hash('sha256')` fallbacks removed from `SelfSchedulingAppointmentHandler` and `SubmissionRepository::hash()`.
 * Change: Encryption envelope produces authenticated **v2 ciphertexts** (encrypt-then-MAC, HMAC-SHA256); legacy v1 ciphertexts remain decryptable.
@@ -207,7 +211,8 @@ Encryption and privacy hardening across the user-data surface, the accumulated s
 * Security (MEDIUM / path traversal): validate receipt template path; allowlist reregistration email templates; move ICS temp files out of public uploads.
 * Security (LOW): remove `$e->getMessage()` from client-facing error responses; `Admin::redirect_with_msg()` builds target from `page`/`post_type`; various minor output-escaping fixes.
 * Security (privacy): hash PII identifiers before logging (`RateLimiter`, `IpGeolocation`) for LGPD compliance.
-* Test: 3234 → **3455 tests** / 8698 assertions — new suites for `SensitiveFieldRegistry`, `SensitiveFieldPolicyTest`, `DecryptFailureLoggingTest`, `CustomFieldValidator`, `Autoloader`, `UserContextTrait`, `MigrationDynamicReregFields`, `ReregistrationStandardFieldsSeeder`, `AbstractRepository`, `Geofence`, `FormListColumns`, and new coverage for `UserManager::update_extended_profile` / `get_extended_profile`.
+* Docs: `SECURITY.md` supported-versions table updated to `5.4.x`. `CONTRIBUTING.md` Branches section no longer mandates the `claude/*` prefix for human contributors; Releasing section documents the `[Unreleased] → [X.Y.Z]` workflow.
+* Test: **3234 → 3485 tests** (+251) with **8783 assertions** — new suites for `SensitiveFieldRegistry`, `SensitiveFieldPolicyTest`, `DecryptFailureLoggingTest`, `UserProfileFieldMapTest`, `UserProfileServiceTest`, `CustomFieldValidator`, `Autoloader`, `UserContextTrait`, `MigrationDynamicReregFields`, `ReregistrationStandardFieldsSeeder`, `AbstractRepository`, `Geofence`, `FormListColumns`, and new coverage for `UserManager::update_extended_profile` / `get_extended_profile`.
 * Chore: WPCS **1232 → 0 errors** across 161 files; PHPStan level 7 **3 → 0 errors**.
 
 = 5.3.0 (2026-04-17) =
