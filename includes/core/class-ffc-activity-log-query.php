@@ -94,13 +94,41 @@ class ActivityLogQuery {
 		);
 
 		foreach ( $results as &$result ) {
-			$result['context'] = json_decode( $result['context'], true );
-			if ( ! is_array( $result['context'] ) ) {
-				$result['context'] = array();
-			}
+			$result['context'] = self::resolve_context( $result );
 		}
 
 		return $results;
+	}
+
+	/**
+	 * Resolve a row's context into a decoded array.
+	 *
+	 * Sensitive rows have a NULL plaintext column and the JSON in
+	 * `context_encrypted` instead. Decrypt on demand, then json_decode.
+	 *
+	 * @param array<string, mixed> $row Activity log row (raw from DB).
+	 * @return array<string, mixed> Decoded context, or empty array.
+	 */
+	private static function resolve_context( array $row ): array {
+		$raw = $row['context'] ?? null;
+
+		if ( ( null === $raw || '' === $raw )
+			&& ! empty( $row['context_encrypted'] )
+			&& class_exists( '\\FreeFormCertificate\\Core\\Encryption' )
+			&& \FreeFormCertificate\Core\Encryption::is_configured()
+		) {
+			$decrypted = \FreeFormCertificate\Core\Encryption::decrypt( $row['context_encrypted'] );
+			if ( null !== $decrypted && '' !== $decrypted ) {
+				$raw = $decrypted;
+			}
+		}
+
+		if ( ! is_string( $raw ) || '' === $raw ) {
+			return array();
+		}
+
+		$decoded = json_decode( $raw, true );
+		return is_array( $decoded ) ? $decoded : array();
 	}
 
 	/**
@@ -263,6 +291,13 @@ class ActivityLogQuery {
 				if ( ! empty( $log['context_encrypted'] ) ) {
 					$decrypted = \FreeFormCertificate\Core\Encryption::decrypt( $log['context_encrypted'] );
 					if ( null !== $decrypted ) {
+						// Populate the canonical column too so consumers
+						// that only inspect `context` see the JSON.
+						if ( empty( $log['context'] ) ) {
+							$log['context'] = $decrypted;
+						}
+						// Backward-compat: keep the sibling that older
+						// callers may still inspect.
 						$log['context_decrypted'] = $decrypted;
 					}
 				}

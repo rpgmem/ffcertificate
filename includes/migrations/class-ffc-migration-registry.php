@@ -70,6 +70,17 @@ class MigrationRegistry {
 			'requires_column' => false,
 		);
 
+		// v5.4.1: Clear plaintext context on activity log rows that already
+		// hold a ciphertext, eliminating the dual-storage leak.
+		$this->migrations['activity_log_clear_plaintext'] = array(
+			'name'            => __( 'Activity Log: Clear Plaintext on Encrypted Rows', 'ffcertificate' ),
+			'description'     => __( 'NULL the plaintext context column on activity log rows that already store the JSON in context_encrypted.', 'ffcertificate' ),
+			'icon'            => 'ffc-icon-shield',
+			'batch_size'      => 200,
+			'order'           => 3,
+			'requires_column' => false,
+		);
+
 		// Allow plugins to add custom migrations.
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
 		$this->migrations = apply_filters( 'ffcertificate_migrations_registry', $this->migrations );
