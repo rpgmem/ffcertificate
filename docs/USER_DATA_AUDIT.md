@@ -236,3 +236,47 @@ submissões; consolidar a convenção facilita o cruzamento entre tabelas.
   deve ser removida em passo seguinte.
 - Criptografia seletiva em `ActivityLog` e silêncio em `decrypt` permanecem
   abertos — endereçados pelos itens 2 e 3 da seção 7.
+
+## 9. Correções aplicadas (item 2 — política de campo sensível)
+
+### Fase 0 — testes de caracterização
+`tests/Unit/SensitiveFieldPolicyTest.php` fixa em um só lugar o contrato que
+cada write path mantém:
+
+- `SubmissionHandler::process_submission` encripta `email`, `cpf|rf`,
+  `user_ip`, `data`; faz hash de `email`, `cpf|rf`, `ticket`.
+- `AppointmentRepository::createAppointment` encripta `email`, `cpf|rf`,
+  `phone`, `custom_data`, `user_ip`; faz hash de `email`, `cpf|rf`; remove
+  plaintext.
+- Também tranca o invariante estabelecido pelo item 1:
+  `email_hash == Encryption::hash(decrypt(email_encrypted))`.
+
+### Fase 1 — `SensitiveFieldRegistry`
+Classe `FreeFormCertificate\Core\SensitiveFieldRegistry` em
+`includes/core/class-ffc-sensitive-field-registry.php`. Mapa declarativo
+indexado por contexto (`CONTEXT_SUBMISSION`, `CONTEXT_APPOINTMENT`); cada
+campo informa `encrypted_column` e `hash_column`. API:
+
+- `encrypt_fields( $context, $values )` — retorna o mapa de colunas a
+  serem escritas. No-op quando a criptografia não está configurada.
+- `plaintext_keys( $context )` — chaves cujo texto claro precisa ser
+  removido antes do insert.
+
+Consumidores:
+
+- `SubmissionHandler::process_submission` / `update_submission` trocam os
+  blocos inline por uma chamada ao registry.
+- `AppointmentRepository::createAppointment` normaliza `cpf_rf → cpf|rf`
+  antes da chamada e faz um único `foreach` para remover o plaintext.
+
+Activity log permanece fora do escopo: a política de encriptação dele é
+por *ação*, não por campo.
+
+### Fase 2 — auditoria de migração
+Comparado o registry com o estado hoje escrito por cada write path: todos
+os campos declarados já eram criptografados no mesmo par de colunas pelos
+call sites atuais. **Nenhuma migração adicional foi necessária.** As
+migrações legadas continuam cobrindo os dois casos históricos:
+
+- `split_cpf_rf` para linhas com `cpf_rf_hash` combinado.
+- `email_hash_rehash` (item 1) para hashes de e-mail sem salt.
