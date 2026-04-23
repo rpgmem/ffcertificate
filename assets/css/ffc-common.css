@@ -513,17 +513,6 @@
    Sprint 2: Replace common inline style="" patterns
    ========================================================================== */
 .ffc-flex          { display: flex; }
-.ffc-inline-flex   { display: inline-flex; }
-.ffc-items-center  { align-items: center; }
-.ffc-gap-sm        { gap: 8px; }
-.ffc-gap-md        { gap: 12px; }
-.ffc-mb-0          { margin-bottom: 0; }
-.ffc-mb-sm         { margin-bottom: 8px; }
 .ffc-mb-md         { margin-bottom: 12px; }
-.ffc-mb-lg         { margin-bottom: 20px; }
-.ffc-mt-md         { margin-top: 12px; }
-.ffc-mt-lg         { margin-top: 20px; }
-.ffc-text-center   { text-align: center; }
-.ffc-text-right    { text-align: right; }
 .ffc-color-dot     { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: var(--ffc-color, currentColor); }
 

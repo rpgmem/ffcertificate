@@ -650,37 +650,6 @@ pre code {
     }
 }
 /* ==========================================================================
-   GEOLOCATION TAB STYLES - v3.0.0
-   ========================================================================== */
-
-/* Info Box */
-.ffc-info-box {
-    background: var(--ffc-info-bg);
-    border-left: 4px solid var(--ffc-info-border);
-    padding: 15px;
-    margin-top: 20px;
-}
-
-.ffc-info-box h3 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 16px;
-}
-
-.ffc-info-box ul {
-    margin-left: 20px;
-    margin-bottom: 0;
-}
-
-.ffc-info-box li {
-    margin-bottom: 8px;
-}
-
-.ffc-info-box strong {
-    color: var(--ffc-info-border);
-}
-
-/* ==========================================================================
    REDUCED MOTION
    ========================================================================== */
 

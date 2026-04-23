@@ -14,45 +14,6 @@
     border-left: 4px solid var(--ffc-primary);
 }
 
-/* QR Code info box */
-.ffc-qr-info-box {
-    margin: 20px 0;
-    padding: 15px;
-    background: var(--ffc-info-bg);
-    border-left: 4px solid var(--ffc-info-border);
-    border-radius: 4px;
-}
-
-.ffc-qr-info-box h3 {
-    margin: 0 0 10px 0;
-}
-
-.ffc-qr-info-box p {
-    margin: 0 0 10px 0;
-}
-
-.ffc-qr-info-box table {
-    width: 100%;
-    font-family: monospace;
-    font-size: 12px;
-    border-collapse: collapse;
-}
-
-.ffc-qr-info-box td {
-    padding: 5px;
-}
-
-.ffc-qr-info-box td:first-child {
-    background: var(--ffc-bg-card);
-    border: 1px solid var(--ffc-border-light);
-}
-
-.ffc-qr-info-box .ffc-qr-note {
-    margin: 10px 0 0 0;
-    font-size: 12px;
-    color: var(--ffc-text-muted);
-}
-
 /* LGPD consent box */
 .ffc-consent-box {
     margin: 20px 0;
