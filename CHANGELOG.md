@@ -13,7 +13,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`UserProfileFieldMap`** — declarative per-field descriptor for user-profile fields. Each entry names its storage layer (`wp_users`, `ffc_user_profiles`, `wp_usermeta`), whether the value is sensitive, whether it is hashable for lookup, and optional mirror targets (e.g. `display_name` writes back to `wp_users.display_name` after the profile-table write). Sibling of `SensitiveFieldRegistry`; the registry is per write context (submission vs appointment), the map is per user field.
 - **`ViewPolicy` enum** — `FULL`, `MASKED`, `HASHED_ONLY`. Declares how a caller wants sensitive fields rendered on read. The service does not elevate privileges; callers validate capability (`current_user_can('manage_options')` or similar) before asking for `FULL`.
 - **`UserProfileService::read()` / `::write()`** — single entry point consolidating reads and writes across the three storage layers, with transparent encryption and hashing for sensitive fields. `read()` honours `ViewPolicy`, returns empty arrays for unknown users or empty field lists, and silently drops unregistered field keys. `write()` routes each field to its declared storage, encrypts + hashes sensitive values, and applies mirror targets last. A `FULL` read that touches a sensitive field emits one `user_profile_read_full` audit entry carrying only the requester, the target user id, and the field list — never the values.
-- Test coverage: **+38 tests** across `UserProfileFieldMapTest` (11, pure data class) and `UserProfileServiceTest` (27, exercises routing, masking, encryption + hash write, mirror, and the audit entry).
+- Test coverage: **+31 tests** across `UserProfileFieldMapTest` (11, pure data class) and `UserProfileServiceTest` (20, exercises routing, masking, encryption + hash write, mirror, audit entry, and the `$extra_descriptors` dynamic-field path).
 
 ### Changed
 
@@ -21,18 +21,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`UserManager::update_extended_profile()`** now routes every key through `UserProfileService::write()`. Keys registered in `UserProfileFieldMap` carry their own descriptor; arbitrary reregistration keys get an inline descriptor built at the facade layer (`$extra_descriptors`) and are treated by the service like any other usermeta-backed field. The legacy inline encrypt/hash path that used to live here is gone. Behavior improvement: clearing a sensitive field now also deletes the sibling `*_hash` meta row so a stale hash never outlives the ciphertext.
 - **`UserProfileService::write()`** accepts an optional `$extra_descriptors` parameter: a map of `field_key => descriptor` for fields outside the static `UserProfileFieldMap`. The descriptor shape matches a `FIELDS` entry (storage, meta_key/column, sensitive, hashable). Used by the reregistration flow; per-call scope, cleared via try/finally so overrides never leak between requests.
 - **`UserProfileService::write_profile_table()`** adjusted (via the PHPStan fix in the same pass) so `hash_meta_key()` no longer carries dead `??` fallbacks — the field map's `FIELDS` constant already guarantees `storage` / `meta_key` presence where relevant.
+- **`SECURITY.md`** — supported-versions table updated to mark `5.4.x` as supported (was stuck on `5.1.x`).
+- **`CONTRIBUTING.md`** — Branches section no longer mandates the AI-specific `claude/*` prefix for human contributors; Releasing section now documents the `[Unreleased] → [X.Y.Z]` flow (rename, insert fresh `[Unreleased]`, bump `Version:` + `FFC_VERSION` + `readme.txt` Stable tag in one step) to match the convention used from 5.4.0 onward.
 
-### Deferred
+### Removed
 
-- **`UserProfileService::stream()`** — originally scoped for Phase 3 to back bulk CSV / LGPD exports. Survey found no bulk-profile consumers (CSV exporters iterate submissions, not user profiles; `PrivacyHandler::export` operates per user). Shipping a `stream()` without a real customer would be premature infrastructure; the method is deferred until a concrete use case appears.
-
-### Fixed
-
-_Nothing yet._
-
-### Security
-
-_Nothing yet._
+- `docs/USER_DATA_AUDIT.md` — the point-in-time audit that drove PRs #55–#63. Every item it flagged is resolved in code (see the `5.4.0` section and the PR descriptions for the full narrative); keeping it would give the wrong impression that the refactor is still pending.
 
 ### Fixed
 
