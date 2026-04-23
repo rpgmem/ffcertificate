@@ -325,7 +325,7 @@ class Frontend {
 		}
 
 		// Add global settings without re-indexing form IDs.
-		$ffc_global_debug = class_exists( '\FreeFormCertificate\Core\Debug' )
+		$ffc_global_debug            = class_exists( '\FreeFormCertificate\Core\Debug' )
 			&& \FreeFormCertificate\Core\Debug::is_enabled( \FreeFormCertificate\Core\Debug::AREA_GEOFENCE );
 		$geofence_configs['_global'] = array(
 			'debug'   => $ffc_global_debug,
