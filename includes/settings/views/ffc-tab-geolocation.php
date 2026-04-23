@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<!-- Geofence Locations -->
 		<div class="card">
-			<h2><?php esc_html_e( 'Geofence Locations', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-globe"><?php esc_html_e( 'Geofence Locations', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Manage named geofence locations. These locations can be assigned to forms for geolocation restrictions.', 'ffcertificate' ); ?>
 			</p>
@@ -167,11 +167,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</table>
 		</div>
 
-		<hr>
 
 		<!-- IP Geolocation API Section -->
 		<div class="card">
-			<h2><?php esc_html_e( 'IP Geolocation API', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-link"><?php esc_html_e( 'IP Geolocation API', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Configure external IP geolocation services for backend validation. These services detect user location by IP address.', 'ffcertificate' ); ?>
 			</p>
@@ -286,11 +285,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tbody></table>
 		</div>
 
-		<hr>
 
 		<!-- GPS Cache Settings Section -->
 		<div class="card">
-			<h2><?php esc_html_e( 'GPS Cache Settings', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-package"><?php esc_html_e( 'GPS Cache Settings', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Configure GPS location caching on the frontend (browser localStorage). GPS cache is always enabled for better performance.', 'ffcertificate' ); ?>
 			</p>
@@ -318,11 +316,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tbody></table>
 		</div>
 
-		<hr>
 
 		<!-- Fallback Behavior Section -->
 		<div class="card">
-			<h2><?php esc_html_e( 'Fallback Behavior', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-sync"><?php esc_html_e( 'Fallback Behavior', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Define what happens when geolocation services fail or are denied by the user.', 'ffcertificate' ); ?>
 			</p>
@@ -393,11 +390,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tbody></table>
 		</div>
 
-		<hr>
 
 		<!-- Admin Bypass Section -->
 		<div class="card">
-			<h2><?php esc_html_e( 'Administrator Bypass', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-lock"><?php esc_html_e( 'Administrator Bypass', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Allow administrators to bypass geofence restrictions for testing and content management.', 'ffcertificate' ); ?>
 			</p>
@@ -437,11 +433,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tbody></table>
 		</div>
 
-		<hr>
 
 		<!-- Debug Mode Section -->
 		<div class="card">
-			<h2><?php esc_html_e( 'Debug Mode', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-icon-debug"><?php esc_html_e( 'Debug Mode', 'ffcertificate' ); ?></h2>
 			<p class="description">
 				<?php esc_html_e( 'Enable debug mode for testing and troubleshooting geolocation features.', 'ffcertificate' ); ?>
 			</p>
@@ -467,33 +462,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<p class="submit">
 			<button type="submit" name="ffc_save_geolocation" class="button button-primary">
-				<?php esc_html_e( 'Save Geolocation Settings', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'Save Changes', 'ffcertificate' ); ?>
 			</button>
 		</p>
 	</form>
 
 	<!-- Information Box -->
 	<div class="card">
-		<div class="ffc-info-box">
-			<h3><?php esc_html_e( 'How Geolocation Works', 'ffcertificate' ); ?></h3>
-			<ul>
-				<li>
-					<strong><?php esc_html_e( 'GPS (Browser):', 'ffcertificate' ); ?></strong>
-					<?php esc_html_e( 'Uses HTML5 Geolocation API. Requires HTTPS and user permission. Accuracy: 10-50 meters.', 'ffcertificate' ); ?>
-				</li>
-				<li>
-					<strong><?php esc_html_e( 'IP Geolocation:', 'ffcertificate' ); ?></strong>
-					<?php esc_html_e( 'Detects location by IP address on server. No user permission needed. Accuracy: 1-50 km.', 'ffcertificate' ); ?>
-				</li>
-				<li>
-					<strong><?php esc_html_e( 'Form Configuration:', 'ffcertificate' ); ?></strong>
-					<?php esc_html_e( 'Each form can be configured individually with allowed areas, dates, and display options.', 'ffcertificate' ); ?>
-				</li>
-				<li>
-					<strong><?php esc_html_e( 'Privacy:', 'ffcertificate' ); ?></strong>
-					<?php esc_html_e( 'GPS coordinates are processed client-side only. IP geolocation results are cached temporarily.', 'ffcertificate' ); ?>
-				</li>
-			</ul>
-		</div>
+		<h2 class="ffc-icon-info"><?php esc_html_e( 'How Geolocation Works', 'ffcertificate' ); ?></h2>
+		<ul>
+			<li>
+				<strong><?php esc_html_e( 'GPS (Browser):', 'ffcertificate' ); ?></strong>
+				<?php esc_html_e( 'Uses HTML5 Geolocation API. Requires HTTPS and user permission. Accuracy: 10-50 meters.', 'ffcertificate' ); ?>
+			</li>
+			<li>
+				<strong><?php esc_html_e( 'IP Geolocation:', 'ffcertificate' ); ?></strong>
+				<?php esc_html_e( 'Detects location by IP address on server. No user permission needed. Accuracy: 1-50 km.', 'ffcertificate' ); ?>
+			</li>
+			<li>
+				<strong><?php esc_html_e( 'Form Configuration:', 'ffcertificate' ); ?></strong>
+				<?php esc_html_e( 'Each form can be configured individually with allowed areas, dates, and display options.', 'ffcertificate' ); ?>
+			</li>
+			<li>
+				<strong><?php esc_html_e( 'Privacy:', 'ffcertificate' ); ?></strong>
+				<?php esc_html_e( 'GPS coordinates are processed client-side only. IP geolocation results are cached temporarily.', 'ffcertificate' ); ?>
+			</li>
+		</ul>
 	</div>
 </div>

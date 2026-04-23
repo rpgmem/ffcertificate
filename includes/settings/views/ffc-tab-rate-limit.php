@@ -17,7 +17,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 <?php wp_nonce_field( 'ffc_rate_limit_nonce' ); ?>
 
 <div class="card">
-	<h2><?php esc_html_e( 'IP Rate Limit', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-globe"><?php esc_html_e( 'IP Rate Limit', 'ffcertificate' ); ?></h2>
 	<p><label><input type="checkbox" name="ip_enabled" <?php checked( $ffcertificate_s['ip']['enabled'] ); ?>> <?php esc_html_e( 'Enable', 'ffcertificate' ); ?></label></p>
 	<table class="form-table" role="presentation"><tbody>
 		<tr><th><?php esc_html_e( 'Max per hour', 'ffcertificate' ); ?></th><td><input type="number" name="ip_max_per_hour" value="<?php echo esc_attr( $ffcertificate_s['ip']['max_per_hour'] ); ?>" min="1" max="1000"></td></tr>
@@ -29,7 +29,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2><?php esc_html_e( 'Email Rate Limit', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-email"><?php esc_html_e( 'Email Rate Limit', 'ffcertificate' ); ?></h2>
 	<p><label><input type="checkbox" name="email_enabled" <?php checked( $ffcertificate_s['email']['enabled'] ); ?>> <?php esc_html_e( 'Enable', 'ffcertificate' ); ?></label></p>
 	<p><label><input type="checkbox" name="email_check_database" <?php checked( $ffcertificate_s['email']['check_database'] ); ?>> <?php esc_html_e( 'Check database', 'ffcertificate' ); ?></label></p>
 	<table class="form-table" role="presentation"><tbody>
@@ -41,7 +41,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2><?php esc_html_e( 'Tax ID (CPF) Rate Limit', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-id"><?php esc_html_e( 'Tax ID (CPF) Rate Limit', 'ffcertificate' ); ?></h2>
 	<p><label><input type="checkbox" name="cpf_enabled" <?php checked( $ffcertificate_s['cpf']['enabled'] ); ?>> <?php esc_html_e( 'Enable', 'ffcertificate' ); ?></label></p>
 	<p><label><input type="checkbox" name="cpf_check_database" <?php checked( $ffcertificate_s['cpf']['check_database'] ); ?>> <?php esc_html_e( 'Check database', 'ffcertificate' ); ?></label></p>
 	<table class="form-table" role="presentation"><tbody>
@@ -97,7 +97,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2><?php esc_html_e( 'Global Rate Limit', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Global Rate Limit', 'ffcertificate' ); ?></h2>
 	<p><label><input type="checkbox" name="global_enabled" <?php checked( $ffcertificate_s['global']['enabled'] ); ?>> <?php esc_html_e( 'Enable', 'ffcertificate' ); ?></label></p>
 	<table class="form-table" role="presentation"><tbody>
 		<tr><th><?php esc_html_e( 'Max per minute', 'ffcertificate' ); ?></th><td><input type="number" name="global_max_per_minute" value="<?php echo esc_attr( $ffcertificate_s['global']['max_per_minute'] ); ?>" min="1"></td></tr>
@@ -107,7 +107,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2><?php esc_html_e( 'Whitelist', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-checkmark"><?php esc_html_e( 'Whitelist', 'ffcertificate' ); ?></h2>
 	<table class="form-table" role="presentation"><tbody>
 		<tr><th><?php esc_html_e( 'IPs', 'ffcertificate' ); ?></th><td><textarea name="whitelist_ips" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['whitelist']['ips'] ) ); ?></textarea><p class="description"><?php esc_html_e( 'One per line', 'ffcertificate' ); ?></p></td></tr>
 		<tr><th><?php esc_html_e( 'Emails', 'ffcertificate' ); ?></th><td><textarea name="whitelist_emails" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['whitelist']['emails'] ) ); ?></textarea></td></tr>
@@ -117,7 +117,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2><?php esc_html_e( 'Blacklist', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-cross"><?php esc_html_e( 'Blacklist', 'ffcertificate' ); ?></h2>
 	<table class="form-table" role="presentation"><tbody>
 		<tr><th><?php esc_html_e( 'IPs', 'ffcertificate' ); ?></th><td><textarea name="blacklist_ips" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['blacklist']['ips'] ) ); ?></textarea></td></tr>
 		<tr><th><?php esc_html_e( 'Emails', 'ffcertificate' ); ?></th><td><textarea name="blacklist_emails" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['blacklist']['emails'] ) ); ?></textarea></td></tr>
@@ -127,7 +127,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2><?php esc_html_e( 'Logs', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Logs', 'ffcertificate' ); ?></h2>
 	<p><label><input type="checkbox" name="logging_enabled" <?php checked( $ffcertificate_s['logging']['enabled'] ); ?>> <?php esc_html_e( 'Enable logs', 'ffcertificate' ); ?></label></p>
 	<p><label><input type="checkbox" name="logging_log_allowed" <?php checked( $ffcertificate_s['logging']['log_allowed'] ); ?>> <?php esc_html_e( 'Log allowed requests', 'ffcertificate' ); ?></label></p>
 	<p><label><input type="checkbox" name="logging_log_blocked" <?php checked( $ffcertificate_s['logging']['log_blocked'] ); ?>> <?php esc_html_e( 'Log blocked requests', 'ffcertificate' ); ?></label></p>
@@ -138,14 +138,14 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
-	<h2><?php esc_html_e( 'Interface', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-palette"><?php esc_html_e( 'Interface', 'ffcertificate' ); ?></h2>
 	<p><label><input type="checkbox" name="ui_show_remaining" <?php checked( $ffcertificate_s['ui']['show_remaining'] ); ?>> <?php esc_html_e( 'Show remaining attempts', 'ffcertificate' ); ?></label></p>
 	<p><label><input type="checkbox" name="ui_show_wait_time" <?php checked( $ffcertificate_s['ui']['show_wait_time'] ); ?>> <?php esc_html_e( 'Show wait time', 'ffcertificate' ); ?></label></p>
 	<p><label><input type="checkbox" name="ui_countdown_timer" <?php checked( $ffcertificate_s['ui']['countdown_timer'] ); ?>> <?php esc_html_e( 'Countdown timer', 'ffcertificate' ); ?></label></p>
 </div>
 
 <div class="card">
-	<h2><?php esc_html_e( 'Statistics', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-chart"><?php esc_html_e( 'Statistics', 'ffcertificate' ); ?></h2>
 	<p><strong><?php esc_html_e( 'Blocked today:', 'ffcertificate' ); ?></strong> <?php echo esc_html( number_format( $ffcertificate_stats['today'] ) ); ?></p>
 	<p><strong><?php esc_html_e( 'Blocked (30 days):', 'ffcertificate' ); ?></strong> <?php echo esc_html( number_format( $ffcertificate_stats['month'] ) ); ?></p>
 <?php if ( ! empty( $ffcertificate_stats['by_type'] ) ) : ?>

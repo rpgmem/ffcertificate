@@ -478,7 +478,7 @@ try {
 
 	<!-- Help Section -->
 	<div class="card ffc-migration-help">
-		<h3 class="ffc-icon-help"><?php esc_html_e( 'Need Help?', 'ffcertificate' ); ?></h3>
+		<h2 class="ffc-icon-help"><?php esc_html_e( 'Need Help?', 'ffcertificate' ); ?></h2>
 		
 		<p><strong><?php esc_html_e( 'What are migrations?', 'ffcertificate' ); ?></strong></p>
 		<p><?php esc_html_e( 'Migrations improve database performance by moving frequently queried data from JSON format to dedicated database columns. This makes searches and filtering much faster.', 'ffcertificate' ); ?></p>
