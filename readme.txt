@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 5.3.0
+Stable tag: 5.4.0
 Requires PHP: 8.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -175,30 +175,40 @@ In the certificate layout editor, use these dynamic tags:
 
 == Changelog ==
 
-= Unreleased =
+= 5.4.0 (2026-04-23) =
 
-CSV download intermediate screen, full security audit (Phases 1–2), new test suites (Phase 3), full WPCS / PHPStan clean-up (Phases 4–5), and a performance pass for admin submissions at scale.
+Encryption and privacy hardening across the user-data surface, the accumulated security audit (Tier 1 + Tier 2), CSV download intermediate screen, and a performance pass for admin submissions at scale.
 
+* Feat: **Centralized sensitive-field policy** via `FreeFormCertificate\Core\SensitiveFieldRegistry` — single declarative map replacing three hard-coded lists. Consumed by `SubmissionHandler` and `AppointmentRepository`.
+* Feat: **`email_hash_rehash` migration** — batched, idempotent, cursor-based. Rewrites legacy unsalted `email_hash` values in `wp_ffc_submissions` and `wp_ffc_self_scheduling_appointments`.
+* Feat: **`activity_log_clear_plaintext` migration** — NULLs the `context` plaintext column on activity log rows that already hold a ciphertext, closing the dual-storage leak on historical data.
 * Feat: **CSV download intermediate screen** — info screen showing form restrictions, dates, geolocation, quiz, and quota between hash validation and download. Download button only enabled after the form has ended; certificate preview available before the collection period begins.
-* Feat: **Public CSV sync-export row cap** — new `public_csv_sync_max_rows` setting (Advanced tab, default 2000, range 100–10000). Public CSV downloads exceeding the cap are refused on the synchronous no-JS path and must use the AJAX batched flow, protecting shared hosting from execution-time timeouts on large exports.
-* Perf: **`SubmissionRepository::countByStatus()` cached in a 5-minute transient** — eliminates the `COUNT(*) … GROUP BY status` scan on every admin submissions page load; cache invalidated on every write that can move a row between statuses (`insert`, status `update`, `bulkUpdateStatus`, `bulkDelete`, `deleteByFormId`).
-* Perf: **Composite index `(form_id, status, submission_date)` on `ffc_submissions`** — covers the common admin list pattern (filter by form + status, sort by submission_date DESC).
-* Perf: **Activity log cleanup fallback on `admin_init`** — WP-Cron on low-traffic shared hosting often misses scheduled runs; a transient-gated admin-visit fallback (`ffc_last_log_cleanup`, 24h) ensures cleanup runs at most once per day even if the cron event never fires.
-* Perf: **`findPaginated()` search optimizations** — `magic_token` uses prefix match (`'term%'`) so the B-tree index can accelerate lookups; the unencrypted-`data` LIKE fallback is skipped for terms shorter than 4 characters to avoid full-table scans.
-* Perf: No `SQL_CALC_FOUND_ROWS` usage in the codebase (verified during the audit); pagination continues to use dedicated `COUNT(*)` queries, which MySQL 8 optimises far better than the deprecated calc flag.
-* Fix: Activity log disabled-notice link pointed to `Settings > General` — the activity-log toggle and retention live in `Settings > Advanced`. Link and label updated to match.
-* Security (HIGH): column-name SQL injection hardening in `AbstractRepository::build_where_clause()` via `%i` identifier placeholder and allowlist.
-* Security (HIGH): timing-safe token comparison via `hash_equals()` in appointment receipt handler; escape user-supplied values in audience email templates to prevent stored XSS.
-* Security (HIGH / crypto): encryption now produces **authenticated v2 ciphertexts** (encrypt-then-MAC, HMAC-SHA256 with a separately-derived MAC key); legacy v1 ciphertexts remain decryptable.
+* Feat: **Public CSV sync-export row cap** — new `public_csv_sync_max_rows` setting (Advanced tab, default 2000, range 100–10000).
+* Change: **Activity log encryption gate** switched from a hard-coded action whitelist to payload inspection via `SensitiveFieldRegistry::contains_sensitive()`. Actions carrying sensitive fields (including nested payloads) are encrypted automatically; actions with trivial payloads are no longer wrapped in a meaningless ciphertext.
+* Change: **`ActivityLog::log()`** no longer dual-stores `context` plaintext alongside its ciphertext. Sensitive rows NULL the plaintext column; reads decrypt transparently via `ActivityLogQuery::resolve_context()`.
+* Change: **`Encryption::decrypt()`** split into a public wrapper and a private helper; emits a `decrypt_failure` WARNING to `ActivityLog` whenever a non-empty ciphertext resolves to null.
+* Change: Residual `class_exists ? Encryption::hash : hash('sha256')` fallbacks removed from `SelfSchedulingAppointmentHandler` and `SubmissionRepository::hash()`.
+* Change: Encryption envelope produces authenticated **v2 ciphertexts** (encrypt-then-MAC, HMAC-SHA256); legacy v1 ciphertexts remain decryptable.
+* Perf: `SubmissionRepository::countByStatus()` cached in a 5-minute transient; composite index `(form_id, status, submission_date)` on `ffc_submissions`; activity log cleanup admin_init fallback; `findPaginated()` search optimizations.
+* Fix: **Email hash divergence** between `wp_ffc_submissions` and `wp_ffc_self_scheduling_appointments` — same email produced different hashes, breaking cross-entity lookups. Unified on `Encryption::hash`.
+* Fix: **`AppointmentRepository::findByCpfRf`** never matched its own writes (raw SHA-256 read vs salted write).
+* Fix: **`UserCleanup::handle_email_change`** reindexed submission `email_hash` with raw SHA-256, overwriting correct salted hashes on every email change.
+* Fix: **`SecurityService::verify_simple_captcha`** rejected valid answer `0` (`empty('0')` is true in PHP). `hash_equals()` used for timing-safe comparison.
+* Fix: **`json_decode(null)` deprecation** in `SubmissionRestController::decrypt_submission_data` (PHP 8.1+).
+* Fix: Activity log disabled-notice link pointed to `Settings > General`; toggle lives in `Settings > Advanced`.
+* Security (CRITICAL / LGPD): cross-table hash consistency — dedup and reconciliation between submissions, appointments and user profile now works reliably.
+* Security (HIGH / LGPD): activity log no longer dual-stores PII plaintext alongside ciphertext.
+* Security (MEDIUM / LGPD): decrypt failures auditable — HMAC mismatch, key-rotation breakage and corruption stop being silent.
+* Security (HIGH): column-name SQL injection hardening in `AbstractRepository::build_where_clause()` via `%i` placeholder and allowlist.
+* Security (HIGH): timing-safe token comparison via `hash_equals()` in appointment receipt handler; escape user-supplied values in audience email templates.
 * Security (MEDIUM): `SubmissionRestController` admin endpoints restricted to `manage_options`; `UserProfileRestController` sanitizes user input; `AudienceRepository` replaces inline `IN()` interpolation with parameterized placeholders.
 * Security (MEDIUM / XSS): escape output in `SubmissionsList`, frontend field renderer, PDF layout `{{form_title}}` substitution, and admin-configured email bodies.
-* Security (MEDIUM / transport): `IpGeolocation` HTTPS opt-in via `ffc_ipapi_use_https` filter with `sslverify` following scheme; `RateLimiter` only trusts `REMOTE_ADDR` unless `ffc_trust_forwarded_headers` is enabled (prevents IP spoofing); magic-link QR codes now generated locally (no more `chart.googleapis.com` leak).
-* Security (MEDIUM / path traversal): validate receipt template path inside plugin/theme dirs; allowlist reregistration email templates; move ICS temp files out of public uploads dir with try/finally cleanup.
-* Security (LOW): remove `$e->getMessage()` from 5 client-facing error responses; `Admin::redirect_with_msg()` builds target from `page`/`post_type` instead of `REQUEST_URI`; various minor output-escaping fixes.
-* Security (privacy): hash PII identifiers before logging (RateLimiter, IpGeolocation) for LGPD compliance.
-* Test: 3234 → **3405 tests** / 8150 assertions — new suites for CustomFieldValidator, Autoloader, UserContextTrait, MigrationDynamicReregFields, ReregistrationStandardFieldsSeeder, AbstractRepository, Geofence, FormListColumns, plus new coverage for the performance pass (countByStatus cache invalidation, sync-export cap clamping, cleanup fallback).
-* Chore: WPCS **1232 → 0 errors** across 161 files — file headers, class docblocks, function `@param` tags, short-description fixes, short-ternary replacement (105×), `urlencode` → `rawurlencode` (5×), and 172 `phpcbf` auto-fixes.
-* Chore: PHPStan level 7 **3 → 0 errors** — removed stale ignores, corrected `array<T, U>` generics (`array<int, int>` for ID lists, `array<int, string>` for status lists).
+* Security (MEDIUM / transport): `IpGeolocation` HTTPS opt-in; `RateLimiter` only trusts `REMOTE_ADDR` unless `ffc_trust_forwarded_headers` is enabled; magic-link QR codes generated locally.
+* Security (MEDIUM / path traversal): validate receipt template path; allowlist reregistration email templates; move ICS temp files out of public uploads.
+* Security (LOW): remove `$e->getMessage()` from client-facing error responses; `Admin::redirect_with_msg()` builds target from `page`/`post_type`; various minor output-escaping fixes.
+* Security (privacy): hash PII identifiers before logging (`RateLimiter`, `IpGeolocation`) for LGPD compliance.
+* Test: 3234 → **3455 tests** / 8698 assertions — new suites for `SensitiveFieldRegistry`, `SensitiveFieldPolicyTest`, `DecryptFailureLoggingTest`, `CustomFieldValidator`, `Autoloader`, `UserContextTrait`, `MigrationDynamicReregFields`, `ReregistrationStandardFieldsSeeder`, `AbstractRepository`, `Geofence`, `FormListColumns`, and new coverage for `UserManager::update_extended_profile` / `get_extended_profile`.
+* Chore: WPCS **1232 → 0 errors** across 161 files; PHPStan level 7 **3 → 0 errors**.
 
 = 5.3.0 (2026-04-17) =
 

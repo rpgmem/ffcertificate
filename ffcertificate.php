@@ -3,7 +3,7 @@
  * Plugin Name:        Free Form Certificate
  * Plugin URI:         https://github.com/rpgmem/ffcertificate
  * Description:        Allows creation of dynamic forms, saves submissions, generates a PDF certificate, and enables CSV export.
- * Version:            5.3.0
+ * Version:            5.4.0
  * Requires PHP:       8.1
  * Author:             Alex Meusburger
  * Author URI:         https://github.com/rpgmem
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Centralized version management
  */
-define( 'FFC_VERSION', '5.3.0' );                // Plugin version (WordPress Plugin Check compliance)
+define( 'FFC_VERSION', '5.4.0' );                // Plugin version (WordPress Plugin Check compliance)
 // External libraries versions.
 define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );   // html2canvas - https://html2canvas.hertzen.com/.
 define( 'FFC_JSPDF_VERSION', '4.2.1' );         // jsPDF - https://github.com/parallax/jsPDF.
