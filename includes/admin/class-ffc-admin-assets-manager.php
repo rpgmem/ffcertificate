@@ -86,22 +86,36 @@ class AdminAssetsManager {
 			return;
 		}
 
-		$settings = wp_enqueue_code_editor(
+		$theme_choice = self::resolve_code_editor_theme();
+		$s            = \FreeFormCertificate\Core\Utils::asset_suffix();
+
+		$codemirror_config = array(
+			'lineNumbers'   => true,
+			'lineWrapping'  => true,
+			'autoCloseTags' => true,
+			'matchBrackets' => true,
+			'indentUnit'    => 2,
+			'tabSize'       => 2,
+			'lint'          => false,
+		);
+
+		if ( 'dark' === $theme_choice ) {
+			$codemirror_config['theme'] = 'ffc-dark';
+			wp_enqueue_style(
+				'ffc-code-editor-dark',
+				FFC_PLUGIN_URL . "assets/css/ffc-code-editor-dark{$s}.css",
+				array( 'ffc-admin-css' ),
+				FFC_VERSION
+			);
+		}
+
+		$editor_settings = wp_enqueue_code_editor(
 			array(
 				'type'       => 'text/html',
-				'codemirror' => array(
-					'lineNumbers'   => true,
-					'lineWrapping'  => true,
-					'autoCloseTags' => true,
-					'matchBrackets' => true,
-					'indentUnit'    => 2,
-					'tabSize'       => 2,
-					'lint'          => false,
-				),
+				'codemirror' => $codemirror_config,
 			)
 		);
 
-		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
 		wp_enqueue_script(
 			'ffc-admin-code-editor',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-code-editor{$s}.js",
@@ -114,15 +128,50 @@ class AdminAssetsManager {
 			'ffc-admin-code-editor',
 			'ffcCodeEditor',
 			array(
-				'enabled'    => false !== $settings,
-				'settings'   => false !== $settings ? $settings : null,
+				'enabled'    => false !== $editor_settings,
+				'settings'   => false !== $editor_settings ? $editor_settings : null,
 				'profileUrl' => admin_url( 'profile.php#syntax_highlighting' ),
+				'theme'      => $theme_choice,
 				'strings'    => array(
 					'syntaxDisabledNotice' => __( 'For the best HTML template experience, enable "Syntax Highlighting" in your profile.', 'ffcertificate' ),
 					'openProfile'          => __( 'Open profile', 'ffcertificate' ),
 				),
 			)
 		);
+	}
+
+	/**
+	 * Resolve the effective code-editor theme ('light' or 'dark').
+	 *
+	 * User setting `code_editor_theme` has three values:
+	 *  - 'dark'  — always dark (default on fresh installs)
+	 *  - 'light' — always light (WordPress default CodeMirror styling)
+	 *  - 'auto'  — mirror the plugin's `dark_mode` admin setting
+	 *              ('on' → dark; 'off' or 'auto' → light, since 'auto' for
+	 *              `dark_mode` is OS-prefers-dark at runtime on the client,
+	 *              which we cannot evaluate reliably at enqueue time).
+	 *
+	 * @since 5.4.1
+	 * @return string 'dark' or 'light'.
+	 */
+	public static function resolve_code_editor_theme(): string {
+		$settings = get_option( 'ffc_settings', array() );
+		if ( ! is_array( $settings ) ) {
+			$settings = array();
+		}
+
+		$choice = isset( $settings['code_editor_theme'] ) ? (string) $settings['code_editor_theme'] : 'dark';
+
+		if ( 'light' === $choice ) {
+			return 'light';
+		}
+		if ( 'dark' === $choice ) {
+			return 'dark';
+		}
+
+		// 'auto' — follow the admin dark-mode setting.
+		$dark_mode = isset( $settings['dark_mode'] ) ? (string) $settings['dark_mode'] : 'off';
+		return 'on' === $dark_mode ? 'dark' : 'light';
 	}
 
 	/**

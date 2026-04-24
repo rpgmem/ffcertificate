@@ -149,6 +149,7 @@ class Settings {
 			'cache_auto_warm'          => 0,      // Default: OFF.
 			'public_csv_default_limit' => 1,    // Default limit for public CSV downloads.
 			'obsolete_shortcode_days'  => 90,   // Grace window (days) for obsolete shortcode cleanup.
+			'code_editor_theme'        => 'dark', // 'dark' | 'light' | 'auto' (auto follows dark_mode).
 		);
 	}
 

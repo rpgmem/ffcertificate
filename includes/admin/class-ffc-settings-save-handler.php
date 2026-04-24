@@ -182,6 +182,14 @@ class SettingsSaveHandler {
 			if ( isset( $new['public_csv_default_limit'] ) ) {
 				$clean['public_csv_default_limit'] = max( 1, absint( $new['public_csv_default_limit'] ) );
 			}
+
+			// Code Editor theme (Certificate HTML editor via CodeMirror).
+			if ( isset( $new['code_editor_theme'] ) ) {
+				$allowed_themes             = array( 'auto', 'light', 'dark' );
+				$clean['code_editor_theme'] = in_array( $new['code_editor_theme'], $allowed_themes, true )
+					? $new['code_editor_theme']
+					: 'dark';
+			}
 		}
 
 		// v4.6.16: Cache settings moved to Cache tab.
