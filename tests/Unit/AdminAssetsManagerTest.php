@@ -305,4 +305,71 @@ class AdminAssetsManagerTest extends TestCase {
             $this->assertStringNotContainsString('.min', $url, "Script $handle URL should not contain .min when suffix is empty");
         }
     }
+
+    // ==================================================================
+    // resolve_code_editor_theme() — static
+    // ==================================================================
+
+    public function test_resolve_code_editor_theme_defaults_to_dark_on_fresh_install(): void {
+        Functions\when('get_option')->justReturn(array());
+
+        $this->assertSame('dark', AdminAssetsManager::resolve_code_editor_theme());
+    }
+
+    public function test_resolve_code_editor_theme_returns_light_when_configured(): void {
+        Functions\when('get_option')->justReturn(array('code_editor_theme' => 'light'));
+
+        $this->assertSame('light', AdminAssetsManager::resolve_code_editor_theme());
+    }
+
+    public function test_resolve_code_editor_theme_returns_dark_when_configured(): void {
+        Functions\when('get_option')->justReturn(array('code_editor_theme' => 'dark'));
+
+        $this->assertSame('dark', AdminAssetsManager::resolve_code_editor_theme());
+    }
+
+    public function test_resolve_code_editor_theme_auto_follows_dark_mode_on(): void {
+        Functions\when('get_option')->justReturn(array(
+            'code_editor_theme' => 'auto',
+            'dark_mode'         => 'on',
+        ));
+
+        $this->assertSame('dark', AdminAssetsManager::resolve_code_editor_theme());
+    }
+
+    public function test_resolve_code_editor_theme_auto_with_dark_mode_off_resolves_light(): void {
+        Functions\when('get_option')->justReturn(array(
+            'code_editor_theme' => 'auto',
+            'dark_mode'         => 'off',
+        ));
+
+        $this->assertSame('light', AdminAssetsManager::resolve_code_editor_theme());
+    }
+
+    public function test_resolve_code_editor_theme_auto_with_dark_mode_auto_resolves_light(): void {
+        // Client-side OS-prefers-dark cannot be evaluated at enqueue time; we fall back to light.
+        Functions\when('get_option')->justReturn(array(
+            'code_editor_theme' => 'auto',
+            'dark_mode'         => 'auto',
+        ));
+
+        $this->assertSame('light', AdminAssetsManager::resolve_code_editor_theme());
+    }
+
+    public function test_resolve_code_editor_theme_invalid_stored_value_treated_as_auto(): void {
+        // Any non-'light'/'dark' stored value falls into the auto branch.
+        Functions\when('get_option')->justReturn(array(
+            'code_editor_theme' => 'bogus',
+            'dark_mode'         => 'on',
+        ));
+
+        $this->assertSame('dark', AdminAssetsManager::resolve_code_editor_theme());
+    }
+
+    public function test_resolve_code_editor_theme_corrupt_settings_option(): void {
+        // get_option returns non-array (e.g. a string) — treat as empty and default to dark.
+        Functions\when('get_option')->justReturn('corrupt');
+
+        $this->assertSame('dark', AdminAssetsManager::resolve_code_editor_theme());
+    }
 }

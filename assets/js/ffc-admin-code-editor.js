@@ -61,6 +61,13 @@
 		var cm = editor.codemirror;
 		cm.addOverlay( placeholderOverlay );
 
+		// Flag the wrapper so theme-dependent selectors (e.g. the dark-border
+		// override) can target only the active theme.
+		var $wrapper = $textarea.closest( '.ffc-code-editor-wrapper' );
+		if ( $wrapper.length ) {
+			$wrapper.addClass( 'ffc-code-editor-theme-' + ( config.theme || 'light' ) );
+		}
+
 		// Keep the underlying textarea value in sync so the form submit carries
 		// the current editor content even if the browser skips CodeMirror's own
 		// save hook.

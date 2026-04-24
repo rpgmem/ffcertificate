@@ -87,6 +87,34 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 		</table>
 </div>
 
+<!-- Editor Preferences Card -->
+<div class="card">
+	<h2 class="ffc-icon-settings"><?php esc_html_e( 'Editor Preferences', 'ffcertificate' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Appearance options for the code-based editors used inside the plugin admin.', 'ffcertificate' ); ?>
+	</p>
+		<table class="form-table" role="presentation">
+			<tbody>
+				<tr>
+					<th scope="row">
+						<label for="code_editor_theme"><?php esc_html_e( 'Code Editor Theme', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<?php $ffc_code_editor_theme = $ffcertificate_get_option( 'code_editor_theme', 'dark' ); ?>
+						<select name="ffc_settings[code_editor_theme]" id="code_editor_theme" class="regular-text">
+							<option value="auto" <?php selected( $ffc_code_editor_theme, 'auto' ); ?>><?php esc_html_e( 'Auto (follow plugin Dark Mode)', 'ffcertificate' ); ?></option>
+							<option value="light" <?php selected( $ffc_code_editor_theme, 'light' ); ?>><?php esc_html_e( 'Light', 'ffcertificate' ); ?></option>
+							<option value="dark" <?php selected( $ffc_code_editor_theme, 'dark' ); ?>><?php esc_html_e( 'Dark (VS Code style)', 'ffcertificate' ); ?></option>
+						</select>
+						<p class="description">
+							<?php esc_html_e( 'Applies to the Certificate HTML editor on the form edit screen. "Auto" mirrors the admin Dark Mode setting (General tab); fresh installs default to Dark.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+</div>
+
 <!-- Debug Settings Card -->
 <div class="card">
 	<h2 class="ffc-icon-debug"><?php esc_html_e( 'Debug Settings', 'ffcertificate' ); ?></h2>
