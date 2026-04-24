@@ -273,7 +273,8 @@ class SelfSchedulingShortcode {
 		}
 
 		$is_logged_in          = is_user_logged_in();
-		$has_bypass            = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
+		$calendar_post_id      = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
+		$has_bypass            = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
 		$visibility            = $calendar['visibility'] ?? 'public';
 		$scheduling_visibility = $calendar['scheduling_visibility'] ?? 'public';
 

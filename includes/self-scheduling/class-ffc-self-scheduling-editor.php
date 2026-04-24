@@ -348,6 +348,12 @@ class SelfSchedulingEditor {
 			$config = array();
 		}
 
+		// Backward compatibility: calendars saved before the per-calendar admin
+		// bypass toggle existed implicitly had the bypass on (hardcoded in
+		// CalendarRepository::userHasSchedulingBypass). Preserve that by
+		// treating a missing key as "enabled".
+		$admin_bypass_default = array_key_exists( 'admin_bypass', $config ) ? (int) $config['admin_bypass'] : 1;
+
 		$defaults = array(
 			'advance_booking_min'               => 0,
 			'advance_booking_max'               => 30,
@@ -359,6 +365,7 @@ class SelfSchedulingEditor {
 			'scheduling_visibility'             => 'public',
 			'restrict_viewing_to_hours'         => 0,
 			'restrict_booking_to_hours'         => 0,
+			'admin_bypass'                      => $admin_bypass_default,
 		);
 
 		$config = array_merge( $defaults, $config );
@@ -457,6 +464,16 @@ class SelfSchedulingEditor {
 						<?php esc_html_e( 'Bookings can only be made during working hours', 'ffcertificate' ); ?>
 					</label>
 					<p class="description"><?php esc_html_e( 'When enabled, users can view the calendar at any time but can only make bookings during the configured working hours.', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="admin_bypass"><?php esc_html_e( 'Admin Bypass', 'ffcertificate' ); ?></label></th>
+				<td>
+					<label>
+						<input type="checkbox" id="admin_bypass" name="ffc_self_scheduling_config[admin_bypass]" value="1" <?php checked( $config['admin_bypass'], 1 ); ?> />
+						<?php esc_html_e( 'Allow administrators to bypass booking restrictions on this calendar', 'ffcertificate' ); ?>
+					</label>
+					<p class="description"><?php esc_html_e( 'When enabled, users with the "manage_options" capability or the "ffc_scheduling_bypass" capability can book outside the advance-booking window, on blocked dates, outside working hours, and past the daily/interval limits. Slot capacity is always enforced. Disable this to apply all booking rules uniformly, including to administrators.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 		</table>

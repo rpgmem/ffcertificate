@@ -102,6 +102,11 @@ class SelfSchedulingSaveHandler {
 		$config['restrict_viewing_to_hours'] = isset( $config['restrict_viewing_to_hours'] ) ? 1 : 0;
 		$config['restrict_booking_to_hours'] = isset( $config['restrict_booking_to_hours'] ) ? 1 : 0;
 
+		// Per-calendar admin bypass toggle. Once the key is written the stored
+		// value is authoritative; defaulting-to-on for legacy calendars happens
+		// in the consumer (CalendarRepository::userHasSchedulingBypass).
+		$config['admin_bypass'] = isset( $config['admin_bypass'] ) ? 1 : 0;
+
 		update_post_meta( $post_id, '_ffc_self_scheduling_config', $config );
 	}
 

@@ -230,7 +230,8 @@ class AppointmentHandler {
 			return new \WP_Error( 'calendar_inactive', __( 'Calendar is not active.', 'ffcertificate' ) );
 		}
 
-		$has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
+		$calendar_post_id = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
+		$has_bypass       = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
 
 		// Check global holidays and blocked dates (bypass can see slots on these dates).
 		if ( ! $has_bypass ) {
@@ -348,10 +349,12 @@ class AppointmentHandler {
 		}
 
 		// Verify ownership and capability.
-		$can_cancel   = false;
-		$cancelled_by = null;
+		$can_cancel       = false;
+		$cancelled_by     = null;
+		$calendar_post_id = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
+		$has_bypass       = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
 
-		if ( \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() ) {
+		if ( $has_bypass ) {
 			$can_cancel   = true;
 			$cancelled_by = get_current_user_id();
 		} elseif ( is_user_logged_in() && get_current_user_id() === $appointment['user_id'] ) {
@@ -372,13 +375,13 @@ class AppointmentHandler {
 			return new \WP_Error( 'unauthorized', __( 'You do not have permission to cancel this appointment.', 'ffcertificate' ) );
 		}
 
-		// Check if calendar allows cancellation (admin always can).
-		if ( ! \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() && ! $calendar['allow_cancellation'] ) {
+		// Check if calendar allows cancellation (admin always can — unless per-calendar bypass is off).
+		if ( ! $has_bypass && ! $calendar['allow_cancellation'] ) {
 			return new \WP_Error( 'cancellation_disabled', __( 'Cancellation is not allowed for this calendar.', 'ffcertificate' ) );
 		}
 
 		// Check cancellation deadline.
-		if ( ! \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() && $calendar['cancellation_min_hours'] > 0 ) {
+		if ( ! $has_bypass && $calendar['cancellation_min_hours'] > 0 ) {
 			$tz               = wp_timezone();
 			$appointment_time = ( new \DateTimeImmutable( $appointment['appointment_date'] . ' ' . $appointment['start_time'], $tz ) )->getTimestamp();
 			$deadline         = $appointment_time - ( $calendar['cancellation_min_hours'] * 3600 );
