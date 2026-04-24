@@ -1325,7 +1325,12 @@ textarea.ffc-input,
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
-.ffc-preview-header {
+/* Modal-only header/body rules — scoped to #ffc-preview-modal so they do not
+   leak into the `[ffc_verification]` result card (which also uses
+   `.ffc-preview-header` / `.ffc-preview-body`). Before this scoping, the
+   modal's dark slate background (#1d2327) and `justify-content: space-between`
+   overrode the verification card's centered blue gradient header. */
+#ffc-preview-modal .ffc-preview-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1334,14 +1339,14 @@ textarea.ffc-input,
     color: #fff;
 }
 
-.ffc-preview-header h2 {
+#ffc-preview-modal .ffc-preview-header h2 {
     margin: 0;
     font-size: 16px;
     font-weight: 500;
     color: #fff;
 }
 
-.ffc-preview-close {
+#ffc-preview-modal .ffc-preview-close {
     background: none;
     border: none;
     color: #ccc;
@@ -1351,11 +1356,11 @@ textarea.ffc-input,
     line-height: 1;
 }
 
-.ffc-preview-close:hover {
+#ffc-preview-modal .ffc-preview-close:hover {
     color: #fff;
 }
 
-.ffc-preview-note {
+#ffc-preview-modal .ffc-preview-note {
     padding: 8px 16px;
     background: #f0f6fc;
     border-bottom: 1px solid #d0d5dd;
@@ -1363,7 +1368,7 @@ textarea.ffc-input,
     color: #555;
 }
 
-.ffc-preview-body {
+#ffc-preview-modal .ffc-preview-body {
     flex: 1;
     overflow: hidden;
 }

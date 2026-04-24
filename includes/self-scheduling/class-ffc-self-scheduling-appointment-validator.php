@@ -82,7 +82,8 @@ class AppointmentValidator {
 	 * @return true|\WP_Error
 	 */
 	public function validate( array $data, array $calendar, bool $use_lock = false ) {
-		$has_bypass = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass();
+		$calendar_post_id = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
+		$has_bypass       = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
 
 		// 1. Validate required fields.
 		if ( empty( $data['appointment_date'] ) || empty( $data['start_time'] ) ) {

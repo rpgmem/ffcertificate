@@ -186,15 +186,42 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Check if user has scheduling bypass capability
 	 *
+	 * A user bypasses calendar booking restrictions when BOTH hold:
+	 *  1. They have the `manage_options` or `ffc_scheduling_bypass` capability, AND
+	 *  2. The target calendar has the per-calendar `admin_bypass` toggle enabled
+	 *     (or the toggle has never been set, in which case legacy calendars
+	 *     keep the pre-5.4.1 default-on behavior).
+	 *
+	 * When `$calendar_post_id` is null we only evaluate the capability check —
+	 * callers without a specific calendar context (e.g. admin dashboards) get
+	 * the same answer as before the per-calendar toggle was introduced.
+	 *
 	 * @since 4.7.0
-	 * @param int|null $user_id User ID (null for current user).
+	 * @since 5.4.1 Added $calendar_post_id to honor the per-calendar toggle.
+	 * @param int|null $user_id         User ID (null for current user).
+	 * @param int|null $calendar_post_id Calendar post ID (null to skip the per-calendar check).
 	 * @return bool
 	 */
-	public static function userHasSchedulingBypass( ?int $user_id = null ): bool {
-		if ( null === $user_id ) {
-			return current_user_can( 'manage_options' ) || current_user_can( 'ffc_scheduling_bypass' );
+	public static function userHasSchedulingBypass( ?int $user_id = null, ?int $calendar_post_id = null ): bool {
+		$has_capability = null === $user_id
+			? ( current_user_can( 'manage_options' ) || current_user_can( 'ffc_scheduling_bypass' ) )
+			: ( user_can( $user_id, 'manage_options' ) || user_can( $user_id, 'ffc_scheduling_bypass' ) );
+
+		if ( ! $has_capability ) {
+			return false;
 		}
-		return user_can( $user_id, 'manage_options' ) || user_can( $user_id, 'ffc_scheduling_bypass' );
+
+		if ( null === $calendar_post_id ) {
+			return true;
+		}
+
+		$config = get_post_meta( $calendar_post_id, '_ffc_self_scheduling_config', true );
+		if ( ! is_array( $config ) || ! array_key_exists( 'admin_bypass', $config ) ) {
+			// Legacy calendar saved before 5.4.1 — preserve the historical default-on behavior.
+			return true;
+		}
+
+		return (bool) (int) $config['admin_bypass'];
 	}
 
 	/**

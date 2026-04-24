@@ -582,6 +582,64 @@ class CalendarRepositoryTest extends TestCase {
         $this->assertFalse( $result );
     }
 
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_userHasSchedulingBypass_per_calendar_toggle_off_blocks_admin(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+            return array( 'admin_bypass' => 0 );
+        } );
+
+        $result = CalendarRepository::userHasSchedulingBypass( null, 7 );
+
+        $this->assertFalse( $result );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_userHasSchedulingBypass_per_calendar_toggle_on_allows_admin(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+            return array( 'admin_bypass' => 1 );
+        } );
+
+        $result = CalendarRepository::userHasSchedulingBypass( null, 7 );
+
+        $this->assertTrue( $result );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_userHasSchedulingBypass_legacy_calendar_without_key_defaults_on(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+            // Legacy calendar saved before 5.4.1 — key never set.
+            return array( 'advance_booking_min' => 0 );
+        } );
+
+        $result = CalendarRepository::userHasSchedulingBypass( null, 7 );
+
+        $this->assertTrue( $result );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_userHasSchedulingBypass_per_calendar_skipped_without_capability(): void {
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $result = CalendarRepository::userHasSchedulingBypass( null, 7 );
+
+        $this->assertFalse( $result );
+    }
+
     // ==================================================================
     // createFromPost()
     // ==================================================================

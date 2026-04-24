@@ -75,7 +75,10 @@ class FormEditorSaveHandler {
 
 			$clean_config               = array();
 			$clean_config['pdf_layout'] = wp_kses( $config['pdf_layout'], $allowed_html );
-			$clean_config['email_body'] = wp_kses( $config['email_body'], $allowed_html );
+			// Email body is authored in the teeny wp_editor; wp_kses_post() is the
+			// canonical WordPress allowlist for post-like rich content and already
+			// strips scripts/forms while keeping the formatting users expect.
+			$clean_config['email_body'] = wp_kses_post( (string) ( $config['email_body'] ?? '' ) );
 			$clean_config['bg_image']   = esc_url_raw( $config['bg_image'] );
 
 			$clean_config['enable_restriction'] = sanitize_key( $config['enable_restriction'] );

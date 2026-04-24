@@ -108,6 +108,56 @@ class AdminClassTest extends TestCase {
     }
 
     // ==================================================================
+    // maybe_register_tinymce_placeholder_filter()
+    // ==================================================================
+
+    public function test_maybe_register_tinymce_filter_skips_other_post_types(): void {
+        $screen = new \stdClass();
+        $screen->post_type = 'post';
+        Functions\when( 'get_current_screen' )->justReturn( $screen );
+
+        $admin = $this->makeAdmin();
+        $added = false;
+        Functions\when( 'add_filter' )->alias( function () use ( &$added ) {
+            $added = true;
+            return true;
+        } );
+
+        $admin->maybe_register_tinymce_placeholder_filter();
+        $this->assertFalse( $added, 'Filter must not be registered outside the ffc_form screen.' );
+    }
+
+    public function test_maybe_register_tinymce_filter_registers_on_ffc_form_screen(): void {
+        $screen = new \stdClass();
+        $screen->post_type = 'ffc_form';
+        Functions\when( 'get_current_screen' )->justReturn( $screen );
+
+        $admin = $this->makeAdmin();
+        $captured = null;
+        Functions\when( 'add_filter' )->alias( function ( $hook ) use ( &$captured ) {
+            $captured = $hook;
+            return true;
+        } );
+
+        $admin->maybe_register_tinymce_placeholder_filter();
+        $this->assertSame( 'tiny_mce_before_init', $captured );
+    }
+
+    public function test_maybe_register_tinymce_filter_handles_null_screen(): void {
+        Functions\when( 'get_current_screen' )->justReturn( null );
+
+        $admin = $this->makeAdmin();
+        $added = false;
+        Functions\when( 'add_filter' )->alias( function () use ( &$added ) {
+            $added = true;
+            return true;
+        } );
+
+        $admin->maybe_register_tinymce_placeholder_filter();
+        $this->assertFalse( $added );
+    }
+
+    // ==================================================================
     // handle_submission_actions() — wrong page
     // ==================================================================
 

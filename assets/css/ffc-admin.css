@@ -490,12 +490,11 @@
 }
 
 /* ==========================================================================
-   TINYMCE EDITOR - Placeholder Highlighting
+   Placeholder highlighting — shared by TinyMCE (email body) and CodeMirror
    ========================================================================== */
 
-/* Highlight placeholders in TinyMCE editor */
-.ffc-placeholder,
-.mce-content-body .ffc-placeholder {
+/* Highlighted `{{placeholder}}` tokens inside the email body (TinyMCE/teeny). */
+.ffc-placeholder {
     background: var(--ffc-primary-light);
     border: 1px dashed var(--ffc-primary);
     border-radius: 3px;
@@ -512,6 +511,35 @@
 .ffc-placeholder:hover {
     background: var(--ffc-info-bg);
     border-color: var(--ffc-primary-hover);
+}
+
+/* CodeMirror wrapper (certificate HTML template editor). */
+.ffc-code-editor-wrapper .CodeMirror {
+    border: 1px solid var(--ffc-border);
+    border-radius: 3px;
+    height: auto;
+    min-height: 260px;
+    font-size: 13px;
+    font-family: Consolas, Monaco, "Courier New", monospace;
+}
+
+.ffc-code-editor-wrapper .CodeMirror-scroll {
+    min-height: 260px;
+}
+
+/* Placeholder tokens painted by the CodeMirror overlay. */
+.ffc-code-editor-wrapper .cm-ffc-placeholder-token {
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary);
+    border-radius: 2px;
+    padding: 0 2px;
+    font-weight: 600;
+}
+
+.ffc-code-editor-notice {
+    margin-top: 6px;
+    color: var(--ffc-text-light);
+    font-style: italic;
 }
 
 /* ==========================================================================
