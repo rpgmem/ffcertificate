@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 5.4.0
+Stable tag: 5.4.1
 Requires PHP: 8.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -174,6 +174,20 @@ In the certificate layout editor, use these dynamic tags:
 * Common examples: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
 == Changelog ==
+
+= 5.4.1 (2026-04-24) =
+
+Certificate HTML editor gains CodeMirror syntax highlighting with distinct coloring for HTML tags and `{{placeholder}}` tokens, the email body moves to a lightweight visual editor (`wp_editor()` teeny), and the global TinyMCE placeholder-protection filter is scoped to the plugin's post type so it no longer touches unrelated admin screens.
+
+* Feat: **CodeMirror integration for the certificate HTML editor** — `ffc_pdf_layout` now renders through WordPress's built-in CodeMirror (`wp_enqueue_code_editor`), giving tags, attributes and strings distinct colors and line numbers. A custom overlay paints `{{placeholder}}` tokens in a separate color so variables stand out from markup. The underlying `<textarea>` is preserved and its value is synced on every change, so form submission and saved HTML remain byte-for-byte identical to the previous plain-textarea path; certificate templates and PDF generation are not affected.
+* Feat: **Syntax Highlighting profile notice** — when the user has disabled "Syntax Highlighting" in their WordPress profile, `wp_enqueue_code_editor()` returns false; a small inline description appears below the editor linking to `profile.php#syntax_highlighting` and recommending that the option be enabled for maximum plugin compatibility. The textarea continues to work as before.
+* Feat: **Email body upgraded to `wp_editor()` teeny** — the `email_body` field moves from a plain textarea to a minimal-toolbar visual editor (bold, italic, underline, lists, link/unlink, undo/redo). Media buttons stay disabled. Placeholders such as `{{auth_code}}` and `{{name}}` are preserved thanks to the `tiny_mce_before_init` protection still in place.
+* Change: **TinyMCE placeholder filter scoped to `ffc_form`** — `Admin::configure_tinymce_placeholders()` is no longer attached to `tiny_mce_before_init` globally from the constructor. A new `maybe_register_tinymce_placeholder_filter()` method registers the filter on `admin_head` only when `get_current_screen()->post_type === 'ffc_form'`, eliminating side effects on Classic Editor posts and third-party plugin screens.
+* Change: **Email body sanitization hardened** — save handler now runs `email_body` through `wp_kses_post()` (the canonical WordPress post-content allowlist) instead of the generic plugin allowlist, aligning with its new authoring surface.
+* Change: **CSS placeholder block refactored** — the orphan `.mce-content-body .ffc-placeholder` selector (unreachable while no `wp_editor()` existed) is removed in favor of a single `.ffc-placeholder` rule plus new CodeMirror-specific styles (`.ffc-code-editor-wrapper .CodeMirror`, `.cm-ffc-placeholder-token`, `.ffc-code-editor-notice`).
+* Security (MEDIUM): `wp_kses_post()` applied to `email_body` in the form editor save handler — scripts, forms, and other disallowed tags are stripped on save of the now-rich email template.
+* Test: new unit tests covering `maybe_register_tinymce_placeholder_filter()` across the three screen states (ffc_form, other post type, null screen); `AdminClassTest` suite grows from 9 to 12 tests.
+* Chore: new JS module `assets/js/ffc-admin-code-editor.js` (+ minified build) initializes CodeMirror, adds the placeholder overlay, keeps the textarea in sync on change and on submit, and degrades gracefully when the code editor is unavailable.
 
 = 5.4.0 (2026-04-23) =
 

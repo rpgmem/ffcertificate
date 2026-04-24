@@ -179,8 +179,9 @@ class Admin {
 
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 
-		// Priority 999 to run AFTER other plugins.
-		add_filter( 'tiny_mce_before_init', array( $this, 'configure_tinymce_placeholders' ), 999 );
+		// Scope the TinyMCE placeholder-protection filter to the ffc_form editor screen only.
+		// Registered on `admin_head` because `get_current_screen()` is not available at construction time.
+		add_action( 'admin_head', array( $this, 'maybe_register_tinymce_placeholder_filter' ) );
 
 		add_action( 'admin_init', array( $this, 'handle_submission_actions' ) );
 		add_action( 'admin_init', array( $this, 'handle_csv_export_request' ) );
@@ -500,6 +501,27 @@ class Admin {
 
 		wp_safe_redirect( $redirect_url );
 		exit;
+	}
+
+	/**
+	 * Register the TinyMCE placeholder-protection filter only on the ffc_form edit screen.
+	 *
+	 * Running the filter globally would mutate TinyMCE init on unrelated admin screens
+	 * (Classic Editor, third-party plugins). Scoping it to the post type that actually
+	 * uses placeholders eliminates that side effect.
+	 *
+	 * @since 5.4.1
+	 */
+	public function maybe_register_tinymce_placeholder_filter(): void {
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+		$screen = get_current_screen();
+		if ( ! $screen || 'ffc_form' !== $screen->post_type ) {
+			return;
+		}
+		// Priority 999 to run AFTER other plugins.
+		add_filter( 'tiny_mce_before_init', array( $this, 'configure_tinymce_placeholders' ), 999 );
 	}
 
 	/**

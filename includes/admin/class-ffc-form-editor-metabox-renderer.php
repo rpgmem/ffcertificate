@@ -106,7 +106,9 @@ class FormEditorMetaboxRenderer {
 			<tr>
 				<td colspan="2">
 					<label class="ffc-block-label"><strong><?php esc_html_e( 'Certificate HTML Editor', 'ffcertificate' ); ?></strong></label>
-					<textarea name="ffc_config[pdf_layout]" id="ffc_pdf_layout" class="ffc-w100" rows="12"><?php echo esc_textarea( $layout ); ?></textarea>
+					<div class="ffc-code-editor-wrapper">
+						<textarea name="ffc_config[pdf_layout]" id="ffc_pdf_layout" class="ffc-w100" rows="12"><?php echo esc_textarea( $layout ); ?></textarea>
+					</div>
 					<p class="description">
 						<?php esc_html_e( 'Mandatory Tags:', 'ffcertificate' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.
 					</p>
@@ -334,8 +336,29 @@ class FormEditorMetaboxRenderer {
 				<td><input type="text" name="ffc_config[email_subject]" value="<?php echo esc_attr( $subject ); ?>" class="ffc-w100"></td>
 			</tr>
 			<tr>
-				<th><label><?php esc_html_e( 'Email Body (HTML)', 'ffcertificate' ); ?></label></th>
-				<td><textarea name="ffc_config[email_body]" class="ffc-h120 ffc-w100"><?php echo esc_textarea( $body ); ?></textarea></td>
+				<th><label for="ffc_email_body"><?php esc_html_e( 'Email Body (HTML)', 'ffcertificate' ); ?></label></th>
+				<td>
+					<?php
+					wp_editor(
+						(string) $body,
+						'ffc_email_body',
+						array(
+							'textarea_name' => 'ffc_config[email_body]',
+							'textarea_rows' => 10,
+							'media_buttons' => false,
+							'teeny'         => true,
+							'tinymce'       => array(
+								'toolbar1' => 'bold,italic,underline,bullist,numlist,link,unlink,undo,redo',
+								'toolbar2' => '',
+							),
+							'quicktags'     => array( 'buttons' => 'strong,em,link,ul,ol,li,close' ),
+						)
+					);
+					?>
+					<p class="description">
+						<?php esc_html_e( 'Placeholders such as {{auth_code}} and {{name}} are preserved automatically.', 'ffcertificate' ); ?>
+					</p>
+				</td>
 			</tr>
 			<tr>
 				<th></th>

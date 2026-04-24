@@ -63,6 +63,66 @@ class AdminAssetsManager {
 		$this->enqueue_css_assets();
 		$this->enqueue_javascript_modules();
 		$this->enqueue_conditional_assets();
+		$this->enqueue_form_editor_code_editor();
+	}
+
+	/**
+	 * Enqueue the CodeMirror-based code editor for the ffc_form post edit screen.
+	 *
+	 * Uses `wp_enqueue_code_editor()` so admins get HTML syntax highlighting on the
+	 * certificate layout textarea. When the user has disabled the "Syntax Highlighting"
+	 * profile option, `wp_enqueue_code_editor()` returns false and the JS initializer
+	 * falls back silently — the plain textarea continues to work.
+	 *
+	 * @since 5.4.1
+	 */
+	private function enqueue_form_editor_code_editor(): void {
+		if ( 'ffc_form' !== $this->post_type ) {
+			return;
+		}
+
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || 'post' !== $screen->base ) {
+			return;
+		}
+
+		$settings = wp_enqueue_code_editor(
+			array(
+				'type'       => 'text/html',
+				'codemirror' => array(
+					'lineNumbers'   => true,
+					'lineWrapping'  => true,
+					'autoCloseTags' => true,
+					'matchBrackets' => true,
+					'indentUnit'    => 2,
+					'tabSize'       => 2,
+					'lint'          => false,
+				),
+			)
+		);
+
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+		wp_enqueue_script(
+			'ffc-admin-code-editor',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-code-editor{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'ffc-admin-code-editor',
+			'ffcCodeEditor',
+			array(
+				'enabled'    => false !== $settings,
+				'settings'   => false !== $settings ? $settings : null,
+				'profileUrl' => admin_url( 'profile.php#syntax_highlighting' ),
+				'strings'    => array(
+					'syntaxDisabledNotice' => __( 'For the best HTML template experience, enable "Syntax Highlighting" in your profile.', 'ffcertificate' ),
+					'openProfile'          => __( 'Open profile', 'ffcertificate' ),
+				),
+			)
+		);
 	}
 
 	/**
