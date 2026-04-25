@@ -108,6 +108,25 @@ To cut a release:
    files via `.distignore`), creates a GitHub Release, and attaches the
    zip. Notes are pulled from the matching `CHANGELOG.md` section.
 
+## AI-assisted contributions
+
+This project uses [Claude](https://claude.ai/code) (Anthropic) as an
+AI-powered coding assistant. AI involvement started on **2026-01-17**
+with commit
+[`53cc4fa`](https://github.com/rpgmem/ffcertificate/commit/53cc4fa4063bb497f5948d79897c022c5c0494e2)
+(the geolocation and date/time restrictions system that landed in
+v3.0.0) and extends to subsequent releases unless a `CHANGELOG.md`
+entry explicitly states otherwise.
+
+- AI-assisted commits include a `https://claude.ai/code/session_…`
+  footer in the commit message; the session URL is the audit link
+  back to the conversation that produced the change.
+- AI-assisted feature branches use the `claude/<short-description>`
+  prefix (already documented under [Branches](#branches)).
+- All AI-generated changes go through the same PR review and CI
+  pipeline as human contributions; the human author is responsible
+  for reviewing, accepting, and merging the work.
+
 ## Reporting security issues
 
 Do not open public issues for vulnerabilities. Use GitHub's private
