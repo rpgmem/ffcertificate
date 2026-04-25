@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [5.4.1] - 2026-04-24
+## 5.4.1 (2026-04-24)
 
 Certificate HTML editor gains CodeMirror syntax highlighting with distinct
 coloring for HTML tags and `{{placeholder}}` tokens, plus a three-option
@@ -57,10 +57,13 @@ admin preview modal's dark slate background.
 - **Historical changelog reconciliation.** Cross-checked the CHANGELOG entries for releases 1.0.0 through 2.9.1 against forensic evidence from twelve archived `wp-ffcertificate-<date>.zip` snapshots (2025-12-12 through 2026-02-02). The pre-existing entries had a systematic ~2-3 week forward drift on the early-version dates (e.g. CHANGELOG dated 1.0.0 to 2025-12-14, but the 12/12/2025 snapshot already carried header version 1.0.7 — making the 14/12/2025 release date for 1.0.0 chronologically impossible). Adjusted dates for 1.0.0, 1.5.0, 2.0.0–2.5.0, 2.6.0, 2.7.0, 2.8.0, 2.9.0, and 2.9.1 to match either the dated entries inside the 4.0.0 zip's `readme.txt` (which gave authoritative dates for 2.6.0–2.9.1 = 2025-12-28/29) or chronologically-consistent approximations bounded by the zip-snapshot evidence (for 1.0.0–2.5.0). Dates from 2.10.0 onward were already coherent with the forensic record and remain unchanged.
 - **CHANGELOG content enrichment.** Replaced the placeholder `## 2.5.0 — Internal improvements` with reconstructed content describing the modular OOP refactor groundwork, the QR Code experimentation that was rolled back and later resumed in 2.9.0, and the introduction of the `FFC_VERSION` constant. Added a new `## 2.9.x development cycle (2026-01-03 → 2026-01-14)` section documenting the dev-only versions 2.9.16–2.9.19 (header) where the Data Encryption framework, REST API controller, repository pattern, rate limiter UI, and hooks documentation were first introduced — the Stable tag deliberately remained at 2.8.0 throughout the cycle. Added explanatory notes to the 2.9.0 entry (QR Code provenance), 3.1.0 entry (development version, not stable), and 4.0.0 entry (encryption framework finalization). Forensic-derived entries are flagged with their source snapshots so future readers can audit the reconstruction.
 - **`readme.txt` trimmed to the last three releases.** The end-user-facing changelog inside `readme.txt` previously duplicated dozens of pre-5.0 entries verbatim from `CHANGELOG.md`. It now retains only the three most recent releases (5.4.1, 5.4.0, 5.3.0) in detail and points readers to `CHANGELOG.md` for the full history. This keeps the WordPress.org plugin page focused on what's new while preserving the complete record in the repo's `CHANGELOG.md`.
+- **Forensic 1.0.7 entry added.** A `## 1.0.7 (~2025-12-12)` entry was inserted between 1.0.0 and 1.5.0, reconstructed from the `wp-ffcertificate_12_12_2025.zip` snapshot. The 1.0.x patch series between 1.0.0 and 1.5.0 had not been documented in the developer's own changelog inside the 4.0.0 zip; this entry fills the gap with the verifiable evidence available (header version, file inventory) and is explicitly flagged as forensic.
+- **Claude / AI-assistance attribution.** Added a footnote at the end of the `## 3.0.0 (2026-01-20)` entry citing commit [`53cc4fa`](https://github.com/rpgmem/ffcertificate/commit/53cc4fa4063bb497f5948d79897c022c5c0494e2) (2026-01-17) as the first AI-assisted contribution to the project — the geolocation and date/time restrictions system. The note covers all subsequent commits and releases by default, with the convention that any future entry may explicitly disclaim AI involvement when applicable. A new `AI-assisted contributions` section in `CONTRIBUTING.md` documents the workflow conventions (session-URL footers, `claude/<…>` branch prefix) and the same starting reference for human contributors auditing the repo.
+- **Version-heading format normalized for the latest two releases.** The `## [5.4.1] - 2026-04-24` and `## [5.4.0] - 2026-04-23` headings (the only two using the bracketed Keep-a-Changelog hyphen-date style in the file) were rewritten to `## 5.4.1 (2026-04-24)` and `## 5.4.0 (2026-04-23)` to match the format used by the other ~88 version entries.
 
 ---
 
-## [5.4.0] - 2026-04-23
+## 5.4.0 (2026-04-23)
 
 Encryption and privacy hardening across the user-data surface (centralized
 sensitive-field policy, payload-driven activity log encryption, auditable
@@ -1560,6 +1563,8 @@ Repository pattern, REST API, geofence, and migration manager.
 - Fixed: Slow submission deletion causing 500 errors
 - Fixed: Missing Activity Log methods
 
+_Starting with commit [`53cc4fa`](https://github.com/rpgmem/ffcertificate/commit/53cc4fa4063bb497f5948d79897c022c5c0494e2) (2026-01-17), the plugin is developed in collaboration with [Claude](https://claude.ai/code) (Anthropic) as an AI-powered coding assistant. This is the first AI-assisted contribution; Claude's involvement extends to all subsequent commits and releases unless explicitly noted otherwise in this changelog._
+
 ## 2.10.0 (2026-01-20)
 
 Rate limiting with dedicated database tables.
@@ -1698,6 +1703,14 @@ Ticket system and form cloning.
 - Added: Form cloning (duplication) functionality
 - Added: Global settings tab with automatic log cleanup configuration
 - Added: Denylist for blocking specific IDs
+
+## 1.0.7 (~2025-12-12)
+
+_Reconstructed from forensic source diff of `wp-ffcertificate_12_12_2025.zip`. The 1.0.x patch series between 1.0.0 and 1.5.0 was not separately documented in the developer's own changelog inside the 4.0.0 zip; this entry is reconstructed solely from that snapshot's plugin header (`Version: 1.0.7`) and file listing._
+
+- Maintenance patch series leading from 1.0.0 to 1.5.0; specific change details are unrecoverable from the available evidence.
+- Snapshot file inventory: 23 files (`assets/`, `ffc.pot`, `html/`, `includes/`, `readme.txt`, `wp-ffcertificate.php`) — pre-modular monolithic structure.
+- Plugin header version stamped at `1.0.7`; no `FFC_VERSION` constant yet (the constant was introduced during the 2.5.0 development cycle).
 
 ## 1.0.0 (2025-11-25)
 
