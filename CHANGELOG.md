@@ -461,15 +461,15 @@ Security hardening, code quality improvements, URL Shortener test coverage, virt
 - Certificate verification card narrower than appointment card on `/valid/` — added `width: 100%` to `.ffc-certificate-preview` (root cause: `displayVerificationResult()` replaces container innerHTML, removing `.ffc-verify-result` wrapper, so flex `align-items: center` caused shrink-wrap)
 - **934 → 1051 tests, 1830 → 2076 assertions**
 
-### Documentation
-
-- Magic token endpoint documentation already complete (nonce intentionally omitted, rate limiting in place)
-- JSON fallback handling in Audience loader already
-
 ### Removed
 
 - Removed nonce fallback chain in AjaxTrait — each handler now verifies a single specific nonce action, eliminating timing side-channel
 - Removed `wp_rest` as fallback nonce in Self-Scheduling AJAX handlers — only `ffc_self_scheduling_nonce` accepted
+
+### Documentation
+
+- Magic token endpoint documentation already complete (nonce intentionally omitted, rate limiting in place)
+- JSON fallback handling in Audience loader already
 
 ---
 
@@ -2231,9 +2231,9 @@ Ticket system and form cloning.
 
 ---
 
-## 1.0.7 (~2025-12-12)
+## 1.0.7 (~2025-12-01)
 
-_Reconstructed from forensic source diff of `wp-ffcertificate_12_12_2025.zip`. The 1.0.x patch series between 1.0.0 and 1.5.0 was not separately documented in the developer's own changelog inside the 4.0.0 zip; this entry is reconstructed solely from that snapshot's plugin header (`Version: 1.0.7`) and file listing._
+_Reconstructed from forensic source diff of `wp-ffcertificate_12_12_2025.zip`. That snapshot was archived on 2025-12-12 and carried `Version: 1.0.7` in the plugin header — but the 1.0.x patch series logically released **between 1.0.0 (2025-11-25) and 1.5.0 (2025-12-05)**, so the snapshot date is later than the actual release date. The snapshot date (~2025-12-12) is the latest verifiable touchpoint of the 1.0.x line; the release date itself is approximated as ~2025-12-01 to keep the file in chronologically descending order. The 1.0.x patch series was not separately documented in the developer's own changelog inside the 4.0.0 zip; this entry is reconstructed solely from the snapshot's plugin header and file listing._
 
 ### Changed
 
