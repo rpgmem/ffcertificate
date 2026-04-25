@@ -52,6 +52,12 @@ admin preview modal's dark slate background.
 - **MEDIUM (XSS hardening) — email body.** `wp_kses_post()` replaces the plugin-specific `wp_kses( …, $allowed_html )` on `email_body` save. Scripts, forms, iframes (and any other tag outside the WordPress post-content allowlist) are stripped on save; rich-text formatting the admin authors in the new visual editor (formatting, links, lists) is preserved.
 - **Reduced filter footprint.** The `tiny_mce_before_init` override, which set `entity_encoding = raw` globally, no longer runs on screens unrelated to `ffc_form`. Other plugins' TinyMCE initialization is no longer mutated by a filter installed for a different feature.
 
+### Documentation
+
+- **Historical changelog reconciliation.** Cross-checked the CHANGELOG entries for releases 1.0.0 through 2.9.1 against forensic evidence from twelve archived `wp-ffcertificate-<date>.zip` snapshots (2025-12-12 through 2026-02-02). The pre-existing entries had a systematic ~2-3 week forward drift on the early-version dates (e.g. CHANGELOG dated 1.0.0 to 2025-12-14, but the 12/12/2025 snapshot already carried header version 1.0.7 — making the 14/12/2025 release date for 1.0.0 chronologically impossible). Adjusted dates for 1.0.0, 1.5.0, 2.0.0–2.5.0, 2.6.0, 2.7.0, 2.8.0, 2.9.0, and 2.9.1 to match either the dated entries inside the 4.0.0 zip's `readme.txt` (which gave authoritative dates for 2.6.0–2.9.1 = 2025-12-28/29) or chronologically-consistent approximations bounded by the zip-snapshot evidence (for 1.0.0–2.5.0). Dates from 2.10.0 onward were already coherent with the forensic record and remain unchanged.
+- **CHANGELOG content enrichment.** Replaced the placeholder `## 2.5.0 — Internal improvements` with reconstructed content describing the modular OOP refactor groundwork, the QR Code experimentation that was rolled back and later resumed in 2.9.0, and the introduction of the `FFC_VERSION` constant. Added a new `## 2.9.x development cycle (2026-01-03 → 2026-01-14)` section documenting the dev-only versions 2.9.16–2.9.19 (header) where the Data Encryption framework, REST API controller, repository pattern, rate limiter UI, and hooks documentation were first introduced — the Stable tag deliberately remained at 2.8.0 throughout the cycle. Added explanatory notes to the 2.9.0 entry (QR Code provenance), 3.1.0 entry (development version, not stable), and 4.0.0 entry (encryption framework finalization). Forensic-derived entries are flagged with their source snapshots so future readers can audit the reconstruction.
+- **`readme.txt` trimmed to the last three releases.** The end-user-facing changelog inside `readme.txt` previously duplicated dozens of pre-5.0 entries verbatim from `CHANGELOG.md`. It now retains only the three most recent releases (5.4.1, 5.4.0, 5.3.0) in detail and points readers to `CHANGELOG.md` for the full history. This keeps the WordPress.org plugin page focused on what's new while preserving the complete record in the repo's `CHANGELOG.md`.
+
 ---
 
 ## [5.4.0] - 2026-04-23
@@ -1453,7 +1459,9 @@ New appointment calendar and booking system.
 
 ## 4.0.0 (2026-01-26)
 
-Breaking release: removal of backward-compatibility aliases and namespace finalization.
+Breaking release: removal of backward-compatibility aliases and namespace finalization. **First stable tag bump from 2.8.0** since the 2.9.x development cycle began.
+
+_The Data Encryption framework, first introduced during the 2.9.x development cycle, is considered stable and integrated across the codebase from this release forward._
 
 - BREAKING: Removed all backward-compatibility aliases for old `FFC_*` class names
 - All 88 classes now exclusively use `FreeFormCertificate\*` namespaces
@@ -1509,6 +1517,8 @@ PSR-4 autoloader and namespace migration.
 
 ## 3.1.0 (2026-01-24)
 
+_(development version, **not released as stable**; the Stable tag remained at 2.8.0 throughout the 3.x line until 4.0.0 finalization.)_
+
 User dashboard, admin tools, and activity log viewer.
 
 - Added: User Dashboard system with `ffc_user` role and `[user_dashboard_personal]` shortcode
@@ -1559,7 +1569,23 @@ Rate limiting with dedicated database tables.
 - Added: Configurable rate limit thresholds per action type
 - Migrated: Rate Limiter from WordPress transients to Object Cache API
 
-## 2.9.1 (2026-01-19)
+## 2.9.x development cycle (2026-01-03 → 2026-01-14)
+
+_(development versions, **not released as stable**; Stable tag remained at 2.8.0 throughout. Reconstructed from forensic source diffs of the `wp-ffcertificate03-01-2026.zip` through `wp-ffcertificate14-01-2026.zip` snapshots.)_
+
+Internal versioning bumped from `2.9.16` → `2.9.17` → `2.9.19` (header) / `FFC_VERSION` constant matched, with the publishable `Stable tag` deliberately frozen at 2.8.0 throughout.
+
+- Added: First appearance of the **Data Encryption framework** for sensitive fields (email, CPF, IP). The framework continued to evolve through 3.x and was considered fully integrated by 4.0.0.
+- Added: REST API controller (`includes/api/class-ffc-rest-controller.php`) for external integrations.
+- Added: Repository pattern groundwork — `abstract-repository.php`, `form-repository.php`, `submission-repository.php`.
+- Added: Rate Limiter UI/CSS (`assets/css/admin-rate-limit.css`, `assets/js/rate-limit-countdown.js`, `assets/js/rate-limit-frontend.js`) and dedicated settings tab (`includes/settings/class-ffc-tab-rate-limit.php`, `includes/settings/tab-rate-limit.php`).
+- Added: Activity Log refinements (`class-ffc-rate-limit-activator.php` joins the activator family).
+- Added: Hooks documentation under `docs/HOOKS-DOCUMENTATION.md` and `docs/HOOKS-QUICK-REFERENCE.md`.
+- Added: Composer-managed vendor directory and PSR-style structure groundwork (file count grew from ~90 to ~500 between the 23/12 and 03/01 snapshots).
+- Added: Pre-compiled localization (`languages/ffc-pt_BR.l10n.php`) for PHP-translation-cache support.
+- Added: General admin settings stylesheet (`assets/css/admin-settings.css`) and shared frontend utilities (`assets/js/ffc-utils.js`).
+
+## 2.9.1 (2025-12-29)
 
 Activity log, form cache, and magic links fix.
 
@@ -1569,7 +1595,7 @@ Activity log, form cache, and magic links fix.
 - Added: Form Cache with daily WP-Cron warming (`ffc_warm_cache_hook`)
 - Added: Utils class with CPF validation and 20+ helper functions (`get_user_ip`, `format_cpf`, `sanitize_cpf`, etc.)
 
-## 2.9.0 (2026-01-18)
+## 2.9.0 (2025-12-28)
 
 QR Code generation on certificates.
 
@@ -1577,7 +1603,9 @@ QR Code generation on certificates.
 - Added: QR Code generator class using phpqrcode library
 - Added: QR Code settings tab with size and error correction configuration
 
-## 2.8.0 (2026-01-16)
+_Note: QR Code work first appeared as experimental code in the 2.5.0 development snapshot, was rolled back, and was resumed and finalized in this release._
+
+## 2.8.0 (2025-12-28)
 
 Magic links for one-click certificate access.
 
@@ -1593,7 +1621,7 @@ Magic links for one-click certificate access.
 - Improved: AJAX verification without page reload
 - Improved: Frontend with loading spinner, download button state management
 
-## 2.7.0 (2026-01-14)
+## 2.7.0 (2025-12-28)
 
 Modular architecture refactoring.
 
@@ -1608,7 +1636,7 @@ Modular architecture refactoring.
 - Added: Dependency injection container in `FFC_Loader`
 - Applied: Single Responsibility Principle (SRP) throughout
 
-## 2.6.0 (2026-01-12)
+## 2.6.0 (2025-12-28)
 
 Code reorganization and internationalization.
 
@@ -1624,27 +1652,33 @@ Code reorganization and internationalization.
 - Fixed: Duplicate metabox registration
 - Fixed: SMTP settings toggle visibility
 
-## 2.5.0 (2026-01-10)
+## 2.5.0 (2025-12-14)
+
+Development snapshot leading up to the 2.6.0 release; **never published as stable**. Reconstructed from forensic source diffs of the `wp-ffcertificate14-12-2025.zip`, `wp-ffcertificate16-12-2025.zip`, and `wp-ffcertificate23-12-2025.zip` snapshots.
+
+- Added: Foundation work for the modular OOP refactor that was finalized in 2.6.0 — first split of `includes/` into `admin/`, `core/`, `data/`, and `frontend/` subdirectories with dedicated classes (`class-ffc-pdf-generator.php`, `class-ffc-submission-controller.php`, `class-ffc-mailer.php`, `class-ffc-template-engine.php`, `class-ffc-repository.php`).
+- Added: Initial QR Code experimentation (3 references in `includes/` source). The work was rolled back in the next snapshot (16/12 → 23/12) and resumed/finalized in 2.9.0.
+- Added: `FFC_VERSION` constant for CSS/JS cache busting (developer comment in source: _"Adicionamos FFC_VERSION para controle de cache dos arquivos CSS/JS"_).
+- Added: Multiple certificate template HTML files and background images bundled in `html/`.
+- Internal: Local git workflow adopted at this stage (the 23/12 snapshot includes a `.git` directory).
+
+## 2.4.0 (2025-12-13)
 
 - Internal improvements
 
-## 2.4.0 (2026-01-04)
+## 2.3.0 (2025-12-12)
 
 - Internal improvements
 
-## 2.3.0 (2026-01-03)
+## 2.2.0 (2025-12-11)
 
 - Internal improvements
 
-## 2.2.0 (2025-12-24)
+## 2.1.0 (2025-12-10)
 
 - Internal improvements
 
-## 2.1.0 (2025-12-23)
-
-- Internal improvements
-
-## 2.0.0 (2025-12-22)
+## 2.0.0 (2025-12-08)
 
 PDF generation overhaul, captcha, and reprint logic.
 
@@ -1656,7 +1690,7 @@ PDF generation overhaul, captcha, and reprint logic.
 - Added: Mobile optimization with strategic delays and progress overlay
 - Fixed: CORS issues with `crossorigin="anonymous"` on image rendering
 
-## 1.5.0 (2025-12-18)
+## 1.5.0 (2025-12-05)
 
 Ticket system and form cloning.
 
@@ -1665,7 +1699,7 @@ Ticket system and form cloning.
 - Added: Global settings tab with automatic log cleanup configuration
 - Added: Denylist for blocking specific IDs
 
-## 1.0.0 (2025-12-14)
+## 1.0.0 (2025-11-25)
 
 Initial release.
 
