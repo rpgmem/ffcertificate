@@ -1,25 +1,13 @@
 # Changelog
 
 All notable changes to the **Free Form Certificate** plugin are documented in this file.
-
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-
----
+The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
 ## 5.4.1 (2026-04-24)
 
-Certificate HTML editor gains CodeMirror syntax highlighting with distinct
-coloring for HTML tags and `{{placeholder}}` tokens, plus a three-option
-`Code Editor Theme` setting (Auto / Light / Dark, dark by default on fresh
-installs) with a VS-Code-Dark+-inspired palette; the email body moves to a
-lightweight visual editor (`wp_editor()` teeny); the global TinyMCE
-placeholder-protection filter is scoped to the plugin's post type so it no
-longer touches unrelated admin screens; a new per-calendar admin-bypass
-toggle replaces the hardcoded all-or-nothing bypass for self-scheduling;
-and the `[ffc_verification]` result card header stops rendering with the
-admin preview modal's dark slate background.
+Certificate HTML editor gains CodeMirror syntax highlighting with distinct coloring for HTML tags and `{{placeholder}}` tokens, plus a three-option `Code Editor Theme` setting (Auto / Light / Dark, dark by default on fresh installs) with a VS-Code-Dark+-inspired palette; the email body moves to a lightweight visual editor (`wp_editor()` teeny); the global TinyMCE placeholder-protection filter is scoped to the plugin's post type so it no longer touches unrelated admin screens; a new per-calendar admin-bypass toggle replaces the hardcoded all-or-nothing bypass for self-scheduling; and the `[ffc_verification]` result card header stops rendering with the admin preview modal's dark slate background.
 
 ### Added
 
@@ -31,7 +19,6 @@ admin preview modal's dark slate background.
 - **VS-Code-Dark+-inspired theme for the CodeMirror editor.** New stylesheet `assets/css/ffc-code-editor-dark.css` (+ minified build) registers the `.cm-s-ffc-dark` CodeMirror theme — background `#1e1e1e`, foreground `#d4d4d4`, tags `#569cd6`, attributes `#9cdcfe`, strings `#ce9178`, comments `#6a9955`, selection `#264f78`, matching-bracket `#0e639c`. Placeholder overlay (`.cm-ffc-placeholder-token`) flips to gold-on-dark (`#dcdcaa` on `#1e1e1e`) so `{{foo}}` tokens remain legible on the dark canvas. Theme CSS is only enqueued when the resolved theme is `dark`; light stays on WordPress's default CodeMirror styling with zero extra payload.
 - Unit tests: `AdminClassTest` grows from 9 → 12 tests (+3) covering `maybe_register_tinymce_placeholder_filter()` across three screen states — `ffc_form`, other post type, and null screen. `CalendarRepositoryTest` gains 4 new tests covering the per-calendar `admin_bypass` consumption path. `AdminAssetsManagerTest` gains 8 new tests covering `resolve_code_editor_theme()` across all branches — default-on-fresh-install, explicit light/dark, `auto` following `dark_mode on/off/auto`, invalid stored values, and corrupt (non-array) `ffc_settings` option.
 
-
 ### Changed
 
 - **`tiny_mce_before_init` filter scoped to the `ffc_form` screen.** `Admin::configure_tinymce_placeholders()` is no longer attached from the constructor on every admin page load. A new `Admin::maybe_register_tinymce_placeholder_filter()` runs on `admin_head`, checks `get_current_screen()->post_type === 'ffc_form'`, and only then registers the filter at priority 999. Other admin screens (Classic Editor posts, third-party plugin configuration pages, etc.) are no longer mutated by the plugin's TinyMCE init overrides. `configure_tinymce_placeholders()` itself is unchanged — same `noneditable_regexp`, `noneditable_class`, `entity_encoding = raw`, and `protect` array.
@@ -40,11 +27,9 @@ admin preview modal's dark slate background.
 - **Assets manager gains a code-editor enqueue path.** `AdminAssetsManager::enqueue_form_editor_code_editor()` only fires on the `ffc_form` post edit screen; it calls `wp_enqueue_code_editor()` with HTML mode and forwards the result (plus i18n strings and the profile URL) to the JS initializer via `wp_localize_script( 'ffc-admin-code-editor', 'ffcCodeEditor', … )`. It now also resolves the effective code-editor theme via the new `AdminAssetsManager::resolve_code_editor_theme()` static helper, injects `theme: 'ffc-dark'` into the CodeMirror config and enqueues `ffc-code-editor-dark.css` only when the resolved theme is dark. The JS initializer tags the wrapper with `ffc-code-editor-theme-<theme>` so theme-scoped CSS (border override, etc.) can target it.
 - **`CalendarRepository::userHasSchedulingBypass()` accepts a calendar context.** The method gains an optional second parameter, `?int $calendar_post_id`. With a non-null id it consults `_ffc_self_scheduling_config['admin_bypass']` and returns `false` when the toggle is off (even for admins). With a null id it falls back to capability-only behavior, preserving every existing caller exactly. Booking-relevant call sites — `AppointmentValidator::validate()`, `AppointmentHandler::get_available_slots()`, `AppointmentHandler::cancel_appointment()`, and `SelfSchedulingShortcode` — now forward the calendar's `post_id` so the toggle actually takes effect during booking flows. Audience/REST admin read paths continue to pass `null` and retain their historical behavior.
 
-
 ### Fixed
 
 - **`[ffc_verification]` result card header rendered with the admin preview modal's dark slate background.** The certificate/appointment verification success cards use `.ffc-preview-header` for their blue-gradient banner with centered title. A later CSS block — meant only for the admin certificate preview modal (`#ffc-preview-modal`) — defined a second, unscoped `.ffc-preview-header` rule with `background: #1d2327` and `display: flex; justify-content: space-between`. Because CSS cascade resolved it last, that rule overrode the gradient (producing a black bar) and pushed the badge to the left while any sibling status label was pushed to the right. Scoped all five affected selectors (`.ffc-preview-header`, `.ffc-preview-header h2`, `.ffc-preview-close`, `.ffc-preview-note`, `.ffc-preview-body`) under `#ffc-preview-modal` so they only apply inside the admin modal, restoring the intended centered blue header on the frontend verification results for certificates, appointments and reregistration records.
-
 
 ### Removed
 
@@ -52,32 +37,29 @@ admin preview modal's dark slate background.
 - **Legacy constructor registration of the TinyMCE filter.** The unconditional `add_filter( 'tiny_mce_before_init', … )` call in `Admin::__construct()` is replaced by the screen-scoped registrar (see _Changed_). Behavior inside the `ffc_form` editor is unchanged; behavior elsewhere in the admin is simply not touched anymore.
 - **Hardcoded all-or-nothing admin bypass for self-scheduling.** The previous `userHasSchedulingBypass()` granted bypass to any admin unconditionally, with no way for a calendar author to opt out. Replaced by the per-calendar toggle (see _Added_ / _Changed_); authors that want the old behavior simply leave the checkbox on, which is also the default for legacy calendars migrating into 5.4.1.
 
-
 ### Security
 
 - **MEDIUM (XSS hardening) — email body.** `wp_kses_post()` replaces the plugin-specific `wp_kses( …, $allowed_html )` on `email_body` save. Scripts, forms, iframes (and any other tag outside the WordPress post-content allowlist) are stripped on save; rich-text formatting the admin authors in the new visual editor (formatting, links, lists) is preserved.
 - **Reduced filter footprint.** The `tiny_mce_before_init` override, which set `entity_encoding = raw` globally, no longer runs on screens unrelated to `ffc_form`. Other plugins' TinyMCE initialization is no longer mutated by a filter installed for a different feature.
 
-
 ### Documentation
 
 - **Historical changelog reconciliation.** Cross-checked the CHANGELOG entries for releases 1.0.0 through 2.9.1 against forensic evidence from twelve archived `wp-ffcertificate-<date>.zip` snapshots (2025-12-12 through 2026-02-02). The pre-existing entries had a systematic ~2-3 week forward drift on the early-version dates (e.g. CHANGELOG dated 1.0.0 to 2025-12-14, but the 12/12/2025 snapshot already carried header version 1.0.7 — making the 14/12/2025 release date for 1.0.0 chronologically impossible). Adjusted dates for 1.0.0, 1.5.0, 2.0.0–2.5.0, 2.6.0, 2.7.0, 2.8.0, 2.9.0, and 2.9.1 to match either the dated entries inside the 4.0.0 zip's `readme.txt` (which gave authoritative dates for 2.6.0–2.9.1 = 2025-12-28/29) or chronologically-consistent approximations bounded by the zip-snapshot evidence (for 1.0.0–2.5.0). Dates from 2.10.0 onward were already coherent with the forensic record and remain unchanged.
-- **CHANGELOG content enrichment.** Replaced the placeholder `## 2.5.0 — Internal improvements` with reconstructed content describing the modular OOP refactor groundwork, the QR Code experimentation that was rolled back and later resumed in 2.9.0, and the introduction of the `FFC_VERSION` constant. Added a new `## 2.9.x development cycle (2026-01-03 → 2026-01-14)` section documenting the dev-only versions 2.9.16–2.9.19 (header) where the Data Encryption framework, REST API controller, repository pattern, rate limiter UI, and hooks documentation were first introduced — the Stable tag deliberately remained at 2.8.0 throughout the cycle. Added explanatory notes to the 2.9.0 entry (QR Code provenance), 3.1.0 entry (development version, not stable), and 4.0.0 entry (encryption framework finalization). Forensic-derived entries are flagged with their source snapshots so future readers can audit the reconstruction.
-- **`readme.txt` trimmed to the last three releases.** The end-user-facing changelog inside `readme.txt` previously duplicated dozens of pre-5.0 entries verbatim from `CHANGELOG.md`. It now retains only the three most recent releases (5.4.1, 5.4.0, 5.3.0) in detail and points readers to `CHANGELOG.md` for the full history. This keeps the WordPress.org plugin page focused on what's new while preserving the complete record in the repo's `CHANGELOG.md`.
-- **Forensic 1.0.7 entry added.** A `## 1.0.7 (~2025-12-12)` entry was inserted between 1.0.0 and 1.5.0, reconstructed from the `wp-ffcertificate_12_12_2025.zip` snapshot. The 1.0.x patch series between 1.0.0 and 1.5.0 had not been documented in the developer's own changelog inside the 4.0.0 zip; this entry fills the gap with the verifiable evidence available (header version, file inventory) and is explicitly flagged as forensic.
-- **Claude / AI-assistance attribution.** Added a footnote at the end of the `## 3.0.0 (2026-01-20)` entry citing commit [`53cc4fa`](https://github.com/rpgmem/ffcertificate/commit/53cc4fa4063bb497f5948d79897c022c5c0494e2) (2026-01-17) as the first AI-assisted contribution to the project — the geolocation and date/time restrictions system. The note covers all subsequent commits and releases by default, with the convention that any future entry may explicitly disclaim AI involvement when applicable. A new `AI-assisted contributions` section in `CONTRIBUTING.md` documents the workflow conventions (session-URL footers, `claude/<…>` branch prefix) and the same starting reference for human contributors auditing the repo.
-- **Version-heading format normalized for the latest two releases.** The `## [5.4.1] - 2026-04-24` and `## [5.4.0] - 2026-04-23` headings (the only two using the bracketed Keep-a-Changelog hyphen-date style in the file) were rewritten to `## 5.4.1 (2026-04-24)` and `## 5.4.0 (2026-04-23)` to match the format used by the other ~88 version entries.
-- **Sub-section taxonomy normalized to strict Keep-a-Changelog.** All ~93 historical entries (1.0.0 through 5.3.0; 5.4.0 and 5.4.1 were already strict KaC) were rewritten so every sub-section is one of `### Added` / `### Changed` / `### Fixed` / `### Removed` / `### Security` / `### Documentation`. Mapping rules: `New` / `Feat` / `Migration` / `New tables` / `New classes` → Added; `Improved` / `Refactor` / `Refactored` / `Updated` / `Migrated` / `Performance` / `Perf` / `Chore` / `CI` / `Test` / `Test suite` / `Test coverage` / `Code quality` / `Accessibility` / `Enhanced` / `Simplified` / `Renamed` / `Applied` / `Config` / `CSS` / `Compatibility` → Changed; `Fix` / `Polish` / `Mobile Compatibility` → Fixed; `Cleanup` / `Migration Cleanup` → Removed; `Security` / `Safety` → Security; `Docs` / `Verified` / `Kept` → Documentation. `BREAKING:` / `Breaking:` bullets retain the `**BREAKING:**` prefix under `### Changed` to preserve the breaking-change signal. Domain-scoped prefixes (`Database:`, `UX:`, `Submissions:`, `Email:`, `Settings:`, etc.) keep their prefix in the bullet body and are routed by content (default Changed). Topical sub-sections like `### Audience Scheduling — 3-Level Hierarchy` (used in 5.1.0) are broken apart into the appropriate KaC sections, with each bullet retaining a bold lead-in (`**Audience Scheduling — 3-Level Hierarchy:** …`) so the original grouping label is still readable. Two manual corrections were applied after the automated pass: 1.0.0 (Initial release) moved its bullets from `### Changed` to `### Added` since they describe initial features; 4.6.4 ("Add 31 action/filter hooks") moved from `### Changed` to `### Added` to match the description. **Verification**: bullet-count audit (with prefix-stripping fingerprint) before vs after returned 0 lost items (1007 → 1007).
+- **CHANGELOG content enrichment.**
+  - `## 2.5.0 — Internal improvements` with reconstructed content
+  - `## 2.9.x development cycle (2026-01-03 → 2026-01-14)` section documenting the dev-only
+  - `## 1.0.7 (~2025-12-12)` **Forensic 1.0.7 entry added.** reconstructed from the `wp-ffcertificate_12_12_2025.zip` snapshot.
+  - `## 3.0.0 (2026-01-20)` **Claude / AI-assistance attribution.** Added a footnote.
+- New `AI-assisted contributions` section in `CONTRIBUTING.md` documents the workflow conventions.
+- **`readme.txt` trimmed to the last three releases.**
+- **Version-heading format normalized** to match the format used by the other ~88 version entries.
+- **Sub-section taxonomy normalized to strict Keep-a-Changelog.** All ~93 historical entries
 
 ---
 
 ## 5.4.0 (2026-04-23)
 
-Encryption and privacy hardening across the user-data surface (centralized
-sensitive-field policy, payload-driven activity log encryption, auditable
-decrypt failures, no-leak dual-storage fix), plus the accumulated security
-audit (Tier 1 + Tier 2), CSV download intermediate screen, and a
-performance pass for admin submissions at scale.
+Encryption and privacy hardening across the user-data surface (centralized sensitive-field policy, payload-driven activity log encryption, auditable decrypt failures, no-leak dual-storage fix), plus the accumulated security audit (Tier 1 + Tier 2), CSV download intermediate screen, and a performance pass for admin submissions at scale.
 
 ### Added
 
@@ -90,7 +72,6 @@ performance pass for admin submissions at scale.
 - **CSV download intermediate screen** — after hash validation and before the actual download, an info screen shows form configuration (restrictions, dates, geolocation, quiz, quota) so the operator understands the form context. The download button is only enabled after the form has ended; a certificate preview button is available before the collection period begins.
 - **Public CSV sync-export row cap** — new `public_csv_sync_max_rows` setting (Advanced tab, default 2000, range 100–10000). Public CSV downloads exceeding the cap are refused on the synchronous no-JS path and must use the AJAX batched flow, protecting shared hosting from execution-time timeouts on large exports.
 - Test coverage: **3234 → 3485 tests** (+251), **8783 assertions**, 0 failures. New suites: `SensitiveFieldPolicyTest`, `SensitiveFieldRegistryTest`, `DecryptFailureLoggingTest`, `UserProfileFieldMapTest`, `UserProfileServiceTest`, `CustomFieldValidatorTest`, `AutoloaderTest`, `UserContextTraitTest`, `MigrationDynamicReregFieldsTest`, `ReregistrationStandardFieldsSeederTest`, `AbstractRepositoryTest`, `GeofenceTest`, `FormListColumnsTest`. Extended coverage for `UserManager::update_extended_profile` / `get_extended_profile`.
-
 
 ### Changed
 
@@ -114,7 +95,6 @@ performance pass for admin submissions at scale.
 - **Geofence debug toggle deduplicated.** The Geolocation tab's standalone `debug_enabled` checkbox (stored at `ffc_geolocation_settings.debug_enabled`) overlapped with the Advanced tab's `debug_geofence` toggle (stored at `ffc_settings.debug_geofence`, gated through `Debug::AREA_GEOFENCE`). Both surfaces — frontend `console.log` in `ffc-geofence-frontend.js` and backend `error_log` from `Debug::log_geofence` / `IpGeolocation::debug_log` — now read the single Advanced-tab setting. The Geolocation tab "Debug Mode" card was removed; `Geofence::get_frontend_config` and `Frontend::enqueue_geofence_assets` switched to `Debug::is_enabled( Debug::AREA_GEOFENCE )`; `IpGeolocation::debug_log` dropped its own gate and delegates to `Debug::log_geofence`. Stale `debug_enabled` values left over in `ffc_geolocation_settings` are simply ignored (no migration needed for a debug-only flag that defaults off).
 - **CSS dead-code sweep.** Removed 21 unused `.ffc-*` classes that had no references in PHP, JS, HTML templates, or other CSS — surfaced via a full audit of the 19 source files in `assets/css/`. Drops `.ffc-info-box` (orphaned by the Geolocation card promotion above) from `ffc-admin-settings.css`; `.ffc-qr-info-box` + `.ffc-qr-note` from `ffc-admin-submission-edit.css`; eleven layout/spacing/text utilities (`.ffc-inline-flex`, `.ffc-items-center`, `.ffc-gap-sm`, `.ffc-gap-md`, `.ffc-mb-0`, `.ffc-mb-sm`, `.ffc-mb-lg`, `.ffc-mt-md`, `.ffc-mt-lg`, `.ffc-text-center`, `.ffc-text-right`) from `ffc-common.css`; six appointment-verification / success-page classes (`.ffc-certificate-header`, `.ffc-auth-code-display`, `.ffc-detail-label`, `.ffc-detail-value`, `.ffc-success-container`, `.ffc-success-title`) from `ffc-frontend.css`; and `.ffc-download-ficha-btn` from `ffc-user-dashboard.css`. PDF-template helper classes documented for end-user templates (`.ffc-txt-*`, `.ffc-full-width`, `.ffc-full-width-img`, `.ffc-responsive-logo`) were intentionally kept since they are part of the certificate-template authoring surface.
 
-
 ### Fixed
 
 - **Email hash divergence between tables** — same email produced different `email_hash` values in `wp_ffc_submissions` (salted) and `wp_ffc_self_scheduling_appointments` (raw SHA-256). Cross-entity lookups were silently broken. Unified on `Encryption::hash($email)`; migration `email_hash_rehash` rewrites legacy hashes.
@@ -123,7 +103,6 @@ performance pass for admin submissions at scale.
 - **`SecurityService::verify_simple_captcha`** rejected the valid answer `0`: `empty('0')` is true in PHP, so subtractions where `n1 === n2` (`answer = 0`) always failed. Now uses `'' === trim($answer)`; hash comparison upgraded to `hash_equals()` for timing safety.
 - **Silent decrypt failures** in `Encryption::decrypt` now emit an `ActivityLog` warning. `decrypt(...) ?? ''` fallbacks in reprint detector / user manager / CSV exporter remain legitimate, but the failure itself is no longer invisible to auditors.
 - Activity log disabled-notice link pointed to `Settings > General`; the toggle lives in `Settings > Advanced`. Link and label updated.
-
 
 ### Security
 
@@ -164,9 +143,7 @@ Full-page cache compatibility, per-form captcha isolation, and CI pipeline impro
 
 - **CustomFieldValidator extraction** — validation logic extracted from `CustomFieldRepository` into a dedicated `CustomFieldValidator` class for single-responsibility and testability (#35)
 - **In-plugin documentation expansion** — expanded the Documentation settings tab with additional sections covering all shortcodes, settings, and features (#35)
-- Remove duplicate `push: main` trigger from CI and Assets workflows — each PR merge no longer runs the full suite twice (#39)
 - Extract reusable composite action `.github/actions/setup-composer` for PHP + Composer setup (#30, #31)
-- Remove CodeQL workflow (not applicable to PHP plugin) (#30)
 - Add Dependabot auto-merge for patch and minor dependency updates (#29)
 - Promote PHPCS from advisory to gating — PRs must pass WPCS on changed files (#28)
 - Promote PHPStan from level 6 to **level 7** (#24)
@@ -181,6 +158,11 @@ Full-page cache compatibility, per-form captcha isolation, and CI pipeline impro
 - **Same captcha on all forms** — when multiple forms exist on a cached page, Dynamic Fragments now generates a unique math captcha per form instead of applying a single captcha to all forms (#38)
 - **PHPUnit test failures** — added missing mocks for `nocache_headers()` and `get_posts()` in `AudienceShortcodeTest` and `FormCacheTest` after cache compatibility changes (#39)
 - **Minified assets out of sync** — regenerated `ffc-dynamic-fragments.min.js` with `--source-map` to match the `npm run build` output (#39)
+
+### Removed
+
+- Remove duplicate `push: main` trigger from CI and Assets workflows — each PR merge no longer runs the full suite twice (#39)
+- Remove CodeQL workflow (not applicable to PHP plugin) (#30)
 
 ---
 
@@ -268,11 +250,7 @@ Public CSV download feature: form organizers without WordPress admin access can 
 
 ### Changed
 
-- **3090 → 3154 tests** (+64) with all 7415 assertions green
-- Zero PHPStan level 6 errors — cleared 26 pre-existing static analysis findings across 13 files (`CsvExporter`, `QrcodeGenerator`, reregistration module, self-scheduling handler, URL shortener module, user dashboard module, PHPStan stubs)
 - Add array shape PHPDoc (`array<int, string>`, `array<string, mixed>`, `array{items: ..., total: int}`) to `CsvExporter` private helpers, `ReregistrationStandardFieldsSeeder::on_audience_created()`, `UrlShortenerRepository::findPaginated()`, `UrlShortenerService::get_stats()` and `UserManager::get_user_identifiers_masked()`
-- Remove dead code flagged by PHPStan — duplicated `wp_doing_ajax()` early-return in `AccessControl::block_wp_admin()`; redundant `!== ''` / `!== null` / `!== '0'` checks in the reregistration module; `|| $success` tail in `UserManager::save_profile_data()`; empty-guard around the always-populated `$where_clauses` in `UrlShortenerRepository::findPaginated()`; redundant `$temp_file === ''` check in `QrcodeGenerator::generate()`
-- Remove redundant `?? ''` fallbacks on `Encryption::decrypt_field()` calls in `CsvExporter::format_csv_row()` — the method returns a non-nullable string (same fix already applied to `PublicCsvExporter`)
 - Pre-initialize `$calendar = null;` in `AppointmentAjaxHandler::create()` alongside `$pdf_data` / `$appointment` — fixes `variable.undefined` when `findById()` throws before the assignment
 - Add `QRcode::raw()` to `phpstan-stubs.php` — the SVG QR generator already calls it in production, only the static-analysis stub was missing
 - Fix `@return` PHPDoc parse error in `UserManager::get_user_identifiers_masked()` (`string[}}` → `array<int, string>`)
@@ -302,6 +280,13 @@ Public CSV download feature: form organizers without WordPress admin access can 
 - **Audience Scheduling — User Dashboard:** Subgroup header rows without join/leave buttons had inconsistent height — added `min-height: 44px` to both item and subgroup header rows
 - Booking "Create" button stuck on loading text ("Verificando...") after consecutive bookings — `openBookingModal()` reset `disabled` state but not the button text; now also restores `ffcAudience.strings.createBooking`
 - Frontend calendar did not display 3rd-level audiences — minified JS (`ffc-audience.min.js`) was stale and still contained the old 2-level rendering logic
+- Zero PHPStan level 6 errors — cleared 26 pre-existing static analysis findings across 13 files (`CsvExporter`, `QrcodeGenerator`, reregistration module, self-scheduling handler, URL shortener module, user dashboard module, PHPStan stubs)
+- **3090 → 3154 tests** (+64) with all 7415 assertions green
+
+### Removed
+
+- Remove dead code flagged by PHPStan — duplicated `wp_doing_ajax()` early-return in `AccessControl::block_wp_admin()`; redundant `!== ''` / `!== null` / `!== '0'` checks in the reregistration module; `|| $success` tail in `UserManager::save_profile_data()`; empty-guard around the always-populated `$where_clauses` in `UrlShortenerRepository::findPaginated()`; redundant `$temp_file === ''` check in `QrcodeGenerator::generate()`
+- Remove redundant `?? ''` fallbacks on `Encryption::decrypt_field()` calls in `CsvExporter::format_csv_row()` — the method returns a non-nullable string (same fix already applied to `PublicCsvExporter`)
 
 ### Security
 
@@ -342,7 +327,6 @@ Performance optimizations for URL shortener and QR code generation, new admin co
 
 - Cache plugin settings in UrlShortenerService — single `get_option` per request instead of ~7 repeated calls
 - Defer redirect click count increment to `shutdown` hook — redirect response is sent before the DB update
-- Remove unnecessary cache invalidation from `incrementClickCount` (click_count not needed for redirect resolution)
 - Add `qr_cache` column to `ffc_short_urls` table — QR code base64 stored in DB, avoids phpqrcode + GD regeneration on every admin page load
 - Rewrite SVG QR generation to use `QRcode::raw()` matrix directly — eliminates temp file I/O, PNG generation, GD image loading, and pixel-by-pixel color scanning
 - UX: Progressive loading messages for Safari/iOS geolocation wait — three timed phases replace the static message so users know the page is alive and receive increasingly specific guidance (t=0s: tap Allow, t=8s: check for prompt, t=20s: check Location Services settings)
@@ -356,6 +340,10 @@ Performance optimizations for URL shortener and QR code generation, new admin co
 - `gps_fallback` admin setting (`allow`/`block`) not passed to frontend — GPS failure always blocked the form regardless of admin configuration
 - Safari-specific error messages (Location Services guidance) overridden by generic admin `messageError` — browser-specific messages now always take priority
 - Geofence `handleBlocked` signature simplified to 3 arguments, preventing `customMessage` from silently swallowing specific error messages
+
+### Removed
+
+- Remove unnecessary cache invalidation from `incrementClickCount` (click_count not needed for redirect resolution)
 
 ---
 
@@ -400,9 +388,6 @@ Performance optimizations for URL shortener and QR code generation, new admin co
 - Extracted inline CSS/JS to dedicated asset files
 - Replaced inline styles with CSS classes in URL Shortener
 - Consolidated duplicate button/badge classes into `ffc-common.css`
-- Removed 27 unnecessary `!important` declarations
-- Removed unused CSS classes and stale Phase 3 comments
-- **1051 → 3089 tests** across **153 test files** — 100% class coverage on all 21 modules
 
 ### Fixed
 
@@ -418,6 +403,12 @@ Performance optimizations for URL shortener and QR code generation, new admin co
 - URL Shortener SVG QR generation — use `wp_tempnam` and add filesize check
 - Self-scheduling overlay translation, email notice, and PDF error handling
 - Reverted PDF button to magic link (undo direct download approach)
+- **1051 → 3089 tests** across **153 test files** — 100% class coverage on all 21 modules
+
+### Removed
+
+- Removed 27 unnecessary `!important` declarations
+- Removed unused CSS classes and stale Phase 3 comments
 
 ---
 
@@ -443,7 +434,6 @@ Security hardening, code quality improvements, URL Shortener test coverage, virt
 
 ### Changed
 
-- **934 → 1051 tests, 1830 → 2076 assertions**
 - All call sites across PDFs, emails, REST APIs, admin views, receipts, and verification responses now pass the appropriate prefix constant
 - Centralized CPF/RF and auth_code formatting into DocumentFormatter — replaced scattered inline formatting across admin, API, and frontend layers
 - Replaced inline `onclick` handlers with `data-confirm` delegation pattern for safer event handling
@@ -454,8 +444,6 @@ Security hardening, code quality improvements, URL Shortener test coverage, virt
 
 ### Fixed
 
-- Removed nonce fallback chain in AjaxTrait — each handler now verifies a single specific nonce action, eliminating timing side-channel
-- Removed `wp_rest` as fallback nonce in Self-Scheduling AJAX handlers — only `ffc_self_scheduling_nonce` accepted
 - Elevated `current_user_can('read')` to `manage_options` on sensitive Audience AJAX handlers (save_booking, cancel_booking, get_environments, search_users, save_custom_fields, get_custom_fields)
 - Changed `$_GET['booking_id']` to `$_POST['booking_id']` in Audience AJAX POST handler
 - Standardized nonce field name to `nonce` across all Audience handlers (was `_wpnonce` in one handler)
@@ -471,11 +459,17 @@ Security hardening, code quality improvements, URL Shortener test coverage, virt
 - QR code not appearing in auto-download PDF and duplicate download button on success page
 - CPF/RF and email not found for users with only self-scheduling appointments — added join on appointments table in UserCreator
 - Certificate verification card narrower than appointment card on `/valid/` — added `width: 100%` to `.ffc-certificate-preview` (root cause: `displayVerificationResult()` replaces container innerHTML, removing `.ffc-verify-result` wrapper, so flex `align-items: center` caused shrink-wrap)
+- **934 → 1051 tests, 1830 → 2076 assertions**
 
 ### Documentation
 
 - Magic token endpoint documentation already complete (nonce intentionally omitted, rate limiting in place)
-- JSON fallback handling in Audience loader already addressed in Sprint 2
+- JSON fallback handling in Audience loader already
+
+### Removed
+
+- Removed nonce fallback chain in AjaxTrait — each handler now verifies a single specific nonce action, eliminating timing side-channel
+- Removed `wp_rest` as fallback nonce in Self-Scheduling AJAX handlers — only `ffc_self_scheduling_nonce` accepted
 
 ---
 
@@ -485,19 +479,17 @@ Multi-identifier architecture: split combined CPF/RF into independent columns, a
 
 ### Added
 
-- Added separate `cpf`, `cpf_encrypted`, `cpf_hash`, `rf`, `rf_encrypted`, `rf_hash` columns to submissions and appointments tables (Sprint 1)
-- Updated core layer (SubmissionHandler, FormProcessor, Encryption) to read/write split columns natively (Sprint 2)
-- Updated admin, API, security, and privacy layers for split cpf/rf columns (Sprint 3)
-- Preserved legacy `cpf_rf` columns during split migration for backward compatibility (Sprint 4)
-- Updated user dashboard layer (UserCreator, UserManager, CapabilityManager) for split columns (Sprint 5)
+- Added separate `cpf`, `cpf_encrypted`, `cpf_hash`, `rf`, `rf_encrypted`, `rf_hash` columns to submissions and appointments tables
+- Updated core layer (SubmissionHandler, FormProcessor, Encryption) to read/write split columns natively
+- Updated admin, API, security, and privacy layers for split cpf/rf columns
+- Preserved legacy `cpf_rf` columns during split migration for backward compatibility
+- Updated user dashboard layer (UserCreator, UserManager, CapabilityManager) for split columns
 - Added `identifier_type` parameter to UserCreator for targeted column lookup (CPF vs RF)
 - `test_format_csv_row_rf_only` test case for RF-only submissions
 - Appointment detail view in admin panel with decrypted CPF/RF split fields, calendar info, and custom data
 
 ### Changed
 
-- Removed legacy `cpf_rf` dual-write; optimized split migration to be the single source of truth (Sprint 5)
-- Removed `cpf_rf_hash` legacy fallback from UserCreator queries
 - Deprecated legacy `cpf_rf` columns across entire plugin with `@deprecated` annotations
 - Identifier digit-count classification targets specific hash column (11→CPF, 7→RF) instead of scanning both
 - Applied digit-count classification to AppointmentRepository `findByCpfRf`
@@ -505,6 +497,21 @@ Multi-identifier architecture: split combined CPF/RF into independent columns, a
 - Activator `run_migrations()` — no longer auto-runs retired migrations on activation
 - MigrationManager unit tests adapted to simplified architecture
 - Privacy/LGPD deletion request success message now tells admins where to find it (Tools > Erase Personal Data)
+- **10 completed migrations** retired from admin panel — these ran their course and are no longer needed:
+  - `email` field migration (JSON→column extraction, handled at insert since v2.9)
+  - `cpf_rf` field migration (JSON→column extraction, handled at insert since v2.9)
+  - `auth_code` field migration (JSON→column extraction, handled at insert since v2.9)
+  - `magic_tokens` generation (handled at insert since v2.10)
+  - `encrypt_sensitive_data` (100% complete, LGPD compliance)
+  - `cleanup_unencrypted` (100% complete, replaced by daily cron)
+  - `user_link` submissions→users (handled at insert by UserCreator since v3.1)
+  - `name_normalization` (handled at insert by FormProcessor since v4.3)
+  - `user_capabilities` (handled at insert by UserCreator since v4.4)
+  - `data_cleanup` (flag-based, replaced by cron)
+  - 7 migration strategy classes (FieldMigration, MagicToken, Encryption, Cleanup, UserLink, NameNormalization, UserCapabilities)
+  - 3 legacy migration executor classes (MigrationUserLink, MigrationNameNormalization, MigrationUserCapabilities)
+  - `split_cpf_rf` migration remains available for legacy data
+  - Result: **934 tests, 1830 assertions, 0 failures**
 
 ### Fixed
 
@@ -524,25 +531,8 @@ Multi-identifier architecture: split combined CPF/RF into independent columns, a
 
 ### Removed
 
-- **10 completed migrations** retired from admin panel — these ran their course and are no longer needed:
-  - `email` field migration (JSON→column extraction, handled at insert since v2.9)
-  - `cpf_rf` field migration (JSON→column extraction, handled at insert since v2.9)
-  - `auth_code` field migration (JSON→column extraction, handled at insert since v2.9)
-  - `magic_tokens` generation (handled at insert since v2.10)
-  - `encrypt_sensitive_data` (100% complete, LGPD compliance)
-  - `cleanup_unencrypted` (100% complete, replaced by daily cron)
-  - `user_link` submissions→users (handled at insert by UserCreator since v3.1)
-  - `name_normalization` (handled at insert by FormProcessor since v4.3)
-  - `user_capabilities` (handled at insert by UserCreator since v4.4)
-  - `data_cleanup` (flag-based, replaced by cron)
-- 7 migration strategy classes (FieldMigration, MagicToken, Encryption, Cleanup, UserLink, NameNormalization, UserCapabilities)
-- 3 legacy migration executor classes (MigrationUserLink, MigrationNameNormalization, MigrationUserCapabilities)
-
-### Documentation
-
-- `split_cpf_rf` migration remains available for legacy data
-
-- Result: **934 tests, 1830 assertions, 0 failures**
+- Removed legacy `cpf_rf` dual-write; optimized split migration to be the single source of truth
+- Removed `cpf_rf_hash` legacy fallback from UserCreator queries
 
 ---
 
@@ -559,18 +549,20 @@ PHPStan level 6 — zero-baseline compliance. Resolved all 317 static analysis e
 
 - Added missing `use` import statements for 94 class.notFound errors across admin, API, frontend, and migration files
 - Cast `int` to `string` for `esc_html()`, `esc_attr()`, `sprintf()`, `_n()` calls (50 argument.type errors)
-- Removed 15 unreachable code blocks after `wp_die()`, `exit`, `wp_send_json_*()` calls
 - Corrected PHPDoc `@return` types to match native return types (13 return.type errors)
-- Removed unused properties (`$form_editor`, `$settings_page`, `$dynamic_fragments`, etc.) flagged as write-only
-- Removed redundant `is_array()`/`is_string()` type checks on already-typed variables (15 errors)
-- Removed unused constructor parameters (`$email_handler`, `$form_processor`, `$submission_handler`, `$verification_handler`) and updated all callers + tests
-- Renamed undefined method calls (`check_limit` → `check_ip_limit`, added `process_bulk_action()`, fixed `generate_qr_code()` static call)
 - Resolved include/require path resolution by using `__DIR__` in PHPStan stubs for `FFC_PLUGIN_DIR`
 - Added PHPStan stubs for `DB_NAME`, `QR_ECLEVEL_*`, and `QRcode` class constants
 - Simplified always-true/false conditions, redundant `empty()` checks, and `!== null` comparisons
 - Fixed duplicate array keys, `WP_Error` namespace references, and covariant return types
-
 - Baseline: Reduced from 317 errors to **0** (empty `ignoreErrors` array)
+
+### Removed
+
+- Removed 15 unreachable code blocks after `wp_die()`, `exit`, `wp_send_json_*()` calls
+- Removed unused properties (`$form_editor`, `$settings_page`, `$dynamic_fragments`, etc.) flagged as write-only
+- Removed redundant `is_array()`/`is_string()` type checks on already-typed variables (15 errors)
+- Removed unused constructor parameters (`$email_handler`, `$form_processor`, `$submission_handler`, `$verification_handler`) and updated all callers + tests
+- Renamed undefined method calls (`check_limit` → `check_ip_limit`, added `process_bulk_action()`, fixed `generate_qr_code()` static call)
 
 ---
 
@@ -584,7 +576,7 @@ Unit tests for EmailHelperTrait, AjaxTrait, and Debug: email sending/parsing hel
 - **AjaxTraitTest** (17 tests) — `get_post_param()` (value/default/empty), `get_post_int()` (integer cast, default, negative→positive via absint, non-numeric→zero), `get_post_array()` (sanitized array, missing→empty, non-array→empty), `verify_ajax_nonce()` (valid passes, fallback action accepted, missing nonce sends error with die simulation, custom field name), `check_ajax_permission()` (granted passes, denied sends error)
 - **DebugTest** (13 tests) — `is_enabled()` (enabled/disabled/zero/independent areas), `log()` (writes when enabled, skips when disabled), data formatting (null no suffix, string/array/integer data), convenience method delegation (log_pdf, log_email, log_form, log_rest_api, log_migrations, log_activity_log), area constants count (9)
 
-### Changed
+### Fixed
 
 - Added `patchwork.json` to allow Brain\Monkey mocking of PHP built-in `error_log`
 - 765 → 815 tests, 1496 → 1563 assertions
@@ -601,7 +593,7 @@ Unit tests for CsvExportTrait, ActivityLogQuery, and AppointmentCsvExporter: dyn
 - **ActivityLogQueryTest** (17 tests) — `get_activities()` (defaults, JSON context decode, invalid/empty context, level/search filter in prepared SQL, orderby whitelist, order normalization), `count_activities()` (integer return, multi-filter query building), `get_stats()` (transient cache hit/miss, DB aggregation), `cleanup()` (deleted count, transient clearing), `run_cleanup()` (settings retention, zero skip, default 90)
 - **AppointmentCsvExporterTest** (21 tests) — `format_csv_row()` via Reflection: status labels (6 statuses incl. unknown fallback), consent display (yes/no/unset), user lookups (approved_by/cancelled_by with display name, deleted user ID fallback), calendar title from repo with deleted fallback, dynamic columns (appended, missing key default), `get_fixed_headers()` count and ID-first
 
-### Changed
+### Fixed
 
 - 709 → 765 tests, 1427 → 1496 assertions
 
@@ -617,7 +609,7 @@ Unit tests for BlockedDateRepository, EmailTemplateService, and ActivityLogSubsc
 - **EmailTemplateServiceTest** (24 tests) — `render_template()` (single/multiple vars, unknown placeholders, empty), `wrap_html()` (DOCTYPE, site name, header/content/footer structure), `format_date()`/`format_time()`, `send()` (wrap/no-wrap, wp_mail result), `generate_ics()` (VCALENDAR/VEVENT structure, date/time formatting, UID domain, REQUEST/CANCEL methods, summary/description/location, special char escaping, PRODID)
 - **ActivityLogSubscriberTest** (13 tests) — Constructor hook registrations (submission/appointment/settings/cleanup), `on_settings_saved()` cache clearing (wp_cache_delete, delete_transient verification), logging method smoke tests (all 7 event handlers run without error with logging disabled)
 
-### Changed
+### Fixed
 
 - 652 → 709 tests, 1338 → 1427 assertions
 
@@ -633,7 +625,7 @@ Unit tests for Self-Scheduling and Date Blocking: appointment validation, save h
 - **SelfSchedulingSaveHandlerTest** (18 tests) — `save_config()` (slot duration/defaults, boolean toggles, visibility validation, private forces scheduling private, description, no POST skip), `save_working_hours()` (sanitization, defaults, no POST skip), `save_email_config()` (boolean toggles, reminder hours, text fields, no POST skip)
 - **DateBlockingServiceTest** (18 tests) — `is_global_holiday()` (match, no match, empty, non-array, missing date key), `get_global_holidays()` (all, start/end/range filter, empty range, non-array, missing date entries), `is_date_available()` (holiday blocks, working hours blocks, null time checks working day, closed day)
 
-### Changed
+### Fixed
 
 - 592 → 652 tests, 1235 → 1338 assertions
 
@@ -649,7 +641,7 @@ Unit tests for Migrations, Scheduling, and Generators: pure logic coverage for d
 - **WorkingHoursServiceTest** (30 tests) — `is_within_working_hours()` keyed format (range check, boundary inclusive start/exclusive end, closed day, missing start/end), array-of-objects format (range, no entry, split shift with gap), edge cases (empty/null/JSON string/unknown format); `is_working_day()` (both formats); `get_day_ranges()` (single range, split shift, closed, empty)
 - **MagicLinkHelperTest** (32 tests) — `is_valid_token()` (32/64 hex, uppercase, boundary lengths, non-hex, empty), `generate_magic_link()` (URL structure, empty token), `extract_token_from_url()` (ffc_magic, token query, hash fragment, priority, no token), `get_magic_link_html()` (link, copy button, no-copy, empty token), `get_magic_link_qr_code()` (Google Charts URL, custom size, empty), `debug_info()`, `ensure_token()` (null handler, valid handler, invalid-generates-new), `get_magic_link_from_submission()`, `get_verification_page_url()`
 
-### Changed
+### Fixed
 
 - 499 → 592 tests, 1118 → 1235 assertions
 
@@ -665,7 +657,7 @@ Unit tests for Admin module: comprehensive coverage of settings validation, CSV 
 - **SettingsSaveHandlerTest** (28 tests) — `save_general_settings()` (dark mode validation, cleanup days, advanced tab debug flags, cache tab), `save_smtp_settings()` (tab-specific disable, SMTP fields, user email settings), `save_qrcode_settings()` (size/margin, cache tab), `save_date_format_settings()` (format/custom, preservation)
 - **CsvExporterTest** (25 tests) — `get_fixed_headers()` (14/17 columns with/without edit), `format_csv_row()` (fixed columns, consent formatting, deleted form title, edit columns, dynamic columns, empty optional fields), CsvExportTrait methods (`build_dynamic_headers`, `decode_json_field`, `extract_dynamic_keys`, `extract_dynamic_values`)
 
-### Changed
+### Fixed
 
 - 422 → 499 tests, 974 → 1118 assertions
 
@@ -689,7 +681,7 @@ Unit tests for SubmissionHandler: comprehensive coverage of update, decrypt, fai
 
 ### Added
 
-- **21 additional SubmissionHandler tests** covering gaps identified in Sprint 17 analysis:
+- **21 additional SubmissionHandler tests** covering gaps identified in analysis:
   - `update_submission()` (4 tests): encrypts email with hash, encrypts data JSON, strips edit tracking (`is_edited`/`edited_at`) from data before encryption, returns false on repo failure
   - `update_user_link()` (3 tests): sets user_id on link, passes null to unlink, returns false on failure
   - `decrypt_submission_data()` (2 tests): plaintext passthrough preserves all fields, encrypted fields correctly decrypted
@@ -699,7 +691,7 @@ Unit tests for SubmissionHandler: comprehensive coverage of update, decrypt, fai
   - `process_submission` branches (3 tests): consent absent sets 0, CPF mask cleaned before encryption, pre-populated auth_code preserved
   - `ensure_magic_token` (1 test): returns empty string when submission not found
 
-### Changed
+### Fixed
 
 - 401 → 422 tests, 923 → 974 assertions
 
@@ -707,14 +699,14 @@ Unit tests for SubmissionHandler: comprehensive coverage of update, decrypt, fai
 
 ## 4.12.17 (2026-02-17)
 
-Refactoring: extract focused classes from FormProcessor (822 → 548 lines, 33% reduction).
+Refactoring: extract focused classes from FormProcessor.
 
 ### Changed
 
 - **AccessRestrictionChecker** (168 lines) — extracted `check_restrictions` and `consume_ticket` as public static methods for password, denylist, allowlist, and ticket validation
 - **ReprintDetector** (164 lines) — extracted `detect_reprint` as a public static method with `build_reprint_result` helper for JSON decoding and field enrichment
 - Updated FormProcessorTest and FormProcessorRestrictionsTest to call AccessRestrictionChecker::check() directly (no more Reflection for restriction tests)
-- FormProcessor retains AJAX orchestration, quiz scoring, and submission processing as its core responsibility
+- FormProcessor retains AJAX orchestration, quiz scoring, and submission processing as its core responsibility (822 → 548 lines, 33% reduction)
 
 ---
 
@@ -741,7 +733,7 @@ Unit tests for Utils: comprehensive coverage of document validation, formatting,
   - Group B (WordPress mocks, 11 methods): `asset_suffix`, `mask_email` (3 tests), `generate_random_string` (3 tests), `generate_auth_code`, `current_user_can_manage` (2 tests), `verify_simple_captcha` (5 tests), `validate_security_fields` (4 tests), `get_allowed_html_tags`, `generate_simple_captcha`, `recursive_sanitize` (2 tests)
   - Group C (DB mock): `get_submissions_table` (2 tests including multisite prefix)
 
-### Changed
+### Fixed
 
 - 306 → 401 tests, 812 → 923 assertions
 
@@ -756,8 +748,7 @@ Unit tests for FormProcessor and PdfGenerator: quiz scoring, restriction checks,
 - **FormProcessorTest** — 21 tests covering `calculate_quiz_score()` (9 tests: correct/wrong answers, partial scoring, non-scored fields, rounding, empty input) and `check_restrictions()` (12 tests: password validation, denylist/allowlist CPF matching, ticket validation/consumption, priority ordering)
 - **PdfGeneratorTest** — 32 tests covering `parse_validation_url_params()` (12 tests: link formats, custom text, target/color attributes, combined params), `generate_filename()` (6 tests: title sanitization, auth code appending, special chars, empty fallback), `generate_default_html()` (6 tests: conditional name/auth code rendering), and `enrich_submission_data()` (8 tests: email/date/ID/magic-token enrichment, no-overwrite behavior)
 
-### Changed
-
+### Fixed
 - 253 → 306 tests, 710 → 812 assertions
 
 ---
@@ -784,13 +775,10 @@ Unit tests for Reregistration module: field options and data processor.
 - **ReregistrationFieldOptionsTest** — 15 tests covering `get_divisao_setor_map()` structure and content, field option providers (`sexo`, `estado_civil`, `sindicato`, `jornada`, `acumulo`, `uf`), UF 2-letter code validation, and `get_default_working_hours()` structure
 - **ReregistrationDataProcessorTest** — 19 tests covering `sanitize_working_hours()` (valid/invalid JSON, missing day key, type casting, optional fields) and `validate_submission()` (required fields, CPF/phone validation, division-department consistency, custom field required/format/regex/email validation)
 
-### Changed
-
-- 218 → 253 tests, 453 → 710 assertions
-
 ### Fixed
 
 - **AudienceCsvImporterTest** — 5 tests using Mockery alias mocks for `AudienceRepository` now run in separate processes (`@runInSeparateProcess`) to prevent alias contamination of subsequent test classes
+- 218 → 253 tests, 453 → 710 assertions
 
 ---
 
@@ -803,7 +791,7 @@ Unit tests for Audience module: CSV importer and notification handler.
 - **AudienceCsvImporterTest** — 26 tests covering `validate_csv()`, `get_sample_csv()`, `import_members()`, and `import_audiences()` (header normalization, missing columns, empty rows, invalid emails, existing users, duplicate members, parent-before-child creation order, default color fallback)
 - **AudienceNotificationHandlerTest** — 10 tests covering `render_template()` variable substitution (user, booking, cancellation, site, and optional keys), subject generation, and default template placeholder completeness
 
-### Changed
+### Fixed
 
 - 182 → 218 tests, 352 → 453 assertions
 
@@ -811,7 +799,7 @@ Unit tests for Audience module: CSV importer and notification handler.
 
 ## 4.12.10 (2026-02-17)
 
-Security hardening sprint: regex validation, AJAX method enforcement, modern CSPRNG, prepared SQL statements.
+Security hardening: regex validation, AJAX method enforcement, modern CSPRNG, prepared SQL statements.
 
 ### Changed
 
@@ -980,8 +968,6 @@ God class refactoring: UserManager and ActivityLog split into single-responsibil
 - **UserManager** — reduced from ~1,150 to ~400 lines; retains profile CRUD and data retrieval methods; delegates capabilities to CapabilityManager and user creation to UserCreator via backward-compatible constant aliases and method wrappers
 - **ActivityLog** — reduced from ~800 to ~520 lines; retains core logging, buffer management, and convenience methods; delegates query/stats/cleanup to ActivityLogQuery
 
-- No breaking changes: all existing method calls and constant references continue to work via delegation
-
 ---
 
 ## 4.12.1 (2026-02-16)
@@ -1000,6 +986,8 @@ Test coverage expansion: from 3 to 9 test files, covering critical security and 
 ### Changed
 
 - **Bootstrap** — added WP_REST_Server stub, OBJECT_K/ARRAY_A/DB_NAME constants, updated FFC_VERSION to match plugin
+
+### Fixed
 
 - Total: **108 tests, 210 assertions** (previously 14 tests, 23 assertions)
 
@@ -1040,7 +1028,7 @@ Audience custom fields, reregistration campaigns, ficha PDF, email notifications
 - **REST API endpoints** — `GET /user/reregistrations`, `POST /user/reregistration/{id}/submit`, `POST /user/reregistration/{id}/draft`
 - **Migration** — `MigrationCustomFieldsTables` ensures tables exist on upgrade from pre-4.11.0 versions
 - **Documentation** — 3 new sections: Audience Custom Fields, Reregistration, Ficha PDF
-- **pt_BR translations** — all new strings from Sprints 6-11 translated to Portuguese
+- **pt_BR translations** — all new strings translated to Portuguese
 - 3 database tables: `ffc_custom_fields`, `ffc_reregistrations`, `ffc_reregistration_submissions`
 - Email templates: `reregistration-invitation.php`, `reregistration-reminder.php`, `reregistration-confirmation.php`
 - Ficha HTML template: `html/default_ficha_template.html`
@@ -1361,7 +1349,6 @@ Settings UX, dead code removal, code deduplication, version centralization, and 
 - UX: Move debug flags and danger zone to Advanced tab, cache settings to Cache tab
 - Extract duplicate get_option() from 4 tab classes into base SettingsTab class
 - Extract duplicate dark mode enqueue into Utils::enqueue_dark_mode() (shared by admin + frontend)
-- Remove redundant = null initialization from 16 Loader properties
 - View files delegate to tab method via Closure::fromCallable instead of inline lambdas
 
 ### Fixed
@@ -1380,6 +1367,7 @@ Settings UX, dead code removal, code deduplication, version centralization, and 
 - Remove 50+ stale version annotation comments across 21 files
 - Remove commented-out debug error_log() and TinyMCE CSS blocks
 - Unnecessary defined() fallbacks for library version constants in self-scheduling shortcode
+- Remove redundant = null initialization from 16 Loader properties
 
 ---
 
@@ -1393,12 +1381,15 @@ Plugin Check Compliance: Hook prefix, SQL placeholders, deprecated API removal, 
 
 ### Fixed
 
-- Remove deprecated load_plugin_textdomain() call (automatic since WordPress 4.6)
 - Rename all 44 hook names from ffc_ to ffcertificate_ prefix for WordPress Plugin Check compliance
 - Add WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare to phpcs:ignore for dynamic IN() queries
 - Add WordPress.DB.PreparedSQL.InterpolatedNotPrepared to phpcs:ignore for safe table name interpolation
 - Migrate old ffc_daily_cleanup_hook cron to new ffcertificate_daily_cleanup_hook name on init
 - Clean up both old and new cron hook names in deactivator and uninstall.php
+
+### Removed
+
+- Remove deprecated load_plugin_textdomain() call (automatic since WordPress 4.6)
 
 ---
 
@@ -1592,9 +1583,12 @@ Architecture: Internal hook consumption — plugin uses its own hooks for activi
 
 ### Changed
 
+- Architecture: Plugin "eats its own dog food" — business logic decoupled from logging
+
+### Removed
+
 - Removed direct ActivityLog calls from SubmissionHandler (5 calls → hook-based)
 - Removed direct ActivityLog calls from AppointmentHandler (2 calls → hook-based)
-- Architecture: Plugin "eats its own dog food" — business logic decoupled from logging
 
 ---
 
@@ -1669,9 +1663,6 @@ Security, accessibility, code quality, and structural refactoring.
 - Added vendor prefixes (`-webkit-`, `-moz-`) for cross-browser CSS support
 - Split `AudienceAdminPage` (~2,300 lines) into coordinator + 7 focused sub-classes
 - Split `RestController` (~1,940 lines) into coordinator + 5 domain-specific sub-controllers
-- Renamed calendar asset files with `ffc-` prefix for naming consistency
-- Removed duplicate CSS declarations across stylesheets
-- Plugin slug from `wp-ffcertificate` to `ffcertificate` (removed restricted "wp-" prefix)
 - Text domain from `wp-ffcertificate` to `ffcertificate`
 - Hook prefix from `wp_ffcertificate_` to `ffcertificate_`
 - Language files renamed to match new text domain
@@ -1680,6 +1671,12 @@ Security, accessibility, code quality, and structural refactoring.
 
 - Frontend CSS duplication causing style conflicts
 - Restored `Loader::run()` method accidentally removed during refactoring
+- Renamed calendar asset files with `ffc-` prefix for naming consistency
+- Plugin slug from `wp-ffcertificate` to `ffcertificate` (removed restricted "wp-" prefix)
+
+### Removed
+
+- Removed duplicate CSS declarations across stylesheets
 
 ### Security
 
@@ -1796,6 +1793,9 @@ WordPress Plugin Check compliance and distribution cleanup.
 - `parse_url()` replaced with `wp_parse_url()`, `unlink()` with `wp_delete_file()`
 - Text domain changed from `ffc` to `ffcertificate`
 - Translation files renamed to match new text domain
+
+### Removed
+
 - Removed development files from distribution (tests, docs, CI, composer, phpqrcode cache)
 
 ---
@@ -1864,11 +1864,9 @@ _The Data Encryption framework, first introduced during the 2.9.x development cy
 
 ### Changed
 
-- **BREAKING:** Removed all backward-compatibility aliases for old `FFC_*` class names
 - All 88 classes now exclusively use `FreeFormCertificate\*` namespaces
 - Converted all remaining `\FFC_*` references to fully qualified namespaces
 - Renamed `CSVExporter` to `CsvExporter` for PSR naming consistency
-- Removed all obsolete `require_once` statements (autoloader handles loading)
 - Added global namespace prefix (`\`) to all WordPress core classes in namespaced files
 - CSV export with all DB columns and multi-form filters
 - Finalized PSR-4 cleanup across all modules
@@ -1881,6 +1879,11 @@ _The Data Encryption framework, first introduced during the 2.9.x development cy
 - CSV export error handling, UTF-8 encoding, and multi-form filters
 - REST API 500 error from broken encrypted email search
 - `json_decode` null handling for PHP 8+ compatibility
+
+### Removed
+
+- **BREAKING:** Removed all backward-compatibility aliases for old `FFC_*` class names
+- Removed all obsolete `require_once` statements (autoloader handles loading)
 
 ---
 
@@ -1915,7 +1918,6 @@ Strict types and full type hints.
 
 - `declare(strict_types=1)` to all PHP files
 - Full type hints (parameter types, return types) across all classes
-
 - Affected: Core, Repositories, Migration Strategies, Settings Tabs, User Dashboard, Shortcodes, Security, Generators, Frontend, Integrations, Submissions
 
 ---
@@ -2237,7 +2239,6 @@ _Reconstructed from forensic source diff of `wp-ffcertificate_12_12_2025.zip`. T
 
 - Maintenance patch series leading from 1.0.0 to 1.5.0; specific change details are unrecoverable from the available evidence.
 - Plugin header version stamped at `1.0.7`; no `FFC_VERSION` constant yet (the constant was introduced during the 2.5.0 development cycle).
-
 - Snapshot file inventory: 23 files (`assets/`, `ffc.pot`, `html/`, `includes/`, `readme.txt`, `wp-ffcertificate.php`) — pre-modular monolithic structure.
 
 ---
