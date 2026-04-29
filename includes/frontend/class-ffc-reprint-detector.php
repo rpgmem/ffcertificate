@@ -70,7 +70,7 @@ class ReprintDetector {
 		} elseif ( ! empty( $val_cpf ) ) {
 			// Check by CPF/RF (if ticket not provided).
 			// Remove formatting for comparison.
-			$clean_cpf = preg_replace( '/[^0-9]/', '', $val_cpf );
+			$clean_cpf = preg_replace( '/[^0-9]/', '', $val_cpf ) ?? '';
 
 			// Check if encryption is enabled.
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
@@ -113,6 +113,7 @@ class ReprintDetector {
 	 * Build reprint result from a database row
 	 *
 	 * @param object $existing_submission Database row.
+	 * @phpstan-param \stdClass&object{id: numeric-string, submission_date: string, email_encrypted?: string|null, data?: string|null} $existing_submission
 	 * @return array<string, mixed> Reprint result array
 	 */
 	private static function build_reprint_result( object $existing_submission ): array {
