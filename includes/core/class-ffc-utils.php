@@ -199,107 +199,6 @@ class Utils {
 		return apply_filters( 'ffcertificate_allowed_html_tags', $allowed );
 	}
 
-	// ── Document methods delegated to DocumentFormatter (Sprint 30) ──.
-
-	/**
-	 * Validate cpf.
-	 *
-	 * @deprecated Use DocumentFormatter::validate_cpf()
-	 * @param string $cpf CPF document.
-	 */
-	public static function validate_cpf( string $cpf ): bool {
-		return DocumentFormatter::validate_cpf( $cpf );
-	}
-
-	/**
-	 * Validate phone.
-	 *
-	 * @deprecated Use DocumentFormatter::validate_phone()
-	 * @param string $phone Phone number.
-	 */
-	public static function validate_phone( string $phone ): bool {
-		return DocumentFormatter::validate_phone( $phone );
-	}
-
-	/**
-	 * Description.
-	 *
-	 * @deprecated Use DocumentFormatter::PHONE_REGEX
-	 */
-	public const PHONE_REGEX = '^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$';
-
-	/**
-	 * Format cpf.
-	 *
-	 * @deprecated Use DocumentFormatter::format_cpf()
-	 * @param string $cpf CPF document.
-	 */
-	public static function format_cpf( string $cpf ): string {
-		return DocumentFormatter::format_cpf( $cpf );
-	}
-
-	/**
-	 * Validate rf.
-	 *
-	 * @deprecated Use DocumentFormatter::validate_rf()
-	 * @param string $rf Rf.
-	 */
-	public static function validate_rf( string $rf ): bool {
-		return DocumentFormatter::validate_rf( $rf );
-	}
-
-	/**
-	 * Format rf.
-	 *
-	 * @deprecated Use DocumentFormatter::format_rf()
-	 * @param string $rf Rf.
-	 */
-	public static function format_rf( string $rf ): string {
-		return DocumentFormatter::format_rf( $rf );
-	}
-
-	/**
-	 * Mask cpf.
-	 *
-	 * @deprecated Use DocumentFormatter::mask_cpf()
-	 * @param string $value Value.
-	 */
-	public static function mask_cpf( string $value ): string {
-		return DocumentFormatter::mask_cpf( $value );
-	}
-
-	/**
-	 * Mask email.
-	 *
-	 * @deprecated Use DocumentFormatter::mask_email()
-	 * @param string $email Email address.
-	 */
-	public static function mask_email( string $email ): string {
-		return DocumentFormatter::mask_email( $email );
-	}
-
-	/**
-	 * Format auth code.
-	 *
-	 * @deprecated Use DocumentFormatter::format_auth_code()
-	 * @param string $code Code.
-	 * @param string $prefix Prefix.
-	 */
-	public static function format_auth_code( string $code, string $prefix = '' ): string {
-		return DocumentFormatter::format_auth_code( $code, $prefix );
-	}
-
-	/**
-	 * Format document.
-	 *
-	 * @deprecated Use DocumentFormatter::format_document()
-	 * @param string $value Value.
-	 * @param string $type Type.
-	 */
-	public static function format_document( string $value, string $type = 'auto' ): string {
-		return DocumentFormatter::format_document( $value, $type );
-	}
-
 	/**
 	 * Get user IP address with proxy support
 	 *
@@ -446,10 +345,10 @@ class Utils {
 		$name      = pathinfo( $filename, PATHINFO_FILENAME );
 
 		// Remove special characters.
-		$name = preg_replace( '/[^a-zA-Z0-9\-_]/', '-', $name );
+		$name = preg_replace( '/[^a-zA-Z0-9\-_]/', '-', $name ) ?? '';
 
 		// Remove multiple dashes.
-		$name = preg_replace( '/-+/', '-', $name );
+		$name = preg_replace( '/-+/', '-', $name ) ?? '';
 
 		// Trim dashes from start/end.
 		$name = trim( $name, '-' );
@@ -482,37 +381,6 @@ class Utils {
 		$bytes /= pow( 1024, $pow );
 
 		return round( $bytes, $precision ) . ' ' . $units[ (int) $pow ];
-	}
-
-	// ── Auth code methods delegated to AuthCodeService (Sprint 31) ──.
-
-	/**
-	 * Generate random string.
-	 *
-	 * @deprecated Use AuthCodeService::generate_random_string()
-	 * @param int    $length Length.
-	 * @param string $chars Chars.
-	 */
-	public static function generate_random_string( int $length = 12, string $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' ): string {
-		return AuthCodeService::generate_random_string( $length, $chars );
-	}
-
-	/**
-	 * Generate auth code.
-	 *
-	 * @deprecated Use AuthCodeService::generate_auth_code()
-	 */
-	public static function generate_auth_code(): string {
-		return AuthCodeService::generate_auth_code();
-	}
-
-	/**
-	 * Generate globally unique auth code.
-	 *
-	 * @deprecated Use AuthCodeService::generate_globally_unique_auth_code()
-	 */
-	public static function generate_globally_unique_auth_code(): string {
-		return AuthCodeService::generate_globally_unique_auth_code();
 	}
 
 	/**
@@ -571,26 +439,6 @@ class Utils {
 	}
 
 	/**
-	 * Clean auth code.
-	 *
-	 * @deprecated Use DocumentFormatter::clean_auth_code()
-	 * @param string $code Code.
-	 */
-	public static function clean_auth_code( string $code ): string {
-		return DocumentFormatter::clean_auth_code( $code );
-	}
-
-	/**
-	 * Clean identifier.
-	 *
-	 * @deprecated Use DocumentFormatter::clean_identifier()
-	 * @param string $value Value.
-	 */
-	public static function clean_identifier( string $value ): string {
-		return DocumentFormatter::clean_identifier( $value );
-	}
-
-	/**
 	 * Log debug message (only if WP_DEBUG is enabled)
 	 *
 	 * Debug log.
@@ -631,74 +479,6 @@ class Utils {
 
         // phpcs:ignore WordPress.PHP.DevelopmentFunctions
 		error_log( $log_message );
-	}
-
-	// ── Security methods delegated to SecurityService (Sprint 31) ──.
-
-	/**
-	 * Generate simple captcha.
-	 *
-	 * @deprecated Use SecurityService::generate_simple_captcha()
-	 * @return array<string, mixed>
-	 */
-	public static function generate_simple_captcha(): array {
-		return SecurityService::generate_simple_captcha();
-	}
-
-	/**
-	 * Verify simple captcha.
-	 *
-	 * @deprecated Use SecurityService::verify_simple_captcha()
-	 * @param string $answer Answer.
-	 * @param string $hash Hash.
-	 */
-	public static function verify_simple_captcha( string $answer, string $hash ): bool {
-		return SecurityService::verify_simple_captcha( $answer, $hash );
-	}
-
-	/**
-	 * Validate security fields.
-	 *
-	 * Validate security fields.
-	 *
-	 * Validate security fields.
-	 *
-	 * Validate security fields.
-	 *
-	 * Validate security fields.
-	 *
-	 * Validate security fields.
-	 *
-	 * @deprecated Use SecurityService::validate_security_fields()
-	 * @param array<string, mixed> $data POST data to validate.
-	 * @return true|string True on success, error message string on failure
-	 */
-	public static function validate_security_fields( array $data ) {
-		$result = SecurityService::validate_security_fields( $data );
-		return false === $result ? __( 'Security validation failed.', 'ffcertificate' ) : $result;
-	}
-
-	// ── Data sanitization methods delegated to DataSanitizer (Sprint 31) ──.
-
-	/**
-	 * Recursive sanitize.
-	 *
-	 * @deprecated Use DataSanitizer::recursive_sanitize()
-	 * @param mixed $data Data to sanitize.
-	 * @return mixed Sanitized data
-	 */
-	public static function recursive_sanitize( $data ) {
-		return DataSanitizer::recursive_sanitize( $data );
-	}
-
-	/**
-	 * Normalize brazilian name.
-	 *
-	 * @deprecated Use DataSanitizer::normalize_brazilian_name()
-	 * @param string $name Name.
-	 */
-	public static function normalize_brazilian_name( string $name ): string {
-		return DataSanitizer::normalize_brazilian_name( $name );
 	}
 
 	/**
@@ -743,7 +523,7 @@ class Utils {
 		$date_formatted = date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $submission_date ) );
 
 		// Auth code (formatted for display with certificate prefix).
-		$auth_code = isset( $submission_data['auth_code'] ) ? self::format_auth_code( $submission_data['auth_code'], DocumentFormatter::PREFIX_CERTIFICATE ) : '';
+		$auth_code = isset( $submission_data['auth_code'] ) ? DocumentFormatter::format_auth_code( $submission_data['auth_code'], DocumentFormatter::PREFIX_CERTIFICATE ) : '';
 
 		// Load template.
 		ob_start();

@@ -229,7 +229,7 @@ class AdminAjax {
 		global $wpdb;
 
 		// Clean CPF/RF (remove formatting).
-		$cpf_rf_clean = preg_replace( '/[^0-9]/', '', $cpf_rf );
+		$cpf_rf_clean = preg_replace( '/[^0-9]/', '', $cpf_rf ) ?? '';
 
 		if ( strlen( $cpf_rf_clean ) < 6 ) {
 			return array();

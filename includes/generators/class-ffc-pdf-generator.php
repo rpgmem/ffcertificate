@@ -44,6 +44,7 @@ class PdfGenerator {
 	 *
 	 * @param int    $submission_id Submission ID.
 	 * @param object $submission_handler Submission handler instance.
+	 * @phpstan-param \FreeFormCertificate\Submissions\SubmissionHandler $submission_handler
 	 * @return array<string, mixed>|\WP_Error PDF data array or error
 	 */
 	public function generate_pdf_data( int $submission_id, object $submission_handler ) {
@@ -297,12 +298,12 @@ class PdfGenerator {
 
 			// Format documents (CPF, RF, RG).
 			if ( in_array( $key, array( 'cpf', 'cpf_rf', 'rg' ), true ) ) {
-				$value = \FreeFormCertificate\Core\Utils::format_document( $value );
+				$value = \FreeFormCertificate\Core\DocumentFormatter::format_document( $value );
 			}
 
 			// Format auth code with certificate prefix.
 			if ( 'auth_code' === $key ) {
-				$value = \FreeFormCertificate\Core\Utils::format_auth_code( $value, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
+				$value = \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $value, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
 			}
 
 			// Apply allowed HTML filtering.
@@ -383,7 +384,7 @@ class PdfGenerator {
 				return $result;
 			},
 			$layout
-		);
+		) ?? $layout;
 
 		return $layout;
 	}
@@ -491,7 +492,7 @@ class PdfGenerator {
 
 			// Determine text.
 			$text = '';
-			if ( is_string( $params['text'] ) && ! in_array( $params['text'], array( 'm', 'v' ), true ) ) {
+			if ( ! in_array( $params['text'], array( 'm', 'v' ), true ) ) {
 				// Custom text literal.
 				$text = $params['text'];
 			} elseif ( 'm' === $params['text'] ) {
@@ -548,6 +549,9 @@ class PdfGenerator {
 
 		// Split by spaces to get individual parameters.
 		$parts = preg_split( '/\s+/', $params_string );
+		if ( ! is_array( $parts ) ) {
+			return $defaults;
+		}
 
 		foreach ( $parts as $part ) {
 			// Parse link:X>Y or link:X>"Custom Text".
@@ -593,7 +597,7 @@ class PdfGenerator {
 
 		// Show auth code if exists.
 		if ( isset( $data['auth_code'] ) ) {
-			$layout .= '<p>' . esc_html__( 'Authenticity:', 'ffcertificate' ) . ' ' . esc_html( \FreeFormCertificate\Core\Utils::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ) ) . '</p>';
+			$layout .= '<p>' . esc_html__( 'Authenticity:', 'ffcertificate' ) . ' ' . esc_html( \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ) ) . '</p>';
 		}
 
 		$layout .= '</div>';
@@ -770,7 +774,7 @@ class PdfGenerator {
 			'created_at'       => $formatted_created,
 			'status'           => $status_label,
 			'validation_code'  => ! empty( $appointment['validation_code'] )
-				? \FreeFormCertificate\Core\Utils::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT )
+				? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT )
 				: '',
 			'auth_code'        => ! empty( $appointment['validation_code'] )
 				? $appointment['validation_code']

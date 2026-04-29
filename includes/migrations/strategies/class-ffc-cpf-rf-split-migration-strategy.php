@@ -309,7 +309,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 					continue;
 				}
 
-				$digits = preg_replace( '/[^0-9]/', '', $plain_value );
+				$digits = preg_replace( '/[^0-9]/', '', $plain_value ) ?? '';
 				$len    = strlen( $digits );
 
 				// Copy existing encrypted/hash to the correct split column — no re-encryption.

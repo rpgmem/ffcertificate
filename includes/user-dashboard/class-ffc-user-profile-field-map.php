@@ -241,7 +241,7 @@ final class UserProfileFieldMap {
 	public static function group_by_storage( array $field_keys ): array {
 		$out = array();
 		foreach ( $field_keys as $key ) {
-			if ( ! is_string( $key ) || ! isset( self::FIELDS[ $key ] ) ) {
+			if ( ! isset( self::FIELDS[ $key ] ) ) {
 				continue;
 			}
 			$storage = self::FIELDS[ $key ]['storage'];

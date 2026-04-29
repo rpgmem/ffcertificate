@@ -67,14 +67,13 @@ class FormRestControllerTest extends TestCase {
 
         // Alias mocks for static-only classes
         $utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-        $utils_mock->shouldReceive( 'recursive_sanitize' )->andReturnUsing( function( $data ) { return $data; } )->byDefault();
-        $utils_mock->shouldReceive( 'validate_cpf' )->andReturn( true )->byDefault();
-        $utils_mock->shouldReceive( 'validate_rf' )->andReturn( true )->byDefault();
         $utils_mock->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault();
-        $utils_mock->shouldReceive( 'format_auth_code' )->andReturnUsing( function( $code, $prefix = '' ) {
-            return $prefix ? $prefix . '-' . $code : $code;
-        })->byDefault();
         $utils_mock->shouldReceive( 'debug_log' )->byDefault();
+
+        // DocumentFormatter is loaded for real (its PREFIX_* constants are needed
+        // by the controller). validate_cpf/rf and format_auth_code are pure.
+        $data_sanitizer_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' );
+        $data_sanitizer_mock->shouldReceive( 'recursive_sanitize' )->andReturnUsing( function( $data ) { return $data; } )->byDefault();
 
         $geofence_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
         $geofence_mock->shouldReceive( 'get_form_config' )->andReturn( null )->byDefault();
@@ -433,9 +432,7 @@ class FormRestControllerTest extends TestCase {
 
         $this->form_repo_mock->shouldReceive( 'getFields' )->with( 1 )->andReturn( array() );
 
-        // Make validate_cpf return false to trigger the invalid CPF error
-        $utils = Mockery::fetchMock( \FreeFormCertificate\Core\Utils::class );
-        $utils->shouldReceive( 'validate_cpf' )->with( '12345678901' )->andReturn( false );
+        // The real DocumentFormatter::validate_cpf returns false for this fake CPF.
 
         $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
         $request = $this->make_request(

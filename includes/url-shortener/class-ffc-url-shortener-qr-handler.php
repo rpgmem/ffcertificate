@@ -160,7 +160,7 @@ class UrlShortenerQrHandler {
 		// Get the raw QR matrix directly (no temp files, no GD).
 		$matrix = \QRcode::raw( $url, false, QR_ECLEVEL_M );
 
-		if ( ! is_array( $matrix ) || empty( $matrix ) ) {
+		if ( empty( $matrix ) ) {
 			return '';
 		}
 

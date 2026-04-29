@@ -75,6 +75,7 @@ class CPT {
 	 *
 	 * @param array<string, string> $actions Row action links.
 	 * @param object                $post Post object.
+	 * @phpstan-param \WP_Post $post
 	 * @return array<string, string>
 	 */
 	public function add_duplicate_link( array $actions, object $post ): array {
@@ -141,7 +142,7 @@ class CPT {
 			'post_author' => get_current_user_id(),
 		);
 
-		$new_post_id = wp_insert_post( $new_post_args );
+		$new_post_id = wp_insert_post( $new_post_args, true );
 
 		if ( is_wp_error( $new_post_id ) ) {
 			\FreeFormCertificate\Core\Utils::debug_log(
@@ -221,9 +222,10 @@ class CPT {
 					'/(<a[^>]*>)\s*[^<]+(<span)/',
 					'$1' . esc_html( $map[ $key ] ) . ' $2',
 					$html
-				);
+				) ?? $html;
 			}
 		}
+		unset( $html );
 
 		return $views;
 	}

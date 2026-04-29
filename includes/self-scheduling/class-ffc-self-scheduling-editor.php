@@ -172,6 +172,7 @@ class SelfSchedulingEditor {
 	 * Render calendar configuration metabox
 	 *
 	 * @param object $post Post object.
+	 * @phpstan-param \WP_Post $post
 	 * @return void
 	 */
 	public function render_box_config( object $post ): void {
@@ -248,6 +249,7 @@ class SelfSchedulingEditor {
 	 * Render working hours metabox
 	 *
 	 * @param object $post Post object.
+	 * @phpstan-param \WP_Post $post
 	 * @return void
 	 */
 	public function render_box_hours( object $post ): void {
@@ -340,6 +342,7 @@ class SelfSchedulingEditor {
 	 * Render booking rules metabox
 	 *
 	 * @param object $post Post object.
+	 * @phpstan-param \WP_Post $post
 	 * @return void
 	 */
 	public function render_box_rules( object $post ): void {
@@ -486,6 +489,7 @@ class SelfSchedulingEditor {
 	 * Render email configuration metabox
 	 *
 	 * @param object $post Post object.
+	 * @phpstan-param \WP_Post $post
 	 * @return void
 	 */
 	public function render_box_email( object $post ): void {
@@ -579,6 +583,7 @@ class SelfSchedulingEditor {
 	 * Render shortcode metabox (sidebar)
 	 *
 	 * @param object $post Post object.
+	 * @phpstan-param \WP_Post $post
 	 * @return void
 	 */
 	public function render_shortcode_metabox( object $post ): void {

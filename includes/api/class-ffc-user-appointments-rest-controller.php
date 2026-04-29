@@ -122,7 +122,7 @@ class UserAppointmentsRestController {
 			$appointments_formatted = array();
 
 			foreach ( $appointments as $appointment ) {
-				if ( ! is_array( $appointment ) || empty( $appointment['id'] ) ) {
+				if ( empty( $appointment['id'] ) ) {
 					continue;
 				}
 
@@ -187,7 +187,7 @@ class UserAppointmentsRestController {
 					if ( $appointment_time > $now ) {
 						if ( current_user_can( 'manage_options' ) ) {
 							$can_cancel = true;
-						} elseif ( $calendar && is_array( $calendar ) && ! empty( $calendar['allow_cancellation'] ) ) {
+						} elseif ( $calendar && ! empty( $calendar['allow_cancellation'] ) ) {
 							$can_cancel = true;
 							if ( ! empty( $calendar['cancellation_min_hours'] ) && $calendar['cancellation_min_hours'] > 0 ) {
 								$deadline = $appointment_time - ( $calendar['cancellation_min_hours'] * 3600 );

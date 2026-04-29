@@ -185,7 +185,7 @@ class MigrationStatusCalculator {
 		}
 
 		// Get migration configuration.
-		$migration_config = $this->registry->get_migration( $migration_key );
+		$migration_config = $this->registry->get_migration( $migration_key ) ?? array();
 
 		// Delegate to strategy.
 		return $strategy->calculate_status( $migration_key, $migration_config );
@@ -234,7 +234,7 @@ class MigrationStatusCalculator {
 		}
 
 		// Get migration configuration.
-		$migration_config = $this->registry->get_migration( $migration_key );
+		$migration_config = $this->registry->get_migration( $migration_key ) ?? array();
 
 		// Delegate to strategy.
 		return $strategy->can_run( $migration_key, $migration_config );
@@ -265,7 +265,7 @@ class MigrationStatusCalculator {
 		}
 
 		// Get migration configuration.
-		$migration_config = $this->registry->get_migration( $migration_key );
+		$migration_config = $this->registry->get_migration( $migration_key ) ?? array();
 
 		// Delegate to strategy.
 		return $strategy->execute( $migration_key, $migration_config, $batch_number );

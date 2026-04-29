@@ -218,7 +218,7 @@ class IpGeolocation {
 
 		// Parse location coordinates.
 		$loc_parts = explode( ',', $data['loc'] ?? '0,0' );
-		$latitude  = floatval( $loc_parts[0] ?? 0 );
+		$latitude  = floatval( $loc_parts[0] );
 		$longitude = floatval( $loc_parts[1] ?? 0 );
 
 		// Normalize response format.

@@ -79,7 +79,7 @@ class DynamicFragmentsTest extends TestCase {
     // ==================================================================
 
     public function test_handle_returns_captcha_and_nonces_for_anonymous(): void {
-        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
         $utilsMock->shouldReceive( 'generate_simple_captcha' )
             ->once()
             ->andReturn( array( 'label' => '3 + 4', 'hash' => 'abc123' ) );
@@ -113,7 +113,7 @@ class DynamicFragmentsTest extends TestCase {
     // ==================================================================
 
     public function test_handle_includes_user_data_when_logged_in(): void {
-        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
         $utilsMock->shouldReceive( 'generate_simple_captcha' )
             ->once()
             ->andReturn( array( 'label' => '5 + 2', 'hash' => 'def456' ) );
@@ -143,7 +143,7 @@ class DynamicFragmentsTest extends TestCase {
     // ==================================================================
 
     public function test_handle_always_returns_both_nonce_keys(): void {
-        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
         $utilsMock->shouldReceive( 'generate_simple_captcha' )
             ->andReturn( array( 'label' => '1 + 1', 'hash' => 'h' ) );
 
@@ -163,7 +163,7 @@ class DynamicFragmentsTest extends TestCase {
     // ==================================================================
 
     public function test_handle_includes_public_csv_download_nonce(): void {
-        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
         $utilsMock->shouldReceive( 'generate_simple_captcha' )
             ->andReturn( array( 'label' => 'x', 'hash' => 'y' ) );
 
@@ -185,7 +185,7 @@ class DynamicFragmentsTest extends TestCase {
     // ==================================================================
 
     public function test_handle_includes_audience_nonces(): void {
-        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+        $utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
         $utilsMock->shouldReceive( 'generate_simple_captcha' )
             ->andReturn( array( 'label' => 'x', 'hash' => 'y' ) );
 
