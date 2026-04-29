@@ -458,10 +458,6 @@ class AdminSubmissionEditPage {
 		// Protected fields (read-only within JSON).
 		$protected_json_fields = array( 'auth_code', 'fill_date', 'ticket' );
 
-		if ( ! is_array( $this->data ) ) {
-			return;
-		}
-
 		foreach ( $this->data as $k => $v ) {
 			// Skip old tracking fields (now in columns).
 			if ( 'is_edited' === $k || 'edited_at' === $k ) {
@@ -470,11 +466,9 @@ class AdminSubmissionEditPage {
 
 			// Get field label.
 			$lbl = $k;
-			if ( is_array( $this->fields ) ) {
-				foreach ( $this->fields as $f ) {
-					if ( isset( $f['name'] ) && $f['name'] === $k ) {
-						$lbl = $f['label'];
-					}
+			foreach ( $this->fields as $f ) {
+				if ( isset( $f['name'] ) && $f['name'] === $k ) {
+					$lbl = $f['label'];
 				}
 			}
 

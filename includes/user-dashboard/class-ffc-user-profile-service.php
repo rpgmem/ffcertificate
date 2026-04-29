@@ -149,7 +149,7 @@ final class UserProfileService {
 		try {
 			$filtered = array();
 			foreach ( $patch as $key => $value ) {
-				if ( is_string( $key ) && null !== self::resolve_spec( $key ) ) {
+				if ( null !== self::resolve_spec( $key ) ) {
 					$filtered[ $key ] = $value;
 				}
 			}
@@ -205,7 +205,7 @@ final class UserProfileService {
 	 * @return array<string, mixed>|null
 	 */
 	private static function resolve_spec( string $field_key ): ?array {
-		if ( isset( self::$runtime_overrides[ $field_key ] ) && is_array( self::$runtime_overrides[ $field_key ] ) ) {
+		if ( isset( self::$runtime_overrides[ $field_key ] ) ) {
 			return self::$runtime_overrides[ $field_key ];
 		}
 		return UserProfileFieldMap::get( $field_key );
@@ -430,7 +430,7 @@ final class UserProfileService {
 			$sensitive = ! empty( $spec['sensitive'] );
 
 			$scalar = is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
-			if ( false === $scalar || null === $scalar ) {
+			if ( false === $scalar ) {
 				$scalar = '';
 			}
 

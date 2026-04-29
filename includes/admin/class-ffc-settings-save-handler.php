@@ -425,18 +425,14 @@ class SettingsSaveHandler {
 		 */
 		do_action( 'ffcertificate_before_data_deletion', $target, $reset_counter );
 
-		$result = $this->submission_handler->delete_all_submissions(
+		$this->submission_handler->delete_all_submissions(
 			'all' === $target ? null : absint( $target ),
 			$reset_counter
 		);
 
-		if ( false !== $result ) {
-			$message = $reset_counter
-				? __( 'Data deleted and counter reset successfully.', 'ffcertificate' )
-				: __( 'Data deleted successfully.', 'ffcertificate' );
-			add_settings_error( 'ffc_settings', 'ffc_data_deleted', $message, 'updated' );
-		} else {
-			add_settings_error( 'ffc_settings', 'ffc_data_delete_failed', __( 'Failed to delete data.', 'ffcertificate' ), 'error' );
-		}
+		$message = $reset_counter
+			? __( 'Data deleted and counter reset successfully.', 'ffcertificate' )
+			: __( 'Data deleted successfully.', 'ffcertificate' );
+		add_settings_error( 'ffc_settings', 'ffc_data_deleted', $message, 'updated' );
 	}
 }

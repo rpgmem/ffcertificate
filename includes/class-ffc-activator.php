@@ -306,9 +306,9 @@ class Activator {
 			'ping_status'    => 'closed',
 		);
 
-		$page_id = wp_insert_post( $page_data );
+		$page_id = wp_insert_post( $page_data, true );
 
-		if ( $page_id && ! is_wp_error( $page_id ) ) {
+		if ( ! is_wp_error( $page_id ) ) {
 			update_option( 'ffc_verification_page_id', $page_id );
 			update_post_meta( $page_id, '_ffc_managed_page', '1' );
 		}
@@ -707,9 +707,9 @@ class Activator {
 			'ping_status'    => 'closed',
 		);
 
-		$page_id = wp_insert_post( $page_data );
+		$page_id = wp_insert_post( $page_data, true );
 
-		if ( $page_id && ! is_wp_error( $page_id ) ) {
+		if ( ! is_wp_error( $page_id ) ) {
 			update_option( 'ffc_dashboard_page_id', $page_id );
 			update_post_meta( $page_id, '_ffc_managed_page', '1' );
 		}

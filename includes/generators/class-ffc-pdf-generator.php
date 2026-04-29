@@ -491,7 +491,7 @@ class PdfGenerator {
 
 			// Determine text.
 			$text = '';
-			if ( is_string( $params['text'] ) && ! in_array( $params['text'], array( 'm', 'v' ), true ) ) {
+			if ( ! in_array( $params['text'], array( 'm', 'v' ), true ) ) {
 				// Custom text literal.
 				$text = $params['text'];
 			} elseif ( 'm' === $params['text'] ) {

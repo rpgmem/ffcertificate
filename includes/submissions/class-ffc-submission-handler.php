@@ -335,14 +335,7 @@ class SubmissionHandler {
 			}
 		}
 
-		if ( method_exists( $this->repository, 'updateWithEditTracking' ) ) {
-			$result = $this->repository->updateWithEditTracking( $id, $update_data );
-		} else {
-			// Fallback: manual tracking in columns (not JSON).
-			$update_data['edited_at'] = current_time( 'mysql' );
-			$update_data['edited_by'] = get_current_user_id();
-			$result                   = $this->repository->update( $id, $update_data );
-		}
+		$result = $this->repository->updateWithEditTracking( $id, $update_data );
 
 		if ( false !== $result ) {
 			/**

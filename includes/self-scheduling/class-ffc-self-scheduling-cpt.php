@@ -30,7 +30,7 @@ class SelfSchedulingCPT {
 	/**
 	 * Calendar repository instance
 	 *
-	 * @var \FreeFormCertificate\Repositories\CalendarRepository
+	 * @var \FreeFormCertificate\Repositories\CalendarRepository|null
 	 */
 	private $calendar_repository;
 
@@ -173,7 +173,7 @@ class SelfSchedulingCPT {
 			'post_author' => get_current_user_id(),
 		);
 
-		$new_post_id = wp_insert_post( $new_post_args );
+		$new_post_id = wp_insert_post( $new_post_args, true );
 
 		if ( is_wp_error( $new_post_id ) ) {
 			\FreeFormCertificate\Core\Utils::debug_log(

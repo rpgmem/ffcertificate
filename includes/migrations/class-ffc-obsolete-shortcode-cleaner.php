@@ -183,7 +183,7 @@ class ObsoleteShortcodeCleaner {
 		foreach ( $post_ids as $post_id ) {
 			$post_id = (int) $post_id;
 			$post    = get_post( $post_id );
-			if ( ! $post || ! is_object( $post ) ) {
+			if ( ! $post ) {
 				continue;
 			}
 
@@ -336,7 +336,7 @@ class ObsoleteShortcodeCleaner {
 		}
 
 		$post = get_post( $post_id );
-		if ( ! $post || ! is_object( $post ) ) {
+		if ( ! $post ) {
 			return 0;
 		}
 
@@ -353,7 +353,7 @@ class ObsoleteShortcodeCleaner {
 			true
 		);
 
-		if ( is_wp_error( $update ) || 0 === $update ) {
+		if ( is_wp_error( $update ) ) {
 			return 0;
 		}
 
