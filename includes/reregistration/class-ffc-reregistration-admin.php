@@ -33,6 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
  * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
  * @phpstan-import-type CustomFieldRow from CustomFieldRepository
+ * @phpstan-import-type AudienceRow from \FreeFormCertificate\Audience\AudienceRepository
  */
 class ReregistrationAdmin {
 
@@ -1044,7 +1045,7 @@ class ReregistrationAdmin {
 	 *
 	 * @param array<int, mixed> $audiences    Hierarchical audience tree.
 	 * @param array<int>        $selected_ids Currently selected audience IDs.
-	 * @phpstan-param list<\FreeFormCertificate\Audience\AudienceRow> $audiences
+	 * @phpstan-param list<AudienceRow> $audiences
 	 * @return void
 	 */
 	private function render_audience_transfer_list( array $audiences, array $selected_ids ): void {

@@ -27,6 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Handler for verification operations.
+ *
+ * @phpstan-import-type ReregistrationRow from \FreeFormCertificate\Reregistration\ReregistrationRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository
  */
 class VerificationHandler {
 
@@ -61,6 +64,16 @@ class VerificationHandler {
 	public function __construct( ?SubmissionHandler $submission_handler = null ) {
 		$this->submission_handler = $submission_handler;
 		$this->renderer           = new VerificationResponseRenderer();
+	}
+
+	/**
+	 * Resolve the submission handler, instantiating a fresh one if none was injected.
+	 */
+	private function submission_handler(): SubmissionHandler {
+		if ( null === $this->submission_handler ) {
+			$this->submission_handler = new SubmissionHandler();
+		}
+		return $this->submission_handler;
 	}
 
 	/**
@@ -136,7 +149,7 @@ class VerificationHandler {
 		}
 
 		// Decrypt.
-		$submission = $this->submission_handler->decrypt_submission_data( $submission );
+		$submission = $this->submission_handler()->decrypt_submission_data( $submission );
 
 		// Rebuild data.
 		$data = array(
@@ -405,6 +418,8 @@ class VerificationHandler {
 	 * @since 4.13.0
 	 * @param object      $submission Submission row.
 	 * @param object|null $rereg      Reregistration row.
+	 * @phpstan-param ReregistrationSubmissionRow $submission
+	 * @phpstan-param ReregistrationRow|null $rereg
 	 * @return array<string, mixed> field_key => plain value.
 	 */
 	private function decode_submission_fields( object $submission, $rereg ): array {
@@ -495,7 +510,7 @@ class VerificationHandler {
 		}
 
 		// Get submission by token.
-		$submission = $this->submission_handler->get_submission_by_token( $token );
+		$submission = $this->submission_handler()->get_submission_by_token( $token );
 
 		\FreeFormCertificate\Core\Utils::debug_log(
 			'Magic token lookup result',
@@ -574,7 +589,7 @@ class VerificationHandler {
 		// Ensure magic_token exists (fallback for old submissions).
 		$magic_token = $submission['magic_token'];
 		if ( empty( $magic_token ) ) {
-			$magic_token = $this->submission_handler->ensure_magic_token( (int) $submission['id'] );
+			$magic_token = $this->submission_handler()->ensure_magic_token( (int) $submission['id'] );
 		}
 
 		return array(
@@ -690,7 +705,7 @@ class VerificationHandler {
 			// Certificate: use standard PDF generator.
 			$pdf_data = $pdf_generator->generate_pdf_data(
 				(int) $result['submission']->id,
-				$this->submission_handler
+				$this->submission_handler()
 			);
 		}
 
@@ -779,7 +794,7 @@ class VerificationHandler {
 			// Certificate: use standard PDF generator.
 			$pdf_data = $pdf_generator->generate_pdf_data(
 				(int) $result['submission']->id,
-				$this->submission_handler
+				$this->submission_handler()
 			);
 		}
 

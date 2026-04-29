@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Database repository for reregistration records.
  *
- * @phpstan-type ReregistrationRow \stdClass&object{id: numeric-string, title: string, audience_id: numeric-string, start_date: string, end_date: string, auto_approve: numeric-string, email_invitation_enabled: numeric-string, email_reminder_enabled: numeric-string, email_confirmation_enabled: numeric-string, reminder_days: numeric-string, status: string, created_by: numeric-string, created_at: string, updated_at: string, audience_ids?: list<int>}
+ * @phpstan-type ReregistrationRow \stdClass&object{id: string, title: string, audience_id: string, start_date: string, end_date: string, auto_approve: string, email_invitation_enabled: string, email_reminder_enabled: string, email_confirmation_enabled: string, reminder_days: string, status: string, created_by: string, created_at: string, updated_at: string, audience_ids?: list<int>}
  */
 class ReregistrationRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
