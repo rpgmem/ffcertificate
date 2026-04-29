@@ -606,6 +606,50 @@ class SubmissionHandler {
 	}
 
 	/**
+	 * Move submissions between forms, skipping conflicts.
+	 *
+	 * Wraps SubmissionRepository::moveBetweenForms with the same
+	 * disable-logging-then-log-once pattern used by the other bulk methods,
+	 * so a 50-row move produces a single `submission_moved` activity entry
+	 * instead of 50 individual `data_modified` entries.
+	 *
+	 * @param int             $from_form_id Source form ID.
+	 * @param int             $to_form_id   Target form ID.
+	 * @param array<int, int> $ids          Submission IDs.
+	 * @return array{moved: list<int>, conflicts: list<int>}
+	 */
+	public function move_submissions_between_forms( int $from_form_id, int $to_form_id, array $ids ): array {
+		$activity_log_class = '\FreeFormCertificate\Core\ActivityLog';
+
+		// Disable logging during bulk operation.
+		if ( class_exists( $activity_log_class ) ) {
+			\FreeFormCertificate\Core\ActivityLog::disable_logging();
+		}
+
+		$result = $this->repository->moveBetweenForms( $from_form_id, $to_form_id, $ids );
+
+		// Re-enable logging and emit a single audit entry.
+		if ( class_exists( $activity_log_class ) ) {
+			\FreeFormCertificate\Core\ActivityLog::enable_logging();
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'submission_moved',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array(
+					'from_form_id'   => $from_form_id,
+					'to_form_id'     => $to_form_id,
+					'requested'      => count( $ids ),
+					'moved_count'    => count( $result['moved'] ),
+					'conflict_count' => count( $result['conflicts'] ),
+					'moved_ids'      => $result['moved'],
+					'conflict_ids'   => $result['conflicts'],
+				)
+			);
+		}
+
+		return $result;
+	}
+
+	/**
 	 * Bulk delete submissions permanently (optimized)
 	 *
 	 * @uses Repository::bulkDelete()

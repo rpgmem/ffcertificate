@@ -121,6 +121,56 @@ class SubmissionRepositoryTest extends TestCase {
     }
 
     // ------------------------------------------------------------------
+    // moveBetweenForms() — empty / no-op edge cases
+    // ------------------------------------------------------------------
+
+    public function test_move_between_forms_returns_empty_arrays_for_empty_ids(): void {
+        $result = $this->repo->moveBetweenForms( 5, 10, array() );
+
+        $this->assertSame( array(), $result['moved'] );
+        $this->assertSame( array(), $result['conflicts'] );
+    }
+
+    public function test_move_between_forms_returns_empty_arrays_when_source_equals_target(): void {
+        $result = $this->repo->moveBetweenForms( 7, 7, array( 1, 2, 3 ) );
+
+        $this->assertSame( array(), $result['moved'] );
+        $this->assertSame( array(), $result['conflicts'] );
+    }
+
+    public function test_move_between_forms_separates_moved_from_conflicts(): void {
+        global $wpdb;
+
+        $rows = array(
+            array( 'id' => '101', 'user_id' => '0', 'email_hash' => 'aaaa', 'cpf_hash' => null,    'rf_hash' => null ),
+            array( 'id' => '102', 'user_id' => '0', 'email_hash' => 'bbbb', 'cpf_hash' => 'CPFHX', 'rf_hash' => null ),
+            array( 'id' => '103', 'user_id' => '0', 'email_hash' => 'cccc', 'cpf_hash' => null,    'rf_hash' => null ),
+        );
+
+        $wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+            function ( $query, ...$args ) {
+                return $query;
+            }
+        );
+
+        // Initial SELECT returns the three rows.
+        $wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
+
+        // Conflict probes run in row order (101, 102, 103). 102 hits, the rest miss.
+        $wpdb->shouldReceive( 'get_var' )->ordered()->once()->andReturn( null );  // 101
+        $wpdb->shouldReceive( 'get_var' )->ordered()->once()->andReturn( '999' ); // 102 → conflict
+        $wpdb->shouldReceive( 'get_var' )->ordered()->once()->andReturn( null );  // 103
+
+        $wpdb->shouldReceive( 'query' )->once()->andReturn( 2 );
+        $wpdb->last_error = '';
+
+        $result = $this->repo->moveBetweenForms( 5, 10, array( 101, 102, 103 ) );
+
+        $this->assertSame( array( 101, 103 ), $result['moved'] );
+        $this->assertSame( array( 102 ), $result['conflicts'] );
+    }
+
+    // ------------------------------------------------------------------
     // countByStatus()
     // ------------------------------------------------------------------
 

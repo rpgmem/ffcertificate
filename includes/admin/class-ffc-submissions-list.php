@@ -330,7 +330,26 @@ class SubmissionsList extends \WP_List_Table {
 				'bulk_delete'  => __( 'Delete Permanently', 'ffcertificate' ),
 			);
 		}
-		return array( 'bulk_trash' => __( 'Move to Trash', 'ffcertificate' ) );
+
+		$actions = array( 'bulk_trash' => __( 'Move to Trash', 'ffcertificate' ) );
+
+		// "Move to form…" is only meaningful when the list is filtered by a
+		// single source form — otherwise the source form is ambiguous and
+		// the conflict-detection scope (per-form duplicate identifier) is
+		// undefined.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- filter_form_id is a display-only filter.
+		$filter_raw = isset( $_GET['filter_form_id'] ) ? wp_unslash( $_GET['filter_form_id'] ) : null;
+		$single_id  = 0;
+		if ( is_array( $filter_raw ) && 1 === count( $filter_raw ) ) {
+			$single_id = absint( reset( $filter_raw ) );
+		} elseif ( is_string( $filter_raw ) ) {
+			$single_id = absint( $filter_raw );
+		}
+		if ( $single_id > 0 ) {
+			$actions['move_to_form'] = __( 'Move to form…', 'ffcertificate' );
+		}
+
+		return $actions;
 	}
 
 	/**
