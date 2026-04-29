@@ -50,7 +50,7 @@ class SelfSchedulingCPT {
 	}
 
 	/**
-	 * Initialize repository
+	 * Initialize repository.
 	 *
 	 * @return void
 	 */
@@ -58,6 +58,16 @@ class SelfSchedulingCPT {
 		if ( ! $this->calendar_repository ) {
 			$this->calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
 		}
+	}
+
+	/**
+	 * Get the calendar repository, lazy-initializing if needed.
+	 *
+	 * @return \FreeFormCertificate\Repositories\CalendarRepository
+	 */
+	private function calendar_repo(): \FreeFormCertificate\Repositories\CalendarRepository {
+		$this->init_repository();
+		return $this->calendar_repository ?? new \FreeFormCertificate\Repositories\CalendarRepository();
 	}
 
 	/**
@@ -105,6 +115,7 @@ class SelfSchedulingCPT {
 	 *
 	 * @param array<string, mixed> $actions Actions.
 	 * @param object               $post Post object.
+	 * @phpstan-param \WP_Post $post
 	 * @return array<string, string>
 	 */
 	public function add_duplicate_link( array $actions, object $post ): array {
@@ -232,6 +243,14 @@ class SelfSchedulingCPT {
 	 * @param bool   $update Update.
 	 * @return void
 	 */
+	/**
+	 * Sync calendar metadata to the database row.
+	 *
+	 * @param int      $post_id Post ID.
+	 * @param \WP_Post $post    Post object.
+	 * @param bool     $update  Whether this is an update.
+	 * @return void
+	 */
 	public function sync_calendar_data( int $post_id, object $post, bool $update ): void {
 		// Skip autosaves and revisions.
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
@@ -250,7 +269,7 @@ class SelfSchedulingCPT {
 		$this->init_repository();
 
 		// Check if calendar record exists.
-		$existing = $this->calendar_repository->findByPostId( $post_id );
+		$existing = $this->calendar_repo()->findByPostId( $post_id );
 
 		// Get metadata.
 		$config        = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
@@ -268,12 +287,12 @@ class SelfSchedulingCPT {
 
 		if ( $existing ) {
 			// Update existing record.
-			$this->calendar_repository->update( (int) $existing['id'], $data );
+			$this->calendar_repo()->update( (int) $existing['id'], $data );
 		} else {
 			// Create new record.
 			$data['created_at'] = current_time( 'mysql' );
 			$data['created_by'] = get_current_user_id();
-			$this->calendar_repository->createFromPost( $post_id, $data );
+			$this->calendar_repo()->createFromPost( $post_id, $data );
 		}
 	}
 
@@ -318,8 +337,8 @@ class SelfSchedulingCPT {
 	 * Deletes the calendar record and optionally cancels all future appointments.
 	 * The cancellation behavior can be controlled via the 'ffc_self_scheduling_cancel_appointments_on_delete' filter.
 	 *
-	 * @param int    $post_id Post ID.
-	 * @param object $post Post object.
+	 * @param int      $post_id Post ID.
+	 * @param \WP_Post $post    Post object.
 	 * @return void
 	 */
 	public function cleanup_calendar_data( int $post_id, object $post ): void {
@@ -330,7 +349,7 @@ class SelfSchedulingCPT {
 		$this->init_repository();
 
 		// Find calendar record.
-		$calendar = $this->calendar_repository->findByPostId( $post_id );
+		$calendar = $this->calendar_repo()->findByPostId( $post_id );
 
 		if ( $calendar ) {
 			$calendar_id    = (int) $calendar['id'];
@@ -348,7 +367,7 @@ class SelfSchedulingCPT {
 			}
 
 			// Delete calendar record.
-			$this->calendar_repository->delete( $calendar_id );
+			$this->calendar_repo()->delete( $calendar_id );
 
 			\FreeFormCertificate\Core\Utils::debug_log(
 				'Calendar data cleaned up',
