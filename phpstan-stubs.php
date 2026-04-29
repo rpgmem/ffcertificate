@@ -8,9 +8,10 @@
  * @package FreeFormCertificate
  */
 
-(static function (): void {
+$ffc_stub_loader = static function (): void {
 	$plugin_file = __DIR__ . '/ffcertificate.php';
-	$source      = is_readable( $plugin_file ) ? (string) file_get_contents( $plugin_file ) : '';
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local read at PHPStan analysis time, not at runtime.
+	$source = is_readable( $plugin_file ) ? (string) file_get_contents( $plugin_file ) : '';
 
 	preg_match_all(
 		"/define\\(\\s*'([A-Z0-9_]+)'\\s*,\\s*'([^']*)'\\s*\\)\\s*;/",
@@ -20,11 +21,15 @@
 	);
 
 	foreach ( $matches as $match ) {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.VariableConstantNameFound -- Constant name comes from the plugin's own define() statements.
 		if ( ! defined( $match[1] ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.VariableConstantNameFound
 			define( $match[1], $match[2] );
 		}
 	}
-})();
+};
+$ffc_stub_loader();
+unset( $ffc_stub_loader );
 
 // Constants computed at runtime in ffcertificate.php — stub them statically.
 if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
@@ -52,10 +57,12 @@ if ( ! defined( 'QR_ECLEVEL_L' ) ) {
 }
 
 /**
- * Stub for phpqrcode QRcode class.
+ * Stub for the phpqrcode QRcode class.
  */
 class QRcode {
 	/**
+	 * Render the QR code as PNG.
+	 *
 	 * @param string       $text    Text to encode.
 	 * @param string|false $outfile Output file or false to print.
 	 * @param int          $level   Error correction level.
@@ -65,6 +72,8 @@ class QRcode {
 	public static function png( $text, $outfile = false, $level = QR_ECLEVEL_L, $size = 3, $margin = 4 ): void {}
 
 	/**
+	 * Return the QR code as a raw matrix.
+	 *
 	 * @param string       $text    Text to encode.
 	 * @param string|false $outfile Output file or false to return raw.
 	 * @param int          $level   Error correction level.
