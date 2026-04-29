@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Generator for ficha output.
+ *
+ * @phpstan-import-type ReregistrationRow from ReregistrationRepository
+ * @phpstan-import-type CustomFieldRow from CustomFieldRepository
  */
 class FichaGenerator {
 
@@ -384,7 +387,8 @@ class FichaGenerator {
 	 * Get custom fields for all audiences linked to a reregistration.
 	 *
 	 * @param object $rereg Reregistration object.
-	 * @return array<object>
+	 * @phpstan-param ReregistrationRow $rereg
+	 * @return list<CustomFieldRow>
 	 */
 	public static function get_custom_fields_for_reregistration( object $rereg ): array {
 		$audience_ids = ReregistrationRepository::get_audience_ids( (int) $rereg->id );

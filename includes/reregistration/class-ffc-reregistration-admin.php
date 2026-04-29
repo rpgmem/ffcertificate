@@ -206,7 +206,7 @@ class ReregistrationAdmin {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$status_filter = isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : null;
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$audience_filter = isset( $_GET['audience_id'] ) ? absint( $_GET['audience_id'] ) : null;
+		$audience_filter = isset( $_GET['audience_id'] ) ? absint( $_GET['audience_id'] ) : 0;
 
 		$filters = array();
 		if ( $status_filter ) {
@@ -288,8 +288,10 @@ class ReregistrationAdmin {
 		);
 
 		$stats     = ReregistrationSubmissionRepository::get_statistics( (int) $item->id );
-		$start     = wp_date( get_option( 'date_format' ), strtotime( $item->start_date ) );
-		$end       = wp_date( get_option( 'date_format' ), strtotime( $item->end_date ) );
+		$start_ts  = strtotime( $item->start_date );
+		$end_ts    = strtotime( $item->end_date );
+		$start     = wp_date( get_option( 'date_format' ), false === $start_ts ? null : $start_ts );
+		$end       = wp_date( get_option( 'date_format' ), false === $end_ts ? null : $end_ts );
 		$audiences = ReregistrationRepository::get_audiences( (int) $item->id );
 
 		?>
@@ -392,11 +394,11 @@ class ReregistrationAdmin {
 				</tr>
 				<tr>
 					<th scope="row"><label for="rereg_start"><?php esc_html_e( 'Start Date', 'ffcertificate' ); ?> <span class="required">*</span></label></th>
-					<td><input type="datetime-local" name="rereg_start_date" id="rereg_start" value="<?php echo esc_attr( $item ? gmdate( 'Y-m-d\TH:i', strtotime( $item->start_date ) ) : '' ); ?>" required></td>
+					<td><input type="datetime-local" name="rereg_start_date" id="rereg_start" value="<?php echo esc_attr( $item ? gmdate( 'Y-m-d\TH:i', (int) strtotime( $item->start_date ) ) : '' ); ?>" required></td>
 				</tr>
 				<tr>
 					<th scope="row"><label for="rereg_end"><?php esc_html_e( 'End Date', 'ffcertificate' ); ?> <span class="required">*</span></label></th>
-					<td><input type="datetime-local" name="rereg_end_date" id="rereg_end" value="<?php echo esc_attr( $item ? gmdate( 'Y-m-d\TH:i', strtotime( $item->end_date ) ) : '' ); ?>" required></td>
+					<td><input type="datetime-local" name="rereg_end_date" id="rereg_end" value="<?php echo esc_attr( $item ? gmdate( 'Y-m-d\TH:i', (int) strtotime( $item->end_date ) ) : '' ); ?>" required></td>
 				</tr>
 				<tr>
 					<th scope="row"><label for="rereg_status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label></th>
@@ -946,7 +948,8 @@ class ReregistrationAdmin {
 		$time_format  = get_option( 'time_format' );
 		$submitted_at = '';
 		if ( ! empty( $submission->submitted_at ) ) {
-			$submitted_at = wp_date( $date_format . ' ' . $time_format, strtotime( $submission->submitted_at ) );
+			$submitted_ts = strtotime( $submission->submitted_at );
+			$submitted_at = wp_date( $date_format . ' ' . $time_format, false === $submitted_ts ? null : $submitted_ts );
 		}
 
 		ob_start();
@@ -1041,6 +1044,7 @@ class ReregistrationAdmin {
 	 *
 	 * @param array<int, mixed> $audiences    Hierarchical audience tree.
 	 * @param array<int>        $selected_ids Currently selected audience IDs.
+	 * @phpstan-param list<\FreeFormCertificate\Audience\AudienceRow> $audiences
 	 * @return void
 	 */
 	private function render_audience_transfer_list( array $audiences, array $selected_ids ): void {

@@ -246,9 +246,10 @@ class SelfSchedulingCPT {
 	/**
 	 * Sync calendar metadata to the database row.
 	 *
-	 * @param int      $post_id Post ID.
-	 * @param \WP_Post $post    Post object.
-	 * @param bool     $update  Whether this is an update.
+	 * @param int    $post_id Post ID.
+	 * @param object $post    Post object.
+	 * @phpstan-param \WP_Post $post
+	 * @param bool   $update  Whether this is an update.
 	 * @return void
 	 */
 	public function sync_calendar_data( int $post_id, object $post, bool $update ): void {
@@ -337,8 +338,9 @@ class SelfSchedulingCPT {
 	 * Deletes the calendar record and optionally cancels all future appointments.
 	 * The cancellation behavior can be controlled via the 'ffc_self_scheduling_cancel_appointments_on_delete' filter.
 	 *
-	 * @param int      $post_id Post ID.
-	 * @param \WP_Post $post    Post object.
+	 * @param int    $post_id Post ID.
+	 * @param object $post    Post object.
+	 * @phpstan-param \WP_Post $post
 	 * @return void
 	 */
 	public function cleanup_calendar_data( int $post_id, object $post ): void {
