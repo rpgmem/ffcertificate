@@ -787,6 +787,146 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Move submissions to a different form, skipping conflicts.
+	 *
+	 * A "conflict" is a submission whose identifier (cpf_hash, rf_hash,
+	 * email_hash, or non-zero user_id) matches an existing submission already
+	 * present in the target form. Conflicts are kept in the original form;
+	 * non-conflicts have their `form_id` rewritten in a single bulk UPDATE.
+	 *
+	 * Source-form filter: rows whose `form_id !== $from_form_id` are silently
+	 * skipped (not in `moved`, not in `conflicts`) — this should not happen
+	 * via the admin UI since the list table only renders rows for the
+	 * filtered form.
+	 *
+	 * @param int             $from_form_id Source form ID.
+	 * @param int             $to_form_id   Target form ID.
+	 * @param array<int, int> $ids          Submission IDs.
+	 * @return array{moved: list<int>, conflicts: list<int>}
+	 */
+	public function moveBetweenForms( int $from_form_id, int $to_form_id, array $ids ): array {
+		if ( empty( $ids ) || $from_form_id === $to_form_id ) {
+			return array(
+				'moved'     => array(),
+				'conflicts' => array(),
+			);
+		}
+
+		$safe_ids = array_values( array_filter( array_map( 'absint', $ids ) ) );
+		if ( empty( $safe_ids ) ) {
+			return array(
+				'moved'     => array(),
+				'conflicts' => array(),
+			);
+		}
+
+		$placeholders = implode( ', ', array_fill( 0, count( $safe_ids ), '%d' ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders generated via array_fill().
+		$select_sql = $this->wpdb->prepare(
+			"SELECT id, user_id, email_hash, cpf_hash, rf_hash
+			 FROM %i
+			 WHERE form_id = %d AND id IN ({$placeholders})",
+			array_merge( array( $this->table, $from_form_id ), $safe_ids )
+		);
+		if ( ! is_string( $select_sql ) ) {
+			return array(
+				'moved'     => array(),
+				'conflicts' => array(),
+			);
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->get_results( $select_sql, ARRAY_A );
+		if ( ! is_array( $rows ) ) {
+			return array(
+				'moved'     => array(),
+				'conflicts' => array(),
+			);
+		}
+
+		$moved     = array();
+		$conflicts = array();
+		foreach ( $rows as $row ) {
+			if ( $this->hasConflictInForm( $to_form_id, $row ) ) {
+				$conflicts[] = (int) $row['id'];
+			} else {
+				$moved[] = (int) $row['id'];
+			}
+		}
+
+		if ( ! empty( $moved ) ) {
+			$move_placeholders = implode( ', ', array_fill( 0, count( $moved ), '%d' ) );
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders generated via array_fill().
+			$update_sql = $this->wpdb->prepare(
+				"UPDATE %i SET form_id = %d WHERE id IN ({$move_placeholders})",
+				array_merge( array( $this->table, $to_form_id ), $moved )
+			);
+			if ( is_string( $update_sql ) ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$this->wpdb->query( $update_sql );
+				$this->clear_cache();
+				$this->invalidate_count_cache();
+			}
+		}
+
+		return array(
+			'moved'     => $moved,
+			'conflicts' => $conflicts,
+		);
+	}
+
+	/**
+	 * Detect whether a submission identifier already exists in a target form.
+	 *
+	 * Matches on any of cpf_hash / rf_hash / email_hash / user_id (the same
+	 * columns covered by the (form_id, hash) indexes), ignoring null/empty
+	 * identifiers.
+	 *
+	 * @param int                  $form_id Target form ID.
+	 * @param array<string, mixed> $row     Source row with identifier columns.
+	 * @return bool True when at least one row in $form_id matches any populated identifier.
+	 */
+	private function hasConflictInForm( int $form_id, array $row ): bool {
+		$clauses = array();
+		$values  = array( $this->table, $form_id );
+
+		if ( ! empty( $row['cpf_hash'] ) ) {
+			$clauses[] = 'cpf_hash = %s';
+			$values[]  = (string) $row['cpf_hash'];
+		}
+		if ( ! empty( $row['rf_hash'] ) ) {
+			$clauses[] = 'rf_hash = %s';
+			$values[]  = (string) $row['rf_hash'];
+		}
+		if ( ! empty( $row['email_hash'] ) ) {
+			$clauses[] = 'email_hash = %s';
+			$values[]  = (string) $row['email_hash'];
+		}
+		$user_id = isset( $row['user_id'] ) ? (int) $row['user_id'] : 0;
+		if ( $user_id > 0 ) {
+			$clauses[] = 'user_id = %d';
+			$values[]  = $user_id;
+		}
+
+		if ( empty( $clauses ) ) {
+			return false;
+		}
+
+		$where_clause = implode( ' OR ', $clauses );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Clauses are pre-validated literal column names.
+		$sql = $this->wpdb->prepare(
+			"SELECT id FROM %i WHERE form_id = %d AND ({$where_clause}) LIMIT 1",
+			$values
+		);
+		if ( ! is_string( $sql ) ) {
+			return false;
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$existing = $this->wpdb->get_var( $sql );
+		return null !== $existing;
+	}
+
+	/**
 	 * Delete by form ID
 	 *
 	 * @param int $form_id Form ID.

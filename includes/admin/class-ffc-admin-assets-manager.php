@@ -367,6 +367,127 @@ class AdminAssetsManager {
 		if ( $this->is_submission_edit_page() ) {
 			$this->enqueue_submission_edit_assets();
 		}
+
+		// Submissions list page (when filtered by a single form): "Move to form…" modal.
+		if ( $this->is_submissions_list_page() ) {
+			$this->enqueue_move_submissions_assets();
+		}
+	}
+
+	/**
+	 * Enqueue the "Move to form…" modal assets on the submissions list page.
+	 *
+	 * Only fires when exactly one `filter_form_id` is set in the query, since
+	 * that's the only state in which the bulk action surfaces in the list
+	 * table. Localizes the available forms (other than the current filter)
+	 * so the modal's <select> can render without an extra round-trip.
+	 *
+	 * @return void
+	 */
+	private function enqueue_move_submissions_assets(): void {
+		$source_form_id = $this->resolve_single_filter_form_id();
+		if ( $source_form_id <= 0 ) {
+			return;
+		}
+
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
+		wp_enqueue_style(
+			'ffc-admin-move-submissions',
+			FFC_PLUGIN_URL . "assets/css/ffc-admin-move-submissions{$s}.css",
+			array(),
+			FFC_VERSION
+		);
+
+		wp_enqueue_script(
+			'ffc-admin-move-submissions',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-move-submissions{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+
+		$forms = get_posts(
+			array(
+				'post_type'        => 'ffc_form',
+				'post_status'      => array( 'publish', 'draft', 'pending', 'private' ),
+				'numberposts'      => -1,
+				'orderby'          => 'title',
+				'order'            => 'ASC',
+				'exclude'          => array( $source_form_id ),
+				'suppress_filters' => false,
+			)
+		);
+
+		$form_options = array();
+		foreach ( $forms as $form_post ) {
+			$form_options[] = array(
+				'id'    => (int) $form_post->ID,
+				'title' => (string) $form_post->post_title,
+			);
+		}
+
+		wp_localize_script(
+			'ffc-admin-move-submissions',
+			'ffcMoveSubmissions',
+			array(
+				'sourceFormId' => $source_form_id,
+				'forms'        => $form_options,
+				'strings'      => array(
+					'modalTitle'   => __( 'Move submissions to another form', 'ffcertificate' ),
+					'modalIntro'   => __( 'Choose the target form. Submissions whose CPF, RF, e-mail, or user already exist in the target will be kept in the original form and reported back.', 'ffcertificate' ),
+					'targetLabel'  => __( 'Target form', 'ffcertificate' ),
+					'placeholder'  => __( '— Select a form —', 'ffcertificate' ),
+					'cancel'       => __( 'Cancel', 'ffcertificate' ),
+					'confirm'      => __( 'Move submissions', 'ffcertificate' ),
+					'noSelection'  => __( 'Please select a target form.', 'ffcertificate' ),
+					'noRowsPicked' => __( 'Please select at least one submission.', 'ffcertificate' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Resolve the single `filter_form_id` from the query, if present.
+	 *
+	 * Returns 0 when missing, blank, or set to multiple values — the
+	 * "Move to form…" UI is only valid against a single source form.
+	 *
+	 * @return int Source form ID, or 0 when not applicable.
+	 */
+	private function resolve_single_filter_form_id(): int {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display-only filter routing.
+		if ( empty( $_GET['filter_form_id'] ) ) {
+			return 0;
+		}
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- type/length guards below.
+		$raw = wp_unslash( $_GET['filter_form_id'] );
+		if ( is_array( $raw ) ) {
+			return 1 === count( $raw ) ? absint( reset( $raw ) ) : 0;
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		return absint( $raw );
+	}
+
+	/**
+	 * Check if current page is the submissions list page (no edit/action subpath).
+	 *
+	 * @return bool
+	 */
+	private function is_submissions_list_page(): bool {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading.
+		if ( ! isset( $_GET['page'] ) ) {
+			return false;
+		}
+		if ( sanitize_key( wp_unslash( $_GET['page'] ) ) !== 'ffc-submissions' ) {
+			return false;
+		}
+		// Skip the edit subpage (handled by is_submission_edit_page()).
+		if ( isset( $_GET['action'] ) && sanitize_key( wp_unslash( $_GET['action'] ) ) === 'edit' ) {
+			return false;
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		return true;
 	}
 
 	/**

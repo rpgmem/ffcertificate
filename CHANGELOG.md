@@ -5,6 +5,28 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **"Move to form…" bulk action on the FFC Submissions admin list.** When the list is filtered by a single form (`?post_type=ffc_form&page=ffc-submissions&filter_form_id=…`), a new bulk option appears next to "Move to Trash". Selecting one or more submissions and choosing "Move to form…" opens a modal with a `<select>` of the other published forms; confirming rewrites those submissions' `form_id` in a single bulk UPDATE. The bulk option is hidden when the list is unfiltered or filtered by multiple forms — the source form must be unambiguous so the conflict-detection scope (per-form duplicate identifier) is well-defined.
+- **Identifier-based conflict detection.** A submission is treated as a duplicate of the target form when **any** of its populated identifiers (`cpf_hash`, `rf_hash`, `email_hash`, or non-zero `user_id`) matches an existing submission already present in the target — leveraging the existing `(form_id, cpf_hash) / (form_id, rf_hash) / (email_hash, form_id)` indexes for index-only lookups. Conflicting submissions are kept in the original form; non-conflicting ones move. The result is reported back via two admin notices: a green "X submissions moved to '…'" and a yellow "Y submissions were kept in the original form because an identifier already exists in '…'" with the **original IDs** spelled out (clickable references in the notice body).
+- **`SubmissionRepository::moveBetweenForms( int $from, int $to, array $ids ): array{moved: list<int>, conflicts: list<int>}`** — the underlying repository method. Filters by `form_id = $from` so accidental cross-form IDs are silently skipped, then probes the target form per row using only the columns the source row actually carries (so a submission without CPF doesn't fall through a CPF-only match path). The moves are batched into a single UPDATE; the cache and the count cache are invalidated when at least one row changes hands.
+- **`SubmissionHandler::move_submissions_between_forms( int $from, int $to, array $ids )`** — handler wrapper that disables `ActivityLog` during the bulk operation and emits a single `submission_moved` audit entry afterwards (with `from_form_id`, `to_form_id`, `requested`, `moved_count`, `conflict_count`, `moved_ids[]`, `conflict_ids[]`), matching the disable-then-aggregate pattern already used by `bulk_trash_submissions` / `bulk_restore_submissions` / `bulk_delete_submissions`.
+- **Modal asset bundle** — `assets/js/ffc-admin-move-submissions.js` (jQuery-based modal that intercepts the bulk form submit, presents the form picker, injects a hidden `move_to_form_id`, and resubmits) and `assets/css/ffc-admin-move-submissions.css` (centered dialog with a 4 px shadow over a translucent backdrop, matching the WP admin "thickbox" visual language without pulling thickbox itself for one screen).
+- Unit tests: `SubmissionRepositoryTest` grows from 91 → 94 tests (+3) covering the new `moveBetweenForms` method — empty IDs, source-equals-target short-circuit, and the moved-vs-conflict split with sequenced `get_var()` / `query()` mocks.
+
+### Changed
+
+- **`ActivityLog` action vocabulary** gains `submission_moved`. Already covered by the payload-based encryption gate that landed in 5.4.0 (the payload includes the moved-IDs list, which is metadata, not encrypted plaintext).
+- **`AdminAssetsManager::is_submissions_list_page()`** — new helper that gates the modal asset bundle to the submissions list (excluding the `?action=edit` subpage already handled by `is_submission_edit_page()`). The modal is only enqueued when exactly one `filter_form_id` is set, matching the bulk-action visibility rule.
+
+### Security
+
+- **Permission gate.** The new bulk action follows the existing `manage_options` requirement enforced by `display_submissions_page` and the `bulk-submissions` nonce — no new capability surface.
+
+---
+
 ## 5.4.1 (2026-04-24)
 
 Certificate HTML editor gains CodeMirror syntax highlighting with distinct coloring for HTML tags and `{{placeholder}}` tokens, plus a three-option `Code Editor Theme` setting (Auto / Light / Dark, dark by default on fresh installs) with a VS-Code-Dark+-inspired palette; the email body moves to a lightweight visual editor (`wp_editor()` teeny); the global TinyMCE placeholder-protection filter is scoped to the plugin's post type so it no longer touches unrelated admin screens; a new per-calendar admin-bypass toggle replaces the hardcoded all-or-nothing bypass for self-scheduling; and the `[ffc_verification]` result card header stops rendering with the admin preview modal's dark slate background.
