@@ -19,6 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 /**
  * Database repository for reregistration submission records.
+ *
+ * @phpstan-type ReregistrationSubmissionRow \stdClass&object{id: numeric-string, reregistration_id: numeric-string, user_id: numeric-string, status: string, submitted_at: string|null, reviewed_at: string|null, reviewed_by: numeric-string|null, notes: string|null, auth_code: string|null, magic_token: string|null, created_at: string, updated_at: string, data?: string|null}
  */
 class ReregistrationSubmissionRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;

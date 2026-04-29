@@ -23,6 +23,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 /**
  * Database repository for reregistration records.
+ *
+ * @phpstan-type ReregistrationRow \stdClass&object{id: numeric-string, title: string, audience_id: numeric-string, start_date: string, end_date: string, auto_approve: numeric-string, email_invitation_enabled: numeric-string, email_reminder_enabled: numeric-string, email_confirmation_enabled: numeric-string, reminder_days: numeric-string, status: string, created_by: numeric-string, created_at: string, updated_at: string, audience_ids?: list<int>}
  */
 class ReregistrationRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -138,14 +140,14 @@ class ReregistrationRepository {
 	 * Get audience objects for a reregistration (with name and color).
 	 *
 	 * @param int $reregistration_id Reregistration ID.
-	 * @return list<ReregistrationRow>
+	 * @return list<\stdClass&object{id: numeric-string, name: string, color: string}>
 	 */
 	public static function get_audiences( int $reregistration_id ): array {
 		$wpdb      = self::db();
 		$junction  = self::get_audiences_table_name();
 		$audiences = AudienceRepository::get_table_name();
 
-		return $wpdb->get_results(
+		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT a.id, a.name, a.color
                  FROM %i ra
@@ -157,6 +159,12 @@ class ReregistrationRepository {
 				$reregistration_id
 			)
 		);
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<\stdClass&object{id: numeric-string, name: string, color: string}>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	// ─────────────────────────────────────────────.
@@ -178,6 +186,11 @@ class ReregistrationRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var ReregistrationRow|null $result
+		 */
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
@@ -263,7 +276,13 @@ class ReregistrationRepository {
 		$sql = $wpdb->prepare( $sql, $values );
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		return $wpdb->get_results( $sql );
+		$results = $wpdb->get_results( $sql );
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<ReregistrationRow>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -492,7 +511,12 @@ class ReregistrationRepository {
 		);
         // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
-		return $results;
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<ReregistrationRow>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -549,7 +573,7 @@ class ReregistrationRepository {
 			)
 		);
 
-		if ( empty( $overdue ) ) {
+		if ( ! is_array( $overdue ) || empty( $overdue ) ) {
 			return;
 		}
 
@@ -564,15 +588,16 @@ class ReregistrationRepository {
 			);
 
 			// Expire pending/in_progress submissions.
-			$wpdb->query(
-				$wpdb->prepare(
-					"UPDATE %i SET status = 'expired', updated_at = %s
-                    WHERE reregistration_id = %d AND status IN ('pending', 'in_progress')",
-					$subs_table,
-					current_time( 'mysql' ),
-					(int) $row->id
-				)
+			$update_sql = $wpdb->prepare(
+				"UPDATE %i SET status = 'expired', updated_at = %s
+                WHERE reregistration_id = %d AND status IN ('pending', 'in_progress')",
+				$subs_table,
+				current_time( 'mysql' ),
+				(int) $row->id
 			);
+			if ( is_string( $update_sql ) ) {
+				$wpdb->query( $update_sql );
+			}
 		}
 	}
 

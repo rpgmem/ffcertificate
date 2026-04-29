@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Handles CRUD operations for audience-specific custom field definitions.
  *
  * @since 4.11.0
+ *
+ * @phpstan-type CustomFieldRow \stdClass&object{id: numeric-string, audience_id: numeric-string, field_key: string, field_label: string, field_type: string, field_group: string, field_source: string, field_profile_key: string|null, field_mask: string|null, is_sensitive: numeric-string, field_options: string|null, validation_rules: string|null, sort_order: numeric-string, is_required: numeric-string, is_active: numeric-string, created_at: string, updated_at: string, source_audience_id?: numeric-string, source_audience_name?: string}
  */
 class CustomFieldRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
