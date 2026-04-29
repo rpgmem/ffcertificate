@@ -11,6 +11,9 @@ namespace FreeFormCertificate\Audience;
 
 /**
  * Handles audience CRUD rendering and actions.
+ *
+ * @phpstan-import-type AudienceRow from AudienceRepository
+ * @phpstan-import-type CustomFieldRow from \FreeFormCertificate\Reregistration\CustomFieldRepository
  */
 class AudienceAdminAudience {
 
@@ -108,6 +111,7 @@ class AudienceAdminAudience {
 	 *
 	 * @param object $audience Audience object with optional children property.
 	 * @param int    $level    Hierarchy depth (0 = root, 1 = child, 2+ = grandchild).
+	 * @phpstan-param AudienceRow $audience
 	 * @return void
 	 */
 	private function render_row_recursive( object $audience, int $level ): void {
@@ -433,6 +437,7 @@ class AudienceAdminAudience {
 	 * @param object                $field        Field object from database.
 	 * @param array<int, string>    $field_types  Available field types.
 	 * @param array<string, string> $group_labels Map of group_key => translated label.
+	 * @phpstan-param CustomFieldRow $field
 	 * @return void
 	 */
 	private function render_custom_field_row( object $field, array $field_types, array $group_labels = array() ): void {

@@ -26,6 +26,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Renders the audience booking calendar via [ffc_audience] shortcode.
  *
  * @since 4.5.0
+ *
+ * @phpstan-import-type AudienceRow from AudienceRepository
+ * @phpstan-import-type ScheduleRow from AudienceScheduleRepository
  */
 class AudienceShortcode {
 
@@ -206,6 +209,7 @@ class AudienceShortcode {
 	 *
 	 * @since 4.7.0
 	 * @param array<int, object>   $schedules Array of schedule objects.
+	 * @phpstan-param list<ScheduleRow> $schedules
 	 * @param array<string, mixed> $config JS configuration.
 	 * @param array<string, mixed> $atts Shortcode attributes.
 	 * @param bool                 $show_booking_modal Whether to show the booking modal.
@@ -463,6 +467,7 @@ class AudienceShortcode {
 	 *
 	 * @since 4.8.0
 	 * @param array<int, object> $schedules Array of schedule objects.
+	 * @phpstan-param list<ScheduleRow> $schedules
 	 * @return bool
 	 */
 	private static function should_show_event_list( array $schedules ): bool {
@@ -479,6 +484,7 @@ class AudienceShortcode {
 	 *
 	 * @since 4.8.0
 	 * @param array<int, object> $schedules Array of schedule objects.
+	 * @phpstan-param list<ScheduleRow> $schedules
 	 * @return string 'side' or 'below'
 	 */
 	private static function get_event_list_position( array $schedules ): string {
@@ -495,6 +501,7 @@ class AudienceShortcode {
 	 *
 	 * @since 4.9.0
 	 * @param array<int, object> $schedules Array of schedule objects.
+	 * @phpstan-param list<ScheduleRow> $schedules
 	 * @return string 'name' or 'parent_name'
 	 */
 	private static function get_audience_badge_format( array $schedules ): string {
@@ -559,7 +566,7 @@ class AudienceShortcode {
 	 *
 	 * @param int $user_id User ID.
 	 * @param int $specific_id Specific schedule ID (0 for all).
-	 * @return array<int, object>
+	 * @return list<ScheduleRow>
 	 */
 	private static function get_user_schedules( int $user_id, int $specific_id = 0 ): array {
 		// Admin can access all.
@@ -590,7 +597,7 @@ class AudienceShortcode {
 	 * Get environments for a schedule
 	 *
 	 * @param int $schedule_id Schedule ID.
-	 * @return array<array{id: int, name: string}>
+	 * @return list<array{id: int, name: string, color: string}>
 	 */
 	private static function get_schedule_environments( int $schedule_id ): array {
 		$environments = AudienceEnvironmentRepository::get_by_schedule( $schedule_id, 'active' );
@@ -598,7 +605,7 @@ class AudienceShortcode {
 		return array_map(
 			function ( $e ) {
 				return array(
-					'id'    => $e->id,
+					'id'    => (int) $e->id,
 					'name'  => $e->name,
 					'color' => $e->color ?? '#3788d8',
 				);
@@ -612,6 +619,7 @@ class AudienceShortcode {
 	 *
 	 * @param int                $user_id User ID.
 	 * @param array<int, object> $schedules Schedules.
+	 * @phpstan-param list<ScheduleRow> $schedules
 	 * @return bool
 	 */
 	private static function can_user_book( int $user_id, array $schedules ): bool {
@@ -642,6 +650,7 @@ class AudienceShortcode {
 	 * Recursively convert an audience object (with children) to an array.
 	 *
 	 * @param object $audience Audience object with optional children.
+	 * @phpstan-param AudienceRow $audience
 	 * @return array<string, mixed>
 	 */
 	private static function audience_to_array( object $audience ): array {
@@ -703,6 +712,7 @@ class AudienceShortcode {
 	 * Enqueue JavaScript assets and localize script
 	 *
 	 * @param array<int, object> $schedules Array of schedule objects.
+	 * @phpstan-param list<ScheduleRow> $schedules
 	 * @return void
 	 */
 	private static function enqueue_assets( array $schedules = array() ): void {

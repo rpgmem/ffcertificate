@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Validates custom field values against their definitions.
  *
  * @since 5.2.0
+ *
+ * @phpstan-import-type CustomFieldRow from CustomFieldRepository
  */
 class CustomFieldValidator {
 
@@ -32,6 +34,7 @@ class CustomFieldValidator {
 	 * Validate a field value against its definition.
 	 *
 	 * @param object $field Field definition object.
+	 * @phpstan-param CustomFieldRow $field
 	 * @param mixed  $value Value to validate.
 	 * @return true|\WP_Error True if valid, WP_Error with message if invalid.
 	 */
@@ -114,6 +117,7 @@ class CustomFieldValidator {
 	 * Validate value format against validation rules.
 	 *
 	 * @param object               $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @param mixed                $value Value to validate.
 	 * @param array<string, mixed> $rules Validation rules.
 	 * @return true|\WP_Error
@@ -199,6 +203,7 @@ class CustomFieldValidator {
 	 * Validate working_hours JSON value.
 	 *
 	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @param mixed  $value Raw value (JSON string or array).
 	 * @return true|\WP_Error
 	 */
@@ -257,6 +262,7 @@ class CustomFieldValidator {
 	 * Validate a dependent_select field value.
 	 *
 	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @param mixed  $value Raw value (JSON string or array).
 	 * @return true|\WP_Error
 	 */
