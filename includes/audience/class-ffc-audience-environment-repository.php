@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 /**
  * Database repository for audience environment records.
+ *
+ * @phpstan-type EnvironmentRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, name: string, color?: string, description: string|null, working_hours: string|null, status: string, created_at: string, updated_at: string}
+ * @phpstan-type HolidayRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, holiday_date: string, description: string|null, created_by: numeric-string, created_at: string}
  */
 class AudienceEnvironmentRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -54,7 +57,7 @@ class AudienceEnvironmentRepository {
 	 * Get all environments
 	 *
 	 * @param array<string, mixed> $args Query arguments.
-	 * @return array<int, object>
+	 * @return list<EnvironmentRow>
 	 */
 	public static function get_all( array $args = array() ): array {
 		$wpdb  = self::db();
@@ -102,7 +105,9 @@ class AudienceEnvironmentRepository {
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-		return $wpdb->get_results( $sql );
+		$results = $wpdb->get_results( $sql );
+		/** @var list<EnvironmentRow> */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -119,7 +124,7 @@ class AudienceEnvironmentRepository {
 	 * Get by id.
 	 *
 	 * @param int $id Environment ID.
-	 * @return object|null
+	 * @return EnvironmentRow|null
 	 */
 	public static function get_by_id( int $id ): ?object {
 		$cached = static::cache_get( "id_{$id}" );
@@ -131,6 +136,7 @@ class AudienceEnvironmentRepository {
 		$table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		/** @var EnvironmentRow|null $result */
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
@@ -147,7 +153,7 @@ class AudienceEnvironmentRepository {
 	 *
 	 * @param int         $schedule_id Schedule ID.
 	 * @param string|null $status Optional status filter.
-	 * @return array<int, object>
+	 * @return list<EnvironmentRow>
 	 */
 	public static function get_by_schedule( int $schedule_id, ?string $status = null ): array {
 		return self::get_all(
@@ -376,7 +382,7 @@ class AudienceEnvironmentRepository {
 	 * @param int         $schedule_id Schedule ID.
 	 * @param string|null $start_date Optional start date filter.
 	 * @param string|null $end_date Optional end date filter.
-	 * @return array<object>
+	 * @return list<HolidayRow>
 	 */
 	public static function get_holidays( int $schedule_id, ?string $start_date = null, ?string $end_date = null ): array {
 		$wpdb  = self::db();
@@ -398,13 +404,15 @@ class AudienceEnvironmentRepository {
 		$where_clause = 'WHERE ' . implode( ' AND ', $where );
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from trusted conditions above.
-		return $wpdb->get_results(
+		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i {$where_clause} ORDER BY holiday_date ASC",
 				array_merge( array( $table ), $values )
 			)
 		);
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		/** @var list<HolidayRow> */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**

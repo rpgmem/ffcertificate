@@ -20,6 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 /**
  * Database repository for audience records.
+ *
+ * @phpstan-type AudienceRow \stdClass&object{id: numeric-string, name: string, color: string, parent_id: numeric-string|null, status: string, created_by: numeric-string, created_at: string, updated_at: string, allow_self_join?: numeric-string, children?: list<\stdClass>, depth?: int<0, 2>}
  */
 class AudienceRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -55,7 +57,7 @@ class AudienceRepository {
 	 * Get all audiences
 	 *
 	 * @param array<string, mixed> $args Query arguments.
-	 * @return array<object>
+	 * @return list<AudienceRow>
 	 */
 	public static function get_all( array $args = array() ): array {
 		$wpdb  = self::db();
@@ -107,7 +109,9 @@ class AudienceRepository {
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-		return $wpdb->get_results( $sql );
+		$results = $wpdb->get_results( $sql );
+		/** @var list<AudienceRow> */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -124,7 +128,7 @@ class AudienceRepository {
 	 * Get by id.
 	 *
 	 * @param int $id Audience ID.
-	 * @return object|null
+	 * @return AudienceRow|null
 	 */
 	public static function get_by_id( int $id ): ?object {
 		$cached = static::cache_get( "id_{$id}" );
@@ -136,6 +140,7 @@ class AudienceRepository {
 		$table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		/** @var AudienceRow|null $result */
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
@@ -151,7 +156,7 @@ class AudienceRepository {
 	 * Get parent audiences (top-level groups)
 	 *
 	 * @param string|null $status Optional status filter.
-	 * @return array<object>
+	 * @return list<AudienceRow>
 	 */
 	public static function get_parents( ?string $status = null ): array {
 		return self::get_all(
@@ -167,7 +172,7 @@ class AudienceRepository {
 	 *
 	 * @param int         $parent_id Parent audience ID.
 	 * @param string|null $status Optional status filter.
-	 * @return array<object>
+	 * @return list<AudienceRow>
 	 */
 	public static function get_children( int $parent_id, ?string $status = null ): array {
 		return self::get_all(
@@ -184,7 +189,7 @@ class AudienceRepository {
 	 * Builds a tree up to 3 levels deep (parent / child / grandchild).
 	 *
 	 * @param string|null $status Optional status filter.
-	 * @return array<object> Parents with nested 'children' property
+	 * @return list<AudienceRow> Parents with nested 'children' property
 	 */
 	public static function get_hierarchical( ?string $status = null ): array {
 		$all = self::get_all( array( 'status' => $status ) );
@@ -343,13 +348,15 @@ class AudienceRepository {
 		);
 		$placeholders = implode( ',', array_fill( 0, count( $child_ids ), '%d' ) );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$wpdb->query(
-			$wpdb->prepare(
-				"UPDATE %i SET allow_self_join = %d WHERE id IN ({$placeholders})",
-				array_merge( array( $table, $value ), $child_ids )
-			)
+		$update_sql = $wpdb->prepare(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			"UPDATE %i SET allow_self_join = %d WHERE id IN ({$placeholders})",
+			array_merge( array( $table, $value ), $child_ids )
 		);
+		if ( is_string( $update_sql ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+			$wpdb->query( $update_sql );
+		}
 
 		// Recurse into each child.
 		foreach ( $children as $child ) {
@@ -373,7 +380,7 @@ class AudienceRepository {
 		// Delete children first.
 		$children = self::get_children( $id );
 		foreach ( $children as $child ) {
-			self::delete( $child->id );
+			self::delete( (int) $child->id );
 		}
 
 		// Delete member associations.
@@ -503,12 +510,13 @@ class AudienceRepository {
 	 *
 	 * @param int  $user_id User ID.
 	 * @param bool $include_parents Whether to include parent audiences (when user is in child).
-	 * @return array<object>
+	 * @return list<AudienceRow>
 	 */
 	public static function get_user_audiences( int $user_id, bool $include_parents = false ): array {
 		$cache_key = 'ffcertificate_user_aud_' . $user_id . '_' . ( $include_parents ? '1' : '0' );
 		$cached    = wp_cache_get( $cache_key, 'ffcertificate' );
-		if ( false !== $cached ) {
+		if ( is_array( $cached ) ) {
+			/** @var list<AudienceRow> $cached */
 			return $cached;
 		}
 
@@ -517,7 +525,7 @@ class AudienceRepository {
 		$members_table = self::get_members_table_name();
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$audiences = $wpdb->get_results(
+		$audiences_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT a.* FROM %i a
                 INNER JOIN %i m ON a.id = m.audience_id
@@ -529,6 +537,8 @@ class AudienceRepository {
 			)
 		);
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		/** @var list<AudienceRow> $audiences */
+		$audiences = is_array( $audiences_raw ) ? $audiences_raw : array();
 
 		// Include all ancestor audiences if requested (walks up the full chain).
 		if ( $include_parents && ! empty( $audiences ) ) {
@@ -545,10 +555,12 @@ class AudienceRepository {
 				$placeholders = implode( ',', array_fill( 0, count( $ancestor_ids ), '%d' ) );
 
                 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN() placeholders built from array_fill; cached below.
-				$parents = $wpdb->get_results(
+				$parents_raw = $wpdb->get_results(
 					$wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$placeholders}) AND status = 'active'", array_merge( array( $table ), $ancestor_ids ) )
 				);
                 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+				/** @var list<AudienceRow> $parents */
+				$parents = is_array( $parents_raw ) ? $parents_raw : array();
 
 				// Merge and remove duplicates.
 				$existing_ids = array_column( $audiences, 'id' );
@@ -701,12 +713,13 @@ class AudienceRepository {
 	 *
 	 * @param string $search Search term.
 	 * @param int    $limit Max results.
-	 * @return array<object>
+	 * @return list<AudienceRow>
 	 */
 	public static function search( string $search, int $limit = 10 ): array {
 		$cache_key = 'ffcertificate_aud_search_' . md5( $search . '_' . $limit );
 		$cached    = wp_cache_get( $cache_key, 'ffcertificate' );
-		if ( false !== $cached ) {
+		if ( is_array( $cached ) ) {
+			/** @var list<AudienceRow> $cached */
 			return $cached;
 		}
 
@@ -714,7 +727,7 @@ class AudienceRepository {
 		$table = self::get_table_name();
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$results = $wpdb->get_results(
+		$results_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i
                 WHERE name LIKE %s AND status = 'active'
@@ -726,6 +739,8 @@ class AudienceRepository {
 			)
 		);
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		/** @var list<AudienceRow> $results */
+		$results = is_array( $results_raw ) ? $results_raw : array();
 
 		wp_cache_set( $cache_key, $results, 'ffcertificate' );
 
@@ -773,7 +788,7 @@ class AudienceRepository {
 	 * Optionally excludes an audience and its descendants to prevent circular refs.
 	 *
 	 * @param int $exclude_id Audience ID to exclude (along with descendants).
-	 * @return array<object> Flat list with a 'depth' property on each item
+	 * @return list<AudienceRow> Flat list with a 'depth' property on each item
 	 */
 	public static function get_possible_parents( int $exclude_id = 0 ): array {
 		$exclude_ids = array();
@@ -812,7 +827,7 @@ class AudienceRepository {
 	 * Returns ordered array from root to the immediate parent.
 	 *
 	 * @param int $audience_id Audience ID.
-	 * @return array<object>
+	 * @return list<AudienceRow>
 	 */
 	public static function get_ancestors( int $audience_id ): array {
 		$ancestors = array();
