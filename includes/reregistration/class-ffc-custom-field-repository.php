@@ -93,6 +93,11 @@ class CustomFieldRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var CustomFieldRow|null $result
+		 */
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $field_id )
 		);
@@ -122,12 +127,18 @@ class CustomFieldRepository {
 			$where .= ' AND is_active = 1';
 		}
 
-		return $wpdb->get_results(
+		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i {$where} ORDER BY sort_order ASC, id ASC",
 				array_merge( array( $table ), $values )
 			)
 		);
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<CustomFieldRow>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -626,6 +637,11 @@ class CustomFieldRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var CustomFieldRow|null $result
+		 */
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE audience_id = %d AND field_key = %s LIMIT 1',
@@ -704,8 +720,8 @@ class CustomFieldRepository {
 	/**
 	 * Validate a field value against its definition.
 	 *
-	 * @param object $field Field definition object.
-	 * @param mixed  $value Value to validate.
+	 * @param CustomFieldRow $field Field definition object.
+	 * @param mixed          $value Value to validate.
 	 * @return true|\WP_Error True if valid, WP_Error with message if invalid.
 	 */
 	public static function validate_field_value( object $field, $value ) {
@@ -719,7 +735,7 @@ class CustomFieldRepository {
 	 *   {"groups": {"Parent Label": ["Child 1", "Child 2"], ...},
 	 *    "parent_label": "Divisão", "child_label": "Setor"}
 	 *
-	 * @param object $field Field definition.
+	 * @param CustomFieldRow $field Field definition.
 	 * @return array<string, array<string>> Parent => [children].
 	 */
 	public static function get_dependent_choices( object $field ): array {
@@ -727,7 +743,7 @@ class CustomFieldRepository {
 		if ( is_string( $options ) ) {
 			$options = json_decode( $options, true );
 		}
-		return $options['groups'] ?? array();
+		return is_array( $options ) && isset( $options['groups'] ) && is_array( $options['groups'] ) ? $options['groups'] : array();
 	}
 
 	// ─────────────────────────────────────────────.
@@ -758,7 +774,7 @@ class CustomFieldRepository {
 	private static function generate_field_key( string $label ): string {
 		$key       = sanitize_title( $label );
 		$key       = str_replace( '-', '_', $key );
-		$key       = preg_replace( '/[^a-z0-9_]/', '', $key );
+		$key       = preg_replace( '/[^a-z0-9_]/', '', $key ) ?? '';
 		$truncated = substr( $key, 0, 100 );
 		return '' !== $truncated ? $truncated : 'field';
 	}
@@ -805,7 +821,7 @@ class CustomFieldRepository {
 	/**
 	 * Get choices for a select field.
 	 *
-	 * @param object $field Field definition.
+	 * @param CustomFieldRow $field Field definition.
 	 * @return array<string>
 	 */
 	public static function get_field_choices( object $field ): array {
@@ -813,13 +829,13 @@ class CustomFieldRepository {
 		if ( is_string( $options ) ) {
 			$options = json_decode( $options, true );
 		}
-		return $options['choices'] ?? array();
+		return is_array( $options ) && isset( $options['choices'] ) && is_array( $options['choices'] ) ? $options['choices'] : array();
 	}
 
 	/**
 	 * Get validation rules for a field.
 	 *
-	 * @param object $field Field definition.
+	 * @param CustomFieldRow $field Field definition.
 	 * @return array<string, mixed>
 	 */
 	public static function get_validation_rules( object $field ): array {

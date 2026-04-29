@@ -90,6 +90,11 @@ class ReregistrationSubmissionRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var ReregistrationSubmissionRow|null $result
+		 */
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
@@ -116,9 +121,15 @@ class ReregistrationSubmissionRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		return $wpdb->get_row(
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var ReregistrationSubmissionRow|null $row
+		 */
+		$row = $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM %i WHERE auth_code = %s AND status IN ('submitted', 'approved')", $table, $auth_code )
 		);
+		return $row;
 	}
 
 	/**
@@ -136,15 +147,21 @@ class ReregistrationSubmissionRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		return $wpdb->get_row(
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var ReregistrationSubmissionRow|null $row
+		 */
+		$row = $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM %i WHERE magic_token = %s AND status IN ('submitted', 'approved')", $table, $token )
 		);
+		return $row;
 	}
 
 	/**
 	 * Ensure a submission has a magic_token, generating one if missing.
 	 *
-	 * @param object $submission Submission row object.
+	 * @param ReregistrationSubmissionRow $submission Submission row object.
 	 * @return string The magic_token (existing or newly generated).
 	 */
 	public static function ensure_magic_token( object $submission ): string {
@@ -169,7 +186,12 @@ class ReregistrationSubmissionRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		return $wpdb->get_row(
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var ReregistrationSubmissionRow|null $row
+		 */
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE reregistration_id = %d AND user_id = %d',
 				$table,
@@ -177,6 +199,7 @@ class ReregistrationSubmissionRepository {
 				$user_id
 			)
 		);
+		return $row;
 	}
 
 	/**
@@ -207,6 +230,11 @@ class ReregistrationSubmissionRepository {
 			)
 		);
 
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<ReregistrationSubmissionRow>
+		 */
 		return is_array( $results ) ? $results : array();
 	}
 
@@ -525,7 +553,7 @@ class ReregistrationSubmissionRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		$results = $wpdb->get_results(
+		$results_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT status, COUNT(*) as count FROM %i
                 WHERE reregistration_id = %d GROUP BY status',
@@ -533,6 +561,12 @@ class ReregistrationSubmissionRepository {
 				$reregistration_id
 			)
 		);
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<\stdClass&object{status: string, count: numeric-string}> $results
+		 */
+		$results = is_array( $results_raw ) ? $results_raw : array();
 
 		$stats = array(
 			'total'       => 0,
