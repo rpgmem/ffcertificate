@@ -249,7 +249,7 @@ class AppointmentValidator {
 				return new \WP_Error( 'invalid_rf', __( 'Invalid RF format.', 'ffcertificate' ) );
 			}
 		} elseif ( strlen( $cpf_rf_clean ) === 11 ) {
-			if ( ! \FreeFormCertificate\Core\Utils::validate_cpf( $cpf_rf_clean ) ) {
+			if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $cpf_rf_clean ) ) {
 				return new \WP_Error( 'invalid_cpf', __( 'Invalid CPF.', 'ffcertificate' ) );
 			}
 		} else {

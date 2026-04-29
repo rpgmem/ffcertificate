@@ -367,7 +367,7 @@ class FormRestController {
 			$form_fields = $this->form_repository->getFields( $form_id );
 
 			// Sanitize submission data.
-			$submission_data = \FreeFormCertificate\Core\Utils::recursive_sanitize( $params );
+			$submission_data = \FreeFormCertificate\Core\DataSanitizer::recursive_sanitize( $params );
 
 			// Validate required fields.
 			$validation_errors = $this->validate_required_fields( $submission_data, $form_fields );
@@ -387,7 +387,7 @@ class FormRestController {
 				$cpf = preg_replace( '/[^0-9]/', '', $submission_data['cpf_rf'] );
 
 				if ( strlen( $cpf ) === 11 ) {
-					if ( class_exists( '\FreeFormCertificate\Core\Utils' ) && ! \FreeFormCertificate\Core\Utils::validate_cpf( $cpf ) ) {
+					if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $cpf ) ) {
 						return new \WP_Error(
 							'invalid_cpf',
 							'Invalid CPF. Please check the number and try again.',
@@ -395,7 +395,7 @@ class FormRestController {
 						);
 					}
 				} elseif ( strlen( $cpf ) === 7 ) {
-					if ( class_exists( '\FreeFormCertificate\Core\Utils' ) && ! \FreeFormCertificate\Core\Utils::validate_rf( $cpf ) ) {
+					if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_rf( $cpf ) ) {
 						return new \WP_Error(
 							'invalid_rf',
 							'Invalid RF. Must contain only numbers.',
@@ -511,7 +511,7 @@ class FormRestController {
 			$response = array(
 				'success'       => true,
 				'submission_id' => $submission_id,
-				'auth_code'     => \FreeFormCertificate\Core\Utils::format_auth_code( $auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
+				'auth_code'     => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
 				'message'       => __( 'Form submitted successfully', 'ffcertificate' ),
 			);
 

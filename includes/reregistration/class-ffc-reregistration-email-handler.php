@@ -167,7 +167,7 @@ class ReregistrationEmailHandler {
 		}
 
 		$auth_code_formatted = ! empty( $submission->auth_code )
-			? \FreeFormCertificate\Core\Utils::format_auth_code( $submission->auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
+			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $submission->auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
 			: '';
 
 		return self::send_to_user(

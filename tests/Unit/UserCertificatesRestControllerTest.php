@@ -55,13 +55,12 @@ class UserCertificatesRestControllerTest extends TestCase {
         // Alias mocks for static-only dependencies
         $utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
         $utils_mock->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' )->byDefault();
-        $utils_mock->shouldReceive( 'mask_email' )->andReturnUsing( function( $email ) {
-            return 'j***@example.com';
-        })->byDefault();
-        $utils_mock->shouldReceive( 'format_auth_code' )->andReturnUsing( function( $code, $prefix = '' ) {
-            return $prefix ? $prefix . '-' . $code : $code;
-        })->byDefault();
         $utils_mock->shouldReceive( 'debug_log' )->byDefault();
+
+        // DocumentFormatter::mask_email() (called by the controller) calls is_email()
+        // internally — provide a permissive stub. The real DocumentFormatter is
+        // autoloaded so its PREFIX_* constants remain available.
+        Functions\when( 'is_email' )->justReturn( true );
 
         $encryption_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
         $encryption_mock->shouldReceive( 'decrypt_field' )->andReturn( 'john@example.com' )->byDefault();

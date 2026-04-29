@@ -43,7 +43,7 @@ class DynamicFragments {
 	 * (tied to the visitor's cookies) and safe to expose.
 	 */
 	public function handle(): void {
-		$captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
+		$captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
 
 		$fragments = array(
 			'captcha' => array(
@@ -88,7 +88,7 @@ class DynamicFragments {
 			$per_form = array();
 			foreach ( $form_ids as $fid ) {
 				if ( $fid > 0 ) {
-					$c                = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
+					$c                = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
 					$per_form[ $fid ] = array(
 						'label' => $c['label'],
 						'hash'  => $c['hash'],

@@ -377,20 +377,6 @@ class CsvExporter {
 	// Legacy entry point (kept for backwards compat)
 	// ──────────────────────────────────────────────────────────────.
 
-	/**
-	 * Legacy handler called from admin_post_ffc_export_csv.
-	 *
-	 * Redirects back to submissions page — the actual export now happens
-	 * via AJAX. This avoids 503 errors on slow hosting.
-	 *
-	 * @deprecated 5.0.0 Use AJAX endpoints instead.
-	 */
-	public function handle_export_request(): void {
-		// If someone hits the old POST endpoint, redirect back.
-		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' ) );
-		exit;
-	}
-
 	// ──────────────────────────────────────────────────────────────.
 	// Helpers (private)
 	// ──────────────────────────────────────────────────────────────.

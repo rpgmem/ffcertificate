@@ -247,8 +247,7 @@ class VerificationHandler {
 		// Decrypt split cpf/rf columns.
 		$cpf_val = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'cpf' );
 		$rf_val  = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'rf' );
-		// @deprecated legacy cpf_rf fallback — remove in next major version.
-		$cpf_rf = ! empty( $cpf_val ) ? $cpf_val : ( ! empty( $rf_val ) ? $rf_val : \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'cpf_rf' ) );
+		$cpf_rf  = ! empty( $cpf_val ) ? $cpf_val : ( ! empty( $rf_val ) ? $rf_val : '' );
 
 		// Build data array.
 		$data = array(
@@ -732,7 +731,7 @@ class VerificationHandler {
 		// Validate honeypot + captcha via centralised service.
 		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
 		if ( true !== $security_check ) {
-			$new_captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
+			$new_captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
 			wp_send_json_error(
 				array(
 					'message'         => $security_check,
@@ -758,7 +757,7 @@ class VerificationHandler {
 		$result = $this->search_certificate( $auth_code );
 
 		if ( ! $result['found'] ) {
-			$new_captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
+			$new_captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
 			wp_send_json_error(
 				array(
 					'message'         => '❌ ' . __( 'Document not found or invalid code.', 'ffcertificate' ),

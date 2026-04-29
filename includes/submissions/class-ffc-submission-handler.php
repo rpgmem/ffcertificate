@@ -60,7 +60,7 @@ class SubmissionHandler {
 	 * Generate unique auth code
 	 */
 	private function generate_unique_auth_code(): string {
-		return \FreeFormCertificate\Core\Utils::generate_globally_unique_auth_code();
+		return \FreeFormCertificate\Core\AuthCodeService::generate_globally_unique_auth_code();
 	}
 
 	/**
@@ -136,7 +136,7 @@ class SubmissionHandler {
 		}
 
 		// 2. Clean mandatory fields.
-		$clean_auth_code = \FreeFormCertificate\Core\Utils::clean_auth_code( $submission_data['auth_code'] );
+		$clean_auth_code = \FreeFormCertificate\Core\DocumentFormatter::clean_auth_code( $submission_data['auth_code'] );
 
 		$clean_cpf_rf = null;
 		if ( isset( $submission_data['cpf_rf'] ) && ! empty( $submission_data['cpf_rf'] ) ) {

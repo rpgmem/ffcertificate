@@ -96,19 +96,6 @@ class ReprintDetector {
 
 			}
 
-			// @deprecated legacy JSON data fallback — remove in next major version.
-			if ( ! $existing_submission ) {
-				$like_query = '%' . $wpdb->esc_like( '"cpf_rf":"' . $val_cpf . '"' ) . '%';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$existing_submission = $wpdb->get_row(
-					$wpdb->prepare(
-						'SELECT * FROM %i WHERE form_id = %d AND data LIKE %s ORDER BY id DESC LIMIT 1',
-						$table_name,
-						$form_id,
-						$like_query
-					)
-				);
-			}
 		}
 
 		if ( $existing_submission ) {

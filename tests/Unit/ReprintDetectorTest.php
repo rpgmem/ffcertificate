@@ -259,28 +259,6 @@ class ReprintDetectorTest extends TestCase {
     // detect by CPF — hash miss, JSON fallback
     // ==================================================================
 
-    public function test_detect_by_cpf_falls_back_to_json_when_hash_misses(): void {
-        $encMock = $this->encMock;
-        $encMock->shouldReceive('is_configured')->andReturn(true);
-        $encMock->shouldReceive('hash')->andReturn('hash');
-        $encMock->shouldReceive('decrypt')->andReturn(null);
-
-        $row = $this->makeSubmissionRow([
-            'id' => 33,
-            'data' => '{"cpf_rf":"123.456.789-01","name":"Jose"}',
-        ]);
-
-        // Hash query misses, JSON fallback finds it
-        $this->wpdb->shouldReceive('get_row')
-            ->twice()
-            ->andReturn(null, $row);
-
-        $result = ReprintDetector::detect(1, '123.456.789-01', '');
-
-        $this->assertTrue($result['is_reprint']);
-        $this->assertSame(33, $result['id']);
-    }
-
     // ==================================================================
     // detect by CPF — no match
     // ==================================================================

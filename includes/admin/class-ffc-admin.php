@@ -184,11 +184,8 @@ class Admin {
 		add_action( 'admin_head', array( $this, 'maybe_register_tinymce_placeholder_filter' ) );
 
 		add_action( 'admin_init', array( $this, 'handle_submission_actions' ) );
-		add_action( 'admin_init', array( $this, 'handle_csv_export_request' ) );
 		add_action( 'admin_init', array( $this, 'handle_submission_edit_save' ) );
 		add_action( 'admin_init', array( $this, 'handle_migration_action' ) );
-
-		add_action( 'admin_post_ffc_export_csv', array( $this, 'handle_csv_export_request' ) );
 
 		// AJAX-driven CSV export (avoids web-server timeouts with large datasets).
 		$this->csv_exporter->register_ajax_hooks();
@@ -429,16 +426,6 @@ class Admin {
 	public function handle_submission_edit_save(): void {
 		$this->edit_page->handle_save();
 	}
-	/**
-	 * Handle csv export request.
-	 */
-	public function handle_csv_export_request(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in csv_exporter->handle_export_request().
-		if ( isset( $_POST['ffc_action'] ) && sanitize_text_field( wp_unslash( $_POST['ffc_action'] ) ) === 'export_csv_smart' ) {
-			$this->csv_exporter->handle_export_request();
-		}
-	}
-
 	/**
 	 * Handle migration action (unified handler for all migrations)
 	 *

@@ -97,10 +97,10 @@ class FormProcessor {
 		// ===== END DEBUG =====.
 
 		// Validate security fields using FFC_Utils.
-		$security_check = \FreeFormCertificate\Core\Utils::validate_security_fields( $_POST );
+		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
 		if ( true !== $security_check ) {
 			// Generate new captcha for retry.
-			$new_captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
+			$new_captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
 			wp_send_json_error(
 				array(
 					'message'         => $security_check,
@@ -142,11 +142,11 @@ class FormProcessor {
 			$name = $field['name'];
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() check only; value unslashed and sanitized below.
 			if ( isset( $_POST[ $name ] ) ) {
-				$value = \FreeFormCertificate\Core\Utils::recursive_sanitize( wp_unslash( $_POST[ $name ] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via recursive_sanitize().
+				$value = \FreeFormCertificate\Core\DataSanitizer::recursive_sanitize( wp_unslash( $_POST[ $name ] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via recursive_sanitize().
 
 				// Normalize name fields (proper capitalization with lowercase connectives).
 				if ( in_array( $name, $name_fields, true ) && is_string( $value ) && ! empty( $value ) ) {
-					$value = \FreeFormCertificate\Core\Utils::normalize_brazilian_name( $value );
+					$value = \FreeFormCertificate\Core\DataSanitizer::normalize_brazilian_name( $value );
 				}
 
 				// Special validation for CPF/RF.
@@ -160,14 +160,14 @@ class FormProcessor {
 
 					// Validate CPF (11 digits) using official algorithm.
 					if ( strlen( $value ) === 11 ) {
-						if ( ! \FreeFormCertificate\Core\Utils::validate_cpf( $value ) ) {
+						if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $value ) ) {
 							wp_send_json_error( array( 'message' => __( 'Invalid CPF. Please check the number and try again.', 'ffcertificate' ) ) );
 						}
 					}
 
 					// Validate RF (7 digits) - must be numeric.
 					if ( strlen( $value ) === 7 ) {
-						if ( ! \FreeFormCertificate\Core\Utils::validate_rf( $value ) ) {
+						if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_rf( $value ) ) {
 							wp_send_json_error( array( 'message' => __( 'Invalid RF. Must contain only numbers.', 'ffcertificate' ) ) );
 						}
 					}

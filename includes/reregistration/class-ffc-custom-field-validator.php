@@ -142,7 +142,7 @@ class CustomFieldValidator {
 		if ( ! empty( $rules['format'] ) ) {
 			switch ( $rules['format'] ) {
 				case 'cpf':
-					if ( ! \FreeFormCertificate\Core\Utils::validate_cpf( $str_value ) ) {
+					if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $str_value ) ) {
 						return new \WP_Error(
 							'field_invalid_cpf',
 							/* translators: %s: field label */
@@ -162,7 +162,7 @@ class CustomFieldValidator {
 					break;
 
 				case 'phone':
-					if ( ! \FreeFormCertificate\Core\Utils::validate_phone( $str_value ) ) {
+					if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_phone( $str_value ) ) {
 						return new \WP_Error(
 							'field_invalid_phone',
 							/* translators: %s: field label */

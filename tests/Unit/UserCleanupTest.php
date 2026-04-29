@@ -39,10 +39,11 @@ class UserCleanupTest extends TestCase {
 
         // Utils alias mock: prevent real autoloading; we only need static stubs.
         $utilsMock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
-        $utilsMock->shouldReceive('mask_email')->andReturnUsing(function ($email) {
-            return substr($email, 0, 1) . '***@' . explode('@', $email)[1];
-        })->byDefault();
         $utilsMock->shouldReceive('debug_log')->byDefault();
+
+        // DocumentFormatter::mask_email() (called by UserCleanup) calls is_email()
+        // internally — provide a permissive stub.
+        Functions\when('is_email')->justReturn(true);
 
         // NOTE: ActivityLog is NOT alias-mocked here — the real class must be
         // loaded so its LEVEL_* class constants (referenced by UserCleanup as

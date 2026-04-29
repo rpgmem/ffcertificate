@@ -345,7 +345,7 @@ class PublicCsvExporter {
 
 		// 3. Honeypot + CAPTCHA.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$security_check = \FreeFormCertificate\Core\Utils::validate_security_fields( $_POST );
+		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
 		if ( true !== $security_check ) {
 			wp_send_json_error( array( 'message' => (string) $security_check ) );
 		}

@@ -531,12 +531,12 @@ class AppointmentRepository extends AbstractRepository {
 	 * Generate unique validation code
 	 *
 	 * Generates a 12-character alphanumeric code (stored without hyphens).
-	 * Use Utils::format_auth_code() to display with hyphens (XXXX-XXXX-XXXX).
+	 * Use DocumentFormatter::format_auth_code() to display with hyphens (XXXX-XXXX-XXXX).
 	 *
 	 * @return string 12-character code without hyphens
 	 */
 	private function generate_unique_validation_code(): string {
-		return \FreeFormCertificate\Core\Utils::generate_globally_unique_auth_code();
+		return \FreeFormCertificate\Core\AuthCodeService::generate_globally_unique_auth_code();
 	}
 
 	/**

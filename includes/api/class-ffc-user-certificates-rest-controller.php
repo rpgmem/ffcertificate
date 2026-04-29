@@ -118,7 +118,7 @@ class UserCertificatesRestController {
 
 			foreach ( $submissions as $submission ) {
 				$email_plain   = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'email' );
-				$email_display = ( '' !== $email_plain ) ? \FreeFormCertificate\Core\Utils::mask_email( $email_plain ) : '';
+				$email_display = ( '' !== $email_plain ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email_plain ) : '';
 
 				$magic_link = '';
 				if ( ! empty( $submission['magic_token'] ) ) {
@@ -127,7 +127,7 @@ class UserCertificatesRestController {
 
 				$auth_code_formatted = '';
 				if ( ! empty( $submission['auth_code'] ) ) {
-					$auth_code_formatted = \FreeFormCertificate\Core\Utils::format_auth_code( $submission['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
+					$auth_code_formatted = \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $submission['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
 				}
 
 				$date_formatted = '';

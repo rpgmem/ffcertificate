@@ -169,17 +169,6 @@ class AdminClassTest extends TestCase {
     }
 
     // ==================================================================
-    // handle_csv_export_request() — no action
-    // ==================================================================
-
-    public function test_handle_csv_export_request_does_nothing_without_action(): void {
-        unset( $_POST['ffc_action'] );
-        $admin = $this->makeAdmin();
-        $admin->handle_csv_export_request();
-        $this->assertTrue( true );
-    }
-
-    // ==================================================================
     // handle_migration_action() — no migration param
     // ==================================================================
 

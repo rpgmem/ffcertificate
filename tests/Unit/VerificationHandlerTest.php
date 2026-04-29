@@ -314,7 +314,7 @@ class VerificationHandlerTest extends TestCase {
             'calendar_id'       => '0',
             'name'              => 'Carlos',
             'email'             => 'carlos@test.com',
-            'cpf_rf'            => '55566677788',
+            'cpf'               => '55566677788',
             'validation_code'   => 'VAL123456789',
             'appointment_date'  => '2026-04-10',
             'start_time'        => '14:00',

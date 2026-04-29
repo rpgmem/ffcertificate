@@ -297,12 +297,12 @@ class PdfGenerator {
 
 			// Format documents (CPF, RF, RG).
 			if ( in_array( $key, array( 'cpf', 'cpf_rf', 'rg' ), true ) ) {
-				$value = \FreeFormCertificate\Core\Utils::format_document( $value );
+				$value = \FreeFormCertificate\Core\DocumentFormatter::format_document( $value );
 			}
 
 			// Format auth code with certificate prefix.
 			if ( 'auth_code' === $key ) {
-				$value = \FreeFormCertificate\Core\Utils::format_auth_code( $value, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
+				$value = \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $value, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
 			}
 
 			// Apply allowed HTML filtering.
@@ -593,7 +593,7 @@ class PdfGenerator {
 
 		// Show auth code if exists.
 		if ( isset( $data['auth_code'] ) ) {
-			$layout .= '<p>' . esc_html__( 'Authenticity:', 'ffcertificate' ) . ' ' . esc_html( \FreeFormCertificate\Core\Utils::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ) ) . '</p>';
+			$layout .= '<p>' . esc_html__( 'Authenticity:', 'ffcertificate' ) . ' ' . esc_html( \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ) ) . '</p>';
 		}
 
 		$layout .= '</div>';
@@ -770,7 +770,7 @@ class PdfGenerator {
 			'created_at'       => $formatted_created,
 			'status'           => $status_label,
 			'validation_code'  => ! empty( $appointment['validation_code'] )
-				? \FreeFormCertificate\Core\Utils::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT )
+				? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT )
 				: '',
 			'auth_code'        => ! empty( $appointment['validation_code'] )
 				? $appointment['validation_code']

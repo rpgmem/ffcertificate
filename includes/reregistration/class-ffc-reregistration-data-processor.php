@@ -247,7 +247,7 @@ class ReregistrationDataProcessor {
 		$persisted_data = array( 'fields' => $persisted_fields );
 
 		// Auth code + magic token for the approval link.
-		$auth_code   = \FreeFormCertificate\Core\Utils::generate_globally_unique_auth_code();
+		$auth_code   = \FreeFormCertificate\Core\AuthCodeService::generate_globally_unique_auth_code();
 		$magic_token = bin2hex( random_bytes( 32 ) );
 
 		$update_data = array(

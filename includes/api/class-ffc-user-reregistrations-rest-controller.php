@@ -132,7 +132,7 @@ class UserReregistrationsRestController {
 					'can_submit'            => $can_submit,
 					'is_active'             => $is_active,
 					'auth_code'             => ! empty( $sub->auth_code )
-						? \FreeFormCertificate\Core\Utils::format_auth_code( $sub->auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
+						? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $sub->auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
 						: '',
 					'magic_link'            => $magic_link,
 				);

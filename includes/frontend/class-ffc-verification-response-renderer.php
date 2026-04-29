@@ -40,7 +40,7 @@ class VerificationResponseRenderer {
 			strtotime( $submission->submission_date )
 		);
 		$display_code   = isset( $data['auth_code'] )
-			? \FreeFormCertificate\Core\Utils::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
+			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
 			: '';
 
 		// Fields to skip (internal/technical).
@@ -129,13 +129,13 @@ class VerificationResponseRenderer {
 		// Format validation code.
 		$display_code = '';
 		if ( ! empty( $appointment['validation_code'] ) ) {
-			$display_code = \FreeFormCertificate\Core\Utils::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT );
+			$display_code = \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT );
 		}
 
 		// Format CPF/RF.
 		$cpf_rf_display = '';
 		if ( ! empty( $data['cpf_rf'] ) ) {
-			$cpf_rf_display = \FreeFormCertificate\Core\Utils::format_document( $data['cpf_rf'] );
+			$cpf_rf_display = \FreeFormCertificate\Core\DocumentFormatter::format_document( $data['cpf_rf'] );
 		}
 
 		// Build HTML.
@@ -250,13 +250,13 @@ class VerificationResponseRenderer {
 		}
 
 		$display_code = ! empty( $rereg['auth_code'] )
-			? \FreeFormCertificate\Core\Utils::format_auth_code( $rereg['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
+			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $rereg['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
 			: '';
 
 		// Format CPF.
 		$cpf_display = '';
 		if ( ! empty( $rereg['cpf'] ) && class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
-			$cpf_display = \FreeFormCertificate\Core\Utils::format_document( $rereg['cpf'] );
+			$cpf_display = \FreeFormCertificate\Core\DocumentFormatter::format_document( $rereg['cpf'] );
 		}
 
 		// Status badge class.
@@ -368,7 +368,7 @@ class VerificationResponseRenderer {
 		}
 
 		if ( in_array( $field_key, array( 'cpf', 'cpf_rf', 'rg' ), true ) && ! empty( $value ) ) {
-			return esc_html( \FreeFormCertificate\Core\Utils::format_document( $value, 'auto' ) );
+			return esc_html( \FreeFormCertificate\Core\DocumentFormatter::format_document( $value, 'auto' ) );
 		}
 
 		return esc_html( (string) $value );

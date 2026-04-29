@@ -295,7 +295,7 @@ class SelfSchedulingActivator {
 	 * Generate unique validation code
 	 *
 	 * Generates a 12-character alphanumeric code (stored without hyphens).
-	 * Use Utils::format_auth_code() to display with hyphens (XXXX-XXXX-XXXX).
+	 * Use DocumentFormatter::format_auth_code() to display with hyphens (XXXX-XXXX-XXXX).
 	 *
 	 * @return string 12-character code without hyphens
 	 */
@@ -305,7 +305,7 @@ class SelfSchedulingActivator {
 
 		do {
 			// Generate 12 alphanumeric characters (stored clean, without hyphens).
-			$code = \FreeFormCertificate\Core\Utils::generate_random_string( 12 );
+			$code = \FreeFormCertificate\Core\AuthCodeService::generate_random_string( 12 );
 
 			// Check if code already exists.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
