@@ -42,18 +42,6 @@ class Admin {
 	 */
 	private $csv_exporter;
 	/**
-	 * Form editor.
-	 *
-	 * @var FormEditor
-	 */
-	private $form_editor; // @phpstan-ignore property.onlyWritten
-	/**
-	 * Settings page.
-	 *
-	 * @var Settings
-	 */
-	private $settings_page; // @phpstan-ignore property.onlyWritten
-	/**
 	 * Migration manager.
 	 *
 	 * @var MigrationManager|null
@@ -169,9 +157,10 @@ class Admin {
 		$this->submission_handler = $handler;
 		$this->csv_exporter       = $exporter;
 
-		// Autoloader handles class loading.
-		$this->form_editor   = new FormEditor();
-		$this->settings_page = new Settings( $handler );
+		// Construct admin sub-pages — their constructors register WP hooks
+		// (admin_menu, admin_init, save_post, …); WP holds the references.
+		new FormEditor();
+		new Settings( $handler );
 
 		$this->assets_manager = new AdminAssetsManager();
 		$this->assets_manager->register();

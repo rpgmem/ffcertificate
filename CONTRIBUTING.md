@@ -46,6 +46,25 @@ history shows the styles we use:
 Keep the subject under 72 characters and explain *why* in the body when the
 diff isn't self-explanatory.
 
+## Static analysis conventions
+
+A few PHPStan annotations recur in repository code; they are deliberate, not
+ad-hoc suppressions:
+
+- `@phpstan-ignore-next-line argument.type` on `$wpdb->prepare( ... )` calls
+  whose first argument is built by string interpolation (`"... {$where}
+  ORDER BY {$orderby} {$order}"`). The WordPress stub annotates `prepare`'s
+  first parameter as `literal-string`, which by design rejects any non-literal
+  query — even when the interpolated fragments come from `array_fill( '%d' )`
+  for `IN (?, ?)` clauses, `sanitize_sql_orderby()`, or other safe-by-construction
+  builders. Each ignored site keeps the placeholders/values flowing through
+  `prepare`'s sanitization, so the runtime guarantee holds even though the
+  static guarantee cannot.
+- `@phpstan-type` aliases at the top of each repository class describe the
+  shape returned by `$wpdb->get_row` / `get_results` for that table; consumers
+  in other namespaces import them via
+  `@phpstan-import-type RowName from RepositoryClass`.
+
 ## Local checks
 
 Run these before opening a PR — CI runs the same commands.

@@ -48,13 +48,6 @@ class Frontend {
 	private $verification_handler;
 
 	/**
-	 * Fragment refresher for cached pages.
-	 *
-	 * @var DynamicFragments
-	 */
-	private $dynamic_fragments; // @phpstan-ignore property.onlyWritten
-
-	/**
 	 * Public CSV download handler.
 	 *
 	 * @var PublicCsvDownload
@@ -70,8 +63,10 @@ class Frontend {
 		$this->verification_handler = new VerificationHandler( $submission_handler );
 		$this->form_processor       = new FormProcessor( $submission_handler );
 		$this->shortcodes           = new Shortcodes();
-		$this->dynamic_fragments    = new DynamicFragments();
 		$this->public_csv_download  = new PublicCsvDownload();
+
+		// DynamicFragments registers AJAX hooks in its constructor; WP holds the reference.
+		new DynamicFragments();
 
 		$this->register_hooks();
 		$this->public_csv_download->register_hooks();
