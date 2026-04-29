@@ -63,7 +63,11 @@ class ReregistrationCustomFieldsPage {
 						<?php foreach ( $audiences as $parent ) : ?>
 							<?php self::render_row( $parent, $edit_base ); ?>
 							<?php if ( ! empty( $parent->children ) ) : ?>
-								<?php foreach ( $parent->children as $child ) : ?>
+								<?php
+								/** @var list<AudienceRow> $children */
+								$children = $parent->children;
+								foreach ( $children as $child ) :
+									?>
 									<?php self::render_row( $child, $edit_base, true ); ?>
 								<?php endforeach; ?>
 							<?php endif; ?>

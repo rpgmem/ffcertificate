@@ -39,7 +39,7 @@ class VerificationResponseRenderer {
 		$date_ts        = strtotime( $submission->submission_date );
 		$date_generated = date_i18n(
 			get_option( 'date_format' ) . ' ' . get_option( 'time_format' ),
-			false === $date_ts ? null : $date_ts
+			false === $date_ts ? false : $date_ts
 		);
 		$display_code   = isset( $data['auth_code'] )
 			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )

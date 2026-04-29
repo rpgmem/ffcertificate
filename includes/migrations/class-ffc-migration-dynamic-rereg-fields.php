@@ -68,7 +68,7 @@ class MigrationDynamicReregFields {
 		$details['seed_standard_fields']           = self::seed_standard_fields_all_audiences();
 
 		foreach ( $details as $result ) {
-			if ( isset( $result['success'] ) && ! $result['success'] ) {
+			if ( ! $result['success'] ) {
 				$all_success = false;
 			}
 		}

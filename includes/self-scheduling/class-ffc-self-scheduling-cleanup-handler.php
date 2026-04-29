@@ -189,6 +189,7 @@ class SelfSchedulingCleanupHandler {
 	 * - Cancelled appointments
 	 *
 	 * @param object $post Post object.
+	 * @phpstan-param \WP_Post $post
 	 * @return void
 	 */
 	public function render_cleanup_metabox( object $post ): void {

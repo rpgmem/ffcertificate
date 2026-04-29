@@ -489,7 +489,7 @@ class AppointmentHandler {
 		// requires Encryption to be configured at runtime; the older raw
 		// hash() fallback only ran in synthetic environments and produced a
 		// hash that no other call site could match.
-		$cpf_rf_hash = \FreeFormCertificate\Core\Encryption::hash( $cpf_rf_clean );
+		$cpf_rf_hash = \FreeFormCertificate\Core\Encryption::hash( $cpf_rf_clean ) ?? '';
 
 		// Determine identifier type by digit count: 11 = CPF, 7 = RF.
 		$identifier_type = strlen( $cpf_rf_clean ) === 7 ? 'rf' : 'cpf';

@@ -38,7 +38,7 @@ class Admin {
 	/**
 	 * Csv exporter.
 	 *
-	 * @var object
+	 * @var CsvExporter
 	 */
 	private $csv_exporter;
 	/**

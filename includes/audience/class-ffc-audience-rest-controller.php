@@ -405,7 +405,7 @@ class AudienceRestController {
 				);
 				foreach ( $working_hours as $day => $hours ) {
 					if ( isset( $hours['closed'] ) && $hours['closed'] ) {
-						$closed_weekdays[] = $day_map[ $day ] ?? -1;
+						$closed_weekdays[] = is_string( $day ) && isset( $day_map[ $day ] ) ? $day_map[ $day ] : -1;
 					}
 				}
 			}
