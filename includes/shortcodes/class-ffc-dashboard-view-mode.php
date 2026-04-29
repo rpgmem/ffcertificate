@@ -65,7 +65,7 @@ class DashboardViewMode {
 	 * @return string HTML output
 	 */
 	public static function render_admin_viewing_banner( int $user_id ): string {
-		$user  = get_user_by( 'id', $user_id );
+		$user = get_user_by( 'id', $user_id );
 		if ( ! $user ) {
 			return '';
 		}
