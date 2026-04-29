@@ -60,7 +60,7 @@ class SubmissionHandler {
 	 * Generate unique auth code
 	 */
 	private function generate_unique_auth_code(): string {
-		return \FreeFormCertificate\Core\Utils::generate_globally_unique_auth_code();
+		return \FreeFormCertificate\Core\AuthCodeService::generate_globally_unique_auth_code();
 	}
 
 	/**
@@ -90,7 +90,7 @@ class SubmissionHandler {
 	 * @return array<string, mixed>|null
 	 */
 	public function get_submission_by_token( string $token ) {
-		$clean_token = preg_replace( '/[^a-f0-9]/i', '', $token );
+		$clean_token = preg_replace( '/[^a-f0-9]/i', '', $token ) ?? '';
 
 		if ( strlen( $clean_token ) !== 32 ) {
 			return null;
@@ -136,7 +136,7 @@ class SubmissionHandler {
 		}
 
 		// 2. Clean mandatory fields.
-		$clean_auth_code = \FreeFormCertificate\Core\Utils::clean_auth_code( $submission_data['auth_code'] );
+		$clean_auth_code = \FreeFormCertificate\Core\DocumentFormatter::clean_auth_code( $submission_data['auth_code'] );
 
 		$clean_cpf_rf = null;
 		if ( isset( $submission_data['cpf_rf'] ) && ! empty( $submission_data['cpf_rf'] ) ) {
@@ -335,14 +335,7 @@ class SubmissionHandler {
 			}
 		}
 
-		if ( method_exists( $this->repository, 'updateWithEditTracking' ) ) {
-			$result = $this->repository->updateWithEditTracking( $id, $update_data );
-		} else {
-			// Fallback: manual tracking in columns (not JSON).
-			$update_data['edited_at'] = current_time( 'mysql' );
-			$update_data['edited_by'] = get_current_user_id();
-			$result                   = $this->repository->update( $id, $update_data );
-		}
+		$result = $this->repository->updateWithEditTracking( $id, $update_data );
 
 		if ( false !== $result ) {
 			/**
@@ -605,6 +598,50 @@ class SubmissionHandler {
 				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
 				array(
 					'count' => count( $ids ),
+				)
+			);
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Move submissions between forms, skipping conflicts.
+	 *
+	 * Wraps SubmissionRepository::moveBetweenForms with the same
+	 * disable-logging-then-log-once pattern used by the other bulk methods,
+	 * so a 50-row move produces a single `submission_moved` activity entry
+	 * instead of 50 individual `data_modified` entries.
+	 *
+	 * @param int             $from_form_id Source form ID.
+	 * @param int             $to_form_id   Target form ID.
+	 * @param array<int, int> $ids          Submission IDs.
+	 * @return array{moved: list<int>, conflicts: list<int>}
+	 */
+	public function move_submissions_between_forms( int $from_form_id, int $to_form_id, array $ids ): array {
+		$activity_log_class = '\FreeFormCertificate\Core\ActivityLog';
+
+		// Disable logging during bulk operation.
+		if ( class_exists( $activity_log_class ) ) {
+			\FreeFormCertificate\Core\ActivityLog::disable_logging();
+		}
+
+		$result = $this->repository->moveBetweenForms( $from_form_id, $to_form_id, $ids );
+
+		// Re-enable logging and emit a single audit entry.
+		if ( class_exists( $activity_log_class ) ) {
+			\FreeFormCertificate\Core\ActivityLog::enable_logging();
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'submission_moved',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array(
+					'from_form_id'   => $from_form_id,
+					'to_form_id'     => $to_form_id,
+					'requested'      => count( $ids ),
+					'moved_count'    => count( $result['moved'] ),
+					'conflict_count' => count( $result['conflicts'] ),
+					'moved_ids'      => $result['moved'],
+					'conflict_ids'   => $result['conflicts'],
 				)
 			);
 		}

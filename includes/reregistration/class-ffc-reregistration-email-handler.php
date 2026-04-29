@@ -21,6 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Handler for reregistration email operations.
+ *
+ * @phpstan-import-type ReregistrationRow from ReregistrationRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
  */
 class ReregistrationEmailHandler {
 
@@ -167,7 +170,7 @@ class ReregistrationEmailHandler {
 		}
 
 		$auth_code_formatted = ! empty( $submission->auth_code )
-			? \FreeFormCertificate\Core\Utils::format_auth_code( $submission->auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
+			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $submission->auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
 			: '';
 
 		return self::send_to_user(
@@ -229,6 +232,7 @@ class ReregistrationEmailHandler {
 	 * @param object                $rereg       Reregistration object.
 	 * @param array<string, string> $template    Template with 'subject' and 'body' keys.
 	 * @param array<string, string> $extra_vars  Additional template variables.
+	 * @phpstan-param ReregistrationRow $rereg
 	 * @return bool
 	 */
 	private static function send_to_user( int $user_id, object $rereg, array $template, array $extra_vars = array() ): bool {

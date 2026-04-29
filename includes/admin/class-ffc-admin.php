@@ -38,7 +38,7 @@ class Admin {
 	/**
 	 * Csv exporter.
 	 *
-	 * @var object
+	 * @var CsvExporter
 	 */
 	private $csv_exporter;
 	/**
@@ -163,6 +163,7 @@ class Admin {
 	 *
 	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Handler.
 	 * @param object                                             $exporter Exporter.
+	 * @phpstan-param CsvExporter $exporter
 	 */
 	public function __construct( \FreeFormCertificate\Submissions\SubmissionHandler $handler, object $exporter ) {
 		$this->submission_handler = $handler;
@@ -184,11 +185,8 @@ class Admin {
 		add_action( 'admin_head', array( $this, 'maybe_register_tinymce_placeholder_filter' ) );
 
 		add_action( 'admin_init', array( $this, 'handle_submission_actions' ) );
-		add_action( 'admin_init', array( $this, 'handle_csv_export_request' ) );
 		add_action( 'admin_init', array( $this, 'handle_submission_edit_save' ) );
 		add_action( 'admin_init', array( $this, 'handle_migration_action' ) );
-
-		add_action( 'admin_post_ffc_export_csv', array( $this, 'handle_csv_export_request' ) );
 
 		// AJAX-driven CSV export (avoids web-server timeouts with large datasets).
 		$this->csv_exporter->register_ajax_hooks();
@@ -249,7 +247,7 @@ class Admin {
 				$bulk_action = sanitize_key( wp_unslash( $_GET['action2'] ) );
 			}
 
-			$allowed_bulk = array( 'bulk_trash', 'bulk_restore', 'bulk_delete' );
+			$allowed_bulk = array( 'bulk_trash', 'bulk_restore', 'bulk_delete', 'move_to_form' );
 			if ( in_array( $bulk_action, $allowed_bulk, true ) ) {
 				check_admin_referer( 'bulk-submissions' );
 				$ids = array_map( 'absint', wp_unslash( $_GET['submission'] ) );
@@ -257,13 +255,16 @@ class Admin {
 				// Use optimized bulk methods (single query + single log).
 				if ( 'bulk_trash' === $bulk_action ) {
 					$this->submission_handler->bulk_trash_submissions( $ids );
+					$this->redirect_with_msg( 'bulk_done' );
 				} elseif ( 'bulk_restore' === $bulk_action ) {
 					$this->submission_handler->bulk_restore_submissions( $ids );
+					$this->redirect_with_msg( 'bulk_done' );
 				} elseif ( 'bulk_delete' === $bulk_action ) {
 					$this->submission_handler->bulk_delete_submissions( $ids );
+					$this->redirect_with_msg( 'bulk_done' );
+				} elseif ( 'move_to_form' === $bulk_action ) {
+					$this->handle_bulk_move_to_form( $ids );
 				}
-
-				$this->redirect_with_msg( 'bulk_done' );
 			}
 		}
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
@@ -342,6 +343,75 @@ class Admin {
 	}
 
 	/**
+	 * Handle the "Move to form…" bulk action.
+	 *
+	 * Reads the source form ID from the existing `filter_form_id` filter
+	 * (single value only — the bulk action only surfaces in the list table
+	 * when exactly one form is filtered) and the target form ID from the
+	 * modal-supplied `move_to_form_id` param. Defers identifier-based
+	 * conflict detection to SubmissionHandler::move_submissions_between_forms,
+	 * then redirects with a result message carrying the moved/conflict counts
+	 * and the conflict IDs (so the admin notice can list them).
+	 *
+	 * @param array<int, int> $ids Submission IDs.
+	 * @return void
+	 */
+	private function handle_bulk_move_to_form( array $ids ): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Already verified by check_admin_referer( 'bulk-submissions' ) in the caller.
+		$filter_raw = isset( $_GET['filter_form_id'] ) ? wp_unslash( $_GET['filter_form_id'] ) : null;
+		$from_form  = 0;
+		if ( is_array( $filter_raw ) && 1 === count( $filter_raw ) ) {
+			$from_form = absint( reset( $filter_raw ) );
+		} elseif ( is_string( $filter_raw ) || is_numeric( $filter_raw ) ) {
+			$from_form = absint( $filter_raw );
+		}
+		$to_form = isset( $_GET['move_to_form_id'] ) ? absint( wp_unslash( $_GET['move_to_form_id'] ) ) : 0;
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		if ( $from_form <= 0 || $to_form <= 0 || $from_form === $to_form ) {
+			$this->redirect_with_msg( 'move_invalid' );
+			return;
+		}
+
+		if ( get_post_type( $to_form ) !== 'ffc_form' ) {
+			$this->redirect_with_msg( 'move_invalid_target' );
+			return;
+		}
+
+		$result = $this->submission_handler->move_submissions_between_forms( $from_form, $to_form, $ids );
+
+		$args = array(
+			'msg'         => 'move_done',
+			'moved'       => count( $result['moved'] ),
+			'conflicts'   => count( $result['conflicts'] ),
+			'to_form'     => $to_form,
+			'conflict_id' => implode( ',', array_slice( $result['conflicts'], 0, 50 ) ),
+		);
+		$this->redirect_with_extra_args( $args );
+	}
+
+	/**
+	 * Redirect to the current admin page with arbitrary query args.
+	 *
+	 * @param array<string, mixed> $args Query args (must include `msg`).
+	 * @return void
+	 */
+	private function redirect_with_extra_args( array $args ): void {
+		$page      = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$post_type = isset( $_GET['post_type'] ) ? sanitize_key( wp_unslash( $_GET['post_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( $page ) {
+			$args['page'] = $page;
+		}
+		if ( $post_type ) {
+			$args['post_type'] = $post_type;
+		}
+
+		$url = add_query_arg( $args, admin_url( 'edit.php' ) );
+		wp_safe_redirect( $url );
+		exit;
+	}
+
+	/**
 	 * Redirect with msg.
 	 *
 	 * @param string $msg Msg.
@@ -405,12 +475,100 @@ class Admin {
 				$text      = __( 'Migration Error: ', 'ffcertificate' ) . $error_msg;
 				$type      = 'error';
 				break;
+			case 'move_invalid':
+				$text = __( 'Move failed: source or target form is missing or invalid.', 'ffcertificate' );
+				$type = 'error';
+				break;
+			case 'move_invalid_target':
+				$text = __( 'Move failed: the selected target form does not exist.', 'ffcertificate' );
+				$type = 'error';
+				break;
+			case 'move_done':
+				$this->render_move_done_notice();
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				return;
 		}
 
 		if ( $text ) {
 			echo "<div class='" . esc_attr( $type ) . " notice is-dismissible'><p>" . esc_html( $text ) . '</p></div>';
 		}
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
+	 * Render the "Move to form" result notice.
+	 *
+	 * Reads the moved/conflict counts and the conflict-id list from the
+	 * redirect query args and emits one or two notices: success when at
+	 * least one row moved, warning when at least one row stayed put due to
+	 * an identifier conflict (with the original IDs spelled out so the
+	 * admin can audit them).
+	 *
+	 * @return void
+	 */
+	private function render_move_done_notice(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display-only URL parameters from admin redirects.
+		$moved        = isset( $_GET['moved'] ) ? absint( wp_unslash( $_GET['moved'] ) ) : 0;
+		$conflicts    = isset( $_GET['conflicts'] ) ? absint( wp_unslash( $_GET['conflicts'] ) ) : 0;
+		$to_form      = isset( $_GET['to_form'] ) ? absint( wp_unslash( $_GET['to_form'] ) ) : 0;
+		$conflict_raw = isset( $_GET['conflict_id'] ) ? sanitize_text_field( wp_unslash( $_GET['conflict_id'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		$conflict_ids = array();
+		if ( '' !== $conflict_raw ) {
+			$conflict_ids = array_values(
+				array_filter(
+					array_map( 'absint', explode( ',', $conflict_raw ) )
+				)
+			);
+		}
+
+		$to_title = $to_form > 0 ? get_the_title( $to_form ) : '';
+		if ( '' === $to_title ) {
+			$to_title = (string) $to_form;
+		}
+
+		if ( $moved > 0 ) {
+			echo "<div class='updated notice is-dismissible'><p>" . esc_html(
+				sprintf(
+					/* translators: 1: number of moved submissions, 2: target form title */
+					_n(
+						'%1$d submission moved to "%2$s".',
+						'%1$d submissions moved to "%2$s".',
+						$moved,
+						'ffcertificate'
+					),
+					$moved,
+					$to_title
+				)
+			) . '</p></div>';
+		}
+
+		if ( $conflicts > 0 ) {
+			$ids_text = $conflict_ids
+				? implode( ', ', array_map( 'strval', $conflict_ids ) )
+				: '';
+			$message  = sprintf(
+				/* translators: 1: number of conflicting submissions, 2: target form title */
+				_n(
+					'%1$d submission was kept in the original form because an identifier (CPF, RF, e-mail, or user) already exists in "%2$s".',
+					'%1$d submissions were kept in the original form because an identifier (CPF, RF, e-mail, or user) already exists in "%2$s".',
+					$conflicts,
+					'ffcertificate'
+				),
+				$conflicts,
+				$to_title
+			);
+			echo "<div class='notice notice-warning is-dismissible'><p>" . esc_html( $message );
+			if ( '' !== $ids_text ) {
+				echo ' <strong>' . esc_html__( 'Conflict IDs:', 'ffcertificate' ) . '</strong> ' . esc_html( $ids_text );
+			}
+			echo '</p></div>';
+		}
+
+		if ( 0 === $moved && 0 === $conflicts ) {
+			echo "<div class='notice notice-warning is-dismissible'><p>" . esc_html__( 'No submissions matched the selection.', 'ffcertificate' ) . '</p></div>';
+		}
 	}
 
 
@@ -429,16 +587,6 @@ class Admin {
 	public function handle_submission_edit_save(): void {
 		$this->edit_page->handle_save();
 	}
-	/**
-	 * Handle csv export request.
-	 */
-	public function handle_csv_export_request(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in csv_exporter->handle_export_request().
-		if ( isset( $_POST['ffc_action'] ) && sanitize_text_field( wp_unslash( $_POST['ffc_action'] ) ) === 'export_csv_smart' ) {
-			$this->csv_exporter->handle_export_request();
-		}
-	}
-
 	/**
 	 * Handle migration action (unified handler for all migrations)
 	 *

@@ -2,54 +2,84 @@
 /**
  * PHPStan stubs for plugin constants.
  *
- * These are defined in ffcertificate.php at runtime.
+ * Constants are sourced from ffcertificate.php (the single source of truth)
+ * via static parsing, so PHPStan and runtime can never drift apart.
  *
  * @package FreeFormCertificate
  */
 
-define( 'FFC_VERSION', '4.12.26' );
-define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );
-define( 'FFC_JSPDF_VERSION', '2.5.1' );
-define( 'FFC_JQUERY_UI_VERSION', '1.12.1' );
-define( 'FFC_MIN_WP_VERSION', '6.2' );
-define( 'FFC_MIN_PHP_VERSION', '7.4' );
-define( 'FFC_DEBUG', false );
-define( 'FFC_PLUGIN_DIR', __DIR__ . '/' );
-define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
+$ffc_stub_loader = static function (): void {
+	$plugin_file = __DIR__ . '/ffcertificate.php';
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local read at PHPStan analysis time, not at runtime.
+	$source = is_readable( $plugin_file ) ? (string) file_get_contents( $plugin_file ) : '';
+
+	preg_match_all(
+		"/define\\(\\s*'([A-Z0-9_]+)'\\s*,\\s*'([^']*)'\\s*\\)\\s*;/",
+		$source,
+		$matches,
+		PREG_SET_ORDER
+	);
+
+	foreach ( $matches as $match ) {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.VariableConstantNameFound -- Constant name comes from the plugin's own define() statements.
+		if ( ! defined( $match[1] ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.VariableConstantNameFound
+			define( $match[1], $match[2] );
+		}
+	}
+};
+$ffc_stub_loader();
+unset( $ffc_stub_loader );
+
+// Constants computed at runtime in ffcertificate.php — stub them statically.
+if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
+	define( 'FFC_PLUGIN_DIR', __DIR__ . '/' );
+}
+if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
+	define( 'FFC_PLUGIN_URL', 'https://example.com/wp-content/plugins/ffcertificate/' );
+}
+if ( ! defined( 'FFC_DEBUG' ) ) {
+	define( 'FFC_DEBUG', false );
+}
 
 // WordPress DB constant.
-define( 'DB_NAME', 'wordpress' );
+if ( ! defined( 'DB_NAME' ) ) {
+	define( 'DB_NAME', 'wordpress' );
+}
 
-// phpqrcode constants and class stub.
-define( 'QR_ECLEVEL_L', 0 );
-define( 'QR_ECLEVEL_M', 1 );
-define( 'QR_ECLEVEL_Q', 2 );
-define( 'QR_ECLEVEL_H', 3 );
+// phpqrcode constants and class stub (the library lives in includes/libraries
+// which is excluded from analysis).
+if ( ! defined( 'QR_ECLEVEL_L' ) ) {
+	define( 'QR_ECLEVEL_L', 0 );
+	define( 'QR_ECLEVEL_M', 1 );
+	define( 'QR_ECLEVEL_Q', 2 );
+	define( 'QR_ECLEVEL_H', 3 );
+}
 
 /**
- * Stub for phpqrcode QRcode class.
+ * Stub for the phpqrcode QRcode class.
  */
 class QRcode {
 	/**
-	 * Png.
+	 * Render the QR code as PNG.
 	 *
-	 * @param string       $text Text.
-	 * @param string|false $outfile Outfile.
-	 * @param int          $level Level.
-	 * @param int          $size Size.
-	 * @param int          $margin Margin.
-	 * @return void
+	 * @param string       $text    Text to encode.
+	 * @param string|false $outfile Output file or false to print.
+	 * @param int          $level   Error correction level.
+	 * @param int          $size    Module size.
+	 * @param int          $margin  Margin in modules.
 	 */
-	public static function png( $text, $outfile = false, $level = QR_ECLEVEL_L, $size = 3, $margin = 4 ) {}
+	public static function png( $text, $outfile = false, $level = QR_ECLEVEL_L, $size = 3, $margin = 4 ): void {}
 
 	/**
-	 * Raw.
+	 * Return the QR code as a raw matrix.
 	 *
-	 * @param string       $text Text.
-	 * @param string|false $outfile Outfile.
-	 * @param int          $level Level.
+	 * @param string       $text    Text to encode.
+	 * @param string|false $outfile Output file or false to return raw.
+	 * @param int          $level   Error correction level.
 	 * @return array<int, string>
 	 */
-	public static function raw( $text, $outfile = false, $level = QR_ECLEVEL_L ) {
-		return array(); }
+	public static function raw( $text, $outfile = false, $level = QR_ECLEVEL_L ): array {
+		return array();
+	}
 }

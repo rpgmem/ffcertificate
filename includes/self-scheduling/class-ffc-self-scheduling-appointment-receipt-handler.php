@@ -430,7 +430,7 @@ class AppointmentReceiptHandler {
 					<?php if ( ! empty( $appointment['validation_code'] ) ) : ?>
 					<div class="info-row">
 						<span class="info-label"><?php echo esc_html__( 'Validation Code:', 'ffcertificate' ); ?></span>
-						<span class="info-value" style="font-weight: bold; font-size: 1.1em; letter-spacing: 1px;"><?php echo esc_html( \FreeFormCertificate\Core\Utils::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT ) ); ?></span>
+						<span class="info-value" style="font-weight: bold; font-size: 1.1em; letter-spacing: 1px;"><?php echo esc_html( \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT ) ); ?></span>
 					</div>
 					<?php endif; ?>
 					<div class="info-row">
@@ -487,7 +487,7 @@ class AppointmentReceiptHandler {
 
 			<?php
 			$validation_code = ! empty( $appointment['validation_code'] )
-				? \FreeFormCertificate\Core\Utils::format_auth_code(
+				? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code(
 					$appointment['validation_code'],
 					\FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT
 				)

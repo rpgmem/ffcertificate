@@ -7,6 +7,10 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\AuthCodeService;
+use FreeFormCertificate\Core\DataSanitizer;
+use FreeFormCertificate\Core\DocumentFormatter;
+use FreeFormCertificate\Core\SecurityService;
 use FreeFormCertificate\Core\Utils;
 
 /**
@@ -37,35 +41,35 @@ class UtilsTest extends TestCase {
 
     public function test_validate_cpf_valid(): void {
         // Known valid CPF: 529.982.247-25
-        $this->assertTrue( Utils::validate_cpf( '52998224725' ) );
+        $this->assertTrue( DocumentFormatter::validate_cpf( '52998224725' ) );
     }
 
     public function test_validate_cpf_valid_with_formatting(): void {
-        $this->assertTrue( Utils::validate_cpf( '529.982.247-25' ) );
+        $this->assertTrue( DocumentFormatter::validate_cpf( '529.982.247-25' ) );
     }
 
     public function test_validate_cpf_invalid_check_digit(): void {
-        $this->assertFalse( Utils::validate_cpf( '52998224700' ) );
+        $this->assertFalse( DocumentFormatter::validate_cpf( '52998224700' ) );
     }
 
     public function test_validate_cpf_all_same_digits(): void {
-        $this->assertFalse( Utils::validate_cpf( '11111111111' ) );
-        $this->assertFalse( Utils::validate_cpf( '00000000000' ) );
-        $this->assertFalse( Utils::validate_cpf( '99999999999' ) );
+        $this->assertFalse( DocumentFormatter::validate_cpf( '11111111111' ) );
+        $this->assertFalse( DocumentFormatter::validate_cpf( '00000000000' ) );
+        $this->assertFalse( DocumentFormatter::validate_cpf( '99999999999' ) );
     }
 
     public function test_validate_cpf_wrong_length(): void {
-        $this->assertFalse( Utils::validate_cpf( '1234567' ) );
-        $this->assertFalse( Utils::validate_cpf( '123456789012' ) );
+        $this->assertFalse( DocumentFormatter::validate_cpf( '1234567' ) );
+        $this->assertFalse( DocumentFormatter::validate_cpf( '123456789012' ) );
     }
 
     public function test_validate_cpf_empty(): void {
-        $this->assertFalse( Utils::validate_cpf( '' ) );
+        $this->assertFalse( DocumentFormatter::validate_cpf( '' ) );
     }
 
     public function test_validate_cpf_another_valid(): void {
         // Another known valid CPF: 111.444.777-35
-        $this->assertTrue( Utils::validate_cpf( '11144477735' ) );
+        $this->assertTrue( DocumentFormatter::validate_cpf( '11144477735' ) );
     }
 
     // ==================================================================
@@ -73,31 +77,31 @@ class UtilsTest extends TestCase {
     // ==================================================================
 
     public function test_validate_phone_mobile_formatted(): void {
-        $this->assertTrue( Utils::validate_phone( '(11) 99876-5432' ) );
+        $this->assertTrue( DocumentFormatter::validate_phone( '(11) 99876-5432' ) );
     }
 
     public function test_validate_phone_landline_formatted(): void {
-        $this->assertTrue( Utils::validate_phone( '(11) 3456-7890' ) );
+        $this->assertTrue( DocumentFormatter::validate_phone( '(11) 3456-7890' ) );
     }
 
     public function test_validate_phone_no_formatting(): void {
-        $this->assertTrue( Utils::validate_phone( '11998765432' ) );
+        $this->assertTrue( DocumentFormatter::validate_phone( '11998765432' ) );
     }
 
     public function test_validate_phone_without_parentheses(): void {
-        $this->assertTrue( Utils::validate_phone( '11 99876-5432' ) );
+        $this->assertTrue( DocumentFormatter::validate_phone( '11 99876-5432' ) );
     }
 
     public function test_validate_phone_invalid_short(): void {
-        $this->assertFalse( Utils::validate_phone( '123' ) );
+        $this->assertFalse( DocumentFormatter::validate_phone( '123' ) );
     }
 
     public function test_validate_phone_invalid_letters(): void {
-        $this->assertFalse( Utils::validate_phone( 'abcdefghij' ) );
+        $this->assertFalse( DocumentFormatter::validate_phone( 'abcdefghij' ) );
     }
 
     public function test_validate_phone_empty(): void {
-        $this->assertFalse( Utils::validate_phone( '' ) );
+        $this->assertFalse( DocumentFormatter::validate_phone( '' ) );
     }
 
     // ==================================================================
@@ -105,15 +109,15 @@ class UtilsTest extends TestCase {
     // ==================================================================
 
     public function test_format_cpf_eleven_digits(): void {
-        $this->assertSame( '529.982.247-25', Utils::format_cpf( '52998224725' ) );
+        $this->assertSame( '529.982.247-25', DocumentFormatter::format_cpf( '52998224725' ) );
     }
 
     public function test_format_cpf_already_formatted(): void {
-        $this->assertSame( '529.982.247-25', Utils::format_cpf( '529.982.247-25' ) );
+        $this->assertSame( '529.982.247-25', DocumentFormatter::format_cpf( '529.982.247-25' ) );
     }
 
     public function test_format_cpf_wrong_length_returned_as_is(): void {
-        $this->assertSame( '1234567', Utils::format_cpf( '1234567' ) );
+        $this->assertSame( '1234567', DocumentFormatter::format_cpf( '1234567' ) );
     }
 
     // ==================================================================
@@ -121,23 +125,23 @@ class UtilsTest extends TestCase {
     // ==================================================================
 
     public function test_validate_rf_valid_seven_digits(): void {
-        $this->assertTrue( Utils::validate_rf( '1234567' ) );
+        $this->assertTrue( DocumentFormatter::validate_rf( '1234567' ) );
     }
 
     public function test_validate_rf_valid_with_dots(): void {
-        $this->assertTrue( Utils::validate_rf( '123.456-7' ) );
+        $this->assertTrue( DocumentFormatter::validate_rf( '123.456-7' ) );
     }
 
     public function test_validate_rf_invalid_too_short(): void {
-        $this->assertFalse( Utils::validate_rf( '12345' ) );
+        $this->assertFalse( DocumentFormatter::validate_rf( '12345' ) );
     }
 
     public function test_validate_rf_invalid_too_long(): void {
-        $this->assertFalse( Utils::validate_rf( '12345678' ) );
+        $this->assertFalse( DocumentFormatter::validate_rf( '12345678' ) );
     }
 
     public function test_validate_rf_empty(): void {
-        $this->assertFalse( Utils::validate_rf( '' ) );
+        $this->assertFalse( DocumentFormatter::validate_rf( '' ) );
     }
 
     // ==================================================================
@@ -145,15 +149,15 @@ class UtilsTest extends TestCase {
     // ==================================================================
 
     public function test_format_rf_seven_digits(): void {
-        $this->assertSame( '123.456-7', Utils::format_rf( '1234567' ) );
+        $this->assertSame( '123.456-7', DocumentFormatter::format_rf( '1234567' ) );
     }
 
     public function test_format_rf_already_formatted(): void {
-        $this->assertSame( '123.456-7', Utils::format_rf( '123.456-7' ) );
+        $this->assertSame( '123.456-7', DocumentFormatter::format_rf( '123.456-7' ) );
     }
 
     public function test_format_rf_wrong_length_returned_as_is(): void {
-        $this->assertSame( '12345', Utils::format_rf( '12345' ) );
+        $this->assertSame( '12345', DocumentFormatter::format_rf( '12345' ) );
     }
 
     // ==================================================================
@@ -161,23 +165,23 @@ class UtilsTest extends TestCase {
     // ==================================================================
 
     public function test_mask_cpf_eleven_digits(): void {
-        $this->assertSame( '123.***.***-09', Utils::mask_cpf( '12345678909' ) );
+        $this->assertSame( '123.***.***-09', DocumentFormatter::mask_cpf( '12345678909' ) );
     }
 
     public function test_mask_cpf_formatted_input(): void {
-        $this->assertSame( '123.***.***-09', Utils::mask_cpf( '123.456.789-09' ) );
+        $this->assertSame( '123.***.***-09', DocumentFormatter::mask_cpf( '123.456.789-09' ) );
     }
 
     public function test_mask_cpf_rf_seven_digits(): void {
-        $this->assertSame( '123.***-7', Utils::mask_cpf( '1234567' ) );
+        $this->assertSame( '123.***-7', DocumentFormatter::mask_cpf( '1234567' ) );
     }
 
     public function test_mask_cpf_other_length_returned_as_is(): void {
-        $this->assertSame( '12345', Utils::mask_cpf( '12345' ) );
+        $this->assertSame( '12345', DocumentFormatter::mask_cpf( '12345' ) );
     }
 
     public function test_mask_cpf_empty(): void {
-        $this->assertSame( '', Utils::mask_cpf( '' ) );
+        $this->assertSame( '', DocumentFormatter::mask_cpf( '' ) );
     }
 
     // ==================================================================
@@ -185,15 +189,15 @@ class UtilsTest extends TestCase {
     // ==================================================================
 
     public function test_format_auth_code_twelve_chars(): void {
-        $this->assertSame( 'ABCD-EFGH-1234', Utils::format_auth_code( 'abcdefgh1234' ) );
+        $this->assertSame( 'ABCD-EFGH-1234', DocumentFormatter::format_auth_code( 'abcdefgh1234' ) );
     }
 
     public function test_format_auth_code_with_hyphens_cleaned(): void {
-        $this->assertSame( 'ABCD-EFGH-1234', Utils::format_auth_code( 'ABCD-EFGH-1234' ) );
+        $this->assertSame( 'ABCD-EFGH-1234', DocumentFormatter::format_auth_code( 'ABCD-EFGH-1234' ) );
     }
 
     public function test_format_auth_code_wrong_length_returned_uppercase(): void {
-        $this->assertSame( 'ABC', Utils::format_auth_code( 'abc' ) );
+        $this->assertSame( 'ABC', DocumentFormatter::format_auth_code( 'abc' ) );
     }
 
     // ==================================================================
@@ -201,27 +205,27 @@ class UtilsTest extends TestCase {
     // ==================================================================
 
     public function test_format_document_auto_cpf(): void {
-        $this->assertSame( '529.982.247-25', Utils::format_document( '52998224725' ) );
+        $this->assertSame( '529.982.247-25', DocumentFormatter::format_document( '52998224725' ) );
     }
 
     public function test_format_document_auto_rf(): void {
-        $this->assertSame( '123.456-7', Utils::format_document( '1234567' ) );
+        $this->assertSame( '123.456-7', DocumentFormatter::format_document( '1234567' ) );
     }
 
     public function test_format_document_auto_auth_code(): void {
-        $this->assertSame( 'ABCD-EFGH-1234', Utils::format_document( 'abcdefgh1234', 'auth_code' ) );
+        $this->assertSame( 'ABCD-EFGH-1234', DocumentFormatter::format_document( 'abcdefgh1234', 'auth_code' ) );
     }
 
     public function test_format_document_explicit_cpf(): void {
-        $this->assertSame( '529.982.247-25', Utils::format_document( '52998224725', 'cpf' ) );
+        $this->assertSame( '529.982.247-25', DocumentFormatter::format_document( '52998224725', 'cpf' ) );
     }
 
     public function test_format_document_unknown_type_returned_as_is(): void {
-        $this->assertSame( 'XYZ', Utils::format_document( 'XYZ', 'unknown' ) );
+        $this->assertSame( 'XYZ', DocumentFormatter::format_document( 'XYZ', 'unknown' ) );
     }
 
     public function test_format_document_auto_unknown_length(): void {
-        $this->assertSame( '12345', Utils::format_document( '12345' ) );
+        $this->assertSame( '12345', DocumentFormatter::format_document( '12345' ) );
     }
 
     // ==================================================================
@@ -313,15 +317,15 @@ class UtilsTest extends TestCase {
     // ==================================================================
 
     public function test_clean_auth_code_strips_hyphens_uppercases(): void {
-        $this->assertSame( 'ABCD1234EFGH', Utils::clean_auth_code( 'abcd-1234-efgh' ) );
+        $this->assertSame( 'ABCD1234EFGH', DocumentFormatter::clean_auth_code( 'abcd-1234-efgh' ) );
     }
 
     public function test_clean_auth_code_strips_spaces_and_specials(): void {
-        $this->assertSame( 'ABC123', Utils::clean_auth_code( ' a.b.c 1-2-3! ' ) );
+        $this->assertSame( 'ABC123', DocumentFormatter::clean_auth_code( ' a.b.c 1-2-3! ' ) );
     }
 
     public function test_clean_auth_code_already_clean(): void {
-        $this->assertSame( 'ABCD', Utils::clean_auth_code( 'ABCD' ) );
+        $this->assertSame( 'ABCD', DocumentFormatter::clean_auth_code( 'ABCD' ) );
     }
 
     // ==================================================================
@@ -329,11 +333,11 @@ class UtilsTest extends TestCase {
     // ==================================================================
 
     public function test_clean_identifier_strips_dots_hyphens(): void {
-        $this->assertSame( '52998224725', Utils::clean_identifier( '529.982.247-25' ) );
+        $this->assertSame( '52998224725', DocumentFormatter::clean_identifier( '529.982.247-25' ) );
     }
 
     public function test_clean_identifier_uppercases(): void {
-        $this->assertSame( 'ABCDEF', Utils::clean_identifier( 'abc-def' ) );
+        $this->assertSame( 'ABCDEF', DocumentFormatter::clean_identifier( 'abc-def' ) );
     }
 
     // ==================================================================
@@ -341,37 +345,37 @@ class UtilsTest extends TestCase {
     // ==================================================================
 
     public function test_normalize_name_all_uppercase(): void {
-        $this->assertSame( 'Alex Pereira da Silva', Utils::normalize_brazilian_name( 'ALEX PEREIRA DA SILVA' ) );
+        $this->assertSame( 'Alex Pereira da Silva', DataSanitizer::normalize_brazilian_name( 'ALEX PEREIRA DA SILVA' ) );
     }
 
     public function test_normalize_name_all_lowercase(): void {
-        $this->assertSame( 'Maria dos Santos e Oliveira', Utils::normalize_brazilian_name( 'maria dos santos e oliveira' ) );
+        $this->assertSame( 'Maria dos Santos e Oliveira', DataSanitizer::normalize_brazilian_name( 'maria dos santos e oliveira' ) );
     }
 
     public function test_normalize_name_connectives_lowercase(): void {
-        $result = Utils::normalize_brazilian_name( 'JOÃO DE SOUZA FILHO' );
+        $result = DataSanitizer::normalize_brazilian_name( 'JOÃO DE SOUZA FILHO' );
         $this->assertSame( 'João de Souza Filho', $result );
     }
 
     public function test_normalize_name_first_word_connective_capitalized(): void {
         // Even if the first word is a connective, it gets capitalized
-        $this->assertSame( 'Da Silva', Utils::normalize_brazilian_name( 'da silva' ) );
+        $this->assertSame( 'Da Silva', DataSanitizer::normalize_brazilian_name( 'da silva' ) );
     }
 
     public function test_normalize_name_italian_connectives(): void {
-        $this->assertSame( 'Marco di Pietro du Valle', Utils::normalize_brazilian_name( 'MARCO DI PIETRO DU VALLE' ) );
+        $this->assertSame( 'Marco di Pietro du Valle', DataSanitizer::normalize_brazilian_name( 'MARCO DI PIETRO DU VALLE' ) );
     }
 
     public function test_normalize_name_empty(): void {
-        $this->assertSame( '', Utils::normalize_brazilian_name( '' ) );
+        $this->assertSame( '', DataSanitizer::normalize_brazilian_name( '' ) );
     }
 
     public function test_normalize_name_accented_characters(): void {
-        $this->assertSame( 'José das Neves', Utils::normalize_brazilian_name( 'JOSÉ DAS NEVES' ) );
+        $this->assertSame( 'José das Neves', DataSanitizer::normalize_brazilian_name( 'JOSÉ DAS NEVES' ) );
     }
 
     public function test_normalize_name_extra_spaces(): void {
-        $this->assertSame( 'Ana Clara', Utils::normalize_brazilian_name( '  ANA   CLARA  ' ) );
+        $this->assertSame( 'Ana Clara', DataSanitizer::normalize_brazilian_name( '  ANA   CLARA  ' ) );
     }
 
     // ==================================================================
@@ -382,8 +386,8 @@ class UtilsTest extends TestCase {
         // The constant and the method should agree
         $phone = '(11) 99876-5432';
         $phone_clean = preg_replace( '/\s+/', '', $phone );
-        $regex_result = (bool) preg_match( '/' . Utils::PHONE_REGEX . '/', $phone_clean );
-        $this->assertSame( Utils::validate_phone( $phone ), $regex_result );
+        $regex_result = (bool) preg_match( '/' . DocumentFormatter::PHONE_REGEX . '/', $phone_clean );
+        $this->assertSame( DocumentFormatter::validate_phone( $phone ), $regex_result );
     }
 
     // ==================================================================
@@ -401,16 +405,16 @@ class UtilsTest extends TestCase {
 
     public function test_mask_email_valid(): void {
         Functions\when( 'is_email' )->justReturn( true );
-        $this->assertSame( 'j***@gmail.com', Utils::mask_email( 'joao@gmail.com' ) );
+        $this->assertSame( 'j***@gmail.com', DocumentFormatter::mask_email( 'joao@gmail.com' ) );
     }
 
     public function test_mask_email_invalid(): void {
         Functions\when( 'is_email' )->justReturn( false );
-        $this->assertSame( 'not-an-email', Utils::mask_email( 'not-an-email' ) );
+        $this->assertSame( 'not-an-email', DocumentFormatter::mask_email( 'not-an-email' ) );
     }
 
     public function test_mask_email_empty(): void {
-        $this->assertSame( '', Utils::mask_email( '' ) );
+        $this->assertSame( '', DocumentFormatter::mask_email( '' ) );
     }
 
     // ==================================================================
@@ -421,13 +425,13 @@ class UtilsTest extends TestCase {
         Functions\when( 'wp_rand' )->alias( function( $min, $max ) {
             return mt_rand( $min, $max );
         } );
-        $result = Utils::generate_random_string( 8 );
+        $result = AuthCodeService::generate_random_string( 8 );
         $this->assertSame( 8, strlen( $result ) );
     }
 
     public function test_generate_random_string_custom_chars(): void {
         Functions\when( 'wp_rand' )->justReturn( 0 );
-        $result = Utils::generate_random_string( 4, 'ABC' );
+        $result = AuthCodeService::generate_random_string( 4, 'ABC' );
         $this->assertSame( 'AAAA', $result );
     }
 
@@ -435,7 +439,7 @@ class UtilsTest extends TestCase {
         Functions\when( 'wp_rand' )->alias( function( $min, $max ) {
             return mt_rand( $min, $max );
         } );
-        $result = Utils::generate_random_string();
+        $result = AuthCodeService::generate_random_string();
         $this->assertSame( 12, strlen( $result ) );
     }
 
@@ -447,7 +451,7 @@ class UtilsTest extends TestCase {
         Functions\when( 'wp_rand' )->alias( function( $min, $max ) {
             return mt_rand( $min, $max );
         } );
-        $code = Utils::generate_auth_code();
+        $code = AuthCodeService::generate_auth_code();
         $this->assertMatchesRegularExpression( '/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/', $code );
     }
 
@@ -474,7 +478,7 @@ class UtilsTest extends TestCase {
             return md5( $data );
         } );
         $hash = md5( '5ffc_math_salt' );
-        $this->assertTrue( Utils::verify_simple_captcha( '5', $hash ) );
+        $this->assertTrue( SecurityService::verify_simple_captcha( '5', $hash ) );
     }
 
     public function test_verify_captcha_wrong_answer(): void {
@@ -482,15 +486,15 @@ class UtilsTest extends TestCase {
             return md5( $data );
         } );
         $hash = md5( '5ffc_math_salt' );
-        $this->assertFalse( Utils::verify_simple_captcha( '99', $hash ) );
+        $this->assertFalse( SecurityService::verify_simple_captcha( '99', $hash ) );
     }
 
     public function test_verify_captcha_empty_answer(): void {
-        $this->assertFalse( Utils::verify_simple_captcha( '', 'somehash' ) );
+        $this->assertFalse( SecurityService::verify_simple_captcha( '', 'somehash' ) );
     }
 
     public function test_verify_captcha_empty_hash(): void {
-        $this->assertFalse( Utils::verify_simple_captcha( '5', '' ) );
+        $this->assertFalse( SecurityService::verify_simple_captcha( '5', '' ) );
     }
 
     public function test_verify_captcha_trims_answer(): void {
@@ -498,7 +502,7 @@ class UtilsTest extends TestCase {
             return md5( $data );
         } );
         $hash = md5( '5ffc_math_salt' );
-        $this->assertTrue( Utils::verify_simple_captcha( ' 5 ', $hash ) );
+        $this->assertTrue( SecurityService::verify_simple_captcha( ' 5 ', $hash ) );
     }
 
     // ==================================================================
@@ -508,7 +512,7 @@ class UtilsTest extends TestCase {
     public function test_security_fields_honeypot_triggered(): void {
         Functions\when( '__' )->returnArg();
         $data = array( 'ffc_honeypot_trap' => 'bot-filled' );
-        $result = Utils::validate_security_fields( $data );
+        $result = SecurityService::validate_security_fields( $data );
         $this->assertIsString( $result );
         $this->assertStringContainsString( 'Honeypot', $result );
     }
@@ -516,7 +520,7 @@ class UtilsTest extends TestCase {
     public function test_security_fields_missing_captcha(): void {
         Functions\when( '__' )->returnArg();
         $data = array();
-        $result = Utils::validate_security_fields( $data );
+        $result = SecurityService::validate_security_fields( $data );
         $this->assertIsString( $result );
         $this->assertStringContainsString( 'security question', $result );
     }
@@ -530,7 +534,7 @@ class UtilsTest extends TestCase {
             'ffc_captcha_ans'  => '99',
             'ffc_captcha_hash' => md5( '5ffc_math_salt' ),
         );
-        $result = Utils::validate_security_fields( $data );
+        $result = SecurityService::validate_security_fields( $data );
         $this->assertIsString( $result );
         $this->assertStringContainsString( 'incorrect', $result );
     }
@@ -545,7 +549,7 @@ class UtilsTest extends TestCase {
             'ffc_captcha_ans'  => '5',
             'ffc_captcha_hash' => $hash,
         );
-        $this->assertTrue( Utils::validate_security_fields( $data ) );
+        $this->assertTrue( SecurityService::validate_security_fields( $data ) );
     }
 
     // ==================================================================
@@ -594,7 +598,7 @@ class UtilsTest extends TestCase {
             return md5( $data );
         } );
 
-        $captcha = Utils::generate_simple_captcha();
+        $captcha = SecurityService::generate_simple_captcha();
         $this->assertArrayHasKey( 'label', $captcha );
         $this->assertArrayHasKey( 'hash', $captcha );
         $this->assertArrayHasKey( 'answer', $captcha );
@@ -615,7 +619,7 @@ class UtilsTest extends TestCase {
             return $args[1];
         } );
 
-        $this->assertSame( 'hello', Utils::recursive_sanitize( '<script>hello</script>' ) );
+        $this->assertSame( 'hello', DataSanitizer::recursive_sanitize( '<script>hello</script>' ) );
     }
 
     public function test_recursive_sanitize_nested_array(): void {
@@ -637,7 +641,7 @@ class UtilsTest extends TestCase {
             ),
         );
 
-        $result = Utils::recursive_sanitize( $input );
+        $result = DataSanitizer::recursive_sanitize( $input );
         $this->assertSame( 'John', $result['name'] );
         $this->assertSame( 'Value', $result['items']['sub'] );
     }

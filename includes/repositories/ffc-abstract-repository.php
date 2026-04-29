@@ -162,7 +162,7 @@ abstract class AbstractRepository {
 		$order    = strtoupper( $order ) === 'ASC' ? 'ASC' : 'DESC';
 		if ( $limit ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			return $this->wpdb->get_results(
+			$results = $this->wpdb->get_results(
 				/**
 				 * Description.
 				 *
@@ -171,10 +171,16 @@ abstract class AbstractRepository {
 				$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order} LIMIT %d OFFSET %d", $this->table, $limit, $offset ),
 				ARRAY_A
 			);
+			/**
+			 * Cast wpdb result to expected shape.
+			 *
+			 * @var array<int, array<string, mixed>>
+			 */
+			return is_array( $results ) ? $results : array();
 		}
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		return $this->wpdb->get_results(
+		$results = $this->wpdb->get_results(
 			/**
 			 * Description.
 			 *
@@ -183,6 +189,12 @@ abstract class AbstractRepository {
 			$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order}", $this->table ),
 			ARRAY_A
 		);
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**

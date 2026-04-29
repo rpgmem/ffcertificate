@@ -19,6 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Generator for ficha output.
+ *
+ * @phpstan-import-type ReregistrationRow from ReregistrationRepository
+ * @phpstan-import-type CustomFieldRow from CustomFieldRepository
  */
 class FichaGenerator {
 
@@ -142,7 +145,7 @@ class FichaGenerator {
 
 		// Fix relative URLs.
 		$site_url = untrailingslashit( get_home_url() );
-		$template = preg_replace( '/(src|href|background)=["\']\/([^"\']+)["\']/i', '$1="' . $site_url . '/$2"', $template );
+		$template = preg_replace( '/(src|href|background)=["\']\/([^"\']+)["\']/i', '$1="' . $site_url . '/$2"', $template ) ?? $template;
 
 		/**
 		 * Filters the generated ficha HTML.
@@ -248,6 +251,7 @@ class FichaGenerator {
 	 *
 	 * @param array<int, object>   $custom_fields    Field definitions.
 	 * @param array<string, mixed> $decrypted_values field_key => plain value map.
+	 * @phpstan-param list<CustomFieldRow> $custom_fields
 	 * @return string HTML section.
 	 */
 	private static function build_custom_fields_section( array $custom_fields, array $decrypted_values ): string {
@@ -285,6 +289,7 @@ class FichaGenerator {
 	 *
 	 * @param array<int, object>   $fields Field definitions.
 	 * @param array<string, mixed> $values field_key => persisted value (may be encrypted).
+	 * @phpstan-param list<CustomFieldRow> $fields
 	 * @return array<string, mixed> field_key => plaintext value.
 	 */
 	public static function decrypt_field_values( array $fields, array $values ): array {
@@ -316,6 +321,7 @@ class FichaGenerator {
 	 *
 	 * @param object $field Field definition.
 	 * @param mixed  $value Plain value.
+	 * @phpstan-param CustomFieldRow $field
 	 * @return string Display-ready string (may contain safe HTML for working_hours).
 	 */
 	public static function format_field_value( object $field, $value ): string {
@@ -384,7 +390,8 @@ class FichaGenerator {
 	 * Get custom fields for all audiences linked to a reregistration.
 	 *
 	 * @param object $rereg Reregistration object.
-	 * @return array<object>
+	 * @phpstan-param ReregistrationRow $rereg
+	 * @return list<CustomFieldRow>
 	 */
 	public static function get_custom_fields_for_reregistration( object $rereg ): array {
 		$audience_ids = ReregistrationRepository::get_audience_ids( (int) $rereg->id );

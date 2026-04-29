@@ -270,8 +270,8 @@ class UserCreator {
 
 		if ( ! empty( $name ) ) {
 			$slug = sanitize_user( remove_accents( strtolower( $name ) ), true );
-			$slug = preg_replace( '/[^a-z0-9._-]/', '', $slug );
-			$slug = preg_replace( '/[-_.]+/', '.', $slug );
+			$slug = preg_replace( '/[^a-z0-9._-]/', '', $slug ) ?? '';
+			$slug = preg_replace( '/[-_.]+/', '.', $slug ) ?? '';
 			$slug = trim( $slug, '.' );
 
 			if ( strlen( $slug ) >= 3 ) {

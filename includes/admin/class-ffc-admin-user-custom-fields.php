@@ -22,6 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Admin User Custom Fields.
+ *
+ * @phpstan-import-type CustomFieldRow from CustomFieldRepository
  */
 class AdminUserCustomFields {
 
@@ -212,6 +214,7 @@ class AdminUserCustomFields {
 	 * @param object $field      Field definition.
 	 * @param string $input_name HTML input name.
 	 * @param mixed  $value      Current value.
+	 * @phpstan-param CustomFieldRow $field
 	 * @return void
 	 */
 	private static function render_field_input( object $field, string $input_name, $value ): void {
@@ -388,8 +391,6 @@ class AdminUserCustomFields {
 			}
 		}
 
-		if ( ! empty( $data ) ) {
-			CustomFieldRepository::save_user_data( $user_id, $data );
-		}
+		CustomFieldRepository::save_user_data( $user_id, $data );
 	}
 }

@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Handles CRUD operations for audience-specific custom field definitions.
  *
  * @since 4.11.0
+ *
+ * @phpstan-type CustomFieldRow \stdClass&object{id: string, audience_id: string, field_key: string, field_label: string, field_type: string, field_group: string, field_source: string, field_profile_key: string|null, field_mask: string|null, is_sensitive: string, field_options: string|null, validation_rules: string|null, sort_order: string, is_required: string, is_active: string, created_at: string, updated_at: string, source_audience_id?: string, source_audience_name?: string}
  */
 class CustomFieldRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -80,7 +82,7 @@ class CustomFieldRepository {
 	 * Get a single field by ID.
 	 *
 	 * @param int $field_id Field ID.
-	 * @return object|null
+	 * @return CustomFieldRow|null
 	 */
 	public static function get_by_id( int $field_id ): ?object {
 		$cached = static::cache_get( "id_{$field_id}" );
@@ -91,6 +93,11 @@ class CustomFieldRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var CustomFieldRow|null $result
+		 */
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $field_id )
 		);
@@ -107,7 +114,7 @@ class CustomFieldRepository {
 	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only return active fields.
-	 * @return array<object>
+	 * @return list<CustomFieldRow>
 	 */
 	public static function get_by_audience( int $audience_id, bool $active_only = true ): array {
 		$wpdb  = self::db();
@@ -120,12 +127,18 @@ class CustomFieldRepository {
 			$where .= ' AND is_active = 1';
 		}
 
-		return $wpdb->get_results(
+		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i {$where} ORDER BY sort_order ASC, id ASC",
 				array_merge( array( $table ), $values )
 			)
 		);
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<CustomFieldRow>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -136,7 +149,7 @@ class CustomFieldRepository {
 	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only return active fields.
-	 * @return array<object> Fields with added 'source_audience_id' and 'source_audience_name' properties.
+	 * @return list<CustomFieldRow> Fields with added 'source_audience_id' and 'source_audience_name' properties.
 	 */
 	public static function get_by_audience_with_parents( int $audience_id, bool $active_only = true ): array {
 		$audience = AudienceRepository::get_by_id( $audience_id );
@@ -177,7 +190,7 @@ class CustomFieldRepository {
 	 *
 	 * @param int  $user_id    User ID.
 	 * @param bool $active_only Only return active fields.
-	 * @return array<object> Fields grouped conceptually, with source_audience_* properties.
+	 * @return list<CustomFieldRow> Fields grouped conceptually, with source_audience_* properties.
 	 */
 	public static function get_all_for_user( int $user_id, bool $active_only = true ): array {
 		$audiences = AudienceRepository::get_user_audiences( $user_id );
@@ -540,7 +553,7 @@ class CustomFieldRepository {
 	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only active fields.
-	 * @return array<object>
+	 * @return list<CustomFieldRow>
 	 */
 	public static function get_profile_fields( int $audience_id, bool $active_only = true ): array {
 		$fields = self::get_by_audience( $audience_id, $active_only );
@@ -562,7 +575,7 @@ class CustomFieldRepository {
 	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only active fields.
-	 * @return array<object>
+	 * @return list<CustomFieldRow>
 	 */
 	public static function get_sensitive_fields( int $audience_id, bool $active_only = true ): array {
 		$fields = self::get_by_audience( $audience_id, $active_only );
@@ -618,12 +631,17 @@ class CustomFieldRepository {
 	 *
 	 * @param int    $audience_id Audience ID.
 	 * @param string $field_key   Field key.
-	 * @return object|null
+	 * @return CustomFieldRow|null
 	 */
 	public static function get_by_key( int $audience_id, string $field_key ): ?object {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var CustomFieldRow|null $result
+		 */
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE audience_id = %d AND field_key = %s LIMIT 1',
@@ -704,6 +722,7 @@ class CustomFieldRepository {
 	 *
 	 * @param object $field Field definition object.
 	 * @param mixed  $value Value to validate.
+	 * @phpstan-param CustomFieldRow $field
 	 * @return true|\WP_Error True if valid, WP_Error with message if invalid.
 	 */
 	public static function validate_field_value( object $field, $value ) {
@@ -718,6 +737,7 @@ class CustomFieldRepository {
 	 *    "parent_label": "Divisão", "child_label": "Setor"}
 	 *
 	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @return array<string, array<string>> Parent => [children].
 	 */
 	public static function get_dependent_choices( object $field ): array {
@@ -725,7 +745,7 @@ class CustomFieldRepository {
 		if ( is_string( $options ) ) {
 			$options = json_decode( $options, true );
 		}
-		return $options['groups'] ?? array();
+		return is_array( $options ) && isset( $options['groups'] ) && is_array( $options['groups'] ) ? $options['groups'] : array();
 	}
 
 	// ─────────────────────────────────────────────.
@@ -756,7 +776,7 @@ class CustomFieldRepository {
 	private static function generate_field_key( string $label ): string {
 		$key       = sanitize_title( $label );
 		$key       = str_replace( '-', '_', $key );
-		$key       = preg_replace( '/[^a-z0-9_]/', '', $key );
+		$key       = preg_replace( '/[^a-z0-9_]/', '', $key ) ?? '';
 		$truncated = substr( $key, 0, 100 );
 		return '' !== $truncated ? $truncated : 'field';
 	}
@@ -804,6 +824,7 @@ class CustomFieldRepository {
 	 * Get choices for a select field.
 	 *
 	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @return array<string>
 	 */
 	public static function get_field_choices( object $field ): array {
@@ -811,13 +832,14 @@ class CustomFieldRepository {
 		if ( is_string( $options ) ) {
 			$options = json_decode( $options, true );
 		}
-		return $options['choices'] ?? array();
+		return is_array( $options ) && isset( $options['choices'] ) && is_array( $options['choices'] ) ? $options['choices'] : array();
 	}
 
 	/**
 	 * Get validation rules for a field.
 	 *
 	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @return array<string, mixed>
 	 */
 	public static function get_validation_rules( object $field ): array {

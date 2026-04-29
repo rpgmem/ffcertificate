@@ -174,13 +174,13 @@ class SubmissionRestController {
 				$submissions[] = array(
 					'id'              => (int) $item['id'],
 					'form_id'         => (int) $item['form_id'],
-					'auth_code'       => \FreeFormCertificate\Core\Utils::format_auth_code( $item['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
+					'auth_code'       => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $item['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
 					'submission_date' => $item['submission_date'],
 					'status'          => $item['status'],
 					'email'           => ! empty( $email ) ? $email : null,
-					'cpf_rf'          => ! empty( $cpf_rf ) ? \FreeFormCertificate\Core\Utils::mask_cpf( $cpf_rf ) : null,
-					'cpf'             => ! empty( $cpf ) ? \FreeFormCertificate\Core\Utils::mask_cpf( $cpf ) : null,
-					'rf'              => ! empty( $rf ) ? \FreeFormCertificate\Core\Utils::mask_cpf( $rf ) : null,
+					'cpf_rf'          => ! empty( $cpf_rf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $cpf_rf ) : null,
+					'cpf'             => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $cpf ) : null,
+					'rf'              => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $rf ) : null,
 					'data'            => $data,
 				);
 			}
@@ -255,13 +255,13 @@ class SubmissionRestController {
 				'id'              => (int) $submission['id'],
 				'form_id'         => (int) $submission['form_id'],
 				'form_title'      => $form_title,
-				'auth_code'       => \FreeFormCertificate\Core\Utils::format_auth_code( $submission['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
+				'auth_code'       => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $submission['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
 				'submission_date' => $submission['submission_date'],
 				'status'          => $submission['status'],
 				'email'           => ! empty( $email ) ? $email : null,
-				'cpf_rf'          => ! empty( $cpf_rf ) ? \FreeFormCertificate\Core\Utils::format_document( $cpf_rf ) : null,
-				'cpf'             => ! empty( $cpf ) ? \FreeFormCertificate\Core\Utils::format_document( $cpf ) : null,
-				'rf'              => ! empty( $rf ) ? \FreeFormCertificate\Core\Utils::format_document( $rf ) : null,
+				'cpf_rf'          => ! empty( $cpf_rf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $cpf_rf ) : null,
+				'cpf'             => ! empty( $cpf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $cpf ) : null,
+				'rf'              => ! empty( $rf ) ? \FreeFormCertificate\Core\DocumentFormatter::format_document( $rf ) : null,
 				'data'            => $data,
 			);
 
@@ -300,7 +300,7 @@ class SubmissionRestController {
 			}
 
 			$auth_code = $request->get_param( 'auth_code' );
-			$auth_code = \FreeFormCertificate\Core\Utils::clean_auth_code( $auth_code );
+			$auth_code = \FreeFormCertificate\Core\DocumentFormatter::clean_auth_code( $auth_code );
 
 			if ( ! $this->submission_repository ) {
 				return new \WP_Error(
@@ -340,7 +340,7 @@ class SubmissionRestController {
 
 			$response = array(
 				'valid'       => true,
-				'auth_code'   => \FreeFormCertificate\Core\Utils::format_auth_code( $auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
+				'auth_code'   => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
 				'certificate' => array(
 					'id'              => (int) $submission['id'],
 					'form_id'         => (int) $submission['form_id'],
@@ -357,11 +357,11 @@ class SubmissionRestController {
 			}
 
 			if ( ! empty( $submission['cpf_rf'] ) ) {
-				$response['certificate']['cpf_rf'] = \FreeFormCertificate\Core\Utils::mask_cpf( $submission['cpf_rf'] );
+				$response['certificate']['cpf_rf'] = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $submission['cpf_rf'] );
 			}
 
 			if ( ! empty( $submission['cpf'] ) ) {
-				$response['certificate']['cpf'] = \FreeFormCertificate\Core\Utils::mask_cpf( $submission['cpf'] );
+				$response['certificate']['cpf'] = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $submission['cpf'] );
 			}
 
 			if ( ! empty( $submission['rf'] ) ) {

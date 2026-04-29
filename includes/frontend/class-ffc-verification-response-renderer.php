@@ -30,17 +30,19 @@ class VerificationResponseRenderer {
 	 * @param object               $submission Submission object.
 	 * @param array<string, mixed> $data Submission data fields.
 	 * @param bool                 $show_download_button Whether to show PDF download button.
+	 * @phpstan-param \stdClass&object{form_id: numeric-string, submission_date: string} $submission
 	 * @return string HTML output
 	 */
 	public function format_verification_response( object $submission, array $data, bool $show_download_button = false ): string {
-		$form           = get_post( $submission->form_id );
+		$form           = get_post( (int) $submission->form_id );
 		$form_title     = $form ? $form->post_title : __( 'N/A', 'ffcertificate' );
+		$date_ts        = strtotime( $submission->submission_date );
 		$date_generated = date_i18n(
 			get_option( 'date_format' ) . ' ' . get_option( 'time_format' ),
-			strtotime( $submission->submission_date )
+			false === $date_ts ? false : $date_ts
 		);
 		$display_code   = isset( $data['auth_code'] )
-			? \FreeFormCertificate\Core\Utils::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
+			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
 			: '';
 
 		// Fields to skip (internal/technical).
@@ -129,13 +131,13 @@ class VerificationResponseRenderer {
 		// Format validation code.
 		$display_code = '';
 		if ( ! empty( $appointment['validation_code'] ) ) {
-			$display_code = \FreeFormCertificate\Core\Utils::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT );
+			$display_code = \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT );
 		}
 
 		// Format CPF/RF.
 		$cpf_rf_display = '';
 		if ( ! empty( $data['cpf_rf'] ) ) {
-			$cpf_rf_display = \FreeFormCertificate\Core\Utils::format_document( $data['cpf_rf'] );
+			$cpf_rf_display = \FreeFormCertificate\Core\DocumentFormatter::format_document( $data['cpf_rf'] );
 		}
 
 		// Build HTML.
@@ -250,13 +252,13 @@ class VerificationResponseRenderer {
 		}
 
 		$display_code = ! empty( $rereg['auth_code'] )
-			? \FreeFormCertificate\Core\Utils::format_auth_code( $rereg['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
+			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $rereg['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
 			: '';
 
 		// Format CPF.
 		$cpf_display = '';
 		if ( ! empty( $rereg['cpf'] ) && class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
-			$cpf_display = \FreeFormCertificate\Core\Utils::format_document( $rereg['cpf'] );
+			$cpf_display = \FreeFormCertificate\Core\DocumentFormatter::format_document( $rereg['cpf'] );
 		}
 
 		// Status badge class.
@@ -368,7 +370,7 @@ class VerificationResponseRenderer {
 		}
 
 		if ( in_array( $field_key, array( 'cpf', 'cpf_rf', 'rg' ), true ) && ! empty( $value ) ) {
-			return esc_html( \FreeFormCertificate\Core\Utils::format_document( $value, 'auto' ) );
+			return esc_html( \FreeFormCertificate\Core\DocumentFormatter::format_document( $value, 'auto' ) );
 		}
 
 		return esc_html( (string) $value );

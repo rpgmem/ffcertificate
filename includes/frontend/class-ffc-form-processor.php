@@ -97,10 +97,10 @@ class FormProcessor {
 		// ===== END DEBUG =====.
 
 		// Validate security fields using FFC_Utils.
-		$security_check = \FreeFormCertificate\Core\Utils::validate_security_fields( $_POST );
+		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
 		if ( true !== $security_check ) {
 			// Generate new captcha for retry.
-			$new_captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
+			$new_captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
 			wp_send_json_error(
 				array(
 					'message'         => $security_check,
@@ -142,11 +142,11 @@ class FormProcessor {
 			$name = $field['name'];
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() check only; value unslashed and sanitized below.
 			if ( isset( $_POST[ $name ] ) ) {
-				$value = \FreeFormCertificate\Core\Utils::recursive_sanitize( wp_unslash( $_POST[ $name ] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via recursive_sanitize().
+				$value = \FreeFormCertificate\Core\DataSanitizer::recursive_sanitize( wp_unslash( $_POST[ $name ] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via recursive_sanitize().
 
 				// Normalize name fields (proper capitalization with lowercase connectives).
 				if ( in_array( $name, $name_fields, true ) && is_string( $value ) && ! empty( $value ) ) {
-					$value = \FreeFormCertificate\Core\Utils::normalize_brazilian_name( $value );
+					$value = \FreeFormCertificate\Core\DataSanitizer::normalize_brazilian_name( $value );
 				}
 
 				// Special validation for CPF/RF.
@@ -160,14 +160,14 @@ class FormProcessor {
 
 					// Validate CPF (11 digits) using official algorithm.
 					if ( strlen( $value ) === 11 ) {
-						if ( ! \FreeFormCertificate\Core\Utils::validate_cpf( $value ) ) {
+						if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $value ) ) {
 							wp_send_json_error( array( 'message' => __( 'Invalid CPF. Please check the number and try again.', 'ffcertificate' ) ) );
 						}
 					}
 
 					// Validate RF (7 digits) - must be numeric.
 					if ( strlen( $value ) === 7 ) {
-						if ( ! \FreeFormCertificate\Core\Utils::validate_rf( $value ) ) {
+						if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_rf( $value ) ) {
 							wp_send_json_error( array( 'message' => __( 'Invalid RF. Must contain only numbers.', 'ffcertificate' ) ) );
 						}
 					}
@@ -225,7 +225,7 @@ class FormProcessor {
 			\FreeFormCertificate\Security\RateLimiter::record_attempt( 'ip', $ip, $form_id );
 			\FreeFormCertificate\Security\RateLimiter::record_attempt( 'email', $email, $form_id );
 			if ( $cpf ) {
-				\FreeFormCertificate\Security\RateLimiter::record_attempt( 'cpf', preg_replace( '/[^0-9]/', '', $cpf ), $form_id );
+				\FreeFormCertificate\Security\RateLimiter::record_attempt( 'cpf', preg_replace( '/[^0-9]/', '', $cpf ) ?? '', $form_id );
 			}
 		}
 
@@ -271,9 +271,10 @@ class FormProcessor {
 		}
 
 		// === Quiz Mode Processing (v4.9.0) ===.
-		$is_quiz    = ! empty( $form_config['quiz_enabled'] ) && '1' === $form_config['quiz_enabled'];
-		$form_post  = get_post( $form_id );
-		$is_reprint = false;
+		$is_quiz         = ! empty( $form_config['quiz_enabled'] ) && '1' === $form_config['quiz_enabled'];
+		$form_post       = get_post( $form_id );
+		$form_post_title = $form_post ? (string) $form_post->post_title : '';
+		$is_reprint      = false;
 
 		if ( $is_quiz ) {
 			// Calculate quiz score.
@@ -355,7 +356,7 @@ class FormProcessor {
 					// INSERT new submission via existing handler.
 					$submission_id = $this->submission_handler->process_submission(
 						$form_id,
-						$form_post->post_title,
+						$form_post_title,
 						$submission_data,
 						$user_email,
 						$fields_config,
@@ -435,7 +436,7 @@ class FormProcessor {
 				// New submission - save to database.
 				$submission_id = $this->submission_handler->process_submission(
 					$form_id,
-					$form_post->post_title,
+					$form_post_title,
 					$submission_data,
 					$user_email,
 					$fields_config,
@@ -488,7 +489,7 @@ class FormProcessor {
 			$show_score = ( $form_config['quiz_show_score'] ?? '1' ) === '1';
 			$msg        = $show_score
 				/* translators: %d: quiz score percentage */
-				? sprintf( __( 'Congratulations! Score: %d%%. Certificate generated.', 'ffcertificate' ), $quiz_score['percent'] ?? 0 )
+				? sprintf( __( 'Congratulations! Score: %d%%. Certificate generated.', 'ffcertificate' ), $quiz_score['percent'] )
 				: __( 'Congratulations! Quiz passed. Certificate generated.', 'ffcertificate' );
 		}
 
@@ -543,8 +544,7 @@ class FormProcessor {
 			$points  = array_map( 'intval', array_map( 'trim', explode( ',', $points_str ) ) );
 
 			// Max score: highest point value for this field.
-			$field_max  = ! empty( $points ) ? max( $points ) : 0;
-			$max_score += $field_max;
+			$max_score += max( $points );
 
 			// User's answer.
 			$name       = $field['name'] ?? '';
@@ -575,7 +575,7 @@ class FormProcessor {
 	 *
 	 * @param int    $form_id Form ID.
 	 * @param string $cpf     CPF/RF value.
-	 * @return object|null
+	 * @return (\stdClass&object{id: numeric-string, status: string, data: string|null, submission_date: string})|null
 	 */
 	private function find_quiz_submission( int $form_id, string $cpf ): ?object {
 		if ( empty( $cpf ) ) {
@@ -584,7 +584,7 @@ class FormProcessor {
 
 		global $wpdb;
 		$table     = \FreeFormCertificate\Core\Utils::get_submissions_table();
-		$clean_cpf = preg_replace( '/[^0-9]/', '', $cpf );
+		$clean_cpf = preg_replace( '/[^0-9]/', '', $cpf ) ?? '';
 
 		if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
 			$id_hash     = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
@@ -593,6 +593,11 @@ class FormProcessor {
 			// Search the specific split column based on digit count.
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_column is derived from strlen() check, not user input.
+			/**
+			 * Cast wpdb result to typed shape.
+			 *
+			 * @var (\stdClass&object{id: numeric-string, status: string, data: string|null, submission_date: string})|null $result
+			 */
 			$result = $wpdb->get_row(
 				$wpdb->prepare(
 					"SELECT * FROM %i WHERE form_id = %d AND {$hash_column} = %s ORDER BY id DESC LIMIT 1",

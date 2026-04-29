@@ -90,7 +90,13 @@ class AppointmentRepository extends AbstractRepository {
 			}
 
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			return $this->wpdb->get_results( $sql, ARRAY_A );
+			$results = $this->wpdb->get_results( $sql, ARRAY_A );
+			/**
+			 * Cast wpdb result to expected shape.
+			 *
+			 * @var array<int, array<string, mixed>>
+			 */
+			return is_array( $results ) ? $results : array();
 		}
 
 		return $this->findAll( $conditions, 'appointment_date', 'DESC', $limit, $offset );
@@ -128,7 +134,13 @@ class AppointmentRepository extends AbstractRepository {
 		}
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $this->wpdb->get_results( $sql, ARRAY_A );
+		$results = $this->wpdb->get_results( $sql, ARRAY_A );
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -140,8 +152,8 @@ class AppointmentRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByCpfRf( string $cpf_rf, ?int $limit = null, int $offset = 0 ): array {
-		$cpf_rf_clean = preg_replace( '/[^0-9]/', '', $cpf_rf );
-		$cpf_rf_hash  = \FreeFormCertificate\Core\Encryption::hash( (string) $cpf_rf_clean );
+		$cpf_rf_clean = preg_replace( '/[^0-9]/', '', $cpf_rf ) ?? '';
+		$cpf_rf_hash  = \FreeFormCertificate\Core\Encryption::hash( $cpf_rf_clean );
 		if ( null === $cpf_rf_hash ) {
 			return array();
 		}
@@ -171,7 +183,12 @@ class AppointmentRepository extends AbstractRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $this->wpdb->get_results( $sql, ARRAY_A );
 
-		return $results;
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -238,7 +255,13 @@ class AppointmentRepository extends AbstractRepository {
 		);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $this->wpdb->get_results( $sql, ARRAY_A );
+		$results = $this->wpdb->get_results( $sql, ARRAY_A );
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -264,7 +287,13 @@ class AppointmentRepository extends AbstractRepository {
 		);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $this->wpdb->get_results( $sql, ARRAY_A );
+		$results = $this->wpdb->get_results( $sql, ARRAY_A );
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -402,7 +431,13 @@ class AppointmentRepository extends AbstractRepository {
 		);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $this->wpdb->get_results( $sql, ARRAY_A );
+		$results = $this->wpdb->get_results( $sql, ARRAY_A );
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -476,7 +511,7 @@ class AppointmentRepository extends AbstractRepository {
 		// Normalize cpf_rf → split cpf/rf before the registry sees it; the
 		// registry knows about the split columns, not the combined input.
 		if ( ! empty( $data['cpf_rf'] ) ) {
-			$clean_id = preg_replace( '/[^0-9]/', '', (string) $data['cpf_rf'] );
+			$clean_id = preg_replace( '/[^0-9]/', '', (string) $data['cpf_rf'] ) ?? '';
 			if ( '' !== $clean_id ) {
 				if ( 7 === strlen( $clean_id ) ) {
 					$data['rf'] = $clean_id;
@@ -531,12 +566,12 @@ class AppointmentRepository extends AbstractRepository {
 	 * Generate unique validation code
 	 *
 	 * Generates a 12-character alphanumeric code (stored without hyphens).
-	 * Use Utils::format_auth_code() to display with hyphens (XXXX-XXXX-XXXX).
+	 * Use DocumentFormatter::format_auth_code() to display with hyphens (XXXX-XXXX-XXXX).
 	 *
 	 * @return string 12-character code without hyphens
 	 */
 	private function generate_unique_validation_code(): string {
-		return \FreeFormCertificate\Core\Utils::generate_globally_unique_auth_code();
+		return \FreeFormCertificate\Core\AuthCodeService::generate_globally_unique_auth_code();
 	}
 
 	/**

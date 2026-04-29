@@ -70,7 +70,7 @@ class ReprintDetector {
 		} elseif ( ! empty( $val_cpf ) ) {
 			// Check by CPF/RF (if ticket not provided).
 			// Remove formatting for comparison.
-			$clean_cpf = preg_replace( '/[^0-9]/', '', $val_cpf );
+			$clean_cpf = preg_replace( '/[^0-9]/', '', $val_cpf ) ?? '';
 
 			// Check if encryption is enabled.
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
@@ -93,21 +93,6 @@ class ReprintDetector {
 						$id_hash
 					)
 				);
-
-			}
-
-			// @deprecated legacy JSON data fallback — remove in next major version.
-			if ( ! $existing_submission ) {
-				$like_query = '%' . $wpdb->esc_like( '"cpf_rf":"' . $val_cpf . '"' ) . '%';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$existing_submission = $wpdb->get_row(
-					$wpdb->prepare(
-						'SELECT * FROM %i WHERE form_id = %d AND data LIKE %s ORDER BY id DESC LIMIT 1',
-						$table_name,
-						$form_id,
-						$like_query
-					)
-				);
 			}
 		}
 
@@ -128,6 +113,7 @@ class ReprintDetector {
 	 * Build reprint result from a database row
 	 *
 	 * @param object $existing_submission Database row.
+	 * @phpstan-param \stdClass&object{id: numeric-string, submission_date: string, email_encrypted?: string|null, data?: string|null} $existing_submission
 	 * @return array<string, mixed> Reprint result array
 	 */
 	private static function build_reprint_result( object $existing_submission ): array {

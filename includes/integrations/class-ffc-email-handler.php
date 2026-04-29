@@ -163,7 +163,7 @@ class EmailHandler {
 		// Format auth code with certificate prefix.
 		$raw_code  = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
 		$auth_code = ! empty( $raw_code )
-			? \FreeFormCertificate\Core\Utils::format_auth_code( $raw_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
+			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $raw_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
 			: '';
 
 		// Custom body text from form config. wp_kses_post() prevents inadvertent script/unsafe-tag injection.
@@ -266,12 +266,12 @@ class EmailHandler {
 
 			// Format documents (CPF, RF, RG).
 			if ( in_array( $k, array( 'cpf', 'cpf_rf', 'rg' ), true ) ) {
-				$display_v = \FreeFormCertificate\Core\Utils::format_document( $display_v );
+				$display_v = \FreeFormCertificate\Core\DocumentFormatter::format_document( $display_v );
 			}
 
 			// Format auth code with certificate prefix.
 			if ( 'auth_code' === $k ) {
-				$display_v = \FreeFormCertificate\Core\Utils::format_auth_code( $display_v, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
+				$display_v = \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $display_v, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
 			}
 
 			$label = ucwords( str_replace( '_', ' ', $k ) );

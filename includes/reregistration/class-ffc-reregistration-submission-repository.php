@@ -19,6 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 /**
  * Database repository for reregistration submission records.
+ *
+ * @phpstan-type ReregistrationSubmissionRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: string|null, reviewed_at: string|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, created_at: string, updated_at: string, data?: string|null}
  */
 class ReregistrationSubmissionRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -77,7 +79,7 @@ class ReregistrationSubmissionRepository {
 	 * Get a submission by ID.
 	 *
 	 * @param int $id Submission ID.
-	 * @return object|null
+	 * @return ReregistrationSubmissionRow|null
 	 */
 	public static function get_by_id( int $id ): ?object {
 		$cached = static::cache_get( "id_{$id}" );
@@ -88,6 +90,11 @@ class ReregistrationSubmissionRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var ReregistrationSubmissionRow|null $result
+		 */
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
@@ -104,7 +111,7 @@ class ReregistrationSubmissionRepository {
 	 *
 	 * @since 4.12.0
 	 * @param string $auth_code Cleaned auth code (uppercase, no hyphens).
-	 * @return object|null
+	 * @return ReregistrationSubmissionRow|null
 	 */
 	public static function get_by_auth_code( string $auth_code ): ?object {
 		if ( empty( $auth_code ) ) {
@@ -114,9 +121,15 @@ class ReregistrationSubmissionRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		return $wpdb->get_row(
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var ReregistrationSubmissionRow|null $row
+		 */
+		$row = $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM %i WHERE auth_code = %s AND status IN ('submitted', 'approved')", $table, $auth_code )
 		);
+		return $row;
 	}
 
 	/**
@@ -124,7 +137,7 @@ class ReregistrationSubmissionRepository {
 	 *
 	 * @since 4.12.0
 	 * @param string $token Magic token (64 hex chars).
-	 * @return object|null
+	 * @return ReregistrationSubmissionRow|null
 	 */
 	public static function get_by_magic_token( string $token ): ?object {
 		if ( empty( $token ) ) {
@@ -134,15 +147,22 @@ class ReregistrationSubmissionRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		return $wpdb->get_row(
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var ReregistrationSubmissionRow|null $row
+		 */
+		$row = $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM %i WHERE magic_token = %s AND status IN ('submitted', 'approved')", $table, $token )
 		);
+		return $row;
 	}
 
 	/**
 	 * Ensure a submission has a magic_token, generating one if missing.
 	 *
 	 * @param object $submission Submission row object.
+	 * @phpstan-param ReregistrationSubmissionRow $submission
 	 * @return string The magic_token (existing or newly generated).
 	 */
 	public static function ensure_magic_token( object $submission ): string {
@@ -161,13 +181,18 @@ class ReregistrationSubmissionRepository {
 	 *
 	 * @param int $reregistration_id Reregistration ID.
 	 * @param int $user_id           User ID.
-	 * @return object|null
+	 * @return ReregistrationSubmissionRow|null
 	 */
 	public static function get_by_reregistration_and_user( int $reregistration_id, int $user_id ): ?object {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		return $wpdb->get_row(
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var ReregistrationSubmissionRow|null $row
+		 */
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE reregistration_id = %d AND user_id = %d',
 				$table,
@@ -175,6 +200,7 @@ class ReregistrationSubmissionRepository {
 				$user_id
 			)
 		);
+		return $row;
 	}
 
 	/**
@@ -184,7 +210,7 @@ class ReregistrationSubmissionRepository {
 	 *
 	 * @since 4.12.0
 	 * @param int $user_id User ID.
-	 * @return array<object>
+	 * @return list<ReregistrationSubmissionRow>
 	 */
 	public static function get_all_by_user( int $user_id ): array {
 		$wpdb        = self::db();
@@ -205,6 +231,11 @@ class ReregistrationSubmissionRepository {
 			)
 		);
 
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<ReregistrationSubmissionRow>
+		 */
 		return is_array( $results ) ? $results : array();
 	}
 
@@ -220,7 +251,7 @@ class ReregistrationSubmissionRepository {
 	 *     @type int    $limit   Max results. Default 0.
 	 *     @type int    $offset  Offset. Default 0.
 	 * }
-	 * @return array<object>
+	 * @return list<ReregistrationSubmissionRow>
 	 */
 	public static function get_by_reregistration( int $reregistration_id, array $filters = array() ): array {
 		$wpdb  = self::db();
@@ -523,7 +554,7 @@ class ReregistrationSubmissionRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		$results = $wpdb->get_results(
+		$results_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT status, COUNT(*) as count FROM %i
                 WHERE reregistration_id = %d GROUP BY status',
@@ -531,6 +562,12 @@ class ReregistrationSubmissionRepository {
 				$reregistration_id
 			)
 		);
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<\stdClass&object{status: string, count: numeric-string}> $results
+		 */
+		$results = is_array( $results_raw ) ? $results_raw : array();
 
 		$stats = array(
 			'total'       => 0,
@@ -555,7 +592,7 @@ class ReregistrationSubmissionRepository {
 	 *
 	 * @param int                  $reregistration_id Reregistration ID.
 	 * @param array<string, mixed> $filters           Optional filters (status, search).
-	 * @return array<object>
+	 * @return list<ReregistrationSubmissionRow>
 	 */
 	public static function get_for_export( int $reregistration_id, array $filters = array() ): array {
 		$filters['limit']  = 0;

@@ -37,6 +37,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Renderer for reregistration form output.
+ *
+ * @phpstan-import-type ReregistrationRow from ReregistrationRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-import-type CustomFieldRow from CustomFieldRepository
  */
 class ReregistrationFormRenderer {
 
@@ -56,7 +60,9 @@ class ReregistrationFormRenderer {
 	 * Render the reregistration form HTML.
 	 *
 	 * @param object $rereg      Reregistration object.
+	 * @phpstan-param ReregistrationRow $rereg
 	 * @param object $submission Submission object.
+	 * @phpstan-param ReregistrationSubmissionRow $submission
 	 * @param int    $user_id    User ID.
 	 * @return string HTML.
 	 */
@@ -73,7 +79,8 @@ class ReregistrationFormRenderer {
 
 		$values = self::build_field_values( $fields, $saved_values, $user_id, $user );
 
-		$end_date = wp_date( get_option( 'date_format' ), strtotime( $rereg->end_date ) );
+		$end_ts   = strtotime( $rereg->end_date );
+		$end_date = wp_date( get_option( 'date_format' ), false === $end_ts ? null : $end_ts );
 
 		// Group fields by field_group, preserving sort order.
 		$grouped      = self::group_fields( $fields );
@@ -132,7 +139,7 @@ class ReregistrationFormRenderer {
 	 * Collect active fields across a list of audiences, deduplicating by ID.
 	 *
 	 * @param array<int> $audience_ids Audience IDs.
-	 * @return array<object>
+	 * @return list<CustomFieldRow>
 	 */
 	private static function collect_fields_for_audiences( array $audience_ids ): array {
 		$all  = array();
@@ -157,7 +164,8 @@ class ReregistrationFormRenderer {
 	 * show up in the sorted field list.
 	 *
 	 * @param array<object> $fields Fields to group.
-	 * @return array<string, array<object>>
+	 * @phpstan-param list<CustomFieldRow> $fields
+	 * @return array<string, list<CustomFieldRow>>
 	 */
 	private static function group_fields( array $fields ): array {
 		$grouped = array();
@@ -180,6 +188,7 @@ class ReregistrationFormRenderer {
 	 *  3. Field default from field_options.default
 	 *
 	 * @param array<object>        $fields       Field definitions.
+	 * @phpstan-param list<CustomFieldRow> $fields
 	 * @param array<string, mixed> $saved_values Previously saved values.
 	 * @param int                  $user_id      User ID.
 	 * @param \WP_User|false       $user         WP user object (or false).
@@ -247,6 +256,7 @@ class ReregistrationFormRenderer {
 	 * @param int                  $index         1-based index shown in the legend.
 	 * @param string               $label         Translated group label.
 	 * @param array<object>        $fields        Field definitions in the group.
+	 * @phpstan-param list<CustomFieldRow> $fields
 	 * @param array<string, mixed> $values field_key => value.
 	 */
 	private static function render_group_fieldset( int $index, string $label, array $fields, array $values ): void {
@@ -271,6 +281,7 @@ class ReregistrationFormRenderer {
 	 * Render a single dynamic field wrapped in its label/error markup.
 	 *
 	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @param mixed  $value Current value (already decrypted for sensitive fields).
 	 */
 	private static function render_field( object $field, $value ): void {
@@ -315,6 +326,7 @@ class ReregistrationFormRenderer {
 	 * Render the bare input element for a field (without label/wrapper).
 	 *
 	 * @param object               $field      Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @param string               $field_id   HTML id.
 	 * @param string               $field_name HTML name.
 	 * @param mixed                $value      Current value.
@@ -422,6 +434,7 @@ class ReregistrationFormRenderer {
 	 * Render a dependent select field (cascade of two selects).
 	 *
 	 * @param object      $field      Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @param string      $field_id   Hidden input id.
 	 * @param string      $field_name Hidden input name.
 	 * @param string|null $value      Current JSON-encoded {parent,child} value.
@@ -581,6 +594,7 @@ class ReregistrationFormRenderer {
 	 * Decode the field_options JSON column into an array.
 	 *
 	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @return array<string, mixed>
 	 */
 	private static function decode_options( object $field ): array {
@@ -595,6 +609,7 @@ class ReregistrationFormRenderer {
 	 * Decode the validation_rules JSON column into an array.
 	 *
 	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @return array<string, mixed>
 	 */
 	private static function decode_rules( object $field ): array {

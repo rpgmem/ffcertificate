@@ -161,7 +161,7 @@ class AudienceNotificationHandler {
 		}
 
 		// Get cancelled by info.
-		$cancelled_by      = get_user_by( 'id', $booking->cancelled_by );
+		$cancelled_by      = $booking->cancelled_by ? get_user_by( 'id', (int) $booking->cancelled_by ) : false;
 		$cancelled_by_name = $cancelled_by ? $cancelled_by->display_name : __( 'Unknown', 'ffcertificate' );
 
 		// Prepare booking data.

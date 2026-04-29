@@ -428,7 +428,7 @@ class AdminSubmissionEditPage {
 		<tr>
 			<th><label><?php echo esc_html( ! empty( $this->sub_array['rf'] ) ? __( 'RF', 'ffcertificate' ) : __( 'CPF', 'ffcertificate' ) ); ?></label></th>
 			<td>
-				<input type="text" value="<?php echo esc_attr( \FreeFormCertificate\Core\Utils::format_document( $this->sub_array['cpf_rf'] ) ); ?>" class="regular-text ffc-input-readonly" readonly>
+				<input type="text" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::format_document( $this->sub_array['cpf_rf'] ) ); ?>" class="regular-text ffc-input-readonly" readonly>
 				<?php if ( ! empty( $this->sub_array['cpf_encrypted'] ) || ! empty( $this->sub_array['rf_encrypted'] ) ) : ?>
 					<p class="description"><span class="ffc-icon-lock"></span><?php esc_html_e( 'This identifier is encrypted in the database.', 'ffcertificate' ); ?></p>
 				<?php endif; ?>
@@ -441,7 +441,7 @@ class AdminSubmissionEditPage {
 		<tr>
 			<th><label><?php esc_html_e( 'Auth Code', 'ffcertificate' ); ?></label></th>
 			<td>
-				<input type="text" value="<?php echo esc_attr( \FreeFormCertificate\Core\Utils::format_auth_code( $this->sub_array['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ) ); ?>" class="regular-text ffc-input-readonly" readonly>
+				<input type="text" value="<?php echo esc_attr( \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $this->sub_array['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ) ); ?>" class="regular-text ffc-input-readonly" readonly>
 				<p class="description"><?php esc_html_e( 'Protected authentication code.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
@@ -458,10 +458,6 @@ class AdminSubmissionEditPage {
 		// Protected fields (read-only within JSON).
 		$protected_json_fields = array( 'auth_code', 'fill_date', 'ticket' );
 
-		if ( ! is_array( $this->data ) ) {
-			return;
-		}
-
 		foreach ( $this->data as $k => $v ) {
 			// Skip old tracking fields (now in columns).
 			if ( 'is_edited' === $k || 'edited_at' === $k ) {
@@ -470,11 +466,9 @@ class AdminSubmissionEditPage {
 
 			// Get field label.
 			$lbl = $k;
-			if ( is_array( $this->fields ) ) {
-				foreach ( $this->fields as $f ) {
-					if ( isset( $f['name'] ) && $f['name'] === $k ) {
-						$lbl = $f['label'];
-					}
+			foreach ( $this->fields as $f ) {
+				if ( isset( $f['name'] ) && $f['name'] === $k ) {
+					$lbl = $f['label'];
 				}
 			}
 
@@ -535,7 +529,7 @@ class AdminSubmissionEditPage {
 
 			// Normalize name fields (proper capitalization with lowercase connectives).
 			if ( in_array( $sanitized_key, $name_fields, true ) && ! empty( $sanitized_value ) ) {
-				$sanitized_value = \FreeFormCertificate\Core\Utils::normalize_brazilian_name( $sanitized_value );
+				$sanitized_value = \FreeFormCertificate\Core\DataSanitizer::normalize_brazilian_name( $sanitized_value );
 			}
 
 			$clean_data[ $sanitized_key ] = $sanitized_value;

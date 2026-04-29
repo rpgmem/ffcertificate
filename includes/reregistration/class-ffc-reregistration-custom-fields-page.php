@@ -20,6 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Admin page for reregistration custom fields.
+ *
+ * @phpstan-import-type AudienceRow from AudienceRepository
  */
 class ReregistrationCustomFieldsPage {
 
@@ -61,7 +63,15 @@ class ReregistrationCustomFieldsPage {
 						<?php foreach ( $audiences as $parent ) : ?>
 							<?php self::render_row( $parent, $edit_base ); ?>
 							<?php if ( ! empty( $parent->children ) ) : ?>
-								<?php foreach ( $parent->children as $child ) : ?>
+								<?php
+								/**
+								 * Children list mirrors the parent shape.
+								 *
+								 * @var list<AudienceRow> $children
+								 */
+								$children = $parent->children;
+								foreach ( $children as $child ) :
+									?>
 									<?php self::render_row( $child, $edit_base, true ); ?>
 								<?php endforeach; ?>
 							<?php endif; ?>
@@ -79,6 +89,7 @@ class ReregistrationCustomFieldsPage {
 	 * @param object $audience  Audience object.
 	 * @param string $edit_base Base URL for edit links.
 	 * @param bool   $is_child  Whether this is a child audience.
+	 * @phpstan-param AudienceRow $audience
 	 * @return void
 	 */
 	private static function render_row( object $audience, string $edit_base, bool $is_child = false ): void {

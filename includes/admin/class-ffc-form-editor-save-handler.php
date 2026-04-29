@@ -278,11 +278,6 @@ class FormEditorSaveHandler {
 		foreach ( $lines as $line ) {
 			++$line_number;
 
-			// Skip empty lines.
-			if ( empty( $line ) ) {
-				continue;
-			}
-
 			// Check format: lat,lng,radius.
 			if ( ! preg_match( '/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*,\s*\d+(\.\d+)?$/', $line ) ) {
 				$errors[] = sprintf(

@@ -360,6 +360,9 @@ class UserProfileRestController {
 			}
 
 			$user = get_user_by( 'id', $user_id );
+			if ( ! $user ) {
+				return new \WP_Error( 'user_not_found', __( 'User not found', 'ffcertificate' ), array( 'status' => 404 ) );
+			}
 
 			// Admin in view-as mode can skip current password verification.
 			if ( ! $ctx['is_view_as'] ) {
@@ -428,7 +431,10 @@ class UserProfileRestController {
 				return new \WP_Error( 'invalid_type', __( 'Invalid request type', 'ffcertificate' ), array( 'status' => 400 ) );
 			}
 
-			$user   = get_user_by( 'id', $user_id );
+			$user = get_user_by( 'id', $user_id );
+			if ( ! $user ) {
+				return new \WP_Error( 'user_not_found', __( 'User not found', 'ffcertificate' ), array( 'status' => 404 ) );
+			}
 			$result = wp_create_user_request( $user->user_email, $type );
 
 			if ( is_wp_error( $result ) ) {

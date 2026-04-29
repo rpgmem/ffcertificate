@@ -64,7 +64,7 @@ class DocumentFormatter {
 	 * @return bool True if valid
 	 */
 	public static function validate_cpf( string $cpf ): bool {
-		$cpf = preg_replace( '/\D/', '', $cpf );
+		$cpf = preg_replace( '/\D/', '', $cpf ) ?? '';
 
 		if ( strlen( $cpf ) !== 11 ) {
 			return false;
@@ -94,7 +94,7 @@ class DocumentFormatter {
 	 * @return bool True if valid
 	 */
 	public static function validate_rf( string $rf ): bool {
-		$rf = preg_replace( '/\D/', '', $rf );
+		$rf = preg_replace( '/\D/', '', $rf ) ?? '';
 		return strlen( $rf ) === 7 && is_numeric( $rf );
 	}
 
@@ -106,7 +106,7 @@ class DocumentFormatter {
 	 * @return bool True if valid
 	 */
 	public static function validate_phone( string $phone ): bool {
-		$phone = preg_replace( '/\s+/', '', $phone );
+		$phone = preg_replace( '/\s+/', '', $phone ) ?? '';
 		return (bool) preg_match( '/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/', $phone );
 	}
 
@@ -117,10 +117,10 @@ class DocumentFormatter {
 	 * @return string Formatted CPF (XXX.XXX.XXX-XX)
 	 */
 	public static function format_cpf( string $cpf ): string {
-		$cpf = preg_replace( '/\D/', '', $cpf );
+		$cpf = preg_replace( '/\D/', '', $cpf ) ?? '';
 
 		if ( strlen( $cpf ) === 11 ) {
-			return preg_replace( '/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cpf );
+			return preg_replace( '/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cpf ) ?? $cpf;
 		}
 
 		return $cpf;
@@ -133,10 +133,10 @@ class DocumentFormatter {
 	 * @return string Formatted RF (XXX.XXX-X)
 	 */
 	public static function format_rf( string $rf ): string {
-		$rf = preg_replace( '/\D/', '', $rf );
+		$rf = preg_replace( '/\D/', '', $rf ) ?? '';
 
 		if ( strlen( $rf ) === 7 ) {
-			return preg_replace( '/(\d{3})(\d{3})(\d{1})/', '$1.$2-$3', $rf );
+			return preg_replace( '/(\d{3})(\d{3})(\d{1})/', '$1.$2-$3', $rf ) ?? $rf;
 		}
 
 		return $rf;
@@ -151,7 +151,7 @@ class DocumentFormatter {
 	 * @return string Formatted code: P-XXXX-XXXX-XXXX (with prefix) or XXXX-XXXX-XXXX (without).
 	 */
 	public static function format_auth_code( string $code, string $prefix = '' ): string {
-		$code = strtoupper( preg_replace( '/[^A-Z0-9]/i', '', $code ) );
+		$code = strtoupper( preg_replace( '/[^A-Z0-9]/i', '', $code ) ?? '' );
 
 		if ( strlen( $code ) === 12 ) {
 			$formatted = substr( $code, 0, 4 ) . '-' . substr( $code, 4, 4 ) . '-' . substr( $code, 8, 4 );
@@ -174,7 +174,7 @@ class DocumentFormatter {
 	 * @return string Formatted document
 	 */
 	public static function format_document( string $value, string $type = 'auto' ): string {
-		$clean = preg_replace( '/\D/', '', $value );
+		$clean = preg_replace( '/\D/', '', $value ) ?? '';
 		$len   = strlen( $clean );
 
 		if ( 'auto' === $type ) {
@@ -211,7 +211,7 @@ class DocumentFormatter {
 			return '';
 		}
 
-		$clean = preg_replace( '/[^0-9]/', '', $value );
+		$clean = preg_replace( '/[^0-9]/', '', $value ) ?? '';
 
 		if ( strlen( $clean ) === 11 ) {
 			return substr( $clean, 0, 3 ) . '.***.***-' . substr( $clean, -2 );
@@ -257,7 +257,7 @@ class DocumentFormatter {
 		$clean = strtoupper( trim( $input ) );
 
 		// Remove all non-alphanumeric chars.
-		$alphanumeric = preg_replace( '/[^A-Z0-9]/', '', $clean );
+		$alphanumeric = preg_replace( '/[^A-Z0-9]/', '', $clean ) ?? '';
 
 		// 13 chars: first char is a valid prefix letter.
 		if ( strlen( $alphanumeric ) === 13 && in_array( $alphanumeric[0], self::VALID_PREFIXES, true ) ) {
@@ -302,6 +302,6 @@ class DocumentFormatter {
 	 * @return string Cleaned identifier
 	 */
 	public static function clean_identifier( string $value ): string {
-		return strtoupper( preg_replace( '/[^a-zA-Z0-9]/', '', $value ) );
+		return strtoupper( preg_replace( '/[^a-zA-Z0-9]/', '', $value ) ?? '' );
 	}
 }

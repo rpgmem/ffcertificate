@@ -608,7 +608,7 @@ class SelfSchedulingShortcode {
 
 								<!-- Security Fields (Honeypot + Math Captcha) -->
 								<?php
-								$captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
+								$captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
 								?>
 								<div class="ffc-security-container">
 									<!-- Honeypot Field -->

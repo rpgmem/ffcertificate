@@ -202,6 +202,13 @@ class UserDataRestController {
 	 *
 	 * @param string $key Sub-controller key.
 	 * @return object
+	 *
+	 * @phpstan-return ($key is 'certificates' ? UserCertificatesRestController :
+	 *                  ($key is 'profile' ? UserProfileRestController :
+	 *                  ($key is 'appointments' ? UserAppointmentsRestController :
+	 *                  ($key is 'audience' ? UserAudienceRestController :
+	 *                  ($key is 'summary' ? UserSummaryRestController :
+	 *                  ($key is 'reregistrations' ? UserReregistrationsRestController : object))))))
 	 */
 	private function get_sub( string $key ): object {
 		if ( empty( $this->sub_controllers[ $key ] ) ) {

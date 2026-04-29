@@ -388,7 +388,7 @@ class UserManager {
 		$sensitive_map     = array_flip( $sensitive_keys );
 
 		foreach ( $data as $key => $value ) {
-			if ( ! is_string( $key ) || '' === $key ) {
+			if ( '' === $key ) {
 				continue;
 			}
 
@@ -434,7 +434,7 @@ class UserManager {
 		$sensitive_map = array_flip( $sensitive_keys );
 
 		foreach ( $extra_keys as $key ) {
-			if ( ! is_string( $key ) || '' === $key ) {
+			if ( '' === $key ) {
 				continue;
 			}
 			if ( in_array( $key, self::PROFILE_TABLE_KEYS, true ) ) {
@@ -654,7 +654,7 @@ class UserManager {
 		foreach ( $encrypted_emails as $encrypted ) {
 			try {
 				$email = \FreeFormCertificate\Core\Encryption::decrypt( $encrypted );
-				if ( is_email( $email ) ) {
+				if ( is_string( $email ) && is_email( $email ) ) {
 					$emails[] = $email;
 				}
 			} catch ( \Exception $e ) {

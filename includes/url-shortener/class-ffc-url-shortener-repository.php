@@ -111,14 +111,16 @@ class UrlShortenerRepository extends AbstractRepository {
 	 * @return bool
 	 */
 	public function incrementClickCount( int $id ): bool {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$result = $this->wpdb->query(
-			$this->wpdb->prepare(
-				'UPDATE %i SET click_count = click_count + 1 WHERE id = %d',
-				$this->table,
-				$id
-			)
+		$sql = $this->wpdb->prepare(
+			'UPDATE %i SET click_count = click_count + 1 WHERE id = %d',
+			$this->table,
+			$id
 		);
+		if ( ! is_string( $sql ) ) {
+			return false;
+		}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$result = $this->wpdb->query( $sql );
 
 		return false !== $result;
 	}

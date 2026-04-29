@@ -80,6 +80,9 @@ class DataSanitizer {
 
 		// Split into words.
 		$words = preg_split( '/\s+/', $name );
+		if ( ! is_array( $words ) ) {
+			return $name;
+		}
 
 		$normalized_words = array();
 		foreach ( $words as $word ) {

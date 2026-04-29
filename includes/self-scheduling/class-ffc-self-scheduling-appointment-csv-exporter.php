@@ -228,11 +228,6 @@ class AppointmentCsvExporter {
 	 * @return void
 	 */
 	public function export_csv( $calendar_ids = null, array $statuses = array(), ?string $start_date = null, ?string $end_date = null ): void {
-		// Normalize calendar_ids to array.
-		if ( null !== $calendar_ids && ! is_array( $calendar_ids ) ) {
-			$calendar_ids = array( (int) $calendar_ids );
-		}
-
 		\FreeFormCertificate\Core\Utils::debug_log(
 			'Appointment CSV export started',
 			array(

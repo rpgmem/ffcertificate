@@ -69,9 +69,9 @@ class AppointmentAjaxHandler {
 				);
 			}
 
-			$security_check = \FreeFormCertificate\Core\Utils::validate_security_fields( $_POST );
+			$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
 			if ( true !== $security_check ) {
-				$new_captcha = \FreeFormCertificate\Core\Utils::generate_simple_captcha();
+				$new_captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
 				wp_send_json_error(
 					array(
 						'message'         => $security_check,
@@ -168,7 +168,7 @@ class AppointmentAjaxHandler {
 				'appointment_id'     => $result['appointment_id'],
 				'confirmation_token' => $result['confirmation_token'] ?? null,
 				'validation_code'    => $appointment && ! empty( $appointment['validation_code'] )
-					? \FreeFormCertificate\Core\Utils::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT )
+					? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT )
 					: null,
 				'receipt_url'        => $requires_approval ? '' : ( $result['receipt_url'] ?? '' ),
 				'requires_approval'  => $requires_approval,
