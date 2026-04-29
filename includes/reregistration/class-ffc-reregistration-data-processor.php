@@ -38,6 +38,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Processor for reregistration data operations.
+ *
+ * @phpstan-import-type ReregistrationRow from ReregistrationRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-import-type CustomFieldRow from CustomFieldRepository
  */
 class ReregistrationDataProcessor {
 
@@ -76,6 +80,7 @@ class ReregistrationDataProcessor {
 	 * Collect and sanitize form data from $_POST['fields'].
 	 *
 	 * @param object $rereg   Reregistration object.
+	 * @phpstan-param ReregistrationRow $rereg
 	 * @param int    $user_id User ID.
 	 * @return array<string, mixed> Structured data { fields: { key => value } }.
 	 */
@@ -100,6 +105,7 @@ class ReregistrationDataProcessor {
 	 * Sanitize a single field value according to its type.
 	 *
 	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @param mixed  $raw   Raw input value.
 	 * @return mixed Sanitized value.
 	 */
@@ -156,6 +162,7 @@ class ReregistrationDataProcessor {
 	 *
 	 * @param array<string, mixed> $data    Collected data (from collect_form_data).
 	 * @param object               $rereg   Reregistration.
+	 * @phpstan-param ReregistrationRow $rereg
 	 * @param int                  $user_id User ID.
 	 * @return array<string, string> Errors keyed by input name.
 	 */
@@ -216,7 +223,9 @@ class ReregistrationDataProcessor {
 	 * - Sends confirmation email + activity log entry
 	 *
 	 * @param object               $submission Submission record.
+	 * @phpstan-param ReregistrationSubmissionRow $submission
 	 * @param object               $rereg      Reregistration.
+	 * @phpstan-param ReregistrationRow $rereg
 	 * @param array<string, mixed> $data       Validated collected data.
 	 * @param int                  $user_id    User ID.
 	 * @return void
@@ -299,6 +308,7 @@ class ReregistrationDataProcessor {
 	 *
 	 * @param int                  $user_id User ID.
 	 * @param array<object>        $fields  All active field definitions.
+	 * @phpstan-param list<CustomFieldRow> $fields
 	 * @param array<string, mixed> $values field_key => plain value.
 	 */
 	private static function sync_profile( int $user_id, array $fields, array $values ): void {
@@ -341,6 +351,7 @@ class ReregistrationDataProcessor {
 	 *
 	 * @param int                  $user_id User ID.
 	 * @param array<object>        $fields  All active field definitions.
+	 * @phpstan-param list<CustomFieldRow> $fields
 	 * @param array<string, mixed> $values field_key => plain value.
 	 */
 	private static function store_user_snapshot( int $user_id, array $fields, array $values ): void {
@@ -372,7 +383,8 @@ class ReregistrationDataProcessor {
 	 * Get active field definitions for all audiences linked to a reregistration.
 	 *
 	 * @param object $rereg Reregistration object.
-	 * @return array<object>
+	 * @phpstan-param ReregistrationRow $rereg
+	 * @return list<CustomFieldRow>
 	 */
 	private static function get_fields_for_reregistration( object $rereg ): array {
 		$audience_ids = ReregistrationRepository::get_audience_ids( (int) $rereg->id );
