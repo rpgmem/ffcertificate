@@ -20,6 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Admin page for reregistration custom fields.
+ *
+ * @phpstan-import-type AudienceRow from AudienceRepository
  */
 class ReregistrationCustomFieldsPage {
 
@@ -79,6 +81,7 @@ class ReregistrationCustomFieldsPage {
 	 * @param object $audience  Audience object.
 	 * @param string $edit_base Base URL for edit links.
 	 * @param bool   $is_child  Whether this is a child audience.
+	 * @phpstan-param AudienceRow $audience
 	 * @return void
 	 */
 	private static function render_row( object $audience, string $edit_base, bool $is_child = false ): void {

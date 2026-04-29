@@ -461,7 +461,7 @@ class AudienceLoader {
 			$users = array();
 			if ( ! empty( $booking->users ) ) {
 				foreach ( $booking->users as $u ) {
-					$user_data = get_userdata( (int) ( $u->user_id ?? $u->ID ?? 0 ) );
+					$user_data = get_userdata( (int) $u );
 					if ( $user_data ) {
 						$users[] = array(
 							'id'    => $user_data->ID,

@@ -66,6 +66,9 @@ class DashboardViewMode {
 	 */
 	public static function render_admin_viewing_banner( int $user_id ): string {
 		$user  = get_user_by( 'id', $user_id );
+		if ( ! $user ) {
+			return '';
+		}
 		$admin = wp_get_current_user();
 
 		// Get dashboard URL without view-as parameters.

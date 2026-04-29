@@ -22,6 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Handler for reregistration email operations.
  */
+/**
+ * @phpstan-import-type ReregistrationRow from ReregistrationRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ */
 class ReregistrationEmailHandler {
 
 	use \FreeFormCertificate\Core\EmailHelperTrait;
@@ -229,6 +233,7 @@ class ReregistrationEmailHandler {
 	 * @param object                $rereg       Reregistration object.
 	 * @param array<string, string> $template    Template with 'subject' and 'body' keys.
 	 * @param array<string, string> $extra_vars  Additional template variables.
+	 * @phpstan-param ReregistrationRow $rereg
 	 * @return bool
 	 */
 	private static function send_to_user( int $user_id, object $rereg, array $template, array $extra_vars = array() ): bool {

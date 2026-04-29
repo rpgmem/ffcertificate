@@ -44,6 +44,7 @@ class PdfGenerator {
 	 *
 	 * @param int    $submission_id Submission ID.
 	 * @param object $submission_handler Submission handler instance.
+	 * @phpstan-param \FreeFormCertificate\Submissions\SubmissionHandler $submission_handler
 	 * @return array<string, mixed>|\WP_Error PDF data array or error
 	 */
 	public function generate_pdf_data( int $submission_id, object $submission_handler ) {
@@ -383,7 +384,7 @@ class PdfGenerator {
 				return $result;
 			},
 			$layout
-		);
+		) ?? $layout;
 
 		return $layout;
 	}
@@ -548,6 +549,9 @@ class PdfGenerator {
 
 		// Split by spaces to get individual parameters.
 		$parts = preg_split( '/\s+/', $params_string );
+		if ( ! is_array( $parts ) ) {
+			return $defaults;
+		}
 
 		foreach ( $parts as $part ) {
 			// Parse link:X>Y or link:X>"Custom Text".

@@ -345,10 +345,10 @@ class Utils {
 		$name      = pathinfo( $filename, PATHINFO_FILENAME );
 
 		// Remove special characters.
-		$name = preg_replace( '/[^a-zA-Z0-9\-_]/', '-', $name );
+		$name = preg_replace( '/[^a-zA-Z0-9\-_]/', '-', $name ) ?? '';
 
 		// Remove multiple dashes.
-		$name = preg_replace( '/-+/', '-', $name );
+		$name = preg_replace( '/-+/', '-', $name ) ?? '';
 
 		// Trim dashes from start/end.
 		$name = trim( $name, '-' );

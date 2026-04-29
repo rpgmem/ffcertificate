@@ -654,7 +654,7 @@ class UserManager {
 		foreach ( $encrypted_emails as $encrypted ) {
 			try {
 				$email = \FreeFormCertificate\Core\Encryption::decrypt( $encrypted );
-				if ( is_email( $email ) ) {
+				if ( is_string( $email ) && is_email( $email ) ) {
 					$emails[] = $email;
 				}
 			} catch ( \Exception $e ) {
