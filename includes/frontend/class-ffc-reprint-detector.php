@@ -93,9 +93,7 @@ class ReprintDetector {
 						$id_hash
 					)
 				);
-
 			}
-
 		}
 
 		if ( $existing_submission ) {
