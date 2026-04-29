@@ -161,7 +161,8 @@ class ReregistrationSubmissionRepository {
 	/**
 	 * Ensure a submission has a magic_token, generating one if missing.
 	 *
-	 * @param ReregistrationSubmissionRow $submission Submission row object.
+	 * @param object $submission Submission row object.
+	 * @phpstan-param ReregistrationSubmissionRow $submission
 	 * @return string The magic_token (existing or newly generated).
 	 */
 	public static function ensure_magic_token( object $submission ): string {

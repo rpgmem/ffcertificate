@@ -720,8 +720,9 @@ class CustomFieldRepository {
 	/**
 	 * Validate a field value against its definition.
 	 *
-	 * @param CustomFieldRow $field Field definition object.
-	 * @param mixed          $value Value to validate.
+	 * @param object $field Field definition object.
+	 * @param mixed  $value Value to validate.
+	 * @phpstan-param CustomFieldRow $field
 	 * @return true|\WP_Error True if valid, WP_Error with message if invalid.
 	 */
 	public static function validate_field_value( object $field, $value ) {
@@ -735,7 +736,8 @@ class CustomFieldRepository {
 	 *   {"groups": {"Parent Label": ["Child 1", "Child 2"], ...},
 	 *    "parent_label": "Divisão", "child_label": "Setor"}
 	 *
-	 * @param CustomFieldRow $field Field definition.
+	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @return array<string, array<string>> Parent => [children].
 	 */
 	public static function get_dependent_choices( object $field ): array {
@@ -821,7 +823,8 @@ class CustomFieldRepository {
 	/**
 	 * Get choices for a select field.
 	 *
-	 * @param CustomFieldRow $field Field definition.
+	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @return array<string>
 	 */
 	public static function get_field_choices( object $field ): array {
@@ -835,7 +838,8 @@ class CustomFieldRepository {
 	/**
 	 * Get validation rules for a field.
 	 *
-	 * @param CustomFieldRow $field Field definition.
+	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
 	 * @return array<string, mixed>
 	 */
 	public static function get_validation_rules( object $field ): array {

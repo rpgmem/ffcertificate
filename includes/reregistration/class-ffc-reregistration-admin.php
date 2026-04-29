@@ -29,6 +29,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Reregistration Admin.
+ *
+ * @phpstan-import-type ReregistrationRow from ReregistrationRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-import-type CustomFieldRow from CustomFieldRepository
  */
 class ReregistrationAdmin {
 
@@ -272,6 +276,7 @@ class ReregistrationAdmin {
 	 * Render a single list row.
 	 *
 	 * @param object $item Reregistration object.
+	 * @phpstan-param ReregistrationRow $item
 	 * @return void
 	 */
 	private function render_list_row( object $item ): void {
@@ -605,6 +610,7 @@ class ReregistrationAdmin {
 	 *
 	 * @param object $sub         Submission object.
 	 * @param int    $rereg_id    Reregistration ID.
+	 * @phpstan-param ReregistrationSubmissionRow $sub
 	 * @return void
 	 */
 	private function render_submission_row( object $sub, int $rereg_id ): void {
@@ -916,6 +922,8 @@ class ReregistrationAdmin {
 	 * @param object               $submission       Submission row.
 	 * @param array<int, object>   $fields           Field definitions for the audience(s).
 	 * @param array<string, mixed> $decrypted_values field_key => plaintext value map.
+	 * @phpstan-param ReregistrationSubmissionRow $submission
+	 * @phpstan-param list<CustomFieldRow>        $fields
 	 * @return string Escaped HTML block.
 	 */
 	private function build_submission_details_html( object $submission, array $fields, array $decrypted_values ): string {
