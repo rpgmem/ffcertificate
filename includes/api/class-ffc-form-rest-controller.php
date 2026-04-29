@@ -204,6 +204,10 @@ class FormRestController {
 				);
 			}
 
+			if ( ! $this->form_repository ) {
+				return new \WP_Error( 'form_repo_unavailable', __( 'Form repository not available', 'ffcertificate' ), array( 'status' => 500 ) );
+			}
+
 			$response = array(
 				'id'         => $form->ID,
 				'title'      => $form->post_title,
@@ -360,6 +364,10 @@ class FormRestController {
 					'Form is not published',
 					array( 'status' => 403 )
 				);
+			}
+
+			if ( ! $this->form_repository ) {
+				return new \WP_Error( 'form_repo_unavailable', 'Form repository not available', array( 'status' => 500 ) );
 			}
 
 			// Get form configuration and fields.

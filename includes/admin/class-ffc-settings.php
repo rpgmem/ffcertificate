@@ -39,6 +39,11 @@ class Settings {
 	 *
 	 * @var array<string, object>
 	 */
+	/**
+	 * Loaded settings tabs, keyed by tab id.
+	 *
+	 * @var array<string, \FreeFormCertificate\Settings\SettingsTab>
+	 */
 	private $tabs = array();
 	/**
 	 * Save handler.

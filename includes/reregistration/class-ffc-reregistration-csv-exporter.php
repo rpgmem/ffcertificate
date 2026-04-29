@@ -18,6 +18,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Exporter for reregistration csv data.
+ *
+ * @phpstan-import-type CustomFieldRow from CustomFieldRepository
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
+ * @phpstan-import-type ReregistrationRow from ReregistrationRepository
  */
 class ReregistrationCsvExporter {
 
@@ -117,7 +121,8 @@ class ReregistrationCsvExporter {
 	 * Get custom fields for all audiences linked to a reregistration.
 	 *
 	 * @param object $rereg Reregistration object.
-	 * @return array<object>
+	 * @phpstan-param ReregistrationRow $rereg
+	 * @return list<CustomFieldRow>
 	 */
 	private static function get_custom_fields_for_reregistration( object $rereg ): array {
 		$audience_ids = ReregistrationRepository::get_audience_ids( (int) $rereg->id );
@@ -142,6 +147,7 @@ class ReregistrationCsvExporter {
 	 *
 	 * @param array<int, object>   $fields Field definitions.
 	 * @param array<string, mixed> $values field_key => value map.
+	 * @phpstan-param list<CustomFieldRow> $fields
 	 * @return array<string, mixed> Decrypted map.
 	 */
 	private static function decrypt_sensitive( array $fields, array $values ): array {
@@ -171,6 +177,7 @@ class ReregistrationCsvExporter {
 	 *
 	 * @param object $field Field definition.
 	 * @param mixed  $value Plain value (may already be decrypted).
+	 * @phpstan-param CustomFieldRow $field
 	 * @return string
 	 */
 	private static function stringify_value( object $field, $value ): string {
