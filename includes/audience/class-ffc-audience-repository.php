@@ -110,7 +110,11 @@ class AudienceRepository {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$results = $wpdb->get_results( $sql );
-		/** @var list<AudienceRow> */
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<AudienceRow>
+		 */
 		return is_array( $results ) ? $results : array();
 	}
 
@@ -140,7 +144,11 @@ class AudienceRepository {
 		$table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		/** @var AudienceRow|null $result */
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var AudienceRow|null $result
+		 */
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
@@ -516,7 +524,11 @@ class AudienceRepository {
 		$cache_key = 'ffcertificate_user_aud_' . $user_id . '_' . ( $include_parents ? '1' : '0' );
 		$cached    = wp_cache_get( $cache_key, 'ffcertificate' );
 		if ( is_array( $cached ) ) {
-			/** @var list<AudienceRow> $cached */
+			/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<AudienceRow> $cached
+		 */
 			return $cached;
 		}
 
@@ -537,7 +549,11 @@ class AudienceRepository {
 			)
 		);
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		/** @var list<AudienceRow> $audiences */
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<AudienceRow> $audiences
+		 */
 		$audiences = is_array( $audiences_raw ) ? $audiences_raw : array();
 
 		// Include all ancestor audiences if requested (walks up the full chain).
@@ -559,7 +575,11 @@ class AudienceRepository {
 					$wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$placeholders}) AND status = 'active'", array_merge( array( $table ), $ancestor_ids ) )
 				);
                 // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-				/** @var list<AudienceRow> $parents */
+				/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<AudienceRow> $parents
+		 */
 				$parents = is_array( $parents_raw ) ? $parents_raw : array();
 
 				// Merge and remove duplicates.
@@ -719,7 +739,11 @@ class AudienceRepository {
 		$cache_key = 'ffcertificate_aud_search_' . md5( $search . '_' . $limit );
 		$cached    = wp_cache_get( $cache_key, 'ffcertificate' );
 		if ( is_array( $cached ) ) {
-			/** @var list<AudienceRow> $cached */
+			/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<AudienceRow> $cached
+		 */
 			return $cached;
 		}
 
@@ -739,7 +763,11 @@ class AudienceRepository {
 			)
 		);
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		/** @var list<AudienceRow> $results */
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<AudienceRow> $results
+		 */
 		$results = is_array( $results_raw ) ? $results_raw : array();
 
 		wp_cache_set( $cache_key, $results, 'ffcertificate' );

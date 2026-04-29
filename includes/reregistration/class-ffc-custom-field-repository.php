@@ -80,7 +80,7 @@ class CustomFieldRepository {
 	 * Get a single field by ID.
 	 *
 	 * @param int $field_id Field ID.
-	 * @return object|null
+	 * @return CustomFieldRow|null
 	 */
 	public static function get_by_id( int $field_id ): ?object {
 		$cached = static::cache_get( "id_{$field_id}" );
@@ -107,7 +107,7 @@ class CustomFieldRepository {
 	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only return active fields.
-	 * @return array<object>
+	 * @return list<CustomFieldRow>
 	 */
 	public static function get_by_audience( int $audience_id, bool $active_only = true ): array {
 		$wpdb  = self::db();
@@ -136,7 +136,7 @@ class CustomFieldRepository {
 	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only return active fields.
-	 * @return array<object> Fields with added 'source_audience_id' and 'source_audience_name' properties.
+	 * @return list<CustomFieldRow> Fields with added 'source_audience_id' and 'source_audience_name' properties.
 	 */
 	public static function get_by_audience_with_parents( int $audience_id, bool $active_only = true ): array {
 		$audience = AudienceRepository::get_by_id( $audience_id );
@@ -177,7 +177,7 @@ class CustomFieldRepository {
 	 *
 	 * @param int  $user_id    User ID.
 	 * @param bool $active_only Only return active fields.
-	 * @return array<object> Fields grouped conceptually, with source_audience_* properties.
+	 * @return list<CustomFieldRow> Fields grouped conceptually, with source_audience_* properties.
 	 */
 	public static function get_all_for_user( int $user_id, bool $active_only = true ): array {
 		$audiences = AudienceRepository::get_user_audiences( $user_id );
@@ -540,7 +540,7 @@ class CustomFieldRepository {
 	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only active fields.
-	 * @return array<object>
+	 * @return list<CustomFieldRow>
 	 */
 	public static function get_profile_fields( int $audience_id, bool $active_only = true ): array {
 		$fields = self::get_by_audience( $audience_id, $active_only );
@@ -562,7 +562,7 @@ class CustomFieldRepository {
 	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only active fields.
-	 * @return array<object>
+	 * @return list<CustomFieldRow>
 	 */
 	public static function get_sensitive_fields( int $audience_id, bool $active_only = true ): array {
 		$fields = self::get_by_audience( $audience_id, $active_only );
@@ -618,7 +618,7 @@ class CustomFieldRepository {
 	 *
 	 * @param int    $audience_id Audience ID.
 	 * @param string $field_key   Field key.
-	 * @return object|null
+	 * @return CustomFieldRow|null
 	 */
 	public static function get_by_key( int $audience_id, string $field_key ): ?object {
 		$wpdb  = self::db();

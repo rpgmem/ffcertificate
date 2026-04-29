@@ -157,7 +157,11 @@ class AudienceBookingRepository {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$results = $wpdb->get_results( $sql );
-		/** @var list<BookingRow> */
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<BookingRow>
+		 */
 		return is_array( $results ) ? $results : array();
 	}
 
@@ -188,7 +192,11 @@ class AudienceBookingRepository {
 		$env_table = AudienceEnvironmentRepository::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		/** @var BookingRow|null $booking */
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var BookingRow|null $booking
+		 */
 		$booking = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT b.*, e.name as environment_name, e.schedule_id
@@ -318,7 +326,11 @@ class AudienceBookingRepository {
 				array_merge( array( $table, $env_table, $users_table, $audiences_table, $members_table ), $values )
 			)
 		);
-		/** @var list<BookingRow> */
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<BookingRow>
+		 */
 		return is_array( $results ) ? $results : array();
 	}
 
@@ -781,7 +793,11 @@ class AudienceBookingRepository {
 				$end_time
 			)
 		);
-		/** @var list<BookingRow> */
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<BookingRow>
+		 */
 		return is_array( $results ) ? $results : array();
 	}
 
@@ -887,7 +903,11 @@ class AudienceBookingRepository {
 				array_merge( array( $table, $ba_table, $members_table, $bu_table ), $env_join_tables, $values, $env_where_values )
 			)
 		);
-		/** @var list<BookingRow> $conflicting_bookings */
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<BookingRow> $conflicting_bookings
+		 */
 		$conflicting_bookings = is_array( $conflicting_bookings_raw ) ? $conflicting_bookings_raw : array();
 
 		// Find which specific users have conflicts.
@@ -985,7 +1005,11 @@ class AudienceBookingRepository {
 				array_merge( array( $table, $ba_table, $audiences_table ), $env_join_tables, $values, $env_where_values )
 			)
 		);
-		/** @var list<BookingRow> */
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<BookingRow>
+		 */
 		return is_array( $results ) ? $results : array();
 	}
 

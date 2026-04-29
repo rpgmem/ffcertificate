@@ -106,7 +106,11 @@ class AudienceEnvironmentRepository {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$results = $wpdb->get_results( $sql );
-		/** @var list<EnvironmentRow> */
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<EnvironmentRow>
+		 */
 		return is_array( $results ) ? $results : array();
 	}
 
@@ -136,7 +140,11 @@ class AudienceEnvironmentRepository {
 		$table = self::get_table_name();
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		/** @var EnvironmentRow|null $result */
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var EnvironmentRow|null $result
+		 */
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
@@ -411,7 +419,11 @@ class AudienceEnvironmentRepository {
 			)
 		);
         // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		/** @var list<HolidayRow> */
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<HolidayRow>
+		 */
 		return is_array( $results ) ? $results : array();
 	}
 

@@ -77,7 +77,7 @@ class ReregistrationSubmissionRepository {
 	 * Get a submission by ID.
 	 *
 	 * @param int $id Submission ID.
-	 * @return object|null
+	 * @return ReregistrationSubmissionRow|null
 	 */
 	public static function get_by_id( int $id ): ?object {
 		$cached = static::cache_get( "id_{$id}" );
@@ -104,7 +104,7 @@ class ReregistrationSubmissionRepository {
 	 *
 	 * @since 4.12.0
 	 * @param string $auth_code Cleaned auth code (uppercase, no hyphens).
-	 * @return object|null
+	 * @return ReregistrationSubmissionRow|null
 	 */
 	public static function get_by_auth_code( string $auth_code ): ?object {
 		if ( empty( $auth_code ) ) {
@@ -124,7 +124,7 @@ class ReregistrationSubmissionRepository {
 	 *
 	 * @since 4.12.0
 	 * @param string $token Magic token (64 hex chars).
-	 * @return object|null
+	 * @return ReregistrationSubmissionRow|null
 	 */
 	public static function get_by_magic_token( string $token ): ?object {
 		if ( empty( $token ) ) {
@@ -161,7 +161,7 @@ class ReregistrationSubmissionRepository {
 	 *
 	 * @param int $reregistration_id Reregistration ID.
 	 * @param int $user_id           User ID.
-	 * @return object|null
+	 * @return ReregistrationSubmissionRow|null
 	 */
 	public static function get_by_reregistration_and_user( int $reregistration_id, int $user_id ): ?object {
 		$wpdb  = self::db();
@@ -184,7 +184,7 @@ class ReregistrationSubmissionRepository {
 	 *
 	 * @since 4.12.0
 	 * @param int $user_id User ID.
-	 * @return array<object>
+	 * @return list<ReregistrationSubmissionRow>
 	 */
 	public static function get_all_by_user( int $user_id ): array {
 		$wpdb        = self::db();
@@ -220,7 +220,7 @@ class ReregistrationSubmissionRepository {
 	 *     @type int    $limit   Max results. Default 0.
 	 *     @type int    $offset  Offset. Default 0.
 	 * }
-	 * @return array<object>
+	 * @return list<ReregistrationSubmissionRow>
 	 */
 	public static function get_by_reregistration( int $reregistration_id, array $filters = array() ): array {
 		$wpdb  = self::db();
@@ -555,7 +555,7 @@ class ReregistrationSubmissionRepository {
 	 *
 	 * @param int                  $reregistration_id Reregistration ID.
 	 * @param array<string, mixed> $filters           Optional filters (status, search).
-	 * @return array<object>
+	 * @return list<ReregistrationSubmissionRow>
 	 */
 	public static function get_for_export( int $reregistration_id, array $filters = array() ): array {
 		$filters['limit']  = 0;

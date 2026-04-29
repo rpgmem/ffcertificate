@@ -138,7 +138,7 @@ class ReregistrationRepository {
 	 * Get audience objects for a reregistration (with name and color).
 	 *
 	 * @param int $reregistration_id Reregistration ID.
-	 * @return array<object>
+	 * @return list<ReregistrationRow>
 	 */
 	public static function get_audiences( int $reregistration_id ): array {
 		$wpdb      = self::db();
@@ -167,7 +167,7 @@ class ReregistrationRepository {
 	 * Get a reregistration by ID.
 	 *
 	 * @param int $id Reregistration ID.
-	 * @return object|null
+	 * @return ReregistrationRow|null
 	 */
 	public static function get_by_id( int $id ): ?object {
 		$cached = static::cache_get( "id_{$id}" );
@@ -202,7 +202,7 @@ class ReregistrationRepository {
 	 *     @type int    $limit       Max results. Default 0 (no limit).
 	 *     @type int    $offset      Offset. Default 0.
 	 * }
-	 * @return array<object>
+	 * @return list<ReregistrationRow>
 	 */
 	public static function get_all( array $filters = array() ): array {
 		$wpdb     = self::db();
@@ -454,7 +454,7 @@ class ReregistrationRepository {
 	 * or any of its parent audiences.
 	 *
 	 * @param int $audience_id Audience ID.
-	 * @return array<object>
+	 * @return list<ReregistrationRow>
 	 */
 	public static function get_active_for_audience( int $audience_id ): array {
 		$audience = AudienceRepository::get_by_id( $audience_id );
@@ -499,7 +499,7 @@ class ReregistrationRepository {
 	 * Get active reregistrations for a user based on their audience memberships.
 	 *
 	 * @param int $user_id User ID.
-	 * @return array<object>
+	 * @return list<ReregistrationRow>
 	 */
 	public static function get_active_for_user( int $user_id ): array {
 		$audiences = AudienceRepository::get_user_audiences( $user_id );
