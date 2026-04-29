@@ -21,8 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Handler for reregistration email operations.
- */
-/**
+ *
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
  * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionRepository
  */

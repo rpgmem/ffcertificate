@@ -163,6 +163,7 @@ class Admin {
 	 *
 	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Handler.
 	 * @param object                                             $exporter Exporter.
+	 * @phpstan-param CsvExporter $exporter
 	 */
 	public function __construct( \FreeFormCertificate\Submissions\SubmissionHandler $handler, object $exporter ) {
 		$this->submission_handler = $handler;

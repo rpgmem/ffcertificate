@@ -293,7 +293,7 @@ class AudienceEnvironmentRepository {
 	 * Get working hours for an environment
 	 *
 	 * @param int $id Environment ID.
-	 * @return array<int, array<string, mixed>>|null Decoded working hours or null
+	 * @return array<string, array<string, mixed>>|null Decoded working hours or null
 	 */
 	public static function get_working_hours( int $id ): ?array {
 		$env = self::get_by_id( $id );

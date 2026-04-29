@@ -64,7 +64,11 @@ class ReregistrationCustomFieldsPage {
 							<?php self::render_row( $parent, $edit_base ); ?>
 							<?php if ( ! empty( $parent->children ) ) : ?>
 								<?php
-								/** @var list<AudienceRow> $children */
+								/**
+								 * Children list mirrors the parent shape.
+								 *
+								 * @var list<AudienceRow> $children
+								 */
 								$children = $parent->children;
 								foreach ( $children as $child ) :
 									?>
