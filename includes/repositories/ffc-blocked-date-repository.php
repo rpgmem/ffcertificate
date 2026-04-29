@@ -66,10 +66,16 @@ class BlockedDateRepository extends AbstractRepository {
 	 */
 	public function getGlobalBlocks(): array {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $this->wpdb->get_results(
+		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE calendar_id IS NULL ORDER BY start_date ASC', $this->table ),
 			ARRAY_A
 		);
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -83,7 +89,7 @@ class BlockedDateRepository extends AbstractRepository {
 	public function isDateBlocked( int $calendar_id, string $date, ?string $time = null ): bool {
 		// Check calendar-specific and global blocks.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$blocks = $this->wpdb->get_results(
+		$blocks_raw = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i
                 WHERE (calendar_id = %d OR calendar_id IS NULL)
@@ -96,6 +102,12 @@ class BlockedDateRepository extends AbstractRepository {
 			),
 			ARRAY_A
 		);
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>> $blocks
+		 */
+		$blocks = is_array( $blocks_raw ) ? $blocks_raw : array();
 
 		foreach ( $blocks as $block ) {
 			// Full day block.
@@ -150,7 +162,13 @@ class BlockedDateRepository extends AbstractRepository {
 		);
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $this->wpdb->get_results( $sql, ARRAY_A );
+		$results = $this->wpdb->get_results( $sql, ARRAY_A );
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -246,6 +264,10 @@ class BlockedDateRepository extends AbstractRepository {
 			$this->table,
 			$cutoff_date
 		);
+
+		if ( ! is_string( $sql ) ) {
+			return false;
+		}
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->query( $sql );

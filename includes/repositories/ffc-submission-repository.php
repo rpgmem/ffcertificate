@@ -168,7 +168,7 @@ class SubmissionRepository extends AbstractRepository {
 	 */
 	public function findByEmail( string $email, int $limit = 10 ): array {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $this->wpdb->get_results(
+		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i WHERE email_hash = %s ORDER BY id DESC LIMIT %d',
 				$this->table,
@@ -177,6 +177,12 @@ class SubmissionRepository extends AbstractRepository {
 			),
 			ARRAY_A
 		);
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -187,7 +193,7 @@ class SubmissionRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByCpfRf( string $cpf, int $limit = 10 ): array {
-		$clean_cpf   = preg_replace( '/[^0-9]/', '', $cpf );
+		$clean_cpf   = preg_replace( '/[^0-9]/', '', $cpf ) ?? '';
 		$id_hash     = $this->hash( $clean_cpf );
 		$hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
 
@@ -203,7 +209,12 @@ class SubmissionRepository extends AbstractRepository {
 			ARRAY_A
 		);
 
-		return $results;
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -216,7 +227,7 @@ class SubmissionRepository extends AbstractRepository {
 	 */
 	public function findByFormId( int $form_id, int $limit = 100, int $offset = 0 ): array {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $this->wpdb->get_results(
+		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i WHERE form_id = %d ORDER BY id DESC LIMIT %d OFFSET %d',
 				$this->table,
@@ -226,6 +237,12 @@ class SubmissionRepository extends AbstractRepository {
 			),
 			ARRAY_A
 		);
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -263,7 +280,13 @@ class SubmissionRepository extends AbstractRepository {
 			$query = $this->wpdb->prepare( $query, ...$prepare_args );
 
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			return $this->wpdb->get_results( $query, ARRAY_A );
+			$results = $this->wpdb->get_results( $query, ARRAY_A );
+			/**
+			 * Cast wpdb result to expected shape.
+			 *
+			 * @var array<int, array<string, mixed>>
+			 */
+			return is_array( $results ) ? $results : array();
 		}
 
 		// Single form ID or no filter - use existing logic.
@@ -346,7 +369,13 @@ class SubmissionRepository extends AbstractRepository {
 		$query = $this->wpdb->prepare( $query, ...$prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $this->wpdb->get_results( $query, ARRAY_A );
+		$results = $this->wpdb->get_results( $query, ARRAY_A );
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -394,7 +423,13 @@ class SubmissionRepository extends AbstractRepository {
 		$query = $this->wpdb->prepare( $query, ...$prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $this->wpdb->get_results( $query, ARRAY_A );
+		$results = $this->wpdb->get_results( $query, ARRAY_A );
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -701,6 +736,10 @@ class SubmissionRepository extends AbstractRepository {
 			...$safe_ids
 		);
 
+		if ( ! is_string( $query ) ) {
+			return false;
+		}
+
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->query( $query );
 
@@ -731,6 +770,10 @@ class SubmissionRepository extends AbstractRepository {
 			$this->table,
 			...$safe_ids
 		);
+
+		if ( ! is_string( $query ) ) {
+			return false;
+		}
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->query( $query );
