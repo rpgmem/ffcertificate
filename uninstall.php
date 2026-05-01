@@ -21,6 +21,13 @@ global $wpdb;
 // (order: child tables first to avoid FK issues)
 // ──────────────────────────────────────
 $ffcertificate_tables = array(
+	// Recruitment (children first).
+	$wpdb->prefix . 'ffc_recruitment_call',
+	$wpdb->prefix . 'ffc_recruitment_classification',
+	$wpdb->prefix . 'ffc_recruitment_notice_adjutancy',
+	$wpdb->prefix . 'ffc_recruitment_candidate',
+	$wpdb->prefix . 'ffc_recruitment_notice',
+	$wpdb->prefix . 'ffc_recruitment_adjutancy',
 	// Reregistration (children first).
 	$wpdb->prefix . 'ffc_reregistration_submissions',
 	$wpdb->prefix . 'ffc_reregistrations',
@@ -81,6 +88,8 @@ $ffcertificate_options = array(
 	'ffc_columns_dropped_date',
 	'ffc_migration_user_profiles_errors',
 	'ffc_migration_user_profiles_last_run',
+	// Recruitment module (v6.0.0).
+	'ffc_recruitment_settings',
 );
 
 foreach ( $ffcertificate_options as $ffcertificate_option ) {

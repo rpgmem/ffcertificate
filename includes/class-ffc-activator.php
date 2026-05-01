@@ -75,6 +75,10 @@ class Activator {
 			\FreeFormCertificate\UrlShortener\UrlShortenerActivator::create_tables();
 		}
 
+		if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentActivator' ) ) {
+			\FreeFormCertificate\Recruitment\RecruitmentActivator::create_tables();
+		}
+
 		self::add_composite_indexes();
 		self::add_foreign_keys();
 		self::run_migrations();

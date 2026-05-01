@@ -265,6 +265,9 @@ class FFC_Autoloader {
 
 			// URL Shortener namespace (v5.1.0) - Short URLs + QR Codes.
 			'UrlShortener'           => 'url-shortener',
+
+			// Recruitment namespace (v6.0.0) - Brazilian public-tender candidate queue.
+			'Recruitment'            => 'recruitment',
 		);
 	}
 
