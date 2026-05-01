@@ -75,7 +75,7 @@ final class RecruitmentAdminPage {
 	 */
 	public static function render_page(): void {
 		if ( ! current_user_can( self::CAP ) ) {
-			wp_die( esc_html__( 'Acesso negado.', 'ffcertificate' ) );
+			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab switching is read-only.
@@ -146,22 +146,22 @@ final class RecruitmentAdminPage {
 		echo '<h2>' . esc_html__( 'Notices', 'ffcertificate' ) . '</h2>';
 
 		echo '<table class="widefat striped"><thead><tr>';
-		echo '<th>' . esc_html__( 'Código', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Nome', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Code', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Name', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Reaberto?', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Criado em', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Reopened?', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Created at', 'ffcertificate' ) . '</th>';
 		echo '</tr></thead><tbody>';
 
 		if ( empty( $notices ) ) {
-			echo '<tr><td colspan="5">' . esc_html__( 'Nenhum edital cadastrado ainda.', 'ffcertificate' ) . '</td></tr>';
+			echo '<tr><td colspan="5">' . esc_html__( 'No notices registered yet.', 'ffcertificate' ) . '</td></tr>';
 		} else {
 			foreach ( $notices as $n ) {
 				echo '<tr>';
 				echo '<td><code>' . esc_html( $n->code ) . '</code></td>';
 				echo '<td>' . esc_html( $n->name ) . '</td>';
 				echo '<td><span class="ffc-status-badge ffc-status-' . esc_attr( $n->status ) . '">' . esc_html( $n->status ) . '</span></td>';
-				echo '<td>' . ( '1' === $n->was_reopened ? esc_html__( 'Sim', 'ffcertificate' ) : '—' ) . '</td>';
+				echo '<td>' . ( '1' === $n->was_reopened ? esc_html__( 'Yes', 'ffcertificate' ) : '—' ) . '</td>';
 				echo '<td>' . esc_html( $n->created_at ) . '</td>';
 				echo '</tr>';
 			}
@@ -184,12 +184,12 @@ final class RecruitmentAdminPage {
 
 		echo '<table class="widefat striped"><thead><tr>';
 		echo '<th>' . esc_html__( 'Slug', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Nome', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Criado em', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Name', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Created at', 'ffcertificate' ) . '</th>';
 		echo '</tr></thead><tbody>';
 
 		if ( empty( $rows ) ) {
-			echo '<tr><td colspan="3">' . esc_html__( 'Nenhuma matéria cadastrada.', 'ffcertificate' ) . '</td></tr>';
+			echo '<tr><td colspan="3">' . esc_html__( 'No adjutancies registered yet.', 'ffcertificate' ) . '</td></tr>';
 		} else {
 			foreach ( $rows as $a ) {
 				echo '<tr>';
@@ -211,7 +211,7 @@ final class RecruitmentAdminPage {
 	 */
 	private static function render_candidates_tab(): void {
 		echo '<h2>' . esc_html__( 'Candidates', 'ffcertificate' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Use os endpoints REST para gerenciar candidatos. A interface completa entrará na próxima iteração.', 'ffcertificate' ) . '</p>';
+		echo '<p>' . esc_html__( 'Use the REST endpoints to manage candidates. The full UI will land in a follow-up iteration.', 'ffcertificate' ) . '</p>';
 		self::render_rest_pointer();
 	}
 
@@ -224,7 +224,7 @@ final class RecruitmentAdminPage {
 		$settings = RecruitmentSettings::all();
 
 		echo '<h2>' . esc_html__( 'Settings', 'ffcertificate' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Valores atuais (somente leitura nesta tela; edite via Settings → Recruitment ou diretamente na option ffc_recruitment_settings).', 'ffcertificate' ) . '</p>';
+		echo '<p>' . esc_html__( 'Current values (read-only on this screen; edit via Settings → Recruitment or the ffc_recruitment_settings option directly).', 'ffcertificate' ) . '</p>';
 
 		echo '<table class="widefat striped"><tbody>';
 		foreach ( $settings as $key => $value ) {
@@ -241,15 +241,15 @@ final class RecruitmentAdminPage {
 	private static function render_create_notice_form(): void {
 		$nonce = wp_create_nonce( 'wp_rest' );
 
-		echo '<h3>' . esc_html__( 'Criar novo edital', 'ffcertificate' ) . '</h3>';
+		echo '<h3>' . esc_html__( 'Create new notice', 'ffcertificate' ) . '</h3>';
 		echo '<form id="ffc-create-notice" method="post" onsubmit="return ffcRecruitmentCreateNotice(this);">';
 		echo '<table class="form-table"><tbody>';
-		echo '<tr><th><label for="ffc-notice-code">' . esc_html__( 'Código', 'ffcertificate' ) . '</label></th>';
+		echo '<tr><th><label for="ffc-notice-code">' . esc_html__( 'Code', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-notice-code" name="code" type="text" class="regular-text" required></td></tr>';
-		echo '<tr><th><label for="ffc-notice-name">' . esc_html__( 'Nome', 'ffcertificate' ) . '</label></th>';
+		echo '<tr><th><label for="ffc-notice-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-notice-name" name="name" type="text" class="regular-text" required></td></tr>';
 		echo '</tbody></table>';
-		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Criar', 'ffcertificate' ) . '</button></p>';
+		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
 		echo '</form>';
 
 		echo '<script>'
@@ -273,15 +273,15 @@ final class RecruitmentAdminPage {
 	private static function render_create_adjutancy_form(): void {
 		$nonce = wp_create_nonce( 'wp_rest' );
 
-		echo '<h3>' . esc_html__( 'Criar nova matéria', 'ffcertificate' ) . '</h3>';
+		echo '<h3>' . esc_html__( 'Create new adjutancy', 'ffcertificate' ) . '</h3>';
 		echo '<form id="ffc-create-adjutancy" method="post" onsubmit="return ffcRecruitmentCreateAdjutancy(this);">';
 		echo '<table class="form-table"><tbody>';
 		echo '<tr><th><label for="ffc-adj-slug">' . esc_html__( 'Slug', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-adj-slug" name="slug" type="text" class="regular-text" required></td></tr>';
-		echo '<tr><th><label for="ffc-adj-name">' . esc_html__( 'Nome', 'ffcertificate' ) . '</label></th>';
+		echo '<tr><th><label for="ffc-adj-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-adj-name" name="name" type="text" class="regular-text" required></td></tr>';
 		echo '</tbody></table>';
-		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Criar', 'ffcertificate' ) . '</button></p>';
+		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
 		echo '</form>';
 
 		echo '<script>'
@@ -303,7 +303,7 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_rest_pointer(): void {
-		echo '<details style="margin-top:1em;"><summary>' . esc_html__( 'Endpoints REST disponíveis', 'ffcertificate' ) . '</summary>';
+		echo '<details style="margin-top:1em;"><summary>' . esc_html__( 'Available REST endpoints', 'ffcertificate' ) . '</summary>';
 		echo '<pre style="background:#f5f5f5;padding:1em;">'
 			. esc_html(
 				"GET    /wp-json/ffcertificate/v1/recruitment/notices\n"
@@ -325,7 +325,7 @@ final class RecruitmentAdminPage {
 				. "GET    /wp-json/ffcertificate/v1/recruitment/me/recruitment\n"
 			)
 			. '</pre>';
-		echo '<p>' . esc_html__( 'Todos os endpoints administrativos exigem a capacidade ffc_manage_recruitment.', 'ffcertificate' ) . '</p>';
+		echo '<p>' . esc_html__( 'All admin endpoints require the ffc_manage_recruitment capability.', 'ffcertificate' ) . '</p>';
 		echo '</details>';
 	}
 }

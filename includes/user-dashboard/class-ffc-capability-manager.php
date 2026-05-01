@@ -465,15 +465,20 @@ class CapabilityManager {
 			return;
 		}
 
-		$capabilities = array( 'read' => true );
-		foreach ( self::get_all_capabilities() as $cap ) {
-			$capabilities[ $cap ] = false;
-		}
-
+		// `ffc_user` only owns the WordPress baseline `read` cap. FFC caps are
+		// granted per-user via `grant_*_capabilities()` (user-meta `add_cap(true)`).
+		//
+		// Historically every FFC cap was added here as `=> false` to make the
+		// role's surface explicit, but that breaks multi-role users (e.g. an
+		// administrator who is also an `ffc_user` for their own certificates):
+		// WP's `WP_User::get_role_caps()` merges role capability maps via
+		// `array_merge()`, and an explicit `false` in one role overwrites a
+		// `true` from another. An absent key, by contrast, lets the other
+		// role's `true` survive. See issue #86.
 		add_role(
 			'ffc_user',
 			__( 'FFC User', 'ffcertificate' ),
-			$capabilities
+			array( 'read' => true )
 		);
 	}
 
@@ -485,9 +490,15 @@ class CapabilityManager {
 	 * @return void
 	 */
 	private static function upgrade_role( \WP_Role $role ): void {
+		// Strip every legacy `=> false` entry for FFC caps so multi-role users
+		// (e.g. administrator + ffc_user) don't have admin-granted caps masked
+		// by ffc_user's explicit denial. New caps are NOT added — absent ≡
+		// false for `current_user_can()` on single-role users, while letting
+		// `array_merge()` preserve `true` from a peer role for multi-role
+		// users. See issue #86 / register_role() for the full rationale.
 		foreach ( self::get_all_capabilities() as $cap ) {
-			if ( ! isset( $role->capabilities[ $cap ] ) ) {
-				$role->add_cap( $cap, false );
+			if ( isset( $role->capabilities[ $cap ] ) && false === $role->capabilities[ $cap ] ) {
+				$role->remove_cap( $cap );
 			}
 		}
 	}

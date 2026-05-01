@@ -103,14 +103,14 @@ final class RecruitmentPublicShortcode {
 		$slug_filter = trim( (string) $atts['adjutancy'] );
 
 		if ( '' === $notice_code ) {
-			return self::msg( __( 'Edital não informado.', 'ffcertificate' ), 'error' );
+			return self::msg( __( 'Notice attribute is required.', 'ffcertificate' ), 'error' );
 		}
 
 		// Per-IP rate limit BEFORE cache lookup so cache hits don't bypass
 		// the throttle (the abuse vector is hammering the URL, regardless
 		// of whether each render is cached).
 		if ( ! self::check_rate_limit() ) {
-			return self::msg( __( 'Muitas requisições. Tente novamente em alguns segundos.', 'ffcertificate' ), 'warning' );
+			return self::msg( __( 'Too many requests. Please try again in a few seconds.', 'ffcertificate' ), 'warning' );
 		}
 
 		$page_top    = max( 1, (int) ( $_GET['page_top'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -148,15 +148,15 @@ final class RecruitmentPublicShortcode {
 	public static function render_uncached( string $notice_code, string $slug_filter, int $page_top, int $page_bottom ): string {
 		$notice = RecruitmentNoticeRepository::get_by_code( $notice_code );
 		if ( null === $notice ) {
-			return self::msg( __( 'Edital não encontrado.', 'ffcertificate' ), 'error' );
+			return self::msg( __( 'Notice not found.', 'ffcertificate' ), 'error' );
 		}
 
 		switch ( $notice->status ) {
 			case 'draft':
-				return self::msg( __( 'Edital ainda não publicado.', 'ffcertificate' ), 'error' );
+				return self::msg( __( 'Notice not yet published.', 'ffcertificate' ), 'error' );
 			case 'preliminary':
 				return self::msg(
-					__( 'Esta lista está em revisão. A classificação preliminar ainda não está disponível para consulta pública.', 'ffcertificate' ),
+					__( 'This list is under review. The preliminary classification is not yet publicly available.', 'ffcertificate' ),
 					'warning'
 				);
 		}
@@ -166,11 +166,11 @@ final class RecruitmentPublicShortcode {
 		if ( '' !== $slug_filter ) {
 			$adjutancy = RecruitmentAdjutancyRepository::get_by_slug( $slug_filter );
 			if ( null === $adjutancy ) {
-				return self::msg( __( 'Matéria não encontrada para este edital.', 'ffcertificate' ), 'error' );
+				return self::msg( __( 'Adjutancy not found for this notice.', 'ffcertificate' ), 'error' );
 			}
 			$attached_ids = RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( (int) $notice->id );
 			if ( ! in_array( (int) $adjutancy->id, $attached_ids, true ) ) {
-				return self::msg( __( 'Matéria não encontrada para este edital.', 'ffcertificate' ), 'error' );
+				return self::msg( __( 'Adjutancy not found for this notice.', 'ffcertificate' ), 'error' );
 			}
 			$adjutancy_id = (int) $adjutancy->id;
 		}
@@ -184,7 +184,7 @@ final class RecruitmentPublicShortcode {
 		if ( empty( $rows ) ) {
 			return self::wrap_with_banner(
 				$notice,
-				self::msg( __( 'Nenhum candidato classificado ainda.', 'ffcertificate' ), 'info' )
+				self::msg( __( 'No candidates classified yet.', 'ffcertificate' ), 'info' )
 			);
 		}
 
@@ -208,7 +208,7 @@ final class RecruitmentPublicShortcode {
 			: '';
 
 		$top_section    = self::render_section(
-			__( 'Não chamados', 'ffcertificate' ),
+			__( 'Not yet called', 'ffcertificate' ),
 			$empty_rows,
 			$columns,
 			false,
@@ -217,7 +217,7 @@ final class RecruitmentPublicShortcode {
 			'page_top'
 		);
 		$bottom_section = self::render_section(
-			__( 'Chamados', 'ffcertificate' ),
+			__( 'Called', 'ffcertificate' ),
 			$called_rows,
 			$columns,
 			true,
@@ -267,10 +267,10 @@ final class RecruitmentPublicShortcode {
 		$html .= '<h3>' . esc_html( $heading ) . '</h3>';
 		$html .= '<table class="ffc-recruitment-table"><thead><tr>';
 		if ( $columns['rank'] ) {
-			$html .= '<th>' . esc_html__( 'Posição', 'ffcertificate' ) . '</th>';
+			$html .= '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
 		}
 		if ( $columns['name'] ) {
-			$html .= '<th>' . esc_html__( 'Nome', 'ffcertificate' ) . '</th>';
+			$html .= '<th>' . esc_html__( 'Name', 'ffcertificate' ) . '</th>';
 		}
 		if ( $columns['cpf_masked'] ) {
 			$html .= '<th>CPF</th>';
@@ -282,16 +282,16 @@ final class RecruitmentPublicShortcode {
 			$html .= '<th>' . esc_html__( 'E-mail', 'ffcertificate' ) . '</th>';
 		}
 		if ( $columns['score'] ) {
-			$html .= '<th>' . esc_html__( 'Pontuação', 'ffcertificate' ) . '</th>';
+			$html .= '<th>' . esc_html__( 'Score', 'ffcertificate' ) . '</th>';
 		}
 		if ( $columns['status'] ) {
-			$html .= '<th>' . esc_html__( 'Situação', 'ffcertificate' ) . '</th>';
+			$html .= '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
 		}
 		if ( $columns['pcd_badge'] ) {
 			$html .= '<th>PCD</th>';
 		}
 		if ( $show_date && $columns['date_to_assume'] ) {
-			$html .= '<th>' . esc_html__( 'Data para assumir', 'ffcertificate' ) . '</th>';
+			$html .= '<th>' . esc_html__( 'Date to assume', 'ffcertificate' ) . '</th>';
 		}
 		$html .= '</tr></thead><tbody>';
 
@@ -385,9 +385,9 @@ final class RecruitmentPublicShortcode {
 		);
 
 		$html  = '<form class="ffc-recruitment-adjutancy-filter" method="get">';
-		$html .= '<label>' . esc_html__( 'Filtrar por matéria:', 'ffcertificate' ) . ' ';
+		$html .= '<label>' . esc_html__( 'Filter by adjutancy:', 'ffcertificate' ) . ' ';
 		$html .= '<select name="adjutancy" onchange="this.form.submit()">';
-		$html .= '<option value="">' . esc_html__( 'Todas', 'ffcertificate' ) . '</option>';
+		$html .= '<option value="">' . esc_html__( 'All', 'ffcertificate' ) . '</option>';
 		foreach ( $adjutancies as $a ) {
 			$html .= '<option value="' . esc_attr( (string) $a->slug ) . '">' . esc_html( (string) $a->name ) . '</option>';
 		}
@@ -475,7 +475,7 @@ final class RecruitmentPublicShortcode {
 		$banner = '';
 		if ( 'closed' === $notice->status ) {
 			$banner = '<div class="ffc-recruitment-banner ffc-recruitment-banner-closed">'
-				. esc_html__( 'Edital encerrado.', 'ffcertificate' )
+				. esc_html__( 'Notice closed.', 'ffcertificate' )
 				. '</div>';
 		}
 
@@ -513,11 +513,11 @@ final class RecruitmentPublicShortcode {
 	 */
 	private static function status_label( string $status ): string {
 		$map = array(
-			'empty'     => __( 'Aguardando', 'ffcertificate' ),
-			'called'    => __( 'Convocado', 'ffcertificate' ),
-			'accepted'  => __( 'Convocado', 'ffcertificate' ),
-			'not_shown' => __( 'Não compareceu', 'ffcertificate' ),
-			'hired'     => __( 'Contratado', 'ffcertificate' ),
+			'empty'     => __( 'Waiting', 'ffcertificate' ),
+			'called'    => __( 'Called', 'ffcertificate' ),
+			'accepted'  => __( 'Called', 'ffcertificate' ),
+			'not_shown' => __( 'Did not show up', 'ffcertificate' ),
+			'hired'     => __( 'Hired', 'ffcertificate' ),
 		);
 		return $map[ $status ] ?? $status;
 	}

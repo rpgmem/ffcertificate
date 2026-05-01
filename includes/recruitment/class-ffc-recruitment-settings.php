@@ -100,7 +100,7 @@ final class RecruitmentSettings {
 	 */
 	public static function defaults(): array {
 		return array(
-			'email_subject'                => __( 'Convocação - {{notice_code}} - {{adjutancy}}', 'ffcertificate' ),
+			'email_subject'                => __( 'Call - {{notice_code}} - {{adjutancy}}', 'ffcertificate' ),
 			'email_from_address'           => '',
 			'email_from_name'              => '',
 			'email_body_html'              => self::default_body_template(),
@@ -239,6 +239,6 @@ final class RecruitmentSettings {
 	 * @return string
 	 */
 	private static function default_body_template(): string {
-		return __( '<p>Olá {{name}},</p><p>Você foi convocado para o edital <strong>{{notice_code}} — {{notice_name}}</strong> na matéria <strong>{{adjutancy}}</strong>.</p><ul><li><strong>Posição:</strong> {{rank}}</li><li><strong>Pontuação:</strong> {{score}}</li><li><strong>Data para assumir:</strong> {{date_to_assume}}</li><li><strong>Horário:</strong> {{time_to_assume}}</li></ul><p>{{notes}}</p><p>— {{site_name}}<br>{{site_url}}</p>', 'ffcertificate' );
+		return __( '<p>Hello {{name}},</p><p>You have been called for notice <strong>{{notice_code}} — {{notice_name}}</strong> in adjutancy <strong>{{adjutancy}}</strong>.</p><ul><li><strong>Rank:</strong> {{rank}}</li><li><strong>Score:</strong> {{score}}</li><li><strong>Date to assume:</strong> {{date_to_assume}}</li><li><strong>Time:</strong> {{time_to_assume}}</li></ul><p>{{notes}}</p><p>— {{site_name}}<br>{{site_url}}</p>', 'ffcertificate' );
 	}
 }

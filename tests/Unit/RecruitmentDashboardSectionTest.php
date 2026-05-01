@@ -160,10 +160,10 @@ class RecruitmentDashboardSectionTest extends TestCase {
 
 		$html = RecruitmentDashboardSection::render();
 
-		$this->assertStringContainsString( 'Classificação preliminar', $html );
-		$this->assertStringNotContainsString( 'Classificação final', $html );
+		$this->assertStringContainsString( 'Preliminary classification', $html );
+		$this->assertStringNotContainsString( 'Final classification', $html );
 		// And the no-calls hint when no convocations exist yet.
-		$this->assertStringContainsString( 'Você ainda não foi convocado', $html );
+		$this->assertStringContainsString( 'You have not been called for this notice yet', $html );
 	}
 
 	public function test_render_includes_final_banner_for_active_notice(): void {
@@ -183,7 +183,7 @@ class RecruitmentDashboardSectionTest extends TestCase {
 
 		$html = RecruitmentDashboardSection::render();
 
-		$this->assertStringContainsString( 'Classificação final', $html );
-		$this->assertStringNotContainsString( 'Classificação preliminar', $html );
+		$this->assertStringContainsString( 'Final classification', $html );
+		$this->assertStringNotContainsString( 'Preliminary classification', $html );
 	}
 }
