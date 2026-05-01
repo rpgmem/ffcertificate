@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Registers and renders the wp-admin Recrutamento submenu page.
+ * Registers and renders the wp-admin Recruitment top-level page.
  */
 final class RecruitmentAdminPage {
 
@@ -57,8 +57,8 @@ final class RecruitmentAdminPage {
 	 */
 	public static function register_menu(): void {
 		add_menu_page(
-			__( 'Recrutamento', 'ffcertificate' ),
-			__( 'Recrutamento', 'ffcertificate' ),
+			__( 'Recruitment', 'ffcertificate' ),
+			__( 'Recruitment', 'ffcertificate' ),
 			self::CAP,
 			self::PAGE_SLUG,
 			array( self::class, 'render_page' ),
@@ -85,7 +85,7 @@ final class RecruitmentAdminPage {
 		}
 
 		echo '<div class="wrap ffc-recruitment-admin">';
-		echo '<h1>' . esc_html__( 'Recrutamento', 'ffcertificate' ) . '</h1>';
+		echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 		self::render_tabs( $tab );
 
 		switch ( $tab ) {
@@ -114,10 +114,10 @@ final class RecruitmentAdminPage {
 	 */
 	private static function render_tabs( string $active ): void {
 		$tabs = array(
-			'notices'     => __( 'Editais', 'ffcertificate' ),
-			'adjutancies' => __( 'Matérias', 'ffcertificate' ),
-			'candidates'  => __( 'Candidatos', 'ffcertificate' ),
-			'settings'    => __( 'Configurações', 'ffcertificate' ),
+			'notices'     => __( 'Notices', 'ffcertificate' ),
+			'adjutancies' => __( 'Adjutancies', 'ffcertificate' ),
+			'candidates'  => __( 'Candidates', 'ffcertificate' ),
+			'settings'    => __( 'Settings', 'ffcertificate' ),
 		);
 
 		echo '<nav class="nav-tab-wrapper">';
@@ -143,7 +143,7 @@ final class RecruitmentAdminPage {
 	private static function render_notices_tab(): void {
 		$notices = RecruitmentNoticeRepository::get_all();
 
-		echo '<h2>' . esc_html__( 'Editais', 'ffcertificate' ) . '</h2>';
+		echo '<h2>' . esc_html__( 'Notices', 'ffcertificate' ) . '</h2>';
 
 		echo '<table class="widefat striped"><thead><tr>';
 		echo '<th>' . esc_html__( 'Código', 'ffcertificate' ) . '</th>';
@@ -180,7 +180,7 @@ final class RecruitmentAdminPage {
 	private static function render_adjutancies_tab(): void {
 		$rows = RecruitmentAdjutancyRepository::get_all();
 
-		echo '<h2>' . esc_html__( 'Matérias', 'ffcertificate' ) . '</h2>';
+		echo '<h2>' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</h2>';
 
 		echo '<table class="widefat striped"><thead><tr>';
 		echo '<th>' . esc_html__( 'Slug', 'ffcertificate' ) . '</th>';
@@ -210,7 +210,7 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_candidates_tab(): void {
-		echo '<h2>' . esc_html__( 'Candidatos', 'ffcertificate' ) . '</h2>';
+		echo '<h2>' . esc_html__( 'Candidates', 'ffcertificate' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Use os endpoints REST para gerenciar candidatos. A interface completa entrará na próxima iteração.', 'ffcertificate' ) . '</p>';
 		self::render_rest_pointer();
 	}
@@ -223,7 +223,7 @@ final class RecruitmentAdminPage {
 	private static function render_settings_tab(): void {
 		$settings = RecruitmentSettings::all();
 
-		echo '<h2>' . esc_html__( 'Configurações', 'ffcertificate' ) . '</h2>';
+		echo '<h2>' . esc_html__( 'Settings', 'ffcertificate' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Valores atuais (somente leitura nesta tela; edite via Settings → Recruitment ou diretamente na option ffc_recruitment_settings).', 'ffcertificate' ) . '</p>';
 
 		echo '<table class="widefat striped"><tbody>';
