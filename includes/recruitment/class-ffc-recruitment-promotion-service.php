@@ -126,6 +126,8 @@ final class RecruitmentPromotionService {
 
 			$wpdb->query( 'COMMIT' );
 
+			RecruitmentActivityLogger::notice_promoted( $notice_id, 'snapshot', $copied );
+
 			return array(
 				'success' => true,
 				'copied'  => $copied,

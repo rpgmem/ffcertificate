@@ -37,6 +37,13 @@ class RecruitmentDeleteServiceTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'current_time' )->justReturn( '2026-05-01 10:00:00' );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'absint' )->alias( 'intval' );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'add_action' )->justReturn( true );
 
 		$this->wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing(

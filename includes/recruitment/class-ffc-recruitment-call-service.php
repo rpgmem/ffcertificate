@@ -104,6 +104,12 @@ final class RecruitmentCallService {
 
 		$wpdb->query( 'COMMIT' );
 
+		RecruitmentActivityLogger::call_created(
+			$result['call_id'],
+			$classification_id,
+			null !== $out_of_order_reason && '' !== trim( (string) $out_of_order_reason )
+		);
+
 		return array(
 			'success'  => true,
 			'call_ids' => array( $result['call_id'] ),
@@ -175,6 +181,13 @@ final class RecruitmentCallService {
 
 		$wpdb->query( 'COMMIT' );
 
+		RecruitmentActivityLogger::bulk_call_created(
+			$classification_ids,
+			$call_ids,
+			$date_to_assume,
+			$time_to_assume
+		);
+
 		return array(
 			'success'  => true,
 			'call_ids' => $call_ids,
@@ -244,6 +257,8 @@ final class RecruitmentCallService {
 			}
 
 			$wpdb->query( 'COMMIT' );
+
+			RecruitmentActivityLogger::call_cancelled( $call_id, $classification_id, $reason );
 
 			return array(
 				'success'  => true,

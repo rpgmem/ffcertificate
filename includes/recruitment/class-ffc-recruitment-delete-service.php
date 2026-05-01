@@ -92,6 +92,8 @@ final class RecruitmentDeleteService {
 			return self::failure( 'recruitment_candidate_delete_failed' );
 		}
 
+		RecruitmentActivityLogger::candidate_deleted( $candidate_id );
+
 		return self::success();
 	}
 
@@ -130,6 +132,8 @@ final class RecruitmentDeleteService {
 		if ( ! $ok ) {
 			return self::failure( 'recruitment_classification_delete_failed' );
 		}
+
+		RecruitmentActivityLogger::classification_deleted( $classification_id );
 
 		return self::success();
 	}
@@ -171,6 +175,8 @@ final class RecruitmentDeleteService {
 		if ( ! $ok ) {
 			return self::failure( 'recruitment_adjutancy_delete_failed' );
 		}
+
+		RecruitmentActivityLogger::adjutancy_deleted( $adjutancy_id );
 
 		return self::success();
 	}

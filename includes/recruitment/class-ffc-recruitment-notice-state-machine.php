@@ -132,6 +132,8 @@ final class RecruitmentNoticeStateMachine {
 		// Side-effects after the UPDATE wins.
 		self::apply_side_effects( $notice_id, $new_status );
 
+		RecruitmentActivityLogger::notice_status_changed( $notice_id, $current, $new_status, $reason );
+
 		return self::success();
 	}
 

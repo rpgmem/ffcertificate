@@ -194,6 +194,8 @@ final class RecruitmentCsvImporter {
 
 			$wpdb->query( 'COMMIT' );
 
+			RecruitmentActivityLogger::csv_imported( $notice_id, $list_type, $inserted );
+
 			return array(
 				'success'  => true,
 				'inserted' => $inserted,
@@ -555,6 +557,7 @@ final class RecruitmentCsvImporter {
 
 		if ( is_int( $user_id ) && $user_id > 0 ) {
 			RecruitmentCandidateRepository::set_user_id( $candidate_id, $user_id );
+			RecruitmentActivityLogger::candidate_promoted( $candidate_id, $user_id );
 		}
 	}
 

@@ -150,6 +150,13 @@ final class RecruitmentClassificationStateMachine {
 			return self::failure( 'recruitment_state_locked' );
 		}
 
+		RecruitmentActivityLogger::classification_status_changed(
+			$classification_id,
+			$current,
+			$new_status,
+			$reason
+		);
+
 		return self::success();
 	}
 
