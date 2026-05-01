@@ -101,9 +101,12 @@ class RecruitmentCallServiceTest extends TestCase {
 
 	public function test_call_single_succeeds_in_order(): void {
 		$classification = $this->classification_stub( 10, 'empty', 1 );
-		// Two get_row calls: load classification + find_lowest_rank_empty.
-		// Both return the same row (this IS the lowest empty), so call is in-order.
-		$this->wpdb->shouldReceive( 'get_row' )->twice()->andReturn( $classification, $classification );
+		// 2 get_row calls from CallService (load classification +
+		// find_lowest_rank_empty), then up to 5 more from the email
+		// dispatcher (call/classification/candidate/notice/adjutancy);
+		// dispatcher gracefully gives up when any returns null.
+		$this->wpdb->shouldReceive( 'get_row' )
+			->andReturn( $classification, $classification, null );
 
 		$query_log = array();
 		$this->wpdb->shouldReceive( 'query' )
@@ -176,7 +179,8 @@ class RecruitmentCallServiceTest extends TestCase {
 	public function test_call_single_out_of_order_succeeds_with_reason(): void {
 		$target = $this->classification_stub( 10, 'empty', 5 );
 		$lowest = $this->classification_stub( 8, 'empty', 1 );
-		$this->wpdb->shouldReceive( 'get_row' )->twice()->andReturn( $target, $lowest );
+		// Subsequent dispatcher lookups graceful-fail on null.
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( $target, $lowest, null );
 
 		$captured_call = null;
 		$this->wpdb->shouldReceive( 'insert' )
@@ -252,9 +256,10 @@ class RecruitmentCallServiceTest extends TestCase {
 		//  4. lowest empty after #1 was called → 11 (in-order)
 		$c10 = $this->classification_stub( 10, 'empty', 1 );
 		$c11 = $this->classification_stub( 11, 'empty', 2 );
+		// CallService needs 4 get_row calls (2 per classification);
+		// dispatcher's per-call lookups are graceful-failed via null.
 		$this->wpdb->shouldReceive( 'get_row' )
-			->times( 4 )
-			->andReturn( $c10, $c10, $c11, $c11 );
+			->andReturn( $c10, $c10, $c11, $c11, null );
 
 		$insert_count = 0;
 		$this->wpdb->shouldReceive( 'insert' )

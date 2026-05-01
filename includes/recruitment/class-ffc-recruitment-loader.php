@@ -40,6 +40,7 @@ final class RecruitmentLoader {
 	 */
 	public function init(): void {
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ), 10 );
+		add_action( 'admin_init', array( $this, 'register_settings' ), 10 );
 	}
 
 	/**
@@ -50,5 +51,14 @@ final class RecruitmentLoader {
 	public function register_rest_routes(): void {
 		$controller = new RecruitmentRestController();
 		$controller->register_routes();
+	}
+
+	/**
+	 * Register the recruitment settings option with the WP Settings API.
+	 *
+	 * @return void
+	 */
+	public function register_settings(): void {
+		RecruitmentSettings::register();
 	}
 }

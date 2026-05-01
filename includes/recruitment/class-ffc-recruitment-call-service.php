@@ -110,6 +110,10 @@ final class RecruitmentCallService {
 			null !== $out_of_order_reason && '' !== trim( (string) $out_of_order_reason )
 		);
 
+		// Best-effort email dispatch — failures here do NOT roll back the
+		// committed call (§7).
+		RecruitmentEmailDispatcher::send_for_call( $result['call_id'] );
+
 		return array(
 			'success'  => true,
 			'call_ids' => array( $result['call_id'] ),
@@ -187,6 +191,12 @@ final class RecruitmentCallService {
 			$date_to_assume,
 			$time_to_assume
 		);
+
+		// Best-effort email dispatch per row — failures here do NOT roll
+		// back the committed batch (§7).
+		foreach ( $call_ids as $cid ) {
+			RecruitmentEmailDispatcher::send_for_call( $cid );
+		}
 
 		return array(
 			'success'  => true,
