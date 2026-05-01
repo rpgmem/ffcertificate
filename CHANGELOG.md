@@ -9,6 +9,18 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.0.2] (2026-05-01)
+
+**UX — wp-admin sidebar.** The recruitment module gets its own top-level menu item (icon `dashicons-groups`, position 28) instead of being tucked under the `ffc_form` CPT, mirroring the Audience (position 26) and Reregistration (position 27) modules so the three sibling business modules sit together in the sidebar. The `ffc_form` CPT's `menu_name` is also shortened from "Free Form Certificate" (full plugin name) to just "Certificate" (the actual content the menu manages). All sidebar-visible labels in the recruitment module — menu name, page heading, four tab labels — are also normalized from Portuguese-source to English-source `__()` keys per the §2 i18n convention (Portuguese flows in via `.po`, never as the source string).
+
+### Changed
+
+- **`RecruitmentAdminPage::register_menu()` switched from `add_submenu_page('edit.php?post_type=ffc_form', …)` to `add_menu_page(…, 'dashicons-groups', 28)`.** The four-tab layout (Notices, Adjutancies, Candidates, Settings) is unchanged; only the parent and the sidebar entry move. Tab URLs in `render_tabs()` swap `admin_url('edit.php')` + `post_type=ffc_form` for `admin_url('admin.php')` since the page is no longer a CPT child.
+- **`CPT::register_form_cpt()` `menu_name` label changed from "Free Form Certificate" to "Certificate".** The verbose plugin-name label was a holdover from the pre-modularization era; the menu now describes its content (certificates) rather than its owner (the plugin).
+- **i18n normalization in `RecruitmentAdminPage`.** The five sidebar-visible labels (menu name, page heading, four tab names + their h2 headers) now use English-source `__()` keys: `Recrutamento` → `Recruitment`, `Editais` → `Notices`, `Matérias` → `Adjutancies`, `Candidatos` → `Candidates`, `Configurações` → `Settings`. Portuguese rendering continues to flow through `languages/ffcertificate-pt_BR.po`. Note: the deeper recruitment surface (form labels, status messages, button text in the public shortcode and candidate-self dashboard) still has ~40 Portuguese-source `__()` keys that need a follow-up sweep — they were not touched in this PR to keep the diff focused on the sidebar UX the user can actually see.
+
+---
+
 ## [6.0.1] (2026-05-01)
 
 **Hotfix — recruitment activator: `dbDelta()` rejects column-level `COMMENT '…'` clauses.** The 6.0.0 `CREATE TABLE` statements for `ffc_recruitment_notice`, `ffc_recruitment_candidate`, `ffc_recruitment_classification`, and `ffc_recruitment_call` carried inline `COMMENT 'documentation text'` clauses on several columns. WordPress's `dbDelta()` parser does not understand the `COMMENT '…'` syntax — the apostrophes break its column-definition regex, the malformed SQL is forwarded to the database, and MariaDB rejects it with "syntax error near 'Site TZ'" / "near 'HMAC(salt, (1|0)||id)'" / "near 'Ties allowed'". The four tables were never actually created on activation; only `ffc_recruitment_adjutancy` and `ffc_recruitment_notice_adjutancy` (which had no COMMENT clauses) made it through, leaving the schema half-populated and any recruitment admin / shortcode access broken with `WP_Error` from missing tables.
