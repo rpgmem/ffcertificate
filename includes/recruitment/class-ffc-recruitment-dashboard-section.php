@@ -110,7 +110,7 @@ final class RecruitmentDashboardSection {
 		}
 
 		$html  = '<section class="ffc-recruitment-my-calls">';
-		$html .= '<h2>' . esc_html__( 'Minhas Convocações', 'ffcertificate' ) . '</h2>';
+		$html .= '<h2>' . esc_html__( 'My Calls', 'ffcertificate' ) . '</h2>';
 
 		foreach ( $by_notice as $bundle ) {
 			$html .= self::render_notice_block( $bundle['notice'], $bundle['classifications'] );
@@ -132,25 +132,25 @@ final class RecruitmentDashboardSection {
 	private static function render_notice_block( object $notice, array $classifications ): string {
 		$is_preliminary = 'preliminary' === $notice->status;
 		$banner_text    = $is_preliminary
-			? __( 'Classificação preliminar — sujeita a revisão', 'ffcertificate' )
-			: __( 'Classificação final', 'ffcertificate' );
+			? __( 'Preliminary classification — subject to review', 'ffcertificate' )
+			: __( 'Final classification', 'ffcertificate' );
 		$banner_class   = 'ffc-banner-' . ( $is_preliminary ? 'preliminary' : 'final' );
 
 		$html  = '<article class="ffc-recruitment-my-notice">';
 		$html .= '<header><h3>' . esc_html( $notice->code . ' — ' . $notice->name ) . '</h3>';
 		$html .= '<div class="ffc-recruitment-banner ' . esc_attr( $banner_class ) . '">' . esc_html( $banner_text ) . '</div></header>';
 
-		$html .= '<h4>' . esc_html__( 'Sua(s) classificação(ões) no edital', 'ffcertificate' ) . '</h4>';
+		$html .= '<h4>' . esc_html__( 'Your classification(s) for this notice', 'ffcertificate' ) . '</h4>';
 		$html .= self::render_classifications_table( $classifications, $is_preliminary );
 
 		// History of calls across all this candidate's classifications in
 		// this notice.
 		$call_history = self::collect_calls( $classifications );
 		if ( ! empty( $call_history ) ) {
-			$html .= '<h4>' . esc_html__( 'Histórico de convocações', 'ffcertificate' ) . '</h4>';
+			$html .= '<h4>' . esc_html__( 'Call history', 'ffcertificate' ) . '</h4>';
 			$html .= self::render_calls_table( $call_history );
 		} else {
-			$html .= '<p>' . esc_html__( 'Você ainda não foi convocado neste edital.', 'ffcertificate' ) . '</p>';
+			$html .= '<p>' . esc_html__( 'You have not been called for this notice yet.', 'ffcertificate' ) . '</p>';
 		}
 
 		$html .= '</article>';
@@ -174,10 +174,10 @@ final class RecruitmentDashboardSection {
 		$wanted = $is_preliminary ? 'preview' : 'definitive';
 
 		$html  = '<table class="ffc-recruitment-table"><thead><tr>';
-		$html .= '<th>' . esc_html__( 'Matéria', 'ffcertificate' ) . '</th>';
-		$html .= '<th>' . esc_html__( 'Posição', 'ffcertificate' ) . '</th>';
-		$html .= '<th>' . esc_html__( 'Pontuação', 'ffcertificate' ) . '</th>';
-		$html .= '<th>' . esc_html__( 'Situação', 'ffcertificate' ) . '</th>';
+		$html .= '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
+		$html .= '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
+		$html .= '<th>' . esc_html__( 'Score', 'ffcertificate' ) . '</th>';
+		$html .= '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
 		$html .= '</tr></thead><tbody>';
 
 		$rendered_any = false;
@@ -196,7 +196,7 @@ final class RecruitmentDashboardSection {
 		}
 
 		if ( ! $rendered_any ) {
-			$html .= '<tr><td colspan="4">' . esc_html__( 'Sem classificação visível no momento.', 'ffcertificate' ) . '</td></tr>';
+			$html .= '<tr><td colspan="4">' . esc_html__( 'No classification visible at the moment.', 'ffcertificate' ) . '</td></tr>';
 		}
 		$html .= '</tbody></table>';
 		return $html;
@@ -252,12 +252,12 @@ final class RecruitmentDashboardSection {
 	 */
 	private static function render_calls_table( array $rows ): string {
 		$html  = '<table class="ffc-recruitment-table"><thead><tr>';
-		$html .= '<th>' . esc_html__( 'Matéria', 'ffcertificate' ) . '</th>';
-		$html .= '<th>' . esc_html__( 'Convocado em', 'ffcertificate' ) . '</th>';
-		$html .= '<th>' . esc_html__( 'Data para assumir', 'ffcertificate' ) . '</th>';
-		$html .= '<th>' . esc_html__( 'Horário', 'ffcertificate' ) . '</th>';
-		$html .= '<th>' . esc_html__( 'Situação', 'ffcertificate' ) . '</th>';
-		$html .= '<th>' . esc_html__( 'Notas', 'ffcertificate' ) . '</th>';
+		$html .= '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
+		$html .= '<th>' . esc_html__( 'Called at', 'ffcertificate' ) . '</th>';
+		$html .= '<th>' . esc_html__( 'Date to assume', 'ffcertificate' ) . '</th>';
+		$html .= '<th>' . esc_html__( 'Time', 'ffcertificate' ) . '</th>';
+		$html .= '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
+		$html .= '<th>' . esc_html__( 'Notes', 'ffcertificate' ) . '</th>';
 		$html .= '</tr></thead><tbody>';
 
 		foreach ( $rows as $pair ) {
@@ -289,11 +289,11 @@ final class RecruitmentDashboardSection {
 	 */
 	private static function status_label( string $status ): string {
 		$map = array(
-			'empty'     => __( 'Aguardando', 'ffcertificate' ),
-			'called'    => __( 'Convocado', 'ffcertificate' ),
-			'accepted'  => __( 'Convocado', 'ffcertificate' ),
-			'not_shown' => __( 'Não compareceu', 'ffcertificate' ),
-			'hired'     => __( 'Contratado', 'ffcertificate' ),
+			'empty'     => __( 'Waiting', 'ffcertificate' ),
+			'called'    => __( 'Called', 'ffcertificate' ),
+			'accepted'  => __( 'Called', 'ffcertificate' ),
+			'not_shown' => __( 'Did not show up', 'ffcertificate' ),
+			'hired'     => __( 'Hired', 'ffcertificate' ),
 		);
 		return $map[ $status ] ?? $status;
 	}
@@ -308,18 +308,18 @@ final class RecruitmentDashboardSection {
 	 */
 	private static function call_situation_label( object $call, string $class_status ): string {
 		if ( null !== $call->cancelled_at ) {
-			return __( 'Cancelado', 'ffcertificate' );
+			return __( 'Cancelled', 'ffcertificate' );
 		}
 		if ( in_array( $class_status, array( 'called', 'accepted' ), true ) ) {
-			return __( 'Convocado', 'ffcertificate' );
+			return __( 'Called', 'ffcertificate' );
 		}
 		if ( 'not_shown' === $class_status ) {
-			return __( 'Não compareceu', 'ffcertificate' );
+			return __( 'Did not show up', 'ffcertificate' );
 		}
 		if ( 'hired' === $class_status ) {
-			return __( 'Contratado', 'ffcertificate' );
+			return __( 'Hired', 'ffcertificate' );
 		}
 		// `empty` after a non-cancelled call → manual reversal (rare).
-		return __( 'Convocação revertida', 'ffcertificate' );
+		return __( 'Call reverted', 'ffcertificate' );
 	}
 }

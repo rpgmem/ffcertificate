@@ -83,7 +83,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 
 	public function test_render_returns_error_when_notice_attribute_missing(): void {
 		$html = RecruitmentPublicShortcode::render( array() );
-		$this->assertStringContainsString( 'Edital não informado.', $html );
+		$this->assertStringContainsString( 'Notice attribute is required.', $html );
 	}
 
 	public function test_render_uncached_returns_error_when_notice_unknown(): void {
@@ -91,7 +91,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 
 		$html = RecruitmentPublicShortcode::render_uncached( 'EDITAL-FAKE', '', 1, 1 );
 
-		$this->assertStringContainsString( 'Edital não encontrado.', $html );
+		$this->assertStringContainsString( 'Notice not found.', $html );
 	}
 
 	public function test_render_uncached_blocks_draft_notices(): void {
@@ -99,7 +99,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 
 		$html = RecruitmentPublicShortcode::render_uncached( 'EDITAL-2026-01', '', 1, 1 );
 
-		$this->assertStringContainsString( 'Edital ainda não publicado.', $html );
+		$this->assertStringContainsString( 'Notice not yet published.', $html );
 	}
 
 	public function test_render_uncached_renders_warning_only_for_preliminary(): void {
@@ -107,7 +107,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 
 		$html = RecruitmentPublicShortcode::render_uncached( 'EDITAL-2026-01', '', 1, 1 );
 
-		$this->assertStringContainsString( 'Esta lista está em revisão', $html );
+		$this->assertStringContainsString( 'This list is under review', $html );
 		// Preliminary notices must NOT expose the listing — even preview
 		// rows are private until promotion.
 		$this->assertStringNotContainsString( '<table', $html );
@@ -119,7 +119,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 
 		$html = RecruitmentPublicShortcode::render_uncached( 'EDITAL-2026-01', '', 1, 1 );
 
-		$this->assertStringContainsString( 'Nenhum candidato classificado ainda.', $html );
+		$this->assertStringContainsString( 'No candidates classified yet.', $html );
 		// Notice header still rendered (so the user sees they're at the
 		// right edital).
 		$this->assertStringContainsString( 'EDITAL-2026-01', $html );
@@ -131,7 +131,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 
 		$html = RecruitmentPublicShortcode::render_uncached( 'EDITAL-2026-01', '', 1, 1 );
 
-		$this->assertStringContainsString( 'Edital encerrado.', $html );
+		$this->assertStringContainsString( 'Notice closed.', $html );
 	}
 
 	public function test_render_uncached_rejects_unknown_adjutancy_slug(): void {
@@ -144,7 +144,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 
 		$html = RecruitmentPublicShortcode::render_uncached( 'EDITAL-2026-01', 'inexistente', 1, 1 );
 
-		$this->assertStringContainsString( 'Matéria não encontrada para este edital.', $html );
+		$this->assertStringContainsString( 'Adjutancy not found for this notice.', $html );
 	}
 
 	public function test_render_uses_cached_html_when_available(): void {
@@ -171,7 +171,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 
 		$html = RecruitmentPublicShortcode::render( array( 'notice' => 'EDITAL-2026-01' ) );
 
-		$this->assertStringContainsString( 'Edital não encontrado.', $html );
+		$this->assertStringContainsString( 'Notice not found.', $html );
 	}
 
 	public function test_render_returns_throttle_message_when_rate_limit_exceeded(): void {
@@ -197,7 +197,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 
 		$html = RecruitmentPublicShortcode::render( array( 'notice' => 'EDITAL-2026-01' ) );
 
-		$this->assertStringContainsString( 'Muitas requisições', $html );
+		$this->assertStringContainsString( 'Too many requests', $html );
 
 		$_SERVER = $server_backup;
 	}

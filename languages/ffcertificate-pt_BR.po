@@ -11256,3 +11256,189 @@ msgstr "✅ Cache limpo com sucesso!"
 #: includes/admin/class-ffc-settings.php:264
 msgid "✅ Cache warmed! %d form(s) pre-loaded."
 msgstr "✅ Cache aquecido! %d formulário(s) pré-carregados."
+
+# Recruitment module — added in 6.0.3 (EN-source normalization, see issue #85).
+
+#: includes/recruitment/class-ffc-recruitment-admin-page.php:78
+msgid "Access denied."
+msgstr "Acesso negado."
+
+#: includes/recruitment/class-ffc-recruitment-admin-page.php:152
+msgid "Reopened?"
+msgstr "Reaberto?"
+
+#: includes/recruitment/class-ffc-recruitment-admin-page.php:153
+msgid "Created at"
+msgstr "Criado em"
+
+#: includes/recruitment/class-ffc-recruitment-admin-page.php:157
+msgid "No notices registered yet."
+msgstr "Nenhum edital cadastrado ainda."
+
+#: includes/recruitment/class-ffc-recruitment-admin-page.php:192
+msgid "No adjutancies registered yet."
+msgstr "Nenhuma matéria cadastrada."
+
+#: includes/recruitment/class-ffc-recruitment-admin-page.php:214
+msgid "Use the REST endpoints to manage candidates. The full UI will land in a follow-up iteration."
+msgstr "Use os endpoints REST para gerenciar candidatos. A interface completa entrará na próxima iteração."
+
+#: includes/recruitment/class-ffc-recruitment-admin-page.php:227
+msgid "Current values (read-only on this screen; edit via Settings → Recruitment or the ffc_recruitment_settings option directly)."
+msgstr "Valores atuais (somente leitura nesta tela; edite via Settings → Recruitment ou diretamente na option ffc_recruitment_settings)."
+
+#: includes/recruitment/class-ffc-recruitment-admin-page.php:244
+msgid "Create new notice"
+msgstr "Criar novo edital"
+
+#: includes/recruitment/class-ffc-recruitment-admin-page.php:252
+msgid "Create"
+msgstr "Criar"
+
+#: includes/recruitment/class-ffc-recruitment-admin-page.php:276
+msgid "Create new adjutancy"
+msgstr "Criar nova matéria"
+
+#: includes/recruitment/class-ffc-recruitment-admin-page.php:306
+msgid "Available REST endpoints"
+msgstr "Endpoints REST disponíveis"
+
+#: includes/recruitment/class-ffc-recruitment-admin-page.php:328
+msgid "All admin endpoints require the ffc_manage_recruitment capability."
+msgstr "Todos os endpoints administrativos exigem a capacidade ffc_manage_recruitment."
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:106
+msgid "Notice attribute is required."
+msgstr "Edital não informado."
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:113
+msgid "Too many requests. Please try again in a few seconds."
+msgstr "Muitas requisições. Tente novamente em alguns segundos."
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:151
+msgid "Notice not found."
+msgstr "Edital não encontrado."
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:156
+msgid "Notice not yet published."
+msgstr "Edital ainda não publicado."
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:159
+msgid "This list is under review. The preliminary classification is not yet publicly available."
+msgstr "Esta lista está em revisão. A classificação preliminar ainda não está disponível para consulta pública."
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:169
+msgid "Adjutancy not found for this notice."
+msgstr "Matéria não encontrada para este edital."
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:187
+msgid "No candidates classified yet."
+msgstr "Nenhum candidato classificado ainda."
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:211
+msgid "Not yet called"
+msgstr "Não chamados"
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:220
+msgid "Called"
+msgstr "Convocado"
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:270
+msgid "Rank"
+msgstr "Posição"
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:285
+msgid "Score"
+msgstr "Pontuação"
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:288
+msgid "Status"
+msgstr "Situação"
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:294
+msgid "Date to assume"
+msgstr "Data para assumir"
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:388
+msgid "Filter by adjutancy:"
+msgstr "Filtrar por matéria:"
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:390
+msgid "All"
+msgstr "Todas"
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:478
+msgid "Notice closed."
+msgstr "Edital encerrado."
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:516
+msgid "Waiting"
+msgstr "Aguardando"
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:519
+msgid "Did not show up"
+msgstr "Não compareceu"
+
+#: includes/recruitment/class-ffc-recruitment-public-shortcode.php:520
+msgid "Hired"
+msgstr "Contratado"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:113
+msgid "My Calls"
+msgstr "Minhas Convocações"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:135
+msgid "Preliminary classification — subject to review"
+msgstr "Classificação preliminar — sujeita a revisão"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:136
+msgid "Final classification"
+msgstr "Classificação final"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:143
+msgid "Your classification(s) for this notice"
+msgstr "Sua(s) classificação(ões) no edital"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:150
+msgid "Call history"
+msgstr "Histórico de convocações"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:153
+msgid "You have not been called for this notice yet."
+msgstr "Você ainda não foi convocado neste edital."
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:177
+msgid "Adjutancy"
+msgstr "Matéria"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:199
+msgid "No classification visible at the moment."
+msgstr "Sem classificação visível no momento."
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:256
+msgid "Called at"
+msgstr "Convocado em"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:258
+msgid "Time"
+msgstr "Horário"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:260
+msgid "Notes"
+msgstr "Notas"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:311
+msgid "Cancelled"
+msgstr "Cancelado"
+
+#: includes/recruitment/class-ffc-recruitment-dashboard-section.php:323
+msgid "Call reverted"
+msgstr "Convocação revertida"
+
+#: includes/recruitment/class-ffc-recruitment-settings.php:103
+msgid "Call - {{notice_code}} - {{adjutancy}}"
+msgstr "Convocação - {{notice_code}} - {{adjutancy}}"
+
+#: includes/recruitment/class-ffc-recruitment-settings.php:242
+msgid "<p>Hello {{name}},</p><p>You have been called for notice <strong>{{notice_code}} — {{notice_name}}</strong> in adjutancy <strong>{{adjutancy}}</strong>.</p><ul><li><strong>Rank:</strong> {{rank}}</li><li><strong>Score:</strong> {{score}}</li><li><strong>Date to assume:</strong> {{date_to_assume}}</li><li><strong>Time:</strong> {{time_to_assume}}</li></ul><p>{{notes}}</p><p>— {{site_name}}<br>{{site_url}}</p>"
+msgstr "<p>Olá {{name}},</p><p>Você foi convocado para o edital <strong>{{notice_code}} — {{notice_name}}</strong> na matéria <strong>{{adjutancy}}</strong>.</p><ul><li><strong>Posição:</strong> {{rank}}</li><li><strong>Pontuação:</strong> {{score}}</li><li><strong>Data para assumir:</strong> {{date_to_assume}}</li><li><strong>Horário:</strong> {{time_to_assume}}</li></ul><p>{{notes}}</p><p>— {{site_name}}<br>{{site_url}}</p>"
