@@ -42,6 +42,8 @@ final class RecruitmentLoader {
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ), 10 );
 		add_action( 'admin_init', array( $this, 'register_settings' ), 10 );
 		add_action( 'init', array( $this, 'register_shortcode' ), 10 );
+		add_action( 'init', array( $this, 'register_dashboard_section' ), 10 );
+		add_action( 'admin_menu', array( $this, 'register_admin_menu' ), 10 );
 	}
 
 	/**
@@ -70,5 +72,25 @@ final class RecruitmentLoader {
 	 */
 	public function register_shortcode(): void {
 		RecruitmentPublicShortcode::register();
+	}
+
+	/**
+	 * Register the candidate-self dashboard section shortcode
+	 * `[ffc_recruitment_my_calls]`. Meant to live on the user-dashboard
+	 * page alongside `[user_dashboard_personal]`.
+	 *
+	 * @return void
+	 */
+	public function register_dashboard_section(): void {
+		RecruitmentDashboardSection::register();
+	}
+
+	/**
+	 * Register the wp-admin "Recrutamento" submenu page.
+	 *
+	 * @return void
+	 */
+	public function register_admin_menu(): void {
+		RecruitmentAdminPage::register_menu();
 	}
 }
