@@ -2,9 +2,9 @@
 /**
  * Recruitment Admin Page
  *
- * Single admin page registered as a submenu under the existing
- * `edit.php?post_type=ffc_form` parent (matches the convention used by
- * the Activity Log page). Renders four tabs server-side:
+ * Top-level wp-admin menu (sibling of Audience and Reregistration; see
+ * {@see RecruitmentAdminPage::register_menu()}). Renders four tabs
+ * server-side:
  *
  *   - Notices       — list with status badges + create form.
  *   - Adjutancies   — list + create form + delete (gated).
@@ -49,16 +49,21 @@ final class RecruitmentAdminPage {
 	/**
 	 * Hook callback for `admin_menu` (priority 10).
 	 *
+	 * Registered as a top-level menu (icon + sidebar entry) at position 28,
+	 * mirroring the Audience (26) and Reregistration (27) modules so the
+	 * three sibling business modules sit together in the wp-admin sidebar.
+	 *
 	 * @return void
 	 */
 	public static function register_menu(): void {
-		add_submenu_page(
-			'edit.php?post_type=ffc_form',
+		add_menu_page(
 			__( 'Recrutamento', 'ffcertificate' ),
 			__( 'Recrutamento', 'ffcertificate' ),
 			self::CAP,
 			self::PAGE_SLUG,
-			array( self::class, 'render_page' )
+			array( self::class, 'render_page' ),
+			'dashicons-groups',
+			28
 		);
 	}
 
@@ -119,11 +124,10 @@ final class RecruitmentAdminPage {
 		foreach ( $tabs as $slug => $label ) {
 			$url   = add_query_arg(
 				array(
-					'post_type' => 'ffc_form',
-					'page'      => self::PAGE_SLUG,
-					'tab'       => $slug,
+					'page' => self::PAGE_SLUG,
+					'tab'  => $slug,
 				),
-				admin_url( 'edit.php' )
+				admin_url( 'admin.php' )
 			);
 			$class = 'nav-tab' . ( $slug === $active ? ' nav-tab-active' : '' );
 			echo '<a class="' . esc_attr( $class ) . '" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';

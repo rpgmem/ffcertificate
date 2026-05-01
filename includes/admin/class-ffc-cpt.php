@@ -40,7 +40,7 @@ class CPT {
 		$labels = array(
 			'name'               => _x( 'Forms', 'Post Type General Name', 'ffcertificate' ),
 			'singular_name'      => _x( 'Form', 'Post Type Singular Name', 'ffcertificate' ),
-			'menu_name'          => __( 'Free Form Certificate', 'ffcertificate' ),
+			'menu_name'          => __( 'Certificados', 'ffcertificate' ),
 			'name_admin_bar'     => __( 'FFC Form', 'ffcertificate' ),
 			'add_new'            => __( 'Add New Form', 'ffcertificate' ),
 			'add_new_item'       => __( 'Add New Form', 'ffcertificate' ),

@@ -9,6 +9,17 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.0.2] (2026-05-01)
+
+**UX — wp-admin sidebar.** The recruitment module gets its own top-level menu item (icon `dashicons-groups`, position 28) instead of being tucked under the `ffc_form` CPT, mirroring the Audience (position 26) and Reregistration (position 27) modules so the three sibling business modules sit together in the sidebar. The `ffc_form` CPT's `menu_name` is also shortened from "Free Form Certificate" (full plugin name) to "Certificados" (the actual content the menu manages).
+
+### Changed
+
+- **`RecruitmentAdminPage::register_menu()` switched from `add_submenu_page('edit.php?post_type=ffc_form', …)` to `add_menu_page(…, 'dashicons-groups', 28)`.** The four-tab layout (Editais, Matérias, Candidatos, Configurações) is unchanged; only the parent and the sidebar entry move. Tab URLs in `render_tabs()` swap `admin_url('edit.php')` + `post_type=ffc_form` for `admin_url('admin.php')` since the page is no longer a CPT child.
+- **`CPT::register_form_cpt()` `menu_name` label changed from "Free Form Certificate" to "Certificados".** The verbose plugin-name label was a holdover from the pre-modularization era; the menu now describes its content (certificates) rather than its owner (the plugin).
+
+---
+
 ## [6.0.1] (2026-05-01)
 
 **Hotfix — recruitment activator: `dbDelta()` rejects column-level `COMMENT '…'` clauses.** The 6.0.0 `CREATE TABLE` statements for `ffc_recruitment_notice`, `ffc_recruitment_candidate`, `ffc_recruitment_classification`, and `ffc_recruitment_call` carried inline `COMMENT 'documentation text'` clauses on several columns. WordPress's `dbDelta()` parser does not understand the `COMMENT '…'` syntax — the apostrophes break its column-definition regex, the malformed SQL is forwarded to the database, and MariaDB rejects it with "syntax error near 'Site TZ'" / "near 'HMAC(salt, (1|0)||id)'" / "near 'Ties allowed'". The four tables were never actually created on activation; only `ffc_recruitment_adjutancy` and `ffc_recruitment_notice_adjutancy` (which had no COMMENT clauses) made it through, leaving the schema half-populated and any recruitment admin / shortcode access broken with `WP_Error` from missing tables.
