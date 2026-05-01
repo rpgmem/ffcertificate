@@ -43,6 +43,17 @@ final class SensitiveFieldRegistry {
 	public const CONTEXT_APPOINTMENT = 'appointment';
 
 	/**
+	 * Context key: wp_ffc_recruitment_candidate write path.
+	 *
+	 * Used by the recruitment CSV importer (sprint 4) and manual candidate
+	 * edits (sprint 9.1) to encrypt CPF / RF / email plaintexts into the
+	 * matching `*_encrypted` + `*_hash` column pairs on the candidate row.
+	 *
+	 * @since 6.0.0
+	 */
+	public const CONTEXT_RECRUITMENT_CANDIDATE = 'recruitment_candidate';
+
+	/**
 	 * Field descriptors per context.
 	 *
 	 * Each entry maps a logical field key (e.g. "email") to the columns that
@@ -56,7 +67,7 @@ final class SensitiveFieldRegistry {
 	 * @var array<string, array<string, array{encrypted_column: ?string, hash_column: ?string}>>
 	 */
 	private const FIELDS = array(
-		self::CONTEXT_SUBMISSION  => array(
+		self::CONTEXT_SUBMISSION            => array(
 			'email'   => array(
 				'encrypted_column' => 'email_encrypted',
 				'hash_column'      => 'email_hash',
@@ -82,7 +93,7 @@ final class SensitiveFieldRegistry {
 				'hash_column'      => 'ticket_hash',
 			),
 		),
-		self::CONTEXT_APPOINTMENT => array(
+		self::CONTEXT_APPOINTMENT           => array(
 			'email'       => array(
 				'encrypted_column' => 'email_encrypted',
 				'hash_column'      => 'email_hash',
@@ -106,6 +117,20 @@ final class SensitiveFieldRegistry {
 			'user_ip'     => array(
 				'encrypted_column' => 'user_ip_encrypted',
 				'hash_column'      => null,
+			),
+		),
+		self::CONTEXT_RECRUITMENT_CANDIDATE => array(
+			'email' => array(
+				'encrypted_column' => 'email_encrypted',
+				'hash_column'      => 'email_hash',
+			),
+			'cpf'   => array(
+				'encrypted_column' => 'cpf_encrypted',
+				'hash_column'      => 'cpf_hash',
+			),
+			'rf'    => array(
+				'encrypted_column' => 'rf_encrypted',
+				'hash_column'      => 'rf_hash',
 			),
 		),
 	);

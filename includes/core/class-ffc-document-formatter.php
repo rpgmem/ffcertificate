@@ -223,6 +223,42 @@ class DocumentFormatter {
 	}
 
 	/**
+	 * Mask RF (Registro Funcional) for privacy.
+	 *
+	 * RF is a Brazilian employee/civil-servant registration number whose
+	 * length varies by state and agency (typically 4–15 digits). Unlike CPF,
+	 * there is no canonical national format, so this mask is length-agnostic:
+	 *
+	 *   - input < 4 digits → returned unchanged (too short to mask meaningfully)
+	 *   - input ≥ 4 digits → first 3 digits, then `***`, then last 1 digit
+	 *
+	 * Non-digit characters are stripped before masking. The result format is
+	 * dot-separated to match the visual style of {@see self::mask_cpf()}:
+	 * `XXX.***.X` for typical 7-digit RFs, `XXX.***.X` for longer RFs too.
+	 *
+	 * Used by the recruitment public shortcode (sprint 11) when the
+	 * `rf_masked` column is opted-in via `notice.public_columns_config`, and
+	 * by the candidate-self dashboard (sprint 12).
+	 *
+	 * @since 6.0.0
+	 * @param string $value RF to mask (with or without punctuation).
+	 * @return string Masked RF, or the original input when too short.
+	 */
+	public static function mask_rf( string $value ): string {
+		if ( '' === $value ) {
+			return '';
+		}
+
+		$clean = preg_replace( '/[^0-9]/', '', $value ) ?? '';
+
+		if ( strlen( $clean ) < 4 ) {
+			return $value;
+		}
+
+		return substr( $clean, 0, 3 ) . '.***.' . substr( $clean, -1 );
+	}
+
+	/**
 	 * Mask email address for privacy
 	 *
 	 * @since 3.2.0

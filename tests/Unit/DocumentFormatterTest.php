@@ -317,6 +317,39 @@ class DocumentFormatterTest extends TestCase {
     }
 
     // ==================================================================
+    // mask_rf
+    // ==================================================================
+
+    public function test_mask_rf_with_4_digit_value(): void {
+        $this->assertSame('123.***.4', DocumentFormatter::mask_rf('1234'));
+    }
+
+    public function test_mask_rf_with_7_digit_value(): void {
+        $this->assertSame('123.***.7', DocumentFormatter::mask_rf('1234567'));
+    }
+
+    public function test_mask_rf_with_long_value(): void {
+        // 12-digit RFs exist in some Brazilian states/agencies; mask still
+        // shows first 3 + last 1 of the digit-only sequence.
+        $this->assertSame('123.***.2', DocumentFormatter::mask_rf('123456789012'));
+    }
+
+    public function test_mask_rf_strips_punctuation_before_masking(): void {
+        $this->assertSame('123.***.7', DocumentFormatter::mask_rf('123.456-7'));
+    }
+
+    public function test_mask_rf_returns_original_when_too_short(): void {
+        // < 4 digits → cannot mask meaningfully; return unchanged for
+        // observability (caller sees the raw input was malformed).
+        $this->assertSame('123', DocumentFormatter::mask_rf('123'));
+        $this->assertSame('1', DocumentFormatter::mask_rf('1'));
+    }
+
+    public function test_mask_rf_returns_empty_for_empty_input(): void {
+        $this->assertSame('', DocumentFormatter::mask_rf(''));
+    }
+
+    // ==================================================================
     // mask_email
     // ==================================================================
 
