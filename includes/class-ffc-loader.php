@@ -228,6 +228,12 @@ class Loader {
 			$url_shortener->init();
 		}
 
+		// Recruitment module (v6.0.0).
+		if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentLoader' ) ) {
+			$recruitment_loader = new \FreeFormCertificate\Recruitment\RecruitmentLoader();
+			$recruitment_loader->init();
+		}
+
 		new ActivityLogSubscriber();
 
 		// Ensure daily cleanup cron is scheduled.
