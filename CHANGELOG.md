@@ -9,6 +9,16 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.0.1] (2026-05-01)
+
+**Hotfix — recruitment activator: `dbDelta()` rejects column-level `COMMENT '…'` clauses.** The 6.0.0 `CREATE TABLE` statements for `ffc_recruitment_notice`, `ffc_recruitment_candidate`, `ffc_recruitment_classification`, and `ffc_recruitment_call` carried inline `COMMENT 'documentation text'` clauses on several columns. WordPress's `dbDelta()` parser does not understand the `COMMENT '…'` syntax — the apostrophes break its column-definition regex, the malformed SQL is forwarded to the database, and MariaDB rejects it with "syntax error near 'Site TZ'" / "near 'HMAC(salt, (1|0)||id)'" / "near 'Ties allowed'". The four tables were never actually created on activation; only `ffc_recruitment_adjutancy` and `ffc_recruitment_notice_adjutancy` (which had no COMMENT clauses) made it through, leaving the schema half-populated and any recruitment admin / shortcode access broken with `WP_Error` from missing tables.
+
+### Fixed
+
+- **`RecruitmentActivator` — strip every column-level `COMMENT '…'` clause from the four affected `CREATE TABLE` statements** (`includes/recruitment/class-ffc-recruitment-activator.php`). Column semantics live in the entity classes' PHPDoc per the original plan; they don't belong in `dbDelta`-bound SQL. Existing 6.0.0 installs that hit this bug recover by reactivating the plugin: `RecruitmentActivator::create_tables()` skips already-created tables via `table_exists()` and recreates only the four that failed.
+
+---
+
 ## [6.0.0] (2026-05-01)
 
 **Recruitment module — Brazilian public-tender ("concurso público") candidate queue management.** New `[ffc_recruitment_queue]` public shortcode, candidate-self `[ffc_recruitment_my_calls]` dashboard section, wp-admin "Recrutamento" submenu, full §14 admin REST surface (21 routes under `ffcertificate/v1/recruitment`), `ffc_manage_recruitment` capability + dedicated `ffc_recruitment_manager` role, atomic CSV importer (single-transaction wipe+reinsert with rollback on any validation error), two state machines (Notice draft→preliminary→active→closed and Classification empty→called→accepted→hired/not_shown with the §5.1 reopen-freeze rule that locks `hired`/`not_shown` once a notice has been reopened), convocation service (single + bulk + cancel with append-only call history), email dispatch on call create with masked PII placeholders, centralized §7-bis delete gating (candidate hard-delete only when zero classifications, classification individual delete only when `empty` + draft/preliminary), and a single serialized `ffc_recruitment_settings` option for email templates + cache + rate-limit + page-size knobs.
