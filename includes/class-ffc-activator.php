@@ -79,6 +79,10 @@ class Activator {
 			\FreeFormCertificate\Recruitment\RecruitmentActivator::create_tables();
 		}
 
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::register_recruitment_manager_role();
+		}
+
 		self::add_composite_indexes();
 		self::add_foreign_keys();
 		self::run_migrations();

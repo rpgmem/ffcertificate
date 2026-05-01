@@ -71,7 +71,8 @@ class CapabilityManagerTest extends TestCase {
         $caps = CapabilityManager::ADMIN_CAPABILITIES;
         $this->assertContains( 'ffc_scheduling_bypass', $caps );
         $this->assertContains( 'ffc_manage_reregistration', $caps );
-        $this->assertCount( 2, $caps );
+        $this->assertContains( 'ffc_manage_recruitment', $caps );
+        $this->assertCount( 3, $caps );
     }
 
     public function test_future_capabilities_contains_expected_caps(): void {

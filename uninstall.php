@@ -135,9 +135,10 @@ if ( ! empty( $ffcertificate_forms ) ) {
 }
 
 // ──────────────────────────────────────
-// 6. Remove ffc_user role
+// 6. Remove FFC roles
 // ──────────────────────────────────────
 remove_role( 'ffc_user' );
+remove_role( 'ffc_recruitment_manager' );
 
 // ──────────────────────────────────────
 // 7. Clean up user meta
@@ -158,6 +159,7 @@ $ffcertificate_caps = array(
 	'ffc_view_audience_bookings',
 	'ffc_scheduling_bypass',
 	'ffc_manage_reregistration',
+	'ffc_manage_recruitment',
 	'ffc_reregistration',
 	'ffc_certificate_update',
 );

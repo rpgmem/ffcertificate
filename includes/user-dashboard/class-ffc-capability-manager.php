@@ -30,6 +30,21 @@ class CapabilityManager {
 	public const CONTEXT_AUDIENCE    = 'audience';
 
 	/**
+	 * Context key: recruitment-module candidate promotion path.
+	 *
+	 * Used by `UserCreator::get_or_create_user()` when the candidate is
+	 * being linked or created via the recruitment CSV importer (sprint 4) or
+	 * a manual admin edit (sprint 9.1). No per-user caps are granted on this
+	 * context — candidates rely on the `ffc_user` role's baseline `read` cap
+	 * to access their dashboard "Minhas Convocações" section. The
+	 * `ffc_manage_recruitment` admin cap is registered separately on plugin
+	 * activation (see {@see self::register_recruitment_manager_role()}).
+	 *
+	 * @since 6.0.0
+	 */
+	public const CONTEXT_RECRUITMENT = 'recruitment';
+
+	/**
 	 * All certificate-related capabilities
 	 */
 	public const CERTIFICATE_CAPABILITIES = array(
@@ -64,7 +79,19 @@ class CapabilityManager {
 	public const ADMIN_CAPABILITIES = array(
 		'ffc_scheduling_bypass',
 		'ffc_manage_reregistration',
+		'ffc_manage_recruitment',
 	);
+
+	/**
+	 * Slug for the dedicated recruitment-manager role.
+	 *
+	 * The role is granted `read` + `ffc_manage_recruitment` so site admins
+	 * can delegate recruitment management without giving out full
+	 * `manage_options`. Created on plugin activation, removed on uninstall.
+	 *
+	 * @since 6.0.0
+	 */
+	public const RECRUITMENT_MANAGER_ROLE = 'ffc_recruitment_manager';
 
 	/**
 	 * Future capabilities (disabled by default)
@@ -110,6 +137,12 @@ class CapabilityManager {
 				break;
 			case self::CONTEXT_AUDIENCE:
 				self::grant_audience_capabilities( $user_id );
+				break;
+			case self::CONTEXT_RECRUITMENT:
+				// Intentional no-op: recruitment candidates rely on the
+				// `ffc_user` role's baseline `read` cap. The admin-side
+				// `ffc_manage_recruitment` cap is registered on activation,
+				// not granted at promotion time.
 				break;
 		}
 	}
@@ -466,5 +499,56 @@ class CapabilityManager {
 	 */
 	public static function remove_role(): void {
 		remove_role( 'ffc_user' );
+	}
+
+	/**
+	 * Register the dedicated recruitment-manager role on plugin activation.
+	 *
+	 * Idempotent: if the role already exists, it is upgraded so any newly
+	 * introduced caps are added without disturbing other caps the admin may
+	 * have manually granted. Granted caps: `read` + `ffc_manage_recruitment`.
+	 *
+	 * Called from {@see \FreeFormCertificate\Activator::activate()}.
+	 *
+	 * @since 6.0.0
+	 * @return void
+	 */
+	public static function register_recruitment_manager_role(): void {
+		$existing_role = get_role( self::RECRUITMENT_MANAGER_ROLE );
+
+		if ( $existing_role ) {
+			// Upgrade path: ensure both caps are present without overwriting
+			// any admin-customized capability map.
+			if ( ! isset( $existing_role->capabilities['read'] ) ) {
+				$existing_role->add_cap( 'read', true );
+			}
+			if ( ! isset( $existing_role->capabilities['ffc_manage_recruitment'] ) ) {
+				$existing_role->add_cap( 'ffc_manage_recruitment', true );
+			}
+			return;
+		}
+
+		add_role(
+			self::RECRUITMENT_MANAGER_ROLE,
+			__( 'Recruitment Manager', 'ffcertificate' ),
+			array(
+				'read'                   => true,
+				'ffc_manage_recruitment' => true,
+			)
+		);
+	}
+
+	/**
+	 * Remove the recruitment-manager role on plugin uninstall.
+	 *
+	 * Called from `uninstall.php` after the cap-stripping loop has cleared
+	 * `ffc_manage_recruitment` from any user that had been granted it
+	 * directly.
+	 *
+	 * @since 6.0.0
+	 * @return void
+	 */
+	public static function remove_recruitment_manager_role(): void {
+		remove_role( self::RECRUITMENT_MANAGER_ROLE );
 	}
 }
