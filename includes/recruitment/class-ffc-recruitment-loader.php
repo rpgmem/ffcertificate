@@ -41,6 +41,7 @@ final class RecruitmentLoader {
 	public function init(): void {
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ), 10 );
 		add_action( 'admin_init', array( $this, 'register_settings' ), 10 );
+		add_action( 'init', array( $this, 'register_shortcode' ), 10 );
 	}
 
 	/**
@@ -60,5 +61,14 @@ final class RecruitmentLoader {
 	 */
 	public function register_settings(): void {
 		RecruitmentSettings::register();
+	}
+
+	/**
+	 * Register the public shortcode `[ffc_recruitment_queue]`.
+	 *
+	 * @return void
+	 */
+	public function register_shortcode(): void {
+		RecruitmentPublicShortcode::register();
 	}
 }
