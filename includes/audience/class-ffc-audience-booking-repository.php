@@ -1051,6 +1051,19 @@ class AudienceBookingRepository {
 			$values[] = $args['booking_date'];
 		}
 
+		// `start_date` and `end_date` mirror `get_all()`'s window filter so
+		// callers (e.g. AudienceAdminDashboard's "upcoming bookings" stat)
+		// can ask for "bookings on or after today" without scanning every row.
+		if ( isset( $args['start_date'] ) ) {
+			$where[]  = 'booking_date >= %s';
+			$values[] = $args['start_date'];
+		}
+
+		if ( isset( $args['end_date'] ) ) {
+			$where[]  = 'booking_date <= %s';
+			$values[] = $args['end_date'];
+		}
+
 		if ( isset( $args['created_by'] ) ) {
 			$where[]  = 'created_by = %d';
 			$values[] = $args['created_by'];

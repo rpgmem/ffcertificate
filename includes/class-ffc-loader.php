@@ -321,6 +321,21 @@ class Loader {
 					}
 				}
 			}
+
+			// 3. Strip legacy `=> false` cap entries from the `ffc_user` role
+			// itself. Pre-6.0.3 the role was registered with every FFC cap as
+			// `=> false`, which broke multi-role users (admin + ffc_user) via
+			// `array_merge()` capability resolution. Issue #86. Idempotent:
+			// only removes caps that exist with the `false` value; per-user
+			// `add_cap($cap, true)` user-meta grants are unaffected.
+			$ffc_user_role = get_role( 'ffc_user' );
+			if ( $ffc_user_role ) {
+				foreach ( $all_ffc_caps as $cap ) {
+					if ( isset( $ffc_user_role->capabilities[ $cap ] ) && false === $ffc_user_role->capabilities[ $cap ] ) {
+						$ffc_user_role->remove_cap( $cap );
+					}
+				}
+			}
 		}
 
 		update_option( $version_key, FFC_VERSION );

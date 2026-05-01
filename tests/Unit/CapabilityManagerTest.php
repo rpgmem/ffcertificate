@@ -349,15 +349,51 @@ class CapabilityManagerTest extends TestCase {
 
         $this->assertNotNull( $captured_caps );
         $this->assertTrue( $captured_caps['read'] );
-        // All FFC caps should be set to false by default
-        $this->assertFalse( $captured_caps['view_own_certificates'] );
-        $this->assertFalse( $captured_caps['ffc_book_appointments'] );
+        // FFC caps are intentionally absent (issue #86): an explicit `=> false`
+        // here would break multi-role users (admin + ffc_user) by overriding
+        // admin-granted `true` via array_merge in WP cap resolution.
+        $this->assertArrayNotHasKey( 'view_own_certificates', $captured_caps );
+        $this->assertArrayNotHasKey( 'ffc_book_appointments', $captured_caps );
+        $this->assertArrayNotHasKey( 'ffc_manage_recruitment', $captured_caps );
     }
 
-    public function test_register_role_upgrades_existing_role(): void {
-        $mock_role = Mockery::mock( 'WP_Role' );
-        $mock_role->capabilities = array( 'read' => true );
-        $mock_role->shouldReceive( 'add_cap' )->atLeast()->once();
+    public function test_register_role_upgrades_existing_role_strips_legacy_false_caps(): void {
+        // Pre-6.0.3 the role was saved with FFC caps as `=> false`; upgrade_role()
+        // strips them so multi-role users (admin + ffc_user) can resolve to true
+        // via the admin role.
+        $mock_role               = Mockery::mock( 'WP_Role' );
+        $mock_role->capabilities = array(
+            'read'                   => true,
+            'view_own_certificates'  => false,
+            'ffc_manage_recruitment' => false,
+        );
+
+        $removed = array();
+        $mock_role->shouldReceive( 'remove_cap' )
+            ->atLeast()->once()
+            ->andReturnUsing( function ( $cap ) use ( &$removed ) {
+                $removed[] = $cap;
+            } );
+
+        Functions\when( 'get_role' )->justReturn( $mock_role );
+
+        CapabilityManager::register_role();
+
+        $this->assertContains( 'view_own_certificates', $removed );
+        $this->assertContains( 'ffc_manage_recruitment', $removed );
+    }
+
+    public function test_register_role_upgrade_does_not_touch_user_meta_true_grants(): void {
+        // If a previous run left a cap as `=> true` on the role (manual admin
+        // edit, etc.), upgrade_role() must NOT remove it — only `=> false`
+        // entries get stripped.
+        $mock_role               = Mockery::mock( 'WP_Role' );
+        $mock_role->capabilities = array(
+            'read'                  => true,
+            'view_own_certificates' => true,
+        );
+
+        $mock_role->shouldNotReceive( 'remove_cap' );
 
         Functions\when( 'get_role' )->justReturn( $mock_role );
 

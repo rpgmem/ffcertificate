@@ -1533,6 +1533,34 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->assertStringContainsString('booking_date = %s', $captured_sql);
     }
 
+    public function test_count_filters_by_start_date(): void {
+        $captured_sql = '';
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
+            $captured_sql = func_get_args()[0];
+            return $captured_sql;
+        });
+        $this->wpdb->shouldReceive('get_var')->once()->andReturn('7');
+
+        $result = AudienceBookingRepository::count(['start_date' => '2026-05-01']);
+
+        $this->assertSame(7, $result);
+        $this->assertStringContainsString('booking_date >= %s', $captured_sql);
+    }
+
+    public function test_count_filters_by_end_date(): void {
+        $captured_sql = '';
+        $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
+            $captured_sql = func_get_args()[0];
+            return $captured_sql;
+        });
+        $this->wpdb->shouldReceive('get_var')->once()->andReturn('3');
+
+        $result = AudienceBookingRepository::count(['end_date' => '2026-05-31']);
+
+        $this->assertSame(3, $result);
+        $this->assertStringContainsString('booking_date <= %s', $captured_sql);
+    }
+
     public function test_count_filters_by_created_by(): void {
         $captured_sql = '';
         $this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
