@@ -102,6 +102,7 @@ if ( ! class_exists( 'WP_REST_Server' ) ) {
     class WP_REST_Server {
         const READABLE  = 'GET';
         const CREATABLE = 'POST';
+        const EDITABLE  = 'POST, PUT, PATCH';
         const DELETABLE = 'DELETE';
     }
 }
