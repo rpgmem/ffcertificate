@@ -23,8 +23,9 @@
  * enforced at the repository/state-machine layer (matches the existing plugin
  * convention).
  *
- * All DATETIME columns store UTC; display in `wp_timezone()` is the consumer's
- * responsibility.
+ * All DATETIME columns are written via `current_time( 'mysql' )` (site
+ * timezone, matching the rest of the plugin); display likewise uses the WP
+ * site timezone (`wp_timezone()`).
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.0.0
@@ -125,8 +126,8 @@ class RecruitmentActivator {
             code varchar(64) NOT NULL COMMENT 'Normalized to UPPERCASE on storage',
             name varchar(255) NOT NULL,
             status enum('draft','preliminary','active','closed') NOT NULL DEFAULT 'draft',
-            opened_at datetime DEFAULT NULL COMMENT 'UTC; set on first transition to active, never modified afterwards',
-            closed_at datetime DEFAULT NULL COMMENT 'UTC; overwritten on each transition to closed',
+            opened_at datetime DEFAULT NULL COMMENT 'Site TZ; set on first transition to active, never modified afterwards',
+            closed_at datetime DEFAULT NULL COMMENT 'Site TZ; overwritten on each transition to closed',
             was_reopened tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Flips to 1 on first closed -> active; drives reopen-freeze',
             public_columns_config longtext NOT NULL COMMENT 'JSON: per-notice column visibility for public shortcode',
             created_at datetime NOT NULL,
@@ -302,13 +303,13 @@ class RecruitmentActivator {
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             classification_id bigint(20) unsigned NOT NULL,
-            called_at datetime NOT NULL COMMENT 'UTC',
-            date_to_assume date NOT NULL COMMENT 'Display in site timezone',
-            time_to_assume time NOT NULL COMMENT 'Display in site timezone',
+            called_at datetime NOT NULL COMMENT 'Site TZ',
+            date_to_assume date NOT NULL,
+            time_to_assume time NOT NULL,
             out_of_order tinyint(1) NOT NULL DEFAULT 0,
             out_of_order_reason text DEFAULT NULL COMMENT 'Required when out_of_order=1 (app-layer invariant)',
             cancellation_reason text DEFAULT NULL,
-            cancelled_at datetime DEFAULT NULL COMMENT 'UTC; set on cancel, never cleared (audit trail)',
+            cancelled_at datetime DEFAULT NULL COMMENT 'Site TZ; set on cancel, never cleared (audit trail)',
             cancelled_by bigint(20) unsigned DEFAULT NULL,
             notes text DEFAULT NULL,
             created_by bigint(20) unsigned NOT NULL,
