@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-type AdjutancyRow \stdClass&object{id: numeric-string, slug: string, name: string, created_at: string, updated_at: string}
  */
-class AdjutancyRepository {
+class RecruitmentAdjutancyRepository {
 
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 

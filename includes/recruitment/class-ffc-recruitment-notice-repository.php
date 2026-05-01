@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-type NoticeRow \stdClass&object{id: numeric-string, code: string, name: string, status: string, opened_at: string|null, closed_at: string|null, was_reopened: numeric-string, public_columns_config: string, created_at: string, updated_at: string}
  */
-class NoticeRepository {
+class RecruitmentNoticeRepository {
 
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 

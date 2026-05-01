@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-type ClassificationRow \stdClass&object{id: numeric-string, candidate_id: numeric-string, adjutancy_id: numeric-string, notice_id: numeric-string, list_type: string, rank: numeric-string, score: string, status: string, created_at: string, updated_at: string}
  */
-class ClassificationRepository {
+class RecruitmentClassificationRepository {
 
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 

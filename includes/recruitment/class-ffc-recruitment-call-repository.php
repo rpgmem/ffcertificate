@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-type CallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: string, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: string|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string}
  */
-class CallRepository {
+class RecruitmentCallRepository {
 
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
@@ -250,7 +250,7 @@ class CallRepository {
 	 * Idempotent within a single cancellation: the WHERE clause requires
 	 * `cancelled_at IS NULL`, so a second cancel attempt on an already
 	 * cancelled row returns 0. The state machine (sprint 5) calls this
-	 * AFTER {@see ClassificationRepository::set_status()} has already moved
+	 * AFTER {@see RecruitmentClassificationRepository::set_status()} has already moved
 	 * the classification back to `empty` atomically, so the two operations
 	 * together preserve the audit trail.
 	 *

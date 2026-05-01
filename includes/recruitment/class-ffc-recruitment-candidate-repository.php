@@ -46,7 +46,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-type CandidateRow \stdClass&object{id: numeric-string, user_id: numeric-string|null, name: string, cpf_encrypted: string|null, cpf_hash: string|null, rf_encrypted: string|null, rf_hash: string|null, email_encrypted: string|null, email_hash: string|null, phone: string|null, notes: string|null, pcd_hash: string, created_at: string, updated_at: string}
  */
-class CandidateRepository {
+class RecruitmentCandidateRepository {
 
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 

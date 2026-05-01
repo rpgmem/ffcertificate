@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Database repository for the `ffc_recruitment_notice_adjutancy` junction.
  */
-class NoticeAdjutancyRepository {
+class RecruitmentNoticeAdjutancyRepository {
 
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
