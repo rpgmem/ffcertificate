@@ -511,6 +511,7 @@ final class RecruitmentRestController {
 			);
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local upload tmp file; wp_remote_get is for HTTP only.
 		$content = file_get_contents( $files['csv_file']['tmp_name'] );
 		if ( false === $content ) {
 			return new \WP_Error(
@@ -557,6 +558,7 @@ final class RecruitmentRestController {
 			);
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local upload tmp file; wp_remote_get is for HTTP only.
 		$content = file_get_contents( $files['csv_file']['tmp_name'] );
 		if ( false === $content ) {
 			return new \WP_Error(
