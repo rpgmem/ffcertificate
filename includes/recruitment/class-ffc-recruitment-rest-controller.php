@@ -297,6 +297,29 @@ final class RecruitmentRestController {
 			)
 		);
 
+		// Notice ↔ Adjutancy attachment (N:N junction).
+		// PUT  /notices/{id}/adjutancies/{adjutancy_id} — attach
+		// DELETE /notices/{id}/adjutancies/{adjutancy_id} — detach
+		// The CSV importer requires every adjutancy referenced in the file
+		// to be attached to the target notice via this junction; without
+		// this route, admins had no UI/API path to perform the attachment.
+		register_rest_route(
+			$ns,
+			$base . '/notices/(?P<id>\d+)/adjutancies/(?P<adjutancy_id>\d+)',
+			array(
+				array(
+					'methods'             => \WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'attach_notice_adjutancy' ),
+					'permission_callback' => array( $this, 'check_admin_cap' ),
+				),
+				array(
+					'methods'             => \WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'detach_notice_adjutancy' ),
+					'permission_callback' => array( $this, 'check_admin_cap' ),
+				),
+			)
+		);
+
 		// ── Candidates ──────────────────────────────────────────────────
 		register_rest_route(
 			$ns,
@@ -778,6 +801,82 @@ final class RecruitmentRestController {
 			return $this->wp_error_from_envelope_with_blocked( $result, 409 );
 		}
 		return new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * PUT /notices/{id}/adjutancies/{adjutancy_id} — attach the adjutancy
+	 * to the notice via the N:N junction. Idempotent: re-attaching an
+	 * already-attached pair returns 200 with `created=false`.
+	 *
+	 * Both ids must reference existing rows; otherwise returns 404.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function attach_notice_adjutancy( \WP_REST_Request $request ) {
+		$notice_id    = (int) $request->get_param( 'id' );
+		$adjutancy_id = (int) $request->get_param( 'adjutancy_id' );
+
+		if ( null === RecruitmentNoticeRepository::get_by_id( $notice_id ) ) {
+			return new \WP_Error( 'recruitment_notice_not_found', 'Notice not found.', array( 'status' => 404 ) );
+		}
+		if ( null === RecruitmentAdjutancyRepository::get_by_id( $adjutancy_id ) ) {
+			return new \WP_Error( 'recruitment_adjutancy_not_found', 'Adjutancy not found.', array( 'status' => 404 ) );
+		}
+
+		$already = RecruitmentNoticeAdjutancyRepository::is_attached( $notice_id, $adjutancy_id );
+		if ( $already ) {
+			return new \WP_REST_Response(
+				array(
+					'notice_id'    => $notice_id,
+					'adjutancy_id' => $adjutancy_id,
+					'created'      => false,
+				),
+				200
+			);
+		}
+
+		$ok = RecruitmentNoticeAdjutancyRepository::attach( $notice_id, $adjutancy_id );
+		if ( ! $ok ) {
+			return new \WP_Error(
+				'recruitment_notice_adjutancy_attach_failed',
+				'Failed to attach adjutancy to notice.',
+				array( 'status' => 500 )
+			);
+		}
+
+		return new \WP_REST_Response(
+			array(
+				'notice_id'    => $notice_id,
+				'adjutancy_id' => $adjutancy_id,
+				'created'      => true,
+			),
+			201
+		);
+	}
+
+	/**
+	 * DELETE /notices/{id}/adjutancies/{adjutancy_id} — detach the
+	 * adjutancy from the notice. Idempotent: detaching a pair that's
+	 * already absent returns 200.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response
+	 */
+	public function detach_notice_adjutancy( \WP_REST_Request $request ): \WP_REST_Response {
+		$notice_id    = (int) $request->get_param( 'id' );
+		$adjutancy_id = (int) $request->get_param( 'adjutancy_id' );
+
+		RecruitmentNoticeAdjutancyRepository::detach( $notice_id, $adjutancy_id );
+
+		return new \WP_REST_Response(
+			array(
+				'notice_id'    => $notice_id,
+				'adjutancy_id' => $adjutancy_id,
+				'attached'     => false,
+			),
+			200
+		);
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

@@ -37,6 +37,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Registers and renders the wp-admin Recruitment top-level page.
+ *
+ * @phpstan-import-type AdjutancyRow from RecruitmentAdjutancyRepository
  */
 final class RecruitmentAdminPage {
 
@@ -141,7 +143,8 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_notices_tab(): void {
-		$notices = RecruitmentNoticeRepository::get_all();
+		$notices     = RecruitmentNoticeRepository::get_all();
+		$adjutancies = RecruitmentAdjutancyRepository::get_all();
 
 		echo '<h2>' . esc_html__( 'Notices', 'ffcertificate' ) . '</h2>';
 
@@ -150,18 +153,27 @@ final class RecruitmentAdminPage {
 		echo '<th>' . esc_html__( 'Name', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Reopened?', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Created at', 'ffcertificate' ) . '</th>';
 		echo '</tr></thead><tbody>';
 
 		if ( empty( $notices ) ) {
-			echo '<tr><td colspan="5">' . esc_html__( 'No notices registered yet.', 'ffcertificate' ) . '</td></tr>';
+			echo '<tr><td colspan="6">' . esc_html__( 'No notices registered yet.', 'ffcertificate' ) . '</td></tr>';
 		} else {
+			$nonce = wp_create_nonce( 'wp_rest' );
 			foreach ( $notices as $n ) {
+				$attached_ids = array_values( RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( (int) $n->id ) );
+
 				echo '<tr>';
 				echo '<td><code>' . esc_html( $n->code ) . '</code></td>';
 				echo '<td>' . esc_html( $n->name ) . '</td>';
 				echo '<td><span class="ffc-status-badge ffc-status-' . esc_attr( $n->status ) . '">' . esc_html( $n->status ) . '</span></td>';
 				echo '<td>' . ( '1' === $n->was_reopened ? esc_html__( 'Yes', 'ffcertificate' ) : '—' ) . '</td>';
+
+				echo '<td>';
+				self::render_notice_adjutancies_cell( (int) $n->id, $attached_ids, $adjutancies, $nonce );
+				echo '</td>';
+
 				echo '<td>' . esc_html( $n->created_at ) . '</td>';
 				echo '</tr>';
 			}
@@ -170,6 +182,91 @@ final class RecruitmentAdminPage {
 
 		self::render_create_notice_form();
 		self::render_rest_pointer();
+	}
+
+	/**
+	 * Render the per-notice adjutancy attachment cell: badge for each
+	 * attached adjutancy with a small `×` button to detach, plus a
+	 * `<select>` of every other adjutancy with an Add button to attach.
+	 *
+	 * Both controls fire inline `fetch()` calls against the new
+	 * `/notices/{id}/adjutancies/{adjutancy_id}` REST routes; the page
+	 * reloads on success so the new state is visible.
+	 *
+	 * @param int    $notice_id    Notice ID.
+	 * @param array  $attached_ids Currently-attached adjutancy ids.
+	 * @param array  $adjutancies  All adjutancies (full set for the dropdown).
+	 * @param string $nonce        wp_rest nonce.
+	 * @phpstan-param list<int>          $attached_ids
+	 * @phpstan-param list<AdjutancyRow> $adjutancies
+	 * @return void
+	 */
+	private static function render_notice_adjutancies_cell( int $notice_id, array $attached_ids, array $adjutancies, string $nonce ): void {
+		$attached_set = array_flip( $attached_ids );
+
+		// 1. Badge list of attached adjutancies, with × detach buttons.
+		$attached_objects = array_values(
+			array_filter(
+				$adjutancies,
+				static function ( $a ) use ( $attached_set ) {
+					return isset( $attached_set[ (int) $a->id ] );
+				}
+			)
+		);
+
+		if ( empty( $attached_objects ) ) {
+			echo '<em>' . esc_html__( '(none)', 'ffcertificate' ) . '</em>';
+		} else {
+			echo '<span class="ffc-attached-list">';
+			foreach ( $attached_objects as $a ) {
+				echo '<span class="ffc-attached" style="display:inline-block;background:#e0e0e0;padding:2px 6px;margin:2px;border-radius:3px;">';
+				echo esc_html( (string) $a->slug );
+				echo ' <a href="#" data-notice="' . esc_attr( (string) $notice_id ) . '" data-adjutancy="' . esc_attr( (string) $a->id ) . '" onclick="return ffcDetachAdjutancy(this);" title="' . esc_attr__( 'Detach', 'ffcertificate' ) . '">×</a>';
+				echo '</span>';
+			}
+			echo '</span>';
+		}
+
+		// 2. Attach selector for everything not already attached.
+		$detached_objects = array_values(
+			array_filter(
+				$adjutancies,
+				static function ( $a ) use ( $attached_set ) {
+					return ! isset( $attached_set[ (int) $a->id ] );
+				}
+			)
+		);
+		if ( ! empty( $detached_objects ) ) {
+			echo '<form style="display:inline;margin-left:.5em;" onsubmit="return ffcAttachAdjutancy(this);" data-notice="' . esc_attr( (string) $notice_id ) . '">';
+			echo '<select name="adjutancy_id">';
+			foreach ( $detached_objects as $a ) {
+				echo '<option value="' . esc_attr( (string) $a->id ) . '">' . esc_html( (string) $a->slug ) . ' — ' . esc_html( (string) $a->name ) . '</option>';
+			}
+			echo '</select>';
+			echo ' <button type="submit" class="button-secondary button-small">' . esc_html__( 'Attach', 'ffcertificate' ) . '</button>';
+			echo '</form>';
+		}
+
+		// Inline handlers (rendered once per page; idempotent if printed
+		// per row — modern browsers de-dup function definitions).
+		echo '<script>'
+			. 'function ffcAttachAdjutancy(form){'
+			. 'var nid=form.getAttribute("data-notice");'
+			. 'var aid=form.adjutancy_id.value;'
+			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/adjutancies/"+aid,{'
+			. 'method:"PUT",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},credentials:"same-origin"'
+			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
+			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert(JSON.stringify(o.body));}'
+			. '});return false;}'
+			. 'function ffcDetachAdjutancy(a){'
+			. 'var nid=a.getAttribute("data-notice");'
+			. 'var aid=a.getAttribute("data-adjutancy");'
+			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/adjutancies/"+aid,{'
+			. 'method:"DELETE",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},credentials:"same-origin"'
+			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
+			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert(JSON.stringify(o.body));}'
+			. '});return false;}'
+			. '</script>';
 	}
 
 	/**

@@ -232,9 +232,14 @@ final class RecruitmentCsvImporter {
 			);
 		}
 
-		// Header row.
-		$header_line = array_shift( $lines );
-		$headers     = self::parse_csv_line( (string) $header_line );
+		// Header row. Auto-detect delimiter from the header line: support
+		// both comma and semicolon variants (the latter is the default in
+		// many BR/EU spreadsheet exports). Detection is by occurrence
+		// count on the header — semicolons win iff there are more `;`
+		// than `,` outside of quoted segments.
+		$header_line = (string) array_shift( $lines );
+		$delimiter   = self::detect_delimiter( $header_line );
+		$headers     = self::parse_csv_line( $header_line, $delimiter );
 		$headers     = array_map( 'strtolower', array_map( 'trim', $headers ) );
 
 		$missing = array_diff( self::REQUIRED_HEADERS, $headers );
@@ -262,7 +267,7 @@ final class RecruitmentCsvImporter {
 				continue; // empty rows skipped per §6.
 			}
 
-			$cells = self::parse_csv_line( $line );
+			$cells = self::parse_csv_line( $line, $delimiter );
 
 			// Skip rows that are all whitespace after parsing.
 			$any_value = false;
@@ -598,13 +603,17 @@ final class RecruitmentCsvImporter {
 	}
 
 	/**
-	 * Parse a single CSV line using `str_getcsv` with default settings.
+	 * Parse a single CSV line using `str_getcsv`. The delimiter is detected
+	 * once from the header line (see {@see self::detect_delimiter()}) and
+	 * then forwarded to every subsequent body line so a mixed-quoting file
+	 * still parses consistently.
 	 *
-	 * @param string $line CSV line.
+	 * @param string $line      CSV line.
+	 * @param string $delimiter Field delimiter (`,` or `;`).
 	 * @return list<string>
 	 */
-	private static function parse_csv_line( string $line ): array {
-		$cells = str_getcsv( $line );
+	private static function parse_csv_line( string $line, string $delimiter = ',' ): array {
+		$cells = str_getcsv( $line, $delimiter );
 		// Coerce nulls (str_getcsv returns null for missing cells in some versions) to empty strings.
 		return array_map(
 			static function ( $cell ): string {
@@ -612,6 +621,41 @@ final class RecruitmentCsvImporter {
 			},
 			$cells
 		);
+	}
+
+	/**
+	 * Detect the CSV field delimiter by inspecting the header line.
+	 *
+	 * Supports `,` (default) and `;` (common in BR/EU spreadsheet exports
+	 * where comma is the locale decimal separator). Counts occurrences
+	 * outside of double-quoted segments so a quoted comma inside a header
+	 * label doesn't tip the detection. Ties resolve to `,` for backward
+	 * compatibility with files that worked pre-detection.
+	 *
+	 * @param string $header_line The CSV header line.
+	 * @return string `,` or `;`.
+	 */
+	private static function detect_delimiter( string $header_line ): string {
+		$comma_count     = 0;
+		$semicolon_count = 0;
+		$in_quotes       = false;
+		$length          = strlen( $header_line );
+		for ( $i = 0; $i < $length; $i++ ) {
+			$ch = $header_line[ $i ];
+			if ( '"' === $ch ) {
+				$in_quotes = ! $in_quotes;
+				continue;
+			}
+			if ( $in_quotes ) {
+				continue;
+			}
+			if ( ',' === $ch ) {
+				++$comma_count;
+			} elseif ( ';' === $ch ) {
+				++$semicolon_count;
+			}
+		}
+		return $semicolon_count > $comma_count ? ';' : ',';
 	}
 
 	/**
