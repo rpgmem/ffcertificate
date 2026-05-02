@@ -108,7 +108,12 @@ final class RecruitmentSettings {
 			'email_from_address'           => '',
 			'email_from_name'              => '',
 			'email_body_html'              => self::default_body_template(),
-			'public_cache_seconds'         => 60,
+			// 12h default: the public listing only changes when admins
+			// edit a notice/classification/candidate/adjutancy/call, and
+			// every such write hits the cache invalidator on the public
+			// shortcode — so a long TTL is safe. The Settings tab still
+			// exposes the value for per-deploy overrides.
+			'public_cache_seconds'         => 12 * HOUR_IN_SECONDS,
 			'public_rate_limit_per_minute' => 30,
 			'public_default_page_size'     => 50,
 			// Status-badge colors on the public shortcode. Each value is

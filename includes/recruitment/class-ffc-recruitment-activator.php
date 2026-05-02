@@ -7,7 +7,7 @@
  *
  * Six tables, all prefixed `{$wpdb->prefix}ffc_recruitment_`:
  *
- * - ffc_recruitment_adjutancy           Reusable subject/role definitions (matérias).
+ * - ffc_recruitment_adjutancy           Reusable subject/role definitions (subjects).
  * - ffc_recruitment_notice              The edital lifecycle (draft → preliminary → active → closed).
  * - ffc_recruitment_notice_adjutancy    N:N — which adjutancies belong to which notice.
  * - ffc_recruitment_candidate           Standalone candidate list (linked to wp_users on promotion).
@@ -209,7 +209,7 @@ class RecruitmentActivator {
 	/**
 	 * Create `ffc_recruitment_adjutancy` table.
 	 *
-	 * Reusable subject/role definitions ("matérias"). One row per adjutancy,
+	 * Reusable subject/role definitions ("subjects"). One row per adjutancy,
 	 * shared across notices via the junction table.
 	 *
 	 * @return void

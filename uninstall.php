@@ -90,6 +90,8 @@ $ffcertificate_options = array(
 	'ffc_migration_user_profiles_last_run',
 	// Recruitment module (v6.0.0).
 	'ffc_recruitment_settings',
+	'ffc_recruitment_schema_version',
+	'ffc_recruitment_public_cache_version',
 );
 
 foreach ( $ffcertificate_options as $ffcertificate_option ) {

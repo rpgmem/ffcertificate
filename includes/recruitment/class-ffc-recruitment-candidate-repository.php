@@ -265,6 +265,75 @@ class RecruitmentCandidateRepository {
 	}
 
 	/**
+	 * Page of candidates that have at least one classification in the
+	 * supplied adjutancy. Mirrors {@see self::get_paginated()} but
+	 * inner-joins the classification table so the result set is scoped
+	 * to candidates active in that adjutancy. Used by the admin
+	 * Candidates tab's adjutancy filter.
+	 *
+	 * @param string $name_search Optional substring filter on name.
+	 * @param int    $adjutancy_id Adjutancy id (must be > 0).
+	 * @param int    $limit       Page size.
+	 * @param int    $offset      0-indexed offset.
+	 * @return list<CandidateRow>
+	 */
+	public static function get_paginated_for_adjutancy( string $name_search, int $adjutancy_id, int $limit, int $offset ): array {
+		$wpdb      = self::db();
+		$table     = self::get_table_name();
+		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		$limit  = max( 1, min( 200, $limit ) );
+		$offset = max( 0, $offset );
+
+		// DISTINCT because a candidate can hold several classifications
+		// for the same adjutancy (across notices / list_types) and we
+		// want a single list-table row per candidate.
+		$sql = '' !== $name_search
+			? 'SELECT DISTINCT c.* FROM %i c INNER JOIN %i cls ON cls.candidate_id = c.id WHERE cls.adjutancy_id = %d AND c.name LIKE %s ORDER BY c.created_at DESC LIMIT %d OFFSET %d'
+			: 'SELECT DISTINCT c.* FROM %i c INNER JOIN %i cls ON cls.candidate_id = c.id WHERE cls.adjutancy_id = %d ORDER BY c.created_at DESC LIMIT %d OFFSET %d';
+
+		$args = '' !== $name_search
+			? array( $table, $cls_table, $adjutancy_id, '%' . $wpdb->esc_like( $name_search ) . '%', $limit, $offset )
+			: array( $table, $cls_table, $adjutancy_id, $limit, $offset );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is one of two literals selected immediately above; both placeholders match $args.
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, $args ) );
+
+		/**
+		 * Cast wpdb's mixed return into the typed shape.
+		 *
+		 * @var list<CandidateRow>|null $results
+		 */
+		return is_array( $results ) ? $results : array();
+	}
+
+	/**
+	 * Companion count for {@see self::get_paginated_for_adjutancy()}.
+	 *
+	 * @param string $name_search  Optional substring filter on name.
+	 * @param int    $adjutancy_id Adjutancy id.
+	 * @return int
+	 */
+	public static function count_paginated_for_adjutancy( string $name_search, int $adjutancy_id ): int {
+		$wpdb      = self::db();
+		$table     = self::get_table_name();
+		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		$sql = '' !== $name_search
+			? 'SELECT COUNT(DISTINCT c.id) FROM %i c INNER JOIN %i cls ON cls.candidate_id = c.id WHERE cls.adjutancy_id = %d AND c.name LIKE %s'
+			: 'SELECT COUNT(DISTINCT c.id) FROM %i c INNER JOIN %i cls ON cls.candidate_id = c.id WHERE cls.adjutancy_id = %d';
+
+		$args = '' !== $name_search
+			? array( $table, $cls_table, $adjutancy_id, '%' . $wpdb->esc_like( $name_search ) . '%' )
+			: array( $table, $cls_table, $adjutancy_id );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is one of two literals selected immediately above; both placeholders match $args.
+		$total = $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
+
+		return null === $total ? 0 : (int) $total;
+	}
+
+	/**
 	 * Total candidate count, optionally filtered by `name` substring.
 	 *
 	 * Pairs with {@see self::get_paginated()} to drive the list table
@@ -357,6 +426,8 @@ class RecruitmentCandidateRepository {
 			return false;
 		}
 
+		do_action( 'ffc_recruitment_public_cache_dirty' );
+
 		return (int) $wpdb->insert_id;
 	}
 
@@ -413,6 +484,10 @@ class RecruitmentCandidateRepository {
 
 		static::cache_delete( "id_{$id}" );
 
+		if ( false !== $result ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
+
 		return false !== $result;
 	}
 
@@ -466,6 +541,10 @@ class RecruitmentCandidateRepository {
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
+
+		if ( false !== $result ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
 
 		return false !== $result;
 	}

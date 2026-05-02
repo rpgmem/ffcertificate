@@ -70,7 +70,12 @@ class RecruitmentNoticeAdjutancyRepository {
 			array( '%d', '%d' )
 		);
 
-		return false !== $result && $result > 0;
+		$ok = false !== $result && $result > 0;
+		if ( $ok ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
+
+		return $ok;
 	}
 
 	/**
@@ -99,7 +104,12 @@ class RecruitmentNoticeAdjutancyRepository {
 			array( '%d', '%d' )
 		);
 
-		return false !== $result && $result > 0;
+		$ok = false !== $result && $result > 0;
+		if ( $ok ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
+
+		return $ok;
 	}
 
 	/**
@@ -185,6 +195,11 @@ class RecruitmentNoticeAdjutancyRepository {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk delete; bounded by per-notice cardinality.
 		$result = $wpdb->delete( $table, array( 'notice_id' => $notice_id ), array( '%d' ) );
 
-		return is_int( $result ) ? $result : 0;
+		$rows = is_int( $result ) ? $result : 0;
+		if ( $rows > 0 ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
+
+		return $rows;
 	}
 }

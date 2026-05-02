@@ -181,6 +181,8 @@ class RecruitmentAdjutancyRepository {
 			return false;
 		}
 
+		do_action( 'ffc_recruitment_public_cache_dirty' );
+
 		return (int) $wpdb->insert_id;
 	}
 
@@ -250,6 +252,10 @@ class RecruitmentAdjutancyRepository {
 
 		static::cache_delete( "id_{$id}" );
 
+		if ( false !== $result ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
+
 		return false !== $result;
 	}
 
@@ -271,6 +277,10 @@ class RecruitmentAdjutancyRepository {
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
+
+		if ( false !== $result ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
 
 		return false !== $result;
 	}

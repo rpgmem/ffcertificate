@@ -212,15 +212,95 @@ final class RecruitmentNoticeEditPage {
 		echo '<tr><th><label for="ffc-notice-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-notice-name" type="text" class="regular-text" name="name" value="' . esc_attr( (string) $notice->name ) . '" required></td></tr>';
 
-		echo '<tr><th><label for="ffc-notice-pcc">' . esc_html__( 'public_columns_config (JSON)', 'ffcertificate' ) . '</label></th>';
-		echo '<td><textarea id="ffc-notice-pcc" name="public_columns_config" rows="6" class="large-text code">' . esc_textarea( (string) $notice->public_columns_config ) . '</textarea>';
-		echo '<p class="description">' . esc_html__( 'Per-notice column visibility for [ffc_recruitment_queue]. `rank` and `name` are mandatory; setting them to false rejects the save.', 'ffcertificate' ) . '</p></td></tr>';
+		echo '<tr><th>' . esc_html__( 'Public columns', 'ffcertificate' ) . '</th>';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_columns_toggles() returns already-escaped HTML.
+		echo '<td>' . self::render_columns_toggles( (string) $notice->public_columns_config );
+		echo '<p class="description">' . esc_html__( 'Toggle which columns the public shortcode renders. Rank and Name are mandatory and cannot be turned off.', 'ffcertificate' ) . '</p></td></tr>';
 
 		echo '</tbody></table>';
 		submit_button( __( 'Save general', 'ffcertificate' ) );
 		echo '</form>';
 
 		echo '</div></div>';
+	}
+
+	/**
+	 * Render the public_columns_config field as a grid of on/off
+	 * checkboxes (one per supported column). The mandatory columns
+	 * (rank, name) render as disabled checkboxes pre-checked + a
+	 * hidden input with `value=1` so they always survive the save —
+	 * disabled inputs don't post their value, but a sibling hidden
+	 * field with the same name keeps the boolean true on the server.
+	 *
+	 * Stored as the same JSON shape `parse_columns_config()` already
+	 * consumes, so the public shortcode side needs no change.
+	 *
+	 * @param string $current_json Stored `public_columns_config` JSON.
+	 * @return string
+	 */
+	private static function render_columns_toggles( string $current_json ): string {
+		$labels = self::columns_label_map();
+
+		$decoded = json_decode( $current_json, true );
+		$decoded = is_array( $decoded ) ? $decoded : array();
+		/**
+		 * Defaults from the repository so a brand-new notice with an
+		 * empty/invalid stored config still renders the canonical "on"
+		 * set instead of every checkbox unchecked.
+		 *
+		 * @var array<string,bool> $defaults
+		 */
+		$defaults = (array) json_decode( RecruitmentNoticeRepository::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
+		$state    = array_merge( $defaults, $decoded );
+
+		$mandatory = array( 'rank', 'name' );
+
+		$html = '<div class="ffc-recruitment-columns-toggles" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 16px;">';
+		foreach ( $labels as $key => $label ) {
+			$is_mandatory = in_array( $key, $mandatory, true );
+			$checked      = $is_mandatory || ! empty( $state[ $key ] );
+			$id_attr      = 'ffc-notice-pcc-' . $key;
+			$html        .= '<label for="' . esc_attr( $id_attr ) . '" style="display:flex;align-items:center;gap:6px;">';
+			if ( $is_mandatory ) {
+				// Disabled checkboxes don't post; a hidden sibling pins
+				// the value=1 so the save handler always sees the
+				// mandatory column as on.
+				$html .= '<input type="hidden" name="public_columns[' . esc_attr( $key ) . ']" value="1">';
+				$html .= '<input id="' . esc_attr( $id_attr ) . '" type="checkbox" checked disabled aria-disabled="true">';
+			} else {
+				$html .= '<input id="' . esc_attr( $id_attr ) . '" type="checkbox" name="public_columns[' . esc_attr( $key ) . ']" value="1"' . ( $checked ? ' checked' : '' ) . '>';
+			}
+			$html .= esc_html( $label );
+			if ( $is_mandatory ) {
+				$html .= ' <em style="color:#646970;font-size:11px;">(' . esc_html__( 'mandatory', 'ffcertificate' ) . ')</em>';
+			}
+			$html .= '</label>';
+		}
+		$html .= '</div>';
+
+		return $html;
+	}
+
+	/**
+	 * Display labels for every column the public shortcode supports.
+	 * The order here drives the order the toggles render in the grid.
+	 *
+	 * @return array<string,string>
+	 */
+	private static function columns_label_map(): array {
+		return array(
+			'rank'           => __( 'Rank', 'ffcertificate' ),
+			'name'           => __( 'Name', 'ffcertificate' ),
+			'adjutancy'      => __( 'Adjutancy', 'ffcertificate' ),
+			'status'         => __( 'Status', 'ffcertificate' ),
+			'pcd_badge'      => __( 'PCD badge', 'ffcertificate' ),
+			'date_to_assume' => __( 'Date to assume', 'ffcertificate' ),
+			'time_to_assume' => __( 'Time to assume', 'ffcertificate' ),
+			'score'          => __( 'Score', 'ffcertificate' ),
+			'cpf_masked'     => __( 'CPF (masked)', 'ffcertificate' ),
+			'rf_masked'      => __( 'RF (masked)', 'ffcertificate' ),
+			'email_masked'   => __( 'Email (masked)', 'ffcertificate' ),
+		);
 	}
 
 	/**
@@ -585,7 +665,17 @@ final class RecruitmentNoticeEditPage {
 		foreach ( $rows as $row ) {
 			$candidate_name = $candidates[ (int) $row->candidate_id ] ?? '#' . (int) $row->candidate_id;
 			$adjutancy_slug = $adjutancies[ (int) $row->adjutancy_id ] ?? '#' . (int) $row->adjutancy_id;
-			echo '<tr>';
+			// data-cls-* attributes drive the out-of-order detection in
+			// render_classification_actions_script(): the JS scans all
+			// rows to compute the lowest-rank `empty` row per adjutancy
+			// and flags clicks/bulk-selects that skip ahead of it.
+			printf(
+				'<tr data-cls-id="%d" data-cls-rank="%d" data-cls-adjutancy="%s" data-cls-status="%s">',
+				(int) $row->id,
+				(int) $row->rank,
+				esc_attr( (string) $adjutancy_slug ),
+				esc_attr( (string) $row->status )
+			);
 			if ( $with_actions ) {
 				// Only `empty` rows can be bulk-called (the §5.2
 				// state-machine guard rejects everything else with
@@ -706,13 +796,32 @@ final class RecruitmentNoticeEditPage {
 	 * @return void
 	 */
 	private static function render_classification_actions_script(): void {
-		$nonce        = wp_create_nonce( 'wp_rest' );
-		$call_url     = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
-		$bulk_url     = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/bulk-call' ) );
-		$bulk_no_sel  = esc_js( __( 'Select at least one row first.', 'ffcertificate' ) );
-		$bulk_no_date = esc_js( __( 'Date and time are required for bulk call.', 'ffcertificate' ) );
+		$nonce              = wp_create_nonce( 'wp_rest' );
+		$call_url           = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
+		$bulk_url           = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/bulk-call' ) );
+		$bulk_no_sel        = esc_js( __( 'Select at least one row first.', 'ffcertificate' ) );
+		$bulk_no_date       = esc_js( __( 'Date and time are required for bulk call.', 'ffcertificate' ) );
+		$confirm_ooo_single = esc_js( __( 'This call would skip a higher-ranked candidate (out of order). Continue?', 'ffcertificate' ) );
+		$prompt_ooo_reason  = esc_js( __( 'Justification for calling out of order (required):', 'ffcertificate' ) );
+		$confirm_ooo_bulk   = esc_js( __( 'One or more selected rows would skip a higher-ranked candidate (out of order). Continue?', 'ffcertificate' ) );
+		$reason_required    = esc_js( __( 'A justification is required to proceed.', 'ffcertificate' ) );
 
 		echo '<script>'
+			// Compute the lowest-rank `empty` row per adjutancy from the
+			// rendered DOM. Used by both the single-row Call handler and
+			// the bulk-call handler to detect skips before any prompt.
+			. 'function ffcRecruitmentLowestEmpty(){'
+			. 'var rows=document.querySelectorAll("tr[data-cls-id]");'
+			. 'var lowest={};'
+			. 'for(var i=0;i<rows.length;i++){'
+			. 'var tr=rows[i];'
+			. 'if(tr.getAttribute("data-cls-status")!=="empty")continue;'
+			. 'var adj=tr.getAttribute("data-cls-adjutancy");'
+			. 'var rank=parseInt(tr.getAttribute("data-cls-rank"),10);'
+			. 'if(!lowest[adj]||rank<lowest[adj]){lowest[adj]=rank;}'
+			. '}'
+			. 'return lowest;'
+			. '}'
 			// Bulk-call helpers — toggle-all + submit handler.
 			. 'function ffcRecruitmentClsToggleAll(cb){'
 			. 'var boxes=document.querySelectorAll(".ffc-cls-bulk-cb:not([disabled])");'
@@ -726,11 +835,34 @@ final class RecruitmentNoticeEditPage {
 			. 'var ids=[];var boxes=document.querySelectorAll(".ffc-cls-bulk-cb:checked");'
 			. 'for(var i=0;i<boxes.length;i++){ids.push(parseInt(boxes[i].value,10));}'
 			. 'if(ids.length===0){status.textContent="' . esc_attr( $bulk_no_sel ) . '";return;}'
+			// Out-of-order detection: any selected id whose rank > the
+			// lowest-empty-rank in the same adjutancy means the bulk
+			// would skip someone. Build the reasons map upfront if so —
+			// the user supplies one shared justification that we apply
+			// to every selected id (server ignores it for in-order ids).
+			. 'var lowest=ffcRecruitmentLowestEmpty();'
+			. 'var anyOoO=false;'
+			. 'for(var j=0;j<ids.length;j++){'
+			. 'var tr=document.querySelector(\'tr[data-cls-id="\'+ids[j]+\'"]\');'
+			. 'if(!tr)continue;'
+			. 'var rank=parseInt(tr.getAttribute("data-cls-rank"),10);'
+			. 'var adj=tr.getAttribute("data-cls-adjutancy");'
+			. 'if(lowest[adj]&&rank>lowest[adj]){anyOoO=true;break;}'
+			. '}'
+			. 'var reasons={};'
+			. 'if(anyOoO){'
+			. 'if(!confirm("' . esc_attr( $confirm_ooo_bulk ) . '"))return;'
+			. 'var sharedReason=prompt("' . esc_attr( $prompt_ooo_reason ) . '");'
+			. 'if(!sharedReason||!sharedReason.trim()){alert("' . esc_attr( $reason_required ) . '");return;}'
+			. 'for(var k=0;k<ids.length;k++){reasons[String(ids[k])]=sharedReason;}'
+			. '}'
 			. 'status.textContent="…";'
+			. 'var bulkPayload={classification_ids:ids,date_to_assume:date,time_to_assume:time};'
+			. 'if(anyOoO){bulkPayload.out_of_order_reasons=reasons;}'
 			. 'fetch("' . esc_js( $bulk_url ) . '",{'
 			. 'method:"POST",'
 			. 'headers:{"X-WP-Nonce":"' . esc_js( $nonce ) . '","Content-Type":"application/json"},'
-			. 'body:JSON.stringify({classification_ids:ids,date_to_assume:date,time_to_assume:time}),'
+			. 'body:JSON.stringify(bulkPayload),'
 			. 'credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
 			. 'if(o.status>=200&&o.status<300){location.reload();}'
@@ -745,11 +877,27 @@ final class RecruitmentNoticeEditPage {
 			. 'var base="' . esc_js( $call_url ) . '";'
 			. 'var url,init;'
 			. 'if(action==="call"){'
+			// Out-of-order is detected BEFORE asking date/time so the
+			// admin sees the warning/justification step at the top of
+			// the flow rather than after committing to a schedule.
+			. 'var oooReason="";'
+			. 'var tr=document.querySelector(\'tr[data-cls-id="\'+id+\'"]\');'
+			. 'if(tr){'
+			. 'var rank=parseInt(tr.getAttribute("data-cls-rank"),10);'
+			. 'var adj=tr.getAttribute("data-cls-adjutancy");'
+			. 'var lowest=ffcRecruitmentLowestEmpty();'
+			. 'if(lowest[adj]&&rank>lowest[adj]){'
+			. 'if(!confirm("' . esc_attr( $confirm_ooo_single ) . '"))return;'
+			. 'oooReason=prompt("' . esc_attr( $prompt_ooo_reason ) . '")||"";'
+			. 'if(!oooReason.trim()){alert("' . esc_attr( $reason_required ) . '");return;}'
+			. '}'
+			. '}'
 			. 'var date=prompt("' . esc_js( __( 'Date to assume (YYYY-MM-DD):', 'ffcertificate' ) ) . '");'
 			. 'if(!date)return;'
 			. 'var time=prompt("' . esc_js( __( 'Time to assume (HH:MM):', 'ffcertificate' ) ) . '");'
 			. 'if(!time)return;'
 			. 'var fd=new FormData();fd.append("date_to_assume",date);fd.append("time_to_assume",time);'
+			. 'if(oooReason)fd.append("out_of_order_reason",oooReason);'
 			. 'url=base+id+"/call";init={method:"POST",headers:{"X-WP-Nonce":nonce},body:fd,credentials:"same-origin"};'
 			. '}else if(action==="cancel"){'
 			. 'var reason=prompt("' . esc_js( __( 'Cancellation reason (required):', 'ffcertificate' ) ) . '");'
@@ -842,27 +990,30 @@ final class RecruitmentNoticeEditPage {
 			exit;
 		}
 
-		$name   = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['name'] ) ) : '';
-		$config = isset( $_POST['public_columns_config'] ) ? wp_unslash( (string) $_POST['public_columns_config'] ) : '';
+		$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['name'] ) ) : '';
 
-		// Validate the public_columns_config JSON. `rank` and `name` are
-		// mandatory true per §3.2 — the repository's update layer doesn't
-		// enforce that, so the UI guard does.
-		$decoded = json_decode( $config, true );
-		if ( is_array( $decoded ) ) {
-			if ( array_key_exists( 'rank', $decoded ) && false === $decoded['rank'] ) {
-				self::redirect_with_notice( $notice_id, 'rank-mandatory' );
-			}
-			if ( array_key_exists( 'name', $decoded ) && false === $decoded['name'] ) {
-				self::redirect_with_notice( $notice_id, 'name-mandatory' );
-			}
+		// Build the JSON config from the checkbox grid. Every key in
+		// columns_label_map() emits an entry; unchecked checkboxes don't
+		// POST so we treat them as `false`, while the mandatory columns
+		// (rank, name) ride on hidden value=1 inputs that always post.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified above via check_admin_referer.
+		$posted = isset( $_POST['public_columns'] ) && is_array( $_POST['public_columns'] )
+			? wp_unslash( $_POST['public_columns'] )
+			: array();
+		$labels = self::columns_label_map();
+		$built  = array();
+		foreach ( array_keys( $labels ) as $key ) {
+			$built[ $key ] = isset( $posted[ $key ] ) && '' !== (string) $posted[ $key ];
 		}
+		$built['rank'] = true;
+		$built['name'] = true;
+		$config        = wp_json_encode( $built );
 
 		RecruitmentNoticeRepository::update(
 			$notice_id,
 			array(
 				'name'                  => $name,
-				'public_columns_config' => $config,
+				'public_columns_config' => is_string( $config ) ? $config : '{}',
 			)
 		);
 
