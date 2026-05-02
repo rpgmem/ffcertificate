@@ -104,12 +104,17 @@ final class RecruitmentPublicShortcode {
 		);
 
 		$notice_code = trim( (string) $atts['notice'] );
-		$slug_filter = trim( (string) $atts['adjutancy'] );
+		$attr_filter = trim( (string) $atts['adjutancy'] );
+		$slug_filter = $attr_filter;
 
 		// When the shortcode wasn't called with a fixed adjutancy attribute,
 		// honor the per-page filter dropdown (`?adjutancy=foo`). Sanitize
 		// to a sane slug shape so a hostile URL doesn't bleed into the
-		// repository lookup.
+		// repository lookup. The filter UI is suppressed only when the
+		// shortcode itself pinned an adjutancy via attribute — selecting
+		// a value via the dropdown must still leave the dropdown rendered
+		// so visitors can switch back to "All" or pick a different one.
+		$filter_locked = '' !== $attr_filter;
 		if ( '' === $slug_filter ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter.
 			$get_filter  = isset( $_GET['adjutancy'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['adjutancy'] ) ) : '';
@@ -130,13 +135,13 @@ final class RecruitmentPublicShortcode {
 		$page_top    = max( 1, (int) ( $_GET['page_top'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$page_bottom = max( 1, (int) ( $_GET['page_bottom'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
-		$cache_key = self::cache_key( $notice_code, $slug_filter, $page_top, $page_bottom );
+		$cache_key = self::cache_key( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked );
 		$cached    = get_transient( $cache_key );
 		if ( is_string( $cached ) ) {
 			return $cached;
 		}
 
-		$html = self::wrap_output( self::render_uncached( $notice_code, $slug_filter, $page_top, $page_bottom ) );
+		$html = self::wrap_output( self::render_uncached( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked ) );
 
 		$settings = RecruitmentSettings::all();
 		$ttl      = (int) $settings['public_cache_seconds'];
@@ -183,13 +188,17 @@ final class RecruitmentPublicShortcode {
 	 * Split out so tests / direct callers can bypass caching without
 	 * messing with transients.
 	 *
-	 * @param string $notice_code  User-supplied notice code.
-	 * @param string $slug_filter  User-supplied adjutancy slug filter (may be empty).
-	 * @param int    $page_top     1-indexed page for the "Não chamados" section.
-	 * @param int    $page_bottom  1-indexed page for the "Chamados" section.
+	 * @param string $notice_code   User-supplied notice code.
+	 * @param string $slug_filter   User-supplied adjutancy slug filter (may be empty).
+	 * @param int    $page_top      1-indexed page for the "Não chamados" section.
+	 * @param int    $page_bottom   1-indexed page for the "Chamados" section.
+	 * @param bool   $filter_locked True when the shortcode was called with a fixed
+	 *                              `adjutancy=` attribute — the filter UI is then
+	 *                              suppressed so callers who pinned the adjutancy
+	 *                              cannot be re-routed by URL tampering.
 	 * @return string
 	 */
-	public static function render_uncached( string $notice_code, string $slug_filter, int $page_top, int $page_bottom ): string {
+	public static function render_uncached( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false ): string {
 		$notice = RecruitmentNoticeRepository::get_by_code( $notice_code );
 		if ( null === $notice ) {
 			return self::msg( __( 'Notice not found.', 'ffcertificate' ), 'error' );
@@ -248,9 +257,13 @@ final class RecruitmentPublicShortcode {
 		$settings  = RecruitmentSettings::all();
 		$page_size = (int) $settings['public_default_page_size'];
 
-		$adjutancy_filter_html = '' === $slug_filter
-			? self::render_adjutancy_filter( (int) $notice->id )
-			: '';
+		// Render the filter dropdown unless the shortcode itself pinned an
+		// adjutancy via attribute. Keeping the dropdown rendered when a URL
+		// filter is active is intentional: visitors must always be able to
+		// switch back to "All" or to a different adjutancy from the same UI.
+		$adjutancy_filter_html = $filter_locked
+			? ''
+			: self::render_adjutancy_filter( (int) $notice->id );
 
 		$top_section    = self::render_section(
 			__( 'Not yet called', 'ffcertificate' ),
@@ -382,7 +395,7 @@ final class RecruitmentPublicShortcode {
 		}
 		if ( $columns['adjutancy'] ) {
 			$adjutancy = RecruitmentAdjutancyRepository::get_by_id( (int) $row->adjutancy_id );
-			$html     .= '<td>' . esc_html( null === $adjutancy ? '' : (string) $adjutancy->name ) . '</td>';
+			$html     .= '<td>' . self::render_adjutancy_badge( $adjutancy ) . '</td>';
 		}
 		if ( $columns['cpf_masked'] ) {
 			$plain = self::decrypt_field( $candidate->cpf_encrypted );
@@ -616,6 +629,33 @@ final class RecruitmentPublicShortcode {
 	}
 
 	/**
+	 * Render an adjutancy as a colored "tag" badge. The color comes from
+	 * the per-adjutancy `color` column (configured in the Recruitment ›
+	 * Adjutancies admin tab); rows missing the column fall back to the
+	 * neutral default. Mirrors {@see self::render_status_badge()} so the
+	 * two badge types share visual treatment.
+	 *
+	 * @param object|null $adjutancy Adjutancy row (AdjutancyRow) or null.
+	 * @phpstan-param (\stdClass&object{name?: mixed, color?: mixed})|null $adjutancy
+	 * @return string Already-escaped HTML; empty string when adjutancy is null.
+	 */
+	private static function render_adjutancy_badge( ?object $adjutancy ): string {
+		if ( null === $adjutancy ) {
+			return '';
+		}
+		$color_raw = $adjutancy->color ?? '';
+		$color     = is_string( $color_raw ) && '' !== $color_raw
+			? $color_raw
+			: RecruitmentAdjutancyRepository::DEFAULT_COLOR;
+		$name      = $adjutancy->name ?? '';
+		return sprintf(
+			'<span class="ffc-recruitment-adjutancy-badge" style="background:%s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%s</span>',
+			esc_attr( $color ),
+			esc_html( is_string( $name ) ? $name : '' )
+		);
+	}
+
+	/**
 	 * Render the status as a colored "tag" badge. Colors come from the
 	 * recruitment Settings page (admins can override per-deployment); the
 	 * defaults are the soft palette the user requested:
@@ -706,11 +746,13 @@ final class RecruitmentPublicShortcode {
 	 * @param string $slug_filter   Adjutancy slug filter ('' when no filter).
 	 * @param int    $page_top      Página da seção "Não chamados".
 	 * @param int    $page_bottom   Página da seção "Chamados".
+	 * @param bool   $filter_locked Whether the shortcode pinned the adjutancy
+	 *                              via attribute (filter UI is suppressed).
 	 * @return string Transient key (under WP's 172-char limit).
 	 */
-	private static function cache_key( string $notice_code, string $slug_filter, int $page_top, int $page_bottom ): string {
+	private static function cache_key( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false ): string {
 		return self::CACHE_PREFIX . md5(
-			strtoupper( $notice_code ) . '|' . $slug_filter . '|' . $page_top . '|' . $page_bottom
+			strtoupper( $notice_code ) . '|' . $slug_filter . '|' . $page_top . '|' . $page_bottom . '|' . ( $filter_locked ? '1' : '0' )
 		);
 	}
 

@@ -126,7 +126,10 @@ class DashboardShortcode {
 		// the repository layer.
 		$recruitment_html = '';
 		if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentDashboardSection' ) ) {
-			$recruitment_html = \FreeFormCertificate\Recruitment\RecruitmentDashboardSection::render();
+			// Pass the already-resolved (view-as-aware) $user_id explicitly
+			// so the recruitment section renders for the impersonated user
+			// when an admin is in view-as mode — not the admin's own row.
+			$recruitment_html = \FreeFormCertificate\Recruitment\RecruitmentDashboardSection::render_for_user( (int) $user_id );
 		}
 		$can_view_recruitment = '' !== $recruitment_html;
 

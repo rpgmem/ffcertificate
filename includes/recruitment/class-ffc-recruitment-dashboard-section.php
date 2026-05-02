@@ -35,6 +35,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Shortcodes\DashboardViewMode;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -62,16 +64,41 @@ final class RecruitmentDashboardSection {
 	}
 
 	/**
-	 * Shortcode callback.
+	 * Shortcode callback. Resolves the effective user via the dashboard's
+	 * "view as user" override (admins only, gated by nonce + cap inside
+	 * {@see DashboardViewMode::get_view_as_user_id()}) so the section
+	 * renders the impersonated user's classifications instead of the
+	 * admin's own when an admin is in view-as mode.
 	 *
+	 * @param array<string|int, mixed>|string $atts Raw shortcode attributes (unused).
 	 * @return string
 	 */
-	public static function render(): string {
+	public static function render( $atts = array() ): string {
+		unset( $atts );
+
 		if ( ! is_user_logged_in() ) {
 			return '';
 		}
 
-		$user_id = get_current_user_id();
+		$view_as = class_exists( DashboardViewMode::class )
+			? DashboardViewMode::get_view_as_user_id()
+			: false;
+		$user_id = $view_as ? (int) $view_as : (int) get_current_user_id();
+
+		return self::render_for_user( $user_id );
+	}
+
+	/**
+	 * In-process render entry point. Used by `DashboardShortcode` so the
+	 * already-resolved (view-as-aware) `$user_id` can be threaded through
+	 * without re-checking nonces/caps a second time. Anyone calling this
+	 * directly is responsible for ensuring the supplied id is the user
+	 * they actually intend to render — the method does not re-validate.
+	 *
+	 * @param int $user_id Effective candidate-side WP user id.
+	 * @return string
+	 */
+	public static function render_for_user( int $user_id ): string {
 		if ( $user_id <= 0 ) {
 			return '';
 		}

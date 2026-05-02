@@ -265,14 +265,19 @@ final class RecruitmentRestController {
 					'callback'            => array( $this, 'create_adjutancy' ),
 					'permission_callback' => array( $this, 'check_admin_cap' ),
 					'args'                => array(
-						'slug' => array(
+						'slug'  => array(
 							'type'              => 'string',
 							'required'          => true,
 							'sanitize_callback' => 'sanitize_title',
 						),
-						'name' => array(
+						'name'  => array(
 							'type'              => 'string',
 							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'color' => array(
+							'type'              => 'string',
+							'required'          => false,
 							'sanitize_callback' => 'sanitize_text_field',
 						),
 					),
@@ -757,7 +762,8 @@ final class RecruitmentRestController {
 	public function create_adjutancy( \WP_REST_Request $request ) {
 		$id = RecruitmentAdjutancyRepository::create(
 			(string) $request->get_param( 'slug' ),
-			(string) $request->get_param( 'name' )
+			(string) $request->get_param( 'name' ),
+			(string) ( $request->get_param( 'color' ) ?? '' )
 		);
 		if ( false === $id ) {
 			return new \WP_Error(
@@ -777,7 +783,7 @@ final class RecruitmentRestController {
 	 */
 	public function update_adjutancy( \WP_REST_Request $request ) {
 		$id   = (int) $request->get_param( 'id' );
-		$data = array_intersect_key( $request->get_params(), array_flip( array( 'slug', 'name' ) ) );
+		$data = array_intersect_key( $request->get_params(), array_flip( array( 'slug', 'name', 'color' ) ) );
 		$ok   = RecruitmentAdjutancyRepository::update( $id, $data );
 		if ( ! $ok ) {
 			return new \WP_Error(

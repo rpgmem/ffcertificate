@@ -57,6 +57,7 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 			'cb'         => '<input type="checkbox" />',
 			'slug'       => __( 'Slug', 'ffcertificate' ),
 			'name'       => __( 'Name', 'ffcertificate' ),
+			'color'      => __( 'Badge color', 'ffcertificate' ),
 			'usage'      => __( 'Notices using', 'ffcertificate' ),
 			'created_at' => __( 'Created at', 'ffcertificate' ),
 		);
@@ -146,6 +147,27 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 			esc_url( $edit_url ),
 			esc_html( $slug ),
 			$this->row_actions( $actions )
+		);
+	}
+
+	/**
+	 * Color column — inline color picker that PATCHes the row via the
+	 * REST endpoint on change. The picker UX mirrors the per-status
+	 * pickers in the Settings tab so admins get one consistent affordance
+	 * for every "what color is this badge" choice in the module.
+	 *
+	 * @param array<string, mixed> $item Row.
+	 * @return string
+	 */
+	protected function column_color( $item ): string {
+		$id    = (int) $item['id'];
+		$color = (string) ( $item['color'] ?? RecruitmentAdjutancyRepository::DEFAULT_COLOR );
+		return sprintf(
+			'<input type="color" value="%s" data-ffc-adjutancy-id="%d" class="ffc-adjutancy-color-picker" aria-label="%s"> <code class="ffc-adjutancy-color-hex">%s</code>',
+			esc_attr( $color ),
+			$id,
+			esc_attr__( 'Badge color', 'ffcertificate' ),
+			esc_html( $color )
 		);
 	}
 
@@ -275,6 +297,7 @@ class RecruitmentAdjutanciesListTable extends \WP_List_Table {
 					'id'         => (int) $row->id,
 					'slug'       => (string) $row->slug,
 					'name'       => (string) $row->name,
+					'color'      => isset( $row->color ) ? (string) $row->color : RecruitmentAdjutancyRepository::DEFAULT_COLOR,
 					'created_at' => (string) $row->created_at,
 				);
 			},

@@ -351,6 +351,47 @@ final class RecruitmentAdminPage {
 		echo '</form>';
 
 		self::render_create_adjutancy_form();
+		self::render_adjutancy_color_picker_script();
+	}
+
+	/**
+	 * Inline JS that turns each adjutancy color picker (rendered by
+	 * {@see RecruitmentAdjutanciesListTable::column_color()}) into an
+	 * auto-PATCHing control.
+	 *
+	 * Listening at `change` instead of `input` so the request fires once
+	 * the user commits a color rather than firing on every drag step
+	 * across the picker. The hex label next to the picker is updated in
+	 * place so admins get instant feedback without a page reload.
+	 *
+	 * @return void
+	 */
+	private static function render_adjutancy_color_picker_script(): void {
+		$nonce    = wp_create_nonce( 'wp_rest' );
+		$base_url = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/adjutancies/' ) );
+
+		echo '<script>'
+			. '(function(){'
+			. 'document.querySelectorAll(".ffc-adjutancy-color-picker").forEach(function(input){'
+			. 'input.addEventListener("change",function(){'
+			. 'var id=parseInt(input.getAttribute("data-ffc-adjutancy-id"),10);'
+			. 'if(!id){return;}'
+			. 'var fd=new FormData();fd.append("color",input.value);'
+			. 'fetch(' . wp_json_encode( $base_url ) . '+id,{'
+			. 'method:"POST",'
+			. 'headers:{"X-WP-Nonce":' . wp_json_encode( $nonce ) . ',"X-HTTP-Method-Override":"PATCH"},'
+			. 'body:fd'
+			. '}).then(function(r){return r.json();}).then(function(d){'
+			. 'if(d&&d.color){'
+			. 'input.value=d.color;'
+			. 'var hex=input.parentNode.querySelector(".ffc-adjutancy-color-hex");'
+			. 'if(hex){hex.textContent=d.color;}'
+			. '}else{alert(JSON.stringify(d));}'
+			. '});'
+			. '});'
+			. '});'
+			. '})();'
+			. '</script>';
 	}
 
 	/**
@@ -507,6 +548,8 @@ final class RecruitmentAdminPage {
 	private static function render_create_adjutancy_form(): void {
 		$nonce = wp_create_nonce( 'wp_rest' );
 
+		$default_color = RecruitmentAdjutancyRepository::DEFAULT_COLOR;
+
 		echo '<h3>' . esc_html__( 'Create new adjutancy', 'ffcertificate' ) . '</h3>';
 		echo '<form id="ffc-create-adjutancy" method="post" onsubmit="return ffcRecruitmentCreateAdjutancy(this);">';
 		echo '<table class="form-table"><tbody>';
@@ -514,6 +557,10 @@ final class RecruitmentAdminPage {
 		echo '<td><input id="ffc-adj-slug" name="slug" type="text" class="regular-text" required></td></tr>';
 		echo '<tr><th><label for="ffc-adj-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-adj-name" name="name" type="text" class="regular-text" required></td></tr>';
+		echo '<tr><th><label for="ffc-adj-color">' . esc_html__( 'Badge color', 'ffcertificate' ) . '</label></th>';
+		echo '<td><input id="ffc-adj-color" name="color" type="color" value="' . esc_attr( $default_color ) . '">';
+		echo '<p class="description">' . esc_html__( 'Background color for this adjutancy badge on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values silently fall back to the default.', 'ffcertificate' ) . '</p>';
+		echo '</td></tr>';
 		echo '</tbody></table>';
 		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
 		echo '</form>';
