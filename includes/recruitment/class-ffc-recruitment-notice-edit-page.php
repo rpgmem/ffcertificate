@@ -212,15 +212,94 @@ final class RecruitmentNoticeEditPage {
 		echo '<tr><th><label for="ffc-notice-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-notice-name" type="text" class="regular-text" name="name" value="' . esc_attr( (string) $notice->name ) . '" required></td></tr>';
 
-		echo '<tr><th><label for="ffc-notice-pcc">' . esc_html__( 'public_columns_config (JSON)', 'ffcertificate' ) . '</label></th>';
-		echo '<td><textarea id="ffc-notice-pcc" name="public_columns_config" rows="6" class="large-text code">' . esc_textarea( (string) $notice->public_columns_config ) . '</textarea>';
-		echo '<p class="description">' . esc_html__( 'Per-notice column visibility for [ffc_recruitment_queue]. `rank` and `name` are mandatory; setting them to false rejects the save.', 'ffcertificate' ) . '</p></td></tr>';
+		echo '<tr><th>' . esc_html__( 'Public columns', 'ffcertificate' ) . '</th>';
+		echo '<td>' . self::render_columns_toggles( (string) $notice->public_columns_config );
+		echo '<p class="description">' . esc_html__( 'Toggle which columns the public shortcode renders. Rank and Name are mandatory and cannot be turned off.', 'ffcertificate' ) . '</p></td></tr>';
 
 		echo '</tbody></table>';
 		submit_button( __( 'Save general', 'ffcertificate' ) );
 		echo '</form>';
 
 		echo '</div></div>';
+	}
+
+	/**
+	 * Render the public_columns_config field as a grid of on/off
+	 * checkboxes (one per supported column). The mandatory columns
+	 * (rank, name) render as disabled checkboxes pre-checked + a
+	 * hidden input with `value=1` so they always survive the save —
+	 * disabled inputs don't post their value, but a sibling hidden
+	 * field with the same name keeps the boolean true on the server.
+	 *
+	 * Stored as the same JSON shape `parse_columns_config()` already
+	 * consumes, so the public shortcode side needs no change.
+	 *
+	 * @param string $current_json Stored `public_columns_config` JSON.
+	 * @return string
+	 */
+	private static function render_columns_toggles( string $current_json ): string {
+		$labels = self::columns_label_map();
+
+		$decoded = json_decode( $current_json, true );
+		$decoded = is_array( $decoded ) ? $decoded : array();
+		/**
+		 * Defaults from the repository so a brand-new notice with an
+		 * empty/invalid stored config still renders the canonical "on"
+		 * set instead of every checkbox unchecked.
+		 *
+		 * @var array<string,bool> $defaults
+		 */
+		$defaults = (array) json_decode( RecruitmentNoticeRepository::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
+		$state    = array_merge( $defaults, $decoded );
+
+		$mandatory = array( 'rank', 'name' );
+
+		$html = '<div class="ffc-recruitment-columns-toggles" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 16px;">';
+		foreach ( $labels as $key => $label ) {
+			$is_mandatory = in_array( $key, $mandatory, true );
+			$checked      = $is_mandatory || ! empty( $state[ $key ] );
+			$id_attr      = 'ffc-notice-pcc-' . $key;
+			$html        .= '<label for="' . esc_attr( $id_attr ) . '" style="display:flex;align-items:center;gap:6px;">';
+			if ( $is_mandatory ) {
+				// Disabled checkboxes don't post; a hidden sibling pins
+				// the value=1 so the save handler always sees the
+				// mandatory column as on.
+				$html .= '<input type="hidden" name="public_columns[' . esc_attr( $key ) . ']" value="1">';
+				$html .= '<input id="' . esc_attr( $id_attr ) . '" type="checkbox" checked disabled aria-disabled="true">';
+			} else {
+				$html .= '<input id="' . esc_attr( $id_attr ) . '" type="checkbox" name="public_columns[' . esc_attr( $key ) . ']" value="1"' . ( $checked ? ' checked' : '' ) . '>';
+			}
+			$html .= esc_html( $label );
+			if ( $is_mandatory ) {
+				$html .= ' <em style="color:#646970;font-size:11px;">(' . esc_html__( 'mandatory', 'ffcertificate' ) . ')</em>';
+			}
+			$html .= '</label>';
+		}
+		$html .= '</div>';
+
+		return $html;
+	}
+
+	/**
+	 * Display labels for every column the public shortcode supports.
+	 * The order here drives the order the toggles render in the grid.
+	 *
+	 * @return array<string,string>
+	 */
+	private static function columns_label_map(): array {
+		return array(
+			'rank'           => __( 'Rank', 'ffcertificate' ),
+			'name'           => __( 'Name', 'ffcertificate' ),
+			'adjutancy'      => __( 'Adjutancy', 'ffcertificate' ),
+			'status'         => __( 'Status', 'ffcertificate' ),
+			'pcd_badge'      => __( 'PCD badge', 'ffcertificate' ),
+			'date_to_assume' => __( 'Date to assume', 'ffcertificate' ),
+			'time_to_assume' => __( 'Time to assume', 'ffcertificate' ),
+			'score'          => __( 'Score', 'ffcertificate' ),
+			'cpf_masked'     => __( 'CPF (masked)', 'ffcertificate' ),
+			'rf_masked'      => __( 'RF (masked)', 'ffcertificate' ),
+			'email_masked'   => __( 'Email (masked)', 'ffcertificate' ),
+		);
 	}
 
 	/**
@@ -842,27 +921,30 @@ final class RecruitmentNoticeEditPage {
 			exit;
 		}
 
-		$name   = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['name'] ) ) : '';
-		$config = isset( $_POST['public_columns_config'] ) ? wp_unslash( (string) $_POST['public_columns_config'] ) : '';
+		$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['name'] ) ) : '';
 
-		// Validate the public_columns_config JSON. `rank` and `name` are
-		// mandatory true per §3.2 — the repository's update layer doesn't
-		// enforce that, so the UI guard does.
-		$decoded = json_decode( $config, true );
-		if ( is_array( $decoded ) ) {
-			if ( array_key_exists( 'rank', $decoded ) && false === $decoded['rank'] ) {
-				self::redirect_with_notice( $notice_id, 'rank-mandatory' );
-			}
-			if ( array_key_exists( 'name', $decoded ) && false === $decoded['name'] ) {
-				self::redirect_with_notice( $notice_id, 'name-mandatory' );
-			}
+		// Build the JSON config from the checkbox grid. Every key in
+		// columns_label_map() emits an entry; unchecked checkboxes don't
+		// POST so we treat them as `false`, while the mandatory columns
+		// (rank, name) ride on hidden value=1 inputs that always post.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified above via check_admin_referer.
+		$posted = isset( $_POST['public_columns'] ) && is_array( $_POST['public_columns'] )
+			? wp_unslash( $_POST['public_columns'] )
+			: array();
+		$labels = self::columns_label_map();
+		$built  = array();
+		foreach ( array_keys( $labels ) as $key ) {
+			$built[ $key ] = isset( $posted[ $key ] ) && '' !== (string) $posted[ $key ];
 		}
+		$built['rank'] = true;
+		$built['name'] = true;
+		$config        = wp_json_encode( $built );
 
 		RecruitmentNoticeRepository::update(
 			$notice_id,
 			array(
 				'name'                  => $name,
-				'public_columns_config' => $config,
+				'public_columns_config' => is_string( $config ) ? $config : '{}',
 			)
 		);
 
