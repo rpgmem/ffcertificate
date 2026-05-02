@@ -11,7 +11,7 @@
  *   - `draft`       → error message "Edital ainda não publicado.";
  *   - `preliminary` → warning-only render — "Esta lista está em revisão";
  *                     no listing exposed (preview rows never render publicly).
- *   - `active`      → two-section layout (não chamados / chamados) of the
+ *   - `final`      → two-section layout (não chamados / chamados) of the
  *                     `list_type='definitive'` rows; no banner.
  *   - `closed`      → same listing + a "Edital encerrado" banner.
  *
@@ -151,17 +151,18 @@ final class RecruitmentPublicShortcode {
 			return self::msg( __( 'Notice not found.', 'ffcertificate' ), 'error' );
 		}
 
-		switch ( $notice->status ) {
-			case 'draft':
-				return self::msg( __( 'Notice not yet published.', 'ffcertificate' ), 'error' );
-			case 'preliminary':
-				return self::msg(
-					__( 'This list is under review. The preliminary classification is not yet publicly available.', 'ffcertificate' ),
-					'warning'
-				);
+		// draft → never expose data publicly.
+		if ( 'draft' === $notice->status ) {
+			return self::msg(
+				__( 'This notice is still being prepared. Public data will be available once the preliminary classification is published.', 'ffcertificate' ),
+				'info'
+			);
 		}
 
-		// active / closed → render the listing.
+		// preliminary, final, closed → render the listing. The list_type
+		// switches between `preview` (preliminary) and `definitive`
+		// (final/closed); the banner copy at the top differs accordingly.
+		$list_type    = 'preliminary' === $notice->status ? 'preview' : 'definitive';
 		$adjutancy_id = null;
 		if ( '' !== $slug_filter ) {
 			$adjutancy = RecruitmentAdjutancyRepository::get_by_slug( $slug_filter );
@@ -177,7 +178,7 @@ final class RecruitmentPublicShortcode {
 
 		$rows = RecruitmentClassificationRepository::get_for_notice(
 			(int) $notice->id,
-			'definitive',
+			$list_type,
 			$adjutancy_id
 		);
 
@@ -473,7 +474,15 @@ final class RecruitmentPublicShortcode {
 	 */
 	private static function wrap_with_banner( object $notice, string $body ): string {
 		$banner = '';
-		if ( 'closed' === $notice->status ) {
+		if ( 'preliminary' === $notice->status ) {
+			$banner = '<div class="ffc-recruitment-banner ffc-recruitment-banner-preliminary" role="status">'
+				. esc_html__( 'Preliminary list — classifications and participants may still change before this notice is finalized.', 'ffcertificate' )
+				. '</div>';
+		} elseif ( 'final' === $notice->status ) {
+			$banner = '<div class="ffc-recruitment-banner ffc-recruitment-banner-final" role="status">'
+				. esc_html__( 'Final classification.', 'ffcertificate' )
+				. '</div>';
+		} elseif ( 'closed' === $notice->status ) {
 			$banner = '<div class="ffc-recruitment-banner ffc-recruitment-banner-closed">'
 				. esc_html__( 'Notice closed.', 'ffcertificate' )
 				. '</div>';

@@ -18,7 +18,7 @@
  *
  *   1. The candidate's own classification(s) with a prévia/final banner
  *      based on `notice.status` (preliminary → preview row + warning
- *      banner; active/closed → definitive row + final banner).
+ *      banner; final/closed → definitive row + final banner).
  *   2. Convocations history — every call row including cancelled ones.
  *      Each call's "Situação" is derived per §9.3 (call's
  *      cancelled_at + classification.status).
@@ -161,7 +161,7 @@ final class RecruitmentDashboardSection {
 	 * Render the classifications mini-table.
 	 *
 	 * For preliminary notices, only `preview` rows are shown; for
-	 * active/closed, only `definitive` rows. The §5.2 invariant guarantees
+	 * final/closed, only `definitive` rows. The §5.2 invariant guarantees
 	 * preview is always `status='empty'`, so preliminary always shows
 	 * "Aguardando".
 	 *

@@ -121,7 +121,7 @@ class RecruitmentEmailDispatcherTest extends TestCase {
 			'id'                    => '5',
 			'code'                  => 'EDITAL-2026-01',
 			'name'                  => 'Edital de 2026',
-			'status'                => 'active',
+			'status'                => 'final',
 			'opened_at'             => '2026-04-01 09:00:00',
 			'closed_at'             => null,
 			'was_reopened'          => '0',

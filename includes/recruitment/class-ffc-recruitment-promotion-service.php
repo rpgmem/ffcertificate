@@ -2,7 +2,7 @@
 /**
  * Recruitment Promotion Service
  *
- * Encapsulates the §5.1 `preliminary → active` promotion flow. The transition
+ * Encapsulates the §5.1 `preliminary → final` promotion flow. The transition
  * itself goes through {@see RecruitmentNoticeStateMachine}; this service
  * adds the listing-side mechanics:
  *
@@ -10,7 +10,7 @@
  *     every `list_type='preview'` classification row into
  *     `list_type='definitive'`, atomically, before flipping the notice
  *     status. Wipes any existing `definitive` rows first (legacy from a
- *     prior `preliminary → active → preliminary` cycle, which is the
+ *     prior `preliminary → final → preliminary` cycle, which is the
  *     only way `definitive` can pre-exist when promoting).
  *
  *   - **Definitive-import mode** is handled directly by
@@ -52,7 +52,7 @@ final class RecruitmentPromotionService {
 
 	/**
 	 * Snapshot the current `preview` rows into `definitive`, then flip the
-	 * notice status to `active`.
+	 * notice status to `final`.
 	 *
 	 * The order of operations within the transaction is:
 	 *
@@ -111,10 +111,10 @@ final class RecruitmentPromotionService {
 				++$copied;
 			}
 
-			// Flip notice status to `active` via the state machine. This
+			// Flip notice status to `final` via the state machine. This
 			// stamps `opened_at` on the first promotion (idempotent on
 			// subsequent ones) and runs the race-safe conditional UPDATE.
-			$transition = RecruitmentNoticeStateMachine::transition_to( $notice_id, 'active' );
+			$transition = RecruitmentNoticeStateMachine::transition_to( $notice_id, 'final' );
 			if ( ! $transition['success'] ) {
 				$wpdb->query( 'ROLLBACK' );
 				return array(

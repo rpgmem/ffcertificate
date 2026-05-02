@@ -183,7 +183,7 @@ class RecruitmentDeleteServiceTest extends TestCase {
 			->twice()
 			->andReturn(
 				$this->classification_stub( 10, 'empty' ),
-				$this->notice_stub( 'active' )
+				$this->notice_stub( 'final' )
 			);
 
 		$result = RecruitmentDeleteService::delete_classification( 10 );

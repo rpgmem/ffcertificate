@@ -177,7 +177,7 @@ class RecruitmentDashboardSectionTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )
 			->times( 2 )
 			->andReturn(
-				$this->notice_stub( 'active' ),
+				$this->notice_stub( 'final' ),
 				$this->adjutancy_stub()
 			);
 
