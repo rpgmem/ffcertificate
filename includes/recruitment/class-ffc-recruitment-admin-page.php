@@ -198,6 +198,46 @@ final class RecruitmentAdminPage {
 					)
 				);
 				exit;
+
+			case 'delete-adjutancy':
+				$id = isset( $_GET['adjutancy_id'] ) ? absint( wp_unslash( (string) $_GET['adjutancy_id'] ) ) : 0;
+				if ( $id > 0 ) {
+					check_admin_referer( 'ffc_recruitment_delete_adjutancy_' . $id );
+					// DeleteService gates on §14: rejects when notice_adjutancy
+					// or classification rows reference this adjutancy. The
+					// envelope's success flag is opaque from the redirect path
+					// (UI lands in sprint B's edit screen with proper feedback).
+					RecruitmentDeleteService::delete_adjutancy( $id );
+				}
+				wp_safe_redirect(
+					add_query_arg(
+						array(
+							'page' => self::PAGE_SLUG,
+							'tab'  => 'adjutancies',
+						),
+						admin_url( 'admin.php' )
+					)
+				);
+				exit;
+
+			case 'delete-candidate':
+				$id = isset( $_GET['candidate_id'] ) ? absint( wp_unslash( (string) $_GET['candidate_id'] ) ) : 0;
+				if ( $id > 0 ) {
+					check_admin_referer( 'ffc_recruitment_delete_candidate_' . $id );
+					// DeleteService gates on §7-bis: zero classifications.
+					// The reason-collection UI lives on sprint C's edit screen.
+					RecruitmentDeleteService::delete_candidate( $id );
+				}
+				wp_safe_redirect(
+					add_query_arg(
+						array(
+							'page' => self::PAGE_SLUG,
+							'tab'  => 'candidates',
+						),
+						admin_url( 'admin.php' )
+					)
+				);
+				exit;
 		}
 	}
 
@@ -207,28 +247,17 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_adjutancies_tab(): void {
-		$rows = RecruitmentAdjutancyRepository::get_all();
-
 		echo '<h2>' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</h2>';
 
-		echo '<table class="widefat striped"><thead><tr>';
-		echo '<th>' . esc_html__( 'Slug', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Name', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Created at', 'ffcertificate' ) . '</th>';
-		echo '</tr></thead><tbody>';
+		$table = new RecruitmentAdjutanciesListTable();
+		$table->prepare_items();
 
-		if ( empty( $rows ) ) {
-			echo '<tr><td colspan="3">' . esc_html__( 'No adjutancies registered yet.', 'ffcertificate' ) . '</td></tr>';
-		} else {
-			foreach ( $rows as $a ) {
-				echo '<tr>';
-				echo '<td><code>' . esc_html( $a->slug ) . '</code></td>';
-				echo '<td>' . esc_html( $a->name ) . '</td>';
-				echo '<td>' . esc_html( $a->created_at ) . '</td>';
-				echo '</tr>';
-			}
-		}
-		echo '</tbody></table>';
+		echo '<form method="get">';
+		echo '<input type="hidden" name="page" value="' . esc_attr( self::PAGE_SLUG ) . '">';
+		echo '<input type="hidden" name="tab" value="adjutancies">';
+		$table->search_box( __( 'Search adjutancies', 'ffcertificate' ), 'ffc-recruitment-adjutancies' );
+		$table->display();
+		echo '</form>';
 
 		self::render_create_adjutancy_form();
 	}
@@ -249,12 +278,18 @@ final class RecruitmentAdminPage {
 	private static function render_candidates_tab(): void {
 		echo '<h2>' . esc_html__( 'Candidates', 'ffcertificate' ) . '</h2>';
 
-		self::render_csv_import_form();
+		$table = new RecruitmentCandidatesListTable();
+		$table->prepare_items();
+
+		echo '<form method="get">';
+		echo '<input type="hidden" name="page" value="' . esc_attr( self::PAGE_SLUG ) . '">';
+		echo '<input type="hidden" name="tab" value="candidates">';
+		$table->search_box( __( 'Search by name', 'ffcertificate' ), 'ffc-recruitment-candidates' );
+		$table->display();
+		echo '</form>';
 
 		echo '<hr style="margin:2em 0;">';
-		echo '<h3>' . esc_html__( 'Candidate management', 'ffcertificate' ) . '</h3>';
-		echo '<p>' . esc_html__( 'Per-candidate search, edit, and delete are exposed via the REST endpoints below — the full inline UI lands in a follow-up iteration.', 'ffcertificate' ) . '</p>';
-		self::render_rest_pointer();
+		self::render_csv_import_form();
 	}
 
 	/**
