@@ -106,6 +106,16 @@ final class RecruitmentPublicShortcode {
 		$notice_code = trim( (string) $atts['notice'] );
 		$slug_filter = trim( (string) $atts['adjutancy'] );
 
+		// When the shortcode wasn't called with a fixed adjutancy attribute,
+		// honor the per-page filter dropdown (`?adjutancy=foo`). Sanitize
+		// to a sane slug shape so a hostile URL doesn't bleed into the
+		// repository lookup.
+		if ( '' === $slug_filter ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter.
+			$get_filter  = isset( $_GET['adjutancy'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['adjutancy'] ) ) : '';
+			$slug_filter = trim( $get_filter );
+		}
+
 		if ( '' === $notice_code ) {
 			return self::wrap_output( self::msg( __( 'Notice attribute is required.', 'ffcertificate' ), 'error' ) );
 		}
@@ -307,6 +317,9 @@ final class RecruitmentPublicShortcode {
 		if ( $columns['name'] ) {
 			$html .= '<th>' . esc_html__( 'Name', 'ffcertificate' ) . '</th>';
 		}
+		if ( $columns['adjutancy'] ) {
+			$html .= '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
+		}
 		if ( $columns['cpf_masked'] ) {
 			$html .= '<th>CPF</th>';
 		}
@@ -367,6 +380,10 @@ final class RecruitmentPublicShortcode {
 		if ( $columns['name'] ) {
 			$html .= '<td>' . esc_html( (string) $candidate->name ) . '</td>';
 		}
+		if ( $columns['adjutancy'] ) {
+			$adjutancy = RecruitmentAdjutancyRepository::get_by_id( (int) $row->adjutancy_id );
+			$html     .= '<td>' . esc_html( null === $adjutancy ? '' : (string) $adjutancy->name ) . '</td>';
+		}
 		if ( $columns['cpf_masked'] ) {
 			$plain = self::decrypt_field( $candidate->cpf_encrypted );
 			$html .= '<td>' . esc_html( null === $plain ? '' : DocumentFormatter::mask_cpf( $plain ) ) . '</td>';
@@ -380,10 +397,12 @@ final class RecruitmentPublicShortcode {
 			$html .= '<td>' . esc_html( null === $plain ? '' : DocumentFormatter::mask_email( $plain ) ) . '</td>';
 		}
 		if ( $columns['score'] ) {
-			$html .= '<td>' . esc_html( (string) $row->score ) . '</td>';
+			// §3.5 score is DECIMAL(10,4); operator-facing surface
+			// truncates to 2 decimals for readability (53.00 vs 53.0000).
+			$html .= '<td>' . esc_html( number_format( (float) $row->score, 2, '.', '' ) ) . '</td>';
 		}
 		if ( $columns['status'] ) {
-			$html .= '<td>' . esc_html( self::status_label( (string) $row->status ) ) . '</td>';
+			$html .= '<td>' . self::render_status_badge( (string) $row->status ) . '</td>';
 		}
 		if ( $columns['pcd_badge'] ) {
 			$is_pcd = RecruitmentPcdHasher::verify( (string) $candidate->pcd_hash, (int) $candidate->id );
@@ -392,10 +411,12 @@ final class RecruitmentPublicShortcode {
 		if ( $show_date && ( $columns['date_to_assume'] || $columns['time_to_assume'] ) ) {
 			$call = RecruitmentCallRepository::get_active_for_classification( (int) $row->id );
 			if ( $columns['date_to_assume'] ) {
-				$html .= '<td>' . esc_html( null === $call ? '' : (string) $call->date_to_assume ) . '</td>';
+				$date  = null === $call ? '' : self::format_date_br( (string) $call->date_to_assume );
+				$html .= '<td>' . esc_html( $date ) . '</td>';
 			}
 			if ( $columns['time_to_assume'] ) {
-				$html .= '<td>' . esc_html( null === $call ? '' : (string) $call->time_to_assume ) . '</td>';
+				$time  = null === $call ? '' : self::format_time_hm( (string) $call->time_to_assume );
+				$html .= '<td>' . esc_html( $time ) . '</td>';
 			}
 		} else {
 			if ( $show_date && $columns['date_to_assume'] ) {
@@ -434,12 +455,26 @@ final class RecruitmentPublicShortcode {
 			static fn( $a, $b ) => strcasecmp( (string) $a->name, (string) $b->name )
 		);
 
-		$html  = '<form class="ffc-recruitment-adjutancy-filter" method="get">';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display state.
+		$selected = isset( $_GET['adjutancy'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['adjutancy'] ) ) : '';
+
+		$html = '<form class="ffc-recruitment-adjutancy-filter" method="get">';
+		// Preserve every other GET param (notice, page_top, page_bottom)
+		// so submitting the dropdown doesn't drop them.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only re-emission of caller's params.
+		foreach ( (array) $_GET as $key => $value ) {
+			$key_str = (string) $key;
+			if ( 'adjutancy' === $key_str ) {
+				continue;
+			}
+			$html .= '<input type="hidden" name="' . esc_attr( $key_str ) . '" value="' . esc_attr( wp_unslash( (string) $value ) ) . '">';
+		}
 		$html .= '<label>' . esc_html__( 'Filter by adjutancy:', 'ffcertificate' ) . ' ';
 		$html .= '<select name="adjutancy" onchange="this.form.submit()">';
 		$html .= '<option value="">' . esc_html__( 'All', 'ffcertificate' ) . '</option>';
 		foreach ( $adjutancies as $a ) {
-			$html .= '<option value="' . esc_attr( (string) $a->slug ) . '">' . esc_html( (string) $a->name ) . '</option>';
+			$is_selected = (string) $a->slug === $selected ? ' selected' : '';
+			$html       .= '<option value="' . esc_attr( (string) $a->slug ) . '"' . $is_selected . '>' . esc_html( (string) $a->name ) . '</option>';
 		}
 		$html .= '</select></label></form>';
 
@@ -502,7 +537,7 @@ final class RecruitmentPublicShortcode {
 		$merged = array_merge( $default, $decoded );
 
 		$out = array();
-		foreach ( array( 'rank', 'name', 'status', 'pcd_badge', 'date_to_assume', 'time_to_assume', 'score', 'cpf_masked', 'rf_masked', 'email_masked' ) as $key ) {
+		foreach ( array( 'rank', 'name', 'adjutancy', 'status', 'pcd_badge', 'date_to_assume', 'time_to_assume', 'score', 'cpf_masked', 'rf_masked', 'email_masked' ) as $key ) {
 			$out[ $key ] = ! empty( $merged[ $key ] );
 		}
 
@@ -578,6 +613,75 @@ final class RecruitmentPublicShortcode {
 			'hired'     => __( 'Hired', 'ffcertificate' ),
 		);
 		return $map[ $status ] ?? $status;
+	}
+
+	/**
+	 * Render the status as a colored "tag" badge. Colors come from the
+	 * recruitment Settings page (admins can override per-deployment); the
+	 * defaults are the soft palette the user requested:
+	 *
+	 *   Empty → soft yellow.
+	 *   Called / accepted → soft purple.
+	 *   Not_shown → soft red.
+	 *   Hired → soft green.
+	 *
+	 * Inline `style` is used (not a CSS variable) because each notice
+	 * could in theory render under a host theme without the recruitment
+	 * public CSS — keeping the color in the markup guarantees the badge
+	 * renders correctly even there.
+	 *
+	 * @param string $status Classification status enum value.
+	 * @return string Already-escaped HTML.
+	 */
+	private static function render_status_badge( string $status ): string {
+		$settings = RecruitmentSettings::all();
+		$colors   = array(
+			'empty'     => (string) $settings['status_color_empty'],
+			'called'    => (string) $settings['status_color_called'],
+			'accepted'  => (string) $settings['status_color_called'],
+			'hired'     => (string) $settings['status_color_hired'],
+			'not_shown' => (string) $settings['status_color_not_shown'],
+		);
+		$bg       = $colors[ $status ] ?? '#e9ecef';
+		$label    = self::status_label( $status );
+		return sprintf(
+			'<span class="ffc-recruitment-status-badge ffc-recruitment-status-%s" style="background:%s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%s</span>',
+			esc_attr( $status ),
+			esc_attr( $bg ),
+			esc_html( $label )
+		);
+	}
+
+	/**
+	 * Format a `Y-m-d` date string as `d-m-Y` per the user request.
+	 *
+	 * Falls back to the original input when parsing fails (defensive —
+	 * the database stores dates in ISO already, so the strtotime path
+	 * should always succeed for non-empty input).
+	 *
+	 * @param string $iso ISO date.
+	 * @return string
+	 */
+	private static function format_date_br( string $iso ): string {
+		if ( '' === $iso ) {
+			return '';
+		}
+		$ts = strtotime( $iso );
+		return false === $ts ? $iso : gmdate( 'd-m-Y', $ts );
+	}
+
+	/**
+	 * Format a `H:i:s` time string as `H:i` per the user request.
+	 *
+	 * @param string $time DB time.
+	 * @return string
+	 */
+	private static function format_time_hm( string $time ): string {
+		if ( '' === $time ) {
+			return '';
+		}
+		// Strip seconds if present.
+		return substr( $time, 0, 5 );
 	}
 
 	/**

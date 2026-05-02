@@ -65,6 +65,32 @@ final class RecruitmentAdminPage {
 			'dashicons-groups',
 			28
 		);
+
+		// WP auto-creates a duplicate "Recruitment" first submenu when
+		// add_menu_page also registers a callback. Replace that auto-row
+		// with explicit per-tab submenus below — same parent page, but
+		// each link carries `&tab=…` so the existing render_page()
+		// dispatcher lands on the right section.
+		global $submenu;
+		if ( isset( $submenu[ self::PAGE_SLUG ] ) ) {
+			$submenu[ self::PAGE_SLUG ] = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Replacing the auto-generated duplicate row is the canonical pattern.
+		}
+		$tabs = array(
+			'notices'     => __( 'Notices', 'ffcertificate' ),
+			'adjutancies' => __( 'Adjutancies', 'ffcertificate' ),
+			'candidates'  => __( 'Candidates', 'ffcertificate' ),
+			'settings'    => __( 'Settings', 'ffcertificate' ),
+		);
+		foreach ( $tabs as $tab => $label ) {
+			add_submenu_page(
+				self::PAGE_SLUG,
+				$label,
+				$label,
+				self::CAP,
+				'notices' === $tab ? self::PAGE_SLUG : self::PAGE_SLUG . '&tab=' . $tab,
+				array( self::class, 'render_page' )
+			);
+		}
 	}
 
 	/**
@@ -219,6 +245,9 @@ final class RecruitmentAdminPage {
 			'transition-invalid-target'   => array( 'error', __( 'Status transition rejected: the target status was missing or unrecognized.', 'ffcertificate' ) ),
 			'deleted'                     => array( 'success', __( 'Candidate deleted.', 'ffcertificate' ) ),
 			'delete-blocked'              => array( 'error', __( 'Delete blocked: candidate still has classifications. Remove them first or leave the candidate row in place.', 'ffcertificate' ) ),
+			'link-user-ok'                => array( 'success', __( 'Candidate linked to the WP user.', 'ffcertificate' ) ),
+			'link-user-not-found'         => array( 'error', __( 'No WP user found for that lookup. Try the numeric ID, exact login, or full email.', 'ffcertificate' ) ),
+			'unlink-user-ok'              => array( 'success', __( 'Candidate unlinked from the WP user. The wp_user account was not deleted.', 'ffcertificate' ) ),
 			'rank-mandatory'              => array( 'error', __( 'public_columns_config rejected: `rank` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
 			'name-mandatory'              => array( 'error', __( 'public_columns_config rejected: `name` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
 		);
@@ -412,6 +441,25 @@ final class RecruitmentAdminPage {
 		echo '<tr><th><label for="ffc-rs-pagesize">' . esc_html__( 'Default page size', 'ffcertificate' ) . '</label></th><td>';
 		echo '<input id="ffc-rs-pagesize" type="number" min="1" max="500" name="' . esc_attr( $opt ) . '[public_default_page_size]" value="' . esc_attr( (string) $settings['public_default_page_size'] ) . '">';
 		echo '</td></tr>';
+
+		echo '</tbody></table>';
+
+		echo '<h3>' . esc_html__( 'Status badge colors', 'ffcertificate' ) . '</h3>';
+		echo '<p class="description">' . esc_html__( 'Background color used for each classification status pill on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values silently fall back to defaults.', 'ffcertificate' ) . '</p>';
+		echo '<table class="form-table"><tbody>';
+
+		$status_color_rows = array(
+			'status_color_empty'     => __( 'Waiting (empty)', 'ffcertificate' ),
+			'status_color_called'    => __( 'Called / Accepted', 'ffcertificate' ),
+			'status_color_hired'     => __( 'Hired', 'ffcertificate' ),
+			'status_color_not_shown' => __( 'Did not show up', 'ffcertificate' ),
+		);
+		foreach ( $status_color_rows as $field => $label ) {
+			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
+			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
+			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
+			echo '</td></tr>';
+		}
 
 		echo '</tbody></table>';
 

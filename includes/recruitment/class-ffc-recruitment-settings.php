@@ -53,6 +53,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   public_cache_seconds:        int,
  *   public_rate_limit_per_minute: int,
  *   public_default_page_size:    int,
+ *   status_color_empty:          string,
+ *   status_color_called:         string,
+ *   status_color_hired:          string,
+ *   status_color_not_shown:      string,
  * }
  */
 final class RecruitmentSettings {
@@ -107,6 +111,13 @@ final class RecruitmentSettings {
 			'public_cache_seconds'         => 60,
 			'public_rate_limit_per_minute' => 30,
 			'public_default_page_size'     => 50,
+			// Status-badge colors on the public shortcode. Each value is
+			// an HTML color (#RRGGBB or named); validated on save so a
+			// hostile string can't bleed into the stored option.
+			'status_color_empty'           => '#fff3cd',
+			'status_color_called'          => '#e9d8fd',
+			'status_color_hired'           => '#d4edda',
+			'status_color_not_shown'       => '#f8d7da',
 		);
 	}
 
@@ -182,7 +193,36 @@ final class RecruitmentSettings {
 		$out['public_rate_limit_per_minute'] = self::clamp_int( $value['public_rate_limit_per_minute'] ?? null, 0, 6000, $defaults['public_rate_limit_per_minute'] );
 		$out['public_default_page_size']     = self::clamp_int( $value['public_default_page_size'] ?? null, 1, 1000, $defaults['public_default_page_size'] );
 
+		$out['status_color_empty']     = self::sanitize_color( $value['status_color_empty'] ?? null, $defaults['status_color_empty'] );
+		$out['status_color_called']    = self::sanitize_color( $value['status_color_called'] ?? null, $defaults['status_color_called'] );
+		$out['status_color_hired']     = self::sanitize_color( $value['status_color_hired'] ?? null, $defaults['status_color_hired'] );
+		$out['status_color_not_shown'] = self::sanitize_color( $value['status_color_not_shown'] ?? null, $defaults['status_color_not_shown'] );
+
 		return $out;
+	}
+
+	/**
+	 * Sanitize a color string. Accepts #RGB, #RRGGBB, or #RRGGBBAA;
+	 * anything else falls back to the default. Sufficient for the
+	 * status-badge palette use case (the public shortcode renders the
+	 * value directly into a `style="background:..."` attribute).
+	 *
+	 * @param mixed  $value         Raw value.
+	 * @param string $default Fallback when input is unusable.
+	 * @return string
+	 */
+	private static function sanitize_color( $value, string $default ): string {
+		if ( ! is_string( $value ) ) {
+			return $default;
+		}
+		$value = trim( $value );
+		if ( '' === $value ) {
+			return $default;
+		}
+		if ( 1 === preg_match( '/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/', $value ) ) {
+			return strtolower( $value );
+		}
+		return $default;
 	}
 
 	/**
@@ -226,6 +266,10 @@ final class RecruitmentSettings {
 			'public_cache_seconds'         => is_int( $value['public_cache_seconds'] ?? null ) ? $value['public_cache_seconds'] : $defaults['public_cache_seconds'],
 			'public_rate_limit_per_minute' => is_int( $value['public_rate_limit_per_minute'] ?? null ) ? $value['public_rate_limit_per_minute'] : $defaults['public_rate_limit_per_minute'],
 			'public_default_page_size'     => is_int( $value['public_default_page_size'] ?? null ) ? $value['public_default_page_size'] : $defaults['public_default_page_size'],
+			'status_color_empty'           => is_string( $value['status_color_empty'] ?? null ) ? $value['status_color_empty'] : $defaults['status_color_empty'],
+			'status_color_called'          => is_string( $value['status_color_called'] ?? null ) ? $value['status_color_called'] : $defaults['status_color_called'],
+			'status_color_hired'           => is_string( $value['status_color_hired'] ?? null ) ? $value['status_color_hired'] : $defaults['status_color_hired'],
+			'status_color_not_shown'       => is_string( $value['status_color_not_shown'] ?? null ) ? $value['status_color_not_shown'] : $defaults['status_color_not_shown'],
 		);
 	}
 
