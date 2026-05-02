@@ -9,6 +9,17 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.0.4] (2026-05-01)
+
+**Recruitment admin UI — Candidates tab CSV import + editable Settings tab.** The two §15 surfaces that shipped as MVP placeholders in 6.0.0 / 6.0.2 are now functional: the **Candidates** tab gets a CSV upload form (notice picker + file input) wired to `POST /notices/{id}/import` with an inline status panel; the **Settings** tab moves from a read-only key/value dump to a full edit form backed by the WP Settings API (`options.php` + `register_setting`'s sanitize callback), exposing all 7 sub-keys (email subject / from address / from name / body HTML, public cache TTL, public rate limit, public default page size).
+
+### Added
+
+- **CSV import form on the Candidates tab.** `RecruitmentAdminPage::render_csv_import_form()` lists every notice in `draft` or `preliminary` (the only states that accept preview-list import per §5.1) in a `<select>`, prompts for a CSV file (UTF-8, EN headers, `accept=".csv,text/csv"`), and POSTs the multipart payload to `/wp-json/ffcertificate/v1/recruitment/notices/{id}/import` with `X-WP-Nonce` cookie auth. An inline status span surfaces the JSON response (count + errors on success, error code on rejection). Active / closed notices are filtered out of the dropdown so the operator can't pick a notice the endpoint will reject. If no notice is in `draft`/`preliminary`, the form renders a "create a notice first" hint pointing at the Notices tab.
+- **Editable Settings tab.** `RecruitmentAdminPage::render_settings_tab()` now renders an HTML form posting to `options.php` with `settings_fields(RecruitmentSettings::OPTION_GROUP)` so the Settings API runs `RecruitmentSettings::sanitize()` on save. Two sections: **Email template** (subject, from address, from name, HTML body in a code-styled textarea) and **Public shortcode** (cache TTL seconds, per-IP rate limit per minute, default page size). Inline placeholder reference for the email template lists every supported `{{token}}`. Replaces the previous read-only `<table class="widefat">` dump that exposed values without an edit path.
+
+---
+
 ## [6.0.3] (2026-05-01)
 
 **Three-fix release.** (1) i18n cleanup of the recruitment module — closes #85. (2) Capability-resolution bug — multi-role users (admin + ffc_user) had FFC caps blocked by ffc_user's explicit `=> false` entries via WP's `array_merge` cap resolution; closes #86. (3) `AudienceBookingRepository::count()` silently ignored `start_date`/`end_date` filters, causing the dashboard's "upcoming bookings" stat to count past + future + cancelled bookings indiscriminately.
