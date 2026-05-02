@@ -115,7 +115,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 	}
 
 	public function test_render_uncached_renders_empty_state_for_active_with_no_rows(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'final' ) );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'definitive' ) );
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
 
 		$html = RecruitmentPublicShortcode::render_uncached( 'EDITAL-2026-01', '', 1, 1 );
@@ -139,7 +139,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )
 			->twice()
 			->andReturn(
-				$this->notice_stub( 'final' ),
+				$this->notice_stub( 'definitive' ),
 				null // adjutancy lookup
 			);
 

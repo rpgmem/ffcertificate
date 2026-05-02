@@ -49,7 +49,7 @@ final class RecruitmentLoader {
 		RecruitmentCandidateEditPage::register();
 
 		// Idempotent schema migrations (option-versioned). 6.1.0 adds the
-		// `active` → `final` enum rename; future steps append.
+		// `active` → `definitive` enum rename; future steps append.
 		add_action( 'plugins_loaded', array( RecruitmentActivator::class, 'maybe_migrate' ), 11 );
 	}
 

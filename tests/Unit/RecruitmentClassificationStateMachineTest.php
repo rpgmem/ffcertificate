@@ -92,7 +92,7 @@ class RecruitmentClassificationStateMachineTest extends TestCase {
 			'id'                    => '5',
 			'code'                  => 'EDITAL-2026-01',
 			'name'                  => 'Test',
-			'status'                => 'final',
+			'status'                => 'definitive',
 			'opened_at'             => '2026-04-01 09:00:00',
 			'closed_at'             => null,
 			'was_reopened'          => $was_reopened,
