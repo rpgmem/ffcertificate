@@ -241,6 +241,8 @@ class RecruitmentCallRepository {
 			return false;
 		}
 
+		do_action( 'ffc_recruitment_public_cache_dirty' );
+
 		return (int) $wpdb->insert_id;
 	}
 
@@ -285,7 +287,12 @@ class RecruitmentCallRepository {
 
 		static::cache_delete( "id_{$id}" );
 
-		return is_int( $affected ) ? $affected : 0;
+		$rows = is_int( $affected ) ? $affected : 0;
+		if ( $rows > 0 ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
+
+		return $rows;
 	}
 
 	/**

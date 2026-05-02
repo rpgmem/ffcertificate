@@ -211,6 +211,8 @@ class RecruitmentNoticeRepository {
 			return false;
 		}
 
+		do_action( 'ffc_recruitment_public_cache_dirty' );
+
 		return (int) $wpdb->insert_id;
 	}
 
@@ -261,6 +263,10 @@ class RecruitmentNoticeRepository {
 
 		static::cache_delete( "id_{$id}" );
 
+		if ( false !== $result ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
+
 		return false !== $result;
 	}
 
@@ -299,7 +305,12 @@ class RecruitmentNoticeRepository {
 
 		static::cache_delete( "id_{$id}" );
 
-		return is_int( $affected ) ? $affected : 0;
+		$rows = is_int( $affected ) ? $affected : 0;
+		if ( $rows > 0 ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
+
+		return $rows;
 	}
 
 	/**
@@ -420,6 +431,10 @@ class RecruitmentNoticeRepository {
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
+
+		if ( false !== $result ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
 
 		return false !== $result;
 	}

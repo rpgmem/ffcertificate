@@ -71,6 +71,15 @@ final class RecruitmentPublicShortcode {
 	private const RATE_PREFIX = 'ffc_recruitment_public_rate_';
 
 	/**
+	 * Versioned cache option. Bumped by {@see self::invalidate_public_cache()}
+	 * on every admin write that affects the public listing; included in
+	 * the cache_key hash so a single increment atomically retires every
+	 * existing transient (the keys simply no longer match anything looked
+	 * up after the bump).
+	 */
+	private const CACHE_VERSION_OPTION = 'ffc_recruitment_public_cache_version';
+
+	/**
 	 * Register the shortcode.
 	 *
 	 * Hooked from {@see RecruitmentLoader::init()} on `init` (priority 10:
@@ -80,6 +89,7 @@ final class RecruitmentPublicShortcode {
 	 */
 	public static function register(): void {
 		add_shortcode( self::SHORTCODE_TAG, array( self::class, 'render' ) );
+		add_action( self::CACHE_DIRTY_ACTION, array( self::class, 'invalidate_public_cache' ) );
 	}
 
 	/**
@@ -850,9 +860,41 @@ final class RecruitmentPublicShortcode {
 	 * @return string Transient key (under WP's 172-char limit).
 	 */
 	private static function cache_key( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '' ): string {
+		$version = (int) get_option( self::CACHE_VERSION_OPTION, 0 );
 		return self::CACHE_PREFIX . md5(
-			strtoupper( $notice_code ) . '|' . $slug_filter . '|' . $page_top . '|' . $page_bottom . '|' . ( $filter_locked ? '1' : '0' ) . '|' . strtolower( $name_query )
+			strtoupper( $notice_code ) . '|' . $slug_filter . '|' . $page_top . '|' . $page_bottom . '|' . ( $filter_locked ? '1' : '0' ) . '|' . strtolower( $name_query ) . '|v' . $version
 		);
+	}
+
+	/**
+	 * Action hook fired by repositories whenever data the public listing
+	 * renders is mutated (notices, classifications, candidates,
+	 * adjutancies, calls, notice↔adjutancy attachments). The shortcode
+	 * subscribes via {@see self::register()} so a single hook firing
+	 * invalidates every cached render without each repository having
+	 * to reach into the shortcode class directly.
+	 */
+	public const CACHE_DIRTY_ACTION = 'ffc_recruitment_public_cache_dirty';
+
+	/**
+	 * Invalidate every cached public-shortcode render in one shot.
+	 *
+	 * Bumps a monotonic version counter folded into {@see self::cache_key()};
+	 * every transient written under the previous version is implicitly
+	 * orphaned (lookups under the new version miss and re-render fresh).
+	 * The orphaned transients still expire under their own TTL — no
+	 * sweep needed.
+	 *
+	 * Wired to {@see self::CACHE_DIRTY_ACTION} from {@see self::register()}.
+	 *
+	 * @return void
+	 */
+	public static function invalidate_public_cache(): void {
+		$current = (int) get_option( self::CACHE_VERSION_OPTION, 0 );
+		// Wrap around at PHP_INT_MAX is theoretical here — even at one
+		// bump per second it would take ~292 billion years to overflow —
+		// but the modulo guards against accidental misconfiguration.
+		update_option( self::CACHE_VERSION_OPTION, ( $current + 1 ) % PHP_INT_MAX, false );
 	}
 
 	/**

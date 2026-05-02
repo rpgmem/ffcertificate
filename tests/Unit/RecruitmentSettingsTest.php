@@ -54,8 +54,9 @@ class RecruitmentSettingsTest extends TestCase {
 	public function test_defaults_match_plan_documented_values(): void {
 		$defaults = RecruitmentSettings::defaults();
 
-		// Per §15 of the plan.
-		$this->assertSame( 60, $defaults['public_cache_seconds'] );
+		// 12 hours per the v6.1 polish PR (cache invalidation now hooks
+		// every admin write, so the long TTL is safe).
+		$this->assertSame( 12 * HOUR_IN_SECONDS, $defaults['public_cache_seconds'] );
 		$this->assertSame( 30, $defaults['public_rate_limit_per_minute'] );
 		$this->assertSame( 50, $defaults['public_default_page_size'] );
 		$this->assertSame( '', $defaults['email_from_address'] );
@@ -67,7 +68,7 @@ class RecruitmentSettingsTest extends TestCase {
 
 		$all = RecruitmentSettings::all();
 
-		$this->assertSame( 60, $all['public_cache_seconds'] );
+		$this->assertSame( 12 * HOUR_IN_SECONDS, $all['public_cache_seconds'] );
 		$this->assertSame( 30, $all['public_rate_limit_per_minute'] );
 		$this->assertSame( 50, $all['public_default_page_size'] );
 	}
@@ -105,7 +106,7 @@ class RecruitmentSettingsTest extends TestCase {
 
 		$out = RecruitmentSettings::sanitize( array( 'public_cache_seconds' => -5 ) );
 
-		$this->assertSame( 60, $out['public_cache_seconds'], 'Negative input falls back to default per the clamp.' );
+		$this->assertSame( 12 * HOUR_IN_SECONDS, $out['public_cache_seconds'], 'Negative input falls back to default per the clamp.' );
 	}
 
 	public function test_sanitize_caps_oversized_cache_seconds(): void {
