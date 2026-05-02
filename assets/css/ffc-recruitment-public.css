@@ -80,6 +80,20 @@
     color: #721c24;
 }
 
+.ffc-recruitment-queue .ffc-recruitment-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin: 12px 0;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-filters label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .ffc-recruitment-queue .ffc-recruitment-section {
     margin-top: 24px;
 }

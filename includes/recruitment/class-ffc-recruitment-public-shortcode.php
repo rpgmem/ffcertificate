@@ -135,13 +135,17 @@ final class RecruitmentPublicShortcode {
 		$page_top    = max( 1, (int) ( $_GET['page_top'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$page_bottom = max( 1, (int) ( $_GET['page_bottom'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
-		$cache_key = self::cache_key( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only name filter.
+		$name_query = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['q'] ) ) : '';
+		$name_query = trim( $name_query );
+
+		$cache_key = self::cache_key( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query );
 		$cached    = get_transient( $cache_key );
 		if ( is_string( $cached ) ) {
 			return $cached;
 		}
 
-		$html = self::wrap_output( self::render_uncached( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked ) );
+		$html = self::wrap_output( self::render_uncached( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query ) );
 
 		$settings = RecruitmentSettings::all();
 		$ttl      = (int) $settings['public_cache_seconds'];
@@ -196,9 +200,11 @@ final class RecruitmentPublicShortcode {
 	 *                              `adjutancy=` attribute — the filter UI is then
 	 *                              suppressed so callers who pinned the adjutancy
 	 *                              cannot be re-routed by URL tampering.
+	 * @param string $name_query    Case-insensitive name substring filter (`?q=`);
+	 *                              empty means "no name filter".
 	 * @return string
 	 */
-	public static function render_uncached( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false ): string {
+	public static function render_uncached( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '' ): string {
 		$notice = RecruitmentNoticeRepository::get_by_code( $notice_code );
 		if ( null === $notice ) {
 			return self::msg( __( 'Notice not found.', 'ffcertificate' ), 'error' );
@@ -242,6 +248,40 @@ final class RecruitmentPublicShortcode {
 			);
 		}
 
+		// Apply the public name filter (`?q=`) before splitting into
+		// waiting / called sections so pagination counts in each section
+		// reflect only the matching subset. Filtering is case-insensitive
+		// substring match against `candidate.name`; per-row lookups go
+		// through the repository's object-cache so repeating the lookup in
+		// render_row() later is a cache hit rather than a second SELECT.
+		if ( '' !== $name_query ) {
+			$needle = function_exists( 'mb_strtolower' )
+				? mb_strtolower( $name_query, 'UTF-8' )
+				: strtolower( $name_query );
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( $row ) use ( $needle ): bool {
+						$candidate = RecruitmentCandidateRepository::get_by_id( (int) $row->candidate_id );
+						if ( null === $candidate ) {
+							return false;
+						}
+						$name = (string) ( $candidate->name ?? '' );
+						$hay  = function_exists( 'mb_strtolower' )
+							? mb_strtolower( $name, 'UTF-8' )
+							: strtolower( $name );
+						return false !== strpos( $hay, $needle );
+					}
+				)
+			);
+		}
+
+		if ( empty( $rows ) ) {
+			$body = self::render_filters_bar( $notice, $filter_locked, $name_query )
+				. self::msg( __( 'No matches for the current search.', 'ffcertificate' ), 'info' );
+			return self::wrap_with_banner( $notice, $body );
+		}
+
 		$columns = self::parse_columns_config( $notice->public_columns_config );
 
 		$empty_rows  = array();
@@ -264,13 +304,7 @@ final class RecruitmentPublicShortcode {
 		$settings  = RecruitmentSettings::all();
 		$page_size = (int) $settings['public_default_page_size'];
 
-		// Render the filter dropdown unless the shortcode itself pinned an
-		// adjutancy via attribute. Keeping the dropdown rendered when a URL
-		// filter is active is intentional: visitors must always be able to
-		// switch back to "All" or to a different adjutancy from the same UI.
-		$adjutancy_filter_html = $filter_locked
-			? ''
-			: self::render_adjutancy_filter( (int) $notice->id );
+		$filters_bar = self::render_filters_bar( $notice, $filter_locked, $name_query );
 
 		$top_section    = self::render_section(
 			__( 'Waiting called', 'ffcertificate' ),
@@ -292,7 +326,7 @@ final class RecruitmentPublicShortcode {
 		);
 
 		$body = '<div class="ffc-recruitment-queue">'
-			. $adjutancy_filter_html
+			. $filters_bar
 			. $top_section
 			. $bottom_section
 			. '</div>';
@@ -451,13 +485,75 @@ final class RecruitmentPublicShortcode {
 	}
 
 	/**
-	 * Build the adjutancy filter HTML when the notice has 2+ adjutancies
-	 * AND the shortcode wasn't called with a fixed `adjutancy=` attr.
+	 * Render the search/filter bar that sits above the listings.
+	 *
+	 * Combines the adjutancy dropdown (already a no-op when fewer than 2
+	 * adjutancies are attached or when the shortcode pinned the adjutancy
+	 * via attribute) with the name search input. Both controls share a
+	 * single <form> so a name search keeps the active adjutancy filter
+	 * and vice-versa — submitting one preserves the other in the URL.
+	 *
+	 * @param object $notice        Notice row (NoticeRow shape).
+	 * @phpstan-param NoticeRow $notice
+	 * @param bool   $filter_locked Whether the shortcode pinned the adjutancy.
+	 * @param string $name_query    Current `?q=` value (echoed back into the input).
+	 * @return string
+	 */
+	private static function render_filters_bar( object $notice, bool $filter_locked, string $name_query ): string {
+		$adjutancy_html = $filter_locked ? '' : self::render_adjutancy_filter_inputs( (int) $notice->id );
+		$search_html    = self::render_name_search_input( $name_query );
+
+		if ( '' === $adjutancy_html && '' === $search_html ) {
+			return '';
+		}
+
+		// Re-emit every other GET param so submitting either control
+		// doesn't strip notice/page state.
+		$preserved = '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only re-emission of caller's params.
+		foreach ( (array) $_GET as $key => $value ) {
+			$key_str = (string) $key;
+			if ( in_array( $key_str, array( 'adjutancy', 'q' ), true ) ) {
+				continue;
+			}
+			$preserved .= '<input type="hidden" name="' . esc_attr( $key_str ) . '" value="' . esc_attr( wp_unslash( (string) $value ) ) . '">';
+		}
+
+		return '<form class="ffc-recruitment-filters" method="get">'
+			. $preserved
+			. $adjutancy_html
+			. $search_html
+			. '</form>';
+	}
+
+	/**
+	 * Render the name-search input. Always rendered (even when no
+	 * candidates are visible) so visitors can clear or change the
+	 * search from the same control. Submission relies on the wrapping
+	 * <form> from {@see self::render_filters_bar()}.
+	 *
+	 * @param string $name_query Current `?q=` value.
+	 * @return string
+	 */
+	private static function render_name_search_input( string $name_query ): string {
+		$html  = '<label class="ffc-recruitment-name-search">';
+		$html .= esc_html__( 'Search by name:', 'ffcertificate' ) . ' ';
+		$html .= '<input type="search" name="q" value="' . esc_attr( $name_query ) . '" placeholder="' . esc_attr__( 'name…', 'ffcertificate' ) . '">';
+		$html .= ' <button type="submit">' . esc_html__( 'Search', 'ffcertificate' ) . '</button>';
+		$html .= '</label>';
+		return $html;
+	}
+
+	/**
+	 * Build only the adjutancy <label>+<select> portion of the filter
+	 * bar (no wrapping <form> — the caller in
+	 * {@see self::render_filters_bar()} owns the form). Empty string
+	 * when fewer than 2 adjutancies are attached.
 	 *
 	 * @param int $notice_id Notice ID.
 	 * @return string
 	 */
-	private static function render_adjutancy_filter( int $notice_id ): string {
+	private static function render_adjutancy_filter_inputs( int $notice_id ): string {
 		$ids = RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( $notice_id );
 		if ( count( $ids ) < 2 ) {
 			return '';
@@ -478,25 +574,15 @@ final class RecruitmentPublicShortcode {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display state.
 		$selected = isset( $_GET['adjutancy'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['adjutancy'] ) ) : '';
 
-		$html = '<form class="ffc-recruitment-adjutancy-filter" method="get">';
-		// Preserve every other GET param (notice, page_top, page_bottom)
-		// so submitting the dropdown doesn't drop them.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only re-emission of caller's params.
-		foreach ( (array) $_GET as $key => $value ) {
-			$key_str = (string) $key;
-			if ( 'adjutancy' === $key_str ) {
-				continue;
-			}
-			$html .= '<input type="hidden" name="' . esc_attr( $key_str ) . '" value="' . esc_attr( wp_unslash( (string) $value ) ) . '">';
-		}
-		$html .= '<label>' . esc_html__( 'Filter by adjutancy:', 'ffcertificate' ) . ' ';
+		$html  = '<label class="ffc-recruitment-adjutancy-filter">';
+		$html .= esc_html__( 'Filter by adjutancy:', 'ffcertificate' ) . ' ';
 		$html .= '<select name="adjutancy" onchange="this.form.submit()">';
 		$html .= '<option value="">' . esc_html__( 'All', 'ffcertificate' ) . '</option>';
 		foreach ( $adjutancies as $a ) {
 			$is_selected = (string) $a->slug === $selected ? ' selected' : '';
 			$html       .= '<option value="' . esc_attr( (string) $a->slug ) . '"' . $is_selected . '>' . esc_html( (string) $a->name ) . '</option>';
 		}
-		$html .= '</select></label></form>';
+		$html .= '</select></label>';
 
 		return $html;
 	}
@@ -760,11 +846,12 @@ final class RecruitmentPublicShortcode {
 	 * @param int    $page_bottom   1-indexed page for the "Called" section.
 	 * @param bool   $filter_locked Whether the shortcode pinned the adjutancy
 	 *                              via attribute (filter UI is suppressed).
+	 * @param string $name_query    Lowercased name-search filter ('' when none).
 	 * @return string Transient key (under WP's 172-char limit).
 	 */
-	private static function cache_key( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false ): string {
+	private static function cache_key( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '' ): string {
 		return self::CACHE_PREFIX . md5(
-			strtoupper( $notice_code ) . '|' . $slug_filter . '|' . $page_top . '|' . $page_bottom . '|' . ( $filter_locked ? '1' : '0' )
+			strtoupper( $notice_code ) . '|' . $slug_filter . '|' . $page_top . '|' . $page_bottom . '|' . ( $filter_locked ? '1' : '0' ) . '|' . strtolower( $name_query )
 		);
 	}
 
