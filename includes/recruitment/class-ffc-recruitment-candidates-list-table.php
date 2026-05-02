@@ -252,14 +252,21 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$search = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['s'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
+		$adjutancy_id = isset( $_REQUEST['adjutancy_id'] ) ? absint( wp_unslash( (string) $_REQUEST['adjutancy_id'] ) ) : 0;
 
 		$per_page     = $this->get_items_per_page( 'ffc_recruitment_candidates_per_page', self::DEFAULT_PER_PAGE );
 		$per_page     = min( max( 1, $per_page ), self::MAX_PER_PAGE );
 		$current_page = max( 1, $this->get_pagenum() );
 		$offset       = ( $current_page - 1 ) * $per_page;
 
-		$total_items = RecruitmentCandidateRepository::count_paginated( $search );
-		$raw_rows    = RecruitmentCandidateRepository::get_paginated( $search, $per_page, $offset );
+		if ( $adjutancy_id > 0 ) {
+			$total_items = RecruitmentCandidateRepository::count_paginated_for_adjutancy( $search, $adjutancy_id );
+			$raw_rows    = RecruitmentCandidateRepository::get_paginated_for_adjutancy( $search, $adjutancy_id, $per_page, $offset );
+		} else {
+			$total_items = RecruitmentCandidateRepository::count_paginated( $search );
+			$raw_rows    = RecruitmentCandidateRepository::get_paginated( $search, $per_page, $offset );
+		}
 
 		$this->items = array_map( array( self::class, 'convert_row' ), $raw_rows );
 		$this->set_pagination_args(
@@ -288,10 +295,28 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		$cpf = isset( $_REQUEST['cpf'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['cpf'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$rf = isset( $_REQUEST['rf'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['rf'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
+		$adjutancy_id = isset( $_REQUEST['adjutancy_id'] ) ? absint( wp_unslash( (string) $_REQUEST['adjutancy_id'] ) ) : 0;
 
 		echo '<div class="alignleft actions">';
 		echo '<input type="text" name="cpf" value="' . esc_attr( $cpf ) . '" placeholder="' . esc_attr__( 'CPF (digits only)', 'ffcertificate' ) . '" size="15">';
 		echo ' <input type="text" name="rf" value="' . esc_attr( $rf ) . '" placeholder="' . esc_attr__( 'RF (digits only)', 'ffcertificate' ) . '" size="10">';
+
+		// Adjutancy dropdown — limits the result set to candidates with at
+		// least one classification in the selected adjutancy. Independent
+		// of the CPF/RF lookup, which short-circuits everything else.
+		$adjutancies = RecruitmentAdjutancyRepository::get_all();
+		if ( ! empty( $adjutancies ) ) {
+			echo ' <select name="adjutancy_id">';
+			echo '<option value="0">' . esc_html__( 'All adjutancies', 'ffcertificate' ) . '</option>';
+			foreach ( $adjutancies as $a ) {
+				$id_int      = (int) $a->id;
+				$is_selected = $id_int === $adjutancy_id ? ' selected' : '';
+				echo '<option value="' . esc_attr( (string) $id_int ) . '"' . esc_attr( $is_selected ) . '>' . esc_html( (string) $a->name ) . '</option>';
+			}
+			echo '</select>';
+		}
+
 		echo ' <input type="submit" class="button" value="' . esc_attr__( 'Filter', 'ffcertificate' ) . '">';
 		echo '</div>';
 	}
