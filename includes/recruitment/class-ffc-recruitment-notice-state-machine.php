@@ -4,27 +4,27 @@
  *
  * Authoritative source of truth for the §5.1 notice lifecycle:
  *
- *   draft → preliminary → active → closed
+ *   draft → preliminary → final → closed
  *                ↑           ↓
- *                └───────────┘    (active → preliminary if zero calls)
+ *                └───────────┘    (final → preliminary if zero calls)
  *                            ↓
- *                          closed → active   (with reopen reason)
+ *                          closed → final   (with reopen reason)
  *
  * Atomic transitions go through {@see RecruitmentNoticeRepository::set_status},
  * which uses a `WHERE status = '<expected>'` guard so concurrent transition
  * attempts safely fail with `affected_rows = 0`. Side-effects (stamping
- * `opened_at` on the first → active, `closed_at` on every → closed,
- * flipping `was_reopened = 1` on the first closed → active) are wired here
+ * `opened_at` on the first → final, `closed_at` on every → closed,
+ * flipping `was_reopened = 1` on the first closed → final) are wired here
  * after the conditional UPDATE wins.
  *
  * Reason gating mirrors §5.1:
  *
  *   - draft → preliminary  : no reason
- *   - preliminary → active : no reason (snapshot/definitive-import handled
+ *   - preliminary → final : no reason (snapshot/definitive-import handled
  *                            by {@see RecruitmentPromotionService}, not here)
- *   - active → preliminary : no reason; gated on `count_calls_for_notice = 0`
- *   - active → closed      : no reason
- *   - closed → active      : reason REQUIRED (logged); flips `was_reopened`
+ *   - final → preliminary : no reason; gated on `count_calls_for_notice = 0`
+ *   - final → closed      : no reason
+ *   - closed → final      : reason REQUIRED (logged); flips `was_reopened`
  *
  * Once `notice.was_reopened = 1` the classification-level reopen of
  * `not_shown → empty` is permanently blocked for that notice — see
@@ -66,9 +66,9 @@ final class RecruitmentNoticeStateMachine {
 	 */
 	private const TRANSITIONS = array(
 		'draft'       => array( 'preliminary' ),
-		'preliminary' => array( 'active' ),
-		'active'      => array( 'preliminary', 'closed' ),
-		'closed'      => array( 'active' ),
+		'preliminary' => array( 'final' ),
+		'final'       => array( 'preliminary', 'closed' ),
+		'closed'      => array( 'final' ),
 	);
 
 	/**
@@ -77,15 +77,15 @@ final class RecruitmentNoticeStateMachine {
 	 * @var array<string, list<string>>
 	 */
 	private const REASON_REQUIRED = array(
-		'closed' => array( 'active' ),
+		'closed' => array( 'final' ),
 	);
 
 	/**
 	 * Attempt to transition a notice to a new status.
 	 *
 	 * @param int         $notice_id Target notice.
-	 * @param string      $new_status `draft|preliminary|active|closed`.
-	 * @param string|null $reason     Required when transitioning closed → active.
+	 * @param string      $new_status `draft|preliminary|final|closed`.
+	 * @param string|null $reason     Required when transitioning closed → final.
 	 * @return TransitionResult
 	 */
 	public static function transition_to( int $notice_id, string $new_status, ?string $reason = null ): array {
@@ -115,11 +115,11 @@ final class RecruitmentNoticeStateMachine {
 			}
 		}
 
-		// `active → preliminary` requires zero calls in the notice's history.
-		if ( 'active' === $current && 'preliminary' === $new_status ) {
+		// `final → preliminary` requires zero calls in the notice's history.
+		if ( 'final' === $current && 'preliminary' === $new_status ) {
 			$call_count = RecruitmentClassificationRepository::count_calls_for_notice( $notice_id );
 			if ( $call_count > 0 ) {
-				return self::failure( 'recruitment_active_to_preliminary_blocked_by_calls' );
+				return self::failure( 'recruitment_final_to_preliminary_blocked_by_calls' );
 			}
 		}
 
@@ -140,7 +140,7 @@ final class RecruitmentNoticeStateMachine {
 	/**
 	 * Run the per-target-state lifecycle stamping.
 	 *
-	 * - `active`  : stamp `opened_at` on the first → active (idempotent
+	 * - `final`  : stamp `opened_at` on the first → final (idempotent
 	 *               via the WHERE guard in {@see RecruitmentNoticeRepository::mark_opened}).
 	 *               When the notice was previously `closed`, also flip
 	 *               `was_reopened = 1` (one-way) so the classification
@@ -150,9 +150,9 @@ final class RecruitmentNoticeStateMachine {
 	 *
 	 * Determining "previously closed" is done by re-reading the notice
 	 * after the status transition committed: if `closed_at` is non-null,
-	 * the notice has been closed at least once. The first → active sets
+	 * the notice has been closed at least once. The first → final sets
 	 * `opened_at` for the first time and does NOT flip `was_reopened`
-	 * (because `closed_at IS NULL`); subsequent active transitions after
+	 * (because `closed_at IS NULL`); subsequent final transitions after
 	 * a close do flip the flag.
 	 *
 	 * @param int    $notice_id Notice ID.
@@ -161,7 +161,7 @@ final class RecruitmentNoticeStateMachine {
 	 */
 	private static function apply_side_effects( int $notice_id, string $new_status ): void {
 		switch ( $new_status ) {
-			case 'active':
+			case 'final':
 				$notice = RecruitmentNoticeRepository::get_by_id( $notice_id );
 				if ( null === $notice ) {
 					return;
@@ -172,7 +172,7 @@ final class RecruitmentNoticeStateMachine {
 				}
 
 				if ( null !== $notice->closed_at ) {
-					// We arrived at active via reopen — set the flag.
+					// We arrived at final via reopen — set the flag.
 					RecruitmentNoticeRepository::mark_reopened( $notice_id );
 				}
 				break;

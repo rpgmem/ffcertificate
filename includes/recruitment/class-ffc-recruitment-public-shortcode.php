@@ -11,7 +11,7 @@
  *   - `draft`       → error message "Edital ainda não publicado.";
  *   - `preliminary` → warning-only render — "Esta lista está em revisão";
  *                     no listing exposed (preview rows never render publicly).
- *   - `active`      → two-section layout (não chamados / chamados) of the
+ *   - `final`      → two-section layout (não chamados / chamados) of the
  *                     `list_type='definitive'` rows; no banner.
  *   - `closed`      → same listing + a "Edital encerrado" banner.
  *
@@ -161,7 +161,7 @@ final class RecruitmentPublicShortcode {
 				);
 		}
 
-		// active / closed → render the listing.
+		// final / closed → render the listing.
 		$adjutancy_id = null;
 		if ( '' !== $slug_filter ) {
 			$adjutancy = RecruitmentAdjutancyRepository::get_by_slug( $slug_filter );

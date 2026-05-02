@@ -71,6 +71,70 @@ class RecruitmentActivator {
 	}
 
 	/**
+	 * Run idempotent post-create migrations.
+	 *
+	 * Tracked via the `ffc_recruitment_schema_version` option so each
+	 * migration step runs exactly once across activation cycles. Hooked
+	 * from {@see RecruitmentLoader::init()} on `plugins_loaded` so it
+	 * applies even when the plugin was upgraded in place (no fresh
+	 * `register_activation_hook` callback firing).
+	 *
+	 * Steps:
+	 *
+	 * - v2 (6.1.0): rename status enum value `active` → `final` on
+	 *   `ffc_recruitment_notice`. Existing rows get `UPDATE … SET
+	 *   status='final' WHERE status='active'` before the enum is
+	 *   widened, so no row violates the new enum constraint.
+	 *
+	 * @return void
+	 */
+	public static function maybe_migrate(): void {
+		$option_key = 'ffc_recruitment_schema_version';
+		$current    = (int) get_option( $option_key, 0 );
+
+		if ( $current < 2 ) {
+			self::migrate_status_active_to_final();
+			update_option( $option_key, 2 );
+		}
+	}
+
+	/**
+	 * V2 schema migration — rename `active` → `final` in the notice
+	 * status enum.
+	 *
+	 * Two-step ALTER (widen enum, update rows, narrow enum) so the
+	 * intermediate state is always consistent with whichever enum
+	 * definition the table currently advertises. The repository's
+	 * state-machine tests pin both old and new enum values during the
+	 * transition.
+	 *
+	 * @return void
+	 */
+	private static function migrate_status_active_to_final(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_recruitment_notice';
+
+		// Bail if the table doesn't exist yet — fresh installs run
+		// create_tables() with the new enum and skip this entirely.
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		// Step 1: widen the enum to include both legacy and new values
+		// so the UPDATE in step 2 doesn't violate any enum constraint.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
+		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status ENUM('draft','preliminary','active','final','closed') NOT NULL DEFAULT 'draft'" );
+
+		// Step 2: rename existing rows.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		$wpdb->query( $wpdb->prepare( "UPDATE `{$table}` SET status = %s WHERE status = %s", 'final', 'active' ) );
+
+		// Step 3: narrow the enum back to the canonical 6.1.0 set.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status ENUM('draft','preliminary','final','closed') NOT NULL DEFAULT 'draft'" );
+	}
+
+	/**
 	 * Create `ffc_recruitment_adjutancy` table.
 	 *
 	 * Reusable subject/role definitions ("matérias"). One row per adjutancy,
@@ -125,7 +189,7 @@ class RecruitmentActivator {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             code varchar(64) NOT NULL,
             name varchar(255) NOT NULL,
-            status enum('draft','preliminary','active','closed') NOT NULL DEFAULT 'draft',
+            status enum('draft','preliminary','final','closed') NOT NULL DEFAULT 'draft',
             opened_at datetime DEFAULT NULL,
             closed_at datetime DEFAULT NULL,
             was_reopened tinyint(1) NOT NULL DEFAULT 0,

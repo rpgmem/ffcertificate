@@ -204,7 +204,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 	public function test_import_preview_rejects_when_notice_is_active(): void {
 		$notice = (object) array(
 			'id'     => '5',
-			'status' => 'active',
+			'status' => 'final',
 		);
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $notice );
 

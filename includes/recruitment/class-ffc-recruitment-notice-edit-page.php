@@ -15,7 +15,7 @@
  *                       identifier rule) + name + public_columns_config.
  *   2. Status         — current state badge + transition buttons that
  *                       hit NoticeStateMachine::transition_to (driver
- *                       for all draft↔preliminary↔active↔closed moves).
+ *                       for all draft↔preliminary↔final↔closed moves).
  *   3. Adjutancies    — attach/detach UI relocated from the row inline
  *                       (sprint A1) and wired to the existing REST
  *                       routes via the assets manager's fetch helper.
@@ -181,10 +181,10 @@ final class RecruitmentNoticeEditPage {
 			}
 			echo '</p>';
 
-			// Closed → active needs a reason; reuse the same form with
+			// Closed → final needs a reason; reuse the same form with
 			// a single reason input that's only meaningful for that move.
 			if ( 'closed' === $current ) {
-				echo '<p><label for="ffc-reopen-reason">' . esc_html__( 'Reopen reason (required for closed → active):', 'ffcertificate' ) . '</label><br>';
+				echo '<p><label for="ffc-reopen-reason">' . esc_html__( 'Reopen reason (required for closed → final):', 'ffcertificate' ) . '</label><br>';
 				echo '<input id="ffc-reopen-reason" type="text" class="large-text" name="reason"></p>';
 			}
 
@@ -390,17 +390,17 @@ final class RecruitmentNoticeEditPage {
 				return array( 'preliminary' => __( 'Move to preliminary', 'ffcertificate' ) );
 			case 'preliminary':
 				return array(
-					'active' => __( 'Promote to active', 'ffcertificate' ),
-					'draft'  => __( 'Back to draft', 'ffcertificate' ),
+					'final' => __( 'Promote to final', 'ffcertificate' ),
+					'draft' => __( 'Back to draft', 'ffcertificate' ),
 				);
-			case 'active':
+			case 'final':
 				return array(
 					'preliminary' => __( 'Back to preliminary (zero-calls only)', 'ffcertificate' ),
 					'closed'      => __( 'Close', 'ffcertificate' ),
 				);
 			case 'closed':
 				return array(
-					'active' => __( 'Reopen (closed → active)', 'ffcertificate' ),
+					'final' => __( 'Reopen (closed → final)', 'ffcertificate' ),
 				);
 			default:
 				return array();
@@ -469,7 +469,7 @@ final class RecruitmentNoticeEditPage {
 			$reason = null;
 		}
 
-		if ( $notice_id > 0 && in_array( $target, array( 'draft', 'preliminary', 'active', 'closed' ), true ) ) {
+		if ( $notice_id > 0 && in_array( $target, array( 'draft', 'preliminary', 'final', 'closed' ), true ) ) {
 			RecruitmentNoticeStateMachine::transition_to( $notice_id, $target, '' === (string) $reason ? null : $reason );
 		}
 

@@ -596,8 +596,8 @@ final class RecruitmentRestController {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
 
-		// Flip status to active after a successful definitive_import.
-		$transition = RecruitmentNoticeStateMachine::transition_to( $id, 'active' );
+		// Flip status to final after a successful definitive_import.
+		$transition = RecruitmentNoticeStateMachine::transition_to( $id, 'final' );
 		if ( ! $transition['success'] ) {
 			return $this->wp_error_from_envelope( $transition['errors'], 409 );
 		}

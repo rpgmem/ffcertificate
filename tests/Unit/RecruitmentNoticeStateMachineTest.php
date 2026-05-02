@@ -12,8 +12,8 @@ use FreeFormCertificate\Recruitment\RecruitmentNoticeStateMachine;
 
 /**
  * Tests for RecruitmentNoticeStateMachine — covers every legal transition,
- * every blocked transition, reason gating, the active→preliminary
- * zero-calls gate, and the closed→active reopen flag side-effect.
+ * every blocked transition, reason gating, the final→preliminary
+ * zero-calls gate, and the closed→final reopen flag side-effect.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticeStateMachine
  */
@@ -100,14 +100,14 @@ class RecruitmentNoticeStateMachineTest extends TestCase {
 	}
 
 	public function test_invalid_transition_is_rejected(): void {
-		// draft → active is not allowed (must go through preliminary).
+		// draft → final is not allowed (must go through preliminary).
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'draft' ) );
 
-		$result = RecruitmentNoticeStateMachine::transition_to( 5, 'active' );
+		$result = RecruitmentNoticeStateMachine::transition_to( 5, 'final' );
 
 		$this->assertFalse( $result['success'] );
 		$this->assertStringContainsString( 'recruitment_invalid_transition', $result['errors'][0] );
-		$this->assertStringContainsString( 'draft->active', $result['errors'][0] );
+		$this->assertStringContainsString( 'draft->final', $result['errors'][0] );
 	}
 
 	public function test_draft_to_preliminary_succeeds(): void {
@@ -131,19 +131,19 @@ class RecruitmentNoticeStateMachineTest extends TestCase {
 		$this->assertSame( array( 'recruitment_transition_race_lost' ), $result['errors'] );
 	}
 
-	public function test_active_to_preliminary_blocked_when_calls_exist(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'active' ) );
+	public function test_final_to_preliminary_blocked_when_calls_exist(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'final' ) );
 		// count_calls_for_notice returns 3 — gate fails.
 		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '3' );
 
 		$result = RecruitmentNoticeStateMachine::transition_to( 5, 'preliminary' );
 
 		$this->assertFalse( $result['success'] );
-		$this->assertSame( array( 'recruitment_active_to_preliminary_blocked_by_calls' ), $result['errors'] );
+		$this->assertSame( array( 'recruitment_final_to_preliminary_blocked_by_calls' ), $result['errors'] );
 	}
 
-	public function test_active_to_preliminary_succeeds_when_no_calls(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'active' ) );
+	public function test_final_to_preliminary_succeeds_when_no_calls(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'final' ) );
 		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '0' );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
@@ -152,8 +152,8 @@ class RecruitmentNoticeStateMachineTest extends TestCase {
 		$this->assertTrue( $result['success'] );
 	}
 
-	public function test_active_to_closed_stamps_closed_at(): void {
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'active' ) );
+	public function test_final_to_closed_stamps_closed_at(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'final' ) );
 
 		// Two query calls expected: (1) set_status, (2) mark_closed.
 		$query_calls = 0;
@@ -171,29 +171,29 @@ class RecruitmentNoticeStateMachineTest extends TestCase {
 		$this->assertSame( 2, $query_calls, 'set_status + mark_closed' );
 	}
 
-	public function test_closed_to_active_requires_reason(): void {
+	public function test_closed_to_final_requires_reason(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'closed' ) );
 
-		$result = RecruitmentNoticeStateMachine::transition_to( 5, 'active' );
+		$result = RecruitmentNoticeStateMachine::transition_to( 5, 'final' );
 
 		$this->assertFalse( $result['success'] );
 		$this->assertSame( array( 'recruitment_transition_reason_required' ), $result['errors'] );
 	}
 
-	public function test_closed_to_active_rejects_blank_reason(): void {
+	public function test_closed_to_final_rejects_blank_reason(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'closed' ) );
 
-		$result = RecruitmentNoticeStateMachine::transition_to( 5, 'active', "   \t\n" );
+		$result = RecruitmentNoticeStateMachine::transition_to( 5, 'final', "   \t\n" );
 
 		$this->assertFalse( $result['success'] );
 		$this->assertSame( array( 'recruitment_transition_reason_required' ), $result['errors'] );
 	}
 
-	public function test_closed_to_active_flips_was_reopened(): void {
+	public function test_closed_to_final_flips_was_reopened(): void {
 		// First get_row: load original notice (status=closed, closed_at set, was_reopened=0).
 		// Second get_row: side-effects re-read after status flip succeeded.
 		$pre  = $this->notice_stub( 'closed', '2026-05-01 09:00:00', '2026-04-01 09:00:00', '0' );
-		$post = $this->notice_stub( 'active', '2026-05-01 09:00:00', '2026-04-01 09:00:00', '0' );
+		$post = $this->notice_stub( 'final', '2026-05-01 09:00:00', '2026-04-01 09:00:00', '0' );
 		$this->wpdb->shouldReceive( 'get_row' )->twice()->andReturn( $pre, $post );
 
 		// Three query calls expected: set_status + mark_reopened.
@@ -207,15 +207,15 @@ class RecruitmentNoticeStateMachineTest extends TestCase {
 				}
 			);
 
-		$result = RecruitmentNoticeStateMachine::transition_to( 5, 'active', 'Vacancy reopened' );
+		$result = RecruitmentNoticeStateMachine::transition_to( 5, 'final', 'Vacancy reopened' );
 
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( 2, $query_calls, 'set_status + mark_reopened (no mark_opened — already opened previously)' );
 	}
 
-	public function test_first_preliminary_to_active_stamps_opened_at_only(): void {
+	public function test_first_preliminary_to_final_stamps_opened_at_only(): void {
 		$pre  = $this->notice_stub( 'preliminary', null, null, '0' );
-		$post = $this->notice_stub( 'active', null, null, '0' );
+		$post = $this->notice_stub( 'final', null, null, '0' );
 		$this->wpdb->shouldReceive( 'get_row' )->twice()->andReturn( $pre, $post );
 
 		$query_calls = 0;
@@ -227,7 +227,7 @@ class RecruitmentNoticeStateMachineTest extends TestCase {
 				}
 			);
 
-		$result = RecruitmentNoticeStateMachine::transition_to( 5, 'active' );
+		$result = RecruitmentNoticeStateMachine::transition_to( 5, 'final' );
 
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( 2, $query_calls, 'set_status + mark_opened (no mark_reopened — never closed before)' );

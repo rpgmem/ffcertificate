@@ -107,7 +107,7 @@ class RecruitmentNoticeRepositoryTest extends TestCase {
 	public function test_set_status_returns_one_when_expected_current_matches(): void {
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
-		$affected = RecruitmentNoticeRepository::set_status( 5, 'preliminary', 'active' );
+		$affected = RecruitmentNoticeRepository::set_status( 5, 'preliminary', 'final' );
 		$this->assertSame( 1, $affected );
 	}
 
@@ -115,7 +115,7 @@ class RecruitmentNoticeRepositoryTest extends TestCase {
 		// Concurrent transition: another writer changed status before us.
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 0 );
 
-		$affected = RecruitmentNoticeRepository::set_status( 5, 'preliminary', 'active' );
+		$affected = RecruitmentNoticeRepository::set_status( 5, 'preliminary', 'final' );
 		$this->assertSame( 0, $affected );
 	}
 
