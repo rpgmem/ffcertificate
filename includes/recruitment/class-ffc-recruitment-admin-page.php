@@ -37,8 +37,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Registers and renders the wp-admin Recruitment top-level page.
- *
- * @phpstan-import-type AdjutancyRow from RecruitmentAdjutancyRepository
  */
 final class RecruitmentAdminPage {
 
@@ -78,6 +76,36 @@ final class RecruitmentAdminPage {
 	public static function render_page(): void {
 		if ( ! current_user_can( self::CAP ) ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
+		}
+
+		// Action dispatcher — row actions / GET-link operations land here
+		// before the default tab render runs. Each action validates its
+		// own nonce and short-circuits with `wp_safe_redirect` so the
+		// page reloads onto the canonical tab URL.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Each action runs `check_admin_referer`.
+		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( (string) $_GET['action'] ) ) : '';
+
+		// Edit screens hijack the whole render — they have their own
+		// chrome (h1 + back link) and don't share the tab strip.
+		if ( 'edit-notice' === $action || 'edit-candidate' === $action ) {
+			echo '<div class="wrap ffc-recruitment-admin">';
+			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash.
+			$msg = isset( $_GET['ffc_msg'] ) ? sanitize_key( wp_unslash( (string) $_GET['ffc_msg'] ) ) : '';
+			if ( '' !== $msg ) {
+				self::render_flash_notice( $msg );
+			}
+			if ( 'edit-notice' === $action ) {
+				RecruitmentNoticeEditPage::render();
+			} else {
+				RecruitmentCandidateEditPage::render();
+			}
+			echo '</div>';
+			return;
+		}
+
+		if ( '' !== $action ) {
+			self::dispatch_action( $action );
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab switching is read-only.
@@ -143,130 +171,131 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_notices_tab(): void {
-		$notices     = RecruitmentNoticeRepository::get_all();
-		$adjutancies = RecruitmentAdjutancyRepository::get_all();
-
 		echo '<h2>' . esc_html__( 'Notices', 'ffcertificate' ) . '</h2>';
 
-		echo '<table class="widefat striped"><thead><tr>';
-		echo '<th>' . esc_html__( 'Code', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Name', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Reopened?', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Created at', 'ffcertificate' ) . '</th>';
-		echo '</tr></thead><tbody>';
+		$table = new RecruitmentNoticesListTable();
+		$table->prepare_items();
 
-		if ( empty( $notices ) ) {
-			echo '<tr><td colspan="6">' . esc_html__( 'No notices registered yet.', 'ffcertificate' ) . '</td></tr>';
-		} else {
-			$nonce = wp_create_nonce( 'wp_rest' );
-			foreach ( $notices as $n ) {
-				$attached_ids = array_values( RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( (int) $n->id ) );
-
-				echo '<tr>';
-				echo '<td><code>' . esc_html( $n->code ) . '</code></td>';
-				echo '<td>' . esc_html( $n->name ) . '</td>';
-				echo '<td><span class="ffc-status-badge ffc-status-' . esc_attr( $n->status ) . '">' . esc_html( $n->status ) . '</span></td>';
-				echo '<td>' . ( '1' === $n->was_reopened ? esc_html__( 'Yes', 'ffcertificate' ) : '—' ) . '</td>';
-
-				echo '<td>';
-				self::render_notice_adjutancies_cell( (int) $n->id, $attached_ids, $adjutancies, $nonce );
-				echo '</td>';
-
-				echo '<td>' . esc_html( $n->created_at ) . '</td>';
-				echo '</tr>';
-			}
-		}
-		echo '</tbody></table>';
+		// Search box + form wrapper so WP's bulk-action + sort + search
+		// query params are preserved on submit.
+		echo '<form method="get">';
+		echo '<input type="hidden" name="page" value="' . esc_attr( self::PAGE_SLUG ) . '">';
+		$table->search_box( __( 'Search notices', 'ffcertificate' ), 'ffc-recruitment-notices' );
+		$table->display();
+		echo '</form>';
 
 		self::render_create_notice_form();
 		self::render_rest_pointer();
 	}
 
 	/**
-	 * Render the per-notice adjutancy attachment cell: badge for each
-	 * attached adjutancy with a small `×` button to detach, plus a
-	 * `<select>` of every other adjutancy with an Add button to attach.
+	 * Dispatch a `?action=…` GET-link operation triggered from a row
+	 * action in the list tables. Each branch validates its own nonce
+	 * via `check_admin_referer` and short-circuits with `wp_safe_redirect`
+	 * back to the canonical tab so the URL stays clean.
 	 *
-	 * Both controls fire inline `fetch()` calls against the new
-	 * `/notices/{id}/adjutancies/{adjutancy_id}` REST routes; the page
-	 * reloads on success so the new state is visible.
+	 * Sprint A1 ships only `delete-notice`. Sprint B adds the rest of
+	 * the row actions (edit-notice, status transitions, promote, etc.).
 	 *
-	 * @param int    $notice_id    Notice ID.
-	 * @param array  $attached_ids Currently-attached adjutancy ids.
-	 * @param array  $adjutancies  All adjutancies (full set for the dropdown).
-	 * @param string $nonce        wp_rest nonce.
-	 * @phpstan-param list<int>          $attached_ids
-	 * @phpstan-param list<AdjutancyRow> $adjutancies
+	 * @param string $action Sanitized action key from the request.
 	 * @return void
 	 */
-	private static function render_notice_adjutancies_cell( int $notice_id, array $attached_ids, array $adjutancies, string $nonce ): void {
-		$attached_set = array_flip( $attached_ids );
-
-		// 1. Badge list of attached adjutancies, with × detach buttons.
-		$attached_objects = array_values(
-			array_filter(
-				$adjutancies,
-				static function ( $a ) use ( $attached_set ) {
-					return isset( $attached_set[ (int) $a->id ] );
-				}
-			)
+	/**
+	 * Render a one-line admin notice driven by `?ffc_msg=…` flash key.
+	 * The edit pages write the key on every redirect; we map known keys
+	 * to translated copy here.
+	 *
+	 * @param string $key Flash key.
+	 * @return void
+	 */
+	private static function render_flash_notice( string $key ): void {
+		$map = array(
+			'saved'          => array( 'success', __( 'Saved.', 'ffcertificate' ) ),
+			'transitioned'   => array( 'success', __( 'Status transition applied.', 'ffcertificate' ) ),
+			'deleted'        => array( 'success', __( 'Candidate deleted.', 'ffcertificate' ) ),
+			'delete-blocked' => array( 'error', __( 'Delete blocked: candidate still has classifications. Remove them first or leave the candidate row in place.', 'ffcertificate' ) ),
+			'rank-mandatory' => array( 'error', __( 'public_columns_config rejected: `rank` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
+			'name-mandatory' => array( 'error', __( 'public_columns_config rejected: `name` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
 		);
-
-		if ( empty( $attached_objects ) ) {
-			echo '<em>' . esc_html__( '(none)', 'ffcertificate' ) . '</em>';
-		} else {
-			echo '<span class="ffc-attached-list">';
-			foreach ( $attached_objects as $a ) {
-				echo '<span class="ffc-attached" style="display:inline-block;background:#e0e0e0;padding:2px 6px;margin:2px;border-radius:3px;">';
-				echo esc_html( (string) $a->slug );
-				echo ' <a href="#" data-notice="' . esc_attr( (string) $notice_id ) . '" data-adjutancy="' . esc_attr( (string) $a->id ) . '" onclick="return ffcDetachAdjutancy(this);" title="' . esc_attr__( 'Detach', 'ffcertificate' ) . '">×</a>';
-				echo '</span>';
-			}
-			echo '</span>';
+		if ( ! isset( $map[ $key ] ) ) {
+			return;
 		}
+		$class = 'success' === $map[ $key ][0] ? 'notice-success' : 'notice-error';
+		echo '<div class="notice ' . esc_attr( $class ) . ' is-dismissible"><p>' . esc_html( $map[ $key ][1] ) . '</p></div>';
+	}
 
-		// 2. Attach selector for everything not already attached.
-		$detached_objects = array_values(
-			array_filter(
-				$adjutancies,
-				static function ( $a ) use ( $attached_set ) {
-					return ! isset( $attached_set[ (int) $a->id ] );
+	/**
+	 * Dispatch a `?action=…` GET-link operation triggered from a row
+	 * action in the list tables. Each branch validates its own nonce
+	 * via `check_admin_referer` and short-circuits with `wp_safe_redirect`
+	 * back to the canonical tab so the URL stays clean.
+	 *
+	 * Edit-screen actions (`edit-notice`, `edit-candidate`, etc.) are
+	 * handled earlier in render_page() — they're full-screen renders,
+	 * not redirects.
+	 *
+	 * @param string $action Sanitized action key from the request.
+	 * @return void
+	 */
+	private static function dispatch_action( string $action ): void {
+		switch ( $action ) {
+			case 'delete-notice':
+				$id = isset( $_GET['notice_id'] ) ? absint( wp_unslash( (string) $_GET['notice_id'] ) ) : 0;
+				if ( $id > 0 ) {
+					check_admin_referer( 'ffc_recruitment_delete_notice_' . $id );
+					RecruitmentNoticeRepository::delete( $id );
 				}
-			)
-		);
-		if ( ! empty( $detached_objects ) ) {
-			echo '<form style="display:inline;margin-left:.5em;" onsubmit="return ffcAttachAdjutancy(this);" data-notice="' . esc_attr( (string) $notice_id ) . '">';
-			echo '<select name="adjutancy_id">';
-			foreach ( $detached_objects as $a ) {
-				echo '<option value="' . esc_attr( (string) $a->id ) . '">' . esc_html( (string) $a->slug ) . ' — ' . esc_html( (string) $a->name ) . '</option>';
-			}
-			echo '</select>';
-			echo ' <button type="submit" class="button-secondary button-small">' . esc_html__( 'Attach', 'ffcertificate' ) . '</button>';
-			echo '</form>';
-		}
+				wp_safe_redirect(
+					add_query_arg(
+						array(
+							'page' => self::PAGE_SLUG,
+							'tab'  => 'notices',
+						),
+						admin_url( 'admin.php' )
+					)
+				);
+				exit;
 
-		// Inline handlers (rendered once per page; idempotent if printed
-		// per row — modern browsers de-dup function definitions).
-		echo '<script>'
-			. 'function ffcAttachAdjutancy(form){'
-			. 'var nid=form.getAttribute("data-notice");'
-			. 'var aid=form.adjutancy_id.value;'
-			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/adjutancies/"+aid,{'
-			. 'method:"PUT",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},credentials:"same-origin"'
-			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert(JSON.stringify(o.body));}'
-			. '});return false;}'
-			. 'function ffcDetachAdjutancy(a){'
-			. 'var nid=a.getAttribute("data-notice");'
-			. 'var aid=a.getAttribute("data-adjutancy");'
-			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/adjutancies/"+aid,{'
-			. 'method:"DELETE",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},credentials:"same-origin"'
-			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert(JSON.stringify(o.body));}'
-			. '});return false;}'
-			. '</script>';
+			case 'delete-adjutancy':
+				$id = isset( $_GET['adjutancy_id'] ) ? absint( wp_unslash( (string) $_GET['adjutancy_id'] ) ) : 0;
+				if ( $id > 0 ) {
+					check_admin_referer( 'ffc_recruitment_delete_adjutancy_' . $id );
+					// DeleteService gates on §14: rejects when notice_adjutancy
+					// or classification rows reference this adjutancy. The
+					// envelope's success flag is opaque from the redirect path
+					// (UI lands in sprint B's edit screen with proper feedback).
+					RecruitmentDeleteService::delete_adjutancy( $id );
+				}
+				wp_safe_redirect(
+					add_query_arg(
+						array(
+							'page' => self::PAGE_SLUG,
+							'tab'  => 'adjutancies',
+						),
+						admin_url( 'admin.php' )
+					)
+				);
+				exit;
+
+			case 'delete-candidate':
+				$id = isset( $_GET['candidate_id'] ) ? absint( wp_unslash( (string) $_GET['candidate_id'] ) ) : 0;
+				if ( $id > 0 ) {
+					check_admin_referer( 'ffc_recruitment_delete_candidate_' . $id );
+					// DeleteService gates on §7-bis: zero classifications.
+					// The reason-collection UI lives on sprint C's edit screen.
+					RecruitmentDeleteService::delete_candidate( $id );
+				}
+				wp_safe_redirect(
+					add_query_arg(
+						array(
+							'page' => self::PAGE_SLUG,
+							'tab'  => 'candidates',
+						),
+						admin_url( 'admin.php' )
+					)
+				);
+				exit;
+		}
 	}
 
 	/**
@@ -275,28 +304,17 @@ final class RecruitmentAdminPage {
 	 * @return void
 	 */
 	private static function render_adjutancies_tab(): void {
-		$rows = RecruitmentAdjutancyRepository::get_all();
-
 		echo '<h2>' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</h2>';
 
-		echo '<table class="widefat striped"><thead><tr>';
-		echo '<th>' . esc_html__( 'Slug', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Name', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Created at', 'ffcertificate' ) . '</th>';
-		echo '</tr></thead><tbody>';
+		$table = new RecruitmentAdjutanciesListTable();
+		$table->prepare_items();
 
-		if ( empty( $rows ) ) {
-			echo '<tr><td colspan="3">' . esc_html__( 'No adjutancies registered yet.', 'ffcertificate' ) . '</td></tr>';
-		} else {
-			foreach ( $rows as $a ) {
-				echo '<tr>';
-				echo '<td><code>' . esc_html( $a->slug ) . '</code></td>';
-				echo '<td>' . esc_html( $a->name ) . '</td>';
-				echo '<td>' . esc_html( $a->created_at ) . '</td>';
-				echo '</tr>';
-			}
-		}
-		echo '</tbody></table>';
+		echo '<form method="get">';
+		echo '<input type="hidden" name="page" value="' . esc_attr( self::PAGE_SLUG ) . '">';
+		echo '<input type="hidden" name="tab" value="adjutancies">';
+		$table->search_box( __( 'Search adjutancies', 'ffcertificate' ), 'ffc-recruitment-adjutancies' );
+		$table->display();
+		echo '</form>';
 
 		self::render_create_adjutancy_form();
 	}
@@ -317,12 +335,18 @@ final class RecruitmentAdminPage {
 	private static function render_candidates_tab(): void {
 		echo '<h2>' . esc_html__( 'Candidates', 'ffcertificate' ) . '</h2>';
 
-		self::render_csv_import_form();
+		$table = new RecruitmentCandidatesListTable();
+		$table->prepare_items();
+
+		echo '<form method="get">';
+		echo '<input type="hidden" name="page" value="' . esc_attr( self::PAGE_SLUG ) . '">';
+		echo '<input type="hidden" name="tab" value="candidates">';
+		$table->search_box( __( 'Search by name', 'ffcertificate' ), 'ffc-recruitment-candidates' );
+		$table->display();
+		echo '</form>';
 
 		echo '<hr style="margin:2em 0;">';
-		echo '<h3>' . esc_html__( 'Candidate management', 'ffcertificate' ) . '</h3>';
-		echo '<p>' . esc_html__( 'Per-candidate search, edit, and delete are exposed via the REST endpoints below — the full inline UI lands in a follow-up iteration.', 'ffcertificate' ) . '</p>';
-		self::render_rest_pointer();
+		self::render_csv_import_form();
 	}
 
 	/**

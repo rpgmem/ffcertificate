@@ -214,6 +214,89 @@ class RecruitmentCandidateRepository {
 	}
 
 	/**
+	 * Paginated list for the admin Candidates list table.
+	 *
+	 * `$name_search` filters case-insensitively against `name` (CPF/RF
+	 * lookups go through the dedicated hash methods because the column
+	 * is encrypted and the operator-typed value has to be hashed before
+	 * matching). Returns rows ordered by `created_at DESC` so the most
+	 * recently imported candidates surface first.
+	 *
+	 * @param string $name_search Optional substring filter on name (empty = no filter).
+	 * @param int    $limit       Maximum rows (1-200).
+	 * @param int    $offset      Offset for pagination.
+	 * @return list<CandidateRow>
+	 */
+	public static function get_paginated( string $name_search, int $limit, int $offset ): array {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		$limit  = max( 1, min( 200, $limit ) );
+		$offset = max( 0, $offset );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$results = '' !== $name_search
+			? $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT * FROM %i WHERE name LIKE %s ORDER BY created_at DESC LIMIT %d OFFSET %d',
+					$table,
+					'%' . $wpdb->esc_like( $name_search ) . '%',
+					$limit,
+					$offset
+				)
+			)
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			: $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT * FROM %i ORDER BY created_at DESC LIMIT %d OFFSET %d',
+					$table,
+					$limit,
+					$offset
+				)
+			);
+
+		/**
+		 * Cast wpdb's mixed return into the typed shape.
+		 *
+		 * @var list<CandidateRow>|null $results
+		 */
+		$results = $results;
+		return is_array( $results ) ? $results : array();
+	}
+
+	/**
+	 * Total candidate count, optionally filtered by `name` substring.
+	 *
+	 * Pairs with {@see self::get_paginated()} to drive the list table
+	 * pagination headers.
+	 *
+	 * @param string $name_search Optional substring filter on name.
+	 * @return int
+	 */
+	public static function count_paginated( string $name_search ): int {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		if ( '' !== $name_search ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$total = $wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT COUNT(*) FROM %i WHERE name LIKE %s',
+					$table,
+					'%' . $wpdb->esc_like( $name_search ) . '%'
+				)
+			);
+		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$total = $wpdb->get_var(
+				$wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table )
+			);
+		}
+
+		return null === $total ? 0 : (int) $total;
+	}
+
+	/**
 	 * Insert a new candidate row.
 	 *
 	 * Required keys: `name`, `pcd_hash`. At least one of `cpf_hash` or
