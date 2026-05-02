@@ -99,18 +99,19 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 
 		$html = RecruitmentPublicShortcode::render_uncached( 'EDITAL-2026-01', '', 1, 1 );
 
-		$this->assertStringContainsString( 'Notice not yet published.', $html );
+		$this->assertStringContainsString( 'still being prepared', $html );
 	}
 
-	public function test_render_uncached_renders_warning_only_for_preliminary(): void {
+	public function test_render_uncached_renders_listing_with_warning_banner_for_preliminary(): void {
+		// Preliminary now renders the preview list with a "subject to
+		// change" banner at the top (was warning-only pre-6.1.0).
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'preliminary' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
 
 		$html = RecruitmentPublicShortcode::render_uncached( 'EDITAL-2026-01', '', 1, 1 );
 
-		$this->assertStringContainsString( 'This list is under review', $html );
-		// Preliminary notices must NOT expose the listing — even preview
-		// rows are private until promotion.
-		$this->assertStringNotContainsString( '<table', $html );
+		$this->assertStringContainsString( 'Preliminary list', $html );
+		$this->assertStringContainsString( 'EDITAL-2026-01', $html );
 	}
 
 	public function test_render_uncached_renders_empty_state_for_active_with_no_rows(): void {
