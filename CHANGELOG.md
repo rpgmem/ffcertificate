@@ -7,6 +7,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+**Recruitment — `[user_dashboard_personal]` integration.** The candidate-self section ships as both a dedicated `[ffc_recruitment_my_calls]` shortcode AND an automatic tab inside the existing `[user_dashboard_personal]` dashboard. The tab is gated by the same §9.1 visibility check (the user has at least one classification across recruitment notices, joined via `candidate.user_id`); users with zero classifications never see the tab. The previous behavior — section never appeared in the dashboard unless the operator manually placed the standalone shortcode — was an integration gap from the original 6.0.0 §9 plan.
+
+### Changed
+
+- **`DashboardShortcode::render`** gained a `$can_view_recruitment` branch. The section's HTML is rendered once via `RecruitmentDashboardSection::render()` (which already encodes the visibility gate by returning empty string when the user has no classifications) and reused as both the gate signal and the tab body — no extra repository round-trip.
+- New "My Calls" tab appears between the existing Reregistration and Profile tabs when the gate passes. Active by default for users whose only ffc-related data is recruitment classifications (i.e. they have no certificates, appointments, audience, or reregistrations).
+
 ---
 
 ## [6.1.0] (2026-05-02)

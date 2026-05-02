@@ -49,7 +49,7 @@ class RecruitmentNoticeRepository {
 	 *
 	 * @var string
 	 */
-	public const DEFAULT_PUBLIC_COLUMNS_CONFIG = '{"rank":true,"name":true,"status":true,"pcd_badge":true,"date_to_assume":true,"score":false,"cpf_masked":false,"rf_masked":false,"email_masked":false}';
+	public const DEFAULT_PUBLIC_COLUMNS_CONFIG = '{"rank":true,"name":true,"status":true,"pcd_badge":true,"date_to_assume":true,"time_to_assume":true,"score":false,"cpf_masked":false,"rf_masked":false,"email_masked":false}';
 
 	/**
 	 * Cache group for this repository.

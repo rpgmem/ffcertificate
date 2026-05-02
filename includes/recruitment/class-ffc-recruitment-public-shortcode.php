@@ -90,6 +90,10 @@ final class RecruitmentPublicShortcode {
 	 * @return string
 	 */
 	public static function render( $atts = array() ): string {
+		// Always enqueue the CSS — even error short-circuits render
+		// styled message blocks and need the scoped rules.
+		self::enqueue_public_css();
+
 		$atts = shortcode_atts(
 			array(
 				'notice'    => '',
@@ -103,14 +107,14 @@ final class RecruitmentPublicShortcode {
 		$slug_filter = trim( (string) $atts['adjutancy'] );
 
 		if ( '' === $notice_code ) {
-			return self::msg( __( 'Notice attribute is required.', 'ffcertificate' ), 'error' );
+			return self::wrap_output( self::msg( __( 'Notice attribute is required.', 'ffcertificate' ), 'error' ) );
 		}
 
 		// Per-IP rate limit BEFORE cache lookup so cache hits don't bypass
 		// the throttle (the abuse vector is hammering the URL, regardless
 		// of whether each render is cached).
 		if ( ! self::check_rate_limit() ) {
-			return self::msg( __( 'Too many requests. Please try again in a few seconds.', 'ffcertificate' ), 'warning' );
+			return self::wrap_output( self::msg( __( 'Too many requests. Please try again in a few seconds.', 'ffcertificate' ), 'warning' ) );
 		}
 
 		$page_top    = max( 1, (int) ( $_GET['page_top'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -122,7 +126,7 @@ final class RecruitmentPublicShortcode {
 			return $cached;
 		}
 
-		$html = self::render_uncached( $notice_code, $slug_filter, $page_top, $page_bottom );
+		$html = self::wrap_output( self::render_uncached( $notice_code, $slug_filter, $page_top, $page_bottom ) );
 
 		$settings = RecruitmentSettings::all();
 		$ttl      = (int) $settings['public_cache_seconds'];
@@ -131,6 +135,36 @@ final class RecruitmentPublicShortcode {
 		}
 
 		return $html;
+	}
+
+	/**
+	 * Wrap rendered HTML in the scoped container so the dashboard-style
+	 * CSS rules apply without leaking into the host theme's other markup.
+	 * Every public-facing render — happy path or error short-circuit —
+	 * goes through here.
+	 *
+	 * @param string $body Inner HTML.
+	 * @return string
+	 */
+	private static function wrap_output( string $body ): string {
+		return '<div class="ffc-recruitment-queue">' . $body . '</div>';
+	}
+
+	/**
+	 * Enqueue the public-shortcode CSS. Scoped under
+	 * `.ffc-recruitment-queue` so it can't leak.
+	 *
+	 * @return void
+	 */
+	private static function enqueue_public_css(): void {
+		$path = FFC_PLUGIN_DIR . 'assets/css/ffc-recruitment-public.css';
+		$ver  = file_exists( $path ) ? (string) filemtime( $path ) : FFC_VERSION;
+		wp_enqueue_style(
+			'ffc-recruitment-public',
+			FFC_PLUGIN_URL . 'assets/css/ffc-recruitment-public.css',
+			array(),
+			$ver
+		);
 	}
 
 	/**
@@ -294,6 +328,9 @@ final class RecruitmentPublicShortcode {
 		if ( $show_date && $columns['date_to_assume'] ) {
 			$html .= '<th>' . esc_html__( 'Date to assume', 'ffcertificate' ) . '</th>';
 		}
+		if ( $show_date && $columns['time_to_assume'] ) {
+			$html .= '<th>' . esc_html__( 'Time', 'ffcertificate' ) . '</th>';
+		}
 		$html .= '</tr></thead><tbody>';
 
 		foreach ( $page_rows as $row ) {
@@ -352,9 +389,21 @@ final class RecruitmentPublicShortcode {
 			$is_pcd = RecruitmentPcdHasher::verify( (string) $candidate->pcd_hash, (int) $candidate->id );
 			$html  .= '<td>' . ( true === $is_pcd ? '<span class="ffc-recruitment-pcd">PCD</span>' : '' ) . '</td>';
 		}
-		if ( $show_date && $columns['date_to_assume'] ) {
-			$call  = RecruitmentCallRepository::get_active_for_classification( (int) $row->id );
-			$html .= '<td>' . esc_html( null === $call ? '' : (string) $call->date_to_assume ) . '</td>';
+		if ( $show_date && ( $columns['date_to_assume'] || $columns['time_to_assume'] ) ) {
+			$call = RecruitmentCallRepository::get_active_for_classification( (int) $row->id );
+			if ( $columns['date_to_assume'] ) {
+				$html .= '<td>' . esc_html( null === $call ? '' : (string) $call->date_to_assume ) . '</td>';
+			}
+			if ( $columns['time_to_assume'] ) {
+				$html .= '<td>' . esc_html( null === $call ? '' : (string) $call->time_to_assume ) . '</td>';
+			}
+		} else {
+			if ( $show_date && $columns['date_to_assume'] ) {
+				$html .= '<td></td>';
+			}
+			if ( $show_date && $columns['time_to_assume'] ) {
+				$html .= '<td></td>';
+			}
 		}
 		$html .= '</tr>';
 		return $html;
@@ -453,7 +502,7 @@ final class RecruitmentPublicShortcode {
 		$merged = array_merge( $default, $decoded );
 
 		$out = array();
-		foreach ( array( 'rank', 'name', 'status', 'pcd_badge', 'date_to_assume', 'score', 'cpf_masked', 'rf_masked', 'email_masked' ) as $key ) {
+		foreach ( array( 'rank', 'name', 'status', 'pcd_badge', 'date_to_assume', 'time_to_assume', 'score', 'cpf_masked', 'rf_masked', 'email_masked' ) as $key ) {
 			$out[ $key ] = ! empty( $merged[ $key ] );
 		}
 

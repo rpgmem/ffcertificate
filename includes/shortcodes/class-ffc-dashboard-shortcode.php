@@ -116,8 +116,22 @@ class DashboardShortcode {
 		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository' )
 			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionRepository::get_all_by_user( $user_id ) );
 
+		// Recruitment tab — visible when the user has at least one
+		// classification across recruitment notices (joined via
+		// `candidate.user_id`). The actual tab content is the same HTML
+		// rendered by the standalone `[ffc_recruitment_my_calls]`
+		// shortcode (which itself short-circuits to '' when the visibility
+		// gate fails), so we render it once and reuse the result both as
+		// the gate signal AND the tab body — avoiding a second pass over
+		// the repository layer.
+		$recruitment_html = '';
+		if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentDashboardSection' ) ) {
+			$recruitment_html = \FreeFormCertificate\Recruitment\RecruitmentDashboardSection::render();
+		}
+		$can_view_recruitment = '' !== $recruitment_html;
+
 		// Get current tab - default to first available tab.
-		$default_tab = $can_view_certificates ? 'certificates' : ( $can_view_appointments ? 'appointments' : ( $can_view_audience_bookings ? 'audience' : ( $can_view_reregistrations ? 'reregistrations' : 'profile' ) ) );
+		$default_tab = $can_view_certificates ? 'certificates' : ( $can_view_appointments ? 'appointments' : ( $can_view_audience_bookings ? 'audience' : ( $can_view_reregistrations ? 'reregistrations' : ( $can_view_recruitment ? 'recruitment' : 'profile' ) ) ) );
 		$current_tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : $default_tab; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for display only.
 
 		// Start output buffering.
@@ -192,6 +206,18 @@ class DashboardShortcode {
 					</button>
 				<?php endif; ?>
 
+				<?php if ( $can_view_recruitment ) : ?>
+					<button class="ffc-tab <?php echo esc_attr( 'recruitment' === $current_tab ? 'active' : '' ); ?>"
+							data-tab="recruitment"
+							role="tab"
+							id="ffc-tab-recruitment"
+							aria-selected="<?php echo esc_attr( 'recruitment' === $current_tab ? 'true' : 'false' ); ?>"
+							aria-controls="tab-recruitment"
+							tabindex="<?php echo esc_attr( 'recruitment' === $current_tab ? '0' : '-1' ); ?>">
+						<span aria-hidden="true">📣</span> <?php esc_html_e( 'My Calls', 'ffcertificate' ); ?>
+					</button>
+				<?php endif; ?>
+
 				<button class="ffc-tab <?php echo esc_attr( 'profile' === $current_tab ? 'active' : '' ); ?>"
 						data-tab="profile"
 						role="tab"
@@ -244,6 +270,19 @@ class DashboardShortcode {
 					<div class="ffc-loading" role="status">
 						<?php esc_html_e( 'Loading reregistrations...', 'ffcertificate' ); ?>
 					</div>
+				</div>
+			<?php endif; ?>
+
+			<?php if ( $can_view_recruitment ) : ?>
+				<div class="ffc-tab-content <?php echo esc_attr( 'recruitment' === $current_tab ? 'active' : '' ); ?>"
+					id="tab-recruitment"
+					role="tabpanel"
+					aria-labelledby="ffc-tab-recruitment">
+					<?php
+					// Server-rendered (the section is built from a few tens
+					// of rows at most, no point in lazy-loading via REST).
+					echo wp_kses_post( $recruitment_html );
+					?>
 				</div>
 			<?php endif; ?>
 

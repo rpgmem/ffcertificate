@@ -555,7 +555,18 @@ final class RecruitmentNoticeEditPage {
 		$candidates  = self::lookup_map( array_unique( $candidate_ids ), array( RecruitmentCandidateRepository::class, 'get_by_id' ), 'name' );
 		$adjutancies = self::lookup_map( array_unique( $adjutancy_ids ), array( RecruitmentAdjutancyRepository::class, 'get_by_id' ), 'slug' );
 
+		// Bulk-call toolbar (Definitive tab only): selected `empty` rows
+		// can be called together via POST /classifications/bulk-call. The
+		// REST endpoint enforces atomicity (all-or-nothing per §6) so a
+		// race-loss on any single row rolls back the entire batch.
+		if ( $with_actions ) {
+			self::render_bulk_call_toolbar();
+		}
+
 		echo '<table class="widefat striped"><thead><tr>';
+		if ( $with_actions ) {
+			echo '<th style="width:1%;"><input type="checkbox" id="ffc-cls-bulk-all" onclick="ffcRecruitmentClsToggleAll(this);" title="' . esc_attr__( 'Select all `empty` rows on this page', 'ffcertificate' ) . '"></th>';
+		}
 		echo '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Candidate', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
@@ -570,6 +581,14 @@ final class RecruitmentNoticeEditPage {
 			$candidate_name = $candidates[ (int) $row->candidate_id ] ?? '#' . (int) $row->candidate_id;
 			$adjutancy_slug = $adjutancies[ (int) $row->adjutancy_id ] ?? '#' . (int) $row->adjutancy_id;
 			echo '<tr>';
+			if ( $with_actions ) {
+				// Only `empty` rows can be bulk-called (the §5.2
+				// state-machine guard rejects everything else with
+				// race_lost), so the checkbox is rendered disabled
+				// otherwise.
+				$is_empty = 'empty' === (string) $row->status;
+				echo '<td><input type="checkbox" class="ffc-cls-bulk-cb" value="' . esc_attr( (string) $row->id ) . '"' . ( $is_empty ? '' : ' disabled' ) . '></td>';
+			}
 			echo '<td>' . esc_html( (string) $row->rank ) . '</td>';
 			echo '<td>' . esc_html( $candidate_name ) . '</td>';
 			echo '<td><code>' . esc_html( $adjutancy_slug ) . '</code></td>';
@@ -586,6 +605,27 @@ final class RecruitmentNoticeEditPage {
 		if ( $with_actions ) {
 			self::render_classification_actions_script();
 		}
+	}
+
+	/**
+	 * Render the bulk-call toolbar above the Definitive classifications
+	 * table. Single date+time form that applies to every `empty`-status
+	 * row checked in the table; submit hits POST /classifications/bulk-call
+	 * which is atomic per §6.
+	 *
+	 * @return void
+	 */
+	private static function render_bulk_call_toolbar(): void {
+		echo '<div class="ffc-cls-bulk-toolbar" style="background:#f6f7f7;border:1px solid #dcdcde;border-radius:4px;padding:10px 12px;margin-bottom:8px;">';
+		echo '<strong>' . esc_html__( 'Bulk call', 'ffcertificate' ) . '</strong> ';
+		echo '<span style="margin-left:.5em;">' . esc_html__( 'Date:', 'ffcertificate' ) . ' </span>';
+		echo '<input type="date" id="ffc-bulk-date" style="margin-right:.5em;">';
+		echo '<span>' . esc_html__( 'Time:', 'ffcertificate' ) . ' </span>';
+		echo '<input type="time" id="ffc-bulk-time" style="margin-right:.5em;">';
+		echo '<button type="button" class="button button-primary" onclick="ffcRecruitmentBulkCall();">' . esc_html__( 'Call selected', 'ffcertificate' ) . '</button>';
+		echo '<span id="ffc-bulk-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
+		echo '<p class="description" style="margin:6px 0 0;">' . esc_html__( 'Select rows in `empty` status to bulk-call them with the same date and time. Atomic per §6 — any single race-loss rolls back the entire batch.', 'ffcertificate' ) . '</p>';
+		echo '</div>';
 	}
 
 	/**
@@ -661,10 +701,38 @@ final class RecruitmentNoticeEditPage {
 	 * @return void
 	 */
 	private static function render_classification_actions_script(): void {
-		$nonce    = wp_create_nonce( 'wp_rest' );
-		$call_url = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
+		$nonce        = wp_create_nonce( 'wp_rest' );
+		$call_url     = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
+		$bulk_url     = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/bulk-call' ) );
+		$bulk_no_sel  = esc_js( __( 'Select at least one row first.', 'ffcertificate' ) );
+		$bulk_no_date = esc_js( __( 'Date and time are required for bulk call.', 'ffcertificate' ) );
 
 		echo '<script>'
+			// Bulk-call helpers — toggle-all + submit handler.
+			. 'function ffcRecruitmentClsToggleAll(cb){'
+			. 'var boxes=document.querySelectorAll(".ffc-cls-bulk-cb:not([disabled])");'
+			. 'for(var i=0;i<boxes.length;i++){boxes[i].checked=cb.checked;}'
+			. '}'
+			. 'function ffcRecruitmentBulkCall(){'
+			. 'var status=document.getElementById("ffc-bulk-status");'
+			. 'var date=document.getElementById("ffc-bulk-date").value;'
+			. 'var time=document.getElementById("ffc-bulk-time").value;'
+			. 'if(!date||!time){status.textContent="' . esc_attr( $bulk_no_date ) . '";return;}'
+			. 'var ids=[];var boxes=document.querySelectorAll(".ffc-cls-bulk-cb:checked");'
+			. 'for(var i=0;i<boxes.length;i++){ids.push(parseInt(boxes[i].value,10));}'
+			. 'if(ids.length===0){status.textContent="' . esc_attr( $bulk_no_sel ) . '";return;}'
+			. 'status.textContent="…";'
+			. 'fetch("' . esc_js( $bulk_url ) . '",{'
+			. 'method:"POST",'
+			. 'headers:{"X-WP-Nonce":"' . esc_js( $nonce ) . '","Content-Type":"application/json"},'
+			. 'body:JSON.stringify({classification_ids:ids,date_to_assume:date,time_to_assume:time}),'
+			. 'credentials:"same-origin"'
+			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
+			. 'if(o.status>=200&&o.status<300){location.reload();}'
+			. 'else{status.textContent="Error: "+JSON.stringify(o.body);}'
+			. '}).catch(function(e){status.textContent="Network error: "+e.message;});'
+			. '}'
+			// Per-row action handler (Call / Mark accepted / etc.).
 			. 'function ffcRecruitmentClsAct(btn){'
 			. 'var id=btn.getAttribute("data-cls-id");'
 			. 'var action=btn.getAttribute("data-cls-action");'
@@ -814,11 +882,41 @@ final class RecruitmentNoticeEditPage {
 			$reason = null;
 		}
 
+		// Default to a generic invalid-target failure when the operator
+		// somehow lands here with a non-enum value (form-tampering case).
+		$flash = 'transition-invalid-target';
+
 		if ( $notice_id > 0 && in_array( $target, array( 'draft', 'preliminary', 'definitive', 'closed' ), true ) ) {
-			RecruitmentNoticeStateMachine::transition_to( $notice_id, $target, '' === (string) $reason ? null : $reason );
+			$result = RecruitmentNoticeStateMachine::transition_to( $notice_id, $target, '' === (string) $reason ? null : $reason );
+			if ( true === $result['success'] ) {
+				$flash = 'transitioned';
+			} else {
+				// Map the state-machine error code to a flash key the
+				// renderer's notice map knows. Anything we don't have a
+				// dedicated copy for falls through to a generic
+				// transition-failed key carrying the raw code so the
+				// operator can see what blocked it.
+				$first_error = empty( $result['errors'] ) ? '' : (string) $result['errors'][0];
+				switch ( $first_error ) {
+					case 'recruitment_definitive_to_preliminary_blocked_by_calls':
+						$flash = 'transition-blocked-by-calls';
+						break;
+					case 'recruitment_transition_reason_required':
+						$flash = 'transition-reason-required';
+						break;
+					case 'recruitment_transition_race_lost':
+						$flash = 'transition-race-lost';
+						break;
+					default:
+						// Includes recruitment_invalid_transition: …
+						// and recruitment_notice_not_found.
+						$flash = 'transition-failed';
+						break;
+				}
+			}
 		}
 
-		self::redirect_with_notice( $notice_id, 'transitioned' );
+		self::redirect_with_notice( $notice_id, $flash );
 	}
 
 	/**
