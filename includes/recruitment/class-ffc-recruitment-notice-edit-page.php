@@ -213,6 +213,7 @@ final class RecruitmentNoticeEditPage {
 		echo '<td><input id="ffc-notice-name" type="text" class="regular-text" name="name" value="' . esc_attr( (string) $notice->name ) . '" required></td></tr>';
 
 		echo '<tr><th>' . esc_html__( 'Public columns', 'ffcertificate' ) . '</th>';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_columns_toggles() returns already-escaped HTML.
 		echo '<td>' . self::render_columns_toggles( (string) $notice->public_columns_config );
 		echo '<p class="description">' . esc_html__( 'Toggle which columns the public shortcode renders. Rank and Name are mandatory and cannot be turned off.', 'ffcertificate' ) . '</p></td></tr>';
 

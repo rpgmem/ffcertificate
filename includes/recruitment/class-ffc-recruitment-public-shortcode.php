@@ -268,7 +268,7 @@ final class RecruitmentPublicShortcode {
 			$needle = function_exists( 'mb_strtolower' )
 				? mb_strtolower( $name_query, 'UTF-8' )
 				: strtolower( $name_query );
-			$rows = array_values(
+			$rows   = array_values(
 				array_filter(
 					$rows,
 					static function ( $row ) use ( $needle ): bool {

@@ -278,9 +278,9 @@ class RecruitmentCandidateRepository {
 	 * @return list<CandidateRow>
 	 */
 	public static function get_paginated_for_adjutancy( string $name_search, int $adjutancy_id, int $limit, int $offset ): array {
-		$wpdb       = self::db();
-		$table      = self::get_table_name();
-		$cls_table  = $wpdb->prefix . 'ffc_recruitment_classification';
+		$wpdb      = self::db();
+		$table     = self::get_table_name();
+		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
 
 		$limit  = max( 1, min( 200, $limit ) );
 		$offset = max( 0, $offset );
@@ -296,7 +296,7 @@ class RecruitmentCandidateRepository {
 			? array( $table, $cls_table, $adjutancy_id, '%' . $wpdb->esc_like( $name_search ) . '%', $limit, $offset )
 			: array( $table, $cls_table, $adjutancy_id, $limit, $offset );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is one of two literals selected immediately above; both placeholders match $args.
 		$results = $wpdb->get_results( $wpdb->prepare( $sql, $args ) );
 
 		/**
@@ -327,7 +327,7 @@ class RecruitmentCandidateRepository {
 			? array( $table, $cls_table, $adjutancy_id, '%' . $wpdb->esc_like( $name_search ) . '%' )
 			: array( $table, $cls_table, $adjutancy_id );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is one of two literals selected immediately above; both placeholders match $args.
 		$total = $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
 
 		return null === $total ? 0 : (int) $total;
