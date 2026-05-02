@@ -577,9 +577,21 @@ final class RecruitmentNoticeEditPage {
 		$preview         = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'preview' );
 		$definitive_rows = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'definitive' );
 
+		// Mirror the filters available on the Candidates list table —
+		// adjutancy / name substring / CPF / RF — so operators can narrow
+		// a long classifications list (notices with hundreds of rows) the
+		// same way they do on the candidate browser. Filtering is applied
+		// uniformly to both Preliminary and Definitive arrays so the
+		// search context survives a tab switch.
+		$filters         = self::read_classification_filters( $notice_id );
+		$preview         = self::apply_classification_filters( $preview, $filters );
+		$definitive_rows = self::apply_classification_filters( $definitive_rows, $filters );
+
 		echo '<div class="postbox" style="margin-top:20px;">';
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
+
+		self::render_classification_filters_form( $notice_id, $filters );
 
 		// Tabs.
 		echo '<h2 class="nav-tab-wrapper" style="margin:0 0 1em;">';
@@ -610,6 +622,177 @@ final class RecruitmentNoticeEditPage {
 			. '</script>';
 
 		echo '</div></div>';
+	}
+
+	/**
+	 * Read the classification-listing filters from the request.
+	 *
+	 * Mirrors the GET-param shape used by the Candidates list table
+	 * (`adjutancy_id`, `s`, `cpf`, `rf`) but namespaced under `ffc_cls_*`
+	 * so it can't collide with the Candidates-tab params if both pages
+	 * share state. CPF / RF are normalized to digits only and resolved
+	 * to a candidate id via the encrypted-hash lookup; the result is
+	 * cached on the array so the row filter doesn't re-hash on every
+	 * pass.
+	 *
+	 * @param int $notice_id Notice id (only used for the form's hidden field).
+	 * @return array<string, mixed> Map of normalized filter values.
+	 */
+	private static function read_classification_filters( int $notice_id ): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
+		$adj_id = isset( $_GET['ffc_cls_adj'] ) ? absint( wp_unslash( (string) $_GET['ffc_cls_adj'] ) ) : 0;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
+		$query = isset( $_GET['ffc_cls_q'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['ffc_cls_q'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
+		$cpf = isset( $_GET['ffc_cls_cpf'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['ffc_cls_cpf'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
+		$rf = isset( $_GET['ffc_cls_rf'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['ffc_cls_rf'] ) ) : '';
+
+		// Resolve CPF / RF to a candidate id (or 0 = no match) via the
+		// encrypted-hash lookup. Doing it once here avoids per-row hashing
+		// inside apply_classification_filters().
+		$cpf_candidate_id = 0;
+		$rf_candidate_id  = 0;
+		$digits           = static fn( string $v ): string => (string) ( preg_replace( '/[^0-9]/', '', $v ) ?? '' );
+		if ( '' !== $cpf ) {
+			$cpf_digits = $digits( $cpf );
+			if ( '' !== $cpf_digits ) {
+				$hash             = (string) \FreeFormCertificate\Core\Encryption::hash( $cpf_digits );
+				$candidate        = RecruitmentCandidateRepository::get_by_cpf_hash( $hash );
+				$cpf_candidate_id = null === $candidate ? -1 : (int) $candidate->id;
+			}
+		}
+		if ( '' !== $rf ) {
+			$rf_digits = $digits( $rf );
+			if ( '' !== $rf_digits ) {
+				$hash            = (string) \FreeFormCertificate\Core\Encryption::hash( $rf_digits );
+				$candidate       = RecruitmentCandidateRepository::get_by_rf_hash( $hash );
+				$rf_candidate_id = null === $candidate ? -1 : (int) $candidate->id;
+			}
+		}
+
+		return array(
+			'notice_id'        => $notice_id,
+			'adjutancy_id'     => $adj_id,
+			'query'            => $query,
+			'cpf'              => $cpf,
+			'rf'               => $rf,
+			'cpf_candidate_id' => $cpf_candidate_id,
+			'rf_candidate_id'  => $rf_candidate_id,
+		);
+	}
+
+	/**
+	 * Apply the resolved filters to a classifications array.
+	 *
+	 * Filters compose with AND: a row must match every active filter to
+	 * survive. Rows whose candidate name doesn't substring-match the
+	 * query, or whose adjutancy/candidate id doesn't match the resolved
+	 * CPF/RF candidate, are dropped.
+	 *
+	 * @param array<int, object>   $rows    Classification rows.
+	 * @phpstan-param list<ClassificationRow> $rows
+	 * @param array<string, mixed> $filters Resolved filters.
+	 * @return array<int, object> Filtered classification rows.
+	 * @phpstan-return list<ClassificationRow>
+	 */
+	private static function apply_classification_filters( array $rows, array $filters ): array {
+		$adj_id           = (int) ( $filters['adjutancy_id'] ?? 0 );
+		$query            = (string) ( $filters['query'] ?? '' );
+		$cpf_candidate_id = (int) ( $filters['cpf_candidate_id'] ?? 0 );
+		$rf_candidate_id  = (int) ( $filters['rf_candidate_id'] ?? 0 );
+		$has_q            = '' !== $query;
+		$needle           = $has_q
+			? ( function_exists( 'mb_strtolower' ) ? mb_strtolower( $query, 'UTF-8' ) : strtolower( $query ) )
+			: '';
+
+		// CPF/RF that didn't resolve to any candidate (`-1`) shrinks the
+		// set to empty: the operator typed a number that doesn't exist
+		// in this notice, so no row can match.
+		if ( -1 === $cpf_candidate_id || -1 === $rf_candidate_id ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $rows as $row ) {
+			if ( $adj_id > 0 && (int) $row->adjutancy_id !== $adj_id ) {
+				continue;
+			}
+			$candidate_id = (int) $row->candidate_id;
+			if ( $cpf_candidate_id > 0 && $candidate_id !== $cpf_candidate_id ) {
+				continue;
+			}
+			if ( $rf_candidate_id > 0 && $candidate_id !== $rf_candidate_id ) {
+				continue;
+			}
+			if ( $has_q ) {
+				$candidate = RecruitmentCandidateRepository::get_by_id( $candidate_id );
+				if ( null === $candidate ) {
+					continue;
+				}
+				$name = (string) ( $candidate->name ?? '' );
+				$hay  = function_exists( 'mb_strtolower' ) ? mb_strtolower( $name, 'UTF-8' ) : strtolower( $name );
+				if ( false === strpos( $hay, $needle ) ) {
+					continue;
+				}
+			}
+			$out[] = $row;
+		}
+		return $out;
+	}
+
+	/**
+	 * Render the filter form sitting above the Preliminary/Definitive
+	 * tab strip. Submits via GET so the URL stays shareable; preserves
+	 * the page+action+notice_id triple via hidden inputs so the form
+	 * lands back on the same edit screen.
+	 *
+	 * @param int                  $notice_id Notice id.
+	 * @param array<string, mixed> $filters   Resolved filter values (echoed back).
+	 * @return void
+	 */
+	private static function render_classification_filters_form( int $notice_id, array $filters ): void {
+		$adjutancies = RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( $notice_id );
+		$adj_id      = (int) ( $filters['adjutancy_id'] ?? 0 );
+		$query       = (string) ( $filters['query'] ?? '' );
+		$cpf         = (string) ( $filters['cpf'] ?? '' );
+		$rf          = (string) ( $filters['rf'] ?? '' );
+
+		$reset_url = add_query_arg(
+			array(
+				'page'      => RecruitmentAdminPage::PAGE_SLUG,
+				'action'    => 'edit-notice',
+				'notice_id' => $notice_id,
+			),
+			admin_url( 'admin.php' )
+		);
+
+		echo '<form method="get" class="ffc-cls-filters" style="margin-bottom:1em;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">';
+		echo '<input type="hidden" name="page" value="' . esc_attr( RecruitmentAdminPage::PAGE_SLUG ) . '">';
+		echo '<input type="hidden" name="action" value="edit-notice">';
+		echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice_id ) . '">';
+
+		echo '<input type="text" name="ffc_cls_q" value="' . esc_attr( $query ) . '" placeholder="' . esc_attr__( 'Name (substring)', 'ffcertificate' ) . '" size="20">';
+		echo ' <input type="text" name="ffc_cls_cpf" value="' . esc_attr( $cpf ) . '" placeholder="' . esc_attr__( 'CPF (digits only)', 'ffcertificate' ) . '" size="15">';
+		echo ' <input type="text" name="ffc_cls_rf" value="' . esc_attr( $rf ) . '" placeholder="' . esc_attr__( 'RF (digits only)', 'ffcertificate' ) . '" size="10">';
+
+		if ( ! empty( $adjutancies ) ) {
+			echo ' <select name="ffc_cls_adj">';
+			echo '<option value="0">' . esc_html__( 'All adjutancies', 'ffcertificate' ) . '</option>';
+			foreach ( $adjutancies as $aid ) {
+				$row = RecruitmentAdjutancyRepository::get_by_id( (int) $aid );
+				if ( null === $row ) {
+					continue;
+				}
+				$is_selected = (int) $row->id === $adj_id ? ' selected' : '';
+				echo '<option value="' . esc_attr( (string) (int) $row->id ) . '"' . esc_attr( $is_selected ) . '>' . esc_html( (string) $row->name ) . '</option>';
+			}
+			echo '</select>';
+		}
+
+		echo ' <button type="submit" class="button">' . esc_html__( 'Filter', 'ffcertificate' ) . '</button>';
+		echo ' <a href="' . esc_url( $reset_url ) . '" class="button-link">' . esc_html__( 'Reset', 'ffcertificate' ) . '</a>';
+		echo '</form>';
 	}
 
 	/**
