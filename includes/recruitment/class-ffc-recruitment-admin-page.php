@@ -415,6 +415,25 @@ final class RecruitmentAdminPage {
 
 		echo '</tbody></table>';
 
+		echo '<h3>' . esc_html__( 'Status badge colors', 'ffcertificate' ) . '</h3>';
+		echo '<p class="description">' . esc_html__( 'Background color used for each classification status pill on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values silently fall back to defaults.', 'ffcertificate' ) . '</p>';
+		echo '<table class="form-table"><tbody>';
+
+		$status_color_rows = array(
+			'status_color_empty'     => __( 'Waiting (empty)', 'ffcertificate' ),
+			'status_color_called'    => __( 'Called / Accepted', 'ffcertificate' ),
+			'status_color_hired'     => __( 'Hired', 'ffcertificate' ),
+			'status_color_not_shown' => __( 'Did not show up', 'ffcertificate' ),
+		);
+		foreach ( $status_color_rows as $field => $label ) {
+			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
+			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
+			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
+			echo '</td></tr>';
+		}
+
+		echo '</tbody></table>';
+
 		submit_button();
 		echo '</form>';
 	}
