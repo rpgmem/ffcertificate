@@ -810,8 +810,17 @@ final class RecruitmentNoticeEditPage {
 			// Compute the lowest-rank `empty` row per adjutancy from the
 			// rendered DOM. Used by both the single-row Call handler and
 			// the bulk-call handler to detect skips before any prompt.
+			//
+			// Scoped to the Definitive panel: the Preliminary table also
+			// renders `data-cls-*` rows and they are ALWAYS status="empty"
+			// per the §5.2 invariant (preview rows can't be called); a
+			// global scan would let those preview rows pin the lowest-rank
+			// empty in their adjutancy and then every definitive call ≥ 2
+			// would falsely trip the OOO prompt.
 			. 'function ffcRecruitmentLowestEmpty(){'
-			. 'var rows=document.querySelectorAll("tr[data-cls-id]");'
+			. 'var panel=document.querySelector(\'[data-ffc-clspanel="definitive"]\');'
+			. 'if(!panel)return {};'
+			. 'var rows=panel.querySelectorAll("tr[data-cls-id]");'
 			. 'var lowest={};'
 			. 'for(var i=0;i<rows.length;i++){'
 			. 'var tr=rows[i];'
