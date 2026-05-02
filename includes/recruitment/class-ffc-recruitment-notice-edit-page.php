@@ -664,7 +664,17 @@ final class RecruitmentNoticeEditPage {
 		foreach ( $rows as $row ) {
 			$candidate_name = $candidates[ (int) $row->candidate_id ] ?? '#' . (int) $row->candidate_id;
 			$adjutancy_slug = $adjutancies[ (int) $row->adjutancy_id ] ?? '#' . (int) $row->adjutancy_id;
-			echo '<tr>';
+			// data-cls-* attributes drive the out-of-order detection in
+			// render_classification_actions_script(): the JS scans all
+			// rows to compute the lowest-rank `empty` row per adjutancy
+			// and flags clicks/bulk-selects that skip ahead of it.
+			printf(
+				'<tr data-cls-id="%d" data-cls-rank="%d" data-cls-adjutancy="%s" data-cls-status="%s">',
+				(int) $row->id,
+				(int) $row->rank,
+				esc_attr( (string) $adjutancy_slug ),
+				esc_attr( (string) $row->status )
+			);
 			if ( $with_actions ) {
 				// Only `empty` rows can be bulk-called (the §5.2
 				// state-machine guard rejects everything else with
@@ -785,13 +795,32 @@ final class RecruitmentNoticeEditPage {
 	 * @return void
 	 */
 	private static function render_classification_actions_script(): void {
-		$nonce        = wp_create_nonce( 'wp_rest' );
-		$call_url     = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
-		$bulk_url     = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/bulk-call' ) );
-		$bulk_no_sel  = esc_js( __( 'Select at least one row first.', 'ffcertificate' ) );
-		$bulk_no_date = esc_js( __( 'Date and time are required for bulk call.', 'ffcertificate' ) );
+		$nonce              = wp_create_nonce( 'wp_rest' );
+		$call_url           = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
+		$bulk_url           = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/bulk-call' ) );
+		$bulk_no_sel        = esc_js( __( 'Select at least one row first.', 'ffcertificate' ) );
+		$bulk_no_date       = esc_js( __( 'Date and time are required for bulk call.', 'ffcertificate' ) );
+		$confirm_ooo_single = esc_js( __( 'This call would skip a higher-ranked candidate (out of order). Continue?', 'ffcertificate' ) );
+		$prompt_ooo_reason  = esc_js( __( 'Justification for calling out of order (required):', 'ffcertificate' ) );
+		$confirm_ooo_bulk   = esc_js( __( 'One or more selected rows would skip a higher-ranked candidate (out of order). Continue?', 'ffcertificate' ) );
+		$reason_required    = esc_js( __( 'A justification is required to proceed.', 'ffcertificate' ) );
 
 		echo '<script>'
+			// Compute the lowest-rank `empty` row per adjutancy from the
+			// rendered DOM. Used by both the single-row Call handler and
+			// the bulk-call handler to detect skips before any prompt.
+			. 'function ffcRecruitmentLowestEmpty(){'
+			. 'var rows=document.querySelectorAll("tr[data-cls-id]");'
+			. 'var lowest={};'
+			. 'for(var i=0;i<rows.length;i++){'
+			. 'var tr=rows[i];'
+			. 'if(tr.getAttribute("data-cls-status")!=="empty")continue;'
+			. 'var adj=tr.getAttribute("data-cls-adjutancy");'
+			. 'var rank=parseInt(tr.getAttribute("data-cls-rank"),10);'
+			. 'if(!lowest[adj]||rank<lowest[adj]){lowest[adj]=rank;}'
+			. '}'
+			. 'return lowest;'
+			. '}'
 			// Bulk-call helpers — toggle-all + submit handler.
 			. 'function ffcRecruitmentClsToggleAll(cb){'
 			. 'var boxes=document.querySelectorAll(".ffc-cls-bulk-cb:not([disabled])");'
@@ -805,11 +834,34 @@ final class RecruitmentNoticeEditPage {
 			. 'var ids=[];var boxes=document.querySelectorAll(".ffc-cls-bulk-cb:checked");'
 			. 'for(var i=0;i<boxes.length;i++){ids.push(parseInt(boxes[i].value,10));}'
 			. 'if(ids.length===0){status.textContent="' . esc_attr( $bulk_no_sel ) . '";return;}'
+			// Out-of-order detection: any selected id whose rank > the
+			// lowest-empty-rank in the same adjutancy means the bulk
+			// would skip someone. Build the reasons map upfront if so —
+			// the user supplies one shared justification that we apply
+			// to every selected id (server ignores it for in-order ids).
+			. 'var lowest=ffcRecruitmentLowestEmpty();'
+			. 'var anyOoO=false;'
+			. 'for(var j=0;j<ids.length;j++){'
+			. 'var tr=document.querySelector(\'tr[data-cls-id="\'+ids[j]+\'"]\');'
+			. 'if(!tr)continue;'
+			. 'var rank=parseInt(tr.getAttribute("data-cls-rank"),10);'
+			. 'var adj=tr.getAttribute("data-cls-adjutancy");'
+			. 'if(lowest[adj]&&rank>lowest[adj]){anyOoO=true;break;}'
+			. '}'
+			. 'var reasons={};'
+			. 'if(anyOoO){'
+			. 'if(!confirm("' . esc_attr( $confirm_ooo_bulk ) . '"))return;'
+			. 'var sharedReason=prompt("' . esc_attr( $prompt_ooo_reason ) . '");'
+			. 'if(!sharedReason||!sharedReason.trim()){alert("' . esc_attr( $reason_required ) . '");return;}'
+			. 'for(var k=0;k<ids.length;k++){reasons[String(ids[k])]=sharedReason;}'
+			. '}'
 			. 'status.textContent="…";'
+			. 'var bulkPayload={classification_ids:ids,date_to_assume:date,time_to_assume:time};'
+			. 'if(anyOoO){bulkPayload.out_of_order_reasons=reasons;}'
 			. 'fetch("' . esc_js( $bulk_url ) . '",{'
 			. 'method:"POST",'
 			. 'headers:{"X-WP-Nonce":"' . esc_js( $nonce ) . '","Content-Type":"application/json"},'
-			. 'body:JSON.stringify({classification_ids:ids,date_to_assume:date,time_to_assume:time}),'
+			. 'body:JSON.stringify(bulkPayload),'
 			. 'credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
 			. 'if(o.status>=200&&o.status<300){location.reload();}'
@@ -824,11 +876,27 @@ final class RecruitmentNoticeEditPage {
 			. 'var base="' . esc_js( $call_url ) . '";'
 			. 'var url,init;'
 			. 'if(action==="call"){'
+			// Out-of-order is detected BEFORE asking date/time so the
+			// admin sees the warning/justification step at the top of
+			// the flow rather than after committing to a schedule.
+			. 'var oooReason="";'
+			. 'var tr=document.querySelector(\'tr[data-cls-id="\'+id+\'"]\');'
+			. 'if(tr){'
+			. 'var rank=parseInt(tr.getAttribute("data-cls-rank"),10);'
+			. 'var adj=tr.getAttribute("data-cls-adjutancy");'
+			. 'var lowest=ffcRecruitmentLowestEmpty();'
+			. 'if(lowest[adj]&&rank>lowest[adj]){'
+			. 'if(!confirm("' . esc_attr( $confirm_ooo_single ) . '"))return;'
+			. 'oooReason=prompt("' . esc_attr( $prompt_ooo_reason ) . '")||"";'
+			. 'if(!oooReason.trim()){alert("' . esc_attr( $reason_required ) . '");return;}'
+			. '}'
+			. '}'
 			. 'var date=prompt("' . esc_js( __( 'Date to assume (YYYY-MM-DD):', 'ffcertificate' ) ) . '");'
 			. 'if(!date)return;'
 			. 'var time=prompt("' . esc_js( __( 'Time to assume (HH:MM):', 'ffcertificate' ) ) . '");'
 			. 'if(!time)return;'
 			. 'var fd=new FormData();fd.append("date_to_assume",date);fd.append("time_to_assume",time);'
+			. 'if(oooReason)fd.append("out_of_order_reason",oooReason);'
 			. 'url=base+id+"/call";init={method:"POST",headers:{"X-WP-Nonce":nonce},body:fd,credentials:"same-origin"};'
 			. '}else if(action==="cancel"){'
 			. 'var reason=prompt("' . esc_js( __( 'Cancellation reason (required):', 'ffcertificate' ) ) . '");'
