@@ -107,6 +107,38 @@ class RecruitmentActivator {
 			self::migrate_status_final_to_definitive();
 			update_option( $option_key, 3 );
 		}
+
+		if ( $current < 4 ) {
+			self::migrate_add_adjutancy_color();
+			update_option( $option_key, 4 );
+		}
+	}
+
+	/**
+	 * V4 schema migration — add `color` column to `ffc_recruitment_adjutancy`.
+	 *
+	 * Holds a per-adjutancy badge background color rendered by the public
+	 * shortcode (mirrors the existing per-status color knobs in the
+	 * Settings tab). VARCHAR(9) is wide enough for `#RRGGBBAA`.
+	 *
+	 * @return void
+	 */
+	private static function migrate_add_adjutancy_color(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_recruitment_adjutancy';
+
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
+		$existing = $wpdb->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'color'" );
+		if ( null !== $existing && '' !== (string) $existing ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		$wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN color VARCHAR(9) NOT NULL DEFAULT '#e9ecef' AFTER name" );
 	}
 
 	/**
@@ -195,6 +227,7 @@ class RecruitmentActivator {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             slug varchar(64) NOT NULL,
             name varchar(255) NOT NULL,
+            color varchar(9) NOT NULL DEFAULT '#e9ecef',
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY (id),

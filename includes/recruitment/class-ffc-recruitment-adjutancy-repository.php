@@ -30,9 +30,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Database repository for `ffc_recruitment_adjutancy` rows.
  *
- * @phpstan-type AdjutancyRow \stdClass&object{id: numeric-string, slug: string, name: string, created_at: string, updated_at: string}
+ * @phpstan-type AdjutancyRow \stdClass&object{id: numeric-string, slug: string, name: string, color: string, created_at: string, updated_at: string}
  */
 class RecruitmentAdjutancyRepository {
+
+	/** Default badge color used when admins haven't picked one yet. */
+	public const DEFAULT_COLOR = '#e9ecef';
 
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
@@ -149,11 +152,13 @@ class RecruitmentAdjutancyRepository {
 	 * Caller is responsible for slug normalization. Returns `false` on
 	 * insert failure (e.g. duplicate slug rejected by the UNIQUE constraint).
 	 *
-	 * @param string $slug Unique slug.
-	 * @param string $name Display name.
+	 * @param string $slug  Unique slug.
+	 * @param string $name  Display name.
+	 * @param string $color Optional badge background color (#RGB / #RRGGBB / #RRGGBBAA);
+	 *                      falls back to {@see self::DEFAULT_COLOR} on empty input.
 	 * @return int|false New adjutancy ID or false on failure.
 	 */
-	public static function create( string $slug, string $name ) {
+	public static function create( string $slug, string $name, string $color = '' ) {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
@@ -165,10 +170,11 @@ class RecruitmentAdjutancyRepository {
 			array(
 				'slug'       => $slug,
 				'name'       => $name,
+				'color'      => self::normalize_color( $color ),
 				'created_at' => $now,
 				'updated_at' => $now,
 			),
-			array( '%s', '%s', '%s', '%s' )
+			array( '%s', '%s', '%s', '%s', '%s' )
 		);
 
 		if ( ! $result ) {
@@ -179,13 +185,35 @@ class RecruitmentAdjutancyRepository {
 	}
 
 	/**
+	 * Normalize a color string into the canonical lowercase hex form.
+	 *
+	 * Accepts `#RGB`, `#RRGGBB`, or `#RRGGBBAA`; anything else falls back
+	 * to {@see self::DEFAULT_COLOR}. Mirrors the validator on
+	 * {@see RecruitmentSettings::sanitize_color()} so the per-adjutancy
+	 * picker and the per-status picker enforce identical input rules.
+	 *
+	 * @param string $value Raw value.
+	 * @return string
+	 */
+	public static function normalize_color( string $value ): string {
+		$value = trim( $value );
+		if ( '' === $value ) {
+			return self::DEFAULT_COLOR;
+		}
+		if ( 1 === preg_match( '/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/', $value ) ) {
+			return strtolower( $value );
+		}
+		return self::DEFAULT_COLOR;
+	}
+
+	/**
 	 * Update name and/or slug on an existing adjutancy.
 	 *
-	 * Only `slug` and `name` are accepted; any other key in `$data` is
-	 * silently ignored. `updated_at` is refreshed automatically.
+	 * Only `slug`, `name`, and `color` are accepted; any other key in `$data`
+	 * is silently ignored. `updated_at` is refreshed automatically.
 	 *
 	 * @param int                  $id   Adjutancy ID.
-	 * @param array<string, mixed> $data Subset of {slug, name}.
+	 * @param array<string, mixed> $data Subset of {slug, name, color}.
 	 * @return bool True on successful update (zero or more rows affected).
 	 */
 	public static function update( int $id, array $data ): bool {
@@ -203,6 +231,11 @@ class RecruitmentAdjutancyRepository {
 		if ( isset( $data['name'] ) && is_string( $data['name'] ) ) {
 			$update['name'] = $data['name'];
 			$format[]       = '%s';
+		}
+
+		if ( isset( $data['color'] ) && is_string( $data['color'] ) ) {
+			$update['color'] = self::normalize_color( $data['color'] );
+			$format[]        = '%s';
 		}
 
 		if ( empty( $update ) ) {

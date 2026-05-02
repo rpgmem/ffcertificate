@@ -114,11 +114,12 @@ class RecruitmentRecruitmentAdjutancyRepositoryTest extends TestCase {
 					function ( $data ) {
 						return 'matematica' === $data['slug']
 							&& 'Matemática' === $data['name']
+							&& '#e9ecef' === $data['color']
 							&& '2026-05-01 10:00:00' === $data['created_at']
 							&& '2026-05-01 10:00:00' === $data['updated_at'];
 					}
 				),
-				array( '%s', '%s', '%s', '%s' )
+				array( '%s', '%s', '%s', '%s', '%s' )
 			)
 			->andReturn( 1 );
 
