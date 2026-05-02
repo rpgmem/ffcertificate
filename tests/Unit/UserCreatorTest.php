@@ -57,7 +57,7 @@ class UserCreatorTest extends TestCase {
     // generate_username() — public, easy to test in isolation
     // ------------------------------------------------------------------
 
-    public function test_generate_username_from_nome_completo(): void {
+    public function test_generate_username_from_email_prefix(): void {
         Functions\when( 'sanitize_user' )->returnArg();
         Functions\when( 'remove_accents' )->returnArg();
         Functions\when( 'username_exists' )->justReturn( false );
@@ -67,30 +67,30 @@ class UserCreatorTest extends TestCase {
             array( 'nome_completo' => 'Alice Silva' )
         );
 
-        // Space is removed by preg_replace('/[^a-z0-9._-]/', '')
-        $this->assertSame( 'alicesilva', $username );
+        // Email prefix wins over name per the plugin-wide convention.
+        $this->assertSame( 'alice', $username );
     }
 
-    public function test_generate_username_from_nome_field(): void {
+    public function test_generate_username_falls_back_to_name_when_email_is_empty(): void {
         Functions\when( 'sanitize_user' )->returnArg();
         Functions\when( 'remove_accents' )->returnArg();
         Functions\when( 'username_exists' )->justReturn( false );
 
         $username = UserCreator::generate_username(
-            'bob@example.com',
+            '',
             array( 'nome' => 'Bob Santos' )
         );
 
         $this->assertSame( 'bobsantos', $username );
     }
 
-    public function test_generate_username_from_name_field(): void {
+    public function test_generate_username_falls_back_to_name_when_email_prefix_too_short(): void {
         Functions\when( 'sanitize_user' )->returnArg();
         Functions\when( 'remove_accents' )->returnArg();
         Functions\when( 'username_exists' )->justReturn( false );
 
         $username = UserCreator::generate_username(
-            'carol@example.com',
+            'a@example.com',
             array( 'name' => 'Carol Oliveira' )
         );
 
@@ -108,15 +108,15 @@ class UserCreatorTest extends TestCase {
         } );
 
         $username = UserCreator::generate_username(
-            'dave@example.com',
+            'dave.costa@example.com',
             array( 'nome_completo' => 'Dave Costa' )
         );
 
-        // 'davecosta' taken (call 1), 'davecosta.2' taken (call 2), 'davecosta.3' OK (call 3)
-        $this->assertSame( 'davecosta.3', $username );
+        // 'dave.costa' taken (call 1), 'dave.costa.2' taken (call 2), 'dave.costa.3' OK (call 3).
+        $this->assertSame( 'dave.costa.3', $username );
     }
 
-    public function test_generate_username_falls_back_to_random_when_name_too_short(): void {
+    public function test_generate_username_falls_back_to_random_when_email_and_name_too_short(): void {
         Functions\when( 'sanitize_user' )->returnArg();
         Functions\when( 'remove_accents' )->returnArg();
         Functions\when( 'username_exists' )->justReturn( false );
@@ -130,13 +130,13 @@ class UserCreatorTest extends TestCase {
         $this->assertStringStartsWith( 'ffc_', $username );
     }
 
-    public function test_generate_username_falls_back_to_random_when_no_name(): void {
+    public function test_generate_username_falls_back_to_random_when_no_data(): void {
         Functions\when( 'sanitize_user' )->returnArg();
         Functions\when( 'remove_accents' )->returnArg();
         Functions\when( 'username_exists' )->justReturn( false );
         Functions\when( 'wp_generate_password' )->justReturn( 'xyz78901' );
 
-        $username = UserCreator::generate_username( 'test@example.com', array() );
+        $username = UserCreator::generate_username( '', array() );
 
         $this->assertStringStartsWith( 'ffc_', $username );
         $this->assertSame( 'ffc_xyz78901', $username );
@@ -144,15 +144,20 @@ class UserCreatorTest extends TestCase {
 
     public function test_generate_username_strips_special_characters(): void {
         Functions\when( 'sanitize_user' )->returnArg();
-        Functions\when( 'remove_accents' )->alias( function( $s ) { return 'joao silva'; } );
+        Functions\when( 'remove_accents' )->alias( function( $s ) { return $s; } );
         Functions\when( 'username_exists' )->justReturn( false );
 
+        // Email prefix already lacks accents, so this just confirms the
+        // non-alphanumeric strip on the prefix path.
         $username = UserCreator::generate_username(
-            'joao@example.com',
-            array( 'nome_completo' => 'João Silva' )
+            'joão.silva@example.com',
+            array()
         );
 
-        $this->assertSame( 'joaosilva', $username );
+        // Accents removed by remove_accents stub (no-op here); the
+        // [^a-z0-9._-] strip removes the accented chars in input.
+        // Accent stripped by the regex (`ã` outside [a-z0-9._-] → dropped).
+        $this->assertSame( 'joo.silva', $username );
     }
 
     // ------------------------------------------------------------------

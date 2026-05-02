@@ -258,6 +258,39 @@ class UserCreator {
 	 * @return string Unique username
 	 */
 	public static function generate_username( string $email, array $submission_data = array() ): string {
+		// 1. Prefer the email prefix (everything before `@`) per the
+		// plugin-wide convention — keeps usernames stable, predictable
+		// for the operator, and consistent across the recruitment CSV
+		// import path and the legacy ffc_form submission path.
+		$email_prefix = '';
+		if ( '' !== $email ) {
+			$at_pos = strpos( $email, '@' );
+			if ( false !== $at_pos && $at_pos > 0 ) {
+				$email_prefix = strtolower( trim( substr( $email, 0, $at_pos ) ) );
+			}
+		}
+
+		if ( '' !== $email_prefix ) {
+			$slug = sanitize_user( remove_accents( $email_prefix ), true );
+			$slug = preg_replace( '/[^a-z0-9._-]/', '', $slug ) ?? '';
+			$slug = preg_replace( '/[-_.]+/', '.', $slug ) ?? '';
+			$slug = trim( $slug, '.' );
+
+			if ( strlen( $slug ) >= 3 ) {
+				if ( ! username_exists( $slug ) ) {
+					return $slug;
+				}
+				for ( $i = 2; $i <= 99; $i++ ) {
+					$candidate = $slug . '.' . $i;
+					if ( ! username_exists( $candidate ) ) {
+						return $candidate;
+					}
+				}
+			}
+		}
+
+		// 2. Fallback to a name-based slug from submission data — covers
+		// the (rare) case of an empty / unusable email.
 		$possible_names = array( 'nome_completo', 'nome', 'name', 'full_name', 'ffc_nome' );
 		$name           = '';
 
@@ -288,6 +321,7 @@ class UserCreator {
 			}
 		}
 
+		// 3. Last resort: random.
 		do {
 			$username = 'ffc_' . wp_generate_password( 8, false, false );
 		} while ( username_exists( $username ) );
