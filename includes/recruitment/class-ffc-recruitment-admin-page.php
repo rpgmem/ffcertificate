@@ -205,18 +205,112 @@ final class RecruitmentAdminPage {
 	}
 
 	/**
-	 * Candidates tab — search-only MVP (CPF or RF).
+	 * Candidates tab — CSV import flow.
+	 *
+	 * Admin selects the target notice, picks a CSV file, and the form POSTs
+	 * via fetch() to `/notices/{id}/import`. The endpoint writes to
+	 * `list_type='preview'` and is gated to notices in `draft` or
+	 * `preliminary` (per §5.1 of the plan); already-active notices reject
+	 * the import. The full per-candidate UI (search, edit, hard-delete)
+	 * stays as a §7-bis follow-up — for the operator-facing CSV import
+	 * flow this is the canonical entry point.
 	 *
 	 * @return void
 	 */
 	private static function render_candidates_tab(): void {
 		echo '<h2>' . esc_html__( 'Candidates', 'ffcertificate' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Use the REST endpoints to manage candidates. The full UI will land in a follow-up iteration.', 'ffcertificate' ) . '</p>';
+
+		self::render_csv_import_form();
+
+		echo '<hr style="margin:2em 0;">';
+		echo '<h3>' . esc_html__( 'Candidate management', 'ffcertificate' ) . '</h3>';
+		echo '<p>' . esc_html__( 'Per-candidate search, edit, and delete are exposed via the REST endpoints below — the full inline UI lands in a follow-up iteration.', 'ffcertificate' ) . '</p>';
 		self::render_rest_pointer();
 	}
 
 	/**
-	 * Settings tab — pointer to the existing Settings tab.
+	 * Render the CSV import form (multipart) targeting a chosen notice.
+	 *
+	 * Lists all notices in `draft`/`preliminary` (the only states where
+	 * preview-list import is accepted). On submit, POSTs the multipart
+	 * payload to `/notices/{id}/import` with `X-WP-Nonce` cookie auth.
+	 *
+	 * @return void
+	 */
+	private static function render_csv_import_form(): void {
+		$notices = RecruitmentNoticeRepository::get_all();
+
+		// Only notices in draft/preliminary accept new preview imports
+		// (per §5.1 of the plan). Filtering them in the dropdown avoids
+		// the user picking an active/closed notice and getting a 409.
+		$importable = array_values(
+			array_filter(
+				$notices,
+				static function ( $n ): bool {
+					return in_array( (string) $n->status, array( 'draft', 'preliminary' ), true );
+				}
+			)
+		);
+
+		echo '<h3>' . esc_html__( 'Import CSV', 'ffcertificate' ) . '</h3>';
+
+		if ( empty( $importable ) ) {
+			echo '<p>' . esc_html__( 'No notices in draft or preliminary state. Create a notice (Notices tab) before importing candidates.', 'ffcertificate' ) . '</p>';
+			return;
+		}
+
+		$nonce = wp_create_nonce( 'wp_rest' );
+
+		echo '<form id="ffc-recruitment-csv-import" method="post" enctype="multipart/form-data" onsubmit="return ffcRecruitmentImportCsv(this);">';
+		echo '<table class="form-table"><tbody>';
+
+		echo '<tr><th><label for="ffc-csv-notice">' . esc_html__( 'Notice', 'ffcertificate' ) . '</label></th><td>';
+		echo '<select id="ffc-csv-notice" name="notice_id" required>';
+		foreach ( $importable as $n ) {
+			$label = sprintf( '%s — %s (%s)', (string) $n->code, (string) $n->name, (string) $n->status );
+			echo '<option value="' . esc_attr( (string) $n->id ) . '">' . esc_html( $label ) . '</option>';
+		}
+		echo '</select>';
+		echo '</td></tr>';
+
+		echo '<tr><th><label for="ffc-csv-file">' . esc_html__( 'CSV file', 'ffcertificate' ) . '</label></th><td>';
+		echo '<input id="ffc-csv-file" name="csv_file" type="file" accept=".csv,text/csv" required>';
+		echo '<p class="description">' . esc_html__( 'UTF-8 (BOM optional). Headers (English): name, cpf, rf, email, phone, adjutancy, rank, score, pcd. At least one of cpf/rf required per row.', 'ffcertificate' ) . '</p>';
+		echo '</td></tr>';
+
+		echo '</tbody></table>';
+		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Import', 'ffcertificate' ) . '</button> ';
+		echo '<span id="ffc-csv-status" style="margin-left:1em;"></span></p>';
+		echo '</form>';
+
+		// Inline fetch handler — same pattern as the create-notice / create-adjutancy forms above.
+		echo '<script>'
+			. 'function ffcRecruitmentImportCsv(form){'
+			. 'var noticeId=form.notice_id.value;'
+			. 'var fd=new FormData();'
+			. 'fd.append("csv_file",form.csv_file.files[0]);'
+			. 'var status=document.getElementById("ffc-csv-status");'
+			. 'status.textContent="…";'
+			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+noticeId+"/import",{'
+			. 'method:"POST",'
+			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
+			. 'body:fd,'
+			. 'credentials:"same-origin"'
+			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
+			. 'if(o.status>=200&&o.status<300){status.textContent="OK ("+JSON.stringify(o.body)+")";}'
+			. 'else{status.textContent="Error: "+JSON.stringify(o.body);}'
+			. '}).catch(function(e){status.textContent="Network error: "+e.message;});'
+			. 'return false;}'
+			. '</script>';
+	}
+
+	/**
+	 * Settings tab — editable form backed by the WP Settings API.
+	 *
+	 * Posts to `options.php` with `settings_fields(OPTION_GROUP)` so the
+	 * registered `sanitize` callback runs on save. Settings panel is
+	 * gated by the same `ffc_manage_recruitment` cap as the rest of the
+	 * page (enforced at render_page() entry).
 	 *
 	 * @return void
 	 */
@@ -224,13 +318,57 @@ final class RecruitmentAdminPage {
 		$settings = RecruitmentSettings::all();
 
 		echo '<h2>' . esc_html__( 'Settings', 'ffcertificate' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Current values (read-only on this screen; edit via Settings → Recruitment or the ffc_recruitment_settings option directly).', 'ffcertificate' ) . '</p>';
+		echo '<p>' . esc_html__( 'Email templates and public shortcode tuning. Saved values populate the convocation email and the public shortcode cache/rate-limit/page-size knobs.', 'ffcertificate' ) . '</p>';
 
-		echo '<table class="widefat striped"><tbody>';
-		foreach ( $settings as $key => $value ) {
-			echo '<tr><th><code>' . esc_html( $key ) . '</code></th><td><code>' . esc_html( (string) $value ) . '</code></td></tr>';
-		}
+		echo '<form method="post" action="' . esc_url( admin_url( 'options.php' ) ) . '">';
+		settings_fields( RecruitmentSettings::OPTION_GROUP );
+
+		$opt = RecruitmentSettings::OPTION_NAME;
+
+		echo '<h3>' . esc_html__( 'Email template', 'ffcertificate' ) . '</h3>';
+		echo '<table class="form-table"><tbody>';
+
+		echo '<tr><th><label for="ffc-rs-subject">' . esc_html__( 'Subject', 'ffcertificate' ) . '</label></th><td>';
+		echo '<input id="ffc-rs-subject" type="text" class="large-text" name="' . esc_attr( $opt ) . '[email_subject]" value="' . esc_attr( (string) $settings['email_subject'] ) . '">';
+		echo '<p class="description">' . esc_html__( 'Placeholders: {{notice_code}}, {{notice_name}}, {{adjutancy}}, {{name}}, {{rank}}, {{score}}, {{date_to_assume}}, {{time_to_assume}}, {{is_pcd}}, {{site_name}}, {{site_url}}, {{notes}}, and the masked variants {{cpf_masked}}, {{rf_masked}}, {{email_masked}}.', 'ffcertificate' ) . '</p>';
+		echo '</td></tr>';
+
+		echo '<tr><th><label for="ffc-rs-from-address">' . esc_html__( 'From address', 'ffcertificate' ) . '</label></th><td>';
+		echo '<input id="ffc-rs-from-address" type="email" class="regular-text" name="' . esc_attr( $opt ) . '[email_from_address]" value="' . esc_attr( (string) $settings['email_from_address'] ) . '" placeholder="(falls back to wp_mail default)">';
+		echo '</td></tr>';
+
+		echo '<tr><th><label for="ffc-rs-from-name">' . esc_html__( 'From name', 'ffcertificate' ) . '</label></th><td>';
+		echo '<input id="ffc-rs-from-name" type="text" class="regular-text" name="' . esc_attr( $opt ) . '[email_from_name]" value="' . esc_attr( (string) $settings['email_from_name'] ) . '" placeholder="(falls back to site name)">';
+		echo '</td></tr>';
+
+		echo '<tr><th><label for="ffc-rs-body">' . esc_html__( 'Body (HTML)', 'ffcertificate' ) . '</label></th><td>';
+		echo '<textarea id="ffc-rs-body" name="' . esc_attr( $opt ) . '[email_body_html]" rows="12" class="large-text code">' . esc_textarea( (string) $settings['email_body_html'] ) . '</textarea>';
+		echo '<p class="description">' . esc_html__( 'Same placeholder set as the subject. The text/plain alternative is auto-derived via wp_strip_all_tags.', 'ffcertificate' ) . '</p>';
+		echo '</td></tr>';
+
 		echo '</tbody></table>';
+
+		echo '<h3>' . esc_html__( 'Public shortcode', 'ffcertificate' ) . '</h3>';
+		echo '<table class="form-table"><tbody>';
+
+		echo '<tr><th><label for="ffc-rs-cache">' . esc_html__( 'Cache TTL (seconds)', 'ffcertificate' ) . '</label></th><td>';
+		echo '<input id="ffc-rs-cache" type="number" min="0" name="' . esc_attr( $opt ) . '[public_cache_seconds]" value="' . esc_attr( (string) $settings['public_cache_seconds'] ) . '">';
+		echo '<p class="description">' . esc_html__( 'Transient cache for the public shortcode. 0 disables.', 'ffcertificate' ) . '</p>';
+		echo '</td></tr>';
+
+		echo '<tr><th><label for="ffc-rs-rate">' . esc_html__( 'Rate limit (requests / minute / IP)', 'ffcertificate' ) . '</label></th><td>';
+		echo '<input id="ffc-rs-rate" type="number" min="0" name="' . esc_attr( $opt ) . '[public_rate_limit_per_minute]" value="' . esc_attr( (string) $settings['public_rate_limit_per_minute'] ) . '">';
+		echo '<p class="description">' . esc_html__( '0 disables the per-IP rate limit.', 'ffcertificate' ) . '</p>';
+		echo '</td></tr>';
+
+		echo '<tr><th><label for="ffc-rs-pagesize">' . esc_html__( 'Default page size', 'ffcertificate' ) . '</label></th><td>';
+		echo '<input id="ffc-rs-pagesize" type="number" min="1" max="500" name="' . esc_attr( $opt ) . '[public_default_page_size]" value="' . esc_attr( (string) $settings['public_default_page_size'] ) . '">';
+		echo '</td></tr>';
+
+		echo '</tbody></table>';
+
+		submit_button();
+		echo '</form>';
 	}
 
 	/**
