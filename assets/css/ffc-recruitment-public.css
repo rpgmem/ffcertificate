@@ -1,0 +1,209 @@
+/**
+ * FFC Recruitment Public Shortcode styles.
+ *
+ * Mirrors the visual conventions of the user dashboard
+ * (assets/css/ffc-user-dashboard.css) so the public list reads as
+ * the same product. Variables are scoped to .ffc-recruitment-queue
+ * so themes that don't load the dashboard CSS still get a coherent
+ * recruitment list.
+ *
+ * @since 6.1.0
+ */
+
+.ffc-recruitment-queue {
+    --ffc-primary: #2271b1;
+    --ffc-primary-light: #f0f6fc;
+    --ffc-text: #1e1e1e;
+    --ffc-text-secondary: #50575e;
+    --ffc-text-muted: #8c8f94;
+    --ffc-border-light: #e9ecef;
+    --ffc-bg: #ffffff;
+    --ffc-bg-subtle: #f6f7f7;
+    --ffc-success: #00a32a;
+    --ffc-warning: #dba617;
+    --ffc-danger: #d63638;
+    --ffc-radius: 6px;
+    --ffc-radius-lg: 10px;
+    --ffc-shadow: 0 1px 3px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .04);
+
+    background: var(--ffc-bg);
+    color: var(--ffc-text);
+    border-radius: var(--ffc-radius-lg);
+    padding: 24px;
+    box-shadow: var(--ffc-shadow);
+    margin: 24px 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.ffc-recruitment-queue h2,
+.ffc-recruitment-queue h3 {
+    color: var(--ffc-text);
+    margin: 0 0 12px;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-header {
+    border-bottom: 1px solid var(--ffc-border-light);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-banner {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 6px 12px;
+    border-radius: var(--ffc-radius);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-banner-preliminary {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-banner-definitive,
+.ffc-recruitment-queue .ffc-recruitment-banner-final {
+    background: #d4edda;
+    color: #155724;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-banner-closed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-section {
+    margin-top: 24px;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ffc-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 8px;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--ffc-border-light);
+    border-radius: var(--ffc-radius);
+    overflow: hidden;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-table th {
+    background: var(--ffc-bg-subtle);
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--ffc-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid var(--ffc-border-light);
+}
+
+.ffc-recruitment-queue .ffc-recruitment-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--ffc-border-light);
+    vertical-align: middle;
+    font-size: 13px;
+    color: var(--ffc-text);
+}
+
+.ffc-recruitment-queue .ffc-recruitment-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-table tbody tr:hover {
+    background: var(--ffc-primary-light);
+}
+
+.ffc-recruitment-queue .ffc-recruitment-pcd {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--ffc-primary);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-pagination {
+    margin-top: 12px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-pagination a,
+.ffc-recruitment-queue .ffc-recruitment-pagination .current {
+    display: inline-block;
+    padding: 6px 10px;
+    border: 1px solid var(--ffc-border-light);
+    border-radius: var(--ffc-radius);
+    text-decoration: none;
+    font-size: 13px;
+    color: var(--ffc-text);
+    background: var(--ffc-bg);
+    min-width: 32px;
+    text-align: center;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-pagination a:hover {
+    background: var(--ffc-primary-light);
+    border-color: var(--ffc-primary);
+    color: var(--ffc-primary);
+}
+
+.ffc-recruitment-queue .ffc-recruitment-pagination .current {
+    background: var(--ffc-primary);
+    border-color: var(--ffc-primary);
+    color: #fff;
+    font-weight: 600;
+}
+
+.ffc-recruitment-queue form {
+    margin-bottom: 16px;
+}
+
+.ffc-recruitment-queue form select {
+    padding: 6px 10px;
+    border-radius: var(--ffc-radius);
+    border: 1px solid var(--ffc-border-light);
+    font-size: 13px;
+    background: var(--ffc-bg);
+}
+
+.ffc-recruitment-queue .ffc-recruitment-message {
+    padding: 12px 16px;
+    border-radius: var(--ffc-radius);
+    font-size: 14px;
+    margin: 16px 0;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-message-info {
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary);
+}
+
+.ffc-recruitment-queue .ffc-recruitment-message-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.ffc-recruitment-queue .ffc-recruitment-message-error {
+    background: #f8d7da;
+    color: #721c24;
+}

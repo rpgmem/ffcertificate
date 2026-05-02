@@ -36,6 +36,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 		$wpdb->prefix = 'wp_';
 		$this->wpdb   = $wpdb;
 
+		Functions\when( 'wp_enqueue_style' )->justReturn( true );
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
