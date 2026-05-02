@@ -334,6 +334,7 @@ final class RecruitmentAdminPage {
 	 */
 	private static function render_candidates_tab(): void {
 		echo '<h2>' . esc_html__( 'Candidates', 'ffcertificate' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Candidates are imported per-notice via CSV — open the target notice (Notices tab → Edit) and use the "Import candidates (CSV)" section.', 'ffcertificate' ) . '</p>';
 
 		$table = new RecruitmentCandidatesListTable();
 		$table->prepare_items();
@@ -344,85 +345,6 @@ final class RecruitmentAdminPage {
 		$table->search_box( __( 'Search by name', 'ffcertificate' ), 'ffc-recruitment-candidates' );
 		$table->display();
 		echo '</form>';
-
-		echo '<hr style="margin:2em 0;">';
-		self::render_csv_import_form();
-	}
-
-	/**
-	 * Render the CSV import form (multipart) targeting a chosen notice.
-	 *
-	 * Lists all notices in `draft`/`preliminary` (the only states where
-	 * preview-list import is accepted). On submit, POSTs the multipart
-	 * payload to `/notices/{id}/import` with `X-WP-Nonce` cookie auth.
-	 *
-	 * @return void
-	 */
-	private static function render_csv_import_form(): void {
-		$notices = RecruitmentNoticeRepository::get_all();
-
-		// Only notices in draft/preliminary accept new preview imports
-		// (per §5.1 of the plan). Filtering them in the dropdown avoids
-		// the user picking an active/closed notice and getting a 409.
-		$importable = array_values(
-			array_filter(
-				$notices,
-				static function ( $n ): bool {
-					return in_array( (string) $n->status, array( 'draft', 'preliminary' ), true );
-				}
-			)
-		);
-
-		echo '<h3>' . esc_html__( 'Import CSV', 'ffcertificate' ) . '</h3>';
-
-		if ( empty( $importable ) ) {
-			echo '<p>' . esc_html__( 'No notices in draft or preliminary state. Create a notice (Notices tab) before importing candidates.', 'ffcertificate' ) . '</p>';
-			return;
-		}
-
-		$nonce = wp_create_nonce( 'wp_rest' );
-
-		echo '<form id="ffc-recruitment-csv-import" method="post" enctype="multipart/form-data" onsubmit="return ffcRecruitmentImportCsv(this);">';
-		echo '<table class="form-table"><tbody>';
-
-		echo '<tr><th><label for="ffc-csv-notice">' . esc_html__( 'Notice', 'ffcertificate' ) . '</label></th><td>';
-		echo '<select id="ffc-csv-notice" name="notice_id" required>';
-		foreach ( $importable as $n ) {
-			$label = sprintf( '%s — %s (%s)', (string) $n->code, (string) $n->name, (string) $n->status );
-			echo '<option value="' . esc_attr( (string) $n->id ) . '">' . esc_html( $label ) . '</option>';
-		}
-		echo '</select>';
-		echo '</td></tr>';
-
-		echo '<tr><th><label for="ffc-csv-file">' . esc_html__( 'CSV file', 'ffcertificate' ) . '</label></th><td>';
-		echo '<input id="ffc-csv-file" name="csv_file" type="file" accept=".csv,text/csv" required>';
-		echo '<p class="description">' . esc_html__( 'UTF-8 (BOM optional). Headers (English): name, cpf, rf, email, phone, adjutancy, rank, score, pcd. At least one of cpf/rf required per row.', 'ffcertificate' ) . '</p>';
-		echo '</td></tr>';
-
-		echo '</tbody></table>';
-		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Import', 'ffcertificate' ) . '</button> ';
-		echo '<span id="ffc-csv-status" style="margin-left:1em;"></span></p>';
-		echo '</form>';
-
-		// Inline fetch handler — same pattern as the create-notice / create-adjutancy forms above.
-		echo '<script>'
-			. 'function ffcRecruitmentImportCsv(form){'
-			. 'var noticeId=form.notice_id.value;'
-			. 'var fd=new FormData();'
-			. 'fd.append("csv_file",form.csv_file.files[0]);'
-			. 'var status=document.getElementById("ffc-csv-status");'
-			. 'status.textContent="…";'
-			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+noticeId+"/import",{'
-			. 'method:"POST",'
-			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
-			. 'body:fd,'
-			. 'credentials:"same-origin"'
-			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){status.textContent="OK ("+JSON.stringify(o.body)+")";}'
-			. 'else{status.textContent="Error: "+JSON.stringify(o.body);}'
-			. '}).catch(function(e){status.textContent="Network error: "+e.message;});'
-			. 'return false;}'
-			. '</script>';
 	}
 
 	/**

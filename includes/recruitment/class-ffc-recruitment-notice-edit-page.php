@@ -93,7 +93,95 @@ final class RecruitmentNoticeEditPage {
 		self::render_general_section( $notice );
 		self::render_status_section( $notice );
 		self::render_adjutancies_section( $notice );
+		self::render_csv_import_section( $notice );
 		self::render_classifications_section( $notice );
+	}
+
+	/**
+	 * Section: CSV import — list_type selector targeting the current notice.
+	 *
+	 * Two paths are surfaced based on the notice's status:
+	 *
+	 *   - draft / preliminary → `POST /notices/{id}/import` writes to the
+	 *     `preview` list_type (the "preliminary list" the operator works
+	 *     on before promotion).
+	 *   - preliminary → `POST /notices/{id}/promote-preview` with
+	 *     `mode=definitive_import` writes to `definitive` and transitions
+	 *     the notice to `final` in one shot (the §5.1 promote flow).
+	 *   - final / closed → import is disabled per §5.1; the section
+	 *     renders an explanation instead of a form.
+	 *
+	 * Replaces the per-Candidates-tab CSV form (sprint 6.0.4) which
+	 * required an explicit notice picker; living on the edit screen
+	 * removes that ambiguity entirely.
+	 *
+	 * @param object $notice Notice row.
+	 * @phpstan-param NoticeRow $notice
+	 * @return void
+	 */
+	private static function render_csv_import_section( object $notice ): void {
+		$notice_id = (int) $notice->id;
+		$status    = (string) $notice->status;
+		$nonce     = wp_create_nonce( 'wp_rest' );
+
+		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<h2 class="hndle"><span>' . esc_html__( 'Import candidates (CSV)', 'ffcertificate' ) . '</span></h2>';
+		echo '<div class="inside">';
+
+		if ( 'final' === $status || 'closed' === $status ) {
+			echo '<p>' . esc_html__( 'Import is disabled for notices in `final` or `closed` status. Move the notice back to `preliminary` (allowed only when zero calls have been issued) to re-import.', 'ffcertificate' ) . '</p>';
+			echo '</div></div>';
+			return;
+		}
+
+		echo '<p>' . esc_html__( 'UTF-8 CSV (BOM optional). Headers (English): name, cpf, rf, email, phone, adjutancy, rank, score, pcd. At least one of cpf/rf required per row. Comma or semicolon delimiter is auto-detected.', 'ffcertificate' ) . '</p>';
+
+		echo '<form id="ffc-recruitment-edit-import" method="post" enctype="multipart/form-data" onsubmit="return ffcRecruitmentImportFromEdit(this);">';
+		echo '<table class="form-table"><tbody>';
+
+		echo '<tr><th><label>' . esc_html__( 'Target list', 'ffcertificate' ) . '</label></th><td>';
+		echo '<label style="margin-right:1em;"><input type="radio" name="list_target" value="preliminary" checked> ' . esc_html__( 'Preliminary list', 'ffcertificate' ) . '</label>';
+		if ( 'preliminary' === $status ) {
+			echo '<label><input type="radio" name="list_target" value="final"> ' . esc_html__( 'Final list (definitive import — also transitions notice to `final`)', 'ffcertificate' ) . '</label>';
+		}
+		echo '</td></tr>';
+
+		echo '<tr><th><label for="ffc-edit-csv-file">' . esc_html__( 'CSV file', 'ffcertificate' ) . '</label></th><td>';
+		echo '<input id="ffc-edit-csv-file" name="csv_file" type="file" accept=".csv,text/csv" required>';
+		echo '</td></tr>';
+
+		echo '</tbody></table>';
+		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Import', 'ffcertificate' ) . '</button> ';
+		echo '<span id="ffc-edit-csv-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span></p>';
+		echo '</form>';
+
+		// Inline fetch handler — selects between /import (preview) and
+		// /promote-preview (definitive_import + transitions to final)
+		// based on the radio choice.
+		echo '<script>'
+			. 'function ffcRecruitmentImportFromEdit(form){'
+			. 'var nid=' . (int) $notice_id . ';'
+			. 'var target=form.list_target.value;'
+			. 'var fd=new FormData();'
+			. 'fd.append("csv_file",form.csv_file.files[0]);'
+			. 'var url;'
+			. 'if(target==="final"){'
+			. 'url="' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/promote-preview";'
+			. 'fd.append("mode","definitive_import");'
+			. '}else{'
+			. 'url="' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/import";'
+			. '}'
+			. 'var status=document.getElementById("ffc-edit-csv-status");'
+			. 'status.textContent="…";'
+			. 'fetch(url,{method:"POST",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},body:fd,credentials:"same-origin"})'
+			. '.then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
+			. 'if(o.status>=200&&o.status<300){status.textContent="OK ("+JSON.stringify(o.body)+")";location.reload();}'
+			. 'else{status.textContent="Error: "+JSON.stringify(o.body);}'
+			. '}).catch(function(e){status.textContent="Network error: "+e.message;});'
+			. 'return false;}'
+			. '</script>';
+
+		echo '</div></div>';
 	}
 
 	/**
