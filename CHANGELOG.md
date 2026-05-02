@@ -13,6 +13,25 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **`DashboardShortcode::render`** gained a `$can_view_recruitment` branch. The section's HTML is rendered once via `RecruitmentDashboardSection::render()` (which already encodes the visibility gate by returning empty string when the user has no classifications) and reused as both the gate signal and the tab body — no extra repository round-trip.
 - New "My Calls" tab appears between the existing Reregistration and Profile tabs when the gate passes. Active by default for users whose only ffc-related data is recruitment classifications (i.e. they have no certificates, appointments, audience, or reregistrations).
+- **`UserCreator::generate_username` prefers the email prefix** (everything before `@`) over name-based slugs. Aligns the recruitment promotion path with the legacy `ffc_form` submission path on a single canonical username convention. Existing usernames are unaffected; only NEW user creations from this commit forward follow the new logic.
+
+### Added
+
+- **`adjutancy` column** in `public_columns_config` (default on). Renders the adjutancy name resolved from `adjutancy_id` on the public shortcode listing. Operators can disable it per-notice via the `public_columns_config` JSON.
+- **Public shortcode adjutancy filter** now functional. The dropdown's `?adjutancy=…` GET submission was being silently ignored; `render()` now reads `$_GET['adjutancy']` whenever the shortcode wasn't called with an explicit `adjutancy=` attribute. The filter dropdown also marks the active option `selected` and preserves every other GET param via hidden inputs so paging state survives a filter change.
+- **Public shortcode formats** — date renders as `DD-MM-YYYY` (BR convention), time as `HH:MM` (no seconds), score as 2-decimal (`53.00` instead of `53.0000`).
+- **Status badges as colored tags** with operator-configurable colors. The recruitment Settings tab gained a "Status badge colors" section with four `<input type="color">` swatches (defaults: soft yellow `#fff3cd` for empty, soft purple `#e9d8fd` for called/accepted, soft green `#d4edda` for hired, soft red `#f8d7da` for not_shown). Stored under four new `ffc_recruitment_settings` sub-keys (`status_color_empty`, `status_color_called`, `status_color_hired`, `status_color_not_shown`) with strict `#RGB` / `#RRGGBB` / `#RRGGBBAA` validation.
+- **Manual link / unlink WP user** on the candidate edit screen's Sensitive data section. Operator can now (a) detach a candidate from a wrongly-promoted wp_user without touching the wp_user account, and (b) attach the candidate to any existing wp_user resolved by numeric ID, login, or email. Routed through two admin-post handlers gated by the same per-candidate nonce; lookups via `WP_User::get_user_by` (`get_user_by('id'|'email'|'login')`). Three new flash keys: `link-user-ok`, `link-user-not-found`, `unlink-user-ok`.
+- **wp-admin submenus under "Recruitment"** — the top-level item now expands into Notices / Adjutancies / Candidates / Settings, each linking to the corresponding `?tab=…`. The auto-generated duplicate first submenu is replaced via the `$submenu` global so no duplicate appears.
+- **Close-notice confirmation** — clicking "Close" on the Status section now fires a `confirm()` prompt naming the side-effects (calls history goes read-only, public shortcode displays the "Notice closed." banner, reopen requires a reason and locks hired/not_shown permanently). Mirrors the existing draft → preliminary confirm pattern.
+
+### Note
+
+- **Why no "Trash" / soft-delete on Notices and Adjutancies tabs** (asked by the user): per §7-bis of the original plan, the recruitment domain deliberately ships **hard-delete only** with referential gates instead of a trash bin:
+  - **Notices** — `RecruitmentNoticeRepository::delete()` removes the row directly. There is no "Trash". Deletion of a notice that already has classifications would orphan them, so the typical operator path is to `closed` the notice instead (preserves history, hides the listing).
+  - **Adjutancies** — `RecruitmentDeleteService::delete_adjutancy()` rejects with a 409 envelope when the adjutancy is referenced by `notice_adjutancy` or `classification` rows; otherwise hard-deletes. Same "no Trash" choice.
+  - **Candidates** — gated per §7-bis (zero classifications + reason); also hard-delete only.
+  This matches the rest of the plugin's hard-delete-with-gates convention (cf. existing repositories) and avoids the "is this row safe to revive?" ambiguity a Trash bin would introduce.
 
 ---
 
