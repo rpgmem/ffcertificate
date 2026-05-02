@@ -84,6 +84,22 @@ final class RecruitmentAdminPage {
 		// page reloads onto the canonical tab URL.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Each action runs `check_admin_referer`.
 		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( (string) $_GET['action'] ) ) : '';
+
+		// Edit screens hijack the whole render — they have their own
+		// chrome (h1 + back link) and don't share the tab strip.
+		if ( 'edit-notice' === $action ) {
+			echo '<div class="wrap ffc-recruitment-admin">';
+			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash.
+			$msg = isset( $_GET['ffc_msg'] ) ? sanitize_key( wp_unslash( (string) $_GET['ffc_msg'] ) ) : '';
+			if ( '' !== $msg ) {
+				self::render_flash_notice( $msg );
+			}
+			RecruitmentNoticeEditPage::render();
+			echo '</div>';
+			return;
+		}
+
 		if ( '' !== $action ) {
 			self::dispatch_action( $action );
 		}
@@ -176,6 +192,41 @@ final class RecruitmentAdminPage {
 	 *
 	 * Sprint A1 ships only `delete-notice`. Sprint B adds the rest of
 	 * the row actions (edit-notice, status transitions, promote, etc.).
+	 *
+	 * @param string $action Sanitized action key from the request.
+	 * @return void
+	 */
+	/**
+	 * Render a one-line admin notice driven by `?ffc_msg=…` flash key.
+	 * The edit pages write the key on every redirect; we map known keys
+	 * to translated copy here.
+	 *
+	 * @param string $key Flash key.
+	 * @return void
+	 */
+	private static function render_flash_notice( string $key ): void {
+		$map = array(
+			'saved'          => array( 'success', __( 'Notice saved.', 'ffcertificate' ) ),
+			'transitioned'   => array( 'success', __( 'Status transition applied.', 'ffcertificate' ) ),
+			'rank-mandatory' => array( 'error', __( 'public_columns_config rejected: `rank` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
+			'name-mandatory' => array( 'error', __( 'public_columns_config rejected: `name` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
+		);
+		if ( ! isset( $map[ $key ] ) ) {
+			return;
+		}
+		$class = 'success' === $map[ $key ][0] ? 'notice-success' : 'notice-error';
+		echo '<div class="notice ' . esc_attr( $class ) . ' is-dismissible"><p>' . esc_html( $map[ $key ][1] ) . '</p></div>';
+	}
+
+	/**
+	 * Dispatch a `?action=…` GET-link operation triggered from a row
+	 * action in the list tables. Each branch validates its own nonce
+	 * via `check_admin_referer` and short-circuits with `wp_safe_redirect`
+	 * back to the canonical tab so the URL stays clean.
+	 *
+	 * Edit-screen actions (`edit-notice`, `edit-candidate`, etc.) are
+	 * handled earlier in render_page() — they're full-screen renders,
+	 * not redirects.
 	 *
 	 * @param string $action Sanitized action key from the request.
 	 * @return void

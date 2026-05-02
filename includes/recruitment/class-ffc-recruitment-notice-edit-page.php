@@ -1,0 +1,517 @@
+<?php
+/**
+ * Recruitment Notice Edit Page.
+ *
+ * Dedicated wp-admin screen reached via the "Edit" row action on the
+ * Notices list table:
+ *
+ *   admin.php?page=ffc-recruitment&tab=notices&action=edit-notice&notice_id=N
+ *
+ * Renders four metabox-style sections inspired by the certificate form
+ * editor pattern (Admin\FormEditor) but adapted to the recruitment
+ * domain's custom-table backing:
+ *
+ *   1. General        — code (read-only after creation per §3.2 stable
+ *                       identifier rule) + name + public_columns_config.
+ *   2. Status         — current state badge + transition buttons that
+ *                       hit NoticeStateMachine::transition_to (driver
+ *                       for all draft↔preliminary↔active↔closed moves).
+ *   3. Adjutancies    — attach/detach UI relocated from the row inline
+ *                       (sprint A1) and wired to the existing REST
+ *                       routes via the assets manager's fetch helper.
+ *   4. Classifications — preview + definitive lists side by side; pure
+ *                       reader for now (per-classification status edit
+ *                       lands when the bulk-call modal does).
+ *
+ * Save flow runs through the admin-post handler at
+ * `admin.php?action=ffc_recruitment_save_notice`, gated by a per-notice
+ * nonce. The state-machine guards reject illegal transitions at the
+ * service layer regardless of which UI surface invokes them.
+ *
+ * @package FreeFormCertificate\Recruitment
+ * @since   6.1.0
+ */
+
+declare(strict_types=1);
+
+namespace FreeFormCertificate\Recruitment;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Notice edit screen renderer + admin-post save handler.
+ *
+ * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
+ * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
+ */
+final class RecruitmentNoticeEditPage {
+
+	/**
+	 * Cap gating render + save.
+	 */
+	private const CAP = 'ffc_manage_recruitment';
+
+	/**
+	 * Hook the admin-post save endpoint. Called from RecruitmentLoader.
+	 *
+	 * @return void
+	 */
+	public static function register(): void {
+		add_action( 'admin_post_ffc_recruitment_save_notice', array( self::class, 'handle_save' ), 10 );
+		add_action( 'admin_post_ffc_recruitment_transition_notice', array( self::class, 'handle_transition' ), 10 );
+	}
+
+	/**
+	 * Render the edit screen body. Called by RecruitmentAdminPage when
+	 * `?action=edit-notice` is detected on the page.
+	 *
+	 * @return void
+	 */
+	public static function render(): void {
+		if ( ! current_user_can( self::CAP ) ) {
+			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only render; mutating actions live on the dedicated handlers.
+		$notice_id = isset( $_GET['notice_id'] ) ? absint( wp_unslash( (string) $_GET['notice_id'] ) ) : 0;
+		$notice    = $notice_id > 0 ? RecruitmentNoticeRepository::get_by_id( $notice_id ) : null;
+		if ( null === $notice ) {
+			echo '<div class="notice notice-error"><p>' . esc_html__( 'Notice not found.', 'ffcertificate' ) . '</p></div>';
+			echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Notices', 'ffcertificate' ) . '</a></p>';
+			return;
+		}
+
+		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Notices', 'ffcertificate' ) . '</a></p>';
+		echo '<h2>' . sprintf(
+			/* translators: %s — notice code */
+			esc_html__( 'Edit notice — %s', 'ffcertificate' ),
+			'<code>' . esc_html( (string) $notice->code ) . '</code>'
+		) . '</h2>';
+
+		self::render_general_section( $notice );
+		self::render_status_section( $notice );
+		self::render_adjutancies_section( $notice );
+		self::render_classifications_section( $notice );
+	}
+
+	/**
+	 * Section 1: General (code + name + public_columns_config).
+	 *
+	 * @param object $notice Notice row.
+	 * @phpstan-param NoticeRow $notice
+	 * @return void
+	 */
+	private static function render_general_section( object $notice ): void {
+		$nonce_action = 'ffc_recruitment_save_notice_' . (int) $notice->id;
+
+		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<h2 class="hndle"><span>' . esc_html__( 'General', 'ffcertificate' ) . '</span></h2>';
+		echo '<div class="inside">';
+
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<input type="hidden" name="action" value="ffc_recruitment_save_notice">';
+		echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice->id ) . '">';
+		wp_nonce_field( $nonce_action );
+
+		echo '<table class="form-table"><tbody>';
+
+		echo '<tr><th><label>' . esc_html__( 'Code', 'ffcertificate' ) . '</label></th>';
+		echo '<td><code>' . esc_html( (string) $notice->code ) . '</code> ';
+		echo '<span class="description">' . esc_html__( '(read-only — codes are stable identifiers per §3.2 of the plan)', 'ffcertificate' ) . '</span></td></tr>';
+
+		echo '<tr><th><label for="ffc-notice-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
+		echo '<td><input id="ffc-notice-name" type="text" class="regular-text" name="name" value="' . esc_attr( (string) $notice->name ) . '" required></td></tr>';
+
+		echo '<tr><th><label for="ffc-notice-pcc">' . esc_html__( 'public_columns_config (JSON)', 'ffcertificate' ) . '</label></th>';
+		echo '<td><textarea id="ffc-notice-pcc" name="public_columns_config" rows="6" class="large-text code">' . esc_textarea( (string) $notice->public_columns_config ) . '</textarea>';
+		echo '<p class="description">' . esc_html__( 'Per-notice column visibility for [ffc_recruitment_queue]. `rank` and `name` are mandatory; setting them to false rejects the save.', 'ffcertificate' ) . '</p></td></tr>';
+
+		echo '</tbody></table>';
+		submit_button( __( 'Save general', 'ffcertificate' ) );
+		echo '</form>';
+
+		echo '</div></div>';
+	}
+
+	/**
+	 * Section 2: Status — badge + transition buttons.
+	 *
+	 * Each button posts to `admin-post.php?action=ffc_recruitment_transition_notice`
+	 * with the target status; `handle_transition` validates the nonce
+	 * and delegates to `NoticeStateMachine::transition_to`. The state
+	 * machine surfaces all the §5.1 guards (zero-calls precondition,
+	 * reopen-freeze, etc.) — the UI just enumerates the transitions
+	 * theoretically valid from the current state.
+	 *
+	 * @param object $notice Notice row.
+	 * @phpstan-param NoticeRow $notice
+	 * @return void
+	 */
+	private static function render_status_section( object $notice ): void {
+		$current      = (string) $notice->status;
+		$transitions  = self::transitions_from( $current );
+		$nonce_action = 'ffc_recruitment_transition_notice_' . (int) $notice->id;
+
+		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<h2 class="hndle"><span>' . esc_html__( 'Status', 'ffcertificate' ) . '</span></h2>';
+		echo '<div class="inside">';
+
+		echo '<p><strong>' . esc_html__( 'Current state:', 'ffcertificate' ) . '</strong> ';
+		echo '<span class="ffc-status-badge ffc-status-' . esc_attr( $current ) . '">' . esc_html( $current ) . '</span>';
+		if ( '1' === (string) $notice->was_reopened ) {
+			echo ' <em>(' . esc_html__( 'previously reopened — hired/not_shown classifications are frozen', 'ffcertificate' ) . ')</em>';
+		}
+		echo '</p>';
+
+		if ( empty( $transitions ) ) {
+			echo '<p>' . esc_html__( 'No transitions available from this state.', 'ffcertificate' ) . '</p>';
+		} else {
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;">';
+			echo '<input type="hidden" name="action" value="ffc_recruitment_transition_notice">';
+			echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice->id ) . '">';
+			wp_nonce_field( $nonce_action );
+
+			echo '<p>';
+			foreach ( $transitions as $target => $label ) {
+				echo '<button type="submit" name="target_status" value="' . esc_attr( $target ) . '" class="button button-secondary" style="margin-right:.5em;">';
+				echo esc_html( $label );
+				echo '</button>';
+			}
+			echo '</p>';
+
+			// Closed → active needs a reason; reuse the same form with
+			// a single reason input that's only meaningful for that move.
+			if ( 'closed' === $current ) {
+				echo '<p><label for="ffc-reopen-reason">' . esc_html__( 'Reopen reason (required for closed → active):', 'ffcertificate' ) . '</label><br>';
+				echo '<input id="ffc-reopen-reason" type="text" class="large-text" name="reason"></p>';
+			}
+
+			echo '</form>';
+		}
+
+		echo '</div></div>';
+	}
+
+	/**
+	 * Section 3: Adjutancies — attached pills + attach selector.
+	 *
+	 * The same controls that lived inline on the Notices row pre-A1,
+	 * relocated to the edit screen. Markup unchanged; the inline
+	 * `<script>` handlers move to assets/js/ffc-recruitment-admin.js
+	 * in a follow-up so this commit doesn't grow the diff further.
+	 *
+	 * @param object $notice Notice row.
+	 * @phpstan-param NoticeRow $notice
+	 * @return void
+	 */
+	private static function render_adjutancies_section( object $notice ): void {
+		$notice_id    = (int) $notice->id;
+		$adjutancies  = RecruitmentAdjutancyRepository::get_all();
+		$attached_ids = array_values( RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( $notice_id ) );
+		$attached_set = array_flip( $attached_ids );
+		$nonce        = wp_create_nonce( 'wp_rest' );
+
+		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<h2 class="hndle"><span>' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</span></h2>';
+		echo '<div class="inside">';
+		echo '<p>' . esc_html__( 'Adjutancies referenced by CSV imports must be attached to the notice via this section.', 'ffcertificate' ) . '</p>';
+
+		$attached_objects = array_values(
+			array_filter(
+				$adjutancies,
+				static function ( $a ) use ( $attached_set ) {
+					return isset( $attached_set[ (int) $a->id ] );
+				}
+			)
+		);
+
+		if ( empty( $attached_objects ) ) {
+			echo '<p><em>' . esc_html__( 'No adjutancies attached yet.', 'ffcertificate' ) . '</em></p>';
+		} else {
+			echo '<p><span class="ffc-attached-list">';
+			foreach ( $attached_objects as $a ) {
+				echo '<span class="ffc-attached">';
+				echo esc_html( (string) $a->slug );
+				echo ' <a href="#" data-notice="' . esc_attr( (string) $notice_id ) . '" data-adjutancy="' . esc_attr( (string) $a->id ) . '" onclick="return ffcDetachAdjutancy(this);" title="' . esc_attr__( 'Detach', 'ffcertificate' ) . '">×</a>';
+				echo '</span>';
+			}
+			echo '</span></p>';
+		}
+
+		$detached_objects = array_values(
+			array_filter(
+				$adjutancies,
+				static function ( $a ) use ( $attached_set ) {
+					return ! isset( $attached_set[ (int) $a->id ] );
+				}
+			)
+		);
+		if ( ! empty( $detached_objects ) ) {
+			echo '<form onsubmit="return ffcAttachAdjutancy(this);" data-notice="' . esc_attr( (string) $notice_id ) . '">';
+			echo '<select name="adjutancy_id">';
+			foreach ( $detached_objects as $a ) {
+				echo '<option value="' . esc_attr( (string) $a->id ) . '">' . esc_html( (string) $a->slug ) . ' — ' . esc_html( (string) $a->name ) . '</option>';
+			}
+			echo '</select>';
+			echo ' <button type="submit" class="button button-secondary">' . esc_html__( 'Attach', 'ffcertificate' ) . '</button>';
+			echo '</form>';
+		}
+
+		// Same inline handlers as sprint A1 — to be consolidated into
+		// the assets manager bundle in sprint C polish.
+		echo '<script>'
+			. 'function ffcAttachAdjutancy(form){'
+			. 'var nid=form.getAttribute("data-notice");'
+			. 'var aid=form.adjutancy_id.value;'
+			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/adjutancies/"+aid,{'
+			. 'method:"PUT",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},credentials:"same-origin"'
+			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
+			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert(JSON.stringify(o.body));}'
+			. '});return false;}'
+			. 'function ffcDetachAdjutancy(a){'
+			. 'var nid=a.getAttribute("data-notice");'
+			. 'var aid=a.getAttribute("data-adjutancy");'
+			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/adjutancies/"+aid,{'
+			. 'method:"DELETE",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},credentials:"same-origin"'
+			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
+			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert(JSON.stringify(o.body));}'
+			. '});return false;}'
+			. '</script>';
+
+		echo '</div></div>';
+	}
+
+	/**
+	 * Section 4: Classifications — preview + definitive lists.
+	 *
+	 * Renders both list types if rows exist for the notice. Each row
+	 * shows rank / candidate name / adjutancy slug / score / status.
+	 * Per-row mutations (status changes, individual delete) ship in a
+	 * later sprint alongside the bulk-call modal.
+	 *
+	 * @param object $notice Notice row.
+	 * @phpstan-param NoticeRow $notice
+	 * @return void
+	 */
+	private static function render_classifications_section( object $notice ): void {
+		$notice_id = (int) $notice->id;
+		$preview   = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'preview' );
+		$final     = RecruitmentClassificationRepository::get_for_notice( $notice_id, 'definitive' );
+
+		echo '<div class="postbox" style="margin-top:20px;">';
+		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications', 'ffcertificate' ) . '</span></h2>';
+		echo '<div class="inside">';
+
+		echo '<h3>' . esc_html__( 'Preview list', 'ffcertificate' ) . '</h3>';
+		self::render_classifications_table( $preview );
+
+		echo '<h3>' . esc_html__( 'Definitive list', 'ffcertificate' ) . '</h3>';
+		self::render_classifications_table( $final );
+
+		echo '</div></div>';
+	}
+
+	/**
+	 * Render a classifications table for one list_type.
+	 *
+	 * @param array<int, object> $rows Classification rows.
+	 * @phpstan-param list<ClassificationRow> $rows
+	 * @return void
+	 */
+	private static function render_classifications_table( array $rows ): void {
+		if ( empty( $rows ) ) {
+			echo '<p><em>' . esc_html__( '(no rows)', 'ffcertificate' ) . '</em></p>';
+			return;
+		}
+
+		// Pre-fetch candidate + adjutancy lookups in a single pass to
+		// avoid N+1 inside the render loop.
+		$candidate_ids = array_map( static fn( $r ) => (int) $r->candidate_id, $rows );
+		$adjutancy_ids = array_map( static fn( $r ) => (int) $r->adjutancy_id, $rows );
+
+		$candidates  = self::lookup_map( array_unique( $candidate_ids ), array( RecruitmentCandidateRepository::class, 'get_by_id' ), 'name' );
+		$adjutancies = self::lookup_map( array_unique( $adjutancy_ids ), array( RecruitmentAdjutancyRepository::class, 'get_by_id' ), 'slug' );
+
+		echo '<table class="widefat striped"><thead><tr>';
+		echo '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Candidate', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Score', 'ffcertificate' ) . '</th>';
+		echo '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
+		echo '</tr></thead><tbody>';
+
+		foreach ( $rows as $row ) {
+			$candidate_name = $candidates[ (int) $row->candidate_id ] ?? '#' . (int) $row->candidate_id;
+			$adjutancy_slug = $adjutancies[ (int) $row->adjutancy_id ] ?? '#' . (int) $row->adjutancy_id;
+			echo '<tr>';
+			echo '<td>' . esc_html( (string) $row->rank ) . '</td>';
+			echo '<td>' . esc_html( $candidate_name ) . '</td>';
+			echo '<td><code>' . esc_html( $adjutancy_slug ) . '</code></td>';
+			echo '<td>' . esc_html( (string) $row->score ) . '</td>';
+			echo '<td><span class="ffc-status-badge ffc-status-' . esc_attr( (string) $row->status ) . '">' . esc_html( (string) $row->status ) . '</span></td>';
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+	}
+
+	/**
+	 * Build a {id → field} map by calling a repository getter for each id.
+	 *
+	 * @param array<int, int> $ids       Unique entity ids.
+	 * @param callable        $getter    Repository static method `(int) => ?object`.
+	 * @param string          $field     Field name to read off the resolved object.
+	 * @return array<int, string>
+	 */
+	private static function lookup_map( array $ids, callable $getter, string $field ): array {
+		$out = array();
+		foreach ( $ids as $id ) {
+			$row = $getter( $id );
+			if ( null !== $row && isset( $row->$field ) ) {
+				$out[ $id ] = (string) $row->$field;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Allowed transitions from `$current` per §5.1.
+	 *
+	 * The state machine still enforces the runtime guards (zero-calls,
+	 * reopen-freeze, etc.); this map is for UI affordance only.
+	 *
+	 * @param string $current Current notice status.
+	 * @return array<string, string> map of target_status => label.
+	 */
+	private static function transitions_from( string $current ): array {
+		switch ( $current ) {
+			case 'draft':
+				return array( 'preliminary' => __( 'Move to preliminary', 'ffcertificate' ) );
+			case 'preliminary':
+				return array(
+					'active' => __( 'Promote to active', 'ffcertificate' ),
+					'draft'  => __( 'Back to draft', 'ffcertificate' ),
+				);
+			case 'active':
+				return array(
+					'preliminary' => __( 'Back to preliminary (zero-calls only)', 'ffcertificate' ),
+					'closed'      => __( 'Close', 'ffcertificate' ),
+				);
+			case 'closed':
+				return array(
+					'active' => __( 'Reopen (closed → active)', 'ffcertificate' ),
+				);
+			default:
+				return array();
+		}
+	}
+
+	/**
+	 * Admin-post handler for the General section save.
+	 *
+	 * @return void
+	 */
+	public static function handle_save(): void {
+		if ( ! current_user_can( self::CAP ) ) {
+			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
+		}
+		$notice_id = isset( $_POST['notice_id'] ) ? absint( wp_unslash( (string) $_POST['notice_id'] ) ) : 0;
+		check_admin_referer( 'ffc_recruitment_save_notice_' . $notice_id );
+
+		if ( $notice_id <= 0 ) {
+			wp_safe_redirect( self::back_url() );
+			exit;
+		}
+
+		$name   = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['name'] ) ) : '';
+		$config = isset( $_POST['public_columns_config'] ) ? wp_unslash( (string) $_POST['public_columns_config'] ) : '';
+
+		// Validate the public_columns_config JSON. `rank` and `name` are
+		// mandatory true per §3.2 — the repository's update layer doesn't
+		// enforce that, so the UI guard does.
+		$decoded = json_decode( $config, true );
+		if ( is_array( $decoded ) ) {
+			if ( array_key_exists( 'rank', $decoded ) && false === $decoded['rank'] ) {
+				self::redirect_with_notice( $notice_id, 'rank-mandatory' );
+			}
+			if ( array_key_exists( 'name', $decoded ) && false === $decoded['name'] ) {
+				self::redirect_with_notice( $notice_id, 'name-mandatory' );
+			}
+		}
+
+		RecruitmentNoticeRepository::update(
+			$notice_id,
+			array(
+				'name'                  => $name,
+				'public_columns_config' => $config,
+			)
+		);
+
+		self::redirect_with_notice( $notice_id, 'saved' );
+	}
+
+	/**
+	 * Admin-post handler for status transitions.
+	 *
+	 * @return void
+	 */
+	public static function handle_transition(): void {
+		if ( ! current_user_can( self::CAP ) ) {
+			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
+		}
+		$notice_id = isset( $_POST['notice_id'] ) ? absint( wp_unslash( (string) $_POST['notice_id'] ) ) : 0;
+		check_admin_referer( 'ffc_recruitment_transition_notice_' . $notice_id );
+
+		$target = isset( $_POST['target_status'] ) ? sanitize_key( wp_unslash( (string) $_POST['target_status'] ) ) : '';
+		$reason = isset( $_POST['reason'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['reason'] ) ) : null;
+		if ( '' !== (string) $reason && null === $reason ) {
+			$reason = null;
+		}
+
+		if ( $notice_id > 0 && in_array( $target, array( 'draft', 'preliminary', 'active', 'closed' ), true ) ) {
+			RecruitmentNoticeStateMachine::transition_to( $notice_id, $target, '' === (string) $reason ? null : $reason );
+		}
+
+		self::redirect_with_notice( $notice_id, 'transitioned' );
+	}
+
+	/**
+	 * Back-to-list URL.
+	 *
+	 * @return string
+	 */
+	private static function back_url(): string {
+		return add_query_arg(
+			array(
+				'page' => RecruitmentAdminPage::PAGE_SLUG,
+				'tab'  => 'notices',
+			),
+			admin_url( 'admin.php' )
+		);
+	}
+
+	/**
+	 * Redirect back to the edit screen with a `?ffc_msg=…` flash for
+	 * the next render to surface (admin notice).
+	 *
+	 * @param int    $notice_id Notice ID.
+	 * @param string $message_key Flash key.
+	 * @return never
+	 */
+	private static function redirect_with_notice( int $notice_id, string $message_key ): void {
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'      => RecruitmentAdminPage::PAGE_SLUG,
+					'tab'       => 'notices',
+					'action'    => 'edit-notice',
+					'notice_id' => $notice_id,
+					'ffc_msg'   => $message_key,
+				),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
+	}
+}
