@@ -254,6 +254,13 @@ final class RecruitmentPublicShortcode {
 			}
 		}
 
+		// "Called" rows render newest-first (highest rank at the top of
+		// page 1) so the most recently-called candidates land on the
+		// landing page without forcing a paginate-to-end. The repository
+		// returns rows in `(rank ASC, candidate_id ASC)` per §3, so a
+		// straight reverse is sufficient — no resort needed.
+		$called_rows = array_reverse( $called_rows );
+
 		$settings  = RecruitmentSettings::all();
 		$page_size = (int) $settings['public_default_page_size'];
 
