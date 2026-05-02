@@ -11,7 +11,7 @@
  *   - `draft`       → error message "Edital ainda não publicado.";
  *   - `preliminary` → warning-only render — "Esta lista está em revisão";
  *                     no listing exposed (preview rows never render publicly).
- *   - `final`      → two-section layout (não chamados / chamados) of the
+ *   - `definitive` → two-section layout (não chamados / chamados) of the
  *                     `list_type='definitive'` rows; no banner.
  *   - `closed`      → same listing + a "Edital encerrado" banner.
  *
@@ -159,9 +159,9 @@ final class RecruitmentPublicShortcode {
 			);
 		}
 
-		// preliminary, final, closed → render the listing. The list_type
+		// preliminary, definitive, closed → render the listing. The list_type
 		// switches between `preview` (preliminary) and `definitive`
-		// (final/closed); the banner copy at the top differs accordingly.
+		// (definitive/closed); the banner copy at the top differs accordingly.
 		$list_type    = 'preliminary' === $notice->status ? 'preview' : 'definitive';
 		$adjutancy_id = null;
 		if ( '' !== $slug_filter ) {
@@ -478,7 +478,7 @@ final class RecruitmentPublicShortcode {
 			$banner = '<div class="ffc-recruitment-banner ffc-recruitment-banner-preliminary" role="status">'
 				. esc_html__( 'Preliminary list — classifications and participants may still change before this notice is finalized.', 'ffcertificate' )
 				. '</div>';
-		} elseif ( 'final' === $notice->status ) {
+		} elseif ( 'definitive' === $notice->status ) {
 			$banner = '<div class="ffc-recruitment-banner ffc-recruitment-banner-final" role="status">'
 				. esc_html__( 'Final classification.', 'ffcertificate' )
 				. '</div>';

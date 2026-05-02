@@ -142,7 +142,7 @@ class RecruitmentPromotionServiceTest extends TestCase {
 			->andReturn(
 				$this->notice_stub( 'preliminary' ),
 				$this->notice_stub( 'preliminary' ),
-				$this->notice_stub( 'final' )
+				$this->notice_stub( 'definitive' )
 			);
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $preview_rows );
 

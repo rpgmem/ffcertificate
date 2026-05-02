@@ -16,9 +16,9 @@
  * Layout per §9.2: groups by notice (excluding `draft` notices). Each
  * notice block shows:
  *
- *   1. The candidate's own classification(s) with a prévia/final banner
+ *   1. The candidate's own classification(s) with a prévia/definitive banner
  *      based on `notice.status` (preliminary → preview row + warning
- *      banner; final/closed → definitive row + final banner).
+ *      banner; definitive/closed → definitive row + definitive banner).
  *   2. Convocations history — every call row including cancelled ones.
  *      Each call's "Situação" is derived per §9.3 (call's
  *      cancelled_at + classification.status).
@@ -134,7 +134,7 @@ final class RecruitmentDashboardSection {
 		$banner_text    = $is_preliminary
 			? __( 'Preliminary classification — subject to review', 'ffcertificate' )
 			: __( 'Final classification', 'ffcertificate' );
-		$banner_class   = 'ffc-banner-' . ( $is_preliminary ? 'preliminary' : 'final' );
+		$banner_class   = 'ffc-banner-' . ( $is_preliminary ? 'preliminary' : 'definitive' );
 
 		$html  = '<article class="ffc-recruitment-my-notice">';
 		$html .= '<header><h3>' . esc_html( $notice->code . ' — ' . $notice->name ) . '</h3>';
@@ -161,7 +161,7 @@ final class RecruitmentDashboardSection {
 	 * Render the classifications mini-table.
 	 *
 	 * For preliminary notices, only `preview` rows are shown; for
-	 * final/closed, only `definitive` rows. The §5.2 invariant guarantees
+	 * definitive/closed, only `definitive` rows. The §5.2 invariant guarantees
 	 * preview is always `status='empty'`, so preliminary always shows
 	 * "Aguardando".
 	 *

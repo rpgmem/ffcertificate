@@ -123,7 +123,7 @@ class RecruitmentActivityLoggerTest extends TestCase {
 	}
 
 	public function test_notice_status_changed_includes_reason_when_provided(): void {
-		RecruitmentActivityLogger::notice_status_changed( 5, 'closed', 'final', 'Vacancy reopened' );
+		RecruitmentActivityLogger::notice_status_changed( 5, 'closed', 'definitive', 'Vacancy reopened' );
 
 		$context = json_decode( (string) $this->last_buffered_entry()['context'], true );
 		$this->assertSame( 'Vacancy reopened', $context['reason'] );

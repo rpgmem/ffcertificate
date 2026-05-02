@@ -81,10 +81,16 @@ class RecruitmentActivator {
 	 *
 	 * Steps:
 	 *
-	 * - v2 (6.1.0): rename status enum value `active` → `final` on
-	 *   `ffc_recruitment_notice`. Existing rows get `UPDATE … SET
-	 *   status='final' WHERE status='active'` before the enum is
-	 *   widened, so no row violates the new enum constraint.
+	 * - v2 (6.1.0): rename status enum value `active` → `definitive` on
+	 *   `ffc_recruitment_notice`. v2 originally targeted `final` — that
+	 *   intermediate name has been retired in favor of `definitive`
+	 *   (which lines up with `classification.list_type='definitive'`).
+	 *   Installs that already ran v2 with the old target value get
+	 *   migrated by v3 below.
+	 * - v3 (6.1.0): rename status enum value `final` → `definitive` for
+	 *   the cohort of installs that ran the original v2 (which produced
+	 *   `final`). Idempotent: skipped on installs that never had `final`
+	 *   in the enum because they're already on the v3-canonical state.
 	 *
 	 * @return void
 	 */
@@ -93,29 +99,30 @@ class RecruitmentActivator {
 		$current    = (int) get_option( $option_key, 0 );
 
 		if ( $current < 2 ) {
-			self::migrate_status_active_to_final();
+			self::migrate_status_active_to_definitive();
 			update_option( $option_key, 2 );
+		}
+
+		if ( $current < 3 ) {
+			self::migrate_status_final_to_definitive();
+			update_option( $option_key, 3 );
 		}
 	}
 
 	/**
-	 * V2 schema migration — rename `active` → `final` in the notice
-	 * status enum.
+	 * V2 schema migration — rename `active` → `definitive` in the notice
+	 * status enum (target updated from the original `final`).
 	 *
-	 * Two-step ALTER (widen enum, update rows, narrow enum) so the
+	 * Three-step ALTER (widen enum, update rows, narrow enum) so the
 	 * intermediate state is always consistent with whichever enum
-	 * definition the table currently advertises. The repository's
-	 * state-machine tests pin both old and new enum values during the
-	 * transition.
+	 * definition the table currently advertises.
 	 *
 	 * @return void
 	 */
-	private static function migrate_status_active_to_final(): void {
+	private static function migrate_status_active_to_definitive(): void {
 		global $wpdb;
 		$table = $wpdb->prefix . 'ffc_recruitment_notice';
 
-		// Bail if the table doesn't exist yet — fresh installs run
-		// create_tables() with the new enum and skip this entirely.
 		if ( ! self::table_exists( $table ) ) {
 			return;
 		}
@@ -123,15 +130,48 @@ class RecruitmentActivator {
 		// Step 1: widen the enum to include both legacy and new values
 		// so the UPDATE in step 2 doesn't violate any enum constraint.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
-		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status ENUM('draft','preliminary','active','final','closed') NOT NULL DEFAULT 'draft'" );
+		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status ENUM('draft','preliminary','active','definitive','closed') NOT NULL DEFAULT 'draft'" );
 
 		// Step 2: rename existing rows.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
-		$wpdb->query( $wpdb->prepare( "UPDATE `{$table}` SET status = %s WHERE status = %s", 'final', 'active' ) );
+		$wpdb->query( $wpdb->prepare( "UPDATE `{$table}` SET status = %s WHERE status = %s", 'definitive', 'active' ) );
 
 		// Step 3: narrow the enum back to the canonical 6.1.0 set.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
-		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status ENUM('draft','preliminary','final','closed') NOT NULL DEFAULT 'draft'" );
+		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status ENUM('draft','preliminary','definitive','closed') NOT NULL DEFAULT 'draft'" );
+	}
+
+	/**
+	 * V3 schema migration — rename `final` → `definitive` for installs
+	 * that ran the original v2 (which produced `final`).
+	 *
+	 * Idempotent: when the enum already lacks `final`, the ALTER step 1
+	 * widens it back temporarily, the UPDATE catches zero rows, and the
+	 * narrow step 3 restores the canonical state. Cheap on installs that
+	 * never had `final` to begin with.
+	 *
+	 * @return void
+	 */
+	private static function migrate_status_final_to_definitive(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_recruitment_notice';
+
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		// Step 1: widen the enum to include both legacy `final` and the
+		// new `definitive` so the UPDATE doesn't choke.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status ENUM('draft','preliminary','final','definitive','closed') NOT NULL DEFAULT 'draft'" );
+
+		// Step 2: flip every `final` row to `definitive`.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		$wpdb->query( $wpdb->prepare( "UPDATE `{$table}` SET status = %s WHERE status = %s", 'definitive', 'final' ) );
+
+		// Step 3: narrow the enum back to the canonical state.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status ENUM('draft','preliminary','definitive','closed') NOT NULL DEFAULT 'draft'" );
 	}
 
 	/**
@@ -189,7 +229,7 @@ class RecruitmentActivator {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             code varchar(64) NOT NULL,
             name varchar(255) NOT NULL,
-            status enum('draft','preliminary','final','closed') NOT NULL DEFAULT 'draft',
+            status enum('draft','preliminary','definitive','closed') NOT NULL DEFAULT 'draft',
             opened_at datetime DEFAULT NULL,
             closed_at datetime DEFAULT NULL,
             was_reopened tinyint(1) NOT NULL DEFAULT 0,
@@ -297,7 +337,7 @@ class RecruitmentActivator {
 	 *
 	 * The candidate's standing per (adjutancy, notice, list_type). `list_type`
 	 * discriminates between `preview` (preliminary list) and `definitive`
-	 * (final list); convocation acts only on `definitive` per the §5.2
+	 * (definitive list); convocation acts only on `definitive` per the §5.2
 	 * invariant.
 	 *
 	 * Composite index `(notice_id, adjutancy_id, list_type, status, rank)`

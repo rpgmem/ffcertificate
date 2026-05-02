@@ -13,7 +13,7 @@ use FreeFormCertificate\Recruitment\RecruitmentDashboardSection;
 /**
  * Tests for RecruitmentDashboardSection — pins the §9.1 visibility rule
  * (anonymous + unlinked-user → empty render), the basic notice-block
- * rendering for a logged-in candidate, and the prévia/final banner
+ * rendering for a logged-in candidate, and the prévia/definitive banner
  * dispatch.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentDashboardSection
@@ -131,7 +131,7 @@ class RecruitmentDashboardSectionTest extends TestCase {
 
 	public function test_render_skips_draft_notices(): void {
 		// User has a candidate row + 1 classification, but the parent notice
-		// is in `draft` → must be filtered out → final render is empty.
+		// is in `draft` → must be filtered out → definitive render is empty.
 		$this->wpdb->shouldReceive( 'get_results' )
 			->twice()
 			->andReturn( array( $this->candidate_stub() ), array( $this->classification_stub( 'preview' ) ) );
@@ -177,7 +177,7 @@ class RecruitmentDashboardSectionTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )
 			->times( 2 )
 			->andReturn(
-				$this->notice_stub( 'final' ),
+				$this->notice_stub( 'definitive' ),
 				$this->adjutancy_stub()
 			);
 
