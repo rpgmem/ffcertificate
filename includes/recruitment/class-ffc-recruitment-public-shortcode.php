@@ -585,9 +585,14 @@ final class RecruitmentPublicShortcode {
 				. '</div>';
 		}
 
+		// Banner sits above the notice code/name and both lines render at the
+		// same font size + center alignment. The status callout is the more
+		// load-bearing of the two — it answers "is this list final?" — so
+		// elevating it above the edital identifier keeps the most relevant
+		// signal at the top of the page on mobile/narrow viewports.
 		$head = '<header class="ffc-recruitment-header">'
-			. '<h2>' . esc_html( (string) $notice->code . ' — ' . (string) $notice->name ) . '</h2>'
 			. $banner
+			. '<p class="ffc-recruitment-notice-title">' . esc_html( (string) $notice->code . ' — ' . (string) $notice->name ) . '</p>'
 			. '</header>';
 
 		return $head . $body;
