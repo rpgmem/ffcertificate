@@ -210,12 +210,17 @@ final class RecruitmentAdminPage {
 	 */
 	private static function render_flash_notice( string $key ): void {
 		$map = array(
-			'saved'          => array( 'success', __( 'Saved.', 'ffcertificate' ) ),
-			'transitioned'   => array( 'success', __( 'Status transition applied.', 'ffcertificate' ) ),
-			'deleted'        => array( 'success', __( 'Candidate deleted.', 'ffcertificate' ) ),
-			'delete-blocked' => array( 'error', __( 'Delete blocked: candidate still has classifications. Remove them first or leave the candidate row in place.', 'ffcertificate' ) ),
-			'rank-mandatory' => array( 'error', __( 'public_columns_config rejected: `rank` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
-			'name-mandatory' => array( 'error', __( 'public_columns_config rejected: `name` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
+			'saved'                       => array( 'success', __( 'Saved.', 'ffcertificate' ) ),
+			'transitioned'                => array( 'success', __( 'Status transition applied.', 'ffcertificate' ) ),
+			'transition-blocked-by-calls' => array( 'error', __( 'Status transition rejected: cannot move from `definitive` back to `preliminary` once any call has been issued in this notice.', 'ffcertificate' ) ),
+			'transition-reason-required'  => array( 'error', __( 'Status transition rejected: this transition requires a reason (filled in the Reopen reason field).', 'ffcertificate' ) ),
+			'transition-race-lost'        => array( 'error', __( 'Status transition lost a race against another concurrent change. Reload the page and try again.', 'ffcertificate' ) ),
+			'transition-failed'           => array( 'error', __( 'Status transition rejected by the state machine. Check the current status; this move may not be allowed from the current state.', 'ffcertificate' ) ),
+			'transition-invalid-target'   => array( 'error', __( 'Status transition rejected: the target status was missing or unrecognized.', 'ffcertificate' ) ),
+			'deleted'                     => array( 'success', __( 'Candidate deleted.', 'ffcertificate' ) ),
+			'delete-blocked'              => array( 'error', __( 'Delete blocked: candidate still has classifications. Remove them first or leave the candidate row in place.', 'ffcertificate' ) ),
+			'rank-mandatory'              => array( 'error', __( 'public_columns_config rejected: `rank` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
+			'name-mandatory'              => array( 'error', __( 'public_columns_config rejected: `name` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
 		);
 		if ( ! isset( $map[ $key ] ) ) {
 			return;

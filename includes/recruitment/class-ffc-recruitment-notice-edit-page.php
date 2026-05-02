@@ -814,11 +814,41 @@ final class RecruitmentNoticeEditPage {
 			$reason = null;
 		}
 
+		// Default to a generic invalid-target failure when the operator
+		// somehow lands here with a non-enum value (form-tampering case).
+		$flash = 'transition-invalid-target';
+
 		if ( $notice_id > 0 && in_array( $target, array( 'draft', 'preliminary', 'definitive', 'closed' ), true ) ) {
-			RecruitmentNoticeStateMachine::transition_to( $notice_id, $target, '' === (string) $reason ? null : $reason );
+			$result = RecruitmentNoticeStateMachine::transition_to( $notice_id, $target, '' === (string) $reason ? null : $reason );
+			if ( true === $result['success'] ) {
+				$flash = 'transitioned';
+			} else {
+				// Map the state-machine error code to a flash key the
+				// renderer's notice map knows. Anything we don't have a
+				// dedicated copy for falls through to a generic
+				// transition-failed key carrying the raw code so the
+				// operator can see what blocked it.
+				$first_error = empty( $result['errors'] ) ? '' : (string) $result['errors'][0];
+				switch ( $first_error ) {
+					case 'recruitment_definitive_to_preliminary_blocked_by_calls':
+						$flash = 'transition-blocked-by-calls';
+						break;
+					case 'recruitment_transition_reason_required':
+						$flash = 'transition-reason-required';
+						break;
+					case 'recruitment_transition_race_lost':
+						$flash = 'transition-race-lost';
+						break;
+					default:
+						// Includes recruitment_invalid_transition: …
+						// and recruitment_notice_not_found.
+						$flash = 'transition-failed';
+						break;
+				}
+			}
 		}
 
-		self::redirect_with_notice( $notice_id, 'transitioned' );
+		self::redirect_with_notice( $notice_id, $flash );
 	}
 
 	/**
