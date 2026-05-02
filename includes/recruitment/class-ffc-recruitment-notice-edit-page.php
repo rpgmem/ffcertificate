@@ -469,12 +469,19 @@ final class RecruitmentNoticeEditPage {
 	}
 
 	/**
-	 * Section 4: Classifications — preview + definitive lists.
+	 * Section 4: Classifications — preliminary + definitive tabs.
 	 *
-	 * Renders both list types if rows exist for the notice. Each row
-	 * shows rank / candidate name / adjutancy slug / score / status.
-	 * Per-row mutations (status changes, individual delete) ship in a
-	 * later sprint alongside the bulk-call modal.
+	 * The two list_type stores get separate sub-tabs (one per list).
+	 * The Definitive tab additionally exposes per-row action buttons
+	 * (call / mark accepted / mark not_shown / mark hired / cancel /
+	 * reopen) so the operator can drive the §5.2 classification
+	 * transitions without leaving the edit screen. Preliminary stays
+	 * read-only since per the §5.2 invariant preview rows are always
+	 * status='empty'.
+	 *
+	 * Tab switching is pure CSS-free DOM toggle in the inline JS;
+	 * the two `<table>` blocks render in the same `<div>` and the
+	 * active one gets `style="display:block"`.
 	 *
 	 * @param object $notice Notice row.
 	 * @phpstan-param NoticeRow $notice
@@ -489,11 +496,33 @@ final class RecruitmentNoticeEditPage {
 		echo '<h2 class="hndle"><span>' . esc_html__( 'Classifications', 'ffcertificate' ) . '</span></h2>';
 		echo '<div class="inside">';
 
-		echo '<h3>' . esc_html__( 'Preview list', 'ffcertificate' ) . '</h3>';
-		self::render_classifications_table( $preview );
+		// Tabs.
+		echo '<h2 class="nav-tab-wrapper" style="margin:0 0 1em;">';
+		echo '<a href="#" class="nav-tab nav-tab-active" data-ffc-clstab="preliminary" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Preliminary', 'ffcertificate' ) . '</a>';
+		echo '<a href="#" class="nav-tab" data-ffc-clstab="definitive" onclick="return ffcRecruitmentClsTabSwitch(this);">' . esc_html__( 'Definitive', 'ffcertificate' ) . '</a>';
+		echo '</h2>';
 
-		echo '<h3>' . esc_html__( 'Definitive list', 'ffcertificate' ) . '</h3>';
-		self::render_classifications_table( $definitive_rows );
+		echo '<div data-ffc-clspanel="preliminary" style="display:block;">';
+		self::render_classifications_table( $preview, false );
+		echo '</div>';
+
+		echo '<div data-ffc-clspanel="definitive" style="display:none;">';
+		self::render_classifications_table( $definitive_rows, true );
+		echo '</div>';
+
+		// Tab toggle handler. Switches the .nav-tab-active class and
+		// shows the matching panel.
+		echo '<script>'
+			. 'function ffcRecruitmentClsTabSwitch(a){'
+			. 'var key=a.getAttribute("data-ffc-clstab");'
+			. 'var nav=a.parentNode;'
+			. 'var tabs=nav.querySelectorAll(".nav-tab");'
+			. 'for(var i=0;i<tabs.length;i++){tabs[i].classList.remove("nav-tab-active");}'
+			. 'a.classList.add("nav-tab-active");'
+			. 'var panels=nav.parentNode.querySelectorAll("[data-ffc-clspanel]");'
+			. 'for(var j=0;j<panels.length;j++){panels[j].style.display=panels[j].getAttribute("data-ffc-clspanel")===key?"block":"none";}'
+			. 'return false;}'
+			. '</script>';
 
 		echo '</div></div>';
 	}
@@ -501,11 +530,18 @@ final class RecruitmentNoticeEditPage {
 	/**
 	 * Render a classifications table for one list_type.
 	 *
-	 * @param array<int, object> $rows Classification rows.
+	 * When `$with_actions` is true (the Definitive tab), each row gets
+	 * an extra Actions column with the legal §5.2 transitions exposed
+	 * as buttons. The buttons fire inline `fetch()` calls against
+	 * `POST /classifications/{id}/call` and
+	 * `PATCH /classifications/{id}/status`.
+	 *
+	 * @param array<int, object> $rows         Classification rows.
 	 * @phpstan-param list<ClassificationRow> $rows
+	 * @param bool               $with_actions Whether to render the action column.
 	 * @return void
 	 */
-	private static function render_classifications_table( array $rows ): void {
+	private static function render_classifications_table( array $rows, bool $with_actions ): void {
 		if ( empty( $rows ) ) {
 			echo '<p><em>' . esc_html__( '(no rows)', 'ffcertificate' ) . '</em></p>';
 			return;
@@ -525,6 +561,9 @@ final class RecruitmentNoticeEditPage {
 		echo '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Score', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
+		if ( $with_actions ) {
+			echo '<th>' . esc_html__( 'Actions', 'ffcertificate' ) . '</th>';
+		}
 		echo '</tr></thead><tbody>';
 
 		foreach ( $rows as $row ) {
@@ -536,9 +575,130 @@ final class RecruitmentNoticeEditPage {
 			echo '<td><code>' . esc_html( $adjutancy_slug ) . '</code></td>';
 			echo '<td>' . esc_html( (string) $row->score ) . '</td>';
 			echo '<td><span class="ffc-status-badge ffc-status-' . esc_attr( (string) $row->status ) . '">' . esc_html( (string) $row->status ) . '</span></td>';
+			if ( $with_actions ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_classification_actions returns escaped HTML.
+				echo '<td>' . self::render_classification_actions( (int) $row->id, (string) $row->status ) . '</td>';
+			}
 			echo '</tr>';
 		}
 		echo '</tbody></table>';
+
+		if ( $with_actions ) {
+			self::render_classification_actions_script();
+		}
+	}
+
+	/**
+	 * Render the per-row action buttons appropriate for a classification's
+	 * current status (the §5.2 state machine).
+	 *
+	 * Returns escaped HTML — already safe to echo.
+	 *
+	 * @param int    $id      Classification ID.
+	 * @param string $current Current status.
+	 * @return string
+	 */
+	private static function render_classification_actions( int $id, string $current ): string {
+		$out = '';
+		switch ( $current ) {
+			case 'empty':
+				$out .= self::cls_button( $id, 'call', __( 'Call', 'ffcertificate' ), 'primary' );
+				break;
+			case 'called':
+				$out .= self::cls_button( $id, 'accepted', __( 'Mark accepted', 'ffcertificate' ), 'secondary' );
+				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'secondary' );
+				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'secondary' );
+				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'link-delete' );
+				break;
+			case 'accepted':
+				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'secondary' );
+				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'secondary' );
+				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'link-delete' );
+				break;
+			case 'not_shown':
+				$out .= self::cls_button( $id, 'reopen', __( 'Reopen (if not frozen)', 'ffcertificate' ), 'secondary' );
+				break;
+			case 'hired':
+				// Terminal — no actions.
+				$out .= '<em>' . esc_html__( '(terminal)', 'ffcertificate' ) . '</em>';
+				break;
+		}
+		return $out;
+	}
+
+	/**
+	 * Render a single action button. `data-action` drives the inline
+	 * fetch handler in render_classification_actions_script(); each
+	 * action maps to either a /call POST (status='empty' → 'called')
+	 * or a /status PATCH (every other transition).
+	 *
+	 * @param int    $id     Classification ID.
+	 * @param string $action Action key.
+	 * @param string $label  Button label (already i18n'd).
+	 * @param string $variant 'primary' | 'secondary' | 'link-delete'.
+	 * @return string
+	 */
+	private static function cls_button( int $id, string $action, string $label, string $variant ): string {
+		$class = 'button button-small';
+		if ( 'primary' === $variant ) {
+			$class .= ' button-primary';
+		} elseif ( 'link-delete' === $variant ) {
+			$class .= ' button-link-delete';
+		}
+		return sprintf(
+			'<button type="button" class="%s" style="margin-right:.25em;" data-cls-id="%d" data-cls-action="%s" onclick="ffcRecruitmentClsAct(this);">%s</button>',
+			esc_attr( $class ),
+			$id,
+			esc_attr( $action ),
+			esc_html( $label )
+		);
+	}
+
+	/**
+	 * Render the inline JS that drives the per-row action buttons.
+	 * Rendered once after the Definitive table.
+	 *
+	 * @return void
+	 */
+	private static function render_classification_actions_script(): void {
+		$nonce    = wp_create_nonce( 'wp_rest' );
+		$call_url = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
+
+		echo '<script>'
+			. 'function ffcRecruitmentClsAct(btn){'
+			. 'var id=btn.getAttribute("data-cls-id");'
+			. 'var action=btn.getAttribute("data-cls-action");'
+			. 'var nonce="' . esc_js( $nonce ) . '";'
+			. 'var base="' . esc_js( $call_url ) . '";'
+			. 'var url,init;'
+			. 'if(action==="call"){'
+			. 'var date=prompt("' . esc_js( __( 'Date to assume (YYYY-MM-DD):', 'ffcertificate' ) ) . '");'
+			. 'if(!date)return;'
+			. 'var time=prompt("' . esc_js( __( 'Time to assume (HH:MM):', 'ffcertificate' ) ) . '");'
+			. 'if(!time)return;'
+			. 'var fd=new FormData();fd.append("date_to_assume",date);fd.append("time_to_assume",time);'
+			. 'url=base+id+"/call";init={method:"POST",headers:{"X-WP-Nonce":nonce},body:fd,credentials:"same-origin"};'
+			. '}else if(action==="cancel"){'
+			. 'var reason=prompt("' . esc_js( __( 'Cancellation reason (required):', 'ffcertificate' ) ) . '");'
+			. 'if(!reason)return;'
+			. 'var p=new URLSearchParams();p.append("status","empty");p.append("reason",reason);'
+			. 'url=base+id+"/status";init={method:"PUT",headers:{"X-WP-Nonce":nonce,"Content-Type":"application/x-www-form-urlencoded"},body:p.toString(),credentials:"same-origin"};'
+			. '}else if(action==="reopen"){'
+			. 'var reason2=prompt("' . esc_js( __( 'Reopen reason (required):', 'ffcertificate' ) ) . '");'
+			. 'if(!reason2)return;'
+			. 'var p2=new URLSearchParams();p2.append("status","empty");p2.append("reason",reason2);'
+			. 'url=base+id+"/status";init={method:"PUT",headers:{"X-WP-Nonce":nonce,"Content-Type":"application/x-www-form-urlencoded"},body:p2.toString(),credentials:"same-origin"};'
+			. '}else{'
+			. 'var p3=new URLSearchParams();p3.append("status",action);'
+			. 'url=base+id+"/status";init={method:"PUT",headers:{"X-WP-Nonce":nonce,"Content-Type":"application/x-www-form-urlencoded"},body:p3.toString(),credentials:"same-origin"};'
+			. '}'
+			. 'btn.disabled=true;'
+			. 'fetch(url,init).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
+			. 'if(o.status>=200&&o.status<300){location.reload();}'
+			. 'else{alert(JSON.stringify(o.body));btn.disabled=false;}'
+			. '}).catch(function(e){alert("Network error: "+e.message);btn.disabled=false;});'
+			. '}'
+			. '</script>';
 	}
 
 	/**
