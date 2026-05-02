@@ -46,6 +46,7 @@ final class RecruitmentLoader {
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ), 10 );
 		RecruitmentAdminAssetsManager::register();
 		RecruitmentNoticeEditPage::register();
+		RecruitmentCandidateEditPage::register();
 	}
 
 	/**

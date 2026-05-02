@@ -87,7 +87,7 @@ final class RecruitmentAdminPage {
 
 		// Edit screens hijack the whole render — they have their own
 		// chrome (h1 + back link) and don't share the tab strip.
-		if ( 'edit-notice' === $action ) {
+		if ( 'edit-notice' === $action || 'edit-candidate' === $action ) {
 			echo '<div class="wrap ffc-recruitment-admin">';
 			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash.
@@ -95,7 +95,11 @@ final class RecruitmentAdminPage {
 			if ( '' !== $msg ) {
 				self::render_flash_notice( $msg );
 			}
-			RecruitmentNoticeEditPage::render();
+			if ( 'edit-notice' === $action ) {
+				RecruitmentNoticeEditPage::render();
+			} else {
+				RecruitmentCandidateEditPage::render();
+			}
 			echo '</div>';
 			return;
 		}
@@ -206,8 +210,10 @@ final class RecruitmentAdminPage {
 	 */
 	private static function render_flash_notice( string $key ): void {
 		$map = array(
-			'saved'          => array( 'success', __( 'Notice saved.', 'ffcertificate' ) ),
+			'saved'          => array( 'success', __( 'Saved.', 'ffcertificate' ) ),
 			'transitioned'   => array( 'success', __( 'Status transition applied.', 'ffcertificate' ) ),
+			'deleted'        => array( 'success', __( 'Candidate deleted.', 'ffcertificate' ) ),
+			'delete-blocked' => array( 'error', __( 'Delete blocked: candidate still has classifications. Remove them first or leave the candidate row in place.', 'ffcertificate' ) ),
 			'rank-mandatory' => array( 'error', __( 'public_columns_config rejected: `rank` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
 			'name-mandatory' => array( 'error', __( 'public_columns_config rejected: `name` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
 		);
