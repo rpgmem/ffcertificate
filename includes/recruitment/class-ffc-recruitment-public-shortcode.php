@@ -8,12 +8,12 @@
  *
  * Notice-status branching:
  *
- *   - `draft`       → error message "Edital ainda não publicado.";
- *   - `preliminary` → warning-only render — "Esta lista está em revisão";
+ *   - `draft`       → error message "Notice not yet published.";
+ *   - `preliminary` → warning-only render — "This list is under review";
  *                     no listing exposed (preview rows never render publicly).
- *   - `definitive` → two-section layout (não chamados / chamados) of the
+ *   - `definitive` → two-section layout (waiting / called) of the
  *                     `list_type='definitive'` rows; no banner.
- *   - `closed`      → same listing + a "Edital encerrado" banner.
+ *   - `closed`      → same listing + a "Notice closed" banner.
  *
  * Column visibility is per-notice via `notice.public_columns_config`
  * (JSON). `rank` and `name` are mandatory; `status` / `pcd_badge` /
@@ -190,8 +190,8 @@ final class RecruitmentPublicShortcode {
 	 *
 	 * @param string $notice_code   User-supplied notice code.
 	 * @param string $slug_filter   User-supplied adjutancy slug filter (may be empty).
-	 * @param int    $page_top      1-indexed page for the "Não chamados" section.
-	 * @param int    $page_bottom   1-indexed page for the "Chamados" section.
+	 * @param int    $page_top      1-indexed page for the "Waiting called" section.
+	 * @param int    $page_bottom   1-indexed page for the "Called" section.
 	 * @param bool   $filter_locked True when the shortcode was called with a fixed
 	 *                              `adjutancy=` attribute — the filter UI is then
 	 *                              suppressed so callers who pinned the adjutancy
@@ -266,7 +266,7 @@ final class RecruitmentPublicShortcode {
 			: self::render_adjutancy_filter( (int) $notice->id );
 
 		$top_section    = self::render_section(
-			__( 'Not yet called', 'ffcertificate' ),
+			__( 'Waiting called', 'ffcertificate' ),
 			$empty_rows,
 			$columns,
 			false,
@@ -298,7 +298,7 @@ final class RecruitmentPublicShortcode {
 	// ─────────────────────────────────────────────────────────────────────
 
 	/**
-	 * Render one of the two sections (não chamados / chamados).
+	 * Render one of the two sections (waiting / called).
 	 *
 	 * @param string             $heading      Section title.
 	 * @param array              $rows         Classification rows in this section (list<ClassificationRow>).
@@ -744,8 +744,8 @@ final class RecruitmentPublicShortcode {
 	 *
 	 * @param string $notice_code   Notice code (case-preserved input).
 	 * @param string $slug_filter   Adjutancy slug filter ('' when no filter).
-	 * @param int    $page_top      Página da seção "Não chamados".
-	 * @param int    $page_bottom   Página da seção "Chamados".
+	 * @param int    $page_top      1-indexed page for the "Waiting called" section.
+	 * @param int    $page_bottom   1-indexed page for the "Called" section.
 	 * @param bool   $filter_locked Whether the shortcode pinned the adjutancy
 	 *                              via attribute (filter UI is suppressed).
 	 * @return string Transient key (under WP's 172-char limit).
