@@ -60,6 +60,8 @@ final class RecruitmentCandidateEditPage {
 	public static function register(): void {
 		add_action( 'admin_post_ffc_recruitment_save_candidate', array( self::class, 'handle_save' ), 10 );
 		add_action( 'admin_post_ffc_recruitment_delete_candidate', array( self::class, 'handle_delete' ), 10 );
+		add_action( 'admin_post_ffc_recruitment_link_candidate_user', array( self::class, 'handle_link_user' ), 10 );
+		add_action( 'admin_post_ffc_recruitment_unlink_candidate_user', array( self::class, 'handle_unlink_user' ), 10 );
 	}
 
 	/**
@@ -170,7 +172,8 @@ final class RecruitmentCandidateEditPage {
 
 		echo '<tr><th>' . esc_html__( 'Linked WP user', 'ffcertificate' ) . '</th>';
 		echo '<td>';
-		$user_id = null === $candidate->user_id ? 0 : (int) $candidate->user_id;
+		$user_id      = null === $candidate->user_id ? 0 : (int) $candidate->user_id;
+		$nonce_action = 'ffc_recruitment_link_candidate_user_' . (int) $candidate->id;
 		if ( $user_id > 0 ) {
 			$user = get_userdata( $user_id );
 			if ( false !== $user ) {
@@ -178,9 +181,32 @@ final class RecruitmentCandidateEditPage {
 			} else {
 				echo '<code>#' . esc_html( (string) $user_id ) . '</code> <em>(' . esc_html__( 'orphaned reference', 'ffcertificate' ) . ')</em>';
 			}
+			// Unlink form — clears the user_id without touching the wp_user.
+			echo ' <form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;margin-left:.5em;" onsubmit="return confirm(\'' . esc_js( __( 'Unlink the candidate from this WP user? The wp_user account is preserved.', 'ffcertificate' ) ) . '\');">';
+			echo '<input type="hidden" name="action" value="ffc_recruitment_unlink_candidate_user">';
+			echo '<input type="hidden" name="candidate_id" value="' . esc_attr( (string) $candidate->id ) . '">';
+			wp_nonce_field( $nonce_action );
+			echo '<button type="submit" class="button button-link-delete">' . esc_html__( 'Unlink', 'ffcertificate' ) . '</button>';
+			echo '</form>';
 		} else {
 			echo '<em>' . esc_html__( '(not promoted yet)', 'ffcertificate' ) . '</em>';
 		}
+		echo '</td></tr>';
+
+		// Link form — operator picks any wp_user by ID/login/email and the
+		// candidate's user_id is set to it. Same admin-post handler routes
+		// both link + relink (no separate "force" mode — the operator
+		// already saw the current state in the row above).
+		echo '<tr><th>' . esc_html__( 'Link manually to WP user', 'ffcertificate' ) . '</th>';
+		echo '<td>';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;">';
+		echo '<input type="hidden" name="action" value="ffc_recruitment_link_candidate_user">';
+		echo '<input type="hidden" name="candidate_id" value="' . esc_attr( (string) $candidate->id ) . '">';
+		wp_nonce_field( $nonce_action );
+		echo '<input type="text" name="user_lookup" placeholder="' . esc_attr__( 'WP user ID, login, or email', 'ffcertificate' ) . '" class="regular-text" required> ';
+		echo '<button type="submit" class="button button-secondary">' . esc_html__( 'Link', 'ffcertificate' ) . '</button>';
+		echo '<p class="description">' . esc_html__( 'Resolved via WP_User lookup (numeric → ID, contains @ → email, otherwise login). Does NOT create users; only links existing ones.', 'ffcertificate' ) . '</p>';
+		echo '</form>';
 		echo '</td></tr>';
 
 		echo '</tbody></table>';
@@ -427,6 +453,82 @@ final class RecruitmentCandidateEditPage {
 		}
 
 		self::redirect_with_notice( $id, 'delete-blocked' );
+	}
+
+	/**
+	 * Admin-post handler — link candidate to an existing WP user
+	 * resolved by id, login, or email. Does NOT create new users; only
+	 * sets the candidate.user_id pointer.
+	 *
+	 * @return void
+	 */
+	public static function handle_link_user(): void {
+		if ( ! current_user_can( self::CAP ) ) {
+			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
+		}
+		$id = isset( $_POST['candidate_id'] ) ? absint( wp_unslash( (string) $_POST['candidate_id'] ) ) : 0;
+		check_admin_referer( 'ffc_recruitment_link_candidate_user_' . $id );
+
+		if ( $id <= 0 ) {
+			wp_safe_redirect( self::back_url() );
+			exit;
+		}
+
+		$lookup = isset( $_POST['user_lookup'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['user_lookup'] ) ) : '';
+		$lookup = trim( $lookup );
+
+		$user = self::resolve_user( $lookup );
+		if ( null === $user ) {
+			self::redirect_with_notice( $id, 'link-user-not-found' );
+		}
+
+		RecruitmentCandidateRepository::set_user_id( $id, (int) $user->ID );
+		self::redirect_with_notice( $id, 'link-user-ok' );
+	}
+
+	/**
+	 * Admin-post handler — clear the candidate.user_id pointer. The
+	 * linked wp_user account is preserved untouched.
+	 *
+	 * @return void
+	 */
+	public static function handle_unlink_user(): void {
+		if ( ! current_user_can( self::CAP ) ) {
+			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
+		}
+		$id = isset( $_POST['candidate_id'] ) ? absint( wp_unslash( (string) $_POST['candidate_id'] ) ) : 0;
+		check_admin_referer( 'ffc_recruitment_link_candidate_user_' . $id );
+
+		if ( $id > 0 ) {
+			RecruitmentCandidateRepository::set_user_id( $id, null );
+		}
+		self::redirect_with_notice( $id, 'unlink-user-ok' );
+	}
+
+	/**
+	 * Resolve a free-text lookup string into a `WP_User` or null.
+	 *
+	 * Strategy: numeric → ID, contains `@` → email, otherwise login.
+	 * Returning null lets the caller surface a "not found" flash.
+	 *
+	 * @param string $lookup Free-text input.
+	 * @return \WP_User|null
+	 */
+	private static function resolve_user( string $lookup ): ?\WP_User {
+		if ( '' === $lookup ) {
+			return null;
+		}
+
+		$candidate = null;
+		if ( ctype_digit( $lookup ) ) {
+			$candidate = get_user_by( 'id', (int) $lookup );
+		} elseif ( false !== strpos( $lookup, '@' ) ) {
+			$candidate = get_user_by( 'email', $lookup );
+		} else {
+			$candidate = get_user_by( 'login', $lookup );
+		}
+
+		return $candidate instanceof \WP_User ? $candidate : null;
 	}
 
 	/**
