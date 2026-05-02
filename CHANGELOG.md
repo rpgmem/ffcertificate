@@ -7,6 +7,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+**Recruitment — notice↔adjutancy attach UI + CSV semicolon delimiter support.** No version bump (per user direction): both items land on `main` between 6.0.4 and the next tagged release.
+
+### Added
+
+- **`PUT` / `DELETE /notices/{id}/adjutancies/{adjutancy_id}` REST routes.** The N:N junction (`ffc_recruitment_notice_adjutancy`) had no REST surface. Without it, admins could create notices and create adjutancies but had no way to attach the two — and the CSV importer hard-rejects with `recruitment_notice_has_no_adjutancies` (400) when the adjutancy referenced in a CSV row is not attached to the target notice. Both routes are gated by `ffc_manage_recruitment` and idempotent: re-attaching an already-attached pair returns 200 with `created=false`; detaching a missing pair also returns 200.
+- **Notices tab — attached-adjutancy badges + attach `<select>`.** Each notice row now renders a list of attached adjutancies (slug-pill with an `×` detach button) plus a `<select>` of every other adjutancy with an Attach button. Both wire to the new REST routes via inline `fetch()` (same pattern as the create-notice / create-adjutancy / CSV-import forms). Empty state renders "(none)". Without this, the "notice has no adjutancies" error was a dead end for the admin.
+- **CSV importer — semicolon delimiter auto-detection.** Brazilian / EU spreadsheet exports default to `;` because `,` is the locale decimal separator. The importer now sniffs the header line for delimiter (counts `,` vs `;` outside quoted segments; semicolons win iff strictly more `;` than `,`) and forwards the detected delimiter to every body line. Backwards-compatible: a comma-only CSV still parses as before. Two unit tests pin the behavior (semicolon header → parsed correctly; ambiguous → comma wins).
+
 ---
 
 ## [6.0.4] (2026-05-01)

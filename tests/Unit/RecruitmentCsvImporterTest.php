@@ -149,6 +149,33 @@ class RecruitmentCsvImporterTest extends TestCase {
 		$this->assertSame( '', $result['rows'][0]['phone'] );
 	}
 
+	public function test_parse_accepts_semicolon_delimiter(): void {
+		// BR/EU spreadsheet exports default to `;` because `,` is the
+		// locale decimal separator. The importer must detect and use
+		// it transparently.
+		$csv = "name;cpf;rf;email;adjutancy;rank;score;pcd\n"
+			. "Alice;12345678901;;a@b.com;mat;1;90;Sim";
+
+		$result = RecruitmentCsvImporter::parse( $csv );
+
+		$this->assertTrue( $result['ok'] );
+		$this->assertSame( 'Alice', $result['rows'][0]['name'] );
+		$this->assertSame( '12345678901', $result['rows'][0]['cpf'] );
+		$this->assertSame( 'mat', $result['rows'][0]['adjutancy'] );
+	}
+
+	public function test_parse_keeps_comma_when_more_commas_than_semicolons(): void {
+		// Tie-breaker: `,` wins when counts are equal, and obviously when
+		// `,` outnumbers `;`. This pins the default behaviour.
+		$csv = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
+			. "Alice,12345678901,,a@b.com,mat,1,90,Sim";
+
+		$result = RecruitmentCsvImporter::parse( $csv );
+
+		$this->assertTrue( $result['ok'] );
+		$this->assertSame( 'Alice', $result['rows'][0]['name'] );
+	}
+
 	public function test_parse_accepts_crlf_line_endings(): void {
 		$csv = "name,cpf,rf,email,adjutancy,rank,score,pcd\r\n"
 			. "Alice,12345678901,,a@b.com,mat,1,90,Sim\r\n";
