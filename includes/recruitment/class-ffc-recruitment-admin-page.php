@@ -65,6 +65,32 @@ final class RecruitmentAdminPage {
 			'dashicons-groups',
 			28
 		);
+
+		// WP auto-creates a duplicate "Recruitment" first submenu when
+		// add_menu_page also registers a callback. Replace that auto-row
+		// with explicit per-tab submenus below — same parent page, but
+		// each link carries `&tab=…` so the existing render_page()
+		// dispatcher lands on the right section.
+		global $submenu;
+		if ( isset( $submenu[ self::PAGE_SLUG ] ) ) {
+			$submenu[ self::PAGE_SLUG ] = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Replacing the auto-generated duplicate row is the canonical pattern.
+		}
+		$tabs = array(
+			'notices'     => __( 'Notices', 'ffcertificate' ),
+			'adjutancies' => __( 'Adjutancies', 'ffcertificate' ),
+			'candidates'  => __( 'Candidates', 'ffcertificate' ),
+			'settings'    => __( 'Settings', 'ffcertificate' ),
+		);
+		foreach ( $tabs as $tab => $label ) {
+			add_submenu_page(
+				self::PAGE_SLUG,
+				$label,
+				$label,
+				self::CAP,
+				'notices' === $tab ? self::PAGE_SLUG : self::PAGE_SLUG . '&tab=' . $tab,
+				array( self::class, 'render_page' )
+			);
+		}
 	}
 
 	/**

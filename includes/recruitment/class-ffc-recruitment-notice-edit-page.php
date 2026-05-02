@@ -299,12 +299,17 @@ final class RecruitmentNoticeEditPage {
 
 			// Per-target confirm prompts. draft → preliminary publishes
 			// the candidate list to the public shortcode, so we surface
-			// that side-effect explicitly.
+			// that side-effect explicitly. Closing a notice is also
+			// destructive for the operator (calls history goes read-only,
+			// no more status changes), so we surface that too.
 			echo '<script>'
 				. 'function ffcRecruitmentConfirmTransition(form){'
 				. 'var t=form.target_status?form.target_status.value:(document.activeElement&&document.activeElement.name==="target_status"?document.activeElement.value:"");'
 				. 'if(t==="preliminary"){'
 				. 'return confirm("' . esc_js( __( 'Moving the notice to `preliminary` publishes the imported candidate list on the public shortcode. Continue?', 'ffcertificate' ) ) . '");'
+				. '}'
+				. 'if(t==="closed"){'
+				. 'return confirm("' . esc_js( __( 'Closing the notice freezes its calls history (no new calls, no status changes, no cancellations). The public shortcode will display the "Notice closed." banner above the list. To reopen later, you will need to provide a reason and the hired/not_shown classifications will become permanently locked. Continue?', 'ffcertificate' ) ) . '");'
 				. '}'
 				. 'return true;}'
 				. '</script>';
