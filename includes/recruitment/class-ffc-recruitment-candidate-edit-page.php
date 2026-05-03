@@ -130,7 +130,8 @@ final class RecruitmentCandidateEditPage {
 
 		echo '<tr><th><label for="ffc-cand-email">' . esc_html__( 'Email', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-cand-email" type="email" class="regular-text" name="email" value="' . esc_attr( $email ) . '">';
-		echo '<p class="description">' . esc_html__( 'Setting / changing the email re-runs the UserCreator promotion path: existing wp_user matched by email gets linked here, otherwise a new wp_user is created (§4 trigger 3).', 'ffcertificate' ) . '</p>';
+		// §4 trigger 3 — internal reference, not surfaced to operators.
+		echo '<p class="description">' . esc_html__( 'Setting / changing the email re-runs the user promotion path: an existing WP user matched by email gets linked here, otherwise a new WP user is created.', 'ffcertificate' ) . '</p>';
 		echo '</td></tr>';
 
 		echo '<tr><th><label for="ffc-cand-phone">' . esc_html__( 'Phone', 'ffcertificate' ) . '</label></th>';
@@ -163,12 +164,12 @@ final class RecruitmentCandidateEditPage {
 		echo '<tr><th>' . esc_html__( 'CPF', 'ffcertificate' ) . '</th>';
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_decrypted returns escaped HTML.
 		echo '<td>' . self::render_decrypted( (string) ( $candidate->cpf_encrypted ?? '' ), array( DocumentFormatter::class, 'format_cpf' ) ) . ' ';
-		echo '<span class="description">' . esc_html__( 'CSV-only per §12 — not editable here.', 'ffcertificate' ) . '</span></td></tr>';
+		echo '<span class="description">' . esc_html__( 'CSV import only — not editable here.', 'ffcertificate' ) . '</span></td></tr>';
 
 		echo '<tr><th>' . esc_html__( 'RF', 'ffcertificate' ) . '</th>';
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_decrypted returns escaped HTML.
 		echo '<td>' . self::render_decrypted( (string) ( $candidate->rf_encrypted ?? '' ), array( DocumentFormatter::class, 'format_rf' ) ) . ' ';
-		echo '<span class="description">' . esc_html__( 'CSV-only per §12 — not editable here.', 'ffcertificate' ) . '</span></td></tr>';
+		echo '<span class="description">' . esc_html__( 'CSV import only — not editable here.', 'ffcertificate' ) . '</span></td></tr>';
 
 		echo '<tr><th>' . esc_html__( 'Linked WP user', 'ffcertificate' ) . '</th>';
 		echo '<td>';
