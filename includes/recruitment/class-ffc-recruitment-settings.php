@@ -57,6 +57,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   status_color_called:         string,
  *   status_color_hired:          string,
  *   status_color_not_shown:      string,
+ *   preview_color_empty:           string,
+ *   preview_color_denied:          string,
+ *   preview_color_granted:         string,
+ *   preview_color_appeal_denied:   string,
+ *   preview_color_appeal_granted:  string,
+ *   preview_reason_required_denied:         bool,
+ *   preview_reason_required_granted:        bool,
+ *   preview_reason_required_appeal_denied:  bool,
+ *   preview_reason_required_appeal_granted: bool,
  * }
  */
 final class RecruitmentSettings {
@@ -104,25 +113,43 @@ final class RecruitmentSettings {
 	 */
 	public static function defaults(): array {
 		return array(
-			'email_subject'                => __( 'Call - {{notice_code}} - {{adjutancy}}', 'ffcertificate' ),
-			'email_from_address'           => '',
-			'email_from_name'              => '',
-			'email_body_html'              => self::default_body_template(),
+			'email_subject'                          => __( 'Call - {{notice_code}} - {{adjutancy}}', 'ffcertificate' ),
+			'email_from_address'                     => '',
+			'email_from_name'                        => '',
+			'email_body_html'                        => self::default_body_template(),
 			// 12h default: the public listing only changes when admins
 			// edit a notice/classification/candidate/adjutancy/call, and
 			// every such write hits the cache invalidator on the public
 			// shortcode — so a long TTL is safe. The Settings tab still
 			// exposes the value for per-deploy overrides.
-			'public_cache_seconds'         => 12 * HOUR_IN_SECONDS,
-			'public_rate_limit_per_minute' => 30,
-			'public_default_page_size'     => 50,
+			'public_cache_seconds'                   => 12 * HOUR_IN_SECONDS,
+			'public_rate_limit_per_minute'           => 30,
+			'public_default_page_size'               => 50,
 			// Status-badge colors on the public shortcode. Each value is
 			// an HTML color (#RRGGBB or named); validated on save so a
 			// hostile string can't bleed into the stored option.
-			'status_color_empty'           => '#fff3cd',
-			'status_color_called'          => '#e9d8fd',
-			'status_color_hired'           => '#d4edda',
-			'status_color_not_shown'       => '#f8d7da',
+			'status_color_empty'                     => '#fff3cd',
+			'status_color_called'                    => '#e9d8fd',
+			'status_color_hired'                     => '#d4edda',
+			'status_color_not_shown'                 => '#f8d7da',
+			// Preview-list (`list_type='preview'`) badge colors. These
+			// are visual-only: they never feed into the §5.2 state machine
+			// on the definitive list. The default palette is intentionally
+			// neutral — operators are expected to pick semantic colors per
+			// deployment (e.g. green for granted, red for denied).
+			'preview_color_empty'                    => '#e9ecef',
+			'preview_color_denied'                   => '#f8d7da',
+			'preview_color_granted'                  => '#d4edda',
+			'preview_color_appeal_denied'            => '#f5c6cb',
+			'preview_color_appeal_granted'           => '#c3e6cb',
+			// Per-status flags controlling whether `preview_reason_id`
+			// must be supplied when an admin sets that preview status.
+			// `empty` is intentionally NOT a configurable required-flag —
+			// it represents "no decision yet" and never carries a reason.
+			'preview_reason_required_denied'         => false,
+			'preview_reason_required_granted'        => false,
+			'preview_reason_required_appeal_denied'  => false,
+			'preview_reason_required_appeal_granted' => false,
 		);
 	}
 
@@ -203,6 +230,19 @@ final class RecruitmentSettings {
 		$out['status_color_hired']     = self::sanitize_color( $value['status_color_hired'] ?? null, $defaults['status_color_hired'] );
 		$out['status_color_not_shown'] = self::sanitize_color( $value['status_color_not_shown'] ?? null, $defaults['status_color_not_shown'] );
 
+		$out['preview_color_empty']          = self::sanitize_color( $value['preview_color_empty'] ?? null, $defaults['preview_color_empty'] );
+		$out['preview_color_denied']         = self::sanitize_color( $value['preview_color_denied'] ?? null, $defaults['preview_color_denied'] );
+		$out['preview_color_granted']        = self::sanitize_color( $value['preview_color_granted'] ?? null, $defaults['preview_color_granted'] );
+		$out['preview_color_appeal_denied']  = self::sanitize_color( $value['preview_color_appeal_denied'] ?? null, $defaults['preview_color_appeal_denied'] );
+		$out['preview_color_appeal_granted'] = self::sanitize_color( $value['preview_color_appeal_granted'] ?? null, $defaults['preview_color_appeal_granted'] );
+
+		// Checkboxes don't post when unchecked, so a missing key means
+		// "off" — coerce truthiness from any submitted value.
+		$out['preview_reason_required_denied']         = ! empty( $value['preview_reason_required_denied'] );
+		$out['preview_reason_required_granted']        = ! empty( $value['preview_reason_required_granted'] );
+		$out['preview_reason_required_appeal_denied']  = ! empty( $value['preview_reason_required_appeal_denied'] );
+		$out['preview_reason_required_appeal_granted'] = ! empty( $value['preview_reason_required_appeal_granted'] );
+
 		return $out;
 	}
 
@@ -264,17 +304,26 @@ final class RecruitmentSettings {
 	private static function shape( array $value ): array {
 		$defaults = self::defaults();
 		return array(
-			'email_subject'                => is_string( $value['email_subject'] ?? null ) ? $value['email_subject'] : $defaults['email_subject'],
-			'email_from_address'           => is_string( $value['email_from_address'] ?? null ) ? $value['email_from_address'] : $defaults['email_from_address'],
-			'email_from_name'              => is_string( $value['email_from_name'] ?? null ) ? $value['email_from_name'] : $defaults['email_from_name'],
-			'email_body_html'              => is_string( $value['email_body_html'] ?? null ) ? $value['email_body_html'] : $defaults['email_body_html'],
-			'public_cache_seconds'         => is_int( $value['public_cache_seconds'] ?? null ) ? $value['public_cache_seconds'] : $defaults['public_cache_seconds'],
-			'public_rate_limit_per_minute' => is_int( $value['public_rate_limit_per_minute'] ?? null ) ? $value['public_rate_limit_per_minute'] : $defaults['public_rate_limit_per_minute'],
-			'public_default_page_size'     => is_int( $value['public_default_page_size'] ?? null ) ? $value['public_default_page_size'] : $defaults['public_default_page_size'],
-			'status_color_empty'           => is_string( $value['status_color_empty'] ?? null ) ? $value['status_color_empty'] : $defaults['status_color_empty'],
-			'status_color_called'          => is_string( $value['status_color_called'] ?? null ) ? $value['status_color_called'] : $defaults['status_color_called'],
-			'status_color_hired'           => is_string( $value['status_color_hired'] ?? null ) ? $value['status_color_hired'] : $defaults['status_color_hired'],
-			'status_color_not_shown'       => is_string( $value['status_color_not_shown'] ?? null ) ? $value['status_color_not_shown'] : $defaults['status_color_not_shown'],
+			'email_subject'                          => is_string( $value['email_subject'] ?? null ) ? $value['email_subject'] : $defaults['email_subject'],
+			'email_from_address'                     => is_string( $value['email_from_address'] ?? null ) ? $value['email_from_address'] : $defaults['email_from_address'],
+			'email_from_name'                        => is_string( $value['email_from_name'] ?? null ) ? $value['email_from_name'] : $defaults['email_from_name'],
+			'email_body_html'                        => is_string( $value['email_body_html'] ?? null ) ? $value['email_body_html'] : $defaults['email_body_html'],
+			'public_cache_seconds'                   => is_int( $value['public_cache_seconds'] ?? null ) ? $value['public_cache_seconds'] : $defaults['public_cache_seconds'],
+			'public_rate_limit_per_minute'           => is_int( $value['public_rate_limit_per_minute'] ?? null ) ? $value['public_rate_limit_per_minute'] : $defaults['public_rate_limit_per_minute'],
+			'public_default_page_size'               => is_int( $value['public_default_page_size'] ?? null ) ? $value['public_default_page_size'] : $defaults['public_default_page_size'],
+			'status_color_empty'                     => is_string( $value['status_color_empty'] ?? null ) ? $value['status_color_empty'] : $defaults['status_color_empty'],
+			'status_color_called'                    => is_string( $value['status_color_called'] ?? null ) ? $value['status_color_called'] : $defaults['status_color_called'],
+			'status_color_hired'                     => is_string( $value['status_color_hired'] ?? null ) ? $value['status_color_hired'] : $defaults['status_color_hired'],
+			'status_color_not_shown'                 => is_string( $value['status_color_not_shown'] ?? null ) ? $value['status_color_not_shown'] : $defaults['status_color_not_shown'],
+			'preview_color_empty'                    => is_string( $value['preview_color_empty'] ?? null ) ? $value['preview_color_empty'] : $defaults['preview_color_empty'],
+			'preview_color_denied'                   => is_string( $value['preview_color_denied'] ?? null ) ? $value['preview_color_denied'] : $defaults['preview_color_denied'],
+			'preview_color_granted'                  => is_string( $value['preview_color_granted'] ?? null ) ? $value['preview_color_granted'] : $defaults['preview_color_granted'],
+			'preview_color_appeal_denied'            => is_string( $value['preview_color_appeal_denied'] ?? null ) ? $value['preview_color_appeal_denied'] : $defaults['preview_color_appeal_denied'],
+			'preview_color_appeal_granted'           => is_string( $value['preview_color_appeal_granted'] ?? null ) ? $value['preview_color_appeal_granted'] : $defaults['preview_color_appeal_granted'],
+			'preview_reason_required_denied'         => is_bool( $value['preview_reason_required_denied'] ?? null ) ? $value['preview_reason_required_denied'] : $defaults['preview_reason_required_denied'],
+			'preview_reason_required_granted'        => is_bool( $value['preview_reason_required_granted'] ?? null ) ? $value['preview_reason_required_granted'] : $defaults['preview_reason_required_granted'],
+			'preview_reason_required_appeal_denied'  => is_bool( $value['preview_reason_required_appeal_denied'] ?? null ) ? $value['preview_reason_required_appeal_denied'] : $defaults['preview_reason_required_appeal_denied'],
+			'preview_reason_required_appeal_granted' => is_bool( $value['preview_reason_required_appeal_granted'] ?? null ) ? $value['preview_reason_required_appeal_granted'] : $defaults['preview_reason_required_appeal_granted'],
 		);
 	}
 

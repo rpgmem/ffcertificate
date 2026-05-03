@@ -546,6 +546,45 @@ final class RecruitmentAdminPage {
 
 		echo '</tbody></table>';
 
+		echo '<h3>' . esc_html__( 'Preliminary list — badge colors', 'ffcertificate' ) . '</h3>';
+		echo '<p class="description">' . esc_html__( 'Background color used for each preliminary-list visual status on the public shortcode. These statuses do not change the candidate flow; they only affect the badge color.', 'ffcertificate' ) . '</p>';
+		echo '<table class="form-table"><tbody>';
+
+		$preview_color_rows = array(
+			'preview_color_empty'          => __( 'Empty (no decision)', 'ffcertificate' ),
+			'preview_color_denied'         => __( 'Denied', 'ffcertificate' ),
+			'preview_color_granted'        => __( 'Granted', 'ffcertificate' ),
+			'preview_color_appeal_denied'  => __( 'Appeal denied', 'ffcertificate' ),
+			'preview_color_appeal_granted' => __( 'Appeal granted', 'ffcertificate' ),
+		);
+		foreach ( $preview_color_rows as $field => $label ) {
+			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
+			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
+			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
+			echo '</td></tr>';
+		}
+
+		echo '</tbody></table>';
+
+		echo '<h3>' . esc_html__( 'Preliminary list — reason required?', 'ffcertificate' ) . '</h3>';
+		echo '<p class="description">' . esc_html__( 'Per-status flag controlling whether a reason from the Reasons catalog must be supplied when an admin sets that preliminary status on a row.', 'ffcertificate' ) . '</p>';
+		echo '<table class="form-table"><tbody>';
+
+		$reason_required_rows = array(
+			'preview_reason_required_denied'         => __( 'Denied requires a reason', 'ffcertificate' ),
+			'preview_reason_required_granted'        => __( 'Granted requires a reason', 'ffcertificate' ),
+			'preview_reason_required_appeal_denied'  => __( 'Appeal denied requires a reason', 'ffcertificate' ),
+			'preview_reason_required_appeal_granted' => __( 'Appeal granted requires a reason', 'ffcertificate' ),
+		);
+		foreach ( $reason_required_rows as $field => $label ) {
+			$checked = ! empty( $settings[ $field ] ) ? ' checked' : '';
+			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
+			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="checkbox" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="1"' . esc_attr( $checked ) . '>';
+			echo '</td></tr>';
+		}
+
+		echo '</tbody></table>';
+
 		submit_button();
 		echo '</form>';
 	}
