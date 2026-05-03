@@ -750,6 +750,9 @@ final class RecruitmentNoticeEditPage {
 		$cpf = isset( $_GET['ffc_cls_cpf'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['ffc_cls_cpf'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$rf = isset( $_GET['ffc_cls_rf'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['ffc_cls_rf'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
+		$sub_raw = isset( $_GET['ffc_cls_sub'] ) ? sanitize_key( wp_unslash( (string) $_GET['ffc_cls_sub'] ) ) : '';
+		$sub     = in_array( $sub_raw, array( 'pcd', 'geral' ), true ) ? $sub_raw : '';
 
 		// Resolve CPF / RF to a candidate id (or 0 = no match) via the
 		// encrypted-hash lookup. Doing it once here avoids per-row hashing
@@ -782,6 +785,7 @@ final class RecruitmentNoticeEditPage {
 			'rf'               => $rf,
 			'cpf_candidate_id' => $cpf_candidate_id,
 			'rf_candidate_id'  => $rf_candidate_id,
+			'subscription'     => $sub,
 		);
 	}
 
@@ -804,7 +808,9 @@ final class RecruitmentNoticeEditPage {
 		$query            = (string) ( $filters['query'] ?? '' );
 		$cpf_candidate_id = (int) ( $filters['cpf_candidate_id'] ?? 0 );
 		$rf_candidate_id  = (int) ( $filters['rf_candidate_id'] ?? 0 );
+		$subscription     = (string) ( $filters['subscription'] ?? '' );
 		$has_q            = '' !== $query;
+		$has_sub          = 'pcd' === $subscription || 'geral' === $subscription;
 		$needle           = $has_q
 			? ( function_exists( 'mb_strtolower' ) ? mb_strtolower( $query, 'UTF-8' ) : strtolower( $query ) )
 			: '';
@@ -828,14 +834,28 @@ final class RecruitmentNoticeEditPage {
 			if ( $rf_candidate_id > 0 && $candidate_id !== $rf_candidate_id ) {
 				continue;
 			}
+			// Both the name search and the subscription filter need the
+			// candidate row; fetch it once when either is active.
+			$candidate = ( $has_q || $has_sub )
+				? RecruitmentCandidateRepository::get_by_id( $candidate_id )
+				: null;
+			if ( ( $has_q || $has_sub ) && null === $candidate ) {
+				continue;
+			}
 			if ( $has_q ) {
-				$candidate = RecruitmentCandidateRepository::get_by_id( $candidate_id );
-				if ( null === $candidate ) {
-					continue;
-				}
 				$name = (string) ( $candidate->name ?? '' );
 				$hay  = function_exists( 'mb_strtolower' ) ? mb_strtolower( $name, 'UTF-8' ) : strtolower( $name );
 				if ( false === strpos( $hay, $needle ) ) {
+					continue;
+				}
+			}
+			if ( $has_sub ) {
+				// `verify()` returns null on hash decode failure — treat
+				// that as GERAL on the filter side, same defensive
+				// normalization the public shortcode uses for the badge.
+				$is_pcd = true === RecruitmentPcdHasher::verify( (string) ( $candidate->pcd_hash ?? '' ), $candidate_id );
+				$row_subscription = $is_pcd ? 'pcd' : 'geral';
+				if ( $row_subscription !== $subscription ) {
 					continue;
 				}
 			}
@@ -855,11 +875,12 @@ final class RecruitmentNoticeEditPage {
 	 * @return void
 	 */
 	private static function render_classification_filters_form( int $notice_id, array $filters ): void {
-		$adjutancies = RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( $notice_id );
-		$adj_id      = (int) ( $filters['adjutancy_id'] ?? 0 );
-		$query       = (string) ( $filters['query'] ?? '' );
-		$cpf         = (string) ( $filters['cpf'] ?? '' );
-		$rf          = (string) ( $filters['rf'] ?? '' );
+		$adjutancies  = RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( $notice_id );
+		$adj_id       = (int) ( $filters['adjutancy_id'] ?? 0 );
+		$query        = (string) ( $filters['query'] ?? '' );
+		$cpf          = (string) ( $filters['cpf'] ?? '' );
+		$rf           = (string) ( $filters['rf'] ?? '' );
+		$subscription = (string) ( $filters['subscription'] ?? '' );
 
 		$reset_url = add_query_arg(
 			array(
@@ -892,6 +913,12 @@ final class RecruitmentNoticeEditPage {
 			}
 			echo '</select>';
 		}
+
+		echo ' <select name="ffc_cls_sub">';
+		echo '<option value=""' . selected( '', $subscription, false ) . '>' . esc_html__( 'All subscription types', 'ffcertificate' ) . '</option>';
+		echo '<option value="pcd"' . selected( 'pcd', $subscription, false ) . '>' . esc_html__( 'PCD only', 'ffcertificate' ) . '</option>';
+		echo '<option value="geral"' . selected( 'geral', $subscription, false ) . '>' . esc_html__( 'GERAL only', 'ffcertificate' ) . '</option>';
+		echo '</select>';
 
 		echo ' <button type="submit" class="button">' . esc_html__( 'Filter', 'ffcertificate' ) . '</button>';
 		echo ' <a href="' . esc_url( $reset_url ) . '" class="button-link">' . esc_html__( 'Reset', 'ffcertificate' ) . '</a>';
