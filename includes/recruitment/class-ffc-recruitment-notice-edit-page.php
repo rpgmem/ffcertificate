@@ -207,7 +207,8 @@ final class RecruitmentNoticeEditPage {
 
 		echo '<tr><th><label>' . esc_html__( 'Code', 'ffcertificate' ) . '</label></th>';
 		echo '<td><code>' . esc_html( (string) $notice->code ) . '</code> ';
-		echo '<span class="description">' . esc_html__( '(read-only — codes are stable identifiers per §3.2 of the plan)', 'ffcertificate' ) . '</span></td></tr>';
+		// §3.2 — codes are stable identifiers; never editable post-creation.
+		echo '<span class="description">' . esc_html__( '(read-only — codes are stable identifiers and cannot be changed after creation)', 'ffcertificate' ) . '</span></td></tr>';
 
 		echo '<tr><th><label for="ffc-notice-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
 		echo '<td><input id="ffc-notice-name" type="text" class="regular-text" name="name" value="' . esc_attr( (string) $notice->name ) . '" required></td></tr>';
@@ -902,7 +903,8 @@ final class RecruitmentNoticeEditPage {
 		echo '<input type="time" id="ffc-bulk-time" style="margin-right:.5em;">';
 		echo '<button type="button" class="button button-primary" onclick="ffcRecruitmentBulkCall();">' . esc_html__( 'Call selected', 'ffcertificate' ) . '</button>';
 		echo '<span id="ffc-bulk-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
-		echo '<p class="description" style="margin:6px 0 0;">' . esc_html__( 'Select rows in `empty` status to bulk-call them with the same date and time. Atomic per §6 — any single race-loss rolls back the entire batch.', 'ffcertificate' ) . '</p>';
+		// §6 — bulk call is atomic; any single race-loss rolls back the entire batch.
+		echo '<p class="description" style="margin:6px 0 0;">' . esc_html__( 'Select rows in waiting status to bulk-call them with the same date and time. The operation is atomic — any single conflict rolls back the entire batch.', 'ffcertificate' ) . '</p>';
 		echo '</div>';
 	}
 
