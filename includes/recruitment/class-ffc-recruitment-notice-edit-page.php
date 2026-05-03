@@ -853,7 +853,7 @@ final class RecruitmentNoticeEditPage {
 				// `verify()` returns null on hash decode failure — treat
 				// that as GERAL on the filter side, same defensive
 				// normalization the public shortcode uses for the badge.
-				$is_pcd = true === RecruitmentPcdHasher::verify( (string) ( $candidate->pcd_hash ?? '' ), $candidate_id );
+				$is_pcd           = true === RecruitmentPcdHasher::verify( (string) ( $candidate->pcd_hash ?? '' ), $candidate_id );
 				$row_subscription = $is_pcd ? 'pcd' : 'geral';
 				if ( $row_subscription !== $subscription ) {
 					continue;
