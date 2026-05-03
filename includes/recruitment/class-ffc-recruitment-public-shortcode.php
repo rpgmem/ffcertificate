@@ -761,19 +761,26 @@ final class RecruitmentPublicShortcode {
 	 * @return string
 	 */
 	private static function wrap_with_banner( object $notice, string $body ): string {
-		$banner = '';
-		if ( 'preliminary' === $notice->status ) {
-			$banner = '<div class="ffc-recruitment-banner ffc-recruitment-banner-preliminary" role="status">'
-				. esc_html__( 'Preliminary list — classifications and participants may still change before this notice is finalized.', 'ffcertificate' )
-				. '</div>';
-		} elseif ( 'definitive' === $notice->status ) {
-			$banner = '<div class="ffc-recruitment-banner ffc-recruitment-banner-final" role="status">'
-				. esc_html__( 'Final classification.', 'ffcertificate' )
-				. '</div>';
-		} elseif ( 'closed' === $notice->status ) {
-			$banner = '<div class="ffc-recruitment-banner ffc-recruitment-banner-closed">'
-				. esc_html__( 'Notice closed.', 'ffcertificate' )
-				. '</div>';
+		$status_messages = array(
+			'preliminary' => __( 'Preliminary list — classifications and participants may still change before this notice is finalized.', 'ffcertificate' ),
+			'definitive'  => __( 'Final classification.', 'ffcertificate' ),
+			'closed'      => __( 'Notice closed.', 'ffcertificate' ),
+		);
+		$banner          = '';
+		if ( isset( $status_messages[ $notice->status ] ) ) {
+			$settings = RecruitmentSettings::all();
+			$colors   = array(
+				'preliminary' => (string) $settings['notice_status_color_preliminary'],
+				'definitive'  => (string) $settings['notice_status_color_definitive'],
+				'closed'      => (string) $settings['notice_status_color_closed'],
+			);
+			$bg       = $colors[ $notice->status ];
+			$banner   = sprintf(
+				'<div class="ffc-recruitment-banner ffc-recruitment-banner-%1$s" role="status" style="background:%2$s;color:#333;">%3$s</div>',
+				esc_attr( $notice->status ),
+				esc_attr( $bg ),
+				esc_html( $status_messages[ $notice->status ] )
+			);
 		}
 
 		// Banner sits above the notice code/name and both lines render at the

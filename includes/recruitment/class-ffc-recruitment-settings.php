@@ -68,6 +68,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   preview_reason_required_appeal_granted: bool,
  *   subscription_color_pcd:                 string,
  *   subscription_color_geral:               string,
+ *   notice_status_color_draft:       string,
+ *   notice_status_color_preliminary: string,
+ *   notice_status_color_definitive:  string,
+ *   notice_status_color_closed:      string,
  * }
  */
 final class RecruitmentSettings {
@@ -157,6 +161,13 @@ final class RecruitmentSettings {
 			// knobs control the badge background per side.
 			'subscription_color_pcd'                 => '#fde2e2',
 			'subscription_color_geral'               => '#e9ecef',
+			// Notice-status badge colors. Drives both the admin notices
+			// list table and the public shortcode banner — operators
+			// pick one palette per deployment and both surfaces follow.
+			'notice_status_color_draft'              => '#e9ecef',
+			'notice_status_color_preliminary'        => '#fff3cd',
+			'notice_status_color_definitive'         => '#d4edda',
+			'notice_status_color_closed'             => '#f8d7da',
 		);
 	}
 
@@ -245,6 +256,11 @@ final class RecruitmentSettings {
 
 		$out['subscription_color_pcd']   = self::sanitize_color( $value['subscription_color_pcd'] ?? null, $defaults['subscription_color_pcd'] );
 		$out['subscription_color_geral'] = self::sanitize_color( $value['subscription_color_geral'] ?? null, $defaults['subscription_color_geral'] );
+
+		$out['notice_status_color_draft']       = self::sanitize_color( $value['notice_status_color_draft'] ?? null, $defaults['notice_status_color_draft'] );
+		$out['notice_status_color_preliminary'] = self::sanitize_color( $value['notice_status_color_preliminary'] ?? null, $defaults['notice_status_color_preliminary'] );
+		$out['notice_status_color_definitive']  = self::sanitize_color( $value['notice_status_color_definitive'] ?? null, $defaults['notice_status_color_definitive'] );
+		$out['notice_status_color_closed']      = self::sanitize_color( $value['notice_status_color_closed'] ?? null, $defaults['notice_status_color_closed'] );
 
 		// Checkboxes don't post when unchecked, so a missing key means
 		// "off" — coerce truthiness from any submitted value.
@@ -336,6 +352,10 @@ final class RecruitmentSettings {
 			'preview_reason_required_appeal_granted' => is_bool( $value['preview_reason_required_appeal_granted'] ?? null ) ? $value['preview_reason_required_appeal_granted'] : $defaults['preview_reason_required_appeal_granted'],
 			'subscription_color_pcd'                 => is_string( $value['subscription_color_pcd'] ?? null ) ? $value['subscription_color_pcd'] : $defaults['subscription_color_pcd'],
 			'subscription_color_geral'               => is_string( $value['subscription_color_geral'] ?? null ) ? $value['subscription_color_geral'] : $defaults['subscription_color_geral'],
+			'notice_status_color_draft'              => is_string( $value['notice_status_color_draft'] ?? null ) ? $value['notice_status_color_draft'] : $defaults['notice_status_color_draft'],
+			'notice_status_color_preliminary'        => is_string( $value['notice_status_color_preliminary'] ?? null ) ? $value['notice_status_color_preliminary'] : $defaults['notice_status_color_preliminary'],
+			'notice_status_color_definitive'         => is_string( $value['notice_status_color_definitive'] ?? null ) ? $value['notice_status_color_definitive'] : $defaults['notice_status_color_definitive'],
+			'notice_status_color_closed'             => is_string( $value['notice_status_color_closed'] ?? null ) ? $value['notice_status_color_closed'] : $defaults['notice_status_color_closed'],
 		);
 	}
 

@@ -462,7 +462,8 @@ final class RecruitmentNoticeEditPage {
 		echo '<div class="inside">';
 
 		echo '<p><strong>' . esc_html__( 'Current state:', 'ffcertificate' ) . '</strong> ';
-		echo '<span class="ffc-status-badge ffc-status-' . esc_attr( $current ) . '">' . esc_html( RecruitmentAdminPage::notice_status_label( $current ) ) . '</span>';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+		echo RecruitmentAdminPage::notice_status_badge( $current );
 		if ( '1' === (string) $notice->was_reopened ) {
 			echo ' <em>(' . esc_html__( 'previously reopened — hired/not_shown classifications are frozen', 'ffcertificate' ) . ')</em>';
 		}

@@ -167,12 +167,7 @@ class RecruitmentNoticesListTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function column_status( $item ): string {
-		$status = (string) $item['status'];
-		return sprintf(
-			'<span class="ffc-status-badge ffc-status-%s">%s</span>',
-			esc_attr( $status ),
-			esc_html( RecruitmentAdminPage::notice_status_label( $status ) )
-		);
+		return RecruitmentAdminPage::notice_status_badge( (string) $item['status'] );
 	}
 
 	/**
