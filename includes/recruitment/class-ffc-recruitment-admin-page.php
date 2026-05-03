@@ -562,7 +562,7 @@ final class RecruitmentAdminPage {
 			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
 			. 'body:fd'
 			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.id){location.reload();}else{alert(JSON.stringify(d));}'
+			. 'if(d&&d.id){location.reload();}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
 			. '});return false;}'
 			. '</script>';
 	}
@@ -594,7 +594,7 @@ final class RecruitmentAdminPage {
 			. 'input.value=d.color;'
 			. 'var hex=input.parentNode.querySelector(".ffc-reason-color-hex");'
 			. 'if(hex){hex.textContent=d.color;}'
-			. '}else{alert(JSON.stringify(d));}'
+			. '}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
 			. '});'
 			. '});'
 			. '});'
@@ -634,7 +634,7 @@ final class RecruitmentAdminPage {
 			. 'input.value=d.color;'
 			. 'var hex=input.parentNode.querySelector(".ffc-adjutancy-color-hex");'
 			. 'if(hex){hex.textContent=d.color;}'
-			. '}else{alert(JSON.stringify(d));}'
+			. '}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
 			. '});'
 			. '});'
 			. '});'
@@ -822,7 +822,7 @@ final class RecruitmentAdminPage {
 			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
 			. 'body:fd'
 			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.id){location.reload();}else{alert(JSON.stringify(d));}'
+			. 'if(d&&d.id){location.reload();}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
 			. '});return false;}'
 			. '</script>';
 	}
@@ -860,7 +860,7 @@ final class RecruitmentAdminPage {
 			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
 			. 'body:fd'
 			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.id){location.reload();}else{alert(JSON.stringify(d));}'
+			. 'if(d&&d.id){location.reload();}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
 			. '});return false;}'
 			. '</script>';
 	}

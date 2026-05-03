@@ -177,7 +177,7 @@ final class RecruitmentNoticeEditPage {
 			. 'fetch(url,{method:"POST",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},body:fd,credentials:"same-origin"})'
 			. '.then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
 			. 'if(o.status>=200&&o.status<300){status.textContent="OK ("+JSON.stringify(o.body)+")";location.reload();}'
-			. 'else{status.textContent="Error: "+JSON.stringify(o.body);}'
+			. 'else{status.textContent="Error: "+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
 			. '}).catch(function(e){status.textContent="Network error: "+e.message;});'
 			. 'return false;}'
 			. '</script>';
@@ -459,7 +459,7 @@ final class RecruitmentNoticeEditPage {
 			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/promote-preview",{'
 			. 'method:"POST",headers:{"X-WP-Nonce":"' . esc_attr( $rest_nonce ) . '"},body:fd,credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert(JSON.stringify(o.body));}'
+			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
 			. '}).catch(function(e){alert("Network error: "+e.message);});'
 			. '}'
 			. '</script>';
@@ -541,7 +541,7 @@ final class RecruitmentNoticeEditPage {
 			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/adjutancies/"+aid,{'
 			. 'method:"PUT",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert(JSON.stringify(o.body));}'
+			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
 			. '});return false;}'
 			. 'function ffcDetachAdjutancy(a){'
 			. 'var nid=a.getAttribute("data-notice");'
@@ -549,7 +549,7 @@ final class RecruitmentNoticeEditPage {
 			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/adjutancies/"+aid,{'
 			. 'method:"DELETE",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert(JSON.stringify(o.body));}'
+			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
 			. '});return false;}'
 			. '</script>';
 
@@ -1191,7 +1191,7 @@ final class RecruitmentNoticeEditPage {
 			. 'credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
 			. 'if(o.status>=200&&o.status<300){location.reload();}'
-			. 'else{status.textContent="Error: "+JSON.stringify(o.body);}'
+			. 'else{status.textContent="Error: "+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
 			. '}).catch(function(e){status.textContent="Network error: "+e.message;});'
 			. '}'
 			// Per-row action handler (Call / Mark accepted / etc.).
@@ -1241,7 +1241,7 @@ final class RecruitmentNoticeEditPage {
 			. 'btn.disabled=true;'
 			. 'fetch(url,init).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
 			. 'if(o.status>=200&&o.status<300){location.reload();}'
-			. 'else{alert(JSON.stringify(o.body));btn.disabled=false;}'
+			. 'else{alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));btn.disabled=false;}'
 			. '}).catch(function(e){alert("Network error: "+e.message);btn.disabled=false;});'
 			. '}'
 			. '</script>';
@@ -1277,7 +1277,7 @@ final class RecruitmentNoticeEditPage {
 			. 'credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
 			. 'if(o.status>=200&&o.status<300){return;}'
-			. 'alert(JSON.stringify(o.body));'
+			. 'alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));'
 			. '});'
 			. '}'
 			. 'document.querySelectorAll("tr[data-cls-id]").forEach(function(row){'
