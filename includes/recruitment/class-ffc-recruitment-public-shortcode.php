@@ -466,7 +466,30 @@ final class RecruitmentPublicShortcode {
 			$html .= '<td>' . esc_html( number_format( (float) $row->score, 2, '.', '' ) ) . '</td>';
 		}
 		if ( $columns['status'] ) {
-			$html .= '<td>' . self::render_status_badge( (string) $row->status ) . '</td>';
+			// On the preview list the §5.2 `status` column is always
+			// 'empty', so it carries no signal — render the configurable
+			// preview_status badge instead. The reason text (when set
+			// and the notice opted into surfacing it via
+			// public_columns_config.preview_reason) trails the badge in
+			// the same cell so the existing column count stays stable.
+			$is_preview = isset( $row->list_type ) && 'preview' === (string) $row->list_type;
+			if ( $is_preview ) {
+				$preview_status_value = isset( $row->preview_status ) ? (string) $row->preview_status : 'empty';
+				$badge                = self::render_preview_status_badge( $preview_status_value );
+				$reason_html          = '';
+				if ( ! empty( $columns['preview_reason'] ) && isset( $row->preview_reason_id ) && null !== $row->preview_reason_id ) {
+					$reason_id = (int) $row->preview_reason_id;
+					if ( $reason_id > 0 ) {
+						$reason = RecruitmentReasonRepository::get_by_id( $reason_id );
+						if ( null !== $reason ) {
+							$reason_html = '<span class="ffc-recruitment-preview-reason" style="display:block;font-size:11px;color:#555;margin-top:2px;">' . esc_html( (string) $reason->label ) . '</span>';
+						}
+					}
+				}
+				$html .= '<td>' . $badge . $reason_html . '</td>';
+			} else {
+				$html .= '<td>' . self::render_status_badge( (string) $row->status ) . '</td>';
+			}
 		}
 		if ( $columns['pcd_badge'] ) {
 			$is_pcd = RecruitmentPcdHasher::verify( (string) $candidate->pcd_hash, (int) $candidate->id );
@@ -653,7 +676,7 @@ final class RecruitmentPublicShortcode {
 		$merged = array_merge( $default, $decoded );
 
 		$out = array();
-		foreach ( array( 'rank', 'name', 'adjutancy', 'status', 'pcd_badge', 'date_to_assume', 'time_to_assume', 'score', 'cpf_masked', 'rf_masked', 'email_masked' ) as $key ) {
+		foreach ( array( 'rank', 'name', 'adjutancy', 'status', 'pcd_badge', 'date_to_assume', 'time_to_assume', 'score', 'cpf_masked', 'rf_masked', 'email_masked', 'preview_reason' ) as $key ) {
 			$out[ $key ] = ! empty( $merged[ $key ] );
 		}
 
@@ -761,6 +784,51 @@ final class RecruitmentPublicShortcode {
 			esc_attr( $color ),
 			esc_html( is_string( $name ) ? $name : '' )
 		);
+	}
+
+	/**
+	 * Render the preview-list status as a colored "tag" badge. Visual-only;
+	 * mirrors {@see self::render_status_badge()} but reads colors from
+	 * the `preview_color_*` Settings sub-keys and labels from
+	 * {@see self::preview_status_label()}.
+	 *
+	 * @param string $status Preview status enum value.
+	 * @return string Already-escaped HTML.
+	 */
+	private static function render_preview_status_badge( string $status ): string {
+		$settings = RecruitmentSettings::all();
+		$colors   = array(
+			'empty'          => (string) $settings['preview_color_empty'],
+			'denied'         => (string) $settings['preview_color_denied'],
+			'granted'        => (string) $settings['preview_color_granted'],
+			'appeal_denied'  => (string) $settings['preview_color_appeal_denied'],
+			'appeal_granted' => (string) $settings['preview_color_appeal_granted'],
+		);
+		$bg       = $colors[ $status ] ?? '#e9ecef';
+		$label    = self::preview_status_label( $status );
+		return sprintf(
+			'<span class="ffc-recruitment-preview-status-badge ffc-recruitment-preview-status-%s" style="background:%s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%s</span>',
+			esc_attr( $status ),
+			esc_attr( $bg ),
+			esc_html( $label )
+		);
+	}
+
+	/**
+	 * Localized public-facing label for a preview-status enum value.
+	 *
+	 * @param string $status Enum value.
+	 * @return string
+	 */
+	private static function preview_status_label( string $status ): string {
+		$map = array(
+			'empty'          => __( 'Empty', 'ffcertificate' ),
+			'denied'         => __( 'Denied', 'ffcertificate' ),
+			'granted'        => __( 'Granted', 'ffcertificate' ),
+			'appeal_denied'  => __( 'Appeal denied', 'ffcertificate' ),
+			'appeal_granted' => __( 'Appeal granted', 'ffcertificate' ),
+		);
+		return $map[ $status ] ?? $status;
 	}
 
 	/**

@@ -299,13 +299,56 @@ class RecruitmentClassificationRepository {
 	}
 
 	/**
+	 * Set the preliminary-list visual status (and optional reason) on a
+	 * classification. Visual-only; this never feeds into the §5.2 state
+	 * machine on the definitive list. The caller is responsible for
+	 * gating the operation to `list_type='preview'` rows.
+	 *
+	 * Reason validation (per-status `preview_reason_required_*` setting,
+	 * applies_to constraint on the catalog row) is enforced at the
+	 * service layer / REST controller, not here — this method is a pure
+	 * CRUD primitive.
+	 *
+	 * @param int      $id                Classification ID.
+	 * @param string   $preview_status    Enum value (`empty`, `denied`, `granted`, `appeal_denied`, `appeal_granted`).
+	 * @param int|null $preview_reason_id Reason catalog id, or null to clear.
+	 * @return bool
+	 */
+	public static function set_preview_status( int $id, string $preview_status, ?int $preview_reason_id ): bool {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Update via wpdb helper.
+		$result = $wpdb->update(
+			$table,
+			array(
+				'preview_status'    => $preview_status,
+				'preview_reason_id' => $preview_reason_id,
+				'updated_at'        => current_time( 'mysql' ),
+			),
+			array( 'id' => $id ),
+			// `wpdb` emits NULL for null values regardless of format — the
+			// '%d' placeholder only kicks in when $preview_reason_id is set.
+			array( '%s', '%d', '%s' ),
+			array( '%d' )
+		);
+
+		static::cache_delete( "id_{$id}" );
+
+		if ( false !== $result ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
+
+		return false !== $result;
+	}
+
+	/**
 	 * Atomic conditional status transition.
 	 *
 	 * Performs `UPDATE … SET status=$new WHERE id=$id AND status=$expected`.
 	 * Returns the affected-row count (0 or 1) so callers can detect a lost
 	 * race. The state machine wraps this with transition validity / reason
-	 * checks (sprint 5) and the convocation service uses it for atomic call
-	 * creation (sprint 6).
+	 * checks and the convocation service uses it for atomic call creation.
 	 *
 	 * @param int    $id Classification ID.
 	 * @param string $expected_current Expected current status.

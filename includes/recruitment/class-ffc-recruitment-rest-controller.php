@@ -225,6 +225,27 @@ final class RecruitmentRestController {
 
 		register_rest_route(
 			$ns,
+			$base . '/classifications/(?P<id>\d+)/preview-status',
+			array(
+				'methods'             => \WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'change_classification_preview_status' ),
+				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'args'                => array(
+					'preview_status'    => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'preview_reason_id' => array(
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
 			$base . '/classifications/(?P<id>\d+)',
 			array(
 				'methods'             => \WP_REST_Server::DELETABLE,
@@ -297,6 +318,62 @@ final class RecruitmentRestController {
 				array(
 					'methods'             => \WP_REST_Server::DELETABLE,
 					'callback'            => array( $this, 'delete_adjutancy' ),
+					'permission_callback' => array( $this, 'check_admin_cap' ),
+				),
+			)
+		);
+
+		// ── Reasons ─────────────────────────────────────────────────────
+		register_rest_route(
+			$ns,
+			$base . '/reasons',
+			array(
+				array(
+					'methods'             => \WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'list_reasons' ),
+					'permission_callback' => array( $this, 'check_admin_cap' ),
+				),
+				array(
+					'methods'             => \WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_reason' ),
+					'permission_callback' => array( $this, 'check_admin_cap' ),
+					'args'                => array(
+						'slug'       => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_title',
+						),
+						'label'      => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'color'      => array(
+							'type'              => 'string',
+							'required'          => false,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'applies_to' => array(
+							'type'     => 'array',
+							'required' => false,
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			$base . '/reasons/(?P<id>\d+)',
+			array(
+				array(
+					'methods'             => \WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_reason' ),
+					'permission_callback' => array( $this, 'check_admin_cap' ),
+				),
+				array(
+					'methods'             => \WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'delete_reason' ),
 					'permission_callback' => array( $this, 'check_admin_cap' ),
 				),
 			)
@@ -707,6 +784,75 @@ final class RecruitmentRestController {
 	}
 
 	/**
+	 * PATCH /classifications/{id}/preview-status — set the preliminary
+	 * list's visual status (and optional reason). Visual-only — never
+	 * touches the §5.2 state machine on the definitive list.
+	 *
+	 * Validates:
+	 *   - the classification exists and is `list_type='preview'`
+	 *   - `preview_status` is a known enum value
+	 *   - the reason (if any) exists in the catalog AND its `applies_to`
+	 *     covers the requested status
+	 *   - if the per-status `preview_reason_required_*` flag is set in
+	 *     Settings, the reason must be supplied
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function change_classification_preview_status( \WP_REST_Request $request ) {
+		$id             = (int) $request->get_param( 'id' );
+		$preview_status = (string) $request->get_param( 'preview_status' );
+		$reason_id_raw  = $request->get_param( 'preview_reason_id' );
+		$reason_id      = is_numeric( $reason_id_raw ) ? (int) $reason_id_raw : 0;
+
+		$cls = RecruitmentClassificationRepository::get_by_id( $id );
+		if ( null === $cls ) {
+			return new \WP_Error( 'recruitment_classification_not_found', '', array( 'status' => 404 ) );
+		}
+		if ( 'preview' !== (string) $cls->list_type ) {
+			return new \WP_Error( 'recruitment_preview_status_only_on_preview_list', __( 'Preliminary status can only be set on classifications in the preview list.', 'ffcertificate' ), array( 'status' => 409 ) );
+		}
+
+		$valid_statuses = array( 'empty', 'denied', 'granted', 'appeal_denied', 'appeal_granted' );
+		if ( ! in_array( $preview_status, $valid_statuses, true ) ) {
+			return new \WP_Error( 'recruitment_preview_status_invalid', '', array( 'status' => 400 ) );
+		}
+
+		// 'empty' clears any pre-existing reason — operators reset by
+		// flipping the dropdown back to "no decision".
+		if ( 'empty' === $preview_status ) {
+			$reason_id = 0;
+		}
+
+		$settings = RecruitmentSettings::all();
+		if ( 'empty' !== $preview_status ) {
+			$required_key = 'preview_reason_required_' . $preview_status;
+			$required     = ! empty( $settings[ $required_key ] );
+			if ( $required && $reason_id <= 0 ) {
+				return new \WP_Error( 'recruitment_preview_reason_required', __( 'A reason is required for this preliminary status.', 'ffcertificate' ), array( 'status' => 400 ) );
+			}
+		}
+
+		if ( $reason_id > 0 ) {
+			$reason = RecruitmentReasonRepository::get_by_id( $reason_id );
+			if ( null === $reason ) {
+				return new \WP_Error( 'recruitment_preview_reason_not_found', '', array( 'status' => 404 ) );
+			}
+			$applies = RecruitmentReasonRepository::decode_applies_to( (string) ( $reason->applies_to ?? '' ) );
+			if ( ! in_array( $preview_status, $applies, true ) ) {
+				return new \WP_Error( 'recruitment_preview_reason_status_mismatch', __( 'This reason cannot be used with the chosen preliminary status.', 'ffcertificate' ), array( 'status' => 400 ) );
+			}
+		}
+
+		$ok = RecruitmentClassificationRepository::set_preview_status( $id, $preview_status, $reason_id > 0 ? $reason_id : null );
+		if ( ! $ok ) {
+			return new \WP_Error( 'recruitment_preview_status_update_failed', '', array( 'status' => 400 ) );
+		}
+
+		return new \WP_REST_Response( RecruitmentClassificationRepository::get_by_id( $id ), 200 );
+	}
+
+	/**
 	 * DELETE /classifications/{id}
 	 *
 	 * @param \WP_REST_Request $request Request.
@@ -807,6 +953,98 @@ final class RecruitmentRestController {
 			return $this->wp_error_from_envelope_with_blocked( $result, 409 );
 		}
 		return new \WP_REST_Response( $result, 200 );
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// Reasons
+	// ─────────────────────────────────────────────────────────────────────
+
+	/**
+	 * GET /reasons — list every reason in the global catalog.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function list_reasons(): \WP_REST_Response {
+		return new \WP_REST_Response( RecruitmentReasonRepository::get_all(), 200 );
+	}
+
+	/**
+	 * POST /reasons — create a new reason.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function create_reason( \WP_REST_Request $request ) {
+		$applies_raw = $request->get_param( 'applies_to' );
+		$applies     = array();
+		if ( is_array( $applies_raw ) ) {
+			foreach ( $applies_raw as $candidate ) {
+				if ( is_string( $candidate ) ) {
+					$applies[] = $candidate;
+				}
+			}
+		}
+
+		$id = RecruitmentReasonRepository::create(
+			(string) $request->get_param( 'slug' ),
+			(string) $request->get_param( 'label' ),
+			(string) ( $request->get_param( 'color' ) ?? '' ),
+			$applies
+		);
+		if ( false === $id ) {
+			return new \WP_Error(
+				'recruitment_reason_create_failed',
+				__( 'Reason creation failed (duplicate slug?).', 'ffcertificate' ),
+				array( 'status' => 409 )
+			);
+		}
+		return new \WP_REST_Response( RecruitmentReasonRepository::get_by_id( $id ), 201 );
+	}
+
+	/**
+	 * PATCH /reasons/{id} — update slug / label / color / applies_to.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function update_reason( \WP_REST_Request $request ) {
+		$id   = (int) $request->get_param( 'id' );
+		$data = array_intersect_key( $request->get_params(), array_flip( array( 'slug', 'label', 'color', 'applies_to' ) ) );
+		$ok   = RecruitmentReasonRepository::update( $id, $data );
+		if ( ! $ok ) {
+			return new \WP_Error(
+				'recruitment_reason_update_failed',
+				'',
+				array( 'status' => 400 )
+			);
+		}
+		return new \WP_REST_Response( RecruitmentReasonRepository::get_by_id( $id ), 200 );
+	}
+
+	/**
+	 * DELETE /reasons/{id} — gated by the references count.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function delete_reason( \WP_REST_Request $request ) {
+		$id    = (int) $request->get_param( 'id' );
+		$count = RecruitmentReasonRepository::count_references( $id );
+		if ( $count > 0 ) {
+			return new \WP_Error(
+				'recruitment_reason_in_use',
+				__( 'Cannot delete: this reason is still attached to at least one classification.', 'ffcertificate' ),
+				array(
+					'status'          => 409,
+					'reference_count' => $count,
+				)
+			);
+		}
+		$ok = RecruitmentReasonRepository::delete( $id );
+		if ( ! $ok ) {
+			return new \WP_Error( 'recruitment_reason_delete_failed', '', array( 'status' => 400 ) );
+		}
+		return new \WP_REST_Response( array( 'success' => true ), 200 );
 	}
 
 	/**
