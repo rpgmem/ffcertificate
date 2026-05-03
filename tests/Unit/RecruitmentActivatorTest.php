@@ -109,7 +109,7 @@ class RecruitmentActivatorTest extends TestCase {
 
 		RecruitmentActivator::create_tables();
 
-		$this->assertCount( 6, $delta_sqls, 'dbDelta should be called 6 times — one per recruitment table' );
+		$this->assertCount( 7, $delta_sqls, 'dbDelta should be called 7 times — one per recruitment table' );
 	}
 
 	public function test_create_tables_is_idempotent_when_all_tables_exist(): void {
@@ -127,7 +127,7 @@ class RecruitmentActivatorTest extends TestCase {
 		$this->assertFalse( $delta_called, 'No CREATE TABLE statements should be issued when every table already exists' );
 	}
 
-	public function test_all_six_tables_use_innodb_engine(): void {
+	public function test_all_tables_use_innodb_engine(): void {
 		$this->stub_no_tables_exist();
 
 		$delta_sqls = array();
@@ -139,7 +139,7 @@ class RecruitmentActivatorTest extends TestCase {
 
 		RecruitmentActivator::create_tables();
 
-		$this->assertCount( 6, $delta_sqls );
+		$this->assertCount( 7, $delta_sqls );
 		foreach ( $delta_sqls as $sql ) {
 			$this->assertStringContainsString( 'ENGINE=InnoDB', $sql, 'Every recruitment table must declare ENGINE=InnoDB so the atomic CSV import works' );
 		}

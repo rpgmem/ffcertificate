@@ -68,6 +68,7 @@ class RecruitmentActivator {
 		self::create_candidate_table();
 		self::create_classification_table();
 		self::create_call_table();
+		self::create_reason_table();
 	}
 
 	/**
@@ -111,6 +112,49 @@ class RecruitmentActivator {
 		if ( $current < 4 ) {
 			self::migrate_add_adjutancy_color();
 			update_option( $option_key, 4 );
+		}
+
+		if ( $current < 5 ) {
+			self::migrate_add_classification_preview_columns();
+			self::create_reason_table();
+			update_option( $option_key, 5 );
+		}
+	}
+
+	/**
+	 * V5 schema migration — add `preview_status` enum + `preview_reason_id`
+	 * FK columns to `ffc_recruitment_classification`. The columns are
+	 * read only when `list_type='preview'` (the §5.2 state machine on
+	 * the definitive list still owns the `status` column); they exist on
+	 * every row anyway because adding NULL/DEFAULT-bearing columns is
+	 * cheaper than partitioning the table by list_type.
+	 *
+	 * Visual-only: the enum values do not feed into the state machine.
+	 *
+	 * @return void
+	 */
+	private static function migrate_add_classification_preview_columns(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
+		$existing = $wpdb->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'preview_status'" );
+		if ( null === $existing || '' === (string) $existing ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+			$wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN preview_status ENUM('empty','denied','granted','appeal_denied','appeal_granted') NOT NULL DEFAULT 'empty' AFTER status" );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		$existing_reason = $wpdb->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'preview_reason_id'" );
+		if ( null === $existing_reason || '' === (string) $existing_reason ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+			$wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN preview_reason_id BIGINT(20) UNSIGNED DEFAULT NULL AFTER preview_status" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+			$wpdb->query( "ALTER TABLE `{$table}` ADD INDEX idx_preview_reason_id (preview_reason_id)" );
 		}
 	}
 
@@ -398,12 +442,15 @@ class RecruitmentActivator {
             `rank` int unsigned NOT NULL,
             score decimal(10,4) NOT NULL,
             status enum('empty','called','accepted','not_shown','hired') NOT NULL DEFAULT 'empty',
+            preview_status enum('empty','denied','granted','appeal_denied','appeal_granted') NOT NULL DEFAULT 'empty',
+            preview_reason_id bigint(20) unsigned DEFAULT NULL,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             PRIMARY KEY (id),
             UNIQUE KEY uq_candidate_adjutancy_notice_list (candidate_id, adjutancy_id, notice_id, list_type),
             KEY idx_notice_adjutancy_list_status_rank (notice_id, adjutancy_id, list_type, status, `rank`),
-            KEY idx_candidate_id (candidate_id)
+            KEY idx_candidate_id (candidate_id),
+            KEY idx_preview_reason_id (preview_reason_id)
         ) ENGINE=InnoDB {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -454,6 +501,53 @@ class RecruitmentActivator {
             updated_at datetime NOT NULL,
             PRIMARY KEY (id),
             KEY idx_classification_cancelled (classification_id, cancelled_at)
+        ) ENGINE=InnoDB {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create `ffc_recruitment_reason` table.
+	 *
+	 * Global catalog of operator-defined "reasons" — labels operators
+	 * attach to a preliminary-list classification when setting its
+	 * `preview_status`. Like adjutancies in shape but UNLIKE adjutancies
+	 * in scope: reasons are reusable across every notice without an
+	 * attach junction. The catalog stays small enough that loading the
+	 * full set in PHP is acceptable.
+	 *
+	 * `applies_to` is an empty-or-CSV list of preview_status enum values
+	 * (`denied,granted,appeal_denied,appeal_granted`). Empty string means
+	 * "applies to every preview status" (the operator left it
+	 * unconstrained); a non-empty list narrows the dropdown when the
+	 * admin picks a status.
+	 *
+	 * `color` mirrors the adjutancy `color` shape (#RGB / #RRGGBB /
+	 * #RRGGBBAA, lowercase). Renders as a small dot/swatch beside the
+	 * reason in the dropdown so operators can spot the right one fast.
+	 *
+	 * @return void
+	 */
+	private static function create_reason_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_recruitment_reason';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            slug varchar(64) NOT NULL,
+            label varchar(255) NOT NULL,
+            color varchar(9) NOT NULL DEFAULT '#e9ecef',
+            applies_to varchar(255) NOT NULL DEFAULT '',
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_slug (slug)
         ) ENGINE=InnoDB {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

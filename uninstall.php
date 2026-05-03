@@ -28,6 +28,7 @@ $ffcertificate_tables = array(
 	$wpdb->prefix . 'ffc_recruitment_candidate',
 	$wpdb->prefix . 'ffc_recruitment_notice',
 	$wpdb->prefix . 'ffc_recruitment_adjutancy',
+	$wpdb->prefix . 'ffc_recruitment_reason',
 	// Reregistration (children first).
 	$wpdb->prefix . 'ffc_reregistration_submissions',
 	$wpdb->prefix . 'ffc_reregistrations',
