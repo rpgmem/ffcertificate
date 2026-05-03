@@ -331,6 +331,16 @@ final class RecruitmentAdminPage {
 	private static function render_notices_tab(): void {
 		echo '<h2>' . esc_html__( 'Notices', 'ffcertificate' ) . '</h2>';
 
+		// First-run empty-state guidance: when no notices exist at all
+		// (regardless of search/filter state), surface a card walking
+		// the operator through the next steps. Keeps the standard list
+		// table + create form intact below; the card is just an
+		// orientation aid for fresh installs.
+		$total_notices = count( RecruitmentNoticeRepository::get_all() );
+		if ( 0 === $total_notices ) {
+			self::render_notices_empty_state();
+		}
+
 		$table = new RecruitmentNoticesListTable();
 		$table->prepare_items();
 
@@ -344,6 +354,37 @@ final class RecruitmentAdminPage {
 
 		self::render_create_notice_form();
 		self::render_rest_pointer();
+	}
+
+	/**
+	 * Render the first-run guidance card above the empty Notices list
+	 * table. Walks the operator through the linear setup path:
+	 * Adjutancies → first notice → attach → import CSV → promote → call.
+	 *
+	 * @return void
+	 */
+	private static function render_notices_empty_state(): void {
+		$adjutancies_url = add_query_arg(
+			array(
+				'page' => self::PAGE_SLUG,
+				'tab'  => 'adjutancies',
+			),
+			admin_url( 'admin.php' )
+		);
+		echo '<div class="notice notice-info inline" style="padding:16px 20px;margin:1em 0;">';
+		echo '<h3 style="margin-top:0;">' . esc_html__( 'Welcome to Recruitment', 'ffcertificate' ) . '</h3>';
+		echo '<p>' . esc_html__( 'No notices yet. The typical path to your first call is:', 'ffcertificate' ) . '</p>';
+		echo '<ol style="margin-left:20px;">';
+		echo '<li>' . sprintf(
+			/* translators: %s: link to the Adjutancies tab */
+			wp_kses_post( __( 'Define at least one <a href="%s">adjutancy</a> (subject / role) — these are reusable across notices.', 'ffcertificate' ) ),
+			esc_url( $adjutancies_url )
+		) . '</li>';
+		echo '<li>' . esc_html__( 'Create your first notice (Code + Name) using the form below this list.', 'ffcertificate' ) . '</li>';
+		echo '<li>' . esc_html__( 'Open the new notice and attach the relevant adjutancies + import the candidate CSV.', 'ffcertificate' ) . '</li>';
+		echo '<li>' . esc_html__( 'Promote the preliminary list to definitive once you\'re ready, and call candidates per row or in bulk.', 'ffcertificate' ) . '</li>';
+		echo '</ol>';
+		echo '</div>';
 	}
 
 	/**
