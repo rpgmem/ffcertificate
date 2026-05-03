@@ -1134,19 +1134,43 @@ final class RecruitmentNoticeEditPage {
 			. 'var ids=[];var boxes=document.querySelectorAll(".ffc-cls-bulk-cb:checked");'
 			. 'for(var i=0;i<boxes.length;i++){ids.push(parseInt(boxes[i].value,10));}'
 			. 'if(ids.length===0){status.textContent="' . esc_attr( $bulk_no_sel ) . '";return;}'
-			// Out-of-order detection: any selected id whose rank > the
-			// lowest-empty-rank in the same adjutancy means the bulk
-			// would skip someone. Build the reasons map upfront if so —
-			// the user supplies one shared justification that we apply
-			// to every selected id (server ignores it for in-order ids).
-			. 'var lowest=ffcRecruitmentLowestEmpty();'
+			// Out-of-order detection: per adjutancy, find the lowest-rank
+			// empty row that's NOT in this bulk selection (the
+			// "threshold"). Any selected row in that adjutancy with
+			// rank > threshold means the bulk would skip someone.
+			//
+			// Naïvely comparing against the global lowest-empty rank
+			// (the previous logic) tripped on every legitimate
+			// in-order bulk: selecting ranks 1+2+3 from empties [1,2,3]
+			// would flag rank 2 and rank 3 as OOO because rank 1 is
+			// still empty at scan time, even though rank 1 is also in
+			// the same selection and gets called atomically alongside.
+			. 'var panel=document.querySelector(\'[data-ffc-clspanel="definitive"]\');'
+			. 'var emptyByAdj={};'
+			. 'if(panel){'
+			. 'var allRows=panel.querySelectorAll("tr[data-cls-id]");'
+			. 'for(var p=0;p<allRows.length;p++){'
+			. 'var ptr=allRows[p];'
+			. 'if(ptr.getAttribute("data-cls-status")!=="empty")continue;'
+			. 'var padj=ptr.getAttribute("data-cls-adjutancy");'
+			. 'if(!emptyByAdj[padj])emptyByAdj[padj]=[];'
+			. 'emptyByAdj[padj].push({id:parseInt(ptr.getAttribute("data-cls-id"),10),rank:parseInt(ptr.getAttribute("data-cls-rank"),10)});'
+			. '}'
+			. '}'
+			. 'for(var k in emptyByAdj){emptyByAdj[k].sort(function(a,b){return a.rank-b.rank;});}'
+			. 'var selSet={};'
+			. 'for(var s=0;s<ids.length;s++){selSet[String(ids[s])]=true;}'
 			. 'var anyOoO=false;'
-			. 'for(var j=0;j<ids.length;j++){'
-			. 'var tr=document.querySelector(\'tr[data-cls-id="\'+ids[j]+\'"]\');'
-			. 'if(!tr)continue;'
-			. 'var rank=parseInt(tr.getAttribute("data-cls-rank"),10);'
-			. 'var adj=tr.getAttribute("data-cls-adjutancy");'
-			. 'if(lowest[adj]&&rank>lowest[adj]){anyOoO=true;break;}'
+			. 'for(var adjKey in emptyByAdj){'
+			. 'var threshold=Infinity;'
+			. 'var rows=emptyByAdj[adjKey];'
+			. 'for(var t=0;t<rows.length;t++){'
+			. 'if(!selSet[String(rows[t].id)]){threshold=rows[t].rank;break;}'
+			. '}'
+			. 'for(var u=0;u<rows.length;u++){'
+			. 'if(selSet[String(rows[u].id)]&&rows[u].rank>threshold){anyOoO=true;break;}'
+			. '}'
+			. 'if(anyOoO)break;'
 			. '}'
 			. 'var reasons={};'
 			. 'if(anyOoO){'
