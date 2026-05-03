@@ -515,18 +515,21 @@ final class RecruitmentPublicShortcode {
 			$is_preview = isset( $row->list_type ) && 'preview' === (string) $row->list_type;
 			if ( $is_preview ) {
 				$preview_status_value = isset( $row->preview_status ) ? (string) $row->preview_status : 'empty';
-				$badge                = self::render_preview_status_badge( $preview_status_value );
-				$reason_html          = '';
+				// Resolve the reason label only when the per-notice
+				// public-visibility toggle is on and the row carries a
+				// reference; pass it down to the badge so it renders as
+				// a hover tooltip rather than inline text below.
+				$reason_label = '';
 				if ( ! empty( $columns['preview_reason'] ) && isset( $row->preview_reason_id ) && null !== $row->preview_reason_id ) {
 					$reason_id = (int) $row->preview_reason_id;
 					if ( $reason_id > 0 ) {
 						$reason = RecruitmentReasonRepository::get_by_id( $reason_id );
 						if ( null !== $reason ) {
-							$reason_html = '<span class="ffc-recruitment-preview-reason" style="display:block;font-size:11px;color:#555;margin-top:2px;">' . esc_html( (string) $reason->label ) . '</span>';
+							$reason_label = (string) $reason->label;
 						}
 					}
 				}
-				$html .= '<td>' . $badge . $reason_html . '</td>';
+				$html .= '<td>' . self::render_preview_status_badge( $preview_status_value, $reason_label ) . '</td>';
 			} else {
 				$html .= '<td>' . self::render_status_badge( (string) $row->status ) . '</td>';
 			}
@@ -888,10 +891,17 @@ final class RecruitmentPublicShortcode {
 	 * the `preview_color_*` Settings sub-keys and labels from
 	 * {@see self::preview_status_label()}.
 	 *
-	 * @param string $status Preview status enum value.
+	 * When `$reason_label` is non-empty, the badge gets a `title=""`
+	 * hover tooltip carrying the operator-defined reason text — opted
+	 * in per-notice via `public_columns_config.preview_reason`. The
+	 * cursor changes to `help` so visitors get a hint that hover
+	 * reveals more context.
+	 *
+	 * @param string $status       Preview status enum value.
+	 * @param string $reason_label Optional reason label rendered as the badge's hover tooltip.
 	 * @return string Already-escaped HTML.
 	 */
-	private static function render_preview_status_badge( string $status ): string {
+	private static function render_preview_status_badge( string $status, string $reason_label = '' ): string {
 		$settings = RecruitmentSettings::all();
 		$colors   = array(
 			'empty'          => (string) $settings['preview_color_empty'],
@@ -902,10 +912,15 @@ final class RecruitmentPublicShortcode {
 		);
 		$bg       = $colors[ $status ] ?? '#e9ecef';
 		$label    = self::preview_status_label( $status );
+		$has_tip  = '' !== $reason_label;
+		$cursor   = $has_tip ? 'help' : 'default';
+		$title    = $has_tip ? ' title="' . esc_attr( $reason_label ) . '"' : '';
 		return sprintf(
-			'<span class="ffc-recruitment-preview-status-badge ffc-recruitment-preview-status-%s" style="background:%s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%s</span>',
+			'<span class="ffc-recruitment-preview-status-badge ffc-recruitment-preview-status-%1$s"%2$s style="background:%3$s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;cursor:%4$s;">%5$s</span>',
 			esc_attr( $status ),
+			$title,
 			esc_attr( $bg ),
+			esc_attr( $cursor ),
 			esc_html( $label )
 		);
 	}
