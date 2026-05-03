@@ -47,6 +47,48 @@ final class RecruitmentAdminPage {
 	private const CAP = 'ffc_manage_recruitment';
 
 	/**
+	 * Translate a notice-lifecycle enum value into a localized label.
+	 *
+	 * Used by every admin surface that surfaces the raw enum value
+	 * (status badges on the notices list table, the Status section of
+	 * the notice edit page, transition button labels). Keeps the raw
+	 * enum-as-CSS-class while echoing a localizer-friendly word for the
+	 * actual visible text.
+	 *
+	 * @param string $status Notice status enum (`draft`, `preliminary`, `definitive`, `closed`).
+	 * @return string Localized label; falls back to the raw value for unknown enums.
+	 */
+	public static function notice_status_label( string $status ): string {
+		$map = array(
+			'draft'       => __( 'Draft', 'ffcertificate' ),
+			'preliminary' => __( 'Preliminary', 'ffcertificate' ),
+			'definitive'  => __( 'Definitive', 'ffcertificate' ),
+			'closed'      => __( 'Closed', 'ffcertificate' ),
+		);
+		return $map[ $status ] ?? $status;
+	}
+
+	/**
+	 * Translate a classification-status enum value into a localized
+	 * label for the admin surface. Distinguishes `called` from
+	 * `accepted` (the public shortcode collapses both to "Called" for
+	 * candidates; admins need the distinction).
+	 *
+	 * @param string $status Classification status enum.
+	 * @return string Localized label; falls back to the raw value for unknown enums.
+	 */
+	public static function classification_status_label( string $status ): string {
+		$map = array(
+			'empty'     => __( 'Waiting', 'ffcertificate' ),
+			'called'    => __( 'Called', 'ffcertificate' ),
+			'accepted'  => __( 'Accepted', 'ffcertificate' ),
+			'not_shown' => __( 'Did not show up', 'ffcertificate' ),
+			'hired'     => __( 'Hired', 'ffcertificate' ),
+		);
+		return $map[ $status ] ?? $status;
+	}
+
+	/**
 	 * Hook callback for `admin_menu` (priority 10).
 	 *
 	 * Registered as a top-level menu (icon + sidebar entry) at position 28,

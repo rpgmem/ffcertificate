@@ -326,7 +326,7 @@ final class RecruitmentNoticeEditPage {
 		echo '<div class="inside">';
 
 		echo '<p><strong>' . esc_html__( 'Current state:', 'ffcertificate' ) . '</strong> ';
-		echo '<span class="ffc-status-badge ffc-status-' . esc_attr( $current ) . '">' . esc_html( $current ) . '</span>';
+		echo '<span class="ffc-status-badge ffc-status-' . esc_attr( $current ) . '">' . esc_html( RecruitmentAdminPage::notice_status_label( $current ) ) . '</span>';
 		if ( '1' === (string) $notice->was_reopened ) {
 			echo ' <em>(' . esc_html__( 'previously reopened — hired/not_shown classifications are frozen', 'ffcertificate' ) . ')</em>';
 		}
@@ -871,7 +871,7 @@ final class RecruitmentNoticeEditPage {
 			echo '<td>' . esc_html( $candidate_name ) . '</td>';
 			echo '<td><code>' . esc_html( $adjutancy_slug ) . '</code></td>';
 			echo '<td>' . esc_html( (string) $row->score ) . '</td>';
-			echo '<td><span class="ffc-status-badge ffc-status-' . esc_attr( (string) $row->status ) . '">' . esc_html( (string) $row->status ) . '</span></td>';
+			echo '<td><span class="ffc-status-badge ffc-status-' . esc_attr( (string) $row->status ) . '">' . esc_html( RecruitmentAdminPage::classification_status_label( (string) $row->status ) ) . '</span></td>';
 			if ( $with_actions ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_classification_actions returns escaped HTML.
 				echo '<td>' . self::render_classification_actions( (int) $row->id, (string) $row->status ) . '</td>';
