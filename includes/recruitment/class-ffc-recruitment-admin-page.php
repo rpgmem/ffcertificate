@@ -120,6 +120,7 @@ final class RecruitmentAdminPage {
 		$tabs = array(
 			'notices'     => __( 'Notices', 'ffcertificate' ),
 			'adjutancies' => __( 'Adjutancies', 'ffcertificate' ),
+			'reasons'     => __( 'Reasons', 'ffcertificate' ),
 			'candidates'  => __( 'Candidates', 'ffcertificate' ),
 			'settings'    => __( 'Settings', 'ffcertificate' ),
 		);
@@ -178,7 +179,7 @@ final class RecruitmentAdminPage {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab switching is read-only.
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['tab'] ) ) : 'notices';
-		if ( ! in_array( $tab, array( 'notices', 'adjutancies', 'candidates', 'settings' ), true ) ) {
+		if ( ! in_array( $tab, array( 'notices', 'adjutancies', 'reasons', 'candidates', 'settings' ), true ) ) {
 			$tab = 'notices';
 		}
 
@@ -189,6 +190,9 @@ final class RecruitmentAdminPage {
 		switch ( $tab ) {
 			case 'adjutancies':
 				self::render_adjutancies_tab();
+				break;
+			case 'reasons':
+				self::render_reasons_tab();
 				break;
 			case 'candidates':
 				self::render_candidates_tab();
@@ -214,6 +218,7 @@ final class RecruitmentAdminPage {
 		$tabs = array(
 			'notices'     => __( 'Notices', 'ffcertificate' ),
 			'adjutancies' => __( 'Adjutancies', 'ffcertificate' ),
+			'reasons'     => __( 'Reasons', 'ffcertificate' ),
 			'candidates'  => __( 'Candidates', 'ffcertificate' ),
 			'settings'    => __( 'Settings', 'ffcertificate' ),
 		);
@@ -353,6 +358,31 @@ final class RecruitmentAdminPage {
 				);
 				exit;
 
+			case 'delete-reason':
+				$id = isset( $_GET['reason_id'] ) ? absint( wp_unslash( (string) $_GET['reason_id'] ) ) : 0;
+				if ( $id > 0 ) {
+					check_admin_referer( 'ffc_recruitment_delete_reason_' . $id );
+					// Reasons are referentially gated like adjutancies: a
+					// reason that's still linked to any classification's
+					// preview_reason_id can't be removed without orphaning
+					// the audit trail. Silently no-op on a blocked delete;
+					// the list table's deletion gate already explains the
+					// rule via the row-action confirm copy.
+					if ( 0 === RecruitmentReasonRepository::count_references( $id ) ) {
+						RecruitmentReasonRepository::delete( $id );
+					}
+				}
+				wp_safe_redirect(
+					add_query_arg(
+						array(
+							'page' => self::PAGE_SLUG,
+							'tab'  => 'reasons',
+						),
+						admin_url( 'admin.php' )
+					)
+				);
+				exit;
+
 			case 'delete-candidate':
 				$id = isset( $_GET['candidate_id'] ) ? absint( wp_unslash( (string) $_GET['candidate_id'] ) ) : 0;
 				if ( $id > 0 ) {
@@ -394,6 +424,127 @@ final class RecruitmentAdminPage {
 
 		self::render_create_adjutancy_form();
 		self::render_adjutancy_color_picker_script();
+	}
+
+	/**
+	 * Reasons tab — global catalog of operator-defined labels attached
+	 * to a preliminary-list classification's preview_status.
+	 *
+	 * Reasons are reusable across every notice (no attach junction):
+	 * the catalog is global. Deletion is gated on zero references in
+	 * `classification.preview_reason_id`.
+	 *
+	 * @return void
+	 */
+	private static function render_reasons_tab(): void {
+		echo '<h2>' . esc_html__( 'Reasons', 'ffcertificate' ) . '</h2>';
+		echo '<p class="description">' . esc_html__( 'Global catalog of operator-defined labels attached to a preliminary-list candidate when setting their preliminary status. Reusable across every notice (no need to attach per-edital).', 'ffcertificate' ) . '</p>';
+
+		$table = new RecruitmentReasonsListTable();
+		$table->prepare_items();
+
+		echo '<form method="get">';
+		echo '<input type="hidden" name="page" value="' . esc_attr( self::PAGE_SLUG ) . '">';
+		echo '<input type="hidden" name="tab" value="reasons">';
+		$table->search_box( __( 'Search reasons', 'ffcertificate' ), 'ffc-recruitment-reasons' );
+		$table->display();
+		echo '</form>';
+
+		self::render_create_reason_form();
+		self::render_reason_color_picker_script();
+	}
+
+	/**
+	 * Render the create-reason form. Mirrors the create-adjutancy form
+	 * but adds the four "applies to which preview status" checkboxes.
+	 *
+	 * @return void
+	 */
+	private static function render_create_reason_form(): void {
+		$nonce         = wp_create_nonce( 'wp_rest' );
+		$default_color = RecruitmentReasonRepository::DEFAULT_COLOR;
+
+		echo '<h3>' . esc_html__( 'Create new reason', 'ffcertificate' ) . '</h3>';
+		echo '<form id="ffc-create-reason" method="post" onsubmit="return ffcRecruitmentCreateReason(this);">';
+		echo '<table class="form-table"><tbody>';
+		echo '<tr><th><label for="ffc-reason-slug">' . esc_html__( 'Slug', 'ffcertificate' ) . '</label></th>';
+		echo '<td><input id="ffc-reason-slug" name="slug" type="text" class="regular-text" required></td></tr>';
+		echo '<tr><th><label for="ffc-reason-label">' . esc_html__( 'Label', 'ffcertificate' ) . '</label></th>';
+		echo '<td><input id="ffc-reason-label" name="label" type="text" class="regular-text" required></td></tr>';
+		echo '<tr><th><label for="ffc-reason-color">' . esc_html__( 'Badge color', 'ffcertificate' ) . '</label></th>';
+		echo '<td><input id="ffc-reason-color" name="color" type="color" value="' . esc_attr( $default_color ) . '">';
+		echo '<p class="description">' . esc_html__( 'Background color for the reason badge when surfaced. Accepts #RGB / #RRGGBB / #RRGGBBAA.', 'ffcertificate' ) . '</p>';
+		echo '</td></tr>';
+
+		$applies_options = array(
+			'denied'         => __( 'Denied', 'ffcertificate' ),
+			'granted'        => __( 'Granted', 'ffcertificate' ),
+			'appeal_denied'  => __( 'Appeal denied', 'ffcertificate' ),
+			'appeal_granted' => __( 'Appeal granted', 'ffcertificate' ),
+		);
+		echo '<tr><th>' . esc_html__( 'Applies to', 'ffcertificate' ) . '</th><td>';
+		echo '<div style="display:flex;flex-wrap:wrap;gap:6px 16px;">';
+		foreach ( $applies_options as $key => $label ) {
+			$id_attr = 'ffc-reason-applies-' . $key;
+			echo '<label for="' . esc_attr( $id_attr ) . '" style="display:flex;align-items:center;gap:6px;">';
+			echo '<input id="' . esc_attr( $id_attr ) . '" type="checkbox" name="applies_to[]" value="' . esc_attr( $key ) . '">';
+			echo esc_html( $label );
+			echo '</label>';
+		}
+		echo '</div>';
+		echo '<p class="description">' . esc_html__( 'Leave all unchecked to make this reason applicable to every preliminary status.', 'ffcertificate' ) . '</p>';
+		echo '</td></tr>';
+
+		echo '</tbody></table>';
+		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Create', 'ffcertificate' ) . '</button></p>';
+		echo '</form>';
+
+		echo '<script>'
+			. 'function ffcRecruitmentCreateReason(form){'
+			. 'var fd=new FormData(form);'
+			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/reasons' ) ) . '",{'
+			. 'method:"POST",'
+			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
+			. 'body:fd'
+			. '}).then(function(r){return r.json();}).then(function(d){'
+			. 'if(d&&d.id){location.reload();}else{alert(JSON.stringify(d));}'
+			. '});return false;}'
+			. '</script>';
+	}
+
+	/**
+	 * Inline JS for the reasons list-table color pickers (mirror of
+	 * {@see self::render_adjutancy_color_picker_script()}). PATCHes via
+	 * the REST endpoint on `change`.
+	 *
+	 * @return void
+	 */
+	private static function render_reason_color_picker_script(): void {
+		$nonce    = wp_create_nonce( 'wp_rest' );
+		$base_url = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/reasons/' ) );
+
+		echo '<script>'
+			. '(function(){'
+			. 'document.querySelectorAll(".ffc-reason-color-picker").forEach(function(input){'
+			. 'input.addEventListener("change",function(){'
+			. 'var id=parseInt(input.getAttribute("data-ffc-reason-id"),10);'
+			. 'if(!id){return;}'
+			. 'var fd=new FormData();fd.append("color",input.value);'
+			. 'fetch(' . wp_json_encode( $base_url ) . '+id,{'
+			. 'method:"POST",'
+			. 'headers:{"X-WP-Nonce":' . wp_json_encode( $nonce ) . ',"X-HTTP-Method-Override":"PATCH"},'
+			. 'body:fd'
+			. '}).then(function(r){return r.json();}).then(function(d){'
+			. 'if(d&&d.color){'
+			. 'input.value=d.color;'
+			. 'var hex=input.parentNode.querySelector(".ffc-reason-color-hex");'
+			. 'if(hex){hex.textContent=d.color;}'
+			. '}else{alert(JSON.stringify(d));}'
+			. '});'
+			. '});'
+			. '});'
+			. '})();'
+			. '</script>';
 	}
 
 	/**
