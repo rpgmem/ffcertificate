@@ -884,7 +884,8 @@ final class RecruitmentNoticeEditPage {
 			}
 			echo '<td>' . esc_html( (string) $row->rank ) . '</td>';
 			echo '<td>' . esc_html( $candidate_name ) . '</td>';
-			echo '<td><code>' . esc_html( $adjutancy_slug ) . '</code></td>';
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+			echo '<td>' . RecruitmentAdminPage::adjutancy_badge( RecruitmentAdjutancyRepository::get_by_id( (int) $row->adjutancy_id ) ) . '</td>';
 			echo '<td>' . esc_html( (string) $row->score ) . '</td>';
 			if ( $is_preview_tab ) {
 				$current_preview = isset( $row->preview_status ) ? (string) $row->preview_status : 'empty';
@@ -894,7 +895,8 @@ final class RecruitmentNoticeEditPage {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 				echo '<td>' . self::render_preview_reason_select( (int) $row->id, $current_preview, $current_reason, $reasons ) . '</td>';
 			} else {
-				echo '<td><span class="ffc-status-badge ffc-status-' . esc_attr( (string) $row->status ) . '">' . esc_html( RecruitmentAdminPage::classification_status_label( (string) $row->status ) ) . '</span></td>';
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+			echo '<td>' . RecruitmentAdminPage::classification_status_badge( (string) $row->status ) . '</td>';
 			}
 			if ( $with_actions ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_classification_actions returns escaped HTML.
