@@ -497,7 +497,8 @@ final class RecruitmentNoticeEditPage {
 			// path, which already gathers a reason explicitly via the
 			// reason input rendered below.
 			$skip_attr = 'closed' === $current ? ' data-ffc-skip-transition-confirm="1"' : '';
-			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;"' . $skip_attr . ' onsubmit="return ffcRecruitmentConfirmTransition(this);">';
+			// $skip_attr is an internal literal (one of two compile-time strings); no user input flows through it.
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;"' . $skip_attr . ' onsubmit="return ffcRecruitmentConfirmTransition(this);">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $skip_attr is a literal HTML attribute string with no user-controlled content.
 			echo '<input type="hidden" name="action" value="ffc_recruitment_transition_notice">';
 			echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice->id ) . '">';
 			wp_nonce_field( $nonce_action );
@@ -524,11 +525,11 @@ final class RecruitmentNoticeEditPage {
 			// committing:
 			//
 			// - draft → preliminary: publishes the candidate list to the
-			//   public shortcode (visible to candidates).
+			// public shortcode (visible to candidates).
 			// - preliminary → definitive: locks the list as final; the
-			//   public shortcode flips to "Final classification."
+			// public shortcode flips to "Final classification."
 			// - definitive → closed: freezes calls history; reopen
-			//   later requires a reason and locks hired/not_shown.
+			// later requires a reason and locks hired/not_shown.
 			//
 			// The closed → definitive (reopen) path goes through its
 			// own form with a Reopen reason input, so this generic

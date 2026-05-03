@@ -139,17 +139,17 @@ class RecruitmentCandidateRepository {
 		$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
 		$sql          = "SELECT * FROM %i WHERE id IN ({$placeholders})";
 
+		/**
+		 * Cast wpdb's mixed return into the typed shape.
+		 *
+		 * @var list<CandidateRow>|null $rows
+		 */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Placeholders are %i + N×%d, all generated literals; $ids items are intval-coerced above.
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, array_merge( array( $table ), $ids ) ) );
 		if ( ! is_array( $rows ) ) {
 			return array();
 		}
 
-		/**
-		 * Cast wpdb's mixed return into the typed shape.
-		 *
-		 * @var array<int, CandidateRow> $out
-		 */
 		$out = array();
 		foreach ( $rows as $row ) {
 			$row_id = (int) ( $row->id ?? 0 );
@@ -157,7 +157,6 @@ class RecruitmentCandidateRepository {
 				continue;
 			}
 			static::cache_set( "id_{$row_id}", $row );
-			/** @var CandidateRow $row */
 			$out[ $row_id ] = $row;
 		}
 		return $out;
