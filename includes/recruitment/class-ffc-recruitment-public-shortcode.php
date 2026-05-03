@@ -442,6 +442,15 @@ final class RecruitmentPublicShortcode {
 		}
 		$html .= '</tr></thead><tbody>';
 
+		// Warm the candidate object cache with a single batch SELECT
+		// before the per-row loop. render_row() still calls get_by_id()
+		// for the cells that need a name / decrypted field, but those
+		// calls now hit the in-memory cache instead of issuing N
+		// individual SELECTs. Drops cold-cache render time on large
+		// notices from O(N) round-trips to O(1).
+		$candidate_ids = array_map( static fn( $r ) => (int) $r->candidate_id, $page_rows );
+		RecruitmentCandidateRepository::get_by_ids( $candidate_ids );
+
 		foreach ( $page_rows as $row ) {
 			$candidate = RecruitmentCandidateRepository::get_by_id( (int) $row->candidate_id );
 			if ( null === $candidate ) {
