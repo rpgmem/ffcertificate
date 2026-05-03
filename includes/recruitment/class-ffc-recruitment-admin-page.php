@@ -171,8 +171,8 @@ final class RecruitmentAdminPage {
 	/**
 	 * Hook callback for `admin_menu` (priority 10).
 	 *
-	 * Registered as a top-level menu (icon + sidebar entry) at position 28,
-	 * mirroring the Audience (26) and Reregistration (27) modules so the
+	 * Registered as a top-level menu (icon + sidebar entry) at position
+	 * 26.3, alongside Scheduling (26.1) and Reregistration (26.2) so the
 	 * three sibling business modules sit together in the wp-admin sidebar.
 	 *
 	 * @return void
@@ -185,7 +185,11 @@ final class RecruitmentAdminPage {
 			self::PAGE_SLUG,
 			array( self::class, 'render_page' ),
 			'dashicons-groups',
-			28
+			// Float keeps the FFC block (Scheduling 26.1, Reregistration
+			// 26.2, Recruitment 26.3) contiguous in the wp-admin sidebar:
+			// other plugins picking integer 26 / 27 / 28 can no longer
+			// interleave between our items.
+			26.3
 		);
 
 		// WP auto-creates a duplicate "Recruitment" first submenu when
