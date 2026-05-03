@@ -1460,15 +1460,41 @@ final class RecruitmentNoticeEditPage {
 	private static function render_preview_status_script(): void {
 		$nonce    = wp_create_nonce( 'wp_rest' );
 		$base_url = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
+		$settings = RecruitmentSettings::all();
+		// Per-status reason-required flags surfaced to the JS so the
+		// dropdown UX can preflight the requirement client-side
+		// instead of round-tripping the rejection from the server.
+		$required_map = array(
+			'denied'         => ! empty( $settings['preview_reason_required_denied'] ),
+			'granted'        => ! empty( $settings['preview_reason_required_granted'] ),
+			'appeal_denied'  => ! empty( $settings['preview_reason_required_appeal_denied'] ),
+			'appeal_granted' => ! empty( $settings['preview_reason_required_appeal_granted'] ),
+		);
 
 		echo '<script>'
 			. '(function(){'
+			. 'var ffcReasonRequired=' . wp_json_encode( $required_map ) . ';'
+			. 'function ffcRecruitmentPreviewMarkRequired(reasonSel,required){'
+			. 'reasonSel.style.outline=required?"2px solid #d63638":"";'
+			. 'reasonSel.style.outlineOffset=required?"2px":"";'
+			. 'reasonSel.setAttribute("aria-required",required?"true":"false");'
+			. '}'
 			. 'function ffcRecruitmentPreviewSync(row){'
 			. 'var id=row.getAttribute("data-cls-id");'
 			. 'var statusSel=row.querySelector(".ffc-cls-preview-status");'
 			. 'var reasonSel=row.querySelector(".ffc-cls-preview-reason");'
 			. 'var status=statusSel.value;'
 			. 'var reasonId=parseInt(reasonSel.value,10)||0;'
+			// Preflight: if the chosen status requires a reason and the
+			// dropdown is at "— none —", flag the dropdown red and skip
+			// the PATCH. The server-side check still runs as a backstop;
+			// this just spares the round-trip + alert() for the common
+			// case where the operator just hasn\'t picked yet.
+			. 'if(ffcReasonRequired[status]===true&&reasonId<=0){'
+			. 'ffcRecruitmentPreviewMarkRequired(reasonSel,true);'
+			. 'return;'
+			. '}'
+			. 'ffcRecruitmentPreviewMarkRequired(reasonSel,false);'
 			. 'var fd=new FormData();fd.append("preview_status",status);'
 			. 'if(reasonId>0){fd.append("preview_reason_id",String(reasonId));}'
 			. 'fetch(' . wp_json_encode( $base_url ) . '+id+"/preview-status",{'
@@ -1493,7 +1519,7 @@ final class RecruitmentNoticeEditPage {
 			. 'var allowed=applies.length===0||applies[0]===""||applies.indexOf(status)!==-1;'
 			. 'opt.style.display=allowed?"":"none";'
 			. '});'
-			. 'if(status==="empty"){reasonSel.value="0";reasonSel.disabled=true;}'
+			. 'if(status==="empty"){reasonSel.value="0";reasonSel.disabled=true;ffcRecruitmentPreviewMarkRequired(reasonSel,false);}'
 			. 'else{reasonSel.disabled=false;'
 			// If the previously-selected reason is no longer allowed for
 			// the new status, reset to "none" so the server doesn't reject
