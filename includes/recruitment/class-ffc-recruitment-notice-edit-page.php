@@ -62,6 +62,53 @@ final class RecruitmentNoticeEditPage {
 	public static function register(): void {
 		add_action( 'admin_post_ffc_recruitment_save_notice', array( self::class, 'handle_save' ), 10 );
 		add_action( 'admin_post_ffc_recruitment_transition_notice', array( self::class, 'handle_transition' ), 10 );
+		add_action( 'admin_post_ffc_recruitment_download_csv_example', array( self::class, 'handle_download_csv_example' ), 10 );
+	}
+
+	/**
+	 * Stream a small example CSV that matches the importer's header
+	 * shape (REQUIRED + OPTIONAL_HEADERS in
+	 * {@see RecruitmentCsvImporter}). Two rows, semicolon delimiter to
+	 * survive the BR/EU spreadsheet round-trip — the importer auto-
+	 * detects either delimiter on read.
+	 *
+	 * Cap-gated; nonce-gated. Sends a Content-Disposition: attachment
+	 * header so browsers offer a download instead of inline-rendering.
+	 *
+	 * @return void
+	 */
+	public static function handle_download_csv_example(): void {
+		if ( ! current_user_can( self::CAP ) ) {
+			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
+		}
+		check_admin_referer( 'ffc_recruitment_download_csv_example' );
+
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=UTF-8' );
+		header( 'Content-Disposition: attachment; filename="ffc-recruitment-example.csv"' );
+
+		// Header line + two example rows. The first candidate is PCD,
+		// the second is not, so operators see both shapes. Adjutancy
+		// slugs match the catalog convention from the Adjutancies tab;
+		// operators must replace them with slugs that exist on the
+		// target notice before importing.
+		$rows = array(
+			array( 'name', 'cpf', 'rf', 'email', 'phone', 'adjutancy', 'rank', 'score', 'pcd' ),
+			array( 'Maria da Silva', '12345678909', '111111', 'maria@example.com', '11999990000', 'portugues', '1', '85.50', '1' ),
+			array( 'João Souza', '98765432100', '222222', 'joao@example.com', '11988887777', 'matematica', '2', '78.25', '0' ),
+		);
+
+		$out = fopen( 'php://output', 'w' );
+		if ( false === $out ) {
+			exit;
+		}
+		// UTF-8 BOM so Excel opens the file in the right encoding by default.
+		echo "\xEF\xBB\xBF"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- raw byte stream, no HTML context.
+		foreach ( $rows as $row ) {
+			fputcsv( $out, $row, ';' );
+		}
+		fclose( $out );
+		exit;
 	}
 
 	/**
@@ -136,6 +183,16 @@ final class RecruitmentNoticeEditPage {
 		}
 
 		echo '<p>' . esc_html__( 'UTF-8 CSV (BOM optional). Headers (English): name, cpf, rf, email, phone, adjutancy, rank, score, pcd. At least one of cpf/rf required per row. Comma or semicolon delimiter is auto-detected.', 'ffcertificate' ) . '</p>';
+
+		$example_url = wp_nonce_url(
+			add_query_arg(
+				array( 'action' => 'ffc_recruitment_download_csv_example' ),
+				admin_url( 'admin-post.php' )
+			),
+			'ffc_recruitment_download_csv_example'
+		);
+		echo '<p><a class="button" href="' . esc_url( $example_url ) . '">&darr; ' . esc_html__( 'Download example CSV', 'ffcertificate' ) . '</a> ';
+		echo '<span class="description" style="margin-left:.5em;">' . esc_html__( 'Two-row sample with every column populated. Use it as a starting point for your own file.', 'ffcertificate' ) . '</span></p>';
 
 		echo '<form id="ffc-recruitment-edit-import" method="post" enctype="multipart/form-data" onsubmit="return ffcRecruitmentImportFromEdit(this);">';
 		echo '<table class="form-table"><tbody>';
@@ -927,7 +984,7 @@ final class RecruitmentNoticeEditPage {
 				echo '<td>' . self::render_preview_reason_select( (int) $row->id, $current_preview, $current_reason, $reasons ) . '</td>';
 			} else {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
-			echo '<td>' . RecruitmentAdminPage::classification_status_badge( (string) $row->status ) . '</td>';
+				echo '<td>' . RecruitmentAdminPage::classification_status_badge( (string) $row->status ) . '</td>';
 			}
 			if ( $with_actions ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_classification_actions returns escaped HTML.
