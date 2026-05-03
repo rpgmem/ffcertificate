@@ -149,13 +149,17 @@ final class RecruitmentPublicShortcode {
 		$name_query = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['q'] ) ) : '';
 		$name_query = trim( $name_query );
 
-		$cache_key = self::cache_key( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only subscription filter.
+		$subscription_raw = isset( $_GET['subscription'] ) ? sanitize_key( wp_unslash( (string) $_GET['subscription'] ) ) : '';
+		$subscription     = in_array( $subscription_raw, array( 'pcd', 'geral' ), true ) ? $subscription_raw : '';
+
+		$cache_key = self::cache_key( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query, $subscription );
 		$cached    = get_transient( $cache_key );
 		if ( is_string( $cached ) ) {
 			return $cached;
 		}
 
-		$html = self::wrap_output( self::render_uncached( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query ) );
+		$html = self::wrap_output( self::render_uncached( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query, $subscription ) );
 
 		$settings = RecruitmentSettings::all();
 		$ttl      = (int) $settings['public_cache_seconds'];
@@ -212,9 +216,12 @@ final class RecruitmentPublicShortcode {
 	 *                              cannot be re-routed by URL tampering.
 	 * @param string $name_query    Case-insensitive name substring filter (`?q=`);
 	 *                              empty means "no name filter".
+	 * @param string $subscription  Subscription-type filter (`?subscription=`).
+	 *                              Values: '' / 'pcd' / 'geral'. Empty means
+	 *                              "no subscription filter".
 	 * @return string
 	 */
-	public static function render_uncached( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '' ): string {
+	public static function render_uncached( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '', string $subscription = '' ): string {
 		$notice = RecruitmentNoticeRepository::get_by_code( $notice_code );
 		if ( null === $notice ) {
 			return self::msg( __( 'Notice not found.', 'ffcertificate' ), 'error' );
@@ -258,36 +265,55 @@ final class RecruitmentPublicShortcode {
 			);
 		}
 
-		// Apply the public name filter (`?q=`) before splitting into
-		// waiting / called sections so pagination counts in each section
-		// reflect only the matching subset. Filtering is case-insensitive
-		// substring match against `candidate.name`; per-row lookups go
-		// through the repository's object-cache so repeating the lookup in
-		// render_row() later is a cache hit rather than a second SELECT.
-		if ( '' !== $name_query ) {
-			$needle = function_exists( 'mb_strtolower' )
-				? mb_strtolower( $name_query, 'UTF-8' )
-				: strtolower( $name_query );
+		// Apply the public name filter (`?q=`) and the subscription
+		// filter (`?subscription=`) before splitting into waiting /
+		// called sections so pagination counts reflect only the matching
+		// subset. Per-row lookups go through the repository's object
+		// cache so repeating the candidate fetch in render_row() later
+		// is a cache hit rather than a second SELECT. The two filters
+		// share a single pass when either is active.
+		$has_q   = '' !== $name_query;
+		$has_sub = 'pcd' === $subscription || 'geral' === $subscription;
+		if ( $has_q || $has_sub ) {
+			$needle = $has_q
+				? ( function_exists( 'mb_strtolower' ) ? mb_strtolower( $name_query, 'UTF-8' ) : strtolower( $name_query ) )
+				: '';
 			$rows   = array_values(
 				array_filter(
 					$rows,
-					static function ( $row ) use ( $needle ): bool {
+					static function ( $row ) use ( $needle, $has_q, $has_sub, $subscription ): bool {
 						$candidate = RecruitmentCandidateRepository::get_by_id( (int) $row->candidate_id );
 						if ( null === $candidate ) {
 							return false;
 						}
-						$name = (string) ( $candidate->name ?? '' );
-						$hay  = function_exists( 'mb_strtolower' )
-							? mb_strtolower( $name, 'UTF-8' )
-							: strtolower( $name );
-						return false !== strpos( $hay, $needle );
+						if ( $has_q ) {
+							$name = (string) ( $candidate->name ?? '' );
+							$hay  = function_exists( 'mb_strtolower' )
+								? mb_strtolower( $name, 'UTF-8' )
+								: strtolower( $name );
+							if ( false === strpos( $hay, $needle ) ) {
+								return false;
+							}
+						}
+						if ( $has_sub ) {
+							// Defensive normalization: a row whose
+							// pcd_hash doesn't decode against either
+							// domain falls into GERAL — same as the
+							// badge rendering path.
+							$is_pcd       = true === RecruitmentPcdHasher::verify( (string) ( $candidate->pcd_hash ?? '' ), (int) $candidate->id );
+							$row_sub_type = $is_pcd ? 'pcd' : 'geral';
+							if ( $row_sub_type !== $subscription ) {
+								return false;
+							}
+						}
+						return true;
 					}
 				)
 			);
 		}
 
 		if ( empty( $rows ) ) {
-			$body = self::render_filters_bar( $notice, $filter_locked, $name_query )
+			$body = self::render_filters_bar( $notice, $filter_locked, $name_query, $subscription )
 				. self::msg( __( 'No matches for the current search.', 'ffcertificate' ), 'info' );
 			return self::wrap_with_banner( $notice, $body );
 		}
@@ -314,7 +340,7 @@ final class RecruitmentPublicShortcode {
 		$settings  = RecruitmentSettings::all();
 		$page_size = (int) $settings['public_default_page_size'];
 
-		$filters_bar = self::render_filters_bar( $notice, $filter_locked, $name_query );
+		$filters_bar = self::render_filters_bar( $notice, $filter_locked, $name_query, $subscription );
 
 		$top_section    = self::render_section(
 			__( 'Waiting called', 'ffcertificate' ),
@@ -547,23 +573,25 @@ final class RecruitmentPublicShortcode {
 	 * @phpstan-param NoticeRow $notice
 	 * @param bool   $filter_locked Whether the shortcode pinned the adjutancy.
 	 * @param string $name_query    Current `?q=` value (echoed back into the input).
+	 * @param string $subscription  Current `?subscription=` value (echoed back).
 	 * @return string
 	 */
-	private static function render_filters_bar( object $notice, bool $filter_locked, string $name_query ): string {
-		$adjutancy_html = $filter_locked ? '' : self::render_adjutancy_filter_inputs( (int) $notice->id );
-		$search_html    = self::render_name_search_input( $name_query );
+	private static function render_filters_bar( object $notice, bool $filter_locked, string $name_query, string $subscription = '' ): string {
+		$adjutancy_html    = $filter_locked ? '' : self::render_adjutancy_filter_inputs( (int) $notice->id );
+		$search_html       = self::render_name_search_input( $name_query );
+		$subscription_html = self::render_subscription_filter_inputs( $subscription );
 
-		if ( '' === $adjutancy_html && '' === $search_html ) {
+		if ( '' === $adjutancy_html && '' === $search_html && '' === $subscription_html ) {
 			return '';
 		}
 
-		// Re-emit every other GET param so submitting either control
+		// Re-emit every other GET param so submitting any control
 		// doesn't strip notice/page state.
 		$preserved = '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only re-emission of caller's params.
 		foreach ( (array) $_GET as $key => $value ) {
 			$key_str = (string) $key;
-			if ( in_array( $key_str, array( 'adjutancy', 'q' ), true ) ) {
+			if ( in_array( $key_str, array( 'adjutancy', 'q', 'subscription' ), true ) ) {
 				continue;
 			}
 			$preserved .= '<input type="hidden" name="' . esc_attr( $key_str ) . '" value="' . esc_attr( wp_unslash( (string) $value ) ) . '">';
@@ -572,8 +600,28 @@ final class RecruitmentPublicShortcode {
 		return '<form class="ffc-recruitment-filters" method="get">'
 			. $preserved
 			. $adjutancy_html
+			. $subscription_html
 			. $search_html
 			. '</form>';
+	}
+
+	/**
+	 * Render the subscription-type <select> for the public filter bar.
+	 * Three options: All / PCD / GERAL. Auto-submits on change so the
+	 * UX matches the adjutancy dropdown.
+	 *
+	 * @param string $subscription Current `?subscription=` value.
+	 * @return string
+	 */
+	private static function render_subscription_filter_inputs( string $subscription ): string {
+		$html  = '<label class="ffc-recruitment-subscription-filter">';
+		$html .= esc_html__( 'Subscription:', 'ffcertificate' ) . ' ';
+		$html .= '<select name="subscription" onchange="this.form.submit()">';
+		$html .= '<option value=""' . selected( '', $subscription, false ) . '>' . esc_html__( 'All', 'ffcertificate' ) . '</option>';
+		$html .= '<option value="pcd"' . selected( 'pcd', $subscription, false ) . '>' . esc_html__( 'PCD', 'ffcertificate' ) . '</option>';
+		$html .= '<option value="geral"' . selected( 'geral', $subscription, false ) . '>' . esc_html__( 'GERAL', 'ffcertificate' ) . '</option>';
+		$html .= '</select></label>';
+		return $html;
 	}
 
 	/**
@@ -966,12 +1014,13 @@ final class RecruitmentPublicShortcode {
 	 * @param bool   $filter_locked Whether the shortcode pinned the adjutancy
 	 *                              via attribute (filter UI is suppressed).
 	 * @param string $name_query    Lowercased name-search filter ('' when none).
+	 * @param string $subscription  Subscription-type filter ('' / 'pcd' / 'geral').
 	 * @return string Transient key (under WP's 172-char limit).
 	 */
-	private static function cache_key( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '' ): string {
+	private static function cache_key( string $notice_code, string $slug_filter, int $page_top, int $page_bottom, bool $filter_locked = false, string $name_query = '', string $subscription = '' ): string {
 		$version = (int) get_option( self::CACHE_VERSION_OPTION, 0 );
 		return self::CACHE_PREFIX . md5(
-			strtoupper( $notice_code ) . '|' . $slug_filter . '|' . $page_top . '|' . $page_bottom . '|' . ( $filter_locked ? '1' : '0' ) . '|' . strtolower( $name_query ) . '|v' . $version
+			strtoupper( $notice_code ) . '|' . $slug_filter . '|' . $page_top . '|' . $page_bottom . '|' . ( $filter_locked ? '1' : '0' ) . '|' . strtolower( $name_query ) . '|s:' . $subscription . '|v' . $version
 		);
 	}
 
