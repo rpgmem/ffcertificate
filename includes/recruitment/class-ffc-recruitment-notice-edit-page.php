@@ -98,6 +98,7 @@ final class RecruitmentNoticeEditPage {
 			array( 'João Souza', '98765432100', '222222', 'joao@example.com', '11988887777', 'matematica', '2', '78.25', '0' ),
 		);
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV to php://output; WP_Filesystem has no streaming equivalent. Same convention as RecruitmentCsvImporter / ReregistrationCsvExporter.
 		$out = fopen( 'php://output', 'w' );
 		if ( false === $out ) {
 			exit;
@@ -105,8 +106,10 @@ final class RecruitmentNoticeEditPage {
 		// UTF-8 BOM so Excel opens the file in the right encoding by default.
 		echo "\xEF\xBB\xBF"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- raw byte stream, no HTML context.
 		foreach ( $rows as $row ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv -- streaming to php://output handle.
 			fputcsv( $out, $row, ';' );
 		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing handle from fopen() above.
 		fclose( $out );
 		exit;
 	}
