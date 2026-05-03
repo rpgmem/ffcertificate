@@ -1172,8 +1172,23 @@ final class RecruitmentNoticeEditPage {
 		echo '<button type="button" class="button button-primary" onclick="ffcRecruitmentBulkCall();">' . esc_html__( 'Call selected', 'ffcertificate' ) . '</button>';
 		echo '<span id="ffc-bulk-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
 		// §6 — bulk call is atomic; any single race-loss rolls back the entire batch.
-		echo '<p class="description" style="margin:6px 0 0;">' . esc_html__( 'Select rows in waiting status to bulk-call them with the same date and time. The operation is atomic — any single conflict rolls back the entire batch.', 'ffcertificate' ) . '</p>';
+		echo '<p class="description" style="margin:6px 0 0;">' . esc_html__( 'Select rows in waiting status to bulk-call them with the same date and time. The operation is atomic — any single conflict rolls back the entire batch. Date and time are remembered from the previous successful call.', 'ffcertificate' ) . '</p>';
 		echo '</div>';
+
+		// Pre-fill the date / time inputs from localStorage so a follow-
+		// up bulk-call doesn't make the operator retype the same values
+		// the next time they open this notice. The values are written
+		// from ffcRecruitmentBulkCall() on a successful submit.
+		echo '<script>'
+			. '(function(){'
+			. 'try{'
+			. 'var d=localStorage.getItem("ffcRecruitmentLastBulkDate");'
+			. 'var t=localStorage.getItem("ffcRecruitmentLastBulkTime");'
+			. 'if(d){document.getElementById("ffc-bulk-date").value=d;}'
+			. 'if(t){document.getElementById("ffc-bulk-time").value=t;}'
+			. '}catch(e){}'
+			. '})();'
+			. '</script>';
 	}
 
 	/**
@@ -1351,7 +1366,14 @@ final class RecruitmentNoticeEditPage {
 			. 'body:JSON.stringify(bulkPayload),'
 			. 'credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}'
+			. 'if(o.status>=200&&o.status<300){'
+			// Persist the just-used values so the next bulk call (on
+			// this notice or any other) opens with the same defaults.
+			// Most operators issue calls in batches with identical
+			// date/time; remembering saves a few keystrokes per round.
+			. 'try{localStorage.setItem("ffcRecruitmentLastBulkDate",date);localStorage.setItem("ffcRecruitmentLastBulkTime",time);}catch(e){}'
+			. 'location.reload();'
+			. '}'
 			. 'else{status.textContent="Error: "+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
 			. '}).catch(function(e){status.textContent="Network error: "+e.message;});'
 			. '}'
