@@ -219,6 +219,26 @@ final class RecruitmentNoticeEditPage {
 		echo '<td>' . self::render_columns_toggles( (string) $notice->public_columns_config );
 		echo '<p class="description">' . esc_html__( 'Toggle which columns the public shortcode renders. Rank and Name are mandatory and cannot be turned off.', 'ffcertificate' ) . '</p></td></tr>';
 
+		// Dedicated row for the preliminary-reason public visibility
+		// toggle. Stored under the same `public_columns_config.preview_reason`
+		// key as the column grid so the save handler stays unchanged,
+		// but rendered separately because it isn't a column — it's a
+		// per-edital all-or-nothing toggle for whether the preliminary
+		// reason text shows up next to the badge on the public listing.
+		$decoded         = json_decode( (string) $notice->public_columns_config, true );
+		$decoded         = is_array( $decoded ) ? $decoded : array();
+		$preview_default = (array) json_decode( RecruitmentNoticeRepository::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
+		$preview_state   = array_merge( $preview_default, $decoded );
+		$preview_checked = ! empty( $preview_state['preview_reason'] );
+
+		echo '<tr><th>' . esc_html__( 'Preliminary reasons', 'ffcertificate' ) . '</th><td>';
+		echo '<label for="ffc-notice-pcc-preview_reason" style="display:flex;align-items:center;gap:6px;">';
+		echo '<input id="ffc-notice-pcc-preview_reason" type="checkbox" name="public_columns[preview_reason]" value="1"' . ( $preview_checked ? ' checked' : '' ) . '>';
+		echo esc_html__( 'Show preliminary reasons publicly on this notice', 'ffcertificate' );
+		echo '</label>';
+		echo '<p class="description">' . esc_html__( 'When on, the public shortcode will render the reason label next to the preliminary status badge. Off by default per notice — operators decide all-or-nothing per edital.', 'ffcertificate' ) . '</p>';
+		echo '</td></tr>';
+
 		echo '</tbody></table>';
 		submit_button( __( 'Save general', 'ffcertificate' ) );
 		echo '</form>';
@@ -256,9 +276,17 @@ final class RecruitmentNoticeEditPage {
 		$state    = array_merge( $defaults, $decoded );
 
 		$mandatory = array( 'rank', 'name' );
+		// `preview_reason` is rendered in its own dedicated row below
+		// the column grid (see render_general_section()) because it's
+		// not really a column — it's a per-edital toggle controlling
+		// whether the preliminary-list reason text is exposed publicly.
+		$rendered_in_grid = static fn( string $key ): bool => 'preview_reason' !== $key;
 
 		$html = '<div class="ffc-recruitment-columns-toggles" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 16px;">';
 		foreach ( $labels as $key => $label ) {
+			if ( ! $rendered_in_grid( $key ) ) {
+				continue;
+			}
 			$is_mandatory = in_array( $key, $mandatory, true );
 			$checked      = $is_mandatory || ! empty( $state[ $key ] );
 			$id_attr      = 'ffc-notice-pcc-' . $key;
@@ -302,7 +330,10 @@ final class RecruitmentNoticeEditPage {
 			'cpf_masked'     => __( 'CPF (masked)', 'ffcertificate' ),
 			'rf_masked'      => __( 'RF (masked)', 'ffcertificate' ),
 			'email_masked'   => __( 'Email (masked)', 'ffcertificate' ),
-			'preview_reason' => __( 'Preliminary reason (publicly visible)', 'ffcertificate' ),
+			// Rendered as a dedicated row in render_general_section() rather
+			// than inside the column-toggles grid; key kept here so the
+			// save handler can iterate it the same way as the others.
+			'preview_reason' => __( 'Show preliminary reasons publicly', 'ffcertificate' ),
 		);
 	}
 
