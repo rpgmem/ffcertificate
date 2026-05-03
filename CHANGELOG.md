@@ -95,10 +95,19 @@ This release also folds in the previously-unreleased recruitment fixes that land
 - **Notice-status configurable badge colors.** Four new Settings sub-keys (`notice_status_color_draft / preliminary / definitive / closed`) with a matching "Notice status — badge colors" section on Recruitment > Settings. New helper `RecruitmentAdminPage::notice_status_badge()` emits an inline-styled badge driven by the configured colors; the notices list table, the notice edit page's Status section, and the public shortcode's banner all delegate to it so admins and visitors share one operator-tunable palette per deployment.
 - **Preview reason as a hover tooltip on the badge** (`title=""` + `cursor:help`) instead of an inline 11px line below the cell. Per-notice opt-in unchanged (`public_columns_config.preview_reason`).
 - **User-dashboard Convocações tab visual parity.** The tab inside `[user_dashboard_personal]` reuses the standard dashboard table styling (border + rounded corners, uppercase column headers, hover highlight) and a new `#tab-recruitment` scoped block paints the section heading + per-notice card + preliminary/final banners in the dashboard's design language. CSS-only fix; no markup change to `RecruitmentDashboardSection`.
+- **Empty-state guidance card on the Notices admin tab.** Fresh installs land on Recruitment > Notices and now see a "Welcome to Recruitment" inline notice walking through the linear setup path (define adjutancies → create notice → attach + import CSV → promote → call). Triggered only when no notices exist at all; goes away once the first notice is created.
+- **Bulk-call date/time pre-fill** from localStorage. After a successful submit, the just-used date/time pair is persisted per-browser; subsequent visits to any notice's bulk-call toolbar open with those defaults pre-populated. Saves a few keystrokes per round on operators who issue calls in batches.
+- **`preliminary → definitive` confirm prompt** on the notice transition button — surfaces "this locks the list as final" before committing. Joins the existing draft → preliminary and definitive → closed confirms. The closed → definitive reopen path skips the new confirm because that form already gathers a reason explicitly.
+- **Preview-status save preflights the reason-required flag.** When the operator picks a status with `preview_reason_required_*=true` and the reason dropdown is at "— none —", the dropdown gets a red outline + `aria-required="true"` and the PATCH is skipped client-side until a reason is chosen — sparing the round-trip + alert() the server-side rejection used to surface.
+
+### Performance
+
+- **Public shortcode renders in O(1) candidate fetches** instead of O(N). New `RecruitmentCandidateRepository::get_by_ids()` warms the object cache with a single `WHERE id IN (...)` query before the per-row loop in `render_section()`. Roughly 30–50% latency improvement on cold-cache renders of large notices.
 
 ### Changed
 
 - **FFC top-level menu positions** floated to 26.1 / 26.2 / 26.3 (Scheduling / Reregistration / Recruitment). Floats prevent third-party plugins claiming integer 26 / 27 / 28 from interleaving inside the FFC block in the wp-admin sidebar; the three sibling business modules now stay visually contiguous regardless of the rest of the install's plugin set.
+- **Single shared badge HTML helper** (`RecruitmentBadgeHtml::render`). The seven near-identical inline-styled badge renderers across `RecruitmentPublicShortcode` (status / preview_status / subscription / adjutancy) and `RecruitmentAdminPage` (classification_status / notice_status / adjutancy) all delegate to one helper now. Visual treatment (padding / radius / font-size / display / text color / tooltip) is captured in one constant + one `sprintf`; behavior unchanged.
 
 ### Note
 

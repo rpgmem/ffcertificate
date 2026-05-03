@@ -492,7 +492,13 @@ final class RecruitmentNoticeEditPage {
 				echo '<p>' . esc_html__( 'No transitions available from this state.', 'ffcertificate' ) . '</p>';
 			}
 		} else {
-			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;" onsubmit="return ffcRecruitmentConfirmTransition(this);">';
+			// `data-ffc-skip-transition-confirm` suppresses the generic
+			// `definitive` confirm on the closed → definitive (reopen)
+			// path, which already gathers a reason explicitly via the
+			// reason input rendered below.
+			$skip_attr = 'closed' === $current ? ' data-ffc-skip-transition-confirm="1"' : '';
+			// $skip_attr is an internal literal (one of two compile-time strings); no user input flows through it.
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;"' . $skip_attr . ' onsubmit="return ffcRecruitmentConfirmTransition(this);">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $skip_attr is a literal HTML attribute string with no user-controlled content.
 			echo '<input type="hidden" name="action" value="ffc_recruitment_transition_notice">';
 			echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice->id ) . '">';
 			wp_nonce_field( $nonce_action );
@@ -514,16 +520,29 @@ final class RecruitmentNoticeEditPage {
 
 			echo '</form>';
 
-			// Per-target confirm prompts. draft → preliminary publishes
-			// the candidate list to the public shortcode, so we surface
-			// that side-effect explicitly. Closing a notice is also
-			// destructive for the operator (calls history goes read-only,
-			// no more status changes), so we surface that too.
+			// Per-target confirm prompts. Each transition has a side
+			// effect we want the operator to acknowledge before
+			// committing:
+			//
+			// - draft → preliminary: publishes the candidate list to the
+			// public shortcode (visible to candidates).
+			// - preliminary → definitive: locks the list as final; the
+			// public shortcode flips to "Final classification."
+			// - definitive → closed: freezes calls history; reopen
+			// later requires a reason and locks hired/not_shown.
+			//
+			// The closed → definitive (reopen) path goes through its
+			// own form with a Reopen reason input, so this generic
+			// confirm there would be redundant — gated by the absence
+			// of `data-ffc-skip-transition-confirm`.
 			echo '<script>'
 				. 'function ffcRecruitmentConfirmTransition(form){'
 				. 'var t=form.target_status?form.target_status.value:(document.activeElement&&document.activeElement.name==="target_status"?document.activeElement.value:"");'
 				. 'if(t==="preliminary"){'
 				. 'return confirm("' . esc_js( __( 'Moving the notice to `preliminary` publishes the imported candidate list on the public shortcode. Continue?', 'ffcertificate' ) ) . '");'
+				. '}'
+				. 'if(t==="definitive"&&!form.hasAttribute("data-ffc-skip-transition-confirm")){'
+				. 'return confirm("' . esc_js( __( 'Promoting the notice to `definitive` locks the classification list as final. Calls can be issued from this point on; the public shortcode will display the "Final classification" banner. Continue?', 'ffcertificate' ) ) . '");'
 				. '}'
 				. 'if(t==="closed"){'
 				. 'return confirm("' . esc_js( __( 'Closing the notice freezes its calls history (no new calls, no status changes, no cancellations). The public shortcode will display the "Notice closed." banner above the list. To reopen later, you will need to provide a reason and the hired/not_shown classifications will become permanently locked. Continue?', 'ffcertificate' ) ) . '");'
@@ -1172,8 +1191,23 @@ final class RecruitmentNoticeEditPage {
 		echo '<button type="button" class="button button-primary" onclick="ffcRecruitmentBulkCall();">' . esc_html__( 'Call selected', 'ffcertificate' ) . '</button>';
 		echo '<span id="ffc-bulk-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
 		// §6 — bulk call is atomic; any single race-loss rolls back the entire batch.
-		echo '<p class="description" style="margin:6px 0 0;">' . esc_html__( 'Select rows in waiting status to bulk-call them with the same date and time. The operation is atomic — any single conflict rolls back the entire batch.', 'ffcertificate' ) . '</p>';
+		echo '<p class="description" style="margin:6px 0 0;">' . esc_html__( 'Select rows in waiting status to bulk-call them with the same date and time. The operation is atomic — any single conflict rolls back the entire batch. Date and time are remembered from the previous successful call.', 'ffcertificate' ) . '</p>';
 		echo '</div>';
+
+		// Pre-fill the date / time inputs from localStorage so a follow-
+		// up bulk-call doesn't make the operator retype the same values
+		// the next time they open this notice. The values are written
+		// from ffcRecruitmentBulkCall() on a successful submit.
+		echo '<script>'
+			. '(function(){'
+			. 'try{'
+			. 'var d=localStorage.getItem("ffcRecruitmentLastBulkDate");'
+			. 'var t=localStorage.getItem("ffcRecruitmentLastBulkTime");'
+			. 'if(d){document.getElementById("ffc-bulk-date").value=d;}'
+			. 'if(t){document.getElementById("ffc-bulk-time").value=t;}'
+			. '}catch(e){}'
+			. '})();'
+			. '</script>';
 	}
 
 	/**
@@ -1351,7 +1385,14 @@ final class RecruitmentNoticeEditPage {
 			. 'body:JSON.stringify(bulkPayload),'
 			. 'credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}'
+			. 'if(o.status>=200&&o.status<300){'
+			// Persist the just-used values so the next bulk call (on
+			// this notice or any other) opens with the same defaults.
+			// Most operators issue calls in batches with identical
+			// date/time; remembering saves a few keystrokes per round.
+			. 'try{localStorage.setItem("ffcRecruitmentLastBulkDate",date);localStorage.setItem("ffcRecruitmentLastBulkTime",time);}catch(e){}'
+			. 'location.reload();'
+			. '}'
 			. 'else{status.textContent="Error: "+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
 			. '}).catch(function(e){status.textContent="Network error: "+e.message;});'
 			. '}'
@@ -1420,15 +1461,41 @@ final class RecruitmentNoticeEditPage {
 	private static function render_preview_status_script(): void {
 		$nonce    = wp_create_nonce( 'wp_rest' );
 		$base_url = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
+		$settings = RecruitmentSettings::all();
+		// Per-status reason-required flags surfaced to the JS so the
+		// dropdown UX can preflight the requirement client-side
+		// instead of round-tripping the rejection from the server.
+		$required_map = array(
+			'denied'         => ! empty( $settings['preview_reason_required_denied'] ),
+			'granted'        => ! empty( $settings['preview_reason_required_granted'] ),
+			'appeal_denied'  => ! empty( $settings['preview_reason_required_appeal_denied'] ),
+			'appeal_granted' => ! empty( $settings['preview_reason_required_appeal_granted'] ),
+		);
 
 		echo '<script>'
 			. '(function(){'
+			. 'var ffcReasonRequired=' . wp_json_encode( $required_map ) . ';'
+			. 'function ffcRecruitmentPreviewMarkRequired(reasonSel,required){'
+			. 'reasonSel.style.outline=required?"2px solid #d63638":"";'
+			. 'reasonSel.style.outlineOffset=required?"2px":"";'
+			. 'reasonSel.setAttribute("aria-required",required?"true":"false");'
+			. '}'
 			. 'function ffcRecruitmentPreviewSync(row){'
 			. 'var id=row.getAttribute("data-cls-id");'
 			. 'var statusSel=row.querySelector(".ffc-cls-preview-status");'
 			. 'var reasonSel=row.querySelector(".ffc-cls-preview-reason");'
 			. 'var status=statusSel.value;'
 			. 'var reasonId=parseInt(reasonSel.value,10)||0;'
+			// Preflight: if the chosen status requires a reason and the
+			// dropdown is at "— none —", flag the dropdown red and skip
+			// the PATCH. The server-side check still runs as a backstop;
+			// this just spares the round-trip + alert() for the common
+			// case where the operator just hasn\'t picked yet.
+			. 'if(ffcReasonRequired[status]===true&&reasonId<=0){'
+			. 'ffcRecruitmentPreviewMarkRequired(reasonSel,true);'
+			. 'return;'
+			. '}'
+			. 'ffcRecruitmentPreviewMarkRequired(reasonSel,false);'
 			. 'var fd=new FormData();fd.append("preview_status",status);'
 			. 'if(reasonId>0){fd.append("preview_reason_id",String(reasonId));}'
 			. 'fetch(' . wp_json_encode( $base_url ) . '+id+"/preview-status",{'
@@ -1453,7 +1520,7 @@ final class RecruitmentNoticeEditPage {
 			. 'var allowed=applies.length===0||applies[0]===""||applies.indexOf(status)!==-1;'
 			. 'opt.style.display=allowed?"":"none";'
 			. '});'
-			. 'if(status==="empty"){reasonSel.value="0";reasonSel.disabled=true;}'
+			. 'if(status==="empty"){reasonSel.value="0";reasonSel.disabled=true;ffcRecruitmentPreviewMarkRequired(reasonSel,false);}'
 			. 'else{reasonSel.disabled=false;'
 			// If the previously-selected reason is no longer allowed for
 			// the new status, reset to "none" so the server doesn't reject

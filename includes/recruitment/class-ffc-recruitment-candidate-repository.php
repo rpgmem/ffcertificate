@@ -106,6 +106,63 @@ class RecruitmentCandidateRepository {
 	}
 
 	/**
+	 * Batch-fetch candidate rows by ID.
+	 *
+	 * Returns an `id => row` map for the supplied id list, single
+	 * `WHERE id IN (...)` query. Object cache is warmed for every
+	 * fetched row so subsequent {@see self::get_by_id()} lookups in
+	 * the same request hit the cache without a second SELECT — that's
+	 * the primary call pattern from the public shortcode's
+	 * `render_section()`, which still loops `get_by_id()` per row
+	 * inside `render_row()` for each cell that needs a name / cpf /
+	 * email lookup.
+	 *
+	 * Empty input returns an empty array. Duplicate ids in the input
+	 * are silently deduplicated.
+	 *
+	 * @param array<int, int> $ids Candidate IDs.
+	 * @return array<int, CandidateRow>
+	 */
+	public static function get_by_ids( array $ids ): array {
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ), static fn( int $i ): bool => $i > 0 ) ) );
+		if ( empty( $ids ) ) {
+			return array();
+		}
+
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		// `%d` placeholders generated dynamically for the IN clause —
+		// $ids is already coerced to a list<int> above so the join is
+		// safe; the wpdb->prepare() call still binds each id per the
+		// placeholder count.
+		$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
+		$sql          = "SELECT * FROM %i WHERE id IN ({$placeholders})";
+
+		/**
+		 * Cast wpdb's mixed return into the typed shape.
+		 *
+		 * @var list<CandidateRow>|null $rows
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Placeholders are %i + N×%d, all generated literals; $ids items are intval-coerced above.
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, array_merge( array( $table ), $ids ) ) );
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $rows as $row ) {
+			$row_id = (int) ( $row->id ?? 0 );
+			if ( $row_id <= 0 ) {
+				continue;
+			}
+			static::cache_set( "id_{$row_id}", $row );
+			$out[ $row_id ] = $row;
+		}
+		return $out;
+	}
+
+	/**
 	 * Look up a candidate by CPF hash.
 	 *
 	 * Used by the CSV importer to detect cross-CSV / cross-notice reuse: a
