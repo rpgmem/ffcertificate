@@ -396,11 +396,17 @@ final class RecruitmentPublicShortcode {
 		if ( $columns['score'] ) {
 			$html .= '<th>' . esc_html__( 'Score', 'ffcertificate' ) . '</th>';
 		}
+		if ( $columns['time_points'] ) {
+			$html .= '<th>' . esc_html__( 'Time points', 'ffcertificate' ) . '</th>';
+		}
+		if ( $columns['hab_emebs'] ) {
+			$html .= '<th>' . esc_html__( 'HAB. EMEBs', 'ffcertificate' ) . '</th>';
+		}
 		if ( $columns['status'] ) {
 			$html .= '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
 		}
 		if ( $columns['pcd_badge'] ) {
-			$html .= '<th>PCD</th>';
+			$html .= '<th>' . esc_html__( 'Subscription', 'ffcertificate' ) . '</th>';
 		}
 		if ( $show_date && $columns['date_to_assume'] ) {
 			$html .= '<th>' . esc_html__( 'Date to assume', 'ffcertificate' ) . '</th>';
@@ -465,6 +471,14 @@ final class RecruitmentPublicShortcode {
 			// truncates to 2 decimals for readability (53.00 vs 53.0000).
 			$html .= '<td>' . esc_html( number_format( (float) $row->score, 2, '.', '' ) ) . '</td>';
 		}
+		if ( $columns['time_points'] ) {
+			$tp    = isset( $row->time_points ) ? (float) $row->time_points : 0.0;
+			$html .= '<td>' . esc_html( number_format( $tp, 2, '.', '' ) ) . '</td>';
+		}
+		if ( $columns['hab_emebs'] ) {
+			$on    = isset( $row->hab_emebs ) && (int) $row->hab_emebs === 1;
+			$html .= '<td>' . ( $on ? esc_html__( 'Yes', 'ffcertificate' ) : '—' ) . '</td>';
+		}
 		if ( $columns['status'] ) {
 			// On the preview list the §5.2 `status` column is always
 			// 'empty', so it carries no signal — render the configurable
@@ -492,8 +506,11 @@ final class RecruitmentPublicShortcode {
 			}
 		}
 		if ( $columns['pcd_badge'] ) {
-			$is_pcd = RecruitmentPcdHasher::verify( (string) $candidate->pcd_hash, (int) $candidate->id );
-			$html  .= '<td>' . ( true === $is_pcd ? '<span class="ffc-recruitment-pcd">PCD</span>' : '' ) . '</td>';
+			// `verify()` returns null when the hash doesn't decode against
+			// either domain — treat that as non-PCD on the public surface
+			// rather than hiding the badge entirely.
+			$is_pcd = true === RecruitmentPcdHasher::verify( (string) $candidate->pcd_hash, (int) $candidate->id );
+			$html  .= '<td>' . self::render_subscription_badge( $is_pcd ) . '</td>';
 		}
 		if ( $show_date && ( $columns['date_to_assume'] || $columns['time_to_assume'] ) ) {
 			$call = RecruitmentCallRepository::get_active_for_classification( (int) $row->id );
@@ -783,6 +800,30 @@ final class RecruitmentPublicShortcode {
 			'<span class="ffc-recruitment-adjutancy-badge" style="background:%s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%s</span>',
 			esc_attr( $color ),
 			esc_html( is_string( $name ) ? $name : '' )
+		);
+	}
+
+	/**
+	 * Render the subscription-type badge ("PCD" or "GERAL") with the
+	 * configured `subscription_color_*` background. The candidate's
+	 * pcd_hash is verifiable boolean (PCD or non-PCD per §3.4); GERAL
+	 * is the only non-PCD value so a binary badge covers the whole
+	 * matrix without needing an enum.
+	 *
+	 * @param bool $is_pcd Whether the candidate is PCD.
+	 * @return string Already-escaped HTML.
+	 */
+	private static function render_subscription_badge( bool $is_pcd ): string {
+		$settings = RecruitmentSettings::all();
+		$bg       = $is_pcd
+			? (string) $settings['subscription_color_pcd']
+			: (string) $settings['subscription_color_geral'];
+		$label    = $is_pcd ? __( 'PCD', 'ffcertificate' ) : __( 'GERAL', 'ffcertificate' );
+		return sprintf(
+			'<span class="ffc-recruitment-subscription-badge ffc-recruitment-subscription-%1$s" style="background:%2$s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%3$s</span>',
+			$is_pcd ? 'pcd' : 'geral',
+			esc_attr( $bg ),
+			esc_html( $label )
 		);
 	}
 

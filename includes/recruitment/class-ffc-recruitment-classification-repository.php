@@ -263,7 +263,7 @@ class RecruitmentClassificationRepository {
 	 * Returns `false` on UNIQUE collision
 	 * `(candidate_id, adjutancy_id, notice_id, list_type)`.
 	 *
-	 * @param array{candidate_id: int, adjutancy_id: int, notice_id: int, list_type: string, rank: int, score: string|float, status?: string} $data Classification payload.
+	 * @param array{candidate_id: int, adjutancy_id: int, notice_id: int, list_type: string, rank: int, score: string|float, status?: string, time_points?: string|float, hab_emebs?: int|bool} $data Classification payload.
 	 * @return int|false New classification ID or false on failure.
 	 */
 	public static function create( array $data ) {
