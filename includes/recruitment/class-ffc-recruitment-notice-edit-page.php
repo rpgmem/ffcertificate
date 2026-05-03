@@ -492,7 +492,12 @@ final class RecruitmentNoticeEditPage {
 				echo '<p>' . esc_html__( 'No transitions available from this state.', 'ffcertificate' ) . '</p>';
 			}
 		} else {
-			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;" onsubmit="return ffcRecruitmentConfirmTransition(this);">';
+			// `data-ffc-skip-transition-confirm` suppresses the generic
+			// `definitive` confirm on the closed → definitive (reopen)
+			// path, which already gathers a reason explicitly via the
+			// reason input rendered below.
+			$skip_attr = 'closed' === $current ? ' data-ffc-skip-transition-confirm="1"' : '';
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline;"' . $skip_attr . ' onsubmit="return ffcRecruitmentConfirmTransition(this);">';
 			echo '<input type="hidden" name="action" value="ffc_recruitment_transition_notice">';
 			echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice->id ) . '">';
 			wp_nonce_field( $nonce_action );
@@ -514,16 +519,29 @@ final class RecruitmentNoticeEditPage {
 
 			echo '</form>';
 
-			// Per-target confirm prompts. draft → preliminary publishes
-			// the candidate list to the public shortcode, so we surface
-			// that side-effect explicitly. Closing a notice is also
-			// destructive for the operator (calls history goes read-only,
-			// no more status changes), so we surface that too.
+			// Per-target confirm prompts. Each transition has a side
+			// effect we want the operator to acknowledge before
+			// committing:
+			//
+			// - draft → preliminary: publishes the candidate list to the
+			//   public shortcode (visible to candidates).
+			// - preliminary → definitive: locks the list as final; the
+			//   public shortcode flips to "Final classification."
+			// - definitive → closed: freezes calls history; reopen
+			//   later requires a reason and locks hired/not_shown.
+			//
+			// The closed → definitive (reopen) path goes through its
+			// own form with a Reopen reason input, so this generic
+			// confirm there would be redundant — gated by the absence
+			// of `data-ffc-skip-transition-confirm`.
 			echo '<script>'
 				. 'function ffcRecruitmentConfirmTransition(form){'
 				. 'var t=form.target_status?form.target_status.value:(document.activeElement&&document.activeElement.name==="target_status"?document.activeElement.value:"");'
 				. 'if(t==="preliminary"){'
 				. 'return confirm("' . esc_js( __( 'Moving the notice to `preliminary` publishes the imported candidate list on the public shortcode. Continue?', 'ffcertificate' ) ) . '");'
+				. '}'
+				. 'if(t==="definitive"&&!form.hasAttribute("data-ffc-skip-transition-confirm")){'
+				. 'return confirm("' . esc_js( __( 'Promoting the notice to `definitive` locks the classification list as final. Calls can be issued from this point on; the public shortcode will display the "Final classification" banner. Continue?', 'ffcertificate' ) ) . '");'
 				. '}'
 				. 'if(t==="closed"){'
 				. 'return confirm("' . esc_js( __( 'Closing the notice freezes its calls history (no new calls, no status changes, no cancellations). The public shortcode will display the "Notice closed." banner above the list. To reopen later, you will need to provide a reason and the hired/not_shown classifications will become permanently locked. Continue?', 'ffcertificate' ) ) . '");'
