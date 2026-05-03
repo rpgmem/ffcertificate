@@ -45,6 +45,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-import-type NoticeRow         from RecruitmentNoticeRepository
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
+ * @phpstan-import-type ReasonRow         from RecruitmentReasonRepository
  */
 final class RecruitmentNoticeEditPage {
 
@@ -301,6 +302,7 @@ final class RecruitmentNoticeEditPage {
 			'cpf_masked'     => __( 'CPF (masked)', 'ffcertificate' ),
 			'rf_masked'      => __( 'RF (masked)', 'ffcertificate' ),
 			'email_masked'   => __( 'Email (masked)', 'ffcertificate' ),
+			'preview_reason' => __( 'Preliminary reason (publicly visible)', 'ffcertificate' ),
 		);
 	}
 
@@ -832,15 +834,27 @@ final class RecruitmentNoticeEditPage {
 			self::render_bulk_call_toolbar();
 		}
 
+		// On the Preliminary tab the Status column is always "Waiting"
+		// (the §5.2 invariant), so we replace it with the editable
+		// preview_status + reason dropdown. The Definitive tab keeps the
+		// existing Status badge.
+		$is_preview_tab = ! $with_actions;
+		$reasons        = $is_preview_tab ? RecruitmentReasonRepository::get_all() : array();
+
 		echo '<table class="widefat striped"><thead><tr>';
 		if ( $with_actions ) {
-			echo '<th style="width:1%;"><input type="checkbox" id="ffc-cls-bulk-all" onclick="ffcRecruitmentClsToggleAll(this);" title="' . esc_attr__( 'Select all `empty` rows on this page', 'ffcertificate' ) . '"></th>';
+			echo '<th style="width:1%;"><input type="checkbox" id="ffc-cls-bulk-all" onclick="ffcRecruitmentClsToggleAll(this);" title="' . esc_attr__( 'Select all waiting rows on this page', 'ffcertificate' ) . '"></th>';
 		}
 		echo '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Candidate', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Score', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
+		if ( $is_preview_tab ) {
+			echo '<th>' . esc_html__( 'Preliminary status', 'ffcertificate' ) . '</th>';
+			echo '<th>' . esc_html__( 'Reason', 'ffcertificate' ) . '</th>';
+		} else {
+			echo '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
+		}
 		if ( $with_actions ) {
 			echo '<th>' . esc_html__( 'Actions', 'ffcertificate' ) . '</th>';
 		}
@@ -872,7 +886,16 @@ final class RecruitmentNoticeEditPage {
 			echo '<td>' . esc_html( $candidate_name ) . '</td>';
 			echo '<td><code>' . esc_html( $adjutancy_slug ) . '</code></td>';
 			echo '<td>' . esc_html( (string) $row->score ) . '</td>';
-			echo '<td><span class="ffc-status-badge ffc-status-' . esc_attr( (string) $row->status ) . '">' . esc_html( RecruitmentAdminPage::classification_status_label( (string) $row->status ) ) . '</span></td>';
+			if ( $is_preview_tab ) {
+				$current_preview = isset( $row->preview_status ) ? (string) $row->preview_status : 'empty';
+				$current_reason  = isset( $row->preview_reason_id ) && null !== $row->preview_reason_id ? (int) $row->preview_reason_id : 0;
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+				echo '<td>' . self::render_preview_status_select( (int) $row->id, $current_preview ) . '</td>';
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+				echo '<td>' . self::render_preview_reason_select( (int) $row->id, $current_preview, $current_reason, $reasons ) . '</td>';
+			} else {
+				echo '<td><span class="ffc-status-badge ffc-status-' . esc_attr( (string) $row->status ) . '">' . esc_html( RecruitmentAdminPage::classification_status_label( (string) $row->status ) ) . '</span></td>';
+			}
 			if ( $with_actions ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_classification_actions returns escaped HTML.
 				echo '<td>' . self::render_classification_actions( (int) $row->id, (string) $row->status ) . '</td>';
@@ -884,6 +907,88 @@ final class RecruitmentNoticeEditPage {
 		if ( $with_actions ) {
 			self::render_classification_actions_script();
 		}
+		if ( $is_preview_tab ) {
+			self::render_preview_status_script();
+		}
+	}
+
+	/**
+	 * Localized labels for the five preview-status enum values.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function preview_status_label_map(): array {
+		return array(
+			'empty'          => __( 'Empty (no decision)', 'ffcertificate' ),
+			'denied'         => __( 'Denied', 'ffcertificate' ),
+			'granted'        => __( 'Granted', 'ffcertificate' ),
+			'appeal_denied'  => __( 'Appeal denied', 'ffcertificate' ),
+			'appeal_granted' => __( 'Appeal granted', 'ffcertificate' ),
+		);
+	}
+
+	/**
+	 * Render the preview-status <select> for one preliminary-list row.
+	 *
+	 * The change handler installed by {@see self::render_preview_status_script()}
+	 * PATCHes the row via REST when the operator commits a value.
+	 *
+	 * @param int    $cls_id  Classification ID.
+	 * @param string $current Current `preview_status` enum value.
+	 * @return string Already-escaped HTML.
+	 */
+	private static function render_preview_status_select( int $cls_id, string $current ): string {
+		$options = self::preview_status_label_map();
+		$html    = '<select class="ffc-cls-preview-status" data-cls-id="' . esc_attr( (string) $cls_id ) . '">';
+		foreach ( $options as $value => $label ) {
+			$html .= '<option value="' . esc_attr( $value ) . '"' . selected( $value, $current, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+		$html .= '</select>';
+		return $html;
+	}
+
+	/**
+	 * Render the per-row reason <select>.
+	 *
+	 * The dropdown's enabled state, option set, and selected value all
+	 * depend on the chosen preview_status: when status is "empty" we
+	 * disable the dropdown (no reason can apply); otherwise we list every
+	 * reason whose `applies_to` covers the chosen status (or whose
+	 * `applies_to` is empty = "applies to all"). The change handler
+	 * re-PATCHes the row.
+	 *
+	 * @param int                $cls_id      Classification ID.
+	 * @param string             $current     Current preview_status enum.
+	 * @param int                $reason_id   Currently-selected reason id (0 = none).
+	 * @param array<int, object> $reasons     Full reason catalog (passed in from the caller to avoid N+1 lookups).
+	 * @phpstan-param list<ReasonRow> $reasons
+	 * @return string Already-escaped HTML.
+	 */
+	private static function render_preview_reason_select( int $cls_id, string $current, int $reason_id, array $reasons ): string {
+		$disabled = ( 'empty' === $current ) ? ' disabled' : '';
+		$html     = '<select class="ffc-cls-preview-reason" data-cls-id="' . esc_attr( (string) $cls_id ) . '"' . $disabled . '>';
+		$html    .= '<option value="0">' . esc_html__( '— none —', 'ffcertificate' ) . '</option>';
+		foreach ( $reasons as $reason ) {
+			$applies = RecruitmentReasonRepository::decode_applies_to( (string) ( $reason->applies_to ?? '' ) );
+			// `data-applies` lets the JS re-filter the options without a
+			// round-trip when the operator flips the status dropdown.
+			$applies_attr = implode( ',', $applies );
+			// On first render, hide options that don't cover the current
+			// status. The JS will reveal them as needed when the status
+			// changes.
+			$visible = 'empty' === $current || in_array( $current, $applies, true );
+			$style   = $visible ? '' : 'display:none;';
+			$rid     = (int) $reason->id;
+			$html   .= '<option value="' . esc_attr( (string) $rid ) . '"'
+				. ' data-applies="' . esc_attr( $applies_attr ) . '"'
+				. selected( $rid, $reason_id, false )
+				. ( '' !== $style ? ' style="' . esc_attr( $style ) . '"' : '' )
+				. '>'
+				. esc_html( (string) $reason->label )
+				. '</option>';
+		}
+		$html .= '</select>';
+		return $html;
 	}
 
 	/**
@@ -1113,6 +1218,67 @@ final class RecruitmentNoticeEditPage {
 			. 'else{alert(JSON.stringify(o.body));btn.disabled=false;}'
 			. '}).catch(function(e){alert("Network error: "+e.message);btn.disabled=false;});'
 			. '}'
+			. '</script>';
+	}
+
+	/**
+	 * Inline JS that drives the per-row preview_status + reason
+	 * dropdowns on the Preliminary tab. Listens at `change` so the
+	 * REST PATCH fires once per commit. The reason dropdown is
+	 * filtered + cleared when the status flips so operators can't
+	 * pick a reason that doesn't apply to the chosen status.
+	 *
+	 * @return void
+	 */
+	private static function render_preview_status_script(): void {
+		$nonce    = wp_create_nonce( 'wp_rest' );
+		$base_url = esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/classifications/' ) );
+
+		echo '<script>'
+			. '(function(){'
+			. 'function ffcRecruitmentPreviewSync(row){'
+			. 'var id=row.getAttribute("data-cls-id");'
+			. 'var statusSel=row.querySelector(".ffc-cls-preview-status");'
+			. 'var reasonSel=row.querySelector(".ffc-cls-preview-reason");'
+			. 'var status=statusSel.value;'
+			. 'var reasonId=parseInt(reasonSel.value,10)||0;'
+			. 'var fd=new FormData();fd.append("preview_status",status);'
+			. 'if(reasonId>0){fd.append("preview_reason_id",String(reasonId));}'
+			. 'fetch(' . wp_json_encode( $base_url ) . '+id+"/preview-status",{'
+			. 'method:"POST",'
+			. 'headers:{"X-WP-Nonce":"' . esc_js( $nonce ) . '","X-HTTP-Method-Override":"PATCH"},'
+			. 'body:fd,'
+			. 'credentials:"same-origin"'
+			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
+			. 'if(o.status>=200&&o.status<300){return;}'
+			. 'alert(JSON.stringify(o.body));'
+			. '});'
+			. '}'
+			. 'document.querySelectorAll("tr[data-cls-id]").forEach(function(row){'
+			. 'var statusSel=row.querySelector(".ffc-cls-preview-status");'
+			. 'var reasonSel=row.querySelector(".ffc-cls-preview-reason");'
+			. 'if(!statusSel||!reasonSel)return;'
+			. 'statusSel.addEventListener("change",function(){'
+			. 'var status=statusSel.value;'
+			. 'var opts=reasonSel.querySelectorAll("option[data-applies]");'
+			. 'opts.forEach(function(opt){'
+			. 'var applies=(opt.getAttribute("data-applies")||"").split(",");'
+			. 'var allowed=applies.length===0||applies[0]===""||applies.indexOf(status)!==-1;'
+			. 'opt.style.display=allowed?"":"none";'
+			. '});'
+			. 'if(status==="empty"){reasonSel.value="0";reasonSel.disabled=true;}'
+			. 'else{reasonSel.disabled=false;'
+			// If the previously-selected reason is no longer allowed for
+			// the new status, reset to "none" so the server doesn't reject
+			// the PATCH with a status_mismatch.
+			. 'var current=reasonSel.options[reasonSel.selectedIndex];'
+			. 'if(current&&current.style.display==="none"){reasonSel.value="0";}'
+			. '}'
+			. 'ffcRecruitmentPreviewSync(row);'
+			. '});'
+			. 'reasonSel.addEventListener("change",function(){ffcRecruitmentPreviewSync(row);});'
+			. '});'
+			. '})();'
 			. '</script>';
 	}
 

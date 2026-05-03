@@ -653,7 +653,7 @@ final class RecruitmentPublicShortcode {
 		$merged = array_merge( $default, $decoded );
 
 		$out = array();
-		foreach ( array( 'rank', 'name', 'adjutancy', 'status', 'pcd_badge', 'date_to_assume', 'time_to_assume', 'score', 'cpf_masked', 'rf_masked', 'email_masked' ) as $key ) {
+		foreach ( array( 'rank', 'name', 'adjutancy', 'status', 'pcd_badge', 'date_to_assume', 'time_to_assume', 'score', 'cpf_masked', 'rf_masked', 'email_masked', 'preview_reason' ) as $key ) {
 			$out[ $key ] = ! empty( $merged[ $key ] );
 		}
 

@@ -225,6 +225,27 @@ final class RecruitmentRestController {
 
 		register_rest_route(
 			$ns,
+			$base . '/classifications/(?P<id>\d+)/preview-status',
+			array(
+				'methods'             => \WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'change_classification_preview_status' ),
+				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'args'                => array(
+					'preview_status'    => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'preview_reason_id' => array(
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
 			$base . '/classifications/(?P<id>\d+)',
 			array(
 				'methods'             => \WP_REST_Server::DELETABLE,
@@ -760,6 +781,75 @@ final class RecruitmentRestController {
 		}
 
 		return new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * PATCH /classifications/{id}/preview-status — set the preliminary
+	 * list's visual status (and optional reason). Visual-only — never
+	 * touches the §5.2 state machine on the definitive list.
+	 *
+	 * Validates:
+	 *   - the classification exists and is `list_type='preview'`
+	 *   - `preview_status` is a known enum value
+	 *   - the reason (if any) exists in the catalog AND its `applies_to`
+	 *     covers the requested status
+	 *   - if the per-status `preview_reason_required_*` flag is set in
+	 *     Settings, the reason must be supplied
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function change_classification_preview_status( \WP_REST_Request $request ) {
+		$id             = (int) $request->get_param( 'id' );
+		$preview_status = (string) $request->get_param( 'preview_status' );
+		$reason_id_raw  = $request->get_param( 'preview_reason_id' );
+		$reason_id      = is_numeric( $reason_id_raw ) ? (int) $reason_id_raw : 0;
+
+		$cls = RecruitmentClassificationRepository::get_by_id( $id );
+		if ( null === $cls ) {
+			return new \WP_Error( 'recruitment_classification_not_found', '', array( 'status' => 404 ) );
+		}
+		if ( 'preview' !== (string) $cls->list_type ) {
+			return new \WP_Error( 'recruitment_preview_status_only_on_preview_list', __( 'Preliminary status can only be set on classifications in the preview list.', 'ffcertificate' ), array( 'status' => 409 ) );
+		}
+
+		$valid_statuses = array( 'empty', 'denied', 'granted', 'appeal_denied', 'appeal_granted' );
+		if ( ! in_array( $preview_status, $valid_statuses, true ) ) {
+			return new \WP_Error( 'recruitment_preview_status_invalid', '', array( 'status' => 400 ) );
+		}
+
+		// 'empty' clears any pre-existing reason — operators reset by
+		// flipping the dropdown back to "no decision".
+		if ( 'empty' === $preview_status ) {
+			$reason_id = 0;
+		}
+
+		$settings = RecruitmentSettings::all();
+		if ( 'empty' !== $preview_status ) {
+			$required_key = 'preview_reason_required_' . $preview_status;
+			$required     = ! empty( $settings[ $required_key ] );
+			if ( $required && $reason_id <= 0 ) {
+				return new \WP_Error( 'recruitment_preview_reason_required', __( 'A reason is required for this preliminary status.', 'ffcertificate' ), array( 'status' => 400 ) );
+			}
+		}
+
+		if ( $reason_id > 0 ) {
+			$reason = RecruitmentReasonRepository::get_by_id( $reason_id );
+			if ( null === $reason ) {
+				return new \WP_Error( 'recruitment_preview_reason_not_found', '', array( 'status' => 404 ) );
+			}
+			$applies = RecruitmentReasonRepository::decode_applies_to( (string) ( $reason->applies_to ?? '' ) );
+			if ( ! in_array( $preview_status, $applies, true ) ) {
+				return new \WP_Error( 'recruitment_preview_reason_status_mismatch', __( 'This reason cannot be used with the chosen preliminary status.', 'ffcertificate' ), array( 'status' => 400 ) );
+			}
+		}
+
+		$ok = RecruitmentClassificationRepository::set_preview_status( $id, $preview_status, $reason_id > 0 ? $reason_id : null );
+		if ( ! $ok ) {
+			return new \WP_Error( 'recruitment_preview_status_update_failed', '', array( 'status' => 400 ) );
+		}
+
+		return new \WP_REST_Response( RecruitmentClassificationRepository::get_by_id( $id ), 200 );
 	}
 
 	/**
