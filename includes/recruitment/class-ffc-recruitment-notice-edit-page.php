@@ -62,6 +62,56 @@ final class RecruitmentNoticeEditPage {
 	public static function register(): void {
 		add_action( 'admin_post_ffc_recruitment_save_notice', array( self::class, 'handle_save' ), 10 );
 		add_action( 'admin_post_ffc_recruitment_transition_notice', array( self::class, 'handle_transition' ), 10 );
+		add_action( 'admin_post_ffc_recruitment_download_csv_example', array( self::class, 'handle_download_csv_example' ), 10 );
+	}
+
+	/**
+	 * Stream a small example CSV that matches the importer's header
+	 * shape (REQUIRED + OPTIONAL_HEADERS in
+	 * {@see RecruitmentCsvImporter}). Two rows, semicolon delimiter to
+	 * survive the BR/EU spreadsheet round-trip — the importer auto-
+	 * detects either delimiter on read.
+	 *
+	 * Cap-gated; nonce-gated. Sends a Content-Disposition: attachment
+	 * header so browsers offer a download instead of inline-rendering.
+	 *
+	 * @return void
+	 */
+	public static function handle_download_csv_example(): void {
+		if ( ! current_user_can( self::CAP ) ) {
+			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
+		}
+		check_admin_referer( 'ffc_recruitment_download_csv_example' );
+
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=UTF-8' );
+		header( 'Content-Disposition: attachment; filename="ffc-recruitment-example.csv"' );
+
+		// Header line + two example rows. The first candidate is PCD,
+		// the second is not, so operators see both shapes. Adjutancy
+		// slugs match the catalog convention from the Adjutancies tab;
+		// operators must replace them with slugs that exist on the
+		// target notice before importing.
+		$rows = array(
+			array( 'name', 'cpf', 'rf', 'email', 'phone', 'adjutancy', 'rank', 'score', 'pcd' ),
+			array( 'Maria da Silva', '12345678909', '111111', 'maria@example.com', '11999990000', 'portugues', '1', '85.50', '1' ),
+			array( 'João Souza', '98765432100', '222222', 'joao@example.com', '11988887777', 'matematica', '2', '78.25', '0' ),
+		);
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV to php://output; WP_Filesystem has no streaming equivalent. Same convention as RecruitmentCsvImporter / ReregistrationCsvExporter.
+		$out = fopen( 'php://output', 'w' );
+		if ( false === $out ) {
+			exit;
+		}
+		// UTF-8 BOM so Excel opens the file in the right encoding by default.
+		echo "\xEF\xBB\xBF"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- raw byte stream, no HTML context.
+		foreach ( $rows as $row ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv -- streaming to php://output handle.
+			fputcsv( $out, $row, ';' );
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing handle from fopen() above.
+		fclose( $out );
+		exit;
 	}
 
 	/**
@@ -137,6 +187,16 @@ final class RecruitmentNoticeEditPage {
 
 		echo '<p>' . esc_html__( 'UTF-8 CSV (BOM optional). Headers (English): name, cpf, rf, email, phone, adjutancy, rank, score, pcd. At least one of cpf/rf required per row. Comma or semicolon delimiter is auto-detected.', 'ffcertificate' ) . '</p>';
 
+		$example_url = wp_nonce_url(
+			add_query_arg(
+				array( 'action' => 'ffc_recruitment_download_csv_example' ),
+				admin_url( 'admin-post.php' )
+			),
+			'ffc_recruitment_download_csv_example'
+		);
+		echo '<p><a class="button" href="' . esc_url( $example_url ) . '">&darr; ' . esc_html__( 'Download example CSV', 'ffcertificate' ) . '</a> ';
+		echo '<span class="description" style="margin-left:.5em;">' . esc_html__( 'Two-row sample with every column populated. Use it as a starting point for your own file.', 'ffcertificate' ) . '</span></p>';
+
 		echo '<form id="ffc-recruitment-edit-import" method="post" enctype="multipart/form-data" onsubmit="return ffcRecruitmentImportFromEdit(this);">';
 		echo '<table class="form-table"><tbody>';
 
@@ -177,7 +237,7 @@ final class RecruitmentNoticeEditPage {
 			. 'fetch(url,{method:"POST",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},body:fd,credentials:"same-origin"})'
 			. '.then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
 			. 'if(o.status>=200&&o.status<300){status.textContent="OK ("+JSON.stringify(o.body)+")";location.reload();}'
-			. 'else{status.textContent="Error: "+JSON.stringify(o.body);}'
+			. 'else{status.textContent="Error: "+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
 			. '}).catch(function(e){status.textContent="Network error: "+e.message;});'
 			. 'return false;}'
 			. '</script>';
@@ -219,6 +279,26 @@ final class RecruitmentNoticeEditPage {
 		echo '<td>' . self::render_columns_toggles( (string) $notice->public_columns_config );
 		echo '<p class="description">' . esc_html__( 'Toggle which columns the public shortcode renders. Rank and Name are mandatory and cannot be turned off.', 'ffcertificate' ) . '</p></td></tr>';
 
+		// Dedicated row for the preliminary-reason public visibility
+		// toggle. Stored under the same `public_columns_config.preview_reason`
+		// key as the column grid so the save handler stays unchanged,
+		// but rendered separately because it isn't a column — it's a
+		// per-edital all-or-nothing toggle for whether the preliminary
+		// reason text shows up next to the badge on the public listing.
+		$decoded         = json_decode( (string) $notice->public_columns_config, true );
+		$decoded         = is_array( $decoded ) ? $decoded : array();
+		$preview_default = (array) json_decode( RecruitmentNoticeRepository::DEFAULT_PUBLIC_COLUMNS_CONFIG, true );
+		$preview_state   = array_merge( $preview_default, $decoded );
+		$preview_checked = ! empty( $preview_state['preview_reason'] );
+
+		echo '<tr><th>' . esc_html__( 'Preliminary reasons', 'ffcertificate' ) . '</th><td>';
+		echo '<label for="ffc-notice-pcc-preview_reason" style="display:flex;align-items:center;gap:6px;">';
+		echo '<input id="ffc-notice-pcc-preview_reason" type="checkbox" name="public_columns[preview_reason]" value="1"' . ( $preview_checked ? ' checked' : '' ) . '>';
+		echo esc_html__( 'Show preliminary reasons publicly on this notice', 'ffcertificate' );
+		echo '</label>';
+		echo '<p class="description">' . esc_html__( 'When on, the public shortcode will render the reason label next to the preliminary status badge. Off by default per notice — operators decide all-or-nothing per edital.', 'ffcertificate' ) . '</p>';
+		echo '</td></tr>';
+
 		echo '</tbody></table>';
 		submit_button( __( 'Save general', 'ffcertificate' ) );
 		echo '</form>';
@@ -256,9 +336,17 @@ final class RecruitmentNoticeEditPage {
 		$state    = array_merge( $defaults, $decoded );
 
 		$mandatory = array( 'rank', 'name' );
+		// `preview_reason` is rendered in its own dedicated row below
+		// the column grid (see render_general_section()) because it's
+		// not really a column — it's a per-edital toggle controlling
+		// whether the preliminary-list reason text is exposed publicly.
+		$rendered_in_grid = static fn( string $key ): bool => 'preview_reason' !== $key;
 
 		$html = '<div class="ffc-recruitment-columns-toggles" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 16px;">';
 		foreach ( $labels as $key => $label ) {
+			if ( ! $rendered_in_grid( $key ) ) {
+				continue;
+			}
 			$is_mandatory = in_array( $key, $mandatory, true );
 			$checked      = $is_mandatory || ! empty( $state[ $key ] );
 			$id_attr      = 'ffc-notice-pcc-' . $key;
@@ -302,7 +390,10 @@ final class RecruitmentNoticeEditPage {
 			'cpf_masked'     => __( 'CPF (masked)', 'ffcertificate' ),
 			'rf_masked'      => __( 'RF (masked)', 'ffcertificate' ),
 			'email_masked'   => __( 'Email (masked)', 'ffcertificate' ),
-			'preview_reason' => __( 'Preliminary reason (publicly visible)', 'ffcertificate' ),
+			// Rendered as a dedicated row in render_general_section() rather
+			// than inside the column-toggles grid; key kept here so the
+			// save handler can iterate it the same way as the others.
+			'preview_reason' => __( 'Show preliminary reasons publicly', 'ffcertificate' ),
 		);
 	}
 
@@ -459,7 +550,7 @@ final class RecruitmentNoticeEditPage {
 			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/promote-preview",{'
 			. 'method:"POST",headers:{"X-WP-Nonce":"' . esc_attr( $rest_nonce ) . '"},body:fd,credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert(JSON.stringify(o.body));}'
+			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
 			. '}).catch(function(e){alert("Network error: "+e.message);});'
 			. '}'
 			. '</script>';
@@ -541,7 +632,7 @@ final class RecruitmentNoticeEditPage {
 			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/adjutancies/"+aid,{'
 			. 'method:"PUT",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert(JSON.stringify(o.body));}'
+			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
 			. '});return false;}'
 			. 'function ffcDetachAdjutancy(a){'
 			. 'var nid=a.getAttribute("data-notice");'
@@ -549,7 +640,7 @@ final class RecruitmentNoticeEditPage {
 			. 'fetch("' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/adjutancies/"+aid,{'
 			. 'method:"DELETE",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert(JSON.stringify(o.body));}'
+			. 'if(o.status>=200&&o.status<300){location.reload();}else{alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
 			. '});return false;}'
 			. '</script>';
 
@@ -884,7 +975,8 @@ final class RecruitmentNoticeEditPage {
 			}
 			echo '<td>' . esc_html( (string) $row->rank ) . '</td>';
 			echo '<td>' . esc_html( $candidate_name ) . '</td>';
-			echo '<td><code>' . esc_html( $adjutancy_slug ) . '</code></td>';
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+			echo '<td>' . RecruitmentAdminPage::adjutancy_badge( RecruitmentAdjutancyRepository::get_by_id( (int) $row->adjutancy_id ) ) . '</td>';
 			echo '<td>' . esc_html( (string) $row->score ) . '</td>';
 			if ( $is_preview_tab ) {
 				$current_preview = isset( $row->preview_status ) ? (string) $row->preview_status : 'empty';
@@ -894,7 +986,8 @@ final class RecruitmentNoticeEditPage {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 				echo '<td>' . self::render_preview_reason_select( (int) $row->id, $current_preview, $current_reason, $reasons ) . '</td>';
 			} else {
-				echo '<td><span class="ffc-status-badge ffc-status-' . esc_attr( (string) $row->status ) . '">' . esc_html( RecruitmentAdminPage::classification_status_label( (string) $row->status ) ) . '</span></td>';
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+				echo '<td>' . RecruitmentAdminPage::classification_status_badge( (string) $row->status ) . '</td>';
 			}
 			if ( $with_actions ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_classification_actions returns escaped HTML.
@@ -1134,19 +1227,43 @@ final class RecruitmentNoticeEditPage {
 			. 'var ids=[];var boxes=document.querySelectorAll(".ffc-cls-bulk-cb:checked");'
 			. 'for(var i=0;i<boxes.length;i++){ids.push(parseInt(boxes[i].value,10));}'
 			. 'if(ids.length===0){status.textContent="' . esc_attr( $bulk_no_sel ) . '";return;}'
-			// Out-of-order detection: any selected id whose rank > the
-			// lowest-empty-rank in the same adjutancy means the bulk
-			// would skip someone. Build the reasons map upfront if so —
-			// the user supplies one shared justification that we apply
-			// to every selected id (server ignores it for in-order ids).
-			. 'var lowest=ffcRecruitmentLowestEmpty();'
+			// Out-of-order detection: per adjutancy, find the lowest-rank
+			// empty row that's NOT in this bulk selection (the
+			// "threshold"). Any selected row in that adjutancy with
+			// rank > threshold means the bulk would skip someone.
+			//
+			// Naïvely comparing against the global lowest-empty rank
+			// (the previous logic) tripped on every legitimate
+			// in-order bulk: selecting ranks 1+2+3 from empties [1,2,3]
+			// would flag rank 2 and rank 3 as OOO because rank 1 is
+			// still empty at scan time, even though rank 1 is also in
+			// the same selection and gets called atomically alongside.
+			. 'var panel=document.querySelector(\'[data-ffc-clspanel="definitive"]\');'
+			. 'var emptyByAdj={};'
+			. 'if(panel){'
+			. 'var allRows=panel.querySelectorAll("tr[data-cls-id]");'
+			. 'for(var p=0;p<allRows.length;p++){'
+			. 'var ptr=allRows[p];'
+			. 'if(ptr.getAttribute("data-cls-status")!=="empty")continue;'
+			. 'var padj=ptr.getAttribute("data-cls-adjutancy");'
+			. 'if(!emptyByAdj[padj])emptyByAdj[padj]=[];'
+			. 'emptyByAdj[padj].push({id:parseInt(ptr.getAttribute("data-cls-id"),10),rank:parseInt(ptr.getAttribute("data-cls-rank"),10)});'
+			. '}'
+			. '}'
+			. 'for(var k in emptyByAdj){emptyByAdj[k].sort(function(a,b){return a.rank-b.rank;});}'
+			. 'var selSet={};'
+			. 'for(var s=0;s<ids.length;s++){selSet[String(ids[s])]=true;}'
 			. 'var anyOoO=false;'
-			. 'for(var j=0;j<ids.length;j++){'
-			. 'var tr=document.querySelector(\'tr[data-cls-id="\'+ids[j]+\'"]\');'
-			. 'if(!tr)continue;'
-			. 'var rank=parseInt(tr.getAttribute("data-cls-rank"),10);'
-			. 'var adj=tr.getAttribute("data-cls-adjutancy");'
-			. 'if(lowest[adj]&&rank>lowest[adj]){anyOoO=true;break;}'
+			. 'for(var adjKey in emptyByAdj){'
+			. 'var threshold=Infinity;'
+			. 'var rows=emptyByAdj[adjKey];'
+			. 'for(var t=0;t<rows.length;t++){'
+			. 'if(!selSet[String(rows[t].id)]){threshold=rows[t].rank;break;}'
+			. '}'
+			. 'for(var u=0;u<rows.length;u++){'
+			. 'if(selSet[String(rows[u].id)]&&rows[u].rank>threshold){anyOoO=true;break;}'
+			. '}'
+			. 'if(anyOoO)break;'
 			. '}'
 			. 'var reasons={};'
 			. 'if(anyOoO){'
@@ -1165,7 +1282,7 @@ final class RecruitmentNoticeEditPage {
 			. 'credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
 			. 'if(o.status>=200&&o.status<300){location.reload();}'
-			. 'else{status.textContent="Error: "+JSON.stringify(o.body);}'
+			. 'else{status.textContent="Error: "+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
 			. '}).catch(function(e){status.textContent="Network error: "+e.message;});'
 			. '}'
 			// Per-row action handler (Call / Mark accepted / etc.).
@@ -1215,7 +1332,7 @@ final class RecruitmentNoticeEditPage {
 			. 'btn.disabled=true;'
 			. 'fetch(url,init).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
 			. 'if(o.status>=200&&o.status<300){location.reload();}'
-			. 'else{alert(JSON.stringify(o.body));btn.disabled=false;}'
+			. 'else{alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));btn.disabled=false;}'
 			. '}).catch(function(e){alert("Network error: "+e.message);btn.disabled=false;});'
 			. '}'
 			. '</script>';
@@ -1251,7 +1368,7 @@ final class RecruitmentNoticeEditPage {
 			. 'credentials:"same-origin"'
 			. '}).then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
 			. 'if(o.status>=200&&o.status<300){return;}'
-			. 'alert(JSON.stringify(o.body));'
+			. 'alert((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));'
 			. '});'
 			. '}'
 			. 'document.querySelectorAll("tr[data-cls-id]").forEach(function(row){'

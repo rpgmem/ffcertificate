@@ -89,6 +89,59 @@ final class RecruitmentAdminPage {
 	}
 
 	/**
+	 * Render a classification-status badge using the same inline-style
+	 * approach as the public shortcode so the configured `status_color_*`
+	 * Settings override applies on admin surfaces too.
+	 *
+	 * Mirrors {@see RecruitmentPublicShortcode::render_status_badge()};
+	 * the admin label distinguishes Called from Accepted (the public
+	 * surface collapses both to "Called" for candidates).
+	 *
+	 * @param string $status Classification status enum.
+	 * @return string Already-escaped HTML.
+	 */
+	public static function classification_status_badge( string $status ): string {
+		$settings = RecruitmentSettings::all();
+		$colors   = array(
+			'empty'     => (string) $settings['status_color_empty'],
+			'called'    => (string) $settings['status_color_called'],
+			'accepted'  => (string) $settings['status_color_called'],
+			'hired'     => (string) $settings['status_color_hired'],
+			'not_shown' => (string) $settings['status_color_not_shown'],
+		);
+		$bg       = $colors[ $status ] ?? '#e9ecef';
+		return sprintf(
+			'<span class="ffc-status-badge ffc-status-%1$s" style="background:%2$s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%3$s</span>',
+			esc_attr( $status ),
+			esc_attr( $bg ),
+			esc_html( self::classification_status_label( $status ) )
+		);
+	}
+
+	/**
+	 * Render an adjutancy badge using the per-adjutancy color column.
+	 * Mirrors {@see RecruitmentPublicShortcode::render_adjutancy_badge()}.
+	 *
+	 * @param object|null $adjutancy Adjutancy row (or null when the row was deleted).
+	 * @return string Already-escaped HTML; empty when adjutancy is null.
+	 */
+	public static function adjutancy_badge( ?object $adjutancy ): string {
+		if ( null === $adjutancy ) {
+			return '';
+		}
+		$color_raw = $adjutancy->color ?? '';
+		$color     = is_string( $color_raw ) && '' !== $color_raw
+			? $color_raw
+			: RecruitmentAdjutancyRepository::DEFAULT_COLOR;
+		$name      = $adjutancy->name ?? '';
+		return sprintf(
+			'<span class="ffc-recruitment-adjutancy-badge" style="background:%1$s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%2$s</span>',
+			esc_attr( $color ),
+			esc_html( is_string( $name ) ? $name : '' )
+		);
+	}
+
+	/**
 	 * Hook callback for `admin_menu` (priority 10).
 	 *
 	 * Registered as a top-level menu (icon + sidebar entry) at position 28,
@@ -156,7 +209,7 @@ final class RecruitmentAdminPage {
 
 		// Edit screens hijack the whole render — they have their own
 		// chrome (h1 + back link) and don't share the tab strip.
-		if ( 'edit-notice' === $action || 'edit-candidate' === $action ) {
+		if ( 'edit-notice' === $action || 'edit-candidate' === $action || 'edit-reason' === $action ) {
 			echo '<div class="wrap ffc-recruitment-admin">';
 			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash.
@@ -166,8 +219,10 @@ final class RecruitmentAdminPage {
 			}
 			if ( 'edit-notice' === $action ) {
 				RecruitmentNoticeEditPage::render();
-			} else {
+			} elseif ( 'edit-candidate' === $action ) {
 				RecruitmentCandidateEditPage::render();
+			} else {
+				RecruitmentReasonEditPage::render();
 			}
 			echo '</div>';
 			return;
@@ -507,7 +562,7 @@ final class RecruitmentAdminPage {
 			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
 			. 'body:fd'
 			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.id){location.reload();}else{alert(JSON.stringify(d));}'
+			. 'if(d&&d.id){location.reload();}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
 			. '});return false;}'
 			. '</script>';
 	}
@@ -539,7 +594,7 @@ final class RecruitmentAdminPage {
 			. 'input.value=d.color;'
 			. 'var hex=input.parentNode.querySelector(".ffc-reason-color-hex");'
 			. 'if(hex){hex.textContent=d.color;}'
-			. '}else{alert(JSON.stringify(d));}'
+			. '}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
 			. '});'
 			. '});'
 			. '});'
@@ -579,7 +634,7 @@ final class RecruitmentAdminPage {
 			. 'input.value=d.color;'
 			. 'var hex=input.parentNode.querySelector(".ffc-adjutancy-color-hex");'
 			. 'if(hex){hex.textContent=d.color;}'
-			. '}else{alert(JSON.stringify(d));}'
+			. '}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
 			. '});'
 			. '});'
 			. '});'
@@ -767,7 +822,7 @@ final class RecruitmentAdminPage {
 			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
 			. 'body:fd'
 			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.id){location.reload();}else{alert(JSON.stringify(d));}'
+			. 'if(d&&d.id){location.reload();}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
 			. '});return false;}'
 			. '</script>';
 	}
@@ -805,7 +860,7 @@ final class RecruitmentAdminPage {
 			. 'headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},'
 			. 'body:fd'
 			. '}).then(function(r){return r.json();}).then(function(d){'
-			. 'if(d&&d.id){location.reload();}else{alert(JSON.stringify(d));}'
+			. 'if(d&&d.id){location.reload();}else{alert((d&&d.message)?d.message:JSON.stringify(d));}'
 			. '});return false;}'
 			. '</script>';
 	}
