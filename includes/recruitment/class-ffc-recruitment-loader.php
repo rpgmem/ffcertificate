@@ -47,6 +47,7 @@ final class RecruitmentLoader {
 		RecruitmentAdminAssetsManager::register();
 		RecruitmentNoticeEditPage::register();
 		RecruitmentCandidateEditPage::register();
+		RecruitmentReasonEditPage::register();
 
 		// Idempotent schema migrations (option-versioned). 6.1.0 adds the
 		// `active` → `definitive` enum rename; future steps append.

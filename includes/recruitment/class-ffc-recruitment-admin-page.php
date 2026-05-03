@@ -156,7 +156,7 @@ final class RecruitmentAdminPage {
 
 		// Edit screens hijack the whole render — they have their own
 		// chrome (h1 + back link) and don't share the tab strip.
-		if ( 'edit-notice' === $action || 'edit-candidate' === $action ) {
+		if ( 'edit-notice' === $action || 'edit-candidate' === $action || 'edit-reason' === $action ) {
 			echo '<div class="wrap ffc-recruitment-admin">';
 			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash.
@@ -166,8 +166,10 @@ final class RecruitmentAdminPage {
 			}
 			if ( 'edit-notice' === $action ) {
 				RecruitmentNoticeEditPage::render();
-			} else {
+			} elseif ( 'edit-candidate' === $action ) {
 				RecruitmentCandidateEditPage::render();
+			} else {
+				RecruitmentReasonEditPage::render();
 			}
 			echo '</div>';
 			return;

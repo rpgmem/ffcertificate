@@ -112,6 +112,15 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 		$slug = (string) $item['slug'];
 		$id   = (int) $item['id'];
 
+		$edit_url   = add_query_arg(
+			array(
+				'page'      => RecruitmentAdminPage::PAGE_SLUG,
+				'tab'       => 'reasons',
+				'action'    => 'edit-reason',
+				'reason_id' => $id,
+			),
+			admin_url( 'admin.php' )
+		);
 		$delete_url = wp_nonce_url(
 			add_query_arg(
 				array(
@@ -126,6 +135,7 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 		);
 
 		$actions = array(
+			'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html__( 'Edit', 'ffcertificate' ) ),
 			'delete' => sprintf(
 				'<a href="%s" onclick="return confirm(\'%s\');" class="submitdelete">%s</a>',
 				esc_url( $delete_url ),
@@ -135,7 +145,8 @@ class RecruitmentReasonsListTable extends \WP_List_Table {
 		);
 
 		return sprintf(
-			'<strong><code>%s</code></strong>%s',
+			'<strong><a href="%s"><code>%s</code></a></strong>%s',
+			esc_url( $edit_url ),
 			esc_html( $slug ),
 			$this->row_actions( $actions )
 		);
