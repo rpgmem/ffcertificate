@@ -476,7 +476,7 @@ final class RecruitmentPublicShortcode {
 			$html .= '<td>' . esc_html( number_format( $tp, 2, '.', '' ) ) . '</td>';
 		}
 		if ( $columns['hab_emebs'] ) {
-			$on    = isset( $row->hab_emebs ) && (int) $row->hab_emebs === 1;
+			$on    = isset( $row->hab_emebs ) && 1 === (int) $row->hab_emebs;
 			$html .= '<td>' . ( $on ? esc_html__( 'Yes', 'ffcertificate' ) : '—' ) . '</td>';
 		}
 		if ( $columns['status'] ) {
