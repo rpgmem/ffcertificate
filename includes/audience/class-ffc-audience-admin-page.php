@@ -206,7 +206,10 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			array( $this->dashboard, 'render_dashboard_page' ),
 			'dashicons-calendar-alt',
-			26
+			// Floats avoid third-party plugins picking the same integer
+			// from interleaving inside the FFC block. The block lives
+			// at 26.x so all three FFC top-level menus stay contiguous.
+			26.1
 		);
 
 		// --- Self-Scheduling items are auto-registered here by CPT (Personal Calendars, New)

@@ -142,10 +142,37 @@ final class RecruitmentAdminPage {
 	}
 
 	/**
+	 * Render a notice-status badge driven by the configured
+	 * `notice_status_color_*` Settings keys. Same shape as the other
+	 * admin/public badges (inline-styled span). Used by the notices
+	 * list table and by the public shortcode's status banner so both
+	 * surfaces share one operator-tunable palette.
+	 *
+	 * @param string $status Notice status enum (`draft`/`preliminary`/`definitive`/`closed`).
+	 * @return string Already-escaped HTML.
+	 */
+	public static function notice_status_badge( string $status ): string {
+		$settings = RecruitmentSettings::all();
+		$colors   = array(
+			'draft'       => (string) $settings['notice_status_color_draft'],
+			'preliminary' => (string) $settings['notice_status_color_preliminary'],
+			'definitive'  => (string) $settings['notice_status_color_definitive'],
+			'closed'      => (string) $settings['notice_status_color_closed'],
+		);
+		$bg       = $colors[ $status ] ?? '#e9ecef';
+		return sprintf(
+			'<span class="ffc-status-badge ffc-status-%1$s" style="background:%2$s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%3$s</span>',
+			esc_attr( $status ),
+			esc_attr( $bg ),
+			esc_html( self::notice_status_label( $status ) )
+		);
+	}
+
+	/**
 	 * Hook callback for `admin_menu` (priority 10).
 	 *
-	 * Registered as a top-level menu (icon + sidebar entry) at position 28,
-	 * mirroring the Audience (26) and Reregistration (27) modules so the
+	 * Registered as a top-level menu (icon + sidebar entry) at position
+	 * 26.3, alongside Scheduling (26.1) and Reregistration (26.2) so the
 	 * three sibling business modules sit together in the wp-admin sidebar.
 	 *
 	 * @return void
@@ -158,7 +185,11 @@ final class RecruitmentAdminPage {
 			self::PAGE_SLUG,
 			array( self::class, 'render_page' ),
 			'dashicons-groups',
-			28
+			// Float keeps the FFC block (Scheduling 26.1, Reregistration
+			// 26.2, Recruitment 26.3) contiguous in the wp-admin sidebar:
+			// other plugins picking integer 26 / 27 / 28 can no longer
+			// interleave between our items.
+			26.3
 		);
 
 		// WP auto-creates a duplicate "Recruitment" first submenu when
@@ -800,6 +831,25 @@ final class RecruitmentAdminPage {
 			'subscription_color_geral' => __( 'GERAL', 'ffcertificate' ),
 		);
 		foreach ( $subscription_color_rows as $field => $label ) {
+			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
+			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
+			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
+			echo '</td></tr>';
+		}
+
+		echo '</tbody></table>';
+
+		echo '<h3>' . esc_html__( 'Notice status — badge colors', 'ffcertificate' ) . '</h3>';
+		echo '<p class="description">' . esc_html__( 'Background color used for each notice lifecycle status (Draft / Preliminary / Definitive / Closed). Drives both the admin Notices list table and the public shortcode banner so both surfaces share one palette.', 'ffcertificate' ) . '</p>';
+		echo '<table class="form-table"><tbody>';
+
+		$notice_status_color_rows = array(
+			'notice_status_color_draft'       => __( 'Draft', 'ffcertificate' ),
+			'notice_status_color_preliminary' => __( 'Preliminary', 'ffcertificate' ),
+			'notice_status_color_definitive'  => __( 'Definitive', 'ffcertificate' ),
+			'notice_status_color_closed'      => __( 'Closed', 'ffcertificate' ),
+		);
+		foreach ( $notice_status_color_rows as $field => $label ) {
 			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
 			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
 			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';

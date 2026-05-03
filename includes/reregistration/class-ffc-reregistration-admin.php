@@ -78,7 +78,9 @@ class ReregistrationAdmin {
 			self::MENU_SLUG,
 			array( $this, 'render_page' ),
 			'dashicons-update-alt',
-			27
+			// Float to keep the FFC block contiguous (26.1 → 26.2 → 26.3);
+			// see Audience admin for rationale.
+			26.2
 		);
 
 		// Rename auto-generated first submenu from "Reregistration" to "Campaigns".

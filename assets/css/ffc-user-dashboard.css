@@ -341,7 +341,8 @@
 .ffc-certificates-table,
 .ffc-appointments-table,
 .ffc-audience-bookings-table,
-.ffc-reregistrations-table {
+.ffc-reregistrations-table,
+.ffc-recruitment-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
@@ -354,7 +355,8 @@
 .ffc-certificates-table th,
 .ffc-appointments-table th,
 .ffc-audience-bookings-table th,
-.ffc-reregistrations-table th {
+.ffc-reregistrations-table th,
+.ffc-recruitment-table th {
     background: var(--ffc-bg-subtle);
     padding: 10px 12px;
     text-align: left;
@@ -369,7 +371,8 @@
 .ffc-certificates-table td,
 .ffc-appointments-table td,
 .ffc-audience-bookings-table td,
-.ffc-reregistrations-table td {
+.ffc-reregistrations-table td,
+.ffc-recruitment-table td {
     padding: 10px 12px;
     border-bottom: 1px solid var(--ffc-border-light);
     vertical-align: middle;
@@ -380,14 +383,16 @@
 .ffc-certificates-table tr:last-child td,
 .ffc-appointments-table tr:last-child td,
 .ffc-audience-bookings-table tr:last-child td,
-.ffc-reregistrations-table tr:last-child td {
+.ffc-reregistrations-table tr:last-child td,
+.ffc-recruitment-table tr:last-child td {
     border-bottom: none;
 }
 
 .ffc-certificates-table tbody tr:hover,
 .ffc-appointments-table tbody tr:hover,
 .ffc-audience-bookings-table tbody tr:hover,
-.ffc-reregistrations-table tbody tr:hover {
+.ffc-reregistrations-table tbody tr:hover,
+.ffc-recruitment-table tbody tr:hover {
     background: var(--ffc-primary-light);
 }
 
@@ -1571,6 +1576,65 @@
         padding: 4px 8px;
         font-size: 11px;
     }
+}
+
+/* ==========================================================================
+   RECRUITMENT TAB — visual parity with the other dashboard tabs
+   ========================================================================== */
+
+#tab-recruitment .ffc-recruitment-my-calls > h2 {
+    margin: 0 0 16px;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ffc-text);
+}
+
+#tab-recruitment .ffc-recruitment-my-notice {
+    border: 1px solid var(--ffc-border-light);
+    border-radius: var(--ffc-radius);
+    background: #fff;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+#tab-recruitment .ffc-recruitment-my-notice header {
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--ffc-border-light);
+    padding-bottom: 12px;
+}
+
+#tab-recruitment .ffc-recruitment-my-notice header h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ffc-text);
+}
+
+#tab-recruitment .ffc-recruitment-my-notice h4 {
+    margin: 16px 0 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ffc-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+#tab-recruitment .ffc-recruitment-banner {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: var(--ffc-radius);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+#tab-recruitment .ffc-banner-preliminary {
+    background: var(--ffc-warning-light, #fff3cd);
+    color: var(--ffc-warning-dark, #856404);
+}
+
+#tab-recruitment .ffc-banner-definitive {
+    background: var(--ffc-success-light, #d4edda);
+    color: var(--ffc-success-dark, #155724);
 }
 
 /* ==========================================================================

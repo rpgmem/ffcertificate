@@ -215,9 +215,24 @@ final class RecruitmentNoticeEditPage {
 		echo '</td></tr>';
 
 		echo '</tbody></table>';
-		echo '<p><button type="submit" class="button button-primary">' . esc_html__( 'Import', 'ffcertificate' ) . '</button> ';
-		echo '<span id="ffc-edit-csv-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span></p>';
+		echo '<p>';
+		echo '<button id="ffc-edit-csv-submit" type="submit" class="button button-primary">' . esc_html__( 'Import', 'ffcertificate' ) . '</button> ';
+		// Spinner + elapsed counter sits in the same line. Hidden until
+		// submit fires; revealed by the inline JS below. The importer is
+		// a single atomic request (no streaming progress hook) so this is
+		// an "activity indicator with elapsed seconds", not a real
+		// progress bar — the goal is to make it clear the request is in
+		// flight on large CSVs that may take 5–30s to commit.
+		echo '<span id="ffc-edit-csv-progress" style="display:none;align-items:center;gap:.5em;">';
+		echo '<span class="spinner is-active" style="float:none;margin:0;"></span>';
+		echo '<span id="ffc-edit-csv-progress-text"></span>';
+		echo '</span>';
+		echo '<span id="ffc-edit-csv-status" style="margin-left:1em;font-family:monospace;font-size:12px;"></span>';
+		echo '</p>';
 		echo '</form>';
+
+		$processing_label = esc_js( __( 'Processing CSV…', 'ffcertificate' ) );
+		$elapsed_label    = esc_js( __( 'elapsed', 'ffcertificate' ) );
 
 		// Inline fetch handler — selects between /import (preview) and
 		// /promote-preview (definitive_import + transitions to definitive)
@@ -235,13 +250,31 @@ final class RecruitmentNoticeEditPage {
 			. '}else{'
 			. 'url="' . esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/notices/' ) ) . '"+nid+"/import";'
 			. '}'
+			. 'var btn=document.getElementById("ffc-edit-csv-submit");'
 			. 'var status=document.getElementById("ffc-edit-csv-status");'
-			. 'status.textContent="…";'
+			. 'var progress=document.getElementById("ffc-edit-csv-progress");'
+			. 'var progressText=document.getElementById("ffc-edit-csv-progress-text");'
+			. 'btn.disabled=true;'
+			// Disabling submit doesn\'t prevent file-picker change post-submit;
+			// the visible progress widget makes it obvious the request is in
+			// flight even on slower connections / larger CSVs.
+			. 'progress.style.display="inline-flex";'
+			. 'status.textContent="";'
+			. 'var startedAt=Date.now();'
+			. 'function tick(){'
+			. 'var sec=Math.floor((Date.now()-startedAt)/1000);'
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $processing_label / $elapsed_label are esc_js()-encoded above before interpolation.
+			. 'progressText.textContent="' . $processing_label . ' "+sec+"s ' . $elapsed_label . '";'
+			. '}'
+			. 'tick();'
+			. 'var timer=setInterval(tick,1000);'
+			. 'function cleanup(){clearInterval(timer);progress.style.display="none";btn.disabled=false;}'
 			. 'fetch(url,{method:"POST",headers:{"X-WP-Nonce":"' . esc_attr( $nonce ) . '"},body:fd,credentials:"same-origin"})'
 			. '.then(function(r){return r.json().then(function(d){return{status:r.status,body:d};});}).then(function(o){'
-			. 'if(o.status>=200&&o.status<300){status.textContent="OK ("+JSON.stringify(o.body)+")";location.reload();}'
+			. 'cleanup();'
+			. 'if(o.status>=200&&o.status<300){status.textContent="OK ("+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body))+")";location.reload();}'
 			. 'else{status.textContent="Error: "+((o.body&&o.body.message)?o.body.message:JSON.stringify(o.body));}'
-			. '}).catch(function(e){status.textContent="Network error: "+e.message;});'
+			. '}).catch(function(e){cleanup();status.textContent="Network error: "+e.message;});'
 			. 'return false;}'
 			. '</script>';
 
@@ -429,7 +462,8 @@ final class RecruitmentNoticeEditPage {
 		echo '<div class="inside">';
 
 		echo '<p><strong>' . esc_html__( 'Current state:', 'ffcertificate' ) . '</strong> ';
-		echo '<span class="ffc-status-badge ffc-status-' . esc_attr( $current ) . '">' . esc_html( RecruitmentAdminPage::notice_status_label( $current ) ) . '</span>';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+		echo RecruitmentAdminPage::notice_status_badge( $current );
 		if ( '1' === (string) $notice->was_reopened ) {
 			echo ' <em>(' . esc_html__( 'previously reopened — hired/not_shown classifications are frozen', 'ffcertificate' ) . ')</em>';
 		}
