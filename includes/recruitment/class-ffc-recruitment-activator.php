@@ -119,6 +119,46 @@ class RecruitmentActivator {
 			self::create_reason_table();
 			update_option( $option_key, 5 );
 		}
+
+		if ( $current < 6 ) {
+			self::migrate_add_classification_csv_extension_columns();
+			update_option( $option_key, 6 );
+		}
+	}
+
+	/**
+	 * V6 schema migration — add `time_points` (DECIMAL) and `hab_emebs`
+	 * (TINYINT) columns to `ffc_recruitment_classification` so the CSV
+	 * importer has somewhere to land the optional new fields.
+	 *
+	 * Both columns default to 0 / 0 so existing rows stay valid; CSVs
+	 * that omit the new headers populate the defaults at import time.
+	 *
+	 * Idempotent via the SHOW COLUMNS guard.
+	 *
+	 * @return void
+	 */
+	private static function migrate_add_classification_csv_extension_columns(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
+		$has_time_points = $wpdb->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'time_points'" );
+		if ( null === $has_time_points || '' === (string) $has_time_points ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+			$wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN time_points DECIMAL(10,4) NOT NULL DEFAULT 0 AFTER score" );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		$has_hab_emebs = $wpdb->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'hab_emebs'" );
+		if ( null === $has_hab_emebs || '' === (string) $has_hab_emebs ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+			$wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN hab_emebs TINYINT(1) NOT NULL DEFAULT 0 AFTER time_points" );
+		}
 	}
 
 	/**
@@ -441,6 +481,8 @@ class RecruitmentActivator {
             list_type enum('preview','definitive') NOT NULL,
             `rank` int unsigned NOT NULL,
             score decimal(10,4) NOT NULL,
+            time_points decimal(10,4) NOT NULL DEFAULT 0,
+            hab_emebs tinyint(1) NOT NULL DEFAULT 0,
             status enum('empty','called','accepted','not_shown','hired') NOT NULL DEFAULT 'empty',
             preview_status enum('empty','denied','granted','appeal_denied','appeal_granted') NOT NULL DEFAULT 'empty',
             preview_reason_id bigint(20) unsigned DEFAULT NULL,

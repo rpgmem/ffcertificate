@@ -282,11 +282,15 @@ class RecruitmentClassificationRepository {
 				'list_type'    => $data['list_type'],
 				'rank'         => $data['rank'],
 				'score'        => (string) $data['score'],
+				// Optional CSV-extension columns added in v6 — both default
+				// to 0 / 0 when the importer / caller didn't supply them.
+				'time_points'  => isset( $data['time_points'] ) ? (string) $data['time_points'] : '0',
+				'hab_emebs'    => isset( $data['hab_emebs'] ) && $data['hab_emebs'] ? 1 : 0,
 				'status'       => $data['status'] ?? 'empty',
 				'created_at'   => $now,
 				'updated_at'   => $now,
 			),
-			array( '%d', '%d', '%d', '%s', '%d', '%s', '%s', '%s', '%s' )
+			array( '%d', '%d', '%d', '%s', '%d', '%s', '%s', '%d', '%s', '%s', '%s' )
 		);
 
 		if ( ! $result ) {
