@@ -854,10 +854,11 @@ final class RecruitmentPublicShortcode {
 			? $color_raw
 			: RecruitmentAdjutancyRepository::DEFAULT_COLOR;
 		$name      = $adjutancy->name ?? '';
-		return sprintf(
-			'<span class="ffc-recruitment-adjutancy-badge" style="background:%s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%s</span>',
-			esc_attr( $color ),
-			esc_html( is_string( $name ) ? $name : '' )
+		return RecruitmentBadgeHtml::render(
+			'ffc-recruitment-adjutancy-badge',
+			'',
+			$color,
+			is_string( $name ) ? $name : ''
 		);
 	}
 
@@ -877,11 +878,11 @@ final class RecruitmentPublicShortcode {
 			? (string) $settings['subscription_color_pcd']
 			: (string) $settings['subscription_color_geral'];
 		$label    = $is_pcd ? __( 'PCD', 'ffcertificate' ) : __( 'GERAL', 'ffcertificate' );
-		return sprintf(
-			'<span class="ffc-recruitment-subscription-badge ffc-recruitment-subscription-%1$s" style="background:%2$s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%3$s</span>',
-			$is_pcd ? 'pcd' : 'geral',
-			esc_attr( $bg ),
-			esc_html( $label )
+		return RecruitmentBadgeHtml::render(
+			'ffc-recruitment-subscription-badge',
+			'ffc-recruitment-subscription-' . ( $is_pcd ? 'pcd' : 'geral' ),
+			$bg,
+			$label
 		);
 	}
 
@@ -910,18 +911,12 @@ final class RecruitmentPublicShortcode {
 			'appeal_denied'  => (string) $settings['preview_color_appeal_denied'],
 			'appeal_granted' => (string) $settings['preview_color_appeal_granted'],
 		);
-		$bg       = $colors[ $status ] ?? '#e9ecef';
-		$label    = self::preview_status_label( $status );
-		$has_tip  = '' !== $reason_label;
-		$cursor   = $has_tip ? 'help' : 'default';
-		$title    = $has_tip ? ' title="' . esc_attr( $reason_label ) . '"' : '';
-		return sprintf(
-			'<span class="ffc-recruitment-preview-status-badge ffc-recruitment-preview-status-%1$s"%2$s style="background:%3$s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;cursor:%4$s;">%5$s</span>',
-			esc_attr( $status ),
-			$title,
-			esc_attr( $bg ),
-			esc_attr( $cursor ),
-			esc_html( $label )
+		return RecruitmentBadgeHtml::render(
+			'ffc-recruitment-preview-status-badge',
+			'ffc-recruitment-preview-status-' . $status,
+			$colors[ $status ] ?? '#e9ecef',
+			self::preview_status_label( $status ),
+			$reason_label
 		);
 	}
 
@@ -969,13 +964,11 @@ final class RecruitmentPublicShortcode {
 			'hired'     => (string) $settings['status_color_hired'],
 			'not_shown' => (string) $settings['status_color_not_shown'],
 		);
-		$bg       = $colors[ $status ] ?? '#e9ecef';
-		$label    = self::status_label( $status );
-		return sprintf(
-			'<span class="ffc-recruitment-status-badge ffc-recruitment-status-%s" style="background:%s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%s</span>',
-			esc_attr( $status ),
-			esc_attr( $bg ),
-			esc_html( $label )
+		return RecruitmentBadgeHtml::render(
+			'ffc-recruitment-status-badge',
+			'ffc-recruitment-status-' . $status,
+			$colors[ $status ] ?? '#e9ecef',
+			self::status_label( $status )
 		);
 	}
 

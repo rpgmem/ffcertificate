@@ -109,12 +109,11 @@ final class RecruitmentAdminPage {
 			'hired'     => (string) $settings['status_color_hired'],
 			'not_shown' => (string) $settings['status_color_not_shown'],
 		);
-		$bg       = $colors[ $status ] ?? '#e9ecef';
-		return sprintf(
-			'<span class="ffc-status-badge ffc-status-%1$s" style="background:%2$s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%3$s</span>',
-			esc_attr( $status ),
-			esc_attr( $bg ),
-			esc_html( self::classification_status_label( $status ) )
+		return RecruitmentBadgeHtml::render(
+			'ffc-status-badge',
+			'ffc-status-' . $status,
+			$colors[ $status ] ?? '#e9ecef',
+			self::classification_status_label( $status )
 		);
 	}
 
@@ -134,10 +133,11 @@ final class RecruitmentAdminPage {
 			? $color_raw
 			: RecruitmentAdjutancyRepository::DEFAULT_COLOR;
 		$name      = $adjutancy->name ?? '';
-		return sprintf(
-			'<span class="ffc-recruitment-adjutancy-badge" style="background:%1$s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%2$s</span>',
-			esc_attr( $color ),
-			esc_html( is_string( $name ) ? $name : '' )
+		return RecruitmentBadgeHtml::render(
+			'ffc-recruitment-adjutancy-badge',
+			'',
+			$color,
+			is_string( $name ) ? $name : ''
 		);
 	}
 
@@ -159,12 +159,11 @@ final class RecruitmentAdminPage {
 			'definitive'  => (string) $settings['notice_status_color_definitive'],
 			'closed'      => (string) $settings['notice_status_color_closed'],
 		);
-		$bg       = $colors[ $status ] ?? '#e9ecef';
-		return sprintf(
-			'<span class="ffc-status-badge ffc-status-%1$s" style="background:%2$s;color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;">%3$s</span>',
-			esc_attr( $status ),
-			esc_attr( $bg ),
-			esc_html( self::notice_status_label( $status ) )
+		return RecruitmentBadgeHtml::render(
+			'ffc-status-badge',
+			'ffc-status-' . $status,
+			$colors[ $status ] ?? '#e9ecef',
+			self::notice_status_label( $status )
 		);
 	}
 
