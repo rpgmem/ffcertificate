@@ -92,10 +92,13 @@ final class RecruitmentNoticeEditPage {
 		// slugs match the catalog convention from the Adjutancies tab;
 		// operators must replace them with slugs that exist on the
 		// target notice before importing.
+		// `time_points` and `hab_emebs` are optional headers (v6) — kept
+		// in the example so operators see the canonical column order.
+		// Existing CSVs that omit them keep importing unchanged.
 		$rows = array(
-			array( 'name', 'cpf', 'rf', 'email', 'phone', 'adjutancy', 'rank', 'score', 'pcd' ),
-			array( 'Maria da Silva', '12345678909', '111111', 'maria@example.com', '11999990000', 'portugues', '1', '85.50', '1' ),
-			array( 'João Souza', '98765432100', '222222', 'joao@example.com', '11988887777', 'matematica', '2', '78.25', '0' ),
+			array( 'name', 'cpf', 'rf', 'email', 'phone', 'adjutancy', 'rank', 'score', 'time_points', 'hab_emebs', 'pcd' ),
+			array( 'Maria da Silva', '12345678909', '111111', 'maria@example.com', '11999990000', 'portugues', '1', '85.50', '12.00', '1', '1' ),
+			array( 'João Souza', '98765432100', '222222', 'joao@example.com', '11988887777', 'matematica', '2', '78.25', '8.50', '0', '0' ),
 		);
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV to php://output; WP_Filesystem has no streaming equivalent. Same convention as RecruitmentCsvImporter / ReregistrationCsvExporter.
@@ -185,7 +188,7 @@ final class RecruitmentNoticeEditPage {
 			return;
 		}
 
-		echo '<p>' . esc_html__( 'UTF-8 CSV (BOM optional). Headers (English): name, cpf, rf, email, phone, adjutancy, rank, score, pcd. At least one of cpf/rf required per row. Comma or semicolon delimiter is auto-detected.', 'ffcertificate' ) . '</p>';
+		echo '<p>' . esc_html__( 'UTF-8 CSV (BOM optional). Required headers (English): name, cpf, rf, email, adjutancy, rank, score, pcd. Optional headers: phone, time_points, hab_emebs. At least one of cpf/rf required per row. Comma or semicolon delimiter is auto-detected.', 'ffcertificate' ) . '</p>';
 
 		$example_url = wp_nonce_url(
 			add_query_arg(
@@ -383,10 +386,16 @@ final class RecruitmentNoticeEditPage {
 			'name'           => __( 'Name', 'ffcertificate' ),
 			'adjutancy'      => __( 'Adjutancy', 'ffcertificate' ),
 			'status'         => __( 'Status', 'ffcertificate' ),
-			'pcd_badge'      => __( 'PCD badge', 'ffcertificate' ),
+			// Storage key kept as `pcd_badge` for backward compatibility
+			// (existing notices' public_columns_config JSON keeps working);
+			// surfaced as "Subscription type" because the PCD column on
+			// the CSV is a boolean PCD/GERAL flag.
+			'pcd_badge'      => __( 'Subscription type (PCD / GERAL)', 'ffcertificate' ),
 			'date_to_assume' => __( 'Date to assume', 'ffcertificate' ),
 			'time_to_assume' => __( 'Time to assume', 'ffcertificate' ),
 			'score'          => __( 'Score', 'ffcertificate' ),
+			'time_points'    => __( 'Time points', 'ffcertificate' ),
+			'hab_emebs'      => __( 'HAB. EMEBs', 'ffcertificate' ),
 			'cpf_masked'     => __( 'CPF (masked)', 'ffcertificate' ),
 			'rf_masked'      => __( 'RF (masked)', 'ffcertificate' ),
 			'email_masked'   => __( 'Email (masked)', 'ffcertificate' ),

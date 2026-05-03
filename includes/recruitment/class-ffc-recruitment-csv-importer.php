@@ -74,7 +74,7 @@ final class RecruitmentCsvImporter {
 	/**
 	 * Optional CSV headers.
 	 */
-	private const OPTIONAL_HEADERS = array( 'phone' );
+	private const OPTIONAL_HEADERS = array( 'phone', 'time_points', 'hab_emebs' );
 
 	/**
 	 * Run a `preview` import on a notice in `draft` or `preliminary` state.
@@ -182,6 +182,13 @@ final class RecruitmentCsvImporter {
 						'list_type'    => $list_type,
 						'rank'         => $row['rank'],
 						'score'        => $row['score'],
+						// Optional CSV-extension columns added in v6 —
+						// the repository defaults to 0 / 0 when these
+						// keys are missing. hab_emebs accepts the same
+						// case-insensitive truthy set as the pcd column
+						// (true/1/sim/yes).
+						'time_points'  => isset( $row['time_points'] ) && '' !== (string) $row['time_points'] ? (string) $row['time_points'] : '0',
+						'hab_emebs'    => self::parse_pcd_flag( $row['hab_emebs'] ?? '' ) ? 1 : 0,
 					)
 				);
 				if ( false === $classification_id ) {
@@ -346,6 +353,21 @@ final class RecruitmentCsvImporter {
 			if ( ! ctype_digit( $rank_raw ) || (int) $rank_raw < 1 ) {
 				$errors[] = self::line_error( $line, 'recruitment_csv_rank_invalid' );
 				continue;
+			}
+
+			// Optional time_points: same dot-decimal shape as `score`,
+			// non-negative. Empty / missing column → treated as 0 by the
+			// repository default; only validate when something was typed.
+			$time_points_raw = isset( $row['time_points'] ) && is_string( $row['time_points'] ) ? trim( $row['time_points'] ) : '';
+			if ( '' !== $time_points_raw ) {
+				if ( false !== strpos( $time_points_raw, ',' ) ) {
+					$errors[] = self::line_error( $line, 'recruitment_csv_time_points_uses_comma_decimal' );
+					continue;
+				}
+				if ( ! preg_match( '/^\d+(\.\d+)?$/', $time_points_raw ) ) {
+					$errors[] = self::line_error( $line, 'recruitment_csv_time_points_invalid_format' );
+					continue;
+				}
 			}
 
 			// Adjutancy slug must exist for this notice.

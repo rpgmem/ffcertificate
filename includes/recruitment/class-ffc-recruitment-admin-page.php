@@ -791,6 +791,23 @@ final class RecruitmentAdminPage {
 
 		echo '</tbody></table>';
 
+		echo '<h3>' . esc_html__( 'Subscription type — badge colors', 'ffcertificate' ) . '</h3>';
+		echo '<p class="description">' . esc_html__( 'Background color used on the public + admin subscription-type badges. Each candidate is either PCD (pessoa com deficiência) or GERAL — these two knobs paint the corresponding pill.', 'ffcertificate' ) . '</p>';
+		echo '<table class="form-table"><tbody>';
+
+		$subscription_color_rows = array(
+			'subscription_color_pcd'   => __( 'PCD', 'ffcertificate' ),
+			'subscription_color_geral' => __( 'GERAL', 'ffcertificate' ),
+		);
+		foreach ( $subscription_color_rows as $field => $label ) {
+			echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
+			echo '<input id="ffc-rs-' . esc_attr( $field ) . '" type="color" name="' . esc_attr( $opt ) . '[' . esc_attr( $field ) . ']" value="' . esc_attr( (string) $settings[ $field ] ) . '">';
+			echo ' <code style="margin-left:.5em;">' . esc_html( (string) $settings[ $field ] ) . '</code>';
+			echo '</td></tr>';
+		}
+
+		echo '</tbody></table>';
+
 		submit_button();
 		echo '</form>';
 	}

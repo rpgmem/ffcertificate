@@ -66,6 +66,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   preview_reason_required_granted:        bool,
  *   preview_reason_required_appeal_denied:  bool,
  *   preview_reason_required_appeal_granted: bool,
+ *   subscription_color_pcd:                 string,
+ *   subscription_color_geral:               string,
  * }
  */
 final class RecruitmentSettings {
@@ -150,6 +152,11 @@ final class RecruitmentSettings {
 			'preview_reason_required_granted'        => false,
 			'preview_reason_required_appeal_denied'  => false,
 			'preview_reason_required_appeal_granted' => false,
+			// Subscription-type badge colors. The PCD column on the
+			// CSV importer is a boolean (PCD vs GERAL) — these two
+			// knobs control the badge background per side.
+			'subscription_color_pcd'                 => '#fde2e2',
+			'subscription_color_geral'               => '#e9ecef',
 		);
 	}
 
@@ -235,6 +242,9 @@ final class RecruitmentSettings {
 		$out['preview_color_granted']        = self::sanitize_color( $value['preview_color_granted'] ?? null, $defaults['preview_color_granted'] );
 		$out['preview_color_appeal_denied']  = self::sanitize_color( $value['preview_color_appeal_denied'] ?? null, $defaults['preview_color_appeal_denied'] );
 		$out['preview_color_appeal_granted'] = self::sanitize_color( $value['preview_color_appeal_granted'] ?? null, $defaults['preview_color_appeal_granted'] );
+
+		$out['subscription_color_pcd']   = self::sanitize_color( $value['subscription_color_pcd'] ?? null, $defaults['subscription_color_pcd'] );
+		$out['subscription_color_geral'] = self::sanitize_color( $value['subscription_color_geral'] ?? null, $defaults['subscription_color_geral'] );
 
 		// Checkboxes don't post when unchecked, so a missing key means
 		// "off" — coerce truthiness from any submitted value.
@@ -324,6 +334,8 @@ final class RecruitmentSettings {
 			'preview_reason_required_granted'        => is_bool( $value['preview_reason_required_granted'] ?? null ) ? $value['preview_reason_required_granted'] : $defaults['preview_reason_required_granted'],
 			'preview_reason_required_appeal_denied'  => is_bool( $value['preview_reason_required_appeal_denied'] ?? null ) ? $value['preview_reason_required_appeal_denied'] : $defaults['preview_reason_required_appeal_denied'],
 			'preview_reason_required_appeal_granted' => is_bool( $value['preview_reason_required_appeal_granted'] ?? null ) ? $value['preview_reason_required_appeal_granted'] : $defaults['preview_reason_required_appeal_granted'],
+			'subscription_color_pcd'                 => is_string( $value['subscription_color_pcd'] ?? null ) ? $value['subscription_color_pcd'] : $defaults['subscription_color_pcd'],
+			'subscription_color_geral'               => is_string( $value['subscription_color_geral'] ?? null ) ? $value['subscription_color_geral'] : $defaults['subscription_color_geral'],
 		);
 	}
 
