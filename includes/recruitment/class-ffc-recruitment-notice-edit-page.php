@@ -383,10 +383,16 @@ final class RecruitmentNoticeEditPage {
 			'name'           => __( 'Name', 'ffcertificate' ),
 			'adjutancy'      => __( 'Adjutancy', 'ffcertificate' ),
 			'status'         => __( 'Status', 'ffcertificate' ),
-			'pcd_badge'      => __( 'PCD badge', 'ffcertificate' ),
+			// Storage key kept as `pcd_badge` for backward compatibility
+			// (existing notices' public_columns_config JSON keeps working);
+			// surfaced as "Subscription type" because the PCD column on
+			// the CSV is a boolean PCD/GERAL flag.
+			'pcd_badge'      => __( 'Subscription type (PCD / GERAL)', 'ffcertificate' ),
 			'date_to_assume' => __( 'Date to assume', 'ffcertificate' ),
 			'time_to_assume' => __( 'Time to assume', 'ffcertificate' ),
 			'score'          => __( 'Score', 'ffcertificate' ),
+			'time_points'    => __( 'Time points', 'ffcertificate' ),
+			'hab_emebs'      => __( 'HAB. EMEBs', 'ffcertificate' ),
 			'cpf_masked'     => __( 'CPF (masked)', 'ffcertificate' ),
 			'rf_masked'      => __( 'RF (masked)', 'ffcertificate' ),
 			'email_masked'   => __( 'Email (masked)', 'ffcertificate' ),
