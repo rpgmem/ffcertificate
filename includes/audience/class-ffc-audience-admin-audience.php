@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Core\ColorValidator;
+
 /**
  * Handles audience CRUD rendering and actions.
  *
@@ -662,7 +664,7 @@ class AudienceAdminAudience {
 			$id   = isset( $_POST['audience_id'] ) ? absint( $_POST['audience_id'] ) : 0;
 			$data = array(
 				'name'            => isset( $_POST['audience_name'] ) ? sanitize_text_field( wp_unslash( $_POST['audience_name'] ) ) : '',
-				'color'           => isset( $_POST['audience_color'] ) ? sanitize_hex_color( wp_unslash( $_POST['audience_color'] ) ) : '#3788d8',
+				'color'           => ColorValidator::normalize( isset( $_POST['audience_color'] ) ? wp_unslash( $_POST['audience_color'] ) : '', '#3788d8' ),
 				'parent_id'       => isset( $_POST['audience_parent'] ) && '' !== $_POST['audience_parent'] ? absint( $_POST['audience_parent'] ) : null,
 				'status'          => isset( $_POST['audience_status'] ) ? sanitize_text_field( wp_unslash( $_POST['audience_status'] ) ) : 'active',
 				'allow_self_join' => ! empty( $_POST['audience_self_join'] ) ? 1 : 0,
