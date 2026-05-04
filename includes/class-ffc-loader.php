@@ -172,15 +172,16 @@ class Loader {
 		// In-place plugin updates (drop new files via `wp-admin/plugins.php`'s
 		// "Update" button) DO NOT fire `register_activation_hook`. Re-register
 		// the canonical FFC role + the 6.2.0 module-manager / recruitment-tier
-		// roles here so they survive upgrades that bumped the role catalog
-		// without a full deactivate/reactivate cycle. Both calls are idempotent
-		// — `register_role()` short-circuits to an upgrade path when the role
-		// already exists; `register_module_roles()` only adds caps it finds
-		// missing.
-		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
-			\FreeFormCertificate\UserDashboard\CapabilityManager::register_role();
-			\FreeFormCertificate\UserDashboard\CapabilityManager::register_module_roles();
-		}
+		// roles so they survive upgrades that bumped the role catalog without
+		// a full deactivate/reactivate cycle.
+		//
+		// Hooked on `init` priority 1 (NOT `plugins_loaded`) because
+		// `register_role()` / `register_module_roles()` call `__()` for the
+		// translated role labels, and WordPress 6.7+ emits a "translation
+		// loading … too early" notice when text-domain translations are
+		// resolved before `init` fires. Running at `init:1` is still very
+		// early but after WP loads the textdomain.
+		add_action( 'init', array( $this, 'register_ffc_roles_safe' ), 1 );
 
 		if ( class_exists( '\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator' ) ) {
 			\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::maybe_migrate();
@@ -264,6 +265,26 @@ class Loader {
 		$this->ensure_legacy_caps_renamed();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
+	}
+
+	/**
+	 * Register the FFC user-side role + the 6.2.0 module-manager /
+	 * recruitment-tier roles. Hooked on `init` priority 1 from
+	 * `init_plugin()` because the role labels are translated via
+	 * `__( …, 'ffcertificate' )` and WP 6.7+ emits a notice when
+	 * translation lookups happen before the `init` hook fires.
+	 *
+	 * Idempotent: existing roles are upgraded with any newly
+	 * introduced caps; manually granted caps are preserved.
+	 *
+	 * @since 6.2.0
+	 * @return void
+	 */
+	public function register_ffc_roles_safe(): void {
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::register_role();
+			\FreeFormCertificate\UserDashboard\CapabilityManager::register_module_roles();
+		}
 	}
 
 	/**

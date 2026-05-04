@@ -54,26 +54,28 @@ final class RecruitmentLoader {
 		//
 		// In-place plugin updates (replacing files via `wp-admin/plugins.php`'s
 		// "Update" button or by overwriting the directory) DO NOT fire the
-		// `register_activation_hook` callback. Without the two hooks below,
+		// `register_activation_hook` callback. Without the hooks below,
 		// installs upgrading from a pre-recruitment release (≤ 5.4.x) onto a
 		// recruitment-bearing release (≥ 6.0.0) end up with a fully-loaded
 		// recruitment module that has no tables and no manager role.
 		//
-		// Both `create_tables()` and `register_recruitment_manager_role()`
-		// are idempotent — each individual table-create + role-register
-		// short-circuits when the artifact already exists. Safe to call on
-		// every `plugins_loaded` of every page load.
+		// `create_tables()` and `maybe_migrate()` stay on `plugins_loaded`
+		// (they don't touch translated strings). The recruitment-manager
+		// role registration uses `__( …, 'ffcertificate' )` for the role
+		// label and so MUST run on `init` (priority 1, very early but after
+		// WP loads the textdomain) — calling `__()` on `plugins_loaded`
+		// triggers the WP 6.7+ "translation loading … too early" notice.
 		add_action( 'plugins_loaded', array( RecruitmentActivator::class, 'create_tables' ), 9 );
+		add_action( 'plugins_loaded', array( RecruitmentActivator::class, 'maybe_migrate' ), 11 );
 		add_action(
-			'plugins_loaded',
+			'init',
 			static function (): void {
 				if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 					\FreeFormCertificate\UserDashboard\CapabilityManager::register_recruitment_manager_role();
 				}
 			},
-			10
+			1
 		);
-		add_action( 'plugins_loaded', array( RecruitmentActivator::class, 'maybe_migrate' ), 11 );
 	}
 
 	/**
