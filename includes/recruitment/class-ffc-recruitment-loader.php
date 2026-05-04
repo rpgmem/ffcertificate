@@ -51,6 +51,28 @@ final class RecruitmentLoader {
 
 		// Idempotent schema migrations (option-versioned). 6.1.0 adds the
 		// `active` → `definitive` enum rename; future steps append.
+		//
+		// In-place plugin updates (replacing files via `wp-admin/plugins.php`'s
+		// "Update" button or by overwriting the directory) DO NOT fire the
+		// `register_activation_hook` callback. Without the two hooks below,
+		// installs upgrading from a pre-recruitment release (≤ 5.4.x) onto a
+		// recruitment-bearing release (≥ 6.0.0) end up with a fully-loaded
+		// recruitment module that has no tables and no manager role.
+		//
+		// Both `create_tables()` and `register_recruitment_manager_role()`
+		// are idempotent — each individual table-create + role-register
+		// short-circuits when the artifact already exists. Safe to call on
+		// every `plugins_loaded` of every page load.
+		add_action( 'plugins_loaded', array( RecruitmentActivator::class, 'create_tables' ), 9 );
+		add_action(
+			'plugins_loaded',
+			static function (): void {
+				if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+					\FreeFormCertificate\UserDashboard\CapabilityManager::register_recruitment_manager_role();
+				}
+			},
+			10
+		);
 		add_action( 'plugins_loaded', array( RecruitmentActivator::class, 'maybe_migrate' ), 11 );
 	}
 

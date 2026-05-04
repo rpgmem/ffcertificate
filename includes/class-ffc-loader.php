@@ -169,6 +169,16 @@ class Loader {
 		// Ensure submissions table schema is current (runs add_columns on version change).
 		\FreeFormCertificate\Activator::maybe_add_columns();
 
+		// In-place plugin updates (drop new files via `wp-admin/plugins.php`'s
+		// "Update" button) DO NOT fire `register_activation_hook`. Re-register
+		// the canonical FFC role here so it survives upgrades that bumped the
+		// role definition without a full deactivate/reactivate cycle. Idempotent:
+		// `register_role()` short-circuits to an upgrade path when the role
+		// already exists.
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::register_role();
+		}
+
 		if ( class_exists( '\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator' ) ) {
 			\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::maybe_migrate();
 		}
