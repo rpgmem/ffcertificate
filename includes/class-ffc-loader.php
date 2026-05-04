@@ -171,12 +171,15 @@ class Loader {
 
 		// In-place plugin updates (drop new files via `wp-admin/plugins.php`'s
 		// "Update" button) DO NOT fire `register_activation_hook`. Re-register
-		// the canonical FFC role here so it survives upgrades that bumped the
-		// role definition without a full deactivate/reactivate cycle. Idempotent:
-		// `register_role()` short-circuits to an upgrade path when the role
-		// already exists.
+		// the canonical FFC role + the 6.2.0 module-manager / recruitment-tier
+		// roles here so they survive upgrades that bumped the role catalog
+		// without a full deactivate/reactivate cycle. Both calls are idempotent
+		// — `register_role()` short-circuits to an upgrade path when the role
+		// already exists; `register_module_roles()` only adds caps it finds
+		// missing.
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityManager::register_role();
+			\FreeFormCertificate\UserDashboard\CapabilityManager::register_module_roles();
 		}
 
 		if ( class_exists( '\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator' ) ) {

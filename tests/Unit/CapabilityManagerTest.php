@@ -113,6 +113,67 @@ class CapabilityManagerTest extends TestCase {
     }
 
     // ------------------------------------------------------------------
+    // 6.2.0 module-manager + recruitment-tier roles
+    // ------------------------------------------------------------------
+
+    public function test_register_module_roles_creates_all_expected_slugs(): void {
+        $created = array();
+        Functions\when( 'get_role' )->justReturn( null );
+        Functions\when( 'add_role' )->alias(
+            static function ( string $slug, string $label, array $caps ) use ( &$created ): bool {
+                $created[ $slug ] = array( 'label' => $label, 'caps' => $caps );
+                return true;
+            }
+        );
+
+        CapabilityManager::register_module_roles();
+
+        $expected_slugs = array(
+            'ffc_certificate_manager',
+            'ffc_self_scheduling_manager',
+            'ffc_audience_manager',
+            'ffc_reregistration_manager',
+            'ffc_operator',
+            'ffc_recruitment_auditor',
+            'ffc_recruitment_operator',
+            'ffc_recruitment_admin',
+        );
+        foreach ( $expected_slugs as $slug ) {
+            $this->assertArrayHasKey( $slug, $created, "Missing role: {$slug}" );
+            $this->assertTrue( $created[ $slug ]['caps']['read'], "Role {$slug} must include read cap" );
+        }
+    }
+
+    public function test_register_module_roles_grants_caps_per_role(): void {
+        $created = array();
+        Functions\when( 'get_role' )->justReturn( null );
+        Functions\when( 'add_role' )->alias(
+            static function ( string $slug, string $label, array $caps ) use ( &$created ): bool {
+                $created[ $slug ] = $caps;
+                return true;
+            }
+        );
+
+        CapabilityManager::register_module_roles();
+
+        // Spot-check a few of the cap maps.
+        $this->assertTrue( $created['ffc_certificate_manager']['ffc_manage_certificates'] );
+        $this->assertTrue( $created['ffc_certificate_manager']['ffc_export_certificates'] );
+        $this->assertTrue( $created['ffc_certificate_manager']['ffc_certificate_update'] );
+
+        $this->assertTrue( $created['ffc_recruitment_auditor']['ffc_view_recruitment'] );
+        $this->assertArrayNotHasKey( 'ffc_call_recruitment_candidates', $created['ffc_recruitment_auditor'] );
+
+        $this->assertTrue( $created['ffc_recruitment_operator']['ffc_view_recruitment'] );
+        $this->assertTrue( $created['ffc_recruitment_operator']['ffc_call_recruitment_candidates'] );
+        $this->assertArrayNotHasKey( 'ffc_import_recruitment_csv', $created['ffc_recruitment_operator'] );
+
+        $this->assertTrue( $created['ffc_recruitment_admin']['ffc_manage_recruitment_settings'] );
+        $this->assertTrue( $created['ffc_recruitment_admin']['ffc_manage_recruitment_reasons'] );
+        $this->assertTrue( $created['ffc_recruitment_admin']['ffc_view_recruitment_pii'] );
+    }
+
+    // ------------------------------------------------------------------
     // get_all_capabilities()
     // ------------------------------------------------------------------
 

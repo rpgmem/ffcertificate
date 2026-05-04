@@ -607,4 +607,141 @@ class CapabilityManager {
 	public static function remove_recruitment_manager_role(): void {
 		remove_role( self::RECRUITMENT_MANAGER_ROLE );
 	}
+
+	/**
+	 * Definition map for the 6.2.0 module-manager + recruitment-tier roles.
+	 *
+	 * Each entry is a `slug => array{label: string, caps: list<string>}` so
+	 * `register_module_roles()` and `remove_module_roles()` share a single
+	 * source of truth. `read` is added implicitly to every role so members
+	 * can access wp-admin.
+	 *
+	 * Recruitment tier hierarchy (each tier inherits everything from the
+	 * tier above it):
+	 *
+	 *   Auditor (read-only)
+	 *     → Operator (Auditor + can call candidates)
+	 *       → Manager (Operator + can import CSV + see PII + umbrella cap)
+	 *         → Admin (Manager + can edit settings + reasons catalog)
+	 *
+	 * @since 6.2.0
+	 * @return array<string, array{label: string, caps: list<string>}>
+	 */
+	private static function module_roles_definition(): array {
+		return array(
+			// ── Cross-module roles ───────────────────────────────────────
+			'ffc_certificate_manager'     => array(
+				'label' => __( 'FFC Certificate Manager', 'ffcertificate' ),
+				'caps'  => array( 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_certificate_update' ),
+			),
+			'ffc_self_scheduling_manager' => array(
+				'label' => __( 'FFC Self-Scheduling Manager', 'ffcertificate' ),
+				'caps'  => array( 'ffc_manage_self_scheduling', 'ffc_scheduling_bypass', 'ffc_export_certificates' ),
+			),
+			'ffc_audience_manager'        => array(
+				'label' => __( 'FFC Audience Manager', 'ffcertificate' ),
+				'caps'  => array( 'ffc_manage_audiences' ),
+			),
+			'ffc_reregistration_manager'  => array(
+				'label' => __( 'FFC Reregistration Manager', 'ffcertificate' ),
+				'caps'  => array( 'ffc_manage_reregistration' ),
+			),
+			'ffc_operator'                => array(
+				'label' => __( 'FFC Operator (read-only)', 'ffcertificate' ),
+				'caps'  => array( 'ffc_view_activity_log', 'ffc_view_audience_bookings', 'ffc_view_self_scheduling', 'ffc_view_recruitment' ),
+			),
+
+			// ── Recruitment tier ─────────────────────────────────────────
+			'ffc_recruitment_auditor'     => array(
+				'label' => __( 'FFC Recruitment Auditor', 'ffcertificate' ),
+				'caps'  => array( 'ffc_view_recruitment' ),
+			),
+			'ffc_recruitment_operator'    => array(
+				'label' => __( 'FFC Recruitment Operator', 'ffcertificate' ),
+				'caps'  => array( 'ffc_view_recruitment', 'ffc_call_recruitment_candidates' ),
+			),
+			// `ffc_recruitment_manager` already exists (6.0.0). It will be
+			// upgraded by `register_recruitment_manager_role()` — extra caps
+			// are added in 6.2.0 below to fit the new tier model.
+			'ffc_recruitment_admin'       => array(
+				'label' => __( 'FFC Recruitment Admin', 'ffcertificate' ),
+				'caps'  => array(
+					'ffc_view_recruitment',
+					'ffc_call_recruitment_candidates',
+					'ffc_import_recruitment_csv',
+					'ffc_view_recruitment_pii',
+					'ffc_manage_recruitment',
+					'ffc_manage_recruitment_settings',
+					'ffc_manage_recruitment_reasons',
+				),
+			),
+		);
+	}
+
+	/**
+	 * Register every 6.2.0 module-manager + recruitment-tier role.
+	 *
+	 * Idempotent. Called on activation AND from `RecruitmentLoader` on
+	 * `plugins_loaded` so in-place plugin updates self-heal — no need
+	 * for a deactivate/reactivate cycle to surface new roles.
+	 *
+	 * Existing roles are upgraded: missing caps are added; extra caps
+	 * an operator manually granted are NOT removed.
+	 *
+	 * @since 6.2.0
+	 * @return void
+	 */
+	public static function register_module_roles(): void {
+		foreach ( self::module_roles_definition() as $slug => $def ) {
+			$existing = get_role( $slug );
+			if ( $existing ) {
+				if ( ! isset( $existing->capabilities['read'] ) ) {
+					$existing->add_cap( 'read', true );
+				}
+				foreach ( $def['caps'] as $cap ) {
+					if ( ! isset( $existing->capabilities[ $cap ] ) ) {
+						$existing->add_cap( $cap, true );
+					}
+				}
+				continue;
+			}
+
+			$caps_map = array( 'read' => true );
+			foreach ( $def['caps'] as $cap ) {
+				$caps_map[ $cap ] = true;
+			}
+			add_role( $slug, $def['label'], $caps_map );
+		}
+
+		// Upgrade the existing `ffc_recruitment_manager` (6.0.0) to the new
+		// tier-2 cap set. Adds the 6.2.0 granular caps without removing the
+		// umbrella `ffc_manage_recruitment` cap that was there from launch.
+		$existing_manager = get_role( self::RECRUITMENT_MANAGER_ROLE );
+		if ( $existing_manager ) {
+			$tier_2_caps = array(
+				'ffc_view_recruitment',
+				'ffc_call_recruitment_candidates',
+				'ffc_import_recruitment_csv',
+				'ffc_view_recruitment_pii',
+			);
+			foreach ( $tier_2_caps as $cap ) {
+				if ( ! isset( $existing_manager->capabilities[ $cap ] ) ) {
+					$existing_manager->add_cap( $cap, true );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Remove every 6.2.0 module-manager + recruitment-tier role on
+	 * plugin uninstall.
+	 *
+	 * @since 6.2.0
+	 * @return void
+	 */
+	public static function remove_module_roles(): void {
+		foreach ( array_keys( self::module_roles_definition() ) as $slug ) {
+			remove_role( $slug );
+		}
+	}
 }

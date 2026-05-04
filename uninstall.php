@@ -143,6 +143,24 @@ if ( ! empty( $ffcertificate_forms ) ) {
 remove_role( 'ffc_user' );
 remove_role( 'ffc_recruitment_manager' );
 
+// 6.2.0 module-manager + recruitment-tier roles. Listed inline rather than
+// through `CapabilityManager::remove_module_roles()` because uninstall.php
+// runs in a stripped-down context that doesn't load the plugin's autoloader.
+foreach (
+	array(
+		'ffc_certificate_manager',
+		'ffc_self_scheduling_manager',
+		'ffc_audience_manager',
+		'ffc_reregistration_manager',
+		'ffc_operator',
+		'ffc_recruitment_auditor',
+		'ffc_recruitment_operator',
+		'ffc_recruitment_admin',
+	) as $ffc_legacy_role
+) {
+	remove_role( $ffc_legacy_role );
+}
+
 // ──────────────────────────────────────
 // 7. Clean up user meta
 // ──────────────────────────────────────
