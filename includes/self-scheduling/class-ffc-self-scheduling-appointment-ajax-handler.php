@@ -139,7 +139,7 @@ class AppointmentAjaxHandler {
 				}
 			} catch ( \Throwable $e ) {
 				if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-					\FreeFormCertificate\Core\Utils::debug_log(
+					\FreeFormCertificate\Core\Debug::log_self_scheduling(
 						'Appointment PDF generation error',
 						array(
 							'message' => $e->getMessage(),
@@ -182,7 +182,7 @@ class AppointmentAjaxHandler {
 			wp_send_json_success( $response );
 		} catch ( \Exception $e ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_self_scheduling(
 					'Appointment AJAX error',
 					array(
 						'message' => $e->getMessage(),
@@ -273,7 +273,7 @@ class AppointmentAjaxHandler {
 
 		} catch ( \Throwable $e ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_self_scheduling(
 					'Cancellation AJAX error',
 					array(
 						'message' => $e->getMessage(),
@@ -348,7 +348,7 @@ class AppointmentAjaxHandler {
 
 		} catch ( \Throwable $e ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_self_scheduling(
 					'Admin appointments AJAX error',
 					array(
 						'message' => $e->getMessage(),

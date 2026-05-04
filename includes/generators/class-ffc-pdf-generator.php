@@ -132,7 +132,7 @@ class PdfGenerator {
 		$filename = apply_filters( 'ffcertificate_certificate_filename', $filename, $form_title, $auth_code, $submission_id );
 
 		// Log generation.
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_pdf(
 			'PDF data generated',
 			array(
 				'submission_id' => $submission_id,
@@ -353,7 +353,7 @@ class PdfGenerator {
 		// Determine target URL (magic link or verification page).
 		$target_url = $this->get_qr_code_target_url( $data );
 
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_pdf(
 			'QR Code placeholder processing',
 			array(
 				'target_url'        => $target_url,
@@ -372,7 +372,7 @@ class PdfGenerator {
 				$placeholder = $matches[0];
 				$result      = $qr_generator->parse_and_generate( $placeholder, $target_url, $submission_id );
 
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_pdf(
 					'QR Code placeholder replaced',
 					array(
 						'placeholder'   => $placeholder,
@@ -670,7 +670,7 @@ class PdfGenerator {
 		$filename = $this->generate_filename( $form_title, $auth_code );
 
 		// Log generation.
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_pdf(
 			'PDF data generated from form',
 			array(
 				'form_id'      => $form_id,

@@ -513,7 +513,7 @@ class AppointmentHandler {
 					$data['user_id'] = $user_id;
 
 					if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-						\FreeFormCertificate\Core\Utils::debug_log(
+						\FreeFormCertificate\Core\Debug::log_self_scheduling(
 							'User created/linked for appointment',
 							array(
 								'user_id'    => $user_id,
@@ -525,7 +525,7 @@ class AppointmentHandler {
 				}
 			} catch ( \Exception $e ) {
 				if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-					\FreeFormCertificate\Core\Utils::debug_log(
+					\FreeFormCertificate\Core\Debug::log_self_scheduling(
 						'Failed to create user for appointment',
 						array(
 							'email' => $data['email'],

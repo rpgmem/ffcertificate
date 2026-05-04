@@ -587,7 +587,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 			echo '<p><a href="' . esc_url( $ffcertificate_appointments_url ) . '" class="button">' . esc_html__( 'Back to List', 'ffcertificate' ) . '</a></p>';
 			echo '</div>';
 			if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_self_scheduling(
 					'Appointment view error',
 					array(
 						'id'    => $ffc_self_scheduling_appointment_id,

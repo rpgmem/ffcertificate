@@ -215,7 +215,7 @@ class UserProfileRestController {
 
 		} catch ( \Exception $e ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_rest_api(
 					'get_user_profile error',
 					array(
 						'message' => $e->getMessage(),
@@ -307,7 +307,7 @@ class UserProfileRestController {
 
 		} catch ( \Exception $e ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_rest_api(
 					'update_user_profile error',
 					array(
 						'message' => $e->getMessage(),

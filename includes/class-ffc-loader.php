@@ -284,6 +284,13 @@ class Loader {
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityManager::register_role();
 			\FreeFormCertificate\UserDashboard\CapabilityManager::register_module_roles();
+
+			// Re-apply translated labels every time WP loads its roles.
+			// Without this, `users.php` would show the verbatim English
+			// label that was stored in the database at registration time.
+			// See `CapabilityManager::relabel_ffc_roles()` for full
+			// rationale.
+			add_action( 'wp_roles_init', array( '\FreeFormCertificate\UserDashboard\CapabilityManager', 'relabel_ffc_roles' ) );
 		}
 	}
 

@@ -152,7 +152,7 @@ class MigrationStatusCalculator {
 		} catch ( \Throwable $e ) {
 			$this->strategy_errors[ $migration_key ] = $e->getMessage();
 			if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_migrations(
 					'Failed to initialize migration strategy',
 					array(
 						'key'   => $migration_key,

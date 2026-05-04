@@ -721,7 +721,7 @@ class AudienceLoader {
 			$fields      = json_decode( $fields_json, true );
 
 			if ( ! is_array( $fields ) ) {
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_audience(
 					'json_decode failed in ajax_save_custom_fields',
 					array(
 						'json_error' => json_last_error_msg(),

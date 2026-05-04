@@ -23,17 +23,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Debug {
 
 	/**
-	 * Available debug areas
+	 * Available debug areas.
+	 *
+	 * @since 3.1.0
+	 * @since 6.2.0 Added `AREA_FRONTEND`, `AREA_ADMIN`, `AREA_SELF_SCHEDULING`,
+	 *              `AREA_AUDIENCE`, `AREA_QRCODE` to absorb the 76 calls
+	 *              that used to live on the legacy `Utils::debug_log()` —
+	 *              every call is now toggleable per-area in admin Settings
+	 *              instead of firing whenever `WP_DEBUG=true`.
 	 */
-	const AREA_PDF_GENERATOR  = 'debug_pdf_generator';
-	const AREA_EMAIL_HANDLER  = 'debug_email_handler';
-	const AREA_FORM_PROCESSOR = 'debug_form_processor';
-	const AREA_ENCRYPTION     = 'debug_encryption';
-	const AREA_GEOFENCE       = 'debug_geofence';
-	const AREA_USER_MANAGER   = 'debug_user_manager';
-	const AREA_REST_API       = 'debug_rest_api';
-	const AREA_MIGRATIONS     = 'debug_migrations';
-	const AREA_ACTIVITY_LOG   = 'debug_activity_log';
+	const AREA_PDF_GENERATOR   = 'debug_pdf_generator';
+	const AREA_EMAIL_HANDLER   = 'debug_email_handler';
+	const AREA_FORM_PROCESSOR  = 'debug_form_processor';
+	const AREA_ENCRYPTION      = 'debug_encryption';
+	const AREA_GEOFENCE        = 'debug_geofence';
+	const AREA_USER_MANAGER    = 'debug_user_manager';
+	const AREA_REST_API        = 'debug_rest_api';
+	const AREA_MIGRATIONS      = 'debug_migrations';
+	const AREA_ACTIVITY_LOG    = 'debug_activity_log';
+	const AREA_FRONTEND        = 'debug_frontend';
+	const AREA_ADMIN           = 'debug_admin';
+	const AREA_SELF_SCHEDULING = 'debug_self_scheduling';
+	const AREA_AUDIENCE        = 'debug_audience';
+	const AREA_QRCODE          = 'debug_qrcode';
 
 	/**
 	 * Check if debug is enabled for a specific area
@@ -42,6 +54,15 @@ class Debug {
 	 * @return bool True if debug is enabled for this area
 	 */
 	public static function is_enabled( string $area ): bool {
+		// Defensive: in unit-test contexts where WP isn't fully loaded
+		// (e.g. Brain Monkey tests that exercise code paths now reaching
+		// `Debug::log_*()` after the 6.2.0 legacy migration), `get_option`
+		// may not exist. Fail-closed (debug disabled) rather than fatal —
+		// matches the pre-6.2.0 behaviour of `Utils::debug_log()` which
+		// short-circuited on a missing `WP_DEBUG` constant too.
+		if ( ! function_exists( 'get_option' ) ) {
+			return false;
+		}
 		$settings = get_option( 'ffc_settings', array() );
 		return isset( $settings[ $area ] ) && 1 === $settings[ $area ];
 	}
@@ -171,5 +192,65 @@ class Debug {
 	 */
 	public static function log_activity_log( string $message, $data = null ): void {
 		self::log( self::AREA_ACTIVITY_LOG, $message, $data );
+	}
+
+	/**
+	 * Log for Frontend area (shortcodes, public pages).
+	 *
+	 * @since 6.2.0
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include.
+	 * @return void
+	 */
+	public static function log_frontend( string $message, $data = null ): void {
+		self::log( self::AREA_FRONTEND, $message, $data );
+	}
+
+	/**
+	 * Log for Admin area (admin pages, CPT handlers, submission edits).
+	 *
+	 * @since 6.2.0
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include.
+	 * @return void
+	 */
+	public static function log_admin( string $message, $data = null ): void {
+		self::log( self::AREA_ADMIN, $message, $data );
+	}
+
+	/**
+	 * Log for Self-Scheduling module.
+	 *
+	 * @since 6.2.0
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include.
+	 * @return void
+	 */
+	public static function log_self_scheduling( string $message, $data = null ): void {
+		self::log( self::AREA_SELF_SCHEDULING, $message, $data );
+	}
+
+	/**
+	 * Log for Audience module.
+	 *
+	 * @since 6.2.0
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include.
+	 * @return void
+	 */
+	public static function log_audience( string $message, $data = null ): void {
+		self::log( self::AREA_AUDIENCE, $message, $data );
+	}
+
+	/**
+	 * Log for QR Code generator.
+	 *
+	 * @since 6.2.0
+	 * @param string $message Message to log.
+	 * @param mixed  $data Optional data to include.
+	 * @return void
+	 */
+	public static function log_qrcode( string $message, $data = null ): void {
+		self::log( self::AREA_QRCODE, $message, $data );
 	}
 }

@@ -177,6 +177,10 @@ class DebugTest extends TestCase {
         $areas = array_filter( $constants, function ( $k ) {
             return str_starts_with( $k, 'AREA_' );
         }, ARRAY_FILTER_USE_KEY );
-        $this->assertCount( 9, $areas );
+        // 9 pre-6.2.0 areas + 5 added in 6.2.0 (FRONTEND, ADMIN,
+        // SELF_SCHEDULING, AUDIENCE, QRCODE) when the legacy
+        // `Utils::debug_log()` callsites were migrated to the per-area
+        // `Debug` system.
+        $this->assertCount( 14, $areas );
     }
 }

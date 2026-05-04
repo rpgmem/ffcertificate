@@ -42,6 +42,11 @@ class SubmissionRepositoryTest extends TestCase {
         Functions\when( 'set_transient' )->justReturn( true );
         Functions\when( 'delete_transient' )->justReturn( true );
 
+        // 6.2.0: Repository error paths log via `Debug::log_form()`, which
+        // reads `ffc_settings` to gate per-area. Stub get_option so the gate
+        // is reached without exploding.
+        Functions\when( 'get_option' )->justReturn( array() );
+
         $this->repo = new SubmissionRepository();
     }
 

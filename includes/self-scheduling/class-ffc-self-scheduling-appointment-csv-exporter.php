@@ -228,7 +228,7 @@ class AppointmentCsvExporter {
 	 * @return void
 	 */
 	public function export_csv( $calendar_ids = null, array $statuses = array(), ?string $start_date = null, ?string $end_date = null ): void {
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_self_scheduling(
 			'Appointment CSV export started',
 			array(
 				'calendar_ids' => $calendar_ids,
@@ -407,7 +407,7 @@ class AppointmentCsvExporter {
 			$this->export_csv( $calendar_ids, $statuses, $start_date, $end_date );
 
 		} catch ( \Exception $e ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_self_scheduling(
 				'Appointment CSV export exception',
 				array(
 					'error' => $e->getMessage(),

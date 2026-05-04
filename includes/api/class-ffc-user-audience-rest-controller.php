@@ -266,7 +266,7 @@ class UserAudienceRestController {
 
 		} catch ( \Exception $e ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_rest_api(
 					'get_user_audience_bookings error',
 					array(
 						'message' => $e->getMessage(),

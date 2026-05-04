@@ -448,7 +448,7 @@ abstract class AbstractRepository {
 		}
 
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_form(
 				"Database {$operation} failed",
 				array(
 					'table' => $this->table,

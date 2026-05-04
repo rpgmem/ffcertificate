@@ -144,7 +144,7 @@ class SelfSchedulingCPT {
 	 */
 	public function handle_calendar_duplication(): void {
 		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_self_scheduling' ) ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_self_scheduling(
 				'Unauthorized calendar duplication attempt',
 				array(
 					'user_id' => get_current_user_id(),
@@ -162,7 +162,7 @@ class SelfSchedulingCPT {
 		$post = get_post( $post_id );
 
 		if ( ! $post || 'ffc_self_scheduling' !== $post->post_type ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_self_scheduling(
 				'Invalid calendar duplication request',
 				array(
 					'post_id' => $post_id,
@@ -187,7 +187,7 @@ class SelfSchedulingCPT {
 		$new_post_id = wp_insert_post( $new_post_args, true );
 
 		if ( is_wp_error( $new_post_id ) ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_self_scheduling(
 				'Calendar duplication failed',
 				array(
 					'error'            => $new_post_id->get_error_message(),
@@ -219,7 +219,7 @@ class SelfSchedulingCPT {
 			$metadata_copied[] = 'email_config';
 		}
 
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_self_scheduling(
 			'Calendar duplicated successfully',
 			array(
 				'original_post_id' => $post_id,
@@ -371,7 +371,7 @@ class SelfSchedulingCPT {
 			// Delete calendar record.
 			$this->calendar_repo()->delete( $calendar_id );
 
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_self_scheduling(
 				'Calendar data cleaned up',
 				array(
 					'post_id'                => $post_id,
@@ -502,7 +502,7 @@ class SelfSchedulingCPT {
 
 		// Log notification.
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_self_scheduling(
 				'Calendar deletion notification sent',
 				array(
 					'appointment_id' => $appointment['id'],

@@ -95,7 +95,7 @@ class QRCodeGenerator {
 		// Parse parameters from placeholder.
 		$params = $this->parse_placeholder_params( $placeholder );
 
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_qrcode(
 			'QR Code generation requested',
 			array(
 				'submission_id' => $submission_id,
@@ -108,7 +108,7 @@ class QRCodeGenerator {
 		if ( $submission_id > 0 && $this->is_cache_enabled() ) {
 			$cached = $this->get_from_cache( $submission_id );
 			if ( $cached ) {
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_qrcode(
 					'QR Code served from cache',
 					array(
 						'submission_id' => $submission_id,
@@ -132,7 +132,7 @@ class QRCodeGenerator {
 		$qr_base64 = $this->generate( $url, $params );
 
 		if ( empty( $qr_base64 ) ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_qrcode(
 				'QR Code generation failed',
 				array(
 					'url'           => substr( $url, 0, 50 ) . '...',
@@ -145,7 +145,7 @@ class QRCodeGenerator {
 		// Cache if enabled.
 		if ( $submission_id > 0 && $this->is_cache_enabled() ) {
 			$this->save_to_cache( $submission_id, $qr_base64 );
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_qrcode(
 				'QR Code cached',
 				array(
 					'submission_id' => $submission_id,
@@ -236,7 +236,7 @@ class QRCodeGenerator {
 
 		// Validate URL.
 		if ( empty( $url ) ) {
-			\FreeFormCertificate\Core\Utils::debug_log( 'QR Code: empty URL provided' );
+			\FreeFormCertificate\Core\Debug::log_qrcode( 'QR Code: empty URL provided' );
 			return '';
 		}
 
@@ -247,7 +247,7 @@ class QRCodeGenerator {
 				: tempnam( sys_get_temp_dir(), 'ffc_qr_' );
 
 			if ( ! $temp_file ) {
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_qrcode(
 					'QR Code: temp file creation failed',
 					array(
 						'sys_tmp_dir' => sys_get_temp_dir(),
@@ -279,7 +279,7 @@ class QRCodeGenerator {
 				// Clean up.
 				wp_delete_file( $temp_file );
 
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_qrcode(
 					'QR Code generated successfully',
 					array(
 						'url_length'    => strlen( $url ),
@@ -296,7 +296,7 @@ class QRCodeGenerator {
 				wp_delete_file( $temp_file );
 			}
 
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_qrcode(
 				'QR Code: temp file empty or missing after generation',
 				array(
 					'temp_file' => $temp_file,
@@ -307,7 +307,7 @@ class QRCodeGenerator {
 			return '';
 
 		} catch ( \Exception $e ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_qrcode(
 				'QR Code generation exception',
 				array(
 					'error' => $e->getMessage(),
@@ -316,7 +316,7 @@ class QRCodeGenerator {
 			);
 			return '';
 		} catch ( \Throwable $e ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_qrcode(
 				'QR Code generation fatal error',
 				array(
 					'error' => $e->getMessage(),
@@ -467,7 +467,7 @@ class QRCodeGenerator {
 			return false;
 		}
 
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_qrcode(
 			'Clearing QR cache',
 			array(
 				'submission_id' => $submission_id,
@@ -493,7 +493,7 @@ class QRCodeGenerator {
 			$cleared = (int) $result;
 		}
 
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_qrcode(
 			'QR cache cleared',
 			array(
 				'cleared_count' => $cleared,
@@ -525,7 +525,7 @@ class QRCodeGenerator {
 		);
 
 		if ( ! $submission || empty( $submission['magic_token'] ) ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_qrcode(
 				'Magic QR: No token found',
 				array(
 					'submission_id' => $submission_id,
@@ -537,7 +537,7 @@ class QRCodeGenerator {
 		$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $submission['magic_token'] );
 
 		if ( empty( $magic_link ) ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_qrcode(
 				'Magic QR: Link generation failed',
 				array(
 					'submission_id' => $submission_id,
@@ -547,7 +547,7 @@ class QRCodeGenerator {
 			return '';
 		}
 
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_qrcode(
 			'Magic QR: Generating for submission',
 			array(
 				'submission_id' => $submission_id,

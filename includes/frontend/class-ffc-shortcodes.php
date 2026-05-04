@@ -77,7 +77,7 @@ class Shortcodes {
 	 * @return string HTML output
 	 */
 	private function render_magic_link_preview( string $token ): string {
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_frontend(
 			'Magic link shortcode rendered',
 			array(
 				'token' => substr( $token, 0, 8 ) . '...',
@@ -118,7 +118,7 @@ class Shortcodes {
 			return $this->render_magic_link_preview( $magic_token );
 		}
 
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_frontend(
 			'Verification shortcode rendered',
 			array(
 				'ip'        => \FreeFormCertificate\Core\Utils::get_user_ip(),
@@ -146,7 +146,7 @@ class Shortcodes {
 		$form_id = absint( $atts['id'] );
 
 		if ( ! $form_id || get_post_type( $form_id ) !== 'ffc_form' ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_frontend(
 				'Invalid form shortcode',
 				array(
 					'form_id' => $form_id,
@@ -161,7 +161,7 @@ class Shortcodes {
 		$fields     = get_post_meta( $form_id, '_ffc_form_fields', true );
 
 		if ( empty( $fields ) ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_frontend(
 				'Form has no fields',
 				array(
 					'form_id' => $form_id,
@@ -170,7 +170,7 @@ class Shortcodes {
 			return '<p>' . esc_html__( 'Form has no fields.', 'ffcertificate' ) . '</p>';
 		}
 
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_frontend(
 			'Form shortcode rendered',
 			array(
 				'form_id'      => $form_id,

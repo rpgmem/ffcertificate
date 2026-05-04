@@ -160,7 +160,7 @@ class SelfSchedulingCleanupHandler {
 		}
 
 		// Log the action.
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_self_scheduling(
 			'Appointments cleaned up',
 			array(
 				'calendar_id'    => $calendar_id,
