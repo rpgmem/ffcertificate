@@ -550,7 +550,7 @@ class AdminSubmissionEditPage {
 			// Validate user exists if linking to a user.
 			if ( null !== $new_user_id && ! get_userdata( $new_user_id ) ) {
 				// Invalid user ID - skip user link update.
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_admin(
 					'Invalid user ID for linking',
 					array(
 						'submission_id' => $id,

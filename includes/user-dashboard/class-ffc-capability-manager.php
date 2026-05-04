@@ -814,4 +814,47 @@ class CapabilityManager {
 			remove_role( $slug );
 		}
 	}
+
+	/**
+	 * Re-translate FFC role labels at every page load.
+	 *
+	 * WordPress stores role labels verbatim in the `wp_user_roles` option
+	 * at the moment of `add_role()`. If translations weren't loaded yet,
+	 * the English string gets frozen in the database. On subsequent loads,
+	 * `users.php` displays role names via WP's `translate_user_role()`
+	 * helper — but that helper resolves the label against the **default**
+	 * WP textdomain, not the plugin's textdomain. So plugin-provided role
+	 * labels never translate, even after the .po file is loaded.
+	 *
+	 * Hooking `wp_roles_init` (since WP 4.7) lets us mutate the in-memory
+	 * `WP_Roles::$roles` + `WP_Roles::$role_names` arrays after they're
+	 * loaded. We re-resolve every FFC role's label through `__()` against
+	 * the plugin's textdomain, so users.php always shows the user's locale.
+	 *
+	 * Hooked from `Loader::register_ffc_roles_safe()` (init:1) AFTER the
+	 * role registrations themselves, so the freshly-registered labels also
+	 * get re-translated on the very first page load post-upgrade.
+	 *
+	 * @since 6.2.0
+	 * @param \WP_Roles $wp_roles Roles instance.
+	 * @return void
+	 */
+	public static function relabel_ffc_roles( \WP_Roles $wp_roles ): void {
+		$labels = array(
+			'ffc_user'                     => __( 'FFC User', 'ffcertificate' ),
+			self::RECRUITMENT_MANAGER_ROLE => __( 'Recruitment Manager', 'ffcertificate' ),
+		);
+		foreach ( self::module_roles_definition() as $slug => $def ) {
+			$labels[ $slug ] = $def['label'];
+		}
+
+		foreach ( $labels as $slug => $label ) {
+			if ( isset( $wp_roles->roles[ $slug ] ) ) {
+				$wp_roles->roles[ $slug ]['name'] = $label;
+			}
+			if ( isset( $wp_roles->role_names[ $slug ] ) ) {
+				$wp_roles->role_names[ $slug ] = $label;
+			}
+		}
+	}
 }

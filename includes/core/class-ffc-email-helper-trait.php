@@ -49,7 +49,7 @@ trait EmailHelperTrait {
 		$sent    = wp_mail( $to, $subject, $body, $headers, $attachments );
 
 		if ( ! $sent && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-			Utils::debug_log(
+			Debug::log_email(
 				'Email send failed',
 				array(
 					'to'      => $to,

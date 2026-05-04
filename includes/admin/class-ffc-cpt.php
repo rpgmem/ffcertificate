@@ -102,7 +102,7 @@ class CPT {
 	 */
 	public function handle_form_duplication(): void {
 		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_admin(
 				'Unauthorized form duplication attempt',
 				array(
 					'user_id' => get_current_user_id(),
@@ -120,7 +120,7 @@ class CPT {
 		$post = get_post( $post_id );
 
 		if ( ! $post || 'ffc_form' !== $post->post_type ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_admin(
 				'Invalid form duplication request',
 				array(
 					'post_id' => $post_id,
@@ -145,7 +145,7 @@ class CPT {
 		$new_post_id = wp_insert_post( $new_post_args, true );
 
 		if ( is_wp_error( $new_post_id ) ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_admin(
 				'Form duplication failed',
 				array(
 					'error'            => $new_post_id->get_error_message(),
@@ -183,7 +183,7 @@ class CPT {
 			$metadata_copied[] = 'geofence_config';
 		}
 
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_admin(
 			'Form duplicated successfully',
 			array(
 				'original_post_id' => $post_id,

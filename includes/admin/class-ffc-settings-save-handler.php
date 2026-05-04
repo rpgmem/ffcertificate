@@ -172,6 +172,14 @@ class SettingsSaveHandler {
 				'debug_rest_api',
 				'debug_migrations',
 				'debug_activity_log',
+				// 6.2.0 — added when the legacy `Utils::debug_log()` calls were
+				// migrated to the per-area `Debug` system. Each new area gets
+				// its own toggle in Settings → Advanced → Debug.
+				'debug_frontend',
+				'debug_admin',
+				'debug_self_scheduling',
+				'debug_audience',
+				'debug_qrcode',
 			);
 
 			foreach ( $debug_flags as $flag ) {

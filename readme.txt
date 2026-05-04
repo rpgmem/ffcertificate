@@ -175,91 +175,58 @@ In the certificate layout editor, use these dynamic tags:
 
 == Changelog ==
 
-= 5.4.1 (2026-04-24) =
+= 6.2.0 (2026-05-04) =
 
-Certificate HTML editor gains CodeMirror syntax highlighting with distinct coloring for HTML tags and `{{placeholder}}` tokens, plus a three-option `Code Editor Theme` setting (Auto / Light / Dark, dark by default on fresh installs) with a VS-Code-Dark+-inspired palette; the email body moves to a lightweight visual editor (`wp_editor()` teeny); the global TinyMCE placeholder-protection filter is scoped to the plugin's post type so it no longer touches unrelated admin screens; a new per-calendar admin-bypass toggle replaces the hardcoded all-or-nothing bypass for self-scheduling; and the `[ffc_verification]` result card header stops rendering with the admin preview modal's dark slate background.
+**Capabilities + roles overhaul + admin UX scoping + upgrade safety + per-area debug toggles + role i18n fix.**
 
-* Feat: **CodeMirror integration for the certificate HTML editor** — `ffc_pdf_layout` now renders through WordPress's built-in CodeMirror (`wp_enqueue_code_editor`), giving tags, attributes and strings distinct colors and line numbers. A custom overlay paints `{{placeholder}}` tokens in a separate color so variables stand out from markup. The underlying `<textarea>` is preserved and its value is synced on every change, so form submission and saved HTML remain byte-for-byte identical to the previous plain-textarea path; certificate templates and PDF generation are not affected.
-* Feat: **Syntax Highlighting profile notice** — when the user has disabled "Syntax Highlighting" in their WordPress profile, `wp_enqueue_code_editor()` returns false; a small inline description appears below the editor linking to `profile.php#syntax_highlighting` and recommending that the option be enabled for maximum plugin compatibility. The textarea continues to work as before.
-* Feat: **Email body upgraded to `wp_editor()` teeny** — the `email_body` field moves from a plain textarea to a minimal-toolbar visual editor (bold, italic, underline, lists, link/unlink, undo/redo). Media buttons stay disabled. Placeholders such as `{{auth_code}}` and `{{name}}` are preserved thanks to the `tiny_mce_before_init` protection still in place.
-* Feat: **Per-calendar admin-bypass toggle for self-scheduling** — a new `Admin Bypass` checkbox in the Booking Rules metabox of each `ffc_self_scheduling` calendar decides whether users with `manage_options` / `ffc_scheduling_bypass` skip that specific calendar's booking restrictions (advance-booking window, past-date guard, blocked dates, working hours, daily/interval limits, cancellation allowance/deadline). Slot capacity is always enforced. Replaces the previous hardcoded all-or-nothing bypass. Calendars saved before 5.4.1 default to the historical on-state so behavior is preserved without a migration.
-* Feat: **Code Editor Theme setting** — new select on the Advanced settings tab (`Auto` / `Light` / `Dark`) controlling the appearance of the Certificate HTML editor. `Auto` mirrors the plugin's admin Dark Mode preference; fresh installs default to `Dark`. Dark theme ships with a VS-Code-Dark+-inspired palette (background #1e1e1e, blue tags, orange strings, green comments) and keeps `{{placeholder}}` tokens legible with a gold-on-dark overlay. Light theme uses WordPress's default CodeMirror styling with zero extra payload.
-* Change: **TinyMCE placeholder filter scoped to `ffc_form`** — `Admin::configure_tinymce_placeholders()` is no longer attached to `tiny_mce_before_init` globally from the constructor. A new `maybe_register_tinymce_placeholder_filter()` method registers the filter on `admin_head` only when `get_current_screen()->post_type === 'ffc_form'`, eliminating side effects on Classic Editor posts and third-party plugin screens.
-* Change: **Email body sanitization hardened** — save handler now runs `email_body` through `wp_kses_post()` (the canonical WordPress post-content allowlist) instead of the generic plugin allowlist, aligning with its new authoring surface.
-* Change: **CSS placeholder block refactored** — the orphan `.mce-content-body .ffc-placeholder` selector (unreachable while no `wp_editor()` existed) is removed in favor of a single `.ffc-placeholder` rule plus new CodeMirror-specific styles (`.ffc-code-editor-wrapper .CodeMirror`, `.cm-ffc-placeholder-token`, `.ffc-code-editor-notice`).
-* Change: **`CalendarRepository::userHasSchedulingBypass()` accepts a calendar context** — the method now takes an optional calendar post ID and consults `_ffc_self_scheduling_config['admin_bypass']`. Callers that pass null (audience/REST admin read paths) keep the historical capability-only semantics unchanged; booking and cancellation flows pass the calendar id so the toggle takes effect.
-* Fix: **`[ffc_verification]` result card header showed a black bar instead of the blue gradient** — a later `.ffc-preview-header` rule intended only for the admin preview modal (`#ffc-preview-modal`) was unscoped and overrode the verification card's blue gradient + centered title, also forcing `display: flex; justify-content: space-between` which visually separated the badge from the appointment status label. All five affected modal-only selectors are now scoped to `#ffc-preview-modal`, restoring the intended header on certificate, appointment and reregistration verification results.
-* Security (MEDIUM): `wp_kses_post()` applied to `email_body` in the form editor save handler — scripts, forms, and other disallowed tags are stripped on save of the now-rich email template.
-* Test: new unit tests covering `maybe_register_tinymce_placeholder_filter()` across three screen states (ffc_form, other post type, null screen), plus four new tests in `CalendarRepositoryTest` for the per-calendar `admin_bypass` consumption path (toggle off, toggle on, legacy calendar without the key, unprivileged user with any setting).
-* Chore: new JS module `assets/js/ffc-admin-code-editor.js` (+ minified build) initializes CodeMirror, adds the placeholder overlay, keeps the textarea in sync on change and on submit, and degrades gracefully when the code editor is unavailable.
+* Feat: 14 granular admin capabilities (cross-module + per-domain recruitment) replace blanket `manage_options` gates so site owners can delegate scoped roles without giving full WP admin.
+* Feat: 9 new roles bundle the new caps — Certificate Manager, Self-Scheduling Manager, Audience Manager, Reregistration Manager, FFC Operator, plus a 4-tier recruitment ladder (Auditor → Operator → Manager → Admin).
+* Feat: `AdminMenuVisibility` defense-in-depth UX layer hides core WP menus, blocks direct-URL access (redirect to role's landing page), and prunes the top admin bar per FFC role.
+* Feat: 5 new debug areas (Frontend, Admin, Self-Scheduling, Audience, QR Code) with per-area toggles in **Settings → Advanced → Debug**. The 76 legacy `Utils::debug_log()` calls migrated to `Debug::log_*()`; `Utils::debug_log()` is now `@deprecated`. Frontend shortcode renders + other internal events no longer pollute production logs.
+* Fix: FFC role labels now translate correctly on `wp-admin/users.php`. New `wp_roles_init` hook re-applies `__()` against the plugin's textdomain on every page load (WordPress's built-in `translate_user_role()` resolves against the **default** WP textdomain, so plugin role names never localized).
+* Fix: 3 legacy non-namespaced certificate caps (`view_own_certificates`, `download_own_certificates`, `view_certificate_history`) renamed to the consistent `ffc_*` namespace with a one-time idempotent migration.
+* Fix: Pre-existing in-place-upgrade bug — recruitment tables left un-created when bypassing reactivation. `RecruitmentActivator::create_tables()` + role registrations now run on `plugins_loaded` (idempotent self-heal).
 
-= 5.4.0 (2026-04-23) =
+= 6.1.0 (2026-05-02) =
 
-Encryption and privacy hardening across the user-data surface, the accumulated security audit (Tier 1 + Tier 2), CSV download intermediate screen, a performance pass for admin submissions at scale, and the `UserProfileService` refactor consolidating profile reads and writes through a single entry point.
+**Recruitment admin UX parity + dashboard integration + Preliminary list visual axis.** Closes #90.
 
-* Feat: **Centralized sensitive-field policy** via `FreeFormCertificate\Core\SensitiveFieldRegistry` — single declarative map replacing three hard-coded lists. Consumed by `SubmissionHandler` and `AppointmentRepository`.
-* Feat: **`UserProfileFieldMap`** — per-field descriptor declaring storage layer (`wp_users`, `ffc_user_profiles`, `wp_usermeta`), sensitivity, hashability, and optional mirror targets (e.g. `display_name` → `wp_users.display_name`).
-* Feat: **`ViewPolicy` enum** (`FULL`, `MASKED`, `HASHED_ONLY`) declaring how sensitive fields are rendered on read. The service audits but does not elevate privileges; callers validate capability.
-* Feat: **`UserProfileService::read()` / `::write()`** — single entry point consolidating profile reads and writes across the three storage layers with transparent encryption, hashing, and mirror syncing. `FULL` reads that touch sensitive fields emit a metadata-only audit entry. `write()` accepts `$extra_descriptors` for dynamic reregistration keys outside the static map; overrides are per-call and cleared via try/finally.
-* Feat: **`email_hash_rehash` migration** — batched, idempotent, cursor-based. Rewrites legacy unsalted `email_hash` values in `wp_ffc_submissions` and `wp_ffc_self_scheduling_appointments`.
-* Feat: **`activity_log_clear_plaintext` migration** — NULLs the `context` plaintext column on activity log rows that already hold a ciphertext, closing the dual-storage leak on historical data.
-* Feat: **CSV download intermediate screen** — info screen showing form restrictions, dates, geolocation, quiz, and quota between hash validation and download. Download button only enabled after the form has ended; certificate preview available before the collection period begins.
-* Feat: **Public CSV sync-export row cap** — new `public_csv_sync_max_rows` setting (Advanced tab, default 2000, range 100–10000).
-* Change: **Activity log encryption gate** switched from a hard-coded action whitelist to payload inspection via `SensitiveFieldRegistry::contains_sensitive()`. Actions carrying sensitive fields (including nested payloads) are encrypted automatically; actions with trivial payloads are no longer wrapped in a meaningless ciphertext.
-* Change: **`ActivityLog::log()`** no longer dual-stores `context` plaintext alongside its ciphertext. Sensitive rows NULL the plaintext column; reads decrypt transparently via `ActivityLogQuery::resolve_context()`.
-* Change: **`UserManager::update_profile()` and `::update_extended_profile()`** are now thin facades over `UserProfileService::write()`. Legacy inline encrypt/hash paths are gone. Behavior improvement: clearing a sensitive field now also deletes the sibling `*_hash` meta row.
-* Change: **`Encryption::decrypt()`** split into a public wrapper and a private helper; emits a `decrypt_failure` WARNING to `ActivityLog` whenever a non-empty ciphertext resolves to null.
-* Change: Residual `class_exists ? Encryption::hash : hash('sha256')` fallbacks removed from `SelfSchedulingAppointmentHandler` and `SubmissionRepository::hash()`.
-* Change: Encryption envelope produces authenticated **v2 ciphertexts** (encrypt-then-MAC, HMAC-SHA256); legacy v1 ciphertexts remain decryptable.
-* Perf: `SubmissionRepository::countByStatus()` cached in a 5-minute transient; composite index `(form_id, status, submission_date)` on `ffc_submissions`; activity log cleanup admin_init fallback; `findPaginated()` search optimizations.
-* Fix: **Email hash divergence** between `wp_ffc_submissions` and `wp_ffc_self_scheduling_appointments` — same email produced different hashes, breaking cross-entity lookups. Unified on `Encryption::hash`.
-* Fix: **`AppointmentRepository::findByCpfRf`** never matched its own writes (raw SHA-256 read vs salted write).
-* Fix: **`UserCleanup::handle_email_change`** reindexed submission `email_hash` with raw SHA-256, overwriting correct salted hashes on every email change.
-* Fix: **`SecurityService::verify_simple_captcha`** rejected valid answer `0` (`empty('0')` is true in PHP). `hash_equals()` used for timing-safe comparison.
-* Fix: **`json_decode(null)` deprecation** in `SubmissionRestController::decrypt_submission_data` (PHP 8.1+).
-* Fix: Activity log disabled-notice link pointed to `Settings > General`; toggle lives in `Settings > Advanced`.
-* Security (CRITICAL / LGPD): cross-table hash consistency — dedup and reconciliation between submissions, appointments and user profile now works reliably.
-* Security (HIGH / LGPD): activity log no longer dual-stores PII plaintext alongside ciphertext.
-* Security (MEDIUM / LGPD): decrypt failures auditable — HMAC mismatch, key-rotation breakage and corruption stop being silent.
-* Security (HIGH): column-name SQL injection hardening in `AbstractRepository::build_where_clause()` via `%i` placeholder and allowlist.
-* Security (HIGH): timing-safe token comparison via `hash_equals()` in appointment receipt handler; escape user-supplied values in audience email templates.
-* Security (MEDIUM): `SubmissionRestController` admin endpoints restricted to `manage_options`; `UserProfileRestController` sanitizes user input; `AudienceRepository` replaces inline `IN()` interpolation with parameterized placeholders.
-* Security (MEDIUM / XSS): escape output in `SubmissionsList`, frontend field renderer, PDF layout `{{form_title}}` substitution, and admin-configured email bodies.
-* Security (MEDIUM / transport): `IpGeolocation` HTTPS opt-in; `RateLimiter` only trusts `REMOTE_ADDR` unless `ffc_trust_forwarded_headers` is enabled; magic-link QR codes generated locally.
-* Security (MEDIUM / path traversal): validate receipt template path; allowlist reregistration email templates; move ICS temp files out of public uploads.
-* Security (LOW): remove `$e->getMessage()` from client-facing error responses; `Admin::redirect_with_msg()` builds target from `page`/`post_type`; various minor output-escaping fixes.
-* Security (privacy): hash PII identifiers before logging (`RateLimiter`, `IpGeolocation`) for LGPD compliance.
-* Docs: `SECURITY.md` supported-versions table updated to `5.4.x`. `CONTRIBUTING.md` Branches section no longer mandates the `claude/*` prefix for human contributors; Releasing section documents the `[Unreleased] → [X.Y.Z]` workflow.
-* Test: **3234 → 3485 tests** (+251) with **8783 assertions** — new suites for `SensitiveFieldRegistry`, `SensitiveFieldPolicyTest`, `DecryptFailureLoggingTest`, `UserProfileFieldMapTest`, `UserProfileServiceTest`, `CustomFieldValidator`, `Autoloader`, `UserContextTrait`, `MigrationDynamicReregFields`, `ReregistrationStandardFieldsSeeder`, `AbstractRepository`, `Geofence`, `FormListColumns`, and new coverage for `UserManager::update_extended_profile` / `get_extended_profile`.
-* Chore: WPCS **1232 → 0 errors** across 161 files; PHPStan level 7 **3 → 0 errors**.
+* Feat: Recruitment admin moves from inline `<table>` placeholders to full `WP_List_Table` listings (sort, search, paginate, bulk actions, row actions) for Notices / Adjutancies / Candidates / Reasons.
+* Feat: Dedicated edit screens for notices (5 sections incl. transitions, attach/detach, CSV import, classifications) + candidates (general, sensitive data, classification + call history, hard-delete) + reasons.
+* Feat: Notice ↔ adjutancy attach UI + REST — fixes a `recruitment_notice_has_no_adjutancies` 400 that blocked CSV imports on fresh installs.
+* Feat: Preliminary visual statuses (Empty / Denied / Granted / Appeal denied / Appeal granted) + global Reasons catalog without touching the §5.2 state machine. Schema migration v5 + v6 (adds `preview_status`, `preview_reason_id`, `time_points`, `hab_emebs`).
+* Feat: Per-adjutancy + per-status configurable badge colors via `<input type="color">`.
+* Feat: Public shortcode polish — adjutancy filter (functional now; was silently ignored), name search (`?q=`), subscription-type filter (PCD/GERAL), persistent filter UI, BR-format dates (DD-MM-YYYY) + 2-decimal scores, semicolon CSV delimiter auto-detection.
+* Feat: Out-of-order call confirm + reason prompt (single + bulk); 12h public-shortcode cache TTL with admin-write invalidation; CSV import activity indicator.
+* Change: Notice status `active` → `definitive` (schema migrations v2 + v3 cover both upgrade cohorts).
+* Perf: Public shortcode candidate-fetch — N round-trips → 1 via `RecruitmentCandidateRepository::get_by_ids()`. 30–50% cold-cache improvement.
 
-= 5.3.0 (2026-04-17) =
+= 6.0.0 (2026-05-01) =
 
-Full-page cache compatibility, per-form captcha isolation, and CI pipeline improvements.
+**Recruitment module — Brazilian public-tender ("concurso público") candidate queue management.** PHPStan level 7 → 8 (no baseline).
 
-* Feat: **Full-page cache compatibility** — forms and calendars now work correctly with LiteSpeed Cache, WP Rocket, W3 Total Cache, and WP Super Cache. Business-hours restricted calendars send no-cache headers to prevent stale content; audience shortcodes prevent cross-user cache leakage for logged-in users.
-* Feat: **Dynamic Fragments geofence refresh** — AJAX endpoint returns fresh geofence configs per form so cached pages always show up-to-date availability windows.
-* Feat: **Automatic cache purge on save** — saving a form or calendar automatically purges cached pages that embed it (LiteSpeed, WP Rocket, W3TC, WP Super Cache).
-* Feat: **CSV Download Page URL setting** — new field on General settings tab.
-* Feat: **Search forms by ID** — admin forms list now supports searching by numeric post ID.
-* Fix: **Same captcha on all forms** — multiple forms on a cached page now each get a unique math captcha.
-* Refactor: **CustomFieldValidator extraction** from CustomFieldRepository for single-responsibility.
-* Refactor: Expanded in-plugin Documentation tab with additional sections.
-* CI: Remove duplicate push triggers, extract composite action, add Dependabot auto-merge, promote PHPCS to gating, promote PHPStan to level 7.
-* Chore: Auto-fix ~83k PHPCS violations, annotate 223 false positives, Phase 3 mechanical fixes.
+* Feat: New `[ffc_recruitment_queue]` public shortcode + candidate-self `[ffc_recruitment_my_calls]` dashboard section + wp-admin "Recrutamento" submenu.
+* Feat: 21-route admin REST surface under `ffcertificate/v1/recruitment` (notices, classifications, candidates, adjutancies, calls, /me/recruitment).
+* Feat: `ffc_manage_recruitment` capability + dedicated `ffc_recruitment_manager` role for delegation without giving `manage_options`.
+* Feat: Atomic CSV importer (single-transaction wipe + reinsert with rollback on any validation error).
+* Feat: Two state machines — Notice (draft → preliminary → active → closed) + Classification (empty → called → accepted → hired/not_shown) with §5.1 reopen-freeze rule that locks `hired`/`not_shown` once a notice has been reopened.
+* Feat: Convocation service (single + bulk + cancel with append-only call history); email dispatch on call create with masked PII placeholders.
+* Feat: Centralized §7-bis delete gating (candidate hard-delete only when zero classifications; classification individual delete only when `empty` + draft/preliminary).
+* Feat: Submissions admin "Move to form…" bulk action with identifier-based conflict detection.
+* Change: PHPStan bumped from level 7 (231-entry baseline) to **level 8 with zero errors and no baseline**. ~70 production call sites + ~80 test references migrated away from `Utils::*` deprecated shims.
 
 For the complete changelog history, see [CHANGELOG.md](CHANGELOG.md).
 
 == Upgrade Notice ==
 
-= 5.4.1 =
-Certificate HTML editor now uses CodeMirror with VS-Code-style syntax highlighting (Auto/Light/Dark theme, dark by default). Email body upgraded to a lightweight visual editor with `wp_kses_post()` hardening. Per-calendar admin-bypass toggle for self-scheduling replaces the previous all-or-nothing bypass. Fixed dark-header bug on `[ffc_verification]` result cards. No database changes. No breaking changes.
+= 6.2.0 =
+Capabilities + roles overhaul: 14 new granular admin caps replace blanket `manage_options` gates, 9 new roles bundle the caps for delegation. Defense-in-depth admin UX layer hides core WP menus + blocks direct-URL access per role. 5 new debug-area toggles in **Settings → Advanced → Debug**. Fixes role translation on `wp-admin/users.php`. Fixes pre-existing in-place-upgrade bug that left recruitment tables un-created. 3 legacy certificate caps renamed to `ffc_*` namespace with one-time idempotent migration. No data loss; backup recommended.
 
-= 5.4.0 =
-Encryption and privacy hardening across the user-data surface (centralized sensitive-field policy, payload-driven activity log encryption, auditable decrypt failures). Tier 1 + Tier 2 security audit applied. CSV download intermediate screen and performance pass for admin submissions at scale. Migration `email_hash_rehash` runs automatically. Backup recommended.
+= 6.1.0 =
+Recruitment admin UX parity (full WP_List_Table backing, edit screens) + dashboard integration + Preliminary list visual axis. Schema migrations v2–v6 run automatically (notice status `active` → `definitive` rename + new columns for preview status / time points / hab_emebs + `ffc_recruitment_reason` table). Backup recommended before upgrade.
 
-= 5.3.0 =
-Full-page cache compatibility (LiteSpeed, WP Rocket, W3 Total Cache, WP Super Cache). Per-form captcha isolation. CI pipeline improvements. No database changes. No breaking changes.
+= 6.0.0 =
+NEW Recruitment module — Brazilian public-tender candidate queue management. 21 admin REST routes, atomic CSV importer, two state machines, convocation service, dedicated `ffc_recruitment_manager` role. PHPStan level 7 → 8 with zero baseline. 6 new InnoDB tables created on activation. Backup recommended.
 
 For older releases, see [CHANGELOG.md](CHANGELOG.md).
 

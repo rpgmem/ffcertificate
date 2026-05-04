@@ -87,7 +87,7 @@ class Encryption {
 			);
 
 			if ( false === $encrypted ) {
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_encryption(
 					'Encryption failed',
 					array(
 						'value_length' => strlen( $value ),
@@ -103,7 +103,7 @@ class Encryption {
 			return self::V2_PREFIX . base64_encode( $hmac . $iv . $encrypted );
 
 		} catch ( \Exception $e ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_encryption(
 				'Encryption exception',
 				array(
 					'error' => $e->getMessage(),
@@ -161,7 +161,7 @@ class Encryption {
 				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- benign: decoding our own ciphertext envelope.
 				$data = base64_decode( substr( $encrypted, strlen( self::V2_PREFIX ) ), true );
 				if ( false === $data || strlen( $data ) < self::HMAC_LENGTH + self::IV_LENGTH ) {
-					\FreeFormCertificate\Core\Utils::debug_log( 'v2 decode failed' );
+					\FreeFormCertificate\Core\Debug::log_encryption( 'v2 decode failed' );
 					return null;
 				}
 
@@ -171,7 +171,7 @@ class Encryption {
 
 				$expected_hmac = hash_hmac( self::HMAC_ALGO, $iv . $encrypted_data, self::get_hmac_key(), true );
 				if ( ! hash_equals( $expected_hmac, $hmac ) ) {
-					\FreeFormCertificate\Core\Utils::debug_log( 'v2 HMAC mismatch' );
+					\FreeFormCertificate\Core\Debug::log_encryption( 'v2 HMAC mismatch' );
 					return null;
 				}
 			} else {
@@ -179,7 +179,7 @@ class Encryption {
 				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- benign: decoding our own legacy ciphertext envelope.
 				$data = base64_decode( $encrypted, true );
 				if ( false === $data || strlen( $data ) < self::IV_LENGTH ) {
-					\FreeFormCertificate\Core\Utils::debug_log( 'Base64 decode failed' );
+					\FreeFormCertificate\Core\Debug::log_encryption( 'Base64 decode failed' );
 					return null;
 				}
 				$iv             = substr( $data, 0, self::IV_LENGTH );
@@ -196,14 +196,14 @@ class Encryption {
 			);
 
 			if ( false === $decrypted ) {
-				\FreeFormCertificate\Core\Utils::debug_log( 'Decryption failed' );
+				\FreeFormCertificate\Core\Debug::log_encryption( 'Decryption failed' );
 				return null;
 			}
 
 			return $decrypted;
 
 		} catch ( \Exception $e ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_encryption(
 				'Decryption exception',
 				array(
 					'error' => $e->getMessage(),

@@ -66,7 +66,7 @@ class SelfSchedulingAdmin {
 				$error = error_get_last();
 				if ( $error && in_array( $error['type'], array( E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR ), true ) ) {
 					if ( class_exists( '\\FreeFormCertificate\\Core\\Utils', false ) ) {
-						\FreeFormCertificate\Core\Utils::debug_log( 'Appointments page FATAL error (shutdown)', $error );
+						\FreeFormCertificate\Core\Debug::log_self_scheduling( 'Appointments page FATAL error (shutdown)', $error );
 					}
 				}
 			}
@@ -80,7 +80,7 @@ class SelfSchedulingAdmin {
 				. esc_html( $e->getMessage() )
 				. ' <em>(' . esc_html( basename( $e->getFile() ) ) . ':' . esc_html( (string) $e->getLine() ) . ')</em>'
 				. '</p></div></div>';
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_self_scheduling(
 				'Appointments page error',
 				array(
 					'error' => $e->getMessage(),

@@ -51,13 +51,13 @@ class FormCache {
 				wp_cache_set( $cache_key, $config, self::CACHE_GROUP, self::get_expiration() );
 
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					\FreeFormCertificate\Core\Utils::debug_log( 'Form config cache MISS', array( 'form_id' => $form_id ) );
+					\FreeFormCertificate\Core\Debug::log_form( 'Form config cache MISS', array( 'form_id' => $form_id ) );
 				}
 			} else {
 				return false;
 			}
 		} elseif ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				\FreeFormCertificate\Core\Utils::debug_log( 'Form config cache HIT', array( 'form_id' => $form_id ) );
+				\FreeFormCertificate\Core\Debug::log_form( 'Form config cache HIT', array( 'form_id' => $form_id ) );
 		}
 
 		return $config;

@@ -25,7 +25,7 @@ try {
 } catch ( \Throwable $e ) {
 	$ffcertificate_init_error = $e->getMessage();
 	if ( class_exists( '\\FreeFormCertificate\\Core\\Utils' ) ) {
-		\FreeFormCertificate\Core\Utils::debug_log(
+		\FreeFormCertificate\Core\Debug::log_migrations(
 			'Migration tab initialization failed',
 			array(
 				'error' => $e->getMessage(),

@@ -123,7 +123,7 @@ trait AjaxTrait {
 	 */
 	protected function handle_ajax_exception( \Throwable $e ): void {
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-			Utils::debug_log(
+			Debug::log_form(
 				'AJAX error',
 				array(
 					'message' => $e->getMessage(),

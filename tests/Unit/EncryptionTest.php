@@ -33,6 +33,11 @@ class EncryptionTest extends TestCase {
         if ( ! defined( 'AUTH_KEY' ) ) {
             define( 'AUTH_KEY', 'test-auth-key-1234567890abcdef' );
         }
+
+        // 6.2.0: Encryption error paths now log via `Debug::log_encryption()`,
+        // which reads `ffc_settings` to gate per-area. Stub get_option so the
+        // gate is reached without exploding.
+        Functions\when( 'get_option' )->justReturn( array() );
     }
 
     protected function tearDown(): void {

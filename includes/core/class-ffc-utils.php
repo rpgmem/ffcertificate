@@ -485,29 +485,21 @@ class Utils {
 	 * Debug log.
 	 *
 	 * Debug log.
+	 * Legacy debug log helper.
 	 *
-	 * Debug log.
-	 *
-	 * Debug log.
+	 * @deprecated 6.2.0 Use {@see Debug::log_*()} instead. Each subsystem
+	 *             now has a dedicated helper gated by an admin toggle in
+	 *             Settings → Advanced → Debug — see `Debug::AREA_*`.
+	 *             Calls landing here delegate to the catch-all
+	 *             `AREA_FORM_PROCESSOR` for backwards compatibility, but
+	 *             new code should use the area-specific methods directly.
 	 *
 	 * @param string $message Message to log.
 	 * @param mixed  $data Optional data to log.
 	 * @return void
 	 */
 	public static function debug_log( string $message, $data = null ): void {
-		if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
-			return;
-		}
-
-		$log_message = '[FFC] ' . $message;
-
-		if ( null !== $data ) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions
-			$log_message .= ' | Data: ' . print_r( $data, true );
-		}
-
-        // phpcs:ignore WordPress.PHP.DevelopmentFunctions
-		error_log( $log_message );
+		Debug::log( Debug::AREA_FORM_PROCESSOR, $message, $data );
 	}
 
 	/**

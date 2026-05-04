@@ -41,6 +41,10 @@ class FrontendShortcodesTest extends TestCase {
         Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'wp_rand' )->alias( function ( int $min = 0, int $max = 0 ) { return random_int( $min, $max ); } );
         Functions\when( 'wp_hash' )->alias( function ( $data ) { return hash( 'sha256', $data ); } );
+        // 6.2.0: every legacy `Utils::debug_log()` call became `Debug::log_*()`,
+        // which reads `ffc_settings` to gate per-area. Stub get_option so the
+        // gate is reached without exploding.
+        Functions\when( 'get_option' )->justReturn( array() );
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );

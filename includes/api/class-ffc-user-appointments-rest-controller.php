@@ -229,7 +229,7 @@ class UserAppointmentsRestController {
 
 		} catch ( \Exception $e ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-				\FreeFormCertificate\Core\Utils::debug_log(
+				\FreeFormCertificate\Core\Debug::log_rest_api(
 					'get_user_appointments error',
 					array(
 						'message' => $e->getMessage(),

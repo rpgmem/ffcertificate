@@ -574,7 +574,7 @@ class FormRestController {
 	 */
 	private function log_rest_error( string $context, \Exception $e ): void {
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-			\FreeFormCertificate\Core\Utils::debug_log(
+			\FreeFormCertificate\Core\Debug::log_rest_api(
 				"REST API error: {$context}",
 				array(
 					'message' => $e->getMessage(),

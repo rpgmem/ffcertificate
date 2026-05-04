@@ -260,6 +260,81 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						</p>
 					</td>
 				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="debug_frontend"><?php esc_html_e( 'Frontend', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="ffc_settings[debug_frontend]" id="debug_frontend" value="1" <?php checked( $ffcertificate_get_option( 'debug_frontend' ), 1 ); ?>>
+							<?php esc_html_e( 'Enable debug logging for frontend shortcodes + verification', 'ffcertificate' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Logs `[ffc_form]`, `[ffc_verification]`, and `[ffc_magic_link]` shortcode renders + the public verification flow.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="debug_admin"><?php esc_html_e( 'Admin', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="ffc_settings[debug_admin]" id="debug_admin" value="1" <?php checked( $ffcertificate_get_option( 'debug_admin' ), 1 ); ?>>
+							<?php esc_html_e( 'Enable debug logging for admin pages', 'ffcertificate' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Logs admin submission edits, CPT handlers, and admin-side actions.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="debug_self_scheduling"><?php esc_html_e( 'Self-Scheduling', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="ffc_settings[debug_self_scheduling]" id="debug_self_scheduling" value="1" <?php checked( $ffcertificate_get_option( 'debug_self_scheduling' ), 1 ); ?>>
+							<?php esc_html_e( 'Enable debug logging for the self-scheduling module', 'ffcertificate' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Logs appointment booking, cancellation, cleanup, CSV export, and admin/CPT operations.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="debug_audience"><?php esc_html_e( 'Audience', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="ffc_settings[debug_audience]" id="debug_audience" value="1" <?php checked( $ffcertificate_get_option( 'debug_audience' ), 1 ); ?>>
+							<?php esc_html_e( 'Enable debug logging for the audience module', 'ffcertificate' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Logs audience admin actions and user-audience join/leave operations.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="debug_qrcode"><?php esc_html_e( 'QR Code', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="ffc_settings[debug_qrcode]" id="debug_qrcode" value="1" <?php checked( $ffcertificate_get_option( 'debug_qrcode' ), 1 ); ?>>
+							<?php esc_html_e( 'Enable debug logging for QR code generation', 'ffcertificate' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Logs QR-code asset resolution, cache hits, and URL composition.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
 			</tbody>
 		</table>
 </div>

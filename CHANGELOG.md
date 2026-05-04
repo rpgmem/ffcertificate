@@ -7,7 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Changed
+
+- **76 legacy `Utils::debug_log()` calls migrated to the per-area `Debug::log_*()` system.** Previously every call fired whenever `WP_DEBUG=true` with no admin toggle — including frontend shortcode renders that polluted production logs. Each call now lands in one of 14 area-specific helpers gated by a checkbox in **Settings → Advanced → Debug**. Five new areas added (`debug_frontend`, `debug_admin`, `debug_self_scheduling`, `debug_audience`, `debug_qrcode`), each defaulting OFF. `Utils::debug_log()` is now a `@deprecated` thin wrapper that delegates to `Debug::AREA_FORM_PROCESSOR` for any third-party callers; new code should use `Debug::log_*()` directly.
+- **FFC role labels now translate correctly on `wp-admin/users.php`.** WordPress stores role labels verbatim in `wp_user_roles` at `add_role()` time, and its built-in `translate_user_role()` resolves them against the **default** WP textdomain — so plugin-provided role names never localized even when the .po file was loaded. New `wp_roles_init` hook (`CapabilityManager::relabel_ffc_roles`) re-applies `__( …, 'ffcertificate' )` to every FFC role's `name` + `role_names` entry on every page load, so `users.php` always shows the operator's locale.
 
 ---
 
@@ -43,6 +46,9 @@ _No unreleased changes._
 ### Fixed
 
 - **Recruitment tables + manager role no longer require deactivate/reactivate** to land on in-place plugin updates. `register_activation_hook` is the only entry-point firing `RecruitmentActivator::create_tables()` and `CapabilityManager::register_recruitment_manager_role()` in 6.0.0–6.1.0; the WordPress "Update plugin" button DOES NOT fire that hook. Effect on the affected cohort: `maybe_migrate()` ran on `plugins_loaded` against tables that didn't exist, silently failing. Fix: hook `create_tables` at `plugins_loaded` priority 9 + role registration at priority 10 (before `maybe_migrate` at priority 11). All three calls are idempotent — each table-create + role-register short-circuits when the artifact already exists.
+- **`_load_textdomain_just_in_time was called incorrectly` notice** (WP 6.7+) emitted by the v6.2.0 role-registration hooks. WP 6.7+ rejects `__()` calls before `init`; the role labels were resolved via `__()` on `plugins_loaded` callbacks. Both `Loader::register_ffc_roles_safe()` and the recruitment-loader's role registration now hook on `init` priority 1 instead of `plugins_loaded`. Non-translated work (`create_tables`, `maybe_migrate`) stays on `plugins_loaded`.
+- **FFC role labels not translatable on `wp-admin/users.php`.** WordPress stores the role label verbatim in the `wp_user_roles` option at `add_role()` time, then displays it via `translate_user_role()` against the **default** WP textdomain — so plugin-provided role labels never translate, even after the `.po` is loaded. New `CapabilityManager::relabel_ffc_roles()` hooks `wp_roles_init` and re-applies `__()` against the plugin's textdomain on every page load. Affects the 11 FFC roles (`ffc_user`, `ffc_recruitment_manager`, plus the 9 added in this release).
+- **Per-area debug toggles for the legacy `Utils::debug_log()` callsites.** 76 calls across 29 files used to fire whenever `WP_DEBUG=true` with no per-area toggle (e.g. `[FFC] Form shortcode rendered` would spam the log on every shortcode render). Migrated to the existing `Debug::log_*()` system with 5 new areas (`AREA_FRONTEND`, `AREA_ADMIN`, `AREA_SELF_SCHEDULING`, `AREA_AUDIENCE`, `AREA_QRCODE`) so each domain has its own toggle in Settings → Advanced → Debug. `Utils::debug_log()` is now `@deprecated` and delegates to `Debug::AREA_FORM_PROCESSOR` for backwards compat. Existing 9 area toggles are unchanged.
 
 ---
 
