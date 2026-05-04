@@ -15,6 +15,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **Recruitment REST error responses now carry user-facing messages.** Failure envelopes that previously surfaced the literal stable code (e.g. operators saw "Error: recruitment_notice_has_no_adjutancies" verbatim in the CSV import dialog) now translate every code through a new `RecruitmentErrorMessages` static map. The stable code stays in `error.code` and `error.data.errors[]` so REST clients and tests are unaffected; new `error.data.messages[]` carries the translated form for every error in the envelope, suitable for multi-error toast rendering. Unknown codes pass through verbatim — deliberate so a newly-added code stays visible rather than being silently masked.
+- **Promoted `RecruitmentBadgeHtml` to `Core\BadgeHtml`.** The 7 inline-styled badge renderers in the recruitment module now delegate to the core helper so other modules (scheduling / reregistration / audience) can adopt the same markup contract. Visual treatment (padding / radius / font-size / display / cursor) remains in one constant; behavior unchanged. The recruitment-namespaced class is removed.
 
 ---
 

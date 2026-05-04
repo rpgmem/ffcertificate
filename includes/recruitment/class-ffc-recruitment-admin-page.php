@@ -31,6 +31,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\BadgeHtml;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -109,7 +111,7 @@ final class RecruitmentAdminPage {
 			'hired'     => (string) $settings['status_color_hired'],
 			'not_shown' => (string) $settings['status_color_not_shown'],
 		);
-		return RecruitmentBadgeHtml::render(
+		return BadgeHtml::render(
 			'ffc-status-badge',
 			'ffc-status-' . $status,
 			$colors[ $status ] ?? '#e9ecef',
@@ -133,7 +135,7 @@ final class RecruitmentAdminPage {
 			? $color_raw
 			: RecruitmentAdjutancyRepository::DEFAULT_COLOR;
 		$name      = $adjutancy->name ?? '';
-		return RecruitmentBadgeHtml::render(
+		return BadgeHtml::render(
 			'ffc-recruitment-adjutancy-badge',
 			'',
 			$color,
@@ -159,7 +161,7 @@ final class RecruitmentAdminPage {
 			'definitive'  => (string) $settings['notice_status_color_definitive'],
 			'closed'      => (string) $settings['notice_status_color_closed'],
 		);
-		return RecruitmentBadgeHtml::render(
+		return BadgeHtml::render(
 			'ffc-status-badge',
 			'ffc-status-' . $status,
 			$colors[ $status ] ?? '#e9ecef',
