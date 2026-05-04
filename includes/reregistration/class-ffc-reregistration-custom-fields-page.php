@@ -34,7 +34,7 @@ class ReregistrationCustomFieldsPage {
 	 * @return void
 	 */
 	public static function render(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_reregistration' ) ) {
 			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
 		}
 

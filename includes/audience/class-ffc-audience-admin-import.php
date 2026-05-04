@@ -260,7 +260,7 @@ class AudienceAdminImport {
 	 * @return void
 	 */
 	public function handle_csv_import(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
 			return;
 		}
 

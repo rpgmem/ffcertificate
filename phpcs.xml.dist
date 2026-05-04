@@ -83,12 +83,35 @@
     <rule ref="WordPress.WP.Capabilities">
         <properties>
             <property name="custom_capabilities" type="array">
+                <!-- Pre-6.2.0 caps. -->
                 <element value="ffc_book_appointments"/>
                 <element value="ffc_cancel_own_appointments"/>
                 <element value="ffc_scheduling_bypass"/>
                 <element value="ffc_view_audience_bookings"/>
                 <element value="ffc_view_self_scheduling"/>
+                <element value="ffc_manage_recruitment"/>
+                <element value="ffc_manage_reregistration"/>
                 <element value="view_own_certificates"/>
+                <element value="download_own_certificates"/>
+                <element value="view_certificate_history"/>
+                <!-- 6.2.0 module-management caps. -->
+                <element value="ffc_manage_certificates"/>
+                <element value="ffc_export_certificates"/>
+                <element value="ffc_manage_self_scheduling"/>
+                <element value="ffc_manage_audiences"/>
+                <element value="ffc_view_activity_log"/>
+                <element value="ffc_manage_user_custom_fields"/>
+                <element value="ffc_view_as_user"/>
+                <element value="ffc_manage_settings"/>
+                <!-- 6.2.0 per-domain recruitment caps. -->
+                <element value="ffc_view_recruitment"/>
+                <element value="ffc_import_recruitment_csv"/>
+                <element value="ffc_call_recruitment_candidates"/>
+                <element value="ffc_view_recruitment_pii"/>
+                <element value="ffc_manage_recruitment_settings"/>
+                <element value="ffc_manage_recruitment_reasons"/>
+                <!-- 6.2.0 reactivated submission-edit cap. -->
+                <element value="ffc_certificate_update"/>
             </property>
         </properties>
     </rule>

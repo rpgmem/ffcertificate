@@ -526,7 +526,7 @@ class AudienceAdminCalendar {
 	 * @return void
 	 */
 	public function handle_actions(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
 			return;
 		}
 

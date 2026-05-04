@@ -332,7 +332,7 @@ class Settings {
 			return;
 		}
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run migrations.', 'ffcertificate' ) );
 		}
 
@@ -401,7 +401,7 @@ class Settings {
 			return;
 		}
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
 		}
 
@@ -524,7 +524,7 @@ class Settings {
 	public function ajax_preview_date_format(): void {
 		check_ajax_referer( 'ffc_preview_date', 'nonce' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
 		}
 
@@ -553,7 +553,7 @@ class Settings {
 	 * Handle cache actions.
 	 */
 	public function handle_cache_actions(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			return;
 		}
 

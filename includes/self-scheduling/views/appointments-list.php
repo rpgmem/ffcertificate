@@ -372,7 +372,7 @@ $ffcertificate_action               = isset( $_GET['ffc_action'] ) ? sanitize_te
 if ( $ffc_self_scheduling_appointment_id > 0 ) {
 
 	// Verify user has admin permissions.
-	if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+	if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_self_scheduling' ) ) {
 		wp_die( esc_html__( 'You do not have permission to perform this action.', 'ffcertificate' ) );
 	}
 

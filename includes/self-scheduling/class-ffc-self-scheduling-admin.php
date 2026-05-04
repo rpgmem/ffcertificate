@@ -56,7 +56,7 @@ class SelfSchedulingAdmin {
 	 * @return void
 	 */
 	public function render_appointments_page(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_self_scheduling' ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ) );
 		}
 

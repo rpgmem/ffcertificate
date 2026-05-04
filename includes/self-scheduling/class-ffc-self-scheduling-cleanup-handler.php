@@ -46,7 +46,7 @@ class SelfSchedulingCleanupHandler {
 		}
 
 		// Verify permissions.
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_self_scheduling' ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'You do not have permission to perform this action', 'ffcertificate' ),
