@@ -12,6 +12,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Recruitment notices column on the wp-admin users list.** `Notices` shows the distinct count of recruitment notices each user appears in as a candidate (joined via `candidate.user_id → classification.notice_id`). Same batch-load pattern as the existing Certificates / Appointments columns — one GROUP BY query warms a per-request user_id → count map.
 - **Sortable wp-admin user columns: Name, Certificates, Appointments, Notices.** Pre-existing Username / Email already sortable; this widens the set so operators can rank users by activity. The count columns sort at SQL level via a new `pre_user_query` hook that injects a `LEFT JOIN` over a derived count table per orderby key. `COALESCE(cnt, 0)` guarantees zero-row users sort as 0 instead of landing at the bottom on NULL ordering vagaries.
 
+### Performance
+
+- **Batch-prime user cache on the recruitment Candidates admin tab.** Each row of the candidates list table previously triggered its own `get_userdata()` lookup (1 SQL query per row) to render the linked WP user. The list table now collects every promoted candidate's `user_id` after `prepare_items()` and primes WordPress's internal user cache once via `_prime_user_caches()` (single SELECT covering the whole page). Net effect: 20-100 user queries collapse to 1 per page render. Falls back to a one-shot `WP_User_Query` on environments where the helper isn't available.
+
 ### Changed
 
 - **Recruitment REST error responses now carry user-facing messages.** Failure envelopes that previously surfaced the literal stable code (e.g. operators saw "Error: recruitment_notice_has_no_adjutancies" verbatim in the CSV import dialog) now translate every code through a new `RecruitmentErrorMessages` static map. The stable code stays in `error.code` and `error.data.errors[]` so REST clients and tests are unaffected; new `error.data.messages[]` carries the translated form for every error in the envelope, suitable for multi-error toast rendering. Unknown codes pass through verbatim — deliberate so a newly-added code stays visible rather than being silently masked.

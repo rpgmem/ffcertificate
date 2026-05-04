@@ -269,11 +269,60 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		}
 
 		$this->items = array_map( array( self::class, 'convert_row' ), $raw_rows );
+
+		// Warm WordPress's user-object cache for every promoted candidate
+		// on the page in a single query, so {@see self::column_user_id()}'s
+		// per-row `get_userdata()` calls hit the cache instead of running
+		// N separate `SELECT * FROM wp_users WHERE ID = %d` lookups.
+		self::prime_user_cache_for_items( $this->items );
+
 		$this->set_pagination_args(
 			array(
 				'total_items' => $total_items,
 				'per_page'    => $per_page,
 				'total_pages' => (int) ceil( $total_items / max( 1, $per_page ) ),
+			)
+		);
+	}
+
+	/**
+	 * Pre-fetch every promoted candidate's WP_User object in one query
+	 * so the per-row `column_user_id()` renderers read from cache.
+	 *
+	 * Uses WordPress's `_prime_user_caches()` helper when available
+	 * (canonical batch-prime entry point); falls back to a direct
+	 * `WP_User_Query` otherwise so this works on environments that
+	 * don't expose the private helper.
+	 *
+	 * @since 6.2.0
+	 * @param array<int, array<string, mixed>> $items Already-prepared row arrays.
+	 * @return void
+	 */
+	private static function prime_user_cache_for_items( array $items ): void {
+		$user_ids = array();
+		foreach ( $items as $item ) {
+			$uid = isset( $item['user_id'] ) ? (int) $item['user_id'] : 0;
+			if ( $uid > 0 ) {
+				$user_ids[] = $uid;
+			}
+		}
+		$user_ids = array_values( array_unique( $user_ids ) );
+		if ( empty( $user_ids ) ) {
+			return;
+		}
+
+		if ( function_exists( '_prime_user_caches' ) ) {
+			_prime_user_caches( $user_ids );
+			return;
+		}
+
+		// Fallback path — instantiates a single WP_User_Query whose
+		// `include` filter forces a one-shot SELECT instead of N calls.
+		new \WP_User_Query(
+			array(
+				'include' => $user_ids,
+				'fields'  => 'all_with_meta',
+				'number'  => count( $user_ids ),
 			)
 		);
 	}
