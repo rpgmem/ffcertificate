@@ -204,6 +204,7 @@ class Loader {
 			$this->admin_ajax   = new AdminAjax();
 			AdminUserColumns::init();
 			AdminUserCapabilities::init();
+			\FreeFormCertificate\Admin\AdminMenuVisibility::init();
 			FormListColumns::init();
 			AdminUserCustomFields::init();
 			$reregistration_admin = new ReregistrationAdmin();
