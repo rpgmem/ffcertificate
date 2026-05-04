@@ -7,20 +7,42 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+---
+
+## [6.2.0] (2026-05-04)
+
+**Capabilities + roles overhaul + admin UX scoping + upgrade safety.** 14 granular admin capabilities replace blanket `manage_options` gates so site owners can delegate scoped roles without giving full WP admin. 9 new roles wrap the new caps into pre-built bundles (Certificate Manager, Self-Scheduling Manager, Audience Manager, Reregistration Manager, FFC Operator, plus a 4-tier recruitment ladder: Auditor → Operator → Manager → Admin). A defense-in-depth admin-UX layer hides core WP menus, blocks direct-URL access, and prunes the top admin bar per role. The 3 legacy non-namespaced certificate caps (`view_own_certificates` etc.) are renamed to the consistent `ffc_*` namespace with a one-time idempotent migration. A pre-existing in-place-upgrade bug that left recruitment tables un-created when bypassing reactivation is fixed.
+
 ### Added
 
-- **Recruitment notices column on the wp-admin users list.** `Notices` shows the distinct count of recruitment notices each user appears in as a candidate (joined via `candidate.user_id → classification.notice_id`). Same batch-load pattern as the existing Certificates / Appointments columns — one GROUP BY query warms a per-request user_id → count map.
-- **Sortable wp-admin user columns: Name, Certificates, Appointments, Notices.** Pre-existing Username / Email already sortable; this widens the set so operators can rank users by activity. The count columns sort at SQL level via a new `pre_user_query` hook that injects a `LEFT JOIN` over a derived count table per orderby key. `COALESCE(cnt, 0)` guarantees zero-row users sort as 0 instead of landing at the bottom on NULL ordering vagaries.
-
-### Performance
-
-- **Batch-prime user cache on the recruitment Candidates admin tab.** Each row of the candidates list table previously triggered its own `get_userdata()` lookup (1 SQL query per row) to render the linked WP user. The list table now collects every promoted candidate's `user_id` after `prepare_items()` and primes WordPress's internal user cache once via `_prime_user_caches()` (single SELECT covering the whole page). Net effect: 20-100 user queries collapse to 1 per page render. Falls back to a one-shot `WP_User_Query` on environments where the helper isn't available.
+- **14 new granular capabilities** (`ADMIN_CAPABILITIES` constant, registered on activation + auto-granted to administrators on version bump):
+  - Cross-module: `ffc_manage_certificates`, `ffc_export_certificates`, `ffc_manage_self_scheduling`, `ffc_manage_audiences`, `ffc_view_activity_log`, `ffc_manage_user_custom_fields`, `ffc_view_as_user`, `ffc_manage_settings`.
+  - Per-domain recruitment: `ffc_view_recruitment`, `ffc_import_recruitment_csv`, `ffc_call_recruitment_candidates`, `ffc_view_recruitment_pii`, `ffc_manage_recruitment_settings`, `ffc_manage_recruitment_reasons`. The umbrella `ffc_manage_recruitment` cap stays as the catch-all backwards-compat for routes that don't match a granular cap.
+- **9 new roles** registered idempotently on activation and on `plugins_loaded` so in-place plugin updates self-heal:
+  - Cross-module: `ffc_certificate_manager`, `ffc_self_scheduling_manager`, `ffc_audience_manager`, `ffc_reregistration_manager`, `ffc_operator` (read-only generalist).
+  - Recruitment tier (each tier inherits from the one above): `ffc_recruitment_auditor` (read-only), `ffc_recruitment_operator` (auditor + can call candidates), `ffc_recruitment_manager` (existing role expanded with the new granular caps), `ffc_recruitment_admin` (full surface incl. settings + reasons).
+- **`AdminMenuVisibility`** — defense-in-depth UX layer hiding core WP menus (Posts/Comments/Pages/Tools/Plugins/Themes/Users), blocking direct-URL access (redirect to the role's landing page), and pruning top admin-bar nodes (`new-content`, `comments`) per FFC role. `manage_options` users are exempt; multi-role users inherit the most permissive policy. NOT a security boundary — caps remain the source of truth; this is UX scoping.
+- **`Utils::current_user_can_admin_or( $cap )`** helper — passes if the user has `manage_options` OR the granular cap. Used at every gate point swapped from blanket `manage_options` to a granular cap, keeping every site admin's access intact.
 
 ### Changed
 
-- **Recruitment REST error responses now carry user-facing messages.** Failure envelopes that previously surfaced the literal stable code (e.g. operators saw "Error: recruitment_notice_has_no_adjutancies" verbatim in the CSV import dialog) now translate every code through a new `RecruitmentErrorMessages` static map. The stable code stays in `error.code` and `error.data.errors[]` so REST clients and tests are unaffected; new `error.data.messages[]` carries the translated form for every error in the envelope, suitable for multi-error toast rendering. Unknown codes pass through verbatim — deliberate so a newly-added code stays visible rather than being silently masked.
-- **Promoted `RecruitmentBadgeHtml` to `Core\BadgeHtml`.** The 7 inline-styled badge renderers in the recruitment module now delegate to the core helper so other modules (scheduling / reregistration / audience) can adopt the same markup contract. Visual treatment (padding / radius / font-size / display / cursor) remains in one constant; behavior unchanged. The recruitment-namespaced class is removed.
-- **Extracted `Core\ColorValidator`.** Three near-identical hex normalizers — `RecruitmentSettings::sanitize_color`, `RecruitmentAdjutancyRepository::normalize_color`, `RecruitmentReasonRepository::normalize_color` — all delegate to `ColorValidator::normalize( $value, $default )` now. Same accept set (`#RGB` / `#RRGGBB` / `#RRGGBBAA`), same lowercase canonicalization, same default-fallback semantics; just one regex + one trim instead of three. The four hex-color save paths in the `audience` module (`AudienceAdminAudience`, `AudienceAdminEnvironment`, `AudienceAdminSettings`, `AudienceCsvImporter`) also adopt the helper, replacing WordPress's built-in `sanitize_hex_color()` — gains 8-digit alpha hex support and removes the explicit `?? '#3788d8'` fallback shim that was needed because `sanitize_hex_color()` returns `null` on invalid input.
+- **`ffc_certificate_update` reactivated** — was a never-wired placeholder in `FUTURE_CAPABILITIES` since 4.9.3. Promoted to `ADMIN_CAPABILITIES` and now gates `class-ffc-admin-submission-edit-page.php` so non-admin operators can fix typos in issued certificates. The user-edit metabox label was also rewritten from "Future feature" placeholders to a real description.
+- **3 legacy certificate caps renamed** to the consistent `ffc_*` namespace + one-time migration (`ffc_legacy_caps_renamed_v1` flag):
+  - `view_own_certificates`        → `ffc_view_own_certificates`
+  - `download_own_certificates`    → `ffc_download_own_certificates`
+  - `view_certificate_history`     → `ffc_view_certificate_history`
+  Migration walks every WP user, transfers user-meta grants from the legacy name to the new name, and rewrites the `ffc_user` role definition. Idempotent + version-flagged so re-running is a no-op.
+- **20+ admin entry points re-gated** from `manage_options` to the corresponding granular cap (or `manage_options` OR `ffc_*` via `Utils::current_user_can_admin_or()`), including: Activity Log page, CSV exporter, Self-Scheduling admin/CPT/cleanup/CSV, Audience admin (5 pages + 8 menu items), Settings page (4 inline guards + save handler), Dashboard view-as-user, Submission edit page, Reregistration custom-fields page. The recruitment REST controller adds 4 dedicated permission callbacks for the highest-blast-radius routes (CSV import, promote-preview, single + bulk call, reasons CRUD); other recruitment routes stay on the umbrella `ffc_manage_recruitment` cap by design.
+
+### Removed
+
+- **`ffc_reregistration` placeholder cap** — never wired since its 4.9.3 introduction. Audience-targeting on reregistration objects already filters who can submit each form, so the per-user cap was redundant. Removed from `ADMIN_CAPABILITIES`; the `FUTURE_CAPABILITIES` constant is now empty (kept as `array()` so external code referencing it doesn't fatal). `uninstall.php` continues to strip the cap from any user that had it granted.
+
+### Fixed
+
+- **Recruitment tables + manager role no longer require deactivate/reactivate** to land on in-place plugin updates. `register_activation_hook` is the only entry-point firing `RecruitmentActivator::create_tables()` and `CapabilityManager::register_recruitment_manager_role()` in 6.0.0–6.1.0; the WordPress "Update plugin" button DOES NOT fire that hook. Effect on the affected cohort: `maybe_migrate()` ran on `plugins_loaded` against tables that didn't exist, silently failing. Fix: hook `create_tables` at `plugins_loaded` priority 9 + role registration at priority 10 (before `maybe_migrate` at priority 11). All three calls are idempotent — each table-create + role-register short-circuits when the artifact already exists.
 
 ---
 
