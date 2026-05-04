@@ -91,9 +91,14 @@
                 <element value="ffc_view_self_scheduling"/>
                 <element value="ffc_manage_recruitment"/>
                 <element value="ffc_manage_reregistration"/>
+                <!-- Legacy (pre-6.2.0) names kept for migration paths. -->
                 <element value="view_own_certificates"/>
                 <element value="download_own_certificates"/>
                 <element value="view_certificate_history"/>
+                <!-- 6.2.0 namespaced replacements. -->
+                <element value="ffc_view_own_certificates"/>
+                <element value="ffc_download_own_certificates"/>
+                <element value="ffc_view_certificate_history"/>
                 <!-- 6.2.0 module-management caps. -->
                 <element value="ffc_manage_certificates"/>
                 <element value="ffc_export_certificates"/>

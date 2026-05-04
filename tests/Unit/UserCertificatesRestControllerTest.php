@@ -222,7 +222,7 @@ class UserCertificatesRestControllerTest extends TestCase {
             if ( $cap === 'manage_options' ) {
                 return false;
             }
-            if ( $cap === 'view_own_certificates' ) {
+            if ( $cap === 'ffc_view_own_certificates' ) {
                 return true;
             }
             // deny download_own_certificates, view_certificate_history
@@ -261,7 +261,7 @@ class UserCertificatesRestControllerTest extends TestCase {
             if ( $cap === 'manage_options' ) {
                 return false;
             }
-            if ( $cap === 'view_own_certificates' || $cap === 'download_own_certificates' ) {
+            if ( $cap === 'ffc_view_own_certificates' || $cap === 'ffc_download_own_certificates' ) {
                 return true;
             }
             // deny view_certificate_history
