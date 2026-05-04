@@ -67,19 +67,49 @@ class CapabilityManagerTest extends TestCase {
         $this->assertCount( 1, $caps );
     }
 
-    public function test_admin_capabilities_contains_expected_caps(): void {
+    public function test_admin_capabilities_contains_pre_6_2_caps(): void {
         $caps = CapabilityManager::ADMIN_CAPABILITIES;
         $this->assertContains( 'ffc_scheduling_bypass', $caps );
         $this->assertContains( 'ffc_manage_reregistration', $caps );
         $this->assertContains( 'ffc_manage_recruitment', $caps );
-        $this->assertCount( 3, $caps );
     }
 
-    public function test_future_capabilities_contains_expected_caps(): void {
-        $caps = CapabilityManager::FUTURE_CAPABILITIES;
-        $this->assertContains( 'ffc_reregistration', $caps );
-        $this->assertContains( 'ffc_certificate_update', $caps );
-        $this->assertCount( 2, $caps );
+    public function test_admin_capabilities_contains_6_2_module_caps(): void {
+        $caps = CapabilityManager::ADMIN_CAPABILITIES;
+        $this->assertContains( 'ffc_manage_certificates', $caps );
+        $this->assertContains( 'ffc_export_certificates', $caps );
+        $this->assertContains( 'ffc_manage_self_scheduling', $caps );
+        $this->assertContains( 'ffc_manage_audiences', $caps );
+        $this->assertContains( 'ffc_view_activity_log', $caps );
+        $this->assertContains( 'ffc_manage_user_custom_fields', $caps );
+        $this->assertContains( 'ffc_view_as_user', $caps );
+        $this->assertContains( 'ffc_manage_settings', $caps );
+    }
+
+    public function test_admin_capabilities_contains_6_2_recruitment_granular_caps(): void {
+        $caps = CapabilityManager::ADMIN_CAPABILITIES;
+        $this->assertContains( 'ffc_view_recruitment', $caps );
+        $this->assertContains( 'ffc_import_recruitment_csv', $caps );
+        $this->assertContains( 'ffc_call_recruitment_candidates', $caps );
+        $this->assertContains( 'ffc_view_recruitment_pii', $caps );
+        $this->assertContains( 'ffc_manage_recruitment_settings', $caps );
+        $this->assertContains( 'ffc_manage_recruitment_reasons', $caps );
+    }
+
+    public function test_admin_capabilities_contains_reactivated_certificate_update(): void {
+        $this->assertContains( 'ffc_certificate_update', CapabilityManager::ADMIN_CAPABILITIES );
+    }
+
+    public function test_future_capabilities_constant_is_empty_in_6_2(): void {
+        // Both placeholders retired in 6.2.0:
+        //   - ffc_reregistration: removed (audience-targeting already covers).
+        //   - ffc_certificate_update: promoted to ADMIN_CAPABILITIES.
+        $this->assertSame( array(), CapabilityManager::FUTURE_CAPABILITIES );
+    }
+
+    public function test_admin_capabilities_does_not_contain_removed_ffc_reregistration(): void {
+        $this->assertNotContains( 'ffc_reregistration', CapabilityManager::ADMIN_CAPABILITIES );
+        $this->assertNotContains( 'ffc_reregistration', CapabilityManager::get_all_capabilities() );
     }
 
     // ------------------------------------------------------------------
@@ -100,7 +130,7 @@ class CapabilityManagerTest extends TestCase {
         $this->assertContains( 'ffc_book_appointments', $all );
         $this->assertContains( 'ffc_view_audience_bookings', $all );
         $this->assertContains( 'ffc_scheduling_bypass', $all );
-        $this->assertContains( 'ffc_reregistration', $all );
+        $this->assertContains( 'ffc_certificate_update', $all );
     }
 
     // ------------------------------------------------------------------

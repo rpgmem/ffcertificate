@@ -72,14 +72,53 @@ class CapabilityManager {
 	);
 
 	/**
-	 * Admin-level capabilities (not granted by default)
+	 * Admin-level capabilities (not granted by default).
 	 *
 	 * @since 4.9.3
+	 * @since 6.2.0 Expanded with module-management caps + per-domain
+	 *              recruitment caps to replace blanket `manage_options`
+	 *              gates with delegable, granular permissions. The pre-6.2.0
+	 *              caps (`ffc_scheduling_bypass`, `ffc_manage_reregistration`,
+	 *              `ffc_manage_recruitment`) remain unchanged so any user
+	 *              already holding them keeps their access; the new caps
+	 *              add scoped delegation paths.
 	 */
 	public const ADMIN_CAPABILITIES = array(
+		// Pre-6.2.0 caps.
 		'ffc_scheduling_bypass',
 		'ffc_manage_reregistration',
 		'ffc_manage_recruitment',
+
+		// Module-management caps (6.2.0). Each replaces a `manage_options`
+		// gate at a module-admin entry point so site admins can delegate the
+		// module to a dedicated operator without giving full WP admin.
+		'ffc_manage_certificates',
+		'ffc_export_certificates',
+		'ffc_manage_self_scheduling',
+		'ffc_manage_audiences',
+		'ffc_view_activity_log',
+		'ffc_manage_user_custom_fields',
+		'ffc_view_as_user',
+		'ffc_manage_settings',
+
+		// Per-domain recruitment caps (6.2.0). Granular substitutes for the
+		// catch-all `ffc_manage_recruitment` — operators can be wired with
+		// "view only", "view + call candidates", "view + import CSV", etc.
+		// without unlocking the entire admin surface. `ffc_manage_recruitment`
+		// stays as the umbrella cap (catch-all backwards-compat) for any
+		// endpoint that doesn't match one of the granular entries.
+		'ffc_view_recruitment',
+		'ffc_import_recruitment_csv',
+		'ffc_call_recruitment_candidates',
+		'ffc_view_recruitment_pii',
+		'ffc_manage_recruitment_settings',
+		'ffc_manage_recruitment_reasons',
+
+		// Submission-edit cap (6.2.0). Reactivated from the legacy
+		// `FUTURE_CAPABILITIES` placeholder; gates the admin submission
+		// edit page so non-admin operators can fix typos in issued
+		// certificates without holding `manage_options`.
+		'ffc_certificate_update',
 	);
 
 	/**
@@ -94,14 +133,20 @@ class CapabilityManager {
 	public const RECRUITMENT_MANAGER_ROLE = 'ffc_recruitment_manager';
 
 	/**
-	 * Future capabilities (disabled by default)
+	 * Future capabilities (disabled by default).
+	 *
+	 * Now empty — historical placeholders have been retired:
+	 * - `ffc_reregistration` (4.9.3): never wired. Audience-targeting on
+	 *   reregistration objects already filters who can submit each form;
+	 *   adding a per-user cap on top was redundant. Removed in 6.2.0.
+	 * - `ffc_certificate_update` (4.9.3): wired in 6.2.0 as a real admin
+	 *   cap (see `ADMIN_CAPABILITIES` above).
 	 *
 	 * @since 4.9.3
+	 * @since 6.2.0 Cleared. The constant remains so external code that
+	 *              referenced it doesn't fatal.
 	 */
-	public const FUTURE_CAPABILITIES = array(
-		'ffc_reregistration',
-		'ffc_certificate_update',
-	);
+	public const FUTURE_CAPABILITIES = array();
 
 	/**
 	 * Get all FFC capabilities consolidated

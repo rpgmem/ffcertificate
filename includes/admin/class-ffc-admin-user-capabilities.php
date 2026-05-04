@@ -217,29 +217,21 @@ class AdminUserCapabilities {
 					</td>
 				</tr>
 
-				<!-- Future Capabilities -->
+				<!-- Submission editing -->
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Future Permissions', 'ffcertificate' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Submission editing', 'ffcertificate' ); ?></th>
 					<td>
 						<fieldset>
 							<legend class="screen-reader-text">
-								<span><?php esc_html_e( 'Future Permissions', 'ffcertificate' ); ?></span>
+								<span><?php esc_html_e( 'Submission editing', 'ffcertificate' ); ?></span>
 							</legend>
-
-							<label>
-								<input type="checkbox" name="ffc_cap_ffc_reregistration" value="1"
-									<?php checked( $capabilities['ffc_reregistration'] ?? false ); ?>>
-								<?php esc_html_e( 'Submit reregistrations (user-level)', 'ffcertificate' ); ?>
-							</label>
-							<span class="description"><?php esc_html_e( '(Future feature)', 'ffcertificate' ); ?></span>
-							<br>
 
 							<label>
 								<input type="checkbox" name="ffc_cap_ffc_certificate_update" value="1"
 									<?php checked( $capabilities['ffc_certificate_update'] ?? false ); ?>>
-								<?php esc_html_e( 'Certificate update', 'ffcertificate' ); ?>
+								<?php esc_html_e( 'Edit submission data on issued certificates', 'ffcertificate' ); ?>
 							</label>
-							<span class="description"><?php esc_html_e( '(Future feature)', 'ffcertificate' ); ?></span>
+							<span class="description"><?php esc_html_e( '(Lets the user fix typos / corrections on already-emitted certificates without holding manage_options.)', 'ffcertificate' ); ?></span>
 						</fieldset>
 					</td>
 				</tr>
