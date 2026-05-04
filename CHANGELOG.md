@@ -7,7 +7,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Added
+
+- **Recruitment notices column on the wp-admin users list.** `Notices` shows the distinct count of recruitment notices each user appears in as a candidate (joined via `candidate.user_id → classification.notice_id`). Same batch-load pattern as the existing Certificates / Appointments columns — one GROUP BY query warms a per-request user_id → count map.
+- **Sortable wp-admin user columns: Name, Certificates, Appointments, Notices.** Pre-existing Username / Email already sortable; this widens the set so operators can rank users by activity. The count columns sort at SQL level via a new `pre_user_query` hook that injects a `LEFT JOIN` over a derived count table per orderby key. `COALESCE(cnt, 0)` guarantees zero-row users sort as 0 instead of landing at the bottom on NULL ordering vagaries.
+
+### Changed
+
+- **Recruitment REST error responses now carry user-facing messages.** Failure envelopes that previously surfaced the literal stable code (e.g. operators saw "Error: recruitment_notice_has_no_adjutancies" verbatim in the CSV import dialog) now translate every code through a new `RecruitmentErrorMessages` static map. The stable code stays in `error.code` and `error.data.errors[]` so REST clients and tests are unaffected; new `error.data.messages[]` carries the translated form for every error in the envelope, suitable for multi-error toast rendering. Unknown codes pass through verbatim — deliberate so a newly-added code stays visible rather than being silently masked.
 
 ---
 

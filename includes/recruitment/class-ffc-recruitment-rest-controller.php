@@ -572,7 +572,7 @@ final class RecruitmentRestController {
 
 		$notice = RecruitmentNoticeRepository::get_by_id( $id );
 		if ( null === $notice ) {
-			return new \WP_Error( 'recruitment_notice_not_found', '', array( 'status' => 404 ) );
+			return new \WP_Error( 'recruitment_notice_not_found', RecruitmentErrorMessages::translate( 'recruitment_notice_not_found' ), array( 'status' => 404 ) );
 		}
 
 		return new \WP_REST_Response( $notice, 200 );
@@ -807,7 +807,7 @@ final class RecruitmentRestController {
 
 		$cls = RecruitmentClassificationRepository::get_by_id( $id );
 		if ( null === $cls ) {
-			return new \WP_Error( 'recruitment_classification_not_found', '', array( 'status' => 404 ) );
+			return new \WP_Error( 'recruitment_classification_not_found', RecruitmentErrorMessages::translate( 'recruitment_classification_not_found' ), array( 'status' => 404 ) );
 		}
 		if ( 'preview' !== (string) $cls->list_type ) {
 			return new \WP_Error( 'recruitment_preview_status_only_on_preview_list', __( 'Preliminary status can only be set on classifications in the preview list.', 'ffcertificate' ), array( 'status' => 409 ) );
@@ -815,7 +815,7 @@ final class RecruitmentRestController {
 
 		$valid_statuses = array( 'empty', 'denied', 'granted', 'appeal_denied', 'appeal_granted' );
 		if ( ! in_array( $preview_status, $valid_statuses, true ) ) {
-			return new \WP_Error( 'recruitment_preview_status_invalid', '', array( 'status' => 400 ) );
+			return new \WP_Error( 'recruitment_preview_status_invalid', RecruitmentErrorMessages::translate( 'recruitment_preview_status_invalid' ), array( 'status' => 400 ) );
 		}
 
 		// 'empty' clears any pre-existing reason — operators reset by
@@ -836,7 +836,7 @@ final class RecruitmentRestController {
 		if ( $reason_id > 0 ) {
 			$reason = RecruitmentReasonRepository::get_by_id( $reason_id );
 			if ( null === $reason ) {
-				return new \WP_Error( 'recruitment_preview_reason_not_found', '', array( 'status' => 404 ) );
+				return new \WP_Error( 'recruitment_preview_reason_not_found', RecruitmentErrorMessages::translate( 'recruitment_preview_reason_not_found' ), array( 'status' => 404 ) );
 			}
 			$applies = RecruitmentReasonRepository::decode_applies_to( (string) ( $reason->applies_to ?? '' ) );
 			if ( ! in_array( $preview_status, $applies, true ) ) {
@@ -846,7 +846,7 @@ final class RecruitmentRestController {
 
 		$ok = RecruitmentClassificationRepository::set_preview_status( $id, $preview_status, $reason_id > 0 ? $reason_id : null );
 		if ( ! $ok ) {
-			return new \WP_Error( 'recruitment_preview_status_update_failed', '', array( 'status' => 400 ) );
+			return new \WP_Error( 'recruitment_preview_status_update_failed', RecruitmentErrorMessages::translate( 'recruitment_preview_status_update_failed' ), array( 'status' => 400 ) );
 		}
 
 		return new \WP_REST_Response( RecruitmentClassificationRepository::get_by_id( $id ), 200 );
@@ -1357,13 +1357,15 @@ final class RecruitmentRestController {
 	 * @return \WP_Error
 	 */
 	private function wp_error_from_envelope( array $errors, int $status ): \WP_Error {
-		$code = $errors[0] ?? 'recruitment_error';
+		$code    = $errors[0] ?? 'recruitment_error';
+		$message = RecruitmentErrorMessages::translate( $code );
 		return new \WP_Error(
 			$code,
-			$code,
+			$message,
 			array(
-				'status' => $status,
-				'errors' => $errors,
+				'status'   => $status,
+				'errors'   => $errors,
+				'messages' => RecruitmentErrorMessages::translate_all( $errors ),
 			)
 		);
 	}
@@ -1377,14 +1379,16 @@ final class RecruitmentRestController {
 	 * @return \WP_Error
 	 */
 	private function wp_error_from_envelope_with_blocked( array $envelope, int $status ): \WP_Error {
-		$first = $envelope['errors'][0] ?? 'recruitment_error';
-		$data  = array(
-			'status' => $status,
-			'errors' => $envelope['errors'],
+		$first   = $envelope['errors'][0] ?? 'recruitment_error';
+		$message = RecruitmentErrorMessages::translate( $first );
+		$data    = array(
+			'status'   => $status,
+			'errors'   => $envelope['errors'],
+			'messages' => RecruitmentErrorMessages::translate_all( $envelope['errors'] ),
 		);
 		if ( isset( $envelope['blocked_by'] ) ) {
 			$data['blocked_by'] = $envelope['blocked_by'];
 		}
-		return new \WP_Error( $first, $first, $data );
+		return new \WP_Error( $first, $message, $data );
 	}
 }

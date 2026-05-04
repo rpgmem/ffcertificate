@@ -38,6 +38,22 @@ class AdminUserColumns {
 	private static ?bool $appointments_table_exists = null;
 
 	/**
+	 * Cached flag for recruitment classification table existence
+	 *
+	 * @since 6.2.0
+	 * @var bool|null
+	 */
+	private static ?bool $recruitment_table_exists = null;
+
+	/**
+	 * Batch-cached recruitment notice counts (user_id => count of distinct notices)
+	 *
+	 * @since 6.2.0
+	 * @var array<int, int>|null
+	 */
+	private static ?array $recruitment_counts_cache = null;
+
+	/**
 	 * Cached dashboard URL for user actions column
 	 *
 	 * @since 4.6.13
@@ -69,6 +85,11 @@ class AdminUserColumns {
 		add_filter( 'manage_users_columns', array( __CLASS__, 'add_custom_columns' ) );
 		add_filter( 'manage_users_custom_column', array( __CLASS__, 'render_custom_column' ), 10, 3 );
 
+		// Mark our value columns + the built-in display name as sortable.
+		add_filter( 'manage_users_sortable_columns', array( __CLASS__, 'register_sortable_columns' ) );
+		// SQL-level sort by count requires rewriting WP_User_Query mid-flight.
+		add_action( 'pre_user_query', array( __CLASS__, 'apply_sort_to_user_query' ) );
+
 		// Enqueue styles for the column.
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_styles' ) );
 	}
@@ -89,11 +110,30 @@ class AdminUserColumns {
 			if ( 'posts' === $key ) {
 				$new_columns['ffc_certificates'] = __( 'Certificates', 'ffcertificate' );
 				$new_columns['ffc_appointments'] = __( 'Appointments', 'ffcertificate' );
+				$new_columns['ffc_notices']      = __( 'Notices', 'ffcertificate' );
 				$new_columns['ffc_user_actions'] = __( 'User Actions', 'ffcertificate' );
 			}
 		}
 
 		return $new_columns;
+	}
+
+	/**
+	 * Register the columns that should advertise themselves as sortable.
+	 *
+	 * `name` is the built-in display-name column WP already renders but
+	 * doesn't mark sortable on its own. The three count columns are SQL-
+	 * sorted via {@see self::apply_sort_to_user_query()}.
+	 *
+	 * @param array<string, string|array<int, mixed>> $sortable Existing sortable columns.
+	 * @return array<string, string|array<int, mixed>>
+	 */
+	public static function register_sortable_columns( array $sortable ): array {
+		$sortable['name']             = 'display_name';
+		$sortable['ffc_certificates'] = 'ffc_certificates';
+		$sortable['ffc_appointments'] = 'ffc_appointments';
+		$sortable['ffc_notices']      = 'ffc_notices';
+		return $sortable;
 	}
 
 	/**
@@ -111,6 +151,9 @@ class AdminUserColumns {
 
 			case 'ffc_appointments':
 				return self::render_appointments_count( $user_id );
+
+			case 'ffc_notices':
+				return self::render_notices_count( $user_id );
 
 			case 'ffc_user_actions':
 				return self::render_user_actions( $user_id );
@@ -157,6 +200,30 @@ class AdminUserColumns {
 			'<strong>%d</strong> %s',
 			$count,
 			_n( 'appointment', 'appointments', $count, 'ffcertificate' )
+		);
+	}
+
+	/**
+	 * Render recruitment notices count.
+	 *
+	 * Counts the distinct notices in which the user appears as a candidate
+	 * (i.e. has at least one classification row joined via candidate.user_id).
+	 *
+	 * @since 6.2.0
+	 * @param int $user_id User ID.
+	 * @return string Column HTML
+	 */
+	private static function render_notices_count( int $user_id ): string {
+		$count = self::get_user_notice_count( $user_id );
+
+		if ( 0 === $count ) {
+			return '<span class="ffc-empty-value">—</span>';
+		}
+
+		return sprintf(
+			'<strong>%d</strong> %s',
+			$count,
+			_n( 'notice', 'notices', $count, 'ffcertificate' )
 		);
 	}
 
@@ -227,6 +294,21 @@ class AdminUserColumns {
 	}
 
 	/**
+	 * Get distinct-notice count for user (batch-loaded).
+	 *
+	 * @since 6.2.0
+	 * @param int $user_id User ID.
+	 * @return int
+	 */
+	private static function get_user_notice_count( int $user_id ): int {
+		if ( null === self::$recruitment_counts_cache ) {
+			self::load_recruitment_notice_counts();
+		}
+
+		return self::$recruitment_counts_cache[ $user_id ] ?? 0;
+	}
+
+	/**
 	 * Load certificate counts for all users in a single batch query
 	 *
 	 * @since 4.9.7
@@ -287,6 +369,110 @@ class AdminUserColumns {
 				self::$appointment_counts_cache[ (int) $row['user_id'] ] = (int) $row['cnt'];
 			}
 		}
+	}
+
+	/**
+	 * Load recruitment-notice counts for all users in a single batch query.
+	 *
+	 * Counts distinct notices the user appears in as a candidate, joining
+	 * `candidate.user_id` against the classifications table.
+	 *
+	 * @since 6.2.0
+	 * @return void
+	 */
+	private static function load_recruitment_notice_counts(): void {
+		global $wpdb;
+		$candidates_table      = $wpdb->prefix . 'ffc_recruitment_candidate';
+		$classifications_table = $wpdb->prefix . 'ffc_recruitment_classification';
+
+		if ( null === self::$recruitment_table_exists ) {
+			self::$recruitment_table_exists = self::table_exists( $classifications_table );
+		}
+
+		self::$recruitment_counts_cache = array();
+		if ( ! self::$recruitment_table_exists ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT c.user_id AS user_id, COUNT(DISTINCT cl.notice_id) AS cnt
+				FROM %i AS cl
+				INNER JOIN %i AS c ON c.id = cl.candidate_id
+				WHERE c.user_id IS NOT NULL
+				GROUP BY c.user_id',
+				$classifications_table,
+				$candidates_table
+			),
+			ARRAY_A
+		);
+
+		if ( $results ) {
+			foreach ( $results as $row ) {
+				self::$recruitment_counts_cache[ (int) $row['user_id'] ] = (int) $row['cnt'];
+			}
+		}
+	}
+
+	/**
+	 * Inject ORDER BY into WP_User_Query when one of our value columns is
+	 * the active sort.
+	 *
+	 * For the count columns we can't use the default `meta_key` pattern (no
+	 * usermeta involved), so we rewrite `query_orderby` to reference a
+	 * left-joined derived table aggregated by user_id. The JOIN is added
+	 * to `query_from` only when the relevant orderby is selected, keeping
+	 * normal user-list queries unaffected.
+	 *
+	 * @since 6.2.0
+	 * @param \WP_User_Query $query Query mid-build.
+	 * @return void
+	 */
+	public static function apply_sort_to_user_query( \WP_User_Query $query ): void {
+		$orderby = isset( $query->query_vars['orderby'] ) ? (string) $query->query_vars['orderby'] : '';
+		if ( ! in_array( $orderby, array( 'ffc_certificates', 'ffc_appointments', 'ffc_notices' ), true ) ) {
+			return;
+		}
+
+		global $wpdb;
+		$order = isset( $query->query_vars['order'] ) && 'ASC' === strtoupper( (string) $query->query_vars['order'] )
+			? 'ASC'
+			: 'DESC';
+
+		switch ( $orderby ) {
+			case 'ffc_certificates':
+				$table  = \FreeFormCertificate\Core\Utils::get_submissions_table();
+				$alias  = 'ffc_cert_counts';
+				$select = "(SELECT user_id, COUNT(*) AS cnt FROM {$table} WHERE user_id IS NOT NULL AND status != 'trash' GROUP BY user_id)";
+				break;
+
+			case 'ffc_appointments':
+				$appts_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+				if ( ! self::table_exists( $appts_table ) ) {
+					return;
+				}
+				$alias  = 'ffc_appt_counts';
+				$select = "(SELECT user_id, COUNT(*) AS cnt FROM {$appts_table} WHERE user_id IS NOT NULL AND status != 'cancelled' GROUP BY user_id)";
+				break;
+
+			case 'ffc_notices':
+			default:
+				$candidates      = $wpdb->prefix . 'ffc_recruitment_candidate';
+				$classifications = $wpdb->prefix . 'ffc_recruitment_classification';
+				if ( ! self::table_exists( $classifications ) ) {
+					return;
+				}
+				$alias  = 'ffc_notice_counts';
+				$select = "(SELECT c.user_id AS user_id, COUNT(DISTINCT cl.notice_id) AS cnt FROM {$classifications} AS cl INNER JOIN {$candidates} AS c ON c.id = cl.candidate_id WHERE c.user_id IS NOT NULL GROUP BY c.user_id)";
+				break;
+		}
+
+		$query->query_from .= " LEFT JOIN {$select} AS {$alias} ON {$alias}.user_id = {$wpdb->users}.ID";
+		// COALESCE so users with zero rows sort as 0 rather than getting
+		// dropped to the bottom by NULL ordering vagaries between MySQL
+		// versions.
+		$query->query_orderby = "ORDER BY COALESCE({$alias}.cnt, 0) {$order}, {$wpdb->users}.user_login ASC";
 	}
 
 	/**
