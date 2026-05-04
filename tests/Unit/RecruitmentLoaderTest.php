@@ -35,15 +35,23 @@ class RecruitmentLoaderTest extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_plugins_loaded_hooks_fire_in_priority_order_9_10_11(): void {
+	public function test_plugins_loaded_hooks_create_tables_and_maybe_migrate(): void {
 		// Capture every add_action call so we can pin the safety-net set
-		// (create_tables@9, role@10, maybe_migrate@11) without coupling to
-		// brain/monkey's expectation argument-matching quirks.
+		// (create_tables@plugins_loaded:9, maybe_migrate@plugins_loaded:11,
+		// role@init:1) without coupling to brain/monkey's expectation
+		// argument-matching quirks.
 		$plugins_loaded = array();
+		$init_hooks     = array();
 		Functions\when( 'add_action' )->alias(
-			static function ( $hook, $cb, $priority = 10, $accepted = 1 ) use ( &$plugins_loaded ): bool {
+			static function ( $hook, $cb, $priority = 10, $accepted = 1 ) use ( &$plugins_loaded, &$init_hooks ): bool {
 				if ( 'plugins_loaded' === $hook ) {
 					$plugins_loaded[] = array(
+						'priority' => $priority,
+						'callback' => $cb,
+					);
+				}
+				if ( 'init' === $hook ) {
+					$init_hooks[] = array(
 						'priority' => $priority,
 						'callback' => $cb,
 					);
@@ -54,22 +62,21 @@ class RecruitmentLoaderTest extends TestCase {
 
 		( new RecruitmentLoader() )->init();
 
-		$priorities = array_column( $plugins_loaded, 'priority' );
+		$plugins_loaded_priorities = array_column( $plugins_loaded, 'priority' );
+		$this->assertContains( 9, $plugins_loaded_priorities, 'create_tables must hook plugins_loaded:9' );
+		$this->assertContains( 11, $plugins_loaded_priorities, 'maybe_migrate must hook plugins_loaded:11' );
 
-		// All three priority slots are occupied.
-		$this->assertContains( 9, $priorities, 'create_tables must hook at priority 9' );
-		$this->assertContains( 10, $priorities, 'role self-heal must hook at priority 10' );
-		$this->assertContains( 11, $priorities, 'maybe_migrate must hook at priority 11' );
-
-		// Verify create_tables + maybe_migrate are wired to the right callables
-		// (the role registration is a closure so we just verify a closure is
-		// hooked at priority 10).
 		$by_priority = array();
 		foreach ( $plugins_loaded as $entry ) {
 			$by_priority[ $entry['priority'] ] = $entry['callback'];
 		}
 		$this->assertSame( array( RecruitmentActivator::class, 'create_tables' ), $by_priority[9] );
 		$this->assertSame( array( RecruitmentActivator::class, 'maybe_migrate' ), $by_priority[11] );
-		$this->assertInstanceOf( \Closure::class, $by_priority[10] );
+
+		// Role self-heal moved to init:1 in 6.2.x — the role label uses __()
+		// so it can't run on plugins_loaded without tripping WP 6.7+'s
+		// "translation loading … too early" notice.
+		$init_priorities = array_column( $init_hooks, 'priority' );
+		$this->assertContains( 1, $init_priorities, 'role self-heal must hook init:1' );
 	}
 }
