@@ -283,17 +283,7 @@ final class RecruitmentSettings {
 	 * @return string
 	 */
 	private static function sanitize_color( $value, string $default ): string {
-		if ( ! is_string( $value ) ) {
-			return $default;
-		}
-		$value = trim( $value );
-		if ( '' === $value ) {
-			return $default;
-		}
-		if ( 1 === preg_match( '/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/', $value ) ) {
-			return strtolower( $value );
-		}
-		return $default;
+		return \FreeFormCertificate\Core\ColorValidator::normalize( $value, $default );
 	}
 
 	/**

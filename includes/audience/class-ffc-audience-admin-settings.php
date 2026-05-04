@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Core\ColorValidator;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -568,9 +570,11 @@ class AudienceAdminSettings {
 			update_option( 'ffc_aud_scheduling_message', wp_kses_post( wp_unslash( $_POST['ffc_aud_scheduling_message'] ?? '' ) ) );
 
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-			$ma_color = isset( $_POST['ffc_aud_multiple_audiences_color'] )
-				? sanitize_hex_color( wp_unslash( $_POST['ffc_aud_multiple_audiences_color'] ) ) : '';
-			update_option( 'ffc_aud_multiple_audiences_color', $ma_color ? $ma_color : '' );
+			$ma_color = ColorValidator::normalize(
+				isset( $_POST['ffc_aud_multiple_audiences_color'] ) ? wp_unslash( $_POST['ffc_aud_multiple_audiences_color'] ) : '',
+				''
+			);
+			update_option( 'ffc_aud_multiple_audiences_color', $ma_color );
 
 			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Audience visibility settings saved.', 'ffcertificate' ), 'success' );
 		}

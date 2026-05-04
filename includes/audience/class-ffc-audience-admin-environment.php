@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Core\ColorValidator;
+
 /**
  * Handles the Environments admin sub-page rendering and actions.
  */
@@ -434,7 +436,7 @@ class AudienceAdminEnvironment {
 				}
 			}
 
-			$color = isset( $_POST['environment_color'] ) ? sanitize_hex_color( wp_unslash( $_POST['environment_color'] ) ) : '#3788d8';
+			$color = ColorValidator::normalize( isset( $_POST['environment_color'] ) ? wp_unslash( $_POST['environment_color'] ) : '', '#3788d8' );
 
 			$data = array(
 				'schedule_id'   => isset( $_POST['environment_schedule'] ) ? absint( $_POST['environment_schedule'] ) : 0,

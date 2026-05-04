@@ -39,6 +39,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\BadgeHtml;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
 
@@ -863,7 +864,7 @@ final class RecruitmentPublicShortcode {
 			? $color_raw
 			: RecruitmentAdjutancyRepository::DEFAULT_COLOR;
 		$name      = $adjutancy->name ?? '';
-		return RecruitmentBadgeHtml::render(
+		return BadgeHtml::render(
 			'ffc-recruitment-adjutancy-badge',
 			'',
 			$color,
@@ -887,7 +888,7 @@ final class RecruitmentPublicShortcode {
 			? (string) $settings['subscription_color_pcd']
 			: (string) $settings['subscription_color_geral'];
 		$label    = $is_pcd ? __( 'PCD', 'ffcertificate' ) : __( 'GERAL', 'ffcertificate' );
-		return RecruitmentBadgeHtml::render(
+		return BadgeHtml::render(
 			'ffc-recruitment-subscription-badge',
 			'ffc-recruitment-subscription-' . ( $is_pcd ? 'pcd' : 'geral' ),
 			$bg,
@@ -920,7 +921,7 @@ final class RecruitmentPublicShortcode {
 			'appeal_denied'  => (string) $settings['preview_color_appeal_denied'],
 			'appeal_granted' => (string) $settings['preview_color_appeal_granted'],
 		);
-		return RecruitmentBadgeHtml::render(
+		return BadgeHtml::render(
 			'ffc-recruitment-preview-status-badge',
 			'ffc-recruitment-preview-status-' . $status,
 			$colors[ $status ] ?? '#e9ecef',
@@ -973,7 +974,7 @@ final class RecruitmentPublicShortcode {
 			'hired'     => (string) $settings['status_color_hired'],
 			'not_shown' => (string) $settings['status_color_not_shown'],
 		);
-		return RecruitmentBadgeHtml::render(
+		return BadgeHtml::render(
 			'ffc-recruitment-status-badge',
 			'ffc-recruitment-status-' . $status,
 			$colors[ $status ] ?? '#e9ecef',

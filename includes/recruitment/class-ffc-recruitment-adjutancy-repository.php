@@ -198,14 +198,7 @@ class RecruitmentAdjutancyRepository {
 	 * @return string
 	 */
 	public static function normalize_color( string $value ): string {
-		$value = trim( $value );
-		if ( '' === $value ) {
-			return self::DEFAULT_COLOR;
-		}
-		if ( 1 === preg_match( '/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/', $value ) ) {
-			return strtolower( $value );
-		}
-		return self::DEFAULT_COLOR;
+		return \FreeFormCertificate\Core\ColorValidator::normalize( $value, self::DEFAULT_COLOR );
 	}
 
 	/**

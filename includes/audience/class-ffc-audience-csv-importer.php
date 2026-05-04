@@ -19,6 +19,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Core\ColorValidator;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -238,7 +240,10 @@ class AudienceCsvImporter {
 			}
 
 			$name        = isset( $data[ $name_col ] ) ? sanitize_text_field( $data[ $name_col ] ) : '';
-			$color       = ( false !== $color_col && isset( $data[ $color_col ] ) ) ? sanitize_hex_color( $data[ $color_col ] ) : '#3788d8';
+			$color       = ColorValidator::normalize(
+				( false !== $color_col && isset( $data[ $color_col ] ) ) ? $data[ $color_col ] : '',
+				'#3788d8'
+			);
 			$parent_name = ( false !== $parent_col && isset( $data[ $parent_col ] ) ) ? sanitize_text_field( $data[ $parent_col ] ) : '';
 
 			if ( empty( $name ) ) {
@@ -251,7 +256,7 @@ class AudienceCsvImporter {
 			$audiences_to_create[] = array(
 				'row'         => $row_num,
 				'name'        => $name,
-				'color'       => $color ? $color : '#3788d8',
+				'color'       => $color,
 				'parent_name' => $parent_name,
 			);
 		}
