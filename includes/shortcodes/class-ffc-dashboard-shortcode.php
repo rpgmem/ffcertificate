@@ -93,7 +93,7 @@ class DashboardShortcode {
 
 		// Check if user has FFC permissions (based on capabilities, not just role).
 		$can_view_certificates = $user && (
-			user_can( $user, 'view_own_certificates' ) ||
+			user_can( $user, 'ffc_view_own_certificates' ) ||
 			user_can( $user, 'manage_options' )
 		);
 

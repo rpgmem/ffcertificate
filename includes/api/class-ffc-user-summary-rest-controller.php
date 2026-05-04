@@ -80,7 +80,7 @@ class UserSummaryRestController {
 			);
 
 			// Count certificates.
-			if ( $this->user_has_capability( 'view_own_certificates', $user_id, $ctx['is_view_as'] ) ) {
+			if ( $this->user_has_capability( 'ffc_view_own_certificates', $user_id, $ctx['is_view_as'] ) ) {
 				$table = \FreeFormCertificate\Core\Utils::get_submissions_table();
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$summary['total_certificates'] = (int) $wpdb->get_var(

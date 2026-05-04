@@ -261,8 +261,31 @@ class Loader {
 		}
 
 		$this->ensure_admin_capabilities();
+		$this->ensure_legacy_caps_renamed();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
+	}
+
+	/**
+	 * One-time migration that renames the three legacy certificate caps
+	 * (`view_own_certificates`, `download_own_certificates`,
+	 * `view_certificate_history`) to their `ffc_*` namespaced equivalents.
+	 *
+	 * Idempotent + version-flagged via the `ffc_legacy_caps_renamed_v1`
+	 * option. Runs on `plugins_loaded` so in-place plugin updates trigger
+	 * the rewrite without needing a deactivate/reactivate cycle.
+	 *
+	 * @since 6.2.0
+	 */
+	private function ensure_legacy_caps_renamed(): void {
+		$flag = 'ffc_legacy_caps_renamed_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::migrate_legacy_certificate_caps();
+		}
+		update_option( $flag, '1', true );
 	}
 
 	/**

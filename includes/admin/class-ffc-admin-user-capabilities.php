@@ -105,22 +105,22 @@ class AdminUserCapabilities {
 							</legend>
 
 							<label>
-								<input type="checkbox" name="ffc_cap_view_own_certificates" value="1"
-									<?php checked( $capabilities['view_own_certificates'] ?? false ); ?>>
+								<input type="checkbox" name="ffc_cap_ffc_view_own_certificates" value="1"
+									<?php checked( $capabilities['ffc_view_own_certificates'] ?? false ); ?>>
 								<?php esc_html_e( 'View own certificates', 'ffcertificate' ); ?>
 							</label>
 							<br>
 
 							<label>
-								<input type="checkbox" name="ffc_cap_download_own_certificates" value="1"
-									<?php checked( $capabilities['download_own_certificates'] ?? false ); ?>>
+								<input type="checkbox" name="ffc_cap_ffc_download_own_certificates" value="1"
+									<?php checked( $capabilities['ffc_download_own_certificates'] ?? false ); ?>>
 								<?php esc_html_e( 'Download own certificates', 'ffcertificate' ); ?>
 							</label>
 							<br>
 
 							<label>
-								<input type="checkbox" name="ffc_cap_view_certificate_history" value="1"
-									<?php checked( $capabilities['view_certificate_history'] ?? false ); ?>>
+								<input type="checkbox" name="ffc_cap_ffc_view_certificate_history" value="1"
+									<?php checked( $capabilities['ffc_view_certificate_history'] ?? false ); ?>>
 								<?php esc_html_e( 'View certificate history', 'ffcertificate' ); ?>
 							</label>
 

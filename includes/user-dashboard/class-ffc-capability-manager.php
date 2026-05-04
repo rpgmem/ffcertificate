@@ -45,13 +45,83 @@ class CapabilityManager {
 	public const CONTEXT_RECRUITMENT = 'recruitment';
 
 	/**
-	 * All certificate-related capabilities
+	 * All certificate-related capabilities.
+	 *
+	 * @since 4.4.0
+	 * @since 6.2.0 Renamed from `view_own_certificates`, `download_own_certificates`,
+	 *              `view_certificate_history` (no FFC prefix) to the consistent
+	 *              `ffc_*` namespace. Migration in `LegacyCapMigration` rewrites
+	 *              old grants on every user + the `ffc_user` role definition.
 	 */
 	public const CERTIFICATE_CAPABILITIES = array(
-		'view_own_certificates',
-		'download_own_certificates',
-		'view_certificate_history',
+		'ffc_view_own_certificates',
+		'ffc_download_own_certificates',
+		'ffc_view_certificate_history',
 	);
+
+	/**
+	 * Map of legacy (pre-6.2.0) cap names → new namespaced names. Consumed
+	 * by the migration helper {@see self::migrate_legacy_certificate_caps()}
+	 * and by `Loader::ensure_legacy_caps_renamed()` on `plugins_loaded`.
+	 *
+	 * @since 6.2.0
+	 * @return array<string, string>
+	 */
+	public static function legacy_cap_renames(): array {
+		return array(
+			'view_own_certificates'     => 'ffc_view_own_certificates',
+			'download_own_certificates' => 'ffc_download_own_certificates',
+			'view_certificate_history'  => 'ffc_view_certificate_history',
+		);
+	}
+
+	/**
+	 * Idempotent migration: rewrites every legacy cap grant on every user
+	 * (user-meta `add_cap(true)`) and on the `ffc_user` role to the new
+	 * `ffc_*` namespace.
+	 *
+	 * Strategy: for each `legacy => new` pair,
+	 *   1. iterate every user that has the legacy cap, add the new cap, drop
+	 *      the legacy cap;
+	 *   2. on the `ffc_user` role, if the legacy cap exists, add the new
+	 *      cap with the same boolean value and remove the legacy cap.
+	 *
+	 * Run once per FFC version bump via `Loader::ensure_legacy_caps_renamed()`.
+	 *
+	 * @since 6.2.0
+	 * @return array<string, int> Per-rename count of users migrated.
+	 */
+	public static function migrate_legacy_certificate_caps(): array {
+		$counts = array();
+		foreach ( self::legacy_cap_renames() as $legacy => $renamed ) {
+			$counts[ $legacy ] = 0;
+
+			// 1. User-meta grants. WP_User_Query has no direct `cap` filter,
+			// so we iterate over user IDs and check each — this runs once per
+			// version bump so the cost is acceptable.
+			$users = get_users( array( 'fields' => 'ID' ) );
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( isset( $user->caps[ $legacy ] ) && true === $user->caps[ $legacy ] ) {
+					$user->add_cap( $renamed, true );
+					$user->remove_cap( $legacy );
+					++$counts[ $legacy ];
+				}
+			}
+
+			// 2. ffc_user role definition.
+			$role = get_role( 'ffc_user' );
+			if ( $role && isset( $role->capabilities[ $legacy ] ) ) {
+				$value = (bool) $role->capabilities[ $legacy ];
+				$role->add_cap( $renamed, $value );
+				$role->remove_cap( $legacy );
+			}
+		}
+		return $counts;
+	}
 
 	/**
 	 * All appointment-related capabilities

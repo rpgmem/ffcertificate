@@ -75,7 +75,7 @@ class UserCertificatesRestController {
 				);
 			}
 
-			if ( ! $this->user_has_capability( 'view_own_certificates', $user_id, $ctx['is_view_as'] ) ) {
+			if ( ! $this->user_has_capability( 'ffc_view_own_certificates', $user_id, $ctx['is_view_as'] ) ) {
 				return new \WP_Error(
 					'capability_denied',
 					__( 'You do not have permission to view certificates', 'ffcertificate' ),
@@ -111,8 +111,8 @@ class UserCertificatesRestController {
 			);
 
 			// Check per-capability permissions for the target user.
-			$can_download     = $this->user_has_capability( 'download_own_certificates', $user_id, $ctx['is_view_as'] );
-			$can_view_history = $this->user_has_capability( 'view_certificate_history', $user_id, $ctx['is_view_as'] );
+			$can_download     = $this->user_has_capability( 'ffc_download_own_certificates', $user_id, $ctx['is_view_as'] );
+			$can_view_history = $this->user_has_capability( 'ffc_view_certificate_history', $user_id, $ctx['is_view_as'] );
 
 			$certificates = array();
 
