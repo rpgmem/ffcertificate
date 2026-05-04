@@ -202,7 +202,7 @@ class AudienceAdminPage {
 		add_menu_page(
 			__( 'Scheduling', 'ffcertificate' ),
 			__( 'Scheduling', 'ffcertificate' ),
-			'manage_options',
+			'ffc_manage_audiences',
 			self::MENU_SLUG,
 			array( $this->dashboard, 'render_dashboard_page' ),
 			'dashicons-calendar-alt',
@@ -222,7 +222,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Dashboard', 'ffcertificate' ),
 			__( 'Dashboard', 'ffcertificate' ),
-			'manage_options',
+			'ffc_manage_audiences',
 			self::MENU_SLUG . '-dashboard',
 			array( $this->dashboard, 'render_dashboard_page' )
 		);
@@ -232,7 +232,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Audience Calendars', 'ffcertificate' ),
 			__( 'Audience Calendars', 'ffcertificate' ),
-			'manage_options',
+			'ffc_manage_audiences',
 			self::MENU_SLUG . '-calendars',
 			array( $this->calendar, 'render_page' )
 		);
@@ -242,7 +242,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Environments', 'ffcertificate' ),
 			__( 'Environments', 'ffcertificate' ),
-			'manage_options',
+			'ffc_manage_audiences',
 			self::MENU_SLUG . '-environments',
 			array( $this->environment, 'render_page' )
 		);
@@ -252,7 +252,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Audiences', 'ffcertificate' ),
 			__( 'Audiences', 'ffcertificate' ),
-			'manage_options',
+			'ffc_manage_audiences',
 			self::MENU_SLUG . '-audiences',
 			array( $this->audience, 'render_page' )
 		);
@@ -262,7 +262,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Audience Bookings', 'ffcertificate' ),
 			__( 'Audience Bookings', 'ffcertificate' ),
-			'manage_options',
+			'ffc_manage_audiences',
 			self::MENU_SLUG . '-bookings',
 			array( $this->bookings, 'render_page' )
 		);
@@ -274,7 +274,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Import & Export', 'ffcertificate' ),
 			__( 'Import & Export', 'ffcertificate' ),
-			'manage_options',
+			'ffc_manage_audiences',
 			self::MENU_SLUG . '-import',
 			array( $this->import, 'render_page' )
 		);
@@ -284,7 +284,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG,
 			__( 'Settings', 'ffcertificate' ),
 			__( 'Settings', 'ffcertificate' ),
-			'manage_options',
+			'ffc_manage_audiences',
 			self::MENU_SLUG . '-settings',
 			array( $this->settings, 'render_page' )
 		);

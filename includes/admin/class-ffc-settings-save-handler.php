@@ -47,7 +47,7 @@ class SettingsSaveHandler {
 	 * Main entry point called by FFC_Settings
 	 */
 	public function handle_all_submissions(): void {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
 			return;
 		}
 

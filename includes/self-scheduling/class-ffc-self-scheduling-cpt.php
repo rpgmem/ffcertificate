@@ -123,7 +123,7 @@ class SelfSchedulingCPT {
 			return $actions;
 		}
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_self_scheduling' ) ) {
 			return $actions;
 		}
 
@@ -143,7 +143,7 @@ class SelfSchedulingCPT {
 	 * @return void
 	 */
 	public function handle_calendar_duplication(): void {
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_self_scheduling' ) ) {
 			\FreeFormCertificate\Core\Utils::debug_log(
 				'Unauthorized calendar duplication attempt',
 				array(

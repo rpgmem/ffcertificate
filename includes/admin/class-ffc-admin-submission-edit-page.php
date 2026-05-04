@@ -70,7 +70,7 @@ class AdminSubmissionEditPage {
 	 * @return bool True if user can edit submissions
 	 */
 	private function can_edit_submission(): bool {
-		return \FreeFormCertificate\Core\Utils::current_user_can_manage();
+		return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_certificate_update' );
 	}
 
 	/**

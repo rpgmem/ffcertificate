@@ -439,6 +439,35 @@ class Utils {
 	}
 
 	/**
+	 * Capability gate that grants access to admins (`manage_options`) OR
+	 * to anyone holding a domain-specific cap.
+	 *
+	 * Used to swap blanket `manage_options` gates across the plugin for
+	 * granular caps registered in 6.2.0, while keeping every site admin's
+	 * existing access intact (all admins continue to pass every check
+	 * because they have `manage_options`).
+	 *
+	 * Example:
+	 *
+	 *   if ( ! Utils::current_user_can_admin_or( 'ffc_view_activity_log' ) ) {
+	 *       wp_die( __( 'Insufficient permissions', 'ffcertificate' ) );
+	 *   }
+	 *
+	 * Site admins always pass; users with the granular cap pass; users
+	 * with neither are rejected.
+	 *
+	 * @since 6.2.0
+	 * @param string $granular_cap FFC-namespaced capability slug (e.g. `ffc_export_certificates`).
+	 * @return bool
+	 */
+	public static function current_user_can_admin_or( string $granular_cap ): bool {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+		return '' !== $granular_cap && current_user_can( $granular_cap );
+	}
+
+	/**
 	 * Log debug message (only if WP_DEBUG is enabled)
 	 *
 	 * Debug log.

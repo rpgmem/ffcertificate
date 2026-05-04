@@ -32,7 +32,7 @@ class AdminActivityLogPage {
 			'edit.php?post_type=ffc_form',
 			__( 'Activity Log', 'ffcertificate' ),
 			__( 'Activity Log', 'ffcertificate' ),
-			'manage_options',
+			'ffc_view_activity_log',
 			'ffc-activity-log',
 			array( $this, 'render_page' )
 		);
@@ -55,7 +55,7 @@ class AdminActivityLogPage {
 			return;
 		}
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_activity_log' ) ) {
 			wp_die( esc_html__( 'Unauthorized.', 'ffcertificate' ) );
 		}
 

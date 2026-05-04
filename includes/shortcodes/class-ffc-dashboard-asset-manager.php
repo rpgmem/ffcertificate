@@ -54,7 +54,7 @@ class DashboardAssetManager {
 		$user    = get_user_by( 'id', $user_id );
 
 		$can_view_certificates = $user && (
-			user_can( $user, 'view_own_certificates' ) ||
+			user_can( $user, 'ffc_view_own_certificates' ) ||
 			user_can( $user, 'manage_options' )
 		);
 

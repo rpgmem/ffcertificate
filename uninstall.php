@@ -143,6 +143,24 @@ if ( ! empty( $ffcertificate_forms ) ) {
 remove_role( 'ffc_user' );
 remove_role( 'ffc_recruitment_manager' );
 
+// 6.2.0 module-manager + recruitment-tier roles. Listed inline rather than
+// through `CapabilityManager::remove_module_roles()` because uninstall.php
+// runs in a stripped-down context that doesn't load the plugin's autoloader.
+foreach (
+	array(
+		'ffc_certificate_manager',
+		'ffc_self_scheduling_manager',
+		'ffc_audience_manager',
+		'ffc_reregistration_manager',
+		'ffc_operator',
+		'ffc_recruitment_auditor',
+		'ffc_recruitment_operator',
+		'ffc_recruitment_admin',
+	) as $ffc_legacy_role
+) {
+	remove_role( $ffc_legacy_role );
+}
+
 // ──────────────────────────────────────
 // 7. Clean up user meta
 // ──────────────────────────────────────
@@ -153,9 +171,16 @@ $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'ffc_custom_fields_data' ) 
 
 // Remove FFC-specific capabilities from all users.
 $ffcertificate_caps = array(
+	// Legacy (pre-6.2.0) cap names — kept here so uninstalls of installs
+	// that never ran the 6.2.0 rename migration still strip the old caps.
 	'view_own_certificates',
 	'download_own_certificates',
 	'view_certificate_history',
+	// 6.2.0 namespaced replacements.
+	'ffc_view_own_certificates',
+	'ffc_download_own_certificates',
+	'ffc_view_certificate_history',
+
 	'ffc_book_appointments',
 	'ffc_view_self_scheduling',
 	'ffc_cancel_own_appointments',
@@ -163,8 +188,31 @@ $ffcertificate_caps = array(
 	'ffc_scheduling_bypass',
 	'ffc_manage_reregistration',
 	'ffc_manage_recruitment',
-	'ffc_reregistration',
+
+	// 6.2.0 module-management caps.
+	'ffc_manage_certificates',
+	'ffc_export_certificates',
+	'ffc_manage_self_scheduling',
+	'ffc_manage_audiences',
+	'ffc_view_activity_log',
+	'ffc_manage_user_custom_fields',
+	'ffc_view_as_user',
+	'ffc_manage_settings',
+
+	// 6.2.0 per-domain recruitment caps.
+	'ffc_view_recruitment',
+	'ffc_import_recruitment_csv',
+	'ffc_call_recruitment_candidates',
+	'ffc_view_recruitment_pii',
+	'ffc_manage_recruitment_settings',
+	'ffc_manage_recruitment_reasons',
+
+	// Reactivated submission-edit cap (6.2.0).
 	'ffc_certificate_update',
+
+	// Removed 6.2.0 placeholder, kept here for cleanup on installs
+	// that activated it before the placeholder was retired.
+	'ffc_reregistration',
 );
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

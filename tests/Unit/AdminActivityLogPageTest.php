@@ -55,7 +55,7 @@ class AdminActivityLogPageTest extends TestCase {
         $this->assertSame('edit.php?post_type=ffc_form', $captured_args[0]);
         $this->assertSame('Activity Log', $captured_args[1]);
         $this->assertSame('Activity Log', $captured_args[2]);
-        $this->assertSame('manage_options', $captured_args[3]);
+        $this->assertSame('ffc_view_activity_log', $captured_args[3]);
         $this->assertSame('ffc-activity-log', $captured_args[4]);
         $this->assertIsCallable($captured_args[5]);
     }

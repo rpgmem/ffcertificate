@@ -96,7 +96,7 @@ class CsvExporter {
 	public function ajax_start(): void {
 		check_ajax_referer( 'ffc_csv_export', 'nonce' );
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_export_certificates' ) ) {
 			wp_send_json_error( __( 'Permission denied.', 'ffcertificate' ), 403 );
 		}
 
@@ -231,7 +231,7 @@ class CsvExporter {
 	public function ajax_batch(): void {
 		check_ajax_referer( 'ffc_csv_export', 'nonce' );
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_export_certificates' ) ) {
 			wp_send_json_error( __( 'Permission denied.', 'ffcertificate' ), 403 );
 		}
 
@@ -333,7 +333,7 @@ class CsvExporter {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 		}
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_manage() ) {
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_export_certificates' ) ) {
 			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
 		}
 

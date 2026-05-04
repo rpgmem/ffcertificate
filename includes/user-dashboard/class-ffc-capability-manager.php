@@ -45,13 +45,83 @@ class CapabilityManager {
 	public const CONTEXT_RECRUITMENT = 'recruitment';
 
 	/**
-	 * All certificate-related capabilities
+	 * All certificate-related capabilities.
+	 *
+	 * @since 4.4.0
+	 * @since 6.2.0 Renamed from `view_own_certificates`, `download_own_certificates`,
+	 *              `view_certificate_history` (no FFC prefix) to the consistent
+	 *              `ffc_*` namespace. Migration in `LegacyCapMigration` rewrites
+	 *              old grants on every user + the `ffc_user` role definition.
 	 */
 	public const CERTIFICATE_CAPABILITIES = array(
-		'view_own_certificates',
-		'download_own_certificates',
-		'view_certificate_history',
+		'ffc_view_own_certificates',
+		'ffc_download_own_certificates',
+		'ffc_view_certificate_history',
 	);
+
+	/**
+	 * Map of legacy (pre-6.2.0) cap names → new namespaced names. Consumed
+	 * by the migration helper {@see self::migrate_legacy_certificate_caps()}
+	 * and by `Loader::ensure_legacy_caps_renamed()` on `plugins_loaded`.
+	 *
+	 * @since 6.2.0
+	 * @return array<string, string>
+	 */
+	public static function legacy_cap_renames(): array {
+		return array(
+			'view_own_certificates'     => 'ffc_view_own_certificates',
+			'download_own_certificates' => 'ffc_download_own_certificates',
+			'view_certificate_history'  => 'ffc_view_certificate_history',
+		);
+	}
+
+	/**
+	 * Idempotent migration: rewrites every legacy cap grant on every user
+	 * (user-meta `add_cap(true)`) and on the `ffc_user` role to the new
+	 * `ffc_*` namespace.
+	 *
+	 * Strategy: for each `legacy => new` pair,
+	 *   1. iterate every user that has the legacy cap, add the new cap, drop
+	 *      the legacy cap;
+	 *   2. on the `ffc_user` role, if the legacy cap exists, add the new
+	 *      cap with the same boolean value and remove the legacy cap.
+	 *
+	 * Run once per FFC version bump via `Loader::ensure_legacy_caps_renamed()`.
+	 *
+	 * @since 6.2.0
+	 * @return array<string, int> Per-rename count of users migrated.
+	 */
+	public static function migrate_legacy_certificate_caps(): array {
+		$counts = array();
+		foreach ( self::legacy_cap_renames() as $legacy => $renamed ) {
+			$counts[ $legacy ] = 0;
+
+			// 1. User-meta grants. WP_User_Query has no direct `cap` filter,
+			// so we iterate over user IDs and check each — this runs once per
+			// version bump so the cost is acceptable.
+			$users = get_users( array( 'fields' => 'ID' ) );
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( isset( $user->caps[ $legacy ] ) && true === $user->caps[ $legacy ] ) {
+					$user->add_cap( $renamed, true );
+					$user->remove_cap( $legacy );
+					++$counts[ $legacy ];
+				}
+			}
+
+			// 2. ffc_user role definition.
+			$role = get_role( 'ffc_user' );
+			if ( $role && isset( $role->capabilities[ $legacy ] ) ) {
+				$value = (bool) $role->capabilities[ $legacy ];
+				$role->add_cap( $renamed, $value );
+				$role->remove_cap( $legacy );
+			}
+		}
+		return $counts;
+	}
 
 	/**
 	 * All appointment-related capabilities
@@ -72,14 +142,53 @@ class CapabilityManager {
 	);
 
 	/**
-	 * Admin-level capabilities (not granted by default)
+	 * Admin-level capabilities (not granted by default).
 	 *
 	 * @since 4.9.3
+	 * @since 6.2.0 Expanded with module-management caps + per-domain
+	 *              recruitment caps to replace blanket `manage_options`
+	 *              gates with delegable, granular permissions. The pre-6.2.0
+	 *              caps (`ffc_scheduling_bypass`, `ffc_manage_reregistration`,
+	 *              `ffc_manage_recruitment`) remain unchanged so any user
+	 *              already holding them keeps their access; the new caps
+	 *              add scoped delegation paths.
 	 */
 	public const ADMIN_CAPABILITIES = array(
+		// Pre-6.2.0 caps.
 		'ffc_scheduling_bypass',
 		'ffc_manage_reregistration',
 		'ffc_manage_recruitment',
+
+		// Module-management caps (6.2.0). Each replaces a `manage_options`
+		// gate at a module-admin entry point so site admins can delegate the
+		// module to a dedicated operator without giving full WP admin.
+		'ffc_manage_certificates',
+		'ffc_export_certificates',
+		'ffc_manage_self_scheduling',
+		'ffc_manage_audiences',
+		'ffc_view_activity_log',
+		'ffc_manage_user_custom_fields',
+		'ffc_view_as_user',
+		'ffc_manage_settings',
+
+		// Per-domain recruitment caps (6.2.0). Granular substitutes for the
+		// catch-all `ffc_manage_recruitment` — operators can be wired with
+		// "view only", "view + call candidates", "view + import CSV", etc.
+		// without unlocking the entire admin surface. `ffc_manage_recruitment`
+		// stays as the umbrella cap (catch-all backwards-compat) for any
+		// endpoint that doesn't match one of the granular entries.
+		'ffc_view_recruitment',
+		'ffc_import_recruitment_csv',
+		'ffc_call_recruitment_candidates',
+		'ffc_view_recruitment_pii',
+		'ffc_manage_recruitment_settings',
+		'ffc_manage_recruitment_reasons',
+
+		// Submission-edit cap (6.2.0). Reactivated from the legacy
+		// `FUTURE_CAPABILITIES` placeholder; gates the admin submission
+		// edit page so non-admin operators can fix typos in issued
+		// certificates without holding `manage_options`.
+		'ffc_certificate_update',
 	);
 
 	/**
@@ -94,14 +203,20 @@ class CapabilityManager {
 	public const RECRUITMENT_MANAGER_ROLE = 'ffc_recruitment_manager';
 
 	/**
-	 * Future capabilities (disabled by default)
+	 * Future capabilities (disabled by default).
+	 *
+	 * Now empty — historical placeholders have been retired:
+	 * - `ffc_reregistration` (4.9.3): never wired. Audience-targeting on
+	 *   reregistration objects already filters who can submit each form;
+	 *   adding a per-user cap on top was redundant. Removed in 6.2.0.
+	 * - `ffc_certificate_update` (4.9.3): wired in 6.2.0 as a real admin
+	 *   cap (see `ADMIN_CAPABILITIES` above).
 	 *
 	 * @since 4.9.3
+	 * @since 6.2.0 Cleared. The constant remains so external code that
+	 *              referenced it doesn't fatal.
 	 */
-	public const FUTURE_CAPABILITIES = array(
-		'ffc_reregistration',
-		'ffc_certificate_update',
-	);
+	public const FUTURE_CAPABILITIES = array();
 
 	/**
 	 * Get all FFC capabilities consolidated
@@ -561,5 +676,142 @@ class CapabilityManager {
 	 */
 	public static function remove_recruitment_manager_role(): void {
 		remove_role( self::RECRUITMENT_MANAGER_ROLE );
+	}
+
+	/**
+	 * Definition map for the 6.2.0 module-manager + recruitment-tier roles.
+	 *
+	 * Each entry is a `slug => array{label: string, caps: list<string>}` so
+	 * `register_module_roles()` and `remove_module_roles()` share a single
+	 * source of truth. `read` is added implicitly to every role so members
+	 * can access wp-admin.
+	 *
+	 * Recruitment tier hierarchy (each tier inherits everything from the
+	 * tier above it):
+	 *
+	 *   Auditor (read-only)
+	 *     → Operator (Auditor + can call candidates)
+	 *       → Manager (Operator + can import CSV + see PII + umbrella cap)
+	 *         → Admin (Manager + can edit settings + reasons catalog)
+	 *
+	 * @since 6.2.0
+	 * @return array<string, array{label: string, caps: list<string>}>
+	 */
+	private static function module_roles_definition(): array {
+		return array(
+			// ── Cross-module roles ───────────────────────────────────────
+			'ffc_certificate_manager'     => array(
+				'label' => __( 'FFC Certificate Manager', 'ffcertificate' ),
+				'caps'  => array( 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_certificate_update' ),
+			),
+			'ffc_self_scheduling_manager' => array(
+				'label' => __( 'FFC Self-Scheduling Manager', 'ffcertificate' ),
+				'caps'  => array( 'ffc_manage_self_scheduling', 'ffc_scheduling_bypass', 'ffc_export_certificates' ),
+			),
+			'ffc_audience_manager'        => array(
+				'label' => __( 'FFC Audience Manager', 'ffcertificate' ),
+				'caps'  => array( 'ffc_manage_audiences' ),
+			),
+			'ffc_reregistration_manager'  => array(
+				'label' => __( 'FFC Reregistration Manager', 'ffcertificate' ),
+				'caps'  => array( 'ffc_manage_reregistration' ),
+			),
+			'ffc_operator'                => array(
+				'label' => __( 'FFC Operator (read-only)', 'ffcertificate' ),
+				'caps'  => array( 'ffc_view_activity_log', 'ffc_view_audience_bookings', 'ffc_view_self_scheduling', 'ffc_view_recruitment' ),
+			),
+
+			// ── Recruitment tier ─────────────────────────────────────────
+			'ffc_recruitment_auditor'     => array(
+				'label' => __( 'FFC Recruitment Auditor', 'ffcertificate' ),
+				'caps'  => array( 'ffc_view_recruitment' ),
+			),
+			'ffc_recruitment_operator'    => array(
+				'label' => __( 'FFC Recruitment Operator', 'ffcertificate' ),
+				'caps'  => array( 'ffc_view_recruitment', 'ffc_call_recruitment_candidates' ),
+			),
+			// `ffc_recruitment_manager` already exists (6.0.0). It will be
+			// upgraded by `register_recruitment_manager_role()` — extra caps
+			// are added in 6.2.0 below to fit the new tier model.
+			'ffc_recruitment_admin'       => array(
+				'label' => __( 'FFC Recruitment Admin', 'ffcertificate' ),
+				'caps'  => array(
+					'ffc_view_recruitment',
+					'ffc_call_recruitment_candidates',
+					'ffc_import_recruitment_csv',
+					'ffc_view_recruitment_pii',
+					'ffc_manage_recruitment',
+					'ffc_manage_recruitment_settings',
+					'ffc_manage_recruitment_reasons',
+				),
+			),
+		);
+	}
+
+	/**
+	 * Register every 6.2.0 module-manager + recruitment-tier role.
+	 *
+	 * Idempotent. Called on activation AND from `RecruitmentLoader` on
+	 * `plugins_loaded` so in-place plugin updates self-heal — no need
+	 * for a deactivate/reactivate cycle to surface new roles.
+	 *
+	 * Existing roles are upgraded: missing caps are added; extra caps
+	 * an operator manually granted are NOT removed.
+	 *
+	 * @since 6.2.0
+	 * @return void
+	 */
+	public static function register_module_roles(): void {
+		foreach ( self::module_roles_definition() as $slug => $def ) {
+			$existing = get_role( $slug );
+			if ( $existing ) {
+				if ( ! isset( $existing->capabilities['read'] ) ) {
+					$existing->add_cap( 'read', true );
+				}
+				foreach ( $def['caps'] as $cap ) {
+					if ( ! isset( $existing->capabilities[ $cap ] ) ) {
+						$existing->add_cap( $cap, true );
+					}
+				}
+				continue;
+			}
+
+			$caps_map = array( 'read' => true );
+			foreach ( $def['caps'] as $cap ) {
+				$caps_map[ $cap ] = true;
+			}
+			add_role( $slug, $def['label'], $caps_map );
+		}
+
+		// Upgrade the existing `ffc_recruitment_manager` (6.0.0) to the new
+		// tier-2 cap set. Adds the 6.2.0 granular caps without removing the
+		// umbrella `ffc_manage_recruitment` cap that was there from launch.
+		$existing_manager = get_role( self::RECRUITMENT_MANAGER_ROLE );
+		if ( $existing_manager ) {
+			$tier_2_caps = array(
+				'ffc_view_recruitment',
+				'ffc_call_recruitment_candidates',
+				'ffc_import_recruitment_csv',
+				'ffc_view_recruitment_pii',
+			);
+			foreach ( $tier_2_caps as $cap ) {
+				if ( ! isset( $existing_manager->capabilities[ $cap ] ) ) {
+					$existing_manager->add_cap( $cap, true );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Remove every 6.2.0 module-manager + recruitment-tier role on
+	 * plugin uninstall.
+	 *
+	 * @since 6.2.0
+	 * @return void
+	 */
+	public static function remove_module_roles(): void {
+		foreach ( array_keys( self::module_roles_definition() ) as $slug ) {
+			remove_role( $slug );
+		}
 	}
 }

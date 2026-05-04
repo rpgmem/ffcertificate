@@ -139,7 +139,7 @@ final class RecruitmentRestController {
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'import_csv' ),
-				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'permission_callback' => array( $this, 'check_can_import_csv' ),
 			)
 		);
 
@@ -149,7 +149,7 @@ final class RecruitmentRestController {
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'promote_preview' ),
-				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'permission_callback' => array( $this, 'check_can_import_csv' ),
 				'args'                => array(
 					'mode' => array(
 						'type'              => 'string',
@@ -168,7 +168,7 @@ final class RecruitmentRestController {
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'call_classification' ),
-				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'permission_callback' => array( $this, 'check_can_call_candidates' ),
 				'args'                => array(
 					'date_to_assume'      => array(
 						'type'              => 'string',
@@ -198,7 +198,7 @@ final class RecruitmentRestController {
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'bulk_call_classifications' ),
-				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'permission_callback' => array( $this, 'check_can_call_candidates' ),
 			)
 		);
 
@@ -331,12 +331,12 @@ final class RecruitmentRestController {
 				array(
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'list_reasons' ),
-					'permission_callback' => array( $this, 'check_admin_cap' ),
+					'permission_callback' => array( $this, 'check_can_manage_reasons' ),
 				),
 				array(
 					'methods'             => \WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'create_reason' ),
-					'permission_callback' => array( $this, 'check_admin_cap' ),
+					'permission_callback' => array( $this, 'check_can_manage_reasons' ),
 					'args'                => array(
 						'slug'       => array(
 							'type'              => 'string',
@@ -369,12 +369,12 @@ final class RecruitmentRestController {
 				array(
 					'methods'             => \WP_REST_Server::EDITABLE,
 					'callback'            => array( $this, 'update_reason' ),
-					'permission_callback' => array( $this, 'check_admin_cap' ),
+					'permission_callback' => array( $this, 'check_can_manage_reasons' ),
 				),
 				array(
 					'methods'             => \WP_REST_Server::DELETABLE,
 					'callback'            => array( $this, 'delete_reason' ),
-					'permission_callback' => array( $this, 'check_admin_cap' ),
+					'permission_callback' => array( $this, 'check_can_manage_reasons' ),
 				),
 			)
 		);
@@ -476,10 +476,72 @@ final class RecruitmentRestController {
 	/**
 	 * Permission gate for every admin endpoint.
 	 *
+	 * The umbrella `ffc_manage_recruitment` cap remains the catch-all
+	 * — anyone holding it passes every admin route. The granular 6.2.0
+	 * caps (`ffc_view_recruitment`, `ffc_import_recruitment_csv`, etc.)
+	 * are layered on top via dedicated permission callbacks for the
+	 * higher-blast-radius routes ({@see self::check_can_view_recruitment()},
+	 * {@see self::check_can_import_csv()}, {@see self::check_can_call_candidates()}),
+	 * so an operator with only `ffc_view_recruitment` can hit GET endpoints
+	 * but not the CSV importer or call dispatcher.
+	 *
 	 * @return bool
 	 */
 	public function check_admin_cap(): bool {
 		return current_user_can( self::ADMIN_CAP );
+	}
+
+	/**
+	 * Permission gate for read-only endpoints. Accepts either the
+	 * granular `ffc_view_recruitment` cap or the umbrella
+	 * `ffc_manage_recruitment`.
+	 *
+	 * @since 6.2.0
+	 * @return bool
+	 */
+	public function check_can_view_recruitment(): bool {
+		return current_user_can( 'ffc_view_recruitment' ) || current_user_can( self::ADMIN_CAP );
+	}
+
+	/**
+	 * Permission gate for CSV import + promote-preview routes. The
+	 * highest-blast-radius operations on the module — replace entire
+	 * preview / definitive lists atomically. Accepts either the granular
+	 * `ffc_import_recruitment_csv` cap or the umbrella
+	 * `ffc_manage_recruitment`.
+	 *
+	 * @since 6.2.0
+	 * @return bool
+	 */
+	public function check_can_import_csv(): bool {
+		return current_user_can( 'ffc_import_recruitment_csv' ) || current_user_can( self::ADMIN_CAP );
+	}
+
+	/**
+	 * Permission gate for the call routes. Each call sends an email +
+	 * commits the candidate to a date / time, so operators that should
+	 * only manage data (without disparate communication authority) get
+	 * a separate cap. Accepts either the granular
+	 * `ffc_call_recruitment_candidates` cap or the umbrella
+	 * `ffc_manage_recruitment`.
+	 *
+	 * @since 6.2.0
+	 * @return bool
+	 */
+	public function check_can_call_candidates(): bool {
+		return current_user_can( 'ffc_call_recruitment_candidates' ) || current_user_can( self::ADMIN_CAP );
+	}
+
+	/**
+	 * Permission gate for the reasons-catalog routes. Reasons are global
+	 * across every notice — managing them is a config-style operation
+	 * separated from day-to-day notice management.
+	 *
+	 * @since 6.2.0
+	 * @return bool
+	 */
+	public function check_can_manage_reasons(): bool {
+		return current_user_can( 'ffc_manage_recruitment_reasons' ) || current_user_can( self::ADMIN_CAP );
 	}
 
 	/**

@@ -40,17 +40,16 @@ class AdminUserCapabilitiesTest extends TestCase {
         $this->user_manager_mock = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' );
         $this->user_manager_mock->shouldReceive( 'get_user_ffc_capabilities' )
             ->andReturn( array(
-                'view_own_certificates'      => true,
-                'download_own_certificates'  => false,
-                'view_certificate_history'   => false,
-                'ffc_book_appointments'      => false,
-                'ffc_view_self_scheduling'   => false,
-                'ffc_cancel_own_appointments'=> false,
-                'ffc_scheduling_bypass'      => false,
-                'ffc_view_audience_bookings' => false,
-                'ffc_manage_reregistration'  => false,
-                'ffc_reregistration'         => false,
-                'ffc_certificate_update'     => false,
+                'ffc_view_own_certificates'      => true,
+                'ffc_download_own_certificates'  => false,
+                'ffc_view_certificate_history'   => false,
+                'ffc_book_appointments'          => false,
+                'ffc_view_self_scheduling'       => false,
+                'ffc_cancel_own_appointments'    => false,
+                'ffc_scheduling_bypass'          => false,
+                'ffc_view_audience_bookings'     => false,
+                'ffc_manage_reregistration'      => false,
+                'ffc_certificate_update'         => false,
             ) )
             ->byDefault();
         $this->user_manager_mock->shouldReceive( 'has_certificate_access' )
@@ -61,16 +60,30 @@ class AdminUserCapabilitiesTest extends TestCase {
             ->byDefault();
         $this->user_manager_mock->shouldReceive( 'get_all_capabilities' )
             ->andReturn( array(
-                'view_own_certificates',
-                'download_own_certificates',
-                'view_certificate_history',
+                'ffc_view_own_certificates',
+                'ffc_download_own_certificates',
+                'ffc_view_certificate_history',
                 'ffc_book_appointments',
                 'ffc_view_self_scheduling',
                 'ffc_cancel_own_appointments',
                 'ffc_scheduling_bypass',
                 'ffc_view_audience_bookings',
                 'ffc_manage_reregistration',
-                'ffc_reregistration',
+                'ffc_manage_recruitment',
+                'ffc_manage_certificates',
+                'ffc_export_certificates',
+                'ffc_manage_self_scheduling',
+                'ffc_manage_audiences',
+                'ffc_view_activity_log',
+                'ffc_manage_user_custom_fields',
+                'ffc_view_as_user',
+                'ffc_manage_settings',
+                'ffc_view_recruitment',
+                'ffc_import_recruitment_csv',
+                'ffc_call_recruitment_candidates',
+                'ffc_view_recruitment_pii',
+                'ffc_manage_recruitment_settings',
+                'ffc_manage_recruitment_reasons',
                 'ffc_certificate_update',
             ) )
             ->byDefault();
@@ -237,8 +250,8 @@ class AdminUserCapabilitiesTest extends TestCase {
         $this->assertStringContainsString( 'FFC Permissions', $output );
 
         // Should contain checkbox inputs for capabilities
-        $this->assertStringContainsString( 'ffc_cap_view_own_certificates', $output );
-        $this->assertStringContainsString( 'ffc_cap_download_own_certificates', $output );
+        $this->assertStringContainsString( 'ffc_cap_ffc_view_own_certificates', $output );
+        $this->assertStringContainsString( 'ffc_cap_ffc_download_own_certificates', $output );
         $this->assertStringContainsString( 'ffc_cap_ffc_book_appointments', $output );
         $this->assertStringContainsString( 'ffc_cap_ffc_view_self_scheduling', $output );
         $this->assertStringContainsString( 'ffc_cap_ffc_manage_reregistration', $output );
@@ -289,7 +302,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 
     public function test_save_grants_capabilities(): void {
         $_POST['ffc_capabilities_nonce'] = 'valid_nonce';
-        $_POST['ffc_cap_view_own_certificates'] = '1';
+        $_POST['ffc_cap_ffc_view_own_certificates'] = '1';
         $_POST['ffc_cap_ffc_book_appointments'] = '1';
 
         Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
@@ -301,7 +314,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         AdminUserCapabilities::save_capability_fields( 5 );
 
         // Granted capabilities should be true
-        $this->assertTrue( $user->caps['view_own_certificates'] );
+        $this->assertTrue( $user->caps['ffc_view_own_certificates'] );
         $this->assertTrue( $user->caps['ffc_book_appointments'] );
 
         // Non-granted capabilities should have been removed (not present)
@@ -309,7 +322,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         $this->assertArrayNotHasKey( 'ffc_view_self_scheduling', $user->caps );
 
         // Clean up
-        unset( $_POST['ffc_cap_view_own_certificates'], $_POST['ffc_cap_ffc_book_appointments'] );
+        unset( $_POST['ffc_cap_ffc_view_own_certificates'], $_POST['ffc_cap_ffc_book_appointments'] );
     }
 
     public function test_save_removes_capabilities(): void {
@@ -321,14 +334,14 @@ class AdminUserCapabilitiesTest extends TestCase {
 
         $user = new \WP_User( 5 );
         // Pre-grant some capabilities
-        $user->add_cap( 'view_own_certificates', true );
+        $user->add_cap( 'ffc_view_own_certificates', true );
         $user->add_cap( 'ffc_book_appointments', true );
         Functions\when( 'get_userdata' )->justReturn( $user );
 
         AdminUserCapabilities::save_capability_fields( 5 );
 
         // All capabilities should have been removed
-        $this->assertArrayNotHasKey( 'view_own_certificates', $user->caps );
+        $this->assertArrayNotHasKey( 'ffc_view_own_certificates', $user->caps );
         $this->assertArrayNotHasKey( 'ffc_book_appointments', $user->caps );
     }
 
@@ -342,7 +355,7 @@ class AdminUserCapabilitiesTest extends TestCase {
         // error when the Debug class is present (class_exists returns true
         // naturally since the autoloader loaded it).
         $_POST['ffc_capabilities_nonce'] = 'valid_nonce';
-        $_POST['ffc_cap_view_own_certificates'] = '1';
+        $_POST['ffc_cap_ffc_view_own_certificates'] = '1';
 
         Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
         Functions\when( 'current_user_can' )->justReturn( true );
@@ -356,9 +369,9 @@ class AdminUserCapabilitiesTest extends TestCase {
         AdminUserCapabilities::save_capability_fields( 5 );
 
         // If we reached here without error, the debug log path was executed.
-        $this->assertTrue( $user->caps['view_own_certificates'] );
+        $this->assertTrue( $user->caps['ffc_view_own_certificates'] );
 
         // Clean up
-        unset( $_POST['ffc_cap_view_own_certificates'] );
+        unset( $_POST['ffc_cap_ffc_view_own_certificates'] );
     }
 }

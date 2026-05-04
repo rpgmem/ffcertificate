@@ -34,8 +34,10 @@ class DashboardViewMode {
 			return false;
 		}
 
-		// Only admins can use view-as mode.
-		if ( ! current_user_can( 'manage_options' ) ) {
+		// View-as is admin-only by default; the granular `ffc_view_as_user`
+		// cap (6.2.0) lets site admins delegate impersonation to support /
+		// audit operators without giving full WP admin.
+		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_view_as_user' ) ) {
 			return false;
 		}
 
