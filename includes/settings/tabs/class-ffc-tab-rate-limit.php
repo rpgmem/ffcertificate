@@ -74,6 +74,17 @@ class TabRateLimit extends SettingsTab {
 				'max_per_hour'   => 1000,
 				'message'        => __( 'System unavailable.', 'ffcertificate' ),
 			),
+			'device'    => array(
+				'enabled'                    => false,
+				'max_per_form'               => 1,
+				'match_threshold'            => 5,
+				'signals_enabled'            => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts' ),
+				'bypass_logged_in_managers'  => true,
+				'bypass_whitelist_signals'   => array(),
+				'message'                    => __( 'Multiple submissions detected from this device. Please contact the organizer.', 'ffcertificate' ),
+				'retention_days'             => 90,
+				'log_blocks'                 => true,
+			),
 			'whitelist' => array(
 				'ips'           => array(),
 				'emails'        => array(),
@@ -157,6 +168,28 @@ class TabRateLimit extends SettingsTab {
 				'max_per_minute' => absint( wp_unslash( $_POST['global_max_per_minute'] ?? 100 ) ),
 				'max_per_hour'   => absint( wp_unslash( $_POST['global_max_per_hour'] ?? 1000 ) ),
 				'message'        => sanitize_textarea_field( wp_unslash( $_POST['global_message'] ?? '' ) ),
+			),
+			'device'    => array(
+				'enabled'                   => isset( $_POST['device_enabled'] ),
+				'max_per_form'              => max( 1, absint( wp_unslash( $_POST['device_max_per_form'] ?? 1 ) ) ),
+				'match_threshold'           => max( 3, min( 8, absint( wp_unslash( $_POST['device_match_threshold'] ?? 5 ) ) ) ),
+				'signals_enabled'           => isset( $_POST['device_signals_enabled'] ) && is_array( $_POST['device_signals_enabled'] )
+					? array_values( array_intersect(
+						array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts' ),
+						array_map( 'sanitize_key', wp_unslash( $_POST['device_signals_enabled'] ) )
+					) )
+					: array(),
+				'bypass_logged_in_managers' => isset( $_POST['device_bypass_logged_in_managers'] ),
+				'bypass_whitelist_signals'  => array_filter( array_map(
+					static function ( $v ) {
+						$v = preg_replace( '/[^a-f0-9]/i', '', trim( (string) $v ) );
+						return ( 64 === strlen( $v ) ) ? strtolower( $v ) : '';
+					},
+					explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['device_bypass_whitelist_signals'] ?? '' ) ) )
+				) ),
+				'message'                   => sanitize_textarea_field( wp_unslash( $_POST['device_message'] ?? '' ) ),
+				'retention_days'            => max( 1, absint( wp_unslash( $_POST['device_retention_days'] ?? 90 ) ) ),
+				'log_blocks'                => isset( $_POST['device_log_blocks'] ),
 			),
 			'whitelist' => array(
 				'ips'           => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_ips'] ?? '' ) ) ) ) ),
