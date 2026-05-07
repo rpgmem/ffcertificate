@@ -986,6 +986,47 @@ class FormEditorMetaboxRenderer {
 					<?php endif; ?>
 				</td>
 			</tr>
+
+			<?php
+			$cpf_mode      = (string) get_post_meta( $post->ID, '_ffc_csv_public_cpf_mode', true );
+			$cpf_whitelist = (string) get_post_meta( $post->ID, '_ffc_csv_public_cpf_whitelist', true );
+			if ( '' === $cpf_mode ) {
+				$cpf_mode = 'none';
+			}
+			?>
+			<tr>
+				<th scope="row">
+					<label for="ffc_csv_public_cpf_mode"><?php esc_html_e( 'Require CPF for download', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<select name="ffc_csv_public[cpf_mode]" id="ffc_csv_public_cpf_mode">
+						<option value="none" <?php selected( $cpf_mode, 'none' ); ?>><?php esc_html_e( 'No — only Form ID + Hash', 'ffcertificate' ); ?></option>
+						<option value="audit" <?php selected( $cpf_mode, 'audit' ); ?>><?php esc_html_e( 'Audit — ask but never block', 'ffcertificate' ); ?></option>
+						<option value="participants" <?php selected( $cpf_mode, 'participants' ); ?>><?php esc_html_e( 'Participants — CPF must match a submission', 'ffcertificate' ); ?></option>
+						<option value="owner" <?php selected( $cpf_mode, 'owner' ); ?>><?php esc_html_e( 'Owner — CPF must match the form author', 'ffcertificate' ); ?></option>
+						<option value="whitelist" <?php selected( $cpf_mode, 'whitelist' ); ?>><?php esc_html_e( 'Whitelist — CPF must be in the list below', 'ffcertificate' ); ?></option>
+					</select>
+					<p class="description">
+						<?php esc_html_e( 'When set to anything other than "No", every download attempt (with success/failure flag and hashed CPF) is recorded in an audit log on this form for the past 100 attempts.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
+
+			<tr>
+				<th scope="row">
+					<label for="ffc_csv_public_cpf_whitelist"><?php esc_html_e( 'CPF whitelist', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<textarea name="ffc_csv_public[cpf_whitelist]"
+						id="ffc_csv_public_cpf_whitelist"
+						rows="4"
+						class="large-text code"
+						placeholder="000.000.000-00&#10;111.111.111-11"><?php echo esc_textarea( $cpf_whitelist ); ?></textarea>
+					<p class="description">
+						<?php esc_html_e( 'One CPF per line. Only used when the mode above is set to "Whitelist". Formatting is ignored — only digits matter.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
 		</table>
 		<?php
 	}

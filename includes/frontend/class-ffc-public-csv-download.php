@@ -46,6 +46,10 @@ class PublicCsvDownload {
 	const META_HASH           = '_ffc_csv_public_hash';
 	const META_LIMIT          = '_ffc_csv_public_limit';
 	const META_COUNT          = '_ffc_csv_public_count';
+	const META_CPF_MODE       = '_ffc_csv_public_cpf_mode';
+	const META_CPF_WHITELIST  = '_ffc_csv_public_cpf_whitelist';
+	const META_DOWNLOAD_LOG   = '_ffc_csv_public_download_log';
+	const DOWNLOAD_LOG_MAX    = 100;
 	const FLASH_TRANSIENT_TTL = 60; // Seconds.
 
 	/**
@@ -102,6 +106,18 @@ class PublicCsvDownload {
 		$prefill_form_id = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$prefill_hash    = isset( $_GET['hash'] ) ? sanitize_text_field( wp_unslash( $_GET['hash'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
+		// CPF gate mode is per-form. We can't read it without a known form_id;
+		// when prefilled, honour that form's setting. Otherwise render the
+		// CPF field unconditionally so the validator can apply per-form
+		// rules server-side.
+		$cpf_mode = 'optional';
+		if ( $prefill_form_id > 0 && get_post_type( $prefill_form_id ) === 'ffc_form' ) {
+			$cpf_mode = (string) get_post_meta( $prefill_form_id, '_ffc_csv_public_cpf_mode', true );
+			if ( '' === $cpf_mode ) {
+				$cpf_mode = 'none';
+			}
+		}
+
 		ob_start();
 		?>
 		<div class="ffc-verification-container ffc-verification-manual ffc-public-csv-download">
@@ -152,6 +168,37 @@ class PublicCsvDownload {
 						autocomplete="off"
 						value="<?php echo esc_attr( $prefill_hash ); ?>">
 				</div>
+
+				<?php if ( 'none' !== $cpf_mode ) : ?>
+					<div class="ffc-form-field">
+						<label for="ffc-pcd-cpf">
+							<?php esc_html_e( 'CPF', 'ffcertificate' ); ?>
+							<?php if ( 'audit' !== $cpf_mode && 'optional' !== $cpf_mode ) : ?>
+								<span class="required">*</span>
+							<?php endif; ?>
+						</label>
+						<input
+							type="text"
+							id="ffc-pcd-cpf"
+							name="cpf"
+							class="ffc-input"
+							inputmode="numeric"
+							autocomplete="off"
+							placeholder="000.000.000-00"
+							<?php if ( 'audit' !== $cpf_mode && 'optional' !== $cpf_mode ) : ?>
+								required aria-required="true"
+							<?php endif; ?>>
+						<p class="description">
+							<?php
+							if ( 'audit' === $cpf_mode ) {
+								esc_html_e( 'Your CPF is logged for audit purposes but does not gate the download.', 'ffcertificate' );
+							} else {
+								esc_html_e( 'Enter the CPF authorized to download this CSV.', 'ffcertificate' );
+							}
+							?>
+						</p>
+					</div>
+				<?php endif; ?>
 
 				<div class="ffc-no-js-security">
 					<?php
@@ -218,6 +265,14 @@ class PublicCsvDownload {
 			$this->fail_redirect( $error );
 		}
 
+		// 9b. CPF gate (per-form opt-in, no-op when mode = 'none').
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+		$cpf_input = isset( $_POST['cpf'] ) ? sanitize_text_field( wp_unslash( $_POST['cpf'] ) ) : '';
+		$cpf_error = $this->validate_cpf_requirement( $form_id, $cpf_input );
+		if ( null !== $cpf_error ) {
+			$this->fail_redirect( $cpf_error );
+		}
+
 		// 10. Increment BEFORE streaming to avoid race conditions under rapid retries.
 		$count = (int) get_post_meta( $form_id, self::META_COUNT, true );
 		update_post_meta( $form_id, self::META_COUNT, $count + 1 );
@@ -270,6 +325,14 @@ class PublicCsvDownload {
 		$error = $this->validate_hash_only( $form_id, $posted_hash );
 		if ( null !== $error ) {
 			wp_send_json_error( array( 'message' => $error ) );
+		}
+
+		// 7b. CPF gate (per-form opt-in, no-op when mode = 'none').
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+		$cpf_input = isset( $_POST['cpf'] ) ? sanitize_text_field( wp_unslash( $_POST['cpf'] ) ) : '';
+		$cpf_error = $this->validate_cpf_requirement( $form_id, $cpf_input );
+		if ( null !== $cpf_error ) {
+			wp_send_json_error( array( 'message' => $cpf_error ) );
 		}
 
 		wp_send_json_success( $this->build_form_info( $form_id ) );
@@ -421,6 +484,139 @@ class PublicCsvDownload {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Apply the per-form CPF gate.
+	 *
+	 * Modes (configured per form via _ffc_csv_public_cpf_mode):
+	 *   - none         : skip everything (legacy behaviour).
+	 *   - audit        : require a valid-format CPF, log it, never block.
+	 *   - participants : CPF must hash-match a submission of this form.
+	 *   - owner        : CPF must match the form author's stored CPF.
+	 *   - whitelist    : CPF must be present in _ffc_csv_public_cpf_whitelist.
+	 *
+	 * Always records a single audit log row (success or failure) when the
+	 * mode is anything other than `none`.
+	 *
+	 * @param int    $form_id   Form post ID.
+	 * @param string $cpf_input Raw CPF as posted by the user.
+	 * @return string|null Error message on block, null when allowed.
+	 */
+	public function validate_cpf_requirement( int $form_id, string $cpf_input ): ?string {
+		$mode = (string) get_post_meta( $form_id, self::META_CPF_MODE, true );
+		if ( '' === $mode ) {
+			$mode = 'none';
+		}
+		if ( 'none' === $mode ) {
+			return null;
+		}
+
+		$digits = preg_replace( '/\D/', '', $cpf_input );
+		$digits = is_string( $digits ) ? $digits : '';
+
+		// Format gate: we require a syntactically valid 11-digit CPF before
+		// touching the database.
+		if ( '' === $digits ) {
+			$this->record_download_log_entry( $form_id, $mode, '', 'fail_missing' );
+			return __( 'CPF is required to download this CSV.', 'ffcertificate' );
+		}
+		if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $digits ) ) {
+			$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_format' );
+			return __( 'Invalid CPF.', 'ffcertificate' );
+		}
+
+		if ( 'audit' === $mode ) {
+			$this->record_download_log_entry( $form_id, $mode, $digits, 'audit_pass' );
+			return null;
+		}
+
+		if ( 'whitelist' === $mode ) {
+			$wl_raw = (string) get_post_meta( $form_id, self::META_CPF_WHITELIST, true );
+			$found  = false;
+			$lines  = preg_split( '/[\r\n,]+/', $wl_raw );
+			$lines  = is_array( $lines ) ? $lines : array();
+			foreach ( $lines as $line ) {
+				$candidate = preg_replace( '/\D/', '', (string) $line );
+				if ( $candidate === $digits ) {
+					$found = true;
+					break;
+				}
+			}
+			if ( ! $found ) {
+				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
+				return __( 'This CPF is not authorized to download this CSV.', 'ffcertificate' );
+			}
+			$this->record_download_log_entry( $form_id, $mode, $digits, 'success' );
+			return null;
+		}
+
+		if ( 'owner' === $mode ) {
+			$author_id = (int) get_post_field( 'post_author', $form_id );
+			if ( $author_id <= 0 ) {
+				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
+				return __( 'Form has no author to validate against.', 'ffcertificate' );
+			}
+			$author_cpf = (string) get_user_meta( $author_id, 'ffc_user_cpf', true );
+			$author_dig = preg_replace( '/\D/', '', $author_cpf );
+			if ( ! is_string( $author_dig ) || $author_dig !== $digits ) {
+				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
+				return __( 'CPF does not match the form author.', 'ffcertificate' );
+			}
+			$this->record_download_log_entry( $form_id, $mode, $digits, 'success' );
+			return null;
+		}
+
+		if ( 'participants' === $mode ) {
+			global $wpdb;
+			$encryption_class = '\FreeFormCertificate\Core\Encryption';
+			$cpf_hash         = ( class_exists( $encryption_class ) && $encryption_class::is_configured() )
+				? $encryption_class::hash( $digits )
+				: hash( 'sha256', $digits );
+			$table            = $wpdb->prefix . 'ffc_submissions';
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND cpf_hash = %s', $table, $form_id, $cpf_hash ) );
+			if ( $count <= 0 ) {
+				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
+				return __( 'No submission with this CPF was found for this form.', 'ffcertificate' );
+			}
+			$this->record_download_log_entry( $form_id, $mode, $digits, 'success' );
+			return null;
+		}
+
+		// Unknown mode -> fail closed.
+		$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_unknown_mode' );
+		return __( 'CPF gate misconfigured. Contact the administrator.', 'ffcertificate' );
+	}
+
+	/**
+	 * Append an entry to the per-form download audit log.
+	 *
+	 * Stores the latest DOWNLOAD_LOG_MAX rows in a single post meta. CPF
+	 * is hashed (SHA-256 of the digits-only string) so the log is safe
+	 * to display in the admin without exposing raw documents.
+	 *
+	 * @param int    $form_id Form ID.
+	 * @param string $mode    CPF gate mode that was active.
+	 * @param string $digits  Digits-only CPF (may be '' for fail_missing).
+	 * @param string $result  Outcome tag: success | fail_missing |
+	 *                        fail_format | fail_match | fail_unknown_mode |
+	 *                        audit_pass.
+	 */
+	private function record_download_log_entry( int $form_id, string $mode, string $digits, string $result ): void {
+		$existing   = get_post_meta( $form_id, self::META_DOWNLOAD_LOG, true );
+		$existing   = is_array( $existing ) ? $existing : array();
+		$existing[] = array(
+			'ts'       => time(),
+			'ip'       => \FreeFormCertificate\Core\Utils::get_user_ip(),
+			'mode'     => $mode,
+			'cpf_hash' => '' !== $digits ? hash( 'sha256', $digits ) : '',
+			'result'   => $result,
+		);
+		if ( count( $existing ) > self::DOWNLOAD_LOG_MAX ) {
+			$existing = array_slice( $existing, -self::DOWNLOAD_LOG_MAX );
+		}
+		update_post_meta( $form_id, self::META_DOWNLOAD_LOG, $existing );
 	}
 
 	// ──────────────────────────────────────────────────────────────.

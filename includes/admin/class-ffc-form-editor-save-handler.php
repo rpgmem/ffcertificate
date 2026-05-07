@@ -211,6 +211,30 @@ class FormEditorSaveHandler {
 			if ( ! empty( $public_raw['reset_counter'] ) ) {
 				update_post_meta( $post_id, '_ffc_csv_public_count', 0 );
 			}
+
+			// CPF gate mode for the public download.
+			$valid_modes = array( 'none', 'audit', 'participants', 'owner', 'whitelist' );
+			$mode_raw    = isset( $public_raw['cpf_mode'] ) ? sanitize_key( (string) $public_raw['cpf_mode'] ) : 'none';
+			if ( ! in_array( $mode_raw, $valid_modes, true ) ) {
+				$mode_raw = 'none';
+			}
+			update_post_meta( $post_id, '_ffc_csv_public_cpf_mode', $mode_raw );
+
+			$wl_raw = isset( $public_raw['cpf_whitelist'] ) ? sanitize_textarea_field( (string) $public_raw['cpf_whitelist'] ) : '';
+			if ( '' !== trim( $wl_raw ) ) {
+				$cleaned_lines = array();
+				$lines         = preg_split( '/[\r\n,]+/', $wl_raw );
+				$lines         = is_array( $lines ) ? $lines : array();
+				foreach ( $lines as $line ) {
+					$digits = preg_replace( '/\D/', '', (string) $line );
+					if ( is_string( $digits ) && 11 === strlen( $digits ) ) {
+						$cleaned_lines[ $digits ] = $digits;
+					}
+				}
+				update_post_meta( $post_id, '_ffc_csv_public_cpf_whitelist', implode( "\n", array_values( $cleaned_lines ) ) );
+			} else {
+				delete_post_meta( $post_id, '_ffc_csv_public_cpf_whitelist' );
+			}
 		}
 
 		// 5. Save Device Fingerprint Limit override.

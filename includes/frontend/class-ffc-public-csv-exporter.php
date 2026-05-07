@@ -367,6 +367,14 @@ class PublicCsvExporter {
 			wp_send_json_error( array( 'message' => $error ) );
 		}
 
+		// 9b. CPF gate (per-form opt-in, no-op when mode = 'none').
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+		$cpf_input = isset( $_POST['cpf'] ) ? sanitize_text_field( wp_unslash( $_POST['cpf'] ) ) : '';
+		$cpf_error = $validator->validate_cpf_requirement( $form_id, $cpf_input );
+		if ( null !== $cpf_error ) {
+			wp_send_json_error( array( 'message' => $cpf_error ) );
+		}
+
 		// 10. Increment quota BEFORE generating (race-condition safe).
 		$count = (int) get_post_meta( $form_id, PublicCsvDownload::META_COUNT, true );
 		update_post_meta( $form_id, PublicCsvDownload::META_COUNT, $count + 1 );
