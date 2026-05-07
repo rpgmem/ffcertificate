@@ -254,7 +254,8 @@ class PublicCsvDownloadTest extends TestCase {
         $this->assertCount( 1, $log );
         $this->assertSame( 'audit', $log[0]['mode'] );
         $this->assertSame( 'audit_pass', $log[0]['result'] );
-        $this->assertNotEmpty( $log[0]['cpf_hash'] );
+        $this->assertArrayHasKey( 'cpf_encrypted', $log[0] );
+        $this->assertArrayNotHasKey( 'cpf_hash', $log[0], 'cpf_hash dropped in 6.3.3' );
     }
 
     public function test_validate_cpf_requirement_blocks_missing_cpf(): void {
@@ -312,7 +313,7 @@ class PublicCsvDownloadTest extends TestCase {
         // Pre-fill DOWNLOAD_LOG_MAX existing entries.
         $existing = array();
         for ( $i = 0; $i < PublicCsvDownload::DOWNLOAD_LOG_MAX; $i++ ) {
-            $existing[] = array( 'ts' => $i, 'ip' => '0.0.0.0', 'mode' => 'audit', 'cpf_hash' => 'h', 'result' => 'audit_pass' );
+            $existing[] = array( 'ts' => $i, 'ip' => '0.0.0.0', 'mode' => 'audit', 'cpf_encrypted' => 'h', 'result' => 'audit_pass' );
         }
         $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] = $existing;
 
@@ -321,6 +322,88 @@ class PublicCsvDownloadTest extends TestCase {
         $log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
         $this->assertCount( PublicCsvDownload::DOWNLOAD_LOG_MAX, $log, 'Log should be capped' );
         $this->assertNotSame( 0, $log[0]['ts'], 'Oldest entry should have been dropped' );
+    }
+
+    // ==================================================================
+    //  6.3.3 — voluntary logging in mode='none' + encrypted CPF + helpers
+    // ==================================================================
+
+    public function test_validate_cpf_requirement_none_mode_logs_voluntary_when_filled_and_valid(): void {
+        $form_id = 42;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ] = 'none';
+
+        $result = $this->handler->validate_cpf_requirement( $form_id, '529.982.247-25' );
+
+        $this->assertNull( $result, 'mode=none must never block, even with CPF filled' );
+        $log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
+        $this->assertCount( 1, $log );
+        $this->assertSame( 'none', $log[0]['mode'] );
+        $this->assertSame( 'voluntary', $log[0]['result'] );
+        $this->assertArrayHasKey( 'cpf_encrypted', $log[0] );
+    }
+
+    public function test_validate_cpf_requirement_none_mode_skips_voluntary_log_for_invalid_format(): void {
+        $form_id = 42;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ] = 'none';
+
+        // 11 same digits → checksum invalid; junk drops silently.
+        $result = $this->handler->validate_cpf_requirement( $form_id, '11111111111' );
+
+        $this->assertNull( $result );
+        $this->assertArrayNotHasKey(
+            $form_id . ':_ffc_csv_public_download_log',
+            $this->meta_store,
+            'Invalid voluntary CPFs must not pollute the audit log'
+        );
+    }
+
+    public function test_record_log_entry_uses_cpf_encrypted_field_only(): void {
+        $form_id = 42;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ] = 'audit';
+
+        $this->handler->validate_cpf_requirement( $form_id, '529.982.247-25' );
+
+        $log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
+        $this->assertNotEmpty( $log );
+        $entry = $log[0];
+
+        // 6.3.3 schema: cpf_encrypted only, cpf_hash dropped.
+        $this->assertArrayHasKey( 'cpf_encrypted', $entry );
+        $this->assertArrayNotHasKey( 'cpf_hash', $entry );
+
+        // Encryption is configured in tests/bootstrap.php (SECURE_AUTH_KEY +
+        // LOGGED_IN_KEY constants are seeded), so cpf_encrypted should be a
+        // non-empty string different from the digits themselves.
+        $this->assertIsString( $entry['cpf_encrypted'] );
+        $this->assertNotEmpty( $entry['cpf_encrypted'] );
+        $this->assertNotSame( '52998224725', $entry['cpf_encrypted'] );
+    }
+
+    public function test_get_audit_log_summary_returns_count_and_url_when_log_present(): void {
+        $form_id = 42;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] = array(
+            array( 'ts' => time(), 'ip' => '1.2.3.4', 'mode' => 'audit', 'cpf_encrypted' => 'x', 'result' => 'audit_pass' ),
+            array( 'ts' => time(), 'ip' => '1.2.3.4', 'mode' => 'audit', 'cpf_encrypted' => 'y', 'result' => 'audit_pass' ),
+        );
+        Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
+        Functions\when( 'add_query_arg' )->alias( function ( $args, $url ) {
+            return $url . '?' . http_build_query( $args );
+        } );
+
+        $summary = PublicCsvDownload::get_audit_log_summary( $form_id );
+
+        $this->assertSame( 2, $summary['count'] );
+        $this->assertIsString( $summary['url'] );
+        $this->assertStringContainsString( PublicCsvDownload::EXPORT_LOG_ACTION, $summary['url'] );
+    }
+
+    public function test_get_audit_log_summary_returns_null_url_when_log_empty(): void {
+        $form_id = 42;
+        // No meta seeded.
+        $summary = PublicCsvDownload::get_audit_log_summary( $form_id );
+
+        $this->assertSame( 0, $summary['count'] );
+        $this->assertNull( $summary['url'] );
     }
 
     public function test_register_hooks_registers_shortcode_and_admin_post_actions(): void {

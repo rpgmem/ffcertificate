@@ -9,6 +9,33 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.3.3] (2026-05-07)
+
+**Patch release — auditable CSV downloads.** The per-form CSV download audit log (introduced in 6.3.0) now stores CPFs **encrypted at-rest** instead of one-way-hashed, and gains a one-click CSV export from the form editor for actual auditability. Reuses the same `Encryption` pipeline that already protects `wp_ffc_submissions`.
+
+### Added
+
+- **CSV export endpoint** for the audit log: `admin-post.php?action=ffc_export_csv_public_download_log&form_id=N&_wpnonce=…`. Streams the `_ffc_csv_public_download_log` post-meta as a UTF-8-BOM CSV (`timestamp_utc, ip, mode, cpf, result`). CPFs are decrypted on the fly via `Encryption::decrypt`. Auth: nonce + `edit_post` on the form + `Utils::current_user_can_admin_or('ffc_manage_settings')`.
+- **"Download audit log (CSV)" button** in the form editor's "Public CSV Download" metabox, plus a live count ("N attempts logged on this form."). Hidden when the log is empty.
+- **Voluntary logging in `mode = 'none'`**: if a user happens to fill the CPF field on a form that doesn't require it (because the shortcode renders the field for safety when the URL has no prefill), and the digits form a valid CPF, the entry is now logged with `result = 'voluntary'`. Junk inputs are silently dropped — they don't compete for the 100-entry cap.
+
+### Changed
+
+- **Audit log schema** — entries now carry `cpf_encrypted` instead of `cpf_hash`. The hash field was write-only since 6.3.0 (no code path read it), so dropping it has no functional impact and matches the pattern the plugin already uses for `wp_ffc_submissions.cpf_encrypted`. Schema flag bumped to `1.3.0` and stored in the new `ffc_csv_public_download_log_format` option.
+- **LGPD disclosure** on the public-download shortcode now states the CPF is "encrypted at rest in the form's audit log" rather than just "logged for audit purposes". Wording also adjusted for the `optional` (no-prefill) variant: "If filled, it will be recorded in the form's audit log even when the form does not require it."
+
+### Removed
+
+- **`cpf_hash` field in audit log entries.** Pre-6.3.3 entries (written by 6.3.0/6.3.1/6.3.2) are wiped on the first `plugins_loaded` after upgrade by the new `PublicCsvDownload::maybe_wipe_legacy_logs()`. Justification: 6.3.0 → 6.3.2 all shipped within the same 24-hour window with effectively zero install base, so a clean wipe avoids carrying `[legacy: hashed only]` placeholders forever in CSV exports. The wipe is idempotent (gated by the `ffc_csv_public_download_log_format` option flag).
+
+### Backwards compatibility
+
+- The validation logic for `whitelist`, `participants`, `owner`, `audit` and `none` modes is **untouched**. Only the audit-log writer changed. The participants-mode hash-lookup against `wp_ffc_submissions.cpf_hash` keeps working exactly as before; that's a separate hash on a different table.
+- Sites running without `Encryption::is_configured()` (i.e. without `SECURE_AUTH_KEY`/`LOGGED_IN_KEY`) still log entries — `cpf_encrypted` falls back to `''`, the export shows `[encryption disabled]`, and the metabox renders a hint to configure encryption.
+- 3804 unit tests pass (was 3799; +5 new in `PublicCsvDownloadTest`).
+
+---
+
 ## [6.3.2] (2026-05-07)
 
 **Patch release — broaden the device fingerprint palette.** Builds on the v6.3.1 thumbmarkjs swap by mapping four additional components into the SQL schema and bumping the fresh-install default `match_threshold` from 5 to 7 to keep the same false-positive ratio against the larger 13-signal palette (was 5/9 ≈ 55%, now 7/13 ≈ 54%). Existing sites keep their persisted threshold; a one-shot dismissable admin notice suggests the bump for sites that still hold the legacy default.
