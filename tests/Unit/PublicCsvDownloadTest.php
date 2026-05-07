@@ -218,6 +218,109 @@ class PublicCsvDownloadTest extends TestCase {
         $this->assertSame( '_ffc_csv_public_hash', PublicCsvDownload::META_HASH );
         $this->assertSame( '_ffc_csv_public_limit', PublicCsvDownload::META_LIMIT );
         $this->assertSame( '_ffc_csv_public_count', PublicCsvDownload::META_COUNT );
+        $this->assertSame( '_ffc_csv_public_cpf_mode', PublicCsvDownload::META_CPF_MODE );
+        $this->assertSame( '_ffc_csv_public_cpf_whitelist', PublicCsvDownload::META_CPF_WHITELIST );
+        $this->assertSame( '_ffc_csv_public_download_log', PublicCsvDownload::META_DOWNLOAD_LOG );
+    }
+
+    // ==================================================================
+    //  validate_cpf_requirement() — five modes + audit log
+    // ==================================================================
+
+    public function test_validate_cpf_requirement_none_mode_skips_check(): void {
+        $form_id = 42;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ] = 'none';
+
+        $result = $this->handler->validate_cpf_requirement( $form_id, '' );
+
+        $this->assertNull( $result, 'Mode "none" should never block' );
+        $this->assertArrayNotHasKey(
+            $form_id . ':_ffc_csv_public_download_log',
+            $this->meta_store,
+            'Mode "none" should never write to the audit log'
+        );
+    }
+
+    public function test_validate_cpf_requirement_audit_logs_but_never_blocks(): void {
+        $form_id = 42;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ] = 'audit';
+
+        // Use a valid CPF to bypass format gate.
+        $valid_cpf = '529.982.247-25';
+        $result    = $this->handler->validate_cpf_requirement( $form_id, $valid_cpf );
+
+        $this->assertNull( $result, 'Audit mode must not block' );
+        $log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
+        $this->assertCount( 1, $log );
+        $this->assertSame( 'audit', $log[0]['mode'] );
+        $this->assertSame( 'audit_pass', $log[0]['result'] );
+        $this->assertNotEmpty( $log[0]['cpf_hash'] );
+    }
+
+    public function test_validate_cpf_requirement_blocks_missing_cpf(): void {
+        $form_id = 42;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ] = 'whitelist';
+
+        $result = $this->handler->validate_cpf_requirement( $form_id, '' );
+
+        $this->assertIsString( $result );
+        $log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
+        $this->assertSame( 'fail_missing', $log[0]['result'] );
+    }
+
+    public function test_validate_cpf_requirement_blocks_invalid_format(): void {
+        $form_id = 42;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ] = 'whitelist';
+
+        // 11 same digits → invalid CPF check digit.
+        $result = $this->handler->validate_cpf_requirement( $form_id, '11111111111' );
+
+        $this->assertIsString( $result );
+        $log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
+        $this->assertSame( 'fail_format', $log[0]['result'] );
+    }
+
+    public function test_validate_cpf_requirement_whitelist_match_passes(): void {
+        $form_id = 42;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ]      = 'whitelist';
+        $this->meta_store[ $form_id . ':_ffc_csv_public_cpf_whitelist' ] = "52998224725\n11144477735";
+
+        $result = $this->handler->validate_cpf_requirement( $form_id, '529.982.247-25' );
+
+        $this->assertNull( $result );
+        $log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
+        $this->assertSame( 'success', $log[0]['result'] );
+    }
+
+    public function test_validate_cpf_requirement_whitelist_miss_blocks(): void {
+        $form_id = 42;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ]      = 'whitelist';
+        $this->meta_store[ $form_id . ':_ffc_csv_public_cpf_whitelist' ] = '52998224725';
+
+        // Different valid CPF.
+        $result = $this->handler->validate_cpf_requirement( $form_id, '11144477735' );
+
+        $this->assertIsString( $result );
+        $log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
+        $this->assertSame( 'fail_match', $log[0]['result'] );
+    }
+
+    public function test_validate_cpf_requirement_audit_log_caps_at_max_entries(): void {
+        $form_id = 42;
+        $this->meta_store[ $form_id . ':_ffc_csv_public_cpf_mode' ] = 'audit';
+
+        // Pre-fill DOWNLOAD_LOG_MAX existing entries.
+        $existing = array();
+        for ( $i = 0; $i < PublicCsvDownload::DOWNLOAD_LOG_MAX; $i++ ) {
+            $existing[] = array( 'ts' => $i, 'ip' => '0.0.0.0', 'mode' => 'audit', 'cpf_hash' => 'h', 'result' => 'audit_pass' );
+        }
+        $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] = $existing;
+
+        $this->handler->validate_cpf_requirement( $form_id, '529.982.247-25' );
+
+        $log = $this->meta_store[ $form_id . ':_ffc_csv_public_download_log' ] ?? array();
+        $this->assertCount( PublicCsvDownload::DOWNLOAD_LOG_MAX, $log, 'Log should be capped' );
+        $this->assertNotSame( 0, $log[0]['ts'], 'Oldest entry should have been dropped' );
     }
 
     public function test_register_hooks_registers_shortcode_and_admin_post_actions(): void {
