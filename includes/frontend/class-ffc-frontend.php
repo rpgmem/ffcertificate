@@ -141,10 +141,18 @@ class Frontend {
 			$this->localize_geofence_config();
 
 			// Device fingerprint signals collector (only when globally enabled).
+			//
+			// thumbmarkjs (vendored at libs/js/) provides the raw component
+			// probes; ffc-device-signals.js disables thumbmarkjs telemetry
+			// (setOption('logging', false)), reads getFingerprintData(),
+			// hashes each component locally with SubtleCrypto, and ships
+			// the JSON ffc_device_signals hidden input. Server algorithm
+			// is unchanged from 6.3.0.
 			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 				$rl_settings = \FreeFormCertificate\Security\RateLimiter::get_settings();
 				if ( ! empty( $rl_settings['device']['enabled'] ) ) {
-					wp_enqueue_script( 'ffc-device-signals', FFC_PLUGIN_URL . "assets/js/ffc-device-signals{$s}.js", array(), FFC_VERSION, true );
+					wp_enqueue_script( 'ffc-thumbmark', FFC_PLUGIN_URL . 'libs/js/thumbmark-' . FFC_THUMBMARK_VERSION . '.umd.js', array(), FFC_THUMBMARK_VERSION, true );
+					wp_enqueue_script( 'ffc-device-signals', FFC_PLUGIN_URL . "assets/js/ffc-device-signals{$s}.js", array( 'ffc-thumbmark' ), FFC_VERSION, true );
 					wp_localize_script(
 						'ffc-device-signals',
 						'ffc_device_config',
