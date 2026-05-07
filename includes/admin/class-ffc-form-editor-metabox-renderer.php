@@ -1107,14 +1107,14 @@ class FormEditorMetaboxRenderer {
 
 			<tr>
 				<th scope="row">
-					<label for="ffc_device_limit_threshold"><?php esc_html_e( 'Match threshold (3-8)', 'ffcertificate' ); ?></label>
+					<label for="ffc_device_limit_threshold"><?php esc_html_e( 'Match threshold (3-12)', 'ffcertificate' ); ?></label>
 				</th>
 				<td>
 					<input type="number"
 						name="ffc_device_limit[threshold]"
 						id="ffc_device_limit_threshold"
 						min="3"
-						max="8"
+						max="12"
 						value="<?php echo esc_attr( $threshold ); ?>"
 						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>">
 					<p class="description"><?php esc_html_e( 'Lower = more aggressive. Leave empty to inherit the global default.', 'ffcertificate' ); ?></p>

@@ -23,7 +23,8 @@
  * The set of signals to collect is provided server-side via
  * `wp_localize_script` as `ffc_device_config.signals` (e.g. ["cookie",
  * "ua", "screen", "tz", "concurrency", "memory", "canvas", "audio",
- * "webgl", "fonts"]). Disabled signals are simply not collected.
+ * "webgl", "fonts", "plugins", "permissions", "mediaqueries", "math"]).
+ * Disabled signals are simply not collected.
  *
  * Signal collection is best-effort: anything that throws or is
  * unsupported in the current browser is silently skipped — the server
@@ -129,10 +130,10 @@
 	}
 
 	/**
-	 * Map thumbmarkjs's `getFingerprintData()` output to the 10 keys our
-	 * server schema expects. Returns an object {key: serializableValue};
-	 * empty/missing components map to '' so they're filtered out before
-	 * hashing.
+	 * Map thumbmarkjs's `getFingerprintData()` output to the 14 keys our
+	 * server schema expects (10 originals + 4 added in 6.3.2). Returns an
+	 * object {key: serializableValue}; empty/missing components map to ''
+	 * so they're filtered out before hashing.
 	 */
 	function mapComponents( data ) {
 		var sys = ( data && data.system ) || {};
@@ -146,15 +147,21 @@
 		var ua = coarseUa + '|' + ( sys.platform || '' ) + '|' + ( loc.languages || '' );
 
 		return {
-			ua:          ua,
-			screen:      data.screen ? stableStringify( data.screen ) : '',
-			tz:          loc.timezone || '',
-			concurrency: ( sys.hardwareConcurrency != null ) ? String( sys.hardwareConcurrency ) : '',
-			memory:      ( hw.deviceMemory != null ) ? String( hw.deviceMemory ) : '',
-			canvas:      data.canvas ? stableStringify( data.canvas ) : '',
-			audio:       data.audio ? stableStringify( data.audio ) : '',
-			webgl:       data.webgl ? stableStringify( data.webgl ) : '',
-			fonts:       data.fonts ? stableStringify( data.fonts ) : ''
+			ua:           ua,
+			screen:       data.screen ? stableStringify( data.screen ) : '',
+			tz:           loc.timezone || '',
+			concurrency:  ( sys.hardwareConcurrency != null ) ? String( sys.hardwareConcurrency ) : '',
+			memory:       ( hw.deviceMemory != null ) ? String( hw.deviceMemory ) : '',
+			canvas:       data.canvas ? stableStringify( data.canvas ) : '',
+			audio:        data.audio ? stableStringify( data.audio ) : '',
+			webgl:        data.webgl ? stableStringify( data.webgl ) : '',
+			fonts:        data.fonts ? stableStringify( data.fonts ) : '',
+
+			// 6.3.2: four additional signals exposed by thumbmarkjs.
+			plugins:      data.plugins ? stableStringify( data.plugins ) : '',
+			permissions:  data.permissions ? stableStringify( data.permissions ) : '',
+			mediaqueries: ( data.mediaQueries || data.mediaqueries ) ? stableStringify( data.mediaQueries || data.mediaqueries ) : '',
+			math:         data.math ? stableStringify( data.math ) : ''
 		};
 	}
 

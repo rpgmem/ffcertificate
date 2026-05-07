@@ -65,12 +65,14 @@ class RateLimitActivatorTest extends TestCase {
         $this->assertStringContainsString( 'ffc_device_signals', $delta_calls[2] );
     }
 
-    public function test_create_tables_skips_existing_tables(): void {
+    public function test_create_tables_runs_dbdelta_on_signals_for_upgrade_path(): void {
+        // From 6.3.2 onward we always call dbDelta on the signals table
+        // (even when it exists) so the 4 columns added in 6.3.2 land on
+        // existing 6.3.0/6.3.1 installs via the same code path. The
+        // limits + logs tables remain guarded by table_exists() since
+        // their schema hasn't changed since 5.x.
         $this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
-
-        // prepare is called for table_exists checks
         $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-        // All three tables exist — return the table name for each call
         $this->wpdb->shouldReceive( 'get_var' )
             ->andReturnUsing( function () {
                 static $call = 0;
@@ -84,14 +86,19 @@ class RateLimitActivatorTest extends TestCase {
                 return 'wp_ffc_device_signals';
             } );
 
-        $delta_called = false;
-        Functions\when( 'dbDelta' )->alias( function () use ( &$delta_called ) {
-            $delta_called = true;
+        $delta_calls = array();
+        Functions\when( 'dbDelta' )->alias( function ( $sql ) use ( &$delta_calls ) {
+            $delta_calls[] = $sql;
         } );
 
         RateLimitActivator::create_tables();
 
-        $this->assertFalse( $delta_called, 'dbDelta should NOT be called when both tables already exist' );
+        $this->assertCount( 1, $delta_calls, 'Only the signals dbDelta should run when the other two tables exist' );
+        $this->assertStringContainsString( 'ffc_device_signals', $delta_calls[0] );
+        $this->assertStringContainsString( 'sig_plugins', $delta_calls[0], '6.3.2 schema must include sig_plugins' );
+        $this->assertStringContainsString( 'sig_permissions', $delta_calls[0] );
+        $this->assertStringContainsString( 'sig_mediaqueries', $delta_calls[0] );
+        $this->assertStringContainsString( 'sig_math', $delta_calls[0] );
     }
 
     public function test_create_tables_updates_option(): void {
@@ -109,7 +116,7 @@ class RateLimitActivatorTest extends TestCase {
         RateLimitActivator::create_tables();
 
         $this->assertArrayHasKey( 'ffc_rate_limit_db_version', $updated_options );
-        $this->assertSame( '1.1.0', $updated_options['ffc_rate_limit_db_version'] );
+        $this->assertSame( '1.2.0', $updated_options['ffc_rate_limit_db_version'] );
     }
 
     public function test_create_tables_returns_true(): void {

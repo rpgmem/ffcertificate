@@ -9,6 +9,30 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.3.2] (2026-05-07)
+
+**Patch release — broaden the device fingerprint palette.** Builds on the v6.3.1 thumbmarkjs swap by mapping four additional components into the SQL schema and bumping the fresh-install default `match_threshold` from 5 to 7 to keep the same false-positive ratio against the larger 13-signal palette (was 5/9 ≈ 55%, now 7/13 ≈ 54%). Existing sites keep their persisted threshold; a one-shot dismissable admin notice suggests the bump for sites that still hold the legacy default.
+
+### Added
+
+- **4 new fingerprint signals**, all routed through `ThumbmarkJS.getFingerprintData()` and hashed with SubtleCrypto SHA-256 client-side: `plugins`, `permissions`, `mediaqueries`, `math`. Each gets its own column in `wp_ffc_device_signals` (`sig_plugins`, `sig_permissions`, `sig_mediaqueries`, `sig_math`, all `char(64) DEFAULT NULL`).
+- **`DeviceThresholdUpgradeNotice`** (dismissable) — surfaces once on `admin_notices` for sites where `device.enabled = true` AND `match_threshold = 5`, suggesting they raise the threshold to 7 in **Settings → Rate Limit → Device Fingerprint**. Persists dismissal in the `ffc_device_threshold_v632_notice_dismissed` option. AJAX-dismissed via the standard WP `notice-dismiss` button.
+- Settings UI: 4 new checkboxes ("Browser plugins list", "Permissions API state", "Media queries", "Math precision probes") under "Signals collected". The threshold input range moves from 3-8 to 3-12 (both global and per-form metabox).
+
+### Changed
+
+- **Schema migration** — `RateLimitActivator::create_tables()` now always calls `dbDelta` on the signals table (it used to skip when the table existed). Idempotent; on existing installs `dbDelta` simply ALTERs in the 4 new columns. DB version bumps from `1.1.0` to `1.2.0`; `maybe_create_tables()` triggers the migration on plugin load.
+- **Default `match_threshold`** raised from `5` → `7` for fresh installs only. Existing installs keep their saved value (the option is persisted in `ffc_rate_limit_settings` and won't get overwritten); the admin notice above carries the recommendation.
+- **`RateLimiter::check_device_limit()`** signal-keys array, `record_device_signals()` write list, settings sanitization whitelist and `get_device_effective_settings()` clamp all extended to the 13-signal palette + threshold range 3-12.
+
+### Backwards compatibility
+
+- Rows written by 6.3.0 / 6.3.1 stay readable. Their 4 new columns are `NULL`, which the SQL `CASE WHEN (sig_X = :x)` aggregate evaluates to `NULL` (not match) — so they keep contributing whatever matches they already had with the original 9 signals, just no contribution from the new 4. No data loss, no forced re-fingerprinting.
+- Existing per-form `_ffc_device_match_threshold` overrides outside the new 3-12 clamp are normalised on next save.
+- 3799 unit tests pass (was 3793; +6 from the new threshold default test and 5 admin-notice gating tests; the `RateLimitActivatorTest` upgrade-path test was rewritten in place rather than added).
+
+---
+
 ## [6.3.1] (2026-05-07)
 
 **Patch release — swap-only.** Replaces the hand-rolled device-fingerprint collector introduced in 6.3.0 with the maintained [thumbmarkjs](https://github.com/thumbmarkjs/thumbmarkjs) library (MIT, vendored at `libs/js/thumbmark-1.8.1.umd.js`). Server algorithm, schema, settings, JSON contract, threshold default, retention, bypass logic and LGPD posture are **all unchanged**.

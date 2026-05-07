@@ -77,8 +77,8 @@ class TabRateLimit extends SettingsTab {
 			'device'    => array(
 				'enabled'                   => false,
 				'max_per_form'              => 1,
-				'match_threshold'           => 5,
-				'signals_enabled'           => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts' ),
+				'match_threshold'           => 7,
+				'signals_enabled'           => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
 				'bypass_logged_in_managers' => true,
 				'bypass_whitelist_signals'  => array(),
 				'message'                   => __( 'Multiple submissions detected from this device. Please contact the organizer.', 'ffcertificate' ),
@@ -172,11 +172,11 @@ class TabRateLimit extends SettingsTab {
 			'device'    => array(
 				'enabled'                   => isset( $_POST['device_enabled'] ),
 				'max_per_form'              => max( 1, absint( wp_unslash( $_POST['device_max_per_form'] ?? 1 ) ) ),
-				'match_threshold'           => max( 3, min( 8, absint( wp_unslash( $_POST['device_match_threshold'] ?? 5 ) ) ) ),
+				'match_threshold'           => max( 3, min( 12, absint( wp_unslash( $_POST['device_match_threshold'] ?? 7 ) ) ) ),
 				'signals_enabled'           => isset( $_POST['device_signals_enabled'] ) && is_array( $_POST['device_signals_enabled'] )
 					? array_values(
 						array_intersect(
-							array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts' ),
+							array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
 							array_map( 'sanitize_key', wp_unslash( $_POST['device_signals_enabled'] ) )
 						)
 					)
