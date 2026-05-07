@@ -160,6 +160,15 @@ class FormEditor {
 			'default'
 		);
 
+		add_meta_box(
+			'ffc_box_device_limit',
+			__( '8. Device Fingerprint Limit', 'ffcertificate' ),
+			array( $this->metabox_renderer, 'render_box_device_limit' ),
+			'ffc_form',
+			'normal',
+			'default'
+		);
+
 		// Sidebar metabox (shortcode + instructions) - Delegated to Metabox Renderer.
 		add_meta_box(
 			'ffc_form_shortcode',

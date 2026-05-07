@@ -212,6 +212,38 @@ class FormEditorSaveHandler {
 				update_post_meta( $post_id, '_ffc_csv_public_count', 0 );
 			}
 		}
+
+		// 5. Save Device Fingerprint Limit override.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check; values sanitized below.
+		if ( isset( $_POST['ffc_device_limit'] ) && is_array( $_POST['ffc_device_limit'] ) ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each key sanitized individually.
+			$device_raw = wp_unslash( $_POST['ffc_device_limit'] );
+
+			$device_enabled = ! empty( $device_raw['enabled'] ) ? '1' : '0';
+			update_post_meta( $post_id, '_ffc_device_limit_enabled', $device_enabled );
+
+			// Empty fields delete the meta so the global default is inherited at read time.
+			$max_raw = isset( $device_raw['max'] ) ? trim( (string) $device_raw['max'] ) : '';
+			if ( '' === $max_raw ) {
+				delete_post_meta( $post_id, '_ffc_device_limit_max' );
+			} else {
+				update_post_meta( $post_id, '_ffc_device_limit_max', max( 1, absint( $max_raw ) ) );
+			}
+
+			$thr_raw = isset( $device_raw['threshold'] ) ? trim( (string) $device_raw['threshold'] ) : '';
+			if ( '' === $thr_raw ) {
+				delete_post_meta( $post_id, '_ffc_device_match_threshold' );
+			} else {
+				update_post_meta( $post_id, '_ffc_device_match_threshold', max( 3, min( 8, absint( $thr_raw ) ) ) );
+			}
+
+			$msg_raw = isset( $device_raw['message'] ) ? sanitize_textarea_field( (string) $device_raw['message'] ) : '';
+			if ( '' === $msg_raw ) {
+				delete_post_meta( $post_id, '_ffc_device_limit_message' );
+			} else {
+				update_post_meta( $post_id, '_ffc_device_limit_message', $msg_raw );
+			}
+		}
 	}
 
 	/**
