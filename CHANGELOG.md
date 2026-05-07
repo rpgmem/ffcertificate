@@ -9,6 +9,34 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.3.1] (2026-05-07)
+
+**Patch release — swap-only.** Replaces the hand-rolled device-fingerprint collector introduced in 6.3.0 with the maintained [thumbmarkjs](https://github.com/thumbmarkjs/thumbmarkjs) library (MIT, vendored at `libs/js/thumbmark-1.8.1.umd.js`). Server algorithm, schema, settings, JSON contract, threshold default, retention, bypass logic and LGPD posture are **all unchanged**.
+
+Why: thumbmarkjs's `stabilizationExclusionRules` keep canvas/audio/fonts/webgl probes stable across Firefox-RFP, Brave, Tor and Safari-Private automatically — quirks we used to chase by hand. Migration is intentionally minimal so the change set stays auditable.
+
+### Changed
+
+- **Device fingerprint collector** — `assets/js/ffc-device-signals.js` now delegates the raw signal probes to `ThumbmarkJS.getFingerprintData()` and hashes each component with SubtleCrypto SHA-256 locally. The 10 SQL columns (`sig_cookie`, `sig_ua`, `sig_screen`, `sig_tz`, `sig_concurrency`, `sig_memory`, `sig_canvas`, `sig_audio`, `sig_webgl`, `sig_fonts`) and the JSON `ffc_device_signals` payload format are unchanged. The cookie continues to be our own `ffc_device_id` UUID in `localStorage` (thumbmarkjs does not manage cross-session cookies).
+- **LGPD disclosure** — the per-form consent block now cites the third-party library by name and explicitly states "no data is sent to any third-party server".
+
+### Added
+
+- `libs/js/thumbmark-1.8.1.umd.js` — vendored UMD build (32 KB raw / ~12 KB gzipped). SHA-256: `b3f07b2701030d55fdbeef51f7dd366d3d9bb7dde415056b6e96ef0414ea0d5b`.
+- `FFC_THUMBMARK_VERSION` constant pinning the vendored version.
+- `tests/Unit/DeviceSignalsLoggingOffTest.php` — regression guard asserting that the JS bootstrap **always** calls `setOption( 'logging', false )` before the first probe and uses `getFingerprintData()` (not the combined-hash `getFingerprint()`).
+
+### Telemetry note
+
+thumbmarkjs ships with `logging: true` by default, which sends a 0.01%-sampled POST to `api.thumbmarkjs.com` once per session "to improve the library". We **unconditionally disable** that beacon at module bootstrap; the disable call is grep-tested by `DeviceSignalsLoggingOffTest`. No fingerprint signal ever leaves the visitor's browser; only the SHA-256 hex hashes computed locally are sent to the WP site itself.
+
+### Backwards compatibility
+
+- `wp_ffc_device_signals` rows written by 6.3.0 remain readable. The cookie-shortcut match continues to work because the cookie hash is still SHA-256 of the same `ffc_device_id` UUID. The 9 non-cookie hashes will differ between 6.3.0 and 6.3.1 (different probe inputs), so a returning user who clears `localStorage` may get one "free" submission before the new fingerprint starts colliding. This is acceptable for a swap release; the cookie persistence carries the most weight in practice.
+- No schema migration; `ffc_rate_limit_db_version` stays at `1.1.0`.
+
+---
+
 ## [6.3.0] (2026-05-07)
 
 **Two opt-in anti-fraud features for public form workflows.** Adds a CPF gate on the public CSV download (five modes, audit log) and a per-device submission limit on the certificate form (multi-signal browser fingerprint with an "N of M" matching rule, optional bypass for admins / Certificate Managers).

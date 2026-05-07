@@ -6,17 +6,32 @@
  * hidden `ffc_device_signals` JSON input on every FFC submission form
  * (selector: `form.ffc-submission-form`).
  *
+ * The actual signal probes are delegated to the vendored thumbmarkjs
+ * library (libs/js/thumbmark-1.8.1.umd.js, MIT) which exposes its raw
+ * components via `getFingerprintData()`. We map those components 1:1
+ * onto our 10-column SQL schema, hash each one independently with
+ * SubtleCrypto SHA-256, and ship the JSON to the server. The server
+ * algorithm (RateLimiter::check_device_limit, "N of M" rule) is
+ * unchanged from 6.3.0.
+ *
+ * Telemetry note: thumbmarkjs ships with `logging:true` by default,
+ * which sends a sampling beacon to api.thumbmarkjs.com 1× per session.
+ * We *unconditionally* disable that here on first load via
+ * `setOption('logging', false)`. A grep test enforces the call stays
+ * (tests/Unit/DeviceSignalsLoggingOffTest.php).
+ *
  * The set of signals to collect is provided server-side via
  * `wp_localize_script` as `ffc_device_config.signals` (e.g. ["cookie",
  * "ua", "screen", "tz", "concurrency", "memory", "canvas", "audio",
  * "webgl", "fonts"]). Disabled signals are simply not collected.
  *
- * Signals collection is best-effort: anything that throws or is
+ * Signal collection is best-effort: anything that throws or is
  * unsupported in the current browser is silently skipped — the server
  * applies the "N of M" matching rule on whatever subset arrives.
  *
  * @package FreeFormCertificate
  * @since   6.3.0
+ * @since   6.3.1 Delegated probes to thumbmarkjs (MIT, vendored).
  */
 (function () {
 	'use strict';
@@ -27,6 +42,17 @@
 		// that as bypass-equivalent (no rows, no enforcement).
 		return;
 	}
+
+	if ( typeof window.ThumbmarkJS === 'undefined' ) {
+		// thumbmarkjs UMD is required; if it didn't load (network error,
+		// CSP block, etc.) we fail open in the same "no signals" mode.
+		return;
+	}
+
+	// Hard-disable thumbmarkjs telemetry. MUST run before the first
+	// getFingerprintData() call. Removing this line is treated as a
+	// regression and asserted by DeviceSignalsLoggingOffTest.
+	window.ThumbmarkJS.setOption( 'logging', false );
 
 	var config = window.ffc_device_config || {};
 	var enabled = Array.isArray( config.signals ) ? config.signals : [];
@@ -85,193 +111,93 @@
 		} );
 	}
 
-	function uaSignal() {
-		var ua = navigator.userAgent || '';
-		var platform = navigator.platform || '';
-		// Coarse-grained: drop minor/patch versions to reduce churn between
-		// auto-updated browsers on the same machine.
-		var coarse = ua.replace( /(\d+)\.\d+\.\d+/g, '$1' );
-		return coarse + '|' + platform + '|' + ( navigator.language || '' );
-	}
-
-	function screenSignal() {
-		var s = window.screen || {};
-		return [ s.width, s.height, s.colorDepth, window.devicePixelRatio || 1 ].join( 'x' );
-	}
-
-	function tzSignal() {
-		try {
-			return Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-		} catch ( e ) {
-			return String( new Date().getTimezoneOffset() );
-		}
-	}
-
-	function concurrencySignal() {
-		return String( navigator.hardwareConcurrency || 0 );
-	}
-
-	function memorySignal() {
-		return String( navigator.deviceMemory || 0 );
-	}
-
-	function canvasSignal() {
-		try {
-			var canvas = document.createElement( 'canvas' );
-			canvas.width = 240;
-			canvas.height = 60;
-			var ctx = canvas.getContext( '2d' );
-			if ( ! ctx ) {
-				return '';
+	function stableStringify( value ) {
+		// thumbmarkjs ships its own deterministic stringifier; prefer it
+		// so component shapes hash to the same digest across page loads.
+		if ( window.ThumbmarkJS && typeof window.ThumbmarkJS.stableStringify === 'function' ) {
+			try {
+				return window.ThumbmarkJS.stableStringify( value );
+			} catch ( e ) {
+				// Fall through to JSON.stringify below.
 			}
-			ctx.textBaseline = 'top';
-			ctx.font = "14px 'Arial'";
-			ctx.fillStyle = '#f60';
-			ctx.fillRect( 125, 1, 62, 20 );
-			ctx.fillStyle = '#069';
-			ctx.fillText( 'ffc-fingerprint-✨', 2, 15 );
-			ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
-			ctx.fillText( 'ffc-fingerprint-✨', 4, 17 );
-			return canvas.toDataURL();
+		}
+		try {
+			return JSON.stringify( value );
 		} catch ( e ) {
 			return '';
 		}
 	}
 
-	function audioSignal() {
-		try {
-			var Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-			if ( ! Ctx ) {
-				return '';
-			}
-			var ctx = new Ctx( 1, 4400, 44100 );
-			var oscillator = ctx.createOscillator();
-			oscillator.type = 'triangle';
-			oscillator.frequency.value = 10000;
-			var compressor = ctx.createDynamicsCompressor();
-			compressor.threshold.value = -50;
-			compressor.knee.value = 40;
-			compressor.ratio.value = 12;
-			compressor.attack.value = 0;
-			compressor.release.value = 0.25;
-			oscillator.connect( compressor );
-			compressor.connect( ctx.destination );
-			oscillator.start( 0 );
-			ctx.startRendering();
-			// Resolve synchronously with a digest of the analyser parameters.
-			// Real rendering happens async; we only need a stable string per
-			// device for our hash, so the configuration values suffice.
-			return [
-				ctx.sampleRate,
-				compressor.threshold.value,
-				compressor.knee.value,
-				compressor.ratio.value
-			].join( '|' );
-		} catch ( e ) {
-			return '';
-		}
-	}
+	/**
+	 * Map thumbmarkjs's `getFingerprintData()` output to the 10 keys our
+	 * server schema expects. Returns an object {key: serializableValue};
+	 * empty/missing components map to '' so they're filtered out before
+	 * hashing.
+	 */
+	function mapComponents( data ) {
+		var sys = ( data && data.system ) || {};
+		var loc = ( data && data.locales ) || {};
+		var hw  = ( data && data.hardware ) || {};
 
-	function webglSignal() {
-		try {
-			var canvas = document.createElement( 'canvas' );
-			var gl = canvas.getContext( 'webgl' ) || canvas.getContext( 'experimental-webgl' );
-			if ( ! gl ) {
-				return '';
-			}
-			var info = gl.getExtension( 'WEBGL_debug_renderer_info' );
-			var vendor = info ? gl.getParameter( info.UNMASKED_VENDOR_WEBGL ) : gl.getParameter( gl.VENDOR );
-			var renderer = info ? gl.getParameter( info.UNMASKED_RENDERER_WEBGL ) : gl.getParameter( gl.RENDERER );
-			return ( vendor || '' ) + '|' + ( renderer || '' );
-		} catch ( e ) {
-			return '';
-		}
-	}
+		// `ua` keeps semantic compatibility with the 6.3.0 hand-rolled
+		// hash: useragent + platform + primary language. Coarse-grained
+		// (no minor versions) so auto-updating browsers stay stable.
+		var coarseUa = String( sys.useragent || '' ).replace( /(\d+)\.\d+\.\d+/g, '$1' );
+		var ua = coarseUa + '|' + ( sys.platform || '' ) + '|' + ( loc.languages || '' );
 
-	function fontsSignal() {
-		try {
-			var probes = [
-				'monospace',
-				'serif',
-				'sans-serif',
-				'Arial',
-				'Verdana',
-				'Times New Roman',
-				'Courier New',
-				'Helvetica',
-				'Tahoma',
-				'Trebuchet MS',
-				'Comic Sans MS',
-				'Impact'
-			];
-			var span = document.createElement( 'span' );
-			span.style.position = 'absolute';
-			span.style.left = '-9999px';
-			span.style.fontSize = '32px';
-			span.textContent = 'mmmmmmmmmmlli';
-			document.body.appendChild( span );
-			var sizes = [];
-			for ( var i = 0; i < probes.length; i++ ) {
-				span.style.fontFamily = probes[ i ];
-				sizes.push( probes[ i ] + ':' + span.offsetWidth + 'x' + span.offsetHeight );
-			}
-			document.body.removeChild( span );
-			return sizes.join( ';' );
-		} catch ( e ) {
-			return '';
-		}
+		return {
+			ua:          ua,
+			screen:      data.screen ? stableStringify( data.screen ) : '',
+			tz:          loc.timezone || '',
+			concurrency: ( sys.hardwareConcurrency != null ) ? String( sys.hardwareConcurrency ) : '',
+			memory:      ( hw.deviceMemory != null ) ? String( hw.deviceMemory ) : '',
+			canvas:      data.canvas ? stableStringify( data.canvas ) : '',
+			audio:       data.audio ? stableStringify( data.audio ) : '',
+			webgl:       data.webgl ? stableStringify( data.webgl ) : '',
+			fonts:       data.fonts ? stableStringify( data.fonts ) : ''
+		};
 	}
 
 	function collectSignals() {
-		var jobs = [];
-		var deviceId = isEnabled( 'cookie' ) ? getOrCreateDeviceId() : '';
 		var raw = {};
 
-		if ( deviceId ) {
-			raw.cookie = deviceId;
-		}
-		if ( isEnabled( 'ua' ) ) {
-			raw.ua = uaSignal();
-		}
-		if ( isEnabled( 'screen' ) ) {
-			raw.screen = screenSignal();
-		}
-		if ( isEnabled( 'tz' ) ) {
-			raw.tz = tzSignal();
-		}
-		if ( isEnabled( 'concurrency' ) ) {
-			raw.concurrency = concurrencySignal();
-		}
-		if ( isEnabled( 'memory' ) ) {
-			raw.memory = memorySignal();
-		}
-		if ( isEnabled( 'canvas' ) ) {
-			raw.canvas = canvasSignal();
-		}
-		if ( isEnabled( 'audio' ) ) {
-			raw.audio = audioSignal();
-		}
-		if ( isEnabled( 'webgl' ) ) {
-			raw.webgl = webglSignal();
-		}
-		if ( isEnabled( 'fonts' ) ) {
-			raw.fonts = fontsSignal();
+		if ( isEnabled( 'cookie' ) ) {
+			raw.cookie = getOrCreateDeviceId();
 		}
 
-		var hashed = {};
-		Object.keys( raw ).forEach( function ( key ) {
-			if ( ! raw[ key ] ) {
-				return;
+		return window.ThumbmarkJS.getFingerprintData().then( function ( data ) {
+			var mapped = mapComponents( data );
+			Object.keys( mapped ).forEach( function ( key ) {
+				if ( isEnabled( key ) && mapped[ key ] ) {
+					raw[ key ] = mapped[ key ];
+				}
+			} );
+
+			var jobs = [];
+			var hashed = {};
+			Object.keys( raw ).forEach( function ( key ) {
+				if ( ! raw[ key ] ) {
+					return;
+				}
+				jobs.push(
+					sha256Hex( raw[ key ] ).then( function ( hex ) {
+						hashed[ key ] = hex;
+					} )
+				);
+			} );
+
+			return Promise.all( jobs ).then( function () {
+				return hashed;
+			} );
+		} ).catch( function () {
+			// Best-effort: if thumbmarkjs throws, ship just the cookie hash
+			// (or nothing). Server treats it as a partial-signal payload.
+			if ( ! raw.cookie ) {
+				return {};
 			}
-			jobs.push(
-				sha256Hex( raw[ key ] ).then( function ( hex ) {
-					hashed[ key ] = hex;
-				} )
-			);
-		} );
-
-		return Promise.all( jobs ).then( function () {
-			return hashed;
+			return sha256Hex( raw.cookie ).then( function ( hex ) {
+				return { cookie: hex };
+			} );
 		} );
 	}
 
