@@ -46,7 +46,7 @@ class RateLimiter {
 	 *
 	 * @return array<string, mixed>
 	 */
-	private static function get_settings(): array {
+	public static function get_settings(): array {
 		if ( null !== self::$settings_cache ) {
 			return self::$settings_cache;
 		}
@@ -86,6 +86,17 @@ class RateLimiter {
 				'max_per_hour'   => 1000,
 				'message'        => __( 'System unavailable.', 'ffcertificate' ),
 			),
+			'device'    => array(
+				'enabled'                   => false,
+				'max_per_form'              => 1,
+				'match_threshold'           => 5,
+				'signals_enabled'           => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts' ),
+				'bypass_logged_in_managers' => true,
+				'bypass_whitelist_signals'  => array(),
+				'message'                   => __( 'Multiple submissions detected from this device. Please contact the organizer.', 'ffcertificate' ),
+				'retention_days'            => 90,
+				'log_blocks'                => true,
+			),
 			'whitelist' => array(
 				'ips'           => array(),
 				'emails'        => array(),
@@ -118,13 +129,15 @@ class RateLimiter {
 	/**
 	 * Check all.
 	 *
-	 * @param string      $ip IP address.
-	 * @param string|null $email Email address.
-	 * @param string|null $cpf CPF document.
-	 * @param int|null    $form_id Form ID.
+	 * @param string                     $ip IP address.
+	 * @param string|null                $email Email address.
+	 * @param string|null                $cpf CPF document.
+	 * @param int|null                   $form_id Form ID.
+	 * @param array<string, string>|null $device_signals Device fingerprint hashes (cookie, ua, screen, ...).
+	 * @param bool                       $skip_device Set true to bypass the device fingerprint check (e.g. for managers).
 	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
 	 */
-	public static function check_all( string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null ): array {
+	public static function check_all( string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null, ?array $device_signals = null, bool $skip_device = false ): array {
 		$s = self::get_settings();
 
 		$bl = self::check_blacklist( $ip, $email, $cpf );
@@ -135,6 +148,18 @@ class RateLimiter {
 		if ( self::is_whitelisted( $ip, $email, $cpf ) ) {
 			self::log_attempt( 'whitelist', $ip, 'whitelisted', 'In whitelist', $form_id );
 			return array( 'allowed' => true ); }
+
+		if ( ! $skip_device && ! empty( $s['device']['enabled'] ) && $form_id && is_array( $device_signals ) ) {
+			$d = self::check_device_limit( $form_id, $device_signals );
+			if ( ! $d['allowed'] ) {
+				if ( ! empty( $s['device']['log_blocks'] ) ) {
+					$first_signal = reset( $device_signals );
+					$d_id         = $device_signals['cookie'] ?? ( false !== $first_signal ? $first_signal : 'unknown' );
+					self::log_attempt( 'device', (string) $d_id, 'blocked', $d['reason'] ?? '', $form_id );
+				}
+				return $d;
+			}
+		}
 
 		if ( $s['global']['enabled'] ) {
 			$g = self::check_global_limit();
@@ -374,6 +399,178 @@ class RateLimiter {
 		return array( 'allowed' => true );
 	}
 
+	/**
+	 * Check whether the current submission should bypass the device limit
+	 * because the user is logged in as administrator or carries the
+	 * ffc_manage_settings capability (typical "Certificate Manager" profile).
+	 *
+	 * @return bool
+	 */
+	public static function should_bypass_for_manager(): bool {
+		$d = self::get_settings()['device'];
+		if ( empty( $d['bypass_logged_in_managers'] ) ) {
+			return false;
+		}
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
+		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+			return \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' );
+		}
+		return current_user_can( 'manage_options' );
+	}
+
+	/**
+	 * Resolve the per-form effective settings for the device limit, applying
+	 * post-meta overrides on top of the global device.* values.
+	 *
+	 * @param int $form_id Form post ID.
+	 * @return array{max: int, threshold: int, message: string}
+	 */
+	public static function get_device_effective_settings( int $form_id ): array {
+		$d        = self::get_settings()['device'];
+		$max_meta = get_post_meta( $form_id, '_ffc_device_limit_max', true );
+		$thr_meta = get_post_meta( $form_id, '_ffc_device_match_threshold', true );
+		$msg_meta = get_post_meta( $form_id, '_ffc_device_limit_message', true );
+
+		$max = ( '' !== $max_meta ) ? max( 1, (int) $max_meta ) : (int) $d['max_per_form'];
+		$thr = ( '' !== $thr_meta ) ? max( 3, min( 8, (int) $thr_meta ) ) : (int) $d['match_threshold'];
+		$msg = ( is_string( $msg_meta ) && '' !== $msg_meta ) ? $msg_meta : (string) $d['message'];
+
+		return array(
+			'max'       => $max,
+			'threshold' => $thr,
+			'message'   => $msg,
+		);
+	}
+
+	/**
+	 * Check the device fingerprint limit for a single submission.
+	 *
+	 * Treats two submissions as "same device" when:
+	 *   (a) their cookie hash matches, OR
+	 *   (b) at least <threshold> non-cookie signal hashes match.
+	 *
+	 * Counts how many prior submissions of this form match the incoming
+	 * signal set; blocks if the count reaches the configured maximum.
+	 *
+	 * @param int                   $form_id Form ID (post ID).
+	 * @param array<string, string> $signals Map of signal name -> SHA-256 hex hash.
+	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 */
+	public static function check_device_limit( int $form_id, array $signals ): array {
+		global $wpdb;
+
+		$d = self::get_settings()['device'];
+		if ( empty( $d['enabled'] ) ) {
+			return array( 'allowed' => true );
+		}
+
+		$enabled_signals = is_array( $d['signals_enabled'] ) ? array_map( 'strval', $d['signals_enabled'] ) : array();
+		$signals         = array_filter(
+			$signals,
+			static function ( $v, $k ) use ( $enabled_signals ) {
+				return '' !== $v && in_array( $k, $enabled_signals, true );
+			},
+			ARRAY_FILTER_USE_BOTH
+		);
+
+		if ( empty( $signals ) ) {
+			return array( 'allowed' => true );
+		}
+
+		$cookie = $signals['cookie'] ?? null;
+
+		// Whitelisted cookie hashes bypass the limit entirely.
+		if ( $cookie && in_array( $cookie, (array) $d['bypass_whitelist_signals'], true ) ) {
+			return array( 'allowed' => true );
+		}
+
+		$effective = self::get_device_effective_settings( $form_id );
+
+		$signal_keys = array( 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts' );
+		$sum_parts   = array();
+		$values      = array();
+		foreach ( $signal_keys as $k ) {
+			if ( ! empty( $signals[ $k ] ) ) {
+				$col         = 'sig_' . $k;
+				$sum_parts[] = "({$col} = %s)";
+				$values[]    = $signals[ $k ];
+			}
+		}
+
+		$threshold = $effective['threshold'];
+		$max       = $effective['max'];
+		$table     = $wpdb->prefix . 'ffc_device_signals';
+
+		$count = 0;
+		if ( $cookie && empty( $sum_parts ) ) {
+			// Cookie-only fallback: count distinct submission rows with matching cookie.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND sig_cookie = %s', $table, $form_id, $cookie ) );
+		} elseif ( ! empty( $sum_parts ) ) {
+			$sum_sql = implode( ' + ', $sum_parts );
+			if ( $cookie ) {
+				$where_sql = "form_id = %d AND ( sig_cookie = %s OR ( {$sum_sql} ) >= %d )";
+				$args      = array_merge( array( $table, $form_id, $cookie ), $values, array( $threshold ) );
+			} else {
+				$where_sql = "form_id = %d AND ( {$sum_sql} ) >= %d";
+				$args      = array_merge( array( $table, $form_id ), $values, array( $threshold ) );
+			}
+			$sql = "SELECT COUNT(*) FROM %i WHERE {$where_sql}";
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+			$count = (int) $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
+		}
+
+		if ( $count >= $max ) {
+			return array(
+				'allowed'      => false,
+				'reason'       => 'device_limit',
+				'message'      => $effective['message'],
+				'wait_seconds' => 0,
+			);
+		}
+
+		return array( 'allowed' => true );
+	}
+
+	/**
+	 * Persist the collected device signal hashes for a successful submission.
+	 *
+	 * Called from the ffcertificate_after_submission_save hook so that the
+	 * submission_id FK is already known. No-op if the device subsystem is
+	 * disabled.
+	 *
+	 * @param int|null              $submission_id Submission row id (FK).
+	 * @param int                   $form_id       Form post ID.
+	 * @param array<string, string> $signals       Signal hashes.
+	 */
+	public static function record_device_signals( ?int $submission_id, int $form_id, array $signals ): void {
+		global $wpdb;
+		$d = self::get_settings()['device'];
+		if ( empty( $d['enabled'] ) ) {
+			return;
+		}
+		$enabled = is_array( $d['signals_enabled'] ) ? array_map( 'strval', $d['signals_enabled'] ) : array();
+		$row     = array(
+			'submission_id' => $submission_id,
+			'form_id'       => $form_id,
+		);
+		$has_any = false;
+		foreach ( array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts' ) as $k ) {
+			if ( ! empty( $signals[ $k ] ) && in_array( $k, $enabled, true ) ) {
+				$row[ 'sig_' . $k ] = substr( (string) $signals[ $k ], 0, 64 );
+				$has_any            = true;
+			} else {
+				$row[ 'sig_' . $k ] = null;
+			}
+		}
+		if ( ! $has_any ) {
+			return;
+		}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->insert( $wpdb->prefix . 'ffc_device_signals', $row );
+	}
 
 	/**
 	 * Check rate limit for verification requests (magic links)
@@ -964,6 +1161,14 @@ class RateLimiter {
 	public static function cleanup_expired(): int {
 		global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE window_end < NOW()', $wpdb->prefix . 'ffc_rate_limits' ) );
+		$deleted = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE window_end < NOW()', $wpdb->prefix . 'ffc_rate_limits' ) );
+
+		$d = self::get_settings()['device'];
+		if ( ! empty( $d['retention_days'] ) ) {
+			$retention = max( 1, (int) $d['retention_days'] );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$deleted += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)', $wpdb->prefix . 'ffc_device_signals', $retention ) );
+		}
+		return $deleted;
 	}
 }
