@@ -258,7 +258,7 @@ class FormEditorSaveHandler {
 			if ( '' === $thr_raw ) {
 				delete_post_meta( $post_id, '_ffc_device_match_threshold' );
 			} else {
-				update_post_meta( $post_id, '_ffc_device_match_threshold', max( 3, min( 8, absint( $thr_raw ) ) ) );
+				update_post_meta( $post_id, '_ffc_device_match_threshold', max( 3, min( 12, absint( $thr_raw ) ) ) );
 			}
 
 			$msg_raw = isset( $device_raw['message'] ) ? sanitize_textarea_field( (string) $device_raw['message'] ) : '';

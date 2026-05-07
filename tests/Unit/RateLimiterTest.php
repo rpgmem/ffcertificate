@@ -413,6 +413,22 @@ class RateLimiterTest extends TestCase {
         $this->assertSame( 'form-override', $eff['message'] );
     }
 
+    public function test_get_device_effective_settings_default_threshold_is_7(): void {
+        // 6.3.2 raised the fresh-install default from 5 to 7 to match the
+        // expanded 13-signal palette (was 5/9 ≈ 55%, now 7/13 ≈ 54%).
+        Functions\when( 'get_option' )->justReturn( array() ); // No persisted settings.
+        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
+            return array_merge( $defaults, is_array( $args ) ? $args : array() );
+        } );
+        Functions\when( '__' )->returnArg();
+        Functions\when( '_n' )->returnArg();
+        Functions\when( 'get_post_meta' )->justReturn( '' );
+
+        $eff = RateLimiter::get_device_effective_settings( 42 );
+
+        $this->assertSame( 7, $eff['threshold'] );
+    }
+
     public function test_get_device_effective_settings_clamps_threshold(): void {
         $this->stub_default_settings(
             array( 'device' => array( 'enabled' => true, 'match_threshold' => 5, 'max_per_form' => 1 ) )
@@ -423,7 +439,7 @@ class RateLimiterTest extends TestCase {
 
         $eff = RateLimiter::get_device_effective_settings( 42 );
 
-        $this->assertSame( 8, $eff['threshold'], 'Threshold above 8 must clamp to 8' );
+        $this->assertSame( 12, $eff['threshold'], 'Threshold above 12 must clamp to 12 (raised from 8 in 6.3.2 to match the 13-signal palette).' );
     }
 
     // ------------------------------------------------------------------

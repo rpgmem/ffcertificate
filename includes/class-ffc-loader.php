@@ -212,6 +212,7 @@ class Loader {
 			AdminUserColumns::init();
 			AdminUserCapabilities::init();
 			\FreeFormCertificate\Admin\AdminMenuVisibility::init();
+			\FreeFormCertificate\Admin\DeviceThresholdUpgradeNotice::init();
 			FormListColumns::init();
 			AdminUserCustomFields::init();
 			$reregistration_admin = new ReregistrationAdmin();

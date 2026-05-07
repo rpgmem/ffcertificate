@@ -118,9 +118,9 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 			</td>
 		</tr>
 		<tr>
-			<th><?php esc_html_e( 'Match threshold (N of 9)', 'ffcertificate' ); ?></th>
-			<td><input type="number" name="device_match_threshold" value="<?php echo esc_attr( $ffcertificate_s['device']['match_threshold'] ); ?>" min="3" max="8">
-				<p class="description"><?php esc_html_e( 'How many non-cookie signals must match to consider it the same device. Lower = more aggressive (more false positives). Higher = harder to bypass but easier to evade.', 'ffcertificate' ); ?></p>
+			<th><?php esc_html_e( 'Match threshold (N of 13)', 'ffcertificate' ); ?></th>
+			<td><input type="number" name="device_match_threshold" value="<?php echo esc_attr( $ffcertificate_s['device']['match_threshold'] ); ?>" min="3" max="12">
+				<p class="description"><?php esc_html_e( 'How many non-cookie signals must match to consider it the same device. Lower = more aggressive (more false positives). Higher = harder to bypass but easier to evade. The default is 7 of 13.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
 		<tr>
@@ -128,16 +128,20 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 			<td>
 				<?php
 				$ffcertificate_signals_options = array(
-					'cookie'      => __( 'Persistent cookie (UUID in localStorage)', 'ffcertificate' ),
-					'ua'          => __( 'User Agent (browser+OS)', 'ffcertificate' ),
-					'screen'      => __( 'Screen size + DPR', 'ffcertificate' ),
-					'tz'          => __( 'Timezone', 'ffcertificate' ),
-					'concurrency' => __( 'CPU concurrency', 'ffcertificate' ),
-					'memory'      => __( 'Device memory', 'ffcertificate' ),
-					'canvas'      => __( 'Canvas hash (GPU/font rendering)', 'ffcertificate' ),
-					'audio'       => __( 'AudioContext hash', 'ffcertificate' ),
-					'webgl'       => __( 'WebGL renderer/vendor', 'ffcertificate' ),
-					'fonts'       => __( 'Installed fonts probe', 'ffcertificate' ),
+					'cookie'       => __( 'Persistent cookie (UUID in localStorage)', 'ffcertificate' ),
+					'ua'           => __( 'User Agent (browser+OS)', 'ffcertificate' ),
+					'screen'       => __( 'Screen size + DPR', 'ffcertificate' ),
+					'tz'           => __( 'Timezone', 'ffcertificate' ),
+					'concurrency'  => __( 'CPU concurrency', 'ffcertificate' ),
+					'memory'       => __( 'Device memory', 'ffcertificate' ),
+					'canvas'       => __( 'Canvas hash (GPU/font rendering)', 'ffcertificate' ),
+					'audio'        => __( 'AudioContext hash', 'ffcertificate' ),
+					'webgl'        => __( 'WebGL renderer/vendor', 'ffcertificate' ),
+					'fonts'        => __( 'Installed fonts probe', 'ffcertificate' ),
+					'plugins'      => __( 'Browser plugins list', 'ffcertificate' ),
+					'permissions'  => __( 'Permissions API state (notifications, camera, etc.)', 'ffcertificate' ),
+					'mediaqueries' => __( 'Media queries (color scheme, reduced motion, …)', 'ffcertificate' ),
+					'math'         => __( 'Math precision probes (CPU/SO-specific IEEE-754 quirks)', 'ffcertificate' ),
 				);
 				foreach ( $ffcertificate_signals_options as $ffcertificate_sig_key => $ffcertificate_sig_label ) :
 					$ffcertificate_sig_checked = in_array( $ffcertificate_sig_key, (array) $ffcertificate_s['device']['signals_enabled'], true );

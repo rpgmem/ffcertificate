@@ -89,8 +89,12 @@ class RateLimiter {
 			'device'    => array(
 				'enabled'                   => false,
 				'max_per_form'              => 1,
-				'match_threshold'           => 5,
-				'signals_enabled'           => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts' ),
+				// 6.3.2: bumped from 5 to 7 to keep the same ~55% match-ratio
+				// against the new 13-signal palette (was 5/9 ≈ 55%, now 7/13 ≈ 54%).
+				// Existing installs keep their saved value; this default only
+				// applies to fresh installs that have never persisted the array.
+				'match_threshold'           => 7,
+				'signals_enabled'           => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
 				'bypass_logged_in_managers' => true,
 				'bypass_whitelist_signals'  => array(),
 				'message'                   => __( 'Multiple submissions detected from this device. Please contact the organizer.', 'ffcertificate' ),
@@ -434,7 +438,7 @@ class RateLimiter {
 		$msg_meta = get_post_meta( $form_id, '_ffc_device_limit_message', true );
 
 		$max = ( '' !== $max_meta ) ? max( 1, (int) $max_meta ) : (int) $d['max_per_form'];
-		$thr = ( '' !== $thr_meta ) ? max( 3, min( 8, (int) $thr_meta ) ) : (int) $d['match_threshold'];
+		$thr = ( '' !== $thr_meta ) ? max( 3, min( 12, (int) $thr_meta ) ) : (int) $d['match_threshold'];
 		$msg = ( is_string( $msg_meta ) && '' !== $msg_meta ) ? $msg_meta : (string) $d['message'];
 
 		return array(
@@ -488,7 +492,7 @@ class RateLimiter {
 
 		$effective = self::get_device_effective_settings( $form_id );
 
-		$signal_keys = array( 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts' );
+		$signal_keys = array( 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' );
 		$sum_parts   = array();
 		$values      = array();
 		foreach ( $signal_keys as $k ) {
@@ -557,7 +561,7 @@ class RateLimiter {
 			'form_id'       => $form_id,
 		);
 		$has_any = false;
-		foreach ( array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts' ) as $k ) {
+		foreach ( array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ) as $k ) {
 			if ( ! empty( $signals[ $k ] ) && in_array( $k, $enabled, true ) ) {
 				$row[ 'sig_' . $k ] = substr( (string) $signals[ $k ], 0, 64 );
 				$has_any            = true;
