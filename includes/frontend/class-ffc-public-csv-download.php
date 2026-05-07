@@ -53,6 +53,15 @@ class PublicCsvDownload {
 	const FLASH_TRANSIENT_TTL = 60; // Seconds.
 
 	/**
+	 * 6.3.3: schema flag for the audit-log payload. Bumped when the
+	 * structure of {@see META_DOWNLOAD_LOG} entries changes incompatibly.
+	 */
+	const DOWNLOAD_LOG_FORMAT = '1.3.0';
+	const OPTION_LOG_FORMAT   = 'ffc_csv_public_download_log_format';
+	const EXPORT_LOG_ACTION   = 'ffc_export_csv_public_download_log';
+	const EXPORT_LOG_NONCE    = 'ffc_export_csv_public_download_log';
+
+	/**
 	 * Register shortcode + admin-post + AJAX handlers.
 	 */
 	public function register_hooks(): void {
@@ -78,6 +87,9 @@ class PublicCsvDownload {
 		add_action( 'wp_ajax_nopriv_ffc_public_csv_batch', array( $exporter, 'ajax_batch' ) );
 		add_action( 'wp_ajax_ffc_public_csv_download', array( $exporter, 'ajax_download' ) );
 		add_action( 'wp_ajax_nopriv_ffc_public_csv_download', array( $exporter, 'ajax_download' ) );
+
+		// 6.3.3: admin-only audit log export. Logged-in only, no nopriv.
+		add_action( 'admin_post_' . self::EXPORT_LOG_ACTION, array( $this, 'handle_export_log_request' ) );
 	}
 
 	// ──────────────────────────────────────────────────────────────.
@@ -191,9 +203,11 @@ class PublicCsvDownload {
 						<p class="description">
 							<?php
 							if ( 'audit' === $cpf_mode ) {
-								esc_html_e( 'Your CPF is logged for audit purposes but does not gate the download.', 'ffcertificate' );
+								esc_html_e( 'Your CPF is recorded in this form\'s audit log (encrypted at rest) but does not gate the download.', 'ffcertificate' );
+							} elseif ( 'optional' === $cpf_mode ) {
+								esc_html_e( 'Optional. If the form requires a CPF, enter it here. If filled, it will be recorded (encrypted at rest) in the form\'s audit log even when the form does not require it.', 'ffcertificate' );
 							} else {
-								esc_html_e( 'Enter the CPF authorized to download this CSV.', 'ffcertificate' );
+								esc_html_e( 'Enter the CPF authorized to download this CSV. The CPF is encrypted at rest in the form\'s audit log.', 'ffcertificate' );
 							}
 							?>
 						</p>
@@ -509,6 +523,17 @@ class PublicCsvDownload {
 			$mode = 'none';
 		}
 		if ( 'none' === $mode ) {
+			// 6.3.3: even when CPF is not required for this form, if the user
+			// volunteered a syntactically valid one, audit it. Useful when the
+			// shortcode renders the field for safety (no prefill in URL) and a
+			// well-meaning user fills it anyway. Junk input is silently dropped
+			// — we don't want garbage rows competing for DOWNLOAD_LOG_MAX slots.
+			$voluntary_digits = preg_replace( '/\D/', '', $cpf_input );
+			$voluntary_digits = is_string( $voluntary_digits ) ? $voluntary_digits : '';
+			if ( '' !== $voluntary_digits
+				&& \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $voluntary_digits ) ) {
+				$this->record_download_log_entry( $form_id, 'none', $voluntary_digits, 'voluntary' );
+			}
 			return null;
 		}
 
@@ -593,30 +618,202 @@ class PublicCsvDownload {
 	 * Append an entry to the per-form download audit log.
 	 *
 	 * Stores the latest DOWNLOAD_LOG_MAX rows in a single post meta. CPF
-	 * is hashed (SHA-256 of the digits-only string) so the log is safe
-	 * to display in the admin without exposing raw documents.
+	 * is encrypted at-rest via the plugin's Encryption helper (same pipeline
+	 * that protects ffc_submissions.cpf_encrypted) so the form owner can
+	 * later decrypt and audit who downloaded the CSV. When Encryption is not
+	 * configured on the site, the CPF field falls back to '' and the export
+	 * shows a placeholder — admins can configure encryption to retroactively
+	 * make new entries auditable.
+	 *
+	 * Schema (6.3.3): { ts, ip, mode, cpf_encrypted, result }. Pre-6.3.3
+	 * entries (which used cpf_hash) are wiped on the first plugins_loaded
+	 * after upgrade by maybe_wipe_legacy_logs() — see that method for the
+	 * justification (install base reality + clean break).
 	 *
 	 * @param int    $form_id Form ID.
 	 * @param string $mode    CPF gate mode that was active.
 	 * @param string $digits  Digits-only CPF (may be '' for fail_missing).
 	 * @param string $result  Outcome tag: success | fail_missing |
 	 *                        fail_format | fail_match | fail_unknown_mode |
-	 *                        audit_pass.
+	 *                        audit_pass | voluntary.
 	 */
 	private function record_download_log_entry( int $form_id, string $mode, string $digits, string $result ): void {
+		$cpf_encrypted = '';
+		if ( '' !== $digits
+			&& class_exists( '\FreeFormCertificate\Core\Encryption' )
+			&& \FreeFormCertificate\Core\Encryption::is_configured() ) {
+			$encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $digits );
+			if ( is_string( $encrypted ) ) {
+				$cpf_encrypted = $encrypted;
+			}
+		}
+
 		$existing   = get_post_meta( $form_id, self::META_DOWNLOAD_LOG, true );
 		$existing   = is_array( $existing ) ? $existing : array();
 		$existing[] = array(
-			'ts'       => time(),
-			'ip'       => \FreeFormCertificate\Core\Utils::get_user_ip(),
-			'mode'     => $mode,
-			'cpf_hash' => '' !== $digits ? hash( 'sha256', $digits ) : '',
-			'result'   => $result,
+			'ts'            => time(),
+			'ip'            => \FreeFormCertificate\Core\Utils::get_user_ip(),
+			'mode'          => $mode,
+			'cpf_encrypted' => $cpf_encrypted,
+			'result'        => $result,
 		);
 		if ( count( $existing ) > self::DOWNLOAD_LOG_MAX ) {
 			$existing = array_slice( $existing, -self::DOWNLOAD_LOG_MAX );
 		}
 		update_post_meta( $form_id, self::META_DOWNLOAD_LOG, $existing );
+	}
+
+	/**
+	 * One-shot wipe of pre-6.3.3 audit-log entries.
+	 *
+	 * Pre-6.3.3 entries used a write-only `cpf_hash` field (sha256 of the
+	 * digits) which was never read by any code path — it was kept "just in
+	 * case" we ever needed CPF lookups in the log. The 6.3.3 schema replaces
+	 * that with a reversible `cpf_encrypted` field consumed by the new
+	 * audit-CSV exporter. Mixing the two formats would force the exporter
+	 * to render entire columns of "[legacy: hashed only]" placeholders for
+	 * stale 6.3.0–6.3.2 entries that no human can ever recover. Since
+	 * 6.3.0 → 6.3.2 all shipped within the same 24h window and the install
+	 * base for those releases is effectively zero, the cleanest path is to
+	 * delete the legacy log meta on first plugins_loaded after the upgrade
+	 * and let new entries accumulate fresh.
+	 *
+	 * Idempotent: gated on the {@see OPTION_LOG_FORMAT} option flag. Runs
+	 * exactly once per install no matter how many requests fire it.
+	 */
+	public static function maybe_wipe_legacy_logs(): void {
+		if ( self::DOWNLOAD_LOG_FORMAT === (string) get_option( self::OPTION_LOG_FORMAT, '' ) ) {
+			return;
+		}
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		delete_metadata( 'post', 0, self::META_DOWNLOAD_LOG, '', true );
+		update_option( self::OPTION_LOG_FORMAT, self::DOWNLOAD_LOG_FORMAT, true );
+	}
+
+	/**
+	 * Admin-post handler for the audit-log CSV export. Streams
+	 * `_ffc_csv_public_download_log` for a single form as a CSV download
+	 * with CPFs decrypted on the fly via {@see Encryption::decrypt}.
+	 *
+	 * Auth: nonce + user must satisfy {@see Utils::current_user_can_admin_or}
+	 * with `ffc_manage_settings` AND have `edit_post` on the target form.
+	 *
+	 * @return void Streams CSV and exits; never returns on success.
+	 */
+	public function handle_export_log_request(): void {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce validated below.
+		$form_id = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0;
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+
+		if ( ! wp_verify_nonce( $nonce, self::EXPORT_LOG_NONCE . '_' . $form_id ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ), 403 );
+		}
+		if ( $form_id <= 0 || get_post_type( $form_id ) !== 'ffc_form' ) {
+			wp_die( esc_html__( 'Form not found.', 'ffcertificate' ), 404 );
+		}
+		if ( ! current_user_can( 'edit_post', $form_id ) ) {
+			wp_die( esc_html__( 'You do not have permission to export this log.', 'ffcertificate' ), 403 );
+		}
+		$can_audit = class_exists( '\FreeFormCertificate\Core\Utils' )
+			? \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' )
+			: current_user_can( 'manage_options' );
+		if ( ! $can_audit ) {
+			wp_die( esc_html__( 'You do not have permission to export this log.', 'ffcertificate' ), 403 );
+		}
+
+		$log = get_post_meta( $form_id, self::META_DOWNLOAD_LOG, true );
+		$log = is_array( $log ) ? $log : array();
+
+		$encryption_ok = class_exists( '\FreeFormCertificate\Core\Encryption' )
+			&& \FreeFormCertificate\Core\Encryption::is_configured();
+
+		$filename = 'ffc-csv-download-log-' . $form_id . '-' . gmdate( 'Y-m-d-His' ) . '.csv';
+
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		$fh = fopen( 'php://output', 'w' );
+		if ( false === $fh ) {
+			wp_die( esc_html__( 'Could not open output stream for CSV export.', 'ffcertificate' ), 500 );
+		}
+
+		// UTF-8 BOM for Excel-friendliness, same convention as PublicCsvExporter.
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
+		fwrite( $fh, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
+		if ( ! $encryption_ok ) {
+			// One-line preamble so the admin knows why CPFs come out empty.
+			fputcsv( $fh, array( '# Encryption is not configured on this site; CPF column will be empty for new entries. See plugin docs.' ) );
+		}
+		fputcsv( $fh, array( 'timestamp_utc', 'ip', 'mode', 'cpf', 'result' ) );
+
+		foreach ( $log as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+			$ts  = isset( $entry['ts'] ) ? gmdate( 'Y-m-d H:i:s', (int) $entry['ts'] ) : '';
+			$ip  = isset( $entry['ip'] ) ? (string) $entry['ip'] : '';
+			$mod = isset( $entry['mode'] ) ? (string) $entry['mode'] : '';
+			$res = isset( $entry['result'] ) ? (string) $entry['result'] : '';
+			$cpf = self::decrypt_log_entry_cpf( $entry );
+			fputcsv( $fh, array( $ts, $ip, $mod, $cpf, $res ) );
+		}
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		fclose( $fh );
+		exit;
+	}
+
+	/**
+	 * Decrypt a single log entry's CPF for display in the export.
+	 *
+	 * @param array<string, mixed> $entry Log entry row.
+	 * @return string Formatted CPF, '' when blank, or a marker for failures.
+	 */
+	private static function decrypt_log_entry_cpf( array $entry ): string {
+		$cipher = isset( $entry['cpf_encrypted'] ) ? (string) $entry['cpf_encrypted'] : '';
+		if ( '' === $cipher ) {
+			return '';
+		}
+		if ( ! class_exists( '\FreeFormCertificate\Core\Encryption' )
+			|| ! \FreeFormCertificate\Core\Encryption::is_configured() ) {
+			return '[encryption disabled]';
+		}
+		$plain = \FreeFormCertificate\Core\Encryption::decrypt( $cipher );
+		if ( ! is_string( $plain ) || '' === $plain ) {
+			return '[decrypt failed]';
+		}
+		if ( class_exists( '\FreeFormCertificate\Core\DocumentFormatter' ) ) {
+			return \FreeFormCertificate\Core\DocumentFormatter::format_cpf( $plain );
+		}
+		return $plain;
+	}
+
+	/**
+	 * Public read-only count + URL builder for the metabox button.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return array{count: int, url: string|null}
+	 */
+	public static function get_audit_log_summary( int $form_id ): array {
+		$log   = get_post_meta( $form_id, self::META_DOWNLOAD_LOG, true );
+		$count = is_array( $log ) ? count( $log ) : 0;
+		$url   = null;
+		if ( $count > 0 ) {
+			$url = add_query_arg(
+				array(
+					'action'   => self::EXPORT_LOG_ACTION,
+					'form_id'  => $form_id,
+					'_wpnonce' => wp_create_nonce( self::EXPORT_LOG_NONCE . '_' . $form_id ),
+				),
+				admin_url( 'admin-post.php' )
+			);
+		}
+		return array(
+			'count' => $count,
+			'url'   => $url,
+		);
 	}
 
 	// ──────────────────────────────────────────────────────────────.

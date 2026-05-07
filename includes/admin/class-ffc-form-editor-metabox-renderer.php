@@ -1027,6 +1027,69 @@ class FormEditorMetaboxRenderer {
 					</p>
 				</td>
 			</tr>
+
+			<?php
+			$ffc_audit_summary = \FreeFormCertificate\Frontend\PublicCsvDownload::get_audit_log_summary( $post->ID );
+			?>
+			<tr>
+				<th scope="row">
+					<?php esc_html_e( 'Download audit log', 'ffcertificate' ); ?>
+				</th>
+				<td>
+					<p>
+						<?php
+						echo esc_html(
+							sprintf(
+								/* translators: %d: number of audit log entries */
+								_n(
+									'%d attempt logged on this form.',
+									'%d attempts logged on this form.',
+									$ffc_audit_summary['count'],
+									'ffcertificate'
+								),
+								$ffc_audit_summary['count']
+							)
+						);
+						?>
+						<?php if ( $ffc_audit_summary['count'] >= \FreeFormCertificate\Frontend\PublicCsvDownload::DOWNLOAD_LOG_MAX ) : ?>
+							<span class="description">
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: %d: maximum entries kept in the log */
+										__( 'Limit of %d entries reached — older entries roll off.', 'ffcertificate' ),
+										\FreeFormCertificate\Frontend\PublicCsvDownload::DOWNLOAD_LOG_MAX
+									)
+								);
+								?>
+							</span>
+						<?php endif; ?>
+					</p>
+					<?php if ( null !== $ffc_audit_summary['url'] ) : ?>
+						<p>
+							<a href="<?php echo esc_url( $ffc_audit_summary['url'] ); ?>"
+								class="button"
+								download>
+								<?php esc_html_e( 'Download audit log (CSV)', 'ffcertificate' ); ?>
+							</a>
+						</p>
+						<p class="description">
+							<?php
+							if ( class_exists( '\FreeFormCertificate\Core\Encryption' )
+								&& \FreeFormCertificate\Core\Encryption::is_configured() ) {
+								esc_html_e( 'CPFs are stored encrypted at-rest and decrypted on the fly when you download the CSV. Each entry includes timestamp, IP, gate mode, CPF, and outcome.', 'ffcertificate' );
+							} else {
+								esc_html_e( 'Encryption is not configured on this site. The CPF column will be empty for entries written while encryption is off.', 'ffcertificate' );
+							}
+							?>
+						</p>
+					<?php else : ?>
+						<p class="description">
+							<?php esc_html_e( 'No download attempts have been logged yet.', 'ffcertificate' ); ?>
+						</p>
+					<?php endif; ?>
+				</td>
+			</tr>
 		</table>
 		<?php
 	}
