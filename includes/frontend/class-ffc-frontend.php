@@ -140,6 +140,21 @@ class Frontend {
 			// Pass geofence configurations to frontend.
 			$this->localize_geofence_config();
 
+			// Device fingerprint signals collector (only when globally enabled).
+			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
+				$rl_settings = \FreeFormCertificate\Security\RateLimiter::get_settings();
+				if ( ! empty( $rl_settings['device']['enabled'] ) ) {
+					wp_enqueue_script( 'ffc-device-signals', FFC_PLUGIN_URL . "assets/js/ffc-device-signals{$s}.js", array(), FFC_VERSION, true );
+					wp_localize_script(
+						'ffc-device-signals',
+						'ffc_device_config',
+						array(
+							'signals' => array_values( (array) ( $rl_settings['device']['signals_enabled'] ?? array() ) ),
+						)
+					);
+				}
+			}
+
 			wp_localize_script(
 				'ffc-frontend-js',
 				'ffc_ajax',
