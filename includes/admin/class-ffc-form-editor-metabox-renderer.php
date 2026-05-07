@@ -986,6 +986,153 @@ class FormEditorMetaboxRenderer {
 					<?php endif; ?>
 				</td>
 			</tr>
+
+			<?php
+			$cpf_mode      = (string) get_post_meta( $post->ID, '_ffc_csv_public_cpf_mode', true );
+			$cpf_whitelist = (string) get_post_meta( $post->ID, '_ffc_csv_public_cpf_whitelist', true );
+			if ( '' === $cpf_mode ) {
+				$cpf_mode = 'none';
+			}
+			?>
+			<tr>
+				<th scope="row">
+					<label for="ffc_csv_public_cpf_mode"><?php esc_html_e( 'Require CPF for download', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<select name="ffc_csv_public[cpf_mode]" id="ffc_csv_public_cpf_mode">
+						<option value="none" <?php selected( $cpf_mode, 'none' ); ?>><?php esc_html_e( 'No — only Form ID + Hash', 'ffcertificate' ); ?></option>
+						<option value="audit" <?php selected( $cpf_mode, 'audit' ); ?>><?php esc_html_e( 'Audit — ask but never block', 'ffcertificate' ); ?></option>
+						<option value="participants" <?php selected( $cpf_mode, 'participants' ); ?>><?php esc_html_e( 'Participants — CPF must match a submission', 'ffcertificate' ); ?></option>
+						<option value="owner" <?php selected( $cpf_mode, 'owner' ); ?>><?php esc_html_e( 'Owner — CPF must match the form author', 'ffcertificate' ); ?></option>
+						<option value="whitelist" <?php selected( $cpf_mode, 'whitelist' ); ?>><?php esc_html_e( 'Whitelist — CPF must be in the list below', 'ffcertificate' ); ?></option>
+					</select>
+					<p class="description">
+						<?php esc_html_e( 'When set to anything other than "No", every download attempt (with success/failure flag and hashed CPF) is recorded in an audit log on this form for the past 100 attempts.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
+
+			<tr>
+				<th scope="row">
+					<label for="ffc_csv_public_cpf_whitelist"><?php esc_html_e( 'CPF whitelist', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<textarea name="ffc_csv_public[cpf_whitelist]"
+						id="ffc_csv_public_cpf_whitelist"
+						rows="4"
+						class="large-text code"
+						placeholder="000.000.000-00&#10;111.111.111-11"><?php echo esc_textarea( $cpf_whitelist ); ?></textarea>
+					<p class="description">
+						<?php esc_html_e( 'One CPF per line. Only used when the mode above is set to "Whitelist". Formatting is ignored — only digits matter.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
+		</table>
+		<?php
+	}
+
+	/**
+	 * Render Device Fingerprint Limit metabox.
+	 *
+	 * Per-form override layer for the global Rate Limit → Device Fingerprint
+	 * settings. Empty fields fall through to the global defaults; the
+	 * "Enable for this form" checkbox controls whether the limit applies
+	 * to this form at all.
+	 *
+	 * @param WP_Post $post Form post.
+	 */
+	public function render_box_device_limit( WP_Post $post ): void {
+		$enabled       = (string) get_post_meta( $post->ID, '_ffc_device_limit_enabled', true );
+		$max           = (string) get_post_meta( $post->ID, '_ffc_device_limit_max', true );
+		$threshold     = (string) get_post_meta( $post->ID, '_ffc_device_match_threshold', true );
+		$message       = (string) get_post_meta( $post->ID, '_ffc_device_limit_message', true );
+		$global_active = false;
+		if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
+			$rl_settings   = \FreeFormCertificate\Security\RateLimiter::get_settings();
+			$global_active = ! empty( $rl_settings['device']['enabled'] );
+		}
+		// Nonce is emitted by render_box_layout(), which always renders before this metabox.
+		?>
+		<p class="description">
+			<?php esc_html_e( 'Limit how many times the same physical device can submit this form. Combines a persistent cookie with a multi-signal browser fingerprint and the global "N of M" matching rule.', 'ffcertificate' ); ?>
+		</p>
+		<?php if ( ! $global_active ) : ?>
+			<p class="description" style="color:#a00;">
+				<strong><?php esc_html_e( 'Note:', 'ffcertificate' ); ?></strong>
+				<?php
+				echo wp_kses(
+					sprintf(
+						/* translators: %s: link to global rate-limit settings */
+						__( 'The Device Fingerprint subsystem is disabled globally. Enable it in %s for this per-form override to take effect.', 'ffcertificate' ),
+						'<a href="' . esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=rate_limit' ) ) . '">' . esc_html__( 'Settings → Rate Limit → Device Fingerprint', 'ffcertificate' ) . '</a>'
+					),
+					array( 'a' => array( 'href' => array() ) )
+				);
+				?>
+			</p>
+		<?php endif; ?>
+
+		<table class="form-table">
+			<tr>
+				<th scope="row">
+					<label for="ffc_device_limit_enabled"><?php esc_html_e( 'Enable for this form', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<label>
+						<input type="checkbox"
+							name="ffc_device_limit[enabled]"
+							id="ffc_device_limit_enabled"
+							value="1"
+							<?php checked( $enabled, '1' ); ?>>
+						<?php esc_html_e( 'Apply the device-fingerprint limit to this form.', 'ffcertificate' ); ?>
+					</label>
+				</td>
+			</tr>
+
+			<tr>
+				<th scope="row">
+					<label for="ffc_device_limit_max"><?php esc_html_e( 'Max submissions per device', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<input type="number"
+						name="ffc_device_limit[max]"
+						id="ffc_device_limit_max"
+						min="1"
+						max="100"
+						value="<?php echo esc_attr( $max ); ?>"
+						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>">
+					<p class="description"><?php esc_html_e( 'Leave empty to inherit the global default.', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+
+			<tr>
+				<th scope="row">
+					<label for="ffc_device_limit_threshold"><?php esc_html_e( 'Match threshold (3-8)', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<input type="number"
+						name="ffc_device_limit[threshold]"
+						id="ffc_device_limit_threshold"
+						min="3"
+						max="8"
+						value="<?php echo esc_attr( $threshold ); ?>"
+						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>">
+					<p class="description"><?php esc_html_e( 'Lower = more aggressive. Leave empty to inherit the global default.', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+
+			<tr>
+				<th scope="row">
+					<label for="ffc_device_limit_message"><?php esc_html_e( 'Block message', 'ffcertificate' ); ?></label>
+				</th>
+				<td>
+					<textarea name="ffc_device_limit[message]"
+						id="ffc_device_limit_message"
+						rows="2"
+						class="large-text"
+						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>"><?php echo esc_textarea( $message ); ?></textarea>
+				</td>
+			</tr>
 		</table>
 		<?php
 	}

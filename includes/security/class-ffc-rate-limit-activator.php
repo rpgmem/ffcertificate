@@ -35,8 +35,9 @@ class RateLimitActivator {
 		$charset_collate = $wpdb->get_charset_collate();
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		$table_limits = $wpdb->prefix . 'ffc_rate_limits';
-		$table_logs   = $wpdb->prefix . 'ffc_rate_limit_logs';
+		$table_limits  = $wpdb->prefix . 'ffc_rate_limits';
+		$table_logs    = $wpdb->prefix . 'ffc_rate_limit_logs';
+		$table_signals = $wpdb->prefix . 'ffc_device_signals';
 
 		// Check if tables exist (using prepared statements via trait).
 		if ( ! self::table_exists( $table_limits ) ) {
@@ -95,8 +96,52 @@ class RateLimitActivator {
 			dbDelta( $sql_logs );
 		}
 
-		update_option( 'ffc_rate_limit_db_version', '1.0.0' );
+		// TABLE 3: Device fingerprint signals (added in 6.3.0).
+		if ( ! self::table_exists( $table_signals ) ) {
+			$sql_signals = "CREATE TABLE $table_signals (
+                id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                submission_id bigint(20) unsigned DEFAULT NULL,
+                form_id bigint(20) unsigned NOT NULL,
+                sig_cookie char(64) DEFAULT NULL,
+                sig_ua char(64) DEFAULT NULL,
+                sig_screen char(64) DEFAULT NULL,
+                sig_tz char(64) DEFAULT NULL,
+                sig_concurrency char(64) DEFAULT NULL,
+                sig_memory char(64) DEFAULT NULL,
+                sig_canvas char(64) DEFAULT NULL,
+                sig_audio char(64) DEFAULT NULL,
+                sig_webgl char(64) DEFAULT NULL,
+                sig_fonts char(64) DEFAULT NULL,
+                created_at datetime DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY  (id),
+                KEY idx_form (form_id),
+                KEY idx_submission (submission_id),
+                KEY idx_cookie (sig_cookie),
+                KEY idx_canvas (sig_canvas),
+                KEY idx_audio (sig_audio),
+                KEY idx_webgl (sig_webgl),
+                KEY idx_created (created_at)
+            ) $charset_collate;";
+
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
+			dbDelta( $sql_signals );
+		}
+
+		update_option( 'ffc_rate_limit_db_version', '1.1.0' );
 		return true;
+	}
+
+	/**
+	 * Run create_tables() once when the stored db version is older than the
+	 * code's expected version. Hooked on plugin load to cover in-place
+	 * upgrades that don't fire register_activation_hook.
+	 */
+	public static function maybe_create_tables(): void {
+		$stored = get_option( 'ffc_rate_limit_db_version', '' );
+		if ( '1.1.0' === $stored ) {
+			return;
+		}
+		self::create_tables();
 	}
 
 	/**
@@ -108,7 +153,8 @@ class RateLimitActivator {
 		global $wpdb;
 
 		return self::table_exists( $wpdb->prefix . 'ffc_rate_limits' )
-			&& self::table_exists( $wpdb->prefix . 'ffc_rate_limit_logs' );
+			&& self::table_exists( $wpdb->prefix . 'ffc_rate_limit_logs' )
+			&& self::table_exists( $wpdb->prefix . 'ffc_device_signals' );
 	}
 
 	/**
@@ -119,13 +165,16 @@ class RateLimitActivator {
 	public static function drop_tables(): bool {
 		global $wpdb;
 
-		$table_limits = $wpdb->prefix . 'ffc_rate_limits';
-		$table_logs   = $wpdb->prefix . 'ffc_rate_limit_logs';
+		$table_limits  = $wpdb->prefix . 'ffc_rate_limits';
+		$table_logs    = $wpdb->prefix . 'ffc_rate_limit_logs';
+		$table_signals = $wpdb->prefix . 'ffc_device_signals';
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_limits ) );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_logs ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_signals ) );
 
 		delete_option( 'ffc_rate_limit_db_version' );
 		return true;

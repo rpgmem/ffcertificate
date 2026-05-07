@@ -203,13 +203,54 @@ class FormProcessor {
 
 		$val_cpf = isset( $submission_data['cpf_rf'] ) ? trim( $submission_data['cpf_rf'] ) : '';
 
+		// Step 8.5: Resolve device fingerprint signals + role bypass before
+		// the consolidated rate-limit check. The actual N-of-M test runs
+		// inside RateLimiter::check_all().
+		$device_signals = null;
+		$skip_device    = false;
+		if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
+			$rl_settings         = \FreeFormCertificate\Security\RateLimiter::get_settings();
+			$device_globally_on  = ! empty( $rl_settings['device']['enabled'] );
+			$device_form_enabled = '1' === (string) get_post_meta( $form_id, '_ffc_device_limit_enabled', true );
+
+			if ( $device_globally_on && $device_form_enabled ) {
+				if ( \FreeFormCertificate\Security\RateLimiter::should_bypass_for_manager() ) {
+					$skip_device = true;
+					\FreeFormCertificate\Security\RateLimiter::log_attempt(
+						'device',
+						(string) get_current_user_id(),
+						'allowed',
+						'manager_bypass',
+						$form_id
+					);
+				} else {
+                    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified earlier in handle_submission_ajax().
+					$raw_signals = isset( $_POST['ffc_device_signals'] ) ? wp_unslash( $_POST['ffc_device_signals'] ) : '';
+					if ( is_string( $raw_signals ) && '' !== $raw_signals ) {
+						$decoded = json_decode( $raw_signals, true );
+						if ( is_array( $decoded ) ) {
+							$clean_signals = array();
+							foreach ( array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts' ) as $sig_key ) {
+								if ( isset( $decoded[ $sig_key ] ) && is_string( $decoded[ $sig_key ] ) && preg_match( '/^[a-f0-9]{64}$/i', $decoded[ $sig_key ] ) ) {
+									$clean_signals[ $sig_key ] = strtolower( $decoded[ $sig_key ] );
+								}
+							}
+							if ( ! empty( $clean_signals ) ) {
+								$device_signals = $clean_signals;
+							}
+						}
+					}
+				}
+			}
+		}
+
 		// Rate Limit Check.
 		if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 			$ip    = \FreeFormCertificate\Core\Utils::get_user_ip();
 			$email = $user_email;
 			$cpf   = $val_cpf;
 
-			$rate_check = \FreeFormCertificate\Security\RateLimiter::check_all( $ip, $email, $cpf, $form_id );
+			$rate_check = \FreeFormCertificate\Security\RateLimiter::check_all( $ip, $email, $cpf, $form_id, $device_signals, $skip_device );
 
 			if ( ! $rate_check['allowed'] ) {
 				wp_send_json_error(
@@ -226,6 +267,29 @@ class FormProcessor {
 			\FreeFormCertificate\Security\RateLimiter::record_attempt( 'email', $email, $form_id );
 			if ( $cpf ) {
 				\FreeFormCertificate\Security\RateLimiter::record_attempt( 'cpf', preg_replace( '/[^0-9]/', '', $cpf ) ?? '', $form_id );
+			}
+
+			// Persist device fingerprint hashes once the submission row has
+			// been created (so submission_id FK is available). Skipped when
+			// the manager bypass fired or when no usable signals arrived.
+			if ( ! $skip_device && is_array( $device_signals ) ) {
+				$signals_to_record = $device_signals;
+				$target_form_id    = $form_id;
+				add_action(
+					'ffcertificate_after_submission_save',
+					static function ( $submission_id, $saved_form_id ) use ( $signals_to_record, $target_form_id ) {
+						if ( (int) $saved_form_id !== (int) $target_form_id ) {
+							return;
+						}
+						\FreeFormCertificate\Security\RateLimiter::record_device_signals(
+							is_numeric( $submission_id ) ? (int) $submission_id : null,
+							(int) $saved_form_id,
+							$signals_to_record
+						);
+					},
+					10,
+					2
+				);
 			}
 		}
 

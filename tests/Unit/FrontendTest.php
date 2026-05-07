@@ -37,6 +37,12 @@ class FrontendTest extends TestCase {
         Functions\when( 'wp_localize_script' )->justReturn( true );
         Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
         Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/admin-ajax.php' );
+        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
+            if ( is_array( $args ) ) {
+                return array_merge( $defaults, $args );
+            }
+            return $defaults;
+        } );
 
         // PublicCsvDownload::register_hooks() instantiates PublicCsvExporter,
         // whose SubmissionRepository constructor reads $wpdb->prefix.

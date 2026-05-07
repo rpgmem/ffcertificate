@@ -320,4 +320,237 @@ class RateLimiterTest extends TestCase {
 
         $this->assertFalse( $result['allowed'] );
     }
+
+    // ------------------------------------------------------------------
+    // device.* — should_bypass_for_manager()
+    // ------------------------------------------------------------------
+
+    public function test_should_bypass_for_manager_returns_false_when_disabled(): void {
+        $this->stub_default_settings(
+            array(
+                'device' => array(
+                    'enabled'                   => true,
+                    'bypass_logged_in_managers' => false,
+                ),
+            )
+        );
+        Functions\when( 'is_user_logged_in' )->justReturn( true );
+
+        $this->assertFalse( RateLimiter::should_bypass_for_manager() );
+    }
+
+    public function test_should_bypass_for_manager_returns_false_when_logged_out(): void {
+        $this->stub_default_settings(
+            array( 'device' => array( 'bypass_logged_in_managers' => true ) )
+        );
+        Functions\when( 'is_user_logged_in' )->justReturn( false );
+
+        $this->assertFalse( RateLimiter::should_bypass_for_manager() );
+    }
+
+    public function test_should_bypass_for_manager_returns_true_for_admin_fallback(): void {
+        $this->stub_default_settings(
+            array( 'device' => array( 'bypass_logged_in_managers' => true ) )
+        );
+        Functions\when( 'is_user_logged_in' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        // Without the Utils class loaded, should_bypass_for_manager() falls
+        // back to current_user_can('manage_options'). The class IS loaded
+        // in this test environment via composer autoload, so we route
+        // through Utils::current_user_can_admin_or().
+        $this->assertTrue( RateLimiter::should_bypass_for_manager() );
+    }
+
+    // ------------------------------------------------------------------
+    // device.* — get_device_effective_settings()
+    // ------------------------------------------------------------------
+
+    public function test_get_device_effective_settings_inherits_global_defaults(): void {
+        $this->stub_default_settings(
+            array(
+                'device' => array(
+                    'enabled'         => true,
+                    'max_per_form'    => 7,
+                    'match_threshold' => 6,
+                    'message'         => 'global-message',
+                ),
+            )
+        );
+        Functions\when( 'get_post_meta' )->justReturn( '' );
+
+        $eff = RateLimiter::get_device_effective_settings( 42 );
+
+        $this->assertSame( 7, $eff['max'] );
+        $this->assertSame( 6, $eff['threshold'] );
+        $this->assertSame( 'global-message', $eff['message'] );
+    }
+
+    public function test_get_device_effective_settings_form_meta_overrides_global(): void {
+        $this->stub_default_settings(
+            array(
+                'device' => array(
+                    'enabled'         => true,
+                    'max_per_form'    => 1,
+                    'match_threshold' => 5,
+                    'message'         => 'global',
+                ),
+            )
+        );
+        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+            $map = array(
+                '_ffc_device_limit_max'        => '3',
+                '_ffc_device_match_threshold'  => '7',
+                '_ffc_device_limit_message'    => 'form-override',
+            );
+            return $map[ $key ] ?? '';
+        } );
+
+        $eff = RateLimiter::get_device_effective_settings( 42 );
+
+        $this->assertSame( 3, $eff['max'] );
+        $this->assertSame( 7, $eff['threshold'] );
+        $this->assertSame( 'form-override', $eff['message'] );
+    }
+
+    public function test_get_device_effective_settings_clamps_threshold(): void {
+        $this->stub_default_settings(
+            array( 'device' => array( 'enabled' => true, 'match_threshold' => 5, 'max_per_form' => 1 ) )
+        );
+        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+            return '_ffc_device_match_threshold' === $key ? '99' : '';
+        } );
+
+        $eff = RateLimiter::get_device_effective_settings( 42 );
+
+        $this->assertSame( 8, $eff['threshold'], 'Threshold above 8 must clamp to 8' );
+    }
+
+    // ------------------------------------------------------------------
+    // device.* — check_device_limit()
+    // ------------------------------------------------------------------
+
+    public function test_check_device_limit_allows_when_globally_disabled(): void {
+        $this->stub_default_settings(
+            array( 'device' => array( 'enabled' => false ) )
+        );
+
+        $result = RateLimiter::check_device_limit( 42, array( 'cookie' => str_repeat( 'a', 64 ) ) );
+
+        $this->assertTrue( $result['allowed'] );
+    }
+
+    public function test_check_device_limit_allows_whitelisted_cookie(): void {
+        $cookie_hash = str_repeat( 'b', 64 );
+        $this->stub_default_settings(
+            array(
+                'device' => array(
+                    'enabled'                  => true,
+                    'signals_enabled'          => array( 'cookie' ),
+                    'bypass_whitelist_signals' => array( $cookie_hash ),
+                    'max_per_form'             => 1,
+                ),
+            )
+        );
+
+        $result = RateLimiter::check_device_limit( 42, array( 'cookie' => $cookie_hash ) );
+
+        $this->assertTrue( $result['allowed'] );
+    }
+
+    public function test_check_device_limit_blocks_when_count_reaches_max(): void {
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_var' )->andReturn( '2' );
+
+        $this->stub_default_settings(
+            array(
+                'device' => array(
+                    'enabled'         => true,
+                    'signals_enabled' => array( 'cookie', 'ua', 'screen' ),
+                    'max_per_form'    => 1,
+                    'match_threshold' => 3,
+                    'message'         => 'blocked!',
+                ),
+            )
+        );
+        Functions\when( 'get_post_meta' )->justReturn( '' );
+
+        $result = RateLimiter::check_device_limit(
+            42,
+            array(
+                'cookie' => str_repeat( 'c', 64 ),
+                'ua'     => str_repeat( 'd', 64 ),
+                'screen' => str_repeat( 'e', 64 ),
+            )
+        );
+
+        $this->assertFalse( $result['allowed'] );
+        $this->assertSame( 'device_limit', $result['reason'] );
+    }
+
+    // ------------------------------------------------------------------
+    // device.* — record_device_signals()
+    // ------------------------------------------------------------------
+
+    public function test_record_device_signals_no_op_when_disabled(): void {
+        global $wpdb;
+        $wpdb->shouldReceive( 'insert' )->never();
+
+        $this->stub_default_settings( array( 'device' => array( 'enabled' => false ) ) );
+
+        RateLimiter::record_device_signals( 7, 42, array( 'cookie' => str_repeat( 'f', 64 ) ) );
+
+        // Mockery verifies the insert expectation in tearDown.
+        $this->assertTrue( true );
+    }
+
+    public function test_record_device_signals_inserts_only_enabled_keys(): void {
+        global $wpdb;
+        $captured = null;
+        $wpdb->shouldReceive( 'insert' )->andReturnUsing( function ( $table, $row ) use ( &$captured ) {
+            $captured = $row;
+            return 1;
+        } );
+
+        // Override wp_parse_args with shallow merge so signals_enabled
+        // gets replaced wholesale instead of being array_replace_recursive'd
+        // index-by-index against the 10-element default.
+        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
+            return array_merge( $defaults, is_array( $args ) ? $args : array() );
+        } );
+        Functions\when( 'get_option' )->justReturn(
+            array(
+                'device' => array(
+                    'enabled'                   => true,
+                    'max_per_form'              => 1,
+                    'match_threshold'           => 5,
+                    'signals_enabled'           => array( 'cookie', 'ua' ),
+                    'bypass_logged_in_managers' => false,
+                    'bypass_whitelist_signals'  => array(),
+                    'message'                   => 'msg',
+                    'retention_days'            => 90,
+                    'log_blocks'                => true,
+                ),
+            )
+        );
+        Functions\when( '__' )->returnArg();
+        Functions\when( '_n' )->returnArg();
+
+        RateLimiter::record_device_signals(
+            7,
+            42,
+            array(
+                'cookie' => str_repeat( 'a', 64 ),
+                'ua'     => str_repeat( 'b', 64 ),
+                'canvas' => str_repeat( 'c', 64 ), // Should be filtered out (not enabled).
+            )
+        );
+
+        $this->assertNotNull( $captured );
+        $this->assertSame( 7, $captured['submission_id'] );
+        $this->assertSame( 42, $captured['form_id'] );
+        $this->assertSame( str_repeat( 'a', 64 ), $captured['sig_cookie'] );
+        $this->assertSame( str_repeat( 'b', 64 ), $captured['sig_ua'] );
+        $this->assertNull( $captured['sig_canvas'] );
+    }
 }

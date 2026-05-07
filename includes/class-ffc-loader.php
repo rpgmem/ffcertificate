@@ -169,6 +169,12 @@ class Loader {
 		// Ensure submissions table schema is current (runs add_columns on version change).
 		\FreeFormCertificate\Activator::maybe_add_columns();
 
+		// Ensure rate-limit tables (incl. ffc_device_signals added in 6.3.0) exist
+		// even after in-place plugin updates that bypass register_activation_hook.
+		if ( class_exists( '\FreeFormCertificate\Security\RateLimitActivator' ) ) {
+			\FreeFormCertificate\Security\RateLimitActivator::maybe_create_tables();
+		}
+
 		// In-place plugin updates (drop new files via `wp-admin/plugins.php`'s
 		// "Update" button) DO NOT fire `register_activation_hook`. Re-register
 		// the canonical FFC role + the 6.2.0 module-manager / recruitment-tier

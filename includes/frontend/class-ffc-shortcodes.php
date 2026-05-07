@@ -281,6 +281,20 @@ class Shortcodes {
 					<p class="ffc-consent-description">
 						<?php esc_html_e( 'Your data will be stored securely and encrypted. You can request deletion at any time.', 'ffcertificate' ); ?>
 					</p>
+
+					<?php
+					$ffc_device_disclosure = false;
+					if ( '1' === (string) get_post_meta( $form_id, '_ffc_device_limit_enabled', true )
+						&& class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
+						$ffc_rl_settings       = \FreeFormCertificate\Security\RateLimiter::get_settings();
+						$ffc_device_disclosure = ! empty( $ffc_rl_settings['device']['enabled'] );
+					}
+					if ( $ffc_device_disclosure ) :
+						?>
+						<p class="ffc-consent-description ffc-device-disclosure">
+							<?php esc_html_e( 'To prevent duplicate submissions, this form collects an anonymized device fingerprint (browser + screen + GPU characteristics) hashed locally before being sent. The fingerprint is used solely to enforce the per-device submission limit.', 'ffcertificate' ); ?>
+						</p>
+					<?php endif; ?>
 				</div>
 
 				<button type="submit" class="ffc-submit-btn"><?php esc_html_e( 'Submit', 'ffcertificate' ); ?></button>

@@ -7,10 +7,42 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [6.3.0] (2026-05-07)
+
+**Two opt-in anti-fraud features for public form workflows.** Adds a CPF gate on the public CSV download (five modes, audit log) and a per-device submission limit on the certificate form (multi-signal browser fingerprint with an "N of M" matching rule, optional bypass for admins / Certificate Managers).
+
+### Added
+
+- **Per-device submission limit (Feature 2 / #113).** New rate-limit subsystem combining a persistent `ffc_device_id` cookie (UUID v4 in `localStorage`) with up to 9 independently-hashed browser fingerprint signals (UA, screen, timezone, hardware concurrency, device memory, canvas, audio context, WebGL renderer, fonts). The server applies an "N of M" matching rule: two submissions are treated as the same device when their cookie hash matches **OR** when at least the configured threshold of non-cookie signals match. New `wp_ffc_device_signals` table (10 SHA-256 char(64) columns + FK to `ffc_submissions`) stores the hashes; `RateLimitActivator` bumps the rate-limit DB version to `1.1.0` and auto-creates the table on plugin load via `maybe_create_tables()`.
+  - **Global settings** (Settings → Rate Limit → Device Fingerprint) — new `device.*` block in `ffc_rate_limit_settings` with 9 keys: `enabled` (master switch), `max_per_form`, `match_threshold` (3-8), `signals_enabled` (10 checkboxes), `bypass_logged_in_managers`, `bypass_whitelist_signals` (cookie hash list), `message`, `retention_days`, `log_blocks`. The daily cleanup cron purges old `ffc_device_signals` rows respecting `retention_days`.
+  - **Per-form override** — new "8. Device Fingerprint Limit" metabox on `ffc_form` with optional `_ffc_device_limit_max`, `_ffc_device_match_threshold`, `_ffc_device_limit_message`. Empty fields inherit the global default.
+  - **Manager bypass** — when `device.bypass_logged_in_managers` is on, users with `manage_options` **OR** the `ffc_manage_settings` capability skip the device check via `Utils::current_user_can_admin_or()`. Bypassed submissions are tagged in the rate-limit log with `reason='manager_bypass'`.
+  - **`RateLimiter::check_device_limit()`** — single `CASE WHEN` SQL that sums per-signal matches and compares against the threshold. Plugged into `RateLimiter::check_all()` after the global whitelist and before the global limit, so it sits inside the same single-point-of-truth pipeline.
+  - **`assets/js/ffc-device-signals.js`** — vanilla JS module that collects only the enabled signals (passed via `wp_localize_script`), SHA-256 hashes each one with SubtleCrypto, and writes a JSON `ffc_device_signals` hidden input on every `form.ffc-submission-form`. Best-effort: missing APIs / RFP-randomised values are silently skipped. Frontend enqueue is gated on `device.enabled`.
+  - **LGPD disclosure** — the form's existing consent block automatically gains a one-line note about the device fingerprint when the limit is active for that form.
+
+- **CPF gate on public CSV download (Feature 1 / #112).** New per-form `_ffc_csv_public_cpf_mode` meta with five modes:
+  - `none` — legacy behaviour, no CPF asked.
+  - `audit` — ask, format-validate, log, never block.
+  - `participants` — CPF must hash-match an existing submission of the form (uses the same `Encryption::hash()` rule as `RateLimiter::get_submission_count`).
+  - `owner` — CPF must match the form author's `ffc_user_cpf` user meta.
+  - `whitelist` — CPF must appear in `_ffc_csv_public_cpf_whitelist` (textarea, normalised to unique 11-digit strings).
+  - **Audit log** — `_ffc_csv_public_download_log` post meta retains the latest 100 attempts as `{ts, ip, mode, sha256(cpf_digits), result}` where result is one of `success | fail_missing | fail_format | fail_match | fail_unknown_mode | audit_pass`.
+  - Validation runs at all three entry points: synchronous fallback (`PublicCsvDownload::handle_request`), info AJAX (`PublicCsvDownload::ajax_info`), and the export start AJAX (`PublicCsvExporter::ajax_start`).
+
 ### Changed
 
 - **76 legacy `Utils::debug_log()` calls migrated to the per-area `Debug::log_*()` system.** Previously every call fired whenever `WP_DEBUG=true` with no admin toggle — including frontend shortcode renders that polluted production logs. Each call now lands in one of 14 area-specific helpers gated by a checkbox in **Settings → Advanced → Debug**. Five new areas added (`debug_frontend`, `debug_admin`, `debug_self_scheduling`, `debug_audience`, `debug_qrcode`), each defaulting OFF. `Utils::debug_log()` is now a `@deprecated` thin wrapper that delegates to `Debug::AREA_FORM_PROCESSOR` for any third-party callers; new code should use `Debug::log_*()` directly.
 - **FFC role labels now translate correctly on `wp-admin/users.php`.** WordPress stores role labels verbatim in `wp_user_roles` at `add_role()` time, and its built-in `translate_user_role()` resolves them against the **default** WP textdomain — so plugin-provided role names never localized even when the .po file was loaded. New `wp_roles_init` hook (`CapabilityManager::relabel_ffc_roles`) re-applies `__( …, 'ffcertificate' )` to every FFC role's `name` + `role_names` entry on every page load, so `users.php` always shows the operator's locale.
+
+### Test coverage
+
+- `RateLimiterTest`: 11 new tests covering `should_bypass_for_manager`, `get_device_effective_settings` (inherit, override, clamp), `check_device_limit` (disabled-noop, whitelist, count-blocks), `record_device_signals` (no-op when disabled, filters disabled signals to NULL).
+- `PublicCsvDownloadTest`: 7 new tests covering each CPF mode + audit-log capping at `DOWNLOAD_LOG_MAX`.
+- `RateLimitActivatorTest`: existing 8 tests updated for the third table + version bump.
+- 3790 unit tests pass total (was 3772).
 
 ---
 

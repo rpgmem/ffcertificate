@@ -107,6 +107,77 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 </div>
 
 <div class="card">
+	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Device Fingerprint', 'ffcertificate' ); ?></h2>
+	<p class="description"><?php esc_html_e( 'Limit submissions from the same physical device by combining a persistent cookie with multiple browser signals. The "N of M" rule treats two visits as the same device when at least the configured number of non-cookie signals match.', 'ffcertificate' ); ?></p>
+	<p><label><input type="checkbox" name="device_enabled" <?php checked( $ffcertificate_s['device']['enabled'] ); ?>> <?php esc_html_e( 'Enable device fingerprint limit', 'ffcertificate' ); ?></label></p>
+	<table class="form-table" role="presentation"><tbody>
+		<tr>
+			<th><?php esc_html_e( 'Max submissions per device/form', 'ffcertificate' ); ?></th>
+			<td><input type="number" name="device_max_per_form" value="<?php echo esc_attr( $ffcertificate_s['device']['max_per_form'] ); ?>" min="1" max="100">
+				<p class="description"><?php esc_html_e( 'Per-form override available in the form metabox.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Match threshold (N of 9)', 'ffcertificate' ); ?></th>
+			<td><input type="number" name="device_match_threshold" value="<?php echo esc_attr( $ffcertificate_s['device']['match_threshold'] ); ?>" min="3" max="8">
+				<p class="description"><?php esc_html_e( 'How many non-cookie signals must match to consider it the same device. Lower = more aggressive (more false positives). Higher = harder to bypass but easier to evade.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Signals collected', 'ffcertificate' ); ?></th>
+			<td>
+				<?php
+				$ffcertificate_signals_options = array(
+					'cookie'      => __( 'Persistent cookie (UUID in localStorage)', 'ffcertificate' ),
+					'ua'          => __( 'User Agent (browser+OS)', 'ffcertificate' ),
+					'screen'      => __( 'Screen size + DPR', 'ffcertificate' ),
+					'tz'          => __( 'Timezone', 'ffcertificate' ),
+					'concurrency' => __( 'CPU concurrency', 'ffcertificate' ),
+					'memory'      => __( 'Device memory', 'ffcertificate' ),
+					'canvas'      => __( 'Canvas hash (GPU/font rendering)', 'ffcertificate' ),
+					'audio'       => __( 'AudioContext hash', 'ffcertificate' ),
+					'webgl'       => __( 'WebGL renderer/vendor', 'ffcertificate' ),
+					'fonts'       => __( 'Installed fonts probe', 'ffcertificate' ),
+				);
+				foreach ( $ffcertificate_signals_options as $ffcertificate_sig_key => $ffcertificate_sig_label ) :
+					$ffcertificate_sig_checked = in_array( $ffcertificate_sig_key, (array) $ffcertificate_s['device']['signals_enabled'], true );
+					?>
+					<p><label><input type="checkbox" name="device_signals_enabled[]" value="<?php echo esc_attr( $ffcertificate_sig_key ); ?>" <?php checked( $ffcertificate_sig_checked ); ?>> <?php echo esc_html( $ffcertificate_sig_label ); ?></label></p>
+				<?php endforeach; ?>
+				<p class="description"><?php esc_html_e( 'Disable canvas/audio/fonts for a privacy-minimal profile (lower entropy, easier to bypass).', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Bypass for managers', 'ffcertificate' ); ?></th>
+			<td>
+				<label><input type="checkbox" name="device_bypass_logged_in_managers" <?php checked( $ffcertificate_s['device']['bypass_logged_in_managers'] ); ?>> <?php esc_html_e( 'Skip device limit when the submitter is logged in as administrator or has the ffc_manage_settings capability', 'ffcertificate' ); ?></label>
+				<p class="description"><?php esc_html_e( 'Useful for staff registering certificates for legitimate participants from a single device. Bypassed submissions are tagged in the rate-limit log with reason "manager_bypass".', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Bypass cookie hashes', 'ffcertificate' ); ?></th>
+			<td><textarea name="device_bypass_whitelist_signals" rows="4" class="large-text code"><?php echo esc_textarea( implode( "\n", (array) $ffcertificate_s['device']['bypass_whitelist_signals'] ) ); ?></textarea>
+				<p class="description"><?php esc_html_e( 'One SHA-256 hex digest per line. Submissions whose ffc_device_id cookie hash matches one of these are exempt from the device limit.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Block message', 'ffcertificate' ); ?></th>
+			<td><textarea name="device_message" rows="3" class="large-text"><?php echo esc_textarea( $ffcertificate_s['device']['message'] ); ?></textarea></td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Retention', 'ffcertificate' ); ?></th>
+			<td><input type="number" name="device_retention_days" value="<?php echo esc_attr( $ffcertificate_s['device']['retention_days'] ); ?>" min="1" max="3650"> <?php esc_html_e( 'days', 'ffcertificate' ); ?>
+				<p class="description"><?php esc_html_e( 'Older signal rows are purged by the daily cleanup cron.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><?php esc_html_e( 'Log blocks', 'ffcertificate' ); ?></th>
+			<td><label><input type="checkbox" name="device_log_blocks" <?php checked( $ffcertificate_s['device']['log_blocks'] ); ?>> <?php esc_html_e( 'Record blocked device-fingerprint attempts in the rate-limit log', 'ffcertificate' ); ?></label></td>
+		</tr>
+	</tbody></table>
+</div>
+
+<div class="card">
 	<h2 class="ffc-icon-checkmark"><?php esc_html_e( 'Whitelist', 'ffcertificate' ); ?></h2>
 	<table class="form-table" role="presentation"><tbody>
 		<tr><th><?php esc_html_e( 'IPs', 'ffcertificate' ); ?></th><td><textarea name="whitelist_ips" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['whitelist']['ips'] ) ); ?></textarea><p class="description"><?php esc_html_e( 'One per line', 'ffcertificate' ); ?></p></td></tr>
