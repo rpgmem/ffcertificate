@@ -21,6 +21,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - **`[ffc_csv_download]` CPF field in `audit` mode now correctly identifies the field as required.** The server-side validator (`PublicCsvDownload::validate_cpf_requirement`) has always rejected an empty or malformed CPF in `audit` mode (returns `'CPF is required to download this CSV.'` and `'Invalid CPF.'` respectively) — only the matching against an allow-list was skipped. The shortcode markup contradicted that on three points: missing the `*` required marker, missing `required aria-required="true"` on the `<input>`, and the description text claiming "does not gate the download". Updated to: `*` shown, `required` set, and the description rewritten to *"Your CPF is required for traceability and is recorded in this form's audit log (encrypted at rest). It is not validated against any allow-list."*
+- **Form editor metabox copy aligned with actual behaviour.** The CPF mode dropdown's `audit` option used to read *"Audit — ask but never block"*, which contradicted the server (it does block on missing or malformed CPF; only the list-match step is skipped). Renamed to *"Audit — require CPF, but do not match against any list"*. While there, updated the help text below the dropdown to mention that the CPF is **encrypted at rest** (not hashed — the schema changed in 6.3.3) and to point at the "Download audit log (CSV)" button just below.
 
 No PHP/server change. JS/test coverage unchanged.
 

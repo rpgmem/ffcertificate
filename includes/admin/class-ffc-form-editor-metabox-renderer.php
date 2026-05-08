@@ -1001,13 +1001,13 @@ class FormEditorMetaboxRenderer {
 				<td>
 					<select name="ffc_csv_public[cpf_mode]" id="ffc_csv_public_cpf_mode">
 						<option value="none" <?php selected( $cpf_mode, 'none' ); ?>><?php esc_html_e( 'No — only Form ID + Hash', 'ffcertificate' ); ?></option>
-						<option value="audit" <?php selected( $cpf_mode, 'audit' ); ?>><?php esc_html_e( 'Audit — ask but never block', 'ffcertificate' ); ?></option>
+						<option value="audit" <?php selected( $cpf_mode, 'audit' ); ?>><?php esc_html_e( 'Audit — require CPF, but do not match against any list', 'ffcertificate' ); ?></option>
 						<option value="participants" <?php selected( $cpf_mode, 'participants' ); ?>><?php esc_html_e( 'Participants — CPF must match a submission', 'ffcertificate' ); ?></option>
 						<option value="owner" <?php selected( $cpf_mode, 'owner' ); ?>><?php esc_html_e( 'Owner — CPF must match the form author', 'ffcertificate' ); ?></option>
 						<option value="whitelist" <?php selected( $cpf_mode, 'whitelist' ); ?>><?php esc_html_e( 'Whitelist — CPF must be in the list below', 'ffcertificate' ); ?></option>
 					</select>
 					<p class="description">
-						<?php esc_html_e( 'When set to anything other than "No", every download attempt (with success/failure flag and hashed CPF) is recorded in an audit log on this form for the past 100 attempts.', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'When set to anything other than "No", every download attempt (with success/failure flag and the CPF encrypted at rest) is recorded in an audit log on this form, capped at the most recent 100 attempts. Use the "Download audit log (CSV)" button below to export.', 'ffcertificate' ); ?>
 					</p>
 				</td>
 			</tr>
