@@ -719,4 +719,65 @@ class PublicCsvDownloadTest extends TestCase {
         $this->assertContains( 'wp_ajax_ffc_public_csv_download', $registered );
         $this->assertContains( 'wp_ajax_nopriv_ffc_public_csv_download', $registered );
     }
+
+    // ==================================================================
+    //  6.3.5 — build_datetime_info() timezone anchoring (regression)
+    // ==================================================================
+
+    /**
+     * Configured 2026-05-12 in America/Sao_Paulo (UTC-3) was being
+     * displayed as 11/05/2026 because strtotime('2026-05-12') reads as
+     * UTC midnight, then wp_date() converts to BRT (-3h) and renders
+     * the previous day. The fix anchors via DateTimeImmutable($date, $tz).
+     */
+    public function test_build_datetime_info_keeps_configured_date_when_tz_is_brt(): void {
+        Functions\when( 'wp_date' )->alias( function ( $format, $timestamp, $tz = null ) {
+            $dt = new \DateTimeImmutable( '@' . $timestamp );
+            if ( $tz instanceof \DateTimeZone ) {
+                $dt = $dt->setTimezone( $tz );
+            }
+            return $dt->format( $format );
+        } );
+        Functions\when( 'get_option' )->alias( function ( $key, $default = '' ) {
+            if ( 'date_format' === $key ) {
+                return 'd/m/Y';
+            }
+            return $default;
+        } );
+
+        $tz = new \DateTimeZone( 'America/Sao_Paulo' );
+
+        $ref = new \ReflectionMethod( PublicCsvDownload::class, 'build_datetime_info' );
+        $ref->setAccessible( true );
+
+        $config = array(
+            'date_start' => '2026-05-12',
+            'date_end'   => '2026-05-12',
+            'time_start' => '17:00:00',
+            'time_end'   => '18:00:00',
+            'time_mode'  => 'daily',
+        );
+
+        $result = $ref->invoke( $this->handler, $config, $tz );
+
+        $this->assertSame( '12/05/2026', $result['date_start'], 'date_start must not drift to 11/05 when site TZ is BRT' );
+        $this->assertSame( '12/05/2026', $result['date_end'], 'date_end must not drift either' );
+        $this->assertSame( '2026-05-12', $result['date_start_raw'] );
+        $this->assertSame( '2026-05-12', $result['date_end_raw'] );
+    }
+
+    public function test_build_datetime_info_handles_blank_dates(): void {
+        $tz = new \DateTimeZone( 'UTC' );
+
+        $ref = new \ReflectionMethod( PublicCsvDownload::class, 'build_datetime_info' );
+        $ref->setAccessible( true );
+
+        $result = $ref->invoke( $this->handler, array(), $tz );
+
+        $this->assertFalse( $result['has_dates'] );
+        $this->assertNull( $result['date_start'] );
+        $this->assertNull( $result['date_end'] );
+        $this->assertNull( $result['date_start_raw'] );
+        $this->assertNull( $result['date_end_raw'] );
+    }
 }

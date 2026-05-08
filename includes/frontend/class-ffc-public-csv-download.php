@@ -945,11 +945,32 @@ class PublicCsvDownload {
 
 		$date_format = get_option( 'date_format' );
 
+		// Anchor each date in the site timezone before formatting. Naive
+		// strtotime() reads "Y-m-d" as PHP-process-local (typically UTC)
+		// midnight, which then drifts to the previous day after wp_date()
+		// converts to a westward TZ like America/Sao_Paulo — manifesting
+		// as "Data de início: 11/05/2026" for a configured 2026-05-12. The
+		// footer status message uses Geofence::get_form_*_timestamp() and
+		// is unaffected; this brings the body in line with the same TZ
+		// anchoring approach.
+		$to_local_ts = static function ( string $date, \DateTimeZone $tz ): ?int {
+			if ( '' === $date ) {
+				return null;
+			}
+			try {
+				return ( new \DateTimeImmutable( $date, $tz ) )->getTimestamp();
+			} catch ( \Exception $e ) {
+				return null;
+			}
+		};
+		$start_ts    = $to_local_ts( $date_start, $tz );
+		$end_ts      = $to_local_ts( $date_end, $tz );
+
 		return array(
 			'has_dates'      => $has_dates,
-			'date_start'     => '' !== $date_start ? wp_date( $date_format, (int) strtotime( $date_start ), $tz ) : null,
+			'date_start'     => null !== $start_ts ? wp_date( $date_format, $start_ts, $tz ) : null,
 			'date_start_raw' => '' !== $date_start ? $date_start : null,
-			'date_end'       => '' !== $date_end ? wp_date( $date_format, (int) strtotime( $date_end ), $tz ) : null,
+			'date_end'       => null !== $end_ts ? wp_date( $date_format, $end_ts, $tz ) : null,
 			'date_end_raw'   => '' !== $date_end ? $date_end : null,
 			'has_times'      => $has_times,
 			'time_start'     => '' !== $time_start ? $time_start : null,

@@ -9,6 +9,16 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.3.5] (2026-05-08)
+
+**Bugfix release.** Fixes a one-day drift in the dates rendered on the `[ffc_csv_download]` info screen for any site whose WordPress timezone is west of UTC (e.g. `America/Sao_Paulo` / BRT).
+
+### Fixed
+
+- **`[ffc_csv_download]` info screen showed dates one day earlier** than what the form admin configured (e.g. a form set to start on `12/05/2026` rendered `11/05/2026` in the body, even though the footer status message correctly said "começará em 12/05/2026"). Root cause: `PublicCsvDownload::build_datetime_info()` ran `strtotime( $date_start )` on a bare `Y-m-d` string, which PHP parses as **UTC** midnight. `wp_date()` then formatted that timestamp in the site timezone (e.g. BRT, UTC-3), shifting the day backwards by 3 hours and crossing the midnight boundary. Fixed by anchoring each date with `new DateTimeImmutable( $date, $tz )` before formatting — same approach `Geofence::get_form_start_timestamp()` (which fed the correct footer message) was already using. Two regression tests added to `PublicCsvDownloadTest`: `_keeps_configured_date_when_tz_is_brt` and `_handles_blank_dates`. 3806 unit tests pass (was 3804).
+
+---
+
 ## [6.3.4] (2026-05-07)
 
 **Patch release — UX polish.** Two consistency fixes for the CPF input rendered inside the public CSV download shortcode (`[ffc_csv_download]`): same elegant LGPD consent-box visual that `[ffc_form]` uses, and the same input mask + on-blur validation. Both are pure reuse of helpers that already shipped — no new code paths server-side.
