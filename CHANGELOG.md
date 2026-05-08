@@ -9,6 +9,25 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.3.6] (2026-05-08)
+
+**Bugfix release.** Fixes a silent download failure where the certificate PDF would never appear after the spinner finished — no console error, no alert, just the success message overlaying nothing. Originally reported on iOS Safari; further reports confirmed the same bug on Samsung Internet (Android) and Android WebView (in-app browsers like Facebook / Instagram / WhatsApp / TikTok).
+
+### Fixed
+
+- **Certificate downloads no longer fail silently on iOS Safari, Samsung Internet, and Android WebView.** The previous flow called `window.open( blobUrl, '_blank' )` deep inside the `html2canvas` Promise resolver — by then the user-gesture token from the original click was long gone (1-3 s after html2canvas completed) and these browsers' popup blockers dropped the call without a peep, returning `null`. The "PDF aberto em nova aba" overlay still fired, so the user got a green check with nothing to show for it.
+  - **Reproducible 100%** on stock iOS Safari (default popup-blocker), Samsung Internet on Galaxy devices, and any in-app WebView. Chrome on iOS happens to work because its in-app shell is more permissive about late `window.open()` calls. Mac Safari was caught in the same code path unnecessarily — `pdf.save()` works on Safari 14+ on macOS.
+  - **Pre-open the destination tab synchronously inside the click handler.** New `pdfWindow = window.open( 'about:blank', '_blank' )` runs at the top of `generateAndDownloadPDF()` when the UA matches the at-risk set (iOS Safari, Samsung Internet, Android WebView), while the user-gesture token is still alive. The tab paints a "Gerando seu certificado…" placeholder. After html2canvas resolves, we swap `pdfWindow.location.href` to the blob URL — those browsers allow that on a window the page already owns.
+  - **Mac Safari, Chrome (desktop or Android), Firefox and Edge** continue to use `pdf.save()` as before — they honour `<a download>` correctly. The legacy "any browser whose UA contains `safari` and not `chrome` goes through the popup path" detection is gone.
+  - **Manual-tap fallback** when the placeholder tab couldn't be opened (popup blocker dialled up) or was closed by the user before the PDF was ready: the in-page overlay now renders an explicit "Tap to open the PDF" link styled as a button. Tapping is a fresh user gesture, so the browser opens the blob URL without further intervention; from there the user uses the system share icon to save / print.
+  - Error paths (html2canvas throw, blank-canvas guard, `toDataURL` SecurityError) now close the placeholder tab so the user isn't left with a stuck "Gerando…" tab.
+  - **Browser-aware success message**: iOS gets the existing "PDF opened in a new tab. Tap the share icon…" copy; Samsung Internet / WebView users get a Samsung-friendly "PDF opened in a new tab. Use the menu to save or share." copy.
+  - Five new i18n strings: `pdfGeneratingTab`, `pdfGeneratingTabHint`, `pdfManualOpenIOS`, `pdfManualHintIOS`, `pdfOpenedAndroidTab`. JS keeps English fallbacks if the strings aren't localised.
+
+No PHP/server change. No schema change. JS-only patch in `assets/js/ffc-pdf-generator.js`. Existing 3806-test PHPUnit suite stays green.
+
+---
+
 ## [6.3.5] (2026-05-08)
 
 **Bugfix release.** Fixes a one-day drift in the dates rendered on the `[ffc_csv_download]` info screen for any site whose WordPress timezone is west of UTC (e.g. `America/Sao_Paulo` / BRT).
