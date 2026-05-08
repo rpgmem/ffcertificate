@@ -182,25 +182,27 @@ class PublicCsvDownload {
 				</div>
 
 				<?php if ( 'none' !== $cpf_mode ) : ?>
-					<div class="ffc-form-field">
-						<label for="ffc-pcd-cpf">
-							<?php esc_html_e( 'CPF', 'ffcertificate' ); ?>
-							<?php if ( 'audit' !== $cpf_mode && 'optional' !== $cpf_mode ) : ?>
-								<span class="required">*</span>
-							<?php endif; ?>
-						</label>
-						<input
-							type="text"
-							id="ffc-pcd-cpf"
-							name="cpf"
-							class="ffc-input"
-							inputmode="numeric"
-							autocomplete="off"
-							placeholder="000.000.000-00"
-							<?php if ( 'audit' !== $cpf_mode && 'optional' !== $cpf_mode ) : ?>
-								required aria-required="true"
-							<?php endif; ?>>
-						<p class="description">
+					<div class="ffc-lgpd-consent ffc-pcd-cpf-consent">
+						<div class="ffc-form-field">
+							<label for="ffc-pcd-cpf" class="ffc-consent-text">
+								<?php esc_html_e( 'CPF', 'ffcertificate' ); ?>
+								<?php if ( 'audit' !== $cpf_mode && 'optional' !== $cpf_mode ) : ?>
+									<span class="required">*</span>
+								<?php endif; ?>
+							</label>
+							<input
+								type="text"
+								id="ffc-pcd-cpf"
+								name="cpf"
+								class="ffc-input"
+								inputmode="numeric"
+								autocomplete="off"
+								placeholder="000.000.000-00"
+								<?php if ( 'audit' !== $cpf_mode && 'optional' !== $cpf_mode ) : ?>
+									required aria-required="true"
+								<?php endif; ?>>
+						</div>
+						<p class="ffc-consent-description">
 							<?php
 							if ( 'audit' === $cpf_mode ) {
 								esc_html_e( 'Your CPF is recorded in this form\'s audit log (encrypted at rest) but does not gate the download.', 'ffcertificate' );

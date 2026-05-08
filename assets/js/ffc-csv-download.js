@@ -37,6 +37,15 @@
 		}
 		$btn = $form.find('.ffc-submit-btn');
 		$form.on('submit', onSubmitInfo);
+
+		// 6.3.4: apply the canonical CPF/RF mask helper to the optional CPF
+		// field rendered when _ffc_csv_public_cpf_mode is set on the target
+		// form. Reuses the same Masks API the certificate form uses, so the
+		// formatting (XXX.XXX.XXX-XX) and the on-blur valid/invalid styling
+		// match exactly. Auto-discovers inputs by name="cpf" / id="ffc-pcd-cpf".
+		if (window.FFC && window.FFC.Frontend && window.FFC.Frontend.Masks) {
+			window.FFC.Frontend.Masks.applyCpfRf($container.find('input[name="cpf"]'));
+		}
 	}
 
 	// ── Step 1: Request form info ───────────────────────────────

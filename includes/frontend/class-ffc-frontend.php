@@ -227,7 +227,10 @@ class Frontend {
 			wp_enqueue_script(
 				'ffc-csv-download',
 				FFC_PLUGIN_URL . "assets/js/ffc-csv-download{$s}.js",
-				array( 'jquery' ),
+				// 'ffc-rate-limit' is the registered handle for ffc-frontend-helpers.js,
+				// which exposes window.FFC.Frontend.Masks.applyCpfRf() — used to mask the
+				// optional CPF input rendered when _ffc_csv_public_cpf_mode is set.
+				array( 'jquery', 'ffc-rate-limit' ),
 				FFC_VERSION,
 				true
 			);

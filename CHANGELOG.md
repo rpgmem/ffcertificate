@@ -9,6 +9,22 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.3.4] (2026-05-07)
+
+**Patch release — UX polish.** Two consistency fixes for the CPF input rendered inside the public CSV download shortcode (`[ffc_csv_download]`): same elegant LGPD consent-box visual that `[ffc_form]` uses, and the same input mask + on-blur validation. Both are pure reuse of helpers that already shipped — no new code paths server-side.
+
+### Changed
+
+- **`[ffc_csv_download]` CPF field** is now wrapped in a `<div class="ffc-lgpd-consent ffc-pcd-cpf-consent">` container (the same outer treatment used on the certificate form's consent block — bordered, primary accent, soft shadow, rounded corners). The audit disclosure text uses the existing `.ffc-consent-description` styling for the left-border accent, and the field label uses `.ffc-consent-text` typography. CSS reuse only — no new selectors added.
+
+### Fixed
+
+- **`[ffc_csv_download]` CPF field now applies the standard CPF mask** (`XXX.XXX.XXX-XX` formatting while typing + invalid/valid styling on blur). Previously the input was raw text. Fix is a 4-line wiring: the existing `assets/js/ffc-frontend-helpers.js` already exposes `window.FFC.Frontend.Masks.applyCpfRf()`, but it wasn't being enqueued on pages that render `[ffc_csv_download]`. Added it as a script dependency of `ffc-csv-download` and called the helper from the shortcode's init function.
+
+Both changes apply to all three CPF-mode variants the shortcode renders (audit / required / optional), so the experience is consistent regardless of how the form was prefilled or which `_ffc_csv_public_cpf_mode` the target form uses.
+
+---
+
 ## [6.3.3] (2026-05-07)
 
 **Patch release — auditable CSV downloads.** The per-form CSV download audit log (introduced in 6.3.0) now stores CPFs **encrypted at-rest** instead of one-way-hashed, and gains a one-click CSV export from the form editor for actual auditability. Reuses the same `Encryption` pipeline that already protects `wp_ffc_submissions`.
