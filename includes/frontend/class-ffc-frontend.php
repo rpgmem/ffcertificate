@@ -121,6 +121,29 @@ class Frontend {
 			// CSV download shortcode also renders a WP nonce + captcha, so it
 			// needs this refresh too.
 			wp_enqueue_script( 'ffc-dynamic-fragments' );
+
+			// 6.3.7: WebView (in-app browser) preventive warning. Detects
+			// FB/Insta/WhatsApp/TikTok/LinkedIn/Android-WebView at page
+			// load and offers an "Open in browser" CTA before the user
+			// invests time filling the form. Pure UX layer — the v6.3.6
+			// pre-open + manual-tap fallbacks still cover anyone who
+			// dismisses the banner and proceeds.
+			if ( $has_form || $has_csv_download ) {
+				wp_enqueue_script( 'ffc-webview-warning', FFC_PLUGIN_URL . "assets/js/ffc-webview-warning{$s}.js", array(), FFC_VERSION, true );
+				wp_localize_script(
+					'ffc-webview-warning',
+					'ffc_webview_warning',
+					array(
+						'strings' => array(
+							'title'           => __( 'Download may fail in this app', 'ffcertificate' ),
+							'body'            => __( 'You are viewing this page inside an app browser. To make sure the certificate downloads correctly, please open the page in your main browser (Chrome or Safari).', 'ffcertificate' ),
+							'openInBrowser'   => __( 'Open in browser', 'ffcertificate' ),
+							'continueAnyway'  => __( 'Continue anyway', 'ffcertificate' ),
+							'iosInstructions' => __( 'Tap the menu icon (•••) at the bottom of the app and choose "Open in Safari".', 'ffcertificate' ),
+						),
+					)
+				);
+			}
 		}
 
 		if ( $has_form || $has_verification ) {

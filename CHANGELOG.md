@@ -9,6 +9,49 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.3.7] (2026-05-08)
+
+**UX release.** Adds a preventive in-app browser warning banner to `[ffc_form]` and `[ffc_csv_download]`. Builds on the v6.3.6 popup-blocker fallbacks but tries to nudge users to open the page in a real browser **before** they invest time filling the form.
+
+### Added
+
+- **WebView warning banner** — when the page is loaded inside an Android WebView (host app shell uses `; wv)` UA marker) or an iOS in-app browser (Facebook, Instagram, Twitter/X, WhatsApp, LinkedIn, TikTok, Line — detected by the host app's UA marker), a friendly amber banner appears above the form: "Download may fail in this app. To make sure the certificate downloads correctly, please open the page in your main browser (Chrome or Safari)." Two CTAs:
+  - **"Open in browser"** — Android WebView gets handed an `intent://...#Intent;package=com.android.chrome;scheme=https;end` deep-link that, on most WebViews, hands control to Chrome. iOS in-app browsers can't be flipped to Safari programmatically (no public API), so they get an `alert()` with the manual menu instructions ("Tap the menu icon (•••) at the bottom of the app and choose 'Open in Safari'").
+  - **"Continue anyway"** — dismisses the banner and stores a `sessionStorage` flag so the user isn't re-nagged on subsequent page loads in the same session. The v6.3.6 fallback layers (pre-open tab + manual-tap CSV button) still cover anyone who proceeds.
+- New file: `assets/js/ffc-webview-warning.js` (~150 LOC, vanilla JS, no jQuery dep).
+- New CSS block at the end of `assets/css/ffc-frontend.css` (`.ffc-webview-warning*`, ~70 LOC), reusing the design tokens already in the stylesheet.
+- Five new i18n strings under the `ffc_webview_warning.strings` localized object: `title`, `body`, `openInBrowser`, `continueAnyway`, `iosInstructions`. JS keeps English fallbacks if a site isn't translated yet.
+
+### Why preventive matters even with v6.3.6
+
+The technical fix in v6.3.6 (pre-open tab + manual-tap fallback) catches almost all silent download failures, but Android WebView remains an outlier:
+- Many Android WebViews **don't have a built-in PDF viewer**, so opening the blob URL just shows raw bytes.
+- The share sheet inside a WebView often lacks "Save to Files" or "Save to Downloads".
+- `<a download>` is widely ignored.
+
+Asking the user to switch to Chrome/Safari **once**, before they fill the form, sidesteps all of those quirks for the rest of the session.
+
+### Detection scope
+
+The banner only fires for confirmed in-app browsers:
+
+| Platform | UA marker |
+|---|---|
+| Android WebView | `; wv)` or `; wv;` |
+| Facebook (iOS) | `FBAN`, `FBAV`, `FBIOS` |
+| Instagram (iOS) | `Instagram` |
+| Twitter/X (iOS) | `TwitterIOS/`, `Twitter for iPhone` |
+| WhatsApp (iOS) | `WhatsApp` |
+| LinkedIn (iOS) | `LinkedInApp` |
+| TikTok (iOS) | `BytedanceWebView`, `musical_ly` |
+| Line (iOS) | `Line/` |
+
+Real Safari (mobile + desktop), Chrome iOS (`CriOS`), Android Chrome, Samsung Internet, Firefox, Edge — none of these match. False-positive rate is essentially zero.
+
+No PHP/server change. Existing 3806-test PHPUnit suite stays green.
+
+---
+
 ## [6.3.6] (2026-05-08)
 
 **Bugfix release.** Fixes a silent download failure where the certificate PDF would never appear after the spinner finished — no console error, no alert, just the success message overlaying nothing. Originally reported on iOS Safari; further reports confirmed the same bug on Samsung Internet (Android) and Android WebView (in-app browsers like Facebook / Instagram / WhatsApp / TikTok).
