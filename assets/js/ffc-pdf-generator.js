@@ -112,6 +112,41 @@
             return;
         }
 
+        // 6.3.6 — iOS Safari only: open the destination tab BEFORE doing
+        // any async work, while the user-gesture token is still alive.
+        // Opening it later (after html2canvas's Promise resolves, ~1-3 s
+        // later) gets silently popup-blocked on iOS Safari, which is the
+        // #1 cause of "download fails with no error" reports. We later
+        // swap this window's location to the generated blob URL — Safari
+        // allows that on a window we already own. iPadOS reports
+        // "Macintosh" in the UA but exposes maxTouchPoints > 1, hence
+        // the second branch.
+        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+        var pdfWindow = null;
+        if (isIOS) {
+            pdfWindow = window.open('about:blank', '_blank');
+            if (pdfWindow) {
+                try {
+                    var generatingTitle = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfGeneratingTab)
+                        ? ffc_ajax.strings.pdfGeneratingTab
+                        : 'Generating your certificate…';
+                    var generatingHint = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfGeneratingTabHint)
+                        ? ffc_ajax.strings.pdfGeneratingTabHint
+                        : 'Please do not close this tab. The PDF will appear automatically in a few seconds.';
+                    pdfWindow.document.title = generatingTitle;
+                    pdfWindow.document.body.style.cssText = 'font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;padding:40px 20px;color:#333;';
+                    pdfWindow.document.body.innerHTML =
+                        '<h2 style="font-weight:600;margin:0 0 12px">' + generatingTitle + '</h2>' +
+                        '<p>' + generatingHint + '</p>';
+                } catch (e) {
+                    // Some browsers throw when writing into about:blank in odd
+                    // sandboxing scenarios. The tab still works as a target;
+                    // we just don't paint a preloader.
+                }
+            }
+        }
+
         const { jsPDF } = window.jspdf;
         showOverlay();
 
@@ -342,21 +377,42 @@
 
                             pdf.addImage(pdfImgData, 'PNG', 0, 0, pdfW, pdfH);
 
-                            // iOS Safari: pdf.save() uses blob: URLs which don't
-                            // trigger downloads on Safari. Open in a new tab instead
-                            // so the user can share/save from the Safari PDF viewer.
-                            var safariRegex = /^((?!chrome|android).)*safari/i;
-                            var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                                        (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-
-                            if (isIOS || safariRegex.test(navigator.userAgent)) {
+                            // 6.3.6 — iOS gets the placeholder window opened
+                            // synchronously at the top of this function (still
+                            // inside the user-gesture window). We just point
+                            // it at the blob URL here. If the popup was
+                            // blocked or closed, fall back to a manual-tap
+                            // link in the overlay (a fresh user click reopens
+                            // the gesture window).
+                            //
+                            // Mac Safari 14+, Chrome, Firefox and Edge all
+                            // honour <a download> via pdf.save() correctly,
+                            // so the legacy "open in new tab on any Safari"
+                            // detection (popup-prone on macOS) is gone.
+                            var blobUrlForFallback = null;
+                            if (isIOS) {
                                 var blobUrl = pdf.output('bloburl');
-                                window.open(blobUrl, '_blank');
+                                blobUrlForFallback = blobUrl;
+                                if (pdfWindow && !pdfWindow.closed) {
+                                    try {
+                                        pdfWindow.location.href = blobUrl;
+                                    } catch (navErr) {
+                                        // Some embedded WebViews refuse the swap.
+                                        // Treat as popup blocked.
+                                        pdfWindow = null;
+                                    }
+                                }
                             } else {
                                 pdf.save(filename || 'certificate.pdf');
                             }
 
                             $tempContainer.remove();
+
+                            var popupBlocked = isIOS && (! pdfWindow || pdfWindow.closed);
+                            if (popupBlocked) {
+                                showManualDownloadFallback(blobUrlForFallback, filename);
+                                return;
+                            }
 
                             // Show brief success feedback with platform-appropriate
                             // guidance, then auto-dismiss.
@@ -381,6 +437,7 @@
                             setTimeout(hideOverlay, 2000);
                         } catch (error) {
                             console.error('[FFC PDF] Error:', error);
+                            closePlaceholderTabIfAny();
                             var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.errorGeneratingPdf)
                                 ? ffc_ajax.strings.errorGeneratingPdf
                                 : 'Error generating PDF';
@@ -390,6 +447,7 @@
                         }
                     }).catch(function(error) {
                         console.error('[FFC PDF] html2canvas error:', error);
+                        closePlaceholderTabIfAny();
                         var errorMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.html2canvasFailed)
                             ? ffc_ajax.strings.html2canvasFailed
                             : 'Error: html2canvas failed';
@@ -399,6 +457,68 @@
                     });
                 }, 300);
             }, remainingTime);
+        }
+
+        /**
+         * Close the placeholder tab opened at the top of this function in
+         * any error path so we don't leave the user with a stuck
+         * "Generating…" tab. No-op when there's no placeholder (popup
+         * blocker fired on the original open call).
+         */
+        function closePlaceholderTabIfAny() {
+            if (pdfWindow && ! pdfWindow.closed) {
+                try { pdfWindow.close(); } catch (e) { /* swallow */ }
+            }
+        }
+
+        /**
+         * 6.3.6 — Render a manual-tap link in the in-page overlay when
+         * the iOS placeholder tab couldn't be used (popup blocked, closed
+         * by user, or refused the location swap). The user's tap on the
+         * link establishes a fresh user gesture so iOS Safari opens the
+         * blob URL without further intervention.
+         *
+         * @param {string} blobUrl  Blob URL produced by jsPDF.
+         * @param {string} fname    Suggested filename.
+         */
+        function showManualDownloadFallback(blobUrl, fname) {
+            var $overlay = $('#ffc-pdf-overlay');
+            if (! $overlay.length || ! blobUrl) {
+                return;
+            }
+            var ctaLabel = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfManualOpenIOS)
+                ? ffc_ajax.strings.pdfManualOpenIOS
+                : 'Tap to open the PDF';
+            var hint = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfManualHintIOS)
+                ? ffc_ajax.strings.pdfManualHintIOS
+                : 'Pop-ups are blocked in this browser. Tap the button below to open the PDF — then use the Safari share icon to save or print.';
+            $overlay.find('.ffc-spinner').hide();
+            $overlay.find('h3').text(ctaLabel);
+            var $cta = $('<a>')
+                .attr('href', blobUrl)
+                .attr('target', '_blank')
+                .attr('rel', 'noopener')
+                .attr('download', fname || 'certificate.pdf')
+                .addClass('ffc-pdf-fallback-btn')
+                .text(ctaLabel)
+                .css({
+                    'display': 'inline-block',
+                    'margin': '20px auto 8px',
+                    'padding': '14px 28px',
+                    'background': '#0073aa',
+                    'color': '#fff',
+                    'text-decoration': 'none',
+                    'border-radius': '6px',
+                    'font-weight': '600',
+                    'font-size': '16px'
+                });
+            // Tapping the fallback link IS a fresh user gesture — Safari
+            // opens the blob URL fine. Dismiss the overlay on that tap.
+            $cta.on('click', function () {
+                setTimeout(hideOverlay, 250);
+            });
+            $overlay.find('p').empty().text(hint);
+            $overlay.find('p').after($cta);
         }
     }
 
