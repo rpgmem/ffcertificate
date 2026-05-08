@@ -1425,3 +1425,109 @@ textarea.ffc-input,
         transition: none;
     }
 }
+
+/* ============================================
+   v6.3.7 - WebView (in-app browser) warning banner.
+   Renders above [ffc_form] / [ffc_csv_download] when the page is
+   loaded inside Facebook / Instagram / WhatsApp / Android WebView,
+   inviting the user to switch to Chrome/Safari for a reliable
+   download. Visual matches the existing .ffc-info-alert family.
+   ============================================ */
+
+.ffc-webview-warning {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 18px 20px;
+    margin: 0 0 24px 0;
+    background: #fff8e6;
+    border: 1px solid #f5c518;
+    border-left: 4px solid #f5a800;
+    border-radius: var(--ffc-radius-lg);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.ffc-webview-warning-icon {
+    font-size: 26px;
+    line-height: 1;
+    color: #b86b00;
+    flex-shrink: 0;
+}
+
+.ffc-webview-warning-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.ffc-webview-warning-content h3 {
+    margin: 0 0 6px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #3a2a00;
+    line-height: 1.3;
+}
+
+.ffc-webview-warning-content p {
+    margin: 0 0 14px 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #3a3a3a;
+}
+
+.ffc-webview-warning-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.ffc-webview-warning-open,
+.ffc-webview-warning-dismiss {
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: var(--ffc-radius-sm);
+    cursor: pointer;
+    transition: background var(--ffc-transition-base), border-color var(--ffc-transition-base);
+}
+
+.ffc-webview-warning-open {
+    background: var(--ffc-primary);
+    color: #fff;
+    border: 1px solid var(--ffc-primary);
+}
+
+.ffc-webview-warning-open:hover,
+.ffc-webview-warning-open:focus-visible {
+    background: var(--ffc-primary-hover, var(--ffc-link-hover, #005a8a));
+    outline: none;
+}
+
+.ffc-webview-warning-dismiss {
+    background: transparent;
+    color: #555;
+    border: 1px solid #bbb;
+}
+
+.ffc-webview-warning-dismiss:hover,
+.ffc-webview-warning-dismiss:focus-visible {
+    background: #f5f5f5;
+    border-color: #999;
+    outline: none;
+}
+
+@media (max-width: 600px) {
+    .ffc-webview-warning {
+        flex-direction: column;
+        gap: 8px;
+        padding: 16px;
+    }
+    .ffc-webview-warning-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .ffc-webview-warning-open,
+    .ffc-webview-warning-dismiss {
+        width: 100%;
+        text-align: center;
+    }
+}
