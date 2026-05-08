@@ -11,12 +11,16 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [6.3.8] (2026-05-08)
 
-**UX release.** Shrinks the device fingerprint LGPD disclosure on `[ffc_form]` from a 487-character paragraph to a one-liner with an expandable "Learn more" containing the technical details.
+**UX release — two form-copy fixes.** Shrinks the device fingerprint LGPD disclosure on `[ffc_form]` and corrects the CPF-field labelling in `[ffc_csv_download]`'s `audit` mode where the markup contradicted the server behaviour.
 
 ### Changed
 
 - **Device fingerprint disclosure** in the certificate form's consent box is now a native `<details>` / `<summary>` element. Default state shows a single short line ("We anonymously identify your device to prevent duplicate submissions. Learn more."); clicking expands a paragraph with the technical specifics (`thumbmarkjs`, MIT licence, locally processed signals, no third-party transmission). Two i18n strings instead of one. Preserves all LGPD-required information for auditors while cleaning up the form for typical users.
 - **CSS polish for the new `<details>` variant**: native disclosure markers hidden on Chrome/Firefox/Safari, focus ring matched to the primary colour token, "Learn more" rendered as an underlined cue that drops the underline once expanded. ~30 LOC added to the existing `.ffc-consent-description` selector chain — no new CSS files.
+
+### Fixed
+
+- **`[ffc_csv_download]` CPF field in `audit` mode now correctly identifies the field as required.** The server-side validator (`PublicCsvDownload::validate_cpf_requirement`) has always rejected an empty or malformed CPF in `audit` mode (returns `'CPF is required to download this CSV.'` and `'Invalid CPF.'` respectively) — only the matching against an allow-list was skipped. The shortcode markup contradicted that on three points: missing the `*` required marker, missing `required aria-required="true"` on the `<input>`, and the description text claiming "does not gate the download". Updated to: `*` shown, `required` set, and the description rewritten to *"Your CPF is required for traceability and is recorded in this form's audit log (encrypted at rest). It is not validated against any allow-list."*
 
 No PHP/server change. JS/test coverage unchanged.
 

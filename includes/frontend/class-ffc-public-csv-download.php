@@ -186,7 +186,7 @@ class PublicCsvDownload {
 						<div class="ffc-form-field">
 							<label for="ffc-pcd-cpf" class="ffc-consent-text">
 								<?php esc_html_e( 'CPF', 'ffcertificate' ); ?>
-								<?php if ( 'audit' !== $cpf_mode && 'optional' !== $cpf_mode ) : ?>
+								<?php if ( 'optional' !== $cpf_mode ) : ?>
 									<span class="required">*</span>
 								<?php endif; ?>
 							</label>
@@ -198,14 +198,16 @@ class PublicCsvDownload {
 								inputmode="numeric"
 								autocomplete="off"
 								placeholder="000.000.000-00"
-								<?php if ( 'audit' !== $cpf_mode && 'optional' !== $cpf_mode ) : ?>
+								<?php if ( 'optional' !== $cpf_mode ) : ?>
 									required aria-required="true"
 								<?php endif; ?>>
 						</div>
 						<p class="ffc-consent-description">
 							<?php
 							if ( 'audit' === $cpf_mode ) {
-								esc_html_e( 'Your CPF is recorded in this form\'s audit log (encrypted at rest) but does not gate the download.', 'ffcertificate' );
+								// Audit mode: CPF IS required and the format is validated;
+								// what doesn't happen is matching against any allow-list.
+								esc_html_e( 'Your CPF is required for traceability and is recorded in this form\'s audit log (encrypted at rest). It is not validated against any allow-list.', 'ffcertificate' );
 							} elseif ( 'optional' === $cpf_mode ) {
 								esc_html_e( 'Optional. If the form requires a CPF, enter it here. If filled, it will be recorded (encrypted at rest) in the form\'s audit log even when the form does not require it.', 'ffcertificate' );
 							} else {
