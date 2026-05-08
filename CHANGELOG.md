@@ -9,6 +9,19 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.3.8] (2026-05-08)
+
+**UX release.** Shrinks the device fingerprint LGPD disclosure on `[ffc_form]` from a 487-character paragraph to a one-liner with an expandable "Learn more" containing the technical details.
+
+### Changed
+
+- **Device fingerprint disclosure** in the certificate form's consent box is now a native `<details>` / `<summary>` element. Default state shows a single short line ("We anonymously identify your device to prevent duplicate submissions. Learn more."); clicking expands a paragraph with the technical specifics (`thumbmarkjs`, MIT licence, locally processed signals, no third-party transmission). Two i18n strings instead of one. Preserves all LGPD-required information for auditors while cleaning up the form for typical users.
+- **CSS polish for the new `<details>` variant**: native disclosure markers hidden on Chrome/Firefox/Safari, focus ring matched to the primary colour token, "Learn more" rendered as an underlined cue that drops the underline once expanded. ~30 LOC added to the existing `.ffc-consent-description` selector chain — no new CSS files.
+
+No PHP/server change. JS/test coverage unchanged.
+
+---
+
 ## [6.3.7] (2026-05-08)
 
 **UX release.** Adds a preventive in-app browser warning banner to `[ffc_form]` and `[ffc_csv_download]`. Builds on the v6.3.6 popup-blocker fallbacks but tries to nudge users to open the page in a real browser **before** they invest time filling the form.
