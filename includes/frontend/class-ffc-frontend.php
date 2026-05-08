@@ -217,11 +217,12 @@ class Frontend {
 						'errorGeneratingPdf'    => __( 'Error generating PDF', 'ffcertificate' ),
 						'html2canvasFailed'     => __( 'Error: html2canvas failed', 'ffcertificate' ),
 
-						// 6.3.6 — iOS placeholder tab + manual fallback strings.
+						// 6.3.6 — placeholder tab + manual fallback strings (iOS Safari, Samsung Internet, Android WebView).
 						'pdfGeneratingTab'      => __( 'Generating your certificate…', 'ffcertificate' ),
 						'pdfGeneratingTabHint'  => __( 'Please do not close this tab. The PDF will appear automatically in a few seconds.', 'ffcertificate' ),
 						'pdfManualOpenIOS'      => __( 'Tap to open the PDF', 'ffcertificate' ),
-						'pdfManualHintIOS'      => __( 'Pop-ups are blocked in this browser. Tap the button below to open the PDF — then use the Safari share icon to save or print.', 'ffcertificate' ),
+						'pdfManualHintIOS'      => __( 'Pop-ups are blocked in this browser. Tap the button below to open the PDF — then use the share icon to save or print.', 'ffcertificate' ),
+						'pdfOpenedAndroidTab'   => __( 'PDF opened in a new tab. Use the menu to save or share.', 'ffcertificate' ),
 					),
 				)
 			);

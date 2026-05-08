@@ -112,19 +112,35 @@
             return;
         }
 
-        // 6.3.6 — iOS Safari only: open the destination tab BEFORE doing
-        // any async work, while the user-gesture token is still alive.
-        // Opening it later (after html2canvas's Promise resolves, ~1-3 s
-        // later) gets silently popup-blocked on iOS Safari, which is the
-        // #1 cause of "download fails with no error" reports. We later
-        // swap this window's location to the generated blob URL — Safari
-        // allows that on a window we already own. iPadOS reports
-        // "Macintosh" in the UA but exposes maxTouchPoints > 1, hence
-        // the second branch.
+        // 6.3.6 — pre-open the destination tab BEFORE doing any async work,
+        // while the user-gesture token is still alive. Opening it later
+        // (after html2canvas's Promise resolves, ~1-3 s later) gets silently
+        // popup-blocked on browsers with strict policies, which is the #1
+        // cause of "download fails with no error" reports. We later swap
+        // this window's location to the generated blob URL — those browsers
+        // allow that on a window the page already owns.
+        //
+        // Browsers that need this dance:
+        //   • iOS Safari & iPadOS Safari (popup blocker on by default).
+        //     iPadOS reports "Macintosh" in the UA but exposes
+        //     maxTouchPoints > 1, hence the OR branch.
+        //   • Samsung Internet on Android (~25% market share in some
+        //     regions; Chromium engine but its own download / popup shell
+        //     refuses post-async window.open() the same way iOS Safari does).
+        //   • Android WebView — when the visitor opens the page from inside
+        //     Facebook / Instagram / WhatsApp / TikTok the browser is a
+        //     stripped WebView with the same popup-blocking behaviour.
+        //
+        // Mac Safari, Chrome (desktop or Android), Firefox, and Edge all
+        // honour <a download> via pdf.save() correctly — they fall through
+        // to the else branch below.
         var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                     (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+        var isSamsungInternet = /SamsungBrowser/i.test(navigator.userAgent);
+        var isAndroidWebView = /\bwv\)/.test(navigator.userAgent) || /; wv;/.test(navigator.userAgent);
+        var needsPreOpen = isIOS || isSamsungInternet || isAndroidWebView;
         var pdfWindow = null;
-        if (isIOS) {
+        if (needsPreOpen) {
             pdfWindow = window.open('about:blank', '_blank');
             if (pdfWindow) {
                 try {
@@ -377,20 +393,22 @@
 
                             pdf.addImage(pdfImgData, 'PNG', 0, 0, pdfW, pdfH);
 
-                            // 6.3.6 — iOS gets the placeholder window opened
-                            // synchronously at the top of this function (still
-                            // inside the user-gesture window). We just point
-                            // it at the blob URL here. If the popup was
-                            // blocked or closed, fall back to a manual-tap
-                            // link in the overlay (a fresh user click reopens
-                            // the gesture window).
+                            // 6.3.6 — browsers in the needsPreOpen set got
+                            // the placeholder window opened synchronously at
+                            // the top of this function (still inside the
+                            // user-gesture window). We just point it at the
+                            // blob URL here. If the popup was blocked or
+                            // closed, fall back to a manual-tap link in the
+                            // overlay (a fresh user click reopens the
+                            // gesture window).
                             //
-                            // Mac Safari 14+, Chrome, Firefox and Edge all
-                            // honour <a download> via pdf.save() correctly,
-                            // so the legacy "open in new tab on any Safari"
-                            // detection (popup-prone on macOS) is gone.
+                            // Mac Safari 14+, Chrome (desktop or Android),
+                            // Firefox and Edge all honour <a download> via
+                            // pdf.save() correctly, so the legacy "open in
+                            // new tab on any Safari" detection (popup-prone
+                            // on macOS) is gone.
                             var blobUrlForFallback = null;
-                            if (isIOS) {
+                            if (needsPreOpen) {
                                 var blobUrl = pdf.output('bloburl');
                                 blobUrlForFallback = blobUrl;
                                 if (pdfWindow && !pdfWindow.closed) {
@@ -408,7 +426,7 @@
 
                             $tempContainer.remove();
 
-                            var popupBlocked = isIOS && (! pdfWindow || pdfWindow.closed);
+                            var popupBlocked = needsPreOpen && (! pdfWindow || pdfWindow.closed);
                             if (popupBlocked) {
                                 showManualDownloadFallback(blobUrlForFallback, filename);
                                 return;
@@ -418,14 +436,23 @@
                             // guidance, then auto-dismiss.
                             var successMsg;
                             if (isIOS) {
+                                // Placeholder-tab path on iOS Safari → Safari share sheet.
                                 successMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfOpenedIOS)
                                     ? ffc_ajax.strings.pdfOpenedIOS
                                     : 'PDF opened in a new tab. Tap the share icon to save or print.';
+                            } else if (needsPreOpen) {
+                                // Placeholder-tab path on Samsung Internet / Android WebView →
+                                // PDF rendered inline in the new tab; user shares/saves from there.
+                                successMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfOpenedAndroidTab)
+                                    ? ffc_ajax.strings.pdfOpenedAndroidTab
+                                    : 'PDF opened in a new tab. Use the menu to save or share.';
                             } else if (/Android/i.test(navigator.userAgent)) {
+                                // pdf.save() path on Android Chrome / Firefox → file in Downloads.
                                 successMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfSavedAndroid)
                                     ? ffc_ajax.strings.pdfSavedAndroid
                                     : 'PDF saved! Check your Downloads folder.';
                             } else {
+                                // pdf.save() path on desktop browsers.
                                 successMsg = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.pdfDownloaded)
                                     ? ffc_ajax.strings.pdfDownloaded
                                     : 'PDF downloaded successfully.';
