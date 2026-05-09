@@ -424,7 +424,7 @@ class AudienceAdminImport {
 		if ( false === $output ) {
 			exit;
 		}
-		fputcsv( $output, array( 'email', 'name', 'audience_name' ) );
+		fputcsv( $output, array( 'email', 'name', 'audience_name' ), ';' );
 
 		$seen = array(); // Avoid duplicate rows for same user+audience.
 		foreach ( $audience_ids as $aid ) {
@@ -449,7 +449,8 @@ class AudienceAdminImport {
 						$user->user_email,
 						$user->display_name,
 						$audience_name,
-					)
+					),
+					';'
 				);
 			}
 		}
@@ -476,7 +477,7 @@ class AudienceAdminImport {
 		if ( false === $output ) {
 			exit;
 		}
-		fputcsv( $output, array( 'name', 'color', 'parent' ) );
+		fputcsv( $output, array( 'name', 'color', 'parent' ), ';' );
 
 		// Parents first, then children (same order as import expects).
 		foreach ( $audiences as $audience ) {
@@ -486,7 +487,8 @@ class AudienceAdminImport {
 					$audience->name,
 					$audience->color ?? '#3788d8',
 					'', // Parents have no parent.
-				)
+				),
+				';'
 			);
 
 			if ( ! empty( $audience->children ) ) {
@@ -497,7 +499,8 @@ class AudienceAdminImport {
 							$child->name,
 							$child->color ?? '#3788d8',
 							$audience->name,
-						)
+						),
+						';'
 					);
 				}
 			}

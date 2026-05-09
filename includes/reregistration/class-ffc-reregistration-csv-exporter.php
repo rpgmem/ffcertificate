@@ -85,7 +85,7 @@ class ReregistrationCsvExporter {
 		}
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv
-		fputcsv( $output, $headers );
+		fputcsv( $output, $headers, ';' );
 
 		// Data rows.
 		foreach ( $submissions as $sub ) {
@@ -109,7 +109,7 @@ class ReregistrationCsvExporter {
 			}
 
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv
-			fputcsv( $output, $row );
+			fputcsv( $output, $row, ';' );
 		}
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose

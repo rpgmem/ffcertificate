@@ -9,6 +9,25 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.3.9] (2026-05-09)
+
+**Consistency release.** Standardises every plugin-emitted CSV on the semicolon (`;`) delimiter, fixing three exporters that were still using the comma default and breaking Excel-pt-BR / WPS / LibreOffice locale opens. Audience importer gains delimiter auto-detection so legacy comma-separated files keep working.
+
+### Changed
+
+- **Three CSV exporters now emit `;` instead of `,`**, matching the rest of the plugin (which already used `;` since 5.x): the public CSV download audit-log exporter (`PublicCsvDownload::handle_export_log_request`, introduced in 6.3.3), the reregistration submissions exporter (`ReregistrationCsvExporter`), and the audience admin import templates (`AudienceAdminImport::export_*_csv`). Now a Brazilian admin double-clicking the `.csv` no longer sees everything crammed into column A.
+- **Audience importer auto-detects `,` vs `;`.** Mirrors the recruitment importer's `detect_delimiter()` strategy: peek the header line, count unquoted occurrences, return whichever wins (ties resolve to `,`). Implemented as a private `peek_delimiter()` static helper that rewinds the file handle so the regular `fgetcsv()` loop runs unchanged. Comma-separated files exported by older versions (or hand-authored elsewhere) continue importing without changes.
+- **Sample CSVs in `AudienceCsvImporter::get_sample_csv()`** updated to use `;` to match the live export templates. Cosmetic only — the importer accepts both.
+
+### Backwards compatibility
+
+- **Existing comma-separated CSV files**: still import correctly via the audience importer's auto-detect (added in this release) and the recruitment importer's pre-existing detection. Nothing breaks.
+- **Custom downstream parsers (admin's external tooling)**: if a site automated parsing of the reregistration or audit-log CSV against the comma format, those scripts need a one-line update to `;`. Documented here.
+
+No PHP/server schema change. PHPUnit + PHPStan + WPCS clean.
+
+---
+
 ## [6.3.8] (2026-05-08)
 
 **UX release — two form-copy fixes.** Shrinks the device fingerprint LGPD disclosure on `[ffc_form]` and corrects the CPF-field labelling in `[ffc_csv_download]`'s `audit` mode where the markup contradicted the server behaviour.

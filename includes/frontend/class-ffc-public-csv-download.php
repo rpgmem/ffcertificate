@@ -749,9 +749,9 @@ class PublicCsvDownload {
 		fwrite( $fh, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
 		if ( ! $encryption_ok ) {
 			// One-line preamble so the admin knows why CPFs come out empty.
-			fputcsv( $fh, array( '# Encryption is not configured on this site; CPF column will be empty for new entries. See plugin docs.' ) );
+			fputcsv( $fh, array( '# Encryption is not configured on this site; CPF column will be empty for new entries. See plugin docs.' ), ';' );
 		}
-		fputcsv( $fh, array( 'timestamp_utc', 'ip', 'mode', 'cpf', 'result' ) );
+		fputcsv( $fh, array( 'timestamp_utc', 'ip', 'mode', 'cpf', 'result' ), ';' );
 
 		foreach ( $log as $entry ) {
 			if ( ! is_array( $entry ) ) {
@@ -762,7 +762,7 @@ class PublicCsvDownload {
 			$mod = isset( $entry['mode'] ) ? (string) $entry['mode'] : '';
 			$res = isset( $entry['result'] ) ? (string) $entry['result'] : '';
 			$cpf = self::decrypt_log_entry_cpf( $entry );
-			fputcsv( $fh, array( $ts, $ip, $mod, $cpf, $res ) );
+			fputcsv( $fh, array( $ts, $ip, $mod, $cpf, $res ), ';' );
 		}
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 		fclose( $fh );
