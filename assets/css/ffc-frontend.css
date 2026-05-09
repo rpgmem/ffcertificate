@@ -277,6 +277,41 @@ textarea.ffc-input,
     text-decoration: underline;
 }
 
+/* v6.3.8 — collapsible variant when .ffc-consent-description is a <details>
+   element. Used today for the device-fingerprint disclosure (short summary
+   visible by default, full technical text hidden inside <p>).
+   Native <details> handles the toggle; we just polish typography. */
+details.ffc-consent-description > summary {
+    cursor: pointer;
+    list-style: none;       /* hide default disclosure triangle on Firefox/Chrome */
+    outline: none;
+}
+details.ffc-consent-description > summary::-webkit-details-marker {
+    display: none;          /* same, on WebKit */
+}
+details.ffc-consent-description > summary::marker {
+    content: '';            /* same, modern browsers */
+}
+details.ffc-consent-description > summary:focus-visible {
+    outline: 2px solid var(--ffc-primary);
+    outline-offset: 2px;
+    border-radius: var(--ffc-radius-sm);
+}
+.ffc-device-disclosure-more {
+    margin-left: 4px;
+    color: var(--ffc-link);
+    text-decoration: underline;
+    font-weight: 500;
+}
+details.ffc-consent-description[open] > summary > .ffc-device-disclosure-more {
+    /* "Learn more." → "Hide" affordance once expanded. Pure CSS swap so we
+       don't need JS or extra DOM. */
+    text-decoration: none;
+}
+details.ffc-consent-description > p {
+    margin: 8px 0 0 0;
+}
+
 /* Checkbox validation states */
 .ffc-consent-label input[type="checkbox"]:invalid {
     outline: 2px solid var(--ffc-danger);

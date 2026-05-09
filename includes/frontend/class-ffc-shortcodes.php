@@ -291,9 +291,15 @@ class Shortcodes {
 					}
 					if ( $ffc_device_disclosure ) :
 						?>
-						<p class="ffc-consent-description ffc-device-disclosure">
-							<?php esc_html_e( 'To prevent duplicate submissions, this form uses the open-source thumbmarkjs library (MIT, processed entirely in your browser) to produce an anonymized device fingerprint (browser + screen + GPU characteristics). Each signal is hashed locally with SHA-256 before being sent, and the fingerprint is used solely to enforce the per-device submission limit. No data is sent to any third-party server.', 'ffcertificate' ); ?>
-						</p>
+						<details class="ffc-consent-description ffc-device-disclosure">
+							<summary>
+								<?php esc_html_e( 'We anonymously identify your device to prevent duplicate submissions.', 'ffcertificate' ); ?>
+								<span class="ffc-device-disclosure-more"><?php esc_html_e( 'Learn more.', 'ffcertificate' ); ?></span>
+							</summary>
+							<p>
+								<?php esc_html_e( 'Technical details: this form uses the open-source thumbmarkjs library (MIT) to produce an anonymized device identifier (browser, screen, GPU, fonts). Everything is processed locally; no data is sent to any third-party server.', 'ffcertificate' ); ?>
+							</p>
+						</details>
 					<?php endif; ?>
 				</div>
 
