@@ -573,21 +573,14 @@ class FormProcessor {
 		}
 
 		// Success message with HTML response (v2.9.7+).
+		// The auth code itself is rendered in the success card by
+		// templates/submission-success.php (dedicated "Authentication
+		// Code:" row), so we deliberately keep it out of $msg to avoid
+		// showing the same code twice on reprint.
 		$custom_message = isset( $form_config['success_message'] ) ? trim( $form_config['success_message'] ) : '';
-		if ( $is_reprint ) {
-			$reprint_auth_code = isset( $submission_data['auth_code'] )
-				? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code(
-					(string) $submission_data['auth_code'],
-					\FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE
-				)
-				: '';
-			$msg               = ( '' !== $reprint_auth_code )
-				/* translators: %s: formatted authentication code of the existing certificate */
-				? sprintf( __( 'Certificate previously issued (Reprint). Authentication code: %s', 'ffcertificate' ), $reprint_auth_code )
-				: __( 'Certificate previously issued (Reprint).', 'ffcertificate' );
-		} else {
-			$msg = ! empty( $custom_message ) ? $custom_message : __( 'Success!', 'ffcertificate' );
-		}
+		$msg            = $is_reprint
+			? __( 'Certificate previously issued (Reprint).', 'ffcertificate' )
+			: ( ! empty( $custom_message ) ? $custom_message : __( 'Success!', 'ffcertificate' ) );
 
 		// Quiz passed message.
 		if ( $is_quiz && ! $is_reprint ) {
