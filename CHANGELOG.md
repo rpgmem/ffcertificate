@@ -9,6 +9,24 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.3.10] (2026-05-09)
+
+**Bugfix release.** Fixes a conflict between the per-device submission limit (added in v6.3.0) and the reprint detector (pre-existing) that was making `device.max_per_form = 1` effectively block legitimate certificate re-downloads from the same device.
+
+### Fixed
+
+- **Reprint flow now bypasses the device fingerprint limit.** The pipeline order in `FormProcessor::handle_submission_ajax` was: `RateLimiter::check_all` (which contains the device fingerprint N-of-M check) → ... → `ReprintDetector::detect`. So a legitimate user who lost their PDF and tried to re-submit from the same device hit the device gate first, got a "Multiple submissions detected from this device" error, and never reached the reprint detector that would have returned the existing submission. New behaviour: we pre-run `ReprintDetector::detect()` BEFORE `check_all` and, when it flags `is_reprint=true`, set `$skip_device = true` (the same flag the manager bypass already uses, so `RateLimiter::check_all` stays untouched). The reprint detector still runs at its canonical position later for the actual flow; the pre-run is purely a gate decision. ~10 LOC change.
+
+### Backwards compatibility
+
+- The actual reprint detection logic is unchanged — same query against `cpf_hash`/`rf_hash` on `wp_ffc_submissions`, same `is_reprint` semantics. Only the ordering relative to the device check changes.
+- Users on a fresh device who try to submit a different CPF still hit the device gate as expected (no reprint match, `$skip_device` stays false).
+- Manager bypass + reprint stack correctly: manager already had `$skip_device = true`; reprint just adds another path to that same flag.
+
+No schema change. No JS change.
+
+---
+
 ## [6.3.9] (2026-05-09)
 
 **Consistency release.** Standardises every plugin-emitted CSV on the semicolon (`;`) delimiter, fixing three exporters that were still using the comma default and breaking Excel-pt-BR / WPS / LibreOffice locale opens. Audience importer gains delimiter auto-detection so legacy comma-separated files keep working.

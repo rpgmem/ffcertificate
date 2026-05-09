@@ -250,6 +250,26 @@ class FormProcessor {
 			$email = $user_email;
 			$cpf   = $val_cpf;
 
+			// 6.3.10: a successful reprint of an already-issued certificate
+			// must not be blocked by the per-device limit — that gate is
+			// meant to stop the same device creating multiple FRESH
+			// submissions for different CPFs, not to lock the user out of
+			// re-downloading their own certificate from the same device.
+			// We pre-run ReprintDetector::detect() here (it also runs at
+			// the canonical step ~492 for the actual flow); when it
+			// signals a reprint, we whitelist the device check via the
+			// existing $skip_device flag (same flag that the manager
+			// bypass already uses, so RateLimiter::check_all stays
+			// untouched).
+			if ( ! $skip_device
+				&& '' !== $val_cpf
+				&& class_exists( '\FreeFormCertificate\Frontend\ReprintDetector' ) ) {
+				$reprint_preview = ReprintDetector::detect( $form_id, $val_cpf, $val_ticket );
+				if ( ! empty( $reprint_preview['is_reprint'] ) ) {
+					$skip_device = true;
+				}
+			}
+
 			$rate_check = \FreeFormCertificate\Security\RateLimiter::check_all( $ip, $email, $cpf, $form_id, $device_signals, $skip_device );
 
 			if ( ! $rate_check['allowed'] ) {
