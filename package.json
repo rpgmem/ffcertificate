@@ -4,10 +4,14 @@
     "build:css": "for f in assets/css/*.css; do case \"$f\" in *.min.css) continue;; esac; npx cleancss -o \"${f%.css}.min.css\" --source-map \"$f\"; done && echo 'CSS minified.'",
     "build:js": "for f in assets/js/*.js; do case \"$f\" in *.min.js) continue;; esac; npx terser \"$f\" -o \"${f%.js}.min.js\" --compress --mangle --source-map \"url='$(basename ${f%.js}.min.js.map)'\"; done && echo 'JS minified.'",
     "build": "npm run build:css && npm run build:js",
+    "lint:css": "stylelint \"assets/css/*.css\" --ignore-pattern \"assets/css/*.min.css\"",
+    "lint:css:fix": "stylelint \"assets/css/*.css\" --ignore-pattern \"assets/css/*.min.css\" --fix",
     "setup-hooks": "git config core.hooksPath .githooks && echo 'Git hooks configured.'"
   },
   "devDependencies": {
+    "@wordpress/stylelint-config": "^23.37.0",
     "clean-css-cli": "^5.6.3",
+    "stylelint": "^16.26.1",
     "terser": "^5.46.2"
   }
 }

@@ -238,7 +238,7 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    font-weight: normal;
+    font-weight: 400;
     cursor: pointer;
 }
 

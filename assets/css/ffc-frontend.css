@@ -93,7 +93,7 @@ textarea.ffc-input,
 
 .ffc-form-field label .required {
     color: var(--ffc-danger);
-    font-weight: bold;
+    font-weight: 700;
     margin-left: 3px;
 }
 
@@ -107,7 +107,7 @@ textarea.ffc-input,
     display: flex;
     align-items: center;
     gap: 8px;
-    font-weight: normal;
+    font-weight: 400;
     cursor: pointer;
 }
 
@@ -217,7 +217,7 @@ textarea.ffc-input,
     gap: 12px;
     cursor: pointer;
     margin-bottom: 0;
-    font-weight: normal;
+    font-weight: 400;
 }
 
 .ffc-consent-label input[type="checkbox"] {
@@ -251,7 +251,7 @@ textarea.ffc-input,
 
 .ffc-consent-text .required {
     color: var(--ffc-danger);
-    font-weight: bold;
+    font-weight: 700;
     margin-left: 3px;
 }
 
