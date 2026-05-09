@@ -136,7 +136,7 @@ final class RecruitmentDashboardSection {
 			return '';
 		}
 
-		$html  = '<section class="ffc-recruitment-my-calls">';
+		$html  = '<section class="ffc-shortcode ffc-recruitment-my-calls">';
 		$html .= '<h2>' . esc_html__( 'My Calls', 'ffcertificate' ) . '</h2>';
 
 		foreach ( $by_notice as $bundle ) {

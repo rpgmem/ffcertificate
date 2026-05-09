@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 
-<div class="ffc-verification-container ffc-verification-auto-check">
+<div class="ffc-shortcode ffc-verification-container ffc-verification-auto-check">
 	<!-- Loading (hidden initially, shown by JS if hash token found) -->
 	<div class="ffc-verify-loading ffc-initially-hidden" role="status" aria-live="polite">
 		<div class="ffc-spinner" aria-hidden="true"></div>

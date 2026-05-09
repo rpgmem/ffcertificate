@@ -227,7 +227,7 @@ class AudienceShortcode {
 		$config_json = wp_json_encode( $config );
 		?>
 		<div class="<?php echo esc_attr( $wrapper_class ); ?>">
-		<div class="ffc-audience-calendar" id="ffc-audience-calendar" data-config="<?php echo esc_attr( $config_json ? $config_json : '' ); ?>">
+		<div class="ffc-shortcode ffc-audience-calendar" id="ffc-audience-calendar" data-config="<?php echo esc_attr( $config_json ? $config_json : '' ); ?>">
 			<!-- Header -->
 			<div class="ffc-calendar-header">
 				<div class="ffc-calendar-nav">

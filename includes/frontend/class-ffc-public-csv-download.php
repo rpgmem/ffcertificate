@@ -132,7 +132,7 @@ class PublicCsvDownload {
 
 		ob_start();
 		?>
-		<div class="ffc-verification-container ffc-verification-manual ffc-public-csv-download">
+		<div class="ffc-shortcode ffc-verification-container ffc-verification-manual ffc-public-csv-download">
 			<div class="ffc-verification-header">
 				<h2><?php echo esc_html( $atts['title'] ); ?></h2>
 				<p><?php esc_html_e( 'Enter the Form ID and the access hash to download the submissions CSV.', 'ffcertificate' ); ?></p>

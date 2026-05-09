@@ -87,7 +87,7 @@ class Shortcodes {
 
 		ob_start();
 		?>
-		<div class="ffc-verification-container ffc-magic-link-container" data-token="<?php echo esc_attr( $token ); ?>">
+		<div class="ffc-shortcode ffc-verification-container ffc-magic-link-container" data-token="<?php echo esc_attr( $token ); ?>">
 			<div class="ffc-verify-loading" role="status" aria-live="polite">
 				<div class="ffc-spinner" aria-hidden="true"></div>
 				<p><?php esc_html_e( 'Verifying certificate...', 'ffcertificate' ); ?></p>
@@ -187,7 +187,7 @@ class Shortcodes {
 			$has_geo      = ! empty( $geofence_config['geo_enabled'] ) && '1' === $geofence_config['geo_enabled'];
 			$has_geofence = $has_datetime || $has_geo;
 		}
-		$wrapper_class = $has_geofence ? 'ffc-form-wrapper ffc-has-geofence' : 'ffc-form-wrapper';
+		$wrapper_class = $has_geofence ? 'ffc-shortcode ffc-form-wrapper ffc-has-geofence' : 'ffc-shortcode ffc-form-wrapper';
 
 		ob_start();
 		?>
