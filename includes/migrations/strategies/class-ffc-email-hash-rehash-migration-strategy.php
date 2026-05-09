@@ -50,6 +50,19 @@ class EmailHashRehashMigrationStrategy implements MigrationStrategyInterface {
 	private const CURSOR_OPTION_PREFIX = 'ffc_email_hash_rehash_cursor_';
 
 	/**
+	 * Option name for the migration completion flag.
+	 *
+	 * Set once both tables have been walked and pending == 0. Required
+	 * because the cursor-based accounting cannot distinguish "row above
+	 * cursor that was inserted after migration finished" (already correct
+	 * by construction — the buggy write paths are fixed) from "row above
+	 * cursor that still holds a legacy unsalted hash". Without the flag,
+	 * every new submission would falsely re-surface this migration as
+	 * pending.
+	 */
+	private const COMPLETE_OPTION = 'ffc_email_hash_rehash_completed';
+
+	/**
 	 * Submissions table.
 	 *
 	 * @var string
@@ -83,7 +96,21 @@ class EmailHashRehashMigrationStrategy implements MigrationStrategyInterface {
 		$submissions  = $this->count_table_status( $this->submissions_table );
 		$appointments = $this->count_table_status( $this->appointments_table );
 
-		$total    = $submissions['total'] + $appointments['total'];
+		$total = $submissions['total'] + $appointments['total'];
+
+		// Once the migration has been declared complete, treat all rows
+		// (including those inserted afterwards) as migrated. New writes go
+		// through Encryption::hash() so they are correct by construction.
+		if ( $this->is_completed() ) {
+			return array(
+				'total'       => $total,
+				'migrated'    => $total,
+				'pending'     => 0,
+				'percent'     => 100.0,
+				'is_complete' => true,
+			);
+		}
+
 		$migrated = $submissions['migrated'] + $appointments['migrated'];
 		$pending  = $submissions['pending'] + $appointments['pending'];
 		$percent  = ( $total > 0 ) ? ( $migrated / $total ) * 100 : 100;
@@ -108,6 +135,16 @@ class EmailHashRehashMigrationStrategy implements MigrationStrategyInterface {
 	public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
 		$batch_size = isset( $migration_config['batch_size'] ) ? (int) $migration_config['batch_size'] : 100;
 
+		if ( $this->is_completed() ) {
+			return array(
+				'success'   => true,
+				'processed' => 0,
+				'has_more'  => false,
+				'message'   => __( 'Email hash rehash already completed.', 'ffcertificate' ),
+				'errors'    => array(),
+			);
+		}
+
 		$total_processed = 0;
 		$all_errors      = array();
 
@@ -120,6 +157,14 @@ class EmailHashRehashMigrationStrategy implements MigrationStrategyInterface {
 		}
 
 		$status = $this->calculate_status( $migration_key, $migration_config );
+
+		// Once both tables are fully walked with no errors, latch the
+		// completion flag so future submissions don't re-surface the
+		// migration as pending.
+		if ( 0 === $status['pending'] && empty( $all_errors ) ) {
+			$this->mark_completed();
+			$status['is_complete'] = true;
+		}
 
 		if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
@@ -338,6 +383,24 @@ class EmailHashRehashMigrationStrategy implements MigrationStrategyInterface {
 			'processed' => $processed,
 			'errors'    => $errors,
 		);
+	}
+
+	/**
+	 * Whether the migration has already been declared complete.
+	 *
+	 * @return bool
+	 */
+	private function is_completed(): bool {
+		return (bool) get_option( self::COMPLETE_OPTION, false );
+	}
+
+	/**
+	 * Latch the migration as complete.
+	 *
+	 * @return void
+	 */
+	private function mark_completed(): void {
+		update_option( self::COMPLETE_OPTION, true, false );
 	}
 
 	/**
