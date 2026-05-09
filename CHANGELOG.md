@@ -9,6 +9,29 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.3.10] (2026-05-09)
+
+**Bugfix release.** Two related fixes around the per-device submission limit (added in v6.3.0): the server-side gate now correctly lets the reprint flow through, and the form gains a friendly client-side hint when the current device has already submitted before — so users who lost their certificate are guided to the reprint flow instead of bouncing off a confusing block.
+
+### Fixed
+
+- **Reprint flow now bypasses the device fingerprint limit.** The pipeline order in `FormProcessor::handle_submission_ajax` was: `RateLimiter::check_all` (which contains the device fingerprint N-of-M check) → ... → `ReprintDetector::detect`. So a legitimate user who lost their PDF and tried to re-submit from the same device hit the device gate first, got a "Multiple submissions detected from this device" error, and never reached the reprint detector that would have returned the existing submission. New behaviour: we pre-run `ReprintDetector::detect()` BEFORE `check_all` and, when it flags `is_reprint=true`, set `$skip_device = true` (the same flag the manager bypass already uses, so `RateLimiter::check_all` stays untouched). The reprint detector still runs at its canonical position later for the actual flow; the pre-run is purely a gate decision. ~10 LOC change.
+
+### Added
+
+- **Friendly "already submitted" notice on `[ffc_form]`.** A new client-side script (`assets/js/ffc-already-submitted-notice.js`) tracks successful submissions in `localStorage.ffc_submitted_forms` (capped at 50 form IDs). On subsequent loads of a form whose ID is in the list, the page renders a dismissible info banner above the form: *"You may have already submitted this form. We detected a previous submission from this device. If you lost your certificate, just fill in your CPF and submit — the system recognises it and returns the existing certificate."* Soft hint, not a hard block — server-side gate (now reprint-aware) remains the source of truth. The banner dismissal is remembered for the session (`sessionStorage`). Three new i18n strings: `title`, `body`, `dismiss`. CSS reuses the design tokens already in `ffc-frontend.css`, mobile-responsive.
+
+### Backwards compatibility
+
+- The actual reprint detection logic is unchanged — same query against `cpf_hash`/`rf_hash` on `wp_ffc_submissions`, same `is_reprint` semantics. Only the ordering relative to the device check changes.
+- Users on a fresh device who try to submit a different CPF still hit the device gate as expected (no reprint match, `$skip_device` stays false).
+- Manager bypass + reprint stack correctly: manager already had `$skip_device = true`; reprint just adds another path to that same flag.
+- Notice script is a pure progressive enhancement — sites with localStorage disabled (private mode, restrictive policies) just don't see it; nothing breaks.
+
+No schema change.
+
+---
+
 ## [6.3.9] (2026-05-09)
 
 **Consistency release.** Standardises every plugin-emitted CSV on the semicolon (`;`) delimiter, fixing three exporters that were still using the comma default and breaking Excel-pt-BR / WPS / LibreOffice locale opens. Audience importer gains delimiter auto-detection so legacy comma-separated files keep working.

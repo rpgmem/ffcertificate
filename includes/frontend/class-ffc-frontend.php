@@ -144,6 +144,27 @@ class Frontend {
 					)
 				);
 			}
+
+			// 6.3.10: friendly "already submitted" notice. Pure client-side
+			// hint backed by localStorage; reads `ffc_submitted_forms` and,
+			// if the current form_id is in the list, shows a dismissable
+			// banner pointing the user at the reprint flow. Hooks into the
+			// global ajaxComplete to add the form_id to that list once a
+			// submission succeeds. Only enqueued where [ffc_form] renders.
+			if ( $has_form ) {
+				wp_enqueue_script( 'ffc-already-submitted-notice', FFC_PLUGIN_URL . "assets/js/ffc-already-submitted-notice{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+				wp_localize_script(
+					'ffc-already-submitted-notice',
+					'ffc_already_submitted',
+					array(
+						'strings' => array(
+							'title'   => __( 'You may have already submitted this form', 'ffcertificate' ),
+							'body'    => __( 'We detected a previous submission from this device. If you lost your certificate, just fill in your CPF and submit — the system recognises it and returns the existing certificate.', 'ffcertificate' ),
+							'dismiss' => __( 'Got it', 'ffcertificate' ),
+						),
+					)
+				);
+			}
 		}
 
 		if ( $has_form || $has_verification ) {
