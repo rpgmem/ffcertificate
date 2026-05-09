@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-09 02:49+0000\n"
+"POT-Creation-Date: 2026-05-09 06:12+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4442,8 +4442,12 @@ msgstr ""
 msgid "Email Handler"
 msgstr ""
 
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:177
+#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:222
 msgid "Email Hash Rehash"
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:143
+msgid "Email hash rehash already completed."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-documentation.php:1192
@@ -4678,7 +4682,7 @@ msgstr ""
 msgid "Encryption class not found. Required for CPF/RF split migration."
 msgstr ""
 
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:157
+#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:202
 msgid "Encryption class not found. Required for email hash rehash migration."
 msgstr ""
 
@@ -4694,7 +4698,7 @@ msgstr ""
 msgid "Encryption keys not configured. Required for CPF/RF split migration."
 msgstr ""
 
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:164
+#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:209
 msgid "Encryption keys not configured. Required for email hash rehash migration."
 msgstr ""
 
@@ -9306,7 +9310,7 @@ msgid "Rehash Email Lookup Hashes"
 msgstr ""
 
 #. %d: number of records rehashed
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:141
+#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:186
 msgid "Rehashed email_hash for %d records"
 msgstr ""
 

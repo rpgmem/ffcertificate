@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-06 11:00+0000\n"
-"PO-Revision-Date: 2026-05-09 03:25+0000\n"
+"PO-Revision-Date: 2026-05-09 06:18+0000\n"
 "Last-Translator: Alex Meusburger\n"
 "Language-Team: Português do Brasil\n"
 "Language: pt_BR\n"
@@ -4463,9 +4463,13 @@ msgstr "Configuração de E-mail"
 msgid "Email Handler"
 msgstr "Gerador de E-mail"
 
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:177
+#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:222
 msgid "Email Hash Rehash"
 msgstr "Recalcular Hash de E-mail"
+
+#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:143
+msgid "Email hash rehash already completed."
+msgstr "O rehash do hash do e-mail já foi concluído."
 
 #: includes/settings/views/ffc-tab-documentation.php:1192
 msgid "Email Hooks"
@@ -4699,7 +4703,7 @@ msgstr "Criptografia"
 msgid "Encryption class not found. Required for CPF/RF split migration."
 msgstr "Classe de criptografia não encontrada. Necessária para a migração de divisão CPF/RF."
 
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:157
+#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:202
 msgid "Encryption class not found. Required for email hash rehash migration."
 msgstr "Classe de criptografia não encontrada. Necessária para a migração de recalculo de hash de e-mail."
 
@@ -4715,7 +4719,7 @@ msgstr "A criptografia não está configurada neste site. A coluna CPF ficará v
 msgid "Encryption keys not configured. Required for CPF/RF split migration."
 msgstr "Chaves de criptografia não configuradas. Necessário para a migração de divisão CPF/RF."
 
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:164
+#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:209
 msgid "Encryption keys not configured. Required for email hash rehash migration."
 msgstr "Chaves de criptografia não configuradas. Necessário para a migração de recalculo de hash de e-mail."
 
@@ -8261,7 +8265,7 @@ msgstr "Atributo opcional:"
 
 #: includes/frontend/class-ffc-public-csv-download.php:212
 msgid "Optional. If the form requires a CPF, enter it here. If filled, it will be recorded (encrypted at rest) in the form's audit log even when the form does not require it."
-msgstr "Opcional. Se o formulário exigir um CPF, insira-o aqui. Se preenchido, ele será registrado (criptografado) para auditoria do formulário."
+msgstr "Opcional. Se um CPF for preenchido ele será registrado (criptografado) para auditoria do formulário."
 
 #: includes/audience/class-ffc-audience-admin-import.php:109
 msgid "Options"
@@ -9341,7 +9345,7 @@ msgid "Rehash Email Lookup Hashes"
 msgstr "Recalcular Hashes de Pesquisa de E-mail"
 
 #. %d: number of records rehashed
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:141
+#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:186
 msgid "Rehashed email_hash for %d records"
 msgstr "Recalculo hash de e-mail para %d registros"
 
@@ -11074,7 +11078,7 @@ msgstr "IDs (CPFs/RFs)"
 
 #: includes/frontend/class-ffc-shortcodes.php:300
 msgid "Technical details: this form uses the open-source thumbmarkjs library (MIT) to produce an anonymized device identifier (browser, screen, GPU, fonts). Everything is processed locally; no data is sent to any third-party server."
-msgstr "Detalhes técnicos: este formulário utiliza a biblioteca de código aberto thumbmarkjs (MIT) para gerar um identificador de dispositivo anonimizado (navegador, tela, GPU, fontes). Todo o processamento é feito localmente; nenhum dado é enviado para servidores de terceiros."
+msgstr "Detalhes técnicos: este formulário utiliza a biblioteca thumbmarkjs (MIT, código aberto) para gerar um identificador de dispositivo. Todo o processamento é feito localmente e nenhum dado é enviado para terceiros."
 
 #. %s: error message, %s: error message
 #: includes/admin/class-ffc-admin-assets-manager.php:658
@@ -13028,7 +13032,7 @@ msgstr "Sua(s) classificação(ões) no edital"
 #. what doesn't happen is matching against any allow-list.
 #: includes/frontend/class-ffc-public-csv-download.php:210
 msgid "Your CPF is required for traceability and is recorded in this form's audit log (encrypted at rest). It is not validated against any allow-list."
-msgstr "Seu CPF é necessário para fins de rastreabilidade e é registrado (criptografado) no log de auditoria deste formulário. Ele não é validado em nenhuma lista de permissões."
+msgstr "Seu CPF é necessário para será registrado (criptografado) para auditoria deste formulário. Ele não será validado em nenhuma lista de permissões."
 
 #: includes/frontend/class-ffc-access-restriction-checker.php:85
 msgid "Your CPF/RF is blocked."
