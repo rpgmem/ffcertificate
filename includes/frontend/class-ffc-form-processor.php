@@ -381,6 +381,11 @@ class FormProcessor {
 				$submission_id        = (int) $existing->id;
 				$real_submission_date = $existing->submission_date;
 				$is_reprint           = true;
+
+				// Surface the stored auth_code for the success card/message.
+				if ( ! empty( $existing->auth_code ) && empty( $submission_data['auth_code'] ) ) {
+					$submission_data['auth_code'] = $existing->auth_code;
+				}
 			} else {
 				// Count attempts.
 				$prev_attempt = 0;
@@ -516,6 +521,11 @@ class FormProcessor {
 				// Reprint - use existing submission ID (convert to int from wpdb string).
 				$submission_id        = (int) $reprint_result['id'];
 				$real_submission_date = $reprint_result['date'];
+
+				// Surface the existing auth_code so the success card and message can show it.
+				if ( isset( $reprint_result['data']['auth_code'] ) && empty( $submission_data['auth_code'] ) ) {
+					$submission_data['auth_code'] = $reprint_result['data']['auth_code'];
+				}
 			} else {
 				// New submission - save to database.
 				$submission_id = $this->submission_handler->process_submission(
@@ -564,9 +574,20 @@ class FormProcessor {
 
 		// Success message with HTML response (v2.9.7+).
 		$custom_message = isset( $form_config['success_message'] ) ? trim( $form_config['success_message'] ) : '';
-		$msg            = $is_reprint
-			? __( 'Certificate previously issued (Reprint).', 'ffcertificate' )
-			: ( ! empty( $custom_message ) ? $custom_message : __( 'Success!', 'ffcertificate' ) );
+		if ( $is_reprint ) {
+			$reprint_auth_code = isset( $submission_data['auth_code'] )
+				? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code(
+					(string) $submission_data['auth_code'],
+					\FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE
+				)
+				: '';
+			$msg               = ( '' !== $reprint_auth_code )
+				/* translators: %s: formatted authentication code of the existing certificate */
+				? sprintf( __( 'Certificate previously issued (Reprint). Authentication code: %s', 'ffcertificate' ), $reprint_auth_code )
+				: __( 'Certificate previously issued (Reprint).', 'ffcertificate' );
+		} else {
+			$msg = ! empty( $custom_message ) ? $custom_message : __( 'Success!', 'ffcertificate' );
+		}
 
 		// Quiz passed message.
 		if ( $is_quiz && ! $is_reprint ) {
