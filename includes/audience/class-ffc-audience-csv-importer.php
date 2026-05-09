@@ -58,8 +58,12 @@ class AudienceCsvImporter {
 			return $result;
 		}
 
+		// 6.3.9: auto-detect `,` vs `;` so legacy CSVs and the new
+		// pt-BR-friendly templates both parse correctly.
+		$delimiter = self::peek_delimiter( $handle );
+
 		// Read header row.
-		$header = fgetcsv( $handle );
+		$header = fgetcsv( $handle, 0, $delimiter );
 		if ( ! $header ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			fclose( $handle );
@@ -101,7 +105,7 @@ class AudienceCsvImporter {
 		// Process rows.
 		$row_num = 1;
 		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- canonical fgetcsv() streaming pattern.
-		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
+		while ( ( $data = fgetcsv( $handle, 0, $delimiter ) ) !== false ) {
 			++$row_num;
 
 			// Skip empty rows.
@@ -201,8 +205,11 @@ class AudienceCsvImporter {
 			return $result;
 		}
 
+		// 6.3.9: auto-detect CSV delimiter (`,` or `;`).
+		$delimiter = self::peek_delimiter( $handle );
+
 		// Read header row.
-		$header = fgetcsv( $handle );
+		$header = fgetcsv( $handle, 0, $delimiter );
 		if ( ! $header ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			fclose( $handle );
@@ -232,7 +239,7 @@ class AudienceCsvImporter {
 		$audiences_to_create = array();
 		$row_num             = 1;
 		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- canonical fgetcsv() streaming pattern.
-		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
+		while ( ( $data = fgetcsv( $handle, 0, $delimiter ) ) !== false ) {
 			++$row_num;
 
 			if ( empty( array_filter( $data ) ) ) {
@@ -439,8 +446,11 @@ class AudienceCsvImporter {
 			return $result;
 		}
 
+		// 6.3.9: auto-detect CSV delimiter (`,` or `;`).
+		$delimiter = self::peek_delimiter( $handle );
+
 		// Read header.
-		$header = fgetcsv( $handle );
+		$header = fgetcsv( $handle, 0, $delimiter );
 		if ( ! $header ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 			fclose( $handle );
@@ -461,7 +471,7 @@ class AudienceCsvImporter {
 
 		// Count rows.
 		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- canonical fgetcsv() streaming pattern.
-		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
+		while ( ( $data = fgetcsv( $handle, 0, $delimiter ) ) !== false ) {
 			if ( ! empty( array_filter( $data ) ) ) {
 				++$result['rows'];
 			}
@@ -478,24 +488,71 @@ class AudienceCsvImporter {
 	/**
 	 * Generate sample CSV content
 	 *
+	 * Mirrors the live export templates (semicolon-separated since 6.3.9
+	 * for Excel-pt-BR / WPS / LibreOffice locale compatibility). The
+	 * importer auto-detects the delimiter, so existing comma-separated
+	 * files keep working.
+	 *
 	 * @param string $type Type of CSV ('members' or 'audiences').
 	 * @return string CSV content
 	 */
 	public static function get_sample_csv( string $type = 'members' ): string {
 		if ( 'audiences' === $type ) {
-			return "name,color,parent\n" .
-					"Group A,#3788d8,\n" .
-					"Group B,#28a745,\n" .
-					"Subgroup A1,#dc3545,Group A\n" .
-					"Subgroup A2,#ffc107,Group A\n" .
-					"Subgroup B1,#17a2b8,Group B\n" .
-					"Team B1-Alpha,#6f42c1,Subgroup B1\n";
+			return "name;color;parent\n" .
+					"Group A;#3788d8;\n" .
+					"Group B;#28a745;\n" .
+					"Subgroup A1;#dc3545;Group A\n" .
+					"Subgroup A2;#ffc107;Group A\n" .
+					"Subgroup B1;#17a2b8;Group B\n" .
+					"Team B1-Alpha;#6f42c1;Subgroup B1\n";
 		}
 
 		// Default: members.
-		return "email,name,audience_name\n" .
-				"john@example.com,John Doe,Group A\n" .
-				"jane@example.com,Jane Smith,Subgroup A1\n" .
-				"bob@example.com,Bob Johnson,Group B\n";
+		return "email;name;audience_name\n" .
+				"john@example.com;John Doe;Group A\n" .
+				"jane@example.com;Jane Smith;Subgroup A1\n" .
+				"bob@example.com;Bob Johnson;Group B\n";
+	}
+
+	/**
+	 * Peek the first line of a CSV stream to choose between `,` and `;` as
+	 * the field separator, then rewind the handle so the regular
+	 * fgetcsv() loop reads from the start. Mirrors the recruitment
+	 * importer's detect_delimiter(); kept private to this class so the
+	 * surface stays small.
+	 *
+	 * Counts unquoted occurrences of each candidate; ties resolve to `,`
+	 * for backwards compatibility with files that worked pre-detection.
+	 *
+	 * @since 6.3.9
+	 * @param resource $handle Open file handle (read mode, position 0).
+	 * @return string `,` or `;`.
+	 */
+	private static function peek_delimiter( $handle ): string {
+		$first_line = fgets( $handle );
+		rewind( $handle );
+		if ( ! is_string( $first_line ) || '' === $first_line ) {
+			return ',';
+		}
+		$comma     = 0;
+		$semicolon = 0;
+		$in_quotes = false;
+		$length    = strlen( $first_line );
+		for ( $i = 0; $i < $length; $i++ ) {
+			$ch = $first_line[ $i ];
+			if ( '"' === $ch ) {
+				$in_quotes = ! $in_quotes;
+				continue;
+			}
+			if ( $in_quotes ) {
+				continue;
+			}
+			if ( ',' === $ch ) {
+				++$comma;
+			} elseif ( ';' === $ch ) {
+				++$semicolon;
+			}
+		}
+		return $semicolon > $comma ? ';' : ',';
 	}
 }
