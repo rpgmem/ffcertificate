@@ -74,16 +74,16 @@ class FormEditorSaveHandler {
 			$allowed_html = \FreeFormCertificate\Core\Utils::get_allowed_html_tags();
 
 			$clean_config               = array();
-			$clean_config['pdf_layout'] = wp_kses( $config['pdf_layout'], $allowed_html );
+			$clean_config['pdf_layout'] = wp_kses( (string) ( $config['pdf_layout'] ?? '' ), $allowed_html );
 			// Email body is authored in the teeny wp_editor; wp_kses_post() is the
 			// canonical WordPress allowlist for post-like rich content and already
 			// strips scripts/forms while keeping the formatting users expect.
 			$clean_config['email_body'] = wp_kses_post( (string) ( $config['email_body'] ?? '' ) );
-			$clean_config['bg_image']   = esc_url_raw( $config['bg_image'] );
+			$clean_config['bg_image']   = esc_url_raw( (string) ( $config['bg_image'] ?? '' ) );
 
-			$clean_config['enable_restriction'] = sanitize_key( $config['enable_restriction'] );
-			$clean_config['send_user_email']    = sanitize_key( $config['send_user_email'] );
-			$clean_config['email_subject']      = sanitize_text_field( $config['email_subject'] );
+			$clean_config['enable_restriction'] = sanitize_key( (string) ( $config['enable_restriction'] ?? '' ) );
+			$clean_config['send_user_email']    = sanitize_key( (string) ( $config['send_user_email'] ?? '' ) );
+			$clean_config['email_subject']      = sanitize_text_field( (string) ( $config['email_subject'] ?? '' ) );
 
 			// Restrictions (checkboxes).
 			$clean_config['restrictions'] = array(
@@ -93,10 +93,10 @@ class FormEditorSaveHandler {
 				'ticket'    => isset( $config['restrictions']['ticket'] ) ? '1' : '0',
 			);
 
-			$clean_config['allowed_users_list']   = sanitize_textarea_field( $config['allowed_users_list'] );
-			$clean_config['denied_users_list']    = sanitize_textarea_field( $config['denied_users_list'] );
-			$clean_config['validation_code']      = sanitize_text_field( $config['validation_code'] );
-			$clean_config['generated_codes_list'] = sanitize_textarea_field( $config['generated_codes_list'] );
+			$clean_config['allowed_users_list']   = sanitize_textarea_field( (string) ( $config['allowed_users_list'] ?? '' ) );
+			$clean_config['denied_users_list']    = sanitize_textarea_field( (string) ( $config['denied_users_list'] ?? '' ) );
+			$clean_config['validation_code']      = sanitize_text_field( (string) ( $config['validation_code'] ?? '' ) );
+			$clean_config['generated_codes_list'] = sanitize_textarea_field( (string) ( $config['generated_codes_list'] ?? '' ) );
 
 			// Quiz / Evaluation Mode.
 			$clean_config['quiz_enabled']       = isset( $config['quiz_enabled'] ) ? '1' : '0';
