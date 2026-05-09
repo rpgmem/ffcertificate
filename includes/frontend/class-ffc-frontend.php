@@ -267,6 +267,12 @@ class Frontend {
 						'pdfManualOpenIOS'      => __( 'Tap to open the PDF', 'ffcertificate' ),
 						'pdfManualHintIOS'      => __( 'Pop-ups are blocked in this browser. Tap the button below to open the PDF — then use the share icon to save or print.', 'ffcertificate' ),
 						'pdfOpenedAndroidTab'   => __( 'PDF opened in a new tab. Use the menu to save or share.', 'ffcertificate' ),
+
+						// 6.3.11 — post-download confirmation strings (were JS-only fallbacks before).
+						'pdfOpenedIOS'          => __( 'PDF opened in a new tab. Tap the share icon to save or print.', 'ffcertificate' ),
+						'pdfSavedAndroid'       => __( 'PDF saved! Check your Downloads folder.', 'ffcertificate' ),
+						'pdfDownloaded'         => __( 'PDF downloaded successfully.', 'ffcertificate' ),
+						'pdfBlankWarning'       => __( 'Warning: the generated PDF appears to be blank. Please try again.', 'ffcertificate' ),
 					),
 				)
 			);

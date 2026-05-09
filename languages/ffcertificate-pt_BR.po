@@ -15709,3 +15709,76 @@ msgstr "✅ Cache limpo com sucesso!"
 #: includes/admin/class-ffc-settings.php:269
 msgid "✅ Cache warmed! %d form(s) pre-loaded."
 msgstr "✅ Cache aquecido! %d formulário(s) pré-carregados."
+
+#. translators: %s: formatted authentication code of the existing certificate
+#: includes/frontend/class-ffc-form-processor.php:580
+msgid "Certificate previously issued (Reprint). Authentication code: %s"
+msgstr "Certificado emitido anteriormente (Reimpressão). Código de autenticação: %s"
+
+#: includes/frontend/class-ffc-frontend.php:265
+msgid "Generating your certificate…"
+msgstr "Gerando seu certificado…"
+
+#: includes/frontend/class-ffc-frontend.php:266
+msgid "Please do not close this tab. The PDF will appear automatically in a few seconds."
+msgstr "Por favor, não feche esta aba. O PDF aparecerá automaticamente em alguns segundos."
+
+#: includes/frontend/class-ffc-frontend.php:267
+msgid "Tap to open the PDF"
+msgstr "Toque para abrir o PDF"
+
+#: includes/frontend/class-ffc-frontend.php:268
+msgid "Pop-ups are blocked in this browser. Tap the button below to open the PDF — then use the share icon to save or print."
+msgstr "Pop-ups estão bloqueados neste navegador. Toque no botão abaixo para abrir o PDF — depois use o ícone de compartilhar para salvar ou imprimir."
+
+#: includes/frontend/class-ffc-frontend.php:269
+msgid "PDF opened in a new tab. Use the menu to save or share."
+msgstr "PDF aberto em uma nova aba. Use o menu para salvar ou compartilhar."
+
+#: includes/frontend/class-ffc-frontend.php:272
+msgid "PDF opened in a new tab. Tap the share icon to save or print."
+msgstr "PDF aberto em uma nova aba. Toque no ícone de compartilhar para salvar ou imprimir."
+
+#: includes/frontend/class-ffc-frontend.php:273
+msgid "PDF saved! Check your Downloads folder."
+msgstr "PDF salvo! Verifique sua pasta de Downloads."
+
+#: includes/frontend/class-ffc-frontend.php:274
+msgid "PDF downloaded successfully."
+msgstr "PDF baixado com sucesso."
+
+#: includes/frontend/class-ffc-frontend.php:275
+msgid "Warning: the generated PDF appears to be blank. Please try again."
+msgstr "Atenção: o PDF gerado parece estar em branco. Por favor, tente novamente."
+
+#: includes/frontend/class-ffc-frontend.php:138
+msgid "Download may fail in this app"
+msgstr "O download pode falhar neste aplicativo"
+
+#: includes/frontend/class-ffc-frontend.php:139
+msgid "You are viewing this page inside an app browser. To make sure the certificate downloads correctly, please open the page in your main browser (Chrome or Safari)."
+msgstr "Você está visualizando esta página dentro de um navegador de aplicativo. Para garantir que o certificado seja baixado corretamente, abra a página no seu navegador principal (Chrome ou Safari)."
+
+#: includes/frontend/class-ffc-frontend.php:140
+msgid "Open in browser"
+msgstr "Abrir no navegador"
+
+#: includes/frontend/class-ffc-frontend.php:141
+msgid "Continue anyway"
+msgstr "Continuar mesmo assim"
+
+#: includes/frontend/class-ffc-frontend.php:142
+msgid "Tap the menu icon (•••) at the bottom of the app and choose \"Open in Safari\"."
+msgstr "Toque no ícone de menu (•••) na parte inferior do aplicativo e escolha \"Abrir no Safari\"."
+
+#: includes/frontend/class-ffc-frontend.php:161
+msgid "You may have already submitted this form"
+msgstr "Você já pode ter enviado este formulário"
+
+#: includes/frontend/class-ffc-frontend.php:162
+msgid "We detected a previous submission from this device. If you lost your certificate, just fill in your CPF and submit — the system recognises it and returns the existing certificate."
+msgstr "Detectamos um envio anterior deste aparelho. Se você perdeu seu certificado, basta preencher o CPF e enviar — o sistema reconhece e retorna o certificado existente."
+
+#: includes/frontend/class-ffc-frontend.php:163
+msgid "Got it"
+msgstr "Entendi"
