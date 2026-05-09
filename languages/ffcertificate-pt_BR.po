@@ -15710,11 +15710,6 @@ msgstr "✅ Cache limpo com sucesso!"
 msgid "✅ Cache warmed! %d form(s) pre-loaded."
 msgstr "✅ Cache aquecido! %d formulário(s) pré-carregados."
 
-#. translators: %s: formatted authentication code of the existing certificate
-#: includes/frontend/class-ffc-form-processor.php:580
-msgid "Certificate previously issued (Reprint). Authentication code: %s"
-msgstr "Certificado emitido anteriormente (Reimpressão). Código de autenticação: %s"
-
 #: includes/frontend/class-ffc-frontend.php:265
 msgid "Generating your certificate…"
 msgstr "Gerando seu certificado…"
