@@ -9,6 +9,28 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.5.1] (2026-05-10)
+
+**DRY audit on the AJAX handler boilerplate (#143).** The audit asked for an `AjaxRequestTrait` collapsing the `check_ajax_referer` + `current_user_can` + `wp_send_json_error` triplet — but that trait already exists at `includes/core/class-ffc-ajax-trait.php` since 4.11.2. The remaining ask was call-site adoption across four admin handler classes. After two attempts (initial migration and a Brain Monkey state-rebinding workaround) hit irreducible cross-class test pollution in the suite, the actual call-site swap was reverted on this branch — leaving only the small, low-risk trait extension below as the real shipped change. See "Deferred" for the full reasoning.
+
+### Added
+
+- **`AjaxTrait::check_ajax_admin_or( string $granular_cap )`.** Encodes the "site admin always passes, plus delegated operators with `$granular_cap` pass" contract that admin-export and admin-settings handlers want. Available for new and migrated handlers; no existing handler adopts it in this release.
+
+### Deferred
+
+- **#143 S1 — call-site migration to `AjaxTrait` (4 classes, 8 handlers).** Implemented and tested individually, but the full-suite run hit `Brain\Monkey\Expectation\Exception\MissingFunctionExpectations: "wp_unslash" is not defined nor mocked in this test` inside the trait, on cross-class boundaries only. Diagnosis: Brain Monkey defines an eval'd placeholder for `wp_unslash` the first time any test class stubs it; the placeholder survives `Monkey\tearDown()`, so subsequent test classes' `Functions\when('wp_unslash')->returnArg()` calls register a Patchwork redefine that gets dropped before the test body executes. A workaround using `Functions\expect('wp_unslash')->zeroOrMoreTimes()->andReturnUsing()` rebound the function but interfered with negative-path tests in `SettingsTest`. The clean fixes (move affected tests to `@runInSeparateProcess`, or define `wp_unslash`/`sanitize_text_field` as real functions in `tests/bootstrap.php`) are both bigger than the call-site swap. Tracked for a follow-up that pairs the migration with a Brain Monkey state audit.
+
+### Honest no-ops (audit findings already implemented or not actual duplication)
+
+- **#143 S2 — `Sanitizer` utility class:** 32 inline `array_map('sanitize_text_field', …)` / `array_map('absint', …)` callsites across the codebase. Introduction tested correctly in isolation but reproduced the same Brain Monkey cross-test pollution as S1 — same deferral rationale. The real win is small (each callsite is a single line) and doesn't justify destabilising the test harness.
+- **#143 S3 — `DateFormatManager`:** WordPress's `get_option()` already caches via `wp_cache_get`, so a memoising service for `date_format` / `time_format` would only save the function-call overhead, not the query. Marginal value, declined.
+- **#143 S4 — `TableNames` / `SettingsKeys` / `Capabilities` constants classes:** the audit estimated 28+ literals; reality is 209 callsites of `wpdb->prefix . 'ffc_X'` alone. Constant-class migration would touch 209 sites for a small typo-protection win — disproportionate churn for the value.
+- **#143 S5 — `FormFieldRenderer`:** the 8 classes that implement `render_field`/`render_section` live in 6 distinct domains (admin form-editor metabox, admin custom-fields metabox, reregistration form, settings tab, recruitment public shortcode, generic shortcodes). Each emits different markup against different field-type ecosystems. A unified renderer would either become a god-object or be too thin to add value.
+- **#143 S6 — Shared modal CSS:** the two implementations the audit flagged (`assets/css/ffc-audience.css` `.ffc-shortcode .ffc-modal*` vs `assets/css/ffc-admin-move-submissions.css` `.ffc-move-modal*`) actually use different class names, different positioning, and different visual treatment. They're two separate modals, not duplicates of one — extraction would force one to regress visually.
+
+---
+
 ## [6.5.0] (2026-05-10)
 
 **Performance and stability (#144).** Three real implementations + three "already done in earlier releases" honest no-ops + one deferred-as-follow-up. Minor bump because the migration adds indexes on existing tables and changes the `create()` invariant on audience bookings (now atomic).
