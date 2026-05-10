@@ -100,6 +100,8 @@ final class Csv {
 	 * @param string      $content         Raw CSV bytes (BOM tolerated).
 	 * @param string|null $force_delimiter Skip auto-detection.
 	 * @return CsvReader
+	 *
+	 * @throws \RuntimeException When the in-memory stream cannot be opened.
 	 */
 	public static function reader_from_string( string $content, ?string $force_delimiter = null ): CsvReader {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- in-memory stream, not the filesystem.
@@ -107,6 +109,7 @@ final class Csv {
 		if ( false === $handle ) {
 			throw new \RuntimeException( 'Csv::reader_from_string: cannot open php://memory' );
 		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- writing to in-memory stream, not the filesystem.
 		fwrite( $handle, $content );
 		rewind( $handle );
 		return new CsvReader( $handle, $force_delimiter, true );

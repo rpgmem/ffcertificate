@@ -104,7 +104,7 @@ final class CsvReader {
 	 * Stream every body row (everything after the header) through
 	 * the callback. Memory-bounded.
 	 *
-	 * @param callable(array<int, string>): void $cb Invoked once per row.
+	 * @param callable $cb Invoked once per row; receives `array<int, string>`.
 	 * @return void
 	 */
 	public function each( callable $cb ): void {
@@ -171,7 +171,8 @@ final class CsvReader {
 	 * @return void
 	 */
 	private function skip_bom_at_start(): void {
-		$pos    = ftell( $this->handle );
+		$pos = ftell( $this->handle );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- streaming CSV reader; WP_Filesystem has no streaming equivalent.
 		$prefix = fread( $this->handle, 3 );
 		if ( false === $prefix || 0 !== strncmp( $prefix, Csv::BOM_UTF8, 3 ) ) {
 			// Not a BOM — restore position so the body keeps byte 0.

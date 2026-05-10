@@ -510,5 +510,4 @@ class AudienceCsvImporter {
 				"jane@example.com;Jane Smith;Subgroup A1\n" .
 				"bob@example.com;Bob Johnson;Group B\n";
 	}
-
 }

@@ -89,7 +89,7 @@ final class CsvWriter {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- writing CSV to disk is the documented contract.
 			$handle = fopen( $target, 'w' );
 			if ( false === $handle ) {
-				throw new \RuntimeException( "CsvWriter: cannot open '{$target}' for writing" );
+				throw new \RuntimeException( esc_html( "CsvWriter: cannot open '{$target}' for writing" ) );
 			}
 			$this->handle      = $handle;
 			$this->owns_handle = true;
@@ -117,6 +117,7 @@ final class CsvWriter {
 		}
 
 		if ( ! $this->bom_written ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- streaming the BOM bytes; WP_Filesystem has no streaming equivalent.
 			fwrite( $this->handle, Csv::BOM_UTF8 );
 			$this->bom_written = true;
 		}
