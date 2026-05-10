@@ -177,8 +177,8 @@ class CertificatesCalendarRestControllerTest extends TestCase {
     // Helpers
     // ------------------------------------------------------------------
 
-    private function make_post( int $id, string $post_date ): \stdClass {
-        $post            = new \stdClass();
+    private function make_post( int $id, string $post_date ): \WP_Post {
+        $post            = new \WP_Post();
         $post->ID        = $id;
         $post->post_date = $post_date;
         return $post;
@@ -190,7 +190,7 @@ class CertificatesCalendarRestControllerTest extends TestCase {
      *
      * @return array{0:string,1:string}|null
      */
-    private function invoke_resolve_date( object $post ): ?array {
+    private function invoke_resolve_date( \WP_Post $post ): ?array {
         $ctrl   = new CertificatesCalendarRestController( 'ffc/v1' );
         $reflex = new \ReflectionClass( $ctrl );
         $method = $reflex->getMethod( 'resolve_date' );

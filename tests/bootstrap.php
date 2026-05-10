@@ -97,6 +97,19 @@ if ( ! class_exists( 'WP_Query' ) ) {
     }
 }
 
+// Stub WP_Post class for unit tests that pass post objects to typehinted methods.
+if ( ! class_exists( 'WP_Post' ) ) {
+    class WP_Post {
+        public $ID = 0;
+        public $post_date = '';
+        public $post_status = '';
+        public $post_title = '';
+        public $post_content = '';
+        public $post_type = '';
+        public $post_author = 0;
+    }
+}
+
 // Stub WP_REST_Server class for REST controller tests.
 if ( ! class_exists( 'WP_REST_Server' ) ) {
     class WP_REST_Server {

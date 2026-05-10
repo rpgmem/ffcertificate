@@ -39,6 +39,8 @@ class CertificatesCalendarRestController {
 	private string $namespace;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param string $namespace API namespace (e.g. ffc/v1).
 	 */
 	public function __construct( string $namespace ) {
@@ -82,7 +84,10 @@ class CertificatesCalendarRestController {
 	}
 
 	/**
+	 * Validate the `year` query parameter.
+	 *
 	 * @param mixed $value Year value.
+	 * @return bool True when the value is a sane four-digit year.
 	 */
 	public function validate_year( $value ): bool {
 		$year = (int) $value;
@@ -90,7 +95,10 @@ class CertificatesCalendarRestController {
 	}
 
 	/**
+	 * Validate the `month` query parameter.
+	 *
 	 * @param mixed $value Month value.
+	 * @return bool True when the value is between 1 and 12.
 	 */
 	public function validate_month( $value ): bool {
 		$month = (int) $value;
@@ -121,7 +129,9 @@ class CertificatesCalendarRestController {
 			)
 		);
 
-		$ids = $query->posts;
+		// `fields => ids` returns an array of int IDs, but PHPStan widens
+		// WP_Query::$posts to array<int|WP_Post>; normalise to int[] explicitly.
+		$ids = array_map( 'intval', $query->posts );
 		if ( empty( $ids ) ) {
 			return new \WP_REST_Response( array(), 200 );
 		}
@@ -131,9 +141,8 @@ class CertificatesCalendarRestController {
 
 		$events = array();
 		foreach ( $ids as $id ) {
-			$id   = (int) $id;
 			$post = get_post( $id );
-			if ( ! $post ) {
+			if ( ! $post instanceof \WP_Post ) {
 				continue;
 			}
 
@@ -149,15 +158,12 @@ class CertificatesCalendarRestController {
 	/**
 	 * Resolve the effective date for a form and decide if it belongs in the month.
 	 *
-	 * @param object $post        The form post (WP_Post or stdClass with the
-	 *                            standard WP post fields). Typed as `object`
-	 *                            so unit tests can pass a stdClass without
-	 *                            stubbing WP_Post.
-	 * @param string $month_start First day of the requested month (Y-m-d).
-	 * @param string $month_end   Last day of the requested month (Y-m-d).
+	 * @param \WP_Post $post        The form post.
+	 * @param string   $month_start First day of the requested month (Y-m-d).
+	 * @param string   $month_end   Last day of the requested month (Y-m-d).
 	 * @return array{id:int,title:string,date:string,source:string,edit_url:string,status:string}|null
 	 */
-	private function build_entry_for_post( object $post, string $month_start, string $month_end ): ?array {
+	private function build_entry_for_post( \WP_Post $post, string $month_start, string $month_end ): ?array {
 		$resolved = $this->resolve_date( $post );
 		if ( null === $resolved ) {
 			return null;
@@ -182,10 +188,10 @@ class CertificatesCalendarRestController {
 	/**
 	 * Resolve [date, source] for a form, falling back from geofence to post_date.
 	 *
-	 * @param object $post Form post (WP_Post-shaped object).
+	 * @param \WP_Post $post Form post.
 	 * @return array{0:string,1:string}|null
 	 */
-	private function resolve_date( object $post ): ?array {
+	private function resolve_date( \WP_Post $post ): ?array {
 		$config = get_post_meta( $post->ID, self::META_KEY, true );
 		if ( is_array( $config ) ) {
 			$start = isset( $config['date_start'] ) ? trim( (string) $config['date_start'] ) : '';
@@ -208,7 +214,10 @@ class CertificatesCalendarRestController {
 	}
 
 	/**
+	 * Validate a Y-m-d date string against the calendar.
+	 *
 	 * @param string $date Date string in Y-m-d.
+	 * @return bool True when the string is a real calendar date.
 	 */
 	private function is_valid_date( string $date ): bool {
 		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
