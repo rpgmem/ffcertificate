@@ -163,14 +163,15 @@ class FormEditorSaveHandler {
 				'msg_geo_error'            => sanitize_textarea_field( $geofence['msg_geo_error'] ?? '' ),
 			);
 
-			// Validate geolocation configuration.
+			// Validate geolocation configuration. Surface errors via transient,
+			// but do not abort — independent sections (CSV download, device
+			// fingerprint limit) must still persist their own changes.
 			$validation_errors = $this->validate_geofence_config( $clean_geofence );
 			if ( ! empty( $validation_errors ) ) {
 				set_transient( 'ffc_geofence_error_' . get_current_user_id(), $validation_errors, 45 );
-				return;
+			} else {
+				update_post_meta( $post_id, '_ffc_geofence_config', $clean_geofence );
 			}
-
-			update_post_meta( $post_id, '_ffc_geofence_config', $clean_geofence );
 		}
 
 		// 4. Save Public CSV Download configuration.

@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Form editor: groups 7 (Public CSV Download) and 8 (Device Fingerprint Limit) silently failed to save when the geofence config (group 6) had validation errors.** `FormEditorSaveHandler::save_form_data()` returned early after surfacing the geofence error transient, aborting the rest of the save pipeline. The validation error still surfaces via the transient, but the geofence meta is now simply skipped while CSV-download and device-limit sections continue to persist their changes.
+
 ---
 
 ## [6.5.2] (2026-05-10)
