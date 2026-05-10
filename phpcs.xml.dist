@@ -117,6 +117,8 @@
                 <element value="ffc_manage_recruitment_reasons"/>
                 <!-- 6.2.0 reactivated submission-edit cap. -->
                 <element value="ffc_certificate_update"/>
+                <!-- 6.4.1 REST API authentication caps. -->
+                <element value="ffc_read_forms_api"/>
             </property>
         </properties>
     </rule>
