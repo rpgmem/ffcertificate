@@ -7,6 +7,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Certificates Dashboard (admin).** New page registered as the first item under the Certificate menu (`edit.php?post_type=ffc_form&page=ffc-certificates-dashboard`). Renders a monthly calendar of every form keyed by its GeoFence start date (with a fallback to the publication date when the form has no GeoFence configured), plus a side list of forms scheduled for the day clicked in the calendar. Day cells get a count chip — green when at least one form on the day is GeoFence-sourced, gray when all are post_date fallbacks. Backed by a new `GET /ffc/v1/certificates/calendar` REST endpoint gated on `edit_others_posts` (Editor + Administrator). Reuses the existing `FFCCalendarCore` JS grid.
+
+### Fixed
+
+- **Audience shortcode modals fall behind the calendar instead of appearing as an overlay.** The day-detail and booking modals in `[ffc_audience]` were rendered outside the `.ffc-shortcode` wrapper that the `ffc-calendar-wrapper` refactor introduced, so the `.ffc-shortcode .ffc-modal` rules (which provide `position: fixed`, the dark backdrop and centred placement) never matched. Modals dropped into normal flow and rendered inline below the calendar. Added `ffc-shortcode` to each modal's class list so the existing scoped CSS applies again — minimal change, no layout or selector-broadening side effects.
+
 ---
 
 ## [6.3.11] (2026-05-10)
