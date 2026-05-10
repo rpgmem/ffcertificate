@@ -192,6 +192,9 @@ class Debug {
 	 * preserving the first 2, last 2, and the original length. Returns
 	 * `***` for short strings whose shape would otherwise reveal too
 	 * much.
+	 *
+	 * @param string $value Sensitive scalar to mask.
+	 * @return string Masked representation.
 	 */
 	private static function mask_value( string $value ): string {
 		$len = strlen( $value );
@@ -208,6 +211,9 @@ class Debug {
 	 * Cheap sniff for "this string looks like a URL with one of our
 	 * sensitive query parameters". Avoids invoking `parse_url` for
 	 * every scalar in the log payload.
+	 *
+	 * @param string $value Candidate string.
+	 * @return bool True when the value is an http(s) URL containing a sensitive query parameter.
 	 */
 	private static function url_carries_secret( string $value ): bool {
 		if ( strncasecmp( $value, 'http', 4 ) !== 0 ) {
@@ -224,6 +230,9 @@ class Debug {
 	/**
 	 * Replace the value of any sensitive query parameter in `$url`
 	 * with `[redacted]`. Works on full URLs and bare query strings.
+	 *
+	 * @param string $url URL or query string.
+	 * @return string URL with sensitive parameter values replaced.
 	 */
 	private static function strip_secret_query( string $url ): string {
 		$pattern = '/([?&])(' . implode( '|', array_map( 'preg_quote', self::SENSITIVE_URL_PARAMS ) ) . ')=[^&#]*/i';
