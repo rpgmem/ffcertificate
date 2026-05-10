@@ -881,7 +881,6 @@ class FormEditorMetaboxRenderer {
 		// handler also short-circuits when enabled=0 to preserve persisted
 		// values that the disabled inputs would not have submitted.
 		$sub_disabled = ( '1' !== $enabled );
-		$disabled_attr = $sub_disabled ? ' disabled' : '';
 
 		// Nonce is emitted by render_box_layout(), which always renders before this metabox.
 		?>
@@ -928,7 +927,7 @@ class FormEditorMetaboxRenderer {
 							min="1"
 							step="1"
 							class="small-text"
-							value="<?php echo esc_attr( (string) $limit ); ?>"<?php echo $disabled_attr; ?>>
+							value="<?php echo esc_attr( (string) $limit ); ?>"<?php disabled( $sub_disabled ); ?>>
 					<p class="description">
 						<?php
 						printf(
@@ -957,13 +956,13 @@ class FormEditorMetaboxRenderer {
 							onclick="this.select();">
 					<p class="ffc-mt-10">
 						<label>
-							<input type="checkbox" name="ffc_csv_public[regenerate_hash]" value="1"<?php echo $disabled_attr; ?>>
+							<input type="checkbox" name="ffc_csv_public[regenerate_hash]" value="1"<?php disabled( $sub_disabled ); ?>>
 							<?php esc_html_e( 'Regenerate hash on save (invalidates the current link).', 'ffcertificate' ); ?>
 						</label>
 					</p>
 					<p>
 						<label>
-							<input type="checkbox" name="ffc_csv_public[reset_counter]" value="1"<?php echo $disabled_attr; ?>>
+							<input type="checkbox" name="ffc_csv_public[reset_counter]" value="1"<?php disabled( $sub_disabled ); ?>>
 							<?php esc_html_e( 'Reset the download counter to zero on save.', 'ffcertificate' ); ?>
 						</label>
 					</p>
@@ -1006,7 +1005,7 @@ class FormEditorMetaboxRenderer {
 					<label for="ffc_csv_public_cpf_mode"><?php esc_html_e( 'Require CPF for download', 'ffcertificate' ); ?></label>
 				</th>
 				<td>
-					<select name="ffc_csv_public[cpf_mode]" id="ffc_csv_public_cpf_mode"<?php echo $disabled_attr; ?>>
+					<select name="ffc_csv_public[cpf_mode]" id="ffc_csv_public_cpf_mode"<?php disabled( $sub_disabled ); ?>>
 						<option value="none" <?php selected( $cpf_mode, 'none' ); ?>><?php esc_html_e( 'No — only Form ID + Hash', 'ffcertificate' ); ?></option>
 						<option value="audit" <?php selected( $cpf_mode, 'audit' ); ?>><?php esc_html_e( 'Audit — require CPF, but do not match against any list', 'ffcertificate' ); ?></option>
 						<option value="participants" <?php selected( $cpf_mode, 'participants' ); ?>><?php esc_html_e( 'Participants — CPF must match a submission', 'ffcertificate' ); ?></option>
@@ -1026,7 +1025,7 @@ class FormEditorMetaboxRenderer {
 			// invisible while the mode is in flux and matches the prompt
 			// "só deve aparecer se for selecionada essa opção e salvar".
 			if ( 'whitelist' === $cpf_mode ) :
-			?>
+				?>
 			<tr class="ffc-csv-public-sub">
 				<th scope="row">
 					<label for="ffc_csv_public_cpf_whitelist"><?php esc_html_e( 'CPF whitelist', 'ffcertificate' ); ?></label>
@@ -1036,7 +1035,7 @@ class FormEditorMetaboxRenderer {
 						id="ffc_csv_public_cpf_whitelist"
 						rows="4"
 						class="large-text code"
-						placeholder="000.000.000-00&#10;111.111.111-11"<?php echo $disabled_attr; ?>><?php echo esc_textarea( $cpf_whitelist ); ?></textarea>
+						placeholder="000.000.000-00&#10;111.111.111-11"<?php disabled( $sub_disabled ); ?>><?php echo esc_textarea( $cpf_whitelist ); ?></textarea>
 					<p class="description">
 						<?php esc_html_e( 'One CPF per line. Only used when the mode above is set to "Whitelist". Formatting is ignored — only digits matter.', 'ffcertificate' ); ?>
 					</p>
@@ -1141,15 +1140,13 @@ class FormEditorMetaboxRenderer {
 		}
 
 		// Two independent gates control whether the sub-fields can be edited:
-		//   1. The global Device Fingerprint subsystem (Settings → Rate Limit).
-		//      When that is OFF, every input including the master checkbox is
-		//      locked — the warning explains how to enable it.
-		//   2. The per-form "Enable for this form" checkbox. When that is OFF
-		//      (but global is ON), only the secondary fields lock; the
-		//      checkbox itself stays editable so the user can flip it on.
-		$sub_disabled  = ( ! $global_active ) || ( '1' !== $enabled );
-		$disabled_attr = $sub_disabled ? ' disabled' : '';
-		$master_attr   = $global_active ? '' : ' disabled';
+		// 1. The global Device Fingerprint subsystem (Settings → Rate Limit).
+		// When that is OFF, every input including the master checkbox is
+		// locked — the warning explains how to enable it.
+		// 2. The per-form "Enable for this form" checkbox. When that is OFF
+		// (but global is ON), only the secondary fields lock; the
+		// checkbox itself stays editable so the user can flip it on.
+		$sub_disabled = ( ! $global_active ) || ( '1' !== $enabled );
 
 		$table_classes = array( 'form-table', 'ffc-device-limit-table' );
 		if ( ! $global_active ) {
@@ -1190,7 +1187,7 @@ class FormEditorMetaboxRenderer {
 							name="ffc_device_limit[enabled]"
 							id="ffc_device_limit_enabled"
 							value="1"
-							<?php checked( $enabled, '1' ); ?><?php echo $master_attr; ?>>
+							<?php checked( $enabled, '1' ); ?><?php disabled( ! $global_active ); ?>>
 						<?php esc_html_e( 'Apply the device-fingerprint limit to this form.', 'ffcertificate' ); ?>
 					</label>
 				</td>
@@ -1207,7 +1204,7 @@ class FormEditorMetaboxRenderer {
 						min="1"
 						max="100"
 						value="<?php echo esc_attr( $max ); ?>"
-						placeholder="<?php esc_attr_e( 'Default: 2', 'ffcertificate' ); ?>"<?php echo $disabled_attr; ?>>
+						placeholder="<?php esc_attr_e( 'Default: 2', 'ffcertificate' ); ?>"<?php disabled( $sub_disabled ); ?>>
 					<p class="description"><?php esc_html_e( 'Defaults to 2 when this metabox is enabled. Override here to set a per-form value.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
@@ -1223,7 +1220,7 @@ class FormEditorMetaboxRenderer {
 						min="3"
 						max="12"
 						value="<?php echo esc_attr( $threshold ); ?>"
-						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>"<?php echo $disabled_attr; ?>>
+						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>"<?php disabled( $sub_disabled ); ?>>
 					<p class="description"><?php esc_html_e( 'Lower = more aggressive. Leave empty to inherit the global default.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
@@ -1237,7 +1234,7 @@ class FormEditorMetaboxRenderer {
 						id="ffc_device_limit_message"
 						rows="2"
 						class="large-text"
-						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>"<?php echo $disabled_attr; ?>><?php echo esc_textarea( $message ); ?></textarea>
+						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>"<?php disabled( $sub_disabled ); ?>><?php echo esc_textarea( $message ); ?></textarea>
 				</td>
 			</tr>
 		</table>

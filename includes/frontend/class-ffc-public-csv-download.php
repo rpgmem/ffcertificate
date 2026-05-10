@@ -798,7 +798,7 @@ class PublicCsvDownload {
 	 * Public read-only count + URL builder for the metabox button.
 	 *
 	 * @param int $form_id Form ID.
-	 * @return array{count: int, url: string|null}
+	 * @return array{count: int, success: int, fail: int, url: string|null}
 	 */
 	public static function get_audit_log_summary( int $form_id ): array {
 		$log   = get_post_meta( $form_id, self::META_DOWNLOAD_LOG, true );

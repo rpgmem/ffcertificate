@@ -156,12 +156,12 @@ class CPT {
 		}
 
 		// Copy metadata. Three buckets:
-		//   - Core form data (fields, config, bg, geofence) — always copy.
-		//   - Public CSV Download config — copy enabled flag + sub-settings,
-		//     but NEVER the hash (security: a shared hash would let one URL
-		//     unlock both forms), the counter (each duplicate starts fresh),
-		//     or the audit log (history belongs to the original).
-		//   - Device Fingerprint per-form override — copy in full.
+		// - Core form data (fields, config, bg, geofence) — always copy.
+		// - Public CSV Download config — copy enabled flag + sub-settings,
+		// but NEVER the hash (security: a shared hash would let one URL
+		// unlock both forms), the counter (each duplicate starts fresh),
+		// or the audit log (history belongs to the original).
+		// - Device Fingerprint per-form override — copy in full.
 		$config_metas = array(
 			// Core.
 			'_ffc_form_fields',
