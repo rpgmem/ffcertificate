@@ -601,6 +601,36 @@ class ReregistrationSubmissionRepository {
 	}
 
 	/**
+	 * Stream submissions for CSV export in chunks of $chunk_size rows
+	 * to keep memory bounded for large reregistrations. Yields rows
+	 * one at a time so the caller can pipe into `Csv::writer->rows()`.
+	 *
+	 * @since 6.5.0
+	 * @param int                  $reregistration_id Reregistration ID.
+	 * @param array<string, mixed> $filters           Filters (status, search, orderby, order).
+	 * @param int                  $chunk_size        Rows per database round-trip.
+	 * @return \Generator<int, ReregistrationSubmissionRow>
+	 */
+	public static function stream_for_export( int $reregistration_id, array $filters = array(), int $chunk_size = 500 ): \Generator {
+		$offset = 0;
+		while ( true ) {
+			$filters['limit']  = $chunk_size;
+			$filters['offset'] = $offset;
+			$rows              = self::get_by_reregistration( $reregistration_id, $filters );
+			if ( empty( $rows ) ) {
+				return;
+			}
+			foreach ( $rows as $row ) {
+				yield $row;
+			}
+			if ( count( $rows ) < $chunk_size ) {
+				return;
+			}
+			$offset += $chunk_size;
+		}
+	}
+
+	/**
 	 * Create pending submissions for all affected users of a reregistration.
 	 *
 	 * Skips users who already have a submission for this reregistration.

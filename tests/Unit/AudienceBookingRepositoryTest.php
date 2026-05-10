@@ -58,6 +58,15 @@ class AudienceBookingRepositoryTest extends TestCase {
         $this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
             return func_get_args()[0];
         })->byDefault();
+
+        // 6.5.0: create() now wraps conflict-check + insert in a
+        // START TRANSACTION ... COMMIT block (#144 S2). Default the
+        // transaction primitives + the inner FOR UPDATE select to
+        // no-op success so existing create() tests keep passing
+        // without per-test ceremony. Tests exercising the conflict
+        // path can override.
+        $this->wpdb->shouldReceive('query')->byDefault();
+        $this->wpdb->shouldReceive('get_results')->andReturn([])->byDefault();
     }
 
     protected function tearDown(): void {
@@ -613,6 +622,49 @@ class AudienceBookingRepositoryTest extends TestCase {
         ]);
 
         $this->assertFalse($result);
+    }
+
+    public function test_create_aborts_when_for_update_finds_conflict(): void {
+        // Override the default no-conflict get_results stub: simulate
+        // the SELECT ... FOR UPDATE returning an existing booking, so
+        // create() must roll back without inserting.
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
+            (object) array( 'id' => 99 ),
+        ));
+        $this->wpdb->shouldNotReceive('insert');
+
+        $result = AudienceBookingRepository::create([
+            'environment_id' => 5,
+            'booking_date' => '2026-03-15',
+            'start_time' => '09:00',
+            'end_time' => '10:00',
+            'description' => 'Concurrent attempt',
+        ]);
+
+        $this->assertFalse($result);
+    }
+
+    public function test_create_runs_inside_a_transaction(): void {
+        $this->wpdb->insert_id = 12;
+        $this->wpdb->shouldReceive('insert')->once()->andReturn(1);
+
+        $captured_queries = array();
+        $this->wpdb->shouldReceive('query')->andReturnUsing(function ($sql) use (&$captured_queries) {
+            $captured_queries[] = (string) $sql;
+            return 1;
+        });
+
+        AudienceBookingRepository::create([
+            'environment_id' => 5,
+            'booking_date' => '2026-03-15',
+            'start_time' => '09:00',
+            'end_time' => '10:00',
+            'description' => 'Booked safely',
+        ]);
+
+        $this->assertContains('START TRANSACTION', $captured_queries);
+        $this->assertContains('COMMIT', $captured_queries);
+        $this->assertNotContains('ROLLBACK', $captured_queries);
     }
 
     public function test_create_uses_defaults(): void {

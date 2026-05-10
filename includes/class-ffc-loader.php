@@ -169,6 +169,11 @@ class Loader {
 		// Ensure submissions table schema is current (runs add_columns on version change).
 		\FreeFormCertificate\Activator::maybe_add_columns();
 
+		// 6.5.0: idx_created on candidate / notice / reregistration_submissions
+		// for ORDER BY created_at queries (issue #144 S1). Idempotent — gated
+		// on FFC_VERSION so the ALTER TABLE runs once per release.
+		\FreeFormCertificate\Activator::maybe_add_perf_indexes();
+
 		// Ensure rate-limit tables (incl. ffc_device_signals added in 6.3.0) exist
 		// even after in-place plugin updates that bypass register_activation_hook.
 		if ( class_exists( '\FreeFormCertificate\Security\RateLimitActivator' ) ) {
@@ -427,6 +432,18 @@ class Loader {
 			'ffcertificate_daily_cleanup_hook',
 			function () {
 				$this->submission_handler->run_data_cleanup();
+			}
+		);
+		// 6.5.0: scrub stale CSV-export temp files + transient rows
+		// left behind by users who abandoned an export mid-flight (#144 S6).
+		// Wrapped in a void closure because cleanup_stale_export_jobs()
+		// returns an int (count of reclaimed jobs) — useful for logging
+		// or programmatic invocation, but action callbacks must return
+		// void per PHPStan's `return.void` rule.
+		add_action(
+			'ffcertificate_daily_cleanup_hook',
+			static function (): void {
+				\FreeFormCertificate\Admin\CsvExporter::cleanup_stale_export_jobs();
 			}
 		);
 		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
