@@ -434,6 +434,12 @@ class Loader {
 				$this->submission_handler->run_data_cleanup();
 			}
 		);
+		// 6.5.0: scrub stale CSV-export temp files + transient rows
+		// left behind by users who abandoned an export mid-flight (#144 S6).
+		add_action(
+			'ffcertificate_daily_cleanup_hook',
+			array( \FreeFormCertificate\Admin\CsvExporter::class, 'cleanup_stale_export_jobs' )
+		);
 		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
 		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
 	}

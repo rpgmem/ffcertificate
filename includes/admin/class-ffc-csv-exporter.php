@@ -358,6 +358,67 @@ class CsvExporter {
 		exit;
 	}
 
+	/**
+	 * Daily cleanup: remove temp CSV files + transient option rows
+	 * left behind by exports the user abandoned mid-stream (closed
+	 * the browser before clicking the download link, lost network,
+	 * etc.). Walks both `_transient_ffc_csv_export_*` (admin) and
+	 * `_transient_ffc_public_csv_*` (front-end) prefixes; for each
+	 * row whose `_transient_timeout_*` is past, unlinks the temp
+	 * file referenced in the payload and deletes the option pair.
+	 *
+	 * Hooked from {@see Loader::define_admin_hooks()} to
+	 * `ffcertificate_daily_cleanup_hook` (existing daily cron).
+	 *
+	 * @since 6.5.0
+	 * @return int Number of stale jobs reclaimed.
+	 */
+	public static function cleanup_stale_export_jobs(): int {
+		global $wpdb;
+
+		$prefixes = array(
+			'_transient_timeout_ffc_csv_export_',
+			'_transient_timeout_ffc_public_csv_',
+		);
+
+		$now      = time();
+		$reclaimed = 0;
+
+		foreach ( $prefixes as $timeout_prefix ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( $timeout_prefix ) . '%'
+				)
+			);
+			if ( empty( $rows ) ) {
+				continue;
+			}
+			foreach ( $rows as $row ) {
+				$expires_at = (int) $row->option_value;
+				if ( $expires_at > $now ) {
+					continue; // Still within TTL — leave it.
+				}
+
+				$transient_key = (string) preg_replace( '/^_transient_timeout_/', '', $row->option_name );
+
+				// Read the payload BEFORE deleting so we can unlink
+				// the temp file the abandoned job left on disk.
+				$job = get_option( '_transient_' . $transient_key );
+				if ( is_array( $job ) && ! empty( $job['file'] ) && file_exists( $job['file'] ) ) {
+                    // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+					unlink( $job['file'] );
+				}
+
+				delete_transient( $transient_key );
+				++$reclaimed;
+			}
+		}
+
+		return $reclaimed;
+	}
+
 	// ──────────────────────────────────────────────────────────────.
 	// Legacy entry point (kept for backwards compat)
 	// ──────────────────────────────────────────────────────────────.
