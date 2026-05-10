@@ -367,7 +367,7 @@ class AppointmentHandler {
 					__( 'You do not have permission to cancel appointments.', 'ffcertificate' )
 				);
 			}
-		} elseif ( ! empty( $token ) && $appointment['confirmation_token'] === $token ) {
+		} elseif ( ! empty( $token ) && is_string( $appointment['confirmation_token'] ) && hash_equals( (string) $appointment['confirmation_token'], (string) $token ) ) {
 			$can_cancel = true;
 		}
 
