@@ -328,7 +328,8 @@
 /* Buttons — base classes consolidated in ffc-common.css */
 
 /* Modal */
-.ffc-shortcode .ffc-modal {
+.ffc-shortcode .ffc-modal,
+.ffc-shortcode.ffc-modal {
     position: fixed;
     top: 0;
     left: 0;
