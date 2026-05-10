@@ -273,7 +273,7 @@ final class RecruitmentCsvImporter {
 					return;
 				}
 
-				$row          = self::build_row( $cells, $index_map );
+				$row          = self::build_row( array_values( $cells ), $index_map );
 				$row['_line'] = $line_number;
 				$rows[]       = $row;
 			}

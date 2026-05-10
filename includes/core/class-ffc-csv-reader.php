@@ -57,7 +57,7 @@ final class CsvReader {
 	/**
 	 * Cached header row after the first call to {@see self::header()}.
 	 *
-	 * @var array<int, string>|null
+	 * @var list<string>|null
 	 */
 	private ?array $header = null;
 
@@ -89,7 +89,7 @@ final class CsvReader {
 	 * Read the header row. Idempotent — subsequent calls return the
 	 * cached value without re-reading the stream.
 	 *
-	 * @return array<int, string>
+	 * @return list<string>
 	 */
 	public function header(): array {
 		if ( null !== $this->header ) {
@@ -104,7 +104,7 @@ final class CsvReader {
 	 * Stream every body row (everything after the header) through
 	 * the callback. Memory-bounded.
 	 *
-	 * @param callable $cb Invoked once per row; receives `array<int, string>`.
+	 * @param callable $cb Invoked once per row; receives `list<string>`.
 	 * @return void
 	 */
 	public function each( callable $cb ): void {
@@ -121,13 +121,16 @@ final class CsvReader {
 	 * Read all body rows into an array. Use only when the file is
 	 * known to be small (config templates, sub-100-row imports).
 	 *
-	 * @return list<array<int, string>>
+	 * @return list<list<string>>
 	 */
 	public function all(): array {
 		$rows = array();
 		$this->each(
 			static function ( array $row ) use ( &$rows ): void {
-				$rows[] = $row;
+				// array_values preserves the list invariant for PHPStan;
+				// each() always passes a list-shaped row but the closure
+				// parameter type erases that to plain array.
+				$rows[] = array_values( $row );
 			}
 		);
 		return $rows;
@@ -149,17 +152,22 @@ final class CsvReader {
 	/**
 	 * Coerce fgetcsv output to a list of strings. fgetcsv returns
 	 * `null` for missing trailing cells on some PHP versions;
-	 * downstream consumers prefer empty strings.
+	 * downstream consumers prefer empty strings. fgetcsv emits
+	 * sequential int keys starting at 0 (not associative), so the
+	 * result is a list — preserving that invariant in the type
+	 * annotation lets callers' typed parameters accept it directly.
 	 *
 	 * @param array<int, mixed> $row Raw row from fgetcsv.
-	 * @return array<int, string>
+	 * @return list<string>
 	 */
 	private static function coerce_cells( array $row ): array {
-		return array_map(
-			static function ( $cell ): string {
-				return is_string( $cell ) ? $cell : '';
-			},
-			$row
+		return array_values(
+			array_map(
+				static function ( $cell ): string {
+					return is_string( $cell ) ? $cell : '';
+				},
+				$row
+			)
 		);
 	}
 
