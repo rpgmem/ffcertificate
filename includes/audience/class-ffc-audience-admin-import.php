@@ -419,12 +419,13 @@ class AudienceAdminImport {
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
 		$output = fopen( 'php://output', 'w' );
 		if ( false === $output ) {
 			exit;
 		}
-		fputcsv( $output, array( 'email', 'name', 'audience_name' ), ';' );
+		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
+		$writer->row( array( 'email', 'name', 'audience_name' ) );
 
 		$seen = array(); // Avoid duplicate rows for same user+audience.
 		foreach ( $audience_ids as $aid ) {
@@ -443,19 +444,18 @@ class AudienceAdminImport {
 					continue;
 				}
 
-				fputcsv(
-					$output,
+				$writer->row(
 					array(
 						$user->user_email,
 						$user->display_name,
 						$audience_name,
-					),
-					';'
+					)
 				);
 			}
 		}
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		$writer->close();
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
 		fclose( $output );
 		exit;
 	}
@@ -472,41 +472,39 @@ class AudienceAdminImport {
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
 		$output = fopen( 'php://output', 'w' );
 		if ( false === $output ) {
 			exit;
 		}
-		fputcsv( $output, array( 'name', 'color', 'parent' ), ';' );
+		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
+		$writer->row( array( 'name', 'color', 'parent' ) );
 
 		// Parents first, then children (same order as import expects).
 		foreach ( $audiences as $audience ) {
-			fputcsv(
-				$output,
+			$writer->row(
 				array(
 					$audience->name,
 					$audience->color ?? '#3788d8',
 					'', // Parents have no parent.
-				),
-				';'
+				)
 			);
 
 			if ( ! empty( $audience->children ) ) {
 				foreach ( $audience->children as $child ) {
-					fputcsv(
-						$output,
+					$writer->row(
 						array(
 							$child->name,
 							$child->color ?? '#3788d8',
 							$audience->name,
-						),
-						';'
+						)
 					);
 				}
 			}
 		}
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		$writer->close();
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
 		fclose( $output );
 		exit;
 	}
