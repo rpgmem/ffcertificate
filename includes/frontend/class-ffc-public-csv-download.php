@@ -738,20 +738,18 @@ class PublicCsvDownload {
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
 		$fh = fopen( 'php://output', 'w' );
 		if ( false === $fh ) {
 			wp_die( esc_html__( 'Could not open output stream for CSV export.', 'ffcertificate' ), 500 );
 		}
 
-		// UTF-8 BOM for Excel-friendliness, same convention as PublicCsvExporter.
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
-		fwrite( $fh, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
+		$writer = \FreeFormCertificate\Core\Csv::writer( $fh );
 		if ( ! $encryption_ok ) {
 			// One-line preamble so the admin knows why CPFs come out empty.
-			fputcsv( $fh, array( '# Encryption is not configured on this site; CPF column will be empty for new entries. See plugin docs.' ), ';' );
+			$writer->row( array( '# Encryption is not configured on this site; CPF column will be empty for new entries. See plugin docs.' ) );
 		}
-		fputcsv( $fh, array( 'timestamp_utc', 'ip', 'mode', 'cpf', 'result' ), ';' );
+		$writer->row( array( 'timestamp_utc', 'ip', 'mode', 'cpf', 'result' ) );
 
 		foreach ( $log as $entry ) {
 			if ( ! is_array( $entry ) ) {
@@ -762,9 +760,10 @@ class PublicCsvDownload {
 			$mod = isset( $entry['mode'] ) ? (string) $entry['mode'] : '';
 			$res = isset( $entry['result'] ) ? (string) $entry['result'] : '';
 			$cpf = self::decrypt_log_entry_cpf( $entry );
-			fputcsv( $fh, array( $ts, $ip, $mod, $cpf, $res ), ';' );
+			$writer->row( array( $ts, $ip, $mod, $cpf, $res ) );
 		}
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		$writer->close();
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
 		fclose( $fh );
 		exit;
 	}
