@@ -2,9 +2,14 @@
  * FFC Certificates Dashboard
  *
  * Layout for the admin dashboard page: monthly calendar on the left,
- * a side list of forms for the selected day on the right. Reuses the
- * shared FFCCalendarCore markup + tokens already loaded by the audience
- * admin stack.
+ * a side list of forms for the selected day on the right.
+ *
+ * Includes a self-contained copy of the FFCCalendarCore grid styles —
+ * the originals live in ffc-audience.css scoped under .ffc-shortcode and
+ * are never enqueued in the admin. Re-scoping them here under
+ * .ffc-calendar-core (the wrapper FFCCalendarCore renders itself) keeps
+ * the dashboard standalone while staying isolated from the audience
+ * surface.
  *
  * @since 6.4.0
  */
@@ -21,7 +26,8 @@
     background: var(--ffc-bg-card, #ffffff);
     border: 1px solid var(--ffc-border, #dcdcde);
     border-radius: 4px;
-    padding: 16px;
+    padding: 0;
+    overflow: hidden;
 }
 
 .ffc-certificates-dashboard-side {
@@ -97,7 +103,172 @@
     color: var(--ffc-text-secondary, #50575e);
 }
 
-/* Day-cell badge: a small count chip overlayed on the day number. */
+/* ------------------------------------------------------------------------
+ * FFCCalendarCore grid (self-contained, mirrors ffc-audience.css)
+ * ------------------------------------------------------------------------ */
+
+.ffc-calendar-core {
+    width: 100%;
+    background: #fff;
+}
+
+.ffc-calendar-core .ffc-calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: #f6f7f7;
+    border-bottom: 1px solid #dcdcde;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.ffc-calendar-core .ffc-calendar-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ffc-calendar-core .ffc-current-month {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    min-width: 180px;
+    text-align: center;
+}
+
+.ffc-calendar-core .ffc-nav-btn {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.ffc-calendar-core .ffc-nav-btn:hover {
+    background: #f6f7f7;
+    border-color: #c3c4c7;
+}
+
+.ffc-calendar-core .ffc-nav-btn:focus-visible {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+}
+
+.ffc-calendar-core .ffc-today-btn {
+    font-size: 13px;
+    padding: 6px 12px;
+    margin-left: 10px;
+}
+
+.ffc-calendar-core .ffc-calendar-grid {
+    padding: 15px;
+}
+
+.ffc-calendar-core .ffc-calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.ffc-calendar-core .ffc-weekday {
+    text-align: center;
+    font-weight: 600;
+    font-size: 13px;
+    color: #50575e;
+    padding: 10px 5px;
+}
+
+.ffc-calendar-core .ffc-calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+
+.ffc-calendar-core .ffc-day {
+    aspect-ratio: 1;
+    min-height: 0;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    padding: 5px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.ffc-calendar-core .ffc-day:hover {
+    border-color: #2271b1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.ffc-calendar-core .ffc-day.ffc-other-month {
+    background: #f6f7f7;
+    opacity: 0.6;
+    cursor: default;
+}
+
+.ffc-calendar-core .ffc-day.ffc-today {
+    border-color: #2271b1;
+    border-width: 2px;
+}
+
+.ffc-calendar-core .ffc-day.ffc-selected {
+    background: #e7f3ff;
+    border-color: #2271b1;
+}
+
+.ffc-calendar-core .ffc-day-number {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1e1e1e;
+}
+
+.ffc-calendar-core .ffc-today .ffc-day-number {
+    color: #2271b1;
+}
+
+.ffc-calendar-core .ffc-day-content {
+    margin-top: auto;
+    font-size: 11px;
+    overflow: hidden;
+    align-self: flex-end;
+}
+
+.ffc-calendar-core .ffc-calendar-legend {
+    display: flex;
+    gap: 20px;
+    padding: 15px 20px;
+    background: #f6f7f7;
+    border-top: 1px solid #dcdcde;
+    font-size: 13px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.ffc-calendar-core .ffc-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.ffc-calendar-core .ffc-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* ------------------------------------------------------------------------
+ * Certificate-specific day decorations
+ * ------------------------------------------------------------------------ */
+
 .ffc-calendar-core .ffc-day .ffc-cert-count {
     display: inline-block;
     min-width: 20px;
@@ -129,7 +300,6 @@
     cursor: pointer;
 }
 
-/* Legend dots: keep the same colour mapping. */
 .ffc-calendar-legend .ffc-legend-dot.ffc-cert-has-geofence {
     background: var(--ffc-success, #00a32a);
 }
@@ -143,3 +313,4 @@
         grid-template-columns: 1fr;
     }
 }
+
