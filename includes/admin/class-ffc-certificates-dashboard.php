@@ -98,9 +98,36 @@ class CertificatesDashboard {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Certificates Dashboard', 'ffcertificate' ); ?></h1>
-			<p><?php esc_html_e( 'Visual overview of all certificate forms by GeoFence start date (fallback: publication date).', 'ffcertificate' ); ?></p>
-			<div id="ffc-certificates-dashboard" class="ffc-certificates-dashboard"></div>
+			<p class="description">
+				<?php esc_html_e( 'Forms organised by GeoFence start date. Forms without a GeoFence start fall back to their publication date.', 'ffcertificate' ); ?>
+			</p>
+
+			<div class="ffc-certificates-dashboard">
+				<div class="ffc-certificates-dashboard-calendar">
+					<div id="ffc-certificates-calendar"></div>
+				</div>
+				<aside class="ffc-certificates-dashboard-side" aria-live="polite">
+					<h2 class="ffc-certificates-side-title">
+						<?php esc_html_e( 'Forms on the selected day', 'ffcertificate' ); ?>
+					</h2>
+					<p class="ffc-certificates-side-empty">
+						<?php esc_html_e( 'Pick a day in the calendar to see the forms scheduled for it.', 'ffcertificate' ); ?>
+					</p>
+					<ul id="ffc-certificates-day-list" class="ffc-certificates-day-list" hidden></ul>
+				</aside>
+			</div>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Whether the supplied admin hook suffix corresponds to this dashboard.
+	 *
+	 * @param string $hook_suffix Hook suffix received in admin_enqueue_scripts.
+	 * @return bool
+	 */
+	public static function is_dashboard_hook( string $hook_suffix ): bool {
+		// WordPress builds the suffix as `<post_type>_page_<menu_slug>`.
+		return 'ffc_form_page_' . self::MENU_SLUG === $hook_suffix;
 	}
 }
