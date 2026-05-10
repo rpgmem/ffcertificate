@@ -82,6 +82,16 @@
             return;
         }
 
+        // Portal the modals to <body> so their position: fixed always
+        // resolves against the viewport. Any ancestor with transform,
+        // filter, perspective, will-change or contain creates a new
+        // containing block for fixed-position descendants — block themes
+        // routinely add such properties to entry-content / wp-block-*
+        // wrappers, which traps the modal inside the post layout column
+        // and shows it as a horizontal stripe instead of a full-screen
+        // overlay.
+        $('#ffc-booking-modal, #ffc-day-modal').appendTo('body');
+
         // Parse config from data attribute
         state.config = JSON.parse($calendar.attr('data-config') || '{}');
         state.selectedSchedule = state.config.scheduleId || 0;
