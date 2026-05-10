@@ -85,8 +85,18 @@ class DashboardAssetManager {
 		// Dark mode.
 		\FreeFormCertificate\Core\Utils::enqueue_dark_mode();
 
-		// Enqueue JavaScript.
-		wp_enqueue_script( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		// Enqueue JavaScript. The dashboard is split across 8 files since 6.5.2:
+		// `ffc-dashboard` is the core (handle preserved for backwards-compat with
+		// external dependents like ffc-reregistration-frontend); the 7 sibling
+		// files self-register panels into FFCDashboard.panels.
+		wp_enqueue_script( 'ffc-dashboard', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-dashboard-cal-export', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-cal-export{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-dashboard-certificates', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-certificates{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-dashboard-appointments', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-appointments{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-cal-export' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-dashboard-audience', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-audience{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-cal-export' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-dashboard-reregistrations', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-reregistrations{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-dashboard-profile', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-profile{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-dashboard-audience-join', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-audience-join{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-profile' ), FFC_VERSION, true );
 
 		// Working hours field component (shared).
 		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array(), FFC_VERSION );

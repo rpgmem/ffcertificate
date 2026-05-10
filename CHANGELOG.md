@@ -9,6 +9,22 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.5.2] (2026-05-10)
+
+**Refactor the user-dashboard god-object into self-registering panels (#142).** `assets/js/ffc-user-dashboard.js` was 1548 LOC of one IIFE owning seven panel renderers, AJAX state, and a tab dispatch built from chained `if/else if`. Adding a panel touched five places. Split into 8 files with a panel registry: core dispatches via `FFCDashboard.panels[tab].render(state, page)`, and adding a panel now needs zero edits to the core file.
+
+### Changed
+
+- **`assets/js/ffc-user-dashboard.js` removed; replaced by 8 sibling files.** `ffc-user-dashboard-core.js` (panel registry, generic event bindings, summary header, tab dispatch); `ffc-user-dashboard-cal-export.js` (ICS / Google / Outlook export utilities, shared by appointments + audience); `ffc-user-dashboard-{certificates,appointments,audience,reregistrations,profile}.js` (per-tab panels self-registering into `FFCDashboard.panels`); `ffc-user-dashboard-audience-join.js` (joinable-groups subsection rendered into the profile panel).
+- **`includes/shortcodes/class-ffc-dashboard-asset-manager.php` enqueues all 8 scripts with explicit dependency chain.** The legacy `'ffc-dashboard'` handle is preserved (now points at the core file) so external dependents (`ffc-reregistration-frontend`, etc.) keep working without changes. New handles `ffc-dashboard-{cal-export,certificates,appointments,audience,reregistrations,profile,audience-join}` each declare their deps on core (and `ffc-dashboard-cal-export` for appointments/audience, `ffc-dashboard-profile` for audience-join).
+- **Tab dispatch is now table-driven.** The chained `if (target === 'certificates') { … } else if …` in `loadInitialTab`, `switchTab`, `applyTabFilter`, and `handlePagination` (4 places, 5 panels each) becomes `var panel = this.panels[tab]; if (panel) panel.{load,render}(…)`. A future panel just creates a new file and a `wp_enqueue_script` line; no edits to `ffc-user-dashboard-core.js`.
+
+### Deferred (originally part of #142)
+
+- **`assets/js/ffc-audience.js` split.** The original audit grouped this with user-dashboard, but on closer inspection it's a procedural module (35+ functions sharing a `state` object inside one IIFE), not a god-object. Splitting would be source-level reorganisation, not architectural cleanup. Combined with low churn (2 commits in the last 6 months), the cost/benefit doesn't justify the work today. Plan documented in #142 for the day activity on the file justifies it.
+
+---
+
 ## [6.5.1] (2026-05-10)
 
 **DRY audit on the AJAX handler boilerplate (#143).** The audit asked for an `AjaxRequestTrait` collapsing the `check_ajax_referer` + `current_user_can` + `wp_send_json_error` triplet — but that trait already exists at `includes/core/class-ffc-ajax-trait.php` since 4.11.2. The remaining ask was call-site adoption across four admin handler classes. After two attempts (initial migration and a Brain Monkey state-rebinding workaround) hit irreducible cross-class test pollution in the suite, the actual call-site swap was reverted on this branch — leaving only the small, low-risk trait extension below as the real shipped change. See "Deferred" for the full reasoning.
