@@ -148,7 +148,8 @@ class CertificatesDashboardTest extends TestCase {
         ( new CertificatesDashboard() )->render_page();
         $output = (string) ob_get_clean();
 
-        $this->assertStringContainsString( 'id="ffc-certificates-dashboard"', $output );
         $this->assertStringContainsString( 'class="ffc-certificates-dashboard"', $output );
+        $this->assertStringContainsString( 'id="ffc-certificates-calendar"', $output );
+        $this->assertStringContainsString( 'id="ffc-certificates-day-list"', $output );
     }
 }
