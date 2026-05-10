@@ -29,6 +29,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class CsvExporter {
 
+	use \FreeFormCertificate\Core\AjaxTrait;
+
 	use \FreeFormCertificate\Core\CsvExportTrait;
 
 	/**
@@ -94,11 +96,8 @@ class CsvExporter {
 	 * - Returns job_id + total to JS.
 	 */
 	public function ajax_start(): void {
-		check_ajax_referer( 'ffc_csv_export', 'nonce' );
-
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_export_certificates' ) ) {
-			wp_send_json_error( __( 'Permission denied.', 'ffcertificate' ), 403 );
-		}
+		$this->verify_ajax_nonce( 'ffc_csv_export' );
+		$this->check_ajax_admin_or( 'ffc_export_certificates' );
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- sanitised below.
 		$form_ids = null;
@@ -217,11 +216,8 @@ class CsvExporter {
 	 * Process one batch (EXPORT_BATCH_SIZE rows) and append to temp file.
 	 */
 	public function ajax_batch(): void {
-		check_ajax_referer( 'ffc_csv_export', 'nonce' );
-
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_export_certificates' ) ) {
-			wp_send_json_error( __( 'Permission denied.', 'ffcertificate' ), 403 );
-		}
+		$this->verify_ajax_nonce( 'ffc_csv_export' );
+		$this->check_ajax_admin_or( 'ffc_export_certificates' );
 
 		$job_id = isset( $_POST['job_id'] ) ? sanitize_text_field( wp_unslash( $_POST['job_id'] ) ) : '';
 		$job    = get_transient( 'ffc_csv_export_' . $job_id );

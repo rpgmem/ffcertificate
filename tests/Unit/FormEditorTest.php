@@ -34,6 +34,10 @@ class FormEditorTest extends TestCase {
         Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
         Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'sanitize_file_name' )->returnArg();
+        // 6.5.1: AjaxTrait migration — see ReregistrationAdminTest setUp.
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        $_POST['nonce'] = 'test_nonce';
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );

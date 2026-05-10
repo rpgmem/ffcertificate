@@ -34,6 +34,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Settings {
 
+	use \FreeFormCertificate\Core\AjaxTrait;
+
 	/**
 	 * Tabs.
 	 *
@@ -522,13 +524,10 @@ class Settings {
 	 * @since 2.10.0
 	 */
 	public function ajax_preview_date_format(): void {
-		check_ajax_referer( 'ffc_preview_date', 'nonce' );
+		$this->verify_ajax_nonce( 'ffc_preview_date' );
+		$this->check_ajax_admin_or( 'ffc_manage_settings' );
 
-		if ( ! \FreeFormCertificate\Core\Utils::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
-		}
-
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_ajax_referer.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via verify_ajax_nonce.
 		$format = isset( $_POST['format'] ) ? sanitize_text_field( wp_unslash( $_POST['format'] ) ) : 'F j, Y';
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_ajax_referer.
 		$custom_format = isset( $_POST['custom_format'] ) ? sanitize_text_field( wp_unslash( $_POST['custom_format'] ) ) : '';

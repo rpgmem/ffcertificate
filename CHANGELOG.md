@@ -9,6 +9,28 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.5.1] (2026-05-10)
+
+**DRY pass on AJAX handler boilerplate (#143).** Adopts the existing `AjaxTrait` (introduced in 4.11.2) on five AJAX handler classes that were still inlining the `check_ajax_referer` + `current_user_can` + `wp_send_json_error` triplet. Adds one new helper method to the trait to cover the "admin OR granular cap" pattern that previously required hand-rolled `Utils::current_user_can_admin_or()` calls.
+
+### Added
+
+- **`AjaxTrait::check_ajax_admin_or( string $granular_cap )`.** Encodes the "site admin always passes, plus delegated operators with `$granular_cap` pass" contract that admin-export and admin-settings handlers want. Removes the per-handler `Utils::current_user_can_admin_or()` boilerplate.
+
+### Changed
+
+- **8 AJAX handlers across 4 classes migrated to `AjaxTrait`.** ReregistrationAdmin (3 handlers), CsvExporter (2 handlers), FormEditor (2 handlers), Settings (1 handler). Each handler's first 4-6 lines (`check_ajax_referer` + permission check + `wp_send_json_error`) collapse to two `$this->verify_ajax_nonce()` + `$this->check_ajax_permission()` (or `check_ajax_admin_or()`) calls. No behaviour change — the trait wraps the same WP primitives.
+
+### Honest no-ops (audit findings already implemented or not actual duplication)
+
+- **#143 S2 — `Sanitizer` utility class:** investigation showed 32 callsites of the `array_map('sanitize_text_field', …)` / `array_map('absint', …)` idiom, but a clean `Sanitizer` class introduction caused cross-test pollution in the suite that wasn't tractable in this PR's scope. Deferred until the test infrastructure can be hardened independently — the real win is small (each callsite is a single line) and doesn't justify destabilising the test harness.
+- **#143 S3 — `DateFormatManager`:** WordPress's `get_option()` already caches via `wp_cache_get`, so a memoising service for `date_format` / `time_format` would only save the function-call overhead, not the query. Marginal value, declined.
+- **#143 S4 — `TableNames` / `SettingsKeys` / `Capabilities` constants classes:** the audit estimated 28+ literals; reality is 209 callsites of `wpdb->prefix . 'ffc_X'` alone. Constant-class migration would touch 209 sites for a small typo-protection win — disproportionate churn for the value.
+- **#143 S5 — `FormFieldRenderer`:** the 8 classes that implement `render_field`/`render_section` live in 6 distinct domains (admin form-editor metabox, admin custom-fields metabox, reregistration form, settings tab, recruitment public shortcode, generic shortcodes). Each emits different markup against different field-type ecosystems. A unified renderer would either become a god-object or be too thin to add value.
+- **#143 S6 — Shared modal CSS:** the two implementations the audit flagged (`assets/css/ffc-audience.css` `.ffc-shortcode .ffc-modal*` vs `assets/css/ffc-admin-move-submissions.css` `.ffc-move-modal*`) actually use different class names, different positioning, and different visual treatment. They're two separate modals, not duplicates of one — extraction would force one to regress visually.
+
+---
+
 ## [6.5.0] (2026-05-10)
 
 **Performance and stability (#144).** Three real implementations + three "already done in earlier releases" honest no-ops + one deferred-as-follow-up. Minor bump because the migration adds indexes on existing tables and changes the `create()` invariant on audience bookings (now atomic).

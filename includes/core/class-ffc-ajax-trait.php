@@ -72,6 +72,38 @@ trait AjaxTrait {
 	}
 
 	/**
+	 * Check that the current user is an admin OR holds a granular FFC
+	 * capability. The strict `check_ajax_permission()` does an exact
+	 * `current_user_can()` test — which excludes the site administrator
+	 * unless they were also explicitly granted the granular cap.
+	 *
+	 * Many FFC modules want "site admins can always do X, plus delegated
+	 * operators with cap Y can do X" — this helper encodes that contract
+	 * so handlers don't have to wire their own
+	 * `\Utils::current_user_can_admin_or()` boilerplate.
+	 *
+	 * @since 6.5.1
+	 * @param string $granular_cap FFC capability that satisfies the check on its own.
+	 * @return void Dies with JSON error if neither admin nor cap-holder.
+	 */
+	protected function check_ajax_admin_or( string $granular_cap ): void {
+		if ( class_exists( '\FreeFormCertificate\Core\Utils' )
+			&& Utils::current_user_can_admin_or( $granular_cap ) ) {
+			return;
+		}
+
+		// Defensive fallback when Utils isn't loaded for some reason —
+		// preserves the canonical "admin OR granular" semantic.
+		if ( current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		if ( '' !== $granular_cap && current_user_can( $granular_cap ) ) {
+			return;
+		}
+		wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
+	}
+
+	/**
 	 * Get a sanitized string parameter from POST data.
 	 *
 	 * @param string $key     POST parameter name.

@@ -71,6 +71,9 @@ class SettingsTest extends TestCase {
         Functions\when( 'absint' )->alias( function ( $val ) {
             return abs( (int) $val );
         } );
+        // 6.5.1: AjaxTrait migration — see ReregistrationAdminTest setUp.
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        $_POST['nonce'] = 'test_nonce';
         Functions\when( 'add_query_arg' )->justReturn( 'https://example.com/wp-admin/redirect' );
         Functions\when( 'admin_url' )->alias( function ( $path = '' ) {
             return 'https://example.com/wp-admin/' . $path;
