@@ -189,6 +189,18 @@ class CapabilityManager {
 		// edit page so non-admin operators can fix typos in issued
 		// certificates without holding `manage_options`.
 		'ffc_certificate_update',
+
+		// REST-API authentication caps (6.4.1). Granted to external
+		// integrators authenticating via WordPress Application Passwords
+		// (Basic Auth) so they can read form definitions through
+		// `GET /ffc/v1/forms` / `GET /ffc/v1/forms/{id}` without the
+		// previous `__return_true` permission_callback that exposed the
+		// `_ffc_form_config` blob (allowed/denied user lists, validation
+		// codes, generated codes, geofence config). Only the forms cap
+		// lands here; calendars and appointments stay public-by-design
+		// because their REST routes serve the public booking shortcode
+		// directly. See issue #139.
+		'ffc_read_forms_api',
 	);
 
 	/**
