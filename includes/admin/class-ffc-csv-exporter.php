@@ -99,12 +99,14 @@ class CsvExporter {
 		$this->verify_ajax_nonce( 'ffc_csv_export' );
 		$this->check_ajax_admin_or( 'ffc_export_certificates' );
 
+        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above via verify_ajax_nonce().
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- sanitised below.
 		$form_ids = null;
 		if ( ! empty( $_POST['form_ids'] ) && is_array( $_POST['form_ids'] ) ) {
 			$form_ids = array_map( 'absint', wp_unslash( $_POST['form_ids'] ) );
 		}
 		$status = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : 'publish';
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- set_time_limit may be disabled.
 		@set_time_limit( 0 );
@@ -219,6 +221,7 @@ class CsvExporter {
 		$this->verify_ajax_nonce( 'ffc_csv_export' );
 		$this->check_ajax_admin_or( 'ffc_export_certificates' );
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via verify_ajax_nonce().
 		$job_id = isset( $_POST['job_id'] ) ? sanitize_text_field( wp_unslash( $_POST['job_id'] ) ) : '';
 		$job    = get_transient( 'ffc_csv_export_' . $job_id );
 

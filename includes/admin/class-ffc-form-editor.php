@@ -189,6 +189,7 @@ class FormEditor {
 		$this->verify_ajax_nonce( 'ffc_admin_pdf_nonce' );
 		$this->check_ajax_permission( 'edit_posts' );
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via verify_ajax_nonce().
 		$qty   = isset( $_POST['qty'] ) ? absint( wp_unslash( $_POST['qty'] ) ) : 10;
 		$codes = array();
 		for ( $i = 0; $i < $qty; $i++ ) {
@@ -205,6 +206,7 @@ class FormEditor {
 		$this->verify_ajax_nonce( 'ffc_admin_pdf_nonce' );
 		$this->check_ajax_permission( 'edit_posts' );
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via verify_ajax_nonce().
 		$filename = isset( $_POST['filename'] ) ? sanitize_file_name( wp_unslash( $_POST['filename'] ) ) : '';
 		if ( empty( $filename ) ) {
 			wp_send_json_error();
