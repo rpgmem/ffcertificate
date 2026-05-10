@@ -129,9 +129,15 @@ class CertificatesCalendarRestController {
 			)
 		);
 
-		// `fields => ids` returns an array of int IDs, but PHPStan widens
-		// WP_Query::$posts to array<int|WP_Post>; narrow the contract here.
-		/** @var int[] $ids */
+		/**
+		 * Narrow the type to int[].
+		 *
+		 * `fields => 'ids'` guarantees an int[] at runtime, but PHPStan widens
+		 * WP_Query::$posts to array<int|WP_Post> — annotate explicitly so the
+		 * downstream update_meta_cache / get_post calls type-check at level 8.
+		 *
+		 * @var int[] $ids
+		 */
 		$ids = $query->posts;
 		if ( empty( $ids ) ) {
 			return new \WP_REST_Response( array(), 200 );
