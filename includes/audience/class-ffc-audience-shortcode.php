@@ -320,7 +320,7 @@ class AudienceShortcode {
 
 		<?php if ( $show_booking_modal ) : ?>
 		<!-- Booking Modal -->
-		<div class="ffc-modal" id="ffc-booking-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-booking-modal-title" style="display: none;">
+		<div class="ffc-shortcode ffc-modal" id="ffc-booking-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-booking-modal-title" style="display: none;">
 			<div class="ffc-modal-backdrop"></div>
 			<div class="ffc-modal-content">
 				<div class="ffc-modal-header">
@@ -426,7 +426,7 @@ class AudienceShortcode {
 		<?php endif; ?>
 
 		<!-- Day Detail Modal -->
-		<div class="ffc-modal" id="ffc-day-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-day-modal-title" style="display: none;">
+		<div class="ffc-shortcode ffc-modal" id="ffc-day-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-day-modal-title" style="display: none;">
 			<div class="ffc-modal-backdrop"></div>
 			<div class="ffc-modal-content ffc-modal-lg">
 				<div class="ffc-modal-header">

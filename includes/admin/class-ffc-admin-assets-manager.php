@@ -372,6 +372,100 @@ class AdminAssetsManager {
 		if ( $this->is_submissions_list_page() ) {
 			$this->enqueue_move_submissions_assets();
 		}
+
+		// Certificates Dashboard (calendar view).
+		if ( $this->is_certificates_dashboard_page() ) {
+			$this->enqueue_certificates_dashboard_assets();
+		}
+	}
+
+	/**
+	 * Check if current page is the Certificates Dashboard.
+	 *
+	 * @return bool
+	 */
+	private function is_certificates_dashboard_page(): bool {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading.
+		return isset( $_GET['page'] )
+			&& sanitize_key( wp_unslash( $_GET['page'] ) ) === \FreeFormCertificate\Admin\CertificatesDashboard::MENU_SLUG;
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
+	 * Enqueue assets for the Certificates Dashboard page.
+	 *
+	 * Loads the shared FFCCalendarCore grid plus the dashboard-specific
+	 * script that wires the REST endpoint, day badges and side list.
+	 *
+	 * @return void
+	 */
+	private function enqueue_certificates_dashboard_assets(): void {
+		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
+		wp_enqueue_style(
+			'ffc-certificates-dashboard',
+			FFC_PLUGIN_URL . "assets/css/ffc-certificates-dashboard{$s}.css",
+			array( 'ffc-admin-css' ),
+			FFC_VERSION
+		);
+
+		wp_enqueue_script(
+			'ffc-calendar-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-calendar-core{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+
+		wp_enqueue_script(
+			'ffc-certificates-dashboard',
+			FFC_PLUGIN_URL . "assets/js/ffc-certificates-dashboard{$s}.js",
+			array( 'jquery', 'ffc-calendar-core' ),
+			FFC_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'ffc-certificates-dashboard',
+			'ffcCertificatesDashboard',
+			array(
+				'restUrl' => esc_url_raw( rest_url( 'ffc/v1/' ) ),
+				'nonce'   => wp_create_nonce( 'wp_rest' ),
+				'i18n'    => array(
+					'legendGeofence'  => __( 'GeoFence start', 'ffcertificate' ),
+					'legendFallback'  => __( 'Publication date (fallback)', 'ffcertificate' ),
+					'sourceGeofence'  => __( 'GeoFence', 'ffcertificate' ),
+					'sourcePostDate'  => __( 'Publication date', 'ffcertificate' ),
+					'noFormsForDay'   => __( 'No forms scheduled for this day.', 'ffcertificate' ),
+					'calendarStrings' => array(
+						'months'   => array(
+							__( 'January', 'ffcertificate' ),
+							__( 'February', 'ffcertificate' ),
+							__( 'March', 'ffcertificate' ),
+							__( 'April', 'ffcertificate' ),
+							__( 'May', 'ffcertificate' ),
+							__( 'June', 'ffcertificate' ),
+							__( 'July', 'ffcertificate' ),
+							__( 'August', 'ffcertificate' ),
+							__( 'September', 'ffcertificate' ),
+							__( 'October', 'ffcertificate' ),
+							__( 'November', 'ffcertificate' ),
+							__( 'December', 'ffcertificate' ),
+						),
+						'weekdays' => array(
+							__( 'Sun', 'ffcertificate' ),
+							__( 'Mon', 'ffcertificate' ),
+							__( 'Tue', 'ffcertificate' ),
+							__( 'Wed', 'ffcertificate' ),
+							__( 'Thu', 'ffcertificate' ),
+							__( 'Fri', 'ffcertificate' ),
+							__( 'Sat', 'ffcertificate' ),
+						),
+						'today'    => __( 'Today', 'ffcertificate' ),
+					),
+				),
+			)
+		);
 	}
 
 	/**
