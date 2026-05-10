@@ -44,24 +44,34 @@ class CalendarRestController {
 	 * Register routes
 	 */
 	public function register_routes(): void {
-		// GET /calendars - List all active calendars.
+		// GET /calendars, GET /calendars/{id}, GET /calendars/{id}/slots
+		//
+		// All three are public-by-design — the [ffc_self_scheduling]
+		// shortcode hits them anonymously to render the public booking
+		// UI. They cannot move behind a permission gate. Defence is the
+		// IP-keyed rate-limit guard called at the top of every handler
+		// (see CalendarRestController::rate_limit_guard()), which trips
+		// when the IP pool is exhausted by abusive submit/verify hits
+		// from the same address. See issue #139 (S3).
+
 		register_rest_route(
 			$this->namespace,
 			'/calendars',
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_calendars' ),
+				// phpcs:ignore -- public-by-design: see register_routes() block comment above and #139.
 				'permission_callback' => '__return_true',
 			)
 		);
 
-		// GET /calendars/{id} - Get calendar details.
 		register_rest_route(
 			$this->namespace,
 			'/calendars/(?P<id>\d+)',
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_calendar' ),
+				// phpcs:ignore -- public-by-design: see register_routes() block comment above and #139.
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'id' => array(
@@ -73,13 +83,13 @@ class CalendarRestController {
 			)
 		);
 
-		// GET /calendars/{id}/slots - Get available time slots.
 		register_rest_route(
 			$this->namespace,
 			'/calendars/(?P<id>\d+)/slots',
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_calendar_slots' ),
+				// phpcs:ignore -- public-by-design: see register_routes() block comment above and #139.
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'id'   => array(

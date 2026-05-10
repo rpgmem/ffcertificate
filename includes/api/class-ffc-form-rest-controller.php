@@ -112,12 +112,22 @@ class FormRestController {
 		);
 
 		// GET /forms/{id}/schema - Lightweight read-only form metadata.
+		//
+		// Public-by-design — the lightweight counterpart to GET /forms/{id}.
+		// Returns only id + title + the fields renderers need (name, label,
+		// type, required, options) and is the documented entry point for
+		// integrators that want to build a custom form UI without holding
+		// `ffc_read_forms_api`. The trim is enforced inside the handler
+		// (see get_form_schema()) and is filterable via
+		// `ffcertificate_rest_form_schema` so projects can add or remove
+		// keys without having to fork the controller. See issue #139.
 		register_rest_route(
 			$this->namespace,
 			'/forms/(?P<id>\d+)/schema',
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_form_schema' ),
+				// phpcs:ignore -- public-by-design: serves the curated schema; see route docblock above and #139.
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'id' => array(
@@ -130,12 +140,24 @@ class FormRestController {
 		);
 
 		// POST /forms/{id}/submit - Submit a form.
+		//
+		// Public-by-design — anonymous visitors submit certificate forms
+		// here (the plugin's primary public flow). Locking this behind a
+		// permission gate would break every "fill in the form to receive
+		// your certificate" deployment. The handler defends with: form
+		// publish-state check, geofence (date/time + IP geolocation), CPF/RF
+		// algorithm validation, email format validation, and three rate-
+		// limit pools (IP, email, CPF) — see submit_form() body. CSRF on
+		// REST endpoints is handled by WordPress's nonce/header model;
+		// origin validation is enforced by the submit form_processor used
+		// by the same flow. See issue #139.
 		register_rest_route(
 			$this->namespace,
 			'/forms/(?P<id>\d+)/submit',
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'submit_form' ),
+				// phpcs:ignore -- public-by-design: anonymous submission flow; see route docblock above and #139.
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'id' => array(

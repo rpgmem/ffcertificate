@@ -103,12 +103,22 @@ class SubmissionRestController {
 		);
 
 		// POST /verify - Verify certificate by auth code.
+		//
+		// Public-by-design — the certificate verification page
+		// (`/validate-certificate/`) lets anyone confirm a cert by typing
+		// in the auth code printed on it. Auth-gating this would defeat
+		// the verification feature's whole point. The handler defends
+		// with: auth-code length validation, hash_equals comparison
+		// (hardened in #140), and the verification-specific rate-limit
+		// pool (RateLimiter::check_verification) which throttles
+		// brute-force attempts before format validation runs. See #139.
 		register_rest_route(
 			$this->namespace,
 			'/verify',
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'verify_certificate' ),
+				// phpcs:ignore -- public-by-design: certificate verification flow; see route docblock above and #139.
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'auth_code' => array(

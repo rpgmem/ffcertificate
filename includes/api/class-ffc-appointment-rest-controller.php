@@ -45,12 +45,24 @@ class AppointmentRestController {
 	 */
 	public function register_routes(): void {
 		// POST /calendars/{id}/appointments - Create appointment.
+		//
+		// Public-by-design — anonymous visitors create bookings here
+		// (the [ffc_self_scheduling] shortcode submits to this route to
+		// reserve a slot). Locking this behind a permission gate would
+		// require every booking visitor to register for a WordPress
+		// account first, defeating the public booking flow. The handler
+		// defends with: required-field validation, calendar visibility
+		// checks (private calendars 403 anonymous callers), slot
+		// availability re-check inside a SELECT ... FOR UPDATE
+		// transaction, email format validation, and the IP-keyed rate-
+		// limit pool. See issue #139.
 		register_rest_route(
 			$this->namespace,
 			'/calendars/(?P<id>\d+)/appointments',
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'create_appointment' ),
+				// phpcs:ignore -- public-by-design: anonymous booking creation; see route docblock above and #139.
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'id' => array(
