@@ -265,26 +265,38 @@ class FormEditorSaveHandler {
 			$device_enabled = ! empty( $device_raw['enabled'] ) ? '1' : '0';
 			update_post_meta( $post_id, '_ffc_device_limit_enabled', $device_enabled );
 
-			// Empty fields delete the meta so the global default is inherited at read time.
-			$max_raw = isset( $device_raw['max'] ) ? trim( (string) $device_raw['max'] ) : '';
-			if ( '' === $max_raw ) {
-				delete_post_meta( $post_id, '_ffc_device_limit_max' );
-			} else {
-				update_post_meta( $post_id, '_ffc_device_limit_max', max( 1, absint( $max_raw ) ) );
-			}
+			// When the master toggle is off the sub-fields render disabled
+			// and never make it into the POST. Skip the rest of the block to
+			// preserve the persisted max / threshold / message instead of
+			// silently deleting them.
+			if ( '1' === $device_enabled ) {
+				// Max submissions: when the user enables the metabox without
+				// providing a value, default to 2 (per UX spec). This is a
+				// hard default — not an inherit-from-global — because the
+				// vast majority of forms want the same conservative limit.
+				$max_raw = isset( $device_raw['max'] ) ? trim( (string) $device_raw['max'] ) : '';
+				if ( '' === $max_raw ) {
+					update_post_meta( $post_id, '_ffc_device_limit_max', 2 );
+				} else {
+					update_post_meta( $post_id, '_ffc_device_limit_max', max( 1, absint( $max_raw ) ) );
+				}
 
-			$thr_raw = isset( $device_raw['threshold'] ) ? trim( (string) $device_raw['threshold'] ) : '';
-			if ( '' === $thr_raw ) {
-				delete_post_meta( $post_id, '_ffc_device_match_threshold' );
-			} else {
-				update_post_meta( $post_id, '_ffc_device_match_threshold', max( 3, min( 12, absint( $thr_raw ) ) ) );
-			}
+				// Threshold and message keep the inherit-from-global semantic:
+				// empty value deletes the meta so RateLimiter::get_settings()
+				// supplies the global default at read time.
+				$thr_raw = isset( $device_raw['threshold'] ) ? trim( (string) $device_raw['threshold'] ) : '';
+				if ( '' === $thr_raw ) {
+					delete_post_meta( $post_id, '_ffc_device_match_threshold' );
+				} else {
+					update_post_meta( $post_id, '_ffc_device_match_threshold', max( 3, min( 12, absint( $thr_raw ) ) ) );
+				}
 
-			$msg_raw = isset( $device_raw['message'] ) ? sanitize_textarea_field( (string) $device_raw['message'] ) : '';
-			if ( '' === $msg_raw ) {
-				delete_post_meta( $post_id, '_ffc_device_limit_message' );
-			} else {
-				update_post_meta( $post_id, '_ffc_device_limit_message', $msg_raw );
+				$msg_raw = isset( $device_raw['message'] ) ? sanitize_textarea_field( (string) $device_raw['message'] ) : '';
+				if ( '' === $msg_raw ) {
+					delete_post_meta( $post_id, '_ffc_device_limit_message' );
+				} else {
+					update_post_meta( $post_id, '_ffc_device_limit_message', $msg_raw );
+				}
 			}
 		}
 	}

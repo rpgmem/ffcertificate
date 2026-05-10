@@ -1139,19 +1139,38 @@ class FormEditorMetaboxRenderer {
 			$rl_settings   = \FreeFormCertificate\Security\RateLimiter::get_settings();
 			$global_active = ! empty( $rl_settings['device']['enabled'] );
 		}
+
+		// Two independent gates control whether the sub-fields can be edited:
+		//   1. The global Device Fingerprint subsystem (Settings → Rate Limit).
+		//      When that is OFF, every input including the master checkbox is
+		//      locked — the warning explains how to enable it.
+		//   2. The per-form "Enable for this form" checkbox. When that is OFF
+		//      (but global is ON), only the secondary fields lock; the
+		//      checkbox itself stays editable so the user can flip it on.
+		$sub_disabled  = ( ! $global_active ) || ( '1' !== $enabled );
+		$disabled_attr = $sub_disabled ? ' disabled' : '';
+		$master_attr   = $global_active ? '' : ' disabled';
+
+		$table_classes = array( 'form-table', 'ffc-device-limit-table' );
+		if ( ! $global_active ) {
+			$table_classes[] = 'ffc-device-limit-globally-off';
+		} elseif ( '1' !== $enabled ) {
+			$table_classes[] = 'ffc-device-limit-disabled';
+		}
+
 		// Nonce is emitted by render_box_layout(), which always renders before this metabox.
 		?>
 		<p class="description">
 			<?php esc_html_e( 'Limit how many times the same physical device can submit this form. Combines a persistent cookie with a multi-signal browser fingerprint and the global "N of M" matching rule.', 'ffcertificate' ); ?>
 		</p>
 		<?php if ( ! $global_active ) : ?>
-			<p class="description" style="color:#a00;">
+			<p class="description ffc-warning-text">
 				<strong><?php esc_html_e( 'Note:', 'ffcertificate' ); ?></strong>
 				<?php
 				echo wp_kses(
 					sprintf(
 						/* translators: %s: link to global rate-limit settings */
-						__( 'The Device Fingerprint subsystem is disabled globally. Enable it in %s for this per-form override to take effect.', 'ffcertificate' ),
+						__( 'The Device Fingerprint subsystem is disabled globally. Enable it in %s before configuring per-form overrides.', 'ffcertificate' ),
 						'<a href="' . esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-settings&tab=rate_limit' ) ) . '">' . esc_html__( 'Settings → Rate Limit → Device Fingerprint', 'ffcertificate' ) . '</a>'
 					),
 					array( 'a' => array( 'href' => array() ) )
@@ -1160,7 +1179,7 @@ class FormEditorMetaboxRenderer {
 			</p>
 		<?php endif; ?>
 
-		<table class="form-table">
+		<table class="<?php echo esc_attr( implode( ' ', $table_classes ) ); ?>">
 			<tr>
 				<th scope="row">
 					<label for="ffc_device_limit_enabled"><?php esc_html_e( 'Enable for this form', 'ffcertificate' ); ?></label>
@@ -1171,13 +1190,13 @@ class FormEditorMetaboxRenderer {
 							name="ffc_device_limit[enabled]"
 							id="ffc_device_limit_enabled"
 							value="1"
-							<?php checked( $enabled, '1' ); ?>>
+							<?php checked( $enabled, '1' ); ?><?php echo $master_attr; ?>>
 						<?php esc_html_e( 'Apply the device-fingerprint limit to this form.', 'ffcertificate' ); ?>
 					</label>
 				</td>
 			</tr>
 
-			<tr>
+			<tr class="ffc-device-limit-sub">
 				<th scope="row">
 					<label for="ffc_device_limit_max"><?php esc_html_e( 'Max submissions per device', 'ffcertificate' ); ?></label>
 				</th>
@@ -1188,12 +1207,12 @@ class FormEditorMetaboxRenderer {
 						min="1"
 						max="100"
 						value="<?php echo esc_attr( $max ); ?>"
-						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>">
-					<p class="description"><?php esc_html_e( 'Leave empty to inherit the global default.', 'ffcertificate' ); ?></p>
+						placeholder="<?php esc_attr_e( 'Default: 2', 'ffcertificate' ); ?>"<?php echo $disabled_attr; ?>>
+					<p class="description"><?php esc_html_e( 'Defaults to 2 when this metabox is enabled. Override here to set a per-form value.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 
-			<tr>
+			<tr class="ffc-device-limit-sub">
 				<th scope="row">
 					<label for="ffc_device_limit_threshold"><?php esc_html_e( 'Match threshold (3-12)', 'ffcertificate' ); ?></label>
 				</th>
@@ -1204,12 +1223,12 @@ class FormEditorMetaboxRenderer {
 						min="3"
 						max="12"
 						value="<?php echo esc_attr( $threshold ); ?>"
-						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>">
+						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>"<?php echo $disabled_attr; ?>>
 					<p class="description"><?php esc_html_e( 'Lower = more aggressive. Leave empty to inherit the global default.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 
-			<tr>
+			<tr class="ffc-device-limit-sub">
 				<th scope="row">
 					<label for="ffc_device_limit_message"><?php esc_html_e( 'Block message', 'ffcertificate' ); ?></label>
 				</th>
@@ -1218,7 +1237,7 @@ class FormEditorMetaboxRenderer {
 						id="ffc_device_limit_message"
 						rows="2"
 						class="large-text"
-						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>"><?php echo esc_textarea( $message ); ?></textarea>
+						placeholder="<?php esc_attr_e( 'Inherit from global', 'ffcertificate' ); ?>"<?php echo $disabled_attr; ?>><?php echo esc_textarea( $message ); ?></textarea>
 				</td>
 			</tr>
 		</table>
