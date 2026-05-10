@@ -15,6 +15,7 @@
  * @package FreeFormCertificate\Reregistration
  * @since 4.11.0
  * @since 4.12.13  Extracted action handlers and custom fields page
+ * @since 4.12.14  Extracted AJAX callbacks and submission details renderer
  */
 
 declare(strict_types=1);
@@ -48,17 +49,26 @@ class ReregistrationAdmin {
 	private const CAPABILITY = 'ffc_manage_reregistration';
 
 	/**
+	 * AJAX handler (lazily created in init()).
+	 *
+	 * @var ReregistrationAjaxHandler|null
+	 */
+	private ?ReregistrationAjaxHandler $ajax_handler = null;
+
+	/**
 	 * Initialize admin hooks.
 	 *
 	 * @return void
 	 */
 	public function init(): void {
+		$this->ajax_handler = new ReregistrationAjaxHandler();
+
 		add_action( 'admin_menu', array( $this, 'add_menu' ), 30 );
 		add_action( 'admin_init', array( $this, 'handle_actions' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
-		add_action( 'wp_ajax_ffc_generate_ficha', array( $this, 'ajax_generate_ficha' ) );
-		add_action( 'wp_ajax_ffc_rereg_count_members', array( $this, 'ajax_count_members' ) );
-		add_action( 'wp_ajax_ffc_view_submission_details', array( $this, 'ajax_view_submission_details' ) );
+		add_action( 'wp_ajax_ffc_generate_ficha', array( $this->ajax_handler, 'ajax_generate_ficha' ) );
+		add_action( 'wp_ajax_ffc_rereg_count_members', array( $this->ajax_handler, 'ajax_count_members' ) );
+		add_action( 'wp_ajax_ffc_view_submission_details', array( $this->ajax_handler, 'ajax_view_submission_details' ) );
 	}
 
 	/**
@@ -848,171 +858,6 @@ class ReregistrationAdmin {
 	}
 
 	/**
-	 * AJAX: Generate ficha PDF data for a submission.
-	 *
-	 * @return void
-	 */
-	public function ajax_generate_ficha(): void {
-		check_ajax_referer( 'ffc_generate_ficha', 'nonce' );
-
-		if ( ! current_user_can( self::CAPABILITY ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
-		}
-
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via check_ajax_referer() above.
-		$submission_id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
-		if ( ! $submission_id ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
-		}
-
-		$ficha_data = FichaGenerator::generate_ficha_data( $submission_id );
-		if ( ! $ficha_data ) {
-			wp_send_json_error( array( 'message' => __( 'Could not generate ficha.', 'ffcertificate' ) ) );
-		}
-
-		wp_send_json_success( array( 'pdf_data' => $ficha_data ) );
-	}
-
-	/**
-	 * AJAX: return HTML with the full submission detail grouped by fieldset.
-	 *
-	 * Used by the "View Details" modal on the submissions list. Decrypts
-	 * sensitive values (CPF/RF/RG) via FichaGenerator helpers and renders
-	 * them grouped by field_group with labels from wp_ffc_custom_fields.
-	 *
-	 * @return void
-	 */
-	public function ajax_view_submission_details(): void {
-		check_ajax_referer( 'ffc_view_submission_details', 'nonce' );
-
-		if ( ! current_user_can( self::CAPABILITY ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
-		}
-
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via check_ajax_referer() above.
-		$submission_id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
-		if ( ! $submission_id ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
-		}
-
-		$submission = ReregistrationSubmissionRepository::get_by_id( $submission_id );
-		if ( ! $submission ) {
-			wp_send_json_error( array( 'message' => __( 'Submission not found.', 'ffcertificate' ) ) );
-		}
-
-		$rereg = ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
-		if ( ! $rereg ) {
-			wp_send_json_error( array( 'message' => __( 'Reregistration not found.', 'ffcertificate' ) ) );
-		}
-
-		// Unified dynamic shape: { fields: { field_key => value } }.
-		$sub_data   = $submission->data ? json_decode( $submission->data, true ) : array();
-		$raw_values = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
-
-		$all_fields       = FichaGenerator::get_custom_fields_for_reregistration( $rereg );
-		$decrypted_values = FichaGenerator::decrypt_field_values( $all_fields, $raw_values );
-
-		$html = $this->build_submission_details_html( $submission, $all_fields, $decrypted_values );
-
-		wp_send_json_success( array( 'html' => $html ) );
-	}
-
-	/**
-	 * Build the HTML for the submission details modal body.
-	 *
-	 * Groups fields by field_group (preserving their declared order), renders
-	 * a <fieldset> per group and a label/value pair per field. Sensitive
-	 * values arrive already decrypted.
-	 *
-	 * @param object               $submission       Submission row.
-	 * @param array<int, object>   $fields           Field definitions for the audience(s).
-	 * @param array<string, mixed> $decrypted_values field_key => plaintext value map.
-	 * @phpstan-param ReregistrationSubmissionRow $submission
-	 * @phpstan-param list<CustomFieldRow>        $fields
-	 * @return string Escaped HTML block.
-	 */
-	private function build_submission_details_html( object $submission, array $fields, array $decrypted_values ): string {
-		$group_labels = array();
-		if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
-			$group_labels = ReregistrationStandardFieldsSeeder::get_group_labels();
-		}
-
-		// Group fields by field_group, preserving order of first appearance.
-		$grouped = array();
-		foreach ( $fields as $field ) {
-			$group = isset( $field->field_group ) ? (string) $field->field_group : '';
-			if ( ! isset( $grouped[ $group ] ) ) {
-				$grouped[ $group ] = array();
-			}
-			$grouped[ $group ][] = $field;
-		}
-
-		$date_format  = get_option( 'date_format' );
-		$time_format  = get_option( 'time_format' );
-		$submitted_at = '';
-		if ( ! empty( $submission->submitted_at ) ) {
-			$submitted_ts = strtotime( $submission->submitted_at );
-			$submitted_at = wp_date( $date_format . ' ' . $time_format, false === $submitted_ts ? null : $submitted_ts );
-		}
-
-		ob_start();
-		?>
-		<div class="ffc-submission-details">
-			<div class="ffc-submission-meta">
-				<p>
-					<strong><?php esc_html_e( 'Status:', 'ffcertificate' ); ?></strong>
-					<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $submission->status ); ?>">
-						<?php echo esc_html( ReregistrationSubmissionRepository::get_status_label( $submission->status ) ); ?>
-					</span>
-				</p>
-				<?php if ( $submitted_at ) : ?>
-					<p><strong><?php esc_html_e( 'Submitted:', 'ffcertificate' ); ?></strong> <?php echo esc_html( $submitted_at ); ?></p>
-				<?php endif; ?>
-			</div>
-
-			<?php foreach ( $grouped as $group_key => $group_fields ) : ?>
-				<?php
-				$legend = '' === $group_key
-					? __( 'Other Fields', 'ffcertificate' )
-					: ( $group_labels[ $group_key ] ?? ucfirst( str_replace( '_', ' ', $group_key ) ) );
-				?>
-				<fieldset class="ffc-details-fieldset">
-					<legend><?php echo esc_html( $legend ); ?></legend>
-					<dl class="ffc-details-list">
-						<?php foreach ( $group_fields as $field ) : ?>
-							<?php
-							$key           = (string) $field->field_key;
-							$raw_value     = $decrypted_values[ $key ] ?? '';
-							$formatted     = FichaGenerator::format_field_value( $field, $raw_value );
-							$is_html_field = ( (string) 'working_hours' === $field->field_type );
-							?>
-							<dt><?php echo esc_html( (string) $field->field_label ); ?></dt>
-							<dd>
-								<?php if ( '' === $formatted ) : ?>
-									<span class="ffc-details-empty">&mdash;</span>
-								<?php elseif ( $is_html_field ) : ?>
-									<?php echo wp_kses_post( $formatted ); ?>
-								<?php else : ?>
-									<?php echo esc_html( $formatted ); ?>
-								<?php endif; ?>
-							</dd>
-						<?php endforeach; ?>
-					</dl>
-				</fieldset>
-			<?php endforeach; ?>
-
-			<?php if ( ! empty( $submission->notes ) ) : ?>
-				<fieldset class="ffc-details-fieldset">
-					<legend><?php esc_html_e( 'Review Notes', 'ffcertificate' ); ?></legend>
-					<p><?php echo esc_html( (string) $submission->notes ); ?></p>
-				</fieldset>
-			<?php endif; ?>
-		</div>
-		<?php
-		return (string) ob_get_clean();
-	}
-
-	/**
 	 * Render audience <option> elements with hierarchy (parent → &mdash; child).
 	 *
 	 * Used by the list-view audience filter dropdown.
@@ -1107,26 +952,51 @@ class ReregistrationAdmin {
 	}
 
 	/**
+	 * Return the AJAX handler, creating it on first access.
+	 *
+	 * Allows the thin delegators below to work when callers (notably tests)
+	 * invoke AJAX methods directly on the facade without going through init().
+	 *
+	 * @return ReregistrationAjaxHandler
+	 */
+	private function get_ajax_handler(): ReregistrationAjaxHandler {
+		if ( null === $this->ajax_handler ) {
+			$this->ajax_handler = new ReregistrationAjaxHandler();
+		}
+		return $this->ajax_handler;
+	}
+
+	/**
+	 * AJAX: Generate ficha PDF data for a submission.
+	 *
+	 * Thin delegator to ReregistrationAjaxHandler; preserves the facade's
+	 * public surface so existing direct callers keep working.
+	 *
+	 * @return void
+	 */
+	public function ajax_generate_ficha(): void {
+		$this->get_ajax_handler()->ajax_generate_ficha();
+	}
+
+	/**
+	 * AJAX: Return HTML with the full submission detail grouped by fieldset.
+	 *
+	 * Thin delegator to ReregistrationAjaxHandler.
+	 *
+	 * @return void
+	 */
+	public function ajax_view_submission_details(): void {
+		$this->get_ajax_handler()->ajax_view_submission_details();
+	}
+
+	/**
 	 * AJAX: Count members for a set of audience IDs.
+	 *
+	 * Thin delegator to ReregistrationAjaxHandler.
 	 *
 	 * @return void
 	 */
 	public function ajax_count_members(): void {
-		check_ajax_referer( 'ffc_reregistration_nonce', 'nonce' );
-
-		if ( ! current_user_can( self::CAPABILITY ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
-		}
-
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$raw          = isset( $_POST['audience_ids'] ) ? array_map( 'absint', (array) $_POST['audience_ids'] ) : array();
-		$audience_ids = array_filter( $raw );
-
-		if ( empty( $audience_ids ) ) {
-			wp_send_json_success( array( 'count' => 0 ) );
-		}
-
-		$user_ids = ReregistrationRepository::get_user_ids_for_audiences( $audience_ids );
-		wp_send_json_success( array( 'count' => count( $user_ids ) ) );
+		$this->get_ajax_handler()->ajax_count_members();
 	}
 }

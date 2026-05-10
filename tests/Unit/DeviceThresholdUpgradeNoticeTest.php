@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\DeviceThresholdUpgradeNotice;
 use FreeFormCertificate\Security\RateLimiter;
+use FreeFormCertificate\Security\RateLimitChecker;
 
 /**
  * Gating tests for the v6.3.2 device-threshold upgrade notice.
@@ -21,8 +22,9 @@ class DeviceThresholdUpgradeNoticeTest extends TestCase {
         Monkey\setUp();
 
         // Reset RateLimiter's static settings cache between tests so each
-        // test's get_option() stub is read fresh.
-        $ref   = new \ReflectionClass( RateLimiter::class );
+        // test's get_option() stub is read fresh. The cache moved to
+        // RateLimitChecker in the S4 facade refactor.
+        $ref   = new \ReflectionClass( RateLimitChecker::class );
         $cache = $ref->getProperty( 'settings_cache' );
         $cache->setAccessible( true );
         $cache->setValue( null );

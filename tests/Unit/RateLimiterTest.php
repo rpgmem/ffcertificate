@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Security\RateLimiter;
+use FreeFormCertificate\Security\RateLimitChecker;
 
 /**
  * Tests for RateLimiter: settings caching, check methods, verification, user limits.
@@ -21,8 +22,10 @@ class RateLimiterTest extends TestCase {
         parent::setUp();
         Monkey\setUp();
 
-        // Reset static settings cache between tests.
-        $ref = new \ReflectionClass( RateLimiter::class );
+        // Reset static settings cache between tests. The cache moved to
+        // RateLimitChecker in the S4 facade refactor; RateLimiter is now a
+        // thin forwarder so the underlying state lives on the checker class.
+        $ref = new \ReflectionClass( RateLimitChecker::class );
         $cache = $ref->getProperty( 'settings_cache' );
         $cache->setAccessible( true );
         $cache->setValue( null );

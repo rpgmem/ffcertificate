@@ -30,8 +30,9 @@ class VerificationHandlerTest extends TestCase {
         parent::setUp();
         Monkey\setUp();
 
-        // Reset RateLimiter static cache between tests
-        $rl = new \ReflectionClass( \FreeFormCertificate\Security\RateLimiter::class );
+        // Reset RateLimiter static cache between tests. The cache moved to
+        // RateLimitChecker in the S4 facade refactor.
+        $rl = new \ReflectionClass( \FreeFormCertificate\Security\RateLimitChecker::class );
         if ( $rl->hasProperty( 'settings_cache' ) ) {
             $prop = $rl->getProperty( 'settings_cache' );
             $prop->setAccessible( true );

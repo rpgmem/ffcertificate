@@ -16,6 +16,14 @@
  *  The form submits normally via admin-post.php to {@see handle_request()},
  *  which streams the CSV synchronously (legacy path).
  *
+ * S5 split (#141): the validation gate moved to {@see CsvDownloadValidator}
+ * and the intermediate-screen payload builder moved to
+ * {@see CsvDownloadFormInfoBuilder}. This class is now the thin facade that
+ * owns hooks, request orchestration, the audit-log export, and the flash
+ * message helpers. The validation public methods remain on the facade as
+ * forwarders so existing callers (PublicCsvExporter, unit tests) keep
+ * working unchanged.
+ *
  * @package FreeFormCertificate
  * @since   5.1.0
  */
@@ -25,7 +33,6 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Security\Geofence;
-use FreeFormCertificate\Security\GeofenceLocationRegistry;
 use FreeFormCertificate\Security\RateLimiter;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -60,6 +67,28 @@ class PublicCsvDownload {
 	const OPTION_LOG_FORMAT   = 'ffc_csv_public_download_log_format';
 	const EXPORT_LOG_ACTION   = 'ffc_export_csv_public_download_log';
 	const EXPORT_LOG_NONCE    = 'ffc_export_csv_public_download_log';
+
+	/**
+	 * Validation collaborator (form-access / hash / CPF gates).
+	 *
+	 * @var CsvDownloadValidator
+	 */
+	private CsvDownloadValidator $validator;
+
+	/**
+	 * Intermediate-screen payload builder.
+	 *
+	 * @var CsvDownloadFormInfoBuilder
+	 */
+	private CsvDownloadFormInfoBuilder $form_info_builder;
+
+	/**
+	 * Wire up the small collaborators that hold the extracted logic.
+	 */
+	public function __construct() {
+		$this->validator         = new CsvDownloadValidator();
+		$this->form_info_builder = new CsvDownloadFormInfoBuilder();
+	}
 
 	/**
 	 * Register shortcode + admin-post + AJAX handlers.
@@ -353,7 +382,7 @@ class PublicCsvDownload {
 			wp_send_json_error( array( 'message' => $cpf_error ) );
 		}
 
-		wp_send_json_success( $this->build_form_info( $form_id ) );
+		wp_send_json_success( $this->form_info_builder->build_form_info( $form_id ) );
 	}
 
 	// ──────────────────────────────────────────────────────────────.
@@ -410,262 +439,53 @@ class PublicCsvDownload {
 	}
 
 	// ──────────────────────────────────────────────────────────────.
-	// Shared validation (used by handle_request + PublicCsvExporter)
+	// Shared validation forwarders (delegating to CsvDownloadValidator).
 	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * Validate form access for CSV download (steps 5–9).
 	 *
-	 * Checks that the form exists, has the feature enabled, the hash matches,
-	 * the form has expired, and the download quota has not been exceeded.
+	 * Thin forwarder to {@see CsvDownloadValidator::validate_form_access()}.
+	 * Kept on the facade because {@see PublicCsvExporter} and unit tests
+	 * call it through a `new PublicCsvDownload()` handle.
 	 *
 	 * @param int    $form_id     Sanitized form ID.
 	 * @param string $posted_hash Sanitized access hash.
 	 * @return string|null Error message on failure, null on success.
 	 */
 	public function validate_form_access( int $form_id, string $posted_hash ): ?string {
-		// 5. Form exists and is a ffc_form.
-		if ( get_post_type( $form_id ) !== 'ffc_form' ) {
-			return __( 'Form not found.', 'ffcertificate' );
-		}
-
-		// 6. Feature enabled on this form.
-		$enabled = (string) get_post_meta( $form_id, self::META_ENABLED, true );
-		if ( '1' !== $enabled ) {
-			return __( 'Public CSV download is not enabled for this form.', 'ffcertificate' );
-		}
-
-		// 7. Hash match (constant-time).
-		$stored_hash = (string) get_post_meta( $form_id, self::META_HASH, true );
-		if ( '' === $stored_hash || ! hash_equals( $stored_hash, $posted_hash ) ) {
-			return __( 'Invalid access hash.', 'ffcertificate' );
-		}
-
-		// 8. Form must have ended.
-		$end_ts = Geofence::get_form_end_timestamp( $form_id );
-		if ( null === $end_ts ) {
-			return __( 'This form has no end date configured. The administrator must set a Geolocation "End Date" to enable public downloads.', 'ffcertificate' );
-		}
-		if ( time() <= $end_ts ) {
-			return __( 'This form is still active. Downloads are only allowed after the form end date has passed.', 'ffcertificate' );
-		}
-
-		// 9. Quota.
-		$limit = (int) get_post_meta( $form_id, self::META_LIMIT, true );
-		if ( $limit <= 0 ) {
-			$settings_default = 0;
-			$settings         = get_option( 'ffc_settings', array() );
-			if ( is_array( $settings ) && isset( $settings['public_csv_default_limit'] ) ) {
-				$settings_default = (int) $settings['public_csv_default_limit'];
-			}
-			$limit = $settings_default > 0 ? $settings_default : 1;
-		}
-
-		$count = (int) get_post_meta( $form_id, self::META_COUNT, true );
-		if ( $count >= $limit ) {
-			return sprintf(
-				/* translators: %d is the configured download limit */
-				__( 'The maximum number of downloads (%d) for this form has been reached.', 'ffcertificate' ),
-				$limit
-			);
-		}
-
-		return null;
+		return $this->validator->validate_form_access( $form_id, $posted_hash );
 	}
 
 	/**
 	 * Validate only steps 5–7 (form exists, feature enabled, hash match).
 	 *
-	 * Used by the info endpoint which must succeed even when the form is
-	 * still active or the download quota is exhausted.
+	 * Thin forwarder to {@see CsvDownloadValidator::validate_hash_only()}.
 	 *
 	 * @param int    $form_id     Sanitized form ID.
 	 * @param string $posted_hash Sanitized access hash.
 	 * @return string|null Error message on failure, null on success.
 	 */
 	public function validate_hash_only( int $form_id, string $posted_hash ): ?string {
-		if ( $form_id <= 0 ) {
-			return __( 'Form not found.', 'ffcertificate' );
-		}
-		if ( get_post_type( $form_id ) !== 'ffc_form' ) {
-			return __( 'Form not found.', 'ffcertificate' );
-		}
-
-		$enabled = (string) get_post_meta( $form_id, self::META_ENABLED, true );
-		if ( '1' !== $enabled ) {
-			return __( 'Public CSV download is not enabled for this form.', 'ffcertificate' );
-		}
-
-		$stored_hash = (string) get_post_meta( $form_id, self::META_HASH, true );
-		if ( '' === $stored_hash || ! hash_equals( $stored_hash, $posted_hash ) ) {
-			return __( 'Invalid access hash.', 'ffcertificate' );
-		}
-
-		return null;
+		return $this->validator->validate_hash_only( $form_id, $posted_hash );
 	}
 
 	/**
 	 * Apply the per-form CPF gate.
 	 *
-	 * Modes (configured per form via _ffc_csv_public_cpf_mode):
-	 *   - none         : skip everything (legacy behaviour).
-	 *   - audit        : require a valid-format CPF, log it, never block.
-	 *   - participants : CPF must hash-match a submission of this form.
-	 *   - owner        : CPF must match the form author's stored CPF.
-	 *   - whitelist    : CPF must be present in _ffc_csv_public_cpf_whitelist.
-	 *
-	 * Always records a single audit log row (success or failure) when the
-	 * mode is anything other than `none`.
+	 * Thin forwarder to {@see CsvDownloadValidator::validate_cpf_requirement()}.
 	 *
 	 * @param int    $form_id   Form post ID.
 	 * @param string $cpf_input Raw CPF as posted by the user.
 	 * @return string|null Error message on block, null when allowed.
 	 */
 	public function validate_cpf_requirement( int $form_id, string $cpf_input ): ?string {
-		$mode = (string) get_post_meta( $form_id, self::META_CPF_MODE, true );
-		if ( '' === $mode ) {
-			$mode = 'none';
-		}
-		if ( 'none' === $mode ) {
-			// 6.3.3: even when CPF is not required for this form, if the user
-			// volunteered a syntactically valid one, audit it. Useful when the
-			// shortcode renders the field for safety (no prefill in URL) and a
-			// well-meaning user fills it anyway. Junk input is silently dropped
-			// — we don't want garbage rows competing for DOWNLOAD_LOG_MAX slots.
-			$voluntary_digits = preg_replace( '/\D/', '', $cpf_input );
-			$voluntary_digits = is_string( $voluntary_digits ) ? $voluntary_digits : '';
-			if ( '' !== $voluntary_digits
-				&& \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $voluntary_digits ) ) {
-				$this->record_download_log_entry( $form_id, 'none', $voluntary_digits, 'voluntary' );
-			}
-			return null;
-		}
-
-		$digits = preg_replace( '/\D/', '', $cpf_input );
-		$digits = is_string( $digits ) ? $digits : '';
-
-		// Format gate: we require a syntactically valid 11-digit CPF before
-		// touching the database.
-		if ( '' === $digits ) {
-			$this->record_download_log_entry( $form_id, $mode, '', 'fail_missing' );
-			return __( 'CPF is required to download this CSV.', 'ffcertificate' );
-		}
-		if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $digits ) ) {
-			$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_format' );
-			return __( 'Invalid CPF.', 'ffcertificate' );
-		}
-
-		if ( 'audit' === $mode ) {
-			$this->record_download_log_entry( $form_id, $mode, $digits, 'audit_pass' );
-			return null;
-		}
-
-		if ( 'whitelist' === $mode ) {
-			$wl_raw = (string) get_post_meta( $form_id, self::META_CPF_WHITELIST, true );
-			$found  = false;
-			$lines  = preg_split( '/[\r\n,]+/', $wl_raw );
-			$lines  = is_array( $lines ) ? $lines : array();
-			foreach ( $lines as $line ) {
-				$candidate = preg_replace( '/\D/', '', (string) $line );
-				if ( $candidate === $digits ) {
-					$found = true;
-					break;
-				}
-			}
-			if ( ! $found ) {
-				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
-				return __( 'This CPF is not authorized to download this CSV.', 'ffcertificate' );
-			}
-			$this->record_download_log_entry( $form_id, $mode, $digits, 'success' );
-			return null;
-		}
-
-		if ( 'owner' === $mode ) {
-			$author_id = (int) get_post_field( 'post_author', $form_id );
-			if ( $author_id <= 0 ) {
-				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
-				return __( 'Form has no author to validate against.', 'ffcertificate' );
-			}
-			$author_cpf = (string) get_user_meta( $author_id, 'ffc_user_cpf', true );
-			$author_dig = preg_replace( '/\D/', '', $author_cpf );
-			if ( ! is_string( $author_dig ) || $author_dig !== $digits ) {
-				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
-				return __( 'CPF does not match the form author.', 'ffcertificate' );
-			}
-			$this->record_download_log_entry( $form_id, $mode, $digits, 'success' );
-			return null;
-		}
-
-		if ( 'participants' === $mode ) {
-			global $wpdb;
-			$encryption_class = '\FreeFormCertificate\Core\Encryption';
-			$cpf_hash         = ( class_exists( $encryption_class ) && $encryption_class::is_configured() )
-				? $encryption_class::hash( $digits )
-				: hash( 'sha256', $digits );
-			$table            = $wpdb->prefix . 'ffc_submissions';
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND cpf_hash = %s', $table, $form_id, $cpf_hash ) );
-			if ( $count <= 0 ) {
-				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
-				return __( 'No submission with this CPF was found for this form.', 'ffcertificate' );
-			}
-			$this->record_download_log_entry( $form_id, $mode, $digits, 'success' );
-			return null;
-		}
-
-		// Unknown mode -> fail closed.
-		$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_unknown_mode' );
-		return __( 'CPF gate misconfigured. Contact the administrator.', 'ffcertificate' );
+		return $this->validator->validate_cpf_requirement( $form_id, $cpf_input );
 	}
 
-	/**
-	 * Append an entry to the per-form download audit log.
-	 *
-	 * Stores the latest DOWNLOAD_LOG_MAX rows in a single post meta. CPF
-	 * is encrypted at-rest via the plugin's Encryption helper (same pipeline
-	 * that protects ffc_submissions.cpf_encrypted) so the form owner can
-	 * later decrypt and audit who downloaded the CSV. When Encryption is not
-	 * configured on the site, the CPF field falls back to '' and the export
-	 * shows a placeholder — admins can configure encryption to retroactively
-	 * make new entries auditable.
-	 *
-	 * Schema (6.3.3): { ts, ip, mode, cpf_encrypted, result }. Pre-6.3.3
-	 * entries (which used cpf_hash) are wiped on the first plugins_loaded
-	 * after upgrade by maybe_wipe_legacy_logs() — see that method for the
-	 * justification (install base reality + clean break).
-	 *
-	 * @param int    $form_id Form ID.
-	 * @param string $mode    CPF gate mode that was active.
-	 * @param string $digits  Digits-only CPF (may be '' for fail_missing).
-	 * @param string $result  Outcome tag: success | fail_missing |
-	 *                        fail_format | fail_match | fail_unknown_mode |
-	 *                        audit_pass | voluntary.
-	 */
-	private function record_download_log_entry( int $form_id, string $mode, string $digits, string $result ): void {
-		$cpf_encrypted = '';
-		if ( '' !== $digits
-			&& class_exists( '\FreeFormCertificate\Core\Encryption' )
-			&& \FreeFormCertificate\Core\Encryption::is_configured() ) {
-			$encrypted = \FreeFormCertificate\Core\Encryption::encrypt( $digits );
-			if ( is_string( $encrypted ) ) {
-				$cpf_encrypted = $encrypted;
-			}
-		}
-
-		$existing   = get_post_meta( $form_id, self::META_DOWNLOAD_LOG, true );
-		$existing   = is_array( $existing ) ? $existing : array();
-		$existing[] = array(
-			'ts'            => time(),
-			'ip'            => \FreeFormCertificate\Core\Utils::get_user_ip(),
-			'mode'          => $mode,
-			'cpf_encrypted' => $cpf_encrypted,
-			'result'        => $result,
-		);
-		if ( count( $existing ) > self::DOWNLOAD_LOG_MAX ) {
-			$existing = array_slice( $existing, -self::DOWNLOAD_LOG_MAX );
-		}
-		update_post_meta( $form_id, self::META_DOWNLOAD_LOG, $existing );
-	}
+	// ──────────────────────────────────────────────────────────────.
+	// Audit log maintenance + export.
+	// ──────────────────────────────────────────────────────────────.
 
 	/**
 	 * One-shot wipe of pre-6.3.3 audit-log entries.
@@ -838,252 +658,6 @@ class PublicCsvDownload {
 			'success' => $success,
 			'fail'    => $fail,
 			'url'     => $url,
-		);
-	}
-
-	// ──────────────────────────────────────────────────────────────.
-	// Form info builder (intermediate screen data).
-	// ──────────────────────────────────────────────────────────────.
-
-	/**
-	 * Build the form metadata payload for the intermediate preview screen.
-	 *
-	 * @param int $form_id Validated form ID.
-	 * @return array<string, mixed>
-	 */
-	private function build_form_info( int $form_id ): array {
-		$form_config     = get_post_meta( $form_id, '_ffc_form_config', true );
-		$form_config     = is_array( $form_config ) ? $form_config : array();
-		$geofence_config = get_post_meta( $form_id, '_ffc_geofence_config', true );
-		$geofence_config = is_array( $geofence_config ) ? $geofence_config : array();
-
-		$now      = time();
-		$start_ts = Geofence::get_form_start_timestamp( $form_id );
-		$end_ts   = Geofence::get_form_end_timestamp( $form_id );
-
-		$before_start = null !== $start_ts && $now < $start_ts;
-		$form_ended   = null !== $end_ts && $now > $end_ts;
-		$has_end_date = null !== $end_ts;
-
-		// Quota.
-		$limit = (int) get_post_meta( $form_id, self::META_LIMIT, true );
-		if ( $limit <= 0 ) {
-			$settings = get_option( 'ffc_settings', array() );
-			$default  = is_array( $settings ) && isset( $settings['public_csv_default_limit'] )
-				? (int) $settings['public_csv_default_limit']
-				: 0;
-			$limit    = $default > 0 ? $default : 1;
-		}
-		$count           = (int) get_post_meta( $form_id, self::META_COUNT, true );
-		$quota_exhausted = $count >= $limit;
-
-		// Download blocked reason.
-		$download_reason = null;
-		if ( ! $has_end_date ) {
-			$download_reason = 'no_end_date';
-		} elseif ( ! $form_ended ) {
-			$download_reason = 'active';
-		} elseif ( $quota_exhausted ) {
-			$download_reason = 'quota_exhausted';
-		}
-
-		// Submission count.
-		$repo             = new \FreeFormCertificate\Repositories\SubmissionRepository();
-		$submission_count = $repo->countForExport( array( $form_id ), 'publish' );
-
-		$tz = wp_timezone();
-
-		return array(
-			'form_title'       => get_the_title( $form_id ),
-			'submission_count' => $submission_count,
-			'restrictions'     => $this->build_restrictions_info( $form_config ),
-			'datetime'         => $this->build_datetime_info( $geofence_config, $tz ),
-			'geolocation'      => $this->build_geolocation_info( $geofence_config ),
-			'quiz'             => $this->build_quiz_info( $form_config ),
-			'csv'              => array(
-				'limit'     => $limit,
-				'count'     => $count,
-				'remaining' => max( 0, $limit - $count ),
-			),
-			'status'           => array(
-				'has_start_date'          => null !== $start_ts,
-				'has_end_date'            => $has_end_date,
-				'before_start'            => $before_start,
-				'form_ended'              => $form_ended,
-				'can_download'            => $form_ended && ! $quota_exhausted,
-				'can_preview_cert'        => $before_start,
-				'download_blocked_reason' => $download_reason,
-				'start_date_formatted'    => null !== $start_ts
-					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $start_ts, $tz )
-					: null,
-				'end_date_formatted'      => null !== $end_ts
-					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $end_ts, $tz )
-					: null,
-			),
-		);
-	}
-
-	/**
-	 * Build access restrictions data for the info response.
-	 *
-	 * @param array<string, mixed> $config Form config.
-	 * @return array<string, bool>
-	 */
-	private function build_restrictions_info( array $config ): array {
-		$restrictions = $config['restrictions'] ?? array();
-		$result       = array();
-
-		if ( ! empty( $restrictions['password'] ) && '1' === (string) $restrictions['password'] ) {
-			$result['password'] = true;
-		}
-		if ( ! empty( $restrictions['allowlist'] ) && '1' === (string) $restrictions['allowlist'] ) {
-			$result['allowlist'] = true;
-		}
-		if ( ! empty( $restrictions['denylist'] ) && '1' === (string) $restrictions['denylist'] ) {
-			$result['denylist'] = true;
-		}
-		if ( ! empty( $restrictions['ticket'] ) && '1' === (string) $restrictions['ticket'] ) {
-			$result['ticket'] = true;
-		}
-
-		return $result;
-	}
-
-	/**
-	 * Build date/time availability data for the info response.
-	 *
-	 * @param array<string, mixed> $config   Geofence config.
-	 * @param \DateTimeZone        $tz       Site timezone.
-	 * @return array<string, mixed>
-	 */
-	private function build_datetime_info( array $config, \DateTimeZone $tz ): array {
-		$date_start = isset( $config['date_start'] ) ? trim( (string) $config['date_start'] ) : '';
-		$date_end   = isset( $config['date_end'] ) ? trim( (string) $config['date_end'] ) : '';
-		$time_start = isset( $config['time_start'] ) ? trim( (string) $config['time_start'] ) : '';
-		$time_end   = isset( $config['time_end'] ) ? trim( (string) $config['time_end'] ) : '';
-		$time_mode  = isset( $config['time_mode'] ) ? (string) $config['time_mode'] : 'daily';
-
-		$has_dates = '' !== $date_start || '' !== $date_end;
-		$has_times = '' !== $time_start || '' !== $time_end;
-
-		$date_format = get_option( 'date_format' );
-
-		// Anchor each date in the site timezone before formatting. Naive
-		// strtotime() reads "Y-m-d" as PHP-process-local (typically UTC)
-		// midnight, which then drifts to the previous day after wp_date()
-		// converts to a westward TZ like America/Sao_Paulo — manifesting
-		// as "Data de início: 11/05/2026" for a configured 2026-05-12. The
-		// footer status message uses Geofence::get_form_*_timestamp() and
-		// is unaffected; this brings the body in line with the same TZ
-		// anchoring approach.
-		$to_local_ts = static function ( string $date, \DateTimeZone $tz ): ?int {
-			if ( '' === $date ) {
-				return null;
-			}
-			try {
-				return ( new \DateTimeImmutable( $date, $tz ) )->getTimestamp();
-			} catch ( \Exception $e ) {
-				return null;
-			}
-		};
-		$start_ts    = $to_local_ts( $date_start, $tz );
-		$end_ts      = $to_local_ts( $date_end, $tz );
-
-		return array(
-			'has_dates'      => $has_dates,
-			'date_start'     => null !== $start_ts ? wp_date( $date_format, $start_ts, $tz ) : null,
-			'date_start_raw' => '' !== $date_start ? $date_start : null,
-			'date_end'       => null !== $end_ts ? wp_date( $date_format, $end_ts, $tz ) : null,
-			'date_end_raw'   => '' !== $date_end ? $date_end : null,
-			'has_times'      => $has_times,
-			'time_start'     => '' !== $time_start ? $time_start : null,
-			'time_end'       => '' !== $time_end ? $time_end : null,
-			'time_mode'      => $time_mode,
-		);
-	}
-
-	/**
-	 * Build geolocation data for the info response.
-	 *
-	 * @param array<string, mixed> $config Geofence config.
-	 * @return array<string, mixed>
-	 */
-	private function build_geolocation_info( array $config ): array {
-		$geo_enabled = ! empty( $config['geo_enabled'] );
-		if ( ! $geo_enabled ) {
-			return array( 'enabled' => false );
-		}
-
-		$gps_enabled = ! empty( $config['geo_gps_enabled'] );
-		$ip_enabled  = ! empty( $config['geo_ip_enabled'] );
-
-		$result = array(
-			'enabled'     => true,
-			'gps_enabled' => $gps_enabled,
-			'ip_enabled'  => $ip_enabled,
-		);
-
-		// GPS locations.
-		if ( $gps_enabled ) {
-			$gps_source = $config['geo_area_source'] ?? 'locations';
-			if ( 'locations' === $gps_source && ! empty( $config['geo_area_location_ids'] ) ) {
-				$locations               = GeofenceLocationRegistry::get_by_ids( (array) $config['geo_area_location_ids'] );
-				$result['gps_locations'] = $this->format_locations_for_info( $locations );
-			} else {
-				$result['gps_custom'] = true;
-			}
-		}
-
-		// IP locations (only when separate areas are configured).
-		if ( $ip_enabled && ! empty( $config['geo_ip_areas_permissive'] ) ) {
-			$ip_source = $config['geo_ip_area_source'] ?? 'locations';
-			if ( 'locations' === $ip_source && ! empty( $config['geo_ip_area_location_ids'] ) ) {
-				$locations              = GeofenceLocationRegistry::get_by_ids( (array) $config['geo_ip_area_location_ids'] );
-				$result['ip_locations'] = $this->format_locations_for_info( $locations );
-			} else {
-				$result['ip_custom'] = true;
-			}
-		}
-
-		return $result;
-	}
-
-	/**
-	 * Format registered locations for the info response.
-	 *
-	 * @param array<int, array<string, mixed>> $locations Raw location data.
-	 * @return list<array<string, float|string>>
-	 */
-	private function format_locations_for_info( array $locations ): array {
-		$formatted = array();
-		foreach ( $locations as $loc ) {
-			$formatted[] = array(
-				'name'     => sanitize_text_field( $loc['name'] ?? '' ),
-				'lat'      => (float) ( $loc['lat'] ?? 0 ),
-				'lng'      => (float) ( $loc['lng'] ?? 0 ),
-				'radius'   => (float) ( $loc['radius'] ?? 0 ),
-				'maps_url' => 'https://www.google.com/maps/search/?api=1&query=' . (float) $loc['lat'] . ',' . (float) $loc['lng'],
-			);
-		}
-		return $formatted;
-	}
-
-	/**
-	 * Build quiz/evaluation data for the info response.
-	 *
-	 * @param array<string, mixed> $config Form config.
-	 * @return array<string, mixed>
-	 */
-	private function build_quiz_info( array $config ): array {
-		$enabled = ! empty( $config['quiz_enabled'] ) && '1' === (string) $config['quiz_enabled'];
-		if ( ! $enabled ) {
-			return array( 'enabled' => false );
-		}
-
-		return array(
-			'enabled'       => true,
-			'passing_score' => (int) ( $config['quiz_passing_score'] ?? 0 ),
-			'max_attempts'  => (int) ( $config['quiz_max_attempts'] ?? 0 ),
 		);
 	}
 

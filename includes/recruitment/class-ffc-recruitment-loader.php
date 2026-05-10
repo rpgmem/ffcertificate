@@ -81,11 +81,24 @@ final class RecruitmentLoader {
 	/**
 	 * Instantiate and register REST routes.
 	 *
+	 * After sprint S2 of #141, the original god-object
+	 * `RecruitmentRestController` was split into four domain controllers
+	 * sharing a common `RecruitmentRestSupport` trait. Each controller
+	 * owns the `register_rest_route(...)` calls for its slice; the union
+	 * across the four is identical to the pre-split route set.
+	 *
 	 * @return void
 	 */
 	public function register_rest_routes(): void {
-		$controller = new RecruitmentRestController();
-		$controller->register_routes();
+		$notices         = new RecruitmentNoticesRestController();
+		$classifications = new RecruitmentClassificationsRestController();
+		$adjutancies     = new RecruitmentAdjutanciesRestController();
+		$candidates      = new RecruitmentCandidatesRestController();
+
+		$notices->register_routes();
+		$classifications->register_routes();
+		$adjutancies->register_routes();
+		$candidates->register_routes();
 	}
 
 	/**

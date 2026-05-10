@@ -9,8 +9,10 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Frontend\CsvDownloadFormInfoBuilder;
 use FreeFormCertificate\Frontend\PublicCsvDownload;
 use FreeFormCertificate\Security\RateLimiter;
+use FreeFormCertificate\Security\RateLimitChecker;
 
 /**
  * Tests for PublicCsvDownload: shortcode + admin-post handler.
@@ -46,8 +48,9 @@ class PublicCsvDownloadTest extends TestCase {
         $this->meta_store   = array();
         $this->meta_updates = array();
 
-        // Reset RateLimiter's static settings cache between tests.
-        $rl = new \ReflectionClass( RateLimiter::class );
+        // Reset RateLimiter's static settings cache between tests. The cache
+        // moved to RateLimitChecker in the S4 facade refactor.
+        $rl = new \ReflectionClass( RateLimitChecker::class );
         if ( $rl->hasProperty( 'settings_cache' ) ) {
             $prop = $rl->getProperty( 'settings_cache' );
             $prop->setAccessible( true );
@@ -747,7 +750,9 @@ class PublicCsvDownloadTest extends TestCase {
 
         $tz = new \DateTimeZone( 'America/Sao_Paulo' );
 
-        $ref = new \ReflectionMethod( PublicCsvDownload::class, 'build_datetime_info' );
+        // S5 split (#141): build_datetime_info moved to CsvDownloadFormInfoBuilder.
+        $builder = new CsvDownloadFormInfoBuilder();
+        $ref     = new \ReflectionMethod( CsvDownloadFormInfoBuilder::class, 'build_datetime_info' );
         $ref->setAccessible( true );
 
         $config = array(
@@ -758,7 +763,7 @@ class PublicCsvDownloadTest extends TestCase {
             'time_mode'  => 'daily',
         );
 
-        $result = $ref->invoke( $this->handler, $config, $tz );
+        $result = $ref->invoke( $builder, $config, $tz );
 
         $this->assertSame( '12/05/2026', $result['date_start'], 'date_start must not drift to 11/05 when site TZ is BRT' );
         $this->assertSame( '12/05/2026', $result['date_end'], 'date_end must not drift either' );
@@ -769,10 +774,12 @@ class PublicCsvDownloadTest extends TestCase {
     public function test_build_datetime_info_handles_blank_dates(): void {
         $tz = new \DateTimeZone( 'UTC' );
 
-        $ref = new \ReflectionMethod( PublicCsvDownload::class, 'build_datetime_info' );
+        // S5 split (#141): build_datetime_info moved to CsvDownloadFormInfoBuilder.
+        $builder = new CsvDownloadFormInfoBuilder();
+        $ref     = new \ReflectionMethod( CsvDownloadFormInfoBuilder::class, 'build_datetime_info' );
         $ref->setAccessible( true );
 
-        $result = $ref->invoke( $this->handler, array(), $tz );
+        $result = $ref->invoke( $builder, array(), $tz );
 
         $this->assertFalse( $result['has_dates'] );
         $this->assertNull( $result['date_start'] );
