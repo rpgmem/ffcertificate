@@ -802,8 +802,28 @@ class PublicCsvDownload {
 	 */
 	public static function get_audit_log_summary( int $form_id ): array {
 		$log   = get_post_meta( $form_id, self::META_DOWNLOAD_LOG, true );
-		$count = is_array( $log ) ? count( $log ) : 0;
-		$url   = null;
+		$log   = is_array( $log ) ? $log : array();
+		$count = count( $log );
+
+		// Categorise each entry's `result` tag into success / fail buckets.
+		// Success = the download was actually delivered. Failures cover all
+		// reasons the gate denied the request before streaming the CSV.
+		// `voluntary` is treated as success (it means the visitor passed an
+		// optional CPF and the download proceeded). Unknown future tags are
+		// counted as failures by default to avoid silently inflating success.
+		$success_tags = array( 'success', 'audit_pass', 'voluntary' );
+		$success      = 0;
+		$fail         = 0;
+		foreach ( $log as $entry ) {
+			$result = is_array( $entry ) && isset( $entry['result'] ) ? (string) $entry['result'] : '';
+			if ( in_array( $result, $success_tags, true ) ) {
+				++$success;
+			} else {
+				++$fail;
+			}
+		}
+
+		$url = null;
 		if ( $count > 0 ) {
 			$url = add_query_arg(
 				array(
@@ -815,8 +835,10 @@ class PublicCsvDownload {
 			);
 		}
 		return array(
-			'count' => $count,
-			'url'   => $url,
+			'count'   => $count,
+			'success' => $success,
+			'fail'    => $fail,
+			'url'     => $url,
 		);
 	}
 

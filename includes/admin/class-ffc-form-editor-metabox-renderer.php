@@ -1061,23 +1061,23 @@ class FormEditorMetaboxRenderer {
 					<?php esc_html_e( 'Download audit log', 'ffcertificate' ); ?>
 				</th>
 				<td>
-					<p>
-						<?php
-						echo esc_html(
-							sprintf(
-								/* translators: %d: number of audit log entries */
-								_n(
-									'%d attempt logged on this form.',
-									'%d attempts logged on this form.',
-									$ffc_audit_summary['count'],
-									'ffcertificate'
-								),
-								$ffc_audit_summary['count']
-							)
-						);
-						?>
+					<?php if ( $ffc_audit_summary['count'] > 0 ) : ?>
+						<div class="ffc-csv-audit-summary" role="group" aria-label="<?php esc_attr_e( 'Download attempts breakdown', 'ffcertificate' ); ?>">
+							<div class="ffc-csv-audit-card">
+								<span class="ffc-csv-audit-card-label"><?php esc_html_e( 'Total attempts', 'ffcertificate' ); ?></span>
+								<span class="ffc-csv-audit-card-value"><?php echo esc_html( (string) $ffc_audit_summary['count'] ); ?></span>
+							</div>
+							<div class="ffc-csv-audit-card is-success">
+								<span class="ffc-csv-audit-card-label"><?php esc_html_e( 'Successful', 'ffcertificate' ); ?></span>
+								<span class="ffc-csv-audit-card-value"><?php echo esc_html( (string) $ffc_audit_summary['success'] ); ?></span>
+							</div>
+							<div class="ffc-csv-audit-card is-fail">
+								<span class="ffc-csv-audit-card-label"><?php esc_html_e( 'Failed', 'ffcertificate' ); ?></span>
+								<span class="ffc-csv-audit-card-value"><?php echo esc_html( (string) $ffc_audit_summary['fail'] ); ?></span>
+							</div>
+						</div>
 						<?php if ( $ffc_audit_summary['count'] >= \FreeFormCertificate\Frontend\PublicCsvDownload::DOWNLOAD_LOG_MAX ) : ?>
-							<span class="description">
+							<p class="description">
 								<?php
 								echo esc_html(
 									sprintf(
@@ -1087,9 +1087,9 @@ class FormEditorMetaboxRenderer {
 									)
 								);
 								?>
-							</span>
+							</p>
 						<?php endif; ?>
-					</p>
+					<?php endif; ?>
 					<?php if ( null !== $ffc_audit_summary['url'] ) : ?>
 						<p>
 							<a href="<?php echo esc_url( $ffc_audit_summary['url'] ); ?>"
