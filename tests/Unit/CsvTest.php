@@ -77,6 +77,17 @@ class CsvTest extends TestCase {
         $this->assertSame( '', $bytes );
     }
 
+    public function test_writer_skip_bom_suppresses_emission(): void {
+        $h = $this->tmp_handle();
+        $w = Csv::writer( $h, ';', true );
+        $w->row( array( 'a', 'b' ) );
+        $w->close();
+
+        $bytes = $this->dump( $h );
+        $this->assertStringStartsNotWith( "\xEF\xBB\xBF", $bytes, 'skip_bom must suppress BOM' );
+        $this->assertSame( "a;b\n", $bytes );
+    }
+
     // ==================================================================
     // Writer — delimiter
     // ==================================================================

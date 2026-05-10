@@ -79,11 +79,12 @@ final class CsvWriter {
 	 *
 	 * @param string|resource $target    Path to open in write mode, or an open writable handle.
 	 * @param string          $delimiter Field delimiter (default: `;`).
+	 * @param bool            $skip_bom  When true, suppress the BOM emission on the first row. Use when appending to a file that already has its BOM (e.g. batch-export workers picking up after the init writer).
 	 *
 	 * @throws \InvalidArgumentException When $target is neither a string nor a resource.
 	 * @throws \RuntimeException         When opening $target as a file fails.
 	 */
-	public function __construct( $target, string $delimiter = Csv::DELIMITER_DEFAULT ) {
+	public function __construct( $target, string $delimiter = Csv::DELIMITER_DEFAULT, bool $skip_bom = false ) {
 		if ( is_string( $target ) ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- writing CSV to disk is the documented contract.
 			$handle = fopen( $target, 'w' );
@@ -98,7 +99,8 @@ final class CsvWriter {
 		} else {
 			throw new \InvalidArgumentException( 'CsvWriter: target must be a path or an open resource' );
 		}
-		$this->delimiter = $delimiter;
+		$this->delimiter   = $delimiter;
+		$this->bom_written = $skip_bom;
 	}
 
 	/**

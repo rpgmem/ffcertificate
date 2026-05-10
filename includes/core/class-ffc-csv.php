@@ -65,10 +65,11 @@ final class Csv {
 	 *
 	 * @param string|resource $target    File path or open writable handle.
 	 * @param string          $delimiter Field delimiter (default: `;`).
+	 * @param bool            $skip_bom  Suppress BOM emission. Use only when appending to a file that already contains its BOM.
 	 * @return CsvWriter
 	 */
-	public static function writer( $target, string $delimiter = self::DELIMITER_DEFAULT ): CsvWriter {
-		return new CsvWriter( $target, $delimiter );
+	public static function writer( $target, string $delimiter = self::DELIMITER_DEFAULT, bool $skip_bom = false ): CsvWriter {
+		return new CsvWriter( $target, $delimiter, $skip_bom );
 	}
 
 	/**

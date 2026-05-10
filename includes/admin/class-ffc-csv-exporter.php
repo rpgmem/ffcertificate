@@ -159,16 +159,6 @@ class CsvExporter {
 		$job_id   = wp_generate_uuid4();
 		$tmp_file = $tmp_dir . '/ffc-export-' . $job_id . '.csv';
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-		$fh = fopen( $tmp_file, 'w' );
-		if ( ! $fh ) {
-			wp_send_json_error( __( 'Cannot create temp file.', 'ffcertificate' ) );
-		}
-
-		// BOM + headers.
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV binary output.
-		fprintf( $fh, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
-
 		$headers = array_merge(
 			$this->get_fixed_headers( $include_edit_columns ),
 			$this->get_dynamic_headers( $dynamic_keys )
@@ -188,15 +178,13 @@ class CsvExporter {
 		 */
 		$headers = (array) apply_filters( 'ffcertificate_csv_export_headers', $headers, $include_edit_columns, $form_ids );
 
-		$headers = array_map(
-			function ( $h ) {
-				return mb_convert_encoding( (string) $h, 'UTF-8', 'UTF-8' );
-			},
-			$headers
-		);
-		fputcsv( $fh, $headers, ';' );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing handle from fopen() for CSV streaming; WP_Filesystem has no streaming equivalent.
-		fclose( $fh );
+		try {
+			$writer = \FreeFormCertificate\Core\Csv::writer( $tmp_file );
+		} catch ( \RuntimeException $e ) {
+			wp_send_json_error( __( 'Cannot create temp file.', 'ffcertificate' ) );
+		}
+		$writer->row( $headers );
+		$writer->close();
 
 		// Store job state in a transient.
 		$job = array(
@@ -285,23 +273,20 @@ class CsvExporter {
 		 */
 		$batch = apply_filters( 'ffcertificate_csv_export_data', $batch, $job['form_ids'], $job['status'] );
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming append; CsvWriter does not own this handle.
 		$fh = fopen( $job['file'], 'a' );
 		if ( ! $fh ) {
 			wp_send_json_error( __( 'Cannot write to temp file.', 'ffcertificate' ) );
 		}
 
+		// File already contains its BOM from the init handler, so the
+		// append writer suppresses its own BOM emission.
+		$writer = \FreeFormCertificate\Core\Csv::writer( $fh, ';', true );
 		foreach ( $batch as $row ) {
-			$csv_row = $this->format_csv_row( $row, $job['dynamic_keys'], $job['include_edit_columns'] );
-			$csv_row = array_map(
-				function ( $v ) {
-					return mb_convert_encoding( (string) $v, 'UTF-8', 'UTF-8' );
-				},
-				$csv_row
-			);
-			fputcsv( $fh, $csv_row, ';' );
+			$writer->row( $this->format_csv_row( $row, $job['dynamic_keys'], $job['include_edit_columns'] ) );
 		}
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing handle from fopen() for CSV streaming; WP_Filesystem has no streaming equivalent.
+		$writer->close();
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the handle this method opened; CsvWriter does not own borrowed handles.
 		fclose( $fh );
 
 		// Advance cursor.
