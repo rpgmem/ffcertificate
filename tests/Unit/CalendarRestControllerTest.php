@@ -29,6 +29,9 @@ class CalendarRestControllerTest extends TestCase {
     /** @var \Mockery\MockInterface Mock for AppointmentHandler (overload) */
     private $appointment_handler_mock;
 
+    /** @var \Mockery\MockInterface */
+    private $rate_limiter_mock;
+
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
@@ -59,9 +62,15 @@ class CalendarRestControllerTest extends TestCase {
         $this->appointment_handler_mock = Mockery::mock( 'overload:\FreeFormCertificate\SelfScheduling\AppointmentHandler' );
         $this->appointment_handler_mock->shouldReceive( 'get_available_slots' )->andReturn( [] )->byDefault();
 
-        // Utils alias for log_rest_error
+        // Utils alias for log_rest_error + rate-limit guard's IP lookup.
         $utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
         $utils_mock->shouldReceive( 'debug_log' )->byDefault();
+        $utils_mock->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault();
+
+        // RateLimiter alias: every test gets a green light by default.
+        // Individual cases can re-stub `check_ip_limit` via the property.
+        $this->rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
+        $this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
     }
 
     protected function tearDown(): void {
@@ -122,6 +131,39 @@ class CalendarRestControllerTest extends TestCase {
     // ------------------------------------------------------------------
     // get_calendars()
     // ------------------------------------------------------------------
+
+    public function test_get_calendars_returns_429_when_rate_limit_blocks(): void {
+        $this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->once()->andReturn( array(
+            'allowed'      => false,
+            'reason'       => 'ip_hour_limit',
+            'message'      => 'Slow down.',
+            'wait_seconds' => 3600,
+        ) );
+
+        $ctrl    = new CalendarRestController( 'ffc/v1' );
+        $request = $this->make_request();
+        $result  = $ctrl->get_calendars( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
+        $data = $result->get_error_data();
+        $this->assertSame( 429, $data['status'] );
+    }
+
+    public function test_get_calendar_slots_returns_429_when_rate_limit_blocks(): void {
+        $this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->once()->andReturn( array(
+            'allowed' => false,
+            'reason'  => 'ip_day_limit',
+            'message' => 'Daily limit reached.',
+        ) );
+
+        $ctrl    = new CalendarRestController( 'ffc/v1' );
+        $request = $this->make_request( array( 'id' => 1, 'date' => '2026-05-20' ) );
+        $result  = $ctrl->get_calendar_slots( $request );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
+    }
 
     public function test_get_calendars_returns_public_calendars_for_anon(): void {
         $sample = array(

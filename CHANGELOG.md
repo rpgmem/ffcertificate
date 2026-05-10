@@ -9,6 +9,31 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.4.1] (2026-05-10)
+
+**REST API lockdown (#139).** Plugs a config-blob leak in the public REST surface and adds a circuit-breaker on the public booking calendars. `GET /wp-json/ffc/v1/forms` and `GET /wp-json/ffc/v1/forms/{id}` previously carried `permission_callback => '__return_true'` and returned the full `_ffc_form_config` blob — which on a typical install contains `allowed_users_list`, `denied_users_list`, `validation_code`, `generated_codes_list`, `geo_areas`, `geo_ip_area_location_ids`, `email_body`, `email_subject`. Anyone with the public REST URL could enumerate every form's gating policy.
+
+### Added
+
+- **`ffc_read_forms_api` capability.** New admin-level capability granted to the `administrator` role automatically via `Loader::ensure_admin_capabilities()` (runs once per `FFC_VERSION` change). External integrators authenticate with WordPress Application Passwords (HTTP Basic, since WP 5.6); the linked user must hold the cap.
+- **Documentation tab section "19. REST API Authentication".** Distinguishes public-by-design endpoints (form submission, certificate verification, booking calendars) from authenticated endpoints. Includes a curl example using Application Passwords + the new capability.
+
+### Changed
+
+- **`GET /forms` / `GET /forms/{id}` now require `ffc_read_forms_api`.** Permission callback delegates to `current_user_can()`. Trimmed payload: only `id`, `title`, `status`, `date`, `modified`, `link` — the `_ffc_form_config` blob, `fields` array, and `background` are gone. Integrators that need form structure use the public-by-design `GET /forms/{id}/schema` endpoint.
+- **`limit` parameter on `GET /forms` clamped at 100.** Out-of-range or non-numeric values coerce to the default of 100. Pagination is a follow-up.
+- **Calendar GET routes carry an IP-keyed rate-limit circuit breaker.** `GET /calendars`, `GET /calendars/{id}`, and `GET /calendars/{id}/slots` now reject requests from IPs that have already tripped the rate-limit pool (typically populated by failed/abusive submit/verify hits from the same address). Returns HTTP 429 with `wait_seconds`.
+
+### Documented
+
+- **Public-by-design routes carry an explicit `phpcs:ignore` comment + per-route block docblock.** `GET /forms/{id}/schema`, `POST /forms/{id}/submit`, `POST /verify`, `POST /calendars/{id}/appointments`, and the three calendar GETs each describe the public flow they serve and the secondary defences in play (rate-limit pool, geofence, hash_equals on tokens, CPF/RF validation). Future contributors see the rationale without having to chase the audit trail.
+
+### Security
+
+- No CVE assigned. Pre-6.4.1 the `_ffc_form_config` blob was readable by any anonymous caller via `GET /wp-json/ffc/v1/forms`. The blob contains gate-list metadata (allowed/denied user IDs, generated/validation codes, geofence configuration). Sites running pre-6.4.1 should treat their generated/validation codes and gate-list contents as compromised; rotate codes after upgrading if the API was reachable from the public internet.
+
+---
+
 ## [6.4.0] (2026-05-10)
 
 **Unified CSV IO abstraction (#126).** Internal refactor: every CSV the plugin reads or writes now flows through a single pair of primitives — `\FreeFormCertificate\Core\Csv::writer()` / `Csv::reader()` — instead of the eight exporters and two importers each implementing fputcsv/fgetcsv/delimiter detection/BOM handling on their own. No user-facing change for files that already used `;` (the post-6.3.9 default); audience export templates now correctly emit a UTF-8 BOM (previously they were the only files in the plugin that didn't, causing Excel to render accented characters as mojibake until manually fixing encoding). Minor bump because the surface area touched is broad even though behaviour is preserved on every public format.

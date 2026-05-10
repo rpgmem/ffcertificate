@@ -115,6 +115,14 @@ class CapabilityManagerTest extends TestCase {
         $this->assertContains( 'ffc_certificate_update', CapabilityManager::ADMIN_CAPABILITIES );
     }
 
+    public function test_admin_capabilities_contains_rest_api_caps(): void {
+        // 6.4.1: REST-API authentication capability for external
+        // integrators using Application Passwords. Pinned by a test so
+        // future contributors know it's grant-on-activation territory
+        // and not a leftover placeholder.
+        $this->assertContains( 'ffc_read_forms_api', CapabilityManager::ADMIN_CAPABILITIES );
+    }
+
     public function test_future_capabilities_constant_is_empty_in_6_2(): void {
         // Both placeholders retired in 6.2.0:
         //   - ffc_reregistration: removed (audience-targeting already covers).
