@@ -130,8 +130,9 @@ class CertificatesCalendarRestController {
 		);
 
 		// `fields => ids` returns an array of int IDs, but PHPStan widens
-		// WP_Query::$posts to array<int|WP_Post>; normalise to int[] explicitly.
-		$ids = array_map( 'intval', $query->posts );
+		// WP_Query::$posts to array<int|WP_Post>; narrow the contract here.
+		/** @var int[] $ids */
+		$ids = $query->posts;
 		if ( empty( $ids ) ) {
 			return new \WP_REST_Response( array(), 200 );
 		}
