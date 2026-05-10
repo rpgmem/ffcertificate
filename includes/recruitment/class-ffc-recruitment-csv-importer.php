@@ -221,7 +221,6 @@ final class RecruitmentCsvImporter {
 	 * @return array{ok: bool, rows: list<array<string, mixed>>, errors: list<string>}
 	 */
 	public static function parse( string $content ): array {
-		$content = self::strip_utf8_bom( $content );
 		if ( '' === trim( $content ) ) {
 			return array(
 				'ok'     => false,
@@ -230,27 +229,19 @@ final class RecruitmentCsvImporter {
 			);
 		}
 
-		$lines = preg_split( "/\r\n|\n|\r/", $content );
-		if ( ! is_array( $lines ) ) {
-			return array(
-				'ok'     => false,
-				'rows'   => array(),
-				'errors' => array( 'recruitment_csv_unparseable' ),
-			);
-		}
-
-		// Header row. Auto-detect delimiter from the header line: support
-		// both comma and semicolon variants (the latter is the default in
-		// many BR/EU spreadsheet exports). Detection is by occurrence
-		// count on the header — semicolons win iff there are more `;`
-		// than `,` outside of quoted segments.
-		$header_line = (string) array_shift( $lines );
-		$delimiter   = self::detect_delimiter( $header_line );
-		$headers     = self::parse_csv_line( $header_line, $delimiter );
-		$headers     = array_map( 'strtolower', array_map( 'trim', $headers ) );
+		// Csv::reader_from_string() handles BOM stripping and the
+		// `,`-vs-`;` auto-detection (the canonical rule lifted from the
+		// previous self::detect_delimiter()). The reader's fgetcsv-based
+		// parser also handles quoted multi-line fields correctly, which
+		// the previous preg_split('/\r\n|\n|\r/') line-splitter did not —
+		// a quoted cell containing a literal newline would have been
+		// mis-parsed before.
+		$reader  = \FreeFormCertificate\Core\Csv::reader_from_string( $content );
+		$headers = array_map( 'strtolower', array_map( 'trim', $reader->header() ) );
 
 		$missing = array_diff( self::REQUIRED_HEADERS, $headers );
 		if ( ! empty( $missing ) ) {
+			$reader->close();
 			return array(
 				'ok'     => false,
 				'rows'   => array(),
@@ -265,33 +256,29 @@ final class RecruitmentCsvImporter {
 		}
 
 		$rows        = array();
-		$line_number = 1; // 1-based; header was line 1.
-		foreach ( $lines as $line ) {
-			++$line_number;
-			$line = (string) $line;
+		$line_number = 1; // 1-based; header was logical row 1.
+		$reader->each(
+			static function ( array $cells ) use ( &$rows, &$line_number, $index_map ): void {
+				++$line_number;
 
-			if ( '' === trim( $line ) ) {
-				continue; // empty rows skipped per §6.
-			}
-
-			$cells = self::parse_csv_line( $line, $delimiter );
-
-			// Skip rows that are all whitespace after parsing.
-			$any_value = false;
-			foreach ( $cells as $cell ) {
-				if ( '' !== trim( $cell ) ) {
-					$any_value = true;
-					break;
+				// Skip rows that are all whitespace after parsing.
+				$any_value = false;
+				foreach ( $cells as $cell ) {
+					if ( '' !== trim( $cell ) ) {
+						$any_value = true;
+						break;
+					}
 				}
-			}
-			if ( ! $any_value ) {
-				continue;
-			}
+				if ( ! $any_value ) {
+					return;
+				}
 
-			$row          = self::build_row( $cells, $index_map );
-			$row['_line'] = $line_number;
-			$rows[]       = $row;
-		}
+				$row          = self::build_row( $cells, $index_map );
+				$row['_line'] = $line_number;
+				$rows[]       = $row;
+			}
+		);
+		$reader->close();
 
 		return array(
 			'ok'     => true,
@@ -609,75 +596,6 @@ final class RecruitmentCsvImporter {
 		}
 
 		return $map;
-	}
-
-	/**
-	 * Strip a UTF-8 BOM if present.
-	 *
-	 * @param string $content Raw bytes.
-	 * @return string Content with BOM removed.
-	 */
-	private static function strip_utf8_bom( string $content ): string {
-		if ( 0 === strncmp( $content, "\xEF\xBB\xBF", 3 ) ) {
-			return substr( $content, 3 );
-		}
-		return $content;
-	}
-
-	/**
-	 * Parse a single CSV line using `str_getcsv`. The delimiter is detected
-	 * once from the header line (see {@see self::detect_delimiter()}) and
-	 * then forwarded to every subsequent body line so a mixed-quoting file
-	 * still parses consistently.
-	 *
-	 * @param string $line      CSV line.
-	 * @param string $delimiter Field delimiter (`,` or `;`).
-	 * @return list<string>
-	 */
-	private static function parse_csv_line( string $line, string $delimiter = ',' ): array {
-		$cells = str_getcsv( $line, $delimiter );
-		// Coerce nulls (str_getcsv returns null for missing cells in some versions) to empty strings.
-		return array_map(
-			static function ( $cell ): string {
-				return is_string( $cell ) ? $cell : '';
-			},
-			$cells
-		);
-	}
-
-	/**
-	 * Detect the CSV field delimiter by inspecting the header line.
-	 *
-	 * Supports `,` (default) and `;` (common in BR/EU spreadsheet exports
-	 * where comma is the locale decimal separator). Counts occurrences
-	 * outside of double-quoted segments so a quoted comma inside a header
-	 * label doesn't tip the detection. Ties resolve to `,` for backward
-	 * compatibility with files that worked pre-detection.
-	 *
-	 * @param string $header_line The CSV header line.
-	 * @return string `,` or `;`.
-	 */
-	private static function detect_delimiter( string $header_line ): string {
-		$comma_count     = 0;
-		$semicolon_count = 0;
-		$in_quotes       = false;
-		$length          = strlen( $header_line );
-		for ( $i = 0; $i < $length; $i++ ) {
-			$ch = $header_line[ $i ];
-			if ( '"' === $ch ) {
-				$in_quotes = ! $in_quotes;
-				continue;
-			}
-			if ( $in_quotes ) {
-				continue;
-			}
-			if ( ',' === $ch ) {
-				++$comma_count;
-			} elseif ( ';' === $ch ) {
-				++$semicolon_count;
-			}
-		}
-		return $semicolon_count > $comma_count ? ';' : ',';
 	}
 
 	/**
