@@ -181,7 +181,7 @@ final class RecruitmentPublicShortcode {
 	 * @return string
 	 */
 	private static function wrap_output( string $body ): string {
-		return '<div class="ffc-recruitment-queue">' . $body . '</div>';
+		return '<div class="ffc-shortcode ffc-recruitment-queue">' . $body . '</div>';
 	}
 
 	/**

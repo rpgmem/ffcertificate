@@ -76,7 +76,7 @@
 .ffc-pdf-wrapper b,
 .ffc-pdf-content strong,
 .ffc-pdf-content b {
-    font-weight: bold !important;
+    font-weight: 700 !important;
 }
 
 /* ✅ v2.9.2: Preserve italic/emphasis */
@@ -97,42 +97,42 @@
 .ffc-pdf-wrapper h1,
 .ffc-pdf-content h1 {
     font-size: 2em !important;
-    font-weight: bold !important;
+    font-weight: 700 !important;
     margin: 0.67em 0 !important;
 }
 
 .ffc-pdf-wrapper h2,
 .ffc-pdf-content h2 {
     font-size: 1.5em !important;
-    font-weight: bold !important;
+    font-weight: 700 !important;
     margin: 0.75em 0 !important;
 }
 
 .ffc-pdf-wrapper h3,
 .ffc-pdf-content h3 {
     font-size: 1.17em !important;
-    font-weight: bold !important;
+    font-weight: 700 !important;
     margin: 0.83em 0 !important;
 }
 
 .ffc-pdf-wrapper h4,
 .ffc-pdf-content h4 {
     font-size: 1em !important;
-    font-weight: bold !important;
+    font-weight: 700 !important;
     margin: 1.12em 0 !important;
 }
 
 .ffc-pdf-wrapper h5,
 .ffc-pdf-content h5 {
     font-size: 0.83em !important;
-    font-weight: bold !important;
+    font-weight: 700 !important;
     margin: 1.5em 0 !important;
 }
 
 .ffc-pdf-wrapper h6,
 .ffc-pdf-content h6 {
     font-size: 0.75em !important;
-    font-weight: bold !important;
+    font-weight: 700 !important;
     margin: 1.67em 0 !important;
 }
 
@@ -392,7 +392,7 @@ body.wp-admin .ffc-pdf-temp-wrapper {
 /* Preserve HTML elements in legacy classes too */
 .ffc-pdf-user-content strong,
 .ffc-pdf-user-content b {
-    font-weight: bold !important;
+    font-weight: 700 !important;
 }
 
 .ffc-pdf-user-content em,
@@ -416,7 +416,7 @@ body.wp-admin .ffc-pdf-temp-wrapper {
 a.ffc-validation-link {
     color: #2271b1 !important;
     text-decoration: underline !important;
-    font-weight: normal !important;
+    font-weight: 400 !important;
 }
 
 /* Maintain link color in PDF (some browsers reset it) */

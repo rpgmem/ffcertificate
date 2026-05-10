@@ -141,7 +141,7 @@ class DashboardShortcode {
 		ob_start();
 
 		?>
-		<div class="ffc-user-dashboard" id="ffc-user-dashboard">
+		<div class="ffc-shortcode ffc-user-dashboard" id="ffc-user-dashboard">
 
 			<?php
 			if ( $is_admin_viewing ) {

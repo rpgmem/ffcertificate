@@ -449,4 +449,42 @@
         toggleQuizUI($('#ffc_quiz_enabled').is(':checked'));
     }
 
+    // =========================================================================
+    // Public CSV Download — disable sub-fields when master toggle is off.
+    // Server-side render sets `disabled` on the initial paint; this mirrors the
+    // state on subsequent change events without needing a save round-trip.
+    // =========================================================================
+    if ($('#ffc_csv_public_enabled').length) {
+        function toggleCsvPublicUI(on) {
+            var $table = $('.ffc-csv-public-table');
+            $table.toggleClass('ffc-csv-public-disabled', !on);
+            $table.find('.ffc-csv-public-sub :input').prop('disabled', !on);
+        }
+        $('#ffc_csv_public_enabled').on('change', function() {
+            toggleCsvPublicUI($(this).is(':checked'));
+        });
+    }
+
+    // =========================================================================
+    // Device Fingerprint Limit — disable per-form fields when global is off
+    // (.ffc-device-limit-globally-off is emitted by the renderer in that
+    // case). Otherwise, mirror the per-form "Enable for this form" checkbox.
+    // =========================================================================
+    if ($('#ffc_device_limit_enabled').length) {
+        var $deviceTable = $('.ffc-device-limit-table');
+        var globallyOff  = $deviceTable.hasClass('ffc-device-limit-globally-off');
+        function toggleDeviceLimitUI(on) {
+            $deviceTable.toggleClass('ffc-device-limit-disabled', !on);
+            $deviceTable.find('.ffc-device-limit-sub :input').prop('disabled', !on);
+        }
+        if (globallyOff) {
+            // Global off — every input is locked, including the master checkbox.
+            $deviceTable.find(':input').prop('disabled', true);
+        } else {
+            $('#ffc_device_limit_enabled').on('change', function() {
+                toggleDeviceLimitUI($(this).is(':checked'));
+            });
+        }
+    }
+
 })(jQuery);

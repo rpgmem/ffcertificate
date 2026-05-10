@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.2
 Tested up to: 6.9
-Stable tag: 6.3.10
+Stable tag: 6.3.11
 Requires PHP: 8.1
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -175,6 +175,17 @@ In the certificate layout editor, use these dynamic tags:
 
 == Changelog ==
 
+= 6.3.11 (2026-05-10) =
+
+**Form-editor UX polish + #50 specificity hardening + duplication fix.**
+
+* Feat: Public CSV Download metabox — master toggle now disables every sub-field (limit, hash, CPF mode, whitelist, audit log) when off. Save handler preserves persisted values instead of wiping them. CPF mode defaults to `audit` on first enable + save. Whitelist textarea only renders when persisted mode is `whitelist` (must save the form to reveal it). Audit log shows colour-coded Total / Successful / Failed cards instead of a single sentence.
+* Feat: Device Fingerprint metabox — global gate (Settings → Rate Limit → Device Fingerprint) hard-locks every input when off. Master "Enable for this form" defaults `Max submissions per device` to 2 on save when left blank (other fields keep inherit-from-global semantic).
+* Fix: Form duplication now copies all 8 Public CSV + Device Fingerprint settings that were silently lost on clone. Hash, counter, and audit log intentionally NOT copied (security + per-form history isolation).
+* Feat: All public shortcode CSS selectors now sit at specificity (0,2,0) via the new `.ffc-shortcode` anchor class. Closes #50.
+* Feat: rem-based typography scale + `.ffc-initially-hidden` utility + stylelint baseline (`@wordpress/stylelint-config`).
+* Fix: `Undefined array key "enable_restriction"` warning on form save (form editor metabox).
+
 = 6.2.0 (2026-05-04) =
 
 **Capabilities + roles overhaul + admin UX scoping + upgrade safety + per-area debug toggles + role i18n fix.**
@@ -218,6 +229,9 @@ In the certificate layout editor, use these dynamic tags:
 For the complete changelog history, see [CHANGELOG.md](CHANGELOG.md).
 
 == Upgrade Notice ==
+
+= 6.3.11 =
+Form-editor UX polish for the Public CSV Download and Device Fingerprint metaboxes. Form duplication now copies the eight per-form settings that were previously silently lost (CSV download config + device fingerprint override). Closes #50 (frontend CSS specificity hardening — every public shortcode rule now sits at (0,2,0) for theme-collision resilience). No data migrations; safe upgrade.
 
 = 6.2.0 =
 Capabilities + roles overhaul: 14 new granular admin caps replace blanket `manage_options` gates, 9 new roles bundle the caps for delegation. Defense-in-depth admin UX layer hides core WP menus + blocks direct-URL access per role. 5 new debug-area toggles in **Settings → Advanced → Debug**. Fixes role translation on `wp-admin/users.php`. Fixes pre-existing in-place-upgrade bug that left recruitment tables un-created. 3 legacy certificate caps renamed to `ffc_*` namespace with one-time idempotent migration. No data loss; backup recommended.

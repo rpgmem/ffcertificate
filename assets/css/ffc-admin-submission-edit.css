@@ -247,7 +247,7 @@
 }
 
 .ffc-consent-summary {
-    font-weight: normal;
+    font-weight: 400;
     font-size: 13px;
     color: var(--ffc-text-muted);
 }

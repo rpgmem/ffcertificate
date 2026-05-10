@@ -155,33 +155,45 @@ class CPT {
 			wp_die( esc_html( $new_post_id->get_error_message() ) );
 		}
 
-		// Copy all metadata.
-		$fields          = get_post_meta( $post_id, '_ffc_form_fields', true );
-		$config          = get_post_meta( $post_id, '_ffc_form_config', true );
-		$bg_image        = get_post_meta( $post_id, '_ffc_form_bg', true );
-		$geofence_config = get_post_meta( $post_id, '_ffc_geofence_config', true );
+		// Copy metadata. Three buckets:
+		// - Core form data (fields, config, bg, geofence) — always copy.
+		// - Public CSV Download config — copy enabled flag + sub-settings,
+		// but NEVER the hash (security: a shared hash would let one URL
+		// unlock both forms), the counter (each duplicate starts fresh),
+		// or the audit log (history belongs to the original).
+		// - Device Fingerprint per-form override — copy in full.
+		$config_metas = array(
+			// Core.
+			'_ffc_form_fields',
+			'_ffc_form_config',
+			'_ffc_form_bg',
+			'_ffc_geofence_config',
+			// Public CSV Download (enabled + sub-settings only).
+			'_ffc_csv_public_enabled',
+			'_ffc_csv_public_limit',
+			'_ffc_csv_public_cpf_mode',
+			'_ffc_csv_public_cpf_whitelist',
+			// Device Fingerprint per-form override.
+			'_ffc_device_limit_enabled',
+			'_ffc_device_limit_max',
+			'_ffc_device_match_threshold',
+			'_ffc_device_limit_message',
+		);
 
 		$metadata_copied = array();
 
-		if ( $fields ) {
-			update_post_meta( $new_post_id, '_ffc_form_fields', $fields );
-			$metadata_copied[] = 'fields';
+		foreach ( $config_metas as $meta_key ) {
+			$value = get_post_meta( $post_id, $meta_key, true );
+			if ( '' === $value || array() === $value || null === $value ) {
+				continue;
+			}
+			update_post_meta( $new_post_id, $meta_key, $value );
+			$metadata_copied[] = $meta_key;
 		}
 
-		if ( $config ) {
-			update_post_meta( $new_post_id, '_ffc_form_config', $config );
-			$metadata_copied[] = 'config';
-		}
-
-		if ( $bg_image ) {
-			update_post_meta( $new_post_id, '_ffc_form_bg', $bg_image );
-			$metadata_copied[] = 'bg_image';
-		}
-
-		if ( $geofence_config ) {
-			update_post_meta( $new_post_id, '_ffc_geofence_config', $geofence_config );
-			$metadata_copied[] = 'geofence_config';
-		}
+		// Hash, counter, and audit log are intentionally NOT copied. The
+		// next save with _ffc_csv_public_enabled === '1' regenerates the
+		// hash automatically (see FormEditorSaveHandler::save_form_data).
 
 		\FreeFormCertificate\Core\Debug::log_admin(
 			'Form duplicated successfully',

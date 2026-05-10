@@ -82,7 +82,7 @@
 
 .ffc-options-desc {
     margin: 0 0 5px;
-    font-weight: bold;
+    font-weight: 700;
     color: var(--ffc-primary);
 }
 
@@ -98,7 +98,7 @@
 #ffc_pdf_layout {
     width: 100%;
     height: 450px;
-    font-family: 'Consolas', 'Monaco', monospace;
+    font-family: Consolas, Monaco, monospace;
     font-size: 13px;
     background: #2c3338;
     color: #f0f0f1;
@@ -292,7 +292,7 @@
 
 .ffc-label-accent {
     color: var(--ffc-primary);
-    font-weight: bold;
+    font-weight: 700;
 }
 
 /* ==========================================================================
@@ -377,15 +377,15 @@
 }
 
 /* Adicionar ícones aos botões (opcional) */
-#ffc_load_template_btn:before {
+#ffc_load_template_btn::before {
     content: "📋 ";
 }
 
-#ffc_btn_import_html:before {
+#ffc_btn_import_html::before {
     content: "📁 ";
 }
 
-#ffc_btn_media_lib:before {
+#ffc_btn_media_lib::before {
     content: "🖼️ ";
 }
 
@@ -451,7 +451,7 @@
     background: var(--ffc-bg-card);
     border-bottom: 1px solid var(--ffc-bg-card);
     margin-bottom: -1px;
-    font-weight: bold;
+    font-weight: 700;
 }
 
 /* Tab Content */
@@ -585,6 +585,69 @@
 
 .ffc-conditional-field.active {
     display: table-row;
+}
+
+/* Public CSV Download / Device Fingerprint metaboxes — fade the
+   sub-fields when the master toggle (or the global gate) is off. */
+.ffc-csv-public-disabled .ffc-csv-public-sub,
+.ffc-device-limit-disabled .ffc-device-limit-sub,
+.ffc-device-limit-globally-off {
+    opacity: 0.55;
+}
+
+.ffc-csv-public-disabled .ffc-csv-public-sub :is(input, select, textarea, button),
+.ffc-device-limit-disabled .ffc-device-limit-sub :is(input, select, textarea, button),
+.ffc-device-limit-globally-off :is(input, select, textarea, button) {
+    cursor: not-allowed;
+}
+
+/* Audit-log outcome summary cards (Public CSV Download metabox). */
+.ffc-csv-audit-summary {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0 0 12px;
+}
+
+.ffc-csv-audit-card {
+    flex: 1 1 140px;
+    min-width: 140px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    background: var(--ffc-bg-alt);
+    border-left: 4px solid var(--ffc-gray-400);
+}
+
+.ffc-csv-audit-card.is-success {
+    border-left-color: var(--ffc-success);
+    background: var(--ffc-success-light);
+}
+
+.ffc-csv-audit-card.is-fail {
+    border-left-color: var(--ffc-danger);
+    background: var(--ffc-danger-light);
+}
+
+.ffc-csv-audit-card-label {
+    display: block;
+    font-size: 12px;
+    color: var(--ffc-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 4px;
+}
+
+.ffc-csv-audit-card-value {
+    display: block;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--ffc-text);
+}
+
+/* Inline warning text used by metaboxes (replaces inline style="color:#a00"). */
+.ffc-warning-text {
+    color: #a00;
 }
 
 /* Dashboard header flex */
