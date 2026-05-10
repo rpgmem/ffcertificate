@@ -355,7 +355,8 @@ class RecruitmentActivator {
             updated_at datetime NOT NULL,
             PRIMARY KEY (id),
             UNIQUE KEY uq_code (code),
-            KEY idx_status (status)
+            KEY idx_status (status),
+            KEY idx_created (created_at)
         ) ENGINE=InnoDB {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -442,7 +443,8 @@ class RecruitmentActivator {
             UNIQUE KEY uq_cpf_hash (cpf_hash),
             UNIQUE KEY uq_rf_hash (rf_hash),
             KEY idx_email_hash (email_hash),
-            KEY idx_user_id (user_id)
+            KEY idx_user_id (user_id),
+            KEY idx_created (created_at)
         ) ENGINE=InnoDB {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

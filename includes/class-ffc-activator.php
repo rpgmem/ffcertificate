@@ -154,6 +154,55 @@ class Activator {
 	}
 
 	/**
+	 * Idempotently add `idx_created` indexes to FFC custom tables that
+	 * order/filter on `created_at` but did not declare the index in
+	 * their CREATE TABLE statement. Runs once per `FFC_VERSION`.
+	 *
+	 * Concrete benefit:
+	 *   - `ffc_recruitment_candidate.created_at`: every admin candidate
+	 *     listing and every adjutancy-keyed search runs `ORDER BY created_at
+	 *     DESC` — without an index this is a full-table sort on the
+	 *     entire candidate roster.
+	 *   - `ffc_recruitment_notice.created_at`: smaller table, but the
+	 *     notice list page runs `ORDER BY created_at DESC` on every render.
+	 *   - `ffc_reregistration_submissions.created_at`: secondary sort
+	 *     after `r.start_date DESC` in the submissions list join.
+	 *
+	 * Tables intentionally NOT touched by this migration:
+	 *   - `ffc_activity_log`, `ffc_rate_limit_logs`, `ffc_device_signals`
+	 *     already declare `idx_created` in their CREATE TABLE.
+	 *   - `ffc_user_profiles`, `ffc_custom_fields`, `ffc_audience_*`,
+	 *     `ffc_audiences` have `created_at` columns but no query
+	 *     orders/filters on them — adding an index there would be pure
+	 *     write overhead.
+	 *
+	 * @since 6.5.0
+	 * @return void
+	 */
+	public static function maybe_add_perf_indexes(): void {
+		$stored = get_option( 'ffc_perf_indexes_db_version', '' );
+
+		if ( FFC_VERSION === $stored ) {
+			return;
+		}
+
+		global $wpdb;
+		$tables_with_idx_created = array(
+			$wpdb->prefix . 'ffc_recruitment_candidate',
+			$wpdb->prefix . 'ffc_recruitment_notice',
+			$wpdb->prefix . 'ffc_reregistration_submissions',
+		);
+
+		foreach ( $tables_with_idx_created as $table ) {
+			if ( self::table_exists( $table ) ) {
+				self::add_index_if_missing( $table, 'idx_created', '(created_at)' );
+			}
+		}
+
+		update_option( 'ffc_perf_indexes_db_version', FFC_VERSION, true );
+	}
+
+	/**
 	 * Add columns.
 	 */
 	private static function add_columns(): void {
@@ -581,7 +630,8 @@ class Activator {
             PRIMARY KEY (id),
             UNIQUE KEY idx_reregistration_user (reregistration_id, user_id),
             KEY idx_user_id (user_id),
-            KEY idx_status (status)
+            KEY idx_status (status),
+            KEY idx_created (created_at)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

@@ -169,6 +169,11 @@ class Loader {
 		// Ensure submissions table schema is current (runs add_columns on version change).
 		\FreeFormCertificate\Activator::maybe_add_columns();
 
+		// 6.5.0: idx_created on candidate / notice / reregistration_submissions
+		// for ORDER BY created_at queries (issue #144 S1). Idempotent — gated
+		// on FFC_VERSION so the ALTER TABLE runs once per release.
+		\FreeFormCertificate\Activator::maybe_add_perf_indexes();
+
 		// Ensure rate-limit tables (incl. ffc_device_signals added in 6.3.0) exist
 		// even after in-place plugin updates that bypass register_activation_hook.
 		if ( class_exists( '\FreeFormCertificate\Security\RateLimitActivator' ) ) {
