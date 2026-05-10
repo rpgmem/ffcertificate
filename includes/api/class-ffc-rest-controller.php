@@ -157,5 +157,8 @@ class RestController {
 
 		$appointment_controller = new AppointmentRestController( $this->namespace );
 		$appointment_controller->register_routes();
+
+		$certificates_calendar_controller = new CertificatesCalendarRestController( $this->namespace );
+		$certificates_calendar_controller->register_routes();
 	}
 }
