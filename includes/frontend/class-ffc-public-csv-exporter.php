@@ -159,15 +159,11 @@ class PublicCsvExporter {
 		header( 'Pragma: no-cache' );
 		header( 'Expires: 0' );
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output; CsvWriter receives the borrowed handle.
 		$output = fopen( 'php://output', 'w' );
 		if ( ! $output ) {
 			exit;
 		}
-
-		// BOM for Excel UTF-8 recognition.
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV binary output.
-		fprintf( $output, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
 
 		$headers = array_merge(
 			$this->get_fixed_headers( $include_edit_columns ),
@@ -188,13 +184,8 @@ class PublicCsvExporter {
 		 */
 		$headers = (array) apply_filters( 'ffcertificate_csv_export_headers', $headers, $include_edit_columns, $form_ids );
 
-		$headers = array_map(
-			function ( $h ) {
-				return mb_convert_encoding( (string) $h, 'UTF-8', 'UTF-8' );
-			},
-			$headers
-		);
-		fputcsv( $output, $headers, ';' );
+		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
+		$writer->row( $headers );
 
 		// Stream rows in batches using cursor pagination.
 		$cursor = PHP_INT_MAX;
@@ -219,14 +210,7 @@ class PublicCsvExporter {
 			$batch = apply_filters( 'ffcertificate_csv_export_data', $batch, $form_ids, $status );
 
 			foreach ( $batch as $row ) {
-				$csv_row = $this->format_csv_row( $row, $dynamic_keys, $include_edit_columns );
-				$csv_row = array_map(
-					function ( $v ) {
-						return mb_convert_encoding( (string) $v, 'UTF-8', 'UTF-8' );
-					},
-					$csv_row
-				);
-				fputcsv( $output, $csv_row, ';' );
+				$writer->row( $this->format_csv_row( $row, $dynamic_keys, $include_edit_columns ) );
 			}
 
 			$last_row = end( $batch );
@@ -234,7 +218,8 @@ class PublicCsvExporter {
 			unset( $batch );
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		$writer->close();
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
 		fclose( $output );
 
 		/**
@@ -421,16 +406,6 @@ class PublicCsvExporter {
 		$job_id   = wp_generate_uuid4();
 		$tmp_file = $tmp_dir . '/ffc-public-export-' . $job_id . '.csv';
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-		$fh = fopen( $tmp_file, 'w' );
-		if ( ! $fh ) {
-			wp_send_json_error( array( 'message' => __( 'Cannot create temp file.', 'ffcertificate' ) ) );
-		}
-
-		// BOM + headers.
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV binary output.
-		fprintf( $fh, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
-
 		$headers = array_merge(
 			$this->get_fixed_headers( $include_edit_columns ),
 			$this->build_dynamic_headers( $dynamic_keys )
@@ -439,15 +414,13 @@ class PublicCsvExporter {
 		/** This filter is documented in the sync stream path above. */
 		$headers = (array) apply_filters( 'ffcertificate_csv_export_headers', $headers, $include_edit_columns, $form_ids );
 
-		$headers = array_map(
-			function ( $h ) {
-				return mb_convert_encoding( (string) $h, 'UTF-8', 'UTF-8' );
-			},
-			$headers
-		);
-		fputcsv( $fh, $headers, ';' );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-		fclose( $fh );
+		try {
+			$writer = \FreeFormCertificate\Core\Csv::writer( $tmp_file );
+		} catch ( \RuntimeException $e ) {
+			wp_send_json_error( array( 'message' => __( 'Cannot create temp file.', 'ffcertificate' ) ) );
+		}
+		$writer->row( $headers );
+		$writer->close();
 
 		$ip_hash     = sha1( \FreeFormCertificate\Core\Utils::get_user_ip() );
 		$nonce_batch = wp_create_nonce( 'ffc_public_csv_batch_' . $job_id );
@@ -543,23 +516,19 @@ class PublicCsvExporter {
 		 */
 		$batch = apply_filters( 'ffcertificate_csv_export_data', $batch, $job['form_ids'], $job['status'] );
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming append; CsvWriter does not own this handle.
 		$fh = fopen( $job['file'], 'a' );
 		if ( ! $fh ) {
 			wp_send_json_error( __( 'Cannot write to temp file.', 'ffcertificate' ) );
 		}
 
+		// File already contains its BOM from the init handler.
+		$writer = \FreeFormCertificate\Core\Csv::writer( $fh, ';', true );
 		foreach ( $batch as $row ) {
-			$csv_row = $this->format_csv_row( $row, $job['dynamic_keys'], $job['include_edit_columns'] );
-			$csv_row = array_map(
-				function ( $v ) {
-					return mb_convert_encoding( (string) $v, 'UTF-8', 'UTF-8' );
-				},
-				$csv_row
-			);
-			fputcsv( $fh, $csv_row, ';' );
+			$writer->row( $this->format_csv_row( $row, $job['dynamic_keys'], $job['include_edit_columns'] ) );
 		}
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		$writer->close();
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the handle this method opened.
 		fclose( $fh );
 
 		$last_row          = end( $batch );

@@ -7,12 +7,26 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [6.4.0] (2026-05-10)
+
+**Unified CSV IO abstraction (#126).** Internal refactor: every CSV the plugin reads or writes now flows through a single pair of primitives — `\FreeFormCertificate\Core\Csv::writer()` / `Csv::reader()` — instead of the eight exporters and two importers each implementing fputcsv/fgetcsv/delimiter detection/BOM handling on their own. No user-facing change for files that already used `;` (the post-6.3.9 default); audience export templates now correctly emit a UTF-8 BOM (previously they were the only files in the plugin that didn't, causing Excel to render accented characters as mojibake until manually fixing encoding). Minor bump because the surface area touched is broad even though behaviour is preserved on every public format.
+
 ### Added
 
 - **Certificates Dashboard (admin).** New page registered as the first item under the Certificate menu (`edit.php?post_type=ffc_form&page=ffc-certificates-dashboard`). Renders a monthly calendar of every form keyed by its GeoFence start date (with a fallback to the publication date when the form has no GeoFence configured), plus a side list of forms scheduled for the day clicked in the calendar. Day cells get a count chip — green when at least one form on the day is GeoFence-sourced, gray when all are post_date fallbacks. Backed by a new `GET /ffc/v1/certificates/calendar` REST endpoint gated on `edit_others_posts` (Editor + Administrator). Reuses the existing `FFCCalendarCore` JS grid.
+- **Csv / CsvWriter / CsvReader (`includes/core/`).** Public IO primitives (`final class` facade + worker pair). Writer guarantees: BOM emitted exactly once before the first row, `;` delimiter by default, RFC 4180 quoting, optional `skip_bom` flag for append-mode workers picking up after an init writer. Reader guarantees: BOM stripped at byte 0 if present, `,`-vs-`;` auto-detection on the first line (ties → `,` for back-compat), `each(callable)` streams body rows for memory-bounded imports, `header()`/`all()`/`close()` for the convenience cases. 28 PHPUnit cases cover round-trip integrity, BOM contract, all four quoting edge cases, and the resource-vs-string entry points.
+
+### Changed
+
+- **CSV exports migrated to `Csv::writer`.** Eight exporters touched, one per commit: admin submissions (`CsvExporter`), public synchronous + async submissions (`PublicCsvExporter`), self-scheduling appointments (`AppointmentCsvExporter`), recruitment notice template, reregistration submissions (`ReregistrationCsvExporter`), audience admin templates (members + audiences), public-csv-download audit log, admin activity log. Per-exporter mb_convert_encoding and BOM-emission code removed; the writer handles both centrally.
+- **CSV imports migrated to `Csv::reader`.** Two importers (recruitment + audience) drop their per-class `detect_delimiter()` / `peek_delimiter()` / `parse_csv_line()` / `strip_utf8_bom()` helpers (~250 LOC removed). Recruitment importer's previous line-splitter (`preg_split('/\r\n|\n|\r/', $content)` + `str_getcsv` per physical line) is replaced with the reader's `fgetcsv`-based parser, which now correctly handles quoted multi-line cells (was a silent parse failure before).
+- **CsvExportTrait scope narrowed.** `output_csv()` removed (replaced by the new writer); the trait now contains only the JSON-data-shape helpers (extract_dynamic_keys, decode_json_field, build_dynamic_headers, extract_dynamic_values) used by the submission and appointment exporters to flatten encrypted/plaintext `data` columns into dynamic spreadsheet columns.
 
 ### Fixed
 
+- **Audience export templates now emit UTF-8 BOM.** `members-export-*.csv` and `audiences-export-*.csv` were the only CSV files in the plugin without a BOM, so Excel opened them in the wrong encoding by default. The migration to `Csv::writer` standardises BOM emission. Round-trip with the matching importer is unaffected: the importer always tolerated BOM either way.
 - **Audience shortcode modals fall behind the calendar instead of appearing as an overlay.** The day-detail and booking modals in `[ffc_audience]` were rendered outside the `.ffc-shortcode` wrapper that the `ffc-calendar-wrapper` refactor introduced, so the `.ffc-shortcode .ffc-modal` rules (which provide `position: fixed`, the dark backdrop and centred placement) never matched. Modals dropped into normal flow and rendered inline below the calendar. Added `ffc-shortcode` to each modal's class list so the existing scoped CSS applies again — minimal change, no layout or selector-broadening side effects.
 
 ---
