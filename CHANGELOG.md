@@ -9,6 +9,32 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [6.5.0] (2026-05-10)
+
+**Performance and stability (#144).** Three real implementations + three "already done in earlier releases" honest no-ops + one deferred-as-follow-up. Minor bump because the migration adds indexes on existing tables and changes the `create()` invariant on audience bookings (now atomic).
+
+### Added
+
+- **`Activator::maybe_add_perf_indexes()` (#144 S1).** Adds `KEY idx_created (created_at)` to `ffc_recruitment_candidate`, `ffc_recruitment_notice`, and `ffc_reregistration_submissions` on installs that didn't have them. Idempotent — gated on `ffc_perf_indexes_db_version` keyed to `FFC_VERSION`. Hooked from `Loader::init_plugin()` so existing installs pick up the indexes on next page load. The audit also asked about `idx_updated` / other tables; investigation showed `ffc_activity_log`, `ffc_rate_limit_logs`, `ffc_device_signals` already declare `idx_created`, and tables like `ffc_user_profiles` have no query orders/filters on `created_at` — adding indexes there would be pure write overhead, so left alone.
+- **`ReregistrationSubmissionRepository::stream_for_export()` (#144 S5).** Generator yielding rows in 500-row chunks, used by `ReregistrationCsvExporter` instead of materialising the full result set. Bounded memory for 50k+ row exports.
+- **Cron `cleanup_stale_export_jobs()` (#144 S6).** Hooked into the existing `ffcertificate_daily_cleanup_hook`, walks `_transient_ffc_csv_export_*` and `_transient_ffc_public_csv_*` rows in `wp_options`, unlinks the temp CSV files referenced in the payload, deletes the transient. Reclaims disk space + DB rows from CSV exports the user abandoned mid-flight.
+
+### Changed
+
+- **`AudienceBookingRepository::create()` is now atomic (#144 S2).** Conflict-check + insert run inside a `START TRANSACTION ... COMMIT` block, with a `SELECT ... FOR UPDATE` on the conflict predicate. Before this commit, two concurrent requests for the same `(environment, date, time)` slot could both pass the conflict check (no row existed yet) and both insert. The `idx_env_date_status` index already declared on the table gives InnoDB the row + gap locks needed to block concurrent inserts in the locked range. Mirrors the pattern at `SelfSchedulingAppointmentHandler::create_or_update():140`.
+
+### Honest no-ops (audit findings already implemented)
+
+- **#144 S4 — N+1 in admin user columns:** already batch-loaded since v4.9.7 (`load_certificate_counts`, `load_appointment_counts`, `load_recruitment_notice_counts`). Three GROUP BY queries per page render, regardless of user count.
+- **#144 S7 — Activity log pagination:** already implemented; `class-ffc-admin-activity-log-page.php` uses `$per_page = 50` (smaller than the requested LIMIT 100) and `$total_pages` for navigation. Export path keeps the full dump (`limit => 999999`).
+- **#144 S8 — Conditional asset enqueue:** every public-frontend `wp_enqueue_scripts` hook in the plugin already gates on `has_shortcode()` against the rendered post content (or enqueues from inside the shortcode's `render()`). No unconditional enqueue exists.
+
+### Deferred to follow-up
+
+- **#144 S3 — Async ficha generation via Action Scheduler:** the work requires bundling Action Scheduler (~150 LOC + two custom tables + a new admin page) which is a wider surface than this PR's scope. Tracked as #148.
+
+---
+
 ## [6.4.1] (2026-05-10)
 
 **REST API lockdown (#139).** Plugs a config-blob leak in the public REST surface and adds a circuit-breaker on the public booking calendars. `GET /wp-json/ffc/v1/forms` and `GET /wp-json/ffc/v1/forms/{id}` previously carried `permission_callback => '__return_true'` and returned the full `_ffc_form_config` blob — which on a typical install contains `allowed_users_list`, `denied_users_list`, `validation_code`, `generated_codes_list`, `geo_areas`, `geo_ip_area_location_ids`, `email_body`, `email_subject`. Anyone with the public REST URL could enumerate every form's gating policy.

@@ -436,9 +436,15 @@ class Loader {
 		);
 		// 6.5.0: scrub stale CSV-export temp files + transient rows
 		// left behind by users who abandoned an export mid-flight (#144 S6).
+		// Wrapped in a void closure because cleanup_stale_export_jobs()
+		// returns an int (count of reclaimed jobs) — useful for logging
+		// or programmatic invocation, but action callbacks must return
+		// void per PHPStan's `return.void` rule.
 		add_action(
 			'ffcertificate_daily_cleanup_hook',
-			array( \FreeFormCertificate\Admin\CsvExporter::class, 'cleanup_stale_export_jobs' )
+			static function (): void {
+				\FreeFormCertificate\Admin\CsvExporter::cleanup_stale_export_jobs();
+			}
 		);
 		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
 		add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );

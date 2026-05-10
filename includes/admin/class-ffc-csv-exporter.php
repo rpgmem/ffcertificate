@@ -381,7 +381,7 @@ class CsvExporter {
 			'_transient_timeout_ffc_public_csv_',
 		);
 
-		$now      = time();
+		$now       = time();
 		$reclaimed = 0;
 
 		foreach ( $prefixes as $timeout_prefix ) {

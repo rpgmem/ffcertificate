@@ -609,7 +609,7 @@ class ReregistrationSubmissionRepository {
 	 * @param int                  $reregistration_id Reregistration ID.
 	 * @param array<string, mixed> $filters           Filters (status, search, orderby, order).
 	 * @param int                  $chunk_size        Rows per database round-trip.
-	 * @return \Generator<int, object>
+	 * @return \Generator<int, ReregistrationSubmissionRow>
 	 */
 	public static function stream_for_export( int $reregistration_id, array $filters = array(), int $chunk_size = 500 ): \Generator {
 		$offset = 0;
