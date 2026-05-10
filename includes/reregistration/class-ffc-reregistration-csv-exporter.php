@@ -48,7 +48,10 @@ class ReregistrationCsvExporter {
 			return;
 		}
 
-		$submissions = ReregistrationSubmissionRepository::get_for_export( $id );
+		// Stream submissions in chunks of 500 so a 50k-row reregistration
+		// stays memory-bounded. The generator pipes straight into the
+		// CSV writer below without materialising the full result set.
+		$submissions = ReregistrationSubmissionRepository::stream_for_export( $id );
 		$fields      = self::get_custom_fields_for_reregistration( $rereg );
 
 		// Build CSV.
