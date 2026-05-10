@@ -34,20 +34,6 @@ class FormEditorTest extends TestCase {
         Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
         Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'sanitize_file_name' )->returnArg();
-        // 6.5.1: AjaxTrait migration — see ReregistrationAdminTest setUp.
-        Functions\when( 'wp_verify_nonce' )->justReturn( true );
-        Functions\when( 'sanitize_text_field' )->returnArg();
-        // Re-stub wp_unslash + sanitize_text_field at the end of setUp:
-        // Brain Monkey's redefine doesn't always survive cross-class state
-        // pollution from other suites that touched the same functions, so a
-        // late re-stub forces Patchwork to bind our closure as the active
-        // handler regardless of any earlier intermediate state. The eval'd
-        // placeholder function from a previous class's first `when()` call
-        // would otherwise still throw MissingFunctionExpectations because
-        // the redefine got dropped on the previous Monkey\tearDown().
-        Functions\expect( 'wp_unslash' )->zeroOrMoreTimes()->andReturnUsing( function ( $v ) { return $v; } );
-        Functions\expect( 'sanitize_text_field' )->zeroOrMoreTimes()->andReturnUsing( function ( $v ) { return $v; } );
-        $_POST['nonce'] = 'test_nonce';
 
         if ( ! defined( 'ABSPATH' ) ) {
             define( 'ABSPATH', '/tmp/' );

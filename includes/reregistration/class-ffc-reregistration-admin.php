@@ -37,8 +37,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class ReregistrationAdmin {
 
-	use \FreeFormCertificate\Core\AjaxTrait;
-
 	/**
 	 * Menu slug.
 	 */
@@ -855,10 +853,13 @@ class ReregistrationAdmin {
 	 * @return void
 	 */
 	public function ajax_generate_ficha(): void {
-		$this->verify_ajax_nonce( 'ffc_generate_ficha' );
-		$this->check_ajax_permission( self::CAPABILITY );
+		check_ajax_referer( 'ffc_generate_ficha', 'nonce' );
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via verify_ajax_nonce() above.
+		if ( ! current_user_can( self::CAPABILITY ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
+		}
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via check_ajax_referer() above.
 		$submission_id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
 		if ( ! $submission_id ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
@@ -882,10 +883,13 @@ class ReregistrationAdmin {
 	 * @return void
 	 */
 	public function ajax_view_submission_details(): void {
-		$this->verify_ajax_nonce( 'ffc_view_submission_details' );
-		$this->check_ajax_permission( self::CAPABILITY );
+		check_ajax_referer( 'ffc_view_submission_details', 'nonce' );
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via verify_ajax_nonce() above.
+		if ( ! current_user_can( self::CAPABILITY ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
+		}
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via check_ajax_referer() above.
 		$submission_id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
 		if ( ! $submission_id ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
@@ -1108,8 +1112,11 @@ class ReregistrationAdmin {
 	 * @return void
 	 */
 	public function ajax_count_members(): void {
-		$this->verify_ajax_nonce( 'ffc_reregistration_nonce' );
-		$this->check_ajax_permission( self::CAPABILITY );
+		check_ajax_referer( 'ffc_reregistration_nonce', 'nonce' );
+
+		if ( ! current_user_can( self::CAPABILITY ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
+		}
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$raw          = isset( $_POST['audience_ids'] ) ? array_map( 'absint', (array) $_POST['audience_ids'] ) : array();

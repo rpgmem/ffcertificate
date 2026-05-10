@@ -21,8 +21,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class FormEditor {
 
-	use \FreeFormCertificate\Core\AjaxTrait;
-
 	/**
 	 * Metabox renderer.
 	 *
@@ -186,10 +184,12 @@ class FormEditor {
 	 * AJAX: Generates a list of unique ticket codes
 	 */
 	public function ajax_generate_random_codes(): void {
-		$this->verify_ajax_nonce( 'ffc_admin_pdf_nonce' );
-		$this->check_ajax_permission( 'edit_posts' );
+		check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via verify_ajax_nonce().
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error();
+		}
+
 		$qty   = isset( $_POST['qty'] ) ? absint( wp_unslash( $_POST['qty'] ) ) : 10;
 		$codes = array();
 		for ( $i = 0; $i < $qty; $i++ ) {
@@ -203,10 +203,12 @@ class FormEditor {
 	 * AJAX: Loads a local HTML template from the plugin directory
 	 */
 	public function ajax_load_template(): void {
-		$this->verify_ajax_nonce( 'ffc_admin_pdf_nonce' );
-		$this->check_ajax_permission( 'edit_posts' );
+		check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via verify_ajax_nonce().
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error();
+		}
+
 		$filename = isset( $_POST['filename'] ) ? sanitize_file_name( wp_unslash( $_POST['filename'] ) ) : '';
 		if ( empty( $filename ) ) {
 			wp_send_json_error();

@@ -40,15 +40,6 @@ class ReregistrationAdminTest extends TestCase {
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'wp_unslash' )->returnArg();
         Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
-        // 6.5.1: AjaxTrait migration — see FormEditorTest setUp for the full
-        // explanation. Brain Monkey's when()->returnArg() doesn't survive the
-        // suite-wide Patchwork state churn between certain test classes, so a
-        // late expect()->zeroOrMoreTimes() rebinds Patchwork to our closure
-        // immediately before the test body runs.
-        Functions\expect( 'wp_unslash' )->zeroOrMoreTimes()->andReturnUsing( function ( $v ) { return $v; } );
-        Functions\expect( 'sanitize_text_field' )->zeroOrMoreTimes()->andReturnUsing( function ( $v ) { return $v; } );
-        Functions\expect( 'wp_verify_nonce' )->zeroOrMoreTimes()->andReturn( true );
-        $_POST['nonce'] = 'test_nonce';
         Functions\when( 'wp_enqueue_style' )->justReturn( true );
         Functions\when( 'wp_enqueue_script' )->justReturn( true );
         Functions\when( 'wp_localize_script' )->justReturn( true );
