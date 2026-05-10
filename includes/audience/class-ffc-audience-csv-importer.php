@@ -52,20 +52,20 @@ class AudienceCsvImporter {
 		}
 
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV import; CsvReader does not own this handle.
 		$handle = fopen( $file_path, 'r' );
 		if ( ! $handle ) {
 			$result['errors'][] = __( 'Could not open file.', 'ffcertificate' );
 			return $result;
 		}
 
-		// 6.3.9: auto-detect `,` vs `;` so legacy CSVs and the new
-		// pt-BR-friendly templates both parse correctly.
-		$delimiter = self::peek_delimiter( $handle );
-
-		// Read header row.
-		$header = fgetcsv( $handle, 0, $delimiter );
-		if ( ! $header ) {
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		// Csv::reader auto-detects `,` vs `;` (canonical rule lifted
+		// from the previous self::peek_delimiter() in Sprint 1) and
+		// strips the BOM transparently.
+		$reader = \FreeFormCertificate\Core\Csv::reader( $handle );
+		$header = $reader->header();
+		if ( empty( $header ) ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the handle this method opened.
 			fclose( $handle );
 			$result['errors'][] = __( 'Empty file or invalid CSV format.', 'ffcertificate' );
 			return $result;
@@ -88,7 +88,7 @@ class AudienceCsvImporter {
 		$audience_name_col = false !== $audience_name_col ? $audience_name_col : array_search( 'audience', $header, true );
 
 		if ( false === $email_col ) {
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the handle this method opened.
 			fclose( $handle );
 			$result['errors'][] = __( 'Required column "email" not found in CSV.', 'ffcertificate' );
 			return $result;
@@ -96,7 +96,7 @@ class AudienceCsvImporter {
 
 		// If no audience_id provided and not in CSV, error.
 		if ( 0 === $audience_id && false === $audience_col && false === $audience_name_col ) {
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the handle this method opened.
 			fclose( $handle );
 			$result['errors'][] = __( 'No audience specified. Provide audience_id parameter or include audience_id/audience_name column in CSV.', 'ffcertificate' );
 			return $result;
@@ -104,75 +104,76 @@ class AudienceCsvImporter {
 
 		// Process rows.
 		$row_num = 1;
-		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- canonical fgetcsv() streaming pattern.
-		while ( ( $data = fgetcsv( $handle, 0, $delimiter ) ) !== false ) {
-			++$row_num;
+		$reader->each(
+			function ( array $data ) use ( &$row_num, &$result, $email_col, $name_col, $audience_col, $audience_name_col, $audience_id, $create_users ): void {
+				++$row_num;
 
-			// Skip empty rows.
-			if ( empty( array_filter( $data ) ) ) {
-				continue;
-			}
-
-			$email = isset( $data[ $email_col ] ) ? sanitize_email( $data[ $email_col ] ) : '';
-
-			if ( empty( $email ) || ! is_email( $email ) ) {
-				/* translators: %d: row number */
-				$result['errors'][] = sprintf( __( 'Row %d: Invalid email address.', 'ffcertificate' ), $row_num );
-				++$result['skipped'];
-				continue;
-			}
-
-			// Determine audience.
-			$target_audience_id = $audience_id;
-			if ( 0 === $target_audience_id ) {
-				if ( false !== $audience_col && isset( $data[ $audience_col ] ) ) {
-					$target_audience_id = absint( $data[ $audience_col ] );
-				} elseif ( false !== $audience_name_col && isset( $data[ $audience_name_col ] ) ) {
-					$audience_name      = sanitize_text_field( $data[ $audience_name_col ] );
-					$target_audience_id = self::get_audience_id_by_name( $audience_name );
+				// Skip empty rows.
+				if ( empty( array_filter( $data ) ) ) {
+					return;
 				}
-			}
 
-			if ( 0 === $target_audience_id ) {
-				/* translators: %d: row number */
-				$result['errors'][] = sprintf( __( 'Row %d: Could not determine audience.', 'ffcertificate' ), $row_num );
-				++$result['skipped'];
-				continue;
-			}
+				$email = isset( $data[ $email_col ] ) ? sanitize_email( $data[ $email_col ] ) : '';
 
-			// Find or create user.
-			$user = get_user_by( 'email', $email );
-			if ( ! $user ) {
-				if ( $create_users ) {
-					$name    = ( false !== $name_col && isset( $data[ $name_col ] ) ) ? sanitize_text_field( $data[ $name_col ] ) : '';
-					$user_id = self::create_ffc_user( $email, $name );
-					if ( is_wp_error( $user_id ) ) {
-						/* translators: %1$d: row number, %2$s: error message */
-						$result['errors'][] = sprintf( __( 'Row %1$d: Could not create user: %2$s', 'ffcertificate' ), $row_num, $user_id->get_error_message() );
+				if ( empty( $email ) || ! is_email( $email ) ) {
+					/* translators: %d: row number */
+					$result['errors'][] = sprintf( __( 'Row %d: Invalid email address.', 'ffcertificate' ), $row_num );
+					++$result['skipped'];
+					return;
+				}
+
+				// Determine audience.
+				$target_audience_id = $audience_id;
+				if ( 0 === $target_audience_id ) {
+					if ( false !== $audience_col && isset( $data[ $audience_col ] ) ) {
+						$target_audience_id = absint( $data[ $audience_col ] );
+					} elseif ( false !== $audience_name_col && isset( $data[ $audience_name_col ] ) ) {
+						$audience_name      = sanitize_text_field( $data[ $audience_name_col ] );
+						$target_audience_id = self::get_audience_id_by_name( $audience_name );
+					}
+				}
+
+				if ( 0 === $target_audience_id ) {
+					/* translators: %d: row number */
+					$result['errors'][] = sprintf( __( 'Row %d: Could not determine audience.', 'ffcertificate' ), $row_num );
+					++$result['skipped'];
+					return;
+				}
+
+				// Find or create user.
+				$user = get_user_by( 'email', $email );
+				if ( ! $user ) {
+					if ( $create_users ) {
+						$name    = ( false !== $name_col && isset( $data[ $name_col ] ) ) ? sanitize_text_field( $data[ $name_col ] ) : '';
+						$user_id = self::create_ffc_user( $email, $name );
+						if ( is_wp_error( $user_id ) ) {
+							/* translators: %1$d: row number, %2$s: error message */
+							$result['errors'][] = sprintf( __( 'Row %1$d: Could not create user: %2$s', 'ffcertificate' ), $row_num, $user_id->get_error_message() );
+							++$result['skipped'];
+							return;
+						}
+					} else {
+						/* translators: %1$d: row number, %2$s: email address */
+						$result['errors'][] = sprintf( __( 'Row %1$d: User not found: %2$s', 'ffcertificate' ), $row_num, $email );
 						++$result['skipped'];
-						continue;
+						return;
 					}
 				} else {
-					/* translators: %1$d: row number, %2$s: email address */
-					$result['errors'][] = sprintf( __( 'Row %1$d: User not found: %2$s', 'ffcertificate' ), $row_num, $email );
-					++$result['skipped'];
-					continue;
+					$user_id = $user->ID;
 				}
-			} else {
-				$user_id = $user->ID;
-			}
 
-			// Add member to audience.
-			$added = AudienceRepository::add_member( $target_audience_id, $user_id );
-			if ( $added ) {
-				++$result['imported'];
-			} else {
-				// Already a member.
-				++$result['skipped'];
+				// Add member to audience.
+				$added = AudienceRepository::add_member( $target_audience_id, $user_id );
+				if ( $added ) {
+					++$result['imported'];
+				} else {
+					// Already a member.
+					++$result['skipped'];
+				}
 			}
-		}
+		);
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the handle this method opened.
 		fclose( $handle );
 		$result['success'] = true;
 
@@ -198,20 +199,17 @@ class AudienceCsvImporter {
 			return $result;
 		}
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV import; CsvReader does not own this handle.
 		$handle = fopen( $file_path, 'r' );
 		if ( ! $handle ) {
 			$result['errors'][] = __( 'Could not open file.', 'ffcertificate' );
 			return $result;
 		}
 
-		// 6.3.9: auto-detect CSV delimiter (`,` or `;`).
-		$delimiter = self::peek_delimiter( $handle );
-
-		// Read header row.
-		$header = fgetcsv( $handle, 0, $delimiter );
-		if ( ! $header ) {
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		$reader = \FreeFormCertificate\Core\Csv::reader( $handle );
+		$header = $reader->header();
+		if ( empty( $header ) ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the handle this method opened.
 			fclose( $handle );
 			$result['errors'][] = __( 'Empty file or invalid CSV format.', 'ffcertificate' );
 			return $result;
@@ -229,7 +227,7 @@ class AudienceCsvImporter {
 		}
 
 		if ( false === $name_col ) {
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the handle this method opened.
 			fclose( $handle );
 			$result['errors'][] = __( 'Required column "name" not found in CSV.', 'ffcertificate' );
 			return $result;
@@ -238,37 +236,38 @@ class AudienceCsvImporter {
 		// First pass: create all parent audiences.
 		$audiences_to_create = array();
 		$row_num             = 1;
-		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- canonical fgetcsv() streaming pattern.
-		while ( ( $data = fgetcsv( $handle, 0, $delimiter ) ) !== false ) {
-			++$row_num;
+		$reader->each(
+			static function ( array $data ) use ( &$row_num, &$result, &$audiences_to_create, $name_col, $color_col, $parent_col ): void {
+				++$row_num;
 
-			if ( empty( array_filter( $data ) ) ) {
-				continue;
+				if ( empty( array_filter( $data ) ) ) {
+					return;
+				}
+
+				$name        = isset( $data[ $name_col ] ) ? sanitize_text_field( $data[ $name_col ] ) : '';
+				$color       = ColorValidator::normalize(
+					( false !== $color_col && isset( $data[ $color_col ] ) ) ? $data[ $color_col ] : '',
+					'#3788d8'
+				);
+				$parent_name = ( false !== $parent_col && isset( $data[ $parent_col ] ) ) ? sanitize_text_field( $data[ $parent_col ] ) : '';
+
+				if ( empty( $name ) ) {
+					/* translators: %d: row number */
+					$result['errors'][] = sprintf( __( 'Row %d: Empty name.', 'ffcertificate' ), $row_num );
+					++$result['skipped'];
+					return;
+				}
+
+				$audiences_to_create[] = array(
+					'row'         => $row_num,
+					'name'        => $name,
+					'color'       => $color,
+					'parent_name' => $parent_name,
+				);
 			}
+		);
 
-			$name        = isset( $data[ $name_col ] ) ? sanitize_text_field( $data[ $name_col ] ) : '';
-			$color       = ColorValidator::normalize(
-				( false !== $color_col && isset( $data[ $color_col ] ) ) ? $data[ $color_col ] : '',
-				'#3788d8'
-			);
-			$parent_name = ( false !== $parent_col && isset( $data[ $parent_col ] ) ) ? sanitize_text_field( $data[ $parent_col ] ) : '';
-
-			if ( empty( $name ) ) {
-				/* translators: %d: row number */
-				$result['errors'][] = sprintf( __( 'Row %d: Empty name.', 'ffcertificate' ), $row_num );
-				++$result['skipped'];
-				continue;
-			}
-
-			$audiences_to_create[] = array(
-				'row'         => $row_num,
-				'name'        => $name,
-				'color'       => $color,
-				'parent_name' => $parent_name,
-			);
-		}
-
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the handle this method opened.
 		fclose( $handle );
 
 		// Process in depth order: roots first, then children, then grandchildren.
@@ -439,20 +438,17 @@ class AudienceCsvImporter {
 			return $result;
 		}
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV preview; CsvReader does not own this handle.
 		$handle = fopen( $file_path, 'r' );
 		if ( ! $handle ) {
 			$result['errors'][] = __( 'Could not open file.', 'ffcertificate' );
 			return $result;
 		}
 
-		// 6.3.9: auto-detect CSV delimiter (`,` or `;`).
-		$delimiter = self::peek_delimiter( $handle );
-
-		// Read header.
-		$header = fgetcsv( $handle, 0, $delimiter );
-		if ( ! $header ) {
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		$reader = \FreeFormCertificate\Core\Csv::reader( $handle );
+		$header = $reader->header();
+		if ( empty( $header ) ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the handle this method opened.
 			fclose( $handle );
 			$result['errors'][] = __( 'Empty file or invalid CSV format.', 'ffcertificate' );
 			return $result;
@@ -470,14 +466,15 @@ class AudienceCsvImporter {
 		}
 
 		// Count rows.
-		// phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- canonical fgetcsv() streaming pattern.
-		while ( ( $data = fgetcsv( $handle, 0, $delimiter ) ) !== false ) {
-			if ( ! empty( array_filter( $data ) ) ) {
-				++$result['rows'];
+		$reader->each(
+			static function ( array $data ) use ( &$result ): void {
+				if ( ! empty( array_filter( $data ) ) ) {
+					++$result['rows'];
+				}
 			}
-		}
+		);
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the handle this method opened.
 		fclose( $handle );
 
 		$result['valid'] = empty( $result['errors'] );
@@ -514,45 +511,4 @@ class AudienceCsvImporter {
 				"bob@example.com;Bob Johnson;Group B\n";
 	}
 
-	/**
-	 * Peek the first line of a CSV stream to choose between `,` and `;` as
-	 * the field separator, then rewind the handle so the regular
-	 * fgetcsv() loop reads from the start. Mirrors the recruitment
-	 * importer's detect_delimiter(); kept private to this class so the
-	 * surface stays small.
-	 *
-	 * Counts unquoted occurrences of each candidate; ties resolve to `,`
-	 * for backwards compatibility with files that worked pre-detection.
-	 *
-	 * @since 6.3.9
-	 * @param resource $handle Open file handle (read mode, position 0).
-	 * @return string `,` or `;`.
-	 */
-	private static function peek_delimiter( $handle ): string {
-		$first_line = fgets( $handle );
-		rewind( $handle );
-		if ( ! is_string( $first_line ) || '' === $first_line ) {
-			return ',';
-		}
-		$comma     = 0;
-		$semicolon = 0;
-		$in_quotes = false;
-		$length    = strlen( $first_line );
-		for ( $i = 0; $i < $length; $i++ ) {
-			$ch = $first_line[ $i ];
-			if ( '"' === $ch ) {
-				$in_quotes = ! $in_quotes;
-				continue;
-			}
-			if ( $in_quotes ) {
-				continue;
-			}
-			if ( ',' === $ch ) {
-				++$comma;
-			} elseif ( ';' === $ch ) {
-				++$semicolon;
-			}
-		}
-		return $semicolon > $comma ? ';' : ',';
-	}
 }
