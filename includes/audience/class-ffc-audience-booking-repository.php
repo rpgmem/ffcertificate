@@ -362,6 +362,30 @@ class AudienceBookingRepository {
 			return false;
 		}
 
+		// Race protection: conflict-check + insert run inside a single
+		// transaction so two concurrent requests for the same slot can't
+		// both pass the check and both insert. Mirrors the pattern at
+		// `SelfSchedulingAppointmentHandler::create_or_update():140`.
+		// `idx_env_date_status (environment_id, booking_date, status)`
+		// (declared on the table) lets InnoDB take row + gap locks on the
+		// matched range so the second transaction blocks until the first
+		// commits. The REST layer still calls `get_conflicts()` first for
+		// a friendly error, but this is the authoritative check.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( 'START TRANSACTION' );
+
+		$conflicts = self::get_conflicts_for_update(
+			(int) $data['environment_id'],
+			(string) $data['booking_date'],
+			(string) $data['start_time'],
+			(string) $data['end_time']
+		);
+		if ( ! empty( $conflicts ) ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->query( 'ROLLBACK' );
+			return false;
+		}
+
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -379,10 +403,15 @@ class AudienceBookingRepository {
 		);
 
 		if ( ! $result ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->query( 'ROLLBACK' );
 			return false;
 		}
 
-		$booking_id = $wpdb->insert_id;
+		$booking_id = (int) $wpdb->insert_id;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( 'COMMIT' );
 
 		// Add audience associations if provided.
 		if ( isset( $data['audience_ids'] ) && is_array( $data['audience_ids'] ) ) {
@@ -399,6 +428,52 @@ class AudienceBookingRepository {
 		}
 
 		return $booking_id;
+	}
+
+	/**
+	 * Conflict-check used by {@see self::create()} inside a transaction.
+	 * Identical predicate to {@see self::get_conflicts()} but with the
+	 * `FOR UPDATE` row + gap lock that prevents concurrent inserts in
+	 * the same `(environment_id, booking_date)` range from completing
+	 * until the holding transaction commits. Must run inside a
+	 * `START TRANSACTION ... COMMIT` block.
+	 *
+	 * @since 6.5.0
+	 * @param int    $environment_id Environment ID.
+	 * @param string $date           Booking date (Y-m-d).
+	 * @param string $start_time     Start time (H:i).
+	 * @param string $end_time       End time (H:i).
+	 * @return array<int, mixed>
+	 */
+	private static function get_conflicts_for_update( int $environment_id, string $date, string $start_time, string $end_time ): array {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id FROM %i
+                WHERE environment_id = %d
+                AND booking_date = %s
+                AND status = 'active'
+                AND (
+                    (start_time < %s AND end_time > %s) OR
+                    (start_time >= %s AND start_time < %s) OR
+                    (end_time > %s AND end_time <= %s)
+                )
+                FOR UPDATE",
+				$table,
+				$environment_id,
+				$date,
+				$end_time,
+				$start_time,
+				$start_time,
+				$end_time,
+				$start_time,
+				$end_time
+			)
+		);
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
