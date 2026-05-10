@@ -180,7 +180,8 @@ class FormEditorSaveHandler {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each key sanitized individually.
 			$public_raw = wp_unslash( $_POST['ffc_csv_public'] );
 
-			$enabled = ! empty( $public_raw['enabled'] ) ? '1' : '0';
+			$previous_enabled = (string) get_post_meta( $post_id, '_ffc_csv_public_enabled', true );
+			$enabled          = ! empty( $public_raw['enabled'] ) ? '1' : '0';
 			update_post_meta( $post_id, '_ffc_csv_public_enabled', $enabled );
 
 			// When the master toggle is off, the sub-fields are rendered
@@ -219,15 +220,18 @@ class FormEditorSaveHandler {
 					update_post_meta( $post_id, '_ffc_csv_public_count', 0 );
 				}
 
-				// CPF gate mode for the public download. When the persisted
-				// mode is empty/'none', default to 'audit' so newly-enabled
-				// public downloads always log who pulled them.
+				// CPF gate mode for the public download. On the very first
+				// enable transition (toggle just flipped 0→1) and the user
+				// left the dropdown at the 'none' default, upgrade to 'audit'
+				// so newly-enabled public downloads always log who pulled
+				// them. On subsequent saves, respect the user's explicit
+				// choice — including 'none' if they actively pick it.
 				$valid_modes = array( 'none', 'audit', 'participants', 'owner', 'whitelist' );
 				$mode_raw    = isset( $public_raw['cpf_mode'] ) ? sanitize_key( (string) $public_raw['cpf_mode'] ) : 'none';
 				if ( ! in_array( $mode_raw, $valid_modes, true ) ) {
 					$mode_raw = 'none';
 				}
-				if ( 'none' === $mode_raw ) {
+				if ( '1' !== $previous_enabled && 'none' === $mode_raw ) {
 					$mode_raw = 'audit';
 				}
 				update_post_meta( $post_id, '_ffc_csv_public_cpf_mode', $mode_raw );
