@@ -556,7 +556,7 @@ class FormEditorMetaboxRenderer {
 								</label>
 							</fieldset>
 
-							<div class="ffc-geo-source-locations" <?php echo 'locations' !== $geo_area_source ? 'style="display:none;"' : ''; ?>>
+							<div class="<?php echo esc_attr( 'ffc-geo-source-locations' . ( 'locations' !== $geo_area_source ? ' ffc-initially-hidden' : '' ) ); ?>">
 								<select multiple name="ffc_geofence[geo_area_location_ids][]" class="ffc-w100" size="5">
 									<?php foreach ( $all_locations as $loc ) : ?>
 										<option value="<?php echo esc_attr( $loc['id'] ); ?>" <?php echo in_array( $loc['id'], $geo_area_location_ids, true ) ? 'selected' : ''; ?>>
@@ -567,7 +567,7 @@ class FormEditorMetaboxRenderer {
 								<p class="description"><?php esc_html_e( 'Hold Ctrl/Cmd to select multiple locations.', 'ffcertificate' ); ?></p>
 							</div>
 
-							<div class="ffc-geo-source-custom" <?php echo 'custom' !== $geo_area_source ? 'style="display:none;"' : ''; ?>>
+							<div class="<?php echo esc_attr( 'ffc-geo-source-custom' . ( 'custom' !== $geo_area_source ? ' ffc-initially-hidden' : '' ) ); ?>">
 								<textarea name="ffc_geofence[geo_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 5000&#10;-22.9068, -43.1729, 10000"><?php echo esc_textarea( $geo_areas ); ?></textarea>
 								<p class="description"><?php esc_html_e( 'Format: latitude, longitude, radius(meters) - One per line. Example: -23.5505, -46.6333, 5000', 'ffcertificate' ); ?></p>
 							</div>
@@ -582,7 +582,7 @@ class FormEditorMetaboxRenderer {
 							</label>
 							<p class="description"><?php esc_html_e( 'When unchecked, IP validation uses the same areas as GPS.', 'ffcertificate' ); ?></p>
 
-							<div class="ffc-ip-areas-container" <?php echo '1' !== $geo_ip_areas_permissive ? 'style="display:none;"' : ''; ?>>
+							<div class="<?php echo esc_attr( 'ffc-ip-areas-container' . ( '1' !== $geo_ip_areas_permissive ? ' ffc-initially-hidden' : '' ) ); ?>">
 								<br>
 								<fieldset>
 									<label>
@@ -596,7 +596,7 @@ class FormEditorMetaboxRenderer {
 									</label>
 								</fieldset>
 
-								<div class="ffc-geo-source-locations" <?php echo 'locations' !== $geo_ip_area_source ? 'style="display:none;"' : ''; ?>>
+								<div class="<?php echo esc_attr( 'ffc-geo-source-locations' . ( 'locations' !== $geo_ip_area_source ? ' ffc-initially-hidden' : '' ) ); ?>">
 									<select multiple name="ffc_geofence[geo_ip_area_location_ids][]" class="ffc-w100" size="5">
 										<?php foreach ( $all_locations as $loc ) : ?>
 											<option value="<?php echo esc_attr( $loc['id'] ); ?>" <?php echo in_array( $loc['id'], $geo_ip_area_location_ids, true ) ? 'selected' : ''; ?>>
@@ -607,7 +607,7 @@ class FormEditorMetaboxRenderer {
 									<p class="description"><?php esc_html_e( 'Hold Ctrl/Cmd to select multiple locations.', 'ffcertificate' ); ?></p>
 								</div>
 
-								<div class="ffc-geo-source-custom" <?php echo 'custom' !== $geo_ip_area_source ? 'style="display:none;"' : ''; ?>>
+								<div class="<?php echo esc_attr( 'ffc-geo-source-custom' . ( 'custom' !== $geo_ip_area_source ? ' ffc-initially-hidden' : '' ) ); ?>">
 									<textarea name="ffc_geofence[geo_ip_areas]" rows="5" class="ffc-w100" placeholder="-23.5505, -46.6333, 50000&#10;-22.9068, -43.1729, 100000"><?php echo esc_textarea( $geo_ip_areas ); ?></textarea>
 									<p class="description"><?php esc_html_e( 'IP geolocation is less precise (1-50km). Use larger radius (in meters).', 'ffcertificate' ); ?></p>
 								</div>

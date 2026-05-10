@@ -431,7 +431,28 @@ class AdminUserColumns {
 	 */
 	public static function apply_sort_to_user_query( \WP_User_Query $query ): void {
 		$orderby = isset( $query->query_vars['orderby'] ) ? (string) $query->query_vars['orderby'] : '';
-		if ( ! in_array( $orderby, array( 'ffc_certificates', 'ffc_appointments', 'ffc_notices' ), true ) ) {
+
+		// Allowlist of orderby keys this method handles, mapped to the join
+		// alias the synthesised SQL will reference. Both sides are static
+		// identifiers that never come from request input — the mapping is
+		// the canonical contract and must be the only source of $alias.
+		$alias_map = array(
+			'ffc_certificates' => 'ffc_cert_counts',
+			'ffc_appointments' => 'ffc_appt_counts',
+			'ffc_notices'      => 'ffc_notice_counts',
+		);
+
+		if ( ! isset( $alias_map[ $orderby ] ) ) {
+			return;
+		}
+
+		$alias = $alias_map[ $orderby ];
+
+		// Defense-in-depth: even though $alias comes from a static literal
+		// map keyed by an allowlisted $orderby, refuse to interpolate it
+		// into SQL unless it is a plain identifier. Anything that fails
+		// this check is a programming mistake, not user input — bail safe.
+		if ( ! preg_match( '/^[A-Za-z_][A-Za-z0-9_]*$/', $alias ) ) {
 			return;
 		}
 
@@ -443,7 +464,6 @@ class AdminUserColumns {
 		switch ( $orderby ) {
 			case 'ffc_certificates':
 				$table  = \FreeFormCertificate\Core\Utils::get_submissions_table();
-				$alias  = 'ffc_cert_counts';
 				$select = "(SELECT user_id, COUNT(*) AS cnt FROM {$table} WHERE user_id IS NOT NULL AND status != 'trash' GROUP BY user_id)";
 				break;
 
@@ -452,7 +472,6 @@ class AdminUserColumns {
 				if ( ! self::table_exists( $appts_table ) ) {
 					return;
 				}
-				$alias  = 'ffc_appt_counts';
 				$select = "(SELECT user_id, COUNT(*) AS cnt FROM {$appts_table} WHERE user_id IS NOT NULL AND status != 'cancelled' GROUP BY user_id)";
 				break;
 
@@ -463,7 +482,6 @@ class AdminUserColumns {
 				if ( ! self::table_exists( $classifications ) ) {
 					return;
 				}
-				$alias  = 'ffc_notice_counts';
 				$select = "(SELECT c.user_id AS user_id, COUNT(DISTINCT cl.notice_id) AS cnt FROM {$classifications} AS cl INNER JOIN {$candidates} AS c ON c.id = cl.candidate_id WHERE c.user_id IS NOT NULL GROUP BY c.user_id)";
 				break;
 		}
