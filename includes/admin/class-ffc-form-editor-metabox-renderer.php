@@ -31,14 +31,49 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class FormEditorMetaboxRenderer {
 
+	/**
+	 * @var FormEditorShortcodeMetabox
+	 */
 	private FormEditorShortcodeMetabox $shortcode;
+
+	/**
+	 * @var FormEditorLayoutMetabox
+	 */
 	private FormEditorLayoutMetabox $layout;
+
+	/**
+	 * @var FormEditorBuilderMetabox
+	 */
 	private FormEditorBuilderMetabox $builder;
+
+	/**
+	 * @var FormEditorRestrictionMetabox
+	 */
 	private FormEditorRestrictionMetabox $restriction;
+
+	/**
+	 * @var FormEditorEmailMetabox
+	 */
 	private FormEditorEmailMetabox $email;
+
+	/**
+	 * @var FormEditorGeofenceMetabox
+	 */
 	private FormEditorGeofenceMetabox $geofence;
+
+	/**
+	 * @var FormEditorQuizMetabox
+	 */
 	private FormEditorQuizMetabox $quiz;
+
+	/**
+	 * @var FormEditorPublicCsvDownloadMetabox
+	 */
 	private FormEditorPublicCsvDownloadMetabox $public_csv_download;
+
+	/**
+	 * @var FormEditorDeviceLimitMetabox
+	 */
 	private FormEditorDeviceLimitMetabox $device_limit;
 
 	/**
@@ -56,38 +91,65 @@ class FormEditorMetaboxRenderer {
 		$this->device_limit        = new FormEditorDeviceLimitMetabox();
 	}
 
+	/**
+	 * @param WP_Post $post Post being edited.
+	 */
 	public function render_shortcode_metabox( WP_Post $post ): void {
 		$this->shortcode->render( $post );
 	}
 
+	/**
+	 * @param WP_Post $post Post being edited.
+	 */
 	public function render_box_layout( WP_Post $post ): void {
 		$this->layout->render( $post );
 	}
 
+	/**
+	 * @param WP_Post $post Post being edited.
+	 */
 	public function render_box_builder( WP_Post $post ): void {
 		$this->builder->render( $post );
 	}
 
+	/**
+	 * @param WP_Post $post Post being edited.
+	 */
 	public function render_box_restriction( WP_Post $post ): void {
 		$this->restriction->render( $post );
 	}
 
+	/**
+	 * @param WP_Post $post Post being edited.
+	 */
 	public function render_box_email( WP_Post $post ): void {
 		$this->email->render( $post );
 	}
 
+	/**
+	 * @param WP_Post $post Post being edited.
+	 */
 	public function render_box_geofence( WP_Post $post ): void {
 		$this->geofence->render( $post );
 	}
 
+	/**
+	 * @param WP_Post $post Post being edited.
+	 */
 	public function render_box_quiz( WP_Post $post ): void {
 		$this->quiz->render( $post );
 	}
 
+	/**
+	 * @param WP_Post $post Post being edited.
+	 */
 	public function render_box_public_csv_download( WP_Post $post ): void {
 		$this->public_csv_download->render( $post );
 	}
 
+	/**
+	 * @param WP_Post $post Post being edited.
+	 */
 	public function render_box_device_limit( WP_Post $post ): void {
 		$this->device_limit->render( $post );
 	}
