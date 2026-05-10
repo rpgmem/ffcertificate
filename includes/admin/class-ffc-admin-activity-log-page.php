@@ -22,8 +22,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class AdminActivityLogPage {
 
-	use \FreeFormCertificate\Core\CsvExportTrait;
-
 	/**
 	 * Register admin menu and export handler
 	 */
@@ -122,8 +120,25 @@ class AdminActivityLogPage {
 			);
 		}
 
-		$filename = 'ffc-activity-log-' . gmdate( 'Y-m-d' ) . '.csv';
-		$this->output_csv( $filename, $headers, $rows );
+		$filename      = 'ffc-activity-log-' . gmdate( 'Y-m-d' ) . '.csv';
+		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
+		header( 'Pragma: no-cache' );
+		header( 'Expires: 0' );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
+		$output = fopen( 'php://output', 'w' );
+		if ( false === $output ) {
+			exit;
+		}
+		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
+		$writer->row( $headers );
+		$writer->rows( $rows );
+		$writer->close();
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
+		fclose( $output );
+		exit;
 	}
 
 	/**

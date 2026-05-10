@@ -1,17 +1,22 @@
 <?php
 /**
- * CSV Export Trait
+ * CsvExportTrait
  *
- * Shared CSV export utilities used across CsvExporter and AppointmentCsvExporter.
+ * JSON-shape helpers used by the submission and appointment CSV
+ * exporters to flatten the encrypted/plaintext `data` blob into
+ * dynamic columns. Pure data shaping — the bytes-to-stream layer
+ * lives in {@see \FreeFormCertificate\Core\CsvWriter} since 6.4.0.
  *
- * Eliminates duplicated code for:
- * - Dynamic column extraction from JSON data
- * - Dynamic header generation (snake_case → Title Case)
- * - CSV output (BOM, UTF-8, semicolon separator, HTTP headers)
- * - Encrypted JSON data decryption with fallback
+ * Three responsibilities, all about turning a row's JSON column
+ * into spreadsheet-friendly columns:
+ *   - extract_dynamic_keys: union of all field keys across rows
+ *   - decode_json_field: encrypted-first decrypt with plaintext fallback
+ *   - build_dynamic_headers: snake_case → Title Case header labels
+ *   - extract_dynamic_values: pluck values for one row in a fixed key order
  *
  * @package FreeFormCertificate\Core
  * @since 4.11.2
+ * @since 6.4.0 output_csv() removed; CSV IO moved to {@see CsvWriter}.
  */
 
 declare(strict_types=1);
@@ -113,59 +118,5 @@ trait CsvExportTrait {
 		}
 
 		return $values;
-	}
-
-	/**
-	 * Output a complete CSV file to php://output.
-	 *
-	 * Handles BOM, UTF-8 encoding, HTTP headers, and row writing.
-	 *
-	 * @param string                              $filename  Download filename (e.g. 'export-2024-01-01.csv').
-	 * @param array<int, string>                  $headers   Column headers.
-	 * @param array<int, array<array-key, mixed>> $rows      Data rows (each is an array of values passed directly to fputcsv).
-	 * @return void Exits after output.
-	 */
-	protected function output_csv( string $filename, array $headers, array $rows ): void {
-		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
-		header( 'Pragma: no-cache' );
-		header( 'Expires: 0' );
-
-		$output = fopen( 'php://output', 'w' );
-		if ( false === $output ) {
-			exit;
-		}
-
-		// BOM for Excel UTF-8 recognition.
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV binary output, not HTML context
-		fprintf( $output, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
-
-		// Convert headers to UTF-8.
-		$headers = array_map(
-			function ( $h ) {
-				return mb_convert_encoding( $h, 'UTF-8', 'UTF-8' );
-			},
-			$headers
-		);
-
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV file output, not HTML context
-		fputcsv( $output, $headers, ';' );
-
-		foreach ( $rows as $row ) {
-			$row = array_map(
-				function ( $v ) {
-					return is_string( $v ) ? mb_convert_encoding( $v, 'UTF-8', 'UTF-8' ) : $v;
-				},
-				$row
-			);
-
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV file output, not HTML context
-			fputcsv( $output, $row, ';' );
-		}
-
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing php://output stream for CSV export.
-		fclose( $output );
-		exit;
 	}
 }
