@@ -99,6 +99,42 @@ class CalendarRestController {
 	}
 
 	/**
+	 * Reject the request when the caller's IP has already tripped the
+	 * rate-limit pool (typically populated by failed/abusive form
+	 * submissions from the same IP). Returns null on green light.
+	 *
+	 * Rationale: the calendar GET routes are public-by-design — the
+	 * `[ffc_self_scheduling]` shortcode hits them anonymously to build
+	 * the booking UI. Behind `__return_true` they had no defence at
+	 * all against a scraper polling `/slots` to enumerate the working
+	 * hours of every calendar on a site. This guard is a circuit
+	 * breaker, not a per-read limiter: it shares the IP pool with
+	 * submit/verify, so an actor caught flooding submissions also
+	 * gets blocked from these reads. A per-read pool is a follow-up.
+	 *
+	 * @since 6.4.1
+	 * @return \WP_Error|null `WP_Error` (status 429) when blocked, null when allowed.
+	 */
+	private function rate_limit_guard() {
+		if ( ! class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
+			return null;
+		}
+		$ip       = \FreeFormCertificate\Core\Utils::get_user_ip();
+		$ip_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit( $ip );
+		if ( ! empty( $ip_check['allowed'] ) ) {
+			return null;
+		}
+		return new \WP_Error(
+			'rate_limit_exceeded',
+			isset( $ip_check['message'] ) ? (string) $ip_check['message'] : __( 'Too many requests. Please try again later.', 'ffcertificate' ),
+			array(
+				'status'       => 429,
+				'wait_seconds' => isset( $ip_check['wait_seconds'] ) ? (int) $ip_check['wait_seconds'] : 60,
+			)
+		);
+	}
+
+	/**
 	 * GET /calendars
 	 * List all active calendars
 	 *
@@ -107,6 +143,11 @@ class CalendarRestController {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_calendars( $request ) {
+		$blocked = $this->rate_limit_guard();
+		if ( $blocked instanceof \WP_Error ) {
+			return $blocked;
+		}
+
 		try {
 			if ( ! class_exists( '\FreeFormCertificate\Repositories\CalendarRepository' ) ) {
 				return new \WP_Error(
@@ -172,6 +213,11 @@ class CalendarRestController {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_calendar( $request ) {
+		$blocked = $this->rate_limit_guard();
+		if ( $blocked instanceof \WP_Error ) {
+			return $blocked;
+		}
+
 		try {
 			$calendar_id = $request->get_param( 'id' );
 
@@ -252,6 +298,11 @@ class CalendarRestController {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function get_calendar_slots( $request ) {
+		$blocked = $this->rate_limit_guard();
+		if ( $blocked instanceof \WP_Error ) {
+			return $blocked;
+		}
+
 		try {
 			$calendar_id = $request->get_param( 'id' );
 			$date        = $request->get_param( 'date' );
