@@ -61,14 +61,11 @@ class ReregistrationCsvExporter {
 		header( 'Pragma: no-cache' );
 		header( 'Expires: 0' );
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
 		$output = fopen( 'php://output', 'w' );
 		if ( false === $output ) {
 			exit;
 		}
-		// BOM for Excel UTF-8.
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
-		fwrite( $output, "\xEF\xBB\xBF" );
 
 		// Header row — fixed metadata + all dynamic fields in repository order.
 		$headers = array(
@@ -84,8 +81,8 @@ class ReregistrationCsvExporter {
 			$headers[] = $f->field_label;
 		}
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv
-		fputcsv( $output, $headers, ';' );
+		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
+		$writer->row( $headers );
 
 		// Data rows.
 		foreach ( $submissions as $sub ) {
@@ -108,11 +105,11 @@ class ReregistrationCsvExporter {
 				$row[] = self::stringify_value( $f, $values[ (string) $f->field_key ] ?? '' );
 			}
 
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv
-			fputcsv( $output, $row, ';' );
+			$writer->row( $row );
 		}
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		$writer->close();
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
 		fclose( $output );
 		exit;
 	}
