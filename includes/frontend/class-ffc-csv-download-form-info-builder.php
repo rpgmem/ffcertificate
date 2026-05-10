@@ -1,0 +1,277 @@
+<?php
+/**
+ * CsvDownloadFormInfoBuilder
+ *
+ * Builds the metadata payload returned by the intermediate "form details"
+ * AJAX screen that precedes a public CSV download. Extracted from
+ * {@see PublicCsvDownload} as part of the S5 god-object split (issue #141).
+ *
+ * The orchestrator method ({@see build_form_info}) is public; the per-section
+ * helpers (restrictions, datetime, geolocation, quiz, location formatter) are
+ * private because they are only ever invoked by build_form_info() in this
+ * same class.
+ *
+ * @package FreeFormCertificate
+ * @since   6.4.0
+ */
+
+declare(strict_types=1);
+
+namespace FreeFormCertificate\Frontend;
+
+use FreeFormCertificate\Security\Geofence;
+use FreeFormCertificate\Security\GeofenceLocationRegistry;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Builder for the public CSV download intermediate-screen payload.
+ *
+ * @since 6.4.0
+ */
+final class CsvDownloadFormInfoBuilder {
+
+	/**
+	 * Build the form metadata payload for the intermediate preview screen.
+	 *
+	 * @param int $form_id Validated form ID.
+	 * @return array<string, mixed>
+	 */
+	public function build_form_info( int $form_id ): array {
+		$form_config     = get_post_meta( $form_id, '_ffc_form_config', true );
+		$form_config     = is_array( $form_config ) ? $form_config : array();
+		$geofence_config = get_post_meta( $form_id, '_ffc_geofence_config', true );
+		$geofence_config = is_array( $geofence_config ) ? $geofence_config : array();
+
+		$now      = time();
+		$start_ts = Geofence::get_form_start_timestamp( $form_id );
+		$end_ts   = Geofence::get_form_end_timestamp( $form_id );
+
+		$before_start = null !== $start_ts && $now < $start_ts;
+		$form_ended   = null !== $end_ts && $now > $end_ts;
+		$has_end_date = null !== $end_ts;
+
+		// Quota.
+		$limit = (int) get_post_meta( $form_id, PublicCsvDownload::META_LIMIT, true );
+		if ( $limit <= 0 ) {
+			$settings = get_option( 'ffc_settings', array() );
+			$default  = is_array( $settings ) && isset( $settings['public_csv_default_limit'] )
+				? (int) $settings['public_csv_default_limit']
+				: 0;
+			$limit    = $default > 0 ? $default : 1;
+		}
+		$count           = (int) get_post_meta( $form_id, PublicCsvDownload::META_COUNT, true );
+		$quota_exhausted = $count >= $limit;
+
+		// Download blocked reason.
+		$download_reason = null;
+		if ( ! $has_end_date ) {
+			$download_reason = 'no_end_date';
+		} elseif ( ! $form_ended ) {
+			$download_reason = 'active';
+		} elseif ( $quota_exhausted ) {
+			$download_reason = 'quota_exhausted';
+		}
+
+		// Submission count.
+		$repo             = new \FreeFormCertificate\Repositories\SubmissionRepository();
+		$submission_count = $repo->countForExport( array( $form_id ), 'publish' );
+
+		$tz = wp_timezone();
+
+		return array(
+			'form_title'       => get_the_title( $form_id ),
+			'submission_count' => $submission_count,
+			'restrictions'     => $this->build_restrictions_info( $form_config ),
+			'datetime'         => $this->build_datetime_info( $geofence_config, $tz ),
+			'geolocation'      => $this->build_geolocation_info( $geofence_config ),
+			'quiz'             => $this->build_quiz_info( $form_config ),
+			'csv'              => array(
+				'limit'     => $limit,
+				'count'     => $count,
+				'remaining' => max( 0, $limit - $count ),
+			),
+			'status'           => array(
+				'has_start_date'          => null !== $start_ts,
+				'has_end_date'            => $has_end_date,
+				'before_start'            => $before_start,
+				'form_ended'              => $form_ended,
+				'can_download'            => $form_ended && ! $quota_exhausted,
+				'can_preview_cert'        => $before_start,
+				'download_blocked_reason' => $download_reason,
+				'start_date_formatted'    => null !== $start_ts
+					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $start_ts, $tz )
+					: null,
+				'end_date_formatted'      => null !== $end_ts
+					? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $end_ts, $tz )
+					: null,
+			),
+		);
+	}
+
+	/**
+	 * Build access restrictions data for the info response.
+	 *
+	 * @param array<string, mixed> $config Form config.
+	 * @return array<string, bool>
+	 */
+	private function build_restrictions_info( array $config ): array {
+		$restrictions = $config['restrictions'] ?? array();
+		$result       = array();
+
+		if ( ! empty( $restrictions['password'] ) && '1' === (string) $restrictions['password'] ) {
+			$result['password'] = true;
+		}
+		if ( ! empty( $restrictions['allowlist'] ) && '1' === (string) $restrictions['allowlist'] ) {
+			$result['allowlist'] = true;
+		}
+		if ( ! empty( $restrictions['denylist'] ) && '1' === (string) $restrictions['denylist'] ) {
+			$result['denylist'] = true;
+		}
+		if ( ! empty( $restrictions['ticket'] ) && '1' === (string) $restrictions['ticket'] ) {
+			$result['ticket'] = true;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Build date/time availability data for the info response.
+	 *
+	 * @param array<string, mixed> $config   Geofence config.
+	 * @param \DateTimeZone        $tz       Site timezone.
+	 * @return array<string, mixed>
+	 */
+	private function build_datetime_info( array $config, \DateTimeZone $tz ): array {
+		$date_start = isset( $config['date_start'] ) ? trim( (string) $config['date_start'] ) : '';
+		$date_end   = isset( $config['date_end'] ) ? trim( (string) $config['date_end'] ) : '';
+		$time_start = isset( $config['time_start'] ) ? trim( (string) $config['time_start'] ) : '';
+		$time_end   = isset( $config['time_end'] ) ? trim( (string) $config['time_end'] ) : '';
+		$time_mode  = isset( $config['time_mode'] ) ? (string) $config['time_mode'] : 'daily';
+
+		$has_dates = '' !== $date_start || '' !== $date_end;
+		$has_times = '' !== $time_start || '' !== $time_end;
+
+		$date_format = get_option( 'date_format' );
+
+		// Anchor each date in the site timezone before formatting. Naive
+		// strtotime() reads "Y-m-d" as PHP-process-local (typically UTC)
+		// midnight, which then drifts to the previous day after wp_date()
+		// converts to a westward TZ like America/Sao_Paulo — manifesting
+		// as "Data de início: 11/05/2026" for a configured 2026-05-12. The
+		// footer status message uses Geofence::get_form_*_timestamp() and
+		// is unaffected; this brings the body in line with the same TZ
+		// anchoring approach.
+		$to_local_ts = static function ( string $date, \DateTimeZone $tz ): ?int {
+			if ( '' === $date ) {
+				return null;
+			}
+			try {
+				return ( new \DateTimeImmutable( $date, $tz ) )->getTimestamp();
+			} catch ( \Exception $e ) {
+				return null;
+			}
+		};
+		$start_ts    = $to_local_ts( $date_start, $tz );
+		$end_ts      = $to_local_ts( $date_end, $tz );
+
+		return array(
+			'has_dates'      => $has_dates,
+			'date_start'     => null !== $start_ts ? wp_date( $date_format, $start_ts, $tz ) : null,
+			'date_start_raw' => '' !== $date_start ? $date_start : null,
+			'date_end'       => null !== $end_ts ? wp_date( $date_format, $end_ts, $tz ) : null,
+			'date_end_raw'   => '' !== $date_end ? $date_end : null,
+			'has_times'      => $has_times,
+			'time_start'     => '' !== $time_start ? $time_start : null,
+			'time_end'       => '' !== $time_end ? $time_end : null,
+			'time_mode'      => $time_mode,
+		);
+	}
+
+	/**
+	 * Build geolocation data for the info response.
+	 *
+	 * @param array<string, mixed> $config Geofence config.
+	 * @return array<string, mixed>
+	 */
+	private function build_geolocation_info( array $config ): array {
+		$geo_enabled = ! empty( $config['geo_enabled'] );
+		if ( ! $geo_enabled ) {
+			return array( 'enabled' => false );
+		}
+
+		$gps_enabled = ! empty( $config['geo_gps_enabled'] );
+		$ip_enabled  = ! empty( $config['geo_ip_enabled'] );
+
+		$result = array(
+			'enabled'     => true,
+			'gps_enabled' => $gps_enabled,
+			'ip_enabled'  => $ip_enabled,
+		);
+
+		// GPS locations.
+		if ( $gps_enabled ) {
+			$gps_source = $config['geo_area_source'] ?? 'locations';
+			if ( 'locations' === $gps_source && ! empty( $config['geo_area_location_ids'] ) ) {
+				$locations               = GeofenceLocationRegistry::get_by_ids( (array) $config['geo_area_location_ids'] );
+				$result['gps_locations'] = $this->format_locations_for_info( $locations );
+			} else {
+				$result['gps_custom'] = true;
+			}
+		}
+
+		// IP locations (only when separate areas are configured).
+		if ( $ip_enabled && ! empty( $config['geo_ip_areas_permissive'] ) ) {
+			$ip_source = $config['geo_ip_area_source'] ?? 'locations';
+			if ( 'locations' === $ip_source && ! empty( $config['geo_ip_area_location_ids'] ) ) {
+				$locations              = GeofenceLocationRegistry::get_by_ids( (array) $config['geo_ip_area_location_ids'] );
+				$result['ip_locations'] = $this->format_locations_for_info( $locations );
+			} else {
+				$result['ip_custom'] = true;
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Format registered locations for the info response.
+	 *
+	 * @param array<int, array<string, mixed>> $locations Raw location data.
+	 * @return list<array<string, float|string>>
+	 */
+	private function format_locations_for_info( array $locations ): array {
+		$formatted = array();
+		foreach ( $locations as $loc ) {
+			$formatted[] = array(
+				'name'     => sanitize_text_field( $loc['name'] ?? '' ),
+				'lat'      => (float) ( $loc['lat'] ?? 0 ),
+				'lng'      => (float) ( $loc['lng'] ?? 0 ),
+				'radius'   => (float) ( $loc['radius'] ?? 0 ),
+				'maps_url' => 'https://www.google.com/maps/search/?api=1&query=' . (float) $loc['lat'] . ',' . (float) $loc['lng'],
+			);
+		}
+		return $formatted;
+	}
+
+	/**
+	 * Build quiz/evaluation data for the info response.
+	 *
+	 * @param array<string, mixed> $config Form config.
+	 * @return array<string, mixed>
+	 */
+	private function build_quiz_info( array $config ): array {
+		$enabled = ! empty( $config['quiz_enabled'] ) && '1' === (string) $config['quiz_enabled'];
+		if ( ! $enabled ) {
+			return array( 'enabled' => false );
+		}
+
+		return array(
+			'enabled'       => true,
+			'passing_score' => (int) ( $config['quiz_passing_score'] ?? 0 ),
+			'max_attempts'  => (int) ( $config['quiz_max_attempts'] ?? 0 ),
+		);
+	}
+}
