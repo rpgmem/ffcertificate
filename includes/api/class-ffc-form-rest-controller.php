@@ -28,6 +28,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FormRestController {
 
 	/**
+	 * Maximum number of forms returned by `GET /forms` regardless of
+	 * the `limit` query argument. Authenticated callers asking for
+	 * more get clamped silently. Pagination is a follow-up; for now
+	 * 100 is a safe upper bound — large enough that no realistic
+	 * site is artificially constrained, small enough that a misuse
+	 * cannot dump the entire form catalogue in one round trip.
+	 */
+	private const DEFAULT_FORMS_LIMIT = 100;
+
+	/**
 	 * API namespace
 	 *
 	 * @var string
@@ -57,30 +67,40 @@ class FormRestController {
 	 */
 	public function register_routes(): void {
 		// GET /forms - List all published forms.
+		//
+		// Authenticated. External integrators use a WordPress
+		// Application Password (Basic Auth, since WP 5.6) to call
+		// this endpoint; the linked user must hold `ffc_read_forms_api`
+		// (granted to the administrator role automatically; delegable
+		// to other roles via the standard WP cap UI). The previous
+		// `__return_true` permission_callback exposed the
+		// `_ffc_form_config` blob which contains allowed/denied user
+		// lists, generated/validation codes, and geofence config —
+		// see issue #139 for the audit finding.
 		register_rest_route(
 			$this->namespace,
 			'/forms',
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_forms' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( $this, 'permission_read_forms_api' ),
 				'args'                => array(
 					'limit' => array(
-						'default'           => -1,
-						'sanitize_callback' => 'absint',
+						'default'           => self::DEFAULT_FORMS_LIMIT,
+						'sanitize_callback' => array( $this, 'sanitize_limit' ),
 					),
 				),
 			)
 		);
 
-		// GET /forms/{id} - Get single form.
+		// GET /forms/{id} - Get single form. Same auth model as /forms above.
 		register_rest_route(
 			$this->namespace,
 			'/forms/(?P<id>\d+)',
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_form' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( $this, 'permission_read_forms_api' ),
 				'args'                => array(
 					'id' => array(
 						'validate_callback' => function ( $param ) {
@@ -130,6 +150,36 @@ class FormRestController {
 	}
 
 	/**
+	 * Permission callback for the authenticated `/forms` endpoints.
+	 *
+	 * @since 6.4.1
+	 * @return bool
+	 */
+	public function permission_read_forms_api(): bool {
+		return current_user_can( 'ffc_read_forms_api' );
+	}
+
+	/**
+	 * Sanitize and clamp the `limit` query arg on `GET /forms`.
+	 *
+	 * Returns DEFAULT_FORMS_LIMIT for non-positive or non-numeric
+	 * input, including the legacy default of `-1` (which previously
+	 * meant "all forms" — kept working through this clamp so existing
+	 * integrators do not 4xx).
+	 *
+	 * @since 6.4.1
+	 * @param mixed $value Raw query arg.
+	 * @return int Clamped limit, 1..DEFAULT_FORMS_LIMIT.
+	 */
+	public function sanitize_limit( $value ): int {
+		$n = absint( $value );
+		if ( $n <= 0 ) {
+			return self::DEFAULT_FORMS_LIMIT;
+		}
+		return min( $n, self::DEFAULT_FORMS_LIMIT );
+	}
+
+	/**
 	 * GET /forms
 	 * List all published forms
 	 *
@@ -138,7 +188,7 @@ class FormRestController {
 	 */
 	public function get_forms( $request ) {
 		try {
-			$limit = $request->get_param( 'limit' );
+			$limit = (int) $request->get_param( 'limit' );
 
 			if ( ! $this->form_repository ) {
 				return new \WP_Error(
@@ -150,6 +200,12 @@ class FormRestController {
 
 			$forms = $this->form_repository->findPublished( $limit );
 
+			// Trimmed payload: id/title/status/dates/link only. The
+			// previous response embedded the full `_ffc_form_config`
+			// blob (allowed/denied user lists, validation/generated
+			// codes, geofence + IP areas, email body, etc.) — see
+			// issue #139. Integrators that need form structure should
+			// hit `/forms/{id}/schema` (lightweight, public-by-design).
 			$response = array();
 			foreach ( $forms as $form ) {
 				$response[] = array(
@@ -159,7 +215,6 @@ class FormRestController {
 					'date'     => $form->post_date,
 					'modified' => $form->post_modified,
 					'link'     => get_permalink( $form->ID ),
-					'config'   => $this->form_repository->getConfig( $form->ID ),
 				);
 			}
 
@@ -204,19 +259,19 @@ class FormRestController {
 				);
 			}
 
-			if ( ! $this->form_repository ) {
-				return new \WP_Error( 'form_repo_unavailable', __( 'Form repository not available', 'ffcertificate' ), array( 'status' => 500 ) );
-			}
-
+			// Trimmed payload, same rationale as `GET /forms`: drop
+			// the `_ffc_form_config` blob, fields, and background that
+			// the previous unauthenticated response leaked. Integrators
+			// that need form structure use `GET /forms/{id}/schema`
+			// (public-by-design, returns id/title/fields with only the
+			// keys a renderer needs). See issue #139.
 			$response = array(
-				'id'         => $form->ID,
-				'title'      => $form->post_title,
-				'status'     => $form->post_status,
-				'date'       => $form->post_date,
-				'modified'   => $form->post_modified,
-				'config'     => $this->form_repository->getConfig( $form_id ),
-				'fields'     => $this->form_repository->getFields( $form_id ),
-				'background' => $this->form_repository->getBackground( $form_id ),
+				'id'       => $form->ID,
+				'title'    => $form->post_title,
+				'status'   => $form->post_status,
+				'date'     => $form->post_date,
+				'modified' => $form->post_modified,
+				'link'     => get_permalink( $form->ID ),
 			);
 
 			return rest_ensure_response( $response );

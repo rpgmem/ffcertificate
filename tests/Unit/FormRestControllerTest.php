@@ -127,22 +127,26 @@ class FormRestControllerTest extends TestCase {
         $this->assertCount( 4, $this->registered_routes );
     }
 
-    public function test_forms_list_route_is_public(): void {
+    public function test_forms_list_route_requires_capability_callback(): void {
         $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
         $ctrl->register_routes();
 
         $route = $this->registered_routes[0];
         $this->assertSame( '/forms', $route['route'] );
-        $this->assertSame( '__return_true', $route['args']['permission_callback'] );
+        // 6.4.1: switched from `__return_true` to a method callback
+        // that delegates to current_user_can('ffc_read_forms_api').
+        $this->assertIsArray( $route['args']['permission_callback'] );
+        $this->assertSame( 'permission_read_forms_api', $route['args']['permission_callback'][1] );
     }
 
-    public function test_form_single_route_is_public(): void {
+    public function test_form_single_route_requires_capability_callback(): void {
         $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
         $ctrl->register_routes();
 
         $route = $this->registered_routes[1];
         $this->assertStringContainsString( 'forms', $route['route'] );
-        $this->assertSame( '__return_true', $route['args']['permission_callback'] );
+        $this->assertIsArray( $route['args']['permission_callback'] );
+        $this->assertSame( 'permission_read_forms_api', $route['args']['permission_callback'][1] );
     }
 
     public function test_form_schema_route_is_public(): void {
@@ -236,16 +240,10 @@ class FormRestControllerTest extends TestCase {
         $this->assertSame( 'form_not_published', $result->get_error_code() );
     }
 
-    public function test_get_form_returns_full_data_on_success(): void {
+    public function test_get_form_returns_trimmed_payload_on_success(): void {
         $post = $this->make_post( 3 );
         $post->post_title = 'My Form';
         Functions\when( 'get_post' )->justReturn( $post );
-
-        $this->form_repo_mock->shouldReceive( 'getConfig' )->with( 3 )->andReturn( array( 'theme' => 'light' ) );
-        $this->form_repo_mock->shouldReceive( 'getFields' )->with( 3 )->andReturn( array(
-            array( 'name' => 'full_name', 'type' => 'text', 'required' => true ),
-        ));
-        $this->form_repo_mock->shouldReceive( 'getBackground' )->with( 3 )->andReturn( 'bg.jpg' );
 
         $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
         $request = $this->make_request( array( 'id' => 3 ) );
@@ -254,9 +252,32 @@ class FormRestControllerTest extends TestCase {
         $this->assertIsArray( $result );
         $this->assertSame( 3, $result['id'] );
         $this->assertSame( 'My Form', $result['title'] );
-        $this->assertArrayHasKey( 'config', $result );
-        $this->assertArrayHasKey( 'fields', $result );
-        $this->assertArrayHasKey( 'background', $result );
+        $this->assertArrayHasKey( 'status', $result );
+        $this->assertArrayHasKey( 'date', $result );
+        $this->assertArrayHasKey( 'modified', $result );
+        $this->assertArrayHasKey( 'link', $result );
+
+        // 6.4.1: config / fields / background dropped from the payload
+        // — they previously leaked the `_ffc_form_config` blob (allowed/
+        // denied user lists, validation/generated codes, geofence). See
+        // issue #139. Integrators that need form structure use the
+        // public `/forms/{id}/schema` endpoint instead.
+        $this->assertArrayNotHasKey( 'config', $result );
+        $this->assertArrayNotHasKey( 'fields', $result );
+        $this->assertArrayNotHasKey( 'background', $result );
+    }
+
+    public function test_get_forms_list_payload_does_not_include_config_blob(): void {
+        $post1 = $this->make_post( 1 );
+        $this->form_repo_mock->shouldReceive( 'findPublished' )->andReturn( array( $post1 ) );
+
+        $ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+        $request = $this->make_request();
+        $result = $ctrl->get_forms( $request );
+
+        $this->assertCount( 1, $result );
+        // Trimmed: id, title, status, date, modified, link only.
+        $this->assertArrayNotHasKey( 'config', $result[0] );
     }
 
     // ------------------------------------------------------------------
