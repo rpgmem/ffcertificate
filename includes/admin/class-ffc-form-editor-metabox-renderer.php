@@ -876,13 +876,20 @@ class FormEditorMetaboxRenderer {
 			? (string) $geofence_config['date_end']
 			: '';
 
+		// Sub-fields are disabled (read-only-ish) when the master toggle is off.
+		// JS mirrors this on change so the UI updates without saving. The save
+		// handler also short-circuits when enabled=0 to preserve persisted
+		// values that the disabled inputs would not have submitted.
+		$sub_disabled = ( '1' !== $enabled );
+		$disabled_attr = $sub_disabled ? ' disabled' : '';
+
 		// Nonce is emitted by render_box_layout(), which always renders before this metabox.
 		?>
 		<p class="description">
 			<?php esc_html_e( 'Allow a person without WordPress access to download the submissions CSV for this form by providing the Form ID + a hash on a public page that contains the [ffc_csv_download] shortcode.', 'ffcertificate' ); ?>
 		</p>
 
-		<table class="form-table">
+		<table class="form-table ffc-csv-public-table<?php echo $sub_disabled ? ' ffc-csv-public-disabled' : ''; ?>">
 			<tr>
 				<th scope="row">
 					<label for="ffc_csv_public_enabled">
@@ -900,7 +907,7 @@ class FormEditorMetaboxRenderer {
 					</label>
 
 					<?php if ( '' === $date_end ) : ?>
-						<p class="description" style="color:#a00;">
+						<p class="description ffc-warning-text">
 							<strong><?php esc_html_e( 'Warning:', 'ffcertificate' ); ?></strong>
 							<?php esc_html_e( 'This form has no end date configured in the "Geolocation & Date/Time Restrictions" metabox. You must set an end date before public downloads will work — downloads are only released after the form has ended.', 'ffcertificate' ); ?>
 						</p>
@@ -908,7 +915,7 @@ class FormEditorMetaboxRenderer {
 				</td>
 			</tr>
 
-			<tr>
+			<tr class="ffc-csv-public-sub">
 				<th scope="row">
 					<label for="ffc_csv_public_limit">
 						<?php esc_html_e( 'Download Limit', 'ffcertificate' ); ?>
@@ -921,7 +928,7 @@ class FormEditorMetaboxRenderer {
 							min="1"
 							step="1"
 							class="small-text"
-							value="<?php echo esc_attr( (string) $limit ); ?>">
+							value="<?php echo esc_attr( (string) $limit ); ?>"<?php echo $disabled_attr; ?>>
 					<p class="description">
 						<?php
 						printf(
@@ -935,7 +942,7 @@ class FormEditorMetaboxRenderer {
 				</td>
 			</tr>
 
-			<tr>
+			<tr class="ffc-csv-public-sub">
 				<th scope="row">
 					<label for="ffc_csv_public_hash">
 						<?php esc_html_e( 'Access Hash', 'ffcertificate' ); ?>
@@ -950,13 +957,13 @@ class FormEditorMetaboxRenderer {
 							onclick="this.select();">
 					<p class="ffc-mt-10">
 						<label>
-							<input type="checkbox" name="ffc_csv_public[regenerate_hash]" value="1">
+							<input type="checkbox" name="ffc_csv_public[regenerate_hash]" value="1"<?php echo $disabled_attr; ?>>
 							<?php esc_html_e( 'Regenerate hash on save (invalidates the current link).', 'ffcertificate' ); ?>
 						</label>
 					</p>
 					<p>
 						<label>
-							<input type="checkbox" name="ffc_csv_public[reset_counter]" value="1">
+							<input type="checkbox" name="ffc_csv_public[reset_counter]" value="1"<?php echo $disabled_attr; ?>>
 							<?php esc_html_e( 'Reset the download counter to zero on save.', 'ffcertificate' ); ?>
 						</label>
 					</p>
@@ -994,12 +1001,12 @@ class FormEditorMetaboxRenderer {
 				$cpf_mode = 'none';
 			}
 			?>
-			<tr>
+			<tr class="ffc-csv-public-sub">
 				<th scope="row">
 					<label for="ffc_csv_public_cpf_mode"><?php esc_html_e( 'Require CPF for download', 'ffcertificate' ); ?></label>
 				</th>
 				<td>
-					<select name="ffc_csv_public[cpf_mode]" id="ffc_csv_public_cpf_mode">
+					<select name="ffc_csv_public[cpf_mode]" id="ffc_csv_public_cpf_mode"<?php echo $disabled_attr; ?>>
 						<option value="none" <?php selected( $cpf_mode, 'none' ); ?>><?php esc_html_e( 'No — only Form ID + Hash', 'ffcertificate' ); ?></option>
 						<option value="audit" <?php selected( $cpf_mode, 'audit' ); ?>><?php esc_html_e( 'Audit — require CPF, but do not match against any list', 'ffcertificate' ); ?></option>
 						<option value="participants" <?php selected( $cpf_mode, 'participants' ); ?>><?php esc_html_e( 'Participants — CPF must match a submission', 'ffcertificate' ); ?></option>
@@ -1012,7 +1019,15 @@ class FormEditorMetaboxRenderer {
 				</td>
 			</tr>
 
-			<tr>
+			<?php
+			// Whitelist textarea is rendered only when the persisted mode is
+			// 'whitelist'. Switching the dropdown alone does not reveal it —
+			// the user must save the form first. This keeps the textarea
+			// invisible while the mode is in flux and matches the prompt
+			// "só deve aparecer se for selecionada essa opção e salvar".
+			if ( 'whitelist' === $cpf_mode ) :
+			?>
+			<tr class="ffc-csv-public-sub">
 				<th scope="row">
 					<label for="ffc_csv_public_cpf_whitelist"><?php esc_html_e( 'CPF whitelist', 'ffcertificate' ); ?></label>
 				</th>
@@ -1021,17 +1036,27 @@ class FormEditorMetaboxRenderer {
 						id="ffc_csv_public_cpf_whitelist"
 						rows="4"
 						class="large-text code"
-						placeholder="000.000.000-00&#10;111.111.111-11"><?php echo esc_textarea( $cpf_whitelist ); ?></textarea>
+						placeholder="000.000.000-00&#10;111.111.111-11"<?php echo $disabled_attr; ?>><?php echo esc_textarea( $cpf_whitelist ); ?></textarea>
 					<p class="description">
 						<?php esc_html_e( 'One CPF per line. Only used when the mode above is set to "Whitelist". Formatting is ignored — only digits matter.', 'ffcertificate' ); ?>
 					</p>
 				</td>
 			</tr>
+			<?php elseif ( '1' === $enabled ) : ?>
+			<tr class="ffc-csv-public-sub">
+				<th scope="row"></th>
+				<td>
+					<p class="description">
+						<em><?php esc_html_e( 'Tip: select "Whitelist" above and save the form to reveal the CPF whitelist textarea.', 'ffcertificate' ); ?></em>
+					</p>
+				</td>
+			</tr>
+			<?php endif; ?>
 
 			<?php
 			$ffc_audit_summary = \FreeFormCertificate\Frontend\PublicCsvDownload::get_audit_log_summary( $post->ID );
 			?>
-			<tr>
+			<tr class="ffc-csv-public-sub">
 				<th scope="row">
 					<?php esc_html_e( 'Download audit log', 'ffcertificate' ); ?>
 				</th>

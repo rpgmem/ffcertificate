@@ -182,58 +182,77 @@ class FormEditorSaveHandler {
 			$enabled = ! empty( $public_raw['enabled'] ) ? '1' : '0';
 			update_post_meta( $post_id, '_ffc_csv_public_enabled', $enabled );
 
-			// Limit: positive integer ≥ 1. Fall back to settings default (min 1).
-			$limit = isset( $public_raw['limit'] ) ? absint( $public_raw['limit'] ) : 0;
-			if ( $limit < 1 ) {
-				$settings      = get_option( 'ffc_settings', array() );
-				$default_limit = ( is_array( $settings ) && isset( $settings['public_csv_default_limit'] ) )
-					? (int) $settings['public_csv_default_limit']
-					: 1;
-				$limit         = $default_limit > 0 ? $default_limit : 1;
-			}
-			update_post_meta( $post_id, '_ffc_csv_public_limit', $limit );
-
-			// Hash handling: auto-generate on first enable, or regenerate on request.
-			$current_hash   = (string) get_post_meta( $post_id, '_ffc_csv_public_hash', true );
-			$regenerate     = ! empty( $public_raw['regenerate_hash'] );
-			$needs_new_hash = $regenerate || ( '1' === $enabled && '' === $current_hash );
-
-			if ( $needs_new_hash ) {
-				try {
-					$new_hash = bin2hex( random_bytes( 16 ) );
-				} catch ( \Exception $e ) {
-					$new_hash = wp_generate_password( 32, false, false );
+			// When the master toggle is off, the sub-fields are rendered
+			// disabled so the browser does not include them in the POST.
+			// Skip the rest of the block to preserve the persisted limit /
+			// hash / mode / whitelist instead of overwriting them with the
+			// "no fields submitted" defaults.
+			if ( '1' === $enabled ) {
+				// Limit: positive integer ≥ 1. Fall back to settings default (min 1).
+				$limit = isset( $public_raw['limit'] ) ? absint( $public_raw['limit'] ) : 0;
+				if ( $limit < 1 ) {
+					$settings      = get_option( 'ffc_settings', array() );
+					$default_limit = ( is_array( $settings ) && isset( $settings['public_csv_default_limit'] ) )
+						? (int) $settings['public_csv_default_limit']
+						: 1;
+					$limit         = $default_limit > 0 ? $default_limit : 1;
 				}
-				update_post_meta( $post_id, '_ffc_csv_public_hash', $new_hash );
-			}
+				update_post_meta( $post_id, '_ffc_csv_public_limit', $limit );
 
-			// Counter reset (explicit opt-in).
-			if ( ! empty( $public_raw['reset_counter'] ) ) {
-				update_post_meta( $post_id, '_ffc_csv_public_count', 0 );
-			}
+				// Hash handling: auto-generate on first enable, or regenerate on request.
+				$current_hash   = (string) get_post_meta( $post_id, '_ffc_csv_public_hash', true );
+				$regenerate     = ! empty( $public_raw['regenerate_hash'] );
+				$needs_new_hash = $regenerate || '' === $current_hash;
 
-			// CPF gate mode for the public download.
-			$valid_modes = array( 'none', 'audit', 'participants', 'owner', 'whitelist' );
-			$mode_raw    = isset( $public_raw['cpf_mode'] ) ? sanitize_key( (string) $public_raw['cpf_mode'] ) : 'none';
-			if ( ! in_array( $mode_raw, $valid_modes, true ) ) {
-				$mode_raw = 'none';
-			}
-			update_post_meta( $post_id, '_ffc_csv_public_cpf_mode', $mode_raw );
+				if ( $needs_new_hash ) {
+					try {
+						$new_hash = bin2hex( random_bytes( 16 ) );
+					} catch ( \Exception $e ) {
+						$new_hash = wp_generate_password( 32, false, false );
+					}
+					update_post_meta( $post_id, '_ffc_csv_public_hash', $new_hash );
+				}
 
-			$wl_raw = isset( $public_raw['cpf_whitelist'] ) ? sanitize_textarea_field( (string) $public_raw['cpf_whitelist'] ) : '';
-			if ( '' !== trim( $wl_raw ) ) {
-				$cleaned_lines = array();
-				$lines         = preg_split( '/[\r\n,]+/', $wl_raw );
-				$lines         = is_array( $lines ) ? $lines : array();
-				foreach ( $lines as $line ) {
-					$digits = preg_replace( '/\D/', '', (string) $line );
-					if ( is_string( $digits ) && 11 === strlen( $digits ) ) {
-						$cleaned_lines[ $digits ] = $digits;
+				// Counter reset (explicit opt-in).
+				if ( ! empty( $public_raw['reset_counter'] ) ) {
+					update_post_meta( $post_id, '_ffc_csv_public_count', 0 );
+				}
+
+				// CPF gate mode for the public download. When the persisted
+				// mode is empty/'none', default to 'audit' so newly-enabled
+				// public downloads always log who pulled them.
+				$valid_modes = array( 'none', 'audit', 'participants', 'owner', 'whitelist' );
+				$mode_raw    = isset( $public_raw['cpf_mode'] ) ? sanitize_key( (string) $public_raw['cpf_mode'] ) : 'none';
+				if ( ! in_array( $mode_raw, $valid_modes, true ) ) {
+					$mode_raw = 'none';
+				}
+				if ( 'none' === $mode_raw ) {
+					$mode_raw = 'audit';
+				}
+				update_post_meta( $post_id, '_ffc_csv_public_cpf_mode', $mode_raw );
+
+				// Whitelist textarea is rendered only when the persisted mode
+				// is already 'whitelist'. When the user is in the process of
+				// switching modes via the dropdown, the textarea is absent
+				// from the POST — preserve the existing list instead of
+				// silently deleting it.
+				if ( array_key_exists( 'cpf_whitelist', $public_raw ) ) {
+					$wl_raw = sanitize_textarea_field( (string) $public_raw['cpf_whitelist'] );
+					if ( '' !== trim( $wl_raw ) ) {
+						$cleaned_lines = array();
+						$lines         = preg_split( '/[\r\n,]+/', $wl_raw );
+						$lines         = is_array( $lines ) ? $lines : array();
+						foreach ( $lines as $line ) {
+							$digits = preg_replace( '/\D/', '', (string) $line );
+							if ( is_string( $digits ) && 11 === strlen( $digits ) ) {
+								$cleaned_lines[ $digits ] = $digits;
+							}
+						}
+						update_post_meta( $post_id, '_ffc_csv_public_cpf_whitelist', implode( "\n", array_values( $cleaned_lines ) ) );
+					} else {
+						delete_post_meta( $post_id, '_ffc_csv_public_cpf_whitelist' );
 					}
 				}
-				update_post_meta( $post_id, '_ffc_csv_public_cpf_whitelist', implode( "\n", array_values( $cleaned_lines ) ) );
-			} else {
-				delete_post_meta( $post_id, '_ffc_csv_public_cpf_whitelist' );
 			}
 		}
 
