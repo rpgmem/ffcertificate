@@ -65,6 +65,12 @@ class Admin {
 	 * @var AdminActivityLogPage
 	 */
 	private $activity_log_page;
+	/**
+	 * Certificates dashboard page.
+	 *
+	 * @var CertificatesDashboard
+	 */
+	private $certificates_dashboard;
 
 	/**
 	 * Constructor.
@@ -164,8 +170,10 @@ class Admin {
 
 		$this->assets_manager = new AdminAssetsManager();
 		$this->assets_manager->register();
-		$this->edit_page         = new AdminSubmissionEditPage( $handler );
-		$this->activity_log_page = new AdminActivityLogPage();
+		$this->edit_page              = new AdminSubmissionEditPage( $handler );
+		$this->activity_log_page      = new AdminActivityLogPage();
+		$this->certificates_dashboard = new CertificatesDashboard();
+		$this->certificates_dashboard->init();
 
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 
