@@ -263,14 +263,11 @@ class AppointmentCsvExporter {
 		header( 'Pragma: no-cache' );
 		header( 'Expires: 0' );
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
 		$output = fopen( 'php://output', 'w' );
 		if ( false === $output ) {
 			exit;
 		}
-
-		// BOM for Excel UTF-8 recognition.
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV binary output, not HTML context
-		fprintf( $output, chr( 0xEF ) . chr( 0xBB ) . chr( 0xBF ) );
 
 		// Build headers.
 		$dynamic_keys = $this->get_dynamic_columns( $rows );
@@ -279,34 +276,13 @@ class AppointmentCsvExporter {
 			$this->get_dynamic_headers( $dynamic_keys )
 		);
 
-		// Convert all headers to UTF-8.
-		$headers = array_map(
-			function ( $header ) {
-				return mb_convert_encoding( $header, 'UTF-8', 'UTF-8' );
-			},
-			$headers
-		);
-
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV file output, not HTML context
-		fputcsv( $output, $headers, ';' );
-
-		// Write data rows.
+		$writer = \FreeFormCertificate\Core\Csv::writer( $output );
+		$writer->row( $headers );
 		foreach ( $rows as $row ) {
-			$csv_row = $this->format_csv_row( $row, $dynamic_keys );
-
-			// Convert all row data to UTF-8.
-			$csv_row = array_map(
-				function ( string $value ): string {
-					return mb_convert_encoding( $value, 'UTF-8', 'UTF-8' );
-				},
-				$csv_row
-			);
-
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV file output, not HTML context
-			fputcsv( $output, $csv_row, ';' );
+			$writer->row( $this->format_csv_row( $row, $dynamic_keys ) );
 		}
-
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing php://output stream for CSV export.
+		$writer->close();
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the php://output handle this method opened.
 		fclose( $output );
 		exit;
 	}
