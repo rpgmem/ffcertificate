@@ -32,46 +32,64 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FormEditorMetaboxRenderer {
 
 	/**
+	 * Renderer for the read-only "Shortcode" metabox.
+	 *
 	 * @var FormEditorShortcodeMetabox
 	 */
 	private FormEditorShortcodeMetabox $shortcode;
 
 	/**
+	 * Renderer for the "Certificate Layout" metabox.
+	 *
 	 * @var FormEditorLayoutMetabox
 	 */
 	private FormEditorLayoutMetabox $layout;
 
 	/**
+	 * Renderer for the "Form Builder (Fields)" metabox.
+	 *
 	 * @var FormEditorBuilderMetabox
 	 */
 	private FormEditorBuilderMetabox $builder;
 
 	/**
+	 * Renderer for the "Restriction & Security" metabox.
+	 *
 	 * @var FormEditorRestrictionMetabox
 	 */
 	private FormEditorRestrictionMetabox $restriction;
 
 	/**
+	 * Renderer for the "Email" metabox.
+	 *
 	 * @var FormEditorEmailMetabox
 	 */
 	private FormEditorEmailMetabox $email;
 
 	/**
+	 * Renderer for the "Geofence & Date/Time" metabox.
+	 *
 	 * @var FormEditorGeofenceMetabox
 	 */
 	private FormEditorGeofenceMetabox $geofence;
 
 	/**
+	 * Renderer for the "Quiz / Evaluation" metabox.
+	 *
 	 * @var FormEditorQuizMetabox
 	 */
 	private FormEditorQuizMetabox $quiz;
 
 	/**
+	 * Renderer for the "Public CSV Download" metabox.
+	 *
 	 * @var FormEditorPublicCsvDownloadMetabox
 	 */
 	private FormEditorPublicCsvDownloadMetabox $public_csv_download;
 
 	/**
+	 * Renderer for the "Device Fingerprint Limit" metabox.
+	 *
 	 * @var FormEditorDeviceLimitMetabox
 	 */
 	private FormEditorDeviceLimitMetabox $device_limit;
@@ -92,6 +110,8 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
+	 * Render the read-only "Shortcode" metabox.
+	 *
 	 * @param WP_Post $post Post being edited.
 	 */
 	public function render_shortcode_metabox( WP_Post $post ): void {
@@ -99,6 +119,8 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
+	 * Render the "Certificate Layout" metabox.
+	 *
 	 * @param WP_Post $post Post being edited.
 	 */
 	public function render_box_layout( WP_Post $post ): void {
@@ -106,6 +128,8 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
+	 * Render the "Form Builder (Fields)" metabox.
+	 *
 	 * @param WP_Post $post Post being edited.
 	 */
 	public function render_box_builder( WP_Post $post ): void {
@@ -113,6 +137,8 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
+	 * Render the "Restriction & Security" metabox.
+	 *
 	 * @param WP_Post $post Post being edited.
 	 */
 	public function render_box_restriction( WP_Post $post ): void {
@@ -120,6 +146,8 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
+	 * Render the "Email" metabox.
+	 *
 	 * @param WP_Post $post Post being edited.
 	 */
 	public function render_box_email( WP_Post $post ): void {
@@ -127,6 +155,8 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
+	 * Render the "Geofence & Date/Time" metabox.
+	 *
 	 * @param WP_Post $post Post being edited.
 	 */
 	public function render_box_geofence( WP_Post $post ): void {
@@ -134,6 +164,8 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
+	 * Render the "Quiz / Evaluation" metabox.
+	 *
 	 * @param WP_Post $post Post being edited.
 	 */
 	public function render_box_quiz( WP_Post $post ): void {
@@ -141,6 +173,8 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
+	 * Render the "Public CSV Download" metabox.
+	 *
 	 * @param WP_Post $post Post being edited.
 	 */
 	public function render_box_public_csv_download( WP_Post $post ): void {
@@ -148,6 +182,8 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
+	 * Render the "Device Fingerprint Limit" metabox.
+	 *
 	 * @param WP_Post $post Post being edited.
 	 */
 	public function render_box_device_limit( WP_Post $post ): void {
@@ -155,6 +191,8 @@ class FormEditorMetaboxRenderer {
 	}
 
 	/**
+	 * Render a single field row inside the Form Builder metabox.
+	 *
 	 * @param int|string           $index Field index.
 	 * @param array<string, mixed> $field Field data.
 	 */
