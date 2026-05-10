@@ -9,7 +9,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- **Form editor: groups 7 (Public CSV Download) and 8 (Device Fingerprint Limit) silently failed to save when the geofence config (group 6) had validation errors.** `FormEditorSaveHandler::save_form_data()` returned early after surfacing the geofence error transient, aborting the rest of the save pipeline. The validation error still surfaces via the transient, but the geofence meta is now simply skipped while CSV-download and device-limit sections continue to persist their changes.
+- **Form editor: turning the Public CSV Download (group 7) or Device Fingerprint Limit (group 8) toggle OFF did not persist.** The browser strips unchecked checkboxes from the POST and the admin JS also disables every sub-field on uncheck, so the entire `ffc_csv_public` / `ffc_device_limit` array vanished from `$_POST` and the save handler's `isset()` guard skipped the block — leaving `_ffc_csv_public_enabled` / `_ffc_device_limit_enabled` stuck at `'1'`. Each metabox now emits a hidden `[present]=1` marker outside the `<table>` (out of reach of both the sub-field disable JS and the globally-off disable), so the array is always submitted and the save handler always sees the user's intent to disable.
+- **Form editor: explicitly choosing "No — only Form ID + Hash" for the public CSV CPF gate silently reverted to "Audit".** `FormEditorSaveHandler::save_form_data()` unconditionally coerced `'none' → 'audit'` on every save, masking the user's choice. Coercion now only applies on the very first enable transition (toggle flipping `0 → 1` while the dropdown is at the default `'none'`); on later saves the user's explicit selection sticks.
 
 ---
 

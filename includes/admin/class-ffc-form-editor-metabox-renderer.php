@@ -888,6 +888,7 @@ class FormEditorMetaboxRenderer {
 			<?php esc_html_e( 'Allow a person without WordPress access to download the submissions CSV for this form by providing the Form ID + a hash on a public page that contains the [ffc_csv_download] shortcode.', 'ffcertificate' ); ?>
 		</p>
 
+		<input type="hidden" name="ffc_csv_public[present]" value="1">
 		<table class="form-table ffc-csv-public-table<?php echo $sub_disabled ? ' ffc-csv-public-disabled' : ''; ?>">
 			<tr>
 				<th scope="row">
@@ -1176,6 +1177,7 @@ class FormEditorMetaboxRenderer {
 			</p>
 		<?php endif; ?>
 
+		<input type="hidden" name="ffc_device_limit[present]" value="1">
 		<table class="<?php echo esc_attr( implode( ' ', $table_classes ) ); ?>">
 			<tr>
 				<th scope="row">
