@@ -33,10 +33,13 @@ jobs:
     # ffc-geofence-admin.js shipped via #160 (S2 of #161).
     # Coverage floor enforced in S1 of #163 — see step below.
     env:
-      # Ratcheted from 3 → 6 in S4 of #163 after the dashboard-panel tests
-      # brought overall line coverage from 3.78% to 7.37%. Bump again when
-      # a future PR genuinely improves the number.
-      JS_COVERAGE_FLOOR_LINES: '6'
+      # Ratcheted 3 → 6 in S4 of #163 (panel tests pushed coverage to 7.37%),
+      # then 6 → 7 in #165 (architectural exclusions cleaned the denominator,
+      # pushing the same covered LOC to 8.67% over the active surface). The
+      # ~1.7% buffer below the current baseline catches a real regression
+      # without firing on minor flux. Bump again whenever a PR genuinely
+      # improves the number.
+      JS_COVERAGE_FLOOR_LINES: '7'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
