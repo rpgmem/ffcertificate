@@ -690,14 +690,18 @@ class Geofence {
 				'hasGeo'      => $bypass_geo && $config['geo_enabled'],
 			) : null,
 			'datetime'    => array(
-				'enabled'   => ! $bypass_datetime && $config['datetime_enabled'],
-				'dateStart' => $config['date_start'] ?? '',
-				'dateEnd'   => $config['date_end'] ?? '',
-				'timeStart' => $config['time_start'] ?? '',
-				'timeEnd'   => $config['time_end'] ?? '',
-				'timeMode'  => $config['time_mode'] ?? 'daily', // 'span' or 'daily'
-				'message'   => $config['msg_datetime'] ?? '',
-				'hideMode'  => $config['datetime_hide_mode'] ?? 'message', // 'hide' or 'message'
+				'enabled'        => ! $bypass_datetime && $config['datetime_enabled'],
+				'dateStart'      => $config['date_start'] ?? '',
+				'dateEnd'        => $config['date_end'] ?? '',
+				'timeStart'      => $config['time_start'] ?? '',
+				'timeEnd'        => $config['time_end'] ?? '',
+				'timeMode'       => $config['time_mode'] ?? 'daily', // 'span' or 'daily'
+				'message'        => $config['msg_datetime'] ?? '',
+				// Per-phase hide modes (#159). Each one falls back to the legacy
+				// single `datetime_hide_mode` for forms saved before #159 S1.
+				'hideModeBefore' => self::resolve_hide_mode( $config, 'before' ),
+				'hideModeDuring' => self::resolve_hide_mode( $config, 'during' ),
+				'hideModeAfter'  => self::resolve_hide_mode( $config, 'after' ),
 			),
 			'geo'         => array(
 				'enabled'        => ! $bypass_geo && $config['geo_enabled'],

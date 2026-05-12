@@ -217,7 +217,11 @@ class GeofenceFrontendConfigTest extends TestCase {
         $this->assertSame( '17:00', $result['datetime']['timeEnd'] );
         $this->assertSame( 'daily', $result['datetime']['timeMode'] );
         $this->assertSame( 'Not available now.', $result['datetime']['message'] );
-        $this->assertSame( 'hide', $result['datetime']['hideMode'] );
+        // #159 S4: per-phase hide modes; legacy `datetime_hide_mode` value
+        // is propagated to all three phases via `Geofence::resolve_hide_mode`.
+        $this->assertSame( 'hide', $result['datetime']['hideModeBefore'] );
+        $this->assertSame( 'hide', $result['datetime']['hideModeDuring'] );
+        $this->assertSame( 'hide', $result['datetime']['hideModeAfter'] );
 
         $this->assertTrue( $result['geo']['enabled'] );
         $this->assertTrue( $result['geo']['gpsEnabled'] );
