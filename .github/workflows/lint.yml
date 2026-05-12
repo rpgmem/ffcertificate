@@ -41,7 +41,7 @@ jobs:
       # buffer below the current baseline catches a real regression
       # without firing on minor flux. Bump again whenever a PR
       # genuinely improves the number.
-      JS_COVERAGE_FLOOR_LINES: '41'
+      JS_COVERAGE_FLOOR_LINES: '44'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
