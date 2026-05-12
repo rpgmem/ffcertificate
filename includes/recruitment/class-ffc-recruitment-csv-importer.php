@@ -304,21 +304,40 @@ final class RecruitmentCsvImporter {
 		foreach ( $rows as $row ) {
 			$line = (int) $row['_line'];
 
-			// CPF / RF presence + digits-only.
-			$cpf = is_string( $row['cpf'] ) ? trim( $row['cpf'] ) : '';
-			$rf  = is_string( $row['rf'] ) ? trim( $row['rf'] ) : '';
-			if ( '' === $cpf && '' === $rf ) {
+			// CPF / RF normalisation (#172). Strip non-digit characters
+			// (operators paste pre-formatted values like `123.456.789-09`),
+			// then left-pad with zeros when the result is shorter than the
+			// canonical width (Excel/Sheets exports often drop leading
+			// zeros from numeric columns). Reject when the stripped value
+			// is LONGER than canonical — that's almost always garbage.
+			$cpf_raw = is_string( $row['cpf'] ) ? trim( $row['cpf'] ) : '';
+			$rf_raw  = is_string( $row['rf'] ) ? trim( $row['rf'] ) : '';
+
+			$cpf_norm = self::normalise_id( $cpf_raw, 11 );
+			$rf_norm  = self::normalise_id( $rf_raw, 7 );
+
+			if ( '' === $cpf_norm['value'] && '' === $rf_norm['value']
+				&& false === $cpf_norm['too_long'] && false === $rf_norm['too_long'] ) {
 				$errors[] = self::line_error( $line, 'recruitment_csv_missing_cpf_or_rf' );
 				continue;
 			}
-			if ( '' !== $cpf && ! ctype_digit( $cpf ) ) {
-				$errors[] = self::line_error( $line, 'recruitment_csv_cpf_must_be_digits_only' );
+			if ( $cpf_norm['too_long'] ) {
+				$errors[] = self::line_error( $line, 'recruitment_csv_cpf_too_long' );
 				continue;
 			}
-			if ( '' !== $rf && ! ctype_digit( $rf ) ) {
-				$errors[] = self::line_error( $line, 'recruitment_csv_rf_must_be_digits_only' );
+			if ( $rf_norm['too_long'] ) {
+				$errors[] = self::line_error( $line, 'recruitment_csv_rf_too_long' );
 				continue;
 			}
+
+			$cpf = $cpf_norm['value'];
+			$rf  = $rf_norm['value'];
+
+			// Persist the normalised values back onto the row so downstream
+			// consumers (upsert_candidate, duplicate detection, etc.) see
+			// the canonical digit string.
+			$row['cpf'] = $cpf;
+			$row['rf']  = $rf;
 
 			// Score: dot-decimal only (or integer).
 			$score_raw = is_string( $row['score'] ) ? trim( $row['score'] ) : (string) $row['score'];
@@ -646,6 +665,36 @@ final class RecruitmentCsvImporter {
 	 */
 	private static function line_error( int $line, string $code ): string {
 		return sprintf( 'line=%d: %s', $line, $code );
+	}
+
+	/**
+	 * Normalise a CPF / RF cell value to its canonical digit-only form.
+	 *
+	 * Strips every non-digit character (so `123.456.789-09` becomes
+	 * `12345678909`), then left-pads with `'0'` when the result is shorter
+	 * than `$expected_length` (Excel/Sheets exports routinely drop
+	 * leading zeros). Returns `too_long => true` when the stripped value
+	 * exceeds the canonical width — callers should surface a clear error.
+	 *
+	 * @param string $raw             The trimmed cell value.
+	 * @param int    $expected_length Canonical width (11 for CPF, 7 for RF).
+	 * @return array{value: string, too_long: bool}
+	 */
+	private static function normalise_id( string $raw, int $expected_length ): array {
+		$digits = preg_replace( '/\D+/', '', $raw );
+		if ( ! is_string( $digits ) ) {
+			$digits = '';
+		}
+		if ( '' === $digits ) {
+			return array( 'value' => '', 'too_long' => false );
+		}
+		if ( strlen( $digits ) > $expected_length ) {
+			return array( 'value' => $digits, 'too_long' => true );
+		}
+		if ( strlen( $digits ) < $expected_length ) {
+			$digits = str_pad( $digits, $expected_length, '0', STR_PAD_LEFT );
+		}
+		return array( 'value' => $digits, 'too_long' => false );
 	}
 
 	/**
