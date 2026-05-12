@@ -258,4 +258,137 @@ class GeofenceTest extends TestCase {
 
         $this->assertTrue( Geofence::should_bypass_geo() );
     }
+
+    // ------------------------------------------------------------------
+    // resolve_hide_mode — per-phase hide modes with legacy fallback (#159 S1)
+    // ------------------------------------------------------------------
+
+    public function test_resolve_hide_mode_returns_phase_value_when_present(): void {
+        $config = array(
+            'datetime_hide_mode_before' => 'hide',
+            'datetime_hide_mode_during' => 'title_message',
+            'datetime_hide_mode_after'  => 'message',
+        );
+        $this->assertSame( 'hide', Geofence::resolve_hide_mode( $config, 'before' ) );
+        $this->assertSame( 'title_message', Geofence::resolve_hide_mode( $config, 'during' ) );
+        $this->assertSame( 'message', Geofence::resolve_hide_mode( $config, 'after' ) );
+    }
+
+    public function test_resolve_hide_mode_falls_back_to_legacy_key(): void {
+        $config = array( 'datetime_hide_mode' => 'hide' );
+        $this->assertSame( 'hide', Geofence::resolve_hide_mode( $config, 'before' ) );
+        $this->assertSame( 'hide', Geofence::resolve_hide_mode( $config, 'during' ) );
+        $this->assertSame( 'hide', Geofence::resolve_hide_mode( $config, 'after' ) );
+    }
+
+    public function test_resolve_hide_mode_defaults_to_message_when_nothing_set(): void {
+        $this->assertSame( 'message', Geofence::resolve_hide_mode( array(), 'before' ) );
+        $this->assertSame( 'message', Geofence::resolve_hide_mode( array(), 'during' ) );
+        $this->assertSame( 'message', Geofence::resolve_hide_mode( array(), 'after' ) );
+    }
+
+    public function test_resolve_hide_mode_phase_value_overrides_legacy(): void {
+        $config = array(
+            'datetime_hide_mode'       => 'hide',
+            'datetime_hide_mode_after' => 'message',
+        );
+        $this->assertSame( 'hide', Geofence::resolve_hide_mode( $config, 'before' ) ); // legacy fallback
+        $this->assertSame( 'message', Geofence::resolve_hide_mode( $config, 'after' ) ); // phase wins
+    }
+
+    // ------------------------------------------------------------------
+    // analyze_datetime_order — date/time order validation (#159 S2)
+    // ------------------------------------------------------------------
+
+    public function test_analyze_datetime_order_empty_when_valid_daily(): void {
+        $config = array(
+            'date_start' => '2026-06-01',
+            'date_end'   => '2026-06-30',
+            'time_start' => '08:00',
+            'time_end'   => '18:00',
+            'time_mode'  => 'daily',
+        );
+        $this->assertSame( array(), Geofence::analyze_datetime_order( $config ) );
+    }
+
+    public function test_analyze_datetime_order_empty_when_valid_span(): void {
+        $config = array(
+            'date_start' => '2026-06-01',
+            'date_end'   => '2026-06-02',
+            'time_start' => '22:00',
+            'time_end'   => '06:00',
+            'time_mode'  => 'span',
+        );
+        $this->assertSame( array(), Geofence::analyze_datetime_order( $config ) );
+    }
+
+    public function test_analyze_datetime_order_flags_both_dates_when_end_before_start(): void {
+        $config = array(
+            'date_start' => '2026-06-30',
+            'date_end'   => '2026-06-01',
+            'time_mode'  => 'daily',
+        );
+        $errors = Geofence::analyze_datetime_order( $config );
+        $this->assertArrayHasKey( 'date_start', $errors );
+        $this->assertArrayHasKey( 'date_end', $errors );
+        $this->assertSame( $errors['date_start'], $errors['date_end'] );
+    }
+
+    public function test_analyze_datetime_order_flags_times_in_span_when_composed_inverted(): void {
+        $config = array(
+            'date_start' => '2026-06-01',
+            'date_end'   => '2026-06-01',
+            'time_start' => '18:00',
+            'time_end'   => '08:00',
+            'time_mode'  => 'span',
+        );
+        $errors = Geofence::analyze_datetime_order( $config );
+        $this->assertArrayHasKey( 'time_start', $errors );
+        $this->assertArrayHasKey( 'time_end', $errors );
+        $this->assertArrayNotHasKey( 'date_start', $errors );
+    }
+
+    public function test_analyze_datetime_order_flags_times_in_daily_when_end_not_after_start(): void {
+        $config = array(
+            'time_start' => '18:00',
+            'time_end'   => '08:00',
+            'time_mode'  => 'daily',
+        );
+        $errors = Geofence::analyze_datetime_order( $config );
+        $this->assertArrayHasKey( 'time_start', $errors );
+        $this->assertArrayHasKey( 'time_end', $errors );
+    }
+
+    public function test_analyze_datetime_order_skips_partial_configs(): void {
+        // Only date_start set — no comparison to make.
+        $this->assertSame( array(), Geofence::analyze_datetime_order( array( 'date_start' => '2026-06-01' ) ) );
+        // Only times set in span — without dates the comparison is N/A.
+        $this->assertSame(
+            array(),
+            Geofence::analyze_datetime_order(
+                array(
+                    'time_start' => '10:00',
+                    'time_end'   => '20:00',
+                    'time_mode'  => 'span',
+                )
+            )
+        );
+    }
+
+    public function test_analyze_datetime_order_short_circuits_on_date_inversion(): void {
+        // When dates are inverted, the helper returns early — span/daily
+        // checks below would just stack a redundant error on the same inputs.
+        $config = array(
+            'date_start' => '2026-06-30',
+            'date_end'   => '2026-06-01',
+            'time_start' => '18:00',
+            'time_end'   => '08:00',
+            'time_mode'  => 'daily',
+        );
+        $errors = Geofence::analyze_datetime_order( $config );
+        $this->assertCount( 2, $errors );
+        $this->assertArrayHasKey( 'date_start', $errors );
+        $this->assertArrayHasKey( 'date_end', $errors );
+        $this->assertArrayNotHasKey( 'time_start', $errors );
+    }
 }

@@ -355,6 +355,18 @@ class FormEditorSaveHandler {
 			}
 		}
 
+		// Validate datetime order (#159 S2). Date/time order checks live in
+		// `Geofence::analyze_datetime_order()` so the metabox renderer can
+		// reuse the same map to paint `ffc-input-invalid` on the offending
+		// inputs without duplicating the rules.
+		$datetime_errors = \FreeFormCertificate\Security\Geofence::analyze_datetime_order( $config );
+		if ( ! empty( $datetime_errors ) ) {
+			// Dedupe — the helper repeats the same message across paired
+			// fields (e.g. both `date_start` and `date_end`); the operator
+			// only needs to see each rule once in the admin notice.
+			$errors = array_merge( $errors, array_values( array_unique( array_values( $datetime_errors ) ) ) );
+		}
+
 		// Validate GPS areas format.
 		if ( '1' === $config['geo_gps_enabled'] && 'custom' === $gps_source && '' !== trim( $config['geo_areas'] ) ) {
 			$gps_errors = $this->validate_areas_format( $config['geo_areas'], 'GPS' );
