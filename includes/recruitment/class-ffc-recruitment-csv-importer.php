@@ -686,15 +686,24 @@ final class RecruitmentCsvImporter {
 			$digits = '';
 		}
 		if ( '' === $digits ) {
-			return array( 'value' => '', 'too_long' => false );
+			return array(
+				'value'    => '',
+				'too_long' => false,
+			);
 		}
 		if ( strlen( $digits ) > $expected_length ) {
-			return array( 'value' => $digits, 'too_long' => true );
+			return array(
+				'value'    => $digits,
+				'too_long' => true,
+			);
 		}
 		if ( strlen( $digits ) < $expected_length ) {
 			$digits = str_pad( $digits, $expected_length, '0', STR_PAD_LEFT );
 		}
-		return array( 'value' => $digits, 'too_long' => false );
+		return array(
+			'value'    => $digits,
+			'too_long' => false,
+		);
 	}
 
 	/**
