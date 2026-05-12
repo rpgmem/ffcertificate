@@ -19,6 +19,17 @@ export default defineConfig({
 			exclude: [
 				'assets/js/*.min.js',
 				'assets/js/*.min.js.map',
+
+				// Architecturally-excluded from coverage (#165 / Sprint L).
+				// Each entry has a structural reason for not being tested
+				// with the current Vitest + jsdom setup. Revisit if the
+				// underlying dependency stops being the blocker.
+				'assets/js/ffc-admin-migrations.js',     // DB-mutating; manual testing only.
+				'assets/js/ffc-admin-code-editor.js',    // Thin CodeMirror wrapper.
+				'assets/js/ffc-admin-pdf.js',            // Coupled to html2canvas + jsPDF.
+				'assets/js/ffc-pdf-generator.js',        // Coupled to html2canvas + jsPDF.
+				'assets/js/ffc-calendar-frontend.js',    // Built on FullCalendar plugin API.
+				'assets/js/ffc-calendar-admin.js',       // Tiny bridge feeding FullCalendar config.
 			],
 		},
 	},
