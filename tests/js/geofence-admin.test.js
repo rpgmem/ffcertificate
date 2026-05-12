@@ -1,21 +1,22 @@
-// Unit tests for the order-of-dates validator exposed on
-// `window.FFCGeofenceAdmin.analyzeDateTimeOrder` in
-// `assets/js/ffc-geofence-admin.js`.
+// Unit tests for the order-of-dates validator at
+// `window.FFCGeofenceValidation.analyzeDateTimeOrder` in
+// `assets/js/ffc-geofence-validation.js` — the pure helper extracted
+// out of ffc-geofence-admin.js in S2 of #163.
 //
 // Mirrors the PHP unit tests in tests/Unit/GeofenceTest.php — the JS-side
 // helper is a client-side mirror of `Geofence::analyze_datetime_order()`
 // so the live red-border feedback in the metabox matches the server-side
 // validation at save time.
 //
-// Added as part of #161 S2.
+// Originally added in #161 S2; rebased onto the extracted module in #163 S2.
 import { describe, it, expect, beforeAll } from 'vitest';
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
-	loadScript('assets/js/ffc-geofence-admin.js');
+	loadScript('assets/js/ffc-geofence-validation.js');
 });
 
-const analyze = (...args) => window.FFCGeofenceAdmin.analyzeDateTimeOrder(...args);
+const analyze = (...args) => window.FFCGeofenceValidation.analyzeDateTimeOrder(...args);
 
 describe('FFCGeofenceAdmin.analyzeDateTimeOrder', () => {
 	it('is empty for a valid daily window', () => {

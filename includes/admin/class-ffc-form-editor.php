@@ -68,10 +68,22 @@ class FormEditor {
 		}
 
 		$s = \FreeFormCertificate\Core\Utils::asset_suffix();
+
+		// Pure validator (`window.FFCGeofenceValidation.analyzeDateTimeOrder`)
+		// — no jQuery dep, loaded first so the admin script can read it on
+		// every input change.
+		wp_enqueue_script(
+			'ffc-geofence-validation',
+			FFC_PLUGIN_URL . "assets/js/ffc-geofence-validation{$s}.js",
+			array(),
+			FFC_VERSION,
+			true
+		);
+
 		wp_enqueue_script(
 			'ffc-geofence-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-geofence-admin{$s}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-geofence-validation' ),
 			FFC_VERSION,
 			true
 		);
