@@ -33,7 +33,10 @@ jobs:
     # ffc-geofence-admin.js shipped via #160 (S2 of #161).
     # Coverage floor enforced in S1 of #163 — see step below.
     env:
-      JS_COVERAGE_FLOOR_LINES: '3'
+      # Ratcheted from 3 → 6 in S4 of #163 after the dashboard-panel tests
+      # brought overall line coverage from 3.78% to 7.37%. Bump again when
+      # a future PR genuinely improves the number.
+      JS_COVERAGE_FLOOR_LINES: '6'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
