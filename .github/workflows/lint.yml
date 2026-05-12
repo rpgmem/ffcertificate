@@ -33,15 +33,14 @@ jobs:
     # ffc-geofence-admin.js shipped via #160 (S2 of #161).
     # Coverage floor enforced in S1 of #163 — see step below.
     env:
-      # Ratcheted 3 → 6 in S4 of #163 (panel tests pushed coverage to 7.37%),
-      # then 6 → 7 in #165 (architectural exclusions cleaned the denominator),
-      # then 7 → 15 in Sprint D of #168 (Sprints A+B+C of #168 added 60+
-      # tests across geofence helpers, remaining panels, and 5 small
-      # scripts, taking overall line coverage to 16.86%). The ~1.8% buffer
-      # below the current baseline catches a real regression without
-      # firing on minor flux. Bump again whenever a PR genuinely improves
-      # the number.
-      JS_COVERAGE_FLOOR_LINES: '15'
+      # Ratcheted 3 → 6 → 7 → 15 across #163 / #165 / #168, then 15 → 24
+      # in Sprint H of #170 (medium sprints E+F+G added ~45 tests
+      # covering core/frontend-helpers, dynamic-fragments, and the
+      # load-side of device-signals + frontend.js, taking overall line
+      # coverage to 25.78%). The ~1.8% buffer below the current baseline
+      # catches a real regression without firing on minor flux. Bump
+      # again whenever a PR genuinely improves the number.
+      JS_COVERAGE_FLOOR_LINES: '24'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
