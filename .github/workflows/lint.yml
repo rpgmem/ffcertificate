@@ -35,13 +35,16 @@ jobs:
     env:
       # Ratcheted 3 → 6 → 7 → 15 → 24 → 28 across #163 / #165 / #168 /
       # #170 / #173, then 28 → 34 in Sprint Q of #175 (admin+cert-
-      # dashboard sprints M+N+O+P added ~38 tests covering ffc-admin,
-      # FieldBuilder, submission-edit, and the certificates-dashboard
-      # wrapper, taking overall line coverage to 36.67%). The ~2.7%
-      # buffer below the current baseline catches a real regression
+      # dashboard sprints M+N+O+P), then 34 → 47 across #176 / #177 /
+      # #178 / #179 / #180. Sprint A+E in this PR lifts the baseline
+      # from 49.06% to 56.77% by (a) closing the two 0% blind spots
+      # (ffc-working-hours.js + ffc-geofence-admin.js) and (b) deep-
+      # covering the foundation orchestrators (ffc-admin.js 54%→95%,
+      # ffc-frontend.js 56%→95%, ffc-frontend-helpers.js 69%→95%). The
+      # ~2.7% buffer below the new baseline catches a real regression
       # without firing on minor flux. Bump again whenever a PR
       # genuinely improves the number.
-      JS_COVERAGE_FLOOR_LINES: '47'
+      JS_COVERAGE_FLOOR_LINES: '54'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
