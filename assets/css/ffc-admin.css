@@ -855,3 +855,24 @@ td .ffc-restriction-label {
 .ffc-copy-shortcode:hover { color: #0073aa; border-color: #0073aa; }
 .ffc-copy-shortcode .dashicons { font-size: 14px; width: 14px; height: 14px; }
 .ffc-copy-shortcode.copied { color: #46b450; border-color: #46b450; }
+
+/* =========================================================================
+ * Datetime order validation feedback (#159 S3).
+ *
+ * Applied via PHP on first paint when the persisted geofence config has an
+ * order error, and toggled live by ffc-geofence-admin.js (S5) while the
+ * operator edits the date/time inputs.
+ * ========================================================================= */
+.ffc-input-invalid {
+	border-color: #d63638 !important;
+	box-shadow: 0 0 0 1px #d63638 !important;
+}
+.ffc-input-invalid:focus {
+	border-color: #d63638 !important;
+	box-shadow: 0 0 0 1px #d63638, 0 0 2px 1px rgba(214, 54, 56, 0.6) !important;
+}
+p.ffc-datetime-order-error {
+	color: #d63638;
+	font-weight: 500;
+	margin-top: 4px;
+}
