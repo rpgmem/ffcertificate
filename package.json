@@ -10,9 +10,11 @@
     "lint:js:fix": "eslint \"assets/js/**/*.js\" --fix",
     "test:js": "vitest run",
     "test:js:watch": "vitest",
+    "test:js:coverage": "vitest run --coverage",
     "setup-hooks": "git config core.hooksPath .githooks && echo 'Git hooks configured.'"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "~2.1",
     "@wordpress/stylelint-config": "^23.37.0",
     "clean-css-cli": "^5.6.3",
     "eslint": "^9.36.0",

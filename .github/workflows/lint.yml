@@ -31,6 +31,9 @@ jobs:
     # Gating from day one — these tests are NEW (no legacy to clean up).
     # They cover the pure helpers in ffc-geofence-frontend.js /
     # ffc-geofence-admin.js shipped via #160 (S2 of #161).
+    # Coverage floor enforced in S1 of #163 — see step below.
+    env:
+      JS_COVERAGE_FLOOR_LINES: '3'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -39,8 +42,32 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
-      - name: Run Vitest
-        run: npm run test:js
+      - name: Run Vitest with coverage
+        run: npm run test:js:coverage
+      - name: Enforce JS line-coverage floor
+        run: |
+          # Parse the project-level <metrics> from Vitest's clover output and
+          # compare coveredstatements / statements against the floor. Same
+          # shape as the PHP gate in ci.yml.
+          node -e '
+            const fs = require("node:fs");
+            const xml = fs.readFileSync("coverage-js/clover.xml", "utf8");
+            const m = xml.match(/<metrics[^>]*statements="(\d+)"[^>]*coveredstatements="(\d+)"/);
+            if ( ! m ) { console.error("Failed to parse coverage-js/clover.xml"); process.exit(2); }
+            const [ , stmts, covered ] = m;
+            const pct = ( +covered / +stmts ) * 100;
+            const floor = +process.env.JS_COVERAGE_FLOOR_LINES;
+            console.log(`JS line coverage: ${pct.toFixed(2)}% (floor: ${floor.toFixed(2)}%)`);
+            const summary = process.env.GITHUB_STEP_SUMMARY;
+            if ( summary ) {
+                fs.appendFileSync(summary,
+                    `### JS Coverage\n\n| Lines | ${pct.toFixed(2)}% |\n| --- | --- |\n| Floor | ${floor.toFixed(2)}% |\n| Statements | ${covered} / ${stmts} |\n`);
+            }
+            if ( pct < floor ) {
+                console.error(`::error::JS line coverage ${pct.toFixed(2)}% is below the floor ${floor.toFixed(2)}%.`);
+                process.exit(1);
+            }
+          '
 
   css:
     name: Stylelint on assets/css
