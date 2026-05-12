@@ -54,8 +54,8 @@ class FormEditorGeofenceMetabox {
 		// Per-input invalid flags for first-paint feedback when the persisted
 		// config has an order error (e.g. an import wrote `date_end <
 		// date_start`). S5 will mirror this on live edits via JS.
-		$invalid_fields    = Geofence::analyze_datetime_order( $config );
-		$invalid_attr      = static function ( string $field ) use ( $invalid_fields ): string {
+		$invalid_fields     = Geofence::analyze_datetime_order( $config );
+		$invalid_attr       = static function ( string $field ) use ( $invalid_fields ): string {
 			return isset( $invalid_fields[ $field ] ) ? ' class="ffc-input-invalid"' : '';
 		};
 		$datetime_order_msg = $invalid_fields ? reset( $invalid_fields ) : '';
