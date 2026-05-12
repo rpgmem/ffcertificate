@@ -33,3 +33,5 @@ node_modules/
 # Images Assignatures
 html/*.png
 html/atestado_jair.html
+# JS coverage output
+/coverage-js/
