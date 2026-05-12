@@ -36,15 +36,14 @@ jobs:
       # Ratcheted 3 → 6 → 7 → 15 → 24 → 28 across #163 / #165 / #168 /
       # #170 / #173, then 28 → 34 in Sprint Q of #175 (admin+cert-
       # dashboard sprints M+N+O+P), then 34 → 47 across #176 / #177 /
-      # #178 / #179 / #180. Sprint A+E in this PR lifts the baseline
-      # from 49.06% to 56.77% by (a) closing the two 0% blind spots
-      # (ffc-working-hours.js + ffc-geofence-admin.js) and (b) deep-
-      # covering the foundation orchestrators (ffc-admin.js 54%→95%,
-      # ffc-frontend.js 56%→95%, ffc-frontend-helpers.js 69%→95%). The
-      # ~2.7% buffer below the new baseline catches a real regression
-      # without firing on minor flux. Bump again whenever a PR
-      # genuinely improves the number.
-      JS_COVERAGE_FLOOR_LINES: '54'
+      # #178 / #179 / #180, then 47 → 54 in #183 (Sprint A+E: closed
+      # the two 0% blind spots + deep-covered admin/frontend/helpers
+      # orchestrators). Sprint D in this PR adds deep coverage on
+      # ffc-geofence-frontend.js (57% → 92%), lifting the combined
+      # baseline to 59.30%. Bumping 54 → 57 locks the gain in with
+      # ~2.3pp buffer. Bump again whenever a PR genuinely improves
+      # the number.
+      JS_COVERAGE_FLOOR_LINES: '57'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
