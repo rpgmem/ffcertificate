@@ -86,6 +86,10 @@ jQuery(document).ready(function($) {
         // time_end). Empty when valid or when the relevant inputs are not
         // yet filled in.
         var errors = {};
+        // Match PHP default — `time_mode` omitted means 'daily'. The
+        // metabox form always supplies a value, but tests and any future
+        // direct caller benefit from the same default the server uses.
+        var timeMode = v.time_mode || 'daily';
 
         if (v.date_start && v.date_end && v.date_end < v.date_start) {
             var msg = 'End date is earlier than the start date.';
@@ -96,7 +100,7 @@ jQuery(document).ready(function($) {
             return errors;
         }
 
-        if (v.time_mode === 'span' && v.date_start && v.date_end && v.time_start && v.time_end) {
+        if (timeMode === 'span' && v.date_start && v.date_end && v.time_start && v.time_end) {
             var startComposed = v.date_start + ' ' + v.time_start;
             var endComposed   = v.date_end   + ' ' + v.time_end;
             if (endComposed <= startComposed) {
@@ -107,7 +111,7 @@ jQuery(document).ready(function($) {
             return errors;
         }
 
-        if (v.time_mode === 'daily' && v.time_start && v.time_end && v.time_end <= v.time_start) {
+        if (timeMode === 'daily' && v.time_start && v.time_end && v.time_end <= v.time_start) {
             var dailyMsg = 'End time must be later than start time. For an overnight single event, switch the Time Mode to "Span" and set the end date to the next day.';
             errors.time_start = dailyMsg;
             errors.time_end   = dailyMsg;
@@ -221,4 +225,11 @@ jQuery(document).ready(function($) {
             $(this).prop('checked', true);
         }
     });
+
+    // Expose pure helpers on window for unit tests (#161 S2). Not used at
+    // runtime — the IIFE wires its own listeners via `$(document).on(...)`.
+    if (typeof window !== 'undefined') {
+        window.FFCGeofenceAdmin = window.FFCGeofenceAdmin || {};
+        window.FFCGeofenceAdmin.analyzeDateTimeOrder = analyzeDateTimeOrder;
+    }
 });

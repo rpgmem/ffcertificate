@@ -88,7 +88,11 @@
         var $status = $('#ffc_gen_status');
         var originalText = $btn.text();
 
-        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+        // `strings` is declared earlier in this function (line ~80) — `var`
+        // hoists to function scope, so we just re-assign here without
+        // redeclaring (the line-80 path only runs when quantity is invalid
+        // and the function returns; this path needs its own assignment).
+        strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
         var generatingText = strings.generating || 'Generating...';
         var generatingTicketsText = strings.generatingTickets || 'Generating tickets...';
 

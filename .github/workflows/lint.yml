@@ -1,0 +1,62 @@
+name: Lint
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  js:
+    name: ESLint on assets/js
+    runs-on: ubuntu-latest
+    # Gating from day one — the codebase has 28 source files and 0 errors
+    # after S1 of #161 (only 9 unused-vars warnings remain, which don't gate).
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run ESLint
+        run: npm run lint:js
+
+  jstest:
+    name: Vitest on tests/js
+    runs-on: ubuntu-latest
+    # Gating from day one — these tests are NEW (no legacy to clean up).
+    # They cover the pure helpers in ffc-geofence-frontend.js /
+    # ffc-geofence-admin.js shipped via #160 (S2 of #161).
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run Vitest
+        run: npm run test:js
+
+  css:
+    name: Stylelint on assets/css
+    runs-on: ubuntu-latest
+    # Was an `npm run lint:css` script with no CI surface. Promoted to a
+    # gated job in S4-extras of #161. If it surfaces a wave of legacy
+    # violations, drop to non-gating via `continue-on-error: true` and
+    # chip away — the script and config are correct, only the policy
+    # changes.
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run Stylelint
+        run: npm run lint:css

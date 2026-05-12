@@ -1,0 +1,50 @@
+name: CodeQL
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Weekly catch-all run so newly-disclosed query packs surface on
+    # unchanged code too. Monday 03:00 UTC keeps it off business hours.
+    - cron: '0 3 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # CodeQL doesn't ship a PHP analyzer (Aug 2025: js/ts/py/java/go/c#/
+        # c++/swift/kotlin/ruby only). The PHP side of the codebase is
+        # covered by PHPStan + composer audit + WPCS. If CodeQL adds PHP
+        # later, add it here.
+        language: ['javascript']
+    steps:
+      - uses: actions/checkout@v6
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # `security-extended` enables the extended security pack;
+          # `security-and-quality` would also add maintainability rules
+          # which are noisy on a WP plugin. Pick the security-only one.
+          queries: security-extended
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'

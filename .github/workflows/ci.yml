@@ -30,6 +30,8 @@ jobs:
           php-version: '8.1'
           tools: composer:v2
           coverage: none
+      - name: Validate composer.json / composer.lock are in sync
+        run: composer validate --strict --no-check-publish
       - name: Run composer audit
         run: composer audit --locked --no-interaction
 
@@ -52,9 +54,12 @@ jobs:
     name: Coverage (PHP 8.1)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Advisory: coverage data is uploaded to Coveralls but does not gate.
-    # Promote to required once we have a baseline % to enforce.
-    continue-on-error: true
+    # Promoted from advisory to gating in S3 of #161. The floor is set
+    # below the current line-coverage baseline so the gate doesn't fire
+    # on day one but does catch a regression. Ratchet the floor upward
+    # whenever a PR genuinely improves coverage.
+    env:
+      COVERAGE_FLOOR_LINES: '50'
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-composer
@@ -64,6 +69,33 @@ jobs:
           ini-values: pcov.directory=./includes,pcov.exclude="#(libraries|views)/#",memory_limit=512M
       - name: Run PHPUnit with coverage
         run: vendor/bin/phpunit --coverage-clover coverage.xml
+      - name: Enforce line-coverage floor
+        run: |
+          # Parse the project-level <metrics> element from the clover XML
+          # and compare `coveredstatements / statements` against the floor.
+          php -r '
+            $xml = simplexml_load_file("coverage.xml");
+            if ( ! $xml ) { fwrite( STDERR, "Failed to parse coverage.xml\n" ); exit( 2 ); }
+            $m = $xml->project->metrics;
+            $stmts   = (int) $m["statements"];
+            $covered = (int) $m["coveredstatements"];
+            if ( $stmts === 0 ) { fwrite( STDERR, "No statements recorded\n" ); exit( 2 ); }
+            $pct   = ( $covered / $stmts ) * 100;
+            $floor = (float) getenv( "COVERAGE_FLOOR_LINES" );
+            printf( "Line coverage: %.2f%% (floor: %.2f%%)\n", $pct, $floor );
+            // Also emit to the GitHub Actions step summary for at-a-glance review.
+            $summary = getenv( "GITHUB_STEP_SUMMARY" );
+            if ( $summary ) {
+                file_put_contents( $summary, sprintf(
+                    "### Coverage\n\n| Lines | %.2f%% |\n| --- | --- |\n| Floor | %.2f%% |\n| Statements | %d / %d |\n",
+                    $pct, $floor, $covered, $stmts
+                ) );
+            }
+            if ( $pct < $floor ) {
+                fwrite( STDERR, sprintf( "::error::Line coverage %.2f%% is below the floor %.2f%%.\n", $pct, $floor ) );
+                exit( 1 );
+            }
+          '
       - name: Upload coverage to Coveralls
         uses: coverallsapp/github-action@v2
         with:

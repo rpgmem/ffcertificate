@@ -205,7 +205,7 @@
                     currentValue = $trigger.val();
                 }
 
-                var matches = (currentValue == showValue);
+                var matches = (currentValue === showValue);
                 return invertLogic ? !matches : matches;
             };
 
