@@ -53,7 +53,12 @@ jobs:
   coverage:
     name: Coverage (PHP 8.1)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Bumped 15 → 20 after the pcov+3881-test suite started routinely
+    # finishing at 14m–15m and tripping the previous ceiling on busy
+    # CI runners (#176/#177 cancelled at 15m09s/15m14s/15m12s). Real
+    # baseline is ~13–14m; 20m leaves comfortable headroom without
+    # masking a true regression.
+    timeout-minutes: 20
     # Promoted from advisory to gating in S3 of #161. The floor is set
     # below the current line-coverage baseline so the gate doesn't fire
     # on day one but does catch a regression. Ratchet the floor upward
