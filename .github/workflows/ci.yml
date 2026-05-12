@@ -30,6 +30,8 @@ jobs:
           php-version: '8.1'
           tools: composer:v2
           coverage: none
+      - name: Validate composer.json / composer.lock are in sync
+        run: composer validate --strict --no-check-publish
       - name: Run composer audit
         run: composer audit --locked --no-interaction
 
