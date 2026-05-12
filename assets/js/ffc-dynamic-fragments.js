@@ -191,7 +191,6 @@
 
 		// --- Geofence configs (refresh stale cached data) ---
 		if (data.geofence && typeof ffcGeofenceConfig !== 'undefined') {
-			var formId;
 			for (formId in data.geofence) {
 				if (data.geofence.hasOwnProperty(formId)) {
 					ffcGeofenceConfig[formId] = data.geofence[formId];
