@@ -27,7 +27,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['javascript', 'php']
+        # CodeQL doesn't ship a PHP analyzer (Aug 2025: js/ts/py/java/go/c#/
+        # c++/swift/kotlin/ruby only). The PHP side of the codebase is
+        # covered by PHPStan + composer audit + WPCS. If CodeQL adds PHP
+        # later, add it here.
+        language: ['javascript']
     steps:
       - uses: actions/checkout@v6
       - name: Initialize CodeQL
