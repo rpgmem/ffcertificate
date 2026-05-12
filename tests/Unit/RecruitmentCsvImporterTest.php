@@ -275,4 +275,94 @@ class RecruitmentCsvImporterTest extends TestCase {
 		$this->assertFalse( $result['success'] );
 		$this->assertContains( 'recruitment_notice_has_no_adjutancies', $result['errors'] );
 	}
+
+	// ------------------------------------------------------------------
+	// normalise_id helper — strip punctuation + left-pad short values (#172)
+	// ------------------------------------------------------------------
+
+	/**
+	 * Call the private `normalise_id` helper via reflection.
+	 *
+	 * @param string $raw
+	 * @param int    $expected_length
+	 * @return array{value: string, too_long: bool}
+	 */
+	private function normalise( string $raw, int $expected_length ): array {
+		$ref = new \ReflectionClass( RecruitmentCsvImporter::class );
+		$m   = $ref->getMethod( 'normalise_id' );
+		$m->setAccessible( true );
+		return $m->invoke( null, $raw, $expected_length );
+	}
+
+	public function test_normalise_cpf_passes_through_canonical_value(): void {
+		$out = $this->normalise( '12345678909', 11 );
+		$this->assertSame( '12345678909', $out['value'] );
+		$this->assertFalse( $out['too_long'] );
+	}
+
+	public function test_normalise_cpf_strips_dots_and_dash(): void {
+		$out = $this->normalise( '123.456.789-09', 11 );
+		$this->assertSame( '12345678909', $out['value'] );
+		$this->assertFalse( $out['too_long'] );
+	}
+
+	public function test_normalise_cpf_pads_short_value_with_leading_zeros(): void {
+		// 10 digits → padded to 11.
+		$out = $this->normalise( '1234567890', 11 );
+		$this->assertSame( '01234567890', $out['value'] );
+		$this->assertFalse( $out['too_long'] );
+	}
+
+	public function test_normalise_cpf_pads_very_short_value(): void {
+		$out = $this->normalise( '5', 11 );
+		$this->assertSame( '00000000005', $out['value'] );
+	}
+
+	public function test_normalise_cpf_rejects_too_long_value(): void {
+		$out = $this->normalise( '123456789012', 11 );
+		$this->assertTrue( $out['too_long'] );
+		// Value still returned so callers can include it in their error.
+		$this->assertSame( '123456789012', $out['value'] );
+	}
+
+	public function test_normalise_rejects_too_long_after_stripping_punctuation(): void {
+		// 12 digits hidden behind formatting.
+		$out = $this->normalise( '123.456.789.012', 11 );
+		$this->assertTrue( $out['too_long'] );
+	}
+
+	public function test_normalise_returns_empty_on_all_punctuation_input(): void {
+		$out = $this->normalise( '...---', 11 );
+		$this->assertSame( '', $out['value'] );
+		$this->assertFalse( $out['too_long'] );
+	}
+
+	public function test_normalise_returns_empty_on_blank_input(): void {
+		$out = $this->normalise( '', 11 );
+		$this->assertSame( '', $out['value'] );
+		$this->assertFalse( $out['too_long'] );
+	}
+
+	public function test_normalise_rf_strips_punctuation(): void {
+		$out = $this->normalise( '123.456-7', 7 );
+		$this->assertSame( '1234567', $out['value'] );
+		$this->assertFalse( $out['too_long'] );
+	}
+
+	public function test_normalise_rf_pads_short_value(): void {
+		$out = $this->normalise( '12', 7 );
+		$this->assertSame( '0000012', $out['value'] );
+	}
+
+	public function test_normalise_rf_rejects_too_long_value(): void {
+		$out = $this->normalise( '12345678', 7 );
+		$this->assertTrue( $out['too_long'] );
+	}
+
+	public function test_normalise_strips_spaces_and_slashes(): void {
+		// Pathological formatting still produces clean digits.
+		$out = $this->normalise( ' 123  / 456 / 789 - 09 ', 11 );
+		$this->assertSame( '12345678909', $out['value'] );
+		$this->assertFalse( $out['too_long'] );
+	}
 }
