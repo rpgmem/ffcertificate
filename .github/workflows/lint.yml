@@ -36,14 +36,15 @@ jobs:
       # Ratcheted 3 → 6 → 7 → 15 → 24 → 28 across #163 / #165 / #168 /
       # #170 / #173, then 28 → 34 in Sprint Q of #175 (admin+cert-
       # dashboard sprints M+N+O+P), then 34 → 47 across #176 / #177 /
-      # #178 / #179 / #180, then 47 → 54 in #183 (Sprint A+E: closed
-      # the two 0% blind spots + deep-covered admin/frontend/helpers
-      # orchestrators). Sprint D in this PR adds deep coverage on
-      # ffc-geofence-frontend.js (57% → 92%), lifting the combined
-      # baseline to 59.30%. Bumping 54 → 57 locks the gain in with
-      # ~2.3pp buffer. Bump again whenever a PR genuinely improves
+      # #178 / #179 / #180, then 47 → 54 in #183 (Sprint A+E) and
+      # 54 → 57 in #184 (Sprint D: ffc-geofence-frontend.js 57%→92%).
+      # Sprint C in this PR adds deep coverage on the two largest
+      # public-facing scripts: ffc-csv-download.js 25%→90% and
+      # ffc-reregistration-frontend.js 22%→96%, lifting overall line
+      # coverage to 66.61%. Bumping 57 → 64 locks the gain in with
+      # ~2.6pp buffer. Bump again whenever a PR genuinely improves
       # the number.
-      JS_COVERAGE_FLOOR_LINES: '57'
+      JS_COVERAGE_FLOOR_LINES: '64'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

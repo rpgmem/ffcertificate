@@ -301,7 +301,9 @@
     function validateField($field) {
         var $wrap = $field.closest('.ffc-rereg-field');
         var $error = $wrap.find('.ffc-field-error');
-        var val = $.trim($field.val());
+        // `$.trim` was removed in jQuery 4; native String.prototype.trim
+        // covers the same case and works across all supported runtimes.
+        var val = ($field.val() || '').trim();
         var msg = '';
 
         // Required check
@@ -468,7 +470,10 @@
 
     function getFields($container) {
         var data = {};
-        $container.find('[name^="fields["]').each(function () {
+        // jQuery 4's selector parser rejects an unescaped `[` inside an
+        // attribute-value literal, so prefix-match on the bare "fields"
+        // token — every reregistration field is named `fields[…]`.
+        $container.find('[name^="fields"]').each(function () {
             var match = this.name.match(/fields\[([^\]]+)\]/);
             if (!match) return;
             var key = match[1];
