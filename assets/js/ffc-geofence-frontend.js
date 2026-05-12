@@ -65,7 +65,14 @@
                 const datetimeValid = this.validateDateTime(config.datetime);
 
                 if (!datetimeValid.valid) {
-                    this.handleBlocked(formWrapper, config.datetime.hideMode, config.datetime.message || datetimeValid.message);
+                    // Per-phase hide mode (#159 S4). validateDateTime returns
+                    // phase ∈ {'before','during','after'} on a fail; pick the
+                    // matching config.datetime.hideMode<Phase>. Fall back to
+                    // hideModeBefore when phase is unset (defensive — should
+                    // not happen, but keeps the previous "always block"
+                    // semantic intact).
+                    const phaseMode = this.pickHideMode(config.datetime, datetimeValid.phase);
+                    this.handleBlocked(formWrapper, phaseMode, config.datetime.message || datetimeValid.message);
                     return; // Stop here, don't check geo
                 }
                 // DateTime validation passed, continue...
@@ -109,10 +116,24 @@
         },
 
         /**
+         * Pick the correct per-phase hide mode (#159 S4).
+         *
+         * @param {object} datetimeConfig config.datetime block (carries
+         *                                hideModeBefore/During/After).
+         * @param {string} phase          'before' | 'during' | 'after' | undefined.
+         * @returns {string} 'hide' | 'message' | 'title_message'.
+         */
+        pickHideMode: function(datetimeConfig, phase) {
+            if (phase === 'after')  return datetimeConfig.hideModeAfter  || 'message';
+            if (phase === 'during') return datetimeConfig.hideModeDuring || 'message';
+            return datetimeConfig.hideModeBefore || 'message';
+        },
+
+        /**
          * Validate date/time restrictions
          *
          * @param {object} config DateTime configuration
-         * @returns {object} {valid: boolean, message: string}
+         * @returns {object} {valid: boolean, message: string, phase?: 'before'|'during'|'after'}
          */
         validateDateTime: function(config) {
             const now = new Date();
@@ -143,6 +164,7 @@
                 if (now < startDateTime) {
                     return {
                         valid: false,
+                        phase: 'before',
                         message: config.message || this.getString('formNotYetAvailable', 'This form is not yet available.')
                     };
                 }
@@ -150,6 +172,7 @@
                 if (now > endDateTime) {
                     return {
                         valid: false,
+                        phase: 'after',
                         message: config.message || this.getString('formNoLongerAvailable', 'This form is no longer available.')
                     };
                 }
@@ -163,6 +186,7 @@
             if (config.dateStart && currentDate < config.dateStart) {
                 return {
                     valid: false,
+                    phase: 'before',
                     message: config.message || this.getString('formNotYetAvailable', 'This form is not yet available.')
                 };
             }
@@ -170,6 +194,7 @@
             if (config.dateEnd && currentDate > config.dateEnd) {
                 return {
                     valid: false,
+                    phase: 'after',
                     message: config.message || this.getString('formNoLongerAvailable', 'This form is no longer available.')
                 };
             }
@@ -182,6 +207,7 @@
                 if (currentTime < timeStart || currentTime > timeEnd) {
                     return {
                         valid: false,
+                        phase: 'during',
                         message: config.message || this.getString('formOnlyDuringHours', 'This form is only available during specific hours.')
                     };
                 }

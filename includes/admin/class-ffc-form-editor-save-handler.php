@@ -135,32 +135,47 @@ class FormEditorSaveHandler {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
 			$geofence = wp_unslash( $_POST['ffc_geofence'] );
 
+			// Per-phase datetime hide modes (#159 S1). Each new key falls back to
+			// the legacy single `datetime_hide_mode` POSTed value while the UI is
+			// being migrated, so a save under the old single-dropdown UI still
+			// produces a valid three-key payload. The legacy key is no longer
+			// persisted on save.
+			$legacy_hide_mode = isset( $geofence['datetime_hide_mode'] )
+				? sanitize_key( $geofence['datetime_hide_mode'] )
+				: 'message';
+
+			$hide_mode_before = sanitize_key( $geofence['datetime_hide_mode_before'] ?? $legacy_hide_mode );
+			$hide_mode_during = sanitize_key( $geofence['datetime_hide_mode_during'] ?? $legacy_hide_mode );
+			$hide_mode_after  = sanitize_key( $geofence['datetime_hide_mode_after'] ?? $legacy_hide_mode );
+
 			$clean_geofence = array(
 				// DateTime settings.
-				'datetime_enabled'         => isset( $geofence['datetime_enabled'] ) ? '1' : '0',
-				'date_start'               => ! empty( $geofence['date_start'] ) ? sanitize_text_field( $geofence['date_start'] ) : '',
-				'date_end'                 => ! empty( $geofence['date_end'] ) ? sanitize_text_field( $geofence['date_end'] ) : '',
-				'time_start'               => ! empty( $geofence['time_start'] ) ? sanitize_text_field( $geofence['time_start'] ) : '',
-				'time_end'                 => ! empty( $geofence['time_end'] ) ? sanitize_text_field( $geofence['time_end'] ) : '',
-				'time_mode'                => sanitize_key( $geofence['time_mode'] ?? 'daily' ),
-				'datetime_hide_mode'       => sanitize_key( $geofence['datetime_hide_mode'] ?? 'message' ),
-				'msg_datetime'             => sanitize_textarea_field( $geofence['msg_datetime'] ?? '' ),
+				'datetime_enabled'          => isset( $geofence['datetime_enabled'] ) ? '1' : '0',
+				'date_start'                => ! empty( $geofence['date_start'] ) ? sanitize_text_field( $geofence['date_start'] ) : '',
+				'date_end'                  => ! empty( $geofence['date_end'] ) ? sanitize_text_field( $geofence['date_end'] ) : '',
+				'time_start'                => ! empty( $geofence['time_start'] ) ? sanitize_text_field( $geofence['time_start'] ) : '',
+				'time_end'                  => ! empty( $geofence['time_end'] ) ? sanitize_text_field( $geofence['time_end'] ) : '',
+				'time_mode'                 => sanitize_key( $geofence['time_mode'] ?? 'daily' ),
+				'datetime_hide_mode_before' => $hide_mode_before,
+				'datetime_hide_mode_during' => $hide_mode_during,
+				'datetime_hide_mode_after'  => $hide_mode_after,
+				'msg_datetime'              => sanitize_textarea_field( $geofence['msg_datetime'] ?? '' ),
 
 				// Geolocation settings.
-				'geo_enabled'              => isset( $geofence['geo_enabled'] ) ? '1' : '0',
-				'geo_gps_enabled'          => isset( $geofence['geo_gps_enabled'] ) ? '1' : '0',
-				'geo_ip_enabled'           => isset( $geofence['geo_ip_enabled'] ) ? '1' : '0',
-				'geo_area_source'          => in_array( ( $geofence['geo_area_source'] ?? 'custom' ), array( 'locations', 'custom' ), true ) ? $geofence['geo_area_source'] : 'custom',
-				'geo_area_location_ids'    => array_map( 'sanitize_key', (array) ( $geofence['geo_area_location_ids'] ?? array() ) ),
-				'geo_areas'                => sanitize_textarea_field( $geofence['geo_areas'] ?? '' ),
-				'geo_ip_areas_permissive'  => isset( $geofence['geo_ip_areas_permissive'] ) ? '1' : '0',
-				'geo_ip_area_source'       => in_array( ( $geofence['geo_ip_area_source'] ?? 'custom' ), array( 'locations', 'custom' ), true ) ? $geofence['geo_ip_area_source'] : 'custom',
-				'geo_ip_area_location_ids' => array_map( 'sanitize_key', (array) ( $geofence['geo_ip_area_location_ids'] ?? array() ) ),
-				'geo_ip_areas'             => sanitize_textarea_field( $geofence['geo_ip_areas'] ?? '' ),
-				'geo_gps_ip_logic'         => sanitize_key( $geofence['geo_gps_ip_logic'] ?? 'or' ),
-				'geo_hide_mode'            => sanitize_key( $geofence['geo_hide_mode'] ?? 'message' ),
-				'msg_geo_blocked'          => sanitize_textarea_field( $geofence['msg_geo_blocked'] ?? '' ),
-				'msg_geo_error'            => sanitize_textarea_field( $geofence['msg_geo_error'] ?? '' ),
+				'geo_enabled'               => isset( $geofence['geo_enabled'] ) ? '1' : '0',
+				'geo_gps_enabled'           => isset( $geofence['geo_gps_enabled'] ) ? '1' : '0',
+				'geo_ip_enabled'            => isset( $geofence['geo_ip_enabled'] ) ? '1' : '0',
+				'geo_area_source'           => in_array( ( $geofence['geo_area_source'] ?? 'custom' ), array( 'locations', 'custom' ), true ) ? $geofence['geo_area_source'] : 'custom',
+				'geo_area_location_ids'     => array_map( 'sanitize_key', (array) ( $geofence['geo_area_location_ids'] ?? array() ) ),
+				'geo_areas'                 => sanitize_textarea_field( $geofence['geo_areas'] ?? '' ),
+				'geo_ip_areas_permissive'   => isset( $geofence['geo_ip_areas_permissive'] ) ? '1' : '0',
+				'geo_ip_area_source'        => in_array( ( $geofence['geo_ip_area_source'] ?? 'custom' ), array( 'locations', 'custom' ), true ) ? $geofence['geo_ip_area_source'] : 'custom',
+				'geo_ip_area_location_ids'  => array_map( 'sanitize_key', (array) ( $geofence['geo_ip_area_location_ids'] ?? array() ) ),
+				'geo_ip_areas'              => sanitize_textarea_field( $geofence['geo_ip_areas'] ?? '' ),
+				'geo_gps_ip_logic'          => sanitize_key( $geofence['geo_gps_ip_logic'] ?? 'or' ),
+				'geo_hide_mode'             => sanitize_key( $geofence['geo_hide_mode'] ?? 'message' ),
+				'msg_geo_blocked'           => sanitize_textarea_field( $geofence['msg_geo_blocked'] ?? '' ),
+				'msg_geo_error'             => sanitize_textarea_field( $geofence['msg_geo_error'] ?? '' ),
 			);
 
 			// Validate geolocation configuration. Surface errors via transient,
@@ -338,6 +353,18 @@ class FormEditorSaveHandler {
 			} elseif ( '' === trim( $config['geo_ip_areas'] ) ) {
 				$errors[] = __( 'IP Geolocation is enabled with independent areas but no IP areas are defined.', 'ffcertificate' );
 			}
+		}
+
+		// Validate datetime order (#159 S2). Date/time order checks live in
+		// `Geofence::analyze_datetime_order()` so the metabox renderer can
+		// reuse the same map to paint `ffc-input-invalid` on the offending
+		// inputs without duplicating the rules.
+		$datetime_errors = \FreeFormCertificate\Security\Geofence::analyze_datetime_order( $config );
+		if ( ! empty( $datetime_errors ) ) {
+			// Dedupe — the helper repeats the same message across paired
+			// fields (e.g. both `date_start` and `date_end`); the operator
+			// only needs to see each rule once in the admin notice.
+			$errors = array_merge( $errors, array_values( array_unique( array_values( $datetime_errors ) ) ) );
 		}
 
 		// Validate GPS areas format.

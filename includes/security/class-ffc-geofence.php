@@ -27,6 +27,95 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Geofence {
 
 	/**
+	 * Resolve a per-phase `datetime_hide_mode_*` value from a geofence config
+	 * array, falling back to the legacy single `datetime_hide_mode` when the
+	 * new phase key is absent (forms saved before #159 S1 only have the legacy
+	 * key). Returns `'message'` if neither is present.
+	 *
+	 * @param array<string, mixed> $config Geofence config (`_ffc_geofence_config` meta).
+	 * @param string               $phase  One of `before`, `during`, `after`.
+	 * @return string One of `message`, `title_message`, `hide`.
+	 */
+	public static function resolve_hide_mode( array $config, string $phase ): string {
+		$key  = 'datetime_hide_mode_' . $phase;
+		$mode = $config[ $key ] ?? $config['datetime_hide_mode'] ?? 'message';
+		return is_string( $mode ) && '' !== $mode ? $mode : 'message';
+	}
+
+	/**
+	 * Analyze the date/time order in a geofence config. Returns a map of the
+	 * offending field name to a human-readable error message. The map is empty
+	 * when the order is valid (or when ranges are missing entirely — partial
+	 * configs are not in scope for order checks).
+	 *
+	 * Rules (additive — see #159 S2):
+	 *  - `date_end < date_start` → both date inputs invalid (any time_mode).
+	 *  - `time_mode='span'`: composed `date_end+time_end ≤ date_start+time_start`
+	 *    → both time inputs invalid.
+	 *  - `time_mode='daily'` with both times set: `time_end ≤ time_start`
+	 *    → both time inputs invalid (overnight recurring slots are not
+	 *    supported by the runtime — use `time_mode='span'` with `date_end` set
+	 *    to the next day for a single overnight event).
+	 *
+	 * The same map is consumed in two places: the save handler turns
+	 * `array_values()` into the existing `ffc_geofence_error_*` transient, and
+	 * the metabox renderer turns `array_keys()` into the `ffc-input-invalid`
+	 * CSS class on the affected inputs.
+	 *
+	 * @param array<string, mixed> $config Geofence config (cleaned or persisted).
+	 * @return array<string, string> Field name → error message. Empty if valid.
+	 */
+	public static function analyze_datetime_order( array $config ): array {
+		$errors = array();
+
+		$date_start = isset( $config['date_start'] ) ? (string) $config['date_start'] : '';
+		$date_end   = isset( $config['date_end'] ) ? (string) $config['date_end'] : '';
+		$time_start = isset( $config['time_start'] ) ? (string) $config['time_start'] : '';
+		$time_end   = isset( $config['time_end'] ) ? (string) $config['time_end'] : '';
+		$time_mode  = isset( $config['time_mode'] ) ? (string) $config['time_mode'] : 'daily';
+
+		// Date order — applies in any time_mode.
+		if ( '' !== $date_start && '' !== $date_end && $date_end < $date_start ) {
+			$msg                  = __( 'End date is earlier than the start date.', 'ffcertificate' );
+			$errors['date_start'] = $msg;
+			$errors['date_end']   = $msg;
+			// Return early — composed-datetime / daily-time checks below would
+			// just stack a redundant error on the same pair of inputs.
+			return $errors;
+		}
+
+		// Span mode — composed datetime must move forward in time.
+		if ( 'span' === $time_mode
+			&& '' !== $date_start && '' !== $date_end
+			&& '' !== $time_start && '' !== $time_end
+		) {
+			$start = $date_start . ' ' . $time_start;
+			$end   = $date_end . ' ' . $time_end;
+			if ( $end <= $start ) {
+				$msg                  = __( 'In span mode, the end datetime must be after the start datetime.', 'ffcertificate' );
+				$errors['time_start'] = $msg;
+				$errors['time_end']   = $msg;
+			}
+			return $errors;
+		}
+
+		// Daily mode — within a single day, end time must be after start time.
+		// Recurring overnight slots (e.g. 22:00–06:00) are not supported by the
+		// runtime; for a single overnight event use span mode with date_end on
+		// the next day.
+		if ( 'daily' === $time_mode
+			&& '' !== $time_start && '' !== $time_end
+			&& $time_end <= $time_start
+		) {
+			$msg                  = __( 'End time must be later than start time. For an overnight single event, switch the Time Mode to "Span" and set the end date to the next day.', 'ffcertificate' );
+			$errors['time_start'] = $msg;
+			$errors['time_end']   = $msg;
+		}
+
+		return $errors;
+	}
+
+	/**
 	 * Check if user can access form (complete validation)
 	 *
 	 * @param int                  $form_id Form ID.
@@ -601,14 +690,18 @@ class Geofence {
 				'hasGeo'      => $bypass_geo && $config['geo_enabled'],
 			) : null,
 			'datetime'    => array(
-				'enabled'   => ! $bypass_datetime && $config['datetime_enabled'],
-				'dateStart' => $config['date_start'] ?? '',
-				'dateEnd'   => $config['date_end'] ?? '',
-				'timeStart' => $config['time_start'] ?? '',
-				'timeEnd'   => $config['time_end'] ?? '',
-				'timeMode'  => $config['time_mode'] ?? 'daily', // 'span' or 'daily'
-				'message'   => $config['msg_datetime'] ?? '',
-				'hideMode'  => $config['datetime_hide_mode'] ?? 'message', // 'hide' or 'message'
+				'enabled'        => ! $bypass_datetime && $config['datetime_enabled'],
+				'dateStart'      => $config['date_start'] ?? '',
+				'dateEnd'        => $config['date_end'] ?? '',
+				'timeStart'      => $config['time_start'] ?? '',
+				'timeEnd'        => $config['time_end'] ?? '',
+				'timeMode'       => $config['time_mode'] ?? 'daily', // 'span' or 'daily'
+				'message'        => $config['msg_datetime'] ?? '',
+				// Per-phase hide modes (#159). Each one falls back to the legacy
+				// single `datetime_hide_mode` for forms saved before #159 S1.
+				'hideModeBefore' => self::resolve_hide_mode( $config, 'before' ),
+				'hideModeDuring' => self::resolve_hide_mode( $config, 'during' ),
+				'hideModeAfter'  => self::resolve_hide_mode( $config, 'after' ),
 			),
 			'geo'         => array(
 				'enabled'        => ! $bypass_geo && $config['geo_enabled'],
