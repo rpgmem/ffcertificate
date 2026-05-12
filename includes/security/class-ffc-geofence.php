@@ -27,6 +27,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Geofence {
 
 	/**
+	 * Resolve a per-phase `datetime_hide_mode_*` value from a geofence config
+	 * array, falling back to the legacy single `datetime_hide_mode` when the
+	 * new phase key is absent (forms saved before #159 S1 only have the legacy
+	 * key). Returns `'message'` if neither is present.
+	 *
+	 * @param array<string, mixed> $config Geofence config (`_ffc_geofence_config` meta).
+	 * @param string               $phase  One of `before`, `during`, `after`.
+	 * @return string One of `message`, `title_message`, `hide`.
+	 */
+	public static function resolve_hide_mode( array $config, string $phase ): string {
+		$key  = 'datetime_hide_mode_' . $phase;
+		$mode = $config[ $key ] ?? $config['datetime_hide_mode'] ?? 'message';
+		return is_string( $mode ) && '' !== $mode ? $mode : 'message';
+	}
+
+	/**
 	 * Check if user can access form (complete validation)
 	 *
 	 * @param int                  $form_id Form ID.

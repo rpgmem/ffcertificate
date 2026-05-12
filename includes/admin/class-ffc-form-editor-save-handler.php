@@ -135,16 +135,31 @@ class FormEditorSaveHandler {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
 			$geofence = wp_unslash( $_POST['ffc_geofence'] );
 
+			// Per-phase datetime hide modes (#159 S1). Each new key falls back to
+			// the legacy single `datetime_hide_mode` POSTed value while the UI is
+			// being migrated, so a save under the old single-dropdown UI still
+			// produces a valid three-key payload. The legacy key is no longer
+			// persisted on save.
+			$legacy_hide_mode = isset( $geofence['datetime_hide_mode'] )
+				? sanitize_key( $geofence['datetime_hide_mode'] )
+				: 'message';
+
+			$hide_mode_before = sanitize_key( $geofence['datetime_hide_mode_before'] ?? $legacy_hide_mode );
+			$hide_mode_during = sanitize_key( $geofence['datetime_hide_mode_during'] ?? $legacy_hide_mode );
+			$hide_mode_after  = sanitize_key( $geofence['datetime_hide_mode_after'] ?? $legacy_hide_mode );
+
 			$clean_geofence = array(
 				// DateTime settings.
-				'datetime_enabled'         => isset( $geofence['datetime_enabled'] ) ? '1' : '0',
-				'date_start'               => ! empty( $geofence['date_start'] ) ? sanitize_text_field( $geofence['date_start'] ) : '',
-				'date_end'                 => ! empty( $geofence['date_end'] ) ? sanitize_text_field( $geofence['date_end'] ) : '',
-				'time_start'               => ! empty( $geofence['time_start'] ) ? sanitize_text_field( $geofence['time_start'] ) : '',
-				'time_end'                 => ! empty( $geofence['time_end'] ) ? sanitize_text_field( $geofence['time_end'] ) : '',
-				'time_mode'                => sanitize_key( $geofence['time_mode'] ?? 'daily' ),
-				'datetime_hide_mode'       => sanitize_key( $geofence['datetime_hide_mode'] ?? 'message' ),
-				'msg_datetime'             => sanitize_textarea_field( $geofence['msg_datetime'] ?? '' ),
+				'datetime_enabled'          => isset( $geofence['datetime_enabled'] ) ? '1' : '0',
+				'date_start'                => ! empty( $geofence['date_start'] ) ? sanitize_text_field( $geofence['date_start'] ) : '',
+				'date_end'                  => ! empty( $geofence['date_end'] ) ? sanitize_text_field( $geofence['date_end'] ) : '',
+				'time_start'                => ! empty( $geofence['time_start'] ) ? sanitize_text_field( $geofence['time_start'] ) : '',
+				'time_end'                  => ! empty( $geofence['time_end'] ) ? sanitize_text_field( $geofence['time_end'] ) : '',
+				'time_mode'                 => sanitize_key( $geofence['time_mode'] ?? 'daily' ),
+				'datetime_hide_mode_before' => $hide_mode_before,
+				'datetime_hide_mode_during' => $hide_mode_during,
+				'datetime_hide_mode_after'  => $hide_mode_after,
+				'msg_datetime'              => sanitize_textarea_field( $geofence['msg_datetime'] ?? '' ),
 
 				// Geolocation settings.
 				'geo_enabled'              => isset( $geofence['geo_enabled'] ) ? '1' : '0',
