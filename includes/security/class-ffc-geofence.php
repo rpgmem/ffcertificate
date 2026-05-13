@@ -756,7 +756,7 @@ class Geofence {
 				'messageBlocked' => $config['msg_geo_blocked'] ?? '',
 				'messageError'   => $config['msg_geo_error'] ?? '',
 				'hideMode'       => $config['geo_hide_mode'] ?? 'message', // 'hide' or 'message'
-				'gpsFallback'    => $gps_fallback, // Per-case allow/block map — honoured by frontend on GPS failure
+				'gpsFallback'    => $gps_fallback, // Per-case allow/block map — honoured by frontend on GPS failure.
 				'cacheEnabled'   => true, // Always enable frontend cache.
 				'cacheTtl'       => $gps_cache_ttl, // From global settings.
 			),

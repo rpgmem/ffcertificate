@@ -140,12 +140,12 @@ class TabGeolocation extends SettingsTab {
 	 * matches one of those, otherwise 'custom'. Used by the admin UI to
 	 * pre-select the right combobox option on page load.
 	 *
-	 * @param array<string, string> $cases case key → 'allow' | 'block'
+	 * @param array<string, string> $cases case key → 'allow' | 'block'.
 	 * @return string
 	 */
 	public static function cases_to_preset( array $cases ): string {
 		foreach ( array( 'tolerant', 'hybrid', 'strict' ) as $preset ) {
-			if ( $cases === self::preset_to_cases( $preset ) ) {
+			if ( self::preset_to_cases( $preset ) === $cases ) {
 				return $preset;
 			}
 		}
@@ -200,9 +200,9 @@ class TabGeolocation extends SettingsTab {
 		// the new preset + cases structure so existing sites keep their
 		// behaviour without admin action.
 		if ( is_array( $stored ) && isset( $stored['gps_fallback'] ) && ! isset( $stored['gps_fallback_preset'] ) ) {
-			$legacy_preset                    = ( 'block' === $stored['gps_fallback'] ) ? 'strict' : 'tolerant';
-			$stored['gps_fallback_preset']    = $legacy_preset;
-			$stored['gps_fallback_cases']     = self::preset_to_cases( $legacy_preset );
+			$legacy_preset                 = ( 'block' === $stored['gps_fallback'] ) ? 'strict' : 'tolerant';
+			$stored['gps_fallback_preset'] = $legacy_preset;
+			$stored['gps_fallback_cases']  = self::preset_to_cases( $legacy_preset );
 			unset( $stored['gps_fallback'] );
 		}
 
@@ -251,7 +251,7 @@ class TabGeolocation extends SettingsTab {
 			}
 			$cases = array();
 			foreach ( self::gps_fallback_case_keys() as $case_key ) {
-				$value             = sanitize_key( $raw_cases[ $case_key ] ?? 'block' );
+				$value              = sanitize_key( $raw_cases[ $case_key ] ?? 'block' );
 				$cases[ $case_key ] = in_array( $value, array( 'allow', 'block' ), true ) ? $value : 'block';
 			}
 		} else {
