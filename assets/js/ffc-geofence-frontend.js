@@ -551,6 +551,15 @@
          */
         showForm: function(formWrapper) {
             formWrapper.addClass('ffc-validated');
+            // validateGeolocation calls `.hide()` on the form body before
+            // requesting GPS, which sets an inline `display: none`. The
+            // matching CSS show rule is `!important`, which the spec says
+            // beats inline non-important — but at least one real browser
+            // path (reported post-#191) ignored it and left the form
+            // hidden. Clearing the inline style explicitly here is cheap
+            // and removes any dependency on cascade resolution order: the
+            // form becomes visible the moment we add `.ffc-validated`.
+            formWrapper.find('.ffc-submission-form').show();
             this.debug('Form validation passed, showing form');
         },
 
