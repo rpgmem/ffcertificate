@@ -77,7 +77,9 @@
                     return;
                 }
                 eventsByDate = {};
-                if ($.isArray(response)) {
+                // `$.isArray` was removed in jQuery 4; native Array.isArray
+                // is the modern equivalent and works in every supported env.
+                if (Array.isArray(response)) {
                     for (var i = 0; i < response.length; i++) {
                         var entry = response[i];
                         if (!entry || !entry.date) {
