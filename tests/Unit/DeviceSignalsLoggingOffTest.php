@@ -61,11 +61,11 @@ class DeviceSignalsLoggingOffTest extends TestCase {
     }
 
     public function test_vendored_thumbmarkjs_present_at_pinned_path(): void {
-        $path = dirname( __DIR__, 2 ) . '/libs/js/thumbmark-1.8.1.umd.js';
+        $path = dirname( __DIR__, 2 ) . '/libs/js/thumbmark-1.9.0.umd.js';
         $this->assertFileExists(
             $path,
             'Vendored thumbmarkjs UMD bundle is missing. Re-download from '
-            . 'https://cdn.jsdelivr.net/npm/@thumbmarkjs/thumbmarkjs@1.8.1/dist/thumbmark.umd.js'
+            . 'https://cdn.jsdelivr.net/npm/@thumbmarkjs/thumbmarkjs@1.9.0/dist/thumbmark.umd.js'
         );
         $this->assertGreaterThan( 10000, filesize( $path ), 'Vendored bundle looks truncated.' );
     }
