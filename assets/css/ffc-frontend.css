@@ -847,13 +847,19 @@ details.ffc-consent-description > p {
 /* ============================================
    GEOFENCE - PREVENT FORM FLASH (v3.0.0)
    ============================================ */
-/* Hide form initially when geofence is active to prevent flash */
-.ffc-shortcode .ffc-has-geofence .ffc-submission-form {
+/* Hide form initially when geofence is active to prevent flash.
+   Selectors below use the chained-class form (no whitespace between
+   `.ffc-shortcode` and `.ffc-has-geofence`) because the shortcode
+   render puts both classes on the SAME wrapper div in
+   class-ffc-shortcodes.php — a descendant combinator can't match
+   classes that live on the same element, which previously left the
+   form visible until JS hid it. */
+.ffc-shortcode.ffc-has-geofence .ffc-submission-form {
     display: none !important;
 }
 
 /* Show form after successful validation */
-.ffc-shortcode .ffc-has-geofence.ffc-validated .ffc-submission-form {
+.ffc-shortcode.ffc-has-geofence.ffc-validated .ffc-submission-form {
     display: block !important;
 }
 
